@@ -10,16 +10,23 @@
 									*/
 #include "ipnfw.h"
 
-static int	handleStatusRpt(BpDelivery *dlv, BpStatusRpt *rpt)
+static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
+			unsigned int unparsedBytes)
 {
+	BpStatusRpt	rpt;
 	char		memobuf[1024];
 	unsigned int	statusTime = 0;
 	char		*reasonString;
 
-	if (rpt->flags & BP_DELETED_RPT)
+	if (parseStatusRpt(&rpt, cursor, unparsedBytes) < 1)
 	{
-		statusTime = rpt->deletionTime.seconds;
-		switch (rpt->reasonCode)
+		return 0;
+	}
+
+	if (rpt.flags & BP_DELETED_RPT)
+	{
+		statusTime = rpt.deletionTime;
+		switch (rpt.reasonCode)
 		{
 		case SrLifetimeExpired:
 			reasonString = "TTL expired";
@@ -60,27 +67,28 @@ static int	handleStatusRpt(BpDelivery *dlv, BpStatusRpt *rpt)
 	else
 	{
 		reasonString = "okay";
-		if (rpt->flags & BP_RECEIVED_RPT)
+		if (rpt.flags & BP_RECEIVED_RPT)
 		{
-			statusTime = rpt->receiptTime.seconds;
+			statusTime = rpt.receiptTime;
 		}
 
-		if (rpt->flags & BP_FORWARDED_RPT)
+		if (rpt.flags & BP_FORWARDED_RPT)
 		{
-			statusTime = rpt->forwardTime.seconds;
+			statusTime = rpt.forwardTime;
 		}
 
-		if (rpt->flags & BP_DELIVERED_RPT)
+		if (rpt.flags & BP_DELIVERED_RPT)
 		{
-			statusTime = rpt->deliveryTime.seconds;
+			statusTime = rpt.deliveryTime;
 		}
 	}
 
 	isprintf(memobuf, sizeof memobuf, "[s] (%s)/%u:%u/%u status %d at \
-%u on %s, '%s'.", rpt->sourceEid, rpt->creationTime.seconds,
-		rpt->creationTime.count, rpt->fragmentOffset, rpt->flags,
+%lu on %s, '%s'.", rpt.sourceEid, rpt.creationTime.seconds,
+		rpt.creationTime.count, rpt.fragmentOffset, rpt.flags,
 		statusTime, dlv->bundleSourceEid, reasonString);
 	writeMemo(memobuf);
+	eraseEid(&rpt.sourceEid);
 	return 0;
 }
 

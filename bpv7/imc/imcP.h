@@ -44,7 +44,7 @@ extern void		imcFindGroup(uvast groupNbr, Object *addr,
 				Object *eltp);
 
 extern int		imcParsePetition(void **petition, unsigned char *cursor,
-				int unparsedBytes);
+				unsigned int unparsedBytes);
 extern int		imcHandlePetition(void *petition, BpDelivery *dlv);
 
 #ifdef __cplusplus

@@ -10,13 +10,20 @@
 									*/
 #include "dtn2fw.h"
 
-static int	handleStatusRpt(BpDelivery *dlv, BpStatusRpt *rpt)
+static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
+			unsigned int unparsedBytes)
 {
-	char	memobuf[1024];
+	BpStatusRpt	rpt;
+	char		memobuf[1024];
+
+	if (parseStatusRpt(&rpt, cursor, unparsedBytes) < 1)
+	{
+		return 0;
+	}
 
 	isprintf(memobuf, sizeof memobuf, "[i] bundle (%s), %u:%u, %u \
-status is %d", rpt->sourceEid, rpt->creationTime.seconds,
-		rpt->creationTime.count, rpt->fragmentOffset, rpt->reasonCode);
+status is %d", rpt.sourceEid, rpt.creationTime.seconds,
+		rpt.creationTime.count, rpt.fragmentOffset, rpt.reasonCode);
 	writeMemo(memobuf);
 	return 0;
 }

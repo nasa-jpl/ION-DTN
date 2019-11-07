@@ -645,11 +645,13 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 		uvtemp = 0;
 		if (blk->crcType == X25CRC16)
 		{
-			oK(cbor_encode_fixed_int(uvtemp, CborShort, &cursor));
+			oK(cbor_encode_byte_string((unsigned char *) &uvtemp,
+					2, &cursor));
 		}
 		else		/*	CRC32C.				*/
 		{
-			oK(cbor_encode_fixed_int(uvtemp, CborInt, &cursor));
+			oK(cbor_encode_byte_string((unsigned char *) &uvtemp,
+					4, &cursor));
 		}
 
 		oK(computeBufferCrc(blk->crcType, blkBuffer, cursor - blkBuffer,

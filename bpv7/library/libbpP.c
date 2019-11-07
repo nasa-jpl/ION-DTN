@@ -18,9 +18,9 @@
  *	09-04-19  SCB	Revision per version 7 of Bundle Protocol spec.
  */
 
+#include "bpP.h"
 #include "sdrhash.h"
 #include "smrbt.h"
-#include "bpP.h"
 #include "bei.h"
 #include "eureka.h"
 
@@ -64,7 +64,7 @@ extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
 extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
 
 static BpVdb	*_bpvdb(char **);
-static int	serializeStatusRpt(BpStatusRpt *rpt, Object *zco);
+static int	serializeEid(EndpointId *eid, unsigned char *buffer);
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -2832,10 +2832,10 @@ incomplete bundle.", NULL);
 		{
 			bundle.statusRpt.flags |= BP_DELETED_RPT;
 			bundle.statusRpt.reasonCode = SrLifetimeExpired;
-			if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+			if (bundle.bundleProcFlags & BDL_STATUS_TIME_REQ)
 			{
 				getCurrentDtnTime
-					(&(bundle->statusRpt.deletionTime));
+					(&(bundle.statusRpt.deletionTime));
 			}
 
 			if (sendStatusRpt(&bundle) < 0)
@@ -3401,6 +3401,39 @@ void	findEndpoint(char *schemeName, char *nss, VScheme *vscheme,
 	*vpointElt = elt;
 }
 
+static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
+{
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->codeNumber != imc || eid == NULL)
+	{
+		return 0;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in addEndpoint.				*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
+	result = imcJoin(metaEid.elementNbr);
+	restoreEidString(&metaEid);
+	return result;
+}
+
 int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 {
 	Sdr		sdr = getIonsdr();
@@ -3553,6 +3586,39 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	}
 
 	return 1;
+}
+
+static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
+{
+	MetaEid		metaEid;
+	PsmAddress	elt;
+	int		result;
+
+	if (vscheme->codeNumber != imc || eid == NULL)
+	{
+		return 0;
+	}
+
+	if (imcInit() < 0)
+	{
+		putErrmsg("Can't initialize IMC database.", NULL);
+		return -1;
+	}
+
+	/*	We know the EID parses okay, because it was already
+	 *	parsed earlier in removeEndpoint.			*/
+
+	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	if (metaEid.serviceNbr != 0)
+	{
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
+		return 0;
+	}
+
+	result = imcLeave(metaEid.elementNbr);
+	restoreEidString(&metaEid);
+	return result;
 }
 
 int	removeEndpoint(char *eid)
@@ -6172,7 +6238,7 @@ when asking for status reports.");
 		getCurrentDtnTime(&currentDtnTime);
 		if (bpdb.creationTimeSec == 0)	/*	First bundle.	*/
 		{
-			bpdb.creationTimeSec = currentDtnTime.seconds;
+			bpdb.creationTimeSec = currentDtnTime;
 		}
 	}
 	else
@@ -6180,10 +6246,10 @@ when asking for status reports.");
 		/*	If no synchronized clock, then creationTime
 		 *	seconds is always zero.				*/
 	       
-		currentDtnTime.seconds = 0;
+		currentDtnTime = 0;
 	}
 
-	bundle.id.creationTime.seconds = currentDtnTime.seconds;
+	bundle.id.creationTime.seconds = currentDtnTime;
 
 	/*	In either case, a non-volatile bundle counter is
 	 *	incremented monotonically, resetting to zero only
@@ -6197,12 +6263,12 @@ when asking for status reports.");
 	{
 		if (ionClockIsSynchronized())
 		{
-			if (currentDtnTime.seconds > bpdb.creationTimeSec)
+			if (currentDtnTime > bpdb.creationTimeSec)
 			{
 				/*	Safe to roll the counter over.	*/
 
 				bpdb.bundleCounter = 0;
-				bpdb.creationTimeSec = currentDtnTime.seconds;
+				bpdb.creationTimeSec = currentDtnTime;
 			}
 		}
 		else	/*	No synchronized clock, just counter.	*/
@@ -6343,90 +6409,6 @@ when asking for status reports.");
 }
 
 /*	*	*	Bundle reception functions	*	*	*/
-
-int	sendStatusRpt(Bundle *bundle)
-{
-	int		priority = bundle->priority;
-	unsigned int	ttl;	/*	Original bundle's TTL.		*/
-	BpAncillaryData	ecos = { 0, 0, bundle->ancillaryData.ordinal };
-	Object		payloadZco = 0;
-	char		*reportToEid;
-	int		result;
-
-	CHKERR(bundle);
-	if (bundle->statusRpt.creationTime.seconds == 0)
-	{
-		bundle->statusRpt.creationTime.seconds
-				= bundle->id.creationTime.seconds;
-		bundle->statusRpt.creationTime.count
-				= bundle->id.creationTime.count;
-	}
-
-	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-	{
-		bundle->statusRpt.isFragment = 1;
-		bundle->statusRpt.fragmentOffset = bundle->id.fragmentOffset;
-		bundle->statusRpt.fragmentLength = bundle->payload.length;
-	}
-	else
-	{
-		bundle->statusRpt.isFragment = 0;
-		bundle->statusRpt.fragmentOffset = 0;
-		bundle->statusRpt.fragmentLength = 0;
-	}
-
-	ttl = bundle->timeToLive;
-	if (ttl < 1) ttl = 1;
-	if (readEid(&bundle->id.source, &bundle->statusRpt.sourceEid) < 0)
-	{
-		putErrmsg("Can't recover source EID string.", NULL);
-		return -1;
-	}
-
-	result = serializeStatusRpt(&(bundle->statusRpt), &payloadZco);
-	MRELEASE(bundle->statusRpt.sourceEid);
-	if (result < 0)
-	{
-		putErrmsg("Can't construct status report.", NULL);
-		return -1;
-	}
-
-	if (readEid(&bundle->reportTo, &reportToEid) < 0)
-	{
-		putErrmsg("Can't recover report-to EID string.", NULL);
-		return -1;
-	}
-
-	result = bpSend(NULL, reportToEid, NULL, ttl, priority,
-			NoCustodyRequested, 0, 0, &ecos, payloadZco, NULL,
-			BP_STATUS_REPORT);
-	MRELEASE(reportToEid);
-       	switch (result)
-	{
-	case -1:
-		putErrmsg("Can't send status report.", NULL);
-		return -1;
-
-	case 0:
-		writeMemo("[?] Status report not transmitted.");
-
-			/*	Intentional fall-through to next case.	*/
-
-	default:
-		break;
-	}
-
-	/*	Erase flags and times in case another status report for
-	 *	the same bundle needs to be sent later.			*/
-
-	bundle->statusRpt.flags = 0;
-	bundle->statusRpt.reasonCode = 0;
-	memset(&bundle->statusRpt.receiptTime, 0, sizeof(DtnTime));
-	memset(&bundle->statusRpt.forwardTime, 0, sizeof(DtnTime));
-	memset(&bundle->statusRpt.deliveryTime, 0, sizeof(DtnTime));
-	memset(&bundle->statusRpt.deletionTime, 0, sizeof(DtnTime));
-	return 0;
-}
 
 void	lookUpEndpoint(EndpointId *eid, VScheme *vscheme, VEndpoint **vpoint)
 {
@@ -7403,7 +7385,8 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	/*	Start parsing the endpoint ID.				*/
 
 	arrayLength = 2;	/*	Decode array of size 2.		*/
-	if (cbor_decode_array_open(&arrayLength, cursor, bytesRemaining) < 1)
+	length = cbor_decode_array_open(&arrayLength, cursor, bytesRemaining);
+       	if (length < 1)
 	{
 		writeMemo("[?] Can't decode endpoint ID.");
 		return 0;
@@ -7413,7 +7396,8 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor,
 
 	/*	Acquire the EID scheme ID number.			*/
 
-	if (cbor_decode_integer(&uvtemp, cursor, bytesRemaining) < 1)
+	length = cbor_decode_integer(&uvtemp, CborAny, cursor, bytesRemaining);
+	if (length < 1)
 	{
 		writeMemo("[?] Can't decode EID scheme.");
 		return 0;
@@ -7469,7 +7453,7 @@ static int	acquireEid(EndpointId *eid, unsigned char **cursor,
 
 			sspLen = 255;
 			length = cbor_decode_text_string(eidString + 4,
-					&sspLen, cursor, bytesBuffered);
+					&sspLen, cursor, bytesRemaining);
 		       	if (length < 1)
 			{
 				writeMemo("[?] Can't decode dtn string SSP.");
@@ -8051,7 +8035,7 @@ static int	acquireBlock(AcqWorkArea *work)
 {
 	Bundle		*bundle;
 	int		bytesToParse;
-	int		unparsedBytes;
+	unsigned int	unparsedBytes;
 	unsigned char	*cursor;
 	unsigned char	*startOfBlock;
 	uvast		arrayLength;
@@ -9093,21 +9077,35 @@ int	bpEndAcq(AcqWorkArea *work)
 
 /*	*	*	Status report functions		*	*	*/
 
-static int	serializeStatusRpt(BpStatusRpt *rpt, Object *zco)
+static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned char	adminRecordFlag = (BP_STATUS_REPORT << 4);
+	BpStatusRpt	*rpt = &(bundle->statusRpt);
 	uvast		uvtemp;
-	char		rptbuf[500];
-	char		*cursor;
+	unsigned char	rptbuf[500];
+	unsigned char	*cursor;
 	int		eidLength;
 	int		rptLength;
 	Object		sourceData;
 
-	CHKERR(rpt);
+	CHKERR(bundle);
 	CHKERR(zco);
 	cursor = rptbuf;
 	memset(rptbuf, 0, sizeof rptbuf);
+
+	/*	Sending an admin record, an array of 2 items.		*/
+
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	First item of admin record is record type code.		*/
+
+	uvtemp = BP_STATUS_REPORT;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Second item of admin record is content, the status
+	 *	report, which is an array of either 4 or 6 items.	*/
+
 	if (rpt->isFragment)
 	{
 		uvtemp = 6;
@@ -9118,6 +9116,10 @@ static int	serializeStatusRpt(BpStatusRpt *rpt, Object *zco)
 	}
 
 	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	The first item of the status report is an array
+	 *	of status assertions.					*/
+
 	uvtemp = 4;		/*	Array of status assertions.	*/
 	oK(cbor_encode_array_open(uvtemp, &cursor));
 
@@ -9237,34 +9239,37 @@ static int	serializeStatusRpt(BpStatusRpt *rpt, Object *zco)
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
-	/*	Serialize the reason code.				*/
+	/*	The second item is the reason code.			*/
 
 	uvtemp = rpt->reasonCode;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	Serialize the source node ID.				*/
+	/*	The third item is the source node ID.			*/
 
-	eidLength = serializeEid(&(rpt->sourceEid), cursor);
+	eidLength = serializeEid(&(bundle->id.source), cursor);
 	cursor += eidLength;
 
-	/*	Serialize the creation timestamp.			*/
+	/*	The fourth item is the creation timestamp.		*/
 
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
-	uvtemp = rpt->creationTime.seconds;
+	uvtemp = bundle->id.creationTime.seconds;
 	oK(cbor_encode_integer(uvtemp, &cursor));
-	uvtemp = rpt->creationTime.count;
+	uvtemp = bundle->id.creationTime.count;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	If applicable, serialize the fragement offset & length.	*/
+	/*	If applicable, the fifth and sixth items are the
+	 *	fragment offset & length.				*/
 
 	if (rpt->isFragment)
 	{
-		uvtemp = rpt->fragmentOffset;
+		uvtemp = bundle->id.fragmentOffset;
 		oK(cbor_encode_integer(uvtemp, &cursor));
-		uvtemp = rpt->fragmentLength;
+		uvtemp = bundle->payload.length;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
+
+	/*	Administrative record has now been serialized.		*/
 
 	rptLength = cursor - rptbuf;
 	CHKERR(sdr_begin_xn(sdr));
@@ -9273,11 +9278,10 @@ static int	serializeStatusRpt(BpStatusRpt *rpt, Object *zco)
 	{
 		putErrmsg("No space for source data.", NULL);
 		sdr_cancel_xn(sdr);
-		MRELEASE(buffer);
 		return -1;
 	}
 
-	sdr_write(sdr, sourceData, rptbuf, rptLength);
+	sdr_write(sdr, sourceData, (char *) rptbuf, rptLength);
 
 	/*	Pass additive inverse of length to zco_create to
 	 *	indicate that allocating this ZCO space is non-
@@ -9295,8 +9299,64 @@ static int	serializeStatusRpt(BpStatusRpt *rpt, Object *zco)
 	return 0;
 }
 
-static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
-	       		int unparsedBytes)
+int	sendStatusRpt(Bundle *bundle)
+{
+	int		priority = bundle->priority;
+	BpAncillaryData	ecos = { 0, 0, bundle->ancillaryData.ordinal };
+	Object		payloadZco = 0;
+	unsigned int	ttl;	/*	Original bundle's TTL.		*/
+	char		*reportToEid;
+	int		result;
+
+	CHKERR(bundle);
+	result = serializeStatusRpt(bundle, &payloadZco);
+	if (result < 0)
+	{
+		putErrmsg("Can't construct status report.", NULL);
+		return -1;
+	}
+
+	ttl = bundle->timeToLive;
+	if (ttl < 1) ttl = 1;
+	if (readEid(&bundle->reportTo, &reportToEid) < 0)
+	{
+		putErrmsg("Can't recover report-to EID string.", NULL);
+		return -1;
+	}
+
+	result = bpSend(NULL, reportToEid, NULL, ttl, priority,
+			NoCustodyRequested, 0, 0, &ecos, payloadZco, NULL,
+			BP_STATUS_REPORT);
+	MRELEASE(reportToEid);
+       	switch (result)
+	{
+	case -1:
+		putErrmsg("Can't send status report.", NULL);
+		return -1;
+
+	case 0:
+		writeMemo("[?] Status report not transmitted.");
+
+			/*	Intentional fall-through to next case.	*/
+
+	default:
+		break;
+	}
+
+	/*	Erase flags and times in case another status report for
+	 *	the same bundle needs to be sent later.			*/
+
+	bundle->statusRpt.flags = 0;
+	bundle->statusRpt.reasonCode = 0;
+	bundle->statusRpt.receiptTime = 0;
+	bundle->statusRpt.forwardTime = 0;
+	bundle->statusRpt.deliveryTime = 0;
+	bundle->statusRpt.deletionTime = 0;
+	return 0;
+}
+
+int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
+	       		unsigned int unparsedBytes)
 {
 	uvast		arrayLength;
 	uvast		uvtemp;
@@ -9305,7 +9365,6 @@ static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	uvast		statusAssertionsRemaining;
 	int		i;
 	DtnTime		statusTime;
-	unsigned int	eidLength;
 
 	memset((char *) rpt, 0, sizeof(BpStatusRpt));
 	
@@ -9400,17 +9459,17 @@ static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 				rpt->receiptTime = statusTime;
 				break;
 
-			case 0:
+			case 1:
 				rpt->flags |= BP_FORWARDED_RPT;
 				rpt->forwardTime = statusTime;
 				break;
 
-			case 0:
+			case 2:
 				rpt->flags |= BP_DELIVERED_RPT;
 				rpt->deliveryTime = statusTime;
 				break;
 
-			case 0:
+			case 3:
 				rpt->flags |= BP_DELETED_RPT;
 				rpt->deletionTime = statusTime;
 				break;
@@ -9487,124 +9546,19 @@ static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 	return 1;
 }
 
-static void	bpEraseStatusRpt(BpStatusRpt *rpt)
-{
-	eraseEid(&(rpt->sourceEid));
-}
-
-/*	*	*	General admin record functions	*	*	*/
-
-static int	parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,
-			void **otherPtr, Object payload)
-{
-	Sdr		sdr = getIonsdr();
-	unsigned int	buflen;
-	char		*buffer;
-	ZcoReader	reader;
-	char		*cursor;
-	int		bytesToParse;
-	int		unparsedBytes;
-	uvast		arrayLength;
-	uvast		uvtemp;
-	int		length;
-
-	CHKERR(adminRecordType && rpt && payload);
-	CHKERR(sdr_begin_xn(sdr));
-	buflen = zco_source_data_length(sdr, payload);
-	if ((buffer = MTAKE(buflen)) == NULL)
-	{
-		putErrmsg("Can't start parsing admin record.", NULL);
-		oK(sdr_end_xn(sdr));
-		return -1;
-	}
-
-	zco_start_receiving(payload, &reader);
-	bytesToParse = zco_receive_source(sdr, &reader, buflen, buffer);
-	if (bytesToParse < 0)
-	{
-		putErrmsg("Can't receive admin record.", NULL);
-		oK(sdr_end_xn(sdr));
-		MRELEASE(buffer);
-		return -1;
-	}
-
-	cursor = buffer;
-	unparsedBytes = bytesToParse;
-
-	/*	Start parsing the administrative record.		*/
-
-	arrayLength = 2;	/*	Decode array of size 2.		*/
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode admin record.");
-		oK(sdr_end_xn(sdr));
-		MRELEASE(buffer);
-		return 0;
-	}
-
-	/*	Parse administrative record type code.			*/
-
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode admin record type.");
-		oK(sdr_end_xn(sdr));
-		MRELEASE(buffer);
-		return 0;
-	}
-
-	*adminRecordType = uvtemp;
-	switch (*adminRecordType)
-	{
-	case BP_STATUS_REPORT:
-		result = parseStatusRpt(rpt, (unsigned char *) cursor,
-				unparsedBytes);
-		break;
-
-	case BP_MULTICAST_PETITION:	/*	Multicast protocol.	*/
-		result = parseImcPetition(otherPtr,
-				(unsigned char *) cursor, unparsedBytes);
-		break;
-
-	case BP_SAGA_MESSAGE:		/*	Discovery history.	*/
-		result = parseSagaMessage(otherPtr,
-				(unsigned char *) cursor, unparsedBytes);
-		break;
-
-	case BP_BIBE_PDU:		/*	Encapsulated bundle.	*/
-		*otherPtr = NULL;	/*	To be developed.	*/
-		result = 1;
-		break;
-
-	case BP_BIBE_SIGNAL:		/*	Aggregate custody.	*/
-		*otherPtr = NULL;	/*	To be developed.	*/
-		result = 1;
-		break;
-
-	default:			/*	Unknown admin record.	*/
-		writeMemoNote("[?] Unknown admin record type",
-				itoa(*adminRecordType));
-		result = 0;
-	}
-
-	oK(sdr_end_xn(sdr));
-	MRELEASE(buffer);
-	return result;
-}
-
 /*	*	*	Bundle catenation functions	*	*	*/
 
-static int	serializeEid(EndpointId *eid, char *buffer)
+static int	serializeEid(EndpointId *eid, unsigned char *buffer)
 {
 	/*	Note: we assume that the buffer is large enough to
 	 *	hold a serialized EID, i.e., 300 bytes.  The largest 
 	 *	allowable DTN SSP is 255 (which lets the SSP be stored
 	 *	in an sdrstring).					*/
 
-	uvast	uvtemp;
-	char	*cursor = buffer;
-	char	*eidbuf;
-	char	*nss;
-	int	nsslen;
+	uvast		uvtemp;
+	unsigned char	*cursor = buffer;
+	char		*eidbuf;
+	char		*nss;
 
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
@@ -9613,21 +9567,21 @@ static int	serializeEid(EndpointId *eid, char *buffer)
 	switch (eid->schemeCodeNbr)
 	{
 	case dtn:
-		if (readEid(eid, &eidBuf) < 0)
+		if (readEid(eid, &eidbuf) < 0)
 		{
 			putErrmsg("Can't serialize EID NSS.", NULL);
 			return -1;
 		}
 
-		if (strcmp(eidBuf, "dtn:none") == 0)
+		if (strcmp(eidbuf, "dtn:none") == 0)
 		{
 			oK(cbor_encode_integer(0, &cursor));
 		}
 		else
 		{
 			nss = eidbuf + 4;
-			nsslen = istrlen(nss, MAX_NSS_LEN);
-			oK(cbor_encode_text_string(nss, nsslen, &cursor));
+			uvtemp = istrlen(nss, MAX_NSS_LEN);
+			oK(cbor_encode_text_string(nss, uvtemp, &cursor));
 		}
 
 		MRELEASE(eidbuf);
@@ -9641,9 +9595,9 @@ static int	serializeEid(EndpointId *eid, char *buffer)
 		break;
 
 	case imc:
-		uvtemp = eid->ssp.ipn.groupNbr;
+		uvtemp = eid->ssp.imc.groupNbr;
 		oK(cbor_encode_integer(uvtemp, &cursor));
-		uvtemp = eid->ssp.ipn.serviceNbr;
+		uvtemp = eid->ssp.imc.serviceNbr;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		break;
 
@@ -9659,22 +9613,32 @@ static int	serializeEid(EndpointId *eid, char *buffer)
 static int	catenateBundle(Bundle *bundle)
 {
 	Sdr		sdr = getIonsdr();
-	char		destinationEid[300];
+	unsigned char	destinationEid[300];
 	int		destinationEidLength;
-	char		sourceEid[300];
+	unsigned char	sourceEid[300];
 	int		sourceEidLength;
-	char		reportToEid[300];
+	unsigned char	reportToEid[300];
 	int		reportToEidLength;
 	int		maxHeaderLength;
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		bundleIsFragment = 0;
-	int		primaryBlockLength;
-	uint16_t	crc;
+	uint16_t	crc16;
 	Object		elt;
 	Object		blkAddr;
 	ExtensionBlock	blk;
+	int		totalHeaderLength;
+	unsigned char	payloadBuffer[50];
+	unsigned char	*cursor2;
+	int		payloadBlockHeaderLength;
+	uvast		crc;
+	uint32_t	crc32;
+	unsigned char	crcBuffer[8];
+	unsigned char	*cursor3;
+	ZcoReader	reader;
+	unsigned char	breakChar[1];
+	unsigned char	*cursor4;
 
 	CHKZERO(ionLocked());
 
@@ -9699,7 +9663,7 @@ static int	catenateBundle(Bundle *bundle)
 
 	/*	Can now compute max header length: 50 for remainder
 	 *	of primary block, plus 20 times the total number of
-	 *	canonical blocks (including the payload block, plus
+	 *	canonical blocks (including the payload block), plus
 	 *	the aggregate length of all extension blocks' block-
 	 *	specific data length.					*/
 
@@ -9707,7 +9671,7 @@ static int	catenateBundle(Bundle *bundle)
 			+ destinationEidLength
 			+ sourceEidLength
 			+ reportToEidLength
-			+ (20 * (1 + sdr_listLength(sdr, bundle->extensions)))
+			+ (20 * (1 + sdr_list_length(sdr, bundle->extensions)))
 			+ bundle->extensionsLength;
 	buffer = MTAKE(maxHeaderLength);
 	if (buffer == NULL)
@@ -9723,7 +9687,7 @@ static int	catenateBundle(Bundle *bundle)
 	uvtemp = ((uvast) -1);
 	oK(cbor_encode_array_open(uvtemp, &cursor));
 
-	/*	Construct primary block.				*/
+	/*	Serialize primary block.				*/
 
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
@@ -9732,50 +9696,89 @@ static int	catenateBundle(Bundle *bundle)
 
 	if (bundleIsFragment)
 	{
-		uvast = 12;
+		uvtemp = 12;
 	}
 	else
 	{
-		uvast = 10;
+		uvtemp = 10;
 	}
 
 	oK(cbor_encode_array_open(uvtemp, &cursor));
-	uvast = BP_VERSION;
+
+	/*	Version.						*/
+
+	uvtemp = BP_VERSION;
 	oK(cbor_encode_integer(uvtemp, &cursor));
-	uvast = bundle->bundleProcFlags;
+
+	/*	Bundle processing flags.				*/
+
+	uvtemp = bundle->bundleProcFlags;
 	oK(cbor_encode_integer(uvtemp, &cursor));
-	uvast = X25CRC16;
+
+	/*	Primary block CRC type.					*/
+
+	uvtemp = X25CRC16;
 	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Destination.						*/
+
 	memcpy(cursor, destinationEid, destinationEidLength);
 	cursor += destinationEidLength;
+
+	/*	Source.							*/
+
 	memcpy(cursor, sourceEid, sourceEidLength);
 	cursor += sourceEidLength;
+
+	/*	Report-to.						*/
+
 	memcpy(cursor, reportToEid, reportToEidLength);
 	cursor += reportToEidLength;
-	uvast = 2;
-	oK(cbor_encode_array_open(uvetmp, &cursor));
-	uvast = bundle->creationTime.seconds;
+
+	/*	Creation timestamp array.				*/
+
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	Creation time seconds.					*/
+
+	uvtemp = bundle->id.creationTime.seconds;
 	oK(cbor_encode_integer(uvtemp, &cursor));
-	uvast = bundle->creationTime.count;
+
+	/*	Creation time count.					*/
+
+	uvtemp = bundle->id.creationTime.count;
 	oK(cbor_encode_integer(uvtemp, &cursor));
-	uvast = bundle->timeToLive;
+
+	/*	TTL.							*/
+
+	uvtemp = bundle->timeToLive;
 	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Fragment ID, if applicable.				*/
+
 	if (bundleIsFragment)
 	{
-		uvast = bundle->id.fragmentOffset;
+		/*	Fragment offset.				*/
+
+		uvtemp = bundle->id.fragmentOffset;
 		oK(cbor_encode_integer(uvtemp, &cursor));
-		uvast = bundle->payload.length;
+
+		/*	Fragment length.				*/
+
+		uvtemp = bundle->payload.length;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
-	crc = 0;
-	uvast = 2;
-	oK(cbor_encode_byte_string((unsigned char *) &crc, uvast, &cursor));
-	crc = ion_CRC16_1021_X25(buffer, cursor - buffer, 0);
-	crc = htons(crc);
-	memcpy(crc - 2, (char *) &crc, 2);
+	/*	Compute and insert primary block CRC.			*/
 
-	/*	Insert extension blocks.				*/
+	crc16 = 0;
+	oK(cbor_encode_byte_string((unsigned char *) &crc16, 2, &cursor));
+	crc16 = ion_CRC16_1021_X25((char *) buffer, cursor - buffer, 0);
+	crc16 = htons(crc16);
+	memcpy(cursor - 2, (char *) &crc16, 2);
+
+	/*	Done with primary block, now insert extension blocks.	*/
 
 	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -9787,19 +9790,107 @@ static int	catenateBundle(Bundle *bundle)
 			continue;
 		}
 
-		resume here
+		/*	"bytes" array of extension block is already
+		 *	serialized.					*/
 
 		sdr_read(sdr, (char *) cursor, blk.bytes, blk.length);
 		cursor += blk.length;
 	}
 
-	/*	Construct payload block.				*/
+	/*	Done with everything preceding the payload block.	*/
 
-	/*	Prepend header (all blocks) to bundle ZCO.		*/
+	totalHeaderLength = cursor - buffer;
+
+	/*	Serialize payload block.				*/
+
+	cursor2 = payloadBuffer;
+	uvtemp = (bundle->payload.crcType == NoCRC ? 5 : 6);
+	oK(cbor_encode_array_open(uvtemp, &cursor2));
+
+	/*	Block type and number are fixed.			*/
+
+	uvtemp = 1;		/*	Payload block type is 1.	*/
+	oK(cbor_encode_integer(uvtemp, &cursor2));
+	uvtemp = 1;		/*	Payload block number is 1.	*/
+	oK(cbor_encode_integer(uvtemp, &cursor2));
+
+	/*	Block processing flags.					*/
+
+	uvtemp = bundle->payloadBlockProcFlags;
+	oK(cbor_encode_integer(uvtemp, &cursor2));
+
+	/*	Payload block CRC type.					*/
+
+	uvtemp = bundle->payload.crcType;
+	oK(cbor_encode_integer(uvtemp, &cursor2));
+
+	/*	Length of payload content.				*/
+
+	uvtemp = blk.dataLength;
+	oK(cbor_encode_byte_string(NULL, uvtemp, &cursor2));
+
+	/*	Done with payload block header.				*/
+
+	payloadBlockHeaderLength = cursor - payloadBuffer;
+
+	/*	Prepend payload block header to payload ZCO.		*/
+
+	oK(zco_prepend_header(sdr, bundle->payload.content,
+			(char *) payloadBuffer, payloadBlockHeaderLength));
+
+	/*	Compute and serialize payload block CRC if applicable.	*/
+
+	if (bundle->payload.crcType != NoCRC)
+	{
+		/*	Compute CRC over the entire payload block,
+		 *	including the CRC itself (temporarily 0).	*/
+
+		cursor3 = crcBuffer;
+		zco_start_transmitting(bundle->payload.content, &reader);
+		if (computeZcoCrc(bundle->payload.crcType, &reader,
+			bundle->payload.length + payloadBlockHeaderLength,
+			&crc, NULL) < 0)
+		{
+			MRELEASE(buffer);
+			putErrmsg("Can't serialize payload block.", NULL);
+			return -1;
+		}
+
+		/*	Append the computed CRC to the payload block.	*/
+
+		if (bundle->payload.crcType == X25CRC16)
+		{
+			crc16 = crc;
+			crc16 = htons(crc16);
+			oK(cbor_encode_byte_string((unsigned char *) &crc16,
+					2, &cursor3));
+			oK(zco_append_trailer(sdr, bundle->payload.content,
+					(char *) crcBuffer, 3));
+		}
+		else
+		{
+			crc32 = crc;
+			crc32 = htonl(crc32);
+			oK(cbor_encode_byte_string((unsigned char *) &crc32,
+					4, &cursor3));
+			oK(zco_append_trailer(sdr, bundle->payload.content,
+					(char *) crcBuffer, 5));
+		}
+	}
+
+	/*	Prepend bundle header (all blocks) to payload block.	*/
 
 	oK(zco_prepend_header(sdr, bundle->payload.content, (char *) buffer,
 			totalHeaderLength));
 	MRELEASE(buffer);
+
+	/*	Terminate indefinite array by appending break character
+	 *	to the payload block (now the concatenated bundle).	*/
+
+	cursor4 = breakChar;
+	oK(cbor_encode_break(&cursor4));
+	oK(zco_append_trailer(sdr, bundle->payload.content, (char *) breakChar,
+			1));
 	return 0;
 }
 
@@ -10720,10 +10811,10 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
 		{
 			bundle.statusRpt.flags |= BP_FORWARDED_RPT;
-			if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+			if (bundle.bundleProcFlags & BDL_STATUS_TIME_REQ)
 			{
 				getCurrentDtnTime
-					(&(bundle->statusRpt.forwardTime));
+					(&(bundle.statusRpt.forwardTime));
 			}
 
 			if (sendStatusRpt(&bundle) < 0)
@@ -10802,6 +10893,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 {
 	unsigned char	*endOfBuffer;
 	unsigned char	*cursor;
+	unsigned int	unparsedBytes;
 	uvast		arrayLength;
 	int		length;
 	uvast		uvtemp;
@@ -10815,7 +10907,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Skip over initial CBOR array tag.			*/
 
 	arrayLength = 0;
-	length = cbor_decode_array_open(&arrayLength, &cursor);
+	length = cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes);
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10823,7 +10915,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Skip over version number.				*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10831,7 +10923,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Parse out the bundle processing flags.			*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	image->bundleProcFlags = uvtemp;
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
@@ -10840,7 +10932,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Parse out the CRC type.					*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	crcType = uvtemp;
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
@@ -10849,7 +10941,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Extract destination EID.				*/
 
-	length = acquireEid(&(image->destination), &cursor);
+	length = acquireEid(&(image->destination), &cursor, &unparsedBytes);
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10857,7 +10949,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Extract source EID.					*/
 
-	length = acquireEid(&(image->id.source), &cursor);
+	length = acquireEid(&(image->id.source), &cursor, &unparsedBytes);
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10865,7 +10957,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Extract report-to EID.					*/
 
-	length = acquireEid(&(image->reportTo), &cursor);
+	length = acquireEid(&(image->reportTo), &cursor, &unparsedBytes);
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
@@ -10874,7 +10966,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	/*	Skip over creation timestamp array tag.			*/
 
 	arrayLength = 2;
-	length = cbor_decode_array_open(&arrayLength, &cursor);
+	length = cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes);
 	CHKZERO(length > 0);
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
@@ -10883,7 +10975,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Get creation timestamp seconds.				*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	image->id.creationTime.seconds = uvtemp;
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
@@ -10892,7 +10984,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Get creation timestamp count.				*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	image->id.creationTime.count = uvtemp;
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
@@ -10901,7 +10993,7 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	/*	Get lifetime.						*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	image->timeToLive = uvtemp;
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
@@ -10921,14 +11013,14 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	 *	(which is payload length) must be recovered in order
 	 *	to have the complete ID of the bundle.			*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	image->id.fragmentOffset = uvtemp;
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
 		return 0;
 	}
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
 	image->totalAduLength = uvtemp;
 	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 	{
@@ -10977,7 +11069,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		/*	Skip over initial CBOR array tag.		*/
 
 		arrayLength = 0;
-		length = cbor_decode_array_open(&arrayLength, &cursor);
+		length = cbor_decode_array_open(&arrayLength, &cursor,
+				&unparsedBytes);
 		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 		{
 			return 0;
@@ -10985,7 +11078,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		/*	Extract blockType.				*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes);
 		blkType = uvtemp;
 		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 		{
@@ -10994,7 +11088,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		/*	Skip over block number.				*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes);
 		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 		{
 			return 0;
@@ -11002,14 +11097,17 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		/*	Skip over block processing flags.		*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes);
 		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 		{
 			return 0;
+		}
 
 		/*	Parse out the CRC type.				*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes);
 		crcType = uvtemp;
 		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 		{
@@ -11018,7 +11116,8 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 		/*	Get length of block-type-specific data.		*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor);
+		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes);
 		blockDataLength = uvtemp;
 		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
 		{
@@ -11177,9 +11276,9 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	if (SRR_FLAGS(bundle.bundleProcFlags) & BP_FORWARDED_RPT)
 	{
 		bundle.statusRpt.flags |= BP_FORWARDED_RPT;
-		if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+		if (bundle.bundleProcFlags & BDL_STATUS_TIME_REQ)
 		{
-			getCurrentDtnTime(&(bundle->statusRpt.forwardTime));
+			getCurrentDtnTime(&(bundle.statusRpt.forwardTime));
 		}
 
 		result = sendStatusRpt(&bundle);
@@ -11397,7 +11496,8 @@ static void	shutDownAdminApp()
 	sm_SemEnd((_bpadminSap(NULL))->recvSemaphore);
 }
 
-static int	defaultSrh(BpDelivery *dlv, BpStatusRpt *rpt)
+static int	defaultSrh(BpDelivery *dlv, unsigned char *cursor,
+			unsigned int unparsedBytes)
 {
 	return 0;
 }
@@ -11509,7 +11609,8 @@ static void	forgetEmbargo(Bundle *bundle, Object bundleAddr,
 
 #endif
 
-static int	handleEncapsulatedBundle(BpDelivery *dlv)
+static int	handleEncapsulatedBundle(BpDelivery *dlv, unsigned char *cursor,
+			unsigned int unparsedBytes)
 {
 	Sdr		sdr = getIonsdr();
 	vast		encapsulatedBundleLength;
@@ -11566,15 +11667,26 @@ static int	handleEncapsulatedBundle(BpDelivery *dlv)
 	return 0;
 }
 
+static int	handleBibeSignal(BpDelivery *dlv, unsigned char *cursor,
+			unsigned int unparsedBytes)
+{
+	return 0;
+}
+
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 {
+	Sdr		sdr = getIonsdr();
 	int		running = 1;
 	BpSAP		sap;
 	BpDelivery	dlv;
+	unsigned int	buflen;
+	unsigned char	*buffer;
+	unsigned char	*cursor;
+	ZcoReader	reader;
+	unsigned int	bytesToParse;
+	unsigned int	unparsedBytes;
+	uvast		uvtemp;
 	int		adminRecType;
-	BpStatusRpt	rpt;
-	void		*other;	/*	Non-standard admin record.	*/
-	int		result;
 
 	CHKERR(adminEid);
 	if (handleStatusRpt == NULL)
@@ -11619,87 +11731,123 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			continue;
 		}
 
-		switch (parseAdminRecord(&adminRecType, &rpt, &other, dlv.adu))
+		/*	Read entire admin record into memory buffer.	*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		buflen = zco_source_data_length(sdr, dlv.adu);
+		if ((buffer = MTAKE(buflen)) == NULL)
 		{
-		case 1: 			/*	No problem.	*/
-			break;
-
-		case 0:				/*	Parsing failed.	*/
-			putErrmsg("Malformed admin record.", NULL);
+			putErrmsg("Can't start parsing admin record.", NULL);
+			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
-			continue;
-
-		default:			/*	System failure.	*/
-			putErrmsg("Failed parsing admin record.", NULL);
 			running = 0;
+			continue;
+		}
+
+		zco_start_receiving(dlv.adu, &reader);
+		bytesToParse = zco_receive_source(sdr, &reader, buflen,
+				(char *) buffer);
+		if (bytesToParse < 0)
+		{
+			putErrmsg("Can't receive admin record.", NULL);
+			oK(sdr_end_xn(sdr));
+			MRELEASE(buffer);
+			bp_release_delivery(&dlv, 1);
+			running = 0;
+			continue;
+		}
+
+		oK(sdr_end_xn(sdr));
+		cursor = buffer;
+		unparsedBytes = bytesToParse;
+
+		/*	Start parsing the administrative record.	*/
+
+		uvtemp = 2;	/*	Decode array of size 2.	*/
+		if (cbor_decode_array_open(&uvtemp, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode admin record.");
+			MRELEASE(buffer);
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
+		/*	Parse administrative record type code.		*/
+
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode admin record type.");
+			MRELEASE(buffer);
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		adminRecType = uvtemp;
+
+		/*	Now handle the administrative record.		*/
+
 		switch (adminRecType)
 		{
 		case BP_STATUS_REPORT:
-			if (handleStatusRpt(&dlv, &rpt) < 0)
+			if (handleStatusRpt(&dlv, cursor, unparsedBytes) < 0)
 			{
 				putErrmsg("Status report handler failed.",
 						NULL);
 				running = 0;
 			}
 
-			bpEraseStatusRpt(&rpt);
 			break;			/*	Out of switch.	*/
 
 		case BP_MULTICAST_PETITION:
-			if (handleImcPetition(&dlv, other) < 0)
+#if 0
+			if (handleImcPetition(&dlv, cursor, unparsedBytes) < 0)
 			{
 				putErrmsg("Multicast petition handler failed.",
 						NULL);
 				running = 0;
 			}
-
-			//	Erase something?
+#endif
 			break;
 
 		case BP_SAGA_MESSAGE:
-			if (handleSagaMessage, &dlv, other) < 0)
+			if (saga_receive(&dlv, cursor, unparsedBytes) < 0)
 			{
 				putErrmsg("Discovery history handler failed.",
 						NULL);
 				running = 0;
 			}
 
-			//	Erase something?
 			break;
 
 		case BP_BIBE_PDU:
-			if (handleEncapsulatedBundle(&dlv) < 0)
+			if (handleEncapsulatedBundle(&dlv, cursor,
+					unparsedBytes) < 0)
 			{
 				putErrmsg("bibecli failed.", NULL);
 				running = 0;
 			}
 
-			/*	Handling of encapsulated bundle has
-			 *	disposed of the bundle's ADU.		*/
-
-			bp_release_delivery(&dlv, 0);
-			sm_TaskYield();
-			continue;
+			break;
 
 		case BP_BIBE_SIGNAL:
-			if (handleBibeSignal(&dlv, other) < 0)
+			if (handleBibeSignal(&dlv, cursor, unparsedBytes) < 0)
 			{
 				putErrmsg("Custody signal handler failed.",
 						NULL);
 				running = 0;
 			}
 
-			//	Erase something?
 			break;
 
 		default:	/*	Unknown or non-standard.	*/
+			writeMemoNote("[?] Unknown admin record",
+					itoa(adminRecType));
 			break;			/*	Out of switch.	*/
 		}
 
+		MRELEASE(buffer);
 		bp_release_delivery(&dlv, 1);
 
 		/*	Make sure other tasks have a chance to run.	*/

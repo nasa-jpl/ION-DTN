@@ -17,10 +17,10 @@
 #ifndef _BPP_H_
 #define _BPP_H_
 
+#include "bp.h"
 #include "rfx.h"
 #include "cbor.h"
 #include "crc.h"
-#include "bp.h"
 #include "bpsec.h"
 
 #ifdef __cplusplus
@@ -1428,12 +1428,15 @@ extern int		enqueueToLimbo(Bundle *bundle, Object bundleObj);
 extern int		releaseFromLimbo(Object xmitElt, int resume);
 
 extern int		sendStatusRpt(Bundle *bundle);
+extern int		parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
+				unsigned int unparsedBytes);
 
 extern void		bpPlanTally(VPlan *vplan, unsigned int idx,
 				unsigned int size);
 extern void		bpXmitTally(unsigned int priority, unsigned int size);
 
-typedef int		(*StatusRptCB)(BpDelivery *, BpStatusRpt *);
+typedef int		(*StatusRptCB)(BpDelivery *, unsigned char *,
+				unsigned int);
 
 typedef struct bpsap_st
 {

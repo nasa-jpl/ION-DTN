@@ -70,6 +70,12 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		return -1;
 	}
 
+	if (metaEid.nullEndpoint)	/*	No SAP is possible.	*/
+	{
+		restoreEidString(&metaEid);
+		return 0;
+	}
+
 	if (vschemeElt == 0)
 	{
 		putErrmsg("Scheme not known.", metaEid.schemeName);

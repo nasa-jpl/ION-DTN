@@ -11,13 +11,6 @@
 									*/
 #include "cbor.h"
 
-/*	CBOR data item types						*/
-#define	CborUnsignedInteger	0
-#define	CborByteString		2
-#define	CborTextString		3
-#define	CborArray		4
-#define	CborSimpleValue		7
-
 static void	encodeFirstByte(unsigned char **cursor, int majorType,
 			int additionalInfo)
 {
@@ -286,9 +279,14 @@ int	cbor_encode_byte_string(unsigned char *value, uvast size,
 		*cursor += length;
 	}
 
-	memcpy(*cursor, value, size);
-	*cursor += size;
-	return 1 + (length + size);
+	if (value)
+	{
+		memcpy(*cursor, value, size);
+		*cursor += size;
+		length += size;
+	}
+
+	return 1 + length;
 }
 
 int	cbor_encode_text_string(char *value, uvast size, unsigned char **cursor)
@@ -305,9 +303,14 @@ int	cbor_encode_text_string(char *value, uvast size, unsigned char **cursor)
 		*cursor += length;
 	}
 
-	memcpy(*cursor, value, size);
-	*cursor += size;
-	return 1 + (length + size);
+	if (value)
+	{
+		memcpy(*cursor, value, size);
+		*cursor += size;
+		length += size;
+	}
+
+	return 1 + length;
 }
 
 int	cbor_encode_array_open(uvast size, unsigned char **cursor)

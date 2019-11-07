@@ -790,7 +790,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 	if (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELIVERED_RPT)
 	{
 		bundle.statusRpt.flags |= BP_DELIVERED_RPT;
-		if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
+		if (bundle.bundleProcFlags & BDL_STATUS_TIME_REQ)
 		{
 			getCurrentDtnTime(&bundle.statusRpt.deliveryTime);
 		}

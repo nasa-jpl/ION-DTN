@@ -27,6 +27,13 @@ extern "C" {
 #define	CborInt			4
 #define	CborVast		8
 
+/*	CBOR data item types						*/
+#define	CborUnsignedInteger	0
+#define	CborByteString		2
+#define	CborTextString		3
+#define	CborArray		4
+#define	CborSimpleValue		7
+
 /*	For all functions, *cursor is a pointer to the location in
  *	the CBOR coding buffer at which bytes are to be encoded
  *	or decoded.							*/ 
@@ -52,17 +59,25 @@ extern int	cbor_encode_byte_string(unsigned char *value,
 					uvast size,
 					unsigned char **cursor);
 			/*	Size is the number of bytes to
-			 *	write.  Cursor is automatically
-			 *	advanced.  Returns number of bytes
-			 *	written.				*/
+			 *	write.  If value is NULL, only
+			 *	the size of the byte string is
+			 *	written; otherwise the byte string
+			 *	itself is written as well.  Cursor
+			 *	is advanced by the number of bytes
+			 *	written in either case.  Returns
+			 *	number of bytes written.		*/
 
 extern int	cbor_encode_text_string(char *value,
 					uvast size,
 					unsigned char **cursor);
 			/*	Size is the number of bytes to
-			 *	write.  Cursor is automatically
-			 *	advanced.  Returns number of
-			 *	bytes written.				*/
+			 *	write.  If value is NULL, only
+			 *	the size of the text string is
+			 *	written; otherwise the text string
+			 *	itself is written as well.  Cursor
+			 *	is advanced by the number of bytes
+			 *	written in either case.  Returns
+			 *	number of bytes written.		*/
 
 extern int	cbor_encode_array_open(	uvast size,
 					unsigned char **cursor);
