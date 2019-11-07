@@ -1613,7 +1613,7 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		*success = AMP_FAIL;
 		return result;
 	}
-    array_len = item.val.uCount;
+	array_len = item.val.uCount;
     
 	/* Handle special case of empty TNVC. */
 	if(array_len == 0)
@@ -1651,7 +1651,6 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		AMP_DEBUG_ERR("tnvc_deserialize","CBOR Item Length field not a number", NULL);
 		return result;
 	}
-    array_len = item.val.uint64;
 
 	// Extra Sanity Check
 	if (array_len == 0)
@@ -1852,6 +1851,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 		tnv_t *val = tnv_create();
 		*success = AMP_FAIL;
 
+#if AMP_VERISON < 7
 		blob_t *blob = blob_deserialize_ptr(array_it, success);
 
 		if(blob != NULL)
@@ -1863,11 +1863,23 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 			}
 			blob_release(blob, 1);
 		}
-
+		
 		if(*success != AMP_OK)
 		{
 			break;
 		}
+#else
+		*success = tnv_deserialize_val_by_type(array_it, val);
+		if (*success == AMP_OK)
+		{
+			vec_insert(&(result.values), val, NULL);
+		}
+		else
+		{
+			break;
+		}
+#endif
+
 	}
 
 	blob_release(&types, 0);
@@ -2163,7 +2175,7 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	   return AMP_OK;
 	}
 #else
-	/* Special case of an empty TNVC. Just write a zero flag */
+	/* Special case of an empty TNVC. Just write a zero flag for type */
 	if(num == 0)
 	{
        err = cut_enc_byte(encoder, 0);
@@ -2186,7 +2198,7 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 
 #if AMP_VERSION >= 7
     /* Step 2a: Write the # of Item as an encoded uint */
-    QCBOREncode_Adduint64(encoder, num);
+    QCBOREncode_AddUInt64(encoder, num);
 #endif
 
 	/* Step 2: Construct and serialize the type bytestring. */
@@ -2215,15 +2227,18 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	{
 		tnv_t *tnv = (tnv_t*) vec_at(&(tnvc->values),i);
 
+#if AMP_VERSION < 7
 		/* Go through the trouble of getting a serialized string because we don't
 		 * want the array encoder to think parts of the serialized value are
 		 * different indices in the array...
 		 */
 		blob_t *blob = tnv_serialize_value_wrapper(tnv);
-
 		err = blob_serialize(encoder, blob);
-		blob_release(blob, 1);
 
+		blob_release(blob, 1);
+#else
+		err = tnv_serialize_value(encoder, tnv);
+#endif
 		if(err != AMP_OK)
 		{
 			AMP_DEBUG_ERR("tnvc_serialize_tvc","Can't serialize TNV: %d", i);

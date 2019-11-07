@@ -531,7 +531,7 @@ int blob_serialize(QCBOREncodeContext *it, blob_t *blob)
  * Adds a blob to the CBOR string as a series of RAW bytes.  Unlike blob_serialize,
  *  these are written without a CBOR header byte denoting the type and length.
  *  It is the caller's responsibility to ensure message format and length is well
- *  understood to allow decoding without the CBOR meta data providing by an array or
+ *  understood to allow decoding without the CBOR meta data provided by an array or
  *  bytestring.
  */
 int blob_serialize_as_bytes(QCBOREncodeContext *it, blob_t *blob)

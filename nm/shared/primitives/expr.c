@@ -200,9 +200,9 @@ expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
     	AMP_DEBUG_ERR("expr_deserialize","Unknown expression type %d", result.type);
     	*success = AMP_FAIL;
 		
-		#if AMP_VERSION < 7
+#if AMP_VERSION < 7
     	blob_release(data, 1);
-		#endif
+#endif
 		
     	return result;
     }

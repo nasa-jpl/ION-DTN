@@ -325,19 +325,27 @@ var_t *var_deserialize_ptr(QCBORDecodeContext *it, int *success)
 
 
     /* Grab the var ARI. */
+#if AMP_VERSION < 7
     blob_t *tmp = blob_deserialize_ptr(it, success);
     result->id = ari_deserialize_raw(tmp, success);
     blob_release(tmp, 1);
+#else
+	result->id = ari_deserialize_ptr(it, success);
+#endif
     if((result->id == NULL) || (*success != AMP_OK))
     {
     	SRELEASE(result);
     	return NULL;
     }
-
+	
     /* Grab the TNV. */
+#if AMP_VERSION < 7
     tmp = blob_deserialize_ptr(it, success);
     result->value = tnv_deserialize_raw(tmp, success);
     blob_release(tmp, 1);
+#else
+	result->value = tnv_deserialize_ptr(it, success);
+#endif
 
     if((result->value == NULL) || (*success != AMP_OK))
     {
@@ -439,10 +447,14 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	CHKUSR(var, AMP_FAIL);
 
 	/* Step 1: Encode the ARI. */
+#if AMP_VERSION < 7
 	result = ari_serialize_wrapper(var->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
-
+#else
+	err = ari_serialize(encoder, item);
+#endif
+	
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("var_serialize","CBOR Error: %d", err);
@@ -450,9 +462,13 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	}
 
 	/* Step 2: Encode the value. */
+#if AMP_VERSION < 7
 	result = tnv_serialize_wrapper(var->value);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
+#else
+	err = tnv_serialize(encoder, item);
+#endif
 
 	return err;
 }
