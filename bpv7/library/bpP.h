@@ -321,6 +321,11 @@ typedef struct
 	unsigned int	age;		/*	In microseconds.	*/
 	struct timeval	arrivalTime;
 
+	/*	Stuff in (or for) the Bundle Age extension block.	*/
+
+	unsigned int	hopLimit;
+	unsigned int	hopCount;
+
 	/*	Stuff in Spray and Wait extension block.		*/
 
 	unsigned char	permits;	/*	# SnW fwd permits left.	*/

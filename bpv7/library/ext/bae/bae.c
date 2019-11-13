@@ -15,17 +15,19 @@
 
 int	bae_offer(ExtensionBlock *blk, Bundle *bundle)
 {
-	Sdnv	ageSdnv;
-	char	dataBuffer[32];
+	unsigned char	dataBuffer[32];
+	unsigned char	*cursor;
+	uvast		uvtemp;
 
 	bundle->age = 0;
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	encodeSdnv(&ageSdnv, bundle->age);
-	blk->dataLength = ageSdnv.length;
+	cursor = dataBuffer;
+	uvtemp = bundle->age;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	blk->dataLength = cursor - dataBuffer;
 	blk->size = 0;
 	blk->object = 0;
-	memcpy(dataBuffer, ageSdnv.text, ageSdnv.length);
-	return serializeExtBlk(blk, dataBuffer);
+	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
 void	bae_release(ExtensionBlock *blk)
@@ -61,9 +63,11 @@ int	bae_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	struct timeval	currentTime;
-	Sdnv		ageSdnv;
-	char		dataBuffer[32];
+	unsigned char	dataBuffer[32];
+	unsigned char	*cursor;
+	uvast		uvtemp;
 
+	cursor = dataBuffer;
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
 		bundle->age = 1000000 * ((getCtime() - EPOCH_2000_SEC)
@@ -84,20 +88,22 @@ int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 				+ (1000000 * currentTime.tv_sec);
 	}
 
-	encodeSdnv(&ageSdnv, bundle->age);
-	blk->dataLength = ageSdnv.length;
-	memcpy(dataBuffer, ageSdnv.text, ageSdnv.length);
-	return serializeExtBlk(blk, dataBuffer);
+	uvtemp = bundle->age;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	blk->dataLength = cursor - dataBuffer;
+	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
 int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;
-	int		bytesRemaining = blk->dataLength;
+	unsigned int	unparsedBytes = blk->dataLength;
+	uvast		uvtemp;
 
-	if (bytesRemaining < 1)
+	if (unparsedBytes < 1)
 	{
+		writeMemo("[?] Can't decode Bundle Age block.");
 		return 0;		/*	Malformed.		*/
 	}
 
@@ -108,9 +114,14 @@ int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	extractSmallSdnv(&(bundle->age), &cursor, &bytesRemaining);
-	if (bytesRemaining != 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
+		writeMemo("[?] Can't decode bundle age.");
+	}
+
+	if (unparsedBytes != 0)
+	{
+		writeMemo("[?] Excess bytes at end of Bundle Age block.");
 		return 0;		/*	Malformed.		*/
 	}
 

@@ -15,8 +15,9 @@
 
 int	meb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
-	Sdnv	lengthSdnv;
-	char	dataBuffer[3 + BP_MAX_METADATA_LEN];
+	unsigned char	dataBuffer[11 + BP_MAX_METADATA_LEN];
+	unsigned char	*cursor;
+	uvast		uvtemp;
 
 	if (bundle->ancillaryData.metadataType == 0)
 	{
@@ -28,22 +29,18 @@ int	meb_offer(ExtensionBlock *blk, Bundle *bundle)
 		bundle->ancillaryData.metadataLen = BP_MAX_METADATA_LEN;
 	}
 
-	blk->dataLength = 1;	/*	For metadata type byte.		*/
-	encodeSdnv(&lengthSdnv, bundle->ancillaryData.metadataLen);
-	blk->dataLength += lengthSdnv.length;
-
-	/*	Note that lengthSdnv.length can't exceed 2 because
-	 *	bundle->ancillaryData.metadataLen is an unsigned char
-	 *	and therefore has a maximum value of 255, which can
-	 *	always be encoded in a 2-byte SDNV.			*/
-
-	blk->dataLength += bundle->ancillaryData.metadataLen;
-	dataBuffer[0] = bundle->ancillaryData.metadataType;
-	memcpy(dataBuffer + 1, lengthSdnv.text, lengthSdnv.length);
-	memcpy(dataBuffer + 1 + lengthSdnv.length,
-			bundle->ancillaryData.metadata,
-			bundle->ancillaryData.metadataLen);
-	return serializeExtBlk(blk, dataBuffer);
+	cursor = dataBuffer;
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+	uvtemp = bundle->ancillaryData.metadataType;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	uvtemp = bundle->ancillaryData.metadataLen;
+	oK(cbor_encode_byte_string(bundle->ancillaryData.metadata,
+			uvtemp, &cursor));
+	blk->dataLength = cursor - dataBuffer;
+	blk->size = 0;
+	blk->object = 0;
+	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
 void	meb_release(ExtensionBlock *blk)
@@ -85,11 +82,14 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;
-	int		bytesRemaining = blk->dataLength;
-	uvast		metadataLength;
+	unsigned int	unparsedBytes = blk->dataLength;
+	uvast		arrayLength;
+	uvast		uvtemp;
+	unsigned char	metadata[BP_MAX_METADATA_LEN];
 
-	if (bytesRemaining < 2)
+	if (unparsedBytes < 3)
 	{
+		writeMemo("[?] Can't decode MEB block.");
 		return 0;		/*	Malformed.		*/
 	}
 
@@ -100,22 +100,33 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	bundle->ancillaryData.metadataType = *cursor;
-	cursor++;
-	bytesRemaining--;
-	extractSdnv(&metadataLength, &cursor, &bytesRemaining);
-	if (metadataLength > BP_MAX_METADATA_LEN
-	|| metadataLength > 255)	/*	Max for unsigned char.	*/
+	arrayLength = 3;
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
-		return 0;		/*	Malformed.		*/
+		writeMemo("[?] Can't decode MEB block array.");
+		return 0;
 	}
 
-	bundle->ancillaryData.metadataLen = metadataLength;
-	memcpy(bundle->ancillaryData.metadata, cursor, metadataLength);
-	cursor += metadataLength;
-	bytesRemaining -= metadataLength;
-	if (bytesRemaining != 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
+		writeMemo("[?] Can't decode MEB metadata type.");
+		return 0;
+	}
+
+	bundle->ancillaryData.metadataType = uvtemp;
+	uvtemp = BP_MAX_METADATA_LEN;
+	if (cbor_decode_byte_string(metadata, &uvtemp, &cursor, &unparsedBytes)
+			< 1)
+	{
+		writeMemo("[?] Can't decode MEB metadata type.");
+		return 0;
+	}
+
+	bundle->ancillaryData.metadataLen = uvtemp;
+	memcpy(bundle->ancillaryData.metadata, metadata, uvtemp);
+	if (unparsedBytes != 0)
+	{
+		writeMemo("[?] Excess bytes at end of MEB block.");
 		return 0;		/*	Malformed.		*/
 	}
 

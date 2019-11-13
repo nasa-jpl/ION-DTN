@@ -11,10 +11,11 @@
 
 /*	Add external function declarations between here...		*/
 
-#include "phn.h"
+#include "pnb.h"
 #include "qos.h"
 #include "meb.h"
 #include "bae.h"
+#include "hcb.h"
 #include "snw.h"
 #if defined(BPSEC)
 #include "bib.h"
@@ -25,22 +26,22 @@
 
 static ExtensionDef	extensionDefs[] =
 			{
-		{ "phn", PreviousNodeBlk,
-				phn_offer,
-				{phn_processOnFwd,
-				phn_processOnAccept,
-				phn_processOnEnqueue,
-				phn_processOnDequeue,
+		{ "pnb", PreviousNodeBlk,
+				pnb_offer,
+				{pnb_processOnFwd,
+				pnb_processOnAccept,
+				pnb_processOnEnqueue,
+				pnb_processOnDequeue,
 				0},
-				phn_release,
-				phn_copy,
+				pnb_release,
+				pnb_copy,
 				0,
 				0,
 				0,
-				phn_parse,
-				phn_check,
-				phn_record,
-				phn_clear
+				pnb_parse,
+				pnb_check,
+				pnb_record,
+				pnb_clear
 		},
 #if defined(BPSEC)
 		{ "bcb", BlockConfidentialityBlk,
@@ -128,6 +129,23 @@ static ExtensionDef	extensionDefs[] =
 				bae_check,
 				bae_record,
 				bae_clear
+		},
+		{ "hcb", HopCountBlk,
+				hcb_offer,
+				{hcb_processOnFwd,
+				hcb_processOnAccept,
+				hcb_processOnEnqueue,
+				hcb_processOnDequeue,
+				0},
+				hcb_release,
+				hcb_copy,
+				0,
+				0,
+				0,
+				hcb_parse,
+				hcb_check,
+				hcb_record,
+				hcb_clear
 		},
 		{ "snw", SnwPermitsBlk,
 				snw_offer,

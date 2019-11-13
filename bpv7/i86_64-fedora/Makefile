@@ -21,7 +21,7 @@ SAGA = ../saga
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/qos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/qos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -46,7 +46,7 @@ BPINCLS = \
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o bpsec.o eureka.o saga.o bei.o phn.o qos.o meb.o bae.o snw.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
+BPPOBJS = libbpP.o bpsec.o eureka.o saga.o bei.o pnb.o qos.o meb.o bae.o hcb.o snw.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
@@ -351,10 +351,13 @@ libudpcla.so:	libudpcla.o
 %.o:		$(API)/ext/bae/%.c
 		$(CC) -c $<
 
+%.o:		$(API)/ext/hcb/%.c
+		$(CC) -c $<
+
 %.o:		$(API)/ext/bpsec/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/phn/%.c
+%.o:		$(API)/ext/pnb/%.c
 		$(CC) -c $<
 
 %.o:		$(TEST)/%.c

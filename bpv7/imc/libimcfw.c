@@ -90,7 +90,7 @@ static ImcDB	*_imcConstants()
 
 /*	*	*	Petition exchange functions	*	*	*/
 
-static int	sendPetition(uvast nodeNbr, char *buffer, int length)
+static int	sendPetition(uvast nodeNbr, unsigned char *buffer, int length)
 {
 	char		sourceEid[32];
 	MetaEid		sourceMetaEid;
@@ -114,7 +114,7 @@ static int	sendPetition(uvast nodeNbr, char *buffer, int length)
 		return -1;
 	}
 
-	sdr_write(sdr, sourceData, buffer, length);
+	sdr_write(sdr, sourceData, (char *) buffer, length);
 
 	/*	Pass additive inverse of length to zco_create to
 	 *	indicate that allocating this ZCO space is non-
@@ -153,18 +153,22 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 			uvast senderNodeNbr)
 {
 	Sdr		sdr = getIonsdr();
-	unsigned char	adminRecordFlag = (BP_MULTICAST_PETITION << 4);
-	Sdnv		groupNbrSdnv;
+	int		maxPetition;
+	unsigned char	*buffer;
+	unsigned char	*cursor;
+	uvast		uvtemp;
 	int		petitionLength;
-	char		*buffer;
-	char		*cursor;
-	int		result = 0;
 	Object		elt;
 			OBJ_POINTER(NodeId, node);
+	int		result = 0;
 
-	encodeSdnv(&groupNbrSdnv, group->groupNbr);
-	petitionLength = 1 + groupNbrSdnv.length + 1;
-	buffer = MTAKE(petitionLength);
+	/*	Create buffer for serializing petition message.		*/
+
+	maxPetition = 1		/*	admin record array (2 items)	*/
+		+ 2		/*	record type, 2-item array	*/
+		+ 9		/*	max length of group number	*/
+		+ 1;		/*	membership switch (Boolean)	*/
+	buffer = MTAKE(maxPetition);
 	if (buffer == NULL)
 	{
 		putErrmsg("Can't construct IMC petition.", NULL);
@@ -173,15 +177,35 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 
 	cursor = buffer;
 
-	*cursor = adminRecordFlag;
-	cursor++;
+	/*	Sending an admin record, an array of 2 items.		*/
 
-	memcpy(cursor, groupNbrSdnv.text, groupNbrSdnv.length);
-	cursor += groupNbrSdnv.length;
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
 
-	*cursor = (isMember ? 1 : 0);
-	cursor++;
+	/*	First item of admin record is record type code.		*/
 
+	uvtemp = BP_MULTICAST_PETITION;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Second item of admin record is content, the
+	 *	petition message, which is an array of 2 items.		*/
+
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	First item of array (petition) is the group number.	*/
+
+	uvtemp = group->groupNbr;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Second item of array is the membership switch.		*/
+
+	uvtemp = isMember;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Now send the petition to all kin.			*/
+
+	petitionLength = cursor - buffer;
 	for (elt = sdr_list_first(sdr, (_imcConstants())->kin); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -200,56 +224,6 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 
 	MRELEASE(buffer);
 	return result;
-}
-
-int	imcParsePetition(void **argp, unsigned char *cursor,
-		unsigned int unparsedBytes)
-{
-	ImcPetition	*petition;
-	uvast		arrayLength;
-	uvast		uvtemp;
-
-	if (imcInit() < 0)
-	{
-		putErrmsg("Can't initialize IMC database.", NULL);
-		return -1;
-	}
-
-	*argp = NULL;		/*	Default.			*/
-	petition = MTAKE(sizeof(ImcPetition));
-	if (petition == NULL)
-	{
-		putErrmsg("Can't allocate IMC petition work area.", NULL);
-		return -1;
-	}
-
-	memset((char *) petition, 0, sizeof(ImcPetition));
-
-	/*	Start parsing of petition.				*/
-
-	arrayLength = 2;
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode IMC petition array.");
-		return 0;
-	}
-
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode IMC petition group number.");
-		return 0;
-	}
-
-	petition->groupNbr = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode IMC petition membership switch.");
-		return 0;
-	}
-
-	petition->isMember = (uvtemp != 0);
-	*argp = petition;
-	return 1;
 }
 
 /*	*	*	Routing information mgt functions	*	*/
@@ -351,11 +325,11 @@ int	imc_addKin(uvast nodeNbr, int isParent)
 	Object		addr;
 	Object		elt;
 			OBJ_POINTER(ImcGroup, group);
-	unsigned char	adminRecordFlag = (BP_MULTICAST_PETITION << 4);
-	Sdnv		groupNbrSdnv;
+	int		maxPetition;
+	unsigned char	*buffer;
+	unsigned char	*cursor;
+	uvast		uvtemp;
 	int		petitionLength;
-	char		*buffer;
-	char		*cursor;
 
 	CHKERR(nodeNbr);
 	CHKERR(sdr_begin_xn(sdr));
@@ -385,8 +359,22 @@ int	imc_addKin(uvast nodeNbr, int isParent)
 		sdr_write(sdr, dbObj, (char *) &db, sizeof(ImcDB));
 	}
 
-	/*	Send new relative an assertion petition for every
-	 *	group that has at least one member.			*/
+	/*	Create a buffer for serializing petition messages.	*/
+
+	maxPetition = 1		/*	admin record array (2 items)	*/
+		+ 2		/*	record type, 2-item array	*/
+		+ 9		/*	max length of group number	*/
+		+ 1;		/*	membership switch (Boolean)	*/
+	buffer = MTAKE(maxPetition);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't construct IMC petition.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	/*	Now send new relative an assertion petition for
+	 *	every group that has at least one member.		*/
 
 	for (elt = sdr_list_first(sdr, (_imcConstants())->groups); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -398,27 +386,40 @@ int	imc_addKin(uvast nodeNbr, int isParent)
 			continue;
 		}
 
-		encodeSdnv(&groupNbrSdnv, group->groupNbr);
-		petitionLength = 1 + groupNbrSdnv.length + 1;
-		buffer = MTAKE(petitionLength);
-		if (buffer == NULL)
-		{
-			putErrmsg("Can't construct IMC petition.", NULL);
-			sdr_cancel_xn(sdr);
-			break;
-		}
+		/*	Must send a petition for this group.		*/
 
 		cursor = buffer;
 
-		*cursor = adminRecordFlag;
-		cursor++;
+		/*	Sending an admin record, an array of 2 items.	*/
 
-		memcpy(cursor, groupNbrSdnv.text, groupNbrSdnv.length);
-		cursor += groupNbrSdnv.length;
+		uvtemp = 2;
+		oK(cbor_encode_array_open(uvtemp, &cursor));
 
-		*cursor = 1;
-		cursor++;
+		/*	First item of admin record is record type code.	*/
 
+		uvtemp = BP_MULTICAST_PETITION;
+		oK(cbor_encode_integer(uvtemp, &cursor));
+
+		/*	Second item of admin record is content, the
+	 	*	petition message, which is an array of 2 items.	*/
+
+		uvtemp = 2;
+		oK(cbor_encode_array_open(uvtemp, &cursor));
+
+		/*	First item of array (petition) is the group
+		 *	number.						*/
+
+		uvtemp = group->groupNbr;
+		oK(cbor_encode_integer(uvtemp, &cursor));
+
+		/*	Second item of array is the membership switch.	*/
+
+		uvtemp = 1;
+		oK(cbor_encode_integer(uvtemp, &cursor));
+
+		/*	Now send this petition.				*/
+
+		petitionLength = cursor - buffer;
 		if (sendPetition(nodeNbr, buffer, petitionLength) < 0)
 		{
 			putErrmsg("Can't send subscription to new relative.",
@@ -428,6 +429,7 @@ int	imc_addKin(uvast nodeNbr, int isParent)
 		}
 	}
 
+	MRELEASE(buffer);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't add relative.", itoa(nodeNbr));
@@ -652,10 +654,52 @@ static void	destroyGroup(Object groupElt)
 	sdr_list_delete(sdr, groupElt, NULL, NULL);
 }
 
-int	imcHandlePetition(void *arg, BpDelivery *dlv)
+static int	parsePetition(ImcPetition **petition, unsigned char *cursor,
+			unsigned int unparsedBytes)
+{
+	uvast	arrayLength;
+	uvast	uvtemp;
+
+	*petition = (ImcPetition *) MTAKE(sizeof(ImcPetition));
+	if (*petition == NULL)
+	{
+		putErrmsg("Can't allocate IMC petition work area.", NULL);
+		return -1;
+	}
+
+	memset((char *) *petition, 0, sizeof(ImcPetition));
+
+	/*	Start parsing of petition.				*/
+
+	arrayLength = 2;
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC petition array.");
+		return 0;
+	}
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC petition group number.");
+		return 0;
+	}
+
+	(*petition)->groupNbr = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC petition membership switch.");
+		return 0;
+	}
+
+	(*petition)->isMember = (uvtemp != 0);
+	return 1;
+}
+
+int	imcHandlePetition(BpDelivery *dlv, unsigned char *cursor,
+		unsigned int unparsedBytes)
 {
 	Sdr		sdr = getIonsdr();
-	ImcPetition	*petition = (ImcPetition *) arg;
+	ImcPetition	*petition;
 	uvast		groupNbr;
 	int		isMember;	/*	Boolean.		*/
 	MetaEid		metaEid;
@@ -673,6 +717,20 @@ int	imcHandlePetition(void *arg, BpDelivery *dlv)
 	{
 		putErrmsg("Can't initialize IMC database.", NULL);
 		return -1;
+	}
+
+	switch (parsePetition(&petition, cursor, unparsedBytes))
+	{
+	case -1:
+		putErrmsg("Parsing of IMC petition failed.", NULL);
+		return -1;
+
+	case 0:
+		writeMemo("[?] IMC petition discarded.");
+		return 0;
+
+	default:
+		break;
 	}
 
 	groupNbr = petition->groupNbr;

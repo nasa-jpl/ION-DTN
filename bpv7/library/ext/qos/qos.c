@@ -15,35 +15,26 @@
 
 int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 {
-	Sdnv	dataLabelSdnv;
-	char	dataBuffer[32];
-
-	if (bundle->ancillaryData.flags == 0
-	&& bundle->ancillaryData.ordinal == 0
-	&& bundle->priority == 0)
-	{
-		return 0;	/*	QOS block is unnecessary.	*/
-	}
+	unsigned char	dataBuffer[40];
+	unsigned char	*cursor;
+	uvast		uvtemp;
 
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	blk->dataLength = 3;
-	if (bundle->ancillaryData.flags & BP_DATA_LABEL_PRESENT)
-	{
-		encodeSdnv(&dataLabelSdnv, bundle->ancillaryData.dataLabel);
-	}
-	else
-	{
-		dataLabelSdnv.length = 0;
-	}
-
-	blk->dataLength += dataLabelSdnv.length;
+	cursor = dataBuffer;
+	uvtemp = 4;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+	uvtemp = bundle->ancillaryData.flags;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	uvtemp = bundle->classOfService;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	uvtemp = bundle->ancillaryData.ordinal;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	uvtemp = bundle->ancillaryData.dataLabel;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	blk->dataLength = cursor - dataBuffer;
 	blk->size = 0;
 	blk->object = 0;
-	dataBuffer[0] = bundle->ancillaryData.flags;
-	dataBuffer[1] = bundle->priority;
-	dataBuffer[2] = bundle->ancillaryData.ordinal;
-	memcpy(dataBuffer + 3, dataLabelSdnv.text, dataLabelSdnv.length);
-	return serializeExtBlk(blk, dataBuffer);
+	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
 void	qos_release(ExtensionBlock *blk)
@@ -85,9 +76,11 @@ int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;
-	int		bytesRemaining = blk->dataLength;
+	unsigned int	unparsedBytes = blk->dataLength;
+	uvast		arrayLength;
+	uvast		uvtemp;
 
-	if (bytesRemaining < 3)
+	if (unparsedBytes < 5)
 	{
 		return 0;		/*	Malformed.		*/
 	}
@@ -99,26 +92,44 @@ int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	bundle->ancillaryData.flags = *cursor;
-	cursor++;
-	bundle->priority = *cursor;	/*	Default.		*/
-	cursor++;
-	bundle->ancillaryData.ordinal = *cursor;
-	bundle->ordinal = *cursor;	/*	Default.		*/
-	cursor++;
-	bytesRemaining -= 3;
-	if (bundle->ancillaryData.flags & BP_DATA_LABEL_PRESENT)
+	arrayLength = 4;
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
-		extractSmallSdnv(&(bundle->ancillaryData.dataLabel), &cursor,
-				&bytesRemaining);
-	}
-	else
-	{
-		bundle->ancillaryData.dataLabel = 0;
+		writeMemo("[?] Can't decode QOS block array.");
+		return 0;
 	}
 
-	if (bytesRemaining != 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
+		writeMemo("[?] Can't decode QOS flags.");
+		return 0;
+	}
+
+	bundle->ancillaryData.flags = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode QOS class of service.");
+		return 0;
+	}
+
+	bundle->classOfService = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode QOS ordinal.");
+		return 0;
+	}
+
+	bundle->ancillaryData.ordinal = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode QOS data label.");
+		return 0;
+	}
+
+	bundle->ancillaryData.dataLabel = uvtemp;
+	if (unparsedBytes != 0)
+	{
+		writeMemo("[?] Excess bytes at end of QOS block.");
 		return 0;		/*	Malformed.		*/
 	}
 

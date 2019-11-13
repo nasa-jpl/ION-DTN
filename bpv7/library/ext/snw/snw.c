@@ -51,7 +51,10 @@ int	snw_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
-	unsigned char	dataBuffer[1];
+	uvast		permits;
+	unsigned char	dataBuffer[9];
+	unsigned char	*cursor;
+	uvast		uvtemp;
 
 	if (bundle->permits == 0)
 	{
@@ -59,19 +62,22 @@ int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	}
 
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	blk->dataLength = 1;
 	blk->size = 0;
 	blk->object = 0;
 	if (bundle->permits == 1)
 	{
-		dataBuffer[0] = 1;
+		permits = 1;
 	}
 	else
 	{
-		dataBuffer[0] = (bundle->permits >> 1) & 0x7f;
-		bundle->permits -= dataBuffer[0];
+		permits = (bundle->permits >> 1) & 0x7f;
+		bundle->permits -= permits;
 	}
 
+	cursor = dataBuffer;
+	uvtemp = bundle->permits;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	blk->dataLength = cursor - dataBuffer;
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
@@ -79,22 +85,29 @@ int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;
-	int		bytesRemaining = blk->dataLength;
+	unsigned int	unparsedBytes = blk->dataLength;
+	uvast		uvtemp;
 
-	if (bytesRemaining < 1)
+	if (unparsedBytes < 1)
 	{
+		writeMemo("[?] Can't decode Spray & Wait block.");
 		return 0;		/*	Malformed.		*/
 	}
 
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	bundle->permits = *cursor;
-	cursor++;
-	bytesRemaining -= 1;
-	blk->length = 0;		/*	No need to retain.	*/
-	if (bytesRemaining != 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
+		writeMemo("[?] Can't decode count of SNW permits.");
+		return 0;
+	}
+
+	bundle->permits = uvtemp;
+	blk->length = 0;		/*	No need to retain.	*/
+	if (unparsedBytes != 0)
+	{
+		writeMemo("[?] Excess bytes at end of Spray & Wait block.");
 		return 0;		/*	Malformed.		*/
 	}
 

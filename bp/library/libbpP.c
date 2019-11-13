@@ -1607,6 +1607,7 @@ int	bpInit()
 		return -1;
 	}
 
+	writeMemo("[i] This node deploys bundle protocol version 6.");
 	bpSdr = getIonsdr();
 
 	/*	Recover the BP database, creating it if necessary.	*/

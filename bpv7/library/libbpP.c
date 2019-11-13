@@ -1360,6 +1360,7 @@ int	bpInit()
 		return -1;
 	}
 
+	writeMemo("[i] This node deploys bundle protocol version 7.");
 	sdr = getIonsdr();
 
 	/*	Recover the BP database, creating it if necessary.	*/
@@ -9588,6 +9589,8 @@ static int	serializeEid(EndpointId *eid, unsigned char *buffer)
 		break;
 
 	case ipn:
+		uvtemp = 2;
+		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = eid->ssp.ipn.nodeNbr;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		uvtemp = eid->ssp.ipn.serviceNbr;
@@ -9595,6 +9598,8 @@ static int	serializeEid(EndpointId *eid, unsigned char *buffer)
 		break;
 
 	case imc:
+		uvtemp = 2;
+		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = eid->ssp.imc.groupNbr;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 		uvtemp = eid->ssp.imc.serviceNbr;
@@ -11801,14 +11806,13 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			break;			/*	Out of switch.	*/
 
 		case BP_MULTICAST_PETITION:
-#if 0
-			if (handleImcPetition(&dlv, cursor, unparsedBytes) < 0)
+			if (imcHandlePetition(&dlv, cursor, unparsedBytes) < 0)
 			{
 				putErrmsg("Multicast petition handler failed.",
 						NULL);
 				running = 0;
 			}
-#endif
+
 			break;
 
 		case BP_SAGA_MESSAGE:
