@@ -2308,7 +2308,7 @@ QCBORError QCBORDecode_StartOctets(QCBORDecodeContext *me);
  @param[in] pCtx    The decoder context.
 
  */
-void QCBORDecode_EndOctets(QCBORDecodeContext *me);
+QCBORError QCBORDecode_EndOctets(QCBORDecodeContext *me);
 
 /**
  @brief Close an array as an OCTETS sequence, bypassing nominal encoding headers
