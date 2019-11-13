@@ -1060,6 +1060,36 @@ Done:
    return nReturn;
 }
 
+QCBORError QCBORDecode_StartOctets(QCBORDecodeContext *me) {
+
+   QCBORDecodeNesting *pNesting = &(me->nesting);
+   QCBORError nReturn;
+   
+   // Check if there are any bytes left in bufer
+   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0) {
+      return QCBOR_ERR_NO_MORE_ITEMS;
+   }
+
+   // Error out if nesting is too deep
+   if(pNesting->pCurrent >= &(pNesting->pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING])) {
+      return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+   }
+
+   // The actual descend
+   pNesting->pCurrent++;
+
+   // Pretend we saw a CBOR array
+   pNesting->pCurrent->uMajorType = CBOR_MAJOR_TYPE_ARRAY; // majorType is uint8, so we can't add a custom type
+   pNesting->pCurrent->uCount     = UINT16_MAX; // of indefinite length
+
+   return QCBOR_SUCCESS;
+
+   
+}
+void QCBORDecode_EndOctets(QCBORDecodeContext *me) {
+   DecodeNesting_DecrementCount(&(me->nesting));
+}
+
 
 /*
  Public function, see header qcbor.h file

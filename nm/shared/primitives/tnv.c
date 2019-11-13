@@ -1623,6 +1623,8 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		/* Skip over empty array,. */
 		return result;
 	}
+#else
+	QCBORDecode_StartOctets(it);
 #endif
     
 	/* Get the first byte (the flags). */
@@ -1641,6 +1643,9 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		*success = AMP_OK;
 		tnvc_init(&result, 0);
 		/* Skip over empty array,. */
+#if AMP_VERSION >= 7
+		QCBORDecode_EndOctets(it);
+#endif
 		return result;
 	}
 
@@ -1656,6 +1661,10 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 	if (array_len == 0)
 	{
 		AMP_DEBUG_WARN("tnvc_deserialize", "Illegal Collection of 0-length with non-zero flags. Treating as empty.", NULL);
+#if AMP_VERSION >= 7
+		QCBORDecode_EndOctets(it);
+#endif
+
 		return result;
 	}
 
@@ -1687,6 +1696,10 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 	{
 		AMP_DEBUG_ERR("tnvc_deserialize","Failed to get TNVC.", NULL);
 	}
+	
+#if AMP_VERSION >= 7
+	QCBORDecode_EndOctets(it);
+#endif
 
 	return result;
 }
@@ -1812,7 +1825,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 	memset(&result,0,sizeof(result));
 	*success = AMP_OK;
 
-	/* Deserialize Types */
+	/* Deserialize Types (array_len byte fields) */
 #if AMP_VERSION < 7
 	types = blob_deserialize(array_it, success);
 #else

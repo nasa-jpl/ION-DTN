@@ -330,7 +330,9 @@ var_t *var_deserialize_ptr(QCBORDecodeContext *it, int *success)
     result->id = ari_deserialize_raw(tmp, success);
     blob_release(tmp, 1);
 #else
+	QCBORDecode_StartOctets(it);
 	result->id = ari_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
 #endif
     if((result->id == NULL) || (*success != AMP_OK))
     {
@@ -344,7 +346,9 @@ var_t *var_deserialize_ptr(QCBORDecodeContext *it, int *success)
     result->value = tnv_deserialize_raw(tmp, success);
     blob_release(tmp, 1);
 #else
+	QCBORDecode_StartOctets(it);
 	result->value = tnv_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
 #endif
 
     if((result->value == NULL) || (*success != AMP_OK))
@@ -439,7 +443,9 @@ void var_release(var_t *var, int destroy)
 int var_serialize(QCBOREncodeContext *encoder, void *item)
 {
 	int err;
+#if AMP_VERSION < 7
 	blob_t *result;
+#endif
 	int success;
 	var_t *var = (var_t*) item;
 
@@ -452,7 +458,9 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 #else
+	QCBOREncode_OpenArray(encoder);
 	err = ari_serialize(encoder, item);
+	QCBOREncode_CloseArrayOctet(encoder);
 #endif
 	
 	if(err != AMP_OK)
@@ -467,7 +475,9 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 #else
+	QCBOREncode_OpenArray(encoder);
 	err = tnv_serialize(encoder, item);
+	QCBOREncode_CloseArrayOctet(encoder);
 #endif
 
 	return err;
