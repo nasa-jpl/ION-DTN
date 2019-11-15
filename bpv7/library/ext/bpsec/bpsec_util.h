@@ -26,8 +26,8 @@
  **         the Bundle Authentication Block (BAB) with the following
  **         constraints:
  **         - Bundle fragmentation is not considered.
- **         - Only the HMAC-SHA1 ciphersuite for BAB is considered.
- **         - No ciphersuite parameters are utilized or supported.
+ **         - Only the HMAC-SHA1 context for BAB is considered.
+ **         - No context parameters are utilized or supported.
  **         - All BAB blocks will utilize both the pre- and post-payload block.
  **
  ** Assumptions:
@@ -88,7 +88,7 @@
  *    code to provide insight into the state of the module at processing
  *    points considered useful by bpsec module software engineers.
  * 3: Warning logging.  Warning statements are used to flag unexpected 
- *    values that, based on context, may not constitute errors.
+ *    values that, based on runtime context, may not constitute errors.
  * 4: Error logging.  Errors are areas in the code where some sanity check
  *    or other required condition fails to be met by the software. 
  * 
@@ -142,8 +142,8 @@
  *                      bpsec SPEC VARIABLE DEFINITIONS                      *
  *****************************************************************************/
 /** bpsec rule type enumerations */
-#define bpsec_TX			0
-#define bpsec_RX			1
+#define bpsec_TX		0
+#define bpsec_RX		1
 
 /** 
  * Block Types
@@ -155,21 +155,16 @@
 
 
 /**
- * Ciphersuite Flags - From bpsec Spec.
+ * Context Flags - From bpsec Spec.
  *
- * SEC_SRC: Block contains a security source EID.
- * PARM: Block contains ciphersuite parameters.
- * RES: Block contains a security result.
+ * SEC_SRC:	Block contains a security source EID.
+ * PARM:	Block contains context parameters.
  */
-#if 0
-#define BPSEC_ASB_SEC_SRC	0x04
-#define BPSEC_ASB_PARM		0x02
-#define BPSEC_ASB_RES		0x01
-#endif
+#define BPSEC_ASB_SEC_SRC	0x02
 #define BPSEC_ASB_PARM		0x01
 
 /**
- * Ciphersuite and Security Result Item Types - bpsec spec Section 2.7.
+ * Context and Security Result Item Types - bpsec spec Section 2.7.
  */
 #define BPSEC_CSPARM_IV           0x01
 #define BPSEC_CSPARM_KEY_INFO     0x03
@@ -182,8 +177,31 @@
 
 
 /*****************************************************************************
- *                                DATA STRUCTURES                            *
+ *                        Inbound DATA STRUCTURES                            *
  *****************************************************************************/
+
+typedef struct
+{
+	uvast	   id;
+	uint32_t   length;
+	void	   *value;	/*	ID-dependent structure		*/
+} BpsecInboundTv;
+
+/** 
+ *  \struct BpsecInboundTarget
+ *  \brief  The target of one of an inbound bpsec block's security operations.
+ * 
+ * The BpsecInboundTarget structure characterizes one target of a bpsec block
+ * that is being received by a BP node.
+ */
+typedef struct
+{
+	uint8_t	   targetBlockNumber;
+	uint8_t	   targetBlockType;
+	uint8_t	   metatargetBlockNumber;
+	uint8_t	   metatargetBlockType;
+	Lyst	   results;	/*	Lyst of BpsecInboundTv		*/
+} BpsecInboundTarget;
 
 /** 
  *  \struct BpsecInboundBlock
@@ -195,19 +213,39 @@
 typedef struct
 {
 	EndpointId securitySource;
-	uint8_t	   targetBlockNumber;
-	uint8_t	   targetBlockType;
-	uint8_t	   metatargetBlockType;
-	uint8_t	   ciphersuiteId;
+	Lyst	   targets;	    /*	Lyst of BpsecInboundTarget	*/
+	uint8_t	   contextId;
 	char	   keyName[BPSEC_KEY_NAME_LEN];
-	uint32_t   ciphersuiteFlags;
-	uint32_t   parmsLen;	    /*  IFF flags & bpsec_ASB_PARM	*/
-	uint8_t	  *parmsData;	    /*  IFF flags & bpsec_ASB_PARM	*/
-	uint32_t   resultsLen;
-	uint8_t	  *resultsData;
+	uint32_t   contextFlags;
+	Lyst	   parmsData;	/*	Lyst of BpsecInboundTv		*/
 } BpsecInboundBlock;
 
+/*****************************************************************************
+ *                       Outbound DATA STRUCTURES                            *
+ *****************************************************************************/
 
+typedef struct
+{
+	uvast	   id;
+	uint32_t   length;
+	Object	   value;	 /*	ID-dependent structure		*/
+} BpsecOutboundTv;
+
+/** 
+ *  \struct BpsecOutboundTarget
+ *  \brief  The target of one of an outbound bpsec block's security operations.
+ * 
+ * The BpsecOutboundTarget structure characterizes one target of a bpsec block
+ * that is being prepared for transmission from a BP node.
+ */
+typedef struct
+{
+	uint8_t	   targetBlockNumber;
+	uint8_t	   targetBlockType;
+	uint8_t	   metatargetBlockNumber;
+	uint8_t	   metatargetBlockType;
+	Object	   results;	/*	sdr_list of BpsecOutboundTv	*/
+} BpsecOutboundTarget;
 
 /** 
  *  \struct BpsecOutboundBlock
@@ -219,26 +257,18 @@ typedef struct
 typedef struct
 {
 	EndpointId securitySource;
-	uint8_t	   targetBlockNumber;
-	uint8_t	   targetBlockType;
-	uint8_t	   metatargetBlockType;
+	Object	   targets;	/*	sdr_list of BpsecOutboundTarget	*/
 	uint8_t	   encryptInPlace;	/*  Boolean			*/
-	uint8_t	   ciphersuiteId;
+	uint8_t	   contextId;
 	char       keyName[BPSEC_KEY_NAME_LEN];
-	uint32_t   ciphersuiteFlags;
-	uint32_t   parmsLen;	/** IFF flags & bpsec_ASB_PARM		*/
-	Object     parmsData;	/** IFF flags & bpsec_ASB_PARM		*/
-	uint32_t   resultsLen;
-	Object     resultsData;
+	uint32_t   contextFlags;
+	Object     parmsData;	/*	sdr_list of BpsecOutboundTv	*/
 } BpsecOutboundBlock;
 
 
 /*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
-
-
-extern unsigned char	*bpsec_addSdnvToStream(unsigned char *stream, Sdnv* val);
 
 
 extern SdrObject	bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms,

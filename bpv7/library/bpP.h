@@ -342,6 +342,7 @@ typedef struct
 
 	Object		extensions;
 	int		extensionsLength;	/*	Concatenated.	*/
+	int		lastBlkNumber;
 
 	/*	Internal housekeeping stuff.				*/
 
@@ -1323,6 +1324,9 @@ extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 extern void		eraseEid(EndpointId *eid);
 extern int		readEid(EndpointId *eid, char **str);
 
+extern int		acquireEid(EndpointId *eid,
+				unsigned char **cursor,
+				unsigned int *bytesRemaining;
 extern uvast		computeBufferCrc(BpCrcType crcType,
 				unsigned char *buffer, 
 				int bytesToProcess,

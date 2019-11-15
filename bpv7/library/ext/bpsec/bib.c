@@ -794,21 +794,23 @@ int bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock 
  *  --------  ------------   ---------------------------------------------
  *  11/05/15  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
- *  02/27/16  E. Birrane     Update to CSI Interface [Secure DNULL, NULL, CSI_SVC_SIGNTN
- *                           implementation (NASA: NNX14CS58P)]
+ *  02/27/16  E. Birrane     Update to CSI Interface [Secure DNULL, NULL,
+ *  			     CSI_SVC_SIGNTN implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
 uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 {
-	void *context = NULL;
-	csi_val_t key;
-	uint32_t result = 0;
+	void		*context = NULL;
+	csi_val_t	key;
+	uint32_t	result = 0;
+	unsigned char	serializedResult[16];
+	unsigned char	*cursor;
+	uvast		uvtemp;
+	int		length;
 
 	memset(&key, 0, sizeof(csi_val_t));
-
 	context = csi_ctx_init(suite, key, CSI_SVC_SIGN);
 	result = csi_sign_res_len(suite, context);
-
 	if (result == 0)
 	{
 		csi_ctx_free(suite, context);
@@ -817,11 +819,17 @@ uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 
 	if (tlv != 0)
 	{
-		Sdnv resultSdnv;
-		encodeSdnv(&resultSdnv, result);
+		cursor = serializedResult;
+		uvtemp = result;
+		oK(cbor_encode_integer(uvtemp, &cursor));
+		length = cursor - serializedResult;
 
-		/* Add 1 byte for the "type" and N bytes for the Length as an SDNV. */
-		result += resultSdnv.length + 1;
+		/*	Return value is the length returned by signing
+		 *	(the original value of result), plus the 
+		 *	encoded length of that length, plus 1 for
+		 *	result type.					*/
+
+		result += (length + 1);
 	}
 
 	csi_ctx_free(suite, context);
@@ -865,17 +873,19 @@ int bibDefaultSign(uint32_t suite,
 							  uvast *bytes)
 {
 	Sdr		bpSdr = getIonsdr();
-	int8_t retval = 0;
-	csi_val_t key;
-	csi_val_t digest;
-	Sdnv		digestSdnv;
+	int8_t		retval = 0;
+	csi_val_t	key;
+	csi_val_t	digest;
 	int		resultsLen;
+	unsigned char	securityResult[300];
+	unsigned char	*cursor;
+	uvast		uvtemp;
 	unsigned char	*temp;
-	uint8_t *context = NULL;
+	uint8_t		*context = NULL;
 
-	BIB_DEBUG_INFO("+ bibDefaultSign(%d, 0x%x, 0x%x, 0x%x",
-			       suite, (unsigned long) bundle, (unsigned long) blk,
-				   (unsigned long) asb);
+	BIB_DEBUG_INFO("+ bibDefaultSign(%d, 0x%x, 0x%x, 0x%x", suite,
+			(unsigned long) bundle, (unsigned long) blk,
+			(unsigned long) asb);
 
 	/* Step 0 - Sanity Checks. */
 	CHKERR(bundle);
@@ -906,29 +916,29 @@ int bibDefaultSign(uint32_t suite,
 
 	switch (asb->targetBlockType)
 	{
-		case PrimaryBlk:
+	case PrimaryBlk:
 #if 0	//	This code is yet to be developed.
-			*bytes = bundle->payload.length;
-			retval = bibDefaultCompute(bundle->payload.content,
-					csi_blocksize(suite), suite, context,
-					CSI_SVC_SIGN);
+		*bytes = bundle->payload.length;
+		retval = bibDefaultCompute(bundle->payload.content,
+				csi_blocksize(suite), suite, context,
+				CSI_SVC_SIGN);
 #endif
-			break;
+		break;
 
-		case PayloadBlk:
-			*bytes = bundle->payload.length;
-			retval = bibDefaultCompute(bundle->payload.content,
-					csi_blocksize(suite), suite, context,
-					CSI_SVC_SIGN);
-			break;
+	case PayloadBlk:
+		*bytes = bundle->payload.length;
+		retval = bibDefaultCompute(bundle->payload.content,
+				csi_blocksize(suite), suite, context,
+				CSI_SVC_SIGN);
+		break;
 
-		default:
-			BIB_DEBUG_ERR("x bibDefaultSign: Block type %d not \
-supported.", asb->targetBlockType);
-			MRELEASE(key.contents);
-			csi_ctx_free(suite, context);
-			BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
-			return 0;
+	default:
+		BIB_DEBUG_ERR("x bibDefaultSign: Block type %d not supported.",
+				asb->targetBlockType);
+		MRELEASE(key.contents);
+		csi_ctx_free(suite, context);
+		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
+		return 0;
 	}
 
 	MRELEASE(key.contents);
@@ -954,23 +964,25 @@ supported.", asb->targetBlockType);
 
 	/* Step 2 - Build the security result. */
 
-	/* Step 2.1 - Encode digest length as an SDNV. */
-	encodeSdnv(&digestSdnv, digest.len);
-
-	/* Step 2.2 Allocate space for the encoded result TLV */
-	resultsLen = 1 + digestSdnv.length + digest.len;
-	if ((temp = (unsigned char *) MTAKE(resultsLen)) == NULL)
+	resultsLen = 20 + digest.len;	/*	Max possible length.	*/
+	temp = (unsigned char *) MTAKE(resultsLen);
+	if (temp == NULL)
 	{
-		BIB_DEBUG_ERR("x bibDefaultSign: Can't allocate result of len %ld.", resultsLen);
+		BIB_DEBUG_ERR("x bibDefaultSign: Can't allocate result of \
+len %ld.", resultsLen);
 		MRELEASE(digest.contents);
 		BIB_DEBUG_PROC("- bibDefaultSign --> %d", -1);
 		return -1;
 	}
 
-	/* Step 2.3 Populate the result TLV. */
-	*temp = BPSEC_CSPARM_INT_SIG;
-	memcpy(temp + 1, digestSdnv.text, digestSdnv.length);
-	memcpy(temp + 1 + digestSdnv.length, digest.contents, digest.len);
+	cursor = temp;
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+	uvtemp = BPSEC_CSPARM_INT_SIG;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	uvtemp = digest.len;
+	oK(cbor_encode_byte_string(digest.contents, uvtemp, &cursor));
+	resultsLen = cursor - temp;
 	MRELEASE(digest.contents);
 
 	/* Step 3 - Store the security result in the ASB and on the SDR. */
@@ -986,8 +998,6 @@ space for ASB result, len %ld.", resultsLen);
 
 	sdr_write(bpSdr, asb->resultsData, (char *) temp, resultsLen);
 	MRELEASE(temp);
-
-
 	return 0;
 }
 

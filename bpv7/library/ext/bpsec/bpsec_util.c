@@ -24,21 +24,19 @@
  **         As of September 2019, the ION bpsec implementation supports
  **         the Block Integrity Block (BIB) and Block Confidentiality Block
  **         (BCB) with the following constraints:
- **         - Only the ciphersuites implemented in the profiles.c file
+ **         - Only the contexts implemented in the profiles.c file
  **           are supported.
- **         - There is currently no support for BIBs and BCBs comprising
- **           First and Last Blocks.
- **         - There is no support for the use of multiple ciphersuites to
+ **         - There is no support for the use of multiple contexts to
  **           offer or acquire bpsec blocks of a given type in the bundle
- **           traffic between a given security source and a given security
- **           destination.  That is, the ciphersuite to be used for offering
+ **           traffic between a given security source and a given bundle
+ **           destination.  That is, the context to be used for offering
  **           or acquiring a bpsec block is a function of the block type,
- **           the security source node, and the security destination node.
- **           When an bpsec block whose security destination is the local
- **           node is received, if that block was offered in the context
- **           of a ciphersuite other than the one that ION would select
- **           for that block type's type and security source and destination
- **           then the block is silently discarded.
+ **           the security source node, and the bundle destination node.
+ **           When a bundle arrives at its destination node, any bpsec
+ **	      block in that bundle that was offered in the context of a
+ **	      context other than the one that ION would select for
+ **	      that block type's type and security source, and that
+ **	      bundle's destination, is silently discarded.
  **
  ** Assumptions:
  **      1. We assume that this code is not under such tight profiling
@@ -86,55 +84,6 @@ char	gMsg[GMSG_BUFLEN];
 /*****************************************************************************
  *                              GENERAL FUNCTIONS                            *
  *****************************************************************************/
-
-/******************************************************************************
- *
- * \par Function Name: bpsec_addSdnvToStream
- *
- * \par Purpose: This utility function adds the contents of an SDNV to a
- *               character stream and then returns the updated stream pointer.
- *
- * \par Date Written:  5/29/09
- *
- * \retval unsigned char * -- The updated stream pointer.
- *
- * \param[in]  stream  The current position of the stream pointer.
- * \param[in]  val     The SDNV value to add to the stream.
- *
- * \par Notes: 
- *      1. Input parameters are passed as pointers to prevent wasted copies.
- *         Therefore, this function must be careful not to modify them.
- *      2. This function assumes that the stream is a character stream.
- *      3. We assume that we are not under such tight profiling constraints
- *         that sanity checks are too expensive.
- *
- * \par Revision History:
- *
- *  MM/DD/YY  AUTHOR        SPR#    DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  05/29/09  E. Birrane           Initial Implementation.
- *  06/08/09  E. Birrane           Documentation updates.
- *  06/20/09  E. Birrane           Added Debugging Stmt, cmts for initial rel.
- *****************************************************************************/
-unsigned char	*bpsec_addSdnvToStream(unsigned char *stream, Sdnv* value)
-{
-	BPSEC_DEBUG_PROC("+ bpsec_addSdnvToStream(%x, %x)",
-			(unsigned long) stream, (unsigned long) value);
-
-	if ((stream != NULL) && (value != NULL) && (value->length > 0))
-	{
-		BPSEC_DEBUG_INFO("i bpsec_addSdnvToStream: Adding %d bytes",
-				value->length);
-		memcpy(stream, value->text, value->length);
-		stream += value->length;
-	}
-
-	BPSEC_DEBUG_PROC("- bpsec_addSdnvToStream --> %x",
-			(unsigned long) stream);
-
-	return stream;
-}
-
 
 
 /******************************************************************************
@@ -270,10 +219,6 @@ result of length %d.", tmp.len);
 }
 
 
-
-
-
-
 /******************************************************************************
  *
  * \par Function Name: bpsec_deserializeASB
@@ -312,140 +257,336 @@ result of length %d.", tmp.len);
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
+
+static void	destroyInboundTarget(LystElt elt, void *userData)
+{
+	BpsecInboundTarget	*target;
+
+	target = (BpsecInboundTarget *) lyst_data(elt);
+	MRELEASE(target);
+}
+
+static void	loseInboundAsb(BpsecInboundBlock *asb)
+{
+	if (asb->targets)
+	{
+		lyst_destroy(asb->targets);
+	}
+
+	MRELEASE(asb);
+}
+
 int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 {
+	int			memIdx = getIonMemoryMgr();
 	int			result = 1;
-	BpsecInboundBlock	asb;
 	unsigned char		*cursor = NULL;
-	int			unparsedBytes = 0;
-	unsigned int 		itemp;
+	unsigned int		unparsedBytes = 0;
+	BpsecInboundBlock	asb;
+	uvast			arrayLength;
+	BpsecInboundTarget	*itarget;
+	uvast			uvtemp;
+	BpsecInboundTv		*tv;
+	unsigned char		buffer[255];
+	LystElt			elt;
 
-	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB(" ADDR_FIELDSPEC "," \
-ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
-
+	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB(" ADDR_FIELDSPEC \
+"," ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
 	CHKERR(blk);
 	CHKERR(wk);
-
-	BPSEC_DEBUG_INFO("i bpsec_deserializeASB blk length %d", blk->length);
-	unparsedBytes = blk->length;
-
-	memset((char *) &asb, 0, sizeof(BpsecInboundBlock));
-
-	/*
-	 * Position cursor to start of block-type-specific data of the
-	 * extension block, by skipping over the extension block header.
-	 */
-
-	cursor = ((unsigned char *)(blk->bytes))
-			+ (blk->length - blk->dataLength);
-
-	/* Extract block specifics, using ciphersuiteFlags as necessary. */
-
-	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-	asb.targetBlockNumber = itemp;
-
-	/*	For now, ION does not recognize any multi-block
-	 *	security operations.
-	 */
-
-	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-	asb.ciphersuiteId = itemp;
-	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-	asb.ciphersuiteFlags = itemp;
-
-	BPSEC_DEBUG_INFO("i bpsec_deserializeASB: cipher %ld, flags %ld, \
-length %d", asb.ciphersuiteId, asb.ciphersuiteFlags, blk->dataLength);
-
-	/*	For now, ION does not support security sources in
-	 *	security blocks, so we start on parameters right away.	*/
-
-	if (asb.ciphersuiteFlags & BPSEC_ASB_PARM)
-	{
-		extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-		asb.parmsLen = itemp;
-		if (asb.parmsLen > 0)
-		{
-			if (asb.parmsLen > unparsedBytes)
-			{
-				BPSEC_DEBUG_WARN("? bpsec_deserializeASB: \
-parmsLen %u, unparsedBytes %u.", asb.parmsLen, unparsedBytes);
-
-				result = 0;
-
-				BPSEC_DEBUG_PROC("- bpsec_deserializeASB -> %d",
-						result);
-				return result;
-			}
-
-			asb.parmsData = MTAKE(asb.parmsLen);
-			if (asb.parmsData == NULL)
-			{
-				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No \
-space for ASB parms %d", utoa(asb.parmsLen));
-				return -1;
-			}
-
-			memcpy(asb.parmsData, cursor, asb.parmsLen);
-			cursor += asb.parmsLen;
-			unparsedBytes -= asb.parmsLen;
-			BPSEC_DEBUG_INFO("i bpsec_deserializeASB: parmsLen %ld",
-					asb.parmsLen);
-		}
-	}
-#if 0
-	if (asb.ciphersuiteFlags & BPSEC_ASB_RES)
-	{
-#endif
-		extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
-		asb.resultsLen = itemp;
-		if (asb.resultsLen > 0)
-		{
-			if (asb.resultsLen > unparsedBytes)
-			{
-				BPSEC_DEBUG_WARN("? bpsec_deserializeASB: \
-resultsLen %u, unparsedBytes %u.", asb.resultsLen, unparsedBytes);
-				if (asb.parmsData)
-				{
-					MRELEASE(asb.parmsData);
-				}
-
-				result = 0;
-				BPSEC_DEBUG_PROC("- bpsec_deserializeASB -> %d",
-						result);
-				return result;
-			}
-
-			asb.resultsData = MTAKE(asb.resultsLen);
-			if (asb.resultsData == NULL)
-			{
-				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No \
-space for ASB results %d", utoa(asb.resultsLen));
-				return -1;
-			}
-
-			memcpy(asb.resultsData, cursor, asb.resultsLen);
-			cursor += asb.resultsLen;
-			unparsedBytes -= asb.resultsLen;
-			BPSEC_DEBUG_INFO("i bpsec_deserializeASB: resultsLen %ld",
-					asb.resultsLen);
-		}
-#if 0
-	}
-#endif
-
-	blk->size = sizeof(BpsecInboundBlock);
-	blk->object = MTAKE(sizeof(BpsecInboundBlock));
-	if (blk->object == NULL)
+	BPSEC_DEBUG_INFO("i bpsec_deserializeASB blk data length %d",
+			blk->dataLength);
+	unparsedBytes = blk->dataLength;
+       	asb = (BpsecInboundBlock *) MTAKE(sizeof(BpsecInboundBlock));
+	if (asb == NULL)
 	{
 		BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB \
 scratchpad", NULL);
 		return -1;
 	}
 
-	memcpy((char *) (blk->object), (char *) &asb, sizeof(BpsecInboundBlock));
+	memset((char *) asb, 0, sizeof(BpsecInboundBlock));
 
+	/*
+	 * Position cursor at start of block-type-specific data of the
+	 * extension block, by skipping over the extension block header.
+	 */
+
+	cursor = ((unsigned char *)(blk->bytes))
+			+ (blk->length - blk->dataLength);
+
+	/*	Get top-level array.					*/
+
+	arrayLength = 0;	/*	May be 4, 5, or 6.		*/
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode bpsec block");
+		loseInboundAsb(asb);
+		return 0;
+	}
+
+	/*	First item in array is array of target block numbers.	*/
+
+	asb->targets = lyst_create_using(memIdx);
+	if (asb->targets == NULL)
+	{
+		BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for ASB \
+targets list", NULL);
+		loseInboundAsb(asb);
+		return -1;
+	}
+
+	lyst_delete_set(asb->targets, destroyInboundTarget, NULL);
+	arrayLength = 0;
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode bpsec block target array");
+		loseInboundAsb(asb);
+		return 0;
+	}
+
+	while (arrayLength > 0)
+	{
+		target = (BpsecInboundTarget *)
+				MTAKE(sizeof(BpsecInboundTarget));
+		if (target == NULL
+		|| lyst_insert_last(asb->targets, target))
+		{
+			BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for \
+ASB targets list", NULL);
+			loseInboundAsb(asb);
+			return -1;
+		}
+
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode bpsec block target nbr");
+			loseInboundAsb(asb);
+			return 0;
+		}
+
+		target->targetBlockNumber = uvtemp;
+		arrayLength -= 1;
+	}
+
+	/*	Second item is security context ID.			*/
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode bpsec block context ID");
+		loseInboundAsb(asb);
+		return 0;
+	}
+
+	asb->contextId = uvtemp;
+
+	/*	Third item is security context flags.			*/
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode bpsec block context flags");
+		loseInboundAsb(asb);
+		return 0;
+	}
+
+	asb->contextFlags = uvtemp;
+
+	BPSEC_DEBUG_INFO("i bpsec_deserializeASB: context %ld, flags %ld, \
+length %d", asb.contextId, asb.contextFlags, blk->dataLength);
+
+	/*	Next, possibly, is security source.			*/
+
+	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
+	{
+		switch (acquireEid(&(asb->securitySource), &cursor,
+					&unparsedBytes))
+		{
+		case -1:
+			BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for \
+securityu source EID", NULL);
+			loseInboundAsb(asb);
+			return -1;
+
+		case 0:
+			writeMemo("[?] Can't decode bpsec block security src");
+			loseInboundAsb(asb);
+			return 0;
+
+		default:
+			break;
+		}
+	}
+
+	/*	Then, possibly, context parameters.			*/
+
+	if (asb->contextFlags & BPSEC_ASB_PARM)
+	{
+		asb->parmsData = lyst_create_using(memIdx);
+		if (asb->parmsData == NULL)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for \
+ASB parms list", NULL);
+			loseInboundAsb(asb);
+			return -1;
+		}
+
+		arrayLength = 0;
+		if (cbor_decode_array_open(&arrayLength, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode bpsec block parms array");
+			loseInboundAsb(asb);
+			return 0;
+		}
+
+		while (arrayLength > 0)
+		{
+			tv = (BpsecInboundTv *) MTAKE(sizeof(BpsecInboundTv));
+			if (tv == NULL
+			|| lyst_insert_last(asb->parmsData, tv) == NULL)
+			{
+				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No \
+space for ASB parms TV", NULL);
+				loseInboundAsb(asb);
+				return -1;
+			}
+
+			if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+					&unparsedBytes) < 1)
+			{
+				writeMemo("[?] Can't decode bpsec block \
+context parm ID");
+				loseInboundAsb(asb);
+				return 0;
+			}
+
+			tv->id = uvtemp;
+			uvtemp = sizeof buffer;
+			if (cbor_decode_byte_string(buffer, &uvtemp, &cursor,
+					&unparsedBytes) < 1)
+			{
+				writeMemo("[?] Can't decode bpsec block \
+context parm value");
+				loseInboundAsb(asb);
+				return 0;
+			}
+
+			tv->length = uvtemp;
+			tv->value = MTAKE(tv->length);
+			if (tv->value == NULL)
+			{
+				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No \
+space for ASB parm value", NULL);
+				loseInboundAsb(asb);
+				return -1;
+			}
+
+			memcpy(tv->value, buffer, tv->length);
+			arrayLength -= 1;
+		}
+	}
+
+	/*	Finally, security results.				*/
+
+	arrayLength = 0;
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode bpsec block results array");
+		loseInboundAsb(asb);
+		return 0;
+	}
+
+	/*	arrayLength is the number of targets for which security
+	 *	results are provided in this bpsec block.		*/
+
+	if (arrayLength != lyst_length(asb->targets))
+	{
+		writeMemo("[?] Mismatch between targets and results.");
+		loseInboundAsb(asb);
+		return 0;
+	}
+
+	for (elt = lyst_first(asb->targets); elt; elt = lyst_next(elt))
+	{
+		target = (BpsecInboundTarget *) lyst_data(elt);
+
+		/*	Each result set (1 per target) is an array
+		 *	of results.					*/
+
+		arrayLength = 0;
+		if (cbor_decode_array_open(&arrayLength, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode bpsec block result set");
+			loseInboundAsb(asb);
+			return 0;
+		}
+
+		/*	arrayLength is the number of results in the
+		 *	result set for this target.			*/
+
+		while (arrayLength > 0)
+		{
+			/*	Each result is a TV, i.e., an array
+			 *	of two items: ID and value.		*/
+
+			tv = (BpsecInboundTv *) MTAKE(sizeof(BpsecInboundTv));
+			if (tv == NULL
+			|| lyst_insert_last(target->results, tv) == NULL)
+			{
+				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No \
+space for ASB results TV", NULL);
+				loseInboundAsb(asb);
+				return -1;
+			}
+
+			uvtemp = 2;
+			if (cbor_decode_array_open(&uvtemp, &cursor,
+				&unparsedBytes) < 1)
+			{
+				writeMemo("[?] Can't decode bpsec result");
+				loseInboundAsb(asb);
+				return 0;
+			}
+
+			if (cbor_decode_integer(&uvtem, &cursor, &unparsedBytes)
+					< 1)
+			{
+				writeMemo("[?] Can't decode bpsec result ID");
+				loseInboundAsb(asb);
+				return 0;
+			}
+
+			tv->id = uvtemp;
+			uvtemp = sizeof buffer;
+			if (cbor_decode_byte_string(buffer, &uvtemp, &cursor,
+					&unparsedBytes) < 1)
+			{
+				writeMemo("[?] Can't decode bpsec result \
+value");
+				loseInboundAsb(asb);
+				return 0;
+			}
+
+			tv->length = uvtemp;
+			tv->value = MTAKE(tv->length);
+			if (tv->value == NULL)
+			{
+				BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No \
+space for ASB results value", NULL);
+				loseInboundAsb(asb);
+				return -1;
+			}
+
+			memcpy(tv->value, buffer, tv->length);
+			arrayLength -= 1;
+		}
+	}
+
+	blk->size = sizeof(BpsecInboundBlock);
+	blk->object = asb;
 	BPSEC_DEBUG_PROC("- bpsec_deserializeASB -> %d", result);
-
 	return result;
 }
 
@@ -713,24 +854,20 @@ char	*bpsec_getLocalAdminEid(char *peerEid)
  *
  * \par Function Name: bpsec_getOutboundItem
  *
- * \par Purpose: This function searches within a buffer (a ciphersuite
- *               parameters field or a security result field) of an outbound
- *               bpsec block for an information item of specified type.
+ * \par Purpose: This function searches within the parmsData list
+ *               of an outbound bpsec block for a parameter of
+ *               specified type (ID) or within the results list of
+ *               one target of an outbound bpsec block for a
+ *               result of specified type (ID).
  *
  * \retval void
  *
  * \param[in]  itemNeeded  The code number of the type of item to search
  *                         for.  Valid item type codes are defined in
  *                         bpsec_util.h as BPSEC_CSPARM_xxx macros.
- * \param[in]  buf         The data buffer in which to search for the item.
- * \param[in]  bufLen      The length of the data buffer.
- * \param[in]  val         A pointer to a variable in which the function
- *                         should place the location (within the buffer)
- *                         of the first item of specified type that is
- *                         found within the buffer.  On return, this
- *                         variable contains NULL if no such item was found.
- * \param[in]  len         A pointer to a variable in which the function
- *                         should place the length of the first item of
+ * \param[in]  parms       The sdrlist in which to search for the item.
+ * \param[in]  tvp         A pointer to a variable in which the function
+ *                         should place the address of the first item of
  *                         specified type that is found within the buffer.
  *                         On return, this variable contains 0 if no such
  *                         item was found.
@@ -738,80 +875,27 @@ char	*bpsec_getLocalAdminEid(char *peerEid)
  * \par Notes:
  *****************************************************************************/
 
-void	bpsec_getOutboundItem(uint8_t itemNeeded, Object buf, uint32_t bufLen,
-		Address *val, uint32_t *len)
+void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 {
-	unsigned char *temp;
-	unsigned char *cursor;
-	uint8_t       itemType;
-	unsigned int      sdnvLength;
-	uvast		  longNumber;
-	uint32_t	  itemLength;
-	uint32_t	  offset;
+	Sdr	sdr = getIonsdr();
+	Object	elt;
+	Object	addr;
+		OBJ_POINTER(BpsecOutboundTv, tv);
 
-	CHKVOID(buf);
-	CHKVOID(val);
-	CHKVOID(len);
-	*val = 0;			/*	Default.		*/
-	*len = 0;			/*	Default.		*/
-
-	/*	Walk through all items in the buffer (either a
-	 *	security parameters field or a security results
-	 *	field), searching for an item of the indicated type.	*/
-
-	temp = MTAKE(bufLen);
-	if (temp == NULL)
+	CHKVOID(items);
+	CHKVOID(tv);
+	*tvp = 0;			/*	Default.		*/
+	for (elt = sdr_list_first(sdr, items); elt; elt = sdr_next(sdr, elt))
 	{
-		BPSEC_DEBUG_ERR("x bpsec_getOutboundItem: No space for \
-temporary memory buffer %d.", utoa(bufLen));
-		return;
+		addr = sdr_list_data(elt);
+		GET_OBJ_POINTER(sdr, BpsecOutboundTv, tv, addr);
+		if (tv->id == itemNeeded)
+		{
+			*tvp = addr;
+			return;
+		}
 	}
-
-	memset(temp, 0, bufLen);
-	sdr_read(getIonsdr(), (char *) temp, buf, bufLen);
-	cursor = temp;
-	while (bufLen > 0)
-	{
-		itemType = *cursor;
-		cursor++;
-		bufLen--;
-		if (bufLen == 0)	/*	No item length.		*/
-		{
-			break;		/*	Malformed result data.	*/
-		}
-
-		sdnvLength = decodeSdnv(&longNumber, cursor);
-		if (sdnvLength == 0 || sdnvLength > bufLen)
-		{
-			break;		/*	Malformed result data.	*/
-		}
-
-		itemLength = longNumber;
-		cursor += sdnvLength;
-		bufLen -= sdnvLength;
-
-		if (itemLength == 0)	/*	Empty item.		*/
-		{
-			continue;
-		}
-
-		if (itemType == itemNeeded)
-		{
-			offset = cursor - temp;
-			*val = (Address) (buf + offset);
-			*len = itemLength;
-			break;
-		}
-
-		/*	Look at next item in buffer.			*/
-
-		cursor += itemLength;
-		bufLen -= itemLength;
-	}
-
-	MRELEASE(temp);
 }
-
 
 
 /******************************************************************************
@@ -1239,8 +1323,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 {
 	Sdr		sdr = getIonsdr();
 	Sdnv		targetBlockNumber;
-	Sdnv		ciphersuiteId;
-	Sdnv		ciphersuiteFlags;
+	Sdnv		contextId;
+	Sdnv		contextFlags;
 	Sdnv		parmsLen;
 	Sdnv		resultsLen;
 	unsigned char	*serializedAsb;
@@ -1263,11 +1347,11 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 
 	encodeSdnv(&targetBlockNumber, asb->targetBlockNumber);
 	*length = targetBlockNumber.length;
-	encodeSdnv(&ciphersuiteId, asb->ciphersuiteId);
-	*length += ciphersuiteId.length;
-	encodeSdnv(&ciphersuiteFlags, asb->ciphersuiteFlags);
-	*length += ciphersuiteFlags.length;
-	if (asb->ciphersuiteFlags & BPSEC_ASB_PARM)
+	encodeSdnv(&contextId, asb->contextId);
+	*length += contextId.length;
+	encodeSdnv(&contextFlags, asb->contextFlags);
+	*length += contextFlags.length;
+	if (asb->contextFlags & BPSEC_ASB_PARM)
 	{
 		encodeSdnv(&parmsLen, asb->parmsLen);
 		*length += parmsLen.length;
@@ -1277,7 +1361,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	BPSEC_DEBUG_INFO("i bpsec_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
 			asb->resultsLen);
 #if 0
-	if (asb->ciphersuiteFlags & BPSEC_ASB_RES)
+	if (asb->contextFlags & BPSEC_ASB_RES)
 	{
 #endif
 		encodeSdnv(&resultsLen, asb->resultsLen);
@@ -1307,10 +1391,10 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 
 	cursor = serializedAsb;
 	cursor = bpsec_addSdnvToStream(cursor, &targetBlockNumber);
-	cursor = bpsec_addSdnvToStream(cursor, &ciphersuiteId);
-	cursor = bpsec_addSdnvToStream(cursor, &ciphersuiteFlags);
+	cursor = bpsec_addSdnvToStream(cursor, &contextId);
+	cursor = bpsec_addSdnvToStream(cursor, &contextFlags);
 
-	if (asb->ciphersuiteFlags & BPSEC_ASB_PARM)
+	if (asb->contextFlags & BPSEC_ASB_PARM)
 	{
 		cursor = bpsec_addSdnvToStream(cursor, &parmsLen);
 		BPSEC_DEBUG_INFO("i bpsec_serializeASB: cursor %x, parms data \
@@ -1330,7 +1414,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	}
 
 #if 0
-	if (asb->ciphersuiteFlags & BPSEC_ASB_RES)
+	if (asb->contextFlags & BPSEC_ASB_RES)
 	{
 #endif
 		cursor = bpsec_addSdnvToStream(cursor, &resultsLen);

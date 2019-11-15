@@ -7365,8 +7365,8 @@ static char	*_versionMemo()
 	return memo;
 }
 
-static int	acquireEid(EndpointId *eid, unsigned char **cursor,
-			unsigned int *bytesRemaining)
+int	acquireEid(EndpointId *eid, unsigned char **cursor,
+		unsigned int *bytesRemaining)
 {
 	uvast		arrayLength;
 	uvast		uvtemp;

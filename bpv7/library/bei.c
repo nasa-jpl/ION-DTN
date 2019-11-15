@@ -194,6 +194,34 @@ static int	insertExtensionBlock(ExtensionSpec *spec,
 	return 0;
 }
 
+static unsigned char	selectBlkNumber(Bundle *bundle);
+{
+	Sdr		bpSdr = getIonsdr();
+	unsigned char	maxBlkNumber = 1;	/*	Payload.	*/
+	Object		elt;
+	Object		blkObj;
+			OBJ_POINTER(ExtensionBlock, blk);
+
+	if (bundle->lastBlkNumber == 0)
+	{
+		for (elt = sdr_list_first(sdr, bundle->extensions); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			blkObj = sdr_list_data(sdr, elt);
+			GET_OBJ_POINTER(ExtensionBlock, blk);
+			if (blk->number > maxBlkNumber)
+			{
+				maxBlkNumber = blk->number;
+			}
+		}
+
+		bundle->lastBlkNumber = maxBlkNumber;
+	}
+
+	bundle->lastBlkNumber += 1;
+	return bundle->lastBlkNumber;
+}
+
 int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 		Bundle *bundle)
 {
@@ -204,7 +232,7 @@ int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 	CHKERR(blk);
 	CHKERR(bundle);
 	blk->type = spec->type;
-	blk->number = 0;	//	To be developed.
+	blk->number = selectBlkNumber(bundle);
 	blkAddr = sdr_malloc(getIonsdr(), sizeof(ExtensionBlock));
 	CHKERR(blkAddr);
 	if (insertExtensionBlock(spec, blk, blkAddr, bundle) < 0)
