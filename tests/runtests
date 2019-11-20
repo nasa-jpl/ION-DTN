@@ -39,6 +39,18 @@ function skip_test () {
 }
 
 
+function excludeOS_test () {
+    NUM_EXCLUDED_OS=$((NUM_EXCLUDED_OS + 1))
+    TESTS_EXCLUDED_OS="$TESTS_EXCLUDED_OS $1"
+}
+
+
+function excludeBPv_test () {
+    NUM_EXCLUDED_BPv=$((NUM_EXCLUDED_BPv + 1))
+    TESTS_EXCLUDED_BPv="$TESTS_EXCLUDED_BPv $1"
+}
+
+
 # runs one test, updates the test status counters
 function run_a_test () {
     TEST=$1
@@ -48,7 +60,7 @@ function run_a_test () {
     TEST=${TEST%%/}
 
     if [ -f "$TEST/.exclude_all" ]; then
-    	echo "Test Excluded, skipping"
+    	echo "Test universally excluded, skipping"
     	skip_test $TEST
     	return
     fi
@@ -56,7 +68,7 @@ function run_a_test () {
     # check for environment variable to skip these	
     if [ -f "$TEST/.exclude_expert" ]; then
 	    if [ -n "$ION_EXCLUDE_EXPERT" ]; then
-		echo "Test Excluded by expertise class, skipping"
+		echo "Test excluded by expertise class, skipping"
 		skip_test $TEST
 		return
 	    fi
@@ -65,33 +77,41 @@ function run_a_test () {
     # check for environment variable to skip these	
     if [ -f "$TEST/.exclude_cbased" ]; then
 	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
-		echo "Test Excluded because of C code, skipping"
+		echo "Test excluded because of C code, skipping"
 		skip_test $TEST
 		return
 	    fi
     fi
 
-    if [ -f "$TEST/.exclude_$VERSION" ]; then
-    	echo "Test Excluded by OS type, skipping"
-    	skip_test $TEST
+    # check if test is excluded by OS version
+    if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
+    	echo "Test excluded by OS type, skipping"
+    	excludeOS_test $TEST
+    	return
+    fi
+
+    # check if test is excluded by BP version
+    if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
+    	echo "Test excluded by BP version, skipping"
+    	excludeBPv_test $TEST
     	return
     fi
 
 
     if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
-        echo "test $TEST doesnt exist!"
+        echo "test $TEST does not exist!"
         NUM_FAILED=$((NUM_FAILED + 1))
         TESTS_FAILED="$TESTS_FAILED $TEST"
         return
     fi
-
+: << 'END'
     echo
     echo "***"
     echo "*** ${TEST}"
     echo "***"
 
     if [ ! -x "$TEST/dotest" ]; then
-        echo "disabled, skipping"
+        echo "dotest script not executable, skipping"
         NUM_SKIPPED=$((NUM_SKIPPED + 1))
         TESTS_SKIPPED="$TESTS_SKIPPED $TEST"
         return
@@ -128,6 +148,7 @@ function run_a_test () {
     fi
 
     popd > /dev/null
+END
 }
 
 
@@ -173,7 +194,8 @@ function cleanup_tests () {
 NUM_PASSED=0
 NUM_FAILED=0
 NUM_SKIPPED=0
-NUM_EXCLUDED=0
+NUM_EXCLUDED_OS=0
+NUM_EXCLUDED_BPv=0
 NUM_UNKNOWN=0
 
 # these track the names of the tests passed/failed/skipped
@@ -181,23 +203,28 @@ NUM_UNKNOWN=0
 TESTS_PASSED=''
 TESTS_FAILED=''
 TESTS_SKIPPED=''
+TESTS_EXCLUDED_OS=''
+TESTS_EXCLUDED_BPv=''
 
-#For Exclusion of tests
-VERSION=''
+# Determine OS version for exclusion of tests
+OS_VERSION=''
 version=`uname -a`
 if [[ $version == *"MINGW"* ]] || [[ $version == *"Msys"* ]] 
 then
-	VERSION=windows;
+	OS_VERSION=windows;
 elif [[ $version == *"Linux"* ]] || [[ $version == *"LINUX"* ]]
 then
-	VERSION=linux;
+	OS_VERSION=linux;
 elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]] || [[ $version == *"Darwin"* ]]
 then
-	VERSION=mac;
+	OS_VERSION=mac;
 elif [[ $version == "*Solaris*" ]] || [[ $version == "*SunOS*" ]]
 then
-        VERSION=solaris;
+        OS_VERSION=solaris;
 fi
+
+#Determine BP version for exclustion of tests
+BP_VERSION=bpv6
 
 CLEANUP=""
 if [ "$1" = "cleanup" ]; then
@@ -249,6 +276,18 @@ done
 echo
 echo "skipped: $NUM_SKIPPED"
 for TEST in $TESTS_SKIPPED; do
+    echo "    $TEST"
+done
+
+echo
+echo "excluded by OS type: $NUM_EXCLUDED_OS"
+for TEST in $TESTS_EXCLUDED_OS; do
+    echo "    $TEST"
+done
+
+echo
+echo "excluded by BP version: $NUM_EXCLUDED_BPv"
+for TEST in $TESTS_EXCLUDED_BPv; do
     echo "    $TEST"
 done
 
