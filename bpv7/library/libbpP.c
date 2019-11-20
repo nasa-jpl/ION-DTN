@@ -51,8 +51,6 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
-extern int	bpsec_securityPolicyViolated(AcqWorkArea *wk);
-
 /*	We hitchhike on the ZCO heap space management system to 
  *	manage the space occupied by Bundle objects.  In effect,
  *	the Bundle overhead objects compete with ZCOs for available
@@ -64,7 +62,6 @@ extern void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
 extern void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct);
 
 static BpVdb	*_bpvdb(char **);
-static int	serializeEid(EndpointId *eid, unsigned char *buffer);
 
 /*	*	*	Helpful utility functions	*	*	*/
 
@@ -8723,6 +8720,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	initAuthenticity(work);	/*	Set default.			*/
 	if (checkPerExtensionBlocks(work) < 0)
+<<-- Must call bpsec_securityPolicyViolated inside this check, somehow.
 	{
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(sdr);
@@ -8752,7 +8750,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 				bundle->payload.length);
 		return abortBundleAcq(work);
 	}
-
+/*
 	if (bpsec_securityPolicyViolated(work))
 	{
 		writeMemo("[?] Security policy violated.");
@@ -8760,7 +8758,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 				bundle->payload.length);
 		return abortBundleAcq(work);
 	}
-
+*/
 	/*	Unintelligible extension headers don't make a bundle
 	 *	malformed (though we count it that way), but they may
 	 *	make it necessary to discard the bundle.		*/
@@ -9549,7 +9547,7 @@ int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 
 /*	*	*	Bundle catenation functions	*	*	*/
 
-static int	serializeEid(EndpointId *eid, unsigned char *buffer)
+int	serializeEid(EndpointId *eid, unsigned char *buffer)
 {
 	/*	Note: we assume that the buffer is large enough to
 	 *	hold a serialized EID, i.e., 300 bytes.  The largest 

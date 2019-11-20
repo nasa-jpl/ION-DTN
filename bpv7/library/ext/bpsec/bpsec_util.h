@@ -175,6 +175,37 @@
 
 #define BPSEC_KEY_NAME_LEN	 32
 
+/*	Notes on data structures:
+
+An inbound bpsec block is an AcqExtBlk, which originally has a serialized form
+represented in the "bytes" array (in private working memory) and acquires a
+deserialized form - represented as a BpsecInboundBlock (an ASB), residing in
+private working memory, in the scratchpad "object" of the AcqExtBlk - when the
+AcqExtBlk is passed to bpsec_deserializeASB().
+
+An outbound bpsec block is an ExtensionBlock, which (if created locally)
+originally has a deserialized form - represented as a BpsecOutboundBlock
+(an ASB), residing in SDR heap space, in the scratchpad "object" of the
+ExtensionBlock.  In this case the serialized form of a block, represented
+in the block's "bytes" array (in SDR heap space), is generated when the
+BpsecOutboundBlock is passed to bpsec_serializeASB().
+
+All inbound bpsec blocks are extracted from bundles created remotely and
+received locally.  All bpsec blocks created locally are outbound bpsec blocks.
+However, not all outbound bpsec blocks are created locally.  A bpsec block
+that was created remotely may need to be copied to an outbound bpsec block
+so that it may be forwarded to other nodes, just as locally created bpsec
+blocks must be.
+
+For this purpose, ASB serialization is not needed, since the serialized
+form of the block is already present in the "bytes" array of the inbound
+block.  All that's needed is to copy the inbound block's "bytes" array to
+the SDR heap and store the address of the copy in the outbound block's
+"bytes" array.  The inbound block's ASB (scratchpad object) need not be
+referenced or re-serialized.  (Note that an inbound bpsec block must not
+be modified in any way before it is forwarded, as this would invalidate
+the block's sourceEID.)							*/
+
 
 /*****************************************************************************
  *                        Inbound DATA STRUCTURES                            *
@@ -243,7 +274,6 @@ typedef struct
 	uint8_t	   targetBlockNumber;
 	uint8_t	   targetBlockType;
 	uint8_t	   metatargetBlockNumber;
-	uint8_t	   metatargetBlockType;
 	Object	   results;	/*	sdr_list of BpsecOutboundTv	*/
 } BpsecOutboundTarget;
 

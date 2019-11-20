@@ -18,10 +18,10 @@
  **
  **              This implementation utilizes the ION Extension Interface to
  **              manage the creation, modification, evaluation, and removal
- **              of bpsec blocks from Bundle Protocol bundles.
+ **              of bpsec blocks in Bundle Protocol bundles.
  **
  ** Notes:
- **         As of September 2019, the ION bpsec implementation supports
+ **         As of November 2019, the ION bpsec implementation supports
  **         the Block Integrity Block (BIB) and Block Confidentiality Block
  **         (BCB) with the following constraints:
  **         - Only the contexts implemented in the profiles.c file
@@ -91,9 +91,8 @@ char	gMsg[GMSG_BUFLEN];
  * \par Function Name: bpsec_build_sdr_parm
  *
  * \par Purpose: This utility function builds a parms field and writes it to
- *               the SDR. The parm field is a set of type-length-value fields
- *               where the type is a byte, length is an SDNV-encoded integer,
- *               and value is the value itself.
+ *               the SDR. The parm field is a CBOR arry of type-value pairs,
+ *		 each of which is itself a CBOR array of two items..
  *
  * \par Date Written:  2/27/2016
  *
@@ -156,17 +155,13 @@ result of length %d.", *len);
 }
 
 
-
-
-
 /******************************************************************************
  *
  * \par Function Name: bpsec_build_sdr_result
  *
  * \par Purpose: This utility function builds a result field and writes it to
- *               the SDR. Result fields are type-length-value fields where the
- *               type is a byte, length is an SDNV-encoded integer, and value
- *               is the value itself.
+ *               the SDR. The results field is a CBOR arry of type-value pairs,
+ *		 each of which is itself a CBOR array of two items..
  *
  * \par Date Written:  2/27/2016
  *
@@ -257,12 +252,12 @@ result of length %d.", tmp.len);
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
-
 static void	destroyInboundTarget(LystElt elt, void *userData)
 {
 	BpsecInboundTarget	*target;
 
 	target = (BpsecInboundTarget *) lyst_data(elt);
+<<-- more here
 	MRELEASE(target);
 }
 
@@ -273,6 +268,7 @@ static void	loseInboundAsb(BpsecInboundBlock *asb)
 		lyst_destroy(asb->targets);
 	}
 
+<<-- more here
 	MRELEASE(asb);
 }
 
@@ -687,8 +683,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk,
  *
  * \par Purpose: This function searches the lists of extension blocks in a
  * 			bundle looking for a bpsec block of the indicated type
- *			and ordinality whose target is the block of indicated
- *			type and ordinality.
+ *			whose target is the block of indicated type.
  *
  * \retval Object
  *
@@ -760,7 +755,7 @@ Object	bpsec_findBlock(Bundle *bundle,
  *
  * \par Notes:
  *    - The fromEid will be populated from the security block, if the security
- *      block houses such an EID.  Otherwise, the bundle EID will be used.
+ *      block houses such an EID.  Otherwise the bundle source EID will be used.
  *
  * \par Revision History:
  *
@@ -791,13 +786,19 @@ int	bpsec_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 	}
 
 	result = 0;
-	if (readEid(&bundle->id.source, fromEid) < 0)
+	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		result = -1;
+		if (readEid(&(asb->securitySource), fromEid) < 0)
+		{
+			result = 1;
+		}
 	}
 	else
 	{
-		result = 1;
+		if (readEid(&bundle->id.source, fromEid) < 0)
+		{
+			result = -1;
+		}
 	}
 
 	return result;
@@ -854,7 +855,7 @@ char	*bpsec_getLocalAdminEid(char *peerEid)
  *
  * \par Function Name: bpsec_getOutboundItem
  *
- * \par Purpose: This function searches within the parmsData list
+ * \par Purpose: This function searches either within the parmsData list
  *               of an outbound bpsec block for a parameter of
  *               specified type (ID) or within the results list of
  *               one target of an outbound bpsec block for a
@@ -865,7 +866,7 @@ char	*bpsec_getLocalAdminEid(char *peerEid)
  * \param[in]  itemNeeded  The code number of the type of item to search
  *                         for.  Valid item type codes are defined in
  *                         bpsec_util.h as BPSEC_CSPARM_xxx macros.
- * \param[in]  parms       The sdrlist in which to search for the item.
+ * \param[in]  items       The sdrlist in which to search for the item.
  * \param[in]  tvp         A pointer to a variable in which the function
  *                         should place the address of the first item of
  *                         specified type that is found within the buffer.
@@ -911,7 +912,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
  *
  * \param[in]   bundle   The outbound bundle.
  * \param[in]   blk      The outbound block.
- * \param[in]   asb		 The outbound Abstract Security Block.
+ * \param[in]   asb	 The outbound Abstract Security Block.
  * \param[out]  fromEid  The security source EID to populate.
  * \param[out]  toEid    The bundle destination EID to populate
  *
@@ -948,13 +949,19 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 	}
 
 	result = 0;
-	if (readEid(&bundle->id.source, fromEid) < 0)
+	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		result = -1;
+		if (readEid(&(asb->securitySource), fromEid) < 0)
+		{
+			result = 1;
+		}
 	}
 	else
 	{
-		result = 1;
+		if (readEid(&bundle->id.source, fromEid) < 0)
+		{
+			result = -1;
+		}
 	}
 
 	return result;
@@ -965,6 +972,7 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
  * \par Function Name: bpsec_insertSecuritySource
  *
  * \par Purpose: Inserts security source into the Abstract Security Block.
+ *		 of an outbound bpsec block.
  *
  * \par Date Written:  TBD
  *
@@ -983,8 +991,11 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 
 void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 {
+<<--	get the local node's admin EID (for scheme of bundle's destination
+<<--	EID, parse it to MetaEid, and writeEid(&eid, &metaEid).
 	return;
 }
+
 
 /******************************************************************************
  *
@@ -1153,7 +1164,6 @@ Len: %d  Val: %s...", key.len, str);
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: bpsec_securityPolicyViolated
@@ -1167,7 +1177,7 @@ Len: %d  Val: %s...", key.len, str);
  * \param[in]  wk  The incominb bundle work area.
  *
  * \par Notes:
- *    - This function is not implementated at this time.
+ *    - This function is not implemented at this time.
  *    - \todo For each block in the bundle, find the matching BIB rule
  *            If rule found, find BIB for this block. If BIB not found,
  *            return 1.
@@ -1253,13 +1263,19 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, uint8_t bpsecBlockType,
 		/*	No security source in block, so source of BIB
 		 *	is the source of the bundle.			*/
 
-		if (readEid(&bundle->id.source, &fromEid) < 0)
+		if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 		{
-			result = -1;
+			if (readEid(&(asb->securitySource), fromEid) < 0)
+			{
+				result = 1;
+			}
 		}
 		else
 		{
-			result = 1;
+			if (readEid(&bundle->id.source, fromEid) < 0)
+			{
+				result = -1;
+			}
 		}
 
 		if (result == 1)
@@ -1293,13 +1309,13 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, uint8_t bpsecBlockType,
  * \par Function Name: bpsec_serializeASB
  *
  * \par Purpose: Serializes an outbound bundle security block and returns the
- *               serialized representation.
+ *               serialized representation in a private working memory buffer..
  *
  * \par Date Written:  6/03/09
  *
  * \retval unsigned char * - the serialized outbound bundle Security Block.
  *
- * \param[out] length The length of the serialized block.
+ * \param[out] length The length of the serialized block, a returned value.
  * \param[in]  asb    The BpsecOutboundBlock to serialize.
  *
  * \par Notes:
@@ -1319,16 +1335,113 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, uint8_t bpsecBlockType,
  *  06/20/09  E. Birrane           Fixed Debug stmts, pre for initial release.
  *****************************************************************************/
 
+typedef struct
+{
+	unsigned int	length;
+	unsigned char	*text;
+} Stv;					/*	Serialized Type/Value	*/
+
+static void	releaseAsbBuffers(char *serializedTargets,
+			char *serializedSource, Lyst serializedParms,
+			char *serializedParmsBuffer, Lyst serializedResults,
+			char *serializedResultsBuffer))
+{
+	LystElt	elt;
+	Lyst	tvs;
+	LystElt	elt2;
+	Stv	*stv;
+
+	if (serializedTargets) MRELEASE(serializedTargets);
+	if (serializedSource) MRELEASE(serializedSource);
+	if (serializedParms)
+	{
+		while ((elt2 = lyst_first(serializedParms)))
+		{
+			stv = (Stv *) lyst_data(elt2);
+			if (stv)
+			{
+				if (stv->text)
+				{
+					MRELEASE(stv->text);
+				}
+
+				MRELEASE(stv);
+			}
+
+			lyst_delete(elt2);
+		}
+
+		lyst_destroy(serializedParms);
+	}
+
+	if (serializedParmsBuffer) MRELEASE(serializedParmsBuffer);
+	if (serializedResults)
+	{
+		while ((elt = lyst_first(serializedResults)))
+		{
+			tvs = (Lyst) lyst_data(elt);
+			if (tvs)
+			{
+				while ((elt2 = lyst_first(tvs)))
+				{
+					stv = (Stv *) lyst_data(elt2);
+					if (stv)
+					{
+						if (stv->text)
+						{
+							MRELEASE(stv->text);
+						}
+
+						MRELEASE(stv);
+					}
+
+					lyst_delete(elt2);
+				}
+
+				lyst_destroy(tvs);
+			}
+
+			lyst_delete(elt);
+		}
+
+		lyst_destroy(serializedResults);
+	}
+
+	if (serializedResultsBuffer) MRELEASE(serializedResultsBuffer);
+}
+
 unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 {
 	Sdr		sdr = getIonsdr();
-	Sdnv		targetBlockNumber;
-	Sdnv		contextId;
-	Sdnv		contextFlags;
-	Sdnv		parmsLen;
-	Sdnv		resultsLen;
-	unsigned char	*serializedAsb;
+	Object		elt;
+	Object		elt2;
+			OBJ_POINTER(BpsecOutboundTarget, target);
+	uvast		itemsCount;
+	uvast		targetsCount;
+	unsigned int	serializedTargetsLen = 0;
+	unsigned char	*serializedTargets = NULL;
+	unsigned int	serializedResultsLen = 0;
+	Lyst		serializedResults = NULL;
+	unsigned char	serializedResultsBuffer;
+	unsigned int	serializedContextIdLen = 0;
+	unsigned char	serializedContextId[9];
+	unsigned int	serializedContextFlagsLen = 0;
+	unsigned char	serializedContextFlags[9];
+	unsigned int	serializedSourceLen = 0;
+	unsigned char	*serializedSource[300];
+	unsigned int	serializedParmsLen = 0;
+	Lyst		serializedParms = NULL;
+	unsigned char	*serializedParmsBuffer;
+	unsigned int	serializedAsbLen = 0;
+	unsigned char	*serializedAsb = NULL;
 	unsigned char	*cursor;
+	uvast		uvtemp;
+	Stv		*stv;
+	Lyst		tvs;
+	LystElt		elt3;
+	LystElt		elt4;
+	unsigned char	*cursor2;
+			OBJ_POINTER(BpsecOutboundTv, tv);
 
 	BPSEC_DEBUG_PROC("+ bpsec_serializeASB (%x, %x)",
 			(unsigned long) length, (unsigned long) asb);
@@ -1336,100 +1449,392 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	CHKNULL(length);
 	CHKNULL(asb);
 
-	/*********************************************************************
-	 *         Calculate the length of the block-type-specific data      *
-	 *********************************************************************/
+	itemsCount = 4;	/*	Min. # items in serialized ASB array.	*/
 
-	/*	We need to assign all of our SDNV values first so we
-	 *	know how many bytes they will take up. We don't want a
-	 *	separate function to calculate this length as it would
-	 *	result in generating multiple SDNV values needlessly.	*/
+	/*	Serialize the targets and the results in a single
+		bpass through the ASB's list of targets.		*/
 
-	encodeSdnv(&targetBlockNumber, asb->targetBlockNumber);
-	*length = targetBlockNumber.length;
-	encodeSdnv(&contextId, asb->contextId);
-	*length += contextId.length;
-	encodeSdnv(&contextFlags, asb->contextFlags);
-	*length += contextFlags.length;
-	if (asb->contextFlags & BPSEC_ASB_PARM)
+	serializedResults = lyst_create_using(getIonMemoryMgr());
+	if (serializedResults == NULL)
 	{
-		encodeSdnv(&parmsLen, asb->parmsLen);
-		*length += parmsLen.length;
-		*length += asb->parmsLen;
-	}
-
-	BPSEC_DEBUG_INFO("i bpsec_serializeASB RESULT LENGTH IS CURRENTLY (%d)",
-			asb->resultsLen);
-#if 0
-	if (asb->contextFlags & BPSEC_ASB_RES)
-	{
-#endif
-		encodeSdnv(&resultsLen, asb->resultsLen);
-		*length += resultsLen.length;
-
-		/*	The resultsLen field may be hypothetical; the
-		 *	resultsData may not yet be present.  But it
-		 *	will be provided eventually (even if only as
-		 *	filler bytes), so the block's serialized
-		 *	length must include resultsLen.			*/
-
-		*length += asb->resultsLen;
-#if 0
-	}
-#endif
-
-	/*********************************************************************
-	 *             Serialize the ASB into the allocated buffer           *
-	 *********************************************************************/
-
-	if ((serializedAsb = MTAKE(*length)) == NULL)
-	{
-		BPSEC_DEBUG_ERR("x bpsec_serializeASB Need %d bytes.", *length);
+		BPSEC_DEBUG_ERR("x bpsec_serializeASB can't create lyst.");
 		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 		return NULL;
 	}
 
+	targetsCount = sdr_list_len(sdr, asb->targets);
+	serializedTargetsLength = 9 * targetsCount;
+	serializedTargets = MTAKE(serializedTargetsLength);
+	if (serializedTargets == NULL)
+	{
+		BPSEC_DEBUG_ERR("x bpsec_serializeASB Need %d bytes.",
+				serializedTargetsLength);
+		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+		releaseAsbBuffers(serializedTargets, serializedSource,
+			serializedParms, serializedResults);
+		return NULL;
+	}
+
+	/*	Targets is just an array of integers.  Open it here.	*/
+
+	cursor = serializedTargets;
+	oK(cbor_encode_array_open(targetsCount, &cursor);
+
+	/*	Results is an array of result structures, each of
+		which is a block number paired with an array of
+		security results -- each of which is an array
+		comprising result type ID and result text.
+
+		We can't open the top-level results array yet
+		because we don't know how many bytes of buffer
+		we'll need to encode the whole array into.		*/
+
+	serializedResultsLen = 9;	/*	Top-level array open.	*/
+	for (elt = sdr_list_first(sdr, asb->targets); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		GET_OBJ_POINTER(sdr, BpsecOutboundTarget, target,
+				sdr_list_data(sdr, elt));
+
+		/*	We can serialize the target block number
+			right away.					*/
+
+		uvtemp = target->targetBlockNumber;
+		oK(cbor_encode_integer(uvtemp, &cursor);
+
+		/*	But to serialize the results for this target
+			block we have to step through them all,
+			serializing and accumulating total length
+			as we go.
+
+			They will ultimately be serialized inside
+			a per-target array of results.			*/
+
+		serializedResultsLen += 9;	/*	Array open.	*/
+
+		/*	We create a temporary list to hold the
+			serialized TVs (results) for this target.	*/
+
+		serializedTvs = lyst_create_using(getIonMemoryMgr());
+		if (serializedTvs == NULL)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tvs lyst.");
+			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+			releaseAsbBuffers(serializedTargets, serializedSource,
+					serializedParms, serializedResults);
+			return NULL;
+		}
+
+		for (elt2 = sdr_list_first(sdr, target->results); elt2;
+				elt2 = sdr_list_next(sdr, elt2))
+		{
+			GET_OBJ_POINTER(sdr, BpsecOutboundTv, tv,
+					sdr_list_data(sdr, elt));
+			stv = (Stv *) MTAKE(sizeof(Stv));
+			if (stv == NULL
+			|| lyst_insert_last(serializedTvs, stv) == NULL
+			|| (stv->text = MTAKE(19 + tv->length)) == NULL)
+			{
+				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Stv");
+				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+				releaseAsbBuffers(serializedTargets,
+						serializedSource,
+						serializedParms,
+						serializedResults);
+				return NULL;
+			}
+
+			/*	Serialize this TV.			*/
+
+			cursor2 = stv->text;
+
+			/*	TV array open.				*/
+
+			uvtemp = 2;
+			oK(cbor_encode_array_open(uvtemp, &cursor2);
+
+			/*	Result type ID code.			*/
+
+			uvtemp = tv->id;
+			oK(cbor_encode_integer(uvtemp, &cursor2);
+
+			/*	Result value byte string length.	*/
+
+			uvtemp = tv->length;
+			oK(cbor_encode_byte_string(NULL, uvtemp, &cursor2);
+
+			/*	Result value byte string content.
+
+			sdr_read(sdr, (char *) cursor2, tv->value, tv->length);
+
+			/*	Add length of this serialized TV
+				(result) to the total serialized
+				results buffer length.			*/
+
+			stv->length = (cursor2 - stv->text) + tv->length;;
+			serializedResultsLen += stv->length;
+
+			/*	Append the Lyst of serialized TVs for
+				this target block number to the Lyst
+				of results lists (one per target)	*/
+
+			if (lyst_insert_last(serializedResults, serializedTvs)
+					== NULL)
+			{
+				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tgt");
+				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+				releaseAsbBuffers(serializedTargets,
+						serializedSource,
+						serializedParms,
+						serializedResults);
+				return NULL;
+			}
+		}
+	}
+
+	/*	The buffer of serialized targets is now ready to go.
+		Reduce length from maximum length to actual length.	*/
+
+	serializedTargetsLen = cursor - serializedTargets;
+
+	/*	And we have now got upper bound on total length of
+		the serialized results buffer.				*/
+
+	serializedResultsBuffer = MTAKE(serializedResultsLen);
+	if (serializedResultsBuffer == NULL)
+	{
+		BPSEC_DEBUG_ERR("x bpsec_serializeASB no Results buf");
+		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+		releaseAsbBuffers(serializedTargets,
+				serializedSource,
+				serializedParms,
+				serializedResults);
+		return NULL;
+	}
+
+	/*	Open the results top-level array.			*/
+
+	cursor = serializedResultsBuffer;
+	oK(cbor_encode_array_open(targetsCount, &cursor);
+
+	/*	Now, for each of the result sets (targets) in the
+		serializedResults list, concatenate all serialized
+		TVs into the serialized results buffer.			*/
+
+	while ((elt3 = lyst_first(serializedResults)))
+	{
+		stvs = (Lyst) lyst_data(elt3);
+
+		/*	Open the array of TVs for this results set.	*/
+
+		uvtemp = lyst_length(stvs);
+		oK(cbor_encode_array_open(uvtemp, &cursor);
+
+		/*	Now append all pre-serialized results in this
+			result set (for one target).			*/
+
+		while ((elt4 = lyst_first(stvs)))
+		{
+			stv = (Stv *) lyst_data(elt4);
+			memcpy(cursor, stv->text, stv->length);
+			cursor += stv->length;
+			MRELEASE(stv->text);
+			MRELEASE(stv);
+			lyst_delete(elt4);
+		}
+
+		lyst_destroy(stvs);
+		lyst_delete(elt3);
+	}
+
+	lyst_destroy(serializedResults);
+	serializedResultsLen = cursor - serializedResultsBuffer;
+
+	/*	Whew.  Now serialize something easy: security
+		context ID.						*/
+
+	cursor = serializedContactId;
+	uvtemp = asb->contextId;
+	oK(cbor_encode_integer(uvtemp, &cursor);
+	serializedContactIdLength = cursor - serializedContactId;
+
+	/*	And security context flags.				*/
+
+	cursor = serializedContactFlags;
+	uvtemp = asb->contextFlags;
+	oK(cbor_encode_integer(uvtemp, &cursor);
+	serializedContactFlagsLength = cursor - serializedContactFlags;
+
+	/*	Slightly more challenging: security source.		*/
+
+	if (asb->contactFlags & BPSEC_ASB_SEC_SRC)
+	{
+		itemsCount += 1;
+		serializedSourceLen = serializeEid(&asb->securitySource,
+				serializedSource);
+	}
+
+	/*	Then security context parameters.			*/
+
+	if (asb->contactFlags & BPSEC_ASB_PARM)
+	{
+		itemsCount += 1;
+
+		/*	Serialize the parameters in a single pass
+			through the ASB's list of parameters.		*/
+
+		serializedParmsLen += 9;	/*	Array open.	*/
+
+		/*	We create a temporary list to hold the
+			serialized TVs (parms) for this block.		*/
+
+		serializedTvs = lyst_create_using(getIonMemoryMgr());
+		if (serializedTvs == NULL)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tvs lyst.");
+			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+			releaseAsbBuffers(serializedTargets, serializedSource,
+					serializedParms, serializedResults);
+			return NULL;
+		}
+
+		for (elt2 = sdr_list_first(sdr, asb->parmsData); elt2;
+				elt2 = sdr_list_next(sdr, elt2))
+		{
+			GET_OBJ_POINTER(sdr, BpsecOutboundTv, tv,
+					sdr_list_data(sdr, elt));
+			stv = (Stv *) MTAKE(sizeof(Stv));
+			if (stv == NULL
+			|| lyst_insert_last(serializedTvs, stv) == NULL
+			|| (stv->text = MTAKE(19 + tv->length)) == NULL)
+			{
+				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Stv");
+				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+				releaseAsbBuffers(serializedTargets,
+						serializedSource,
+						serializedParms,
+						serializedResults);
+				return NULL;
+			}
+
+			/*	Serialize this TV.			*/
+
+			cursor2 = stv->text;
+
+			/*	TV array open.				*/
+
+			uvtemp = 2;
+			oK(cbor_encode_array_open(uvtemp, &cursor2);
+
+			/*	Result type ID code.			*/
+
+			uvtemp = tv->id;
+			oK(cbor_encode_integer(uvtemp, &cursor2);
+
+			/*	Result value byte string length.	*/
+
+			uvtemp = tv->length;
+			oK(cbor_encode_byte_string(NULL, uvtemp, &cursor2);
+
+			/*	Result value byte string content.
+
+			sdr_read(sdr, (char *) cursor2, tv->value, tv->length);
+
+			/*	Add length of this serialized TV
+				(parm) to the total serialized
+				parms buffer length.			*/
+
+			stv->length = (cursor2 - stv->text) + tv->length;;
+			serializedParmsLen += stv->length;
+		}
+
+		/*	We have now got upper bound on total length
+			of the serialized results buffer.		*/
+
+		serializedParmsBuffer = MTAKE(serializedParmsLen);
+		if (serializedParmsBuffer == NULL)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Parms buf");
+			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+			releaseAsbBuffers(serializedTargets,
+					serializedSource,
+					serializedParms,
+					serializedResults);
+			return NULL;
+		}
+
+		/*	Open the parms array.				*/
+
+		cursor = serializedParmsBuffer;
+		oK(cbor_encode_array_open(sdr_list_length(sdr, asb->parmsData,
+				&cursor);
+
+		/*	Now append to the buffer all pre-serialized
+			security context parameters.			*/
+
+		while ((elt4 = lyst_first(serializedTvs)))
+		{
+			stv = (Stv *) lyst_data(elt4);
+			memcpy(cursor, stv->text, stv->length);
+			cursor += stv->length;
+			MRELEASE(stv->text);
+			MRELEASE(stv);
+			lyst_delete(elt4);
+		}
+
+		lyst_destroy(serializedTvs);
+		serializedParmsLen = cursor - serializedParmsBuffer;
+	}
+
+	/*	Finally, concatenate the whole shebang into one
+		buffer.							*/
+
+	serializedAsb = MTAKE(1		/*	Top-level array.	*/
+			+ serializedTargetsLen
+			+ serializedContextIdLen
+			+ serializedContextFlagsLen
+			+ serializedSourceLen
+			+ serializedParmsLen
+			+ serializedResultsLen);
+	if (serializedAsb == NULL)
+	{
+		BPSEC_DEBUG_ERR("x bpsec_serializeASB no ASB buffer");
+		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+		releaseAsbBuffers(serializedTargets,
+				serializedSource,
+				serializedParms,
+				serializedResults);
+		return NULL;
+	}
+
 	cursor = serializedAsb;
-	cursor = bpsec_addSdnvToStream(cursor, &targetBlockNumber);
-	cursor = bpsec_addSdnvToStream(cursor, &contextId);
-	cursor = bpsec_addSdnvToStream(cursor, &contextFlags);
-
-	if (asb->contextFlags & BPSEC_ASB_PARM)
+	oK(cbor_encode_array_open(itemsCount, &cursor);
+	memcpy(cursor, serializedTargets, serializedTargetsLen);
+	cursor += serializedTargetsLen;
+	memcpy(cursor, serializedContxtId, serializedContxtIdLen);
+	cursor += serializedContextIdLen;
+	memcpy(cursor, serializedContextFlags, serializedContextFlagsLen);
+	cursor += serializedContextFlagsLen;
+	if (serializedSourceLength > 0)
 	{
-		cursor = bpsec_addSdnvToStream(cursor, &parmsLen);
-		BPSEC_DEBUG_INFO("i bpsec_serializeASB: cursor %x, parms data \
-%u, parms length %ld", (unsigned long) cursor, (unsigned long) asb->parmsData,
-				asb->parmsLen);
-		if (asb->parmsData == 0)
-		{
-			memset(cursor, 0, asb->parmsLen);
-		}
-		else
-		{
-			sdr_read(sdr, (char *) cursor, asb->parmsData,
-					asb->parmsLen);
-		}
-
-		cursor += asb->parmsLen;
+		memcpy(cursor, serializedSource, serializedSourceLen);
+		cursor += serializedSourceLen;
 	}
 
-#if 0
-	if (asb->contextFlags & BPSEC_ASB_RES)
+	if (serializedParmsLength > 0)
 	{
-#endif
-		cursor = bpsec_addSdnvToStream(cursor, &resultsLen);
-		BPSEC_DEBUG_INFO("i bpsec_serializeASB: cursor " ADDR_FIELDSPEC
-			", results data  0x%x, results length %d",
-			(uaddr) cursor, asb->resultsData, asb->resultsLen);
-		if (asb->resultsData != 0)
-		{
-			sdr_read(sdr, (char *) cursor, asb->resultsData,
-					asb->resultsLen);
-			cursor += asb->resultsLen;
-		}
-#if 0
+		memcpy(cursor, serializedParmsBuffer, serializedParmsLen);
+		cursor += serializedParmsLen;
 	}
-#endif
+
+	memcpy(cursor, serializedResultsBuffer, serializedResultsLen);
+	cursor += serializedResultsLen;
+
+	/*	Done.  Wrap up.						*/
+
+	*length = cursor - serializedAsb;
+	releaseAsbBuffers(serializedTargets, serializedSource,
+			serializedParms, serializedResults);
 
 	BPSEC_DEBUG_INFO("i bpsec_serializeASB -> data: " ADDR_FIELDSPEC
 			", length %d", (uaddr) serializedAsb, *length);
@@ -1439,16 +1844,16 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: bpsec_transferToZcoFileSource
  *
- * \par Purpose: This utility function attains a zco object, a file reference, a
- *               character string and appends the string to a file. A file
- *               reference to the new data is appended to the zco object. If given
- *               an empty zco object- it will create a new one on the empty pointer.
- *               If given an empty file reference, it will create a new file.
+ * \par Purpose: This utility function takes a zco object, a file reference,
+ *		 and a character string, and it appends the string to a file.
+ *		 A file reference to the new data is appended to the zco
+ *		 object. If given an empty zco object, it will create a new
+ *		 zco and return its location.  If given an empty file
+ *		 reference, it will create a new file.
  *
  * \par Date Written:  8/15/11
  *

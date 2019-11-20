@@ -1369,6 +1369,8 @@ extern void		lookUpEidScheme(EndpointId *eid, VScheme **vscheme);
 extern void		lookUpEndpoint(EndpointId *eid, VScheme *vscheme,
 				VEndpoint **vpoint);
 
+extern int		serializeEid(EndpointId *eid, unsigned char *buffer);
+
 extern void		findPlan(char *eid, VPlan **vplan, PsmAddress *elt);
 
 extern int		addPlan(char *eid, unsigned int nominalRate);
