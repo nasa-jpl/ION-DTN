@@ -60,7 +60,7 @@ function run_a_test () {
     TEST=${TEST%%/}
 
     if [ -f "$TEST/.exclude_all" ]; then
-    	echo "Test universally excluded, skipping"
+    	echo "Test universally excluded, skipping $TEST"
     	skip_test $TEST
     	return
     fi
@@ -68,7 +68,7 @@ function run_a_test () {
     # check for environment variable to skip these	
     if [ -f "$TEST/.exclude_expert" ]; then
 	    if [ -n "$ION_EXCLUDE_EXPERT" ]; then
-		echo "Test excluded by expertise class, skipping"
+		echo "Test excluded by expertise class, skipping $TEST"
 		skip_test $TEST
 		return
 	    fi
@@ -77,7 +77,7 @@ function run_a_test () {
     # check for environment variable to skip these	
     if [ -f "$TEST/.exclude_cbased" ]; then
 	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
-		echo "Test excluded because of C code, skipping"
+		echo "Test excluded because of C code, skipping $TEST"
 		skip_test $TEST
 		return
 	    fi
@@ -85,14 +85,14 @@ function run_a_test () {
 
     # check if test is excluded by OS version
     if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
-    	echo "Test excluded by OS type, skipping"
+    	echo "Test excluded by OS type, skipping $TEST"
     	excludeOS_test $TEST
     	return
     fi
 
     # check if test is excluded by BP version
     if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
-    	echo "Test excluded by BP version, skipping"
+    	echo "Test excluded by BP version, skipping $TEST"
     	excludeBPv_test $TEST
     	return
     fi
@@ -104,7 +104,7 @@ function run_a_test () {
         TESTS_FAILED="$TESTS_FAILED $TEST"
         return
     fi
-: << 'END'
+
     echo
     echo "***"
     echo "*** ${TEST}"
@@ -148,7 +148,7 @@ function run_a_test () {
     fi
 
     popd > /dev/null
-END
+
 }
 
 
@@ -224,7 +224,7 @@ then
 fi
 
 #Determine BP version for exclustion of tests
-BP_VERSION=bpv6
+BP_VERSION=bpv7
 
 CLEANUP=""
 if [ "$1" = "cleanup" ]; then
