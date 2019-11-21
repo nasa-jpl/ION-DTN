@@ -86,27 +86,29 @@ char	gMsg[GMSG_BUFLEN];
  *****************************************************************************/
 
 
+static int	appendParm(Sdr sdr, Object items, int length <<--
+
 /******************************************************************************
  *
  * \par Function Name: bpsec_build_sdr_parm
  *
- * \par Purpose: This utility function builds a parms field and writes it to
- *               the SDR. The parm field is a CBOR arry of type-value pairs,
- *		 each of which is itself a CBOR array of two items..
+ * \par Purpose: This utility function writes the parms in a
+ *		 csi_ciphersuite_t structure to the SDR heap as csi_outbound_tv
+ *		 structures, appending them to the parmsData sdrlist of a bpsec
+ *		 outbound ASB.
  *
  * \par Date Written:  2/27/2016
  *
- * \retval SdrObject -- The SDR Object, or 0 on error.
+ * \retval SdrObject -- The number of parms written, or -1 on error.
  *
  * \param[in|out] sdr    The SDR Storing the result.
- * \param[in]     parm   The structure holding parameters.
- * \param[out]    len    The length of the data written to the SDR.
+ * \param[in]     parms  The structure holding parameters.
+ * \param[in]     items  The parmsData list
  *
  * \par Notes:
- *      1. The SDR object must be freed when no longer needed.
- *      2. This function does not use an SDR transaction.
- *      3. Only non-zero fields in the parm structure will be included
- *      4. We do not support content range.
+ *      1. The SDR objects must be freed when no longer needed.
+ *      2. Only non-zero fields in the parm structure will be included
+ *      3. We do not support content range.
  *
  * \par Revision History:
  *
@@ -116,29 +118,17 @@ char	gMsg[GMSG_BUFLEN];
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-SdrObject bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, uint32_t *len)
+int bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, Object items)
 {
-	SdrObject result = 0;
-	csi_val_t val;
+	int		result = 0;
+	csi_val_t	val;
 
 	/* Step 0 - Sanity Check. */
-	CHKZERO(len);
-
-	/* Step 1 - Serialize the parameters */
-	val = csi_serialize_parms(parms);
-
-	if(val.len == 0)
-	{
-		BPSEC_DEBUG_ERR("bpsec_build_sdr_parm: Cannot serialize \
-parameters.", NULL);
-		return 0;
-	}
-
-	*len = val.len;
+	CHKERR(items);
 
 
 	/* Step 2 - Allocate the SDR space. */
-	if((result = sdr_malloc(sdr, *len)) == 0)
+	if ((result = sdr_malloc(sdr, *len)) == 0)
 	{
 		BPSEC_DEBUG_ERR("bpsec_build_sdr_parm: Can't allocate sdr \
 result of length %d.", *len);
@@ -282,7 +272,7 @@ int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	uvast			arrayLength;
 	BpsecInboundTarget	*itarget;
 	uvast			uvtemp;
-	BpsecInboundTv		*tv;
+	csi_inbound_tv		*tv;
 	unsigned char		buffer[255];
 	LystElt			elt;
 
@@ -438,7 +428,7 @@ ASB parms list", NULL);
 
 		while (arrayLength > 0)
 		{
-			tv = (BpsecInboundTv *) MTAKE(sizeof(BpsecInboundTv));
+			tv = (csi_inbound_tv *) MTAKE(sizeof(csi_inbound_tv));
 			if (tv == NULL
 			|| lyst_insert_last(asb->parmsData, tv) == NULL)
 			{
@@ -527,7 +517,7 @@ space for ASB parm value", NULL);
 			/*	Each result is a TV, i.e., an array
 			 *	of two items: ID and value.		*/
 
-			tv = (BpsecInboundTv *) MTAKE(sizeof(BpsecInboundTv));
+			tv = (csi_inbound_tv *) MTAKE(sizeof(csi_inbound_tv));
 			if (tv == NULL
 			|| lyst_insert_last(target->results, tv) == NULL)
 			{
@@ -881,7 +871,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	addr;
-		OBJ_POINTER(BpsecOutboundTv, tv);
+		OBJ_POINTER(csi_outbound_tv, tv);
 
 	CHKVOID(items);
 	CHKVOID(tv);
@@ -889,7 +879,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 	for (elt = sdr_list_first(sdr, items); elt; elt = sdr_next(sdr, elt))
 	{
 		addr = sdr_list_data(elt);
-		GET_OBJ_POINTER(sdr, BpsecOutboundTv, tv, addr);
+		GET_OBJ_POINTER(sdr, csi_outbound_tv, tv, addr);
 		if (tv->id == itemNeeded)
 		{
 			*tvp = addr;
@@ -1441,7 +1431,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	LystElt		elt3;
 	LystElt		elt4;
 	unsigned char	*cursor2;
-			OBJ_POINTER(BpsecOutboundTv, tv);
+			OBJ_POINTER(csi_outbound_tv, tv);
 
 	BPSEC_DEBUG_PROC("+ bpsec_serializeASB (%x, %x)",
 			(unsigned long) length, (unsigned long) asb);
@@ -1528,7 +1518,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		for (elt2 = sdr_list_first(sdr, target->results); elt2;
 				elt2 = sdr_list_next(sdr, elt2))
 		{
-			GET_OBJ_POINTER(sdr, BpsecOutboundTv, tv,
+			GET_OBJ_POINTER(sdr, csi_outbound_tv, tv,
 					sdr_list_data(sdr, elt));
 			stv = (Stv *) MTAKE(sizeof(Stv));
 			if (stv == NULL
@@ -1701,7 +1691,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		for (elt2 = sdr_list_first(sdr, asb->parmsData); elt2;
 				elt2 = sdr_list_next(sdr, elt2))
 		{
-			GET_OBJ_POINTER(sdr, BpsecOutboundTv, tv,
+			GET_OBJ_POINTER(sdr, csi_outbound_tv, tv,
 					sdr_list_data(sdr, elt));
 			stv = (Stv *) MTAKE(sizeof(Stv));
 			if (stv == NULL

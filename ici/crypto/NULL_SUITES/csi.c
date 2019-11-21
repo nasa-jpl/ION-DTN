@@ -2,7 +2,9 @@
  **
  ** File Name: csi.c
  **
- ** Description: This file defines NULL implementations of the ION crypto interface.
+ ** Description: This file defines NULL implementations of the ION crypto
+ **		 interface.
+ **
  **              A NULL interfaces provides NO SECURITY SERVICE and NO
  **              CIPHERSUITE implementation.
  **
@@ -21,71 +23,23 @@
  **                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-
 #include "platform.h"
 #include "csi.h"
 #include "csi_debug.h"
 
+
 /*****************************************************************************
  *                         NULL Crypto Functions                             *
  *****************************************************************************/
-char *crypto_suite_name = "NULL_SUITES";
+char	*crypto_suite_name = "NULL_SUITES";
 char	gCsiMsg[GMSG_BUFLEN];		/*	Debug message buffer.	*/
-
-
-
-
-/******************************************************************************
- *
- * \par Function Name: csi_build_parms
- *
- * \par Purpose: This utility function builds a set of parameters from an
- *               input parameters buffer. This is, effectively, a deserialization
- *               from an input stream into a paramater-holding structure.
- *
- * \retval The built parameters structure.
- *
- * \param[in] buf      The serialized parameters
- * \param[in] len      The length of the serialized parameters
- *
- * \par Notes:
- *      1. If a parameter in the structure is not present in the paramater
- *         stream, the parameter is represented as having length 0.
- *
- * \par Revision History:
- *
- *  MM/DD/YY  AUTHOR        DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  02/27/16  E. Birrane    Initial Implementation [Secure DTN
- *                          implementation (NASA: NNX14CS58P)]
- *****************************************************************************/
-
-csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
-{
-	csi_cipherparms_t result;
-
-	CSI_DEBUG_PROC("+ csi_build_parms(0x"ADDR_FIELDSPEC",%d", (uaddr)buf, len);
-
-	memset(&result, 0, sizeof(csi_cipherparms_t));
-
-	result.iv = csi_extract_tlv(CSI_PARM_IV, buf, len);
-	result.intsig = csi_extract_tlv(CSI_PARM_INTSIG, buf, len);
-	result.salt = csi_extract_tlv(CSI_PARM_SALT, buf, len);
-	result.icv = csi_extract_tlv(CSI_PARM_ICV, buf, len);
-	result.keyinfo = csi_extract_tlv(CSI_PARM_KEYINFO, buf, len);
-
-	CSI_DEBUG_PROC("- csi_build_parms -> parms", NULL);
-
-	return result;
-}
-
 
 
 /******************************************************************************
  *
  * \par Function Name: csi_extract_tlv
  *
- * \par Purpose: This function searches within a buffer (a ciphersuite
+ * \par Purpose: This function searches within a Lyst (a ciphersuite
  *               parameters field or a security results field) of an
  *               inbound sbsp block for an information item of specified type.
  *
@@ -94,14 +48,11 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
  * \param[in] itemNeeded The code number of the type of item to search
  *                       for.  Valid item type codes are defined in
  *                       sbsp.h as SBSP_CSPARM_xxx macros.
- * \param[in] buf        The serialized parameters
- * \param[in] len        The length of the serialized parameters
+ * \param[in] items      The items to search through
  *
  * \par Notes:
- *      1. If a parameter in the structure is not present in the parameter
- *         stream, the parameter is represented as having length 0.
- *      2. Each paramater is represented as a type-len-value (TLV) field
- *         where TYPE is a byte, LEN is an SDNV, and VALUE is a blob.
+ *      1. If the required items is not present in the list,
+ *         the parameter is represented as having length 0.
  *
  * \par Revision History:
  *
@@ -111,96 +62,54 @@ csi_cipherparms_t csi_build_parms(unsigned char *buf, uint32_t len)
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
+csi_val_t csi_extract_tlv(uint8_t itemNeeded, Lyst items)
 {
-	csi_val_t result;
-	uint8_t	  *cursor = buf;
-	uint8_t	  itemType;
-	uvast	  sdnvLength;
-	uvast	  longNumber;
-	uint32_t  itemLength;
+	csi_val_t 	result;
+	LystElt	  	elt;
+	BsecInboundTv	*tv;
 
-	CSI_DEBUG_PROC("+ csi_extract_tlv(%d, 0x"ADDR_FIELDSPEC",%d)",
-			       itemNeeded, (uaddr)buf, bufLen);
+	CSI_DEBUG_PROC("+ csi_extract_tlv(%d, 0x"ADDR_FIELDSPEC")",
+			       itemNeeded, (uaddr) items);
 
-	memset(&result,0, sizeof(csi_val_t));
+	memset(&result,0, sizeof(csi_val_t));	/*	Default.	*/
 
 	/* Step 0 - Sanity Check. */
-	if((buf == NULL) || (bufLen == 0))
+	if ((items == NULL))
 	{
-		CSI_DEBUG_ERR("x csi_extract_tlv - Bad Parms.", NULL);
-		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
+		CSI_DEBUG_ERR("x csi_extract_tlv - Bad Items.", NULL);
+		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
+			result.len);
 		return result;
 	}
 
 	/**
-	 *  Step 1 - Walk through all items in the buffer searching for an
+	 *  Step 1 - Walk through all items in the list searching for an
 	 *           item of the indicated type.
 	 */
 
-	while (bufLen > 0)
+	for (elt = lyst_first(items); elt; elt = lyst_next(elt))
 	{
-
-
-		/* Step 1a - Grab the type, which should be the first byte. */
-		itemType = *cursor;
-
-		cursor++;
-		bufLen--;
-
-		if (bufLen == 0)
-		{
-			CSI_DEBUG_ERR("x csi_extract_tlv: Read type %d and ran out of space.", itemType);
-			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
-
-			return result;
-		}
-
-		/* Step 1b - Grab the length, which is an SDNV. */
-		sdnvLength = decodeSdnv(&longNumber, cursor);
-
-		itemLength = longNumber;
-		cursor += sdnvLength;
-		bufLen -= sdnvLength;
-
-		if (sdnvLength == 0 || sdnvLength > bufLen)
-		{
-			CSI_DEBUG_ERR("x csi_extract_tlv: Bad Len of %d with %d buffer remaining.", sdnvLength, bufLen);
-			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
-
-			return result;
-		}
-
-		/**
-		 * Step 1c - Evaluate this item. If the item is empty or not a match,
-		 *           skip over it. Otherwise, copy it out and return.
-		 */
-
-		if (itemLength == 0)	/*	Empty item.		*/
+		tv = (BpsecInboundTv *) lyst_data(elt);
+		if (tv->id != itemNeeded || tv->length == 0)
 		{
 			continue;
 		}
 
-		if (itemType == itemNeeded)
+		if ((result.contents = MTAKE(tv->length)) == NULL)
 		{
-			if((result.contents = MTAKE(itemLength)) == NULL)
-			{
-				CSI_DEBUG_ERR("x csi_extract_tlv: Cannot allocate size of %d.", itemLength);
-				CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
-
-				return result;
-			}
-			memcpy(result.contents, cursor, itemLength);
-			result.len = itemLength;
-
-			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
+			CSI_DEBUG_ERR("x csi_extract_tlv: Cannot allocate size \
+of %d.", tv->length);
+			CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
+					result.len);
 			return result;
 		}
 
-		/*	Look at next item in buffer.			*/
+		memcpy(result.contents, (char *) (tv->value), tv->length);
+		result.len = tv->length;
 
-		cursor += itemLength;
-		bufLen -= itemLength;
+		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
+				result.len);
+		return result;
 	}
 
 	CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)", result.len);
@@ -208,26 +117,65 @@ csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 }
 
 
+/******************************************************************************
+ *
+ * \par Function Name: csi_build_parms
+ *
+ * \par Purpose: This utility function builds a parameter-set structure
+ *		 from an input parameters lyst.
+ *
+ * \retval The built parameters structure.
+ *
+ * \param[in] items    The list of deserialized parameters
+ *
+ * \par Notes:
+ *      1. If a parameter in the structure is not present in the list,
+ *         the parameter is represented as having length 0.
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  02/27/16  E. Birrane    Initial Implementation [Secure DTN
+ *                          implementation (NASA: NNX14CS58P)]
+ *****************************************************************************/
+
+csi_cipherparms_t csi_build_parms(Lyst items)
+{
+	csi_cipherparms_t result;
+
+	CSI_DEBUG_PROC("+ csi_build_parms(0x" ADDR_FIELDSPEC, (uaddr) items);
+
+	memset(&result, 0, sizeof(csi_cipherparms_t));
+
+	result.iv = csi_extract_tlv(CSI_PARM_IV, items);
+	result.intsig = csi_extract_tlv(CSI_PARM_INTSIG, items);
+	result.salt = csi_extract_tlv(CSI_PARM_SALT, items);
+	result.icv = csi_extract_tlv(CSI_PARM_ICV, items);
+	result.keyinfo = csi_extract_tlv(CSI_PARM_KEYINFO, items);
+
+	CSI_DEBUG_PROC("- csi_build_parms -> parms", NULL);
+
+	return result;
+}
+
 
 /******************************************************************************
  *
  * \par Function Name: csi_build_tlv
  *
  * \par Purpose: This utility function builds a TLV from individual fields.
- *               A TLV (type-length-value) structure uses one byte for the
- *               type, the length is an SDNV encoded integer, and the
- *               value is a BLOB of length given by the length field.
  *
  * \par Date Written:  2/27/2016
  *
- * \retval The serialized TLV. Length 0 indicates error.
+ * \retval The resulting TLV structure. Length 0 indicates error.
  *
  * \param[in] id       The type of data being written.
  * \param[in] len      The length of the value field.
  * \param[in] contents The value field.
  *
  * \par Notes:
- *      1. The TLV structure is allocated and must be released.
+ *      1. The TV structure is allocated and must be released.
  *
  * \par Revision History:
  *
@@ -240,7 +188,6 @@ csi_val_t csi_extract_tlv(uint8_t itemNeeded, uint8_t *buf, uint32_t bufLen)
 csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 {
 	csi_val_t result;
-	Sdnv      lenSdnv;
 
 	CSI_DEBUG_PROC("+ csi_build_tlv(%d, %d, 0x"ADDR_FIELDSPEC")", id, len, (uaddr)contents);
 
@@ -257,166 +204,44 @@ csi_val_t csi_build_tlv(uint8_t id, uint32_t len, uint8_t *contents)
 	}
 
 	/* Step 1 - Encode the length of the parameter. */
-	encodeSdnv(&lenSdnv, len);
+
+	result.len = len;
+	result.id = id;
 
 	/* Step 2 - Allocate space for the parameter. */
-	result.len = 1 + lenSdnv.length + len;
-	if((result.contents = MTAKE(result.len)) == NULL)
+	result.contents = MTAKE(len);
+	if (result.contents == NULL)
 	{
-		CSI_DEBUG_ERR("x csi_build_tlv: Can't allocate result of length %d.",
-				result.len);
-		result.len = 0;
+		CSI_DEBUG_ERR("x csi_build_tlv: Can't allocate result of \
+length %d.", len);
 
-		CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", result.len);
+		CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", len);
 
 		return result;
 	}
 
 	/* Step 3 - Populate parameter. */
-	result.contents[0] = id;
-	memcpy(&(result.contents[1]), lenSdnv.text, lenSdnv.length);
-	memcpy(&(result.contents[1+lenSdnv.length]), contents, len);
 
-	CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", result.len);
+	memcpy(result.contents, contents, len);
+
+	CSI_DEBUG_PROC("- csi_build_tlv -> result (len=%d)", len);
 	return result;
 }
 
 
-csi_val_t csi_serialize_parms(csi_cipherparms_t parms)
-{
-	csi_val_t result;
-	uint32_t offset = 0;
-	csi_val_t iv;
-	csi_val_t add;
-	csi_val_t keyinfo;
-	csi_val_t salt;
-	csi_val_t icv;
-	csi_val_t intsig;
-
-	memset(&result, 0, sizeof(csi_val_t));
-
-	/* Step 1 - Initialize the individual TLV fields. */
-	memset(&iv, 0, sizeof(csi_val_t));
-	memset(&add, 0, sizeof(csi_val_t));
-	memset(&salt, 0, sizeof(csi_val_t));
-	memset(&icv, 0, sizeof(csi_val_t));
-	memset(&keyinfo, 0, sizeof(csi_val_t));
-	memset(&intsig, 0, sizeof(csi_val_t));
-
-	/* Step 2 - Populate TLV fields */
-	if(parms.intsig.len > 0)
-	{
-		intsig = csi_build_tlv(CSI_PARM_INTSIG, parms.intsig.len,
-							   parms.intsig.contents);
-	    result.len += intsig.len;
-	}
-
-	if(parms.icv.len > 0)
-	{
-		icv = csi_build_tlv(CSI_PARM_ICV, parms.icv.len, parms.icv.contents);
-		result.len += icv.len;
-	}
-
-	if(parms.iv.len > 0)
-	{
-		iv = csi_build_tlv(CSI_PARM_IV, parms.iv.len, parms.iv.contents);
-		result.len += iv.len;
-	}
-
-	if(parms.salt.len > 0)
-	{
-		salt = csi_build_tlv(CSI_PARM_SALT, parms.salt.len,
-							 parms.salt.contents);
-	    result.len += salt.len;
-	}
-
-	if(parms.keyinfo.len > 0)
-	{
-		keyinfo = csi_build_tlv(CSI_PARM_KEYINFO, parms.keyinfo.len,
-								parms.keyinfo.contents);
-		result.len += keyinfo.len;
-	}
-
-
-	/* Step 3 - Allocate the SDR space. */
-	if((result.contents = MTAKE(result.len)) == 0)
-	{
-		CSI_DEBUG_ERR("csi_serialize_parms: Can't allocate result of length %d.", result.len);
-		result.len = 0;
-		MRELEASE(intsig.contents);
-		MRELEASE(icv.contents);
-		MRELEASE(iv.contents);
-		MRELEASE(salt.contents);
-		MRELEASE(keyinfo.contents);
-		return result;
-	}
-
-	if(parms.add.len > 0)
-	{
-		memcpy(result.contents+offset, (char *) intsig.contents, intsig.len);
-		offset += intsig.len;
-		MRELEASE(intsig.contents);
-	}
-
-	if(parms.icv.len > 0)
-	{
-		memcpy(result.contents+offset, (char *) icv.contents, icv.len);
-		offset += icv.len;
-		MRELEASE(icv.contents);
-	}
-
-	if(parms.iv.len > 0)
-	{
-		memcpy(result.contents+offset, (char *) iv.contents, iv.len);
-		offset += iv.len;
-		MRELEASE(iv.contents);
-	}
-
-	if(parms.salt.len > 0)
-	{
-		memcpy(result.contents+offset, (char *) salt.contents, salt.len);
-		offset += salt.len;
-		MRELEASE(salt.contents);
-	}
-
-	if(parms.keyinfo.len > 0)
-	{
-		memcpy(result.contents+offset, (char *) keyinfo.contents, keyinfo.len);
-		offset += keyinfo.len;
-		MRELEASE(keyinfo.contents);
-	}
-
-	return result;
-}
-
-
-/*
-	csi_val_t result;
-
-	memset(&result, 0, sizeof(csi_val_t));
-	result.len = 20;
-
-	if((result.contents = MTAKE(result.len)) == 0)
-	{
-		CSI_DEBUG_ERR("csi_serialize_parms: Can't allocate result of length %d.",
-				result.len);
-		result.len = 0;
-		return result;
-	}
-	memset(result.contents, 0, result.len);
-	return result;
-}*/
-
-int8_t csi_crypt_key(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, csi_val_t longtermkey, csi_val_t input, csi_val_t *output)
+int8_t	csi_crypt_key(csi_csid_t suite, csi_svcid_t svc,
+		csi_cipherparms_t *parms, csi_val_t longtermkey,
+		csi_val_t input, csi_val_t *output)
 {
 	int8_t retval = ERROR;
 
 	output->len = 20;
-	if((output->contents = MTAKE(output->len)) == 0)
+	if ((output->contents = MTAKE(output->len)) == 0)
 	{
 		output->len = 0;
 		return ERROR;
 	}
+
 	memset(output->contents, 0, output->len);
 	CSI_DEBUG_PROC("- csi_crypt_key ->%d", retval);
 	return 0;
@@ -444,7 +269,8 @@ csi_val_t csi_rand(uint32_t len)
 
 	if((result.contents = MTAKE(len)) == NULL)
 	{
-		CSI_DEBUG_ERR("x csi_rand: Cannot allocate result of size %d", len);
+		CSI_DEBUG_ERR("x csi_rand: Cannot allocate result of size %d",
+				len);
 		return result;
 	}
 
@@ -454,12 +280,10 @@ csi_val_t csi_rand(uint32_t len)
 }
 
 
-
 void      csi_teardown()
 {
 	return;
 }
-
 
 
 /******************************************************************************
@@ -493,7 +317,6 @@ uint32_t csi_blocksize(csi_csid_t suite)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: csi_ctx_len
@@ -520,7 +343,6 @@ uint32_t csi_ctx_len(csi_csid_t suite)
 {
 	return 20;
 }
-
 
 
 /******************************************************************************
@@ -565,7 +387,6 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: csi_ctx_free
@@ -589,14 +410,13 @@ uint8_t *csi_ctx_init(csi_csid_t suite, csi_val_t key_info, csi_svcid_t svc)
 
 uint8_t  csi_ctx_free(csi_csid_t suite, void *context)
 {
-	if(context != NULL)
+	if (context != NULL)
 	{
 		MRELEASE(context);
 	}
 
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -621,7 +441,6 @@ uint32_t csi_sign_res_len(csi_csid_t suite, void *context)
 {
 	return 20;
 }
-
 
 
 /******************************************************************************
@@ -651,7 +470,6 @@ int8_t  csi_sign_start(csi_csid_t suite, void *context)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: csi_sign_update
@@ -678,7 +496,6 @@ int8_t  csi_sign_update(csi_csid_t suite, void *context, csi_val_t data, csi_svc
 {
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -716,7 +533,6 @@ int8_t  csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: csi_sign_full
@@ -745,14 +561,16 @@ int8_t  csi_sign_finish(csi_csid_t suite, void *context, csi_val_t *result, csi_
  *  02/27/16  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t *result, csi_svcid_t svc)
+
+int8_t	csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key,
+		csi_val_t *result, csi_svcid_t svc)
 {
 	CHKERR(result);
 
 	memset(result,0,sizeof(csi_val_t));
 
 	result->len = 20;
-	if((result->contents = (uint8_t *) MTAKE(result->len)) == NULL)
+	if ((result->contents = (uint8_t *) MTAKE(result->len)) == NULL)
 	{
 		result->len = 0;
 		return ERROR;
@@ -761,8 +579,6 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
 	memset(result->contents, 0, result->len);
 	return 1;
 }
-
-
 
 
 /******************************************************************************
@@ -790,12 +606,13 @@ int8_t csi_sign_full(csi_csid_t suite, csi_val_t input, csi_val_t key, csi_val_t
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_cipherparms_t *parms)
+int8_t	csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc,
+		csi_cipherparms_t *parms)
 {
 	CHKERR(context);
 
 	parms->icv.len = 20;
-	if((parms->icv.contents = MTAKE(parms->icv.len)) == NULL)
+	if ((parms->icv.contents = MTAKE(parms->icv.len)) == NULL)
 	{
 		parms->icv.len = 0;
 		return ERROR;
@@ -805,7 +622,6 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -835,12 +651,13 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms,
-		              csi_val_t key, csi_val_t input, csi_val_t *output)
+int8_t	csi_crypt_full(csi_csid_t suite, csi_svcid_t svc,
+		csi_cipherparms_t *parms, csi_val_t key, csi_val_t input,
+		csi_val_t *output)
 {
 
 	output->len = 20;
-	if((output->contents = (uint8_t *) MTAKE(output->len)) == NULL)
+	if ((output->contents = (uint8_t *) MTAKE(output->len)) == NULL)
 	{
 		return ERROR;
 	}
@@ -850,7 +667,6 @@ int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parm
 
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -891,7 +707,6 @@ csi_val_t csi_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: csi_crypt_parm_get_len
@@ -918,7 +733,6 @@ uint32_t  csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
 }
 
 
-
 /******************************************************************************
  *
  * \par Function Name: csi_crypt_res_len
@@ -939,11 +753,11 @@ uint32_t  csi_crypt_parm_get_len(csi_csid_t suite, csi_parmid_t parmid)
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-uint32_t csi_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t blocksize, csi_svcid_t svc)
+uint32_t	csi_crypt_res_len(csi_csid_t suite, void *context,
+			csi_blocksize_t blocksize, csi_svcid_t svc)
 {
 	return blocksize.plaintextLen;
 }
-
 
 
 /******************************************************************************
@@ -967,11 +781,11 @@ uint32_t csi_crypt_res_len(csi_csid_t suite, void *context, csi_blocksize_t bloc
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int8_t csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
+int8_t	csi_crypt_start(csi_csid_t suite, void *context,
+		csi_cipherparms_t parms)
 {
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -998,14 +812,14 @@ int8_t csi_crypt_start(csi_csid_t suite, void *context, csi_cipherparms_t parms)
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-csi_val_t  csi_crypt_update(csi_csid_t suite, void *context, csi_svcid_t svc, csi_val_t data)
+csi_val_t	csi_crypt_update(csi_csid_t suite, void *context,
+			csi_svcid_t svc, csi_val_t data)
 {
 
 	csi_val_t result;
 
 	result.len = data.len;
 	result.contents = MTAKE(result.len);
-    memcpy(result.contents, data.contents, result.len);
+	memcpy(result.contents, data.contents, result.len);
 	return result;
 }
-

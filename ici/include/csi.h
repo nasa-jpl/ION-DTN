@@ -89,8 +89,23 @@ typedef enum {
 
 typedef struct
 {
-	uint8_t *contents;
-	int32_t len;
+	uvast	   id;
+	uint32_t   length;
+	void	   *value;	/*	ID-dependent structure		*/
+} csi_inbound_tv;
+
+typedef struct
+{
+	uvast	   id;
+	uint32_t   length;
+	Object	   value;	 /*	ID-dependent structure		*/
+} csi_outbound_tv;
+
+typedef struct
+{
+	uint8_t		*contents;
+	int32_t		len;
+	unint8_t	id;
 } csi_val_t;
 
 typedef struct

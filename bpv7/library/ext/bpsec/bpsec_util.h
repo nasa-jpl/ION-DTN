@@ -211,13 +211,6 @@ the block's sourceEID.)							*/
  *                        Inbound DATA STRUCTURES                            *
  *****************************************************************************/
 
-typedef struct
-{
-	uvast	   id;
-	uint32_t   length;
-	void	   *value;	/*	ID-dependent structure		*/
-} BpsecInboundTv;
-
 /** 
  *  \struct BpsecInboundTarget
  *  \brief  The target of one of an inbound bpsec block's security operations.
@@ -231,7 +224,7 @@ typedef struct
 	uint8_t	   targetBlockType;
 	uint8_t	   metatargetBlockNumber;
 	uint8_t	   metatargetBlockType;
-	Lyst	   results;	/*	Lyst of BpsecInboundTv		*/
+	Lyst	   results;	/*	Lyst of csi_inbound_tvs		*/
 } BpsecInboundTarget;
 
 /** 
@@ -244,23 +237,16 @@ typedef struct
 typedef struct
 {
 	EndpointId securitySource;
-	Lyst	   targets;	    /*	Lyst of BpsecInboundTarget	*/
+	Lyst	   targets;	/*	Lyst of BpsecInboundTargets	*/
 	uint8_t	   contextId;
 	char	   keyName[BPSEC_KEY_NAME_LEN];
 	uint32_t   contextFlags;
-	Lyst	   parmsData;	/*	Lyst of BpsecInboundTv		*/
+	Lyst	   parmsData;	/*	Lyst of csi_inbound_tvs		*/
 } BpsecInboundBlock;
 
 /*****************************************************************************
  *                       Outbound DATA STRUCTURES                            *
  *****************************************************************************/
-
-typedef struct
-{
-	uvast	   id;
-	uint32_t   length;
-	Object	   value;	 /*	ID-dependent structure		*/
-} BpsecOutboundTv;
 
 /** 
  *  \struct BpsecOutboundTarget
@@ -274,7 +260,7 @@ typedef struct
 	uint8_t	   targetBlockNumber;
 	uint8_t	   targetBlockType;
 	uint8_t	   metatargetBlockNumber;
-	Object	   results;	/*	sdr_list of BpsecOutboundTv	*/
+	Object	   results;	/*	sdr_list of csi_outbound_tvs	*/
 } BpsecOutboundTarget;
 
 /** 
@@ -292,7 +278,7 @@ typedef struct
 	uint8_t	   contextId;
 	char       keyName[BPSEC_KEY_NAME_LEN];
 	uint32_t   contextFlags;
-	Object     parmsData;	/*	sdr_list of BpsecOutboundTv	*/
+	Object     parmsData;	/*	sdr_list of csi_outbound_tvs	*/
 } BpsecOutboundBlock;
 
 
