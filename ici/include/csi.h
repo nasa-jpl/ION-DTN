@@ -3,28 +3,29 @@
  ** File Name: csi.h
  **
  ** Description: The crypto package defines a generic interface for ciphersuites.
- **              This interface is independent of any particular ciphersuite or
- **              cryptographic approach.
+ **       This interface is independent of any particular ciphersuite or
+ **       cryptographic approach.
  **
- **				  The ION Cryptographic Interface provides a series of generic
- **				  functions that can be applied to any ION-supported ciphersuite.
- **				  Each function in the interface accepts a "suite" identifier which
- **				  indicates which suite should be used for the function.
+ **	  The ION Cryptographic Interface provides a series of generic
+ **	  functions that can be applied to any ION-supported ciphersuite.
+ **	  Each function in the interface accepts a "context" identifier which
+ **	  indicates which security context should be used for the function.
  **
- **				  The functions provided by this interface are as follows:
+ **	  The functions provided by this interface are as follows:
  **
- **				  - The "ctx_len" function returns the length of the context used to
- **				  allow reentrant calls into the ciphersuite.
+ **	  - The "ctx_len" function returns the length of the context used to
+ **	  allow reentrant calls into the security context.
  **
- **				  - The "init", "reset", and "free" functions manage contexts for ciphersuites.
+ **	  - The "init", "reset", and "free" functions manage contexts for
+ **	  security contexts.
  **
- **				  - The "full" function applies the entire ciphersuite via a single
- **				  function call in cases where a streaming version of the ciphersuite
- **				  is not necessary.
+ **	  - The "full" function applies the entire ciphersuite via a single
+ **	  function call in cases where a streaming version of the ciphersuite
+ **	  is not necessary.
  **
- **				  - The "update" and "finish" functions are used, with a context, to
- **				  provide incremental accumulation of a security result from a ciphersuite
- **				  given a reentrant context.
+ **	  - The "update" and "finish" functions are used, with a context, to
+ **	  provide incremental accumulation of a security result from a
+ **	  security context given a reentrant context.
  **
  **
  ** Notes:

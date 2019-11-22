@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "csi.h"
 #include "csi_debug.h"
+#include "lyst.h"
 
 
 /*****************************************************************************

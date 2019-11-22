@@ -85,12 +85,31 @@ char	gMsg[GMSG_BUFLEN];
  *                              GENERAL FUNCTIONS                            *
  *****************************************************************************/
 
+static int	appendItem(Sdr sdr, Object items, csi_val_t *ctv)
+{
+	csi_outbound_tv	tv;
+	Object		tvAddr;
 
-static int	appendParm(Sdr sdr, Object items, int length <<--
+	tv.id = ctv->id;
+	tv.length = ctv->length;
+	tvAddr = sdr_malloc(sdr, sizeof(csi_outbound_tv));
+	if (tvAddr == 0
+	|| ((tv.value = sdr_malloc(sdr, tv.length)) == 0)
+	|| sdr_list_insert_last(sdr, items, tvAddr) == 0)
+	{
+		BPSEC_DEBUG_ERR("appendItem: Can't allocate sdr item of \
+length %d.", tv.length);
+		return -1;
+	}
+
+	sdr_write(sdr, tv.value, ctv->value, tv.length);
+	sdr_write(sdr, tvAddr, (char *) &tv, sizeof(csi_outbound_tv);
+	return 0;
+}
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_build_sdr_parm
+ * \par Function Name: bpsec_write_parms
  *
  * \par Purpose: This utility function writes the parms in a
  *		 csi_ciphersuite_t structure to the SDR heap as csi_outbound_tv
@@ -118,28 +137,64 @@ static int	appendParm(Sdr sdr, Object items, int length <<--
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms, Object items)
+int	bpsec_write_parms(Sdr sdr, csi_cipherparms_t parms, Object items)
 {
-	int		result = 0;
-	csi_val_t	val;
+	Sdr	sdr = getIonsdr();
+	int	result = 0;
 
 	/* Step 0 - Sanity Check. */
+
 	CHKERR(items);
 
-
 	/* Step 2 - Allocate the SDR space. */
-	if ((result = sdr_malloc(sdr, *len)) == 0)
+
+	if (parms.iv.len > 0)
 	{
-		BPSEC_DEBUG_ERR("bpsec_build_sdr_parm: Can't allocate sdr \
-result of length %d.", *len);
-		*len = 0;
-		MRELEASE(val.contents);
-		return 0;
+		if (appendItem(sdr, items, &parms.iv) < 0)
+		{
+			return -1;
+		}
 	}
 
-	sdr_write(sdr, result, (char *) val.contents, val.len);
+	if (parms.salt.len > 0)
+	{
+		if (appendItem(sdr, items, &parms.salt) < 0)
+		{
+			return -1;
+		}
+	}
 
-	MRELEASE(val.contents);
+	if (parms.icv.len > 0)
+	{
+		if (appendItem(sdr, items, &parms.icv) < 0)
+		{
+			return -1;
+		}
+	}
+
+	if (parms.intsig.len > 0)
+	{
+		if (appendItem(sdr, items, &parms.intsig) < 0)
+		{
+			return -1;
+		}
+	}
+
+	if (parms.add.len > 0)
+	{
+		if (appendItem(sdr, items, &parms.add) < 0)
+		{
+			return -1;
+		}
+	}
+
+	if (parms.keyinfo.len > 0)
+	{
+		if (appendItem(sdr, items, &parms.keyinfo) < 0)
+		{
+			return -1;
+		}
+	}
 
 	return result;
 }
@@ -147,20 +202,18 @@ result of length %d.", *len);
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_build_sdr_result
+ * \par Function Name: bpsec_write_one_result
  *
- * \par Purpose: This utility function builds a result field and writes it to
- *               the SDR. The results field is a CBOR arry of type-value pairs,
- *		 each of which is itself a CBOR array of two items..
+ * \par Purpose: This utility function builds a result item and appends it
+ *		 to a non-volatile linked list of result items.
  *
  * \par Date Written:  2/27/2016
  *
- * \retval SdrObject -- The SDR Object, or 0 on error.
+ * \retval int -- 0 on success, -1 on error
  *
- * \param[in|out] sdr    The SDR Storing the result.
- * \param[in]     id     The type of data being written.
- * \param[in]     value  The length/value of data to be included in the result.
- * \param[out]    len    The length of the data written to the SDR.
+ * \param[in|out] sdr    The SDR storing the result.
+ * \param[in]     items  The list to append the item to.
+ * \param[in]     ctv    The item to write.
  *
  * \par Notes:
  *      1. The SDR object must be freed when no longer needed.
@@ -174,33 +227,10 @@ result of length %d.", *len);
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-SdrObject bpsec_build_sdr_result(Sdr sdr, uint8_t id, csi_val_t value, uint32_t *len)
+SdrObject	bpsec_write_one_result(Sdr sdr, Object items, csi_val_t ctv)
 {
-	csi_val_t tmp;
-	SdrObject result = 0;
 
-	*len = 0;
-	tmp = csi_build_tlv(id, value.len, value.contents);
-
-	if(tmp.len == 0)
-	{
-		BPSEC_DEBUG_ERR("bpsec_build_result: Cannot create TLV.", NULL);
-		return 0;
-	}
-
-	if((result = sdr_malloc(sdr, tmp.len)) == 0)
-	{
-		BPSEC_DEBUG_ERR("bpsec_build_result: Can't allocate sdr \
-result of length %d.", tmp.len);
-		MRELEASE(tmp.contents);
-		return 0;
-	}
-
-	*len = tmp.len;
-	sdr_write(sdr, result, (char *) tmp.contents, tmp.len);
-	MRELEASE(tmp.contents);
-
-	return result;
+	return appendItem(sdr, items, &ctv);
 }
 
 
@@ -245,20 +275,49 @@ result of length %d.", tmp.len);
 static void	destroyInboundTarget(LystElt elt, void *userData)
 {
 	BpsecInboundTarget	*target;
+	LystElt			elt2;
+	csi_inbound_tv		*tv;
 
 	target = (BpsecInboundTarget *) lyst_data(elt);
-<<-- more here
+	if (target->results)
+	{
+		while ((elt2 = lyst_first(target->results)))
+		{
+			tv = (csi_inbound_tv *) lyst_data(elt2);
+			MRELEASE(tv->value);
+			MRELEASE(tv);
+			lyst_delete(elt2);
+		}
+
+		lyst_destroy(target->results);
+	}
+
 	MRELEASE(target);
 }
 
 static void	loseInboundAsb(BpsecInboundBlock *asb)
 {
+	LystElt	elt2;
+
+	eraseEid(asb->securitySource);
 	if (asb->targets)
 	{
 		lyst_destroy(asb->targets);
 	}
 
-<<-- more here
+	if (asb->parmsData)
+	{
+		while ((elt2 = lyst_first(asb->parmsData)))
+		{
+			tv = (csi_inbound_tv *) lyst_data(elt2);
+			MRELEASE(tv->value);
+			MRELEASE(tv);
+			lyst_delete(elt2);
+		}
+
+		lyst_destroy(asb->parmsData);
+	}
+
 	MRELEASE(asb);
 }
 
@@ -981,9 +1040,17 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 
 void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 {
-<<--	get the local node's admin EID (for scheme of bundle's destination
-<<--	EID, parse it to MetaEid, and writeEid(&eid, &metaEid).
-	return;
+	char		eidBuffer[300];
+	char		*cursor = eidBuffer;
+	char		*adminEid;
+	MetaEid		metaEid;
+	Vscheme		*vcheme;
+	PsmAddress	elt;
+
+	readEid(&bundle->destination, &cursor);
+	adminEid = bpsec_getLocalAdminEid(eidBuffer);
+	parseEidString(adminEid, &metaEid, &vschmee, &elt);
+	writeEid(&(asb->securitySource), &metaEid);
 }
 
 
