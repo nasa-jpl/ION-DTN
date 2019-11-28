@@ -19,71 +19,9 @@
  **                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
+#include "bpsec_util.h"
 #include "profiles.h"
 #include "csi.h"
-
-#if 0
-/*		Bundle Authentication Block profiles		*/
-
-static BabProfile	*_bab_profiles(int *count)
-{
-	static BabProfile	specs[] =
-	{
-		{	1, "BAB-HMAC-SHA1", CSTYPE_HMAC_SHA1, 1,
-			NULL,
-			NULL,
-			NULL
-		},
-
-		{
-			4, "BAB-HMAC-SHA256", CSTYPE_HMAC_SHA256, 1,
-			NULL,
-			NULL,
-			NULL
-		}
-
-	};
-
-	*count = sizeof specs / sizeof(BabProfile);
-	return specs;
-}
-
-BabProfile	*get_bab_prof_by_name(char *profName)
-{
-	int		profCount;
-	BabProfile	*prof = _bab_profiles(&profCount);
-	int		i;
-
-	CHKNULL(profName);
-	for (i = 0; i < profCount; i++, prof++)
-	{
-		if (strcmp(prof->profName, profName) == 0)
-		{
-			return prof;
-		}
-	}
-
-	return NULL;
-}
-
-BabProfile	*get_bab_prof_by_number(int profNbr)
-{
-	int		profCount;
-	BabProfile	*prof = _bab_profiles(&profCount);
-	int		i;
-
-	CHKNULL(profNbr > 0);
-	for (i = 0; i < profCount; i++, prof++)
-	{
-		if (prof->profNbr == profNbr)
-		{
-			return prof;
-		}
-	}
-
-	return NULL;
-}
-#endif
 
 /*		Block Integrity Block profiles			*/
 
@@ -114,7 +52,6 @@ static BibProfile	*_bib_profiles(int *count)
 			NULL,
 			NULL
 		}
-
 	};
 
 	*count = sizeof specs / sizeof(BibProfile);
@@ -178,7 +115,6 @@ static BcbProfile	*_bcb_profiles(int *count)
 			NULL,
 			NULL
 		}
-
 	};
 
 	*count = sizeof specs / sizeof(BcbProfile);

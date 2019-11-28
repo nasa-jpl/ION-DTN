@@ -22,8 +22,6 @@
 #ifndef PROFILES_H_
 #define PROFILES_H_
 
-#include "bpsec_util.h"
-
 /*
  * +--------------------------------------------------------------------------+
  * |   CONSTANTS  							      +
@@ -50,8 +48,8 @@ typedef int	(*BibSignFn)(Bundle *, ExtensionBlock *, BpsecOutboundBlock *,
 typedef int	(*BibVerifyFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
 
 typedef int	(*BcbConstructFn)(ExtensionBlock *, BpsecOutboundBlock *);
-typedef int	(*BcbEncryptFn)(Bundle *, ExtensionBlock *, BpsecOutboundBlock *,
-			size_t, uvast *);
+typedef int	(*BcbEncryptFn)(Bundle *, ExtensionBlock *,
+			BpsecOutboundBlock *, size_t, uvast *);
 typedef int	(*BcbDecryptFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
 
 /**
@@ -68,18 +66,6 @@ typedef int	(*BcbDecryptFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
  * construct/sign/verify - utility functions. A value of NULL indicates
  *                         that the generic profile functions should be used.
  */
-#if 0
-typedef struct
-{
-	uint16_t	profNbr;
-	char		*profName;
-	uint16_t	suiteId;
-	uint8_t		blockPair;	/*	Boolean.		*/
-	BabConstructFn	construct;
-	BabSignFn	sign;
-	BabVerifyFn	verify;
-} BabProfile;
-#endif
 
 typedef struct
 {
@@ -102,7 +88,6 @@ typedef struct
 	BcbEncryptFn	encrypt;
 	BcbDecryptFn	decrypt;
 } BcbProfile;
-
 
 /*
  * +--------------------------------------------------------------------------+

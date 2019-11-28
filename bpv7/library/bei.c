@@ -34,6 +34,7 @@
 
 #include "bpP.h"
 #include "bei.h"
+#include "bpsec_util.h"
 
 /*	We hitchhike on the ZCO heap space management system to 
  *	manage the space occupied by Bundle objects.  In effect,
@@ -194,9 +195,9 @@ static int	insertExtensionBlock(ExtensionSpec *spec,
 	return 0;
 }
 
-static unsigned char	selectBlkNumber(Bundle *bundle);
+static unsigned char	selectBlkNumber(Bundle *bundle)
 {
-	Sdr		bpSdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 	unsigned char	maxBlkNumber = 1;	/*	Payload.	*/
 	Object		elt;
 	Object		blkObj;
@@ -208,7 +209,7 @@ static unsigned char	selectBlkNumber(Bundle *bundle);
 				elt = sdr_list_next(sdr, elt))
 		{
 			blkObj = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(ExtensionBlock, blk);
+			GET_OBJ_POINTER(sdr, ExtensionBlock, blk, blkObj);
 			if (blk->number > maxBlkNumber)
 			{
 				maxBlkNumber = blk->number;

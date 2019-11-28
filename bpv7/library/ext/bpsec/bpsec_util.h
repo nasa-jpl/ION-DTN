@@ -135,7 +135,6 @@
    #define BPSEC_DEBUG_ERR(format,...) \
            BPSEC_DEBUG(BPSEC_DEBUG_LVL_ERR,format, __VA_ARGS__)
 
-
 #endif
 
 /*****************************************************************************
@@ -152,7 +151,6 @@
 #define BLOCK_TYPE_PAYLOAD	0x01	/*	Payload block type.	*/
 #define BLOCK_TYPE_BIB  	0x03	/*	bpsec BIB block type.	*/
 #define BLOCK_TYPE_BCB  	0x04	/*	bpsec BCB block type.	*/
-
 
 /**
  * Context Flags - From bpsec Spec.
@@ -205,7 +203,6 @@ the SDR heap and store the address of the copy in the outbound block's
 referenced or re-serialized.  (Note that an inbound bpsec block must not
 be modified in any way before it is forwarded, as this would invalidate
 the block's sourceEID.)							*/
-
 
 /*****************************************************************************
  *                        Inbound DATA STRUCTURES                            *
@@ -260,6 +257,7 @@ typedef struct
 	uint8_t	   targetBlockNumber;
 	uint8_t	   targetBlockType;
 	uint8_t	   metatargetBlockNumber;
+	uint8_t	   metatargetBlockType;
 	Object	   results;	/*	sdr_list of csi_outbound_tvs	*/
 } BpsecOutboundTarget;
 
@@ -281,17 +279,34 @@ typedef struct
 	Object     parmsData;	/*	sdr_list of csi_outbound_tvs	*/
 } BpsecOutboundBlock;
 
-
 /*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
 
+extern void		bpsec_releaseInboundTlvs(Lyst tlvs);
+extern void		bpsec_releaseInboundTargets(Lyst targets);
+extern void		bpsec_releaseInboundAsb(BpsecInboundBlock *asb);
+extern void		bpsec_releaseOutboundTlvs(Sdr sdr, Object tlvs);
+extern void		bpsec_releaseOutboundTargets(Sdr sdr, Object targets);
+extern void		bpsec_releaseOutboundAsb(Sdr sdr, Object asb);
 
-extern SdrObject	bpsec_build_sdr_parm(Sdr sdr, csi_cipherparms_t parms,
-				uint32_t *len);
+extern int		bpsec_copyAsb(ExtensionBlock *newBlk,
+				ExtensionBlock *oldBlk);
 
-extern SdrObject	bpsec_build_sdr_result(Sdr sdr, uint8_t id,
-				csi_val_t value, uint32_t *len);
+extern int		bpsec_getInboundTarget(Lyst targets,
+				BpsecInboundTarget **target);
+extern int		bpsec_getOutboundTarget(Sdr sdr, Object targets,
+				BpsecOutboundTarget *target);
+
+extern int		bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
+				sci_inbound_parms *parms);
+
+extern int		bpsec_write_one_result(Sdr sdr, BpsecOutboundBlock *asb,
+				sci_inbound_tlv *tlv);
+
+extern int		bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb,
+				uint8_t nbr, uint8_t type, uint8_t mnbr,
+				uint8_t mtyp);
 
 extern int		bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
 
@@ -304,34 +319,34 @@ extern LystElt		bpsec_findAcqBlock(AcqWorkArea *wk, uint8_t type,
 extern Object		bpsec_findBlock(Bundle *bundle, uint8_t type,
 				uint8_t targetBlockType,
 				uint8_t metatargetBlockType);
-
+#if 0
 extern void		bpsec_getInboundItem(int itemNeeded, unsigned char *buf,
 				unsigned int bufLen, unsigned char **val,
 				unsigned int *len);
-
+#endif
 extern int		bpsec_getInboundSecurityEids(Bundle *bundle,
 				AcqExtBlock *blk, BpsecInboundBlock *asb,
 				char **fromEid, char **toEid);
-
+#if 0
 extern int		bpsec_getInboundSecuritySource(AcqExtBlock *blk,
 				char *dictionary, char **fromEid);
-
+#endif
 extern char		*bpsec_getLocalAdminEid(char *eid);
 
-extern void		bpsec_getOutboundItem(uint8_t itemNeeded, Object buf,
-				uint32_t bufLen, Address *val, uint32_t *len);
+extern void		bpsec_getOutboundItem(uint8_t itemNeeded, Object items,
+				Object *tvp);
 
 extern int		bpsec_getOutboundSecurityEids(Bundle *bundle,
 				ExtensionBlock *blk, BpsecOutboundBlock *asb,
 				char **fromEid, char **toEid);
-
+#if 0
 extern int		bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
 				char *dictionary, char **fromEid);
-
+#endif
 extern void		bpsec_insertSecuritySource(Bundle *bundle,
 				BpsecOutboundBlock *asb);
 
-extern csi_val_t	bpsec_retrieveKey(char *keyName);
+extern sci_inbound_tlv	bpsec_retrieveKey(char *keyName);
 
 extern int		bpsec_securityPolicyViolated(AcqWorkArea *wk);
 

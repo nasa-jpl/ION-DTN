@@ -2276,7 +2276,7 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 	int	eidLength;
 	char	*eidString;
 
-	*buffer = '\0';			/*	Default.		*/
+	*buffer = NULL;			/*	Default.		*/
 	if (ssp->nssLength > 0)
 	{
 		if (ssp->endpointName.nv == 0)
@@ -8720,7 +8720,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	initAuthenticity(work);	/*	Set default.			*/
 	if (checkPerExtensionBlocks(work) < 0)
-<<-- Must call bpsec_securityPolicyViolated inside this check, somehow.
+//<<-- Must call bpsec_securityPolicyViolated inside this check, somehow.
 	{
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(sdr);

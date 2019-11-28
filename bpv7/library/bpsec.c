@@ -20,7 +20,9 @@
 	06-27-19  SB	   Extracted from ionsec.c
 	10-05-19  SB	   Migrated from SBSP to BPsec.
 									*/
+#include "bpP.h"
 #include "bpsec.h"
+#include "bpsec_util.h"
 #include "profiles.h"
 
 static int	filterEid(char *outputEid, char *inputEid, int eidIsInRule)

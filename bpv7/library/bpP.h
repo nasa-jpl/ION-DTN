@@ -21,7 +21,6 @@
 #include "rfx.h"
 #include "cbor.h"
 #include "crc.h"
-#include "bpsec.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -1326,7 +1325,7 @@ extern int		readEid(EndpointId *eid, char **str);
 
 extern int		acquireEid(EndpointId *eid,
 				unsigned char **cursor,
-				unsigned int *bytesRemaining;
+				unsigned int *bytesRemaining);
 extern uvast		computeBufferCrc(BpCrcType crcType,
 				unsigned char *buffer, 
 				int bytesToProcess,

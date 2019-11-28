@@ -20,7 +20,8 @@
 #define _BPSEC_H_
 
 #include "ionsec.h"
-#include "bp.h"
+#include "bpP.h"
+#include "bei.h"
 
 #ifdef __cplusplus
 extern "C" {

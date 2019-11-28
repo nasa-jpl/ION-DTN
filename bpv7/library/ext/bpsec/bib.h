@@ -60,7 +60,7 @@
 #ifndef BIB_H_
 #define BIB_H_
 
-#include "bpsec_util.h"
+//#include "bpsec_util.h"
 #include "profiles.h"
 
 // If bpsec debugging is turned on, then turn on bib debugging.

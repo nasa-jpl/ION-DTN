@@ -55,6 +55,8 @@
  **  09/02/19  S. Burleigh    Rename everything for bpsec
  *****************************************************************************/
 #include "zco.h"
+#include "csi.h"
+#include "bpsec_util.h"
 #include "bcb.h"
 #include "bpsec_instr.h"
 
@@ -63,7 +65,6 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
 
 /* 2/27 */
-
 
 /******************************************************************************
  *
@@ -98,7 +99,6 @@ int	bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	BCB_DEBUG_PROC("+ bcbAcquire(0x%x, 0x%x)", (unsigned long) blk,
 			(unsigned long) wk);
-
 	CHKERR(blk);
 	CHKERR(wk);
 
@@ -109,7 +109,6 @@ int	bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	return result;
 }
-
 
 /******************************************************************************
  *
@@ -143,30 +142,13 @@ void	bcbClear(AcqExtBlock *blk)
 	if (blk->object)
 	{
 		asb = (BpsecInboundBlock *) (blk->object);
-		if (asb->parmsData)
-		{
-			BCB_DEBUG_INFO("i bcbClear: Release result len %ld",
-					asb->parmsLen);
-			MRELEASE(asb->parmsData);
-		}
-
-		if (asb->resultsData)
-		{
-			BCB_DEBUG_INFO("i bcbClear: Release result len %ld",
-					asb->resultsLen);
-			MRELEASE(asb->resultsData);
-		}
-
-		BCB_DEBUG_INFO("i bcbClear: Release ASB len %d", blk->size);
-
-		MRELEASE(blk->object);
+		bpsec_releaseInboundAsb(asb);
 		blk->object = NULL;
 		blk->size = 0;
 	}
 
 	BCB_DEBUG_PROC("- bcbClear", NULL);
 }
-
 
 /******************************************************************************
  *
@@ -193,101 +175,8 @@ void	bcbClear(AcqExtBlock *blk)
 
 int	bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
-	Sdr			bpSdr = getIonsdr();
-	BpsecOutboundBlock	asb;
-	int			result = 0;
-	char		*buffer = NULL;
-
-	BCB_DEBUG_PROC("+ bcbCopy(0x%x, 0x%x)", (unsigned long) newBlk,
-			(unsigned long) oldBlk);
-
-	/* Step 1 - Sanity Checks. */
-	CHKERR(newBlk);
-	CHKERR(oldBlk);
-
-	/* Step 2 - Allocate the new destination BCB. */
-	newBlk->size = sizeof(asb);
-	if((newBlk->object = sdr_malloc(bpSdr, sizeof(asb))) == 0)
-	{
-		BCB_DEBUG_ERR("x bcbCopy: Failed to allocate: %d",
-				sizeof asb);
-		return -1;
-	}
-
-	/*  Step 3 - Copy the source BCB into the destination. */
-
-	/* Step 3.1 - Read the source BCB from the SDR. */
-	sdr_read(bpSdr, (char *) &asb, oldBlk->object, sizeof asb);
-
-	/*
-	 * Step 3.2 - Copy parameters by reading entire parameter list
-	 *            into a buffer and copying that buffer into the
-	 *            destination block. Then write the copied parameters
-	 *            back to the SDR.
-	 */
-	if (asb.parmsData)
-	{
-		buffer = MTAKE(asb.parmsLen);
-		if (buffer == NULL)
-		{
-			BCB_DEBUG_ERR("x bcbCopy: Failed to allocate: %d",
-					asb.parmsLen);
-			return -1;
-		}
-
-		sdr_read(bpSdr, buffer, asb.parmsData, asb.parmsLen);
-		asb.parmsData = sdr_malloc(bpSdr, asb.parmsLen);
-		if (asb.parmsData == 0)
-		{
-			BCB_DEBUG_ERR("x bcbCopy: Failed to allocate: %d",
-					asb.parmsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, asb.parmsData, buffer, asb.parmsLen);
-		MRELEASE(buffer);
-	}
-
-	/*
-	 * Step 3.3 - Copy results by reading result field
-	 *            into a buffer and copying that buffer into the
-	 *            destination block. Then write the copied results
-	 *            to the SDR.
-	 */
-
-	if (asb.resultsData)
-	{
-		buffer = MTAKE(asb.resultsLen);
-		if (buffer == NULL)
-		{
-			BCB_DEBUG_ERR("x bcbCopy: Failed to allocate: %d",
-					asb.resultsLen);
-			return -1;
-		}
-
-		sdr_read(bpSdr, buffer, asb.resultsData, asb.resultsLen);
-		asb.resultsData = sdr_malloc(bpSdr, asb.resultsLen);
-		if (asb.resultsData == 0)
-		{
-			BCB_DEBUG_ERR("x bcbCopy: Failed to allocate: %d",
-					asb.resultsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, asb.resultsData, buffer, asb.resultsLen);
-		MRELEASE(buffer);
-	}
-
-	/* Step 4 - Write copied block to the SDR. */
-	sdr_write(bpSdr, newBlk->object, (char *) &asb, sizeof asb);
-
-	BCB_DEBUG_PROC("- bcbCopy -> %d", result);
-
-	return result;
+	return bpsec_copyAsb(newBlk, oldBlk);
 }
-
 
 /******************************************************************************
  *
@@ -316,13 +205,14 @@ int	bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	Bundle		*bundle;
+	Bundle			*bundle;
 	BpsecInboundBlock	*asb = NULL;
-	char		*fromEid;
-	char		*toEid;
-	BPsecBcbRule	bpsecRule;
-	BcbProfile	*prof = NULL;
-	int		result;
+	BpsecInboundTarget	*target;
+	char			*fromEid;
+	char			*toEid;
+	BPsecBcbRule		bpsecRule;
+	BcbProfile		*prof = NULL;
+	int			result;
 	uvast bytes = 0;
 
 	BCB_DEBUG_PROC("+ bcbDecrypt(0x%x, 0x%x)", (unsigned long) blk,
@@ -347,6 +237,13 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	bundle = &(wk->bundle);
 	asb = (BpsecInboundBlock *) (blk->object);
+	if (bpsec_getInboundTarget(asb->targets, &target) < 0)
+	{
+		BCB_DEBUG_ERR("x bcbDecrypt - Can't get target.", NULL);
+		BCB_DEBUG_PROC("- bcbDecrypt--> 0", NULL);
+		return 0;
+	}
+
 	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
 	{
 		if (readEid(&(asb->securitySource), &fromEid) < 0)
@@ -375,7 +272,7 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BCB rule.	*/
 
-	prof = bcbGetProfile(fromEid, toEid, asb->targetBlockType,
+	prof = bcbGetProfile(fromEid, toEid, target->targetBlockType,
 			&bpsecRule);
 	MRELEASE(toEid);
 
@@ -451,7 +348,6 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	return result;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: bcbDefaultConstruct
@@ -483,27 +379,21 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
  *****************************************************************************/
 int	bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock *asb)
 {
+	Sdr	sdr = getIonsdr();
 
 	CHKERR(blk);
 	CHKERR(asb);
 
 	/* Step 1: Populate block-instance-agnostic parts of the ASB. */
-	asb->ciphersuiteId = suite;
-	asb->parmsLen = 0;
-	asb->parmsData = 0;
-	asb->resultsData = 0;
+	asb->targets = sdr_list_create(sdr);
+	asb->contextId = suite;
+	asb->parmsData = sdr_list_create(sdr);
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
-#if 0
-	asb->ciphersuiteFlags = BPSEC_ASB_RES | BPSEC_ASB_PARM;
-#endif
-	asb->ciphersuiteFlags = BPSEC_ASB_PARM;
-	asb->resultsLen = 0;
+	asb->contextFlags = BPSEC_ASB_PARM;
 
 	return 0;
 }
-
-
 
 /*
  * Assume the asb key has been udpated with the key to use for decrypt.
@@ -511,32 +401,35 @@ int	bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock 
 int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 		uvast *bytes)
 {
-
 	BpsecInboundBlock	*asb;
-	csi_val_t		longtermKey;
-	csi_val_t		sessionKeyInfo;
-	csi_val_t		sessionKeyClear;
-	csi_cipherparms_t	parms;
+	BpsecInboundTarget	*target;
+	sci_inbound_tlv		longtermKey;
+	sci_inbound_tlv		sessionKeyInfo;
+	sci_inbound_tlv		sessionKeyClear;
+	sci_inbound_parms	parms;
 
-	BCB_DEBUG_INFO("+ bcbDefaultDecrypt(%d, 0x%x, 0x%x)", suite,o
+	BCB_DEBUG_INFO("+ bcbDefaultDecrypt(%d, 0x%x, 0x%x)", suite,
 			(unsigned long) wk, (unsigned long) blk);
 
 	/* Step 0 - Sanity Checks. */
-	CHKERR(wk);
-	CHKERR(blk);
-	CHKERR(bytes);
-
-	memset(&longtermKey, 0, sizeof(csi_val_t));
-	memset(&sessionKeyInfo, 0, sizeof(csi_val_t));
-	memset(&sessionKeyClear, 0, sizeof(csi_val_t));
+	CHKERR(wk && blk && bytes);
 	*bytes = 0;
 
+	memset(&longtermKey, 0, sizeof(sci_inbound_tlv));
+	memset(&sessionKeyInfo, 0, sizeof(sci_inbound_tlv));
+	memset(&sessionKeyClear, 0, sizeof(sci_inbound_tlv));
 
 	/* Step 1 - Initialization */
 	asb = (BpsecInboundBlock *) (blk->object);
+	if (bpsec_getInboundTarget(asb->targets, &target) < 0)
+	{
+		BCB_DEBUG_ERR("x bcbDefaultEncrypt - Can't get target.", NULL);
+		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> 0", NULL);
+		return 0;
+	}
 
 	/* Step 2 - Grab any ciphersuite parameters in the received BCB. */
-	parms = csi_build_parms(asb->parmsData, asb->parmsLen);
+	parms = sci_build_parms(asb->parmsData);
 
 	/*
 	 * Step 3 - Decrypt the encrypted session key. We need it to decrypt
@@ -545,9 +438,10 @@ int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 
 	/* Step 3.1 - Grab the long-term key used to protect the session key. */
 	longtermKey = bpsec_retrieveKey(asb->keyName);
-	if(longtermKey.len == 0)
+	if (longtermKey.length == 0)
 	{
-		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't get longterm key for %s", asb->keyName);
+		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't get longterm key \
+for %s", asb->keyName);
 		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> 0", NULL);
 		return 0;
 	}
@@ -556,107 +450,108 @@ int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 	 * Step 3.2 -Grab the encrypted session key from the BCB itself. This
 	 *           session key has been encrypted with the long-term key.
 	 */
-	sessionKeyInfo = csi_extract_tlv(CSI_PARM_KEYINFO, asb->resultsData, asb->resultsLen);
+	sessionKeyInfo = sci_extract_tlv(CSI_PARM_KEYINFO, target->results);
 
 	/*
-	 * Step 3.3 - Decrypt the session key. We assume that the encrypted session
-	 *            key fits into memory and we can do the encryption all at once.
+	 * Step 3.3 - Decrypt the session key. We assume that the encrypted
+	 * session key fits into memory and we can do the encryption all
+	 * at once.
 	 */
-	if((csi_crypt_key(suite, CSI_SVC_DECRYPT, &parms, longtermKey, sessionKeyInfo, &sessionKeyClear)) == ERROR)
+
+	if ((sci_crypt_key(suite, CSI_SVC_DECRYPT, &parms, longtermKey,
+			sessionKeyInfo, &sessionKeyClear)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Could not decrypt session key", NULL);
-		MRELEASE(longtermKey.contents);
-		MRELEASE(sessionKeyInfo.contents);
+		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Could not decrypt session \
+key", NULL);
+		MRELEASE(longtermKey.value);
+		MRELEASE(sessionKeyInfo.value);
 		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> 0", NULL);
 		return 0;
 	}
 
 	/* Step 3.4 - Release unnecessary key-related memory. */
 
-	if((sessionKeyClear.contents == NULL) || (sessionKeyClear.len == 0))
+	if ((sessionKeyClear.value == NULL) || (sessionKeyClear.length == 0))
 	{
-		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Could not decrypt session key", NULL);
-		MRELEASE(sessionKeyClear.contents);
-		MRELEASE(longtermKey.contents);
-		MRELEASE(sessionKeyInfo.contents);
-
+		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Could not decrypt session \
+key", NULL);
+		MRELEASE(sessionKeyClear.value);
+		MRELEASE(longtermKey.value);
+		MRELEASE(sessionKeyInfo.value);
 		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> 0", NULL);
 		return 0;
 	}
 
-	MRELEASE(longtermKey.contents);
-	MRELEASE(sessionKeyInfo.contents);
+	MRELEASE(longtermKey.value);
+	MRELEASE(sessionKeyInfo.value);
 
 	/* Step 4 -Decrypt the target block payload in place. */
 
-	switch (asb->targetBlockType)
+	switch (target->targetBlockType)
 	{
-		case PayloadBlk:
-			*bytes = wk->bundle.payload.length;
-
-			if (bcbHelper(&(wk->bundle.payload.content),
-							   csi_blocksize(suite),
-							   suite,
-							   sessionKeyClear,
-							   parms, 0, 0,
-							   CSI_SVC_DECRYPT) < 0)
-			{
-				BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't decrypt payload.", NULL);
-				BCB_DEBUG_PROC("- bcbDefaultDecrypt--> NULL", NULL);
-				MRELEASE(sessionKeyClear.contents);
-				return 0;
-			}
+	case PayloadBlk:
+		*bytes = wk->bundle.payload.length;
+		if (bcbHelper(&(wk->bundle.payload.content),
+				csi_blocksize(suite), suite, sessionKeyClear,
+				parms, 0, 0, CSI_SVC_DECRYPT) < 0)
+		{
+			BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't decrypt \
+payload.", NULL);
+			BCB_DEBUG_PROC("- bcbDefaultDecrypt--> NULL", NULL);
+			MRELEASE(sessionKeyClear.value);
+			return 0;
+		}
 
 		break;
 
-		default:
-			BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't decrypt block type \
-%d: canonicalization not implemented.", asb->targetBlockType);
-			BCB_DEBUG_PROC("- bcbDefaultDecrypt--> NULL", NULL);
-			MRELEASE(sessionKeyClear.contents);
-			return 0;
+	default:
+		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't decrypt block \
+type %d: canonicalization not implemented.", asb->targetBlockType);
+		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> NULL", NULL);
+		MRELEASE(sessionKeyClear.value);
+		return 0;
 	}
 
-	MRELEASE(sessionKeyClear.contents);
+	MRELEASE(sessionKeyClear.value);
 	return 1;
 }
 
-
-
-uint32_t bcbDefaultEncrypt(uint32_t suite,
-			Bundle *bundle,
-			ExtensionBlock *blk,
-			BpsecOutboundBlock *asb,
-			size_t xmitRate,
-			uvast *bytes)
+uint32_t	bcbDefaultEncrypt(uint32_t suite, Bundle *bundle,
+			ExtensionBlock *blk, BpsecOutboundBlock *asb,
+			size_t xmitRate, uvast *bytes)
 {
-	Sdr		bpSdr = getIonsdr();
-	csi_val_t	sessionKey;
-	csi_val_t	encryptedSessionKey;
-	csi_val_t	longtermKey;
-	csi_cipherparms_t parms;
+	Sdr			sdr = getIonsdr();
+	BpsecOutboundTarget	target;
+	sci_inbound_tlv		sessionKey;
+	sci_inbound_tlv		encryptedSessionKey;
+	sci_inbound_tlv		longtermKey;
+	sci_inbound_parms	parms;
 
-	BCB_DEBUG_INFO("+ bcbDefaultEncrypt(%d, 0x%x, 0x%x, 0x%x",
-			suite, (unsigned long) bundle, (unsigned long) blk,
+	BCB_DEBUG_INFO("+ bcbDefaultEncrypt(%d, 0x%x, 0x%x, 0x%x", suite,
+			(unsigned long) bundle, (unsigned long) blk,
 			(unsigned long) asb);
 
 	/* Step 0 - Sanity Checks. */
-	CHKERR(bundle);
-	CHKERR(blk);
-	CHKERR(asb);
-	CHKERR(bytes);
-
-	memset(&sessionKey, 0, sizeof(csi_val_t));
-	memset(&encryptedSessionKey, 0, sizeof(csi_val_t));
-	memset(&longtermKey, 0, sizeof(csi_val_t));
+	CHKERR(bundle && blk && asb && bytes);
 	*bytes = 0;
+
+	memset(&sessionKey, 0, sizeof(sci_inbound_tlv));
+	memset(&encryptedSessionKey, 0, sizeof(sci_inbound_tlv));
+	memset(&longtermKey, 0, sizeof(sci_inbound_tlv));
+	if (bpsec_getOutboundTarget(sdr, asb->targets, &target) < 0)
+	{
+		BCB_DEBUG_ERR("x bcbDefaultEncrypt - Can't get target.", NULL);
+		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> 0", NULL);
+		return 0;
+	}
 
 	/*
 	 * Step 1 - Make sure we have a long-term key that we can use to
 	 * protect the session key.
 	 */
+
 	longtermKey = bpsec_retrieveKey(asb->keyName);
-	if (longtermKey.len == 0)
+	if (longtermKey.length == 0)
 	{
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt - Can't get longterm \
 key.", NULL);
@@ -665,22 +560,21 @@ key.", NULL);
 	}
 
 	/* Step 2 - Grab session key to use for the encryption. */
-	sessionKey = csi_crypt_parm_get(suite, CSI_PARM_BEK);
-
-	if ((sessionKey.contents == NULL) || (sessionKey.len == 0))
+	sessionKey = sci_crypt_parm_get(suite, CSI_PARM_BEK);
+	if ((sessionKey.value == NULL) || (sessionKey.length == 0))
 	{
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt - Can't get session \
 key.", NULL);
-		MRELEASE(longtermKey.contents);
-		MRELEASE(sessionKey.contents);
+		MRELEASE(longtermKey.value);
+		MRELEASE(sessionKey.value);
 		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> NULL", NULL);
 		return 0;
 	}
 
 	/* Step 3 - Grab cipher parms to seed encryption.*/
 	memset(&parms, 0, sizeof(parms));
-	parms.iv = csi_crypt_parm_get(suite, CSI_PARM_IV);
-	parms.salt = csi_crypt_parm_get(suite, CSI_PARM_SALT);
+	parms.iv = sci_crypt_parm_get(suite, CSI_PARM_IV);
+	parms.salt = sci_crypt_parm_get(suite, CSI_PARM_SALT);
 
 	/*
 	 * Step 4 - Use the long-term key to encrypt the
@@ -689,50 +583,46 @@ key.", NULL);
 	 *          make sure we can encrypt all the keys before doing
 	 *          surgery on the target block itself.
 	 */
-	if ((csi_crypt_key(suite, CSI_SVC_ENCRYPT, &parms, longtermKey,
+
+	if ((sci_crypt_key(suite, CSI_SVC_ENCRYPT, &parms, longtermKey,
 			sessionKey, &encryptedSessionKey)) == ERROR)
 	{
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt: Could not decrypt \
 session key", NULL);
-		MRELEASE(longtermKey.contents);
-		MRELEASE(sessionKey.contents);
+		MRELEASE(longtermKey.value);
+		MRELEASE(sessionKey.value);
 		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> 0", NULL);
 		return 0;
-
 	}
 
-	if ((encryptedSessionKey.contents == NULL)
-	|| (encryptedSessionKey.len == 0))
+	if ((encryptedSessionKey.value == NULL)
+	|| (encryptedSessionKey.length == 0))
 	{
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt - Can't get encrypted \
 session key.", NULL);
-		MRELEASE(longtermKey.contents);
-		MRELEASE(sessionKey.contents);
+		MRELEASE(longtermKey.value);
+		MRELEASE(sessionKey.value);
 		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> NULL", NULL);
-		csi_cipherparms_free(parms);
+		sci_cipherparms_free(parms);
 		return 0;
 	}
 
 	/* Step 5 - Encrypt the target block. */
-	switch (asb->targetBlockType)
+	switch (target.targetBlockType)
 	{
 	case PayloadBlk:
-
 		*bytes = bundle->payload.length;
-
-		if (bcbHelper(&(bundle->payload.content),
-				csi_blocksize(suite), suite, sessionKey, parms,
-			       	asb->encryptInPlace, xmitRate, CSI_SVC_ENCRYPT)
-				< 0)
+		if (bcbHelper(&(bundle->payload.content), csi_blocksize(suite),
+				suite, sessionKey, parms, asb->encryptInPlace,
+				xmitRate, CSI_SVC_ENCRYPT) < 0)
 		{
-			BCB_DEBUG_ERR("x bcbDefaultEncrypt: Can't \
-encrypt payload.", NULL);
-			BCB_DEBUG_PROC("- bcbDefaultEncrypt--> NULL",
-					NULL);
-			MRELEASE(longtermKey.contents);
-			MRELEASE(sessionKey.contents);
-			MRELEASE(encryptedSessionKey.contents);
-			csi_cipherparms_free(parms);
+			BCB_DEBUG_ERR("x bcbDefaultEncrypt: Can't encrypt \
+payload.", NULL);
+			BCB_DEBUG_PROC("- bcbDefaultEncrypt--> NULL", NULL);
+			MRELEASE(longtermKey.value);
+			MRELEASE(sessionKey.value);
+			MRELEASE(encryptedSessionKey.value);
+			sci_cipherparms_free(parms);
 			return 0;
 		}
 
@@ -742,39 +632,47 @@ encrypt payload.", NULL);
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt: Can't encrypt block \
 type %d: canonicalization not implemented.", asb->targetBlockType);
 		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> NULL", NULL);
-		MRELEASE(longtermKey.contents);
-		MRELEASE(sessionKey.contents);
-		MRELEASE(encryptedSessionKey.contents);
-		csi_cipherparms_free(parms);
+		MRELEASE(longtermKey.value);
+		MRELEASE(sessionKey.value);
+		MRELEASE(encryptedSessionKey.value);
+		sci_cipherparms_free(parms);
 		return 0;
 	}
 
 	/* Step 6 - Free plaintext keys post-encryption. */
-	MRELEASE(longtermKey.contents);
-	MRELEASE(sessionKey.contents);
+	MRELEASE(longtermKey.value);
+	MRELEASE(sessionKey.value);
 
 	/*
-	 * Step 7 - Place the encrypted session key in the BCB
-	 *         results field.
+	 * Step 7 - Place the encrypted session key in the
+	 *         results field of the BCB's first target.
 	 */
 
-	asb->resultsData = bpsec_build_sdr_result(bpSdr, CSI_PARM_KEYINFO,
-			encryptedSessionKey, &(asb->resultsLen));
-	MRELEASE(encryptedSessionKey.contents);
-
-	if (asb->resultsData == 0)
+	encryptedSessionKey.id = CSI_PARM_KEYINFO;
+	if (bpsec_write_one_result(sdr, asb, &encryptedSessionKey) < 0)
 	{
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt: Can't allocate heap \
-space for ASB result.", NULL);
+space for ASB target's result.", NULL);
 		BCB_DEBUG_PROC("- bcbDefaultEncrypt --> %d", 0);
-		csi_cipherparms_free(parms);
+		MRELEASE(encryptedSessionKey.value);
+		sci_cipherparms_free(parms);
 		return 0;
 	}
 
-	/* Step 8 - Place the parameters in the appropriate BCB field. */
-	asb->parmsData = bpsec_build_sdr_parm(bpSdr, parms, &(asb->parmsLen));
-	csi_cipherparms_free(parms);
+	MRELEASE(encryptedSessionKey.value);
 
+	/* Step 8 - Place the parameters in the appropriate BCB field. */
+
+	if (bpsec_write_parms(sdr, asb, &parms) < 0)
+	{
+		BCB_DEBUG_ERR("x bcbDefaultEncrypt: Can't allocate heap \
+space for ASN parms data.", NULL);
+		BCB_DEBUG_PROC("- bcbDefaultEncrypt --> %d", 0);
+		sci_cipherparms_free(parms);
+		return 0;
+	}
+
+	sci_cipherparms_free(parms);
 	if (asb->parmsData == 0)
 	{
 		BCB_DEBUG_WARN("x bcbDefaultEncrypt: Can't write cipher \
@@ -785,7 +683,6 @@ parameters.", NULL);
 
 	return 1;
 }
-
 
 /******************************************************************************
  *
@@ -828,7 +725,7 @@ parameters.", NULL);
 BcbProfile	*bcbGetProfile(char *secSrc, char *secDest,
 			BpBlockType secTgtType, BPsecBcbRule *bpsecRule)
 {
-	Sdr		bpSdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 	Object		ruleAddr;
 	Object		ruleElt;
 	BcbProfile 	*prof = NULL;
@@ -859,7 +756,7 @@ for BCBs. No BCB processing for this bundle.", NULL);
 
 	/* Step 2 - Retrieve the Profile associated with this policy. */
 
-	sdr_read(bpSdr, (char *) bpsecRule, ruleAddr, sizeof(BPsecBcbRule));
+	sdr_read(sdr, (char *) bpsecRule, ruleAddr, sizeof(BPsecBcbRule));
 	if( (prof = get_bcb_prof_by_name(bpsecRule->ciphersuiteName)) == NULL)
 	{
 		BCB_DEBUG_INFO("i bcbGetProfile: Profile of BCB rule is \
@@ -870,7 +767,6 @@ unknown '%s'.  No BCB processing for this bundle.", bpsecRule->ciphersuiteName);
 
 	return prof;
 }
-
 
 /******************************************************************************
  *
@@ -917,14 +813,16 @@ unknown '%s'.  No BCB processing for this bundle.", bpsecRule->ciphersuiteName);
 static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			BpsecOutboundBlock *bcbAsb, size_t xmitRate)
 {
-	int		result = 0;
-	char		*fromEid = NULL;
-	char		*toEid = NULL;
-	char		eidBuf[32];
-	BPsecBcbRule	bpsecRule;
-	BcbProfile	*prof = NULL;
-	unsigned char	*serializedAsb = NULL;
-	uvast		bytes = 0;
+	Sdr			sdr = getIonsdr();
+	int			result = 0;
+	char			eidBuf[32];
+	char			*fromEid = NULL;
+	char			*toEid = NULL;
+	BpsecOutboundTarget	target;
+	BPsecBcbRule		bpsecRule;
+	BcbProfile		*prof = NULL;
+	unsigned char		*serializedAsb = NULL;
+	uvast			bytes = 0;
 
 	BCB_DEBUG_PROC("+ bcbAttach (0x%x, 0x%x, 0x%x)",
 			(unsigned long) bundle, (unsigned long) bcbBlk,
@@ -967,9 +865,24 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	 *		in this instance.  If there is a rule but no
 	 *		matching profile then the bundle must not be
 	 *		forwarded.
+	 *
+	 *		NOTE: for now we are assuming that the block
+	 *		has only a single target.  We don't yet know
+	 *		how to do this if the block has multiple
+	 *		targets.
 	 */
 
-	prof = bcbGetProfile(fromEid, toEid, bcbAsb->targetBlockType,
+	if (bpsec_getOutboundTarget(sdr, bcbAsb->targets, &target))
+	{
+		BCB_DEBUG(2,"NOT adding BCB; no target.", NULL);
+
+		result = 0;
+		scratchExtensionBlock(bcbBlk);
+		BCB_DEBUG_PROC("- bcbAttach -> %d", result);
+		return result;
+	}
+
+	prof = bcbGetProfile(fromEid, toEid, target.targetBlockType,
 			&bpsecRule);
 	MRELEASE(toEid);
 	if (prof == NULL)
@@ -1030,7 +943,6 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk,
 			bcbAsb, xmitRate, &bytes) : prof->encrypt(bundle,
 			bcbBlk, bcbAsb, xmitRate, &bytes);
-
 	if (result < 0)
 	{
 		BCB_DEBUG_ERR("x bcbAttach: Can't encrypt target block.",
@@ -1079,7 +991,6 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
 	return result;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: bcbOffer
@@ -1127,7 +1038,7 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
 
 int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 {
-	Sdr			bpSdr = getIonsdr();
+	Sdr			sdr = getIonsdr();
 	BpsecOutboundBlock	asb;
 	int			result = 0;
 
@@ -1161,7 +1072,9 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
-    /* Step 1.3 - Make sure OP(confidentiality, target) isn't already there. */
+	/* Step 1.3 - Make sure OP(confidentiality, target) isn't
+	 * already there. */
+
 	if (bpsec_findBlock(bundle, BlockConfidentialityBlk, blk->tag1,
 				blk->tag2))
 	{
@@ -1179,31 +1092,39 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	/* Step 2.1 - Populate the BCB ASB. */
 	memset((char *) &asb, 0, sizeof(BpsecOutboundBlock));
+
+	CHKERR(sdr_begin_xn(sdr));
+
 	bpsec_insertSecuritySource(bundle, &asb);
-	asb.targetBlockType = blk->tag1;
-	asb.metatargetBlockType = blk->tag2;
+	if (bpsec_insert_target(sdr, &asb, (blk->tag1 == PayloadBlk ? 1 : 0),
+			blk->tag1, 0, blk->tag2))
+	{
+		sdr_cancel_xn(sdr);
+		BCB_DEBUG_ERR("x bcbOffer: Failed to insert target.");
+		result = -1;
+		BCB_DEBUG_PROC("- bcbOffer -> %d", result);
+		return result;
+	}
+
 	asb.encryptInPlace = blk->tag3;
 
 	/* Step 2.2 Populate the BCB Extension Block. */
 
-	CHKERR(sdr_begin_xn(bpSdr));
-
 	blk->size = sizeof(BpsecOutboundBlock);
-	if((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
+	if ((blk->object = sdr_malloc(sdr, blk->size)) == 0)
 	{
+		sdr_cancel_xn(sdr);
 		BCB_DEBUG_ERR("x bcbOffer: Failed to SDR allocate object \
 of size: %d", blk->size);
 		result = -1;
-		sdr_cancel_xn(bpSdr);
 		BCB_DEBUG_PROC("- bcbOffer -> %d", result);
 		return result;
 	}
 
 	/* Step 3 - Write the ASB into the block. */
 
-	sdr_write(bpSdr, blk->object, (char *) &asb, blk->size);
-
-	sdr_end_xn(bpSdr);
+	sdr_write(sdr, blk->object, (char *) &asb, blk->size);
+	sdr_end_xn(sdr);
 
 	/* Step 4 - We always defer encryption until dequeue time. */
 
@@ -1224,7 +1145,6 @@ of size: %d", blk->size);
 	BCB_DEBUG_PROC("- bcbOffer -> %d", result);
 	return result;
 }
-
 
 /******************************************************************************
  *
@@ -1293,8 +1213,6 @@ parm 0x%x, blk 0x%x, blk->size %d", (unsigned long) bundle,
 	return result;
 }
 
-
-
 /******************************************************************************
  *
  * \par Function Name: bcbRelease
@@ -1319,117 +1237,104 @@ parm 0x%x, blk 0x%x, blk->size %d", (unsigned long) bundle,
 
 void    bcbRelease(ExtensionBlock *blk)
 {
-	Sdr			sdr = getIonsdr();
-	BpsecOutboundBlock	asb;
-
 	BCB_DEBUG_PROC("+ bcbRelease(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
-	if (blk->object)
-	{
-		sdr_read(sdr, (char *) &asb, blk->object,
-				sizeof(BpsecOutboundBlock));
-		if (asb.parmsData)
-		{
-			sdr_free(sdr, asb.parmsData);
-		}
-
-		if (asb.resultsData)
-		{
-			sdr_free(sdr, asb.resultsData);
-		}
-
-		sdr_free(sdr, blk->object);
-	}
-
+	bpsec_releaseOutboundAsb(getIonsdr(), blk->object);
 	BCB_DEBUG_PROC("- bcbRelease(%c)", ' ');
 }
 
-
-Object bcbStoreOverflow(uint32_t suite,
-							  uint8_t	 *context,
-		                      ZcoReader *dataReader,
-							  uvast readOffset,
-							  uvast writeOffset,
-							  uvast cipherBufLen,
-							  uvast cipherOverflow,
-							  csi_val_t plaintext,
-							  csi_val_t ciphertext,
-							  csi_blocksize_t *blocksize)
+Object	bcbStoreOverflow(uint32_t suite, uint8_t *context,
+		ZcoReader *dataReader, uvast readOffset, uvast writeOffset,
+		uvast cipherBufLen, uvast cipherOverflow,
+		sci_inbound_tlv plaintext, sci_inbound_tlv ciphertext,
+		csi_blocksize_t *blocksize)
 {
-	uvast chunkSize = 0;
-	Sdr bpSdr = getIonsdr();
-	Object cipherBuffer = 0;
+	uvast	chunkSize = 0;
+	Sdr	sdr = getIonsdr();
+	Object	cipherBuffer = 0;
 
 	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
-	ciphertext.len = 0;
-	ciphertext.contents = NULL;
-	if((readOffset < blocksize->plaintextLen) || (cipherOverflow > 0))
+	ciphertext.length = 0;
+	ciphertext.value = NULL;
+	if ((readOffset < blocksize->plaintextLen) || (cipherOverflow > 0))
 	{
-		Object cipherBuffer = 0;
-		uvast length = cipherBufLen - blocksize->plaintextLen;
+		Object	cipherBuffer = 0;
+		uvast	length = cipherBufLen - blocksize->plaintextLen;
 
 		writeOffset = 0;
-		if((cipherBuffer = sdr_malloc(bpSdr, length * 2)) == 0)
+		if ((cipherBuffer = sdr_malloc(sdr, length * 2)) == 0)
 		{
-
+			/*	Something happens here?			*/
 		}
 
-		if(cipherOverflow > 0)
+		if (cipherOverflow > 0)
 		{
-			sdr_write(bpSdr, cipherBuffer + writeOffset, (char *) ciphertext.contents + ciphertext.len - cipherOverflow, cipherOverflow);
+			sdr_write(sdr, cipherBuffer + writeOffset,
+					(char *) ciphertext.value
+						+ ciphertext.length
+						- cipherOverflow,
+					cipherOverflow);
 			writeOffset += cipherOverflow;
 		}
 
-		while(readOffset < blocksize->plaintextLen)
+		while (readOffset < blocksize->plaintextLen)
 		{
-			if((readOffset + chunkSize) < blocksize->plaintextLen)
+			if ((readOffset + chunkSize) < blocksize->plaintextLen)
 			{
-				plaintext.len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext.contents);
+				plaintext.length = zco_transmit(sdr,
+						dataReader, chunkSize,
+						(char *) plaintext.value);
 			}
 			else
 			{
-				plaintext.len = zco_transmit(bpSdr, dataReader, blocksize->plaintextLen - readOffset, (char*) plaintext.contents);
+				plaintext.length = zco_transmit(sdr, dataReader,
+						blocksize->plaintextLen
+							- readOffset,
+						(char*) plaintext.value);
 			}
-			readOffset += plaintext.len;
 
-			ciphertext = csi_crypt_update(suite, context, CSI_SVC_ENCRYPT, plaintext);
+			readOffset += plaintext.length;
+			ciphertext = sci_crypt_update(suite, context,
+					CSI_SVC_ENCRYPT, plaintext);
 
-			if((ciphertext.contents == NULL) || (ciphertext.len == 0))
+			if ((ciphertext.value == NULL)
+			|| (ciphertext.length == 0))
 			{
-				BCB_DEBUG_ERR("x bcbCiphertextToSdr: Could not encrypt.", plaintext.len, chunkSize);
-				BCB_DEBUG_PROC("- bcbCiphertextToSdr--> -1", NULL);
+				BCB_DEBUG_ERR("x bcbCiphertextToSdr: Could \
+not encrypt.", plaintext.length, chunkSize);
+				BCB_DEBUG_PROC("- bcbCiphertextToSdr--> -1",
+						NULL);
 				return 0;
 			}
 
-			sdr_write(bpSdr, cipherBuffer + writeOffset, (char *) ciphertext.contents, ciphertext.len);
-			writeOffset += ciphertext.len;
-			MRELEASE(ciphertext.contents);
+			sdr_write(sdr, cipherBuffer + writeOffset,
+					(char *) ciphertext.value,
+					ciphertext.length);
+			writeOffset += ciphertext.length;
+			MRELEASE(ciphertext.value);
 		}
 	}
 
 	return cipherBuffer;
 }
 
-
-
 /*
- * 		 *  Step 3.2 - Write ciphertext to the payload. We assume the ciphertext length will never be
-		 *             more than 2x the payload length. If the ciphertext is beyond what can be
-		 *             stored in the existing payload allocation, capture it or later use in the
-		 *             BCB.
- *
+ * 		 Step 3.2 - Write ciphertext to the payload. We
+ * 		 assume the ciphertext length will never be more
+ * 		 than 2x the payload length. If the ciphertext is
+ * 		 beyond what can be stored in the existing payload
+ * 		 allocation, capture it for later use in the BCB.
  */
 
-
-int32_t	bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
-		uint8_t	 *context, csi_blocksize_t *blocksize, Object dataObj,
+int32_t	bcbUpdatePayloadInPlace(uint32_t suite, sci_inbound_parms parms,
+		uint8_t	*context, csi_blocksize_t *blocksize, Object dataObj,
 		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherBuffer,
 		uint8_t function)
 {
-	Sdr		bpSdr = getIonsdr();
-	csi_val_t	plaintext[2];
-	csi_val_t	ciphertext;
+	Sdr		sdr = getIonsdr();
+	sci_inbound_tlv	plaintext[2];
+	sci_inbound_tlv	ciphertext;
 	uint8_t		cur_idx = 0;
 	uvast		chunkSize = 0;
 
@@ -1443,24 +1348,22 @@ int32_t	bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 
 	*cipherBuffer = 0;
 	chunkSize = blocksize->chunkSize;
-	ciphertext.len = 0;
-	ciphertext.contents = NULL;
+	ciphertext.length = 0;
+	ciphertext.value = NULL;
 
 	/* Step 1: Allocate read buffers. */
-	if((plaintext[0].contents = MTAKE(chunkSize)) == NULL)
+	if ((plaintext[0].value = MTAKE(chunkSize)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.",
-				chunkSize);
-		return -1;
-	}
-	if((plaintext[1].contents = MTAKE(chunkSize)) == NULL)
-	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.",
-				chunkSize);
-		MRELEASE(plaintext[0].contents);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.", chunkSize);
 		return -1;
 	}
 
+	if ((plaintext[1].value = MTAKE(chunkSize)) == NULL)
+	{
+		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.", chunkSize);
+		MRELEASE(plaintext[0].value);
+		return -1;
+	}
 
 	/* Step 2 - Perform priming read of payload to prep for encryption. */
 	chunkSize = blocksize->chunkSize;
@@ -1469,57 +1372,65 @@ int32_t	bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 	/* Step 2.1: Perform priming read. */
 	if(blocksize->plaintextLen <= blocksize->chunkSize)
 	{
-		plaintext[0].len = zco_transmit(bpSdr, dataReader, blocksize->plaintextLen, (char *) plaintext[0].contents);
-		plaintext[1].len = 0;
-		readOffset = plaintext[0].len;
+		plaintext[0].length = zco_transmit(sdr, dataReader,
+				blocksize->plaintextLen,
+				(char *) plaintext[0].value);
+		plaintext[1].length = 0;
+		readOffset = plaintext[0].length;
 		writeOffset = 0;
 	}
-	else if(blocksize->plaintextLen <= (2*(blocksize->chunkSize)))
+	else if (blocksize->plaintextLen <= (2*(blocksize->chunkSize)))
 	{
-		plaintext[0].len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext[0].contents);
-		plaintext[1].len = zco_transmit(bpSdr, dataReader, blocksize->plaintextLen - chunkSize, (char *) plaintext[1].contents);
-		readOffset = plaintext[0].len + plaintext[1].len;
+		plaintext[0].length = zco_transmit(sdr, dataReader, chunkSize,
+				(char *) plaintext[0].value);
+		plaintext[1].length = zco_transmit(sdr, dataReader,
+				blocksize->plaintextLen - chunkSize,
+				(char *) plaintext[1].value);
+		readOffset = plaintext[0].length + plaintext[1].length;
 		writeOffset = 0;
 	}
 	else
 	{
-		plaintext[0].len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext[0].contents);
-		plaintext[1].len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext[0].contents);
-		readOffset = plaintext[0].len + plaintext[1].len;
+		plaintext[0].length = zco_transmit(sdr, dataReader,
+				chunkSize, (char *) plaintext[0].value);
+		plaintext[1].length = zco_transmit(sdr, dataReader,
+				chunkSize, (char *) plaintext[0].value);
+		readOffset = plaintext[0].length + plaintext[1].length;
 		writeOffset = 0;
 	}
 
 	/* Step 3: Walk through payload writing ciphertext. */
 
-	if((csi_crypt_start(suite, context, parms)) == ERROR)
+	if((sci_crypt_start(suite, context, parms)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace: Could not start context.", NULL);
-		MRELEASE(plaintext[0].contents);
-		MRELEASE(plaintext[1].contents);
-		MRELEASE(ciphertext.contents);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace: Could not start \
+context.", NULL);
+		MRELEASE(plaintext[0].value);
+		MRELEASE(plaintext[1].value);
+		MRELEASE(ciphertext.value);
 		return -1;
 	}
 
  	while (writeOffset < blocksize->plaintextLen)
 	{
-
  		/* Step 3.1: Generate ciphertext from earliest plaintext
 		 * buffer. */
 
  		/* Step 3.1: If there is no data left to encrypt... */
- 		if(plaintext[cur_idx].len == 0)
+ 		if(plaintext[cur_idx].length == 0)
  		{
  			break;
  		}
 
- 		ciphertext = csi_crypt_update(suite, context, function,
+ 		ciphertext = sci_crypt_update(suite, context, function,
 				plaintext[cur_idx]);
-		if((ciphertext.contents == NULL) || (ciphertext.len == 0))
+		if ((ciphertext.value == NULL) || (ciphertext.length == 0))
 		{
-			BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace: Could not encrypt.", NULL);
-			MRELEASE(plaintext[0].contents);
-			MRELEASE(plaintext[1].contents);
-			MRELEASE(ciphertext.contents);
+			BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace: Could not \
+encrypt.", NULL);
+			MRELEASE(plaintext[0].value);
+			MRELEASE(plaintext[1].value);
+			MRELEASE(ciphertext.value);
 			BCB_DEBUG_PROC("- bcbUpdatePayloadInPlace--> -1", NULL);
 			return -1;
 		}
@@ -1529,75 +1440,79 @@ int32_t	bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
 		 * existing payload, then just copy the bits of ciphertext
 		 * that will fit and save the rest for later.
 		 */
-		if((writeOffset + ciphertext.len) > blocksize->plaintextLen)
+		if ((writeOffset + ciphertext.length) > blocksize->plaintextLen)
 		{
-			if((zco_revise(bpSdr, dataObj, writeOffset,
-					(char *) ciphertext.contents,
+			if ((zco_revise(sdr, dataObj, writeOffset,
+					(char *) ciphertext.value,
 					blocksize->plaintextLen - writeOffset))
 				       	== -1)
 			{
-				BCB_DEBUG_ERR("bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
+				BCB_DEBUG_ERR("bcbUpdatePayloadInPlace: \
+Failed call to zco_revise.", NULL);
 				break;
 			}
 
-			cipherOverflow = ciphertext.len -
+			cipherOverflow = ciphertext.length -
 					(blocksize->plaintextLen - writeOffset);
 			writeOffset = blocksize->plaintextLen;
 		}
 		else
 		{
-			if((zco_revise(bpSdr, dataObj, writeOffset,
-					(char *) ciphertext.contents,
-					ciphertext.len)) == -1)
+			if ((zco_revise(sdr, dataObj, writeOffset,
+					(char *) ciphertext.value,
+					ciphertext.length)) == -1)
 			{
-				BCB_DEBUG_ERR("bcbUpdatePayloadInPlace: Failed call to zco_revise.", NULL);
+				BCB_DEBUG_ERR("bcbUpdatePayloadInPlace: \
+Failed call to zco_revise.", NULL);
 				break;
 			}
 
-			writeOffset += ciphertext.len;
+			writeOffset += ciphertext.length;
 
 			/* Fill up the next read buffer */
-			if(readOffset >= blocksize->plaintextLen)
+			if (readOffset >= blocksize->plaintextLen)
 			{
-				plaintext[cur_idx].len = 0;
+				plaintext[cur_idx].length = 0;
 			}
-			else if((readOffset + chunkSize)
+			else if ((readOffset + chunkSize)
 					< blocksize->plaintextLen)
 			{
-				plaintext[cur_idx].len = zco_transmit(bpSdr,
+				plaintext[cur_idx].length = zco_transmit(sdr,
 						dataReader, chunkSize, (char *)
-						plaintext[cur_idx].contents);
+						plaintext[cur_idx].value);
 			}
 			else
 			{
-				plaintext[cur_idx].len = zco_transmit(bpSdr,
+				plaintext[cur_idx].length = zco_transmit(sdr,
 						dataReader,
 						blocksize->plaintextLen
 						- readOffset, (char*)
-						plaintext[cur_idx].contents);
+						plaintext[cur_idx].value);
 			}
 
-			readOffset += plaintext[cur_idx].len;
+			readOffset += plaintext[cur_idx].length;
 			cur_idx = 1 - cur_idx;
 		}
 
-		MRELEASE(ciphertext.contents);
+		MRELEASE(ciphertext.value);
 	}
 
-	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
+	/* Step 4: Create SDR space and store any extra encryption that
+	 * won't fit in the payload. */
 	*cipherBuffer = bcbStoreOverflow(suite, context, dataReader,
 			readOffset, writeOffset, cipherBufLen, cipherOverflow,
 			plaintext[0], ciphertext, blocksize);
 
-	MRELEASE(plaintext[0].contents);
-	MRELEASE(plaintext[1].contents);
+	MRELEASE(plaintext[0].value);
+	MRELEASE(plaintext[1].value);
 
-	if((csi_crypt_finish(suite, context, function, &parms)) == ERROR)
+	if ((sci_crypt_finish(suite, context, function, &parms)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace: Could not finish CSI context.", NULL);
-		if (ciphertext.contents)
+		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace: Could not finish \
+CSI context.", NULL);
+		if (ciphertext.value)
 		{
-			MRELEASE(ciphertext.contents);
+			MRELEASE(ciphertext.value);
 		}
 
 		BCB_DEBUG_PROC("- bcbUpdatePayloadInPlace--> -1", NULL);
@@ -1614,20 +1529,20 @@ int32_t	bcbUpdatePayloadInPlace(uint32_t suite, csi_cipherparms_t parms,
  * 0 BCB error
  * -1 System error
  */
-int32_t bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
+int32_t bcbUpdatePayloadFromSdr(uint32_t suite, sci_inbound_parms parms,
 		uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
 		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
 		uint8_t function)
 {
-	Sdr bpSdr = getIonsdr();
-	csi_val_t plaintext;
-	csi_val_t ciphertext;
-	uvast chunkSize = 0;
-	uvast bytesRemaining = 0;
-	Object cipherBuffer = 0;
-	uvast    writeOffset = 0;
-	SdrUsageSummary summary;
-	uvast memmax = 0;
+	Sdr		sdr = getIonsdr();
+	sci_inbound_tlv	plaintext;
+	sci_inbound_tlv	ciphertext;
+	uvast		chunkSize = 0;
+	uvast		bytesRemaining = 0;
+	Object		cipherBuffer = 0;
+	uvast		writeOffset = 0;
+	SdrUsageSummary	summary;
+	uvast		memmax = 0;
 
 	CHKERR(context);
 	CHKERR(blocksize);
@@ -1642,58 +1557,56 @@ int32_t bcbUpdatePayloadFromSdr(uint32_t suite, csi_cipherparms_t parms,
 			(uaddr) cipherZco, function);
 
 	/* Step 1 - Get information about the SDR storage space. */
-	sdr_usage(bpSdr, &summary);
+	sdr_usage(sdr, &summary);
 
 	// Set the maximum buffer len to 1/2 of the available space.
 	// Note: >> 1 means divide by 2.
 	memmax = (summary.largePoolFree + summary.unusedSize) >> (uvast) 1;
 
-	/* Step 2 - See if the ciphertext will fit into the existing SDR space. */
-	if(cipherBufLen > memmax)
+	/* Step 2 - See if ciphertext will fit into the existing SDR space. */
+	if (cipherBufLen > memmax)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Buffer len \
-will not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, cipherBufLen, memmax);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Buffer len will \
+not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, cipherBufLen, memmax);
 		sdr_report(&summary);
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> 0", NULL);
-
 		return 0;
 	}
 
-	if((cipherBuffer = sdr_malloc(bpSdr, cipherBufLen)) == 0)
+	if ((cipherBuffer = sdr_malloc(sdr, cipherBufLen)) == 0)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Cannot \
-allocate " UVAST_FIELDSPEC " from SDR.", NULL);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Cannot allocate "
+				UVAST_FIELDSPEC " from SDR.", NULL);
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
 
 		return -1;
 	}
 
-	/* Pass additive inverse of cipherBufLen to tell ZCO that space has already been
-	 * allocated.
+	/* Pass additive inverse of cipherBufLen to tell ZCO that space
+	 * has already been allocated.
 	 */
-	if((*cipherZco = zco_create(bpSdr, ZcoSdrSource, cipherBuffer, 0, 0 - cipherBufLen, ZcoOutbound)) == 0)
+	if ((*cipherZco = zco_create(sdr, ZcoSdrSource, cipherBuffer, 0,
+			0 - cipherBufLen, ZcoOutbound)) == 0)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Cannot create zco.", NULL);
-
-		sdr_free(bpSdr, cipherBuffer);
-
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Cannot create zco.",
+				NULL);
+		sdr_free(sdr, cipherBuffer);
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
 
 		return -1;
 	}
-
 
 	chunkSize = blocksize->chunkSize;
 	bytesRemaining = blocksize->plaintextLen;
 
 	/* Step 1: Allocate read buffers. */
-	if((plaintext.contents = MTAKE(chunkSize)) == NULL)
+	if ((plaintext.value = MTAKE(chunkSize)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr - Can't allocate buffer of size %d.",
-				chunkSize);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr - Can't allocate \
+buffer of size %d.", chunkSize);
 
-		sdr_free(bpSdr, cipherBuffer);
-		zco_destroy(bpSdr, *cipherZco);
+		sdr_free(sdr, cipherBuffer);
+		zco_destroy(sdr, *cipherZco);
 		*cipherZco = 0;
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
 
@@ -1703,13 +1616,14 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 	chunkSize = blocksize->chunkSize;
 
 	/* Step 2 - Perform priming read of payload to prep for encryption. */
-	if((csi_crypt_start(suite, context, parms)) == ERROR)
+	if ((sci_crypt_start(suite, context, parms)) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr - Can't start context.", NULL);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr - Can't start \
+context.", NULL);
 
-		MRELEASE(plaintext.contents);
-		sdr_free(bpSdr, cipherBuffer);
-		zco_destroy(bpSdr, *cipherZco);
+		MRELEASE(plaintext.value);
+		sdr_free(sdr, cipherBuffer);
+		zco_destroy(sdr, *cipherZco);
 		*cipherZco = 0;
 
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
@@ -1719,24 +1633,25 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
 	/* Step 3: Walk through payload writing ciphertext. */
  	while (bytesRemaining > 0)
 	{
-
  		/* Step 3.1: Prep for this encrypting iteration. */
- 		memset(plaintext.contents, 0, chunkSize);
- 		if(bytesRemaining < chunkSize)
+ 		memset(plaintext.value, 0, chunkSize);
+ 		if (bytesRemaining < chunkSize)
  		{
  			chunkSize = bytesRemaining;
  		}
 
- 		/* Step 3.2: Generate ciphertext from earliest plaintext buffer. */
- 		plaintext.len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext.contents);
- 		if(plaintext.len <= 0)
+ 		/* Step 3.2: Generate ciphertext from earliest plaintext
+		 * buffer. */
+ 		plaintext.length = zco_transmit(sdr, dataReader, chunkSize,
+				(char *) plaintext.value);
+ 		if (plaintext.length <= 0)
  		{
- 			BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr - Can't do priming read of length %d.",
- 						  chunkSize);
+ 			BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr - Can't \
+do priming read of length %d.", chunkSize);
 
- 			MRELEASE(plaintext.contents);
- 			sdr_free(bpSdr, cipherBuffer);
- 			zco_destroy(bpSdr, *cipherZco);
+ 			MRELEASE(plaintext.value);
+ 			sdr_free(sdr, cipherBuffer);
+ 			zco_destroy(sdr, *cipherZco);
  			*cipherZco = 0;
 
 			BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
@@ -1744,36 +1659,37 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
  			return -1;
  		}
 
- 		bytesRemaining -= plaintext.len;
+ 		bytesRemaining -= plaintext.length;
+ 		ciphertext = sci_crypt_update(suite, context, function,
+				plaintext);
 
- 		ciphertext = csi_crypt_update(suite, context, function, plaintext);
-
-		if((ciphertext.contents == NULL) || (ciphertext.len == 0))
+		if ((ciphertext.value == NULL) || (ciphertext.length == 0))
 		{
-			BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Could not encrypt.", plaintext.len, chunkSize);
-			MRELEASE(plaintext.contents);
-			MRELEASE(ciphertext.contents);
-			sdr_free(bpSdr, cipherBuffer);
-			zco_destroy(bpSdr, *cipherZco);
+			BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Could not \
+encrypt.", plaintext.length, chunkSize);
+			MRELEASE(plaintext.value);
+			MRELEASE(ciphertext.value);
+			sdr_free(sdr, cipherBuffer);
+			zco_destroy(sdr, *cipherZco);
 			*cipherZco = 0;
 
 			BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
 			return -1;
 		}
 
-		sdr_write(bpSdr, cipherBuffer + writeOffset, (char *) ciphertext.contents, ciphertext.len);
-		writeOffset += ciphertext.len;
-
-		MRELEASE(ciphertext.contents);
+		sdr_write(sdr, cipherBuffer + writeOffset,
+				(char *) ciphertext.value, ciphertext.length);
+		writeOffset += ciphertext.length;
+		MRELEASE(ciphertext.value);
 	}
 
-	MRELEASE(plaintext.contents);
-
-	if(csi_crypt_finish(suite, context, function, &parms) == ERROR)
+	MRELEASE(plaintext.value);
+	if (sci_crypt_finish(suite, context, function, &parms) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Could not finish context.", NULL);
-		sdr_free(bpSdr, cipherBuffer);
-		zco_destroy(bpSdr, *cipherZco);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromSdr: Could not finish \
+context.", NULL);
+		sdr_free(sdr, cipherBuffer);
+		zco_destroy(sdr, *cipherZco);
 		*cipherZco = 0;
 
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
@@ -1790,17 +1706,17 @@ allocate " UVAST_FIELDSPEC " from SDR.", NULL);
  * 0 processing error
  * -1 system error
  */
-int32_t bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
+int32_t bcbUpdatePayloadFromFile(uint32_t suite, sci_inbound_parms parms,
 		uint8_t *context, csi_blocksize_t *blocksize, Object dataObj,
 		ZcoReader *dataReader, uvast cipherBufLen, Object *cipherZco,
 		uint8_t function)
 {
-	Sdr bpSdr = getIonsdr();
-	csi_val_t plaintext;
-	csi_val_t ciphertext;
-	uvast chunkSize = 0;
-	uvast bytesRemaining = 0;
-	Object fileRef = 0;
+	Sdr		sdr = getIonsdr();
+	sci_inbound_tlv	plaintext;
+	sci_inbound_tlv	ciphertext;
+	uvast		chunkSize = 0;
+	uvast		bytesRemaining = 0;
+	Object		fileRef = 0;
 
 	BCB_DEBUG_PROC("+ bcbUpdatePayloadFromFile(%d," ADDR_FIELDSPEC
 			"," ADDR_FIELDSPEC ",%d," ADDR_FIELDSPEC ","
@@ -1819,19 +1735,20 @@ int32_t bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 	*cipherZco = 0;
 
 	/* Step 1: Allocate read buffers. */
-	if((plaintext.contents = MTAKE(chunkSize)) == NULL)
+	if ((plaintext.value = MTAKE(chunkSize)) == NULL)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Can't allocate buffer of size %d.",
-				chunkSize);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Can't allocate \
+buffer of size %d.", chunkSize);
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1", NULL);
 
 		return -1;
 	}
 
-	if(csi_crypt_start(suite, context, parms) == ERROR)
+	if (sci_crypt_start(suite, context, parms) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Can't start context", NULL);
-		MRELEASE(plaintext.contents);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Can't start \
+context", NULL);
+		MRELEASE(plaintext.value);
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1", NULL);
 		return -1;
 	}
@@ -1839,75 +1756,79 @@ int32_t bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
 	/* Step 2: Walk through payload writing ciphertext. */
  	while (bytesRemaining > 0)
 	{
-
  		/* Step 3.1: Prep for this encrypting iteration. */
- 		memset(plaintext.contents, 0, chunkSize);
- 		if(bytesRemaining < chunkSize)
+ 		memset(plaintext.value, 0, chunkSize);
+ 		if (bytesRemaining < chunkSize)
  		{
  			chunkSize = bytesRemaining;
  		}
 
- 		/* Step 3.2: Generate ciphertext from earliest plaintext buffer. */
- 		plaintext.len = zco_transmit(bpSdr, dataReader, chunkSize, (char *) plaintext.contents);
- 		if(plaintext.len <= 0)
+ 		/* Step 3.2: Generate ciphertext from earliest plaintext
+		 * buffer. */
+ 		plaintext.length = zco_transmit(sdr, dataReader, chunkSize,
+				(char *) plaintext.value);
+ 		if (plaintext.length <= 0)
  		{
- 			BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Can't do priming read of length %d.",
- 						  chunkSize);
+ 			BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Can't \
+do priming read of length %d.", chunkSize);
 
- 			MRELEASE(plaintext.contents);
-			BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1", NULL);
+ 			MRELEASE(plaintext.value);
+			BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1",
+					NULL);
  			return -1;
  		}
 
- 		bytesRemaining -= plaintext.len;
-
- 		ciphertext = csi_crypt_update(suite, context, function, plaintext);
-
-		if((ciphertext.contents == NULL) || (ciphertext.len == 0))
+ 		bytesRemaining -= plaintext.length;
+ 		ciphertext = sci_crypt_update(suite, context, function,
+				plaintext);
+		if ((ciphertext.value == NULL) || (ciphertext.length == 0))
 		{
-			BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Could not encrypt.", plaintext.len, chunkSize);
-			MRELEASE(plaintext.contents);
-			MRELEASE(ciphertext.contents);
-			BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1", NULL);
+			BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Could not \
+encrypt.", plaintext.length, chunkSize);
+			MRELEASE(plaintext.value);
+			MRELEASE(ciphertext.value);
+			BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1",
+					NULL);
 			return -1;
 		}
 
-		if(bpsec_transferToZcoFileSource(bpSdr, cipherZco, &fileRef, BCB_FILENAME,
-									     (char *) ciphertext.contents, ciphertext.len) <= 0)
+		if (bpsec_transferToZcoFileSource(sdr, cipherZco, &fileRef,
+				BCB_FILENAME, (char *) ciphertext.value,
+				ciphertext.length) <= 0)
 		{
-			BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Transfer of chunk has failed..", NULL);
-			MRELEASE(ciphertext.contents);
-			MRELEASE(plaintext.contents);
-			BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1", NULL);
+			BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Transfer \
+of chunk has failed..", NULL);
+			MRELEASE(ciphertext.value);
+			MRELEASE(plaintext.value);
+			BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1",
+					NULL);
 			return -1;
 		}
 
 		/*
-		 * \todo: Consider if a sleep here will help the filesystem catch up.
+		 * \todo: Consider if a sleep here will help the filesystem
+		 * catch up.
 		 *
 		 * microsnooze(1000);
 		 */
 
-		MRELEASE(ciphertext.contents);
+		MRELEASE(ciphertext.value);
 	}
 
-	MRELEASE(plaintext.contents);
-
-
-	if(csi_crypt_finish(suite, context, function, &parms) == ERROR)
+	MRELEASE(plaintext.value);
+	if (sci_crypt_finish(suite, context, function, &parms) == ERROR)
 	{
-		BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Could not finish context.", NULL);
+		BCB_DEBUG_ERR("x bcbUpdatePayloadFromFile: Could not finish \
+context.", NULL);
 
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> -1", NULL);
 		return -1;
 	}
 
-
 	BCB_DEBUG_PROC("- bcbUpdatePayloadFromFile--> 1", NULL);
 
 	return 1;
 }
-
 
 /**
  * Step 6: Replace plaintext with ciphertext.
@@ -1921,7 +1842,7 @@ int32_t bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  *         So we have three choices for housing the ciphertext:
  *         1. Encrypt in place, IF plaintext is not in a file.
  *         1. Built a ZCO out of SDR dataspace (fast, but space limited)
- *         2. Built a ZCO to a temp file (slow, but accomodate large data)
+ *         2. Built a ZCO to a temp file (slow, but accomodates large data)
  *
  *         We select which option based on the estimated size of the
  *         ciphertext and the space available in the SDR. If the ciphertext
@@ -1931,7 +1852,6 @@ int32_t bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  *         could fail due to SDR heap fragmentation even if the SDR heap would
  *         otherwise have sufficient space to store the ciphertext.
  */
-
 
 /******************************************************************************
  *
@@ -1976,11 +1896,12 @@ int32_t bcbUpdatePayloadFromFile(uint32_t suite, csi_cipherparms_t parms,
  *                           implementation (NASA: NNX14CS58P)]
  *
  *****************************************************************************/
+
 int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
-		csi_val_t key, csi_cipherparms_t parms, uint8_t encryptInPlace,
-	       	size_t xmitRate, uint8_t function)
+		sci_inbound_tlv key, sci_inbound_parms parms,
+		uint8_t encryptInPlace, size_t xmitRate, uint8_t function)
 {
-	Sdr		bpSdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 	csi_blocksize_t blocksize;
 	uint32_t	cipherBufLen = 0;
 	uint32_t	bytesRemaining = 0;
@@ -1990,12 +1911,12 @@ int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
 
 	BCB_DEBUG_INFO("+ bcbHelper(0x%x, %d, %d, [0x%x, %d])",
 			       (unsigned long) dataObj, chunkSize, suite,
-				   (unsigned long) key.contents, key.len);
+				   (unsigned long) key.value, key.length);
 
 	/* Step 0 - Sanity Check. */
-	CHKERR(key.contents);
+	CHKERR(key.value);
 
-	if ((sdr_begin_xn(bpSdr)) == 0)
+	if ((sdr_begin_xn(sdr)) == 0)
 	{
 		BCB_DEBUG_ERR("x bcbHelper - Can't start txn.", NULL);
 		BCB_DEBUG_PROC("- bcbHelper--> NULL", NULL);
@@ -2007,11 +1928,11 @@ int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
 	 *          The data object is the target block.
 	 */
 
-	if ((bytesRemaining = zco_length(bpSdr, *dataObj)) <= 0)
+	if ((bytesRemaining = zco_length(sdr, *dataObj)) <= 0)
 	{
 		BCB_DEBUG_ERR("x bcbHelper - data object has no length.",
 				NULL);
-		sdr_cancel_xn(bpSdr);
+		sdr_cancel_xn(sdr);
 		BCB_DEBUG_PROC("- bcbHelper--> NULL", NULL);
 		return -1;
 	}
@@ -2021,10 +1942,10 @@ int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
 	BCB_DEBUG_INFO("i bcbHelper: bundle size is %d", bytesRemaining);
 
 	/* Step 4 - Grab and initialize a crypto context. */
-	if ((context = csi_ctx_init(suite, key, function)) == NULL)
+	if ((context = sci_ctx_init(suite, key, function)) == NULL)
 	{
 		BCB_DEBUG_ERR("x bcbHelper - Can't get context.", NULL);
-		sdr_cancel_xn(bpSdr);
+		sdr_cancel_xn(sdr);
 		BCB_DEBUG_PROC("- bcbHelper--> NULL", NULL);
 		return -1;
 	}
@@ -2032,7 +1953,7 @@ int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
 	/* Step 5: Calculate the maximum size of the ciphertext. */
 	memset(&blocksize, 0, sizeof(blocksize));
 	blocksize.chunkSize = chunkSize;
-	blocksize.keySize = key.len;
+	blocksize.keySize = key.length;
 	blocksize.plaintextLen = bytesRemaining;
 
 	if ((cipherBufLen = csi_crypt_res_len(suite, context, blocksize,
@@ -2041,7 +1962,7 @@ int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
 		BCB_DEBUG_ERR("x bcbHelper: Predicted bad ciphertext \
 length: %d", cipherBufLen);
 		csi_ctx_free(suite, context);
-		sdr_cancel_xn(bpSdr);
+		sdr_cancel_xn(sdr);
 
 		BCB_DEBUG_PROC("- bcbHelper --> %d", -1);
 		return -1;
@@ -2061,7 +1982,7 @@ length: %d", cipherBufLen);
 				BCB_DEBUG_ERR("x bcbHelper: Cannot update \
 ciphertext in place.", NULL);
 				csi_ctx_free(suite, context);
-				sdr_cancel_xn(bpSdr);
+				sdr_cancel_xn(sdr);
 			}
 		}
 		else
@@ -2110,13 +2031,13 @@ ciphertext in place.", NULL);
 				BCB_DEBUG_ERR("x bcbHelper: Cannot \
 allocate ZCO for ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
 				csi_ctx_free(suite, context);
-				sdr_cancel_xn(bpSdr);
+				sdr_cancel_xn(sdr);
 
 				BCB_DEBUG_PROC("- bcbHelper --> %d", -1);
 				return -1;
 			}
 
-			zco_destroy(bpSdr, *dataObj);
+			zco_destroy(sdr, *dataObj);
 			*dataObj = cipherZco;
 		}
 	}
@@ -2125,7 +2046,7 @@ allocate ZCO for ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
 		BCB_DEBUG_ERR("x bcbHelper: Invalid service: %d",
 				function);
 		csi_ctx_free(suite, context);
-		sdr_cancel_xn(bpSdr);
+		sdr_cancel_xn(sdr);
 
 		BCB_DEBUG_PROC("- bcbHelper --> %d", -1);
 		return -1;
@@ -2133,7 +2054,7 @@ allocate ZCO for ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
 
 	csi_ctx_free(suite, context);
 
-	if (sdr_end_xn(bpSdr) < 0)
+	if (sdr_end_xn(sdr) < 0)
 	{
 		BCB_DEBUG_ERR("x bcbHelper: Can't end encrypt txn.", NULL);
 		return -1;
@@ -2141,7 +2062,6 @@ allocate ZCO for ciphertext of size " UVAST_FIELDSPEC, cipherBufLen);
 
 	return 0;
 }
-
 
 /******************************************************************************
  *

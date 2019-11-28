@@ -55,14 +55,15 @@
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  **  09/02/19  S. Burleigh    Rename everything for bpsec
  *****************************************************************************/
-#include "bib.h"
+
 #include "csi.h"
+#include "bpsec_util.h"
+#include "bib.h"
 #include "bpsec_instr.h"
 
 #if (BIB_DEBUGGING == 1)
 extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
-
 
 /******************************************************************************
  *
@@ -109,14 +110,16 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			BpsecOutboundBlock *bibAsb)
 {
-	int8_t		result = 0;
-	char		*fromEid;
-	char		*toEid;
-	char		eidBuf[32];
-	BPsecBibRule	bibRule;
-	BibProfile	*prof;
-	uint8_t		*serializedAsb;
-	uvast		bytes = 0;
+	Sdr			sdr = getIonsdr();
+	int8_t			result = 0;
+	char			eidBuf[32];
+	char			*fromEid;
+	char			*toEid;
+	BpsecOutboundTarget	target;
+	BPsecBibRule		bibRule;
+	BibProfile		*prof;
+	uint8_t			*serializedAsb;
+	uvast			bytes = 0;
 
 	BIB_DEBUG_PROC("+ bibAttach(" ADDR_FIELDSPEC "," ADDR_FIELDSPEC
 			"," ADDR_FIELDSPEC ")", (uaddr) bundle, (uaddr) bibBlk,
@@ -157,9 +160,24 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 	 *		in this instance.  If there is a rule but
 	 *		no matching profile then the bundle must not
 	 *		be forwarded.
+	 *
+	 *		NOTE: for now we are assuming that the block
+	 *		has only a single target.  We don't yet know
+	 *		how to do this if the block has multiple
+	 *		targets.
 	 */
 
-	prof = bibGetProfile(fromEid, toEid, bibAsb->targetBlockNumber,
+	if (bpsec_getOutboundTarget(sdr, bibAsb->targets, &target))
+	{
+		BIB_DEBUG(2, "NOT Attaching BIB; no target.", NULL);
+
+		result = 0;
+		scratchExtensionBlock(bibBlk);
+		BIB_DEBUG_PROC("- bibAttach -> %d", result);
+		return result;
+	}
+
+	prof = bibGetProfile(fromEid, toEid, target.targetBlockNumber,
 			&bibRule);
 	MRELEASE(toEid);
 	if (prof == NULL)
@@ -265,7 +283,6 @@ bibBlk->dataLength = %d", bibBlk->dataLength);
 	return result;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: bibCheck
@@ -290,6 +307,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle			*bundle;
 	BpsecInboundBlock	*asb = NULL;
+	BpsecInboundTarget	*target = NULL;
 	char			*fromEid;
 	char			*toEid;
 	BPsecBibRule		bibRule;
@@ -316,6 +334,12 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	bundle = &(wk->bundle);
 	asb = (BpsecInboundBlock *) (blk->object);
+	if (bpsec_getInboundTarget(asb->targets, &target) < 0)
+	{
+		ADD_BIB_RX_FAIL(NULL, 1, 0);
+		return -1;
+	}
+
 	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
 	{
 		if (readEid(&(asb->securitySource), &fromEid) < 0)
@@ -342,7 +366,8 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Given sender & receiver EIDs, get applicable BIB rule.	*/
 
-	prof = bibGetProfile(fromEid, toEid, asb->targetBlockNumber, &bibRule);
+	prof = bibGetProfile(fromEid, toEid, target->targetBlockNumber,
+			&bibRule);
 	MRELEASE(toEid);
 
 	if (prof == NULL)
@@ -416,7 +441,6 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	return result;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: bibClear
@@ -435,7 +459,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 void	bibClear(AcqExtBlock *blk)
 {
-	BpsecInboundBlock *asb;
+	BpsecInboundBlock	*asb;
 
 	BIB_DEBUG_PROC("+ bibClear(%x)", (unsigned long) blk);
 
@@ -443,32 +467,13 @@ void	bibClear(AcqExtBlock *blk)
 	if (blk->object)
 	{
 		asb = (BpsecInboundBlock *) (blk->object);
-		if (asb->parmsData)
-		{
-			BIB_DEBUG_INFO("i bibClear: Release parms len %ld",
-					asb->parmsLen);
-			MRELEASE(asb->parmsData);
-		}
-
-		if (asb->resultsData)
-		{
-			BIB_DEBUG_INFO("i bibClear: Release result len %ld",
-					asb->resultsLen);
-			MRELEASE(asb->resultsData);
-		}
-
-		BIB_DEBUG_INFO("i bibClear: Release ASB len %d", blk->size);
-
-		MRELEASE(blk->object);
+		bpsec_releaseInboundAsb(asb);
 		blk->object = NULL;
 		blk->size = 0;
 	}
 
 	BIB_DEBUG_PROC("- bibClear", NULL);
-
-	return;
 }
-
 
 /******************************************************************************
  *
@@ -493,109 +498,15 @@ void	bibClear(AcqExtBlock *blk)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *            S. Burleigh    Port from pibCopy
- *  11/04/15  E. Birrane     Comments. [Secure DTN implementation (NASA: NNX14CS58P)]
+ *  11/04/15  E. Birrane     Comments. [Secure DTN implementation (NASA:
+ *  			     NNX14CS58P)]
  *
  *****************************************************************************/
 
 int	bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
-	Sdr			        bpSdr = getIonsdr();
-	BpsecOutboundBlock	asb;
-	int8_t			    result = 0;
-	uint8_t            *buffer = NULL;
-
-	BIB_DEBUG_PROC("+ bibCopy(0x%x, 0x%x)", (unsigned long) newBlk,
-			(unsigned long) oldBlk);
-
-	/* Step 1 - Sanity Checks. */
-	CHKERR(newBlk);
-	CHKERR(oldBlk);
-
-	/* Step 2 - Allocate the new destination BIB. */
-	newBlk->size = sizeof(asb);
-	if ((newBlk->object = sdr_malloc(bpSdr, sizeof asb)) == 0)
-	{
-		BIB_DEBUG_ERR("x bibCopy: Failed to allocate: %d",
-				sizeof(asb));
-		BIB_DEBUG_PROC("- bibCopy -> -1", NULL);
-		return -1;
-	}
-
-	/*  Step 3 - Copy the source BIB into the destination. */
-
-	/* Step 3.1 - Read the source BIB from the SDR. */
-	sdr_read(bpSdr, (char *) &asb, oldBlk->object, sizeof(asb));
-
-	/*
-	 * Step 3.2 - Copy parameters by reading entire parameter list
-	 *            into a buffer and copying that buffer into the
-	 *            destination block. Then write the copied parameters
-	 *            back to the SDR.
-	 */
-
-	if (asb.parmsData)
-	{
-		if ((buffer = MTAKE(asb.parmsLen)) == NULL)
-		{
-			BIB_DEBUG_ERR("x bibCopy: Failed to allocate: %d",
-					      asb.parmsLen);
-			sdr_free(bpSdr, newBlk->object);
-			newBlk->object = 0;
-			return -1;
-		}
-
-		sdr_read(bpSdr, (char *) buffer, asb.parmsData, asb.parmsLen);
-
-		if ((asb.parmsData = sdr_malloc(bpSdr, asb.parmsLen)) == 0)
-		{
-			BIB_DEBUG_ERR("x bibCopy: Failed to allocate: %d",
-  					      asb.parmsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, asb.parmsData, (char *) buffer, asb.parmsLen);
-		MRELEASE(buffer);
-	}
-
-
-	/*
-	 * Step 3.3 - Copy results by reading result field
-	 *            into a buffer and copying that buffer into the
-	 *            destination block. Then write the copied results
-	 *            to the SDR.
-	 */
-
-	if (asb.resultsData)
-	{
-		if ((buffer = MTAKE(asb.resultsLen)) == NULL)
-		{
-			BIB_DEBUG_ERR("x bibCopy: Failed to allocate: %d",
-					       asb.resultsLen);
-			return -1;
-		}
-
-		sdr_read(bpSdr, (char *) buffer, asb.resultsData, asb.resultsLen);
-		if ((asb.resultsData = sdr_malloc(bpSdr, asb.resultsLen)) == 0)
-		{
-			BIB_DEBUG_ERR("x bibCopy: Failed to allocate: %d",
-					asb.resultsLen);
-			MRELEASE(buffer);
-			return -1;
-		}
-
-		sdr_write(bpSdr, asb.resultsData, (char *) buffer, asb.resultsLen);
-		MRELEASE(buffer);
-	}
-
-
-	/* Step 4 - Write copied block to the SDR. */
-	sdr_write(bpSdr, newBlk->object, (char *) &asb, sizeof asb);
-
-	BIB_DEBUG_PROC("- bibCopy -> %d", result);
-	return result;
+	return bpsec_copyAsb(newBlk, oldBlk);
 }
-
 
 /******************************************************************************
  *
@@ -625,29 +536,26 @@ int	bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int bibDefaultCompute(Object dataObj,
-							   uint32_t chunkSize,
-						       uint32_t suite,
-						       void *context,
-						       csi_svcid_t svc)
+int	bibDefaultCompute(Object dataObj, uint32_t chunkSize, uint32_t suite,
+		void *context, csi_svcid_t svc)
 {
-	Sdr		bpSdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 	char		*dataBuffer;
 	ZcoReader	dataReader;
 	unsigned int	bytesRemaining = 0;
 	unsigned int	bytesRetrieved = 0;
 
-
 	BIB_DEBUG_INFO("+ bibDefaultCompute(0x%x, %d, %d, 0x%x)",
-			       (unsigned long) dataObj, chunkSize, suite, (unsigned long) context);
+		       (unsigned long) dataObj, chunkSize, suite,
+		       (unsigned long) context);
 
 	CHKERR(context);
 
 	/* Step 2 - Allocate a working buffer. */
 	if ((dataBuffer = MTAKE(chunkSize)) == NULL)
 	{
-		BIB_DEBUG_ERR("x bibDefaultCompute - Can't allocate buffer of size %d.",
-				chunkSize);
+		BIB_DEBUG_ERR("x bibDefaultCompute - Can't allocate buffer of \
+				size %d.", chunkSize);
 		return ERROR;
 	}
 
@@ -656,17 +564,19 @@ int bibDefaultCompute(Object dataObj,
 	 *          The data object is the target block.
 	 */
 
-	if ((bytesRemaining = zco_length(bpSdr, dataObj)) <= 0)
+	if ((bytesRemaining = zco_length(sdr, dataObj)) <= 0)
 	{
-		BIB_DEBUG_ERR("x bibDefaultCompute - data object has no length.", NULL);
+		BIB_DEBUG_ERR("x bibDefaultCompute - data object has no \
+length.", NULL);
 		MRELEASE(dataBuffer);
 		BIB_DEBUG_PROC("- bibDefaultCompute--> ERROR", NULL);
 		return ERROR;
 	}
 
-	BIB_DEBUG_INFO("i bibDefaultCompute bytesRemaining: %d", bytesRemaining);
+	BIB_DEBUG_INFO("i bibDefaultCompute bytesRemaining: %d",
+			bytesRemaining);
 
-	if ((sdr_begin_xn(bpSdr)) == 0)
+	if ((sdr_begin_xn(sdr)) == 0)
 	{
 		BIB_DEBUG_ERR("x bibDefaultCompute - Can't start txn.", NULL);
 		MRELEASE(dataBuffer);
@@ -676,26 +586,27 @@ int bibDefaultCompute(Object dataObj,
 
 	zco_start_transmitting(dataObj, &dataReader);
 
-	BIB_DEBUG_INFO("i bibDefaultCompute: bundle size is %d", bytesRemaining);
+	BIB_DEBUG_INFO("i bibDefaultCompute: bundle size is %d",
+			bytesRemaining);
 
 	/* Step 5 - Loop through the data in chunks, updating the context. */
 	while (bytesRemaining > 0)
 	{
-		csi_val_t val;
+		sci_inbound_tlv val;
 
 		if (bytesRemaining < chunkSize)
 		{
 			chunkSize = bytesRemaining;
 		}
 
-		bytesRetrieved = zco_transmit(bpSdr, &dataReader, chunkSize,
-				                      dataBuffer);
+		bytesRetrieved = zco_transmit(sdr, &dataReader, chunkSize,
+				dataBuffer);
 
 		if (bytesRetrieved != chunkSize)
 		{
-			BIB_DEBUG_ERR("x bibDefaultCompute: Read %d bytes, but \
-                          expected %d.", bytesRetrieved, chunkSize);
-			sdr_exit_xn(bpSdr);
+			BIB_DEBUG_ERR("x bibDefaultCompute: Read %d bytes, \
+but expected %d.", bytesRetrieved, chunkSize);
+			sdr_exit_xn(sdr);
 			MRELEASE(dataBuffer);
 
 			BIB_DEBUG_PROC("- bibDefaultCompute--> ERROR", NULL);
@@ -703,19 +614,17 @@ int bibDefaultCompute(Object dataObj,
 		}
 
 		/*	Add the data to the context.		*/
-		val.contents = (uint8_t *) dataBuffer;
-		val.len = chunkSize;
-		csi_sign_update(suite, context, val, svc);
+		val.value = (uint8_t *) dataBuffer;
+		val.length = chunkSize;
+		sci_sign_update(suite, context, val, svc);
 
 		bytesRemaining -= bytesRetrieved;
 	}
 
-	sdr_exit_xn(bpSdr);
+	sdr_exit_xn(sdr);
 	MRELEASE(dataBuffer);
-
 	return 1;
 }
-
 
 /******************************************************************************
  *
@@ -746,28 +655,26 @@ int bibDefaultCompute(Object dataObj,
  *  11/05/15  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-int bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock *asb)
+int	bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
+		BpsecOutboundBlock *asb)
 {
+	Sdr	sdr = getIonsdr();
 
 	CHKERR(blk);
 	CHKERR(asb);
 
 	/* Step 1: Populate block-instance-agnostic parts of the ASB. */
-	asb->ciphersuiteId = suite;
-	asb->parmsLen = 0;
-	asb->parmsData = 0;
-	asb->resultsData = 0;
+
+	asb->targets = sdr_list_create(sdr);
+	asb->contextId = suite;
+	asb->parmsData = sdr_list_create(sdr);
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
-#if 0
-	asb->ciphersuiteFlags = ASB_RES;
-#endif
-	asb->ciphersuiteFlags = 0;
-	asb->resultsLen = bibDefaultResultLen(asb->ciphersuiteId, 1);
+
+	asb->contextFlags = 0;
 
 	return 0;
 }
-
 
 /******************************************************************************
  *
@@ -801,15 +708,15 @@ int bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock 
 uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 {
 	void		*context = NULL;
-	csi_val_t	key;
+	sci_inbound_tlv	key;
 	uint32_t	result = 0;
 	unsigned char	serializedResult[16];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		length;
 
-	memset(&key, 0, sizeof(csi_val_t));
-	context = csi_ctx_init(suite, key, CSI_SVC_SIGN);
+	memset(&key, 0, sizeof(sci_inbound_tlv));
+	context = sci_ctx_init(suite, key, CSI_SVC_SIGN);
 	result = csi_sign_res_len(suite, context);
 	if (result == 0)
 	{
@@ -835,7 +742,6 @@ uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 	csi_ctx_free(suite, context);
 	return result;
 }
-
 
 /******************************************************************************
  *
@@ -866,47 +772,42 @@ uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int bibDefaultSign(uint32_t suite,
-     	                      Bundle *bundle,
-		                      ExtensionBlock *blk,
-		                      BpsecOutboundBlock *asb,
-							  uvast *bytes)
+int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
+		BpsecOutboundBlock *asb, uvast *bytes)
 {
-	Sdr		bpSdr = getIonsdr();
-	int8_t		retval = 0;
-	csi_val_t	key;
-	csi_val_t	digest;
-	int		resultsLen;
-	unsigned char	securityResult[300];
-	unsigned char	*cursor;
-	uvast		uvtemp;
-	unsigned char	*temp;
-	uint8_t		*context = NULL;
+	Sdr			sdr = getIonsdr();
+	int8_t			retval = 0;
+	sci_inbound_tlv		key;
+	BpsecOutboundTarget	target;
+	sci_inbound_tlv		digest;
+	uint8_t			*context = NULL;
 
 	BIB_DEBUG_INFO("+ bibDefaultSign(%d, 0x%x, 0x%x, 0x%x", suite,
 			(unsigned long) bundle, (unsigned long) blk,
 			(unsigned long) asb);
 
 	/* Step 0 - Sanity Checks. */
-	CHKERR(bundle);
-	CHKERR(blk);
-	CHKERR(asb);
-	CHKERR(bytes);
-
+	CHKERR(bundle && blk && asb && bytes);
 	*bytes = 0;
 
 	/* Step 1 - Compute the security result for the target block. */
 	key = bpsec_retrieveKey(asb->keyName);
+	if (bpsec_getOutboundTarget(sdr, asb->targets, &target) < 0)
+	{
+		BIB_DEBUG_ERR("x bibDefaultSign - Can't get target.", NULL);
+		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
+		return ERROR;
+	}
 
 	/* Step 2 - Grab and initialize a crypto context. */
-	if ((context = csi_ctx_init(suite, key, CSI_SVC_SIGN)) == NULL)
+	if ((context = sci_ctx_init(suite, key, CSI_SVC_SIGN)) == NULL)
 	{
 		BIB_DEBUG_ERR("x bibDefaultSign - Can't get context.", NULL);
 		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
 		return ERROR;
 	}
 
-	if (csi_sign_start(suite, context) == ERROR)
+	if (sci_sign_start(suite, context) == ERROR)
 	{
 		BIB_DEBUG_ERR("x bibDefaultSign - Can't start context.", NULL);
 		csi_ctx_free(suite, context);
@@ -914,7 +815,7 @@ int bibDefaultSign(uint32_t suite,
 		return ERROR;
 	}
 
-	switch (asb->targetBlockType)
+	switch (target.targetBlockType)
 	{
 	case PrimaryBlk:
 #if 0	//	This code is yet to be developed.
@@ -935,13 +836,13 @@ int bibDefaultSign(uint32_t suite,
 	default:
 		BIB_DEBUG_ERR("x bibDefaultSign: Block type %d not supported.",
 				asb->targetBlockType);
-		MRELEASE(key.contents);
+		MRELEASE(key.value);
 		csi_ctx_free(suite, context);
 		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
 		return 0;
 	}
 
-	MRELEASE(key.contents);
+	MRELEASE(key.value);
 
 	if (retval == ERROR)
 	{
@@ -951,11 +852,10 @@ int bibDefaultSign(uint32_t suite,
 		return ERROR;
 	}
 
-	if ((csi_sign_finish(suite, context, &digest, CSI_SVC_SIGN)) == ERROR)
+	if ((sci_sign_finish(suite, context, &digest, CSI_SVC_SIGN)) == ERROR)
 	{
 		BIB_DEBUG_ERR("x bibDefaultSign - Can't Finalize.", NULL);
 		csi_ctx_free(suite, context);
-
 		BIB_DEBUG_PROC("- bibDefaultSign--> ERROR", NULL);
 		return ERROR;
 	}
@@ -964,43 +864,18 @@ int bibDefaultSign(uint32_t suite,
 
 	/* Step 2 - Build the security result. */
 
-	resultsLen = 20 + digest.len;	/*	Max possible length.	*/
-	temp = (unsigned char *) MTAKE(resultsLen);
-	if (temp == NULL)
+	digest.id = BPSEC_CSPARM_INT_SIG;
+	if (bpsec_write_one_result(sdr, asb, &digest) < 0)
 	{
-		BIB_DEBUG_ERR("x bibDefaultSign: Can't allocate result of \
-len %ld.", resultsLen);
-		MRELEASE(digest.contents);
+		BIB_DEBUG_ERR("x bibDefaultSign: Can't write result.");
+		MRELEASE(digest.value);
 		BIB_DEBUG_PROC("- bibDefaultSign --> %d", -1);
 		return -1;
 	}
 
-	cursor = temp;
-	uvtemp = 2;
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-	uvtemp = BPSEC_CSPARM_INT_SIG;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-	uvtemp = digest.len;
-	oK(cbor_encode_byte_string(digest.contents, uvtemp, &cursor));
-	resultsLen = cursor - temp;
-	MRELEASE(digest.contents);
-
-	/* Step 3 - Store the security result in the ASB and on the SDR. */
-	asb->resultsLen = resultsLen;
-	if ((asb->resultsData = sdr_malloc(bpSdr, resultsLen)) == 0)
-	{
-		BIB_DEBUG_ERR("x bibDefaultSign: Can't allocate heap \
-space for ASB result, len %ld.", resultsLen);
-		MRELEASE(temp);
-		BIB_DEBUG_PROC("- bib_hmac_sha256_sign --> %d", -1);
-		return -1;
-	}
-
-	sdr_write(bpSdr, asb->resultsData, (char *) temp, resultsLen);
-	MRELEASE(temp);
+	MRELEASE(digest.value);
 	return 0;
 }
-
 
 /******************************************************************************
  *
@@ -1030,19 +905,18 @@ space for ASB result, len %ld.", resultsLen);
  *  04/26/16  E. Birrane     Added bytes. [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-int bibDefaultVerify(uint32_t suite,
-		                     AcqWorkArea *wk,
-							 AcqExtBlock *blk,
-							 uvast *bytes)
+int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
+		uvast *bytes)
 {
 	BpsecInboundBlock	*asb;
-	csi_val_t key;
-	csi_val_t assertedDigest;
-	uint8_t *context = NULL;
-	int8_t retval = 0;
+	BpsecInboundTarget	*target;
+	sci_inbound_tlv		key;
+	sci_inbound_tlv		assertedDigest;
+	uint8_t			*context = NULL;
+	int8_t			retval = 0;
 
 	BIB_DEBUG_INFO("+ bibDefaultVerify(%d, 0x%x, 0x%x",
-			       suite, (unsigned long) wk, (unsigned long) blk);
+			suite, (unsigned long) wk, (unsigned long) blk);
 
 	/* Step 0 - Sanity Checks. */
 	CHKERR(wk);
@@ -1051,36 +925,34 @@ int bibDefaultVerify(uint32_t suite,
 
 	*bytes = 0;
 	asb = (BpsecInboundBlock *) (blk->object);
-
-#if 0
-	if ((asb->ciphersuiteFlags & ASB_RES) == 0)
+	if (bpsec_getInboundTarget(asb->targets, &target) < 0)
 	{
-		BIB_DEBUG_ERR("x bibDefaultVerify: No security result.", NULL);
-		return 0;
+		BIB_DEBUG_ERR("x bibDefaultVerify - Can't get target.", NULL);
+		BIB_DEBUG_PROC("- bibDefaultVerify--> NULL", NULL);
+		return ERROR;
 	}
-#endif
 
 	/* Step 1 - Compute the security result for the target block. */
 	key = bpsec_retrieveKey(asb->keyName);
 
 	/* Step 2 - Grab and initialize a crypto context. */
-	if ((context = csi_ctx_init(suite, key, CSI_SVC_VERIFY)) == NULL)
+	if ((context = sci_ctx_init(suite, key, CSI_SVC_VERIFY)) == NULL)
 	{
 		BIB_DEBUG_ERR("x bibDefaultVerify - Can't get context.", NULL);
 		BIB_DEBUG_PROC("- bibDefaultVerify--> NULL", NULL);
 		return ERROR;
 	}
 
-	if (csi_sign_start(suite, context) == ERROR)
+	if (sci_sign_start(suite, context) == ERROR)
 	{
-		BIB_DEBUG_ERR("x bibDefaultVerify - Can't start context.", NULL);
+		BIB_DEBUG_ERR("x bibDefaultVerify - Can't start context.",
+				NULL);
 		csi_ctx_free(suite, context);
 		BIB_DEBUG_PROC("- bibDefaultVerify--> ERROR", NULL);
 		return ERROR;
 	}
 
-
-	switch (asb->targetBlockType)
+	switch (target->targetBlockType)
 	{
 		case PrimaryBlk:
 #if 0	//	This code is yet to be developed.
@@ -1102,14 +974,12 @@ int bibDefaultVerify(uint32_t suite,
 			BIB_DEBUG_ERR("x bibDefaultVerify: Block type %d \
 not supported.", asb->targetBlockType);
 			csi_ctx_free(suite, context);
-			MRELEASE(key.contents);
+			MRELEASE(key.value);
 			BIB_DEBUG_PROC("- bibDefaultVerify--> NULL", NULL);
 			return 0;
 	}
 
-	MRELEASE(key.contents);
-
-
+	MRELEASE(key.value);
 	if (retval == ERROR)
 	{
 		BIB_DEBUG_ERR("x bibDefaultVerify: Can't compute hash.", NULL);
@@ -1118,21 +988,20 @@ not supported.", asb->targetBlockType);
 		return ERROR;
 	}
 
-
-	assertedDigest = csi_extract_tlv(CSI_PARM_INTSIG, asb->resultsData, asb->resultsLen);
-
-	if ((retval = csi_sign_finish(suite, context, &assertedDigest, CSI_SVC_VERIFY)) != 1)
+	assertedDigest = sci_extract_tlv(CSI_PARM_INTSIG, target->results);
+	if ((retval = sci_sign_finish(suite, context, &assertedDigest,
+			CSI_SVC_VERIFY)) != 1)
 	{
-		BIB_DEBUG_ERR("x bibDefaultVerify - Can't Finalize and Verify.", NULL);
+		BIB_DEBUG_ERR("x bibDefaultVerify - Can't Finalize and \
+Verify.", NULL);
 	}
 
 	csi_ctx_free(suite, context);
-	MRELEASE(assertedDigest.contents);
+	MRELEASE(assertedDigest.value);
 
 	BIB_DEBUG_PROC("- bibDefaultVerify--> %d", retval);
 	return retval;
 }
-
 
 /******************************************************************************
  *
@@ -1175,7 +1044,7 @@ not supported.", asb->targetBlockType);
 BibProfile	*bibGetProfile(char *securitySource, char *securityDest,
 			BpBlockType targetBlkType, BPsecBibRule *bibRule)
 {
-	Sdr		bpSdr = getIonsdr();
+	Sdr		sdr = getIonsdr();
 	Object		ruleAddr;
 	Object		ruleElt;
 	BibProfile	*prof = NULL;
@@ -1202,7 +1071,7 @@ No BIB processing for this bundle.", NULL);
 
 	/*	Given applicable BIB rule, get the ciphersuite profile.	*/
 
-	sdr_read(bpSdr, (char *) bibRule, ruleAddr, sizeof(BPsecBibRule));
+	sdr_read(sdr, (char *) bibRule, ruleAddr, sizeof(BPsecBibRule));
 	prof = get_bib_prof_by_name(bibRule->ciphersuiteName);
 	if (prof == NULL)
 	{
@@ -1214,7 +1083,6 @@ unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
 
 	return prof;
 }
-
 
 /******************************************************************************
  *
@@ -1270,15 +1138,14 @@ unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
 
 int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 {
-	Sdr			        bpSdr = getIonsdr();
+	Sdr			sdr = getIonsdr();
 	BpsecOutboundBlock	asb;
-	int8_t			    result = 0;
+	int8_t			result = 0;
 
 //<<-- Must attach block, even if only as placeholder.
 
 	BIB_DEBUG_PROC("+ bibOffer(0x%x, 0x%x)",
                   (unsigned long) blk, (unsigned long) bundle);
-
 
 	/* Step 1 - Sanity Checks. */
 
@@ -1288,7 +1155,6 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	blk->length = 0;	/*	Default.			*/
 	blk->bytes = 0;		/*	Default.			*/
-
 
 	/* Step 1.2 - Make sure that the security OP is valid. */
 	if (blk->tag1 == BlockIntegrityBlk
@@ -1304,7 +1170,7 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
-    /* Step 1.3 - Make sure OP(integrity, target) isn't already there. */
+	/* Step 1.3 - Make sure OP(integrity, target) isn't already there. */
 	if (bpsec_findBlock(bundle, BlockIntegrityBlk, blk->tag1, 0))
 	{
 		/*	Don't create a placeholder BIB for this block.	*/
@@ -1321,16 +1187,26 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	/* Step 2.1 - Populate the BIB ASB. */
 	memset((char *) &asb, 0, sizeof(BpsecOutboundBlock));
+
+	CHKERR(sdr_begin_xn(sdr));
+
 	bpsec_insertSecuritySource(bundle, &asb);
-	asb.targetBlockType = blk->tag1;
+	if (bpsec_insert_target(sdr, &asb, (blk->tag1 == PayloadBlk ? 1 : 0),
+			blk->tag1, 0, 0))
+	{
+		sdr_cancel_xn(sdr);
+		BIB_DEBUG_ERR("x bibOffer: Failed to insert target.");
+		result = -1;
+		BIB_DEBUG_PROC("- bibOffer -> %d", result);
+		return result;
+	}
 
 	/* Step 2.2 Populate the BIB Extension Block. */
 
-	CHKERR(sdr_begin_xn(bpSdr));
-
 	blk->size = sizeof(BpsecOutboundBlock);
-	if ((blk->object = sdr_malloc(bpSdr, blk->size)) == 0)
+	if ((blk->object = sdr_malloc(sdr, blk->size)) == 0)
 	{
+		sdr_cancel_xn(sdr);
 		BIB_DEBUG_ERR("x bibOffer: Failed to SDR allocate %d bytes",
 				      blk->size);
 		result = -1;
@@ -1340,9 +1216,8 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	/* Step 3 - Write the ASB into the block. */
 
-	sdr_write(bpSdr, blk->object, (char *) &asb, blk->size);
-
-	sdr_end_xn(bpSdr);
+	sdr_write(sdr, blk->object, (char *) &asb, blk->size);
+	sdr_end_xn(sdr);
 
 	/* Step 4 - Attach BIB if possible. */
 
@@ -1351,7 +1226,7 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	 *            to defer integrity until a later date.
 	 */
 
-	if (asb.targetBlockType != PayloadBlk)
+	if (blk->tag1 != PayloadBlk)
 	{
 		/*	We can't construct the block at this time
 		 *	because we can't assume that the target block
@@ -1380,9 +1255,9 @@ supported.", asb.targetBlockType);
 
 	if ((result = bibAttach(bundle, blk, &asb)) <= 1)
 	{
-		CHKERR(sdr_begin_xn(bpSdr));
-		sdr_free(bpSdr, blk->object);
-		sdr_end_xn(bpSdr);
+		CHKERR(sdr_begin_xn(sdr));
+		bpsec_releaseOutboundAsb(sdr, blk->object);
+		sdr_end_xn(sdr);
 
 		blk->object = 0;
 		blk->size = 0;
@@ -1391,7 +1266,6 @@ supported.", asb.targetBlockType);
 	BIB_DEBUG_PROC("- bibOffer -> %d", result);
 	return result;
 }
-
 
 /******************************************************************************
  *
@@ -1467,7 +1341,6 @@ int	bibReview(AcqWorkArea *wk)
 	return result;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: bibParse
@@ -1506,7 +1379,6 @@ int	bibParse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	return result;
 }
-
 
 /******************************************************************************
  *
@@ -1547,7 +1419,9 @@ int	bibParse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 {
+	Sdr			sdr = getIonsdr();
 	BpsecOutboundBlock	asb;
+	BpsecOutboundTarget	target;
 	int8_t		    	result = 0;
 
 	BIB_DEBUG_PROC("+ bibProcessOnDequeue(%x, %x, %x)",
@@ -1561,8 +1435,8 @@ int	bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 	{
 		BIB_DEBUG_ERR("x bibProcessOnDequeue: Bad Args.", NULL);
 		BIB_DEBUG_INFO("i bibProcessOnDequeue bundle %d, parm %d, \
-blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned long) blk,
-                       (blk == NULL) ? 0 : blk->size);
+blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm,
+			(unsigned long) blk, (blk == NULL) ? 0 : blk->size);
 		BIB_DEBUG_PROC("- bibProcessOnDequeue --> %d", -1);
 		scratchExtensionBlock(blk);
 		return -1;
@@ -1572,8 +1446,19 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned l
 	 * Step 1.2 - If the target is the payload, the BIB was already
 	 *            handled in bibOffer. Nothing left to do.
 	 */
-	sdr_read(getIonsdr(), (char *) &asb, blk->object, blk->size);
-	if (asb.targetBlockType == PayloadBlk)
+	sdr_read(sdr, (char *) &asb, blk->object, blk->size);
+	if (bpsec_getOutboundTarget(sdr, asb.targets, &target) < 0)
+	{
+		BIB_DEBUG_ERR("x bibProcessOnDequeue: No target.", NULL);
+		BIB_DEBUG_INFO("i bibProcessOnDequeue bundle %d, parm %d, \
+blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm,
+			(unsigned long) blk, (blk == NULL) ? 0 : blk->size);
+		BIB_DEBUG_PROC("- bibProcessOnDequeue --> %d", -1);
+		scratchExtensionBlock(blk);
+		return -1;
+	}
+
+	if (target.targetBlockType == PayloadBlk)
 	{
 		/*	Do nothing; the block's bytes are correct
 		 *	and ready for transmission.  The block was
@@ -1595,12 +1480,11 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned l
 	return result;
 }
 
-
 /******************************************************************************
  *
  * \par Function Name: bibRelease
  *
- * \par Purpose: This callback releases SDR heap space  allocated to
+ * \par Purpose: This callback releases SDR heap space allocated to
  * 		 a block integrity block.
  *
  * \retval void
@@ -1618,28 +1502,9 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm, (unsigned l
 
 void    bibRelease(ExtensionBlock *blk)
 {
-	Sdr			sdr = getIonsdr();
-	BpsecOutboundBlock	asb;
-
 	BIB_DEBUG_PROC("+ bibRelease(%x)", (unsigned long) blk);
 
 	CHKVOID(blk);
-	if (blk->object)
-	{
-		sdr_read(sdr, (char *) &asb, blk->object,
-				sizeof(BpsecOutboundBlock));
-		if (asb.parmsData)
-		{
-			sdr_free(sdr, asb.parmsData);
-		}
-
-		if (asb.resultsData)
-		{
-			sdr_free(sdr, asb.resultsData);
-		}
-
-		sdr_free(sdr, blk->object);
-	}
-
+	bpsec_releaseOutboundAsb(getIonsdr(), blk->object);
 	BIB_DEBUG_PROC("- bibRelease(%c)", ' ');
 }
