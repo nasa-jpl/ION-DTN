@@ -23,6 +23,7 @@
 #include "smrbt.h"
 #include "bei.h"
 #include "eureka.h"
+#include "bibe.h"
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
@@ -2892,6 +2893,11 @@ incomplete bundle.", NULL);
 		destroyBpTimelineEvent(bundle.overdueElt);
 	}
 
+	if (bundle.ctDueElt)
+	{
+		bibeCancelCti(bundle.ctDueElt);
+	}
+
 	/*	Remove bundle from applications' bundle tracking lists.	*/
 
 	if (bundle.trackingElts)
@@ -3110,6 +3116,11 @@ too long", admAppCmd);
 
 	schemeBuf.forwardQueue = sdr_list_create(sdr);
 	schemeBuf.endpoints = sdr_list_create(sdr);
+	if (strcmp(schemeName, "imc") != 0)	/*	Not multicast!	*/
+	{
+		schemeBuf.bclas = sdr_list_create(sdr);
+	}
+
 	addr = sdr_malloc(sdr, sizeof(Scheme));
 	if (addr)
 	{
@@ -3286,6 +3297,17 @@ int	removeScheme(char *schemeName)
 		return 0;
 	}
 
+	if (schemeBuf.bclas)
+	{
+		if (sdr_list_length(sdr, schemeBuf.bclas) != 0)
+		{
+			sdr_exit_xn(sdr);
+			writeMemoNote("[?] Scheme has BCLAs, can't be removed",
+					schemeName);
+			return 0;
+		}
+	}
+
 	/*	Okay to remove this scheme from the database.		*/
 
 	dropScheme(vscheme, vschemeElt);
@@ -3301,6 +3323,11 @@ int	removeScheme(char *schemeName)
 
 	sdr_list_destroy(sdr, schemeBuf.forwardQueue, NULL, NULL);
 	sdr_list_destroy(sdr, schemeBuf.endpoints, NULL, NULL);
+	if (schemeBuf.bclas)
+	{
+		sdr_list_destroy(sdr, schemeBuf.endpoints, NULL, NULL);
+	}
+
 	sdr_free(sdr, addr);
 	sdr_list_delete(sdr, schemeElt, NULL, NULL);
 	if (sdr_end_xn(sdr) < 0)
@@ -5707,6 +5734,7 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	/*	Detach new bundle from all pointers to old bundle.	*/
 
 	newBundle->overdueElt = 0;
+	newBundle->ctDueElt = 0;
 	newBundle->fwdQueueElt = 0;
 	newBundle->fragmentElt = 0;
 	newBundle->dlvQueueElt = 0;
@@ -10332,6 +10360,15 @@ int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 		bundle.overdueElt = 0;
 	}
 
+	if (bundle.ctDueElt)
+	{
+		/*	Bundle was un-queued before transmission,
+		 *	so disable custody transfer timer.		*/
+
+		bibeCancelCti(bundle.ctDueElt);
+		bundle.ctDueElt = 0;
+	}
+
 	return enqueueToLimbo(&bundle, bundleAddr);
 }
 
@@ -11451,6 +11488,12 @@ int	bpReforwardBundle(Object bundleAddr)
 		bundle.overdueElt = 0;
 	}
 
+	if (bundle.ctDueElt)
+	{
+		bibeCancelCti(bundle.ctDueElt);
+		bundle.ctDueElt = 0;
+	}
+
 	if (bundle.fwdQueueElt)
 	{
 		sdr_list_delete(sdr, bundle.fwdQueueElt, NULL, NULL);
@@ -11612,84 +11655,23 @@ static void	forgetEmbargo(Bundle *bundle, Object bundleAddr,
 
 #endif
 
-static int	handleEncapsulatedBundle(BpDelivery *dlv, unsigned char *cursor,
-			unsigned int unparsedBytes)
-{
-	Sdr		sdr = getIonsdr();
-	vast		encapsulatedBundleLength;
-	VInduct		*vduct;
-	PsmAddress	vductElt;
-	AcqWorkArea	*work;
-
-	/*	Strip off the admin record header (1 byte), process
-	 *	the rest as a newly received bundle.			*/
-
-	CHKERR(sdr_begin_xn(sdr));
-	encapsulatedBundleLength = zco_length(sdr, dlv->adu) - 1;
-	zco_delimit_source(sdr, dlv->adu, 1, encapsulatedBundleLength);
-	zco_strip(sdr, dlv->adu);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("bibecli can't extract encapsulated bundle.", NULL);
-		return -1;
-	}
-
-	findInduct("bibe", "*", &vduct, &vductElt);
-	if (vductElt == 0)
-	{
-		putErrmsg("No such bibe duct.", "0");
-		return -1;
-	}
-
-	work = bpGetAcqArea(vduct);
-	if (work == NULL)
-	{
-		putErrmsg("bibecli can't get acquisition work area", NULL);
-		return -1;
-	}
-
-	if (bpBeginAcq(work, 0, NULL) < 0)
-	{
-		putErrmsg("bibecli can't begin bundle acquisition.", NULL);
-		return -1;
-	}
-
-	if (bpLoadAcq(work, dlv->adu) < 0)
-	{
-		putErrmsg("bibecli can't continue bundle acquisition.", NULL);
-		return -1;
-	}
-
-	if (bpEndAcq(work) < 0)
-	{
-		putErrmsg("bibecli can't complete bundle acquisition.", NULL);
-		return -1;
-	}
-
-	bpReleaseAcqArea(work);
-	return 0;
-}
-
-static int	handleBibeSignal(BpDelivery *dlv, unsigned char *cursor,
-			unsigned int unparsedBytes)
-{
-	return 0;
-}
-
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 {
 	Sdr		sdr = getIonsdr();
 	int		running = 1;
 	BpSAP		sap;
 	BpDelivery	dlv;
-	unsigned int	buflen;
-	unsigned char	*buffer;
-	unsigned char	*cursor;
+	vast		recordLen;
 	ZcoReader	reader;
 	unsigned int	bytesToParse;
+	char		headerBuf[10];
+	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
-	uvast		uvtemp;
+	vast		headerLen;
 	int		adminRecType;
+	unsigned int	buflen;
+	unsigned char	*buffer;
+	uvast		uvtemp;
 
 	CHKERR(adminEid);
 	if (handleStatusRpt == NULL)
@@ -11734,13 +11716,89 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 			continue;
 		}
 
-		/*	Read entire admin record into memory buffer.	*/
+		/*	Read and strip off the admin record header:
+		 *	array open (1 byte), record type code (up to
+		 *	9 bytes).					*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		recordLen = zco_source_data_length(sdr, dlv.adu);
+		zco_start_receiving(dlv.adu, &reader);
+		bytesToParse = zco_receive_source(sdr, &reader, 10, headerBuf);
+		if (bytesToParse < 2)
+		{
+			putErrmsg("Can't receive admin record header.", NULL);
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			running = 0;
+			continue;
+		}
+
+		cursor = headerBuf;
+		unparsedBytes = bytesToParse;
+		uvtemp = 2;	/*	Decode array of size 2.		*/
+		if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes)
+				< 1)
+		{
+			writeMemo("[?] Can't decode admin record array open.");
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode admin record type.");
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		adminRecType = uvtemp;
+
+		/*	Now strip off the admin record header, leaving
+		 *	just the admin record content.			*/
+
+		headerLen = cursor - headerBuf;
+		zco_delimit_source(sdr, dlv.adu, headerLen,
+				recordLen - headerLen);
+		zco_strip(sdr, dlv.adu);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Can't strip admin record.", NULL);
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			running = 0;
+			continue;
+		}
+
+		/*	Now handle the administrative record.		*/
+
+		if (adminRecType == BP_BIBE_PDU)
+		{
+			if (bibeHandleBpdu(&dlv) < 0)
+			{
+				putErrmsg("bibecli failed.", NULL);
+				running = 0;
+			}
+
+			bp_release_delivery(&dlv, 1);
+
+			/*	Make sure other tasks have a chance
+			 *	to run.					*/
+
+			sm_TaskYield();
+			continue;
+		}
+
+		/*	For the smaller administrative records, read
+		 *	the entire admin record into memory buffer.	*/
 
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
 		if ((buffer = MTAKE(buflen)) == NULL)
 		{
-			putErrmsg("Can't start parsing admin record.", NULL);
+			putErrmsg("Can't handle admin record.", NULL);
 			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			running = 0;
@@ -11753,8 +11811,8 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 		if (bytesToParse < 0)
 		{
 			putErrmsg("Can't receive admin record.", NULL);
-			oK(sdr_end_xn(sdr));
 			MRELEASE(buffer);
+			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			running = 0;
 			continue;
@@ -11763,34 +11821,6 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 		oK(sdr_end_xn(sdr));
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
-
-		/*	Start parsing the administrative record.	*/
-
-		uvtemp = 2;	/*	Decode array of size 2.	*/
-		if (cbor_decode_array_open(&uvtemp, &cursor,
-				&unparsedBytes) < 1)
-		{
-			writeMemo("[?] Can't decode admin record.");
-			MRELEASE(buffer);
-			bp_release_delivery(&dlv, 1);
-			continue;
-		}
-
-		/*	Parse administrative record type code.		*/
-
-		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 1)
-		{
-			writeMemo("[?] Can't decode admin record type.");
-			MRELEASE(buffer);
-			bp_release_delivery(&dlv, 1);
-			continue;
-		}
-
-		adminRecType = uvtemp;
-
-		/*	Now handle the administrative record.		*/
-
 		switch (adminRecType)
 		{
 		case BP_STATUS_REPORT:
@@ -11823,18 +11853,8 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 
 			break;
 
-		case BP_BIBE_PDU:
-			if (handleEncapsulatedBundle(&dlv, cursor,
-					unparsedBytes) < 0)
-			{
-				putErrmsg("bibecli failed.", NULL);
-				running = 0;
-			}
-
-			break;
-
 		case BP_BIBE_SIGNAL:
-			if (handleBibeSignal(&dlv, cursor, unparsedBytes) < 0)
+			if (bibeHandleSignal(&dlv, cursor, unparsedBytes) < 0)
 			{
 				putErrmsg("Custody signal handler failed.",
 						NULL);

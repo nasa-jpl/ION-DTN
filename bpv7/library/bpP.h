@@ -380,6 +380,7 @@ typedef struct
 
 	Object		timelineElt;	/*	TTL expire list ref.	*/
 	Object		overdueElt;	/*	Xmit overdue ref.	*/
+	Object		ctDueElt;	/*	CT deadline (Cti) ref.	*/
 	Object		transitElt;	/*	Transit queue ref.	*/
 	Object		fwdQueueElt;	/*	Scheme's queue ref.	*/
 	Object		fragmentElt;	/*	Incomplete's list ref.	*/
@@ -481,6 +482,7 @@ typedef struct
 	Object		admAppCmd; 	/*	For starting admin app.	*/
 	Object		forwardQueue;	/*	SDR list of Bundles	*/
 	Object		endpoints;	/*	SDR list of Endpoints	*/
+	Object		bclas;		/*	SDR list of BIBE CLAs	*/
 } Scheme;
 
 typedef struct
