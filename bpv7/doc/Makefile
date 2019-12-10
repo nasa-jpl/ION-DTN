@@ -18,6 +18,7 @@ MANFILES = \
 	./man/man1/bpsink.1 \
 	./man/man1/bpsource.1 \
 	./man/man1/bpstats.1 \
+	./man/man1/bpstats2.1 \
 	./man/man1/bpnmtest.1 \
 	./man/man1/bplist.1 \
 	./man/man1/bpcancel.1 \
@@ -77,6 +78,7 @@ HTMLFILES = \
 	./html/man1/bpsink.html \
 	./html/man1/bpsource.html \
 	./html/man1/bpstats.html \
+	./html/man1/bpstats2.html \
 	./html/man1/bpnmtest.html \
 	./html/man1/bplist.html \
 	./html/man1/bpcancel.html \

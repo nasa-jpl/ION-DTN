@@ -11,7 +11,7 @@
 									*/
 #include "bibeP.h"
 
-static void	getSchemeName(char *eid, *schemNameBuf)
+static void	getSchemeName(char *eid, char *schemeNameBuf)
 {
 	MetaEid		meid;
 	VScheme		*vscheme;
@@ -19,7 +19,7 @@ static void	getSchemeName(char *eid, *schemNameBuf)
 
 	if (parseEidString(eid, &meid, &vscheme, &vschemeElt) == 0)
 	{
-		*schemNameBuf = '\0';
+		*schemeNameBuf = '\0';
 	}
 	else
 	{
@@ -49,13 +49,14 @@ void	bibeAdd(char *destEid, unsigned int fwdLatency, unsigned int rtnLatency,
 	}
 
 	getSchemeName(destEid, schemeName);
-	findScheme(schemeName, &vsheme, &vschemeElt);
+	findScheme(schemeName, &vscheme, &vschemeElt);
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr, vscheme->schemeElt),
 			sizeof(Scheme));
-	CHKERR(sdr_begin_xn(sdr));
+	CHKVOID(sdr_begin_xn(sdr));
 	memset((char *) &bcla, 0, sizeof(Bcla));
 	bcla.dest = sdr_string_create(sdr, destEid);
-	bcla.ctis = sdr_list_create(sdr);
+	bcla.source = sdr_string_create(sdr, vscheme->adminEid);
+	bcla.bundles = sdr_list_create(sdr);
 	bcla.signals[CT_ACCEPTED].deadline = (time_t) -1;
 	bcla.signals[CT_ACCEPTED].sequences = sdr_list_create(sdr);
 	bcla.fwdLatency = fwdLatency;
@@ -82,10 +83,6 @@ void	bibechange(char *destEid, unsigned int fwdLatency,
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
 	Object		bclaElt;
-	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
-	Scheme		scheme;
 	Bcla		bcla;
 
 	bibeFind(destEid, &bclaAddr, &bclaElt);
@@ -95,14 +92,8 @@ void	bibechange(char *destEid, unsigned int fwdLatency,
 		return;
 	}
 
-	getSchemeName(destEid, schemeName);
-	findScheme(schemeName, &vsheme, &vschemeElt);
-	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr, vscheme->schemeElt),
-			sizeof(Scheme));
-	CHKERR(sdr_begin_xn(sdr));
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
-	sdr_free(sdr, bcla.dest);
-	bcla.dest = sdr_string_create(sdr, destEid);
 	bcla.fwdLatency = fwdLatency;
 	bcla.rtnLatency = rtnLatency;
 	bcla.classOfService = priority;
@@ -125,7 +116,6 @@ void	bibeDelete(char *destEid)
 	Bcla	bcla;
 	Object	elt;
 	Object	addr;
-	Cti	cti;
 	Bundle	bundle;
 
 	bibeFind(destEid, &bclaAddr, &bclaElt);
@@ -135,28 +125,26 @@ void	bibeDelete(char *destEid)
 		return;
 	}
 
-	CHKERR(sdr_begin_xn(sdr));
+	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
 	sdr_free(sdr, bcla.dest);
-	while ((elt = sdr_list_first(sdr, bcla.ctis)))
+	while ((elt = sdr_list_first(sdr, bcla.bundles)))
 	{
-		addr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &cti, addr, sizeof(Cti));
-
-		/*	Remove CT timeout event from bundle.		*/
-
-		sdr_read(sdr, (char *) &Bundle, cti.bundle, sizeof(Bundle));
-		destroyBpTImelineEvent(bundle.ctDueElt);
-		bundle.ctDueElt = 0;
-		sdr_write(sdr, cti.bundle, (char *) &Bundle, sizeof(Bundle));
-
-		/*	Remove the Cti that the event pointed to.	*/
-
-		sdr_free(sdr, addr);
+		addr = sdr_list_data(sdr, elt);	/*	Bundle object	*/
+		bp_untrack(addr, elt);
 		sdr_list_delete(sdr, elt, NULL, NULL);
+
+		/*	Remove corresponding CT timeout event.		*/
+
+		sdr_read(sdr, (char *) &bundle, addr, sizeof(Bundle));
+		destroyBpTimelineEvent(bundle.ctDueElt);
+		bundle.ctDueElt = 0;
+		bundle.xmitId = 0;
+		bundle.deadline = 0;
+		sdr_write(sdr, addr, (char *) &bundle, sizeof(Bundle));
 	}
 
-	sdr_list_destroy(sdr, bcla.ctis, NULL, NULL);
+	sdr_list_destroy(sdr, bcla.bundles, NULL, NULL);
 	while ((elt = sdr_list_first(sdr, bcla.signals[CT_ACCEPTED].sequences)))
 	{
 		addr = sdr_list_data(sdr, elt);
@@ -166,7 +154,7 @@ void	bibeDelete(char *destEid)
 
 	sdr_list_destroy(sdr, bcla.signals[CT_ACCEPTED].sequences, NULL, NULL);
 	sdr_free(sdr, bclaAddr);
-	sdr_list_delete(sdr, bclaElt);
+	sdr_list_delete(sdr, bclaElt, NULL, NULL);
 	oK(sdr_end_xn(sdr));
 }
 
@@ -186,7 +174,7 @@ void	bibeFind(char *destEid, Object *bclaAddr, Object *bclaElt)
 	*bclaAddr = 0;
 	*bclaElt = 0;
 	getSchemeName(destEid, schemeName);
-	findScheme(schemeName, &vsheme, &vschemeElt);
+	findScheme(schemeName, &vscheme, &vschemeElt);
 	if (vscheme == NULL)
 	{
 		return;
@@ -322,7 +310,7 @@ static void	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
 			{
 				sequence.lastXmitId = sequence2.lastXmitId;
 				sdr_free(sdr, sequenceAddr2);
-				sdr_list_delete(sdr, elt2);
+				sdr_list_delete(sdr, elt2, NULL, NULL);
 			}
 		}
 
@@ -333,8 +321,8 @@ static void	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
 
 	/*	Must start a new sequence.				*/
 
-	sequence.firstXmitId == xmitId;
-	sequence.lastXmitId == xmitId;
+	sequence.firstXmitId = xmitId;
+	sequence.lastXmitId = xmitId;
 	sequenceAddr = sdr_malloc(sdr, sizeof(CtSequence));
 	if (sequenceAddr)
 	{
@@ -346,7 +334,7 @@ static void	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
 		}
 		else
 		{
-			oK(sdr_list_insert_last(sdr, signal.sequences,
+			oK(sdr_list_insert_last(sdr, signal->sequences,
 					sequenceAddr));
 		}
 	}
@@ -357,9 +345,9 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 	Sdr		sdr = getIonsdr();
 	vast		bpduLength;
 	ZcoReader	reader;
-	char		headerBuf[19];
+	unsigned char	headerBuf[19];
 	unsigned int	bytesToParse;
-	char		*cursor;
+	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		uvtemp;
 	unsigned int	xmitId;
@@ -379,7 +367,7 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 	CHKERR(sdr_begin_xn(sdr));
 	bpduLength = zco_source_data_length(sdr, dlv->adu);
 	zco_start_receiving(dlv->adu, &reader);
-	bytesToParse = zco_receive_source(sdr, &reader, 19, headerBuf);
+	bytesToParse = zco_receive_source(sdr, &reader, 19, (char *) headerBuf);
 	if (bytesToParse < 3)
 	{
 		putErrmsg("Can't receive BPDU header.", NULL);
@@ -486,13 +474,204 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
-	return 0;
+	Sdr		sdr = getIonsdr();
+	Object		bclaObj;
+	Object		bclaElt;
+	Bcla		bcla;
+	uvast		uvtemp;
+	int		reasonCode;
+	int		sequenceCount;
+	unsigned int	xmitId;
+	unsigned int	seqLength;
+	Object		elt;
+	Object		bundleObj;
+	Bundle		bundle;
+
+	bibeFind(dlv->bundleSourceEid, &bclaObj, &bclaElt);
+	if (bclaElt == 0)
+	{
+		writeMemoNote("No such BIBE duct; ignoring custody signal.",
+				dlv->bundleSourceEid);
+		return 0;
+	}
+
+	sdr_read(sdr, (char *) &bcla, bclaObj, sizeof(Bcla));
+	CHKERR(sdr_begin_xn(sdr));
+
+	/*	Start parsing signal: get array open.			*/
+
+	uvtemp = 2;	/*	Decode array of size 2.			*/
+	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] bibecli can't decode BIBE signal array open.");
+		oK(sdr_end_xn(sdr));
+		return 0;
+	}
+
+	/*	First element of array is reason code.			*/
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] bibecli can't decode BIBE signal reason code.");
+		oK(sdr_end_xn(sdr));
+		return 0;
+	}
+
+	reasonCode = uvtemp;
+
+	/*	Second element of array is disposition scope report,
+	 *	a BCOR array: get array open.				*/
+
+	uvtemp = 0;	/*	Decode array of unknown but fixed size.	*/
+	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1
+	|| uvtemp == (uvast) -1)
+	{
+		writeMemo("[?] bibecli can't decode BIBE signal array open.");
+		oK(sdr_end_xn(sdr));
+		return 0;
+	}
+
+	sequenceCount = uvtemp;	/*	Length of array is now known.	*/
+
+	/*	Parse and process the disposition scope report.		*/
+
+	while (sequenceCount > 0)
+	{
+		/*	Each sequence is an array of two elements:
+		 *	first xmitId followed by number of consecutive
+		 *	xmitIds in the sequence (including the first).	*/
+
+		uvtemp = 2;	/*	Decode array of size 2.		*/
+		if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes)
+				< 1)
+		{
+			writeMemo("[?] bibecli can't decode sequence array.");
+			oK(sdr_end_xn(sdr));
+			return 0;
+		}
+
+		/*	Decode start of sequence.			*/
+
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] bibecli can't decode start of seq.");
+			oK(sdr_end_xn(sdr));
+			return 0;
+		}
+
+		xmitId = uvtemp;	/*	First xmitId in seq.	*/
+
+		/*	Decode length of sequence (number of
+		 *	consecutive xmitId acknowledged).		*/
+
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] bibecli can't decode length of seq.");
+			oK(sdr_end_xn(sdr));
+			return 0;
+		}
+
+		seqLength = uvtemp;
+		if (seqLength < 1)
+		{
+			writeMemo("[?] Invalid BIBE signal sequence length.");
+			oK(sdr_end_xn(sdr));
+			return 0;
+		}
+
+		/*	Acknowledge every CT item in this sequence.	*/
+
+		for (elt = sdr_list_first(sdr, bcla.bundles); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			/*	Get next bundle that might be
+			 *	acknowledged.				*/
+
+			bundleObj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &bundle, bundleObj,
+					sizeof(Bundle));
+			if (bundle.xmitId < xmitId)
+			{
+				/*	This bundle not acknowledged.	*/
+
+				continue;
+			}
+
+			while (xmitId < bundle.xmitId)
+			{
+				/*	Acknowledged item is no
+				 *	longer in the database, so
+				 *	ignore this acknowledgment.	*/
+
+				seqLength -= 1;
+				if (seqLength == 0)
+				{
+					xmitId = 0;	/*	Stop.	*/
+					break;
+				}
+
+				xmitId += 1;
+			}
+
+			if (bundle.xmitId == xmitId)
+			{
+				/*	Process custody acknowledgment.	*/
+
+				bp_untrack(bundleObj, elt);
+				if (reasonCode == CT_ACCEPTED
+				|| reasonCode == CT_REDUNDANT)
+				{
+					/*	Turn off CT timeout.	*/
+	
+					destroyBpTimelineEvent(bundle.ctDueElt);
+					bundle.ctDueElt = 0;
+					bundle.xmitId = 0;
+					bundle.deadline = 0;
+					sdr_write(sdr, bundleObj,
+							(char *) &bundle,
+							sizeof(Bundle));
+				}
+				else	/*	Custody refused.	*/
+				{
+					if (bpReforwardBundle(bundleObj) < 0)
+					{
+						sdr_cancel_xn(sdr);
+						return -1;
+					}
+				}
+
+				/*	In either case, delete the
+				 *	trackingElt.			*/
+
+				sdr_list_delete(sdr, elt, NULL, NULL);
+
+				/*	Then move on to the next one.	*/
+
+				seqLength -= 1;
+				xmitId += 1;
+			}
+
+			if (seqLength == 0)
+			{
+				/*	All applicable acknowledgments
+				 *	have now been processed; no
+				 *	need to look at more bundles.	*/
+
+				break;
+			}
+		}
+	}
+
+	return sdr_end_xn(sdr);
 }
  
-int	bibeHandleTimeout(Object ctDueElt)
+int	bibeHandleTimeout(Object trackingElt)
 {
-}
- 
-void	bibeCancelCti(Object ctDueElt)
-{
+	Sdr	sdr = getIonsdr();
+	Object	bundleObj;
+
+	bundleObj = sdr_list_data(sdr, trackingElt);
+	return bpReforwardBundle(bundleObj);
 }

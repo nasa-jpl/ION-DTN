@@ -29,13 +29,6 @@ extern "C" {
 
 typedef struct
 {
-	unsigned int	xmitId;
-	time_t		deadline;	/*	Epoch 2000.		*/
-	Object		bundle;
-} Cti;	/*	Custody Transfer Item					*/
-
-typedef struct
-{
 	unsigned int	firstXmitId;
 	unsigned int	lastXmitId;
 } CtSequence;	/*	Sequence of bundles that can be signaled.	*/
@@ -48,13 +41,10 @@ typedef struct
 
 typedef struct
 {
+	Object		source;		/*	EID, an sdrstring.	*/ 
 	Object		dest;		/*	EID, an sdrstring.	*/ 
 	uvast		count;		/*	xmitId counter.		*/
-	Object		ctis;		/*	sdrlist of Cti objects.	*/
-
-	/*	Parameters of pending outbound CT signals.		*/
-
-	CtSignal	signals[CT_DISPOSITIONS];
+	Object		bundles;	/*	sdrlist of Bundle objs.	*/
 
 	/*	Transmission parameters for BPDUs sent to dest node.	*/
 
@@ -63,11 +53,15 @@ typedef struct
 	unsigned char	classOfService;
 	BpAncillaryData	ancillaryData;	/*	Ordinal, label, flags.	*/
 
-	/*	For possible future use.				*/
+	/*	For possible future use in BPDU transmission.		*/
 
 	Object		reportTo;	/*	EID, an sdrstring.	*/
 	unsigned int	srrFlags;
-} Bcla;	/*	BIBE convergence-layer adapter				*/
+
+	/*	Parameters of pending outbound CT signals.		*/
+
+	CtSignal	signals[CT_DISPOSITIONS];
+} Bcla;		/*	BIBE convergence-layer adapter			*/
 
 #ifdef __cplusplus
 }

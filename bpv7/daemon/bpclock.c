@@ -9,6 +9,7 @@
 	
 									*/
 #include "bpP.h"
+#include "bibe.h"
 #include "sdrhash.h"
 #include "smlist.h"
 
@@ -88,6 +89,15 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 			/*	Note that bpReforwardBundle() always
 			 *	erases the bundle's xmitOverdue event,
+			 *	so we must NOT do so here.		*/
+
+			break;		/*	Out of switch.		*/
+
+		case ctOverdue:
+			result = bibeHandleTimeout(event->ref);
+
+			/*	Note that bibeHandleTimeout() always
+			 *	erases the bundle's ctDueElt event,
 			 *	so we must NOT do so here.		*/
 
 			break;		/*	Out of switch.		*/

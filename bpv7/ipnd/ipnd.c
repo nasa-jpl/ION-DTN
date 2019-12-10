@@ -1215,11 +1215,6 @@ int	main(int argc, char *argv[])
 	IPNDCtx	*ctx = NULL;
 	int	i;
 
-#if 0
-	/* Block SIGUSR1 signals */
-	iblock(SIGUSR1);	/*	Why is this necessary?		*/
-#endif
-
 	if (cmdFileName == NULL)
 	{
 		putErrmsg("No IPND configuration file provided.", NULL);

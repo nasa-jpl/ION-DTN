@@ -409,9 +409,7 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 			Object bundleObj, IonNode *terminusNode)
 {
 	Sdr		sdr = getIonsdr();
-	PsmPartition	ionwm;
-	PsmAddress	embElt;
-	Embargo		*embargo;
+	PsmPartition	ionwm = getIonwm();
 	BpEvent		event;
 	char		neighborEid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
@@ -440,42 +438,6 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	bundle->xmitCopies[bundle->xmitCopiesCount] = route->toNodeNbr;
 	bundle->xmitCopiesCount++;
 	bundle->dlvConfidence = cgr_get_dlv_confidence(bundle, route);
-
-	/*	If this neighbor is a currently embargoed neighbor
-	 *	for this final destination (i.e., one that has been
-	 *	refusing bundles destined for this final destination
-	 *	node), then this bundle serves as a "probe" aimed at
-	 *	that neighbor.  In that case, must now enable the
-	 *	scheduling of the next probe to this neighbor.		*/
-
-	ionwm = getIonwm();
-	for (embElt = sm_list_first(ionwm, terminusNode->embargoes);
-			embElt; embElt = sm_list_next(ionwm, embElt))
-	{
-		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, embElt));
-		if (embargo->nodeNbr < route->toNodeNbr)
-		{
-			continue;
-		}
-
-		if (embargo->nodeNbr > route->toNodeNbr)
-		{
-			break;
-		}
-
-		/*	This neighbor has been refusing bundles
-		 *	destined for this final destination node,
-		 *	but since it is now due for a probe bundle
-		 *	(else it would have been on the excludedNodes
-		 *	list and therefore would never have made it
-		 *	to the list of bestRoutes), we are
-		 *	sending this one to it.  So we must turn
-		 *	off the flag indicating that a probe to this
-		 *	node is due -- we're sending one now.		*/
-
-		embargo->probeIsDue = 0;
-		break;
-	}
 
 	/*	If the bundle is NOT critical, then:			*/
 
@@ -918,8 +880,6 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	int		ionMemIdx;
 	Lyst		bestRoutes;
 	Lyst		excludedNodes;
-	PsmAddress	embElt;
-	Embargo		*embargo;
 	LystElt		elt;
 	CgrRoute	*route;
 	PsmAddress	routingObjectAddr;
@@ -987,32 +947,6 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 			lyst_destroy(excludedNodes);
 			lyst_destroy(bestRoutes);
 			return -1;
-		}
-	}
-
-	/*	Insert into the excludedNodes list all neighbors that
-	 *	have been refusing custody of bundles destined for the
-	 *	destination node.					*/
-
-	for (embElt = sm_list_first(ionwm, terminusNode->embargoes);
-			embElt; embElt = sm_list_next(ionwm, embElt))
-	{
-		embargo = (Embargo *) psp(ionwm, sm_list_data(ionwm, embElt));
-		if (!(embargo->probeIsDue))
-		{
-			/*	(Omit the embargoed node from the list
-			 *	of excluded nodes if it's now time to
-			 *	probe that node for renewed acceptance
-			 *	of bundles destined for this destination
-			 *	node.)					*/
-
-			if (excludeNode(excludedNodes, embargo->nodeNbr))
-			{
-				putErrmsg("Can't note embargo.", NULL);
-				lyst_destroy(excludedNodes);
-				lyst_destroy(bestRoutes);
-				return -1;
-			}
 		}
 	}
 

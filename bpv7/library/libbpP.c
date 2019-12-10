@@ -2718,6 +2718,22 @@ void	destroyBpTimelineEvent(Object timelineElt)
 	sdr_list_delete(sdr, timelineElt, NULL, NULL);
 }
 
+static void	destroyCtDueEvent(Sdr sdr, Bundle *bundle)
+{
+	Object	eventObj;
+	BpEvent	event;
+	Object	trackingElt;
+	Object	bundleObj;
+
+	eventObj = sdr_list_data(sdr, bundle->ctDueElt);
+	sdr_read(sdr, (char *) &event, eventObj, sizeof(BpEvent));
+	trackingElt = event.ref;
+	bundleObj = sdr_list_data(sdr, trackingElt);
+	bp_untrack(bundleObj, trackingElt);
+	sdr_list_delete(sdr, trackingElt, NULL, NULL);
+	destroyBpTimelineEvent(bundle->ctDueElt);
+}
+
 static void	purgeStationsStack(Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
@@ -2895,7 +2911,7 @@ incomplete bundle.", NULL);
 
 	if (bundle.ctDueElt)
 	{
-		bibeCancelCti(bundle.ctDueElt);
+		destroyCtDueEvent(sdr, &bundle);
 	}
 
 	/*	Remove bundle from applications' bundle tracking lists.	*/
@@ -8592,11 +8608,6 @@ static int	discardReceivedBundle(AcqWorkArea *work, BpSrReason srReason)
 	 *	forwarder because it applies to bundles sourced locally
 	 *	as well as to bundles accepted from other endpoints.	*/
 
-/*	Pending definition of another admin record that indicates
- *	"Don't send any more of these to me", we used to send a bogus
- *	custody refusal to signal that the sender should embargo
- *	transmissions to this node.  Add something analogous!		*/
-
 	if (srReason != 0
 	&& (SRR_FLAGS(bundle->bundleProcFlags) & BP_DELETED_RPT))
 	{
@@ -10365,8 +10376,10 @@ int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 		/*	Bundle was un-queued before transmission,
 		 *	so disable custody transfer timer.		*/
 
-		bibeCancelCti(bundle.ctDueElt);
+		destroyCtDueEvent(sdr, &bundle);
 		bundle.ctDueElt = 0;
+		bundle.xmitId = 0;
+		bundle.deadline = 0;
 	}
 
 	return enqueueToLimbo(&bundle, bundleAddr);
@@ -10588,11 +10601,6 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 			putErrmsg("Can't send status report.", NULL);
 		}
 	}
-
-/*	Pending definition of another admin record that indicates
- *	"Don't send any more of these to me", we used to send a bogus
- *	custody refusal to signal that the sender should embargo
- *	transmissions to this node.  Add something analogous!		*/
 
 	bpDelTally(srReason);
 
@@ -11490,8 +11498,10 @@ int	bpReforwardBundle(Object bundleAddr)
 
 	if (bundle.ctDueElt)
 	{
-		bibeCancelCti(bundle.ctDueElt);
+		destroyCtDueEvent(sdr, &bundle);
 		bundle.ctDueElt = 0;
+		bundle.xmitId = 0;
+		bundle.deadline = 0;
 	}
 
 	if (bundle.fwdQueueElt)
@@ -11548,113 +11558,6 @@ static int	defaultSrh(BpDelivery *dlv, unsigned char *cursor,
 	return 0;
 }
 
-#if 0		/*	Note: need to invoke these from stewardship.	*/
-
-static void	noteEmbargo(Bundle *bundle, Object bundleAddr,
-			char *neighborEid)
-{
-	IonVdb		*ionVdb;
-	IonNode		*node;
-	PsmAddress	nextNode;
-	MetaEid		metaEid;
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
-
-	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
-	|| bundle->destination.unicast == 0	/*	Multicast.	*/
-	|| (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
-	{
-		/*	For non-cbhe or multicast bundles we have no
-		 *	node number, so we can't impose routing
-		 *	embargoes.  If the bundle is critical then
-		 *	it was already sent on all possible routes,
-		 *	so there's no point in imposing an embargo.	*/
-
-		return;
-	}
-
-	/*	Reopen the option of routing back to the neighbor
-	 *	from which we orginally received the bundle.		*/
-
-	bundle->returnToSender = 1;
-	sdr_write(getIonsdr(), bundleAddr, (char *) bundle, sizeof(Bundle));
-
-	/*	Find the affected destination node.			*/
-
-	ionVdb = getIonVdb();
-	node = findNode(ionVdb, bundle->destination.c.nodeNbr, &nextNode);
-	if (node == NULL)
-	{
-		return;		/*	Weird, but let it go for now.	*/
-	}
-
-	/*	Figure out who the refusing neighbor is and create a
-	 *	Embargo object to prevent future routing to that
-	 *	neighbor.						*/
-
-	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
-	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
-	{
-		return;		/*	Can't construct an Embargo.	*/
-	}
-
-	oK(addEmbargo(node, metaEid.nodeNbr));
-}
-
-static void	forgetEmbargo(Bundle *bundle, Object bundleAddr,
-			char *neighborEid)
-{
-	IonVdb		*ionVdb;
-	IonNode		*node;
-	PsmAddress	nextNode;
-	MetaEid		metaEid;
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
-
-	if (bundle->destination.cbhe == 0	/*	No node nbr.	*/
-	|| bundle->destination.unicast == 0	/*	Multicast.	*/
-	|| (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY))
-	{
-		/*	For non-cbhe or multicast bundles we have no
-		 *	node number, so we don't have embargoes.  If
-		 *	the bundle is critical then it was already sent
-		 *	on all possible routes, so the transmission
-		 *	should have no effect on any embargo.		*/
-
-		return;
-	}
-
-	/*	Find the affected destination node.			*/
-
-	ionVdb = getIonVdb();
-	node = findNode(ionVdb, bundle->destination.c.nodeNbr, &nextNode);
-	if (node == NULL)
-	{
-		return;		/*	Weird, but let it go for now.	*/
-	}
-
-	/*	If there are no longer any embargoes affecting this
-	 *	destination, don't bother to look for this one.		*/
-
-	if (sm_list_length(getIonwm(), node->embargoes) == 0)
-	{
-		return;
-	}
-
-	/*	Figure out who the reinstated neighbor is and remove
-	 *	any embargo currently registered for that neighbor.	*/
-
-	if (parseEidString(neighborEid, &metaEid, &vscheme, &vschemeElt) == 0
-	|| !metaEid.cbhe)	/*	Non-CBHE, somehow.		*/
-	{
-		return;		/*	Can't locate any Embargo.	*/
-	}
-
-	removeEmbargo(node, metaEid.nodeNbr);
-}
-
-#endif
-
 int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 {
 	Sdr		sdr = getIonsdr();
@@ -11664,7 +11567,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 	vast		recordLen;
 	ZcoReader	reader;
 	unsigned int	bytesToParse;
-	char		headerBuf[10];
+	unsigned char	headerBuf[10];
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	vast		headerLen;
@@ -11723,7 +11626,8 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 		CHKERR(sdr_begin_xn(sdr));
 		recordLen = zco_source_data_length(sdr, dlv.adu);
 		zco_start_receiving(dlv.adu, &reader);
-		bytesToParse = zco_receive_source(sdr, &reader, 10, headerBuf);
+		bytesToParse = zco_receive_source(sdr, &reader, 10,
+				(char *) headerBuf);
 		if (bytesToParse < 2)
 		{
 			putErrmsg("Can't receive admin record header.", NULL);

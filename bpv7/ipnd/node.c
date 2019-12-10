@@ -665,9 +665,6 @@ void	*receiveBeacons(void *attr)
 	setIPNDCtx(ctx);
 
 	printText("[i] receive-thread: Receive beacons thread started.");
-#if 0
-	iblock(SIGUSR1);	/*	Why is this necessary?		*/
-#endif
 
 	lockResource(&ctx->configurationLock);
 	listenSockets = setUpListenSockets(ctx->listenAddresses,
@@ -1049,9 +1046,6 @@ void	*expireNeighbors(void *attr)
 	setIPNDCtx(ctx);
 
 	printText("[i] expire-thread: Expire neighbors thread started.");
-#if 0
-	iblock(SIGUSR1);	/*	Why is this necessary?		*/
-#endif
 
 	/* Purge the neighbors set of node whose beacon intervals have \
 	 * expired.  See ["2.8. Disconnection", paragraph 1, page 16] */

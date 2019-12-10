@@ -380,7 +380,6 @@ typedef struct
 
 	Object		timelineElt;	/*	TTL expire list ref.	*/
 	Object		overdueElt;	/*	Xmit overdue ref.	*/
-	Object		ctDueElt;	/*	CT deadline (Cti) ref.	*/
 	Object		transitElt;	/*	Transit queue ref.	*/
 	Object		fwdQueueElt;	/*	Scheme's queue ref.	*/
 	Object		fragmentElt;	/*	Incomplete's list ref.	*/
@@ -388,6 +387,12 @@ typedef struct
 	Object		trackingElts;	/*	List of app. list refs.	*/
 
 	Object		incompleteElt;	/*	Ref. to Incomplete.	*/
+
+	/*	BIBE custody transfer stuff.				*/
+
+	unsigned int	xmitId;		/*	In CT sequence.		*/
+	time_t		deadline;	/*	Epoch 2000.		*/
+	Object		ctDueElt;	/*	CT deadline (Cti) ref.	*/
 
 	/*	Transmission queue (or limbo list) stuff.		*/
 
@@ -695,7 +700,8 @@ typedef struct
 typedef enum
 {
 	expiredTTL = 1,
-	xmitOverdue = 2
+	xmitOverdue = 2,
+	ctOverdue = 3
 } BpEventType;
 
 typedef struct

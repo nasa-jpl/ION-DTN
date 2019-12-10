@@ -20,28 +20,26 @@ extern "C" {
 
 /*		Functions for bundle-in-bundle encapsulation.		*/
 
-extern void	bibeAdd(char *destEid, unsigned int ttl, unsigned char priority,
+extern void	bibeAdd(char *destEid, unsigned int fwdLatency,
+			unsigned int rtnLatency, unsigned char priority,
 			unsigned char ordinal, unsigned int label,
 			unsigned char flags);
 
-extern void	bibeChange(char *destEid, unsigned int ttl,
-			unsigned char priority, unsigned char ordinal,
-			unsigned int label, unsigned char flags);
+extern void	bibeChange(char *destEid, unsigned int fwdLatency,
+			unsigned int rtnLatency, unsigned char priority,
+			unsigned char ordinal, unsigned int label,
+			unsigned char flags);
 
 extern void	bibeDelete(char *destEid);
 
-extern void	bibeFind(char *destEid, Object *addr, Object *elt,
-			VInduct **vduct);
+extern void	bibeFind(char *destEid, Object *addr, Object *elt);
  
-extern int	bibeHandleBpdu(BpDelivery *dlv, unsigned char *cursor,
-			unsigned int unparsedBytes);
+extern int	bibeHandleBpdu(BpDelivery *dlv);
  
 extern int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes);
  
-extern int	bibeHandleTimeout(Object ctDueElt);
- 
-extern void	bibeCancelCti(Object ctDueElt);
+extern int	bibeHandleTimeout(Object trackingElt);
 
 #ifdef __cplusplus
 }

@@ -954,29 +954,29 @@ int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 
 	switch (target->targetBlockType)
 	{
-		case PrimaryBlk:
+	case PrimaryBlk:
 #if 0	//	This code is yet to be developed.
-			*bytes = wk->bundle.payload.length;
-			retval = bibDefaultCompute(wk->bundle.payload.content,
-					csi_blocksize(suite), suite, context,
-					CSI_SVC_VERIFY);
+		*bytes = wk->bundle.payload.length;
+		retval = bibDefaultCompute(wk->bundle.payload.content,
+				csi_blocksize(suite), suite, context,
+				CSI_SVC_VERIFY);
 #endif
-			break;
+		break;
 
-		case PayloadBlk:
-			*bytes = wk->bundle.payload.length;
-			retval = bibDefaultCompute(wk->bundle.payload.content,
-					csi_blocksize(suite), suite, context,
-					CSI_SVC_VERIFY);
-			break;
+	case PayloadBlk:
+		*bytes = wk->bundle.payload.length;
+		retval = bibDefaultCompute(wk->bundle.payload.content,
+				csi_blocksize(suite), suite, context,
+				CSI_SVC_VERIFY);
+		break;
 
-		default:
-			BIB_DEBUG_ERR("x bibDefaultVerify: Block type %d \
+	default:
+		BIB_DEBUG_ERR("x bibDefaultVerify: Block type %d \
 not supported.", asb->targetBlockType);
-			csi_ctx_free(suite, context);
-			MRELEASE(key.value);
-			BIB_DEBUG_PROC("- bibDefaultVerify--> NULL", NULL);
-			return 0;
+		csi_ctx_free(suite, context);
+		MRELEASE(key.value);
+		BIB_DEBUG_PROC("- bibDefaultVerify--> NULL", NULL);
+		return 0;
 	}
 
 	MRELEASE(key.value);
@@ -1240,10 +1240,8 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		 *	block.						*/
 
 		result = 0;
-#if 0
-		BIB_DEBUG_WARN("i bibOffer: Integrity for type %d not \
+		BIB_DEBUG_WARN("i bibOffer: Integrity for type %d not yet \
 supported.", asb.targetBlockType);
-#endif
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
 	}

@@ -229,7 +229,7 @@ priority: %c  ordinal: %c  count: " UVAST_FIELDSPEC, destinationEid,
 priority: %c  ordinal: %c  data label: %lu  count: " UVAST_FIELDSPEC,
 			destinationEid, bcla->fwdLatency, bcla->rtnLatency,
 			bcla->classOfService, bcla->ancillaryData.ordinal,
-			bcla->ancilllaryData.dataLabel, bcla->count);
+			bcla->ancillaryData.dataLabel, bcla->count);
 	}
 
 	printText(buffer);
@@ -238,9 +238,6 @@ priority: %c  ordinal: %c  data label: %lu  count: " UVAST_FIELDSPEC,
 static void	infoBcla(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	MetaEid		meid;
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
 	Object		obj;
 	Object		elt;
 	Bcla		bcla;
@@ -286,7 +283,6 @@ static void	executeInfo(int tokenCount, char **tokens)
 static void	listBclas(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	PsmPartition	ionwm = getIonwm();
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
@@ -301,7 +297,7 @@ static void	listBclas(int tokenCount, char **tokens)
 	}
 	else
 	{
-		sdr_read(sdr, (Scheme *) &scheme, sdr_list_data(sdr,
+		sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 				vscheme->schemeElt), sizeof(Scheme));
 		for (elt = sdr_list_first(sdr, scheme.bclas); elt;
 				elt = sdr_list_next(sdr, elt))
@@ -325,7 +321,7 @@ static void	executeList(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bcla") == 0)
 	{
-		listSchemes(tokenCount, tokens);
+		listBclas(tokenCount, tokens);
 		return;
 	}
 
@@ -361,16 +357,10 @@ static void	switchEcho(int tokenCount, char **tokens)
 
 static int	processLine(char *line, int lineLength, int *rc)
 {
-	int		tokenCount;
-	char		*cursor;
-	int		i;
-	char		*tokens[9];
-	struct timeval	done_time;
-	struct timeval	cur_time;
-	char		buffer[80];
-
-	int max = 0;
-	int count = 0;
+	int	tokenCount;
+	char	*cursor;
+	int	i;
+	char	*tokens[9];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)

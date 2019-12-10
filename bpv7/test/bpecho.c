@@ -13,10 +13,6 @@
 
 #define ADU_LEN	(1024)
 
-#if 0
-#define	CYCLE_TRACE
-#endif
-
 typedef struct
 {
 	BpSAP		sap;

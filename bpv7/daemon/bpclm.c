@@ -281,79 +281,6 @@ static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
 	}
 }
 
-static int	checkEmbargo(VPlan *vplan, Bundle *bundle, Object bundleObj)
-{
-	PsmPartition	wm = getIonwm();
-	IonNode		*destNode;
-	PsmAddress	nextNode;
-	PsmAddress	elt;
-	PsmAddress	nextEmbargo;
-	Embargo		*embargo;
-
-	/*	If this neighbor has begun refusing bundles for the
-	 *	indicated destination since this bundle was enqueued
-	 *	for transmission, re-forward the bundle on a different
-	 *	route (if possible).  Note that we can only track
-	 *	refusals issued by neighbors identified by CBHE-
-	 *	conformant endpoint IDs, for destinations that are
-	 *	identified by CBHE-conformant unicast endpoint IDs.	*/
-
-	if (vplan->neighborNodeNbr == 0)
-	{
-		return 0;		/*	No applicable embargo.	*/
-	}
-
-	if (!(bundle->destination.schemeCodeNbr == 2))
-	{
-		return 0;		/*	No applicable embargo.	*/
-	}
-
-	destNode = findNode(getIonVdb(), bundle->destination.ssp.ipn.nodeNbr,
-			&nextNode);
-	if (destNode == NULL)
-	{
-		return 0;		/*	No applicable embargo.	*/
-	}
-
-	/*	Look for this neighbor in the list of neighboring nodes
-	 *	identified by CBHE-conformant endpoint IDs that have
-	 *	been refusing bundles for this destination.		*/
-
-	for (elt = sm_list_first(wm, destNode->embargoes); elt;
-			elt = nextEmbargo)
-	{
-		nextEmbargo = sm_list_next(wm, elt);
-		embargo = (Embargo *) psp(wm, sm_list_data(wm, elt));
-		if (embargo->nodeNbr < vplan->neighborNodeNbr)
-		{
-			continue;
-		}
-
-		if (embargo->nodeNbr == vplan->neighborNodeNbr)
-		{
-			break;
-		}
-
-		nextEmbargo = 0;	/*	No more to check.	*/
-	}
-
-	if (elt == 0)
-	{
-		return 0;		/*	No applicable embargo.	*/
-	}
-
-	/*	This neighbor has been refusing custody of bundles
-	 *	for this destination.					*/
-
-	if (bpReforwardBundle(bundleObj) < 0)
-	{
-		putErrmsg("Embargo reforward failed.", NULL);
-		return -1;
-	}
-
-	return 1;			/*	Embargo applied.	*/
-}
-
 static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 			int classReqd, ClProtocol *protocol, Outduct *outduct)
 {
@@ -513,13 +440,12 @@ int	main(int argc, char *argv[])
 
 	/*	Main loop: exercise rate control as necessary, then
 	 *	get next bundle that is bound for this neighboring
-	 *	node, impose embargo check, select outduct for
-	 *	transmission of this bundle to this node, fragment
-	 *	the bundle if necessary, clear any untransmitted
-	 *	bundle out of the outduct's buffer (exactly as if
-	 *	convergence-layer transmission had failed), insert
-	 *	the bundle into that buffer, and give the semaphore
-	 *	for that Outduct.					*/
+	 *	node, select outduct for transmission of this bundle
+	 *	to this node, fragment the bundle if necessary, clear
+	 *	any untransmitted bundle out of the outduct's buffer
+	 *	(exactly as if convergence-layer transmission had
+	 *	failed), insert the bundle into that buffer, and give
+	 *	the semaphore for that Outduct.				*/
 
 	writeMemoNote("[i] bpclm is running", nodeName);
 	while (running)
@@ -566,22 +492,6 @@ int	main(int argc, char *argv[])
 
 		bundleObj = sdr_list_data(sdr, bundleElt);
 		sdr_stage(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
-
-		/*	Check for embargo on bundles like this one.	*/
-
-		if (checkEmbargo(vplan, &bundle, bundleObj) == 1)
-		{
-			/*	bpReforwardBundle has already removed
-			 *	bundle from issuance queue.		*/
-
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Failed handling embargo.", nodeName);
-				running = 0;	/*	Stop daemon.	*/
-			}
-
-			continue;		/*	Try again.	*/
-		}
 
 		/*	Allocate transmittable bundle to an outduct.	*/
 

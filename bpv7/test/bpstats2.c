@@ -22,11 +22,12 @@ static int needShutdown = 0;
 
 const char usage[] = 
 "Usage: bpstats2 <source EID> [<default dest EID>] [ct]\n\n"
-"Replies to any bundles it receives with a bundle containing the statistics\n"
-"of the BPA to which it is attached.\n\n"
-"If a default destination EID is specified, then statistics bundles can be\n"
-"triggered to be sent to that EID by sending SIGUSR1 to bpstats2.\n"
-"If ct specified, the bundles are sent with custody transfer.\n";
+"Responds to receipt of any bundle by replying with a bundle \n"
+"containing the statistics of the BPA to which it is attached.\n\n"
+"Alternatively, if and only if a default destination EID is specified, \n"
+"responds to SIGUSR1 by sending to that EID a bundle \n"
+"containing the statistics of the BPA to which it is attached.\n\n"
+"If ct is specified, the statistics bundles are sent by custody transfer.\n";
 
 static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 {
