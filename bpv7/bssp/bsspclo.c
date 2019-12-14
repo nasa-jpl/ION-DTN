@@ -61,42 +61,50 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 	for (elt = lyst_first(streams); elt; elt = lyst_next(elt))
 	{
 		stream = lyst_data(elt);
-		if (stream->source.ssp.ipn.nodeNbr < bundle->id.source.ssp.ipn.nodeNbr)
+		if (stream->source.ssp.ipn.nodeNbr
+				< bundle->id.source.ssp.ipn.nodeNbr)
 		{
 			continue;
 		}
 
-		if (stream->source.ssp.ipn.nodeNbr > bundle->id.source.ssp.ipn.nodeNbr)
+		if (stream->source.ssp.ipn.nodeNbr
+				> bundle->id.source.ssp.ipn.nodeNbr)
 		{
 			break;
 		}
 
-		if (stream->source.ssp.ipn.serviceNbr < bundle->id.source.ssp.ipn.serviceNbr)
+		if (stream->source.ssp.ipn.serviceNbr
+				< bundle->id.source.ssp.ipn.serviceNbr)
 		{
 			continue;
 		}
 
-		if (stream->source.ssp.ipn.serviceNbr > bundle->id.source.ssp.ipn.serviceNbr)
+		if (stream->source.ssp.ipn.serviceNbr
+				> bundle->id.source.ssp.ipn.serviceNbr)
 		{
 			break;
 		}
 
-		if (stream->dest.ssp.ipn.nodeNbr < bundle->destination.ssp.ipn.nodeNbr)
+		if (stream->dest.ssp.ipn.nodeNbr
+				< bundle->destination.ssp.ipn.nodeNbr)
 		{
 			continue;
 		}
 
-		if (stream->dest.ssp.ipn.nodeNbr > bundle->destination.ssp.ipn.nodeNbr)
+		if (stream->dest.ssp.ipn.nodeNbr
+				> bundle->destination.ssp.ipn.nodeNbr)
 		{
 			break;
 		}
 
-		if (stream->dest.ssp.ipn.serviceNbr < bundle->destination.ssp.ipn.serviceNbr)
+		if (stream->dest.ssp.ipn.serviceNbr
+				< bundle->destination.ssp.ipn.serviceNbr)
 		{
 			continue;
 		}
 
-		if (stream->dest.ssp.ipn.serviceNbr > bundle->destination.ssp.ipn.serviceNbr)
+		if (stream->dest.ssp.ipn.serviceNbr
+				> bundle->destination.ssp.ipn.serviceNbr)
 		{
 			break;
 		}
@@ -182,7 +190,6 @@ int	main(int argc, char *argv[])
 	unsigned char	*buffer;
 	Lyst		streams;
 	Bundle		bundleImage;
-	unsigned int	bundleLength;
 
 	if (ductName == NULL)
 	{
@@ -272,8 +279,7 @@ int	main(int argc, char *argv[])
 			continue;	/*	Get next bundle.	*/
 		}
 
-		if (decodeBundle(sdr, bundleZco, buffer, &bundleImage,
-				&bundleLength) < 0)
+		if (decodeBundle(sdr, bundleZco, buffer, &bundleImage) < 0)
 		{
 			putErrmsg("Can't decode bundle ZCO.", NULL);
 			CHKERR(sdr_begin_xn(sdr));

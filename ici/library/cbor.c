@@ -25,9 +25,9 @@ static void	encodeFirstByte(unsigned char **cursor, int majorType,
 static int	encodeInteger(uvast value, int *additionalInfo,
 			unsigned char *cursor)
 {
-	uvast	residue;
-	char	bytes[8];
-	int	first;
+	uvast		residue;
+	unsigned char	bytes[8];
+	int		first;
 
 	if (value < 24)
 	{
@@ -322,6 +322,7 @@ int	cbor_encode_array_open(uvast size, unsigned char **cursor)
 	if (size == ((uvast) -1))
 	{
 		additionalInfo = 31;	/*	Indefinite-size array.	*/
+		length = 0;
 	}
 	else
 	{
@@ -419,8 +420,8 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			sum = **cursor;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
+			*value = sum;
 			*bytesBuffered -= 2;
 			return 2;
 		}
@@ -440,14 +441,12 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			sum = **cursor;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
+			*value = sum;
 			*bytesBuffered -= 4;
 			return 4;
 		}
@@ -467,26 +466,20 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			sum = **cursor;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			*value = sum;
 			*cursor += 1;
+			*value = sum;
 			*bytesBuffered -= 8;
 			return 8;
 		}
@@ -661,6 +654,26 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor,
 		return 0;
 	}
 
+	if (additionalInfo == 31)	/*	Indefinite length.	*/
+	{
+		if (*size == 0			/*	Any size okay.	*/
+		|| *size == ((uvast) -1))	/*	Req indefinite.	*/
+		{
+			*size = ((uvast) -1);
+			return 1;
+		}
+	}
+
+	/*	This is an array of definite length.			*/
+
+	if (*size == ((uvast) -1))	/*	Req. indefinite-length.	*/
+	{
+		writeMemo("[?] CBOR array size is not indefinite.");
+		return 0;
+	}
+
+	/*	An array of definite length is expected.		*/
+
 	length = decodeInteger(&arrayLength, 0, additionalInfo, cursor,
 			bytesBuffered);
 	if (length < 0)
@@ -671,35 +684,15 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor,
 
 	if (*size == 0)			/*	Any size is okay.	*/
 	{
-		if (additionalInfo == 31)
-		{
-			*size = ((uvast) -1);
-		}
-		else
-		{
-			*size = arrayLength;
-		}
-
+		*size = arrayLength;
 		return 1 + length;
 	}
 
-
-	if (*size == ((uvast) -1))	/*	Req. indefinite-length.	*/
-	{
-		if (additionalInfo == 31)
-		{
-			return 1 + length;
-		}
-
-		writeMemo("[?] CBOR array size is not indefinite.");
-		return 0;
-	}
-
-	/*	Definite-length array is required.			*/
+	/*	Array size must match.					*/
 
 	if (arrayLength == *size)
 	{
-		return 1 + length;
+		return 1 + length;	/*	Size is correct.	*/
 	}
 
 	writeMemoNote("[?] CBOR array size is wrong", itoa(arrayLength));

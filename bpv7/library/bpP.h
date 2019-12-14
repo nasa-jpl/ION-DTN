@@ -1427,7 +1427,7 @@ extern Object		insertBpTimelineEvent(BpEvent *newEvent);
 extern void		destroyBpTimelineEvent(Object timelineElt);
 
 extern int		decodeBundle(Sdr sdr, Object zco, unsigned char *buf,
-				Bundle *image, unsigned int *bundleLength);
+				Bundle *image);
 extern int		findBundle(char *sourceEid, BpTimestamp *creationTime,
 				unsigned int fragmentOffset,
 				unsigned int fragmentLength,

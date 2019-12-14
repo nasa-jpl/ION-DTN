@@ -524,6 +524,7 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	istrcpy(vscheme->name, scheme.name, sizeof vscheme->name);
 	vscheme->nameLength = scheme.nameLength;
 	vscheme->endpoints = sm_list_create(bpwm);
+	vscheme->codeNumber = scheme.codeNumber;
 	if (vscheme->endpoints == 0)
 	{
 		oK(sm_list_delete(bpwm, vschemeElt, NULL, NULL));
@@ -2104,12 +2105,16 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	case ipn:
 	case imc:
 		if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u",
-			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2
-		|| (metaEid->elementNbr == 0 && metaEid->serviceNbr == 0))
+			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
 		{
 			*(metaEid->colon) = ':';
 			writeMemoNote("[?] Malformed URI", eidString);
 			return 0;
+		}
+
+		if (metaEid->elementNbr == 0 && metaEid->serviceNbr == 0)
+		{
+			metaEid->nullEndpoint = 1;
 		}
 
 		return 1;
@@ -3132,9 +3137,22 @@ too long", admAppCmd);
 
 	schemeBuf.forwardQueue = sdr_list_create(sdr);
 	schemeBuf.endpoints = sdr_list_create(sdr);
-	if (strcmp(schemeName, "imc") != 0)	/*	Not multicast!	*/
+
+	/*	Code numbers are predefined for three URI schemes.	*/
+
+	if (strcmp(schemeName, "dtn") == 0)
 	{
+		schemeBuf.codeNumber = dtn;
 		schemeBuf.bclas = sdr_list_create(sdr);
+	}
+	else if (strcmp(schemeName, "ipn") == 0)
+	{
+		schemeBuf.codeNumber = ipn;
+		schemeBuf.bclas = sdr_list_create(sdr);
+	}
+	else if (strcmp(schemeName, "imc") == 0)
+	{
+		schemeBuf.codeNumber = imc;
 	}
 
 	addr = sdr_malloc(sdr, sizeof(Scheme));
@@ -7507,7 +7525,16 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		break;
 
 	case ipn:
-		istrcpy(eidString, "ipn:", sizeof eidString);
+		arrayLength = 2;	/*	Decode array of 2.	*/
+		length = cbor_decode_array_open(&arrayLength, cursor,
+				bytesRemaining);
+       		if (length < 1)
+		{
+			writeMemo("[?] Can't decode ipn SSP.");
+			return 0;
+		}
+
+		totalLength += length;
 
 		/*	Acquire the node number.			*/
 
@@ -7543,12 +7570,21 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		serviceNbr = uvtemp;
-		isprintf(eidString + 4, sizeof eidString - 4,
-				UVAST_FIELDSPEC ".%lu", nodeNbr, serviceNbr);
+		isprintf(eidString, sizeof eidString, "ipn:" UVAST_FIELDSPEC
+".%lu", nodeNbr, serviceNbr);
 		break;
 
 	case imc:
-		istrcpy(eidString, "imc:", sizeof eidString);
+		arrayLength = 2;	/*	Decode array of 2.	*/
+		length = cbor_decode_array_open(&arrayLength, cursor,
+				bytesRemaining);
+       		if (length < 1)
+		{
+			writeMemo("[?] Can't decode imc SSP.");
+			return 0;
+		}
+
+		totalLength += length;
 
 		/*	Acquire the group number.			*/
 
@@ -7584,8 +7620,8 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		serviceNbr = uvtemp;
-		isprintf(eidString + 4, sizeof eidString - 4,
-				UVAST_FIELDSPEC ".%lu", groupNbr, serviceNbr);
+		isprintf(eidString, sizeof eidString, "imc:" UVAST_FIELDSPEC
+".%lu", groupNbr, serviceNbr);
 		break;
 
 	default:
@@ -8058,7 +8094,7 @@ requests prohibited for anonymous bundle.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");
-			return 0;
+//			return 0;
 		}
 
 		unparsedBytes -= length;
@@ -8182,7 +8218,7 @@ undefined block.");
 	crcType = uvtemp;
 	itemsRemaining -= 1;
 
-	/*	Acquire size of block-type-specific data.		*/
+	/*	Acquire byte string tag for block-type-specific data.	*/
 
 	uvtemp = (uvast) -1;
 	if (cbor_decode_byte_string(NULL, &uvtemp, &cursor, &unparsedBytes) < 1)
@@ -8330,7 +8366,7 @@ undefined block.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for extension block.");
-			return 0;
+//			return 0;
 		}
 
 		unparsedBytes -= length;
@@ -8383,7 +8419,7 @@ static int	checkPayloadCrc(AcqWorkArea *work)
 	if (computedCrc != extractedCrc)
 	{
 		writeMemo("[?] CRC check failed for payload block.");
-		return 0;
+//		return 0;
 	}
 
 	return crcSize;
@@ -8413,7 +8449,8 @@ static int	acqFromWork(AcqWorkArea *work)
 		return 0;
 	}
 
-	work->bundleLength += bytesParsed;
+	work->headerLength = bytesParsed;
+	work->bundleLength = bytesParsed;
 	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
 
 	/*	Bundle structure initialization.			*/
@@ -9738,11 +9775,11 @@ static int	catenateBundle(Bundle *bundle)
 
 	if (bundleIsFragment)
 	{
-		uvtemp = 12;
+		uvtemp = 11;
 	}
 	else
 	{
-		uvtemp = 10;
+		uvtemp = 9;
 	}
 
 	oK(cbor_encode_array_open(uvtemp, &cursor));
@@ -9866,14 +9903,14 @@ static int	catenateBundle(Bundle *bundle)
 	uvtemp = bundle->payload.crcType;
 	oK(cbor_encode_integer(uvtemp, &cursor2));
 
-	/*	Length of payload content.				*/
+	/*	Payload byte string (CBOR header only at this point).	*/
 
-	uvtemp = blk.dataLength;
+	uvtemp = bundle->payload.length;
 	oK(cbor_encode_byte_string(NULL, uvtemp, &cursor2));
 
 	/*	Done with payload block header.				*/
 
-	payloadBlockHeaderLength = cursor - payloadBuffer;
+	payloadBlockHeaderLength = cursor2 - payloadBuffer;
 
 	/*	Prepend payload block header to payload ZCO.		*/
 
@@ -9898,7 +9935,7 @@ static int	catenateBundle(Bundle *bundle)
 			return -1;
 		}
 
-		/*	Append the computed CRC to the payload block.	*/
+		/*	Append the computed CRC to the payload ZCO.	*/
 
 		if (bundle->payload.crcType == X25CRC16)
 		{
@@ -9920,14 +9957,14 @@ static int	catenateBundle(Bundle *bundle)
 		}
 	}
 
-	/*	Prepend bundle header (all blocks) to payload block.	*/
+	/*	Prepend bundle header (all other blocks) to payload ZCO.*/
 
 	oK(zco_prepend_header(sdr, bundle->payload.content, (char *) buffer,
 			totalHeaderLength));
 	MRELEASE(buffer);
 
 	/*	Terminate indefinite array by appending break character
-	 *	to the payload block (now the concatenated bundle).	*/
+	 *	to the payload ZCO (now the concatenated bundle).	*/
 
 	cursor4 = breakChar;
 	oK(cbor_encode_break(&cursor4));
@@ -10891,15 +10928,15 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 }
 
 static int	nextBlock(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
-			int *bytesBuffered, int bytesParsed)
+			int *bytesBuffered, int blockLength)
 {
 	int	bytesToReceive;
 	int	bytesReceived;
 
-	/*	Shift buffer left by length of prior buffer.		*/
+	/*	Shift buffer left by length of prior block.		*/
 
-	*bytesBuffered -= bytesParsed;
-	memmove(buffer, buffer + bytesParsed, *bytesBuffered);
+	*bytesBuffered -= blockLength;
+	memmove(buffer, buffer + blockLength, *bytesBuffered);
 
 	/*	Now read from ZCO to fill the buffer space that was
 	 *	vacated.						*/
@@ -10917,135 +10954,115 @@ static int	nextBlock(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	return 0;
 }
 
-static int	bufAdvance(int length, unsigned int *bundleLength,
-			unsigned char **cursor, unsigned char *endOfBuffer)
-{
-	*cursor += length;
-	if (*cursor > endOfBuffer)
-	{
-		writeMemoNote("[?] Bundle truncated, possibly non-bundle data",
-				itoa(endOfBuffer - *cursor));
-		*bundleLength = 0;
-	}
-	else
-	{
-		*bundleLength += length;
-	}
-
-	return *bundleLength;
-}
-
 static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
-			int bytesBuffered, Bundle *image,
-			unsigned int *bundleLength)
+			int bytesBuffered, Bundle *image)
 {
-	unsigned char	*endOfBuffer;
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		arrayLength;
 	int		length;
 	uvast		uvtemp;
+	unsigned int	blockLength;
 	BpCrcType	crcType;
 	BpBlockType	blkType;
 	unsigned int	blockDataLength;
 
 	cursor = buffer;
-	endOfBuffer = buffer + bytesBuffered;
+	unparsedBytes = bytesBuffered;
 
-	/*	Skip over initial CBOR array tag.			*/
+	/*	Skip over bundle array tag.				*/
 
 	arrayLength = 0;
-	length = cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes);
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
+	}
+
+	/*	Skip over primary block array tag.			*/
+
+	arrayLength = 0;
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 0)
+	{
+		return -1;
 	}
 
 	/*	Skip over version number.				*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
 	/*	Parse out the bundle processing flags.			*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	image->bundleProcFlags = uvtemp;
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
+
+	image->bundleProcFlags = uvtemp;
 
 	/*	Parse out the CRC type.					*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	crcType = uvtemp;
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
+
+	crcType = uvtemp;
 
 	/*	Extract destination EID.				*/
 
-	length = acquireEid(&(image->destination), &cursor, &unparsedBytes);
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (acquireEid(&(image->destination), &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
 	/*	Extract source EID.					*/
 
-	length = acquireEid(&(image->id.source), &cursor, &unparsedBytes);
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (acquireEid(&(image->id.source), &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
 	/*	Extract report-to EID.					*/
 
-	length = acquireEid(&(image->reportTo), &cursor, &unparsedBytes);
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (acquireEid(&(image->reportTo), &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
 	/*	Skip over creation timestamp array tag.			*/
 
 	arrayLength = 2;
-	length = cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes);
-	CHKZERO(length > 0);
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
 	/*	Get creation timestamp seconds.				*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	image->id.creationTime.seconds = uvtemp;
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
+
+	image->id.creationTime.seconds = uvtemp;
 
 	/*	Get creation timestamp count.				*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	image->id.creationTime.count = uvtemp;
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
-	/*	Get lifetime.						*/
+	image->id.creationTime.count = uvtemp;
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	image->timeToLive = uvtemp;
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	/*	Skip over lifetime.					*/
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
 	/*	If bundle is not a fragment, we're done.		*/
@@ -11053,26 +11070,32 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 	if ((image->bundleProcFlags & BDL_IS_FRAGMENT) == 0)
 	{
 		image->id.fragmentOffset = 0;
-		image->totalAduLength = 0;
+		image->payload.length = 0;
 		return 0;	/*	All bundle ID info is known.	*/
 	}
 
 	/*	Bundle is a fragment, so fragment offset and length
 	 *	(which is payload length) must be recovered in order
-	 *	to have the complete ID of the bundle.			*/
+	 *	to have the complete ID of the bundle.
+	 *
+	 *	First get fragment offset and skip over the rest of
+	 *	the primary block.  Then skip over all canonical blocks
+	 *	until have got the payload block.  At that point the
+	 *	payload length is known and the fragmentary bundle
+	 *	can be retrieved.					*/
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	image->id.fragmentOffset = uvtemp;
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
-	length = cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes);
-	image->totalAduLength = uvtemp;
-	if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+	image->id.fragmentOffset = uvtemp;
+
+	/*	Skip over total ADU length.				*/
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
-		return 0;
+		return -1;
 	}
 
 	/*	Must also skip over primary block's CRC, if any.	*/
@@ -11088,90 +11111,108 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 			length = 5;
 		}
 
-		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+		if (length > unparsedBytes)
 		{
-			return 0;
+			writeMemo("[?] Can't decode outbound bundle, no CRC.");
+			return -1;
 		}
+
+		cursor += length;
+		unparsedBytes -= length;
 	}
 
-	/*	At this point, cursor has been advanced to first
-	 *	byte after the end of the primary block.  Now skip
-	 *	over other blocks until payload length is known.	*/
+	/*	At this point, cursor has (in theory) been advanced
+	 *	to first byte in buffer after the end of the primary
+	 *	block.  (If there are still unparsed bytes, ignore
+	 *	them; an implementation error.)	 Now skip over other
+	 *	blocks until payload length is known.			*/
 
 	while (1)
 	{
-		if (nextBlock(sdr, reader, buffer, &bytesBuffered,
-				cursor - buffer) < 0)
+		if (unparsedBytes > 0)
+		{
+			writeMemo("[?] Extra bytes at end of block, ignored.");
+			cursor += unparsedBytes;
+			unparsedBytes = 0;
+		}
+
+		/*	Move any remaining unparsed data in the buffer
+		 *	to the front of the buffer (overwriting the
+		 *	block that we just parsed), and fill up the
+		 *	buffer with more data from the ZCO so that
+		 *	the entire next block is known to be in the
+		 *	front of the buffer.				*/
+
+		blockLength = cursor - buffer;
+		if (nextBlock(sdr, reader, buffer, &bytesBuffered, blockLength)
+				< 0)
 		{
 			return -1;
 		}
 
 		if (bytesBuffered < 1)
 		{
-			return 0;	/*	No more blocks.		*/
+			return -1;	/*	No more blocks.		*/
 		}
 
 		cursor = buffer;
-		endOfBuffer = buffer + bytesBuffered;
+		unparsedBytes = bytesBuffered;
 
-		/*	Skip over initial CBOR array tag.		*/
+		/*	Skip over canonical block array tag.		*/
 
 		arrayLength = 0;
-		length = cbor_decode_array_open(&arrayLength, &cursor,
-				&unparsedBytes);
-		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+		if (cbor_decode_array_open(&arrayLength, &cursor,
+				&unparsedBytes) < 0)
 		{
-			return 0;
+			return -1;
 		}
 
 		/*	Extract blockType.				*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes);
-		blkType = uvtemp;
-		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 0)
 		{
-			return 0;
+			return -1;
 		}
+
+		blkType = uvtemp;
 
 		/*	Skip over block number.				*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes);
-		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 0)
 		{
-			return 0;
+			return -1;
 		}
 
 		/*	Skip over block processing flags.		*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes);
-		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 0)
 		{
-			return 0;
+			return -1;
 		}
 
 		/*	Parse out the CRC type.				*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes);
-		crcType = uvtemp;
-		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 0)
 		{
-			return 0;
+			return -1;
 		}
+
+		crcType = uvtemp;
 
 		/*	Get length of block-type-specific data.		*/
 
-		length = cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes);
-		blockDataLength = uvtemp;
-		if (bufAdvance(length, bundleLength, &cursor, endOfBuffer) == 0)
+		uvtemp = (uvast) -1;
+		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+				&unparsedBytes) < 0)
 		{
-			return 0;
+			return -1;
 		}
 
+		blockDataLength = uvtemp;
 		if (blkType == PayloadBlk)
 		{
 			image->payload.length = blockDataLength;
@@ -11181,11 +11222,15 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		/*	Not the payload block, so we have to keep
 		 *	scanning.  Skip over block-type-specific data.	*/
 
-		if (bufAdvance(blockDataLength, bundleLength, &cursor,
-				endOfBuffer) == 0)
+		if (blockDataLength > unparsedBytes)
 		{
-			return 0;
+			writeMemo("[?] Can't decode outbound bundle, extension \
+block is too long.");
+			return -1;
 		}
+
+		cursor += blockDataLength;
+		unparsedBytes -= blockDataLength;
 
 		/*	Must also skip over block's CRC, if any.	*/
 
@@ -11200,24 +11245,26 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 				length = 5;
 			}
 
-			if (bufAdvance(length, bundleLength, &cursor,
-						endOfBuffer) == 0)
+			if (length > unparsedBytes)
 			{
-				return 0;
+				writeMemo("[?] Can't decode outbound bundle, \
+no CRC.");
+				return -1;
 			}
+
+			cursor += length;
+			unparsedBytes -= length;
 		}
 	}
 }
 
-int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image,
-		unsigned int *bundleLength)
+int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image)
 {
 	ZcoReader	reader;
 	int		bytesBuffered;
+	int		result;
 
-	CHKERR(sdr && zco && buffer && image && bundleLength); 
-	*bundleLength = 0;	/*	Initialize to default.		*/
-	memset((char *) image, 0, sizeof(Bundle));
+	CHKERR(sdr && zco && buffer && image); 
 
 	/*	This is an outbound bundle, so the primary block is
 	 *	in a capsule and we use zco_transmit to re-read it.	*/
@@ -11231,12 +11278,13 @@ int	decodeBundle(Sdr sdr, Object zco, unsigned char *buffer, Bundle *image,
 		/*	Guessing this memory is no longer occupied
 		 *	by a ZCO.  Note decoding failure.		*/
 
-		return sdr_end_xn(sdr);
+		sdr_exit_xn(sdr);
+		return -1;
 	}
 
-	oK(decodeHeader(sdr, &reader, buffer, bytesBuffered, image,
-			bundleLength));
-	return sdr_end_xn(sdr);
+	result = decodeHeader(sdr, &reader, buffer, bytesBuffered, image);
+	sdr_exit_xn(sdr);
+	return result;
 }
 
 int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
@@ -11244,7 +11292,6 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 	Sdr		sdr = getIonsdr();
 	unsigned char	*buffer;
 	Bundle		image;
-	unsigned int	bundleLength;
 	int		result;
 	char		*sourceEid;
 
@@ -11254,28 +11301,22 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
 	if (buffer == NULL)
 	{
-		putErrmsg("Can't create buffer for reading bundle ID.", NULL);
+		putErrmsg("Can't create buffer for reading blocks.", NULL);
 		return -1;
 	}
 
-	if (decodeBundle(sdr, bundleZco, buffer, &image, &bundleLength) < 0)
+	memset((char *) & image, 0, sizeof image);
+	result = decodeBundle(sdr, bundleZco, buffer, &image);
+	MRELEASE(buffer);
+       	if (result < 0)
 	{
-		MRELEASE(buffer);
 		putErrmsg("Can't extract bundle ID.", NULL);
 		return -1;
 	}
 
-	if (bundleLength == 0)		/*	Can't get bundle ID.	*/
-	{
-		MRELEASE(buffer);
-		return 0;
-	}
-
 	/*	Recreate the source EID.				*/
 
-	result = readEid(&image.id.source, &sourceEid);
-	MRELEASE(buffer);
-	if (result < 0)
+	if (readEid(&image.id.source, &sourceEid) < 0)
 	{
 		putErrmsg("Can't recover source EID string.", NULL);
 		return -1;
