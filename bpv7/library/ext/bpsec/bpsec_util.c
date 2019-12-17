@@ -146,7 +146,7 @@ void	bpsec_releaseOutboundTlvs(Sdr sdr, Object items)
 {
 	Object	elt;
 	Object	obj;
-		OBJ_POINTER(sci_outbound_tlv, tlv);
+		OBJ_POINTER(BpsecOutboundTlv, tlv);
 
 	CHKVOID(sdr);
 	if (items)
@@ -156,7 +156,7 @@ void	bpsec_releaseOutboundTlvs(Sdr sdr, Object items)
 			obj = sdr_list_data(sdr, elt);
 			if (obj)
 			{
-				GET_OBJ_POINTER(sdr, sci_outbound_tlv, tlv,
+				GET_OBJ_POINTER(sdr, BpsecOutboundTlv, tlv,
 						obj);
 				sdr_free(sdr, tlv->value);
 				sdr_free(sdr, obj);
@@ -234,8 +234,8 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	BpsecOutboundTarget	newTarget;
 	Object			elt2;
 	Object			obj2;
-	sci_outbound_tlv	oldTlv;
-	sci_outbound_tlv	newTlv;
+	BpsecOutboundTlv	oldTlv;
+	BpsecOutboundTlv	newTlv;
 	char			*valBuf;
 
 	BPSEC_DEBUG_PROC("+ bpsec_copy(0x%x, 0x%x)", (unsigned long) newBlk,
@@ -383,12 +383,12 @@ int	bpsec_getOutboundTarget(Sdr sdr, Object targets,
 
 static int	appendItem(Sdr sdr, Object items, sci_inbound_tlv *itlv)
 {
-	sci_outbound_tlv	otlv;
+	BpsecOutboundTlv	otlv;
 	Object			tlvAddr;
 
 	otlv.id = itlv->id;
 	otlv.length = itlv->length;
-	tlvAddr = sdr_malloc(sdr, sizeof(sci_outbound_tlv));
+	tlvAddr = sdr_malloc(sdr, sizeof(BpsecOutboundTlv));
 	if (tlvAddr == 0
 	|| ((otlv.value = sdr_malloc(sdr, otlv.length)) == 0)
 	|| sdr_list_insert_last(sdr, items, tlvAddr) == 0)
@@ -399,7 +399,7 @@ length %d.", itlv.length);
 	}
 
 	sdr_write(sdr, otlv.value, (char *) (itlv->value), otlv.length);
-	sdr_write(sdr, tlvAddr, (char *) &otlv, sizeof(sci_outbound_tlv));
+	sdr_write(sdr, tlvAddr, (char *) &otlv, sizeof(BpsecOutboundTlv));
 	return 0;
 }
 
@@ -409,7 +409,7 @@ length %d.", itlv.length);
  *
  * \par Purpose: This utility function writes the parms in an
  *		 sci_inbound_parms structure to the SDR heap as
- *		 sci_outbound_tlv structures, appending them to the
+ *		 BpsecOutboundTlv structures, appending them to the
  *		 parmsData sdrlist of a bpsec outbound ASB.
  *
  * \par Date Written:  2/27/2016
@@ -1287,7 +1287,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	addr;
-		OBJ_POINTER(sci_outbound_tlv, tv);
+		OBJ_POINTER(BpsecOutboundTlv, tv);
 
 	CHKVOID(items);
 	CHKVOID(tv);
@@ -1296,7 +1296,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 			elt = sdr_list_next(sdr, elt))
 	{
 		addr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, sci_outbound_tlv, tv, addr);
+		GET_OBJ_POINTER(sdr, BpsecOutboundTlv, tv, addr);
 		if (tv->id == itemNeeded)
 		{
 			*tvp = addr;
@@ -1817,7 +1817,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	LystElt		elt3;
 	LystElt		elt4;
 	unsigned char	*cursor2;
-			OBJ_POINTER(sci_outbound_tlv, tv);
+			OBJ_POINTER(BpsecOutboundTlv, tv);
 
 	BPSEC_DEBUG_PROC("+ bpsec_serializeASB (%x, %x)",
 			(unsigned long) length, (unsigned long) asb);
@@ -1908,7 +1908,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		for (elt2 = sdr_list_first(sdr, target->results); elt2;
 				elt2 = sdr_list_next(sdr, elt2))
 		{
-			GET_OBJ_POINTER(sdr, sci_outbound_tlv, tv,
+			GET_OBJ_POINTER(sdr, BpsecOutboundTlv, tv,
 					sdr_list_data(sdr, elt));
 			stv = (Stv *) MTAKE(sizeof(Stv));
 			if (stv == NULL
@@ -2088,7 +2088,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		for (elt2 = sdr_list_first(sdr, asb->parmsData); elt2;
 				elt2 = sdr_list_next(sdr, elt2))
 		{
-			GET_OBJ_POINTER(sdr, sci_outbound_tlv, tv,
+			GET_OBJ_POINTER(sdr, BpsecOutboundTlv, tv,
 					sdr_list_data(sdr, elt));
 			stv = (Stv *) MTAKE(sizeof(Stv));
 			if (stv == NULL

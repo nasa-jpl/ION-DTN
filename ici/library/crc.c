@@ -429,9 +429,14 @@ uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen, uint16_t crc)
         return ERROR;
         
     uint16_t lcrc = ~crc;
+    uint16_t i;
 
     while(dLen--)
-        lcrc = (lcrc >> 8) ^ crctable_1021_r[(lcrc & 0xFFL) ^ *data++];
+    {
+        i = (lcrc & 0xFFL) ^ *data;	/*	No negative subscript!	*/
+        lcrc = (lcrc >> 8) ^ crctable_1021_r[i];
+	data++;
+    }
     
     return ~lcrc;      //lcrc ^ xorout, where xorout = 0xffffffff    
 } 
@@ -462,9 +467,14 @@ uint32_t ion_CRC32_04C11DB7_bzip2(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
 
     uint32_t lcrc = ~crc;
+    uint16_t i;
 
     while(dLen--)
-        lcrc = (lcrc << 8) ^ crctable_04C11DB7[((lcrc >> 24) ^ *data++) &0xFFL];
+    {
+        i = ((lcrc >> 24) ^ *data) & 0xFFL;
+        lcrc = (lcrc << 8) ^ crctable_04C11DB7[i];
+	data++;
+    }
         
     return ~lcrc;      //lcrc ^ xorout, where xorout = 0xffffffff  
 }
@@ -496,9 +506,14 @@ uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
 
     uint32_t lcrc = ~crc;
+    uint16_t i;
 
     while(dLen--)
-        lcrc = (lcrc >> 8) ^ crctable_04C11DB7_r[(lcrc & 0xFFL) ^ *data++];
+    {
+        i = (lcrc & 0xFFL) ^ *data;
+        lcrc = (lcrc >> 8) ^ crctable_04C11DB7_r[i];
+	data++;
+    }
         
     return ~lcrc;     //lcrc ^ xorout, where xorout = 0xffffffff  
 }
@@ -530,9 +545,14 @@ uint32_t ion_CRC32_1EDC6F41_C(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
         
     uint32_t lcrc = ~crc;
+    uint16_t i;
 
     while(dLen--)
-        lcrc = (lcrc >> 8) ^ crctable_1EDC6F41_r[(lcrc & 0xFFL) ^ *data++];
+    {
+        i = (lcrc & 0xFFL) ^ *data;
+        lcrc = (lcrc >> 8) ^ crctable_1EDC6F41_r[i];
+	data++;
+    }
     
     return ~lcrc;      //lcrc ^ xorout, where xorout = 0xffffffff    
 }

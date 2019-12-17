@@ -7972,8 +7972,8 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Get creation timestamp, lifetime, dictionary length.	*/
 
-	extractSmallSdnv(&(bundle->id.creationTime.seconds), &cursor,
-			&unparsedBytes);
+	extractSmallSdnv((unsigned int *) &(bundle->id.creationTime.seconds),
+			&cursor, &unparsedBytes);
 
 	extractSmallSdnv(&(bundle->id.creationTime.count), &cursor,
 			&unparsedBytes);
@@ -9302,8 +9302,8 @@ static int	parseCtSignal(BpCtSignal *csig, unsigned char *cursor,
 
 	extractSmallSdnv(&(csig->signalTime.seconds), &cursor, &unparsedBytes);
 	extractSmallSdnv(&(csig->signalTime.nanosec), &cursor, &unparsedBytes);
-	extractSmallSdnv(&(csig->creationTime.seconds), &cursor,
-			&unparsedBytes);
+	extractSmallSdnv((unsigned int *) &(csig->creationTime.seconds),
+			&cursor, &unparsedBytes);
 	extractSmallSdnv(&(csig->creationTime.count), &cursor, &unparsedBytes);
 	extractSmallSdnv(&eidLength, &cursor, &unparsedBytes);
 	if (unparsedBytes != eidLength)
@@ -9620,7 +9620,8 @@ static int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 				&unparsedBytes);
 	}
 
-	extractSmallSdnv(&(rpt->creationTime.seconds), &cursor, &unparsedBytes);
+	extractSmallSdnv((unsigned int *) &(rpt->creationTime.seconds),
+			&cursor, &unparsedBytes);
 	extractSmallSdnv(&(rpt->creationTime.count), &cursor, &unparsedBytes);
 	extractSmallSdnv(&eidLength, &cursor, &unparsedBytes);
 	if (unparsedBytes != eidLength)

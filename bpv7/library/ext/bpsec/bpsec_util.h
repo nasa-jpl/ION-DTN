@@ -254,11 +254,18 @@ typedef struct
  */
 typedef struct
 {
+	uvast     id;
+	uint32_t  length;
+	Object    value;	/*	ID-dependent structure		*/
+} BpsecOutboundTlv;
+
+typedef struct
+{
 	uint8_t	   targetBlockNumber;
 	uint8_t	   targetBlockType;
 	uint8_t	   metatargetBlockNumber;
 	uint8_t	   metatargetBlockType;
-	Object	   results;	/*	sdr_list of csi_outbound_tvs	*/
+	Object	   results;	/*	sdr_list of BpsecOutboundTlv	*/
 } BpsecOutboundTarget;
 
 /** 
@@ -276,7 +283,7 @@ typedef struct
 	uint8_t	   contextId;
 	char       keyName[BPSEC_KEY_NAME_LEN];
 	uint32_t   contextFlags;
-	Object     parmsData;	/*	sdr_list of csi_outbound_tvs	*/
+	Object     parmsData;	/*	sdr_list of BpsecOutboundTlv	*/
 } BpsecOutboundBlock;
 
 /*****************************************************************************

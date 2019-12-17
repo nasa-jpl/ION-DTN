@@ -8094,7 +8094,7 @@ requests prohibited for anonymous bundle.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");
-//			return 0;
+			return 0;
 		}
 
 		unparsedBytes -= length;
@@ -8366,7 +8366,7 @@ undefined block.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for extension block.");
-//			return 0;
+			return 0;
 		}
 
 		unparsedBytes -= length;
@@ -8419,7 +8419,7 @@ static int	checkPayloadCrc(AcqWorkArea *work)
 	if (computedCrc != extractedCrc)
 	{
 		writeMemo("[?] CRC check failed for payload block.");
-//		return 0;
+		return 0;
 	}
 
 	return crcSize;
@@ -9702,6 +9702,7 @@ static int	catenateBundle(Bundle *bundle)
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
+	unsigned char	*startOfPrimaryBlock;
 	int		bundleIsFragment = 0;
 	uint16_t	crc16;
 	Object		elt;
@@ -9768,6 +9769,7 @@ static int	catenateBundle(Bundle *bundle)
 
 	/*	Serialize primary block.				*/
 
+	startOfPrimaryBlock = cursor;
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
 		bundleIsFragment = 1;
@@ -9853,7 +9855,8 @@ static int	catenateBundle(Bundle *bundle)
 
 	crc16 = 0;
 	oK(cbor_encode_byte_string((unsigned char *) &crc16, 2, &cursor));
-	crc16 = ion_CRC16_1021_X25((char *) buffer, cursor - buffer, 0);
+	crc16 = ion_CRC16_1021_X25((char *) startOfPrimaryBlock,
+				cursor - startOfPrimaryBlock, 0);
 	crc16 = htons(crc16);
 	memcpy(cursor - 2, (char *) &crc16, 2);
 

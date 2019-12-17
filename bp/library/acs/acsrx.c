@@ -225,9 +225,11 @@ static void handleAcss(BpCtSignal *ctSignal, void *userdata)
 {
 	handleAcssArgs_t *args = (handleAcssArgs_t *)(userdata);
 
-	ACSLOG_DEBUG("Handling an ACS for %s, %u.%u, %u, %u", ctSignal->sourceEid,
-		ctSignal->creationTime.seconds, ctSignal->creationTime.count, 
-		ctSignal->fragmentOffset, ctSignal->fragmentLength);
+	ACSLOG_DEBUG("Handling an ACS for %s, %u.%u, %u, %u",
+		ctSignal->sourceEid,
+		(unsigned int) (ctSignal->creationTime.seconds),
+		ctSignal->creationTime.count, ctSignal->fragmentOffset,
+		ctSignal->fragmentLength);
 
 	if (args->handleCtSignal(args->dlv, ctSignal) < 0)
 	{

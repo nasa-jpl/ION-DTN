@@ -27,6 +27,12 @@
 extern "C" {
 #endif
 
+typedef struct
+{
+	time_t			seconds;	/*	Epoch 2000.	*/
+	unsigned int		count;
+} BpTimestamp;
+
 /*	bp_receive timeout values					*/
 #define	BP_POLL			(0)	/*	Return immediately.	*/
 #define	BP_NONBLOCKING		(0)	/*	Return immediately.	*/

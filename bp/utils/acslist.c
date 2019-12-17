@@ -56,7 +56,7 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 	sdr_peek(acsSdr, cbid, cbidAddr);
 	writeMemoOrStdout("(%s,%u,%u,%u,%u)->(%u)",
 			cbid.bundleId.sourceEid,
-			cbid.bundleId.creationTime.seconds,
+			(unsigned int) cbid.bundleId.creationTime.seconds,
 			cbid.bundleId.creationTime.count,
 			cbid.bundleId.fragmentOffset,
 			cbid.bundleId.fragmentLength,
@@ -83,6 +83,7 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 		writeMemoOrStdout("Mismatch: can't find (%s,%u,%u,%u,%u) "
 				"in bundle ID database.",
 				cbid.bundleId.sourceEid,
+				(unsigned int)
 				cbid.bundleId.creationTime.seconds,
 				cbid.bundleId.creationTime.count,
 				cbid.bundleId.fragmentOffset,
@@ -99,18 +100,21 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 				cid->id,
 				cbidAddr,
 				cbid.bundleId.sourceEid,
+				(unsigned int)
 				cbid.bundleId.creationTime.seconds,
 				cbid.bundleId.creationTime.count,
 				cbid.bundleId.fragmentOffset,
 				cbid.bundleId.fragmentLength,
 				cbid.custodyId.id,
 				cbid.bundleId.sourceEid,
+				(unsigned int)
 				cbid.bundleId.creationTime.seconds,
 				cbid.bundleId.creationTime.count,
 				cbid.bundleId.fragmentOffset,
 				cbid.bundleId.fragmentLength,
 				bidCbidAddr,
 				bidCbid.bundleId.sourceEid,
+				(unsigned int)
 				bidCbid.bundleId.creationTime.seconds,
 				bidCbid.bundleId.creationTime.count,
 				bidCbid.bundleId.fragmentOffset,
@@ -174,9 +178,10 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 	{
 		writeMemoOrStdout("Mismatch: creation time in database (%u,%u) "
 				"!= in key (%u,%u)", 
+				(unsigned int)
 				cbid.bundleId.creationTime.seconds,
 				cbid.bundleId.creationTime.count,
-				bid->creationTime.seconds,
+				(unsigned int) (bid->creationTime.seconds),
 				bid->creationTime.count);
 		hasMismatch = 1;
 	}
@@ -208,12 +213,13 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
         		"lookup (%s, %u, %u, %u, %u) in bid: @%lu (%s,%u,%u,%u,%u)->(%u) != "
 				"lookup (%u) in cid: @%lu (%s,%u,%u,%u,%u)->(%u)",
 				bid->sourceEid,
-				bid->creationTime.seconds,
+				(unsigned int) (bid->creationTime.seconds),
 				bid->creationTime.count,
 				bid->fragmentOffset,
 				bid->fragmentLength,
 				cbidAddr,
 				cbid.bundleId.sourceEid,
+				(unsigned int)
 				cbid.bundleId.creationTime.seconds,
 				cbid.bundleId.creationTime.count,
 				cbid.bundleId.fragmentOffset,
@@ -222,6 +228,7 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 				cbid.custodyId.id,
 				cidCbidAddr,
 				cidCbid.bundleId.sourceEid,
+				(unsigned int)
 				cidCbid.bundleId.creationTime.seconds,
 				cidCbid.bundleId.creationTime.count,
 				cidCbid.bundleId.fragmentOffset,

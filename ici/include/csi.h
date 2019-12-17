@@ -128,13 +128,6 @@ typedef struct
 
 typedef struct
 {
-	uvast		id;
-	uint32_t	length;
-	Object		value;	 /*	ID-dependent structure		*/
-} sci_outbound_tlv;
-
-typedef struct
-{
 	sci_inbound_tlv	iv;
 	sci_inbound_tlv	salt;
 	sci_inbound_tlv	icv;

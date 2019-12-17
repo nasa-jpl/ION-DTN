@@ -62,9 +62,9 @@ int get_or_make_custody_id(const char *sourceEid,
 	if (rc == -1)
 	{
 		ACSLOG_ERROR("Couldn't search for (%s,%u,%u,%u,%u) in bidHash",
-				bid.sourceEid, bid.creationTime.seconds,
-				bid.creationTime.count,
-				bid.fragmentOffset, bid.fragmentLength);
+			bid.sourceEid, (unsigned int) bid.creationTime.seconds,
+			bid.creationTime.count, bid.fragmentOffset,
+			bid.fragmentLength);
 		sdr_cancel_xn(acsSdr);
 		return -1;
 	}
@@ -189,20 +189,21 @@ int destroy_custody_id(AcsBundleId *bundleId)
 			(char *)(bundleId), &cbidAddr, &hashEntry);
 	if (rc == -1)
 	{
-		ACSLOG_ERROR("Couldn't search for (%s,%u,%u,%u,%u) in bidHash"
-				" to destroy",
-				bundleId->sourceEid, bundleId->creationTime.seconds,
-				bundleId->creationTime.count, bundleId->fragmentOffset,
-				bundleId->fragmentLength);
+		ACSLOG_ERROR("Couldn't search for (%s,%u,%u,%u,%u) in bidHash \
+to destroy", bundleId->sourceEid,
+			(unsigned int) (bundleId->creationTime.seconds),
+			bundleId->creationTime.count, bundleId->fragmentOffset,
+			bundleId->fragmentLength);
 		sdr_exit_xn(acsSdr);
 		return -1;
 	}
 	if (rc == 0)
 	{
-		ACSLOG_WARN("Couldn't find (%s,%u,%u,%u,%u) in bidHash to destroy",
-				bundleId->sourceEid, bundleId->creationTime.seconds,
-				bundleId->creationTime.count, bundleId->fragmentOffset,
-				bundleId->fragmentLength);
+		ACSLOG_WARN("Couldn't find (%s,%u,%u,%u,%u) in bidHash to \
+destroy", bundleId->sourceEid, (unsigned int) bundleId->creationTime.seconds,
+			bundleId->creationTime.count,
+			bundleId->fragmentOffset,
+			bundleId->fragmentLength);
 		sdr_exit_xn(acsSdr);
 		return 0;
 	}
@@ -222,9 +223,11 @@ int destroy_custody_id(AcsBundleId *bundleId)
 	if (rc != 1)
 	{
 		ACSLOG_ERROR("Couldn't delete (%s,%u,%u,%u,%u) from bidHash",
-				cbid.bundleId.sourceEid, cbid.bundleId.creationTime.seconds,
-				cbid.bundleId.creationTime.count, cbid.bundleId.fragmentOffset,
-				cbid.bundleId.fragmentLength);
+			cbid.bundleId.sourceEid,
+			(unsigned int) cbid.bundleId.creationTime.seconds,
+			cbid.bundleId.creationTime.count,
+		       	cbid.bundleId.fragmentOffset,
+			cbid.bundleId.fragmentLength);
 		sdr_cancel_xn(acsSdr);
 		return -1;
 	}

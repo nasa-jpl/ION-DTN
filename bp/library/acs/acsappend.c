@@ -350,15 +350,17 @@ static void printAcsInformation(int loglevel, const char *note, Bundle *bundle,
 
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
-		ACSLOG(loglevel, "%s: %s,%u.%u(%u:%u) (reason: %d, current custodian: %s)",
-			succeeded ? "SACK" : "SNACK", sourceEid, 
-			bundle->id.creationTime.seconds, bundle->id.creationTime.count,
+		ACSLOG(loglevel, "%s: %s,%u.%u(%u:%u) (reason: %d, current \
+custodian: %s)", succeeded ? "SACK" : "SNACK", sourceEid, 
+			(unsigned int) (bundle->id.creationTime.seconds),
+			bundle->id.creationTime.count,
 			bundle->id.fragmentOffset, bundle->payload.length,
 			reasonCode, currentCustodianEid);
 	} else {
-		ACSLOG(loglevel, "%s: %s,%u.%u (reason: %d, current custodian: %s)",
-			succeeded ? "SACK" : "SNACK", sourceEid, 
-			bundle->id.creationTime.seconds, bundle->id.creationTime.count,
+		ACSLOG(loglevel, "%s: %s,%u.%u (reason: %d, current \
+custodian: %s)", succeeded ? "SACK" : "SNACK", sourceEid, 
+			(unsigned int) (bundle->id.creationTime.seconds),
+			bundle->id.creationTime.count,
 			reasonCode, currentCustodianEid);
 	}
 	MRELEASE(sourceEid);
