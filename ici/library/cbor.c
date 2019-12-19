@@ -546,7 +546,7 @@ int	cbor_decode_byte_string(unsigned char *value, uvast *size,
 		return 0;
 	}
 
-	length = decodeInteger(&stringLength, 0, additionalInfo, cursor,
+	length = decodeInteger(&stringLength, CborAny, additionalInfo, cursor,
 			bytesBuffered);
 	if (length < 0)
 	{
@@ -600,7 +600,7 @@ int	cbor_decode_text_string(char *value, uvast *size,
 		return 0;
 	}
 
-	length = decodeInteger(&stringLength, 0, additionalInfo, cursor,
+	length = decodeInteger(&stringLength, CborAny, additionalInfo, cursor,
 			bytesBuffered);
 	if (length < 0)
 	{
@@ -674,7 +674,7 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor,
 
 	/*	An array of definite length is expected.		*/
 
-	length = decodeInteger(&arrayLength, 0, additionalInfo, cursor,
+	length = decodeInteger(&arrayLength, CborAny, additionalInfo, cursor,
 			bytesBuffered);
 	if (length < 0)
 	{

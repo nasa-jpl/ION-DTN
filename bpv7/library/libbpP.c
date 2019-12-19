@@ -7798,6 +7798,7 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	char		*eidString;
 	int		nullEidLen;
 	DtnTime		currentDtnTime;
+	int		crcLength;
 	uvast		crcReceived;
 	uvast		crcComputed;
 	int		bytesParsed;
@@ -8076,28 +8077,28 @@ requests prohibited for anonymous bundle.");
 
 		if (crcType == X25CRC16)
 		{
-			length += 3;	/*	CBOR 16-bit CRC		*/
+			crcLength = 3;	/*	CBOR 16-bit CRC		*/
 		}
 		else
 		{
-			length += 5;	/*	CBOR 32-bit CRC		*/
+			crcLength = 5;	/*	CBOR 32-bit CRC		*/
 		}
 
-		if (length > unparsedBytes)
+		if (crcLength > unparsedBytes)
 		{
 			writeMemo("[?] Primary block truncated.");
 			return 0;
 		}
 
 		crcComputed = computeBufferCrc(crcType, startOfBlock, 
-				length, 1, 0, &crcReceived);
+				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");
 			return 0;
 		}
 
-		unparsedBytes -= length;
+		unparsedBytes -= crcLength;
 		itemsRemaining -= 1;
 	}
 
@@ -8127,6 +8128,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	vast		dataLength;
 	ExtensionDef	*def;
 	unsigned int	lengthOfBlock;
+	int		crcLength;
 	uvast		crcReceived;
 	uvast		crcComputed;
 	unsigned int	bytesParsed;
@@ -8348,28 +8350,28 @@ undefined block.");
 
 		if (crcType == X25CRC16)
 		{
-			length += 3;	/*	CBOR 16-bit CRC		*/
+			crcLength = 3;	/*	CBOR 16-bit CRC		*/
 		}
 		else
 		{
-			length += 5;	/*	CBOR 32-bit CRC		*/
+			crcLength = 5;	/*	CBOR 32-bit CRC		*/
 		}
 
-		if (length > unparsedBytes)
+		if (crcLength > unparsedBytes)
 		{
 			writeMemo("[?] Extension block truncated.");
 			return 0;
 		}
 
 		crcComputed = computeBufferCrc(crcType, startOfBlock,
-				length, 1, 0, &crcReceived);
+				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for extension block.");
 			return 0;
 		}
 
-		unparsedBytes -= length;
+		unparsedBytes -= crcLength;
 		itemsRemaining -= 1;
 	}
 
@@ -8442,6 +8444,7 @@ static int	acqFromWork(AcqWorkArea *work)
 
 	bytesBuffered = work->bytesBuffered;
 	cursor = (unsigned char *) (work->buffer);
+	arrayLength = ((uvast) -1);
 	bytesParsed = cbor_decode_array_open(&arrayLength, &cursor,
 			&bytesBuffered);
 	if (bytesParsed < 1)
@@ -8871,6 +8874,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 			return -1;
 		}
 
+		MRELEASE(eidString);
 		if (bundle->clDossier.senderEid.schemeCodeNbr == dtn)
 		{
 			bundle->dbOverhead +=
