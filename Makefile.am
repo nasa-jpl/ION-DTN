@@ -816,6 +816,8 @@ tcp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 #
 ##########################
 
+# Build bpv6
+if BUILD_BPv6
 # Define pod2man stuff
 bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
@@ -1426,6 +1428,13 @@ bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpclm_SOURCES = bp/daemon/bpclm.c
 bpclm_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# Build bpv7
+else
+
+# build bpv7 stuff here
+
+endif
 
 ##########################
 #
