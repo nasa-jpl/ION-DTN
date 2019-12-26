@@ -1993,13 +1993,10 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-# TODO: Rename this to NM_CMN_CFLAGS ?
-CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=7
+NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=7
 
 # NM Shared library
-# To be split into two parts:
-#  - private shared between Agent and Mgr
-#  - public shared by ADM 
+#  This library is standalone (no dependencies on other ION components)
 nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/msg/msg.c				\
 			nm/shared/primitives/ari.c		\
@@ -2019,11 +2016,10 @@ nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/utils/vector.c		\
 			$(nm_cbor_src)
 
-# Are all of these libraries links required?  Can we eliminate from agent/mgr if they are here?
 libnm_la_SOURCES = $(nm_shared_src)
 libnm_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
-                  $(CBOR_CFLAGS)
+                  $(NM_CBOR_CFLAGS)
 libnm_la_LIBADD = -lm
 
 nm_agent_SOURCES = \
@@ -2057,16 +2053,16 @@ nm_agent_ADM_SOURCES = \
 			nm/agent/adm_ion_bp_admin_agent.c
 
 libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/library -I$(srcdir)/ltp/library $(CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
 libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la -lm
 
 
 nm_agent_LDADD = libici.la libbp.la libltp.la libnm.la libnmAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
-nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/nm  $(CBOR_FLAGS) \
+nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/nm \
                   -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
-                  -DAGENT_ROLE $(CBOR_CFLAGS)
+                  -DAGENT_ROLE $(NM_CBOR_CFLAGS)
 
 
 nm_mgr_SOURCES =	\
@@ -2090,12 +2086,11 @@ nm_mgr_SOURCES =	\
 			nm/shared/msg/ion_if.c \
 			nm/shared/adm/adm_init.c
 
-# TODO: Split nm_mgr_SOURCES into a discrete library. Consider dynamic loading of 'plugins'
 nm_mgr_LDADD = libnm.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(CBOR_CFLAGS)
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS)
 
 
 ##########################
@@ -2194,8 +2189,6 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES)
 tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS)
 tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN
-# -DUSE_MALLOC  # FIXME: Doesn't build with, doesn't work without
-#  May need to alter above to include NM LIB sources now that they are built distinctly
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
