@@ -66,6 +66,7 @@ typedef struct
 	vector_t agents;  /* (agent_t *) */
 	rhht_t metadata; /* (metadata_t*) */
 	uvast tot_rpts;
+	uvast tot_tbls;
 	eid_t mgr_eid;
 
 #ifdef HAVE_MYSQL

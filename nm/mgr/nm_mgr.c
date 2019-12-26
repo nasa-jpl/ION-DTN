@@ -240,6 +240,7 @@ int mgr_init(char *argv[])
 
 
 	gMgrDB.tot_rpts = 0;
+    gMgrDB.tot_tbls = 0;
     istrcpy((char *) gMgrDB.mgr_eid.name, argv[1], AMP_MAX_EID_LEN);
 
 
