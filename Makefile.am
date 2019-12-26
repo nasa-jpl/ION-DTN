@@ -32,7 +32,7 @@ AM_CFLAGS += \
 	-Kpic
 NO_UNUSED_VARIABLE = 
 else
-AM_CFLAGS += \ 
+AM_CFLAGS += \
 	-Wall -Werror\
 	-fPIC
 NO_UNUSED_VARIABLE = -Wno-unused-variable
@@ -156,7 +156,8 @@ lib_LTLIBRARIES = \
 	$(dtpclib) \
 	$(bssplib) \
 	$(amslib) \
-	$(cfdplib)
+	$(cfdplib) \
+	$(nmlib)
 
 include_HEADERS = \
 	$(iciinclude) \
@@ -1983,6 +1984,7 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 ##########################
 
 nmbin= nm_agent nm_mgr
+nmlib= libnm.la libnmAgentADM.la
 
 # CBOR Library Sources
 nm_cbor_src = \
@@ -1991,11 +1993,15 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc
+# TODO: Rename this to NM_CMN_CFLAGS ?
+CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=7
 
+# NM Shared library
+# To be split into two parts:
+#  - private shared between Agent and Mgr
+#  - public shared by ADM 
 nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/msg/msg.c				\
-			nm/shared/msg/ion_if.c			\
 			nm/shared/primitives/ari.c		\
 			nm/shared/primitives/blob.c		\
 			nm/shared/primitives/ctrl.c		\
@@ -2013,23 +2019,28 @@ nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/utils/vector.c		\
 			$(nm_cbor_src)
 
-nm_agent_SOURCES =  	$(nm_shared_src)		\
+# Are all of these libraries links required?  Can we eliminate from agent/mgr if they are here?
+libnm_la_SOURCES = $(nm_shared_src)
+libnm_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  $(CBOR_CFLAGS)
+libnm_la_LIBADD = -lm
+
+nm_agent_SOURCES = \
 			nm/agent/ingest.c  		\
 			nm/agent/instr.c		\
 			nm/agent/lcc.c     		\
 			nm/agent/nmagent.c 		\
 			nm/agent/ldc.c 			\
-			nm/agent/rda.c 			\
+			nm/agent/rda.c          \
+			nm/shared/msg/ion_if.c  \
+			nm/shared/adm/adm_init.c
+
+nm_agent_ADM_SOURCES = \
 			nm/agent/adm_amp_agent_impl.c   \
 			nm/agent/adm_amp_agent_agent.c	\
-			nm/agent/adm_bp_agent_impl.c	\
-			nm/agent/adm_bp_agent_agent.c	\
-			nm/agent/adm_sbsp_impl.c	\
-			nm/agent/adm_sbsp_agent.c	\
 			nm/agent/adm_ion_admin_agent.c 	\
 			nm/agent/adm_ion_admin_impl.c	\
-			nm/agent/adm_ion_bp_admin_impl.c	\
-			nm/agent/adm_ion_bp_admin_agent.c	\
 			nm/agent/adm_ionsec_admin_impl.c	\
 			nm/agent/adm_ionsec_admin_agent.c	\
 			nm/agent/adm_ion_ipn_admin_impl.c	\
@@ -2037,18 +2048,28 @@ nm_agent_SOURCES =  	$(nm_shared_src)		\
 			nm/agent/adm_ion_ltp_admin_impl.c	\
 			nm/agent/adm_ion_ltp_admin_agent.c	\
 			nm/agent/adm_ltp_agent_impl.c	\
-			nm/agent/adm_ltp_agent_agent.c 
+			nm/agent/adm_ltp_agent_agent.c  \
+			nm/agent/adm_bp_agent_impl.c	\
+			nm/agent/adm_bp_agent_agent.c   \
+			nm/agent/adm_sbsp_impl.c	\
+			nm/agent/adm_sbsp_agent.c   \
+			nm/agent/adm_ion_bp_admin_impl.c	\
+			nm/agent/adm_ion_bp_admin_agent.c
+
+libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
+libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/library -I$(srcdir)/ltp/library $(CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la -lm
 
 
-nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_agent_LDADD = libici.la libbp.la libltp.la libnm.la libnmAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
-nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/nm  $(CBOR_FLAGS) \
+                  -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   -DAGENT_ROLE $(CBOR_CFLAGS)
 
 
-nm_mgr_SOURCES =	$(nm_shared_src)		\
+nm_mgr_SOURCES =	\
 			nm/mgr/agents.c 		\
 			nm/mgr/metadata.c		\
 			nm/mgr/nm_mgr_print.c 	 	\
@@ -2065,11 +2086,14 @@ nm_mgr_SOURCES =	$(nm_shared_src)		\
 			nm/mgr/adm_ionsec_admin_mgr.c	\
 			nm/mgr/adm_ion_ipn_admin_mgr.c	\
 			nm/mgr/adm_ion_ltp_admin_mgr.c	\
-			nm/mgr/adm_ltp_agent_mgr.c
+			nm/mgr/adm_ltp_agent_mgr.c      \
+			nm/shared/msg/ion_if.c \
+			nm/shared/adm/adm_init.c
 
-nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+# TODO: Split nm_mgr_SOURCES into a discrete library. Consider dynamic loading of 'plugins'
+nm_mgr_LDADD = libnm.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
-# Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
+# Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
 nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(CBOR_CFLAGS)
 
@@ -2134,14 +2158,14 @@ test-%: buildcheck
 # This ensures that "make restest" will only pass when some testing has
 # already been performed with total success.
 retest: buildcheck
-	cd tests && ./runtestset retest
+	cd $(srcdir)/tests && ./runtestset retest
 
 # "make check" is the same as "make test"
 check: test
 
 # This library contains utility code that's helpful for tests in C.
 TESTUTILOBJS = tests/library/libtestutil.la
-TESTUTILCFLAGS = -Itests/library
+TESTUTILCFLAGS = -I$(srcdir)/tests/library
 check_LTLIBRARIES = $(TESTUTILOBJS)
 tests_library_libtestutil_la_SOURCES = \
 	tests/library/check.c \
@@ -2169,7 +2193,9 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 
 tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES)
 tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS)
-tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN -DUSE_MALLOC
+tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN
+# -DUSE_MALLOC  # FIXME: Doesn't build with, doesn't work without
+#  May need to alter above to include NM LIB sources now that they are built distinctly
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -2300,9 +2326,9 @@ endif #ENABLE_AUTODOC
 #
 ##########################
 
-DOC_VERSION_NUMBER := $(shell cat version.txt)
-DOC_VERSION_MAJOR := $(shell cat version.txt | sed 's/\..*//')
-DOC_VERSION_MINOR := $(shell cat version.txt | sed 's/[0-9]*\.//')
+DOC_VERSION_NUMBER := $(shell cat $(srcdir)/version.txt)
+DOC_VERSION_MAJOR := $(shell cat $(srcdir)/version.txt | sed 's/\..*//')
+DOC_VERSION_MINOR := $(shell cat $(srcdir)/version.txt | sed 's/[0-9]*\.//')
 DOC_DATE := $(shell date -I)
 
 distribution: doc/ION-beginning.pdf doc/ION-manpages.ps

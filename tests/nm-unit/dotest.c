@@ -31,10 +31,13 @@ void init_group(char* str) {
 #include "shared/utils/utils.h"
 #include "shared/msg/msg.h"
 
+int test_cnt = 0;
+
 ari_t* test_ari_deserialize_raw(char* input)
 {
    int success = AMP_FAIL;
    blob_t *buf, *buf2;
+   test_cnt++;
    
    // Construct input Data Blob
    buf = utils_string_to_hex(input);
@@ -45,9 +48,9 @@ ari_t* test_ari_deserialize_raw(char* input)
    // Verify Status
    if (rtv == NULL && success == AMP_OK)
    {
-      printf("ERROR: ari_deserialize_raw() returned OK but gave NULL result\n");
+      printf("ERROR in test %d: ari_deserialize_raw() returned OK but gave NULL result\n", test_cnt);
    } else if (success != AMP_OK && rtv != NULL) {
-      printf("ERROR: ari_deserialize_raw() returned a result but indicated failure\n");
+      printf("ERRORin test %d: ari_deserialize_raw() returned a result but indicated failure\n", test_cnt);
       ari_release(rtv, 1);
       blob_release(buf, 1); // Destroy the blob
       return NULL;
@@ -57,7 +60,7 @@ ari_t* test_ari_deserialize_raw(char* input)
    buf2 = ari_serialize_wrapper(rtv);
    if (buf2 == NULL)
    {
-      printf("ERROR: ari_serialize_wrapper() failed to re-encode");
+      printf("ERROR in test %d: ari_serialize_wrapper() failed to re-encode", test_cnt);
       ari_release(rtv, 1);
       blob_release(buf, 1); // Destroy the blob
       return NULL;
@@ -66,7 +69,10 @@ ari_t* test_ari_deserialize_raw(char* input)
    // Compare the blobs
    if (blob_compare(buf, buf2) != 0)
    {
-      printf("ERROR: Input does not match deserialized output\n");
+      printf("ERROR in test %d: Input does not match deserialized output\n", test_cnt);
+      char *msg_str = utils_hex_to_string(buf2->value, buf2->length);
+      printf("Input:  0x%s\nOutput: %s\n", input, msg_str);
+         SRELEASE(msg_str);
       ari_release(rtv, 1);
       rtv = NULL;
    }
@@ -103,7 +109,7 @@ int test_simple_ari(char *desc, char* cbor, amp_type_e type)
  * - This is the first function called when decoding a received (CBOR) message
  * - 
  */
-int test_msg_grp_deserialize() {
+int test_msg_grp_deserialize() { // TODO: Remove or finish this function
    msg_grp_t *grp = NULL;
    int success = AMP_FAIL;
 
@@ -206,6 +212,8 @@ int main(int argc, char **argv)
    
    utils_mem_int(); // Initialize utils
 
+#if 0 // AMPv6 Tests
+   
    // Prototype test
    fail_unless(test_msg_grp_deserialize());
 
@@ -222,6 +230,41 @@ int main(int argc, char **argv)
    fail_unless(test_simple_ari("2.1: Generated Endpoint report for endpoint", "c1154105581d8405422523558153c7182d41014d83054112486769706e3a312e314180", AMP_TYPE_CTRL));
    fail_unless(test_msg_grp("2.2: Verify endpoint report received for selected endpoint", "8200582701816769706e3a312e31818353c7182d41014d83054112486769706e3a312e311a5d79808c4180"));
 
+#else // New AMPv7 Tests
+   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:DTN.bpsec/Rptt.source_report(ipn:1.1)],[])", "c11541050502252381c7185541010501126769706e3a312e3100", AMP_TYPE_CTRL));
+
+   fail_unless(test_simple_ari("ari:/IANA:DTN.bp_agent/CTRL.reset_all_counts()", "8118294100", AMP_TYPE_CTRL));
+   
+   fail_unless(test_simple_ari("ari:/IANA:Amp.agent/CTRL.gen_rpts([ari:/ADM:dtn.bp_agent/rptt.full_report],[])",
+                               "c11541050502252381374b66756c6c5f7265706f72744341444d4c64746e2e62705f6167656e7400",
+                             AMP_TYPE_CTRL));
+
+
+#if 0
+   // Fails: bad CBOR encoding.  ACE tool has bad hard-coded encoding value
+   fail_unless(test_simple_ari(
+//                  "ari:/IANA:Amp.agent/Ctrl.add_var(ari:/TESTS:Edd/Var.v1,(UINT)[UINT.2, UINT.2, +], UINT)",
+                  "ari:/IANA:Amp.agent/Ctrl.add_var(ari:/TESTS:Edd/Var.v1,(UINT)[UINT.2, UINT.2, ari:/IANA/Amp.Agent/Op.greaterEqual], UINT)",
+//                               "c115410005032426113c436276310044634564641483430243021818410114",
+//                               "c115410005032426113c427631455445535453434564641483430243021818410114",
+                  "c115410005032426113c42763145544553545343456464148343024302430214",
+                               AMP_TYPE_CTRL));
+#endif
+
+   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.1\"), ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.2\")], [])",
+                               "c11541050502252382c7182d4101050112692269706e3a312e3122c7182d4101050112692269706e3a312e322200",
+                               AMP_TYPE_CTRL));
+
+   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.add_tbr(ari:/test:/TBR.t1, 0, 10, 20, [ari:/IANA:amp.agent/ctrl.gen_rpts([ari:/IANA:DTN.bp_agent/rptt.full_report],[])], TBR1)",
+                               "c115410a05062420201625122b4274314474657374000a1481c1154105050225238187182d4100006454425231",
+                               AMP_TYPE_CTRL));
+
+   
+
+   fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.add_sbr(ari:/test:/SBR.s1, 0, (BOOL)[ari:/test:/VAR.y, UINT.4, ari:/IANA/Amp.Agent/Op.greaterEqual], 20, 10, [ari:/IANA:amp.agent/ctrl.gen_rpts([ari:/IANA:DTN.bp_agent/rptt.full_report],[])], STR.SBR1)",
+                               "c115410b0507242026161625122842733144746573740010832c417944746573744304851818412f140A81c1154105050225238187182D4100006453425231",
+                               AMP_TYPE_CTRL));
+#endif
    
    CHECK_FINISH;
 }

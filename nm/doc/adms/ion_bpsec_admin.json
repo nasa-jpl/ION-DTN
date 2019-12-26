@@ -1,0 +1,818 @@
+{
+  "uses":["Amp:Agent"],
+  "Mdat": [
+    {
+      "name": "name",
+      "type": "STR",
+      "value": "bpsec",
+      "description": "The human-readable name of the ADM."
+    },
+    {
+      "name": "namespace",
+      "type": "STR",
+      "value": "DTN:BundleProtocolSecurity",
+      "description": "The namespace of the ADM."
+    },
+    {
+      "name": "version",
+      "type": "STR",
+      "value": "v1.0",
+      "description": "The version of the ADM."
+    },
+    {
+      "name": "organization",
+      "type": "STR",
+      "value": "JHUAPL",
+      "description": "The name of the issuing organization of the ADM."
+    }
+  ],
+
+  "Edd": [
+    {
+      "name": "num_good_tx_bcb_blk",
+      "type": "UINT",
+      "description": "Total successfully Tx Bundle Confidentiality blocks"
+    },
+    {
+      "name": "num_bad_tx_bcb_blk",
+      "type": "UINT",
+      "description": "Total unsuccessfully Tx Block Confidentiality Block (BCB) blocks"
+    },
+    {
+      "name": "num_good_rx_bcb_blk",
+      "type": "UINT",
+      "description": "Total successfully Rx BCB blocks"
+    },
+    {
+      "name": "num_bad_rx_bcb_blk",
+      "type": "UINT",
+      "description": "Total unsuccessfully Rx BCB blocks"
+    },
+    {
+      "name": "num_missing_rx_bcb_blks",
+      "type": "UINT",
+      "description": "Total missing-on-RX BCB blocks"
+    },
+    {
+      "name": "num_fwd_bcb_blks",
+      "type": "UINT",
+      "description": "Total forward BCB blocks"
+    },
+    {
+      "name": "num_good_tx_bcb_bytes",
+      "type": "UINT",
+      "description": "Total successfully Tx BCB bytes"
+    },
+    {
+      "name": "num_bad_tx_bcb_bytes",
+      "type": "UINT",
+      "description": "Total unsuccessfully Tx BCB bytes"
+    },
+    {
+      "name": "num_good_rx_bcb_bytes",
+      "type": "UINT",
+      "description": "Total successfully Rx BCB bytes"
+    },
+    {
+      "name": "num_bad_rx_bcb_bytes",
+      "type": "UINT",
+      "description": "Total unsuccessfully Rx BCB bytes"
+    },
+    {
+      "name": "num_missing_rx_bcb_bytes",
+      "type": "UINT",
+      "description": "Total missing-on-Rx BCB bytes"
+    },
+    {
+      "name": "num_fwd_bcb_bytes",
+      "type": "UINT",
+      "description": "Total forwarded BCB bytes"
+    },
+    {
+      "name": "num_good_tx_bib_blks",
+      "type": "UINT",
+      "description": "Total successfully Tx Block Integrity Block (BIB) blocks"
+    },
+    {
+      "name": "num_bad_tx_bib_blks",
+      "type": "UINT",
+      "description": "Total unsuccessfully Tx BIB blocks"
+    },
+    {
+      "name": "num_good_rx_bib_blks",
+      "type": "UINT",
+      "description": "Total successfully Rx BIB blocks"
+    },
+    {
+      "name": "num_bad_rx_bib_blks",
+      "type": "UINT",
+      "description": "Total unsuccessfully Rx BIB blocks"
+    },
+    {
+      "name": "num_miss_rx_bib_blks",
+      "type": "UINT",
+      "description": "Total missing-on-Rx BIB blocks"
+    },
+    {
+      "name": "num_fwd_bib_blks",
+      "type": "UINT",
+      "description": "Total forwarded BIB blocks"
+    },
+    {
+      "name": "num_good_tx_bib_bytes",
+      "type": "UINT",
+      "description": "Total successfully Tx BIB bytes"
+    },
+    {
+      "name": "num_bad_tx_bib_bytes",
+      "type": "UINT",
+      "description": "Total unsuccessfully Tx BIB bytes"
+    },
+    {
+      "name": "num_good_rx_bib_bytes",
+      "type": "UINT",
+      "description": "Total successfully Rx BIB bytes"
+    },
+    {
+      "name": "num_bad_rx_bib_bytes",
+      "type": "UINT",
+      "description": "Total unsuccessfully Rx BIB bytes"
+    },
+    {
+      "name": "num_miss_rx_bib_bytes",
+      "type": "UINT",
+      "description": "Total missing-on-Rx BIB bytes"
+    },
+    {
+      "name": "num_fwd_bib_bytes",
+      "type": "UINT",
+      "description": "Total forwarded BIB bytes"
+    },
+    {
+      "name": "last_update",
+      "type": "TV",
+      "description": "Last BPSEC update"
+    },
+    {
+      "name": "num_known_keys",
+      "type": "UINT",
+      "description": "Number of known keys"
+    },
+    {
+      "name": "key_names",
+      "type": "STR",
+      "description": "Known key names"
+    },
+    {
+      "name": "ciphersuite_names",
+      "type": "STR",
+      "description": "Known ciphersuite names"
+    },
+    {
+      "name": "rule_source",
+      "type": "STR",
+      "description": "Known rule sources"
+    },
+    {
+      "name": "num_good_tx_bcb_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Tx BCB blocks from SRC"
+    },
+    {
+      "name": "num_bad_tx_bcb_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed TX BCB blocks from SRC"
+    },
+    {
+      "name": "num_good_rx_bcb_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Rx BCB blocks from SRC"
+    },
+    {
+      "name": "num_bad_rx_bcb_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed RX BCB blocks from SRC"
+    },
+    {
+      "name": "num_missing_rx_bcb_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of missing-onRX BCB blocks from SRC"
+    },
+    {
+      "name": "num_fwd_bcb_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of forwarded BCB blocks from SRC"
+    },
+    {
+      "name": "num_good_tx_bcb_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Tx bcb bytes from SRC"
+    },
+    {
+      "name": "num_bad_tx_bcb_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed Tx bcb bytes from SRC"
+    },
+    {
+      "name": "num_good_rx_bcb_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Rx bcb bytes from SRC"
+    },
+    {
+      "name": "num_bad_rx_bcb_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed Rx bcb bytes from SRC"
+    },
+    {
+      "name": "num_missing_rx_bcb_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of missing-on-Rx bcb bytes from SRC"
+    },
+    {
+      "name": "num_fwd_bcb_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of forwarded bcb bytes from SRC"
+    },
+    {
+      "name": "num_good_tx_bib_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Tx BIB blocks from SRC"
+    },
+    {
+      "name": "num_bad_tx_bib_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed Tx BIB blocks from SRC"
+    },
+    {
+      "name": "num_good_rx_bib_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Rx BIB blocks from SRC"
+    },
+    {
+      "name": "num_bad_rx_bib_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed Rx BIB blocks from SRC"
+    },
+    {
+      "name": "num_miss_rx_bib_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of missing-on-Rx BIB blocks from SRC"
+    },
+    {
+      "name": "num_fwd_bib_blks_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of forwarded BIB blocks from SRC"
+    },
+    {
+      "name": "num_good_tx_bib_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Tx BIB bytes from SRC"
+    },
+    {
+      "name": "num_bad_tx_bib_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed Tx BIB bytes from SRC"
+    },
+    {
+      "name": "num_good_rx_bib_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of successfully Rx BIB bytes from SRC"
+    },
+    {
+      "name": "num_bad_rx_bib_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of failed Rx BIB bytes from SRC"
+    },
+    {
+      "name": "num_missing_rx_bib_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of missing-on-Rx BIB bytes from SRC"
+    },
+    {
+      "name": "num_fwd_bib_bytes_src",
+      "type": "UINT",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Number of forwarded BIB bytes from SRC"
+    },
+    {
+      "name": "last_update_src",
+      "type": "TV",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Last BPSEC update from SRC"
+    },
+    {
+      "name": "last_reset",
+      "type": "TV",
+      "parmspec": [{"type":"STR","name":"Src"}],
+      "description": "Last reset"
+    }
+  ],
+
+  "Tblt" : [
+    {
+      "name": "keys",
+      "columns": [{"type":"STR","name":"key_name"}],
+      "description": "This table lists all keys in the security policy database."
+    },
+    {
+      "name": "ciphersuites",
+      "columns": [{"type":"STR","name":"csname"}],
+      "description": "This table lists supported ciphersuites."
+    },
+    {
+      "name": "bib_rules",
+      "columns": [{"type":"STR","name":"SrcEid"},
+                  {"type":"STR","name":"DestEid"},
+                  {"type":"UINT","name":"TgtBlk"},
+                  {"type":"STR","name":"csName"},
+                  {"type":"STR","name":"keyName"}
+                ],
+      "description": "BIB Rules."
+    },
+    {
+      "name": "bcb_rules",
+      "columns": [{"type":"STR","name":"SrcEid"},
+                  {"type":"STR","name":"DestEid"},
+                  {"type":"UINT","name":"TgtBlk"},
+                  {"type":"STR","name":"csName"},
+                  {"type":"STR","name":"keyName"}
+                ],
+      "description": "BCB Rules."
+    }
+  ],
+
+ "Var": [
+    {
+      "name": "total_bad_tx_blks",
+      "type": "UINT",
+      "initializer": {
+        "type": "UINT",
+        "postfix-expr": [{
+                "ns":"DTN/bpsec",
+                "nm":"Edd.num_bad_tx_bib_blks_src"
+        },{
+                "ns":"DTN/bpsec",
+                "nm":"Edd.num_bad_tx_bcb_blks_src"
+        },{
+                "ns":"Amp/Agent",
+                "nm":"Oper.plusUINT"
+        }]
+      },
+      "description": "This is the number of failed TX blocks (# failed BIB + # failed bcb)."
+    }
+  ],
+
+  "Rptt": [
+    {
+      "name": "full_report",
+      "definition" : [
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bcb_blk"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bcb_blk"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bcb_blk"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bcb_blk"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_missing_rx_bcb_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bcb_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bcb_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bcb_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bcb_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bcb_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_missing_rx_bcb_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bcb_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bib_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bib_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bib_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bib_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_miss_rx_bib_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bib_blks"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bib_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bib_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bib_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bib_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_miss_rx_bib_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bib_bytes"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.last_update"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.num_known_keys"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.key_names"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.ciphersuite_names"
+        },
+        {
+            "ns":"DTN/bpsec",
+                "nm": "Edd.rule_source"
+        }
+      ],
+      "description": "all known meta-data, externally defined data, and variables"
+    },
+    {
+      "name": "source_report",
+      "parmspec": [{"type":"STR","name":"Source"}],
+      "definition": [{
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bcb_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bcb_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bcb_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bcb_blks_src",
+
+
+
+
+
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_missing_rx_bcb_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bcb_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bcb_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bcb_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bcb_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bcb_bytes_src",
+
+
+
+
+
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_missing_rx_bcb_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bcb_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bib_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bib_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bib_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bib_blks_src",
+
+
+
+
+
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_miss_rx_bib_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bib_blks_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_tx_bib_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_tx_bib_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_good_rx_bib_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_bad_rx_bib_bytes_src",
+
+
+
+
+
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_missing_rx_bib_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.num_fwd_bib_bytes_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.last_update_src",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        },
+        {
+                "ns":"DTN/bpsec",
+                "nm": "Edd.last_reset",
+                "ap": [{
+                "type": "ParmName",
+                "value": "Source"
+          }]
+        }
+      ],
+      "description": "security info by source"
+    }
+  ],
+
+  "Ctrl": [
+  {
+      "name": "rst_all_cnts", "description": "This control causes the Agent to reset all counts associated with block or byte statistics and to set the Last Reset Time of the BPsec EDD data to the time when the control was run."
+    },
+    {
+      "name": "rst_src_cnts",
+      "parmspec": [{"type":"STR","name":"src"}],
+      "description": "This control causes the Agent to reset all counts (blocks and bytes) associated with a given bundle source and set the Last Reset Time of the source statistics to the time when the control was run."
+    },
+    {
+      "name": "delete_key",
+      "parmspec": [{"type":"STR","name":"key_name"}],
+      "description": "This control deletes a key from the BPsec system."
+    },
+    {
+      "name": "add_key",
+      "parmspec":[
+                  {"type":"STR","name":"key_name"},
+                  {"type":"BYTESTR","name":"keyData"}
+                ],
+      "description": "This control adds a key to the BPsec system."
+    },
+    {
+      "name": "add_bib_rule",
+      "parmspec": [
+                    {"type":"STR","name":"source"},
+                    {"type":"STR","name":"destination"},
+                    {"type":"INT","name":"target"},
+                    {"type":"STR","name":"ciphersuiteId"},
+                    {"type":"STR","name":"key_name"}
+                  ],
+      "description": "This control configures policy on the BPsec protocol implementation that describes how BIB blocks should be applied to bundles in the system. This policy is captured as a rule which states when transmitting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of type target should have a BIB added to them using the given ciphersuite and the given key."
+    },
+    {
+      "name": "del_bib_rule",
+      "parmspec": [
+                    {"type":"STR","name":"source"},
+                    {"type":"STR","name":"destination"},
+                    {"type":"INT","name":"target"}
+                  ],
+      "description": "This control removes any configured policy on the BPsec protocol implementation that describes how BIB blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a source endpoint Id, a destination Id, and a target block type."
+    },
+    {
+      "name": "list_bib_rules",
+      "description": "This control returns a table describinng all of the BIB policy rules that are known to the BPsec implementation."
+    },
+    {
+      "name": "add_bcb_rule",
+      "parmspec": [
+                    {"type":"STR","name":"source"},
+                    {"type":"STR","name":"destination"},
+                    {"type":"INT","name":"target"},
+                    {"type":"STR","name":"ciphersuiteId"},
+                    {"type":"STR","name":"key_name"}
+                  ],
+      "description": "This control configures policy on the BPsec protocol implementation that describes how BCB blocks should be applied to bundles in the system. This policy is captured as a rule which states when transmitting a bundle from the given source endpoint id to the given destination endpoint id, blocks of type target should have a bcb added to them using the given ciphersuite and the given key."
+    },
+    {
+      "name": "del_bcb_rule",
+      "parmspec": [
+                    {"type":"STR","name":"source"},
+                    {"type":"STR","name":"destination"},
+                    {"type":"INT","name":"target"}
+                  ],
+      "description": "This control removes any configured policy on the BPsec protocol implementation that describes how BCB blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a source endpoint id, a destination endpoint id, and a target block type."
+    },
+    {
+      "name": "list_bcb_rules",
+      "description": "This control returns a table describing all of the bcb policy rules that are known to the BPsec implementation"
+    }
+  ]
+}
