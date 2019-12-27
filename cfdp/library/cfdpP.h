@@ -11,6 +11,7 @@
 
 #include "lyst.h"
 #include "zco.h"
+#include "crc.h"
 #include "cfdp.h"
 
 #ifndef _CFDPP_H_
@@ -345,6 +346,7 @@ extern int		removeEntity(uvast entityId);
 
 extern int		checkFile(char *);
 
+extern int		ckTypeOkay(unsigned int ckType);
 extern void		addToChecksum(unsigned char octet, vast *offset,
 				unsigned int *checksum, CfdpCksumType ckType);
 
