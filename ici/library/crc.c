@@ -407,7 +407,7 @@ static uint32_t  crctable_1EDC6F41_r[256] =
  *
  * \par Function Name: ion_CRC16_1021_X25
  *
- * \par Purpose: Calculate the CRC15 value for poly 0x1021.
+ * \par Purpose: Calculate the CRC16 value for poly 0x1021.
  *
  * \retval      CRC Value
  *
@@ -422,14 +422,14 @@ static uint32_t  crctable_1EDC6F41_r[256] =
  *      4. crc type must be unsigned.
  *      5. init = 0xffff xorout = 0xffff
  *      6. check = 0x9063 (for input "123456789")
- *****************************************************************************/     
+ *****************************************************************************/
 uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen, uint16_t crc)
 {
     if(data == NULL)
         return ERROR;
         
     uint16_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
@@ -467,7 +467,7 @@ uint32_t ion_CRC32_04C11DB7_bzip2(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
 
     uint32_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
@@ -506,7 +506,7 @@ uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
 
     uint32_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
@@ -545,7 +545,7 @@ uint32_t ion_CRC32_1EDC6F41_C(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
         
     uint32_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
