@@ -16,7 +16,7 @@
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-#include "bp/ipn/ipnfw.h"
+#include "ipn/ipnfw.h"
 
 /*   STOP CUSTOM INCLUDES HERE  */
 
