@@ -510,6 +510,7 @@ ari_t* ui_input_ari_build(uvast mask)
 
 	if(ARI_GET_FLAG_ISS(flags))
 	{
+#if AMP_VERSION < 7
 		uvast iss = ui_input_uvast("ARI Issuer:");
 		if(VDB_ADD_ISS(iss, &(result->as_reg.iss_idx)) != VEC_OK)
 		{
@@ -517,6 +518,24 @@ ari_t* ui_input_ari_build(uvast mask)
 			ari_release(result, 1);
 			return NULL;
 		}
+#else
+		blob_t *issuer = ui_input_blob("ARI Issuer:", 0);
+        if (issuer == NULL)
+        {
+			AMP_DEBUG_ERR("ui_input_ari","Invalid issuer input.", NULL);
+			ari_release(result, 1);
+			return NULL;
+        }
+		else if(VDB_ADD_ISS(*issuer, &(result->as_reg.iss_idx)) != VEC_OK)
+		{
+			AMP_DEBUG_ERR("ui_input_ari","Unable to add issuer.", NULL);
+			blob_release(issuer, 1);
+			ari_release(result, 1);
+			return NULL;
+		}
+		blob_release(issuer, 1);
+
+#endif
 	}
 
 	if(ARI_GET_FLAG_TAG(flags))
@@ -780,7 +799,7 @@ ari_t* ui_input_ari_raw(uint8_t no_file)
 
     if (data != NULL)
     {
-       result = ari_deserialize_raw(data, &success);
+       result = ari_deserialize_raw(data, &success);   
        blob_release(data, 1);
     }
 

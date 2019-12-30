@@ -141,7 +141,7 @@ inline static QCBORError DecodeNesting_BreakAscend(QCBORDecodeNesting *pNesting)
 
    // Decrement the count of items in this array/map
    pNesting->pCurrent->uCount--;
-
+   
    // Pop up nesting levels if the counts at the levels are zero
    while(DecodeNesting_IsNested(pNesting) && 0 == pNesting->pCurrent->uCount) {
       pNesting->pCurrent--;
@@ -1058,6 +1058,37 @@ static inline QCBORError GetNext_MapEntry(QCBORDecodeContext *me, QCBORItem *pDe
 
 Done:
    return nReturn;
+}
+
+QCBORError QCBORDecode_StartOctets(QCBORDecodeContext *me) {
+
+   QCBORDecodeNesting *pNesting = &(me->nesting);
+   QCBORError nReturn;
+   
+   // Check if there are any bytes left in bufer
+   if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0) {
+      return QCBOR_ERR_NO_MORE_ITEMS;
+   }
+
+   // Error out if nesting is too deep
+   if(pNesting->pCurrent >= &(pNesting->pMapsAndArrays[QCBOR_MAX_ARRAY_NESTING])) {
+      return QCBOR_ERR_ARRAY_NESTING_TOO_DEEP;
+   }
+
+   // The actual descend
+   pNesting->pCurrent++;
+
+   // Pretend we saw a CBOR array
+   pNesting->pCurrent->uMajorType = CBOR_MAJOR_TYPE_ARRAY; // majorType is uint8, so we can't add a custom type
+   pNesting->pCurrent->uCount     = UINT16_MAX; // of indefinite length
+
+   return QCBOR_SUCCESS;
+
+   
+}
+QCBORError QCBORDecode_EndOctets(QCBORDecodeContext *me) {
+   return DecodeNesting_BreakAscend(&(me->nesting));
+   
 }
 
 

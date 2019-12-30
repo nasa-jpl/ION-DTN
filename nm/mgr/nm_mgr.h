@@ -39,7 +39,7 @@
 #include "sdr.h"
 
 // Application includes
-
+#include "../shared/nm.h"
 #include "../shared/utils/nm_types.h"
 #include "../shared/msg/ion_if.h"
 
@@ -66,6 +66,7 @@ typedef struct
 	vector_t agents;  /* (agent_t *) */
 	rhht_t metadata; /* (metadata_t*) */
 	uvast tot_rpts;
+	uvast tot_tbls;
 	eid_t mgr_eid;
 
 #ifdef HAVE_MYSQL

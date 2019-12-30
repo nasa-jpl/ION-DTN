@@ -2287,6 +2287,46 @@ QCBORError QCBORDecode_GetNext(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem
  */
 QCBORError QCBORDecode_GetNextWithTags(QCBORDecodeContext *pCtx, QCBORItem *pDecodedItem, QCBORTagListOut *pTagList);
 
+/**
+ @brief Start decoding of an OCTETS array sequence, an extension of the CBOR specification.
+ @param[in] pCtx    The decoder context.
+
+ @return QCBOR_ERR_NO_MORE_ITEMS if maximum nesting level has been exceeded, QCBOR_SUCCESS otherwise.
+
+ This function implements an extension to the CBOR specification that shall be referred to as OCTETS.  An OCTETS sequence is equivalent to an indefinite-length CBOR Array wherein the typical headers delineating the start and end of the array are omitted from the binary encoding.  This permits the CBOR encoded values within this section to be decoded normally without adversely affecting any enclosing standard CBOR containers (for purposes of error checking).
+
+ This function emulates decoding of an opening marker for an indifinite length array in QCBORDecode_GetNext() and results in the appropriate data structures for tracking and validating nesting levels to be incremented.
+
+ On completion of the OCTETS sequence, execute QCBORDecode_EndOctets() to emulate a CBOR BREAK header and increment nesting levels appropriately to satisfy erorr checking.
+
+ */
+QCBORError QCBORDecode_StartOctets(QCBORDecodeContext *me);
+
+/**
+ @brief End an OCTETS sequence encoding started with QCBORDecode_StartOctets.
+ @see QCBORDecode_StartOctets
+ @param[in] pCtx    The decoder context.
+
+ */
+QCBORError QCBORDecode_EndOctets(QCBORDecodeContext *me);
+
+/**
+ @brief Close an array as an OCTETS sequence, bypassing nominal encoding headers
+ @see QCBORDecode_StartOctets
+ @param[in] pCtx    The decoder context.
+
+See QCBORDecode_StartOctets() for the main description of OCTETS
+handling.  An OCTETS sequence shall be started by opening an array as
+usual with QCBOREncode_OpenArray().
+
+This function ends encoding of the OCTETS sequence by setting internal
+accounting accordingly, but does NOT encode any additional markers in
+the resulting CBOR encoding. This API allows consistent behavior when
+a single element in an encapsulating array may consist of multiple
+CBOR elements in a pre-defined or otherwise de-lineating fashion.  In
+the process 1-2 header bytes are bypassed in the encoded data.
+ */
+void QCBOREncode_CloseArrayOctet(QCBOREncodeContext *me);
 
 /**
  @brief Determine if a CBOR item was tagged with a particular tag

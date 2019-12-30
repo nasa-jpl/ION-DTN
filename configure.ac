@@ -139,6 +139,21 @@ esac
 ##Process user flags
 
 #
+# allow the user running configure to build bpv6
+#
+AC_ARG_ENABLE(
+    bpv6,
+    [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
+    [AM_CFLAGS="$AM_CFLAGS -BUILD_BPv6"
+     BUILD_BPv6=true
+     echo "Build bpv6"],
+    [AM_CFLAGS="$AM_CFLAGS -BUILD_BPv7"
+     BUILD_BPv7=true
+     echo "Build bpv7"])
+AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
+AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
+
+#
 # allow the user running configure to disable ACS
 #
 AC_ARG_ENABLE(
