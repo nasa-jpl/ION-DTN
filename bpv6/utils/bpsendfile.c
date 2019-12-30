@@ -184,7 +184,7 @@ int	main(int argc, char **argv)
 	{
 		PUTS("Usage: bpsendfile <own endpoint ID> <destination \
 endpoint ID> <file name> [<time to live (seconds)> [<class of service>]]");
-		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
+		PUTS("\tclass of service: " BP_PARSE_QUALITY_OF_SERVICE_USAGE);
 		return 0;
 	}
 

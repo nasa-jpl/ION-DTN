@@ -223,7 +223,7 @@ int	main(int argc, char **argv)
 		PUTS("Usage:  bptrace <own EID> <destination EID> <report-to \
 EID> <time to live (seconds)> <class of service> '<trace text>' \
 [<status report flag string>]");
-		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
+		PUTS("\tclass of service: " BP_PARSE_QUALITY_OF_SERVICE_USAGE);
 		PUTS("\tStatus report flag string is a sequence of status \
 report flags separated by commas, with no embedded whitespace.");
 		PUTS("\tEach status report flag must be one of the following: \
