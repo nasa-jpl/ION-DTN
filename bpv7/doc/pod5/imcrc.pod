@@ -4,8 +4,8 @@ imcrc - IMC scheme configuration commands file
 
 =head1 DESCRIPTION
 
-IMC scheme configuration commands are passed to B<ipnadmin> either in a file of
-text lines or interactively at B<ipnadmin>'s command prompt (:).  Commands
+IMC scheme configuration commands are passed to B<imcadmin> either in a file of
+text lines or interactively at B<imcadmin>'s command prompt (:).  Commands
 are interpreted line-by line, with exactly one command per line.
 
 IMC scheme configuration commands simply establish which nodes are the

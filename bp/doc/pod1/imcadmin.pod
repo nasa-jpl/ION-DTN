@@ -47,7 +47,7 @@ Enter interactive IMC scheme configuration command entry mode.
 
 =item imcadmin host1.imcrc
 
-Execute all configuration commands in I<host1.ipnrc>, then terminate
+Execute all configuration commands in I<host1.imcrc>, then terminate
 immediately.
 
 =back
@@ -63,7 +63,7 @@ No environment variables apply.
 =head1 DIAGNOSTICS
 
 B<Note>: all ION administration utilities expect source file input to be
-lines of ASCII text that are NL-delimited.  If you edit the ipnrc file on
+lines of ASCII text that are NL-delimited.  If you edit the imcrc file on
 a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
 before presenting it to B<imcadmin>.  Otherwise B<imcadmin> will detect syntax
 errors and will not function satisfactorily.

@@ -30,6 +30,8 @@ MANFILES = \
 	./man/man3/ion.3 \
 	./man/man3/llcv.3 \
 	./man/man3/lyst.3 \
+	./man/man3/ioncbor.3 \
+	./man/man3/ioncrc.3 \
 	./man/man3/psm.3 \
 	./man/man3/zco.3 \
 	./man/man3/smlist.3 \
@@ -67,6 +69,8 @@ HTMLFILES = \
 	./html/man3/ion.html \
 	./html/man3/llcv.html \
 	./html/man3/lyst.html \
+	./html/man3/ioncbor.html \
+	./html/man3/ioncrc.html \
 	./html/man3/psm.html \
 	./html/man3/zco.html \
 	./html/man3/smlist.html \

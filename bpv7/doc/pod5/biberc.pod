@@ -1,0 +1,90 @@
+=head1 NAME
+
+biberc - BIBE configuration commands file
+
+=head1 DESCRIPTION
+
+BIBE configuration commands are passed to B<bibeadmin> either in a file of
+text lines or interactively at B<bibeadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.
+
+BIBE configuration commands establish the parameters governing transmission
+of BIBE PDUs to specified nodes: anticipated delivery latency in the forward
+direction, anticipated delivery latency in the return direction, priority
+for BIBE PDUs, ordinal priority for BIBE PDUs in the event that priority is
+Expedited, and (optionally) data label.  As such, they configure BIBE
+convergence-layer adapter daemons, B<bcla>s.
+
+The formats and effects of the BIBE configuration commands are described below.
+
+=head1 GENERAL COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by bibeadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 DESTINATION ENDPOINT COMMANDS
+
+=over 4
+
+=item B<a> bcla I<destination_node_ID> I<fwd_latency> I<rtn_latency> I<priority> I<ordinal> [I<data label>]
+
+The B<add bcla> command.  This command adds the neighboring node identified
+by I<node_nbr> as a BIBE destination of the local node.
+
+=item B<c> bcla I<destination_node_ID> I<fwd_latency> I<rtn_latency> I<priority> I<ordinal> [I<data label>]
+
+The B<change bcla> command.  This command changes the transmission parameters
+governing BIBE PDU transmission to the indicated node.
+
+=item B<d> bcla I<destination_node_ID>
+
+The B<delete bcla> command.  This command deletes the B<bcla> identified by
+I<destination_node_ID>.
+
+=item B<i> I<destination_node_ID>
+
+This command will print information (the transmission parameters) for the
+BIBE destination identified by I<destination_node_ID>.
+
+=item B<l>
+
+This command lists all of the local node's BIBE destinations.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item a bcla ipn:3.2 10 10 1 0 16
+
+Declares that ipn:3.2 is a BIBE destination and that BIBE PDUs destined for
+this node are to be sent with priority 1 (standard) and data label 16; it is
+expected that BIBE PDUs sent to this node will arrive within 10 seconds and
+that BIBE PDUs sent from this node will arrive within 10 seconds.
+
+=back
+
+=head1 SEE ALSO
+
+bibeadmin(1)

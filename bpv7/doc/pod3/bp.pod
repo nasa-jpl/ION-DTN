@@ -71,8 +71,8 @@ Sends a bundle to the endpoint identified by I<destEid>, from the
 source endpoint as provided to the bp_open() call that returned I<sap>.
 When I<sap> is NULL, the transmitted bundle is anonymous, i.e., the source
 of the bundle is not identified.  This is legal, but anonymous bundles cannot
-be uniquely identified; custody transfer and status reporting therefore cannot
-be requested for an anonymous bundle.
+be uniquely identified; status reporting therefore cannot be requested for an
+anonymous bundle.
 
 I<reportToEid> identifies the endpoint to which any status reports
 pertaining to this bundle will be sent; if NULL, defaults to the
@@ -89,20 +89,16 @@ OR'd with priority.
 I<custodySwitch> indicates whether or not custody transfer is requested for
 this bundle and, if so, whether or not the source node itself is required
 to be the initial custodian.  The valid values are SourceCustodyRequired,
-SourceCustodyOptional, NoCustodyRequired.  Note that custody transfer is
-possible only for bundles that are uniquely identified, so it cannot be
-requested for bundles for which BP_MINIMUM_LATENCY is requested, since
-BP_MINIMUM_LATENCY may result in the production of multiple identical
-copies of the same bundle.  Similarly, custody transfer should never be
-requested for a "loopback" bundle, i.e., one whose destination node is
-the same as the source node: the received bundle will be identical to the
-source bundle, both residing in the same node, so no custody acceptance
-signal can be applied to the source bundle and the source bundle will
-remain in storage until its TTL expires.
+SourceCustodyOptional, NoCustodyRequired.  Note that custody transfer can
+take effect only for segments of the end-to-end path that are traversed
+using the Bundle-in-Bundle Encapsulation protocol at the "convergence layer";
+however, requesting custody transfer is interpreted by ION as a request to
+use "reliable" convergence-layer protocols over all segments of the end-to-end
+path, whether implemented by custody transfer or not.
 
 I<srrFlags>, if non-zero, is the logical OR of the status reporting behaviors
-requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT,
-BP_DELIVERED_RPT, BP_DELETED_RPT.
+requested for this bundle: BP_RECEIVED_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT,
+BP_DELETED_RPT.
 
 I<ackRequested> is a Boolean parameter indicating whether or not the recipient
 application should be notified that the source application requests some sort
@@ -112,8 +108,12 @@ I<ancillaryData>, if not NULL, is used to populate the Extended Class Of
 Service block for this bundle.  The block's I<ordinal> value is used to
 provide fine-grained ordering within "expedited" traffic: ordinal values
 from 0 (the default) to 254 (used to designate the most urgent traffic)
-are valid, with 255 reserved for custody signals.  The value of the block's
-I<flags> is the logical OR of the applicable extended class-of-service flags:
+are valid, with 255 reserved for custody signals.  Note that the insertion
+of application-specific extension blocks into the bundle, in addition to the
+canonical extension blocks inserted automatically per the B<bpextensions.c>
+file, may be requested by listing those blocks in the I<extensions> variable
+of the I<ancillaryData> block.  The value of the block's I<flags> is the
+logical OR of the applicable extended class-of-service flags:
 
 =over 4
 
@@ -165,14 +165,6 @@ of inadvertently de-referencing the address of a nonexistent bundle.
 
 Removes I<trackingElt> from the list of "tracking" references in I<bundle>,
 if it is in that list.  Does not delete I<trackingElt> itself.
-
-=item int bp_memo(Object bundle, unsigned int interval)
-
-Implements custodial retransmission.  This function inserts a
-"custody-acceptance due" event into the timeline.  The event causes the
-indicated bundle to be re-forwarded if it is still in the database (i.e.,
-it has not yet been accepted by another custodian) as of the time computed
-by adding the indicated interval to the current time.
 
 =item int bp_suspend(Object bundle)
 

@@ -4,8 +4,7 @@ PODM5 = pod2man -s 5 -c "BP configuration files"
 PODH = pod2html --noindex
 
 MANFILES = \
-	./man/man1/acsadmin.1 \
-	./man/man1/acslist.1 \
+	./man/man1/bibeadmin.1 \
 	./man/man1/bpadmin.1 \
 	./man/man1/bpsecadmin.1 \
 	./man/man1/bpclock.1 \
@@ -53,7 +52,7 @@ MANFILES = \
 	./man/man1/dccpcli.1 \
 	./man/man1/dccpclo.1 \
 	./man/man1/cgrfetch.1 \
-	./man/man5/acsrc.5 \
+	./man/man5/biberc.5 \
 	./man/man5/bprc.5 \
 	./man/man5/bpsecrc.5 \
 	./man/man5/ipnrc.5 \
@@ -64,8 +63,7 @@ MANFILES = \
 	./man/man3/bp.3
 
 HTMLFILES = \
-	./html/man1/acsadmin.html \
-	./html/man1/acslist.html \
+	./html/man1/bibeadmin.html \
 	./html/man1/bpadmin.html \
 	./html/man1/bpsecadmin.html \
 	./html/man1/bpclock.html \
@@ -113,7 +111,7 @@ HTMLFILES = \
 	./html/man1/dccpcli.html \
 	./html/man1/dccpclo.html \
 	./html/man1/cgrfetch.html \
-	./html/man5/acsrc.html \
+	./html/man5/biberc.html \
 	./html/man5/bprc.html \
 	./html/man5/bpsecrc.html \
 	./html/man5/ipnrc.html \

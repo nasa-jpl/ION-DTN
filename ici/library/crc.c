@@ -445,7 +445,7 @@ uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen, uint16_t crc)
  *
  * \par Function Name: ion_CRC32_04C11DB7_bzip2
  *
- * \par Purpose: Calculate the CRC32 value for poly 0x04C11DB7.
+ * \par Purpose: Calculate the bzip2 CRC32 value for poly 0x04C11DB7.
  *
  * \retval      CRC Value
  *
@@ -483,7 +483,7 @@ uint32_t ion_CRC32_04C11DB7_bzip2(const char *data, uint32_t dLen, uint32_t crc)
  *
  * \par Function Name: ion_CRC32_04C11DB7
  *
- * \par Purpose: Calculate the CRC32 value for poly 0x04C11DB7.
+ * \par Purpose: Calculate the ISO-HDLC CRC32 value for poly 0x04C11DB7.
  *
  * \retval      CRC Value
  *
@@ -522,7 +522,7 @@ uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen, uint32_t crc)
  *
  * \par Function Name: ion_CRC32_1EDC6F41_C
  *
- * \par Purpose: Calculate the CRC32 value for poly 0x04C11DB7.
+ * \par Purpose: Calculate the CRC32C value for poly 0x1EDC6F41.
  *
  * \retval      CRC Value
  *

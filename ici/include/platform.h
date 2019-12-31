@@ -627,11 +627,9 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
-#ifdef uClibc			/****	uClibc subset of Linux	     ****/
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
-#else				/****	Not bionic and not uClibc    ****/
-#include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
+#ifndef uClibc			/****	uClibc subset of Linux	     ****/
 #include <execinfo.h>		/****	...to get backtrace	     ****/
 #endif				/*	End of #ifdef uClibc	     ****/
 #endif				/****	End of #ifdef bionic	     ****/

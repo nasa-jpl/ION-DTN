@@ -75,7 +75,7 @@ void	bibeAdd(char *destEid, unsigned int fwdLatency, unsigned int rtnLatency,
 	oK(sdr_end_xn(sdr));
 }
 
-void	bibechange(char *destEid, unsigned int fwdLatency,
+void	bibeChange(char *destEid, unsigned int fwdLatency,
 		unsigned int rtnLatency, unsigned char priority,
 		unsigned char ordinal, unsigned int label,
 		unsigned char flags)
