@@ -13,11 +13,11 @@ LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
 PUBINCLS = \
+	$(INCL)/bputa.h \
 	$(INCL)/cfdp.h
 
 CFDPINCLS = \
 	$(API)/cfdpP.h \
-	$(API)/bputa.h \
 	$(UTILS)/bpcp.h
 
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
