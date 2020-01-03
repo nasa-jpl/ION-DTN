@@ -429,7 +429,7 @@ uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen, uint16_t crc)
         return ERROR;
         
     uint16_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
@@ -467,7 +467,7 @@ uint32_t ion_CRC32_04C11DB7_bzip2(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
 
     uint32_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
@@ -506,7 +506,7 @@ uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
 
     uint32_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
@@ -545,7 +545,7 @@ uint32_t ion_CRC32_1EDC6F41_C(const char *data, uint32_t dLen, uint32_t crc)
         return ERROR;
         
     uint32_t lcrc = ~crc;
-    uint16_t i;
+    uint8_t  i;
 
     while(dLen--)
     {
