@@ -2064,9 +2064,13 @@ nm_agent_SOURCES = \
 			nm/shared/msg/ion_if.c  \
 			nm/shared/adm/adm_init.c
 
-NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm
+NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm
 
 nm_agent_ADM_SOURCES = \
+			$(BP_DIR)/adm/adm_bp_agent_impl.c	    \
+			$(BP_DIR)/adm/adm_bp_agent_agent.c      \
+			$(BP_DIR)/adm/adm_ion_bp_admin_impl.c	\
+			$(BP_DIR)/adm/adm_ion_bp_admin_agent.c  \
 			nm/agent/adm_amp_agent_impl.c   \
 			nm/agent/adm_amp_agent_agent.c	\
 			nm/agent/adm_ion_admin_agent.c 	\
@@ -2083,6 +2087,8 @@ nm_agent_ADM_SOURCES = \
 
 nm_mgr_ADM_SOURCES = \
 			nm/mgr/adm_amp_agent_mgr.c   	\
+			$(BP_DIR)/adm/adm_ion_bp_admin_mgr.c	\
+			$(BP_DIR)/adm/adm_bp_agent_mgr.c \
 			nm/mgr/adm_ion_admin_mgr.c	\
 			nm/mgr/adm_ionsec_admin_mgr.c	\
 			nm/mgr/adm_ion_ipn_admin_mgr.c	\
@@ -2091,17 +2097,15 @@ nm_mgr_ADM_SOURCES = \
 
 if BUILD_BPv6
 nm_agent_ADM_SOURCES += \
-			$(BP_DIR)/adm/adm_bp_agent_impl.c	\
-			$(BP_DIR)/adm/adm_bp_agent_agent.c   \
 			$(BP_DIR)/adm/adm_sbsp_impl.c	\
-			$(BP_DIR)/adm/adm_sbsp_agent.c   \
-			$(BP_DIR)/adm/adm_ion_bp_admin_impl.c	\
-			$(BP_DIR)/adm/adm_ion_bp_admin_agent.c
+			$(BP_DIR)/adm/adm_sbsp_agent.c   
 nm_mgr_ADM_SOURCES += \
-			$(BP_DIR)/adm/adm_ion_bp_admin_mgr.c	\
-			$(BP_DIR)/adm/adm_bp_agent_mgr.c	\
 			$(BP_DIR)/adm/adm_sbsp_mgr.c		
-NM_ADM_INCLUDES += -I$(BP_SRC_DIR)/adm
+else
+#nm_agent_ADM_SOURCES += 
+
+#nm_mgr_ADM_SOURCES += 
+
 endif
 
 libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)

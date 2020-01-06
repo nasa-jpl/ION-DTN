@@ -1452,15 +1452,10 @@ tnv_t *dtn_ion_bpadmin_ctrl_watch(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 			case 'a': vdb->watching |= WATCH_a; break;
 			case 'b': vdb->watching |= WATCH_b; break;
 			case 'c': vdb->watching |= WATCH_c; break;
-			case 'm': vdb->watching |= WATCH_m; break;
-			case 'w': vdb->watching |= WATCH_w; break;
-			case 'x': vdb->watching |= WATCH_x; break;
 			case 'y': vdb->watching |= WATCH_y; break;
 			case 'z': vdb->watching |= WATCH_z; break;
 			case '~': vdb->watching |= WATCH_abandon; break;
 			case '!': vdb->watching |= WATCH_expire;  break;
-			case '&': vdb->watching |= WATCH_refusal; break;
-			case '#': vdb->watching |= WATCH_timeout; break;
 			case 'j': vdb->watching |= WATCH_limbo;   break;
 			case 'k': vdb->watching |= WATCH_delimbo; break;
 			default:
