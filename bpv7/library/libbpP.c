@@ -23,12 +23,12 @@
 #include "smrbt.h"
 #include "bei.h"
 #include "eureka.h"
-#include "bibe.h"
+#include "bibe/bibe.h"
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
 #include "imcP.h"
-#include "saga.h"
+#include "saga/saga.h"
 #include "ext/bpsec/bpsec_instr.h"
 #include "ext/bpsec/bpsec_util.h"
 

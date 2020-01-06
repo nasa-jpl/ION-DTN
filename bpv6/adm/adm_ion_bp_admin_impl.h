@@ -23,10 +23,10 @@
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/table.h"
-#include "../shared/primitives/tnv.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
 
 /*   START typeENUM */
 /*   STOP typeENUM  */

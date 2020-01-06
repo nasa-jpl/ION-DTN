@@ -11,11 +11,11 @@
 
 /*	Add external function declarations between here...		*/
 
-#include "pnb.h"
-#include "qos.h"
+#include "pnb/pnb.h"
+#include "qos/qos.h"
 #include "meb.h"
 #include "bae.h"
-#include "hcb.h"
+#include "hcb/hcb.h"
 #include "snw.h"
 #if defined(BPSEC)
 #include "bib.h"

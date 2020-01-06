@@ -39,16 +39,6 @@
 
 #include "../primitives/expr.h"
 
-#include "adm_amp_agent.h"
-#include "adm_bp_agent.h"
-#include "adm_sbsp.h"
-#include "adm_ion_admin.h"
-#include "adm_ion_bp_admin.h"
-#include "adm_ion_ipn_admin.h"
-#include "adm_ionsec_admin.h"
-#include "adm_ion_ltp_admin.h"
-#include "adm_ltp_agent.h"
-
 vector_t g_adm_info;
 
 

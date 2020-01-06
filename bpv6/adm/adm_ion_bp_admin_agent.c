@@ -18,12 +18,12 @@
 
 #include "ion.h"
 #include "platform.h"
-#include "../shared/adm/adm_ion_bp_admin.h"
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/blob.h"
+#include "adm_ion_bp_admin.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/blob.h"
 #include "adm_ion_bp_admin_impl.h"
-#include "rda.h"
+#include "agent/rda.h"
 
 
 

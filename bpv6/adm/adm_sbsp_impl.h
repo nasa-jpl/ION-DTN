@@ -19,18 +19,18 @@
 #define ADM_SBSP_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-#include "../shared/adm/adm_sbsp.h"
-//#include "../shared/adm/adm_bp.h"
-#include "../shared/primitives/expr.h"
+#include "adm_sbsp.h"
+//#include "shared/adm/adm_bp.h"
+#include "shared/primitives/expr.h"
 
 #include "sbsp_instr.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/table.h"
-#include "../shared/primitives/tnv.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
 
 /*   START typeENUM */
 

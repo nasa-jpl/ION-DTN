@@ -22,7 +22,7 @@
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/adm/adm.h"
+#include "shared/adm/adm.h"
 #include "adm_ion_bp_admin_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */

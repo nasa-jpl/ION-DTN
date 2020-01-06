@@ -19,17 +19,17 @@
 #include <math.h>
 
 #include "adm_sbsp_impl.h"
-#include "../shared/primitives/report.h"
-#include "rda.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/table.h"
+#include "shared/primitives/report.h"
+#include "agent/rda.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/table.h"
 
-#include "../shared/adm/adm_sbsp.h"
+#include "adm_sbsp.h"
 #include "profiles.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/adm/adm.h"
+#include "shared/adm/adm.h"
 #include "adm_sbsp_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */

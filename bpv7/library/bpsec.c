@@ -22,8 +22,8 @@
 									*/
 #include "bpP.h"
 #include "bpsec.h"
-#include "bpsec_util.h"
-#include "profiles.h"
+#include "bpsec/bpsec_util.h"
+#include "bpsec/profiles.h"
 
 static int	filterEid(char *outputEid, char *inputEid, int eidIsInRule)
 {

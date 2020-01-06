@@ -41,8 +41,9 @@ AM_CFLAGS += \
 NO_UNUSED_VARIABLE = 
 else
 AM_CFLAGS += \
-	-Wall -Werror\
-	-fPIC
+	-Wall \
+	-fPIC -Werror
+
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif
 
@@ -465,27 +466,30 @@ $(top_builddir)/ici/doc/%.5: ici/doc/pod5/%.pod
 
 # -- Libraries --- #
 
-libici_la_SOURCES =	ici/library/llcv.c \
-			ici/library/libicinm.c \
-			ici/library/platform.c \
-			ici/library/platform_sm.c \
-			ici/library/memmgr.c \
-			ici/library/lyst.c \
-			ici/library/psm.c \
-			ici/library/smlist.c \
-			ici/library/sptrace.c \
-			ici/library/rfx.c \
+libici_la_SOURCES =	\
+			ici/library/cbor.c \
+			ici/library/crc.c \
 			ici/library/ion.c \
 			ici/library/ionsec.c \
-			ici/library/zco.c \
+			ici/library/libicinm.c \
+			ici/library/llcv.c \
+			ici/library/lyst.c \
+			ici/library/memmgr.c \
+			ici/library/platform.c \
+			ici/library/platform_sm.c \
+			ici/library/psm.c \
+			ici/library/rfx.c \
+			ici/library/smlist.c \
 			ici/library/smrbt.c \
-			ici/sdr/sdrxn.c \
+			ici/library/sptrace.c \
+			ici/library/zco.c \
+			ici/sdr/sdrcatlg.c \
+			ici/sdr/sdrhash.c \
+			ici/sdr/sdrlist.c \
 			ici/sdr/sdrmgt.c \
 			ici/sdr/sdrstring.c \
-			ici/sdr/sdrlist.c \
 			ici/sdr/sdrtable.c \
-			ici/sdr/sdrhash.c \
-			ici/sdr/sdrcatlg.c \
+			ici/sdr/sdrxn.c \
 			ici/bulk/STUB_BULK/bulk.c
 
 
@@ -832,7 +836,7 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/$(BP_DIR)/library/acs -I$(srcdir)/$(BP_DIR)/library/ext -I$(srcdir)/$(BP_DIR)/library/ext/meb -I$(srcdir)/$(BP_DIR)/library/ext/bae -I$(srcdir)/$(BP_DIR)/library/ext/cteb -I$(srcdir)/$(BP_DIR)/include -I$(srcdir)/$(BP_DIR)/ipn -I$(srcdir)/$(BP_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/$(BP_DIR)/dtn2 -I$(srcdir)/$(BP_DIR)/library/crypto -I$(srcdir)/$(BP_DIR)/library/ext/ecos -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(srcdir)/$(BP_DIR)/library/ext/sbsp/ciphersuites -I$(srcdir)/$(BP_DIR)/library/ext/phn -I$(srcdir)/$(BP_DIR)/imc -I$(srcdir)/$(BP_DIR)/tcp -I$(srcdir)/$(BP_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/$(BP_DIR)/library/ext/ecos -I$(srcdir)/$(BP_DIR)/library/ext/snw -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(srcdir)/$(BP_DIR)/imc -DBP_EXTENDED
+bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/library/ext/cteb -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED
 
 bpbin = \
 	bpadmin \
@@ -847,8 +851,6 @@ bpbin = \
 	bpsendfile \
 	bprecvfile \
 	bpclm \
-	bpclock \
-	bpcrash \
 	bptransit \
 	ipnadmin \
 	ipnfw \
@@ -871,7 +873,6 @@ bpbin = \
 	udpclo \
 	bibeclo \
 	dccpcli \
-	dccpclo	\
 	dgrcli \
 	dgrclo \
 	ltpcli \
@@ -887,10 +888,19 @@ bpbin = \
 	hmackeys \
 	cgrfetch
 
+if BUILD_BPv6
+# Disabled from BPv7 build pending updates
+bpbin += \
+	bpclock \
+	bpcrash \
+	dccpclo	
+
 if ENABLE_BPACS
 bpbin += acsadmin \
 	acslist
 endif
+
+endif # End BUILD_BPv6
 
 if ENABLE_IMC
 bpbin += imcadmin \
@@ -916,7 +926,6 @@ bpinclude = \
 bpnoinst = \
 	$(BP_DIR)/library/bpP.h \
 	$(BP_DIR)/library/bpsec.h \
-	$(BP_DIR)/library/saga.h \
 	$(BP_DIR)/ipn/ipnfw.h \
 	$(BP_DIR)/ipnd/ipndP.h \
 	$(BP_DIR)/dtn2/dtn2fw.h \
@@ -925,7 +934,12 @@ bpnoinst = \
 	$(BP_DIR)/ltp/ltpcla.h \
 	$(BP_DIR)/stcp/stcpcla.h \
 	$(BP_DIR)/dccp/dccpcla.h
-#	$(BP_DIR)/library/ext/phn/phn.h
+
+if BUILD_BPv6
+bpnoinst += 	$(BP_DIR)/library/saga.h
+else
+bpnoinst += 	$(BP_DIR)/saga/saga.h
+endif
 
 bpextra = \
 	$(BP_DIR)/doc/pod1/bpadmin.pod \
@@ -1105,37 +1119,17 @@ libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
 
-# VERIFY: Wny are there header files in this list?
 libbp_la_SOURCES = \
-	$(BP_DIR)/dtn2/libdtn2fw.h \
 	$(BP_DIR)/dtn2/libdtn2fw.c \
 	$(BP_DIR)/library/libbp.c \
 	$(BP_DIR)/library/libbpP.c \
 	$(BP_DIR)/library/libbpnm.c \
 	$(BP_DIR)/library/eureka.c \
-	$(BP_DIR)/library/ext/phn/phn.c \
-	$(BP_DIR)/library/ext/ecos/ecos.c \
 	$(BP_DIR)/library/bei.c \
-	$(BP_DIR)/library/bpsec.h \
 	$(BP_DIR)/library/bpsec.c \
-	$(BP_DIR)/library/saga.h \
-	$(BP_DIR)/library/saga.c \
 	$(BP_DIR)/library/ext/meb/meb.c \
 	$(BP_DIR)/library/ext/bae/bae.c \
-	$(BP_DIR)/library/ext/sbsp/sbsp_instr.h \
-	$(BP_DIR)/library/ext/sbsp/sbsp_instr.c \
-	$(BP_DIR)/library/ext/sbsp/sbsp_bcb.h \
-	$(BP_DIR)/library/ext/sbsp/sbsp_bcb.c \
-	$(BP_DIR)/library/ext/sbsp/sbsp_bib.h \
-	$(BP_DIR)/library/ext/sbsp/sbsp_bib.c \
-	$(BP_DIR)/library/ext/sbsp/sbsp_util.h \
-	$(BP_DIR)/library/ext/sbsp/sbsp_util.c \
-	$(BP_DIR)/library/ext/sbsp/profiles.h \
-	$(BP_DIR)/library/ext/sbsp/profiles.c \
-	$(BP_DIR)/library/ext/snid/snid.c \
-	$(BP_DIR)/library/ext/snw/snw.h \
 	$(BP_DIR)/library/ext/snw/snw.c \
-	$(BP_DIR)/ipn/libipnfw.h \
 	$(BP_DIR)/ipn/libipnfw.c \
 	$(BP_DIR)/ipnd/ipnd.c \
 	$(BP_DIR)/ipnd/beacon.c \
@@ -1143,8 +1137,29 @@ libbp_la_SOURCES = \
 	$(BP_DIR)/ipnd/node.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
-	ici/libbloom-master/murmur2/murmurhash2.h \
 	ici/libbloom-master/murmur2/MurmurHash2.c
+
+if BUILD_BPv6
+libbp_la_SOURCES += \
+	$(BP_DIR)/library/ext/ecos/ecos.c \
+	$(BP_DIR)/library/ext/phn/phn.c \
+	$(BP_DIR)/library/saga.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_instr.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bcb.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bib.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_util.c \
+	$(BP_DIR)/library/ext/sbsp/profiles.c \
+	$(BP_DIR)/library/ext/snid/snid.c
+else
+libbp_la_SOURCES += \
+	$(BP_DIR)/bibe/bibe.c \
+	$(BP_DIR)/library/ext/bpsec/bpsec_instr.c \
+	$(BP_DIR)/library/ext/bpsec/profiles.c \
+$(BP_DIR)/library/ext/hcb/hcb.c \
+	$(BP_DIR)/library/ext/pnb/pnb.c \
+	$(BP_DIR)/library/ext/qos/qos.c \
+	$(BP_DIR)/saga/saga.c
+endif
 
 if CRYPTO
 libici_la_SOURCES+= \
@@ -1155,10 +1170,13 @@ libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
 endif
-libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/$(BP_DIR)/library/ext/sbsp
+
+libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
+
 #libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
 #EJB
+if BUILD_BPv6
 if ENABLE_BPACS
 libbp_la_SOURCES += \
 	$(BP_DIR)/library/acs/acsrx.c \
@@ -1168,6 +1186,8 @@ libbp_la_SOURCES += \
 	$(BP_DIR)/library/acs/acsid.c \
 	$(BP_DIR)/library/ext/cteb/cteb.c \
 	$(NULL)
+endif
+# TODO: Is there a BPv7 equivalent?
 endif
 
 if ENABLE_IMC
@@ -1438,13 +1458,6 @@ bpclm_SOURCES = $(BP_DIR)/daemon/bpclm.c
 bpclm_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-# Build bpv7
-#else
-#
-#	@echo "***BPv7 Build Configuration TO DO***"
-# build bpv7 stuff here
-
-#endif
 
 ##########################
 #
@@ -2051,6 +2064,8 @@ nm_agent_SOURCES = \
 			nm/shared/msg/ion_if.c  \
 			nm/shared/adm/adm_init.c
 
+NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm
+
 nm_agent_ADM_SOURCES = \
 			nm/agent/adm_amp_agent_impl.c   \
 			nm/agent/adm_amp_agent_agent.c	\
@@ -2063,13 +2078,31 @@ nm_agent_ADM_SOURCES = \
 			nm/agent/adm_ion_ltp_admin_impl.c	\
 			nm/agent/adm_ion_ltp_admin_agent.c	\
 			nm/agent/adm_ltp_agent_impl.c	\
-			nm/agent/adm_ltp_agent_agent.c  \
-			nm/agent/adm_bp_agent_impl.c	\
-			nm/agent/adm_bp_agent_agent.c   \
-			nm/agent/adm_sbsp_impl.c	\
-			nm/agent/adm_sbsp_agent.c   \
-			nm/agent/adm_ion_bp_admin_impl.c	\
-			nm/agent/adm_ion_bp_admin_agent.c
+			nm/agent/adm_ltp_agent_agent.c
+
+
+nm_mgr_ADM_SOURCES = \
+			nm/mgr/adm_amp_agent_mgr.c   	\
+			nm/mgr/adm_ion_admin_mgr.c	\
+			nm/mgr/adm_ionsec_admin_mgr.c	\
+			nm/mgr/adm_ion_ipn_admin_mgr.c	\
+			nm/mgr/adm_ion_ltp_admin_mgr.c	\
+			nm/mgr/adm_ltp_agent_mgr.c
+
+if BUILD_BPv6
+nm_agent_ADM_SOURCES += \
+			$(BP_DIR)/adm/adm_bp_agent_impl.c	\
+			$(BP_DIR)/adm/adm_bp_agent_agent.c   \
+			$(BP_DIR)/adm/adm_sbsp_impl.c	\
+			$(BP_DIR)/adm/adm_sbsp_agent.c   \
+			$(BP_DIR)/adm/adm_ion_bp_admin_impl.c	\
+			$(BP_DIR)/adm/adm_ion_bp_admin_agent.c
+nm_mgr_ADM_SOURCES += \
+			$(BP_DIR)/adm/adm_ion_bp_admin_mgr.c	\
+			$(BP_DIR)/adm/adm_bp_agent_mgr.c	\
+			$(BP_DIR)/adm/adm_sbsp_mgr.c		
+NM_ADM_INCLUDES += -I$(BP_SRC_DIR)/adm
+endif
 
 libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
 libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
@@ -2081,7 +2114,7 @@ nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/nm \
                   -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
-                  -DAGENT_ROLE $(NM_CBOR_CFLAGS)
+                  -DAGENT_ROLE $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 
 nm_mgr_SOURCES =	\
@@ -2093,15 +2126,7 @@ nm_mgr_SOURCES =	\
 			nm/mgr/nm_mgr_ui.c 		\
 			nm/mgr/nm_mgr.c			\
 			nm/mgr/ui_input.c 		\
-			nm/mgr/adm_amp_agent_mgr.c   	\
-			nm/mgr/adm_bp_agent_mgr.c	\
-			nm/mgr/adm_sbsp_mgr.c		\
-			nm/mgr/adm_ion_admin_mgr.c	\
-			nm/mgr/adm_ion_bp_admin_mgr.c	\
-			nm/mgr/adm_ionsec_admin_mgr.c	\
-			nm/mgr/adm_ion_ipn_admin_mgr.c	\
-			nm/mgr/adm_ion_ltp_admin_mgr.c	\
-			nm/mgr/adm_ltp_agent_mgr.c      \
+			$(nm_mgr_ADM_SOURCES)   \
 			nm/shared/msg/ion_if.c \
 			nm/shared/adm/adm_init.c
 
@@ -2109,7 +2134,7 @@ nm_mgr_LDADD = libnm.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS)
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 
 ##########################
