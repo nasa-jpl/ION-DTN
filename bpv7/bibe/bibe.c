@@ -339,7 +339,7 @@ static void	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
 		}
 	}
 }
- 
+
 int	bibeHandleBpdu(BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();

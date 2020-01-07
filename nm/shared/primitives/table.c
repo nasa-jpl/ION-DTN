@@ -134,7 +134,7 @@ tbl_t*   tbl_create(ari_t *id)
 }
 
 
-tbl_t* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
+void* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	tbl_t *result = NULL;
 	size_t i;
@@ -333,6 +333,26 @@ blob_t*   tbl_serialize_wrapper(tbl_t *tbl)
 {
 	return cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE, tbl, (cut_enc_fn)tbl_serialize);
 }
+
+void tbl_cb_del_fn(void *item)
+{
+	tbl_release((tbl_t*) item, 1);
+}
+int tbl_cb_comp_fn(void *i1, void *i2)
+{
+	tbl_t* t1 = (tbl_t*)i1;
+	tbl_t* t2 = (tbl_t*)i2;
+
+	CHKUSR(t1, -1);
+	CHKUSR(t2, -1);
+
+	return ari_compare(t1->id, t2->id, 0);
+}
+void* tbl_cb_copy_fn(void *item)
+{
+	return tbl_copy_ptr((tbl_t*)item);
+}
+
 
 
 /* TABLE TEMPLATE FUNCTIONS */

@@ -66,6 +66,7 @@ extern int gContext;
 
 int ui_build_control(agent_t* agent);
 void ui_clear_reports(agent_t* agent);
+void ui_clear_tables(agent_t* agent);
 
 rpttpl_t* ui_create_rpttpl_from_parms(tnvc_t parms);
 var_t* ui_create_var_from_parms(tnvc_t parms);
@@ -123,7 +124,8 @@ typedef enum form_types_enum {
    TYPE_CHECK_ENUM,
    TYPE_CHECK_INT,
    TYPE_CHECK_NUM,
-   TYPE_CHECK_REGEXP
+   TYPE_CHECK_REGEXP,
+   TYPE_CHECK_BOOL,
 } form_types_enum;
 
 typedef struct form_fields_t {
@@ -132,6 +134,7 @@ typedef struct form_fields_t {
    uint32_t width; // Maximum length for value field (null-char included)
    int opts_off; // NCURSES Field Options to disable
    form_types_enum type; // If not NULL, use validation
+   void *parsed_value;
    union args {
       // For ALPHA or ALNUM types
       int width; // Minimum length for value field (excluded null-char)
@@ -209,7 +212,7 @@ typedef ui_cb_return_values_t (*ui_menu_listing_cb_fn)(int idx, int keypress, vo
  *    choices array representing the user selection otherwise.
  */
 int ui_menu(char* title, char** choices, char** descriptions, int n_choices, char* msg);
-#ifdef USE_NCURSES //EJB
+
 /** Display a form of one or more fields for the user to fill out.
  * @param title A title to display for this form
  * @param msg An optional user-defined message to display at the bottom of the menu.
@@ -219,7 +222,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
  * @returns 1 on submission, 0 if user cancelled input, or -1 on error.
  */
 int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields);
-#endif //EJB
+
 /** Display the user with a simple confirmation dialog with 1-3 options.
  *    Specify NULL or choiceB or C to suppress display of the corresponding choices.
  * @returns User selection
@@ -271,7 +274,8 @@ void ui_display_to_file_close();
  *     is called.
  *   In stdio mode, this is a wrapper to printf.
  */
-void ui_printf(const char* format, ...);
+#define ui_printf(...) ui_fprintf(NULL, __VA_ARGS__)
+void ui_fprintf(FILE *fd, const char* format, ...);
 
 /** Signals the completion of a ui_printf based dialog.
  *    If file redirection is active, this function will cause the file to be closed

@@ -362,7 +362,7 @@ tnv_t tnv_deserialize(QCBORDecodeContext *it, int *success)
     	*success = AMP_FAIL;
         return result;
 	}
-
+    
     /* Step 1: Grab the TNV and Flags byte. */
     cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &type);
 
@@ -1605,7 +1605,7 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 
     memset(&result,0,sizeof(result));
 
-    
+#if AMP_VERSION < 7
     err = QCBORDecode_GetNext(it, &item);
     if ( err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
@@ -1613,8 +1613,8 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		*success = AMP_FAIL;
 		return result;
 	}
-    array_len = item.val.uCount;
-
+	array_len = item.val.uCount;
+    
 	/* Handle special case of empty TNVC. */
 	if(array_len == 0)
 	{
@@ -1623,8 +1623,11 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		/* Skip over empty array,. */
 		return result;
 	}
-
-	/* Get the first byte. */
+#else
+	QCBORDecode_StartOctets(it);
+#endif
+    
+	/* Get the first byte (the flags). */
 	*success = cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &type);
 
 	if(*success != AMP_OK)
@@ -1633,6 +1636,42 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 		return result;
 	}
 
+#if AMP_VERSION >= 7
+    /* Special Case: Is this an empty collection? */
+    if(type == 0)
+    {
+		*success = AMP_OK;
+		tnvc_init(&result, 0);
+		/* Skip over empty array,. */
+#if AMP_VERSION >= 7
+		QCBORDecode_EndOctets(it);
+#endif
+		return result;
+	}
+
+#if AMP_VERSION >= 7
+    /* Read Collection Length */
+    *success = cut_get_cbor_numeric(it, AMP_TYPE_UINT, &array_len);
+    if (*success != AMP_OK)
+    {
+		AMP_DEBUG_ERR("tnvc_deserialize","CBOR Item Length field not a number", NULL);
+		return result;
+	}
+#endif
+	
+	// Extra Sanity Check
+	if (array_len == 0)
+	{
+		AMP_DEBUG_WARN("tnvc_deserialize", "Illegal Collection of 0-length with non-zero flags. Treating as empty.", NULL);
+#if AMP_VERSION >= 7
+		QCBORDecode_EndOctets(it);
+#endif
+
+		return result;
+	}
+
+#endif
+    
 	switch(type)
 	{
 		case TNVC_TVC:
@@ -1659,6 +1698,10 @@ tnvc_t tnvc_deserialize(QCBORDecodeContext *it, int *success)
 	{
 		AMP_DEBUG_ERR("tnvc_deserialize","Failed to get TNVC.", NULL);
 	}
+	
+#if AMP_VERSION >= 7
+	QCBORDecode_EndOctets(it);
+#endif
 
 	return result;
 }
@@ -1773,7 +1816,7 @@ tnvc_t   tnvc_deserialize_raw(blob_t *data, int *success)
  * \param[in,out] it       The current CBOR value.
  * \param[out]    success  AMP status code.
  *****************************************************************************/
-
+#if AMP_VERSION < 7
 static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_len, int *success)
 {
 	tnvc_t result;
@@ -1784,24 +1827,25 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 	memset(&result,0,sizeof(result));
 	*success = AMP_OK;
 
+	/* Deserialize Types (array_len byte fields) */
 	types = blob_deserialize(array_it, success);
 	if(*success != AMP_OK)
 	{
-		AMP_DEBUG_ERR("tnvs_deserialize_tvc","Can't get types set.", NULL);
+		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Can't get types set.", NULL);
 		return result;
 	}
 
 	/* Sanity check. If the array has N elements, the first element is the types array and it should
-	 * have N-1 types identified.
+	 * have N-2 types identified (subtracting types bytes array and flags)
 	 */
-	if(types.length != (array_len - 2))
+	if(types.length != (array_len - 2)) // TODO: Why is it -2 for AMPv6? array_len is of parent array...
 	{
 		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Size mismtach: array size %ld and types length %ld.", array_len, types.length);
 		*success = AMP_FAIL;
 		blob_release(&types, 0);
 		return result;
 	}
-
+	
 	result.values = vec_create(array_len - 2, tnv_cb_del,tnv_cb_comp,tnv_cb_copy, VEC_FLAG_AS_STACK, success);
 
 	if(*success != AMP_OK)
@@ -1811,7 +1855,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 		return result;
 	}
 
-	/* For each type... */
+	/* For each type deserialize values */
 	for(i = 0; i < types.length; i++)
 	{
 		tnv_t *val = tnv_create();
@@ -1828,7 +1872,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 			}
 			blob_release(blob, 1);
 		}
-
+		
 		if(*success != AMP_OK)
 		{
 			break;
@@ -1846,7 +1890,65 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 
 	return result;
 }
+#else // AMPv7
+static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_len, int *success)
+{
+	tnvc_t result;
+	blob_t types;
+	int i;
 
+	AMP_DEBUG_ENTRY("tnvc_deserialize_tvc","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC")", (uaddr) array_it, (uaddr) success);
+	memset(&result,0,sizeof(result));
+	*success = AMP_OK;
+
+	/* Deserialize Types (array_len byte fields) */
+	types = blob_deserialize_as_bytes(array_it, success, array_len);
+	if(*success != AMP_OK)
+	{
+		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Can't get types set.", NULL);
+		return result;
+	}
+
+	result.values = vec_create(array_len, tnv_cb_del,tnv_cb_comp,tnv_cb_copy, VEC_FLAG_AS_STACK, success);
+
+	if(*success != AMP_OK)
+	{
+		AMP_DEBUG_ERR("tnvc_deserialize_tvc","Can;t allocate vector.", NULL);
+		blob_release(&types, 0);
+		return result;
+	}
+
+	/* For each type deserialize values */
+	for(i = 0; i < array_len; i++)
+	{
+		tnv_t *val = tnv_create();
+		*success = AMP_FAIL;
+		val->type = types.value[i];
+
+		*success = tnv_deserialize_val_by_type(array_it, val);
+		if (*success == AMP_OK)
+		{
+			vec_insert(&(result.values), val, NULL);
+		}
+		else
+		{
+			printf("DEBUG_TRACE: Failed to deserialize TNV %i of %zu\n", i, array_len);
+			break;
+		}
+	}
+
+	blob_release(&types, 0);
+
+	if(*success != AMP_OK)
+	{
+		AMP_DEBUG_ERR("tnv_deserialize_tvc","Failed to deserialize values (last was %d).", i);
+		vec_release(&(result.values), 0);
+		return result;
+	}
+
+	return result;
+}
+#endif
 
 
 /******************************************************************************
@@ -2115,9 +2217,10 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	CHKUSR(encoder, AMP_FAIL);
 	CHKUSR(tnvc, AMP_FAIL);
 
-
-	/* Step 1: Create the Array Encoder. */
+    /* Step 1: Setup Container Flags */
 	num = vec_num_entries(tnvc->values);
+    
+#if AMP_VERSION < 7
 	QCBOREncode_OpenArray(encoder);
 
 	/* Special case of an empty TNVC. Just write an empty array */
@@ -2126,8 +2229,21 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	   QCBOREncode_CloseArray(encoder);
 	   return AMP_OK;
 	}
-
-	/* Step 2: Write the type as the first encoded byte. */
+#else
+	/* Special case of an empty TNVC. Just write a zero flag for type */
+	if(num == 0)
+	{
+       err = cut_enc_byte(encoder, 0);
+       if (err != AMP_OK)
+       {
+          AMP_DEBUG_ERR("tnvc_serialize","Cbor Error: %d encoding empty TNVC", err);
+          return err;
+       }
+	   return AMP_OK;
+	}    
+#endif
+    
+	/* Step 2: Write the type (Flags) as the first encoded byte. */
 	err = cut_enc_byte(encoder, TNVC_TVC);
 	if(err != AMP_OK)
 	{
@@ -2135,6 +2251,10 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 		return err;
 	}
 
+#if AMP_VERSION >= 7
+    /* Step 2a: Write the # of Item as an encoded uint */
+    QCBOREncode_AddUInt64(encoder, num);
+#endif
 
 	/* Step 2: Construct and serialize the type bytestring. */
 	types = tnvc_get_types(tnvc, &success);
@@ -2144,7 +2264,11 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 		AMP_DEBUG_WARN("tnvc_serialize_tvc","Mismatch: have %d types but expected %d.", types.length, num);
 	}
 
+#if AMP_VERSION < 7
 	err = blob_serialize(encoder, &types);
+#else
+	err = blob_serialize_as_bytes(encoder, &types);
+#endif
 	blob_release(&types, 0);
 
 	if(err != AMP_OK)
@@ -2158,14 +2282,18 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	{
 		tnv_t *tnv = (tnv_t*) vec_at(&(tnvc->values),i);
 
+#if AMP_VERSION < 7
 		/* Go through the trouble of getting a serialized string because we don't
 		 * want the array encoder to think parts of the serialized value are
 		 * different indices in the array...
 		 */
 		blob_t *blob = tnv_serialize_value_wrapper(tnv);
 		err = blob_serialize(encoder, blob);
+
 		blob_release(blob, 1);
-//		err = tnv_serialize_value(encoder, tnv);
+#else
+		err = tnv_serialize_value(encoder, tnv);
+#endif
 		if(err != AMP_OK)
 		{
 			AMP_DEBUG_ERR("tnvc_serialize_tvc","Can't serialize TNV: %d", i);
@@ -2176,11 +2304,15 @@ static int tnvc_serialize_tvc(QCBOREncodeContext *encoder, tnvc_t *tnvc)
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("tnvc_serialize_tvc","Cbor Error: %d", err);
+#if AMP_VERSION < 7
 		QCBOREncode_CloseArray(encoder);
+#endif
 		return err;
 	}
 
+#if AMP_VERSION < 7
 	QCBOREncode_CloseArray(encoder);
+#endif
 	return AMP_OK;
 }
 

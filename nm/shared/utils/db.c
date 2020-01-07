@@ -544,7 +544,13 @@ int db_init(char *name)
 	gVDB.nicknames = vec_create(DB_MAX_NN, vec_simple_del, vec_uvast_comp, vec_uvast_copy, 0, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.issuers = vec_create(DB_MAX_NN, vec_simple_del, vec_uvast_comp, vec_uvast_copy, 0, &success);
+	gVDB.issuers = vec_create(DB_MAX_NN,
+#if AMP_VERSION < 7
+		vec_simple_del, vec_uvast_comp, vec_uvast_copy,
+#else
+		vec_blob_del, vec_blob_comp, vec_blob_copy,
+#endif
+		0, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.tags = vec_create(DB_MAX_NN, vec_blob_del, vec_blob_comp, vec_blob_copy, 0, &success);

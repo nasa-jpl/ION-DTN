@@ -82,6 +82,7 @@ int main(int argc, char *argv[])
     if(argc != 2)
     {
     	fprintf(stderr,"Usage: nm_mgr <manager eid>\n");
+        printf("AMP Protocol Version %d - %s/%02d, built on %s %s\n", AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION, __DATE__, __TIME__);
         return 1;
     }
 
@@ -239,6 +240,7 @@ int mgr_init(char *argv[])
 
 
 	gMgrDB.tot_rpts = 0;
+    gMgrDB.tot_tbls = 0;
     istrcpy((char *) gMgrDB.mgr_eid.name, argv[1], AMP_MAX_EID_LEN);
 
 

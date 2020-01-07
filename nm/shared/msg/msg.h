@@ -33,6 +33,7 @@
 #include "../utils/vector.h"
 #include "../primitives/ari.h"
 #include "../primitives/report.h"
+#include "../primitives/table.h"
 
 
 #define MSG_DEFAULT_ENC_SIZE 1024
@@ -41,6 +42,7 @@
 #define MSG_TYPE_REG_AGENT (0)
 #define MSG_TYPE_RPT_SET   (1)
 #define MSG_TYPE_PERF_CTRL (2)
+#define MSG_TYPE_TBL_SET   (3)
 
 
 #define MSG_HDR_FLG_OPCODE (0x7)
@@ -91,6 +93,12 @@ typedef struct
 	vector_t rpts; /**> (rpt_t *) */
 } msg_rpt_t;
 
+typedef struct
+{
+	msg_hdr_t hdr;
+	vector_t rx; /**> (char *) */
+	vector_t tbls; /**> (tbl_t *) */
+} msg_tbl_t;
 
 /*
  * Only support 1 name right now.
@@ -157,12 +165,28 @@ int msg_rpt_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*    msg_rpt_serialize_wrapper(msg_rpt_t *msg);
 
 
+int        msg_tbl_add_tbl(msg_tbl_t *msg_tbl, tbl_t *tbl);
+
+void       msg_tbl_cb_del_fn(void *item);
+
+msg_tbl_t* msg_tbl_create(char *rx_name);
+
+msg_tbl_t *msg_tbl_deserialize(blob_t *data, int *success);
+
+void       msg_tbl_release(msg_tbl_t *pdu, int destroy);
+
+int msg_tbl_serialize(QCBOREncodeContext *encoder, void *item);
+
+blob_t*    msg_tbl_serialize_wrapper(msg_tbl_t *msg);
+
+
 
 int        msg_grp_add_msg(msg_grp_t *grp, blob_t *msg, uint8_t type);
 
 int        msg_grp_add_msg_agent(msg_grp_t *grp, msg_agent_t *msg);
 int        msg_grp_add_msg_ctrl(msg_grp_t *grp, msg_ctrl_t *msg);
 int        msg_grp_add_msg_rpt(msg_grp_t *grp, msg_rpt_t *msg);
+int        msg_grp_add_msg_tbl(msg_grp_t *grp, msg_tbl_t *msg);
 
 msg_grp_t* msg_grp_create(uint8_t length);
 

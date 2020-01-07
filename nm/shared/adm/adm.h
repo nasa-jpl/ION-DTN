@@ -129,5 +129,6 @@ uvast adm_get_parm_uvast(tnvc_t *parms, uint8_t idx, int *success);
 vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success);
 
 void adm_init();
+void adm_common_init();
 
 #endif /* ADM_H_*/

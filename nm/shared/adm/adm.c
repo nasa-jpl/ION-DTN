@@ -39,17 +39,6 @@
 
 #include "../primitives/expr.h"
 
-#include "adm_amp_agent.h"
-#include "adm_bp_agent.h"
-//#include "adm_sbsp.h"
-#include "adm_bpsec.h"
-#include "adm_ion_admin.h"
-#include "adm_ion_bp_admin.h"
-#include "adm_ion_ipn_admin.h"
-#include "adm_ionsec_admin.h"
-#include "adm_ion_ltp_admin.h"
-#include "adm_ltp_agent.h"
-
 vector_t g_adm_info;
 
 
@@ -634,7 +623,7 @@ vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success)
 
 /******************************************************************************
  *
- * \par Function Name: adm_init
+ * \par Function Name: adm_common_init
  *
  * \par Initialize pre-configured ADMs.
  *
@@ -644,9 +633,11 @@ vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success)
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  11/25/12  E. Birrane     Initial implementation.
+ *  12/01/19  D. Edell       Split into adm_common() and adm_common_init() to
+ *                             break potential circular dependencies.
  *****************************************************************************/
 
-void adm_init()
+void adm_common_init()
 {
 	int success;
 
@@ -655,17 +646,6 @@ void adm_init()
 	g_adm_info = vec_create(8, NULL, NULL, NULL, 0, &success);
 
 	adm_add_adm_info("ALL", 0);
-
-	amp_agent_init();
-	dtn_bp_agent_init();
-//	dtn_sbsp_init();
-	dtn_bpsec_init();
-	dtn_ion_ionadmin_init();
-	dtn_ion_bpadmin_init();
-	dtn_ion_ipnadmin_init();
-	dtn_ion_ionsecadmin_init();
-	dtn_ion_ltpadmin_init();
-	dtn_ltp_agent_init();
 
 	AMP_DEBUG_EXIT("adm_init","->.", NULL);
 }
