@@ -29,10 +29,6 @@
 
 #include "imcP.h"
 #include "saga.h"
-#if 0
-#include "ext/bpsec/bpsec_instr.h"
-#include "ext/bpsec/bpsec_util.h"
-#endif
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
 

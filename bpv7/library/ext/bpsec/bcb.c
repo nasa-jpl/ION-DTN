@@ -2101,7 +2101,7 @@ int	bcbReview(AcqWorkArea *wk)
 	rules = sec_get_bpsecBcbRuleList();
 	if (rules == 0)
 	{
-		BCB_DEBUG_PROC("- bcbReview -> no security database");
+		BCB_DEBUG_PROC("- bcbReview -> no security database", NULL);
 		return result;
 	}
 

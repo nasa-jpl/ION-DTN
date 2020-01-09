@@ -1303,7 +1303,7 @@ int	bibReview(AcqWorkArea *wk)
 	rules = sec_get_bpsecBibRuleList();
 	if (rules == 0)
 	{
-		BIB_DEBUG_PROC("- bibReview -> no security database");
+		BIB_DEBUG_PROC("- bibReview -> no security database", NULL);
 		return result;
 	}
 

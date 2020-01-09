@@ -96,10 +96,10 @@ shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)).
 The syntax of these commands is DIFFERENT from that of the more general
 and more powerful bpadmin commands.>
 
-=item B<c plan> I<node_nbr> [I<duct_expression>] [I<nominal_data_rate>]
+=item B<c plan> I<node_nbr> I<nominal_data_rate>
 
-The B<change plan> command.  This command changes the duct expression
-and/or nominal data rate for the indicated plan.
+The B<change plan> command.  This command changes the nominal data rate
+for the indicated plan.
 
 =item B<d plan> I<node_nbr>
 

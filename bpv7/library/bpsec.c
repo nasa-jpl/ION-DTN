@@ -444,7 +444,7 @@ int	sec_addBPsecBibRule(char *secSrcEid, char *secDestEid,
 			return 0;
 		}
 
-		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		if (get_bcb_prof_by_name(ciphersuiteName) == NULL)
 		{
 			writeMemoNote("[?] Not a known BIB ciphersuite",
 					ciphersuiteName);
@@ -545,7 +545,7 @@ int	sec_updateBPsecBibRule(char *secSrcEid, char *secDestEid,
 			return 0;
 		}
 
-		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		if (get_bcb_prof_by_name(ciphersuiteName) == NULL)
 		{
 			writeMemoNote("[?] Not a known BIB ciphersuite",
 					ciphersuiteName);

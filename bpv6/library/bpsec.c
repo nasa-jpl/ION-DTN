@@ -1616,7 +1616,7 @@ int	sec_addBspBcbRule(char *secSrcEid, char *secDestEid, int blockTypeNbr,
 			return 0;
 		}
 
-		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		if (get_bcb_prof_by_name(ciphersuiteName) == NULL)
 		{
 			writeMemoNote("[?] Not a known BCB ciphersuite",
 					ciphersuiteName);
@@ -1719,7 +1719,7 @@ int	sec_updateBspBcbRule(char *secSrcEid, char *secDestEid,
 			return 0;
 		}
 
-		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
+		if (get_bcb_prof_by_name(ciphersuiteName) == NULL)
 		{
 			writeMemoNote("[?] Not a known BCB ciphersuite",
 					ciphersuiteName);

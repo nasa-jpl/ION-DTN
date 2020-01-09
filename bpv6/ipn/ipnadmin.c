@@ -65,7 +65,7 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a plan <node nbr> [<duct expression>] [<xmit rate>]");
+	PUTS("\t   a plan <node nbr> <duct expression> [<xmit rate>]");
 	PUTS("\t   a exit <first node nbr> <last node nbr> <endpoint ID>");
 	PUTS("\t   a rtovrd <data label> <dest node> <source node> <neighbor>");
 	PUTS("\t\tRouting override: <neighbor> is a node number.");
@@ -97,7 +97,7 @@ static void	printUsage()
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	unsigned int	nominalRate = 0;
-	char		*spec = NULL;
+	char		*spec;
 	uvast		destNodeNbr;
 	uvast		sourceNodeNbr;
 	uvast		neighbor;
@@ -124,30 +124,11 @@ static void	executeAdd(int tokenCount, char **tokens)
 			{
 				nominalRate = atoi(tokens[4]);
 			}
-			else
-			{
-				spec = tokens[4];
-			}
 		}
 
-		if (tokenCount == 4)
-		{
-			if (isdigit((int) tokens[3][0]))
-			{
-				nominalRate = atoi(tokens[3]);
-			}
-			else
-			{
-				spec = tokens[3];
-			}
-		}
-
+		spec = tokens[3];
 		ipn_addPlan(strtouvast(tokens[2]), nominalRate);
-		if (spec)
-		{
-			ipn_addPlanDuct(strtouvast(tokens[2]), spec);
-		}
-
+		ipn_addPlanDuct(strtouvast(tokens[2]), spec);
 		return;
 	}
 

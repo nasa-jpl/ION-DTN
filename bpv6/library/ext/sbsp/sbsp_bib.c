@@ -1418,7 +1418,7 @@ int	sbsp_bibReview(AcqWorkArea *wk)
 	rules = sec_get_bspBibRuleList();
 	if (rules == 0)
 	{
-		BIB_DEBUG_PROC("- sbsp_bibReview -> no security database");
+		BIB_DEBUG_PROC("- sbsp_bibReview -> no security database", NULL);
 		return result;
 	}
 

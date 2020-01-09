@@ -1,4 +1,4 @@
-OPT = /opt
+OPT = /usr/local
 PLATFORMS = i86_64-fedora
 # i86-redhat
 
