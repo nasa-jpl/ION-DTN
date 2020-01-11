@@ -327,25 +327,26 @@ iciPODM5 = pod2man -s 5 -c "ICI configuration files"
 icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/crypto -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2
 
 icibin = \
-	sdrwatch \
-	psmwatch \
+	file2sdr \
+	file2sm \
 	ionadmin \
 	ionexit \
 	ionlog \
 	ionsecadmin \
-	ionwarn \
 	ionunlock \
-	sdrmend \
-	file2sm \
-	sm2file \
-	file2sdr \
-	sdr2file \
+	ionwarn \
+	ionxnowner \
+	owltsim \
+	owlttb \
 	psmshell \
+	psmwatch \
+	sdr2file \
+	sdrmend \
+	sdrwatch \
+	sm2file \
 	smlistsh \
 	smrbtsh \
-	rfxclock \
-	owlttb \
-	owltsim
+	rfxclock
 
 icilib = \
 	libici.la
@@ -353,27 +354,29 @@ icilib = \
 
 iciinclude = \
 	ici/include/crypto.h \
+	ici/include/icinm.h \
+	ici/include/ion.h \
+	ici/include/ionsec.h \
 	ici/include/llcv.h \
+	ici/include/lyst.h \
+	ici/include/memmgr.h \
 	ici/include/platform.h \
 	ici/include/platform_sm.h \
-	ici/include/memmgr.h \
-	ici/include/lyst.h \
 	ici/include/psm.h \
-	ici/include/smlist.h \
-	ici/include/sptrace.h \
-	ici/include/ion.h \
 	ici/include/rfx.h \
-	ici/include/ionsec.h \
-	ici/include/zco.h \
-	ici/include/sdrxn.h \
+	ici/include/sdr.h \
+	ici/include/sdrhash.h \
+	ici/include/sdrlist.h \
 	ici/include/sdrmgt.h \
 	ici/include/sdrstring.h \
-	ici/include/sdrlist.h \
 	ici/include/sdrtable.h \
-	ici/include/sdrhash.h \
-	ici/include/sdr.h \
+	ici/include/sdrxn.h \
+	ici/include/smlist.h \
 	ici/include/smrbt.h \
-	ici/include/icinm.h
+	ici/include/sptrace.h \
+	ici/include/zco.h
+
+
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -383,22 +386,24 @@ icinoinst = \
 iciextra = \
 	ici/README.txt \
 	ici/library/symtab.c \
-	ici/doc/pod1/ionadmin.pod \
-	ici/doc/pod1/ionsecadmin.pod \
-	ici/doc/pod1/ionunlock.pod \
-	ici/doc/pod1/rfxclock.pod \
-	ici/doc/pod1/psmwatch.pod \
-	ici/doc/pod1/sdrwatch.pod \
-	ici/doc/pod1/sdrmend.pod \
 	ici/doc/pod1/file2sdr.pod \
 	ici/doc/pod1/file2sm.pod \
+	ici/doc/pod1/ionadmin.pod \
+	ici/doc/pod1/ionlog.pod \
+	ici/doc/pod1/ionsecadmin.pod \
+	ici/doc/pod1/ionunlock.pod \
+	ici/doc/pod1/ionxnowner.pod \
+	ici/doc/pod1/owltsim.pod \
+	ici/doc/pod1/owlttb.pod \
 	ici/doc/pod1/psmshell.pod \
+	ici/doc/pod1/psmwatch.pod \
+	ici/doc/pod1/rfxclock.pod \
 	ici/doc/pod1/sdr2file.pod \
+	ici/doc/pod1/sdrmend.pod \
+	ici/doc/pod1/sdrwatch.pod \
 	ici/doc/pod1/sm2file.pod \
 	ici/doc/pod1/smlistsh.pod \
 	ici/doc/pod1/smrbtsh.pod \
-	ici/doc/pod1/owltsim.pod \
-	ici/doc/pod1/owlttb.pod \
 	ici/doc/pod5/ionconfig.pod \
 	ici/doc/pod5/ionrc.pod \
 	ici/doc/pod5/ionsecrc.pod \
@@ -410,16 +415,24 @@ iciextra = \
 	ici/doc/pod3/psm.pod \
 	ici/doc/pod3/zco.pod \
 	ici/doc/pod3/smlist.pod \
+	ici/doc/pod3/smrbt.pod \
 	ici/doc/pod3/sdrlist.pod \
 	ici/doc/pod3/sdrstring.pod \
 	ici/doc/pod3/sdrtable.pod \
 	ici/doc/pod3/sdrhash.pod \
 	ici/doc/pod3/sdr.pod
+if BUILD_BPv7
+iciextra += \
+	ici/doc/pod3/ioncbor.pod \
+	ici/doc/pod3/ioncrc.pod
+endif # end BUILD_BPv7
 
 icimans = \
 	$(top_builddir)/ici/doc/ionadmin.1 \
+	$(top_builddir)/ici/doc/ionlog.1 \
 	$(top_builddir)/ici/doc/ionsecadmin.1 \
 	$(top_builddir)/ici/doc/ionunlock.1 \
+	$(top_builddir)/ici/doc/ionxnowner.1 \
 	$(top_builddir)/ici/doc/rfxclock.1 \
 	$(top_builddir)/ici/doc/psmwatch.1 \
 	$(top_builddir)/ici/doc/sdrwatch.1 \
@@ -444,11 +457,17 @@ icimans = \
 	$(top_builddir)/ici/doc/psm.3 \
 	$(top_builddir)/ici/doc/zco.3 \
 	$(top_builddir)/ici/doc/smlist.3 \
+	$(top_builddir)/ici/doc/smrbt.3 \
 	$(top_builddir)/ici/doc/sdrlist.3 \
 	$(top_builddir)/ici/doc/sdrstring.3 \
 	$(top_builddir)/ici/doc/sdrtable.3 \
 	$(top_builddir)/ici/doc/sdrhash.3 \
 	$(top_builddir)/ici/doc/sdr.3
+if BUILD_BPv7
+icimans += \
+	$(top_builddir)/ici/doc/ioncbor.3 \
+	$(top_builddir)/ici/doc/ioncrc.3
+endif # end BUILD_BPv7
 
 iciclean-local:
 	rm -f $(top_builddir)/ici/doc/*.1
@@ -513,6 +532,10 @@ psmwatch_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionadmin_SOURCES = ici/utils/ionadmin.c
 ionadmin_LDADD = libici.la $(LIBOBJS) -lm
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
+ionxnowner_SOURCES = ici/utils/ionxnowner.c
+ionxnowner_LDADD = libici.la $(LIBOBJS) -lm
+ionxnowner_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionexit_SOURCES = ici/utils/ionexit.c
 ionexit_LDADD = libltp.la libici.la -lm libbp.la $(LIBOBJS)
@@ -594,18 +617,18 @@ ltpmandir = $(top_builddir)/ltp/doc
 ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
-	ltpadmin \
-	ltpsecadmin \
-	ltpclock \
-	ltpmeter \
-	ltpdeliv \
-	udplsi \
-	udplso \
-	ltpdriver \
-	ltpcounter \
-	sdatest \
 	dccplsi \
-	dccplso
+	dccplso \
+	ltpadmin \
+	ltpclock \
+	ltpcounter \
+	ltpdeliv \
+	ltpdriver \
+	ltpmeter \
+	ltpsecadmin \
+	sdatest \
+	udplsi \
+	udplso
 
 ltplib = \
 	libltp.la
@@ -667,11 +690,12 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
+	ltp/library/libltpnm.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
 	ltp/library/ltpsec.c \
-	ltp/sda/libsda.c \
-	ltp/library/libltpnm.c
+	ltp/sda/libsda.c
+
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LIBADD = libici.la -lm
 
@@ -755,11 +779,11 @@ dgrPODM3 = pod2man -s 3 -c "DGR library functions"
 dgrcflags = -I$(srcdir)/dgr/library -I$(srcdir)/dgr/test
 
 dgrbin = \
-	file2dgr \
 	dgr2file \
+	file2dgr \
 	file2tcp \
-	tcp2file \
 	file2udp \
+	tcp2file \
 	udp2file
 
 dgrlib = \
@@ -836,57 +860,66 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/library/ext/cteb -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED
+bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/library/ext/cteb -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED
+if BUILD_BPv6
+bpcflags += -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp
+endif # end BUILD_BPv6
+if BUILD_BPv7
+bpcflags += -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/qos
+endif # end BUILD_BPv7
 
 bpbin = \
+	beacon \
+	bibeclo \
 	bpadmin \
-	bpsecadmin \
-	bpsink \
-	bpdriver \
-	bpsource \
-	bpecho \
 	bpcancel \
-	bpcounter \
-	bplist \
-	bpsendfile \
-	bprecvfile \
+	bpchat \
 	bpclm \
+	bpcounter \
+	bpdriver \
+	bpecho \
+	bping \
+	bplist \
+	bpnmtest \
+	bprecvfile \
+	bpsecadmin \
+	bpsendfile \
+	bpsink \
+	bpsource \
+	bpstats \
+	bpstats2 \
+	bptrace \
 	bptransit \
-	ipnadmin \
-	ipnfw \
+	brsccla \
+	brsscla \
 	bsspcli \
 	bsspclo \
-	ipnadminep \
-	dtn2admin \
-	dtn2fw \
-	dtn2adminep \
-	ipnd \
-	beacon \
-	node \
-	tcpcli \
-	tcpclo \
-	stcpcli \
-	stcpclo \
-	brsscla \
-	brsccla \
-	udpcli \
-	udpclo \
-	bibeclo \
+	cgrfetch \
 	dccpcli \
 	dgrcli \
 	dgrclo \
+	dtn2admin \
+	dtn2adminep \
+	dtn2fw \
+	hmackeys \
+	ipnadmin \
+	ipnadminep \
+	ipnd \
+	ipnfw \
+	lgagent \
+	lgsend \
 	ltpcli \
 	ltpclo \
-	lgsend \
-	lgagent \
-	bptrace \
-	bping \
-	bpnmtest \
-	bpstats \
-	bpstats2 \
-	bpchat \
-	hmackeys \
-	cgrfetch
+	node \
+	stcpcli \
+	stcpclo \
+	tcpcli \
+	tcpclo \
+	udpcli \
+	udpclo
+if BUILD_BPv7
+bpbin += bibeadmin
+endif # end BUILD_BPv7
 
 if BUILD_BPv6
 # Disabled from BPv7 build pending updates
@@ -898,14 +931,14 @@ bpbin += \
 if ENABLE_BPACS
 bpbin += acsadmin \
 	acslist
-endif
+endif # end ENABLE_BPACS
 
 endif # End BUILD_BPv6
 
 if ENABLE_IMC
 bpbin += imcadmin \
 	imcfw
-endif
+endif # end ENABLE_IMC
 
 bplib = \
 	libbp.la \
@@ -942,57 +975,59 @@ bpnoinst += 	$(BP_DIR)/saga/saga.h
 endif
 
 bpextra = \
+	$(BP_DIR)/README.txt \
+	$(BP_DIR)/doc/pod1/bibeclo.pod \
 	$(BP_DIR)/doc/pod1/bpadmin.pod \
-	$(BP_DIR)/doc/pod1/bpclock.pod \
-	$(BP_DIR)/doc/pod1/bptransit.pod \
-	$(BP_DIR)/doc/pod1/bpcounter.pod \
 	$(BP_DIR)/doc/pod1/bpcancel.pod \
+	$(BP_DIR)/doc/pod1/bpchat.pod \
 	$(BP_DIR)/doc/pod1/bpclm.pod \
-	$(BP_DIR)/doc/pod1/bplist.pod \
+	$(BP_DIR)/doc/pod1/bpclock.pod \
+	$(BP_DIR)/doc/pod1/bpcounter.pod \
 	$(BP_DIR)/doc/pod1/bpdriver.pod \
 	$(BP_DIR)/doc/pod1/bpecho.pod \
+	$(BP_DIR)/doc/pod1/bping.pod \
+	$(BP_DIR)/doc/pod1/bplist.pod \
+	$(BP_DIR)/doc/pod1/bpnmtest.pod \
+	$(BP_DIR)/doc/pod1/bprecvfile.pod \
 	$(BP_DIR)/doc/pod1/bpsecadmin.pod \
 	$(BP_DIR)/doc/pod1/bpsendfile.pod \
-	$(BP_DIR)/doc/pod1/bprecvfile.pod \
 	$(BP_DIR)/doc/pod1/bpsink.pod \
 	$(BP_DIR)/doc/pod1/bpsource.pod \
 	$(BP_DIR)/doc/pod1/bpstats.pod \
+	$(BP_DIR)/doc/pod1/bpstats2.pod \
 	$(BP_DIR)/doc/pod1/bptrace.pod \
+	$(BP_DIR)/doc/pod1/bptransit.pod \
 	$(BP_DIR)/doc/pod1/brsccla.pod \
 	$(BP_DIR)/doc/pod1/brsscla.pod \
+	$(BP_DIR)/doc/pod1/cgrfetch.pod \
+	$(BP_DIR)/doc/pod1/dccpcli.pod \
+	$(BP_DIR)/doc/pod1/dccpclo.pod \
 	$(BP_DIR)/doc/pod1/dgrcli.pod \
 	$(BP_DIR)/doc/pod1/dgrclo.pod \
-	$(BP_DIR)/doc/pod1/dtn2adminep.pod \
 	$(BP_DIR)/doc/pod1/dtn2admin.pod \
+	$(BP_DIR)/doc/pod1/dtn2adminep.pod \
 	$(BP_DIR)/doc/pod1/dtn2fw.pod \
-	$(BP_DIR)/doc/pod1/ipnadminep.pod \
+	$(BP_DIR)/doc/pod1/hmackeys.pod \
 	$(BP_DIR)/doc/pod1/ipnadmin.pod \
+	$(BP_DIR)/doc/pod1/ipnadminep.pod \
+	$(BP_DIR)/doc/pod1/ipnd.pod \
 	$(BP_DIR)/doc/pod1/ipnfw.pod \
 	$(BP_DIR)/doc/pod1/lgagent.pod \
 	$(BP_DIR)/doc/pod1/lgsend.pod \
 	$(BP_DIR)/doc/pod1/ltpcli.pod \
 	$(BP_DIR)/doc/pod1/ltpclo.pod \
 	$(BP_DIR)/doc/pod1/stcpcli.pod \
-	$(BP_DIR)/doc/pod1/tcpcli.pod \
 	$(BP_DIR)/doc/pod1/stcpclo.pod \
+	$(BP_DIR)/doc/pod1/tcpcli.pod \
 	$(BP_DIR)/doc/pod1/tcpclo.pod \
 	$(BP_DIR)/doc/pod1/udpcli.pod \
 	$(BP_DIR)/doc/pod1/udpclo.pod \
-	$(BP_DIR)/doc/pod1/bibeclo.pod \
-	$(BP_DIR)/doc/pod1/dccpcli.pod \
-	$(BP_DIR)/doc/pod1/dccpclo.pod \
-	$(BP_DIR)/doc/pod1/bping.pod \
-	$(BP_DIR)/doc/pod1/bpnmtest.pod \
-	$(BP_DIR)/doc/pod1/bpstats2.pod \
-	$(BP_DIR)/doc/pod1/bpchat.pod \
-	$(BP_DIR)/doc/pod1/hmackeys.pod \
-	$(BP_DIR)/doc/pod5/bprc.pod \
-	$(BP_DIR)/doc/pod5/ipnrc.pod \
-	$(BP_DIR)/doc/pod5/dtn2rc.pod \
-	$(BP_DIR)/doc/pod5/lgfile.pod \
 	$(BP_DIR)/doc/pod3/bp.pod \
-	$(BP_DIR)/README.txt \
 	$(BP_DIR)/doc/pod3/bpextensions.pod \
+	$(BP_DIR)/doc/pod5/bprc.pod \
+	$(BP_DIR)/doc/pod5/dtn2rc.pod \
+	$(BP_DIR)/doc/pod5/ipnrc.pod \
+	$(BP_DIR)/doc/pod5/lgfile.pod \
 	$(BP_DIR)/library/bpextensions.c \
 	$(BP_DIR)/library/noextensions.c \
 	$(BP_DIR)/library/ext/ecos/ecos.h \
@@ -1007,6 +1042,11 @@ bpextra = \
 	$(BP_DIR)/library/saga.c \
 	$(BP_DIR)/library/ext/bae/bae.h \
 	$(BP_DIR)/library/ext/bae/bae.c \
+	ici/include/crypto.h \
+	ici/include/csi.h
+
+if BUILD_BPv6
+bpextra += \
 	$(BP_DIR)/library/ext/sbsp/sbsp_instr.h \
 	$(BP_DIR)/library/ext/sbsp/sbsp_instr.c \
 	$(BP_DIR)/library/ext/sbsp/sbsp_bcb.h \
@@ -1016,9 +1056,27 @@ bpextra = \
 	$(BP_DIR)/library/ext/sbsp/sbsp_util.h \
 	$(BP_DIR)/library/ext/sbsp/sbsp_util.c \
 	$(BP_DIR)/library/ext/sbsp/profiles.h \
-	$(BP_DIR)/library/ext/sbsp/profiles.c \
-	ici/include/crypto.h \
-	ici/include/csi.h 
+	$(BP_DIR)/library/ext/sbsp/profiles.c
+if ENABLE_IMC
+bpextra += \
+	$(BP_DIR)/doc/pod1/imcadmin.pod \
+	$(BP_DIR)/doc/pod1/imcfw.pod \
+	$(BP_DIR)/doc/pod5/imcrc.pod
+endif # end ENABLE_IMC
+endif # end BUILD_BPv6
+
+if BUILD_BPv7
+bpextra += \
+	$(BP_DIR)/library/ext/bpsec/bcb.h \
+	$(BP_DIR)/library/ext/bpsec/bib.h \
+	$(BP_DIR)/library/ext/bpsec/bpsec_instr.h \
+	$(BP_DIR)/library/ext/bpsec/bpsec_util.h \
+	$(BP_DIR)/library/ext/bpsec/profiles.h \
+	$(BP_DIR)/library/ext/hcb/hcb.h \
+	$(BP_DIR)/doc/pod1/bibeadmin.pod \
+	$(BP_DIR)/doc/pod5/biberc.pod \
+	$(BP_DIR)/bibe/bibe.h
+endif # end BUILD_BPv7
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -1027,64 +1085,74 @@ bpextra = \
 # installed in the normal case- so we shall leave them extra_DIST for now.
 
 bpmans = \
+	$(top_builddir)/$(BP_DIR)/doc/bibeclo.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpadmin.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bpclock.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bptransit.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bpcounter.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpcancel.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpchat.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpclm.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bplist.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpclock.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpcounter.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpdriver.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpecho.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bping.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bplist.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpnmtest.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bprecvfile.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpsecadmin.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpsendfile.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bprecvfile.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpsink.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpsource.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bpstats.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpstats2.1 \
 	$(top_builddir)/$(BP_DIR)/doc/bptrace.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bptransit.1 \
 	$(top_builddir)/$(BP_DIR)/doc/brsccla.1 \
 	$(top_builddir)/$(BP_DIR)/doc/brsscla.1 \
+	$(top_builddir)/$(BP_DIR)/doc/cgrfetch.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dccpcli.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dccpclo.1 \
 	$(top_builddir)/$(BP_DIR)/doc/dgrcli.1 \
 	$(top_builddir)/$(BP_DIR)/doc/dgrclo.1 \
-	$(top_builddir)/$(BP_DIR)/doc/dtn2adminep.1 \
 	$(top_builddir)/$(BP_DIR)/doc/dtn2admin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dtn2adminep.1 \
 	$(top_builddir)/$(BP_DIR)/doc/dtn2fw.1 \
-	$(top_builddir)/$(BP_DIR)/doc/ipnadminep.1 \
+	$(top_builddir)/$(BP_DIR)/doc/hmackeys.1 \
 	$(top_builddir)/$(BP_DIR)/doc/ipnadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnadminep.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnd.1 \
 	$(top_builddir)/$(BP_DIR)/doc/ipnfw.1 \
 	$(top_builddir)/$(BP_DIR)/doc/lgagent.1 \
 	$(top_builddir)/$(BP_DIR)/doc/lgsend.1 \
 	$(top_builddir)/$(BP_DIR)/doc/ltpcli.1 \
 	$(top_builddir)/$(BP_DIR)/doc/ltpclo.1 \
 	$(top_builddir)/$(BP_DIR)/doc/stcpcli.1 \
-	$(top_builddir)/$(BP_DIR)/doc/tcpcli.1 \
 	$(top_builddir)/$(BP_DIR)/doc/stcpclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/tcpcli.1 \
 	$(top_builddir)/$(BP_DIR)/doc/tcpclo.1 \
 	$(top_builddir)/$(BP_DIR)/doc/udpcli.1 \
 	$(top_builddir)/$(BP_DIR)/doc/udpclo.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bibeclo.1 \
-	$(top_builddir)/$(BP_DIR)/doc/dccpcli.1 \
-	$(top_builddir)/$(BP_DIR)/doc/dccpclo.1 \
-	$(top_builddir)/$(BP_DIR)/doc/cgrfetch.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bping.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bpnmtest.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bpstats2.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bpchat.1 \
-	$(top_builddir)/$(BP_DIR)/doc/hmackeys.1 \
-	$(top_builddir)/$(BP_DIR)/doc/bprc.5 \
-	$(top_builddir)/$(BP_DIR)/doc/ipnrc.5 \
-	$(top_builddir)/$(BP_DIR)/doc/dtn2rc.5 \
-	$(top_builddir)/$(BP_DIR)/doc/lgfile.5 \
 	$(top_builddir)/$(BP_DIR)/doc/bp.3 \
-	$(top_builddir)/$(BP_DIR)/doc/bpextensions.3
+	$(top_builddir)/$(BP_DIR)/doc/bpextensions.3 \
+	$(top_builddir)/$(BP_DIR)/doc/bprc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/dtn2rc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnrc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/lgfile.5
 
+if BUILD_BPv7
+bpmans += \
+	$(top_builddir)/$(BP_DIR)/doc/bibeadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/biberc.5
+endif # end BUILD_BPv7
+
+# ACS only exists in BPv6 so only build the docs if BPv6 and ACS is enabled
+if BUILD_BPv6
 if ENABLE_BPACS
 bpmans += \
 	$(top_builddir)/$(BP_DIR)/doc/acsadmin.1 \
 	$(top_builddir)/$(BP_DIR)/doc/acslist.1 \
 	$(top_builddir)/$(BP_DIR)/doc/acsrc.5
-endif
+endif # end ENABLE_BPACS
+endif # end BUILD_BPv6
 
 if ENABLE_IMC
 bpmans += \
@@ -1150,16 +1218,20 @@ libbp_la_SOURCES += \
 	$(BP_DIR)/library/ext/sbsp/sbsp_util.c \
 	$(BP_DIR)/library/ext/sbsp/profiles.c \
 	$(BP_DIR)/library/ext/snid/snid.c
-else
+else # BUILD_BPv7
 libbp_la_SOURCES += \
 	$(BP_DIR)/bibe/bibe.c \
+	$(BP_DIR)/library/ext/bpsec/bcb.c \
+	$(BP_DIR)/library/ext/bpsec/bib.c \
 	$(BP_DIR)/library/ext/bpsec/bpsec_instr.c \
+	$(BP_DIR)/library/ext/bpsec/bpsec_util.c \
 	$(BP_DIR)/library/ext/bpsec/profiles.c \
-$(BP_DIR)/library/ext/hcb/hcb.c \
+	$(BP_DIR)/library/ext/hcb/hcb.c \
 	$(BP_DIR)/library/ext/pnb/pnb.c \
+	$(BP_DIR)/library/ext/pnb/pnb.h \
 	$(BP_DIR)/library/ext/qos/qos.c \
 	$(BP_DIR)/saga/saga.c
-endif
+endif # end BUILD_BPv6
 
 if CRYPTO
 libici_la_SOURCES+= \
@@ -1186,9 +1258,8 @@ libbp_la_SOURCES += \
 	$(BP_DIR)/library/acs/acsid.c \
 	$(BP_DIR)/library/ext/cteb/cteb.c \
 	$(NULL)
-endif
-# TODO: Is there a BPv7 equivalent?
-endif
+endif # end ENABLE_BPACS
+endif # end BUILD_BPv6
 
 if ENABLE_IMC
 libbp_la_SOURCES += \
@@ -1214,6 +1285,8 @@ ipnadmin_SOURCES = $(BP_DIR)/ipn/ipnadmin.c
 ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+# Only try to build ACS if BPv6 and ACS is enabled
+if BUILD_BPv6
 if ENABLE_BPACS
 acsadmin_SOURCES = $(BP_DIR)/utils/acsadmin.c
 acsadmin_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -1222,7 +1295,8 @@ acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 acslist_SOURCES = $(BP_DIR)/utils/acslist.c
 acslist_LDADD = libbp.la libici.la $(LIBOBJS)
 acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-endif
+endif # end ENABLE_BPACS
+endif # end BUILD_BPACS
 
 if ENABLE_IMC
 imcadmin_SOURCES = $(BP_DIR)/imc/imcadmin.c
@@ -1354,11 +1428,17 @@ udpclo_SOURCES = $(BP_DIR)/udp/udpclo.c
 udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-# --- UDP Executables --- #
+# --- BIBE Executables --- #
 
 bibeclo_SOURCES = $(BP_DIR)/bibe/bibeclo.c
 bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+if BUILD_BPv7
+bibeadmin_SOURCES = $(BP_DIR)/bibe/bibeadmin.c
+bibeadmin_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
+bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif # end BUILD_BPv7
 
 # --- DCCP Executables --- #
 

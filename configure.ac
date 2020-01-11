@@ -11,7 +11,7 @@ IS_NASA_B=0
 #  all of the portability warnings introduced by autoconf v2.69 and
 #  automake v1.12.
 #AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
-AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
+AM_INIT_AUTOMAKE([subdir-objects no-dependencies -Wall foreign])
 
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
