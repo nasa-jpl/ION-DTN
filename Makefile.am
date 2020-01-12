@@ -8,15 +8,15 @@ if BUILD_CONTRIB
 SUBDIRS= . contrib
 else
 SUBDIRS= .
-endif
+endif # end BUILD_CONTRIB
 
 DIST_SUBDIRS= . contrib
 
 if BUILD_BPv6
 BP_DIR = bpv6
-else
+else # BUILD_BPv7
 BP_DIR = bpv7
-endif
+endif # end BUILD_BPv6
 
 BP_SRC_DIR = $(srcdir)/$(BP_DIR)
 
@@ -45,7 +45,7 @@ AM_CFLAGS += \
 	-fPIC -Werror
 
 NO_UNUSED_VARIABLE = -Wno-unused-variable
-endif
+endif # end SOLARIS_STUDIO_CC
 
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
@@ -124,7 +124,7 @@ cov-report:
 
 cov:
 	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
-endif
+endif # end ENABLE_GCOV
 
 
 # clean-local refers to existing documents.
@@ -202,7 +202,7 @@ man_MANS = \
 	$(bsspmans) \
 	$(amsmans) \
 	$(cfdpmans)
-endif
+endif # end ENABLE_MANPAGES
 
 #################
 #
@@ -861,6 +861,7 @@ bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
 bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/library/ext/cteb -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED
+
 if BUILD_BPv6
 bpcflags += -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp
 endif # end BUILD_BPv6
@@ -970,9 +971,9 @@ bpnoinst = \
 
 if BUILD_BPv6
 bpnoinst += 	$(BP_DIR)/library/saga.h
-else
+else # BUILD_BPv7
 bpnoinst += 	$(BP_DIR)/saga/saga.h
-endif
+endif # end BUILD_BPv6
 
 bpextra = \
 	$(BP_DIR)/README.txt \
@@ -1025,6 +1026,7 @@ bpextra = \
 	$(BP_DIR)/doc/pod3/bp.pod \
 	$(BP_DIR)/doc/pod3/bpextensions.pod \
 	$(BP_DIR)/doc/pod5/bprc.pod \
+	$(BP_DIR)/doc/pod5/bpsecrc.pod \
 	$(BP_DIR)/doc/pod5/dtn2rc.pod \
 	$(BP_DIR)/doc/pod5/ipnrc.pod \
 	$(BP_DIR)/doc/pod5/lgfile.pod \
@@ -1134,6 +1136,7 @@ bpmans = \
 	$(top_builddir)/$(BP_DIR)/doc/bp.3 \
 	$(top_builddir)/$(BP_DIR)/doc/bpextensions.3 \
 	$(top_builddir)/$(BP_DIR)/doc/bprc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/bpsecrc.5 \
 	$(top_builddir)/$(BP_DIR)/doc/dtn2rc.5 \
 	$(top_builddir)/$(BP_DIR)/doc/ipnrc.5 \
 	$(top_builddir)/$(BP_DIR)/doc/lgfile.5
@@ -1159,7 +1162,7 @@ bpmans += \
 	$(top_builddir)/$(BP_DIR)/doc/imcadmin.1 \
 	$(top_builddir)/$(BP_DIR)/doc/imcfw.1 \
 	$(top_builddir)/$(BP_DIR)/doc/imcrc.5
-endif
+endif # end ENABLE_IMC
 
 
 bpclean-local:
@@ -1209,6 +1212,7 @@ libbp_la_SOURCES = \
 
 if BUILD_BPv6
 libbp_la_SOURCES += \
+	$(BP_DIR)/library/acs/acs.h \
 	$(BP_DIR)/library/ext/ecos/ecos.c \
 	$(BP_DIR)/library/ext/phn/phn.c \
 	$(BP_DIR)/library/saga.c \
@@ -1241,7 +1245,7 @@ else
 libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
-endif
+endif # end CRYPTO
 
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
@@ -1265,7 +1269,7 @@ if ENABLE_IMC
 libbp_la_SOURCES += \
 	$(BP_DIR)/imc/libimcfw.c \
 	$(NULL)
-endif
+endif # end ENABLE_IMC
 
 libcgr_la_SOURCES = $(BP_DIR)/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -1306,7 +1310,7 @@ imcadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 imcfw_SOURCES = $(BP_DIR)/imc/imcfw.c
 imcfw_LDADD = libbp.la libici.la $(LIBOBJS)
 imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-endif
+endif # end ENABLE_IMC
 
 dtn2admin_SOURCES = $(BP_DIR)/dtn2/dtn2admin.c
 dtn2admin_LDADD = libbp.la libici.la $(LIBOBJS)
@@ -1436,7 +1440,7 @@ bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 if BUILD_BPv7
 bibeadmin_SOURCES = $(BP_DIR)/bibe/bibeadmin.c
-bibeadmin_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
+bibeadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif # end BUILD_BPv7
 
@@ -2186,7 +2190,7 @@ else
 
 #nm_mgr_ADM_SOURCES += 
 
-endif
+endif # end BUILD_BPv6
 
 libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
 libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 

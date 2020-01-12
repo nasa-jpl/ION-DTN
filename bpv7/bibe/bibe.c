@@ -214,12 +214,13 @@ static void	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
 	Bcla		bcla;
 	CtSignal	*signal;
 	Object		elt;
-	Object		sequenceAddr;
+	Object		sequenceAddr = 0;
 	CtSequence	sequence;
 	Object		elt2;
 	Object		sequenceAddr2;
 	CtSequence	sequence2;
 
+	memset((char *) &sequence, 0, sizeof(CtSequence));
 	sdr_read(sdr, (char *) &bcla, bclaObj, sizeof(Bcla));
 	signal = bcla.signals + CT_ACCEPTED;
 	if (deadline < signal->deadline)
