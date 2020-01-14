@@ -39,7 +39,7 @@ function USAGE {
 	echo    "USAGE:"
 	echo    "	ionstart [-I config]   [-t tag]   [-a acsrc] [-b bprc]  [-B bssrc]"
 	echo    "	         [-d dtn2rc]   [-i ionrc] [-l ltprc] [-m imcrc] [-p ipnrc]"
-	echo -n "	         [-s ionsecrc]"
+	echo -n "	         [-s ionsecrc] [-S bpsecrc] [-L ltpsecrc]"
 if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo    " [-c cfdprc]"
 else
@@ -47,7 +47,7 @@ else
 fi
 	echo    ""
 	echo    "	Defined configurations will be run in the following order:"
-	echo -n "	config, ionrc, ionsecrc, ltprc, bprc, ipnrc, dtn2rc, acsrc, imcrc, bssrc"
+	echo -n "	config, ionrc, ionsecrc, bpsecrc, ltpsecrc ltprc, bprc, ipnrc, dtn2rc, acsrc, imcrc, bssrc"
 if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo ", cfdprc"
 else
@@ -72,6 +72,8 @@ fi
 	echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin."
 	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
 	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
+	echo "	-S bpsecrc	Specifies file bpsecrc to be used to configure bpsecadmin."
+	echo "	-L ltpsecrc	Specifies file ltpsecrc to be used to configure ltpsecadmin."
 if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
 fi
@@ -79,7 +81,7 @@ fi
 
 # check for all the options
 
-while getopts ":t:i:c:I:d:p:b:l:s:a:B:m:h" options; do
+while getopts ":t:i:c:I:d:p:b:l:L:s:S:a:B:m:h" options; do
 	case $options in
 		t ) TAG="${OPTARG}";;
 		i ) IONRC="${OPTARG}"
@@ -116,6 +118,18 @@ while getopts ":t:i:c:I:d:p:b:l:s:a:B:m:h" options; do
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
 				echo "The ionsecrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		S ) BPSECRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The bpsecrc file ${OPTARG} can't be read."
+				failure="TRUE"
+			fi;;
+		S ) LTPSECRC="${OPTARG}"
+			if [[ ! -r "${OPTARG}" ]] ; then
+				echo
+				echo "The ltpsecrc file ${OPTARG} can't be read."
 				failure="TRUE"
 			fi;;
 		a ) ACSRC="${OPTARG}"
@@ -163,10 +177,10 @@ while getopts ":t:i:c:I:d:p:b:l:s:a:B:m:h" options; do
 	esac
 done
 
-if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${DTN2RC}" && -z "${ACSRC}" && -z "${BSSRC}" && -z "${IMCRC}" ]] ; then
+if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${BPSECRC}" && -z "${LTPSECRC}" && -z "${DTN2RC}" && -z "${ACSRC}" && -z "${BSSRC}" && -z "${IMCRC}" ]] ; then
 	echo
 	echo "You must define some configuration files for input, use any combination of the"
-	echo "-b -B -c -d -i -I -l -m -p -s -a options to define them."
+	echo "-b -B -c -d -i -I -l -L -m -p -s -S -a options to define them."
 	USAGE
 	exit 1
 fi
@@ -196,6 +210,18 @@ if [[ ! -z "${IONSECRC}" ]]; then
 	echo
 	echo "Now running ionsecadmin using ${IONSECRC}"
 	ionsecadmin "${IONSECRC}"
+fi
+
+if [[ ! -z "${BPSECRC}" ]]; then
+	echo
+	echo "Now running bpsecadmin using ${BPSECRC}"
+	bpsecadmin "${BPSECRC}"
+fi
+
+if [[ ! -z "${LTPSECRC}" ]]; then
+	echo
+	echo "Now running ltpsecadmin using ${LTPSECRC}"
+	ltpsecadmin "${LTPSECRC}"
 fi
 
 if [[ ! -z "${LTPRC}" ]] ; then

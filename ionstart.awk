@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin ionsecadmin ltpadmin bpadmin cfdpadmin ipnadmin dtn2admin dtpcadmin acsadmin imcadmin bssadmin
+# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin dtn2admin dtpcadmin acsadmin imcadmin bssadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -38,6 +38,8 @@
 # section matching the current tag. It will create the following:
 # configfile.tag.ionrc
 # configfile.tag.ionsecrc
+# configfile.tag.bpsecrc
+# configfile.tag.ltpsecrc
 # configfile.tag.ltprc
 # configfile.tag.bprc
 # configfile.tag.cfdprc
@@ -60,30 +62,35 @@ BEGIN {
 	linenumber = 0
 	# programs lists the accepted packages in ion in the order they should
 	# be executed
-	programs[1]  = "ionadmin"
-	programs[2]  = "ionsecadmin"
-	programs[3]  = "ltpadmin"
-	programs[4]  = "bpadmin"
-	programs[5]  = "cfdpadmin"
-	programs[6]  = "ipnadmin"
-	programs[7]  = "dtn2admin"
-	programs[8]  = "dtpcadmin"
-	programs[9]  = "acsadmin"
-	programs[10]  = "imcadmin"
-	programs[11] = "bssadmin"
+	programs[1]   = "ionadmin"
+	programs[2]   = "ionsecadmin"
+	programs[3]   = "bpsecadmin"
+	programs[4]   = "ltpsecadmin"
+	programs[5]   = "ltpadmin"
+	programs[6]   = "bpadmin"
+	programs[7]   = "cfdpadmin"
+	programs[8]   = "ipnadmin"
+	programs[9]   = "dtn2admin"
+	programs[10]  = "dtpcadmin"
+	programs[11]  = "acsadmin"
+	programs[12]  = "imcadmin"
+	programs[13]  = "bssadmin"
+
 	# programoptions are special options for certain programs that take them
 	# rcname is the name of an rc file associated with the program
-	rcname["ionadmin"]    = ionrc
-	rcname["ionsecadmin"] = ionsecrc
-	rcname["bpadmin"]     = bprc
-	rcname["cfdpadmin"]   = cfdprc
-	rcname["ipnadmin"]    = ipnrc
-	rcname["dtn2admin"]   = dtn2rc
-	rcname["dtpcadmin"]   = dtpcrc
-	rcname["ltpadmin"]    = ltprc
-	rcname["acsadmin"]    = acsrc
-	rcname["imcadmin"]    = imcrc
-	rcname["bssadmin"]    = bssrc
+	rcname["ionadmin"]     = ionrc
+	rcname["ionsecadmin"]  = ionsecrc
+	rcname["bpsecadmin"]   = bpsecrc
+	rcname["ltpsecadmin"]  = ltpsecrc
+	rcname["bpadmin"]      = bprc
+	rcname["cfdpadmin"]    = cfdprc
+	rcname["ipnadmin"]     = ipnrc
+	rcname["dtn2admin"]    = dtn2rc
+	rcname["dtpcadmin"]    = dtpcrc
+	rcname["ltpadmin"]     = ltprc
+	rcname["acsadmin"]     = acsrc
+	rcname["imcadmin"]     = imcrc
+	rcname["bssadmin"]     = bssrc
 
 	# firstline is associative array of the "first line" for a program
 	# lastline is associative array of the "last line" for a program
