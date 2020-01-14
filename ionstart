@@ -126,7 +126,7 @@ while getopts ":t:i:c:I:d:p:b:l:L:s:S:a:B:m:h" options; do
 				echo "The bpsecrc file ${OPTARG} can't be read."
 				failure="TRUE"
 			fi;;
-		S ) LTPSECRC="${OPTARG}"
+		L ) LTPSECRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
 				echo "The ltpsecrc file ${OPTARG} can't be read."
