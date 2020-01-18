@@ -104,7 +104,8 @@ static int	sendPetition(uvast nodeNbr, unsigned char *buffer, int length)
 	char		destEid[32];
 
 	isprintf(sourceEid, sizeof sourceEid, "ipn:%u.0", getOwnNodeNbr());
-	oK(parseEidString(sourceEid, &sourceMetaEid, &vscheme, &vschemeElt));
+	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
+				&vschemeElt));
 	CHKERR(sdr_begin_xn(sdr));
 	sourceData = sdr_malloc(sdr, length);
 	if (sourceData == 0)

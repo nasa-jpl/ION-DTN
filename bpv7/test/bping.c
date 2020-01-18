@@ -58,7 +58,7 @@ static BpSAP    xmitsap;
 static BpSAP    recvsap;
 static char     *srcEid, *dstEid, *rptEid;
 
-#define BPING_PAYLOAD_MAX_LEN 65537
+#define BPING_PAYLOAD_MAX_LEN 10000
 
 /* These exit codes are the same as iputils' ping. */
 #define BPING_EXIT_SUCCESS              (0)

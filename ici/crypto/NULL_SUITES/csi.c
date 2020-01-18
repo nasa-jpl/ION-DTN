@@ -1289,6 +1289,7 @@ sci_inbound_tlv	sci_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 {
 	sci_inbound_tlv result;
 
+	result.id = 0;		/*	FIX THIS -- what should it be?	*/
 	if ((result.value = (uint8_t*) MTAKE(20)) == NULL)
 	{
 		result.length = 0;
@@ -1296,9 +1297,7 @@ sci_inbound_tlv	sci_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 	}
 
 	result.length = 20;
-
 	memset(result.value, 0, 20);
-
 	return result;
 }
 
@@ -1376,6 +1375,7 @@ sci_inbound_tlv	sci_crypt_update(csi_csid_t suite, void *context,
 {
 	sci_inbound_tlv result;
 
+	result.id = 0;		/*	FIX THIS -- what should it be?	*/
 	result.length = data.length;
 	result.value = MTAKE(result.length);
     	memcpy(result.value, data.value, result.length);

@@ -265,8 +265,12 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	/*	First, security source.					*/
 
-	readEid(&oldAsb.securitySource, &cursor);
-	parseEidString(eidBuf, &meid, &vscheme, &schemeElt);
+	if (readEid(&oldAsb.securitySource, &cursor) < 0)
+	{
+		return -1;
+	}
+
+	CHKERR(parseEidString(eidBuf, &meid, &vscheme, &schemeElt));
 	if (writeEid(&newAsb.securitySource, &meid) < 0) return -1;
 
 	/*	Next, targets.						*/
@@ -1178,34 +1182,43 @@ Object	bpsec_findBlock(Bundle *bundle, uint8_t type, uint8_t targetBlockType,
 int	bpsec_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 		BpsecInboundBlock *asb, char **fromEid, char **toEid)
 {
-	int	result;
+	int	result = 1;
 
 	CHKERR(bundle);
 	CHKERR(blk);
 	CHKERR(asb);
 	CHKERR(fromEid);
 	CHKERR(toEid);
-	*fromEid = NULL;	/*	Default.			*/
-	*toEid = NULL;		/*	Default.			*/
 
-	if (readEid(&(bundle->destination), toEid) < 0)
+	switch (readEid(&(bundle->destination), toEid))
 	{
+	case -1:
 		return -1;
+
+	case 0:
+		result = 0;
 	}
 
-	result = 0;
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		if (readEid(&(asb->securitySource), fromEid) < 0)
+		switch (readEid(&(asb->securitySource), fromEid))
 		{
-			result = 1;
+		case -1:
+			return -1;
+
+		case 0:
+			result = 0;
 		}
 	}
 	else
 	{
-		if (readEid(&bundle->id.source, fromEid) < 0)
+		switch (readEid(&bundle->id.source, fromEid))
 		{
-			result = -1;
+		case -1:
+			return -1;
+
+		case 0:
+			result = 0;
 		}
 	}
 
@@ -1339,34 +1352,43 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 		BpsecOutboundBlock *asb, char **fromEid, char **toEid)
 {
-	int	result;
+	int	result = 1;
 
 	CHKERR(bundle);
 	CHKERR(blk);
 	CHKERR(asb);
 	CHKERR(fromEid);
 	CHKERR(toEid);
-	*fromEid = NULL;	/*	Default.			*/
-	*toEid = NULL;		/*	Default.			*/
 
-	if (readEid(&(bundle->destination), toEid) < 0)
+	switch (readEid(&(bundle->destination), toEid))
 	{
+	case -1:
 		return -1;
+
+	case 0:
+		result = 0;
 	}
 
-	result = 0;
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		if (readEid(&(asb->securitySource), fromEid) < 0)
+		switch (readEid(&(asb->securitySource), fromEid))
 		{
-			result = 1;
+		case -1:
+			return -1;
+
+		case 0:
+			result = 0;
 		}
 	}
 	else
 	{
-		if (readEid(&bundle->id.source, fromEid) < 0)
+		switch (readEid(&bundle->id.source, fromEid))
 		{
-			result = -1;
+		case -1:
+			return -1;
+
+		case 0:
+			result = 0;
 		}
 	}
 
@@ -1404,10 +1426,10 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 	VScheme		*vscheme;
 	PsmAddress	elt;
 
-	readEid(&bundle->destination, &cursor);
+	CHKVOID(readEid(&bundle->destination, &cursor) > 0);
 	adminEid = bpsec_getLocalAdminEid(eidBuffer);
-	parseEidString(adminEid, &metaEid, &vscheme, &elt);
-	writeEid(&(asb->securitySource), &metaEid);
+	CHKVOID(parseEidString(adminEid, &metaEid, &vscheme, &elt));
+	CHKVOID(writeEid(&(asb->securitySource), &metaEid) == 0);
 }
 
 /******************************************************************************
@@ -1440,6 +1462,7 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 
 sci_inbound_tlv	bpsec_retrieveKey(char *keyName)
 {
+	int		keyLength;
 	sci_inbound_tlv	key;
 	char		stdBuffer[100];
 	int		ReqBufLen = 0;
@@ -1467,7 +1490,7 @@ sci_inbound_tlv	bpsec_retrieveKey(char *keyName)
 	}
 
 	ReqBufLen = sizeof(stdBuffer);
-	key.length = sec_get_key(keyName, &(ReqBufLen), stdBuffer);
+	key.length = keyLength = sec_get_key(keyName, &(ReqBufLen), stdBuffer);
 
 	/**
 	 *  Step 1 - Check the key length.
@@ -1475,12 +1498,12 @@ sci_inbound_tlv	bpsec_retrieveKey(char *keyName)
 	 *           == 0 indicated key not found.
 	 *           > 0  inicates success.
 	 */
-	if (key.length < 0)	/* Error. */
+	if (keyLength < 0)	/* Error. */
 	{
 		BPSEC_DEBUG_ERR("x bpsec_retrieveKey: Can't get length of \
 key '%s'.", keyName);
 		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)",
-				key.length);
+				keyLength);
 		return key;
 	}
 	else if(key.length > 0) /*	Key has been retrieved.		*/

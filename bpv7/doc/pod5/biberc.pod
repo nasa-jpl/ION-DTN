@@ -61,7 +61,7 @@ governing BIBE PDU transmission to the indicated node.
 The B<delete bcla> command.  This command deletes the B<bcla> identified by
 I<destination_node_ID>.
 
-=item B<i> I<destination_node_ID>
+=item B<i> bcla I<destination_node_ID>
 
 This command will print information (the transmission parameters) for the
 BIBE destination identified by I<destination_node_ID>.

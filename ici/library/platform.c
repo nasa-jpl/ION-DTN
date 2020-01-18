@@ -3303,7 +3303,15 @@ char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 	int	maxLine = buflen - 1;
 	int	len;
 
-	if (fd < 0 || buffer == NULL || buflen < 1 || lineLen == NULL)
+	if (buffer == NULL)
+	{
+		ABORT_AS_REQD;
+		putErrmsg("No buffer passed to igets().", NULL);
+		return NULL;
+	}
+
+	*buffer = '\0';				/*	Default.	*/
+	if (fd < 0 || buflen < 1 || lineLen == NULL)
 	{
 		ABORT_AS_REQD;
 		putErrmsg("Invalid argument(s) passed to igets().", NULL);

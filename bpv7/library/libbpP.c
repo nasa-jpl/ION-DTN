@@ -2282,7 +2282,6 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 	int	eidLength;
 	char	*eidString;
 
-	*buffer = NULL;			/*	Default.		*/
 	if (ssp->nssLength > 0)
 	{
 		if (ssp->endpointName.nv == 0)
@@ -2420,6 +2419,7 @@ static int	readImcEid(ImcSSP *ssp, char **buffer)
 int	readEid(EndpointId *eid, char **buffer)
 {
 	CHKERR(eid && buffer);
+	*buffer = "";			/*	Default.		*/
 	switch(eid->schemeCodeNbr)
 	{
 	case dtn:
@@ -2432,7 +2432,6 @@ int	readEid(EndpointId *eid, char **buffer)
 		return readImcEid(&(eid->ssp.imc), buffer);
 
 	default:
-		**buffer = '\0';
 		return 0;
 	}
 }
@@ -3480,7 +3479,7 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in addEndpoint.				*/
 
-	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
 	if (metaEid.serviceNbr != 0)
 	{
 		restoreEidString(&metaEid);
@@ -3667,7 +3666,7 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in removeEndpoint.			*/
 
-	oK(parseEidString(eid, &metaEid, &vscheme, &elt));
+	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
 	if (metaEid.serviceNbr != 0)
 	{
 		restoreEidString(&metaEid);
@@ -5641,7 +5640,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			return -1;
 		}
 
-		oK(parseEidString(eidString, &metaEid, &vscheme, &vschemeElt));
+		CHKERR(parseEidString(eidString, &metaEid, &vscheme,
+					&vschemeElt));
 		if (writeEid(&(newBundle->id.source), &metaEid) < 0)
 		{
 			putErrmsg("Can't copy source EID.", NULL);
@@ -5659,7 +5659,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			return -1;
 		}
 
-		oK(parseEidString(eidString, &metaEid, &vscheme, &vschemeElt));
+		CHKERR(parseEidString(eidString, &metaEid, &vscheme,
+					&vschemeElt));
 		if (writeEid(&(newBundle->destination), &metaEid) < 0)
 		{
 			putErrmsg("Can't copy dest EID.", NULL);
@@ -5677,7 +5678,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			return -1;
 		}
 
-		oK(parseEidString(eidString, &metaEid, &vscheme, &vschemeElt));
+		CHKERR(parseEidString(eidString, &metaEid, &vscheme,
+					&vschemeElt));
 		if (writeEid(&(newBundle->reportTo), &metaEid) < 0)
 		{
 			putErrmsg("Can't copy reportTo EID.", NULL);
@@ -5737,7 +5739,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			return -1;
 		}
 
-		oK(parseEidString(eidString, &metaEid, &vscheme, &vschemeElt));
+		CHKERR(parseEidString(eidString, &metaEid, &vscheme,
+					&vschemeElt));
 		if (writeEid(&(newBundle->clDossier.senderEid), &metaEid) < 0)
 		{
 			putErrmsg("Can't copy sender EID.", NULL);
@@ -7632,7 +7635,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	/*	Store the EID and return length parsed.  There must
 	 *	be an easier way to do all this.			*/
 
-	oK(parseEidString(eidString, &metaEid, &vscheme,&elt));
+	CHKERR(parseEidString(eidString, &metaEid, &vscheme,&elt));
 	if (jotEid(eid, &metaEid) < 0)
 	{
 		putErrmsg("Can't jot eid.", NULL);
@@ -7731,7 +7734,7 @@ uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 int	computeZcoCrc(BpCrcType crcType, ZcoReader *reader, int bytesToProcess,
 		uvast *crc, uvast *extractedCrc)
 {
-	char	buffer[65536];
+	char	buffer[10000];
 	int	reloadLimit;
 	int	crcSize;
 	int	endOfBlock = 0;
@@ -8864,8 +8867,14 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	if (work->senderEid.schemeCodeNbr != unknown)
 	{
 		readEid(&(work->senderEid), &eidString);
-		parseEidString(eidString, &senderMetaEid, &vscheme,
-				&vschemeElt);
+		if (!parseEidString(eidString, &senderMetaEid, &vscheme,
+				&vschemeElt))
+		{
+			putErrmsg("Can't parse sender EID.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
 		bundle->clDossier.senderNodeNbr = senderMetaEid.elementNbr;
 		if (writeEid(&bundle->clDossier.senderEid, &senderMetaEid) < 0)
 		{
@@ -9738,12 +9747,12 @@ static int	catenateBundle(Bundle *bundle)
 	 *	serialize the header of the bundle.  To do this,
 	 *	we need to serialize all three endpoint IDs.		*/
 
-	destinationEidLength = serializeEid(&(bundle->destination),
-			destinationEid);
-	sourceEidLength = serializeEid(&(bundle->id.source),
-			sourceEid);
-	reportToEidLength = serializeEid(&(bundle->reportTo),
-			reportToEid);
+	CHKERR((destinationEidLength = serializeEid(&(bundle->destination),
+			destinationEid)) > 0);
+	CHKERR((sourceEidLength = serializeEid(&(bundle->id.source),
+			sourceEid)) > 0);
+	CHKERR((reportToEidLength = serializeEid(&(bundle->reportTo),
+			reportToEid)) > 0);
 
 	/*	Can now compute max header length: 50 for remainder
 	 *	of primary block, plus 20 times the total number of
@@ -11614,7 +11623,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 	BpDelivery	dlv;
 	vast		recordLen;
 	ZcoReader	reader;
-	unsigned int	bytesToParse;
+	vast		bytesToParse;
 	unsigned char	headerBuf[10];
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;

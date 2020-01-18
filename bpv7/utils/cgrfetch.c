@@ -360,20 +360,21 @@ static IonRXref *findRange(const IonCXref *contact)
 		return &discovery;
 	}
 
-	for (sm_rbt_search(ionwm, ionvdb->rangeIndex, rfx_order_ranges, &arg,
-	                   &rangeElt);
-	     rangeElt; rangeElt = sm_rbt_next(ionwm, rangeElt))
+	oK(sm_rbt_search(ionwm, ionvdb->rangeIndex, rfx_order_ranges, &arg,
+			&rangeElt));
+	while (rangeElt)
 	{
 		range = psp(ionwm, sm_rbt_data(ionwm, rangeElt));
 
-		if (range->fromNode > contact->fromNode ||
-		    range->toNode > contact->toNode)
+		if (range->fromNode > contact->fromNode
+		|| range->toNode > contact->toNode)
 		{
 			break;
 		}
 
 		if (range->toTime < contact->fromTime)
 		{
+			rangeElt = sm_rbt_next(ionwm, rangeElt);
 			continue;	/*	Past.	*/
 		}
 
