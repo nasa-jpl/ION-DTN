@@ -224,7 +224,8 @@ then
 fi
 
 #Determine BP version for exclustion of tests
-BP_VERSION=bpv7
+BP_VERSION=`bpversion`
+echo "BP version is $BP_VERSION"
 
 CLEANUP=""
 if [ "$1" = "cleanup" ]; then

@@ -101,7 +101,7 @@ case $host_os in
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 
-			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
+			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
 			echo "Build 32-bit ION on 64-bit solaris"
 		elif test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
