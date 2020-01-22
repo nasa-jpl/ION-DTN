@@ -891,6 +891,7 @@ bpbin = \
 	bpstats2 \
 	bptrace \
 	bptransit \
+	bpversion \
 	brsccla \
 	brsscla \
 	bsspcli \
@@ -1335,6 +1336,10 @@ bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpcancel_SOURCES = $(BP_DIR)/utils/bpcancel.c
 bpcancel_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bpversion_SOURCES = $(BP_DIR)/utils/bpversion.c
+bpversion_LDADD = libbp.la libici.la $(LIBOBJS)
+bpversion_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bplist_SOURCES = $(BP_DIR)/utils/bplist.c
 bplist_LDADD = libbp.la libici.la $(LIBOBJS)
