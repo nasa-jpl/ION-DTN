@@ -228,11 +228,10 @@ BP_PARSE_QUALITY_OF_SERVICE_USAGE);
 		PUTS("\tStatus report flag string is a sequence of status \
 report flags separated by commas, with no embedded whitespace.");
 		PUTS("\tEach status report flag must be one of the following: \
-rcv, ct, fwd, dlv, del.");
+rcv, fwd, dlv, del.");
 		PUTS("\tThe status reported in each bundle status report \
 message will be the sum of the applicable status flags:");
 		PUTS("\t\t 1 = bundle received (rcv)");
-		PUTS("\t\t 2 = bundle custody accepted (ct)");
 		PUTS("\t\t 4 = bundle forwarded (fwd)");
 		PUTS("\t\t 8 = bundle delivered (dlv)");
 		PUTS("\t\t16 = bundle deleted (del)");
