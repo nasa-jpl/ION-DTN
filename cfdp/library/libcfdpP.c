@@ -1128,8 +1128,7 @@ Object	addEntity(uvast entityId, char *protocolName, char *endpointName,
 
 	if (!ckTypeOkay(outCkType))
 	{
-		writeMemoNote("[?] Invalid outCkType", utoa(outCkType));
-		return 0;
+		writeMemoNote("[?] Note invalid outCkType", utoa(outCkType));
 	}
 
 	entity.inCkType = inCkType;
@@ -1208,8 +1207,7 @@ int	changeEntity(uvast entityId, char *protocolName, char *endpointName,
 
 	if (!ckTypeOkay(outCkType))
 	{
-		writeMemoNote("[?] Invalid outCkType", utoa(outCkType));
-		return 0;
+		writeMemoNote("[?] Note invalid outCkType", utoa(outCkType));
 	}
 
 	entity.ackTimerInterval = rtt;

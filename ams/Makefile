@@ -1,4 +1,4 @@
-OPT = /opt
+OPT = /usr/local
 HEAP_PTRS = 0
 PLATFORMS = i86_64-fedora
 # i86-redhat
