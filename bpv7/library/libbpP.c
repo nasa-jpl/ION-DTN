@@ -6162,6 +6162,7 @@ when asking for status reports.");
 
 	bundleProcFlags = srrFlags;
 	bundleProcFlags <<= 8;	/*	Other flags in low-order byte.	*/
+	bundleProcFlags |= BDL_STATUS_TIME_REQ;
 	if (sourceMetaEid == NULL)
 	{
 		/*	An anonymous bundle has no unique keys,
@@ -7483,8 +7484,13 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 			return 0;
 		}
 
-		totalLength += length;
-		if (majorType == 0)	/*	Unsigned integer.	*/
+		/*	Move BACK one byte so that the field can be
+		 *	parsed, now that we know what to expect (i.e.,
+		 *	whether "none" or not).				*/
+
+		*cursor -= 1;
+		*bytesRemaining += 1;
+		if (majorType == CborUnsignedInteger)	/*	"none"	*/
 		{
 			/*	Only 0 (for "none") is valid.		*/
 
@@ -7507,7 +7513,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 		else			/*	Must be text array.	*/
 		{
-			if (majorType != 3)	/*	Text array.	*/
+			if (majorType != CborTextString)
 			{
 				writeMemoNote("[?] Invalid dtn SSP type",
 					itoa(majorType));

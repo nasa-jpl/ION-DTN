@@ -14,6 +14,7 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	BpStatusRpt	rpt;
+	char		*sourceEid;
 	char		memobuf[1024];
 	unsigned int	statusTime = 0;
 	char		*reasonString;
@@ -21,6 +22,12 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 	if (parseStatusRpt(&rpt, cursor, unparsedBytes) < 1)
 	{
 		return 0;
+	}
+
+	if (readEid(&rpt.sourceEid, &sourceEid) < 0)
+	{
+		eraseEid(&rpt.sourceEid);
+		return -1;
 	}
 
 	if (rpt.flags & BP_DELETED_RPT)
@@ -84,10 +91,11 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 	}
 
 	isprintf(memobuf, sizeof memobuf, "[s] (%s)/%u:%u/%u status %d at \
-%lu on %s, '%s'.", rpt.sourceEid, rpt.creationTime.seconds,
+%lu on %s, '%s'.", sourceEid, rpt.creationTime.seconds,
 		rpt.creationTime.count, rpt.fragmentOffset, rpt.flags,
 		statusTime, dlv->bundleSourceEid, reasonString);
 	writeMemo(memobuf);
+	MRELEASE(sourceEid);
 	eraseEid(&rpt.sourceEid);
 	return 0;
 }
