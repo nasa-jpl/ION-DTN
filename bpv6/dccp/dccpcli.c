@@ -22,12 +22,13 @@
 #include "dtn2fw.h"
 #include <lyst.h>
 
-static void	interruptThread()
+static void	interruptThread(int signum)
 {
 	isignal(SIGTERM, interruptThread);
 }
 
-static void siguser_thread(){
+static void siguser_thread(int signum)
+{
 	isignal(SIGUSR1, siguser_thread);
 }
 

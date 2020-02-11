@@ -154,12 +154,12 @@ static char	*procName()
 }
 
 #ifndef mingw
-static void	handleStopThread()
+static void	handleStopThread(int signum)
 {
 	isignal(SIGINT, handleStopThread);
 }
 #endif
-static void	handleStopTcpcli()
+static void	handleStopTcpcli(int signum)
 {
 	isignal(SIGTERM, handleStopTcpcli);
 	ionKillMainThread(procName());

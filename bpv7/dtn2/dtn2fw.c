@@ -32,7 +32,7 @@ static sm_SemId	_dtn2fwSemaphore(sm_SemId *newValue)
 	return sem;
 }
 
-static void	shutDown()	/*	Commands forwarder termination.	*/
+static void	shutDown(int signum)
 {
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_dtn2fwSemaphore(NULL));

@@ -10,7 +10,7 @@
 #include <bpP.h>
 #include <bei.h>
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	oK(sdr_end_xn(bp_get_sdr()));
 	isignal(SIGINT, SIG_DFL);

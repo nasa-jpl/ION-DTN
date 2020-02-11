@@ -43,7 +43,7 @@ static sm_SemId		stcpcloSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	shutDownClo()	/*	Commands CLO termination.	*/
+static void	shutDownClo(int signum)
 {
 	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(stcpcloSemaphore(NULL));
@@ -90,7 +90,7 @@ static void	*sendKeepalives(void *parm)
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent < 0)
 		{
-			shutDownClo();
+			shutDownClo(SIGTERM);
 			break;
 		}
 	}

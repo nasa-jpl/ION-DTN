@@ -24,7 +24,7 @@ static sm_SemId		udpcloSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	shutDownClo()	/*	Commands CLO termination.	*/
+static void	shutDownClo(int signum)
 {
 	sm_SemEnd(udpcloSemaphore(NULL));
 }

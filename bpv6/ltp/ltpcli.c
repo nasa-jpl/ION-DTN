@@ -14,7 +14,7 @@
 #include "ipnfw.h"
 #include "dtn2fw.h"
 
-static void	interruptThread()
+static void	interruptThread(int signum)
 {
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("ltpcli");

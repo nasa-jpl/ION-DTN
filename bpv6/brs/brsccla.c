@@ -51,9 +51,9 @@ static void	killMainThread()
 	sm_SemEnd(brscclaSemaphore(NULL));
 }
 
-static void	interruptThread()	/*	Commands termination.	*/
+static void	interruptThread(int signum)
 {
-	isignal(SIGTERM, killMainThread);
+	isignal(SIGTERM, interruptThread);
 	ionPauseAttendant(_attendant(NULL));
 	killMainThread();
 }

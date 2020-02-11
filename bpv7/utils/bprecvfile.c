@@ -36,7 +36,7 @@ static BptestState	*_bptestState(BptestState *newState)
 	return state;
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	BptestState	*state;
 

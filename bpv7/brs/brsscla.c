@@ -25,12 +25,12 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 }
 
 #ifndef mingw
-static void	handleStopThread()
+static void	handleStopThread(int signum)
 {
 	isignal(SIGINT, handleStopThread);
 }
 #endif
-static void	handleStopBrsscla()
+static void	handleStopBrsscla(int signum)
 {
 	isignal(SIGTERM, handleStopBrsscla);
 	ionKillMainThread("brsscla");

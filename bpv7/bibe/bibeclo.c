@@ -93,7 +93,7 @@ static void	shutDownClo()
 	sm_SemEnd(bibecloSemaphore(NULL));
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	isignal(SIGINT, handleQuit);
 	bp_interrupt(_bpduSap(NULL));

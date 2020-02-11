@@ -151,7 +151,7 @@ typedef struct {
 
 	amp_type_e type;
 
-	union ari_info {
+	union {
 		tnv_t     as_lit;
 		ari_reg_t as_reg;
 	};

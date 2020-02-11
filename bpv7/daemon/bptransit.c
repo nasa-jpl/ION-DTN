@@ -40,7 +40,7 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-static void	shutDown()	/*	Commands bptransit termination.	*/
+static void	shutDown(int signum)
 {
 	sm_SemEnd((getBpVdb())->transitSemaphore);
 	ionPauseAttendant(_attendant(NULL));
@@ -292,7 +292,7 @@ int	main(int argc, char *argv[])
 		sm_TaskYield();
 	}
 
-	shutDown();
+	shutDown(SIGTERM);
 	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] bptransit has ended.");

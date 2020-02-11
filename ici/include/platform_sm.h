@@ -35,9 +35,13 @@ typedef int		sm_SemId;
 
 #ifndef ION4WIN		/*	No pthreads in Visual Studio.		*/
 
-/*      Required in order to overload pthread_begin macro */
+#ifdef SOLARIS_COMPILER
+#define pthread_begin	pthread_begin_named
+#else
+/*      Required in order to overload pthread_begin macro		*/
 #define GET_MACRO(_1,_2,_3,_4,_5,NAME,...) NAME
 #define pthread_begin(...) GET_MACRO(__VA_ARGS__, pthread_begin5, pthread_begin4)(__VA_ARGS__)
+#endif
 
 #if defined (bionic) || defined (uClibc)
 extern int		sm_BeginPthread(pthread_t *threadId,

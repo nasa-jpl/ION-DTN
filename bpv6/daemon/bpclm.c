@@ -33,7 +33,7 @@ static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 	return sem;
 }
 
-static void	shutDown()	/*	Commands bpclm termination.	*/
+static void	shutDown(int signum)
 {
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_bpclmSemaphore(NULL));

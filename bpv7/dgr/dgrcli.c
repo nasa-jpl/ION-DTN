@@ -15,7 +15,7 @@
 #define	DGRCLA_PORT_NBR		1113
 #define	DGRCLA_BUFSZ		65535
 
-static void	interruptThread()
+static void	interruptThread(int signum)
 {
 	isignal(SIGTERM, interruptThread);
 	ionKillMainThread("dgrcli");

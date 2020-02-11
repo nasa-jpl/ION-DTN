@@ -35,7 +35,7 @@ static sm_SemId		ltpcloSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	shutDownClo()	/*	Commands CLO termination.	*/
+static void	shutDownClo(int signum)
 {
 	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(ltpcloSemaphore(NULL));

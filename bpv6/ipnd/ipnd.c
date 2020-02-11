@@ -63,7 +63,7 @@ char tagDefLines[][53] = {
 /**
  * Handles SIGINT and SIGTERM signals
  */
-static void	interruptThread()
+static void	interruptThread(int signum)
 {
 	isignal(SIGTERM, interruptThread);
 	isignal(SIGINT, interruptThread);

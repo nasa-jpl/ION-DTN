@@ -12164,7 +12164,7 @@ static BpSAP	_bpadminSap(BpSAP *newSap)
 	return sap;
 }
 
-static void	shutDownAdminApp()
+static void	shutDownAdminApp(int signum)
 {
 	isignal(SIGTERM, shutDownAdminApp);
 	sm_SemEnd((_bpadminSap(NULL))->recvSemaphore);

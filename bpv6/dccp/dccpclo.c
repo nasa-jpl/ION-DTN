@@ -34,7 +34,7 @@ static sm_SemId	dccpcloSemaphore(sm_SemId *semid)
 
 
 /* Commands LSO termination 						*/
-static void	shutDownClo()
+static void	shutDownClo(int signum)
 {
 	isignal(SIGTERM, shutDownClo);
 	sm_SemEnd(dccpcloSemaphore(NULL));

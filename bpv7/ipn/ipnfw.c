@@ -76,7 +76,7 @@ static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 	return sem;
 }
 
-static void	shutDown()	/*	Commands forwarder termination.	*/
+static void	shutDown(int signum)
 {
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_ipnfwSemaphore(NULL));

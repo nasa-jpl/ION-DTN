@@ -33,7 +33,7 @@ static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 	return sem;
 }
 
-static void	shutDown()	/*	Commands forwarder termination.	*/
+static void	shutDown(int signum)
 {
 	isignal(SIGTERM, shutDown);
 	sm_SemEnd(_imcfwSemaphore(NULL));

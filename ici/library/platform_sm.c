@@ -2327,7 +2327,7 @@ int	sm_BeginPthread_named(pthread_t *threadId, const pthread_attr_t *attr,
 	return result;
 }
 
-#else
+#else		/*	Not bionic and not uClibc.			*/
 
 #ifdef darwin
 /* struct used to wrap start_routine with naming_start_routine */
@@ -2361,7 +2361,7 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 {
 	int result;
 
-	/*	VxWorks uses a different method of naming threads. */
+	/*	VxWorks uses a different method of naming threads.	*/
 #ifdef vxworks
 	if(attr){
 		pthread_attr_setname(attr, name);
@@ -2373,29 +2373,35 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 		result = pthread_begin(thread, &tattr, start_routine, arg);
 	}
 	
-	/*	Supported platforms for naming threads */
+	/*	Supported platforms for naming threads			*/
 #elif darwin
 	static NamingParms nmp;
-	/*	In OSX, pthread_setname_np must be called withing the 
+	/*	In OSX, pthread_setname_np must be called within the 
 	 *	the thread you wish to name. Achieved by wrapping 
-	 *  the start_routine of pthread_begin */
+	 *	the start_routine of pthread_begin.			*/
 
-	/* protect the global naming structure from concurrent access */
+	/* protect the global naming structure from concurrent access	*/
 	pthread_mutex_lock(&NamingParmsSem);
 
 	nmp.start_routine = start_routine;
 	nmp.arg = arg;
 	strncpy(nmp.name, name, sizeof(nmp.name)-1);
 	result = pthread_begin(thread, attr, naming_start_routine, &nmp);
+#else		/*	Not vxworks and not darwin.			*/
+
+#ifdef SOLARIS_COMPILER
+	result = pthread_create(thread, attr, start_routine, arg);
 #else
 	result = pthread_begin(thread, attr, start_routine, arg);
+#endif
+
 #if linux || mingw
 	pthread_setname_np(*thread, name);
 #elif freebsd
 	pthread_set_name_np(*thread,name);
-#endif
+#endif	/*	End of #if linux || mingw.				*/
 
-#endif
+#endif	/*	End of #ifdef vxworks.					*/
 
 	return result;
 }

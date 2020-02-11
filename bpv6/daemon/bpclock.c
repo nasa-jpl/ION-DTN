@@ -38,7 +38,7 @@ static uaddr	_running(uaddr *newValue)
 	return state;
 }
 
-static void	shutDown()	/*	Commands bpclock termination.	*/
+static void	shutDown(int signum)
 {
 	uaddr	stop = 0;
 

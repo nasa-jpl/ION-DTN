@@ -23,7 +23,7 @@ static sm_SemId		bibecloSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	shutDownClo()	/*	Commands CLO termination.	*/
+static void	shutDownClo(int signum)
 {
 	sm_SemEnd(bibecloSemaphore(NULL));
 }
@@ -113,7 +113,7 @@ int	main(int argc, char *argv[])
 		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
-			shutDownClo();
+			shutDownClo(SIGTERM);
 			break;
 		}
 
@@ -134,7 +134,7 @@ int	main(int argc, char *argv[])
 				&bundleLength) < 0)
 		{
 			putErrmsg("Can't decode bundle; CLO stopping.", NULL);
-			shutDownClo();
+			shutDownClo(SIGTERM);
 			continue;
 		}
 
@@ -144,7 +144,7 @@ int	main(int argc, char *argv[])
 		if (sdr_end_xn(sdr))
 		{
 			putErrmsg("Can't prepend header; CLO stopping.", NULL);
-			shutDownClo();
+			shutDownClo(SIGTERM);
 			continue;
 		}
 
@@ -159,7 +159,7 @@ int	main(int argc, char *argv[])
 		{
 		case -1:	/*	System error.			*/
 			putErrmsg("Can't send encapsulated bundle.", NULL);
-			shutDownClo();
+			shutDownClo(SIGTERM);
 			continue;
 
 		case 0:		/*	Malformed request.		*/

@@ -49,7 +49,7 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	isignal(SIGINT, handleQuit);
 	bp_interrupt(_bpsap(NULL));
