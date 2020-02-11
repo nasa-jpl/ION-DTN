@@ -31,7 +31,7 @@ static uaddr	_running(uaddr *newValue)
 	return state;
 }
 
-static void	shutDown()	/*	Commands bsspclock termination.	*/
+static void	shutDown(int signum)
 {
 	uaddr	stop = 0;
 

@@ -68,7 +68,7 @@ static void	killMainThread()
 }
 #endif
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	isignal(SIGINT, handleQuit);
 	killMainThread();

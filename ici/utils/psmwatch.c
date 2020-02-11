@@ -32,7 +32,7 @@ static unsigned int	psmwatch_count(int *newValue)
 	return count;
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	int	newCount = 1;	/*	Advance to end of last cycle.	*/
 

@@ -12,7 +12,7 @@
 /*	Add external function declarations between here...		*/
 
 #include "pnb.h"
-#include "qos.h"
+#include "bpq.h"
 #include "meb.h"
 #include "bae.h"
 #include "hcb.h"
@@ -79,7 +79,7 @@ static ExtensionDef	extensionDefs[] =
 				bibClear
 		},
 #endif
-		{ "qos", QualityOfServiceBlk,
+		{ "bpq", QualityOfServiceBlk,
 				qos_offer,
 				{qos_processOnFwd,
 				qos_processOnAccept,

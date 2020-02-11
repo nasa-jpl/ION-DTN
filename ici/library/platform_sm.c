@@ -1998,7 +1998,7 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-static void	handleTimeout()
+static void	handleTimeout(int signum)
 {
 	return;
 }

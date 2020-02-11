@@ -3421,7 +3421,7 @@ int	iputs(int fd, char *string)
 /*	*	*	Standard TCP functions	*	*	*	*/
 
 #ifndef mingw
-void	itcp_handleConnectionLoss()
+void	itcp_handleConnectionLoss(int signum)
 {
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
 }

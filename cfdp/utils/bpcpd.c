@@ -18,7 +18,7 @@ void dbgprintf(int level, const char *fmt, ...);
 void usage(void);
 void version();
 #ifdef CLEAN_ON_EXIT
-void sig_handler();
+void sig_handler(int signum);
 #endif
 
 /*Start Here*/
@@ -210,7 +210,7 @@ void version()
 	exit(1);
 }
 
-void sig_handler()
+void sig_handler(int signum)
 {
 	/*Reset signal handlers for portability*/
 	isignal(SIGTERM, sig_handler);

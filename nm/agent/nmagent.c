@@ -41,7 +41,7 @@
 
 #include "instr.h"
 
-static void agent_signal_handler(int);
+static void agent_signal_handler(int signum);
 
 
 // Definitions of global data.
@@ -297,7 +297,7 @@ int	main(int argc, char *argv[])
  **  08/18/13  E. Birrane    Initial Implementation
  *****************************************************************************/
 
-static void agent_signal_handler(int i)
+static void agent_signal_handler(int signum)
 {
 	isignal(SIGINT,agent_signal_handler);
 	isignal(SIGTERM, agent_signal_handler);

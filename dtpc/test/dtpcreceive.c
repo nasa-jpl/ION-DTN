@@ -36,7 +36,7 @@ static int	_running(int *newState)
 	return state;
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	int	stop = 0;
 

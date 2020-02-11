@@ -1,6 +1,6 @@
 /*
- *	qos.h:		definitions supporting implementation of
- *			the Quality of Service (QOS) block.
+ *	bpq.h:		definitions supporting implementation of
+ *			the BP Quality of Service (QOS) block.
  *
  *	Copyright (c) 2019, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship

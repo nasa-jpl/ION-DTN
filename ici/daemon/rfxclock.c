@@ -34,7 +34,7 @@ static uaddr	_running(uaddr *newValue)
 	return state;
 }
 
-static void	shutDown()	/*	Commands rfxclock termination.	*/
+static void	shutDown(int signum)	/*	Stops rfxclock.	*/
 {
 	uaddr	stop = 0;
 

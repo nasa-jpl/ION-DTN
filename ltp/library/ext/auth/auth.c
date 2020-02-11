@@ -19,7 +19,8 @@
 
 #define	SHA1_HASH_LENGTH	(10)
 
-static char	null_key[20] = {0xc3, 0x7b, 0x7e, 0x64, 0x92, 0x58, 0x43, 0x40,
+static unsigned char	null_key[20] =
+				{0xc3, 0x7b, 0x7e, 0x64, 0x92, 0x58, 0x43, 0x40,
 				0xbe, 0xd1, 0x22, 0x07, 0x80, 0x89, 0x41, 0x15,
 				0x50, 0x68, 0xf7, 0x38};
 
@@ -188,7 +189,7 @@ static int	tryAuthHeader(LtpRecvSeg* segment, Lyst trailerExtensions,
 		if (rule->ciphersuiteNbr == 255)	/*	No key.	*/
 		{
 			keyLength = sizeof null_key;
-			keyValue = null_key;
+			keyValue = (char *) null_key;
 			result = verify_sha1(trailerExt, segmentRawData,
 					keyLength, keyValue);
 			if (result == 0)

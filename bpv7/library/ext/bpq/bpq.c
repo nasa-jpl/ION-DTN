@@ -1,6 +1,6 @@
 /*
- *	qos.c:		implementation of the extension definition
- *			functions for the Quality of Service block.
+ *	bpq.c:		implementation of the extension definition
+ *			functions for the BP Quality of Service block.
  *
  *	Copyright (c) 2019, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
@@ -11,7 +11,7 @@
 
 #include "bpP.h"
 #include "bei.h"
-#include "qos.h"
+#include "bpq.h"
 
 int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 {

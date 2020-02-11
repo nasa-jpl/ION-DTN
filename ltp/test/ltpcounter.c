@@ -89,7 +89,7 @@ static void	*showProgress(void *parm)
 	}
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	int	stop = 0;
 

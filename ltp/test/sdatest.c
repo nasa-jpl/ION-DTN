@@ -22,7 +22,7 @@
 #define	SDA_TEST_CLIENT	(135)
 #define	MAX_LINE_LEN	(1023)
 
-static void	interruptThread()
+static void	interruptThread(int signum)
 {
 	isignal(SIGTERM, interruptThread);
 	sda_interrupt();

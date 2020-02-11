@@ -33,7 +33,7 @@ static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
 	return strlen(buffer) + 1;
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	PUTS("cfdptest interrupted.");
 }
