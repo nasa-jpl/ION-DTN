@@ -262,6 +262,7 @@ typedef struct
 extern void		cgr_start();
 extern CgrVdb		*cgr_get_vdb();
 extern void		cgr_clear_vdb(CgrVdb *);
+extern int		cgr_create_routing_object(IonNode *node);
 extern int		cgr_identify_best_routes(IonNode *terminusNode,
 				Bundle *bundle, Object bundleObj,
 				Lyst excludedNodes, CgrTrace *trace,

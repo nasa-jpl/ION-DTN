@@ -2244,6 +2244,27 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 	return 0;
 }
 
+int	cgr_create_routing_object(IonNode *node)
+{
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	routingObjectAddr;
+	CgrRtgObject	*routingObject;
+
+	CHKZERO(ionwm);
+	routingObjectAddr = psm_zalloc(ionwm, sizeof(CgrRtgObject));
+	if (routingObjectAddr == 0)
+	{
+		putErrmsg("Can't create CGR routing object.", NULL);
+		return -1;
+	}
+
+	node->routingObject = routingObjectAddr;
+	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
+	memset((char *) routingObject, 0, sizeof(CgrRtgObject));
+	routingObject->nodeAddr = psa(ionwm, node);
+	return 0;
+}
+
 int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 			Object bundleObj, Lyst excludedNodes, CgrTrace *trace,
 			Lyst bestRoutes, time_t currentTime)
@@ -2344,6 +2365,15 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
 	CHKERR(excludedNodes);
 	lyst_delete_set(bestRoutes, deleteObject, NULL);
 	lyst_delete_set(excludedNodes, deleteObject, NULL);
+	if (terminusNode->routingObject == 0)
+	{
+		if (cgr_create_routing_object(terminusNode) < 0)
+		{
+			putErrmsg("Can't initialize routing object.", NULL);
+			return -1;
+		}
+	}
+
 	result = cgr_identify_best_routes(terminusNode, bundle, bundleObj,
 			excludedNodes, trace, bestRoutes, atTime);
 	lyst_destroy(bestRoutes);

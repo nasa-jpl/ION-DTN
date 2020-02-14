@@ -82,27 +82,6 @@ static void	shutDown(int signum)
 	sm_SemEnd(_ipnfwSemaphore(NULL));
 }
 
-static int	initializeRoutingObject(IonNode *node)
-{
-	PsmPartition	ionwm = getIonwm();
-	PsmAddress	routingObjectAddr;
-	CgrRtgObject	*routingObject;
-
-	CHKZERO(ionwm);
-	routingObjectAddr = psm_zalloc(ionwm, sizeof(CgrRtgObject));
-	if (routingObjectAddr == 0)
-	{
-		putErrmsg("Can't create CGR routing object.", NULL);
-		return -1;
-	}
-
-	node->routingObject = routingObjectAddr;
-	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
-	memset((char *) routingObject, 0, sizeof(CgrRtgObject));
-	routingObject->nodeAddr = psa(ionwm, node);
-	return 0;
-}
-
 /*		CGR override functions.					*/
 
 static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
@@ -257,7 +236,7 @@ static int 	tryHIRR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 
 	if (terminusNode->routingObject == 0)
 	{
-		if (initializeRoutingObject(terminusNode) < 0)
+		if (cgr_create_routing_object(terminusNode) < 0)
 		{
 			putErrmsg("Can't initialize routing object.", NULL);
 			return -1;
@@ -955,7 +934,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 
 	if (terminusNode->routingObject == 0)
 	{
-		if (initializeRoutingObject(terminusNode) < 0)
+		if (cgr_create_routing_object(terminusNode) < 0)
 		{
 			putErrmsg("Can't initialize routing object.", NULL);
 			return -1;
