@@ -1289,7 +1289,8 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	fdubuf->messagesToUser = sdr_list_create(sdr);
 	fdubuf->filestoreRequests = sdr_list_create(sdr);
 	fdubuf->extents = sdr_list_create(sdr);
-	fdubuf->ckType = NullChecksum;	/*	Default.		*/
+	fdubuf->ckType = NullChecksum;		/*	Default		*/
+	fdubuf->finishCondition = CfdpNoError;	/*	Default		*/
 	fduObj = sdr_malloc(sdr, sizeof(InFdu));
 	if (fduObj == 0 || fdubuf->messagesToUser == 0
 	|| fdubuf->filestoreRequests == 0 || fdubuf->extents == 0
@@ -2337,6 +2338,7 @@ static int	constructFinishPdu(InFdu *fdu, CfdpEvent *event)
 	CfdpVdb			*vdb = _cfdpvdb(NULL);
 	unsigned char		*cursor;
 	unsigned int		fpduLength = 0;
+	CfdpCondition		condition;
 	size_t			length;
 	Object			elt;
 	Object			obj;
@@ -2359,7 +2361,13 @@ static int	constructFinishPdu(InFdu *fdu, CfdpEvent *event)
 
 	/*	Note condition, delivery, file status.			*/
 
-	*cursor = ((event->condition & 0x0f) << 4) 
+	condition = event->condition;
+	if (condition == CfdpNoError && fdu->finishCondition != condition)
+	{
+		condition = fdu->finishCondition;
+	}
+
+	*cursor = ((condition & 0x0f) << 4) 
 			+ ((event->deliveryCode & 0x01) << 2)
 			+ (event->fileStatus & 0x03);
 	cursor++;
@@ -4619,6 +4627,8 @@ static int	handleMetadataPdu(unsigned char *cursor, int bytesRemaining,
 			{
 				putErrmsg("No fault handler.", NULL);
 			}
+
+			fdu->finishCondition = CfdpUnsupportedChecksumType;
 		}
 	}
 	else

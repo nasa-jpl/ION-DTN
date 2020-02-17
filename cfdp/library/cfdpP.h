@@ -173,6 +173,7 @@ typedef struct
 	CfdpCksumType		ckType;
 	unsigned int		computedChecksum;
 	int			checksumVerified;
+	CfdpCondition		finishCondition;
 	uvast			fileSize;
 	Object			workingFileName;/*	sdrstring	*/
 	uvast			progress;
