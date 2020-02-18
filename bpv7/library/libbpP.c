@@ -7571,7 +7571,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 
 		/*	Validate service number, compose EID string.	*/
 
-		if (uvtemp > 4294967295)
+		if (uvtemp > 4294967295UL)
 		{
 			writeMemo("[?] Service number too large.");
 			return 0;
@@ -7621,7 +7621,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 
 		/*	Validate service number, compose EID string.	*/
 
-		if (uvtemp > 4294967295)
+		if (uvtemp > 4294967295UL)
 		{
 			writeMemo("[?] Service number too large.");
 			return 0;

@@ -188,7 +188,7 @@ static int	encodeFixedLengthInteger(uvast value, int class,
 		return 2;
 
 	case CborInt:
-		if (value > 4294967295)
+		if (value > 4294967295UL)
 		{
 			writeMemoNote("[?] CBOR integer not int",
 					itoa(value));
