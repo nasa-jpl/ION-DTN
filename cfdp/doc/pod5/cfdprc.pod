@@ -44,9 +44,9 @@ the CFDP management information base.  Valid UT protocol names are bp and
 tcp.  Endpoint name is EID for bp, socket spec (I<IP address>:I<port number>)
 for tcp.  RTT is round-trip time, used to set acknowledgement timers. incstype
 is the type of checksum to use when validating data received from this entity;
-valid values are 0 (modular checksum) and 1 (CRC32).  outcstype is the type of
-checksum to use when computing the checksum for transmitting data to this
-entity.
+valid values are 0 (modular checksum), 2 (CRC32C), and 15 (the null checksum).
+outcstype is the type of checksum to use when computing the checksum for
+transmitting data to this entity.
 
 =item B<c entity>> <entity nbr> <UT protocol name> <UT endpoint name> <rtt> <incstype> <outcstype>
 
@@ -61,7 +61,7 @@ the CFDP management information base.
 =item B<i> [<entity nbr>]
 
 The B<info> command.  When B<entity nbr> is provided, this command will print
-information about the indicate entity.  Otherwise this command will print
+information about the indicated entity.  Otherwise this command will print
 information about the current state of the local CFDP entity, including the
 current settings of all parameters that can be managed as described below.
 

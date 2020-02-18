@@ -25,7 +25,8 @@ typedef enum
 {
 	CksumTypeUnknown = -1,
 	ModularChecksum = 0,
-	CRC32 = 1
+	CRC32CChecksum = 2,
+	NullChecksum = 15
 } CfdpCksumType;
 
 typedef Object		MetadataList;	/*	SDR list		*/
@@ -158,6 +159,7 @@ typedef enum
 	CfdpInactivityDetected,
 	CfdpInvalidFileStructure,
 	CfdpCheckLimitReached,
+	CfdpUnsupportedChecksumType,
 	CfdpSuspendRequested = 14,		/*	Not a fault.	*/
 	CfdpCancelRequested			/*	Not a fault.	*/
 } CfdpCondition;

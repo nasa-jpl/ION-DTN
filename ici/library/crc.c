@@ -402,7 +402,6 @@ static uint32_t  crctable_1EDC6F41_r[256] =
 /*                   End of CRC Lookup Tables                    */
 /*****************************************************************/
 
-
 /******************************************************************************
  *
  * \par Function Name: ion_CRC16_1021_X25
@@ -533,7 +532,7 @@ uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen, uint32_t crc)
  *
  * \par Notes:
  *      1. ALIASES: CRC-32/CASTAGNOLI, CRC-32/C, CRC-32/ISCSI
- *      2. This function utilizes the table crctable_04C11DB7.
+ *      2. This function utilizes the table crctable_1EDC6F41.
  *      3. Data is reflected
  *      4. crc type must be unsigned.
  *      5. init = 0xffffffff xorout = 0xffffffff
