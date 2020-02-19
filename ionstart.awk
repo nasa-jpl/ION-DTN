@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin dtn2admin dtpcadmin acsadmin imcadmin bssadmin
+# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin bibeadmin dtn2admin dtpcadmin acsadmin imcadmin bssadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -70,11 +70,12 @@ BEGIN {
 	programs[6]   = "bpadmin"
 	programs[7]   = "cfdpadmin"
 	programs[8]   = "ipnadmin"
-	programs[9]   = "dtn2admin"
-	programs[10]  = "dtpcadmin"
-	programs[11]  = "acsadmin"
-	programs[12]  = "imcadmin"
-	programs[13]  = "bssadmin"
+	programs[9]   = "bibeadmin"
+	programs[10]  = "dtn2admin"
+	programs[11]  = "dtpcadmin"
+	programs[12]  = "acsadmin"
+	programs[13]  = "imcadmin"
+	programs[14]  = "bssadmin"
 
 	# programoptions are special options for certain programs that take them
 	# rcname is the name of an rc file associated with the program
@@ -85,6 +86,7 @@ BEGIN {
 	rcname["bpadmin"]      = bprc
 	rcname["cfdpadmin"]    = cfdprc
 	rcname["ipnadmin"]     = ipnrc
+	rcname["bibeadmin"]    = biberc
 	rcname["dtn2admin"]    = dtn2rc
 	rcname["dtpcadmin"]    = dtpcrc
 	rcname["ltpadmin"]     = ltprc

@@ -19,15 +19,13 @@ DCCP = ../dccp
 BIBE = ../bibe
 IPND = ../ipnd
 ICI = ../../ici
+SAGA = ../saga
 
 OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP -DENABLE_BPACS
 # -Werror
-# -DENABLE_BPACS
-CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(ICI)/incude -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 
-#acsadmin on mingw
-CC += -I$(API)/acs -I$(ICI)/include -I$(API)/ext/cteb
-# -I$(API)/ext/snid
+
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -36,6 +34,10 @@ PUBINCLS = \
 
 BPINCLS = \
 	$(API)/bpP.h \
+	$(API)/bpsec.h \
+	$(BIBE)/bibe.h \
+	$(SAGA)/saga.h \
+	$(ICI)/include/cbor.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
 	$(IMC)/imcP.h \
@@ -45,21 +47,20 @@ BPINCLS = \
 	$(UDP)/udpcla.h \
 	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
-	$(API)/acs/acs.h \
+	$(API)/ext/snw/snw.h \
 	$(DGR_MAIN)/include/dgr.h \
 	$(DCCP)/dccpcla.h
 
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
-# snid.o
-BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
+BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpcancel bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = beacon bibeadmin bibeclo bpadmin bpcancel bpclm bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+# bpclock bpcrash - disabled from BPv7 build pending updates
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the test does not work
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -157,14 +158,6 @@ bpcancel:	bpcancel.o $(BPLIBS)
 hmackeys:	hmackeys.o $(BPLIBS)
 		$(CC) -o hmackeys hmackeys.o -L$(ROOT)/lib -lici -lpthread -lm
 		cp hmackeys ./bin
-
-acsadmin:	acsadmin.o $(BPLIBS)
-		$(CC) -o acsadmin acsadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-		cp acsadmin ./bin
-
-acslist:	acslist.o $(BPLIBS)
-		$(CC) -o acslist acslist.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
-		cp acslist ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 
@@ -274,6 +267,10 @@ brsccla:	brsccla.o $(BPLIBS) libstcpcla.dll
 
 #	-	-	BIBE executable	-	-	-	-	-
 
+bibeadmin:	bibeadmin.o $(BPLIBS)
+		$(CC) -o bibeadmin bibeadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
+		cp bibeadmin ./bin
+
 bibeclo:	bibeclo.o $(BPLIBS)
 		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
 		cp bibeclo ./bin
@@ -333,7 +330,7 @@ cgrfetch:	cgrfetch.o $(BPLIBS)
 #	-	-	Libraries	-	-	-	-	-
 
 libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o
-		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread -lm
+		$(LD) -o libbp.dll libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o -Wl,--output-def,libbp.def -L$(ROOT)/lib -lici -lpthread -lws2_32 -lm
 		cp libbp.dll ./lib
 
 libcgr.dll:	libcgr.o
@@ -365,22 +362,25 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-#%.o:		$(API)/ext/snid/%.c
-#		$(CC) -c $<
+%.o:		$(API)/ext/bae/%.c
+		$(CC) -c $<
 
-%.o:		$(API)/ext/ecos/%.c
+%.o:		$(API)/ext/bpq/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/bpsec/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/hcb/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/meb/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/bae/%.c
+%.o:		$(API)/ext/pnb/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/sbsp/%.c
-		$(CC) -c $<
-
-%.o:		$(API)/ext/phn/%.c
+%.o:		$(API)/ext/snw/%.c
 		$(CC) -c $<
 
 %.o:		$(TEST)/%.c
@@ -431,7 +431,7 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(BIBE)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/acs/%.c
+%.o:		$(SAGA)/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/cteb/%.c
