@@ -1728,7 +1728,7 @@ cfdpinclude = \
 	cfdp/include/cfdpops.h
 
 cfdpnoinst = \
-	cfdp/library/bputa.h \
+	cfdp/include/bputa.h \
 	cfdp/library/cfdpP.h \
 	cfdp/utils/bpcp.h
 
