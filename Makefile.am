@@ -866,7 +866,7 @@ if BUILD_BPv6
 bpcflags += -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/cteb
 endif # end BUILD_BPv6
 if BUILD_BPv7
-bpcflags += -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/qos
+bpcflags += -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq
 endif # end BUILD_BPv7
 
 bpbin = \
@@ -1234,7 +1234,7 @@ libbp_la_SOURCES += \
 	$(BP_DIR)/library/ext/hcb/hcb.c \
 	$(BP_DIR)/library/ext/pnb/pnb.c \
 	$(BP_DIR)/library/ext/pnb/pnb.h \
-	$(BP_DIR)/library/ext/qos/qos.c \
+	$(BP_DIR)/library/ext/bpq/bpq.c \
 	$(BP_DIR)/saga/saga.c
 endif # end BUILD_BPv6
 
