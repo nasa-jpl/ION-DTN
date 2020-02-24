@@ -25,8 +25,9 @@ install:
 #	-	-	Restart executable	-	-	-	-
 
 ionrestart.o:	$(UTILS)/ionrestart.c
-		$(CC) -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../bp/include -I../../cfdp/include -I../../ltp/library -I../../bp/library -I../../cfdp/library -c $(UTILS)/ionrestart.c
+		$(CC) -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../$(BPv)/include -I../../cfdp/include -I../../ltp/library -I../../$(BPv)/library -I../../cfdp/library -c $(UTILS)/ionrestart.c
 
 ionrestart:	ionrestart.o
-		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/i86-mingw/lib -L../../ltp/i86-mingw/lib -L../../bp/i86-mingw/lib -L../../cfdp/i86-mingw/lib -lcfdp -lcgr $(LBP) -lltp -lici -lpthread -lws2_32 -lm
+		$(CC) -o ionrestart ionrestart.o -L./lib -L../../ici/i86-mingw/lib -L../../ltp/i86-mingw/lib -L../../$(BPv)/i86-mingw/lib -L../../cfdp/i86-mingw/lib -lcfdp -lcgr $(LBP) -lltp -lici -lpthread -lws2_32 -lm
 		cp ionrestart ./bin
+

@@ -8,11 +8,13 @@ CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 
 OPT = -g -Wall -Dmingw
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../../bp/include/ -I../../bp/library/ -I../../ltp/include/ -I../../ltp/library/
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../../$(BPv)/include/ -I../../$(BPv)/library/ -I../../ltp/include/ -I../../ltp/library/
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
 LIBICIOBJS = \
+	cbor.o \
+	crc.o \
 	llcv.o \
 	platform.o \
 	platform_sm.o \
@@ -38,6 +40,8 @@ LIBICIOBJS = \
 	sdrcatlg.o
 
 PUBINCLS = \
+	$(INCL)/cbor.h \
+	$(INCL)/crc.h \
 	$(INCL)/llcv.h \
 	$(INCL)/platform.h \
 	$(INCL)/platform_sm.h \
@@ -66,7 +70,8 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionexit ionlog ionunlock
+UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionlog ionunlock
+#ionexit
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim
 # owlttb - requires SIGPIPE which is not supported by Windows
@@ -123,7 +128,7 @@ killm:		killm.o libici.dll
 		cp killm ./bin
 
 ionexit:	ionexit.o libici.dll
-		$(CC) -o ionexit ionexit.o -L./lib -L../../bp/i86-mingw/lib -L../../ltp/i86-mingw/lib -lltp -lici -lm -lbp -lpthread
+		$(CC) -o ionexit ionexit.o -L./lib -L../../$(BPv)/i86-mingw/lib -L../../ltp/i86-mingw/lib -lltp -lici -lm -lbp -lpthread
 		cp ionexit ./bin
 
 ionunlock:	ionunlock.o libici.dll
@@ -210,4 +215,5 @@ libici.dll:	$(LIBICIOBJS) libicinm.o
 
 %.o:		$(TEST)/%.c
 		$(CC) -c $<
+
 

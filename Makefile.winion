@@ -1,3 +1,9 @@
+bpv7: export BPv = bpv7
+bpv7: all
+
+bpv6: export BPv = bpv6
+bpv6: all
+
 all:
 	gmake -C ici $@
 	gmake -C ici install
@@ -7,8 +13,8 @@ all:
 	gmake -C dgr install
 	gmake -C bssp $@
 	gmake -C bssp install
-	gmake -C bp $@
-	gmake -C bp install
+	gmake -C $(BPv) $@
+	gmake -C $(BPv) install
 	gmake -C nm $@
 	gmake -C nm install
 	gmake -C ams $@
@@ -27,7 +33,8 @@ clean:
 	gmake -C ltp $@
 	gmake -C dgr $@
 	gmake -C bssp $@
-	gmake -C bp $@
+	gmake -C bpv6 $@
+	gmake -C bpv7 $@
 	gmake -C nm $@
 	gmake -C ams $@
 	gmake -C cfdp $@
@@ -38,3 +45,4 @@ clean:
 test:
 	cd tests
 	./runtests
+
