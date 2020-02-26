@@ -326,6 +326,7 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 	Object		secondBundleObj;
 	Scheme		schemeBuf;
 
+	CHKERR(bundle->payload.length > 1);
 	stationEidElt = sdr_list_first(sdr, bundle->stations);
 	CHKERR(stationEidElt);
 	stationEid = sdr_list_data(sdr, stationEidElt);
@@ -346,6 +347,11 @@ static int	proactivelyFragment(Bundle *bundle, Object *bundleObj,
 	if (fragmentLength == 0)
 	{
 		fragmentLength = 1;	/*	Assume rounding error.	*/
+	}
+
+	if (fragmentLength >= bundle->payload.length)
+	{
+		fragmentLength = bundle->payload.length - 1;
 	}
 
 	if (bpFragment(bundle, *bundleObj, NULL, fragmentLength,
@@ -427,6 +433,7 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 		 *	transmission.					*/
 
 		if (route->maxVolumeAvbl < route->bundleECCC
+		&& bundle->payload.length > 1
 		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT))
 		{
 //printf("*** fragmenting; to node %lu, volume avbl %lu, bundle ECCC %lu.\n", route->toNodeNbr, route->maxVolumeAvbl, route->bundleECCC);

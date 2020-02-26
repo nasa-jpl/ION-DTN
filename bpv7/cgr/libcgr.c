@@ -29,6 +29,7 @@ typedef struct
 
 	IonCXref	*predecessor;	/*	On path to destination.	*/
 	time_t		arrivalTime;	/*	As from time(2).	*/
+	unsigned int	hopCount;
 	int		visited;	/*	Boolean.		*/
 	int		suppressed;	/*	Boolean.		*/
 } CgrContactNote;	/*	IonCXref routingObject is one of these.	*/
@@ -388,6 +389,7 @@ static int	clearWorkAreas(IonCXref *rootContact)
 		if (contact != rootContact)
 		{
 			work->arrivalTime = MAX_TIME;
+			work->hopCount = 0;
 		}
 	}
 
@@ -434,8 +436,9 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	time_t		arrivalTime;
 	IonCXref	*finalContact = NULL;
 	time_t		earliestFinalArrivalTime = MAX_TIME;
-	IonCXref	*nextContact;
+	IonCXref	*nextCurrentContact;
 	time_t		earliestArrivalTime;
+	unsigned int	fewestHops;
 	time_t		earliestEndTime;
 	PsmAddress	addr;
 	PsmAddress	citation;
@@ -448,25 +451,32 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	currentWork = rootWork;
 	memset((char *) &arg, 0, sizeof(IonCXref));
 
-	/*	Perform this interior loop until either the best
+	/*	Perform this outer loop until either the best
 	 *	route to the end vertex has been identified or else
 	 *	it is known that there is no such route.		*/
 
 	while (1)
 	{
-		/*	Consider all unvisited successors (i.e., next-
-		 *	hop contacts) of the current contact, in each
-		 *	case computing best-case arrival time for a
-		 *	bundle transmitted during that contact.		*/
+		/*	On each cycle through the outer loop, the
+		 *	"current" contact is the contact that has been
+		 *	most recently identified as one of the contacts
+		 *	on the best path from the local node to the
+		 *	destination node, given all of the exclusions
+		 *	(suppression, prior visitation) that apply to
+		 *	this invocation of Dijkstra's Algorithm.
+		 *
+		*	Each time we cycle through the outer loop, we
+		*	perform two inner loops.  
+		*
+		 *	In the first innner loop, we consider all
+		 *	unvisited successors (i.e., topologically
+		 *	adjacent "next-hop" contacts; the "frontier")
+		 *	of the current contact, in each case computing
+		 *	best-case arrival time for a bundle that might
+		 *	be transmitted during that contact.		*/
 
-		arg.fromNode = current->toNode;
 		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
-
-		/*	First, compute and note/revise/discard the
-		 *	best-case bundle arrival time for all contacts
-		 *	that are topologically adjacent to the current
-		 *	contact.					*/
-
+		arg.fromNode = current->toNode;
 		for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex,
 				rfx_order_contacts, &arg, &elt));
 				elt; elt = sm_rbt_next(ionwm, elt))
@@ -589,27 +599,39 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 				 *	vary with bundle transmit
 				 *	time, which may be delayed
 				 *	awaiting bundle arrival via
-				 *	the current contact.		*/
+				 *	the current contact.
+				 *
+				 *	The new improved arrival time
+				 *	for this contact is obtained
+				 *	only if the preceding contact
+				 *	is the "current" contact.	*/
 
 				work->arrivalTime = arrivalTime;
 				work->predecessor = current;
+				work->hopCount =
+					(getWorkArea(ionwm, current))->hopCount;
+				work->hopCount++;
 			}
 		}
 
-		/*	Have at this point computed the best-case
+		/*	We have at this point computed the best-case
 		 *	bundle arrival times for all edges of the
 		 *	graph that originate at the current contact.	*/
 
 		currentWork->visited = 1;
 
-		/*	Now the second loop: among ALL non-suppressed
-		 *	contacts in the graph, select the one with
-		 *	the earliest arrival time (least distance
-		 *	from the root vertex) as the new "current"
-		 *	vertex to analyze.				*/
+		/*	Now the second inner loop: among ALL non-
+		 *	suppressed contacts in the graph (not just the
+		 *	successors to the current contact), select the
+		 *	one with the earliest arrival time (the least
+		 *	distance from the root vertex) -- and, in the
+		 *	event of a tie, the one comprising the smallest
+		 *	number of successive contacts ("hops") -- to be
+		 *	the new "current" vertex to analyze.		*/
 
-		nextContact = NULL;
+		nextCurrentContact = NULL;
 		earliestArrivalTime = MAX_TIME;
+		fewestHops = (unsigned int) -1;
 		for (elt = sm_rbt_first(ionwm, ionvdb->contactIndex); elt;
 				elt = sm_rbt_next(ionwm, elt))
 		{
@@ -639,38 +661,48 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 			/*	Dijkstra search edge cost function.	*/
 
-			if (work->arrivalTime >= earliestArrivalTime)
+			if (work->arrivalTime > earliestArrivalTime)
 			{
 				/*	Not the lowest-cost edge.	*/
 
 				continue;
 			}
 
-			/*	Best successor contact seen so far.	*/
+			if (work->arrivalTime == earliestArrivalTime
+					&& work->hopCount >= fewestHops)
+			{
+				/*	Not the lowest-cost edge.	*/
 
-			nextContact = contact;
+				continue;
+			}
+
+			/*	Best candidate "next current" contact
+			 *	seen so far.				*/
+
+			nextCurrentContact = contact;
 			earliestArrivalTime = work->arrivalTime;
+			fewestHops = work->hopCount;
 		}
 
 		/*	If search is complete, stop.  Else repeat,
 		 *	with new value of "current".			*/
 
-		if (nextContact == NULL)
+		if (nextCurrentContact == NULL)
 		{
 			/*	End of search; can't proceed any
 			 *	further toward the terminal contact.	*/
 
-			break;
+			break;	/*	Out of outer loop; no path.	*/
 		}
 
-		current = nextContact;
+		current = nextCurrentContact;
 		currentWork = (CgrContactNote *)
 				psp(ionwm, current->routingObject);
 		if (current->toNode == terminusNode->nodeNbr)
 		{
 			earliestFinalArrivalTime = currentWork->arrivalTime;
 			finalContact = current;
-			break;
+			break;	/*	Out of outer loop; found path.	*/
 		}
 	}
 
@@ -679,6 +711,10 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 	if (finalContact)	/*	Got route to terminal contact.	*/
 	{
+		/*	We have found the best path from the local node
+		 *	to the destination node, given the applicable
+		 *	exclusions.					*/
+
 		route->arrivalTime = earliestFinalArrivalTime;
 		route->arrivalConfidence = 1.0;
 
@@ -917,6 +953,7 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
 	CgrContactNote	*work;
+	unsigned int	owlt;
 	PsmAddress	routeElt;
 	PsmAddress	nextRouteElt;
 	PsmAddress	routeAddr;
@@ -944,7 +981,10 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 	CHKERR(excludedEdges);
 
 	/*	Suppress contacts that would introduce loops, i.e.,
-	 *	all contacts on the root path for this spur path.	*/
+	 *	all contacts on the root path for this spur path.
+	 *	But restore arrival times for those contacts so that
+	 *	the computed arrival times of non-suppressed contacts
+	 *	will be correct.					*/
 
 	if (rootOfSpur != 0)
 	{
@@ -955,6 +995,14 @@ static int	computeSpurRoute(PsmPartition ionwm, IonNode *terminusNode,
 			contactAddr = sm_list_data(ionwm, contactElt);
 			contact = (IonCXref *) psp(ionwm, contactAddr);
 			CHKERR(work = getWorkArea(ionwm, contact));
+			if (getApplicableRange(contact, &owlt) >= 0)
+			{
+				/*	 Got OWLT; add some margin.	*/
+
+				owlt += ((MAX_SPEED_MPH/3600) * owlt) / 186282;
+			}
+
+			work->arrivalTime = contact->fromTime + owlt;
 			work->suppressed = 1;
 //debugPrint("*** Suppressing contact to node " UVAST_FIELDSPEC " on root path. ***\n", contact->toNode);
 			contactElt = sm_list_prev(ionwm, contactElt);
@@ -1077,7 +1125,7 @@ excluded edge.", NULL);
 		return -1;
 	}
 
-	if (newRouteAddr == 0)	/*	No route found.		*/
+	if (newRouteAddr == 0)		/*	No route found.		*/
 	{
 //puts("*** No newly computed route reported. ***");
 		return 0;
@@ -1086,7 +1134,7 @@ excluded edge.", NULL);
 	newRoute = (CgrRoute *) psp(ionwm, newRouteAddr);
 	newRoute->rootOfSpur = rootOfSpur;
 
-	/*	Prepend common trunk route to the spur route.	*/
+	/*	Prepend common trunk route to the spur route.		*/
 
 	contactElt = rootOfSpur;
 	while (contactElt)
@@ -1105,7 +1153,14 @@ excluded edge.", NULL);
 		contactElt = sm_list_prev(ionwm, contactElt);
 	}
 
-	/*	Append new route into list of known routes.	*/
+	/*	Have now navigated back to the first contact in the
+	 *	route; must use the first contact in the route to
+	 *	characterize the route.					*/
+
+	route->toNodeNbr = contact->toNode;
+	route->fromTime = contact->fromTime;
+
+	/*	Append new route to list of known routes.		*/
 
 //puts("*** Appending newly computed route to list B. ***");
 	newRoute->referenceElt = sm_list_insert_last(ionwm,

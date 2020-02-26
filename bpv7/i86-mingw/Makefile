@@ -21,7 +21,7 @@ IPND = ../ipnd
 ICI = ../../ici
 SAGA = ../saga
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP -DENABLE_BPACS
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP
 # -Werror
 CC = gcc $(OPT) -I$(ICI)/incude -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 

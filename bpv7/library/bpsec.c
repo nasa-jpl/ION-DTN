@@ -42,7 +42,7 @@ static int	filterEid(char *outputEid, char *inputEid, int eidIsInRule)
 	 *	sorts last in any list.  If the user wants to use
 	 *	'*' instead, we just change it silently.		*/
 
-	memcpy(outputEid, inputEid, eidLength);
+	memmove(outputEid, inputEid, eidLength);
 	outputEid[eidLength] = '\0';
 	if (outputEid[last] == '*')
 	{

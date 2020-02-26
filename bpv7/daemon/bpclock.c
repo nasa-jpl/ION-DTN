@@ -13,10 +13,6 @@
 #include "sdrhash.h"
 #include "smlist.h"
 
-#ifdef ENABLE_BPACS
-#include "acs.h"		/* provides sendAcs */
-#endif /* ENABLE_ACS */
-
 #ifndef MAX_CLO_INACTIVITY
 #define	MAX_CLO_INACTIVITY	(3)
 #endif

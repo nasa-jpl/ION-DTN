@@ -19,7 +19,7 @@ BIBE = ../bibe
 IPND = ../ipnd
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -DENABLE_BPACS -DENABLE_IMC -DHEAP_PTRS=$(PTRS) -DSBSP
+OPT = -g -Wall -Werror -Dlinux -DENABLE_IMC -DHEAP_PTRS=$(PTRS) -DSBSP
 CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/acs -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(API)/ext/cteb -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared -rdynamic
