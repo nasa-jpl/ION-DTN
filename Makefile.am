@@ -876,7 +876,9 @@ bpbin = \
 	bpcancel \
 	bpchat \
 	bpclm \
+	bpclock \
 	bpcounter \
+	bpcrash \
 	bpdriver \
 	bpecho \
 	bping \
@@ -898,6 +900,7 @@ bpbin = \
 	bsspclo \
 	cgrfetch \
 	dccpcli \
+	dccpclo	\
 	dgrcli \
 	dgrclo \
 	dtn2admin \
@@ -924,17 +927,10 @@ bpbin += bibeadmin
 endif # end BUILD_BPv7
 
 if BUILD_BPv6
-# Disabled from BPv7 build pending updates
-bpbin += \
-	bpclock \
-	bpcrash \
-	dccpclo	
-
 if ENABLE_BPACS
 bpbin += acsadmin \
 	acslist
 endif # end ENABLE_BPACS
-
 endif # End BUILD_BPv6
 
 if ENABLE_IMC

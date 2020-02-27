@@ -139,6 +139,17 @@ esac
 ##Process user flags
 
 #
+# allow the user running configure to disable ACS when using bpv6
+#
+AC_ARG_ENABLE(
+    acs,
+    [AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals])],
+    [ENABLE_BPACS=no],
+    [ENABLE_BPACS=yes])
+AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
+
+
+#
 # allow the user running configure to build bpv6
 #
 AC_ARG_ENABLE(
@@ -146,23 +157,17 @@ AC_ARG_ENABLE(
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
     [AM_CFLAGS="$AM_CFLAGS -BUILD_BPv6"
      BUILD_BPv6=true
-     echo "Build bpv6"],
+     case "${ENABLE_BPACS}" in
+		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
+		no)  ENABLE_BPACS=no;;
+     esac
+     echo "Building ION with BP version 6"],
     [AM_CFLAGS="$AM_CFLAGS -BUILD_BPv7"
      BUILD_BPv7=true
-     echo "Build bpv7"])
+     ENABLE_BPACS=no
+     echo "Building ION with BP version 7"])
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
 AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
-
-#
-# allow the user running configure to disable ACS
-#
-AC_ARG_ENABLE(
-    acs,
-    [AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals])],
-    [],
-    [AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS"
-     ENABLE_BPACS=yes])
-AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 
 #
 # allow the user running configure to disable IMC

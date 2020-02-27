@@ -1136,6 +1136,7 @@ excluded edge.", NULL);
 
 	/*	Prepend common trunk route to the spur route.		*/
 
+	contact = NULL;
 	contactElt = rootOfSpur;
 	while (contactElt)
 	{
@@ -1153,12 +1154,16 @@ excluded edge.", NULL);
 		contactElt = sm_list_prev(ionwm, contactElt);
 	}
 
-	/*	Have now navigated back to the first contact in the
-	 *	route; must use the first contact in the route to
-	 *	characterize the route.					*/
+	/*	Have now navigated back through all contacts in the
+	 *	route.  Make sure the first of the contacts preceding
+	 *	the root of the spur within this route - if any - is
+	 *	used to characterize the route.				*/
 
-	route->toNodeNbr = contact->toNode;
-	route->fromTime = contact->fromTime;
+	if (contact)
+	{
+		route->toNodeNbr = contact->toNode;
+		route->fromTime = contact->fromTime;
+	}
 
 	/*	Append new route to list of known routes.		*/
 

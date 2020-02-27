@@ -317,7 +317,7 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
 	}while(1);
 
 	/* Notify BP of success transmitting		*/
-	result = bpHandleXmitSuccess(*bundleZco, 0);
+	result = bpHandleXmitSuccess(*bundleZco);
        	if (result < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
