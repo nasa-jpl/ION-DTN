@@ -17,11 +17,11 @@ network as currently configured.
 I<TTL> indicates the number of seconds the trace bundle may remain in the
 network, undelivered, before it is automatically destroyed.
 
-I<class_of_service> is I<custody-requested>.I<priority>[.I<ordinal>[.I<unreliable>.I<critical>[.I<flow-label>]]],
+I<class_of_service> is I<custody-requested>.I<priority>[.I<ordinal>[.I<unreliable>.I<critical>[.I<data-label>]]],
 where I<custody-requested> must be 0 or 1 (Boolean), I<priority> must be 0
 (bulk) or 1 (standard) or 2 (expedited), I<ordinal> must be 0-254,
 I<unreliable> must be 0 or 1 (Boolean), I<critical> must also be 0 or 1
-(Boolean), and I<flow-label> may be any unsigned integer.  I<custody-requested>
+(Boolean), and I<data-label> may be any unsigned integer.  I<custody-requested>
 is passed in with the bundle transmission request, but if set to 1 it serves
 only to request the use of reliable convergence-layer protocols; this will
 have the effect of enabling custody transfer whenever the applicable

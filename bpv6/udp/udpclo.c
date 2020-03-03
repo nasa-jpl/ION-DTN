@@ -88,8 +88,8 @@ int	main(int argc, char *argv[])
 
 	if (endpointSpec == NULL)
 	{
-		PUTS("Usage: udpclo {<remote node's host name> | @}\
-[:<its port number>] [<round-trip time in seconds>]");
+		PUTS("Usage: udpclo <round-trip time in seconds> {<remote \
+node's host name> | @} [:<its port number>]");
 		return 0;
 	}
 
