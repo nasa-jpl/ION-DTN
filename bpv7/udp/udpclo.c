@@ -43,15 +43,13 @@ static unsigned long	getUsecTimestamp()
 int	udpclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	unsigned int		rtt = (a1 != 0 ? strtoul((char *) a1, NULL, 0)
-		       				: 0);
+	char			*rttString = (a1 != 0 ? (char *) a1 : NULL);
 	char			*endpointSpec = (char *) a2;
 #else
 int	main(int argc, char *argv[])
 {
-	unsigned int		rtt = (argc > 1 ? strtoul(argv[1], NULL, 0)
-						: 0);
-	char			*endpointSpec = argc > 2 ? argv[2] : NULL;
+	char			*rttString = (argc > 1 ? argv[1] : NULL);
+	char			*endpointSpec = (argc > 2 ? argv[2] : NULL);
 #endif
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
@@ -86,11 +84,21 @@ int	main(int argc, char *argv[])
 	unsigned int		balanceDue;	/*	Until next seg.	*/
 	unsigned int		prevPaid = 0;	/*	Prior snooze.	*/
 
+	/*	Note: for backward compatibility, we accept and ignore
+	 *	a round-trip time value that precedes the endpointSpec.	*/
+
 	if (endpointSpec == NULL)
 	{
-		PUTS("Usage: udpclo <round-trip time in seconds> {<remote \
-node's host name> | @} [:<its port number>]");
-		return 0;
+		if (rttString == NULL)
+		{
+			PUTS("Usage: udpclo {<remote node's host name> | \
+@} [:<its port number>]");
+			return 0;
+		}
+		else
+		{
+			endpointSpec = rttString;
+		}
 	}
 
 	parseSocketSpec(endpointSpec, &portNbr, &hostNbr);
@@ -176,15 +184,15 @@ node's host name> | @} [:<its port number>]");
 		char	memoBuf[1024];
 
 		isprintf(memoBuf, sizeof(memoBuf),
-				"[i] udpclo is running, spec = '%s', rtt = %d",
-				endpointSpec, rtt);
+				"[i] udpclo is running, spec = '%s'",
+				endpointSpec);
 		writeMemo(memoBuf);
 	}
 
 	startTimestamp = getUsecTimestamp();
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		if (bpDequeue(vduct, &bundleZco, &ancillaryData, rtt) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			break;

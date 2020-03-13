@@ -10703,7 +10703,6 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	if (timeoutInterval < 0)	/*	Reliable CLA.		*/
 	{
 		stewardshipAccepted = 1;
-		timeoutInterval = 0;
 	}
 	else
 	{
