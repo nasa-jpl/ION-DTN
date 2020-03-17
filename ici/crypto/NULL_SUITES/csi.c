@@ -1044,7 +1044,7 @@ sci_inbound_tlv	sci_extract_tlv(uint8_t itemNeeded, Lyst items)
 	memset(&result, 0, sizeof(sci_inbound_tlv));/*	Default.	*/
 
 	/* Step 0 - Sanity Check. */
-	if ((items == NULL))
+	if (items == NULL)
 	{
 		CSI_DEBUG_ERR("x csi_extract_tlv - Bad Items.", NULL);
 		CSI_DEBUG_PROC("- csi_extract_tlv -> result (len=%d)",
