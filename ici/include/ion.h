@@ -21,11 +21,14 @@
 extern "C" {
 #endif
 
-/* Allow the compile option -D to override this in the future */
-#ifndef IONVERSIONNUMBER
-/* As of 2019-10-03 the sourceforge version number is this: */
-#define IONVERSIONNUMBER "ION OPEN SOURCE 3.7.0"
+
+#define STRINGIZE(x)	#x
+#define VNSTRING(x)	STRINGIZE(x)
+#ifndef VNAME
+#define VNAME		"unknown version"
 #endif
+#define IONVERSIONNUMBER VNSTRING(VNAME)
+
 
 /* Allow the compile option -D to override this in the future */
 #ifndef STARTUP_TIMEOUT

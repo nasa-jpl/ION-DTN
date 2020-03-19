@@ -70,7 +70,7 @@ The I<keynames_filename> specified in the command line doesn't exist.
 
 =head1 BUGS
 
-Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 
