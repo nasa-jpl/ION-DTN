@@ -93,7 +93,7 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 		return -1;
 	}
 
-	while (condition(llcv) == 0)
+	if (condition(llcv) == 0)
 	{
 		switch (usec)
 		{
@@ -114,10 +114,9 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 				putSysErrmsg("llcv wait got pthread_cond error",
 						NULL);
 				result = -1;
-				break;	/*	Out of switch.		*/
 			}
 
-			continue;	/*	Re-test the condition.	*/
+			break;		/*	Out of switch.		*/
 
 		default:
 			getCurrentTime(&workTime);
@@ -150,13 +149,10 @@ pthread_cond error", itoa(usec));
 				}
 
 				result = -1;
-				break;	/*	Out of switch.		*/
 			}
 
-			continue;	/*	Re-test the condition.	*/
+			break;		/*	Out of switch.		*/
 		}
-
-		break;			/*	Out of loop.		*/
 	}
 
 	/*	Either the condition is now true or a condition wait
