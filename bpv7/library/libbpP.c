@@ -2153,6 +2153,15 @@ int	recordEid(EndpointId *eid, MetaEid *meid, EidMode mode)
 	switch (meid->schemeCodeNbr)
 	{
 	case dtn:
+		if (meid->nullEndpoint)
+		{
+			/*	We encode "dtn:none" in this way.	*/
+
+			eid->ssp.dtn.endpointName.s = NULL;
+			eid->ssp.dtn.nssLength = 0;
+			return 0;
+		}
+
 		switch (mode)
 		{
 		case EidNV:
@@ -2282,6 +2291,7 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 	int	eidLength;
 	char	*eidString;
 
+	*buffer = NULL;		/*	Default.			*/
 	if (ssp->nssLength > 0)
 	{
 		if (ssp->endpointName.nv == 0)
@@ -2306,6 +2316,19 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 	{
 		if (ssp->endpointName.s == NULL)
 		{
+			/*	We decode this as "dtn:none".		*/
+
+			eidLength = strlen(_nullEid()) + 1;
+			eidString = MTAKE(eidLength);
+			if (eidString == NULL)
+			{
+				putErrmsg("Can't create EID string.",
+						itoa(eidLength));
+				return -1;
+			}
+
+			istrcpy(eidString, _nullEid(), eidLength);
+			*buffer = eidString;
 			return 0;
 		}
 
@@ -7490,7 +7513,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 
 		*cursor -= 1;
 		*bytesRemaining += 1;
-		if (majorType == CborUnsignedInteger)	/*	"none"	*/
+		if (majorType == CborUnsignedInteger)
 		{
 			/*	Only 0 (for "none") is valid.		*/
 
@@ -7510,6 +7533,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 			}
 
 			istrcpy(eidString + 4, "none", sizeof eidString - 4);
+			length = 4;
 		}
 		else			/*	Must be text array.	*/
 		{
@@ -7530,6 +7554,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 			}
 		}
 
+		eidString[4 + length] = '\0';
 		totalLength += length;
 		break;
 
