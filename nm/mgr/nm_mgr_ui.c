@@ -2892,7 +2892,7 @@ static int ui_form_field_validate(form_fields_t *field, char *value)
    case TYPE_CHECK_NUM:
       // Iterate through chars in string and verify that each is numeric
       //   loop and call isdigit(in[i]) where fn provided by string.h
-      len = strlen(value)
+      len = strlen(value);
       for(j = 0; j < len; j++) {
          if(isdigit(value[j] == 0) ) {
             printf("*ERROR: Not a Number - ");
