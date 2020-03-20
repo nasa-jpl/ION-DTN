@@ -1932,7 +1932,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 		}
 		else
 		{
-			printf("DEBUG_TRACE: Failed to deserialize TNV %i of %zu\n", i, array_len);
+			AMP_DEBUG_ERR("tnv_deserialize_tvc", "Failed to deserialize TNV %i\n", i);
 			break;
 		}
 	}

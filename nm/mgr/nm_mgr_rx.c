@@ -28,11 +28,12 @@
  **  08/21/16  E. Birrane      Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  **  10/07/18  E. Birrane      Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
-#include "pthread.h"
 
 #include "nm_mgr.h"
 #include "platform.h"
 #include "agents.h"
+
+#include <pthread.h>
 
 #include "../shared/msg/ion_if.h"
 #include "../shared/utils/nm_types.h"
@@ -361,5 +362,6 @@ void *mgr_rx_thread(int *running)
     AMP_DEBUG_ALWAYS("mgr_rx_thread", "Exiting.", NULL);
     AMP_DEBUG_EXIT("mgr_rx_thread","->.", NULL);
     pthread_exit(NULL);
+    return NULL;
 }
 

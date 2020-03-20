@@ -29,14 +29,15 @@
 #ifndef NM_MGR_H
 #define NM_MGR_H
 
+// ION includes
+#include "platform.h"
+#include "sdr.h"
+
 // Standard includes
 #include "stdint.h"
 #include "pthread.h"
 #include "unistd.h"
 
-// ION includes
-#include "platform.h"
-#include "sdr.h"
 
 // Application includes
 #include "../shared/nm.h"

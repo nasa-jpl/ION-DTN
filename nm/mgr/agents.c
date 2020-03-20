@@ -136,7 +136,11 @@ void agent_rotate_log(agent_t *agent, int force)
 						agent_log_cfg.dir,
 						agent->eid.name
 					);
-				mkdir(fn,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); // This will fail if directory already exists, which is acceptable
+#if (defined(VXWORKS) || defined(mingw))
+				mkdir(fn);
+#else
+				mkdir(fn,0777); // This will fail if directory already exists, which is acceptable
+#endif
 			}
 		}
 		sprintf(fn, "%s/%s%c%d.log",

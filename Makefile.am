@@ -47,6 +47,10 @@ AM_CFLAGS += \
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif # end SOLARIS_STUDIO_CC
 
+if WINDOWS
+LIBOBJS += -lws2_32 -lwsock32
+endif
+
 # This will add CFLAGS to make the valgrind macros compile without
 # warnings/errors on some systems with specific versions of valgrind
 # and gcc (see configure.ac and issue #298 for details).  If valgrind
@@ -335,9 +339,7 @@ icibin = \
 	ionsecadmin \
 	ionunlock \
 	ionwarn \
-	ionxnowner \
 	owltsim \
-	owlttb \
 	psmshell \
 	psmwatch \
 	sdr2file \
@@ -347,6 +349,11 @@ icibin = \
 	smlistsh \
 	smrbtsh \
 	rfxclock
+
+if !WINDOWS
+icibin += owlttb \
+	ionxnowner
+endif
 
 icilib = \
 	libici.la
@@ -782,9 +789,12 @@ dgrbin = \
 	dgr2file \
 	file2dgr \
 	file2tcp \
-	file2udp \
 	tcp2file \
 	udp2file
+
+if !WINDOWS
+	dgrbin += file2udp
+endif
 
 dgrlib = \
 	libdgr.la
@@ -874,7 +884,6 @@ bpbin = \
 	bibeclo \
 	bpadmin \
 	bpcancel \
-	bpchat \
 	bpclm \
 	bpclock \
 	bpcounter \
@@ -890,7 +899,6 @@ bpbin = \
 	bpsink \
 	bpsource \
 	bpstats \
-	bpstats2 \
 	bptrace \
 	bptransit \
 	bpversion \
@@ -899,8 +907,6 @@ bpbin = \
 	bsspcli \
 	bsspclo \
 	cgrfetch \
-	dccpcli \
-	dccpclo	\
 	dgrcli \
 	dgrclo \
 	dtn2admin \
@@ -922,6 +928,14 @@ bpbin = \
 	tcpclo \
 	udpcli \
 	udpclo
+
+if !WINDOWS
+bpbin += bpstats2 \
+	bpchat \
+	dccpcli \
+	dccpclo
+endif
+
 if BUILD_BPv7
 bpbin += bibeadmin
 endif # end BUILD_BPv7
@@ -1560,7 +1574,6 @@ amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams
 
 amsbin = \
 	amsd \
-	amshello \
 	amsshell \
 	amslog \
 	amslogprt \
@@ -1569,6 +1582,10 @@ amsbin = \
 	amsbenchr \
 	amsstop \
 	ramsgate
+
+if !WINDOWS
+amsbin += amshello
+endif
 
 amslib = \
 	libams.la
@@ -1712,9 +1729,12 @@ cfdpbin = \
 	cfdpclock \
 	bputa \
 	cfdptest \
-	bpcp \
-	bpcpd \
 	tcputa
+
+if !WINDOWS
+cfdpbin +=	bpcp \
+	bpcpd
+endif
 
 cfdplib = \
 	libcfdp.la

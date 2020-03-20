@@ -243,13 +243,18 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <sys/types.h>
 
 #elif defined(mingw)		/****   Windows vs all others	*********/
-
 #include <winsock2.h>
 #include <process.h>
 #include <Winbase.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <ws2tcpip.h>
+#include <winerror.h>
+  
+#ifndef EMSGSIZE
+#define EMSGSIZE WSAEMSGSIZE
+#endif
+
 #define MAXHOSTNAMELEN		256
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0
@@ -883,6 +888,10 @@ extern void			findToken(char **cursorPtr, char **token);
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 200 // debug
 #endif
 
 #endif  /* _PLATFORM_H_ */

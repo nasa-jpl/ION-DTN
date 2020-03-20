@@ -68,11 +68,13 @@ case $host_os in
 		#check for DCCP support
 		CHECK_DCCP()
 		;;
-
-	cygwin*)
-		AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.])
-		PLATFORM="cygwin"
+	mingw*|cygwin*)
+		AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
+		PLATFORM="mingw"
+                AM_CFLAGS="$AM_CFLAGS -Dmingw"
+                build_windows=yes
 		;;
+
 	interix*)
 		AC_DEFINE([interix],[1],[Build Interix specific platform code.])
 		PLATFORM="iterix"
@@ -133,6 +135,8 @@ case $host_os in
 		AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.])
 		PLATFORM="vxworks"
 		;;
+        *)
+                AC_MSG_ERROR(["OS $host_os is not supported"])
 esac
 
 
@@ -493,6 +497,7 @@ AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
 AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
+AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])

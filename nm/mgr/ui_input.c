@@ -57,7 +57,7 @@ int ui_input_get_line(char *prompt, char **line, int max_len)
 	{
 		printf("%s\n", prompt);
 
-		if (igets(fileno(stdin), (char *)line, max_len, &len) == NULL)
+		if (igets(STDIN_FILENO, (char *)line, max_len, &len) == NULL)
 		{
 			if (len != 0)
 			{

@@ -38,8 +38,10 @@ SHARED_SOURCES = \
 	$(SHARED)/utils/rhht.c	 		\
 	$(SHARED)/utils/utils.c        		\
 	$(SHARED)/utils/vector.c 		\
-	$(CONTRIB)/tinycbor/src/cborparser.c 	\
-	$(CONTRIB)/tinycbor/src/cborencoder.c 
+	$(CONTRIB)/QCBOR/src/UsefulBuf.c \
+	$(CONTRIB)/QCBOR/src/qcbor_encode.c \
+	$(CONTRIB)/QCBOR/src/qcbor_decode.c \
+	$(CONTRIB)/QCBOR/src/ieee754.c
 
 AGENT_SOURCES = \
 	$(AGENT)/ingest.c  		\
@@ -50,14 +52,14 @@ AGENT_SOURCES = \
 	$(AGENT)/rda.c 			\
 	$(AGENT)/adm_amp_agent_impl.c   \
 	$(AGENT)/adm_amp_agent_agent.c	\
-	$(AGENT)/adm_bp_agent_impl.c	\
-	$(AGENT)/adm_bp_agent_agent.c \
+	$(BPv)/adm_bp_agent_impl.c	\
+	$(BPv)/adm_bp_agent_agent.c \
 	$(AGENT)/adm_sbsp_impl.c	\
 	$(AGENT)/adm_sbsp_agent.c	\
 	$(AGENT)/adm_ion_admin_agent.c 	\
 	$(AGENT)/adm_ion_admin_impl.c	\
-	$(AGENT)/adm_ion_bp_admin_impl.c	\
-	$(AGENT)/adm_ion_bp_admin_agent.c	\
+	$(BPv)/adm_ion_bp_admin_impl.c	\
+	$(BPv)/adm_ion_bp_admin_agent.c	\
 	$(AGENT)/adm_ionsec_admin_impl.c	\
 	$(AGENT)/adm_ionsec_admin_agent.c	\
 	$(AGENT)/adm_ion_ipn_admin_impl.c	\
@@ -80,8 +82,8 @@ MGR_SOURCES = \
 	$(MGR)/adm_amp_agent_mgr.c      \
 	$(MGR)/adm_bp_agent_mgr.c	\
 	$(MGR)/adm_sbsp_mgr.c	\
-	$(MGR)/adm_ion_admin_mgr.c \
-	$(MGR)/adm_ion_bp_admin_mgr.c	\
+	$(BPv)/adm_ion_admin_mgr.c \
+	$(BPv)/adm_ion_bp_admin_mgr.c	\
 	$(MGR)/adm_ionsec_admin_mgr.c	\
 	$(MGR)/adm_ion_ipn_admin_mgr.c	\
 	$(MGR)/adm_ion_ltp_admin_mgr.c	\

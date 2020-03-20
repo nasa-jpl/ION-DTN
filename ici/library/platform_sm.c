@@ -2395,12 +2395,11 @@ int pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
 	result = pthread_begin(thread, attr, start_routine, arg);
 #endif
 
-#if linux || mingw
+#if defined(linux) || defined(mingw)
 	pthread_setname_np(*thread, name);
-#elif freebsd
+#elif defined(freebsd)
 	pthread_set_name_np(*thread,name);
 #endif	/*	End of #if linux || mingw.				*/
-
 #endif	/*	End of #ifdef vxworks.					*/
 
 	return result;

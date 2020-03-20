@@ -29,8 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "ctype.h"
+#include <ctype.h>
 
 #include "platform.h"
 #include "../shared/nm.h"
@@ -982,7 +981,10 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	int success;
 
 	CHKVOID(agent);
-
+#ifdef mingw
+        AMP_DEBUG_ERR("ui_send_file", "Is not currently available for this platform", NULL);
+        return;
+#else
 	ts = (enter_ts) ? ui_input_uint("Control Timestamp") : 0;
 
 
@@ -1086,6 +1088,7 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	blob_release(contents, 1);
 
 	AMP_DEBUG_EXIT("ui_send_file","->.", NULL);
+#endif
 }
 
 
@@ -2858,7 +2861,7 @@ static void ui_form_show_value(form_fields_t *field)
          }
          break;
       default:
-         printf(BOLD("? %zx"), (size_t)field->parsed_value);
+        printf(BOLD("? %x"), (int)field->parsed_value);
       }
    } else if (field->value != NULL) {
       printf("%s", field->value);
@@ -2989,7 +2992,7 @@ static int do_ui_form(char* title, char* msg, form_fields_t *fields, int num_fie
             printf(":->");
          }
          fflush(stdout);
-         if (igets(fileno(stdin), in, UI_FORM_LEN, &len) == NULL || len == 0)
+         if (igets(STDIN_FILENO, in, UI_FORM_LEN, &len) == NULL || len == 0)
          {          
             if (field->parsed_value != NULL || (field->value != NULL && strlen(field->value) > 0) )
             {
