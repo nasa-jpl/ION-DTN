@@ -2871,7 +2871,7 @@ static void ui_form_show_value(form_fields_t *field)
 // field->value and field->parsed_value will be populated if appropriate.
 static int ui_form_field_validate(form_fields_t *field, char *value)
 {
-   int tmp;
+   int tmp,j,len;
          
    if (field == NULL)
    {
@@ -2892,7 +2892,8 @@ static int ui_form_field_validate(form_fields_t *field, char *value)
    case TYPE_CHECK_NUM:
       // Iterate through chars in string and verify that each is numeric
       //   loop and call isdigit(in[i]) where fn provided by string.h
-      for(int j = 0, len = strlen(value); j < len; j++) {
+      len = strlen(value)
+      for(j = 0; j < len; j++) {
          if(isdigit(value[j] == 0) ) {
             printf("*ERROR: Not a Number - ");
             return -1;
@@ -2951,6 +2952,7 @@ static int ui_form_field_validate(form_fields_t *field, char *value)
 static int do_ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
 {
    int status = 1;
+   int i = 0;
    char tmp;
    char in[UI_FORM_LEN] = "";
 
@@ -2958,7 +2960,7 @@ static int do_ui_form(char* title, char* msg, form_fields_t *fields, int num_fie
       printf(KGRN "%s\n" RST "%s\n-----\n", title, msg);
    }
    
-   for(int i = 0; i < num_fields && status; i++)
+   for(i = 0; i < num_fields && status; i++)
    {
       form_fields_t *field = &fields[i];
       int skipFlag = 0;
@@ -3037,7 +3039,7 @@ static int do_ui_form(char* title, char* msg, form_fields_t *fields, int num_fie
    // Print recap of all fields.  TODO: Check if any fields fail validation
    printf("-------\n" KGRN "%s (summary)\n" RST "-----\n", title);
    // If validation fails, prevent submission.
-   for(int i = 0; i < num_fields; i++)
+   for(i = 0; i < num_fields; i++)
    {
       form_fields_t *field = &fields[i];
       int tmp = 0;
