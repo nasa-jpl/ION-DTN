@@ -120,7 +120,7 @@ If the I<ion_config_filename> parameter passed to a node initialization
 command refers to a nonexistent filename, then B<ionadmin> uses default
 values are used rather than reporting an error in the command line argument.
 
-Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 

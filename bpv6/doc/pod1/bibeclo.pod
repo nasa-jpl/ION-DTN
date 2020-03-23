@@ -98,7 +98,7 @@ technical support.
 
 =head1 BUGS
 
-Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 
