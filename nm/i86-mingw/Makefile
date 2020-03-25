@@ -18,27 +18,28 @@ MGR = ../mgr
 SHARED = ../shared
 TEST = ../test
 CONTRIB = ../contrib
+ADM = ../../$(BPv)/adm
 
 SHARED_SOURCES = \
-	$(SHARED)/adm/adm.c			\
-	$(SHARED)/adm/adm_init.c			\
-	$(SHARED)/msg/msg.c			\
-	$(SHARED)/msg/ion_if.c			\
-	$(SHARED)/primitives/ari.c		\
-	$(SHARED)/primitives/blob.c		\
-	$(SHARED)/primitives/ctrl.c		\
-	$(SHARED)/primitives/edd_var.c		\
-	$(SHARED)/primitives/expr.c		\
-	$(SHARED)/primitives/report.c 		\
-	$(SHARED)/primitives/rules.c 		\
-	$(SHARED)/primitives/table.c 		\
-	$(SHARED)/primitives/tnv.c		\
+	$(SHARED)/adm/adm.c		\
+	$(SHARED)/adm/adm_init.c	\
+	$(SHARED)/msg/msg.c		\
+	$(SHARED)/msg/ion_if.c		\
+	$(SHARED)/primitives/ari.c	\
+	$(SHARED)/primitives/blob.c	\
+	$(SHARED)/primitives/ctrl.c	\
+	$(SHARED)/primitives/edd_var.c	\
+	$(SHARED)/primitives/expr.c	\
+	$(SHARED)/primitives/report.c 	\
+	$(SHARED)/primitives/rules.c 	\
+	$(SHARED)/primitives/table.c 	\
+	$(SHARED)/primitives/tnv.c	\
 	$(SHARED)/utils/cbor_utils.c	\
-	$(SHARED)/utils/db.c			\
-	$(SHARED)/utils/nm_types.c 		\
-	$(SHARED)/utils/rhht.c	 		\
-	$(SHARED)/utils/utils.c        		\
-	$(SHARED)/utils/vector.c 		\
+	$(SHARED)/utils/db.c		\
+	$(SHARED)/utils/nm_types.c 	\
+	$(SHARED)/utils/rhht.c	 	\
+	$(SHARED)/utils/utils.c        	\
+	$(SHARED)/utils/vector.c 	\
 	$(CONTRIB)/QCBOR/src/UsefulBuf.c \
 	$(CONTRIB)/QCBOR/src/qcbor_encode.c \
 	$(CONTRIB)/QCBOR/src/qcbor_decode.c \
@@ -53,12 +54,12 @@ AGENT_SOURCES = \
 	$(AGENT)/rda.c 			\
 	$(AGENT)/adm_amp_agent_impl.c   \
 	$(AGENT)/adm_amp_agent_agent.c	\
-	$(BPv)/adm_bp_agent_impl.c	\
-	$(BPv)/adm_bp_agent_agent.c \
+	$(ADM)/adm_bp_agent_impl.c	\
+	$(ADM)/adm_bp_agent_agent.c 	\
 	$(AGENT)/adm_ion_admin_agent.c 	\
 	$(AGENT)/adm_ion_admin_impl.c	\
-	$(BPv)/adm_ion_bp_admin_impl.c	\
-	$(BPv)/adm_ion_bp_admin_agent.c	\
+	$(ADM)/adm_ion_bp_admin_impl.c	\
+	$(ADM)/adm_ion_bp_admin_agent.c	\
 	$(AGENT)/adm_ionsec_admin_impl.c	\
 	$(AGENT)/adm_ionsec_admin_agent.c	\
 	$(AGENT)/adm_ion_ipn_admin_impl.c	\
@@ -69,11 +70,13 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_ltp_agent_agent.c 
 
 ifeq ($(BPv), 'bpv6')
-AGENT_SOURCES += $(AGENT)/adm_sbsp_impl.c	\
+AGENT_SOURCES += \
+	$(AGENT)/adm_sbsp_impl.c	\
 	$(AGENT)/adm_sbsp_agent.c	
 else
-AGENT_SOURCES += $(BPv)/adm/adm_bpsec_impl.c	\
-	$(BPv)/admm/adm_bpsec_agent.c	
+AGENT_SOURCES += \
+	$(ADM)/adm_bpsec_impl.c	\
+	$(ADM)/adm_bpsec_agent.c	
 endif
 
 MGR_SOURCES = \
@@ -86,18 +89,20 @@ MGR_SOURCES = \
 	$(MGR)/nm_mgr.c			\
 	$(MGR)/ui_input.c 		\
 	$(MGR)/adm_amp_agent_mgr.c      \
-	$(MGR)/adm_bp_agent_mgr.c	\
-	$(BPv)/adm_ion_admin_mgr.c \
-	$(BPv)/adm_ion_bp_admin_mgr.c	\
+	$(ADM)/adm_bp_agent_mgr.c	\
+	$(MGR)/adm_ion_admin_mgr.c 	\
+	$(ADM)/adm_ion_bp_admin_mgr.c	\
 	$(MGR)/adm_ionsec_admin_mgr.c	\
 	$(MGR)/adm_ion_ipn_admin_mgr.c	\
 	$(MGR)/adm_ion_ltp_admin_mgr.c	\
 	$(MGR)/adm_ltp_agent_mgr.c
 
 ifeq ($(BPv), 'bpv6')
-MGR_SOURCES += 	$(BPv)/adm/adm_sbsp_mgr.c
+MGR_SOURCES += \
+	$(ADM)/adm_sbsp_mgr.c
 else
-MGR_SOURCES = 	$(BPv)/adm/adm_bpsec_mgr.c
+MGR_SOURCES += \
+	$(ADM)/adm_bpsec_mgr.c
 endif
 
 
@@ -110,15 +115,21 @@ TGT_MGR_OBJS := $(notdir ${MGR_OBJS})
 TGT_AGENT_OBJS := $(notdir ${AGENT_OBJS})
 
 # OPT = -O -Dlinux
-OPT += -g -Wall -Werror -Wno-unused-variable -Dmingw
+OPT += -g -Wall -Werror -Wno-unused-variable -Dmingw -DAMP_VERSION=7
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../$(BPv)/library -I../../$(BPv)/library/ext/sbsp -I../../$(BPv)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
+ifeq ($(BPv), 'bpv6')
+OPT += -DBUILD_BPv6
+else
+OPT += -DBUILD_BPv7
+endif
+
+INCLDIRS = -I.. -I../.. -I$(ADM) -I$(AGENT) -I$(CONTRIB)/QCBOR/inc -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../$(BPv) -I../../$(BPv)/library -I../../$(BPv)/library/ext/sbsp -I../../$(BPv)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include
 
 CC = gcc $(OPT) $(INCLDIRS)
 
-LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib
+LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L/
 
 LIBS = -lcfdp -lbp -lltp -lici -lpthread -lm
 
@@ -162,4 +173,3 @@ nm_mgr:		$(SHARED_OBJS) $(MGR_OBJS)
 
 %.o: %.c
 	${CC} -c $<
-

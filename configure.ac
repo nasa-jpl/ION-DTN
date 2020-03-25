@@ -161,7 +161,7 @@ AC_ARG_ENABLE(
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
     [VER=$(cat bpv6version.txt)
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
-     AM_CFLAGS="$AM_CFLAGS $VER"
+     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
      BUILD_BPv6=true
      case "${ENABLE_BPACS}" in
 		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
@@ -170,7 +170,7 @@ AC_ARG_ENABLE(
      echo "Building ION with BP version 6"],
     [VER=$(cat bpv7version.txt)
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
-     AM_CFLAGS="$AM_CFLAGS $VER"
+     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
      BUILD_BPv7=true
      ENABLE_BPACS=no
      echo "Building ION with BP version 7"])
