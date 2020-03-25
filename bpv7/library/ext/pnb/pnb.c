@@ -190,7 +190,7 @@ int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		/*	Must be a "dtn" eid.				*/
 
 		uvtemp = 255;
-		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+		if (cbor_decode_text_string(NULL, &uvtemp, &cursor,
 				&unparsedBytes) < 1)
 		{
 			writeMemo("[?] Can't decode PN block dtn NSS.");
