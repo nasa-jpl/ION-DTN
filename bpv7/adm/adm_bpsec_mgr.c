@@ -18,15 +18,15 @@
 
 #include "ion.h"
 #include "platform.h"
-#include "../shared/adm/adm_bpsec.h"
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/blob.h"
+#include "adm_bpsec.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/blob.h"
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
 
-#include "../shared/adm/adm_amp_agent.h"
+#include "shared/adm/adm_amp_agent.h"
 
 
 #define _HAVE_DTN_BPSEC_ADM_

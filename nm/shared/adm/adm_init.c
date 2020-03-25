@@ -13,6 +13,8 @@
 
 #ifdef BUILD_BPv6
 #include "adm_sbsp.h"
+#else
+#include "adm_bpsec.h"
 #endif
 
 /******************************************************************************
@@ -56,7 +58,7 @@ void adm_init()
 #ifdef BUILD_BPv6
 	dtn_sbsp_init();
 #else
-	// TODO
+	dtn_bpsec_init();
 #endif
 
 #endif

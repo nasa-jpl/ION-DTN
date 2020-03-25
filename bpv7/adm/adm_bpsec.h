@@ -21,8 +21,8 @@
 #define _HAVE_DTN_BPSEC_ADM_
 #ifdef _HAVE_DTN_BPSEC_ADM_
 
-#include "../utils/nm_types.h"
-#include "adm.h"
+#include "shared/utils/nm_types.h"
+#include "shared/adm/adm.h"
 
 extern vec_idx_t g_dtn_bpsec_idx[11];
 

@@ -19,18 +19,18 @@
 #define ADM_BPSEC_IMPL_H_
 
 /*   START CUSTOM INCLUDES HERE  */
-#include "../shared/adm/adm_bpsec.h"
-//#include "../shared/adm/adm_bp.h"
-#include "../shared/primitives/expr.h"
+#include "adm_bpsec.h"
+//#include "shared/adm/adm_bp.h"
+#include "shared/primitives/expr.h"
 
-#include "bpsec_instr.h"
+#include "library/ext/bpsec/bpsec_instr.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/table.h"
-#include "../shared/primitives/tnv.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
 
 /*   START typeENUM */
 

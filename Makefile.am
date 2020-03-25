@@ -2169,7 +2169,7 @@ nm_agent_SOURCES = \
 			nm/shared/msg/ion_if.c  \
 			nm/shared/adm/adm_init.c
 
-NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm
+NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR)
 
 nm_agent_ADM_SOURCES = \
 			$(BP_DIR)/adm/adm_bp_agent_impl.c	    \
@@ -2207,14 +2207,14 @@ nm_agent_ADM_SOURCES += \
 nm_mgr_ADM_SOURCES += \
 			$(BP_DIR)/adm/adm_sbsp_mgr.c		
 else
-#nm_agent_ADM_SOURCES += 
-
-#nm_mgr_ADM_SOURCES += 
+nm_agent_ADM_SOURCES += $(BP_DIR)/adm/adm_bpsec_impl.c \
+	$(BP_DIR)/adm/adm_bpsec_agent.c
+nm_mgr_ADM_SOURCES += $(BP_DIR)/adm/adm_bpsec_mgr.c
 
 endif # end BUILD_BPv6
 
 libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
 libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la -lm
 
 

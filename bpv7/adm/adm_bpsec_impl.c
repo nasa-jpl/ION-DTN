@@ -19,17 +19,17 @@
 #include <math.h>
 
 #include "adm_bpsec_impl.h"
-#include "../shared/primitives/report.h"
-#include "rda.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/table.h"
+#include "shared/primitives/report.h"
+#include "agent/rda.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/table.h"
 
-#include "../shared/adm/adm_bpsec.h"
+#include "adm_bpsec.h"
 #include "profiles.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/adm/adm.h"
+#include "shared/adm/adm.h"
 #include "adm_bpsec_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
@@ -177,12 +177,12 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 	Sdr sdr = getIonsdr();
 	Object listObj = 0;
 	Object	elt = 0;
-	OBJ_POINTER(BspBibRule, rule);
+	OBJ_POINTER(BPsecBibRule, rule);
 	char strBuffer[SDRSTRING_BUFSZ];
 	tnvc_t *cur_row = NULL;
 	int len = 0;
 
-	if((listObj = sec_get_bspBibRuleList()) == 0)
+	if((listObj = sec_get_bpsecBibRuleList()) == 0)
 	{
 		AMP_DEBUG_ERR("dtn_bpsec_tblt_bib_rules","Cannot get list.", NULL);
 		tbl_release(table, 1);
@@ -201,7 +201,7 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 
 		if((cur_row = tnvc_create(5)) != NULL)
 		{
-			GET_OBJ_POINTER(sdr, BspBibRule, rule, sdr_list_data(sdr, elt));
+			GET_OBJ_POINTER(sdr, BPsecBibRule, rule, sdr_list_data(sdr, elt));
 
 			if(rule != NULL)
 			{
@@ -211,7 +211,7 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 				len = sdr_string_read(sdr, strBuffer, rule->destEid);
 				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
 
-				tnvc_insert(cur_row, tnv_from_uint(rule->blockTypeNbr));
+				tnvc_insert(cur_row, tnv_from_uint(rule->blockType));
 				tnvc_insert(cur_row, tnv_from_str(rule->ciphersuiteName));
 				tnvc_insert(cur_row, tnv_from_str(rule->keyName));
 
@@ -259,12 +259,12 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 	Sdr sdr = getIonsdr();
 	Object listObj = 0;
 	Object	elt = 0;
-	OBJ_POINTER(BspBcbRule, rule);
+	OBJ_POINTER(BPsecBcbRule, rule);
 	char strBuffer[SDRSTRING_BUFSZ];
 	tnvc_t *cur_row = NULL;
 	int len = 0;
 
-	if((listObj = sec_get_bspBcbRuleList()) == 0)
+	if((listObj = sec_get_bpsecBcbRuleList()) == 0)
 	{
 		AMP_DEBUG_ERR("dtn_bpsec_tblt_bcb_rules","Cannot get list.", NULL);
 		tbl_release(table, 1);
@@ -282,7 +282,7 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 	{
 		if((cur_row = tnvc_create(5)) != NULL)
 		{
-			GET_OBJ_POINTER(sdr, BspBcbRule, rule, sdr_list_data(sdr, elt));
+			GET_OBJ_POINTER(sdr, BPsecBcbRule, rule, sdr_list_data(sdr, elt));
 
 			if(rule != NULL)
 			{
@@ -292,7 +292,7 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 				len = sdr_string_read(sdr, strBuffer, rule->destEid);
 				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
 
-				tnvc_insert(cur_row, tnv_from_uint(rule->blockTypeNbr));
+				tnvc_insert(cur_row, tnv_from_uint(rule->blockType));
 				tnvc_insert(cur_row, tnv_from_str(rule->ciphersuiteName));
 				tnvc_insert(cur_row, tnv_from_str(rule->keyName));
 
@@ -1769,7 +1769,7 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 		if(elt != 0)
 		{
 			/* Step 4: Update the BCB Rule. */
-			if(sec_addBspBibRule(src, dst, tgt, cs, key) == 1)
+			if(sec_addBPsecBibRule(src, dst, tgt, cs, key) == 1)
 			{
 				*status = CTRL_SUCCESS;
 			}
@@ -1821,7 +1821,7 @@ tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	tgt = adm_get_parm_uint(parms, 2, &success);
 
 
-	if(sec_removeBspBibRule(src, dst, tgt) == 1)
+	if(sec_removeBPsecBibRule(src, dst, tgt) == 1)
 	{
 		*status = CTRL_SUCCESS;
 	}
@@ -1875,7 +1875,7 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 		if(elt != 0)
 		{
 			/* Step 4: Update the BCB Rule. */
-			if(sec_addBspBcbRule(src, dst, tgt, cs, key) == 1)
+			if(sec_addBPsecBcbRule(src, dst, tgt, cs, key) == 1)
 			{
 				*status = CTRL_SUCCESS;
 			}
@@ -1927,7 +1927,7 @@ tnv_t *dtn_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	dst = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 	tgt = adm_get_parm_int(parms, 2, &success);
 
-	if(sec_removeBspBcbRule(src, dst, tgt) == 1)
+	if(sec_removeBPsecBcbRule(src, dst, tgt) == 1)
 	{
 		*status = CTRL_SUCCESS;
 	}

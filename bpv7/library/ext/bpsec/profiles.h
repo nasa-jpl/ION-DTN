@@ -22,6 +22,8 @@
 #ifndef PROFILES_H_
 #define PROFILES_H_
 
+#include "bpsec_util.h"
+
 /*
  * +--------------------------------------------------------------------------+
  * |   CONSTANTS  							      +
