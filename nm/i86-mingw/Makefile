@@ -69,10 +69,10 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_ltp_agent_impl.c	\
 	$(AGENT)/adm_ltp_agent_agent.c 
 
-ifeq ($(BPv), 'bpv6')
+ifeq ($(BPv), bpv6)
 AGENT_SOURCES += \
-	$(AGENT)/adm_sbsp_impl.c	\
-	$(AGENT)/adm_sbsp_agent.c	
+	$(ADM)/adm_sbsp_impl.c	\
+	$(ADM)/adm_sbsp_agent.c	
 else
 AGENT_SOURCES += \
 	$(ADM)/adm_bpsec_impl.c	\
@@ -97,7 +97,7 @@ MGR_SOURCES = \
 	$(MGR)/adm_ion_ltp_admin_mgr.c	\
 	$(MGR)/adm_ltp_agent_mgr.c
 
-ifeq ($(BPv), 'bpv6')
+ifeq ($(BPv), bpv6)
 MGR_SOURCES += \
 	$(ADM)/adm_sbsp_mgr.c
 else
@@ -119,7 +119,7 @@ OPT += -g -Wall -Werror -Wno-unused-variable -Dmingw -DAMP_VERSION=7
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-ifeq ($(BPv), 'bpv6')
+ifeq ($(BPv), bpv6)
 OPT += -DBUILD_BPv6
 else
 OPT += -DBUILD_BPv7

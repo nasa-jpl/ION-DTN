@@ -2861,7 +2861,7 @@ static void ui_form_show_value(form_fields_t *field)
          }
          break;
       default:
-        printf(BOLD("? %x"), (int)field->parsed_value);
+        printf(BOLD("? %zx"), (size_t)field->parsed_value);
       }
    } else if (field->value != NULL) {
       printf("%s", field->value);
