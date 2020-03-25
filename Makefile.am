@@ -351,7 +351,8 @@ icibin = \
 	rfxclock
 
 if !WINDOWS
-icibin += owlttb \
+icibin += \
+	owlttb \
 	ionxnowner
 endif
 
@@ -793,7 +794,8 @@ dgrbin = \
 	udp2file
 
 if !WINDOWS
-	dgrbin += file2udp
+dgrbin += \
+	file2udp
 endif
 
 dgrlib = \
@@ -930,7 +932,8 @@ bpbin = \
 	udpclo
 
 if !WINDOWS
-bpbin += bpstats2 \
+bpbin += \
+	bpstats2 \
 	bpchat \
 	dccpcli \
 	dccpclo
@@ -1584,7 +1587,8 @@ amsbin = \
 	ramsgate
 
 if !WINDOWS
-amsbin += amshello
+amsbin += \
+	amshello
 endif
 
 amslib = \
@@ -1732,7 +1736,8 @@ cfdpbin = \
 	tcputa
 
 if !WINDOWS
-cfdpbin +=	bpcp \
+cfdpbin +=\
+	bpcp \
 	bpcpd
 endif
 
