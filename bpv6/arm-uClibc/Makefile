@@ -52,7 +52,7 @@ BPPOBJS = libbpP.o bpsec.o eureka.o saga.o bei.o phn.o ecos.o meb.o bae.o acstx.
 #IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpcrash bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest cgrfetch
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpcrash bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat acsadmin acslist imcadmin imcfw bsspcli bsspclo bibeclo bpnmtest cgrfetch bpversion
 # dccpcli dccpclo ipnd
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
@@ -163,6 +163,10 @@ acslist:	acslist.o $(BPLIBS)
 cgrfetch:	cgrfetch.o $(BPLIBS)
 		$(CC) -o cgrfetch cgrfetch.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread -lm
 		cp cgrfetch ./bin
+
+bpversion:	bpversion.o
+		$(CC) -o bpversion bpversion.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpversion ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 

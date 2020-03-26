@@ -2322,7 +2322,9 @@ int	sm_BeginPthread_named(pthread_t *threadId, const pthread_attr_t *attr,
 	int		result;
 
 	result = sm_BeginPthread(threadId, attr, function, arg);
+#if defined(bionic)
 	pthread_setname_np(*threadId, name);
+#endif
 
 	return result;
 }
