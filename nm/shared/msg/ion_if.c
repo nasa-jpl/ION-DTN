@@ -59,7 +59,7 @@
 
 int iif_deregister_node(iif_t *iif)
 {
-    AMP_DEBUG_ENTRY("iif_deregister_node","(%#llx)", (unsigned long)iif);
+    AMP_DEBUG_ENTRY("iif_deregister_node","(%#llx)", (size_t)iif);
 
     /* Step 0: Sanity Check */
     if(iif == NULL)

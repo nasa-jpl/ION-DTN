@@ -234,7 +234,7 @@ char *utils_hex_to_string(uint8_t *buffer, uint32_t size)
     int r = 0;
 
     AMP_DEBUG_ENTRY("utils_hex_to_string","(%x,%d)",
-    		          (unsigned long) buffer, size);
+    		          (size_t) buffer, size);
 
     /* Each byte requires 2 characters to represent in HEX. Also, require
      * three additional bytes to capture '0x' and NULL terminator.

@@ -1128,7 +1128,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 void *ui_thread(int *running)
 {
-	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (unsigned long) running);
+	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (size_t) running);
 
 	ui_eventLoop(running);
 
@@ -2861,7 +2861,7 @@ static void ui_form_show_value(form_fields_t *field)
          }
          break;
       default:
-        printf(BOLD("? %zx"), (size_t)field->parsed_value);
+         printf(BOLD("%i"), *( (int*)(field->parsed_value) ) );
       }
    } else if (field->value != NULL) {
       printf("%s", field->value);

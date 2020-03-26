@@ -250,7 +250,7 @@ void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
 void *mgr_rx_thread(int *running)
 {
 
-    AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (unsigned long) running);
+    AMP_DEBUG_ENTRY("mgr_rx_thread","(0x%x)", (size_t) running);
     
     AMP_DEBUG_INFO("mgr_rx_thread","Receiver thread running...", NULL);
     
