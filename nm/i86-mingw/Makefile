@@ -131,7 +131,7 @@ CC = gcc $(OPT) $(INCLDIRS)
 
 LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L/
 
-LIBS = -lcfdp -lbp -lltp -lici -lpthread -lm
+LIBS = -lici -lbp -lltp -lpthread -lm
 
 LD = gcc $(OPT) $(LIBDIRS)
 
