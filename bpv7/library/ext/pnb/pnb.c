@@ -59,10 +59,10 @@ int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	unsigned char	dataBuffer[300];
-	unsigned char	*cursor;
-	uvast		uvtemp;
 	int		result;
+	EndpointId	eid;
+	unsigned char	dataBuffer[300];
+	int		length;
 
 	suppressExtensionBlock(blk);	/*	Default.		*/
 
@@ -82,51 +82,32 @@ int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	}
 
 	restoreExtensionBlock(blk);
-	cursor = dataBuffer;
-	uvtemp = 2;
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-	uvtemp = vscheme->codeNumber;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-	switch (vscheme->codeNumber)
+	CHKZERO(parseEidString(vscheme->adminEid, &metaEid, &vscheme,
+			&vschemeElt));
+	result = jotEid(&eid, &metaEid);
+	restoreEidString(&metaEid);
+	if (result < 0)
 	{
-	case dtn:
-		if (strcmp(vscheme->adminEid, "dtn:none") == 0)
-		{
-			oK(cbor_encode_integer(0, &cursor));
-		}
-		else
-		{
-			uvtemp = vscheme->adminNSSLength;
-			oK(cbor_encode_text_string(vscheme->adminEid + 4,
-					uvtemp, &cursor));
-		}
+		putErrmsg("Can't jot eid.", NULL);
+		return -1;
+	}
 
-		break;
-
-	case ipn:
-		uvtemp = 2;
-		oK(cbor_encode_array_open(uvtemp, &cursor));
-		uvtemp = getOwnNodeNbr();
-		oK(cbor_encode_integer(uvtemp, &cursor));
-		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
-		break;
-
-	default:
+	length = serializeEid(&eid, dataBuffer);
+	eraseEid(&eid);
+	if (length <= 0)
+	{
+		writeMemo("[?] Can't construct Previous Node block.");
 		return 0;
 	}
 
-	blk->dataLength = cursor - dataBuffer;
+	blk->dataLength = length;
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
 int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	unsigned int	unparsedBytes = blk->dataLength;
 	unsigned char	*cursor;
-	uvast		arrayLength;
-	uvast		uvtemp;
-	unsigned char	*nss;
+	unsigned int	unparsedBytes = blk->dataLength;
 
 	if (wk->senderEid.schemeCodeNbr != unknown)
 	{
@@ -143,70 +124,10 @@ int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 	blk->size = 0;
 	blk->object = NULL;
 	cursor = blk->bytes + (blk->length - blk->dataLength);
-	arrayLength = 2;
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	if (acquireEid(&(wk->senderEid), &cursor, &unparsedBytes) == 0)
 	{
-		writeMemo("[?] Can't decode PN block array.");
+		writeMemo("[?] Invalid sender EID in Previous Node block.");
 		return 0;
-	}
-
-	if (cbor_decode_integer(&uvtemp, CborAny, & cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode PN block array.");
-		return 0;
-	}
-
-	wk->senderEid.schemeCodeNbr = uvtemp;
-	if (wk->senderEid.schemeCodeNbr == ipn)
-	{
-		arrayLength = 2;
-		if (cbor_decode_array_open(&arrayLength, &cursor,
-				&unparsedBytes) < 1)
-		{
-			writeMemo("[?] Can't decode PN block ipn EID array.");
-			return 0;
-		}
-
-		if (cbor_decode_integer(&uvtemp, CborAny, & cursor,
-					&unparsedBytes) < 1)
-		{
-			writeMemo("[?] Can't decode PN block node number.");
-			return 0;
-		}
-
-		wk->senderEid.ssp.ipn.nodeNbr = uvtemp;
-		if (cbor_decode_integer(&uvtemp, CborAny, & cursor,
-					&unparsedBytes) < 1)
-		{
-			writeMemo("[?] Can't decode PN block service number.");
-			return 0;
-		}
-
-		wk->senderEid.ssp.ipn.serviceNbr = uvtemp;
-		return 1;
-	}
-	else
-	{
-		/*	Must be a "dtn" eid.				*/
-
-		uvtemp = 255;
-		if (cbor_decode_text_string(NULL, &uvtemp, &cursor,
-				&unparsedBytes) < 1)
-		{
-			writeMemo("[?] Can't decode PN block dtn NSS.");
-			return 0;
-		}
-
-		wk->senderEid.ssp.dtn.nssLength = uvtemp;
-		nss = MTAKE(uvtemp);
-		if (nss == NULL)
-		{
-			putErrmsg("No space for NSS.", NULL);
-			return -1;
-		}
-
-		memcpy(nss, cursor, uvtemp);
-		wk->senderEid.ssp.dtn.endpointName.s = (char *) nss;
 	}
 
 	if (unparsedBytes != 0)
