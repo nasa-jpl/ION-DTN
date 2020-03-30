@@ -14,6 +14,7 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	BpStatusRpt	rpt;
+	char		*sourceEid;
 	char		memobuf[1024];
 
 	if (parseStatusRpt(&rpt, cursor, unparsedBytes) < 1)
@@ -21,10 +22,18 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 		return 0;
 	}
 
-	isprintf(memobuf, sizeof memobuf, "[i] bundle (%s), %u:%u, %u \
-status is %d", rpt.sourceEid, rpt.creationTime.seconds,
+	if (readEid(&rpt.sourceEid, &sourceEid) < 0)
+	{
+		eraseEid(&rpt.sourceEid);
+		return -1;
+	}
+
+	isprintf(memobuf, sizeof memobuf, "[s] bundle (%s), %u:%u, %u \
+status is %d", sourceEid, rpt.creationTime.seconds,
 		rpt.creationTime.count, rpt.fragmentOffset, rpt.reasonCode);
 	writeMemo(memobuf);
+	MRELEASE(sourceEid);
+	eraseEid(&rpt.sourceEid);
 	return 0;
 }
 

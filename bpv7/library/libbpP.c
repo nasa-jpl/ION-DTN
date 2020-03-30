@@ -5969,7 +5969,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 static int	loadEids(Bundle *bundle, MetaEid *destMetaEid,
 			MetaEid *sourceMetaEid, MetaEid *reportToMetaEid)
 {
-	static MetaEid	nullMetaEid = {"ipn", 3, ipn, NULL, "0.0", 3, 0, 0, 1};
+	static MetaEid	nullMetaEid = {"dtn", 3, dtn, NULL, "none", 4, 0, 0, 1};
 
 	if (writeEid(&(bundle->destination), destMetaEid) < 0)
 	{
@@ -7533,7 +7533,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 			}
 
 			istrcpy(eidString + 4, "none", sizeof eidString - 4);
-			length = 4;
+			sspLen = 4;
 		}
 		else			/*	Must be text array.	*/
 		{
@@ -7554,7 +7554,7 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 			}
 		}
 
-		eidString[4 + length] = '\0';
+		eidString[4 + sspLen] = '\0';
 		totalLength += length;
 		break;
 
@@ -8729,13 +8729,43 @@ static void	initAuthenticity(AcqWorkArea *work)
 	return;
 }
 
+static int	recordBundleEid(Bundle *bundle, EndpointId *eid)
+{
+	char		*eidString;
+	MetaEid		meid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+
+	readEid(eid, &eidString);
+	if (!parseEidString(eidString, &meid, &vscheme, &vschemeElt))
+	{
+		putErrmsg("Can't parse bundle EID.", NULL);
+		return -1;
+	}
+
+	eraseEid(eid);	/*	Lose the copy in private memory.	*/
+	if (writeEid(eid, &meid) < 0)
+	{
+		putErrmsg("No space for bundle EID.", NULL);
+		return -1;
+	}
+
+	MRELEASE(eidString);
+	if (meid.schemeCodeNbr == dtn)
+	{
+		bundle->dbOverhead += eid->ssp.dtn.nssLength;
+	}
+
+	return 0;
+}
+
 static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 {
 	Bundle		*bundle = &(work->bundle);
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
 	char		*eidString;
 	MetaEid		senderMetaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 	Object		bundleObj;
 
 	if (acqFromWork(work) < 0)
@@ -8921,6 +8951,31 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 				bundle->clDossier.senderEid.ssp.dtn.nssLength;
 		}
 	}
+
+	/*	Record all bundle EIDs as well.				*/
+
+	if (recordBundleEid(bundle, &(bundle->id.source)) < 0)
+	{
+		putErrmsg("Can't record source EID.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	if (recordBundleEid(bundle, &(bundle->destination)) < 0)
+	{
+		putErrmsg("Can't record destination EID.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	if (recordBundleEid(bundle, &(bundle->reportTo)) < 0)
+	{
+		putErrmsg("Can't record reportTo EID.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	/*	Construct other bundle stuctures.			*/
 
 	bundle->stations = sdr_list_create(sdr);
 	bundle->trackingElts = sdr_list_create(sdr);
@@ -11374,6 +11429,9 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 			image.id.fragmentOffset, image.totalAduLength == 0 ? 0
 			: image.payload.length, bundleObj);
 	MRELEASE(sourceEid);
+	eraseEid(&image.id.source);
+	eraseEid(&image.destination);
+	eraseEid(&image.reportTo);
 	return (result < 0 ? result : 0);
 }
 

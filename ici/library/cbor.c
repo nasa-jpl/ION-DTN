@@ -546,12 +546,20 @@ int	cbor_decode_byte_string(unsigned char *value, uvast *size,
 		return 0;
 	}
 
-	length = decodeInteger(&stringLength, CborAny, additionalInfo, cursor,
-			bytesBuffered);
-	if (length < 0)
+	if (additionalInfo < 24)
 	{
-		writeMemo("[?] CBOR byte string decode failed.");
-		return 0;
+		length = 0;
+		stringLength = additionalInfo;
+	}
+	else
+	{
+		length = decodeInteger(&stringLength, CborAny, additionalInfo,
+				cursor, bytesBuffered);
+		if (length < 0)
+		{
+			writeMemo("[?] CBOR byte string decode failed.");
+			return 0;
+		}
 	}
 
 	if (stringLength > *size)
@@ -600,12 +608,20 @@ int	cbor_decode_text_string(char *value, uvast *size,
 		return 0;
 	}
 
-	length = decodeInteger(&stringLength, CborAny, additionalInfo, cursor,
-			bytesBuffered);
-	if (length < 0)
+	if (additionalInfo < 24)
 	{
-		writeMemo("[?] CBOR text string decode failed.");
-		return 0;
+		length = 0;
+		stringLength = additionalInfo;
+	}
+	else
+	{
+		length = decodeInteger(&stringLength, CborAny, additionalInfo,
+				cursor, bytesBuffered);
+		if (length < 0)
+		{
+			writeMemo("[?] CBOR text string decode failed.");
+			return 0;
+		}
 	}
 
 	if (stringLength > *size)
