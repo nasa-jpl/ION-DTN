@@ -59,8 +59,7 @@ BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o pnb.o hcb.o bpq.o 
 IPNDOBJS = ipnd.o beacon.o helper.o node.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = beacon bibeadmin bibeclo bpadmin bpcancel bpclm bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
-# bpclock bpcrash - disabled from BPv7 build pending updates
+RUNTIMES = beacon bibeadmin bibeclo bpadmin bpcancel bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the test does not work
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -302,6 +301,10 @@ bpsource:	bpsource.o libbp.dll $(BPLIBS)
 bpsink:		bpsink.o libbp.dll $(BPLIBS)
 		$(CC) -o bpsink bpsink.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsink ./bin
+
+bpcrash:	bpcrash.o libbp.dll $(BPLIBS)
+		$(CC) -o bpcrash bpcrash.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpcrash ./bin
 
 bpdriver:	bpdriver.o libbp.dll $(BPLIBS)
 		$(CC) -o bpdriver bpdriver.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
