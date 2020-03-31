@@ -34,7 +34,7 @@ PUBINCLS = \
 
 BPINCLS = \
 	$(API)/bpP.h \
-	$(API)/bpsec.h \
+	$(INCL)/bpsec.h \
 	$(BIBE)/bibe.h \
 	$(SAGA)/saga.h \
 	$(ICI)/include/cbor.h \
@@ -56,7 +56,7 @@ BPLIBS = \
 
 BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
 
-IPNDOBJS = ipnd.o beacon.o helper.o node.o
+IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
 RUNTIMES = beacon bibeadmin bibeclo bpadmin bpcancel bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo

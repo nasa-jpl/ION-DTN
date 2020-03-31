@@ -973,7 +973,7 @@ bpinclude = \
 #bp/library/ecos.h
 bpnoinst = \
 	$(BP_DIR)/library/bpP.h \
-	$(BP_DIR)/library/bpsec.h \
+	$(BP_DIR)/include/bpsec.h \
 	$(BP_DIR)/ipn/ipnfw.h \
 	$(BP_DIR)/ipnd/ipndP.h \
 	$(BP_DIR)/dtn2/dtn2fw.h \
@@ -1044,6 +1044,7 @@ bpextra = \
 	$(BP_DIR)/doc/pod5/dtn2rc.pod \
 	$(BP_DIR)/doc/pod5/ipnrc.pod \
 	$(BP_DIR)/doc/pod5/lgfile.pod \
+	$(BP_DIR)/include/bpsec.h \
 	$(BP_DIR)/library/bpextensions.c \
 	$(BP_DIR)/library/noextensions.c \
 	$(BP_DIR)/library/ext/ecos/ecos.h \
@@ -1052,7 +1053,6 @@ bpextra = \
 	$(BP_DIR)/library/ext/meb/meb.h \
 	$(BP_DIR)/library/ext/meb/meb.c \
 	$(BP_DIR)/library/bei.c \
-	$(BP_DIR)/library/bpsec.h \
 	$(BP_DIR)/library/bpsec.c \
 	$(BP_DIR)/library/saga.h \
 	$(BP_DIR)/library/saga.c \
@@ -1219,7 +1219,7 @@ libbp_la_SOURCES = \
 	$(BP_DIR)/ipnd/ipnd.c \
 	$(BP_DIR)/ipnd/beacon.c \
 	$(BP_DIR)/ipnd/helper.c \
-	$(BP_DIR)/ipnd/node.c \
+	$(BP_DIR)/ipnd/bpa.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
@@ -1396,7 +1396,7 @@ beacon_SOURCES = $(BP_DIR)/ipnd/beacon.c
 beacon_LDADD = libbp.la libici.la $(LIBOBJS)
 beacon_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-node_SOURCES = $(BP_DIR)/ipnd/node.c
+node_SOURCES = $(BP_DIR)/ipnd/bpa.c
 node_LDADD = libbp.la libici.la $(LIBOBJS)
 node_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 

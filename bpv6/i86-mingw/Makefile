@@ -36,7 +36,7 @@ PUBINCLS = \
 
 BPINCLS = \
 	$(API)/bpP.h \
-	$(API)/bpsec.h \
+	$(INCL)/bpsec.h \
 	$(API)/saga.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
@@ -59,7 +59,7 @@ BPPOBJS = libbpP.o eureka.o bei.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o 
 # snid.o
 BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
-IPNDOBJS = ipnd.o beacon.o helper.o node.o
+IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
 RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpsecadmin bpcancel bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo

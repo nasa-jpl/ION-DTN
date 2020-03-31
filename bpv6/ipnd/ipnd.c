@@ -21,7 +21,7 @@
 #include "bpP.h"
 #include "ipndP.h"
 #include "dtn2fw.h"
-#include "node.h"
+#include "bpa.h"
 
 #define DEFAULT_EID			""
 #define DEFAULT_ANNOUNCE_EID		1
