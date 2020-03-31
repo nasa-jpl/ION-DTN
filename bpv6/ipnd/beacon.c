@@ -14,7 +14,7 @@
 
 #include "platform.h"
 #include "beacon.h"
-#include "node.h"
+#include "bpa.h"
 #include "ipndP.h"
 
 /**

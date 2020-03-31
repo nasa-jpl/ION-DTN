@@ -1,5 +1,5 @@
 /*
- *	node.c -- DTN IP Neighbor Discovery (IPND). Main IPND threads. Include:
+ *	bpa.c -- DTN IP Neighbor Discovery (IPND). Main IPND threads. Include:
  *	Send beacons thread.
  *	Receive beacon thread.
  *	Expire neighbors thread.
@@ -16,7 +16,7 @@
  */
 
 #include "platform.h"
-#include "node.h"
+#include "bpa.h"
 #include "ipndP.h"
 #include "eureka.h"
 

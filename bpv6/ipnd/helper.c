@@ -16,7 +16,7 @@
 #include "platform.h"
 #include "eureka.h"
 #include "helper.h"
-#include "node.h"
+#include "bpa.h"
 #include "ipndP.h"
 
 static int	toBinary(const char *string, char *buf)
