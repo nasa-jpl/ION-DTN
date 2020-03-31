@@ -226,6 +226,7 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	char			eidBuf[300];
 	char			*cursor = eidBuf;
 	MetaEid			meid;
+	int			result;
 	VScheme			*vscheme;
 	PsmAddress		schemeElt;
 	Object			elt;
@@ -271,7 +272,9 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	}
 
 	CHKERR(parseEidString(eidBuf, &meid, &vscheme, &schemeElt));
-	if (writeEid(&newAsb.securitySource, &meid) < 0) return -1;
+	result = writeEid(&newAsb.securitySource, &meid);
+	restoreEidString(&meid);
+       	if (result < 0) return -1;
 
 	/*	Next, targets.						*/
 
@@ -348,7 +351,7 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	/* Step 4 - Write copied block to the SDR. */
 
 	sdr_write(sdr, newBlk->object, (char *) &newAsb, sizeof newAsb);
-	BPSEC_DEBUG_PROC("- bpsec_copy -> 0");
+	BPSEC_DEBUG_PROC("- bpsec_copy -> 0", NULL);
 	return 0;
 }
 
@@ -398,7 +401,7 @@ static int	appendItem(Sdr sdr, Object items, sci_inbound_tlv *itlv)
 	|| sdr_list_insert_last(sdr, items, tlvAddr) == 0)
 	{
 		BPSEC_DEBUG_ERR("appendItem: Can't allocate sdr item of \
-length %d.", itlv.length);
+length %d.", itlv->length);
 		return -1;
 	}
 
@@ -793,7 +796,7 @@ ASB targets list", NULL);
 	asb->contextFlags = uvtemp;
 
 	BPSEC_DEBUG_INFO("i bpsec_deserializeASB: context %ld, flags %ld, \
-length %d", asb.contextId, asb.contextFlags, blk->dataLength);
+length %d", asb->contextId, asb->contextFlags, blk->dataLength);
 
 	/*	Next, possibly, is security source.			*/
 
@@ -1156,8 +1159,7 @@ Object	bpsec_findBlock(Bundle *bundle, uint8_t type, uint8_t targetBlockType,
  *               EIDs associated with an inbound abstract security block.
  *
  * \retval -1 on fatal error
- *          0 on failure
- *          >0 on Success
+ *          0 on success (but the returned From and/or To eid may be NULL)
  *
  * \param[in]   bundle   The inbound bundle.
  * \param[in]   blk      The inbound block.
@@ -1182,47 +1184,36 @@ Object	bpsec_findBlock(Bundle *bundle, uint8_t type, uint8_t targetBlockType,
 int	bpsec_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 		BpsecInboundBlock *asb, char **fromEid, char **toEid)
 {
-	int	result = 1;
-
 	CHKERR(bundle);
 	CHKERR(blk);
 	CHKERR(asb);
 	CHKERR(fromEid);
 	CHKERR(toEid);
 
-	switch (readEid(&(bundle->destination), toEid))
-	{
-	case -1:
-		return -1;
+	*fromEid = NULL;	/*	Default.			*/
+	*toEid = NULL;		/*	Default.			*/
 
-	case 0:
-		result = 0;
+	if (readEid(&(bundle->destination), toEid) < 0)
+	{
+		return -1;
 	}
 
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		switch (readEid(&(asb->securitySource), fromEid))
+		if (readEid(&(asb->securitySource), fromEid) < 0)
 		{
-		case -1:
 			return -1;
-
-		case 0:
-			result = 0;
 		}
 	}
 	else
 	{
-		switch (readEid(&bundle->id.source, fromEid))
+		if (readEid(&bundle->id.source, fromEid) < 0)
 		{
-		case -1:
 			return -1;
-
-		case 0:
-			result = 0;
 		}
 	}
 
-	return result;
+	return 0;
 }
 
 /******************************************************************************
@@ -1303,7 +1294,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 		OBJ_POINTER(BpsecOutboundTlv, tv);
 
 	CHKVOID(items);
-	CHKVOID(tv);
+	CHKVOID(tvp);
 	*tvp = 0;			/*	Default.		*/
 	for (elt = sdr_list_first(sdr, items); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1326,8 +1317,7 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
  *               EIDs associated with an outbound abstract security block.
  *
  * \retval -1 on Fatal error
- *          0 on failure
- *          >0 on success
+ *          0 on success (but the returned From and/or To eid may be NULL)
  *
  * \param[in]   bundle   The outbound bundle.
  * \param[in]   blk      The outbound block.
@@ -1352,47 +1342,35 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 		BpsecOutboundBlock *asb, char **fromEid, char **toEid)
 {
-	int	result = 1;
-
 	CHKERR(bundle);
 	CHKERR(blk);
 	CHKERR(asb);
 	CHKERR(fromEid);
 	CHKERR(toEid);
 
-	switch (readEid(&(bundle->destination), toEid))
+	*fromEid = NULL;	/*	Default.			*/
+	*toEid = NULL;		/*	Default.			*/
+	if (readEid(&(bundle->destination), toEid) < 0)
 	{
-	case -1:
 		return -1;
-
-	case 0:
-		result = 0;
 	}
 
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		switch (readEid(&(asb->securitySource), fromEid))
+		if (readEid(&(asb->securitySource), fromEid) < 0)
 		{
-		case -1:
 			return -1;
-
-		case 0:
-			result = 0;
 		}
 	}
 	else
 	{
-		switch (readEid(&bundle->id.source, fromEid))
+		if (readEid(&bundle->id.source, fromEid) < 0)
 		{
-		case -1:
 			return -1;
-
-		case 0:
-			result = 0;
 		}
 	}
 
-	return result;
+	return 0;
 }
 
 /******************************************************************************
@@ -1419,17 +1397,20 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 
 void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 {
-	char		eidBuffer[300];
-	char		*cursor = eidBuffer;
+	char		*eidString;
 	char		*adminEid;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	elt;
+	int		result;
 
-	CHKVOID(readEid(&bundle->destination, &cursor) > 0);
-	adminEid = bpsec_getLocalAdminEid(eidBuffer);
+	CHKVOID(readEid(&bundle->destination, &eidString) == 0);
+	adminEid = bpsec_getLocalAdminEid(eidString);
+	MRELEASE(eidString);
 	CHKVOID(parseEidString(adminEid, &metaEid, &vscheme, &elt));
-	CHKVOID(writeEid(&(asb->securitySource), &metaEid) == 0);
+	result = writeEid(&(asb->securitySource), &metaEid);
+	restoreEidString(&metaEid);
+       	CHKVOID(result == 0);
 }
 
 /******************************************************************************
@@ -1856,7 +1837,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	serializedResults = lyst_create_using(getIonMemoryMgr());
 	if (serializedResults == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_serializeASB can't create lyst.");
+		BPSEC_DEBUG_ERR("x bpsec_serializeASB can't create lyst.",
+				NULL);
 		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 		return NULL;
 	}
@@ -1919,7 +1901,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		serializedTlvs = lyst_create_using(getIonMemoryMgr());
 		if (serializedTlvs == NULL)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tvs lyst.");
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tvs lyst.",
+					NULL);
 			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 			releaseAsbBuffers(serializedTargets, serializedSource,
 				serializedParms, serializedParmsBuffer,
@@ -1938,7 +1921,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 			|| lyst_insert_last(serializedTlvs, stv) == NULL
 			|| (stv->text = MTAKE(19 + tv->length)) == NULL)
 			{
-				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Stv");
+				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Stv",
+						NULL);
 				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 				releaseAsbBuffers(serializedTargets,
 					serializedSource, serializedParms,
@@ -1985,7 +1969,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 			if (lyst_insert_last(serializedResults, serializedTlvs)
 					== NULL)
 			{
-				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tgt");
+				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tgt",
+						NULL);
 				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 				releaseAsbBuffers(serializedTargets,
 						serializedSource,
@@ -2010,7 +1995,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	serializedResultsBuffer = MTAKE(serializedResultsLen);
 	if (serializedResultsBuffer == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_serializeASB no Results buf");
+		BPSEC_DEBUG_ERR("x bpsec_serializeASB no Results buf", NULL);
 		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 		releaseAsbBuffers(serializedTargets,
 				serializedSource, serializedParms,
@@ -2099,7 +2084,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		serializedTlvs = lyst_create_using(getIonMemoryMgr());
 		if (serializedTlvs == NULL)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tvs lyst.");
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tvs lyst.",
+					NULL);
 			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 			releaseAsbBuffers(serializedTargets,
 				serializedSource, serializedParms,
@@ -2118,7 +2104,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 			|| lyst_insert_last(serializedTlvs, stv) == NULL
 			|| (stv->text = MTAKE(19 + tv->length)) == NULL)
 			{
-				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Stv");
+				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Stv",
+						NULL);
 				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 				releaseAsbBuffers(serializedTargets,
 					serializedSource, serializedParms,
@@ -2165,7 +2152,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		serializedParmsBuffer = MTAKE(serializedParmsLen);
 		if (serializedParmsBuffer == NULL)
 		{
-			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Parms buf");
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Parms buf",
+					NULL);
 			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 			releaseAsbBuffers(serializedTargets,
 				serializedSource, serializedParms,
@@ -2210,7 +2198,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 			+ serializedResultsLen);
 	if (serializedAsb == NULL)
 	{
-		BPSEC_DEBUG_ERR("x bpsec_serializeASB no ASB buffer");
+		BPSEC_DEBUG_ERR("x bpsec_serializeASB no ASB buffer", NULL);
 		BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
 		releaseAsbBuffers(serializedTargets,
 			serializedSource, serializedParms,

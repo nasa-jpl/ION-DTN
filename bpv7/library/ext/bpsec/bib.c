@@ -136,7 +136,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			integrity service.				*/
 
 	if (bpsec_getOutboundSecurityEids(bundle, bibBlk, bibAsb, &fromEid,
-			&toEid) <= 0)
+			&toEid) < 0 || toEid == NULL)
 	{
 		BIB_DEBUG_ERR("x bibAttach: Can't get security EIDs.",
 				NULL);
@@ -148,7 +148,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 	/*	We only attach a BIB per a rule for which the local
 		node is the security source.				*/
 
-	MRELEASE(fromEid);
+	if (fromEid) MRELEASE(fromEid);
 	isprintf(eidBuf, sizeof eidBuf, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
 	fromEid = eidBuf;
@@ -167,7 +167,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 	 *		targets.
 	 */
 
-	if (bpsec_getOutboundTarget(sdr, bibAsb->targets, &target))
+	if (bpsec_getOutboundTarget(sdr, bibAsb->targets, &target) < 0)
 	{
 		BIB_DEBUG(2, "NOT Attaching BIB; no target.", NULL);
 
@@ -1189,6 +1189,15 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	memset((char *) &asb, 0, sizeof(BpsecOutboundBlock));
 
 	CHKERR(sdr_begin_xn(sdr));
+	asb.targets = sdr_list_create(sdr);
+	if (asb.targets == 0)
+	{
+		sdr_cancel_xn(sdr);
+		BIB_DEBUG_ERR("x bibOffer: Failed to create targets list.");
+		result = -1;
+		BIB_DEBUG_PROC("- bibOffer -> %d", result);
+		return result;
+	}
 
 	bpsec_insertSecuritySource(bundle, &asb);
 	if (bpsec_insert_target(sdr, &asb, (blk->tag1 == PayloadBlk ? 1 : 0),

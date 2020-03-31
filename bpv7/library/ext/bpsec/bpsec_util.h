@@ -75,7 +75,10 @@
 #define BPSEC_DEBUG_LVL	BPSEC_DEBUG_LVL_ERR
 
 #define	GMSG_BUFLEN	256
-#if BPSEC_DEBUGGING == 1
+
+#if (BPSEC_DEBUGGING == 1)
+
+extern char	gMsg[GMSG_BUFLEN];
 
 /**
  * \def BPSEC_DEBUG

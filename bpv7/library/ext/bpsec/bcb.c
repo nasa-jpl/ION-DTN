@@ -839,7 +839,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			confidentiality service. 			*/
 
 	if ((result = bpsec_getOutboundSecurityEids(bundle, bcbBlk, bcbAsb,
-			&fromEid, &toEid)) <= 0)
+			&fromEid, &toEid)) < 0 || toEid == NULL)
 	{
 		ADD_BCB_TX_FAIL(NULL, 1, 0);
 
@@ -853,7 +853,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	/*	We only attach a BCB per a rule for which the local
 		node is the security source.				*/
 
-	MRELEASE(fromEid);
+	if (fromEid) MRELEASE(fromEid);
 	isprintf(eidBuf, sizeof eidBuf, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
 	fromEid = eidBuf;
@@ -872,7 +872,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	 *		targets.
 	 */
 
-	if (bpsec_getOutboundTarget(sdr, bcbAsb->targets, &target))
+	if (bpsec_getOutboundTarget(sdr, bcbAsb->targets, &target) < 0)
 	{
 		BCB_DEBUG(2,"NOT adding BCB; no target.", NULL);
 
@@ -1094,6 +1094,15 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	memset((char *) &asb, 0, sizeof(BpsecOutboundBlock));
 
 	CHKERR(sdr_begin_xn(sdr));
+	asb.targets = sdr_list_create(sdr);
+	if (asb.targets == 0)
+	{
+		sdr_cancel_xn(sdr);
+		BCB_DEBUG_ERR("x bcbOffer: Failed to create targets list.");
+		result = -1;
+		BCB_DEBUG_PROC("- bcbOffer -> %d", result);
+		return result;
+	}
 
 	bpsec_insertSecuritySource(bundle, &asb);
 	if (bpsec_insert_target(sdr, &asb, (blk->tag1 == PayloadBlk ? 1 : 0),

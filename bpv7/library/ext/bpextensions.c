@@ -178,5 +178,9 @@ static ExtensionSpec	extensionSpecs[] =
 				{ QualityOfServiceBlk, 0, 0, 0, 0 },
 				{ BundleAgeBlk, 0, 0, 0, 0 },
 				{ SnwPermitsBlk, 0, 0, 0, 0 },
+#if defined(BPSEC)
+				{ BlockIntegrityBlk, 0, 0, 0, 0 },
+				{ BlockConfidentialityBlk, 1, 0, 0, 0 },
+#endif
 				{ UnknownBlk, 0, 0, 0, 0 }
 			};

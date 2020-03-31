@@ -28,8 +28,6 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
 
 
-
-
 /******************************************************************************
  *
  * \par Function Name: getBpInstrDb
