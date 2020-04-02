@@ -196,25 +196,72 @@ extern int destroy_custody_id(AcsBundleId *id);
  * <= WARN.
  *
  * For convenience, you probably want to use ACSLOG_ERROR and friends.     */
-#define ACSLOG(level, args...)                                          \
-	if (   (acsConstants == NULL && level <= ACSLOGLEVEL_WARN)          \
-		|| (acsConstants != NULL && level & acsConstants->logLevel))    \
-	{                                                                   \
-		char acsLogBuf[MAX_ACSLOG_LEN];                                 \
-		snprintf(acsLogBuf, sizeof(acsLogBuf), args);                   \
-		putErrmsg(acsLogBuf, NULL);                                     \
-	}                                                                   \
 
 #define ACSLOGLEVEL_ERROR                    (1)
 #define ACSLOGLEVEL_WARN                     (2)
 #define ACSLOGLEVEL_INFO                     (4)
 #define ACSLOGLEVEL_DEBUG                    (8)
 
+#ifdef SOLARIS_COMPILER
+
+#define ACSLOG(level, ...)						\
+	if ((acsConstants == NULL && level <= ACSLOGLEVEL_WARN)		\
+	|| (acsConstants != NULL && level & acsConstants->logLevel))	\
+	{								\
+		char	acsLogBuf[MAX_ACSLOG_LEN];			\
+		snprintf(acsLogBuf, sizeof(acsLogBuf), _VA_ARGS__);	\
+		putErrmsg(acsLogBuf, NULL);				\
+	}
+
+#define ACSLOG_ERROR(...)						\
+	{								\
+		char	acsLogBuf[MAX_ACSLOG_LEN];			\
+		snprintf(acsLogBuf, sizeof(acsLogBuf), _VA_ARGS__);	\
+		putErrmsg(acsLogBuf, NULL);				\
+	}
+
+#define ACSLOG_WARN(...)						\
+	{								\
+		char	acsLogBuf[MAX_ACSLOG_LEN];			\
+		snprintf(acsLogBuf, sizeof(acsLogBuf), _VA_ARGS__);	\
+		putErrmsg(acsLogBuf, NULL);				\
+	}
+
+#define ACSLOG_INFO(...)						\
+	if (acsConstants != NULL					\
+	&& (ACSLOGLEVEL_INFO & acsConstants->logLevel))			\
+	{								\
+		char	acsLogBuf[MAX_ACSLOG_LEN];			\
+		snprintf(acsLogBuf, sizeof(acsLogBuf), _VA_ARGS__);	\
+		putErrmsg(acsLogBuf, NULL);				\
+	}
+
+#define ACSLOG_DEBUG(...)						\
+	if (acsConstants != NULL					\
+	&& (ACSLOGLEVEL_DEBUG & acsConstants->logLevel))		\
+	{								\
+		char	acsLogBuf[MAX_ACSLOG_LEN];			\
+		snprintf(acsLogBuf, sizeof(acsLogBuf), _VA_ARGS__);	\
+		putErrmsg(acsLogBuf, NULL);				\
+	}
+
+#else
+
+#define ACSLOG(level, args...)						\
+	if ((acsConstants == NULL && level <= ACSLOGLEVEL_WARN)		\
+	|| (acsConstants != NULL && level & acsConstants->logLevel))	\
+	{								\
+		char acsLogBuf[MAX_ACSLOG_LEN];				\
+		snprintf(acsLogBuf, sizeof(acsLogBuf), args);		\
+		putErrmsg(acsLogBuf, NULL);				\
+	}
+
 #define ACSLOG_ERROR(args...) ACSLOG(ACSLOGLEVEL_ERROR, args)
 #define ACSLOG_WARN(args...)  ACSLOG(ACSLOGLEVEL_WARN, args)
 #define ACSLOG_INFO(args...)  ACSLOG(ACSLOGLEVEL_INFO, args)
 #define ACSLOG_DEBUG(args...) ACSLOG(ACSLOGLEVEL_DEBUG, args)
 
+#endif
 
 #ifdef __cplusplus
 }	/* extern "C" */

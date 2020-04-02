@@ -1144,7 +1144,7 @@ static int	processLine(char *line, int lineLength)
 		}
 
 		if (pthread_begin(&ctx->sendBeaconsThread, NULL, sendBeacons,
-				ctx))
+				ctx, "sendBeacons"))
 		{
 			putSysErrmsg("IPND can't start sendBeacons thread.",
 					NULL);
@@ -1153,7 +1153,7 @@ static int	processLine(char *line, int lineLength)
 
 		ctx->haveSendThread = 1;
 		if (pthread_begin(&ctx->receiveBeaconsThread, NULL,
-				receiveBeacons, ctx))
+				receiveBeacons, ctx, "receiveBeacons"))
 		{
 			putSysErrmsg("IPND can't start receiveBeacons thread.",
 					NULL);
@@ -1162,7 +1162,7 @@ static int	processLine(char *line, int lineLength)
 
 		ctx->haveReceiveThread = 1;
 		if (pthread_begin(&ctx->expireNeighborsThread, NULL,
-					expireNeighbors, ctx))
+				expireNeighbors, ctx, "expireNeighbors"))
 		{
 			putSysErrmsg("IPND can't start expireNeighbors thread.",
 					NULL);

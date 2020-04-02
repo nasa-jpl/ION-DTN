@@ -504,7 +504,7 @@ int	main(int argc, char *argv[])
 
 	rtp.vduct = vduct;
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleNotices, &rtp, "ltpcli_receiver"))
+	if (pthread_begin(&receiverThread, NULL, handleNotices, &rtp, ductName))
 	{
 		putSysErrmsg("ltpcli can't create receiver thread", NULL);
 		return 1;

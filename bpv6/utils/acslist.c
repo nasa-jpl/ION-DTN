@@ -14,19 +14,37 @@
 
 static int printToStdout = 0;
 
-#define writeMemoOrStdout(args...) 								\
-	if (printToStdout == 0)										\
-	{												\
-		char acslistBuf[1024];									\
-		snprintf(acslistBuf, sizeof acslistBuf, args);						\
-		writeMemo(acslistBuf);									\
-	}															\
-	else														\
-    {                                                           \
-		printf(args);											\
-		printf("\n");                                           \
-    }
+#ifdef SOLARIS_COMPILER
 
+#define writeMemoOrStdout(args...) 					\
+	if (printToStdout == 0)						\
+	{								\
+		char acslistBuf[1024];					\
+		snprintf(acslistBuf, sizeof acslistBuf, __VA_ARGS__);	\
+		writeMemo(acslistBuf);					\
+	}								\
+	else								\
+	{								\
+		printf(__VA_ARGS__);					\
+		printf("\n");                                           \
+	}
+
+#else
+
+#define writeMemoOrStdout(args...) 					\
+	if (printToStdout == 0)						\
+	{								\
+		char acslistBuf[1024];					\
+		snprintf(acslistBuf, sizeof acslistBuf, args);		\
+		writeMemo(acslistBuf);					\
+	}								\
+	else								\
+    	{								\
+		printf(args);						\
+		printf("\n");                                           \
+	}
+
+#endif
 
 /* Counts total number of database errors discovered;
  * used to calculate task return code. */

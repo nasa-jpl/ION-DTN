@@ -692,7 +692,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 			timerParms.interval = timeoutSeconds;
 			timerParms.semaphore = vpoint->semaphore;
 			if (pthread_begin(&timerThread, NULL, timerMain,
-					&timerParms) < 0)
+					&timerParms, "bprcvTimer") < 0)
 			{
 				putSysErrmsg("Can't enable interval timer",
 						NULL);
