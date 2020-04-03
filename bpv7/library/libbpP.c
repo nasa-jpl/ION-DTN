@@ -7654,8 +7654,8 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 		}
 
 		serviceNbr = uvtemp;
-		isprintf(eidString, sizeof eidString, "imc:" UVAST_FIELDSPEC
-".%lu", groupNbr, serviceNbr);
+		isprintf(eidString, sizeof eidString,
+			"imc:" UVAST_FIELDSPEC ".%lu", groupNbr, serviceNbr);
 		break;
 
 	default:
@@ -8736,8 +8736,13 @@ static int	recordBundleEid(Bundle *bundle, EndpointId *eid)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 
-	readEid(eid, &eidString);
-	if (!parseEidString(eidString, &meid, &vscheme, &vschemeElt))
+	if (readEid(eid, &eidString) < 0)
+	{
+		putErrmsg("Can't read EID.", NULL);
+		return -1;
+	} 
+
+	if (parseEidString(eidString, &meid, &vscheme, &vschemeElt) == 0)
 	{
 		putErrmsg("Can't parse bundle EID.", NULL);
 		return -1;
@@ -8927,9 +8932,15 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (work->senderEid.schemeCodeNbr != unknown)
 	{
-		readEid(&(work->senderEid), &eidString);
-		if (!parseEidString(eidString, &senderMetaEid, &vscheme,
-				&vschemeElt))
+		if (readEid(&(work->senderEid), &eidString) < 0)
+		{
+		       putErrmsg("Can't read EID.", NULL);
+		       sdr_cancel_xn(sdr);
+		       return -1;
+		} 
+
+		if (parseEidString(eidString, &senderMetaEid, &vscheme,
+				&vschemeElt) == 0)
 		{
 			putErrmsg("Can't parse sender EID.", NULL);
 			sdr_cancel_xn(sdr);

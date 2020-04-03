@@ -738,8 +738,7 @@ int	imcHandlePetition(BpDelivery *dlv, unsigned char *cursor,
 	isMember = petition->isMember;
 	MRELEASE(petition);
 	if (parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme,
-			&vschemeElt) < 0
-	|| vscheme->codeNumber != 2)	/*	ipn			*/
+			&vschemeElt) == 0 || vscheme->codeNumber != 2)
 	{
 		/*	Can't determine sending node number.		*/
 
