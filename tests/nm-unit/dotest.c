@@ -11,12 +11,19 @@ TODO:
  */
 #include <stdio.h>
 
+// Headers under test
+#include "shared/utils/utils.h"
+#include "shared/msg/msg.h"
+
 // Test Utilities
 #include "check.h"
 #include "testutil.h"
+#include "unity.h"
 
 #define check(bool) if (!(bool)) { printf("END: FAILED at %s:%d after %i sub-checks passed\n", __FILE__, __LINE__, group_pass); return 0; } else { group_pass++; }
 #define end_group() printf("END: %i checks passed\n", group_pass); return 1;
+
+void adm_init_stub() { }
 
 int num_groups = 0, group_pass = 0, group_fail = 0;
 void init_group(char* str) {
@@ -25,11 +32,6 @@ void init_group(char* str) {
    group_pass = 0;
 }
 
-
-
-/*** nm/shared/msg.c ***/
-#include "shared/utils/utils.h"
-#include "shared/msg/msg.h"
 
 int test_cnt = 0;
 
@@ -201,17 +203,8 @@ int test_msg_grp(char *desc, char* cbor) {
    return 1;
 }
 
-
-int main(int argc, char **argv)
+void msg_encoding_tests()
 {
-   ari_t *ari;
-   
-   printf("Test Suite Built on %s %s\n", __DATE__, __TIME__);
-   // Setup
-   // TODO: Initialize Ion ICI (for now, assume ion is already running)
-   
-   utils_mem_int(); // Initialize utils
-
 #if 0 // AMPv6 Tests
    
    // Prototype test
@@ -240,17 +233,6 @@ int main(int argc, char **argv)
                              AMP_TYPE_CTRL));
 
 
-#if 0
-   // Fails: bad CBOR encoding.  ACE tool has bad hard-coded encoding value
-   fail_unless(test_simple_ari(
-//                  "ari:/IANA:Amp.agent/Ctrl.add_var(ari:/TESTS:Edd/Var.v1,(UINT)[UINT.2, UINT.2, +], UINT)",
-                  "ari:/IANA:Amp.agent/Ctrl.add_var(ari:/TESTS:Edd/Var.v1,(UINT)[UINT.2, UINT.2, ari:/IANA/Amp.Agent/Op.greaterEqual], UINT)",
-//                               "c115410005032426113c436276310044634564641483430243021818410114",
-//                               "c115410005032426113c427631455445535453434564641483430243021818410114",
-                  "c115410005032426113c42763145544553545343456464148343024302430214",
-                               AMP_TYPE_CTRL));
-#endif
-
    fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.1\"), ari:/IANA:dtn.bp_agent/rptt.endpoint_report(\"ipn:1.2\")], [])",
                                "c11541050502252382c7182d4101050112692269706e3a312e3122c7182d4101050112692269706e3a312e322200",
                                AMP_TYPE_CTRL));
@@ -264,7 +246,64 @@ int main(int argc, char **argv)
    fail_unless(test_simple_ari("ari:/IANA:Amp.Agent/Ctrl.add_sbr(ari:/test:/SBR.s1, 0, (BOOL)[ari:/test:/VAR.y, UINT.4, ari:/IANA/Amp.Agent/Op.greaterEqual], 20, 10, [ari:/IANA:amp.agent/ctrl.gen_rpts([ari:/IANA:DTN.bp_agent/rptt.full_report],[])], STR.SBR1)",
                                "c115410b0507242026161625122842733144746573740010832c417944746573744304851818412f140A81c1154105050225238187182D4100006453425231",
                                AMP_TYPE_CTRL));
+
+   fail_unless(test_simple_ari("add_rptt", "c115410205022425a4014101410182821041018c181d4100", AMP_TYPE_CTRL));
 #endif
+
+}
+
+int test_msgs_raw(char* input) {
+   int success = AMP_FAIL;
+   int rtv = 1;
+   blob_t *buf, *buf2;
+   msg_grp_t *grp;
+
+   // Construct input Data Blob
+   buf = utils_string_to_hex(input);
+   check(buf != NULL);
+
+   grp = msg_grp_deserialize(buf, &success);
+
+   buf2 = msg_grp_serialize_wrapper(grp);
+  
+   // Compare the blobs
+   if (blob_compare(buf, buf2) != 0)
+   {
+      printf("ERROR in test %d: Input does not match deserialized output\n", test_cnt);
+      char *msg_str = utils_hex_to_string(buf2->value, buf2->length);
+      printf("Input:  0x%s\nOutput: %s\n", input, msg_str);
+      SRELEASE(msg_str);
+      rtv = 0;
+   }
+   msg_grp_release(grp, 1);
+   blob_release(buf, 1);
+   blob_release(buf2, 1);
+
+   return rtv;
+}
+void msgs_encoding_tests() {
+   fail_unless(test_msgs_raw("0x8200587801816869706e3a322e36358383c115410405012581a701410141011a5e83f8b805012300838a181b41021a5e83f8b8050109878a181b4102050124c7182d410100050124c718414100000501248718cd410005012487182d41000501248718194100050124c718cd41010083a701410141011a5e83f8b800"));
+}
+
+
+int main(int argc, char **argv)
+{
+   printf("Test Suite Built on %s %s\n", __DATE__, __TIME__);
+#if 0
+   // Setup
+   if (ionAttach() < 0)
+   {
+      AMP_DEBUG_ERR("nm_dotest", "can't attach to ION.", NULL);
+      return -1;
+   }
+#endif
+   
+   utils_mem_int(); // Initialize utils
+   db_init("test_db", &adm_init_stub); // Initialize global structures (used in some nested functions)
+   
+   msg_encoding_tests();
+
+   msgs_encoding_tests();
    
    CHECK_FINISH;
 }

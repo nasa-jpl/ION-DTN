@@ -70,7 +70,6 @@ eid_t        agent_eid;
 void agent_register()
 {
 	msg_agent_t *msg = NULL;
-	int success;
 
 	if((msg = msg_agent_create()) == NULL)
 	{
@@ -144,14 +143,15 @@ int	main(int argc, char *argv[])
     /* Step 1: Process Command Line Arguments. */
     if(argc != 3)
     {
-        AMP_DEBUG_ALWAYS("main","Usage: nmagent <agent eid> <manager eid>\n", NULL);
-        AMP_DEBUG_ALWAYS("AMP Protocol Version %d - %s/%02d, built on %s %s\n", AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION, __DATE__, __TIME__);
-        return 1;
+        printf("Usage: nmagent <agent eid> <manager eid>\n");
+        printf("AMP Protocol Version %d - %s/%02d, built on %s %s\n", AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION, __DATE__, __TIME__);
+        return 0;
     }
     
     if(((argv[0] == NULL) || (strlen(argv[0]) <= 0)) ||
-       ((argv[1] == NULL) || (strlen(argv[1]) <= 0)) ||
-       ((argv[2] == NULL) || (strlen(argv[2]) <= 0)))
+       ((argv[1] == NULL) || (strlen(argv[1]) <= 0) || (strlen(argv[1]) >= AMP_MAX_EID_LEN)) ||
+       ((argv[2] == NULL) || (strlen(argv[2]) <= 0) || (strlen(argv[2]) >= AMP_MAX_EID_LEN))
+        )
     {
 		AMP_DEBUG_ERR("agent_main", "Invalid Parameters (NULL or 0).", NULL);
 		return -1;
@@ -193,7 +193,7 @@ int	main(int argc, char *argv[])
 	/* Step 3: Initialize objects and instrumentation. */
 
 	if((utils_mem_int()       != AMP_OK) ||
-	   (db_init("nmagent_db") != AMP_OK))
+	   (db_init("nmagent_db",&adm_init) != AMP_OK))
 	{
 		db_destroy();
 		AMP_DEBUG_ERR("agent_main","Unable to initialize DB.", NULL);

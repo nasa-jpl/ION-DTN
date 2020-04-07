@@ -61,7 +61,6 @@
 
 int blob_append(blob_t *blob, uint8_t *buffer, uint32_t length)
 {
-	uint32_t new_len = 0;
 	int success = AMP_OK;
 
 	if((blob == NULL) || (buffer == NULL) || (length == 0))
@@ -294,7 +293,6 @@ blob_t blob_deserialize(QCBORDecodeContext *it, int *success)
 blob_t blob_deserialize_as_bytes(QCBORDecodeContext *it, int *success, size_t len)
 {
 	blob_t result;
-    size_t i;
 
     AMP_DEBUG_ENTRY("blob_deserialize_as_bytes","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC"), %d", (uaddr) it, (uaddr) success, len);
     
@@ -325,6 +323,7 @@ blob_t *blob_deserialize_as_bytes_ptr(QCBORDecodeContext *it, int *success, size
 	{
 		AMP_DEBUG_ERR("blob_deserialize_as_byteS_ptr","Can't allocate new struct.", NULL);
 		*success = AMP_FAIL;
+		return result;
 	}
 
 	*result = blob_deserialize_as_bytes(it, success, len);
@@ -346,6 +345,7 @@ blob_t *blob_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	{
 		AMP_DEBUG_ERR("blob_deserialize_ptr","Can't allocate new struct.", NULL);
 		*success = AMP_FAIL;
+		return result;
 	}
 
 	*result = blob_deserialize(it, success);

@@ -58,7 +58,6 @@ char *cut_get_cbor_str(QCBORDecodeContext *it, int *success)
 	
 	if(value.uDataType == QCBOR_TYPE_TEXT_STRING)
 	{
-		size_t len = 0;
 		result = STAKE(value.val.string.len+1);
 		CHKNULL(result);
 		strncpy(result, value.val.string.ptr, value.val.string.len);
@@ -344,7 +343,6 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 	blob_t *result = NULL;
 	QCBOREncodeContext encoder;
 	QCBORError err;
-	size_t len;
 
 	if(item == NULL)
 	{
@@ -451,7 +449,6 @@ int cut_deserialize_vector(vector_t *vec, QCBORDecodeContext *it, vec_des_fn des
 int cut_serialize_vector(QCBOREncodeContext *encoder, vector_t *vec, cut_enc_fn enc_fn)
 {
 	vecit_t it;
-	int success;
     int err;
 	CHKUSR(encoder, AMP_FAIL);
 	CHKUSR(vec, AMP_FAIL);

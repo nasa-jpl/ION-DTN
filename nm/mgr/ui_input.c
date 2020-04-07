@@ -28,6 +28,8 @@
 
 #include "../shared/adm/adm.h"
 
+extern int *global_nm_running;
+
 
 /******************************************************************************
  *
@@ -53,7 +55,8 @@
 int ui_input_get_line(char *prompt, char **line, int max_len)
 {
 	int len = 0;
-	while(len == 0)
+
+	while(*global_nm_running && len == 0)
 	{
 		printf("%s\n", prompt);
 
@@ -366,13 +369,20 @@ ac_t *ui_input_ac(char *prompt)
 
 
 	num = ui_input_uint("# ARIs in the collection:");
+	if (num > VEC_MAX_IDX)
+	{
+		// Limited by the maximum vector size
+		AMP_DEBUG_ERR("ui_input_ac", "Invalid number (%d) entered", num);
+		ac_release(result, 1);
+		return NULL;
+	}
 
 	for(i = 0; i < num; i++)
 	{
-		char ari_prompt[20];
+		char ari_prompt[24];
 		sprintf(ari_prompt, "Build ARI %d", i);
 		ari_t *cur = ui_input_ari(ari_prompt, ADM_ENUM_ALL, TYPE_MASK_ALL);
-		if(vec_push(&(result->values), cur) != VEC_OK)
+		if(cur == NULL || vec_push(&(result->values), cur) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ac","Could not input ARI %d.", i);
 			ac_release(result, 1);

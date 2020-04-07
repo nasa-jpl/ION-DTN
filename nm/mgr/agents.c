@@ -31,25 +31,19 @@
 #include "nm_mgr.h"
 
 agent_autologging_cfg_t agent_log_cfg = {
-#if 1 // Defaults (nominal, disabled on startup)
+ // Defaults (nominal, disabled on startup)
 	0, // Disabled by default
 	0, // Log CBOR Hex on transmit
 	0, // Log CBOR Hex on receipt
-	1, // Log Parsed Report on receipt
-	1, // Log Parsed tables on Receipt
-	50, // Number of reports per file before rotation
-	1, // Create discrete sub-folders per agent
-	"." // root log directory will be the working directory mgr started from as default
-#else // Debug configuration (logging enabled by default)
-	1, // Enabled
-	1, // Log Transmitted CBOR
-	1, // Log CBOR Hex on receipt
-	1, // Log Parsed Report on receipt
-	1, // Log Parsed tables on Receipt
-	100, // Number of reports per file before rotation
-	1, // Create discrete sub-folders per agent
-	"." // root log directory will be the working directory mgr started from as default
+	0, // Log Parsed Report on receipt
+	0, // Log Parsed tables on Receipt
+#ifdef USE_JSON // Output in JSON format
+	0,
+	0,
 #endif
+	50, // Number of reports per file before rotation
+	0, // Create discrete sub-folders per agent
+	"." // root log directory will be the working directory mgr started from as default
 };
 
 
@@ -80,6 +74,7 @@ int agent_add(eid_t id)
 	agent_t *agent = NULL;
 
 	AMP_DEBUG_ENTRY("agent_add","(%s)", id.name);
+	printf("agent_add(%s)\n", id.name);
 
 
 	/* Check if the agent is already known. */
@@ -150,11 +145,10 @@ void agent_rotate_log(agent_t *agent, int force)
 				agent->log_file_num
 			);
 
-		agent->log_fd = fopen(fn, "w");
+		agent->log_fd = fopen(fn, "a");
 		if (agent->log_fd != NULL) {
 			agent->log_fd_cnt = 0;
 			agent->log_file_num++;
-			//printf("DEBUG: New log file %s opened for agent %s automatic report logging\n", fn, agent->eid.name);
 		} else {
 			AMP_DEBUG_ERR("Failed to open report log file (%s) for agent %s", fn, agent->eid.name);
 		}
@@ -243,7 +237,7 @@ agent_t* agent_create(eid_t *eid)
 	{
 		AMP_DEBUG_ERR("agent_create","Can'tmake agent reports vector.", NULL);
 		SRELEASE(agent);
-		agent = NULL;
+		return NULL;
 	}
 
 	agent->tbls = vec_create(AGENT_DEF_NUM_TBLS, tbl_cb_del_fn, tbl_cb_comp_fn, NULL, VEC_FLAG_AS_STACK, &success);

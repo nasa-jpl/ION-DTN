@@ -94,20 +94,21 @@ msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 		msg_agent_release(result, 1);
 		return NULL;
 	}
-	
+		
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&decoder);
 
 	// Copy String and ensure it is NULL-terminated
 	len = item.val.string.len;
-	if (len > AMP_MAX_EID_LEN)
+
+	if (len >= AMP_MAX_EID_LEN)
 	{
 	   AMP_DEBUG_WARN("msg_agent_deserialize", "String length (%d) greater than AMP_MAX_EID_LEN, truncating", len);
 	   len = AMP_MAX_EID_LEN - 1;
 	}
-	strncpy(tmp.name, item.val.string.ptr, item.val.string.len);
-	tmp.name[AMP_MAX_EID_LEN-1] = 0; // Ensure it's NULL-terminated
-	
+	memcpy(tmp.name, item.val.string.ptr, len);
+	tmp.name[len] = 0; // Ensure it's NULL-terminated
+
 	msg_agent_set_agent(result, tmp);	 
 	
 	return result;
@@ -191,7 +192,6 @@ msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success)
 {
 	msg_ctrl_t *result = msg_ctrl_create();
 	QCBORDecodeContext decoder;
-	QCBORItem it;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
@@ -294,6 +294,7 @@ msg_rpt_t* msg_rpt_create(char *rx_name)
 	int success;
 	msg_rpt_t *result = STAKE(sizeof(msg_rpt_t));
 	char *name_copy;
+	int len;
 	CHKNULL(result);
 
 	MSG_HDR_SET_OPCODE(result->hdr.flags,MSG_TYPE_RPT_SET);
@@ -306,13 +307,16 @@ msg_rpt_t* msg_rpt_create(char *rx_name)
 
 	if(rx_name != NULL)
 	{
-		if((name_copy = STAKE(strlen(rx_name) + 1)) == NULL)
+		len = strlen(rx_name);
+		if((name_copy = STAKE(len + 1)) == NULL)
 		{
 			vec_release(&(result->rx), 0);
 			SRELEASE(result);
 			return NULL;
 		}
-		strncpy(name_copy, rx_name, strlen(rx_name) + 1);
+		memcpy(name_copy, rx_name, len );
+		name_copy[len] = 0; // Ensure null-termination
+		
 		if(vec_push(&(result->rx), name_copy) != VEC_OK)
 		{
 			vec_release(&(result->rx), 0);
@@ -339,7 +343,6 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 {
 	msg_rpt_t *result;
 	QCBORDecodeContext it;
-	QCBORItem item;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
@@ -450,6 +453,7 @@ msg_tbl_t* msg_tbl_create(char *rx_name)
 	int success;
 	msg_tbl_t *result = STAKE(sizeof(msg_tbl_t));
 	char *name_copy;
+	int len;
 	CHKNULL(result);
 
 	MSG_HDR_SET_OPCODE(result->hdr.flags,MSG_TYPE_TBL_SET);
@@ -462,13 +466,16 @@ msg_tbl_t* msg_tbl_create(char *rx_name)
 
 	if(rx_name != NULL)
 	{
-		if((name_copy = STAKE(strlen(rx_name) + 1)) == NULL)
+		len = strlen(rx_name);
+		if((name_copy = STAKE(len + 1)) == NULL)
 		{
 			vec_release(&(result->rx), 0);
 			SRELEASE(result);
 			return NULL;
 		}
-		strncpy(name_copy, rx_name, strlen(rx_name) + 1);
+		memcpy(name_copy, rx_name, len);
+		name_copy[len] = 0; // Ensure enull-termination
+
 		if(vec_push(&(result->rx), name_copy) != VEC_OK)
 		{
 			vec_release(&(result->rx), 0);
@@ -493,7 +500,6 @@ msg_tbl_t *msg_tbl_deserialize(blob_t *data, int *success)
 {
 	msg_tbl_t *result;
 	QCBORDecodeContext it;
-	QCBORItem item;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);

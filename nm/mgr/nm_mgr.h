@@ -90,7 +90,7 @@ extern iif_t ion_ptr;
 int      main(int argc, char *argv[]);
 
 int      mgr_cleanup();
-int      mgr_init(char *argv[]);
+int      mgr_init(char *eid);
 void*    mgr_rx_thread(int *running);
 
 

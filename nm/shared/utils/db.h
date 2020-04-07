@@ -246,7 +246,7 @@ int  db_read_objs(char *name);
 
 void db_destroy();
 
-int db_init(char *name);
+int db_init(char *name, void (*adm_init_cb)());
 
 
 int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb);

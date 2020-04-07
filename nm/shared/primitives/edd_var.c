@@ -200,7 +200,6 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 {
 	var_t *result = NULL;
 	tnv_t val;
-	int success;
 
 	if((id == NULL) || (expr == NULL))
 	{
@@ -446,7 +445,6 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 #if AMP_VERSION < 7
 	blob_t *result;
 #endif
-	int success;
 	var_t *var = (var_t*) item;
 
 	CHKUSR(encoder, AMP_FAIL);
@@ -459,7 +457,7 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	blob_release(result, 1);
 #else
 	QCBOREncode_OpenArray(encoder);
-	err = ari_serialize(encoder, item);
+	err = ari_serialize(encoder, var->id);
 	QCBOREncode_CloseArrayOctet(encoder);
 #endif
 	
@@ -476,7 +474,7 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	blob_release(result, 1);
 #else
 	QCBOREncode_OpenArray(encoder);
-	err = tnv_serialize(encoder, item);
+	err = tnv_serialize(encoder, var->value);
 	QCBOREncode_CloseArrayOctet(encoder);
 #endif
 
@@ -493,7 +491,6 @@ blob_t*   var_serialize_wrapper(var_t *var)
 var_def_t  vardef_deserialize(QCBORDecodeContext *it, int *success)
 {
 	var_def_t result;
-	uint8_t *byte;
 
 	AMP_DEBUG_ENTRY("vardef_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 	memset(&result,0,sizeof(var_def_t));
