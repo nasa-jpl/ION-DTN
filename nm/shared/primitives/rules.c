@@ -633,14 +633,13 @@ sbr_def_t sbrdef_deserialize(QCBORDecodeContext *array_it, int *success)
 	QCBORDecode_EndOctets(array_it);
 #endif
 	
+	result.expr = *e;
+	SRELEASE(e); // Just release container since we shallow-copied contents.
+
 	if(*success != AMP_OK)
 	{
 		return result;
 	}
-
-	result.expr = *e;
-	SRELEASE(e); // Just release container since we shallow-copied contents.
-
 	
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_eval));
 	if(*success != AMP_OK)
