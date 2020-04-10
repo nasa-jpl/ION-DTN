@@ -544,7 +544,7 @@ int ui_automator_parse_input(char *str)
    char *token, *token2;
    eid_t agent_eid;
    agent_t *agent = NULL;
-   int ts, err_cnt;
+   int ts, err_cnt, i;
    char tmp;
    const char s[2] = AUT_DELIM;
    CHKZERO(str);
@@ -649,7 +649,7 @@ int ui_automator_parse_input(char *str)
       break;
    case 'L': // List Agents
       printf("Agents: ");
-      for(int i = vec_num_entries_ptr(&gMgrDB.agents); i > 0; i--)
+      for(i = vec_num_entries_ptr(&gMgrDB.agents); i > 0; i--)
       {
          agent = (agent_t*)vec_at(&gMgrDB.agents, i-1);
          printf("%s", agent->eid.name);
