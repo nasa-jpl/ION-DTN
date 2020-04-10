@@ -159,6 +159,12 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 AC_ARG_ENABLE(
     bpv6,
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
+    [VER=$(cat bpv7version.txt)
+     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
+     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
+     BUILD_BPv7=true
+     ENABLE_BPACS=no
+     echo "Building ION with BP version 7"],
     [VER=$(cat bpv6version.txt)
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
@@ -167,13 +173,7 @@ AC_ARG_ENABLE(
 		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
 		no)  ENABLE_BPACS=no;;
      esac
-     echo "Building ION with BP version 6"],
-    [VER=$(cat bpv7version.txt)
-     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
-     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
-     BUILD_BPv7=true
-     ENABLE_BPACS=no
-     echo "Building ION with BP version 7"])
+     echo "Building ION with BP version 6"])
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
 AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
 
