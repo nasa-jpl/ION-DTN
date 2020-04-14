@@ -1064,7 +1064,7 @@ QCBORError QCBORDecode_StartOctets(QCBORDecodeContext *me) {
 
    QCBORDecodeNesting *pNesting = &(me->nesting);
    QCBORError nReturn;
-   
+
    // Check if there are any bytes left in bufer
    if(UsefulInputBuf_BytesUnconsumed(&(me->InBuf)) == 0) {
       return QCBOR_ERR_NO_MORE_ITEMS;
@@ -1083,12 +1083,34 @@ QCBORError QCBORDecode_StartOctets(QCBORDecodeContext *me) {
    pNesting->pCurrent->uCount     = UINT16_MAX; // of indefinite length
 
    return QCBOR_SUCCESS;
-
-   
 }
+
 QCBORError QCBORDecode_EndOctets(QCBORDecodeContext *me) {
-   return DecodeNesting_BreakAscend(&(me->nesting));
+   QCBORDecodeNesting *pNesting = &(me->nesting);
+
+   // Close Nesting Level
+   QCBORError err = DecodeNesting_BreakAscend(&(me->nesting));  
+   if (err != QCBOR_SUCCESS) {
+      return err;
+   }
+
+   // If parent level is an IndefiniteLength array (or Octets sequence), we are done
+   if (DecodeNesting_IsIndefiniteLength(pNesting)) {
+      return err;
+   }
+
+   // Otherwise adjust count and pop nesting level as needed
+   pNesting->pCurrent->uCount--;
    
+   // Pop up nesting levels if the counts at the levels are zero
+   while(DecodeNesting_IsNested(pNesting) && 0 == pNesting->pCurrent->uCount) {
+      pNesting->pCurrent--;
+      if(!DecodeNesting_IsIndefiniteLength(pNesting)) {
+         pNesting->pCurrent->uCount--;
+      }
+   }
+
+   return err;
 }
 
 

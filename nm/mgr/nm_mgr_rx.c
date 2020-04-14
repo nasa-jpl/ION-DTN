@@ -88,7 +88,8 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 	{
 		AMP_DEBUG_WARN("msg_rx_data_rpt",
 				        "Received group is from an unknown sender (%s); ignoring it.",
-						meta->senderEid);
+						meta->senderEid.name);
+        agent_t *agent = (agent_t*) vec_at(&gMgrDB.agents, 0);
 	}
 	else
 	{
@@ -101,8 +102,20 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 
             if (agent->log_fd != NULL)
             {
-                ui_fprint_report(agent->log_fd, rpt);
-                agent->log_fd_cnt++;
+                if (agent_log_cfg.rx_rpt)
+                {
+                    ui_print_cfg_t fd = INIT_UI_PRINT_CFG_FD(agent->log_fd);
+                    ui_fprint_report(&fd, rpt);
+                    agent->log_fd_cnt++;
+                }
+#ifdef USE_JSON
+                if (agent_log_cfg.rx_json_rpt)
+                {
+                    ui_print_cfg_t fd = INIT_UI_PRINT_CFG_FD(agent->log_fd);
+                    ui_fprint_json_report(&fd, rpt);
+                    agent->log_fd_cnt++;
+                }
+#endif
             }
             
             if (status == VEC_OK)
@@ -117,7 +130,7 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
             }
 		}
 
-        if (agent->log_fd != NULL) {
+        if (agent->log_fd != NULL && agent_log_cfg.rx_rpt) {
             fflush(agent->log_fd); // Flush file after we've written set
 
             // And check for file rotation (we won't break up a set between files)
@@ -183,8 +196,21 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 
             if (agent->log_fd != NULL)
             {
-                ui_fprint_table(agent->log_fd, tbl);
-                agent->log_fd_cnt++;
+                if(agent_log_cfg.rx_tbl)
+                {
+                    ui_print_cfg_t fd = INIT_UI_PRINT_CFG_FD(agent->log_fd);
+                    ui_fprint_table(&fd, tbl);
+                    agent->log_fd_cnt++;
+                }
+#ifdef USE_JSON
+                if (agent_log_cfg.rx_json_tbl)
+                {
+                    ui_print_cfg_t fd = INIT_UI_PRINT_CFG_FD(agent->log_fd);
+                    ui_fprint_json_table(&fd, tbl);
+                    agent->log_fd_cnt++;
+                }
+#endif
+
             }
 
             if (status == VEC_OK)
@@ -199,7 +225,7 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
             }
 		}
 
-        if (agent->log_fd != NULL) {
+        if (agent->log_fd != NULL && agent_log_cfg.rx_tbl) {
             fflush(agent->log_fd); // Flush file after we've written set
 
             // And check for file rotation (we won't break up a set between files)
@@ -233,7 +259,7 @@ void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
  *
  * \par Process incoming messages from the DTNMP agent.
  *
- * \return POSIC thread info...
+ * \return POSIX thread info...
  *
  * \param[in]  threadId - Thread identifier...
  *
@@ -282,9 +308,15 @@ void *mgr_rx_thread(int *running)
                 if (agent && agent->log_fd) {
                     char *tmp = utils_hex_to_string(buf->value, buf->length);
                     fprintf(agent->log_fd, "RX: msgs:%s\n", tmp);
+                    fflush(agent->log_fd);
                     SRELEASE(tmp);
                 }
             }
+#if 1 // DEBUG
+            char *tmp = utils_hex_to_string(buf->value, buf->length);
+            printf("RX from %s: msgs:%s\n", meta.senderEid.name, tmp);
+            SRELEASE(tmp);
+#endif
 
         	grp = msg_grp_deserialize(buf, &success);
         	blob_release(buf, 1);

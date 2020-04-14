@@ -177,12 +177,12 @@ int rda_process_ctrls()
 	vec_idx_t i;
 	ctrl_t *ctrl;
 	time_t curtime = getCtime();
+    vecit_t it;
 
 	vec_lock(&(gVDB.ctrls));
-	for(i = 0; i < vec_num_entries(gVDB.ctrls); i++)
+    for(i = 0, it = vecit_first(&(gVDB.ctrls)); vecit_valid(it); it = vecit_next(it),i++)
 	{
-		int success;
-		ctrl = vec_at(&gVDB.ctrls, i);
+        ctrl = vecit_data(it);
 
 		if(ctrl != NULL)
 		{
@@ -197,7 +197,6 @@ int rda_process_ctrls()
 		}
 	}
 	vec_unlock(&(gVDB.ctrls));
-
 	return AMP_OK;
 }
 
@@ -315,7 +314,6 @@ void rda_scan_sbrs_cb(rh_elt_t *elt, void *tag)
 int rda_process_rules()
 {
     vecit_t it;
-    int success;
 
 	lockResource(&(gVDB.rules.lock));
     vec_lock(&(gAgentDb.rpt_msgs));
@@ -418,7 +416,6 @@ int rda_send_reports()
 {
     vecit_t it1;
     vecit_t it2;
-    int success;
     
     AMP_DEBUG_ENTRY("rda_send_reports","()", NULL);
 

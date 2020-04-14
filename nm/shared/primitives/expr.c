@@ -148,7 +148,6 @@ expr_t expr_copy(expr_t expr)
 
 expr_t *expr_copy_ptr(expr_t *expr)
 {
-	ac_t rpn;
 	expr_t *result = NULL;
 
 	if(expr == NULL)

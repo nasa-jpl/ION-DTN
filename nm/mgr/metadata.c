@@ -34,6 +34,7 @@
 metadata_t *meta_add_edd(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -41,6 +42,7 @@ metadata_t *meta_add_edd(amp_type_e base, ari_t *id, uint8_t adm_id, char *name,
 metadata_t *meta_add_cnst(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -48,6 +50,7 @@ metadata_t *meta_add_cnst(amp_type_e base, ari_t *id, uint8_t adm_id, char *name
 metadata_t* meta_add_op(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -55,6 +58,7 @@ metadata_t* meta_add_op(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, 
 metadata_t* meta_add_var(amp_type_e base, ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(base, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -62,6 +66,7 @@ metadata_t* meta_add_var(amp_type_e base, ari_t *id, uint8_t adm_id, char *name,
 metadata_t* meta_add_ctrl(ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -69,6 +74,7 @@ metadata_t* meta_add_ctrl(ari_t *id, uint8_t adm_id, char *name, char *descr)
 metadata_t* meta_add_macro(ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -76,6 +82,7 @@ metadata_t* meta_add_macro(ari_t *id, uint8_t adm_id, char *name, char *descr)
 metadata_t* meta_add_rpttpl(ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -83,6 +90,7 @@ metadata_t* meta_add_rpttpl(ari_t *id, uint8_t adm_id, char *name, char *descr)
 metadata_t* meta_add_tblt(ari_t *id, uint8_t adm_id, char *name, char *descr)
 {
 	metadata_t* meta = meta_create(AMP_TYPE_UNK, id, adm_id, name, descr);
+	CHKNULL(meta);
 	rhht_insert(&(gMgrDB.metadata), meta->id, meta, NULL);
 	return meta;
 }
@@ -182,7 +190,6 @@ meta_col_t* meta_filter(uint32_t adm_id, amp_type_e type)
 
 meta_fp_t *meta_get_parm(metadata_t *meta, uint8_t idx)
 {
-	meta_fp_t *result;
 	CHKNULL(meta);
 	return vec_at(&(meta->parmspec), idx);
 }

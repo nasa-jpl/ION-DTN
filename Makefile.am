@@ -84,7 +84,8 @@ EXTRA_DIST = 	\
 	$(dtpcextra) \
 	$(bsspextra) \
 	$(amsextra) \
-	$(cfdpextra)
+	$(cfdpextra) \
+	$(nmextra)
 #	$(twonodestcp_DATA) \
 #	$(threenodestcpltp_DATA)
 
@@ -144,6 +145,7 @@ build-man-directories:
 	mkdir -p $(top_builddir)/bssp/doc
 	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
+	mkdir -p $(top_builddir)/nm/doc
 
 
 bin_PROGRAMS = \
@@ -205,7 +207,8 @@ man_MANS = \
 	$(dtpcmans) \
 	$(bsspmans) \
 	$(amsmans) \
-	$(cfdpmans)
+	$(cfdpmans) \
+	$(nmmans)
 endif # end ENABLE_MANPAGES
 
 #################
@@ -2128,6 +2131,9 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 nmbin= nm_agent nm_mgr
 nmlib= libnm.la libnmAgentADM.la
 
+nmPODM1 = pod2man -s 1 -c "NM executables"
+nmPODM3 = pod2man -s 1 -c "NM libraries"
+
 # CBOR Library Sources
 nm_cbor_src = \
 	nm/contrib/QCBOR/src/UsefulBuf.c \
@@ -2135,7 +2141,9 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=7
+AMP_VERSION ?= 7
+$(warning "AMP_VERSION is ${AMP_VERSION}")
+NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
 
 # NM Shared library
 #  This library is standalone (no dependencies on other ION components)
@@ -2162,8 +2170,10 @@ libnm_la_SOURCES = $(nm_shared_src)
 libnm_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/$(BP_DIR)/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   $(NM_CBOR_CFLAGS)
-libnm_la_LIBADD = -lm
+# Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
+libnm_la_LIBADD = libici.la
 
+# Note: AMP Agent ADM must be built directly with the agent, whereas all other ADMs can be modularized as needed.
 nm_agent_SOURCES = \
 			nm/agent/ingest.c  		\
 			nm/agent/instr.c		\
@@ -2172,6 +2182,8 @@ nm_agent_SOURCES = \
 			nm/agent/ldc.c 			\
 			nm/agent/rda.c          \
 			nm/shared/msg/ion_if.c  \
+			nm/agent/adm_amp_agent_impl.c   \
+			nm/agent/adm_amp_agent_agent.c	\
 			nm/shared/adm/adm_init.c
 
 NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR)
@@ -2181,8 +2193,6 @@ nm_agent_ADM_SOURCES = \
 			$(BP_DIR)/adm/adm_bp_agent_agent.c      \
 			$(BP_DIR)/adm/adm_ion_bp_admin_impl.c	\
 			$(BP_DIR)/adm/adm_ion_bp_admin_agent.c  \
-			nm/agent/adm_amp_agent_impl.c   \
-			nm/agent/adm_amp_agent_agent.c	\
 			nm/agent/adm_ion_admin_agent.c 	\
 			nm/agent/adm_ion_admin_impl.c	\
 			nm/agent/adm_ionsec_admin_impl.c	\
@@ -2218,9 +2228,17 @@ nm_mgr_ADM_SOURCES += $(BP_DIR)/adm/adm_bpsec_mgr.c
 
 endif # end BUILD_BPv6
 
+nmextra = \
+	nm/doc/pod1/nm_agent.pod \
+	nm/doc/pod1/nm_mgr.pod
+
+nmmans = \
+	$(top_builddir)/nm/doc/nm_agent.1 \
+	$(top_builddir)/nm/doc/nm_mgr.1
+
 libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
-libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la -lm
+libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la
 
 
 nm_agent_LDADD = libici.la libbp.la libltp.la libnm.la libnmAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -2244,11 +2262,34 @@ nm_mgr_SOURCES =	\
 			nm/shared/msg/ion_if.c \
 			nm/shared/adm/adm_init.c
 
+# TODO: Split cJSON as a seperate configurable supporting library
+CIVETWEB_SOURCES = \
+	nm/contrib/civetweb/src/civetweb.c \
+	nm/contrib/civetweb/examples/rest/cJSON/cJSON.c \
+	nm/contrib/civetweb/examples/rest/cJSON/cJSON_Utils.c \
+	nm/mgr/nm_rest.c
+CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contrib/civetweb/examples/rest/cJSON
+CIVETWEB_LDFLAGS = -ldl
+CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
+
 nm_mgr_LDADD = libnm.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
 nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
+
+if BUILD_NM_REST
+nm_mgr_LDFLAGS += $(CIVETWEB_LDFLAGS)
+nm_mgr_CFLAGS += $(CIVETWEB_INCLUDES) $(CIVETWEB_CFLAGS)
+nm_mgr_SOURCES += $(CIVETWEB_SOURCES)
+
+endif
+
+$(top_builddir)/nm/doc/%.1: nm/doc/pod1/%.pod
+	$(nmPODM1) $< $@
+
+$(top_builddir)/nm/doc/%.3: nm/doc/pod3/%.pod
+	$(nmPODM3) $< $@
 
 
 ##########################
@@ -2284,12 +2325,12 @@ buildcheck: $(check_PROGRAMS)
 
 # Runs the tests listed in "normaltests"
 test: buildcheck
-	cd tests && ./runtestset normaltests
+	cd $(srcdir)/tests && ./runtestset normaltests
 
 # Uses the runtest script that simply runs "dotest" including compiled tests.
 # Could also use ./runtestset alltests, they should be equivalent.
 test-all: buildcheck
-	cd tests && ./runtests
+	cd $(srcdir)/tests && ./runtests
 
 # Builds a testset file with the same name as a mercurial branch.
 # This is intended as a per-branch unit test.
@@ -2297,12 +2338,12 @@ test-branch: buildcheck
 	@echo
 	@echo "You need mercurial (hg) installed for this."
 	@echo
-	cd tests && hg branch | xargs -L1 ./runtestset
+	cd $(srcdir)/tests && hg branch | xargs -L1 ./runtestset
 
 # Catch-all for tests, basically any string after "make test-" will run a
 # testset file with the same name as that string.
 test-%: buildcheck
-	cd tests && ./runtestset $*
+	cd $(srcdir)/tests && ./runtestset $*
 
 # Runtest will make a file called "retest" containing all "failed" tests.
 # The file will not exist at first (resulting in an error).
@@ -2327,6 +2368,26 @@ tests_library_libtestutil_la_SOURCES = \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+# C TAP Harness Library.  Provides enhanced functions for writing unit tests and outputting TAP-conformant output
+#  Note: TAP = Test anything Protocol
+#  Note: This library includes a harness to run tests similar to runtests, but which is ot being used at this time.
+# TESTTAPOBJS = tests/library/libtesttap.la
+# TEST_TAP_DIR = contrib/c-tap-harness/tests/tap
+# TESTTAPCFLAGS = -I$(srcdir)/contrib/c-tap-harness
+# check_LTLIBRARIES = $(TESTTAPOBJS)
+# tests_library_libtesttap_la_SOURCES = \
+# 	$(TEST_TAP_DIR)/basic.c \
+# 	$(TEST_TAP_DIR)/float.c
+# tests_library_libtesttap_la_CFLAGS = $(TESTTAPCFLAGS) $(AM_CFLAGS)
+
+# Unity Test Framework (http://throwtheswitch.org/unity) Utility
+TESTUNITYOBJS = tests/library/libtestunity.la
+TEST_UNITY_DIR = contrib/c-unity-harness/tests/unity
+TESTUNITYCFLAGS = -I$(srcdir)/contrib/Unity/src
+check_LTLIBRARIES += $(TESTUNITYOBJS)
+tests_library_libtestunity_la_SOURCES = $(srcdir)/contrib/Unity/src/unity.c
+tests_library_libtestunity_la_CFLAGS = $(TESTUNITYCFLAGS) $(AM_CFLAGS)
+
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here.  Just make a
 #    script named "dotest" that is executable.
@@ -2341,15 +2402,35 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
 	tests/issue-334-cfdp-transaction-id/dotest \
-	tests/nm-unit/dotest
+	tests/nm-unit/dotest \
+	tests/nm-unit/utils/vector/dotest \
+	tests/nm-unit/utils/rhht/dotest
+#	tests/nm-unit/primitives/ari/dotest
+
 if BUILD_BPv6
 check_PROGRAMS += \
 	tests/issue-279-bpMemo-timeline/driver
 endif #end BUILD_BPv6
 
-tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES)
-tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS)
-tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN
+# Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
+tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_shared_src) $(nm_agent_ADM_SOURCES)
+#tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
+tests_nm_unit_dotest_LDADD = libici.la libbp.la libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
+tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DTEST_MAIN -DUSE_MALLOC \
+	-I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm/shared
+
+tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c $(nm_shared_src)
+tests_nm_unit_utils_vector_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
+tests_nm_unit_utils_vector_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
+
+tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(nm_shared_src)
+tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
+tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+
+#tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
+#tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
+#tests_nm_unit_primitives_ari_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS)
+
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)

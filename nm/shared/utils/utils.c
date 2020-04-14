@@ -188,6 +188,7 @@ unsigned long utils_atox(char *s, int *success)
 		case 'D': case 'd': result += 13 * mult; break;
 		case 'E': case 'e': result += 14 * mult; break;
 		case 'F': case 'f': result += 15 * mult; break;
+		case '\n': break; // Ignore newline characters (ie: copy/paste line-wrapping errors)
 		default:
 			AMP_DEBUG_ERR("utils_atox","x Non-hex character: %c", s[i]);
 			*success = AMP_FAIL;

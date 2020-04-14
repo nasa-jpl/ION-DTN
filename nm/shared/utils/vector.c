@@ -38,7 +38,6 @@ int p_vec_default_comp(void *i1, void *i2)
 
 int vec_append(vector_t *dest, vector_t *src)
 {
-	int result = VEC_OK;
 	vecit_t it;
 
 	if((dest == NULL) || (src == NULL))
@@ -505,7 +504,21 @@ int vec_blob_add(vector_t *vec, blob_t value, vec_idx_t *idx)
 {
 	int success = VEC_OK;
 	blob_t *new_entry;
-
+	vecit_t it;
+	vec_idx_t tmp_idx;
+	
+	// Check for uniqueness
+    tmp_idx = vec_find(vec, &value, &success);
+	if (success == VEC_OK)
+	{
+		if (idx != NULL)
+		{
+			*idx = tmp_idx;
+		}
+		return success;
+	}
+	
+	// Create a copy to insert
 	if((new_entry = blob_create(value.value, value.length, value.alloc)) == NULL)
 	{
 		return VEC_SYSERR;

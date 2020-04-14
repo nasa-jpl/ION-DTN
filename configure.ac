@@ -3,7 +3,7 @@
 # June 14, 2013
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.60)
+AC_PREREQ(2.69)
 AC_INIT(ion, open source 3.7.1/4.0.0, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
@@ -159,6 +159,12 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 AC_ARG_ENABLE(
     bpv6,
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
+    [VER=$(cat bpv7version.txt)
+     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
+     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
+     BUILD_BPv7=true
+     ENABLE_BPACS=no
+     echo "Building ION with BP version 7"],
     [VER=$(cat bpv6version.txt)
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
@@ -167,15 +173,10 @@ AC_ARG_ENABLE(
 		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
 		no)  ENABLE_BPACS=no;;
      esac
-     echo "Building ION with BP version 6"],
-    [VER=$(cat bpv7version.txt)
-     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
-     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
-     BUILD_BPv7=true
-     ENABLE_BPACS=no
-     echo "Building ION with BP version 7"])
+     echo "Building ION with BP version 6"])
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
 AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
+
 
 #
 # allow the user running configure to disable IMC
@@ -370,6 +371,14 @@ else
 	echo "Build against libncurses... no"
 fi
 AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
+
+AC_ARG_ENABLE(
+        nmrest,
+        [AC_HELP_STRING([--enable-nmrest], [Enable REST API for NM Mgr])],
+        [BUILD_NM_REST=true],
+        [BUILD_NM_REST=false]
+        )
+AM_CONDITIONAL([BUILD_NM_REST], [test "x$BUILD_NM_REST" = "xtrue"])
 
 
 # Check for libraries.

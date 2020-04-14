@@ -62,7 +62,10 @@ typedef struct {
 	int rx_cbor; // Log received data as raw CBOR HEX strings, ie: RX: msgs:0x...
 	int rx_rpt; // Log all reports to files upon receipt
 	int rx_tbl; // Log all tables tof files upon receipt
-
+#ifdef USE_JSON // Output reports/tables in JSON format (experimental)
+	int rx_json_rpt;
+	int rx_json_tbl;
+#endif
 	int limit; // Number of entries (reports+tables) per file
 	int agent_dirs; // If true, create discrete directories for each agent
 	char dir[32]; // directory to save report logs to (or place sub-directories in)

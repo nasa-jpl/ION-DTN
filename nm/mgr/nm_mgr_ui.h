@@ -62,6 +62,14 @@
 #define UI_CTRL_MENU  2
 #define UI_DB_MENU	  3
 
+
+typedef enum mgr_ui_mode_enum {
+   MGR_UI_STANDARD, // Standard Shell-Based UI
+   MGR_UI_NCURSES, // NCURSES-Based UI (currently a compile-time flag mutually exclusive with MGR_UI_STANDARD)
+   MGR_UI_AUTOMATOR, // Special Altenrative UI Optimized for Automation
+} mgr_ui_mode_enum;
+extern mgr_ui_mode_enum mgr_ui_mode;
+
 extern int gContext;
 
 int ui_build_control(agent_t* agent);
@@ -186,6 +194,21 @@ typedef enum ui_cb_return_values_t
    
 } ui_cb_return_values_t;
 
+typedef struct ui_print_cfg_t
+{
+   FILE *fd;
+#ifdef USE_CIVETWEB
+   struct mg_connection *conn;
+#endif
+} ui_print_cfg_t;
+
+#ifdef USE_CIVETWEB
+#define INIT_UI_PRINT_CFG_FD(fd) {fd, NULL};
+#define INIT_UI_PRINT_CFG_CONN(conn) { NULL, conn };
+#else
+#define INIT_UI_PRINT_CFG_FD(fd) {fd};
+#endif
+
 /** Callback function prototype for ui_menu_listing
  * @param[in] idx Index into the menu listing configuration for the currently selected item.
  * @param[in] keypress The key that the user pressed to make the current selection. 
@@ -275,7 +298,7 @@ void ui_display_to_file_close();
  *   In stdio mode, this is a wrapper to printf.
  */
 #define ui_printf(...) ui_fprintf(NULL, __VA_ARGS__)
-void ui_fprintf(FILE *fd, const char* format, ...);
+void ui_fprintf(ui_print_cfg_t *fd, const char* format, ...);
 
 /** Signals the completion of a ui_printf based dialog.
  *    If file redirection is active, this function will cause the file to be closed
@@ -308,5 +331,7 @@ void ui_display_init(char* title);
 #define ui_display_init(title) ui_printf("\n\n--------------------\n%s\n--------------------\n", title)
 #endif
 
+/** Log information on transmitted messages (dependent on logging settings) */
+void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg);
 
 #endif // _NM_MGR_UI_H

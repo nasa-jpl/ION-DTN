@@ -6,8 +6,7 @@
  * NOTICE: Backwards compatibility will be removed in the near future.
  */
 #ifndef AMP_VERSION
-#define AMP_VERSION 6
-#error "DEBUG: AMP VERSION NOT DEFINED"
+#define AMP_VERSION 7
 #endif
 
 #define AMP_PROTOCOL_URL "https://datatracker.ietf.org/doc/draft-birrane-dtn-amp"
