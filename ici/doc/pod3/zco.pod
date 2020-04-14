@@ -50,9 +50,9 @@ object in SDR heap space (identified by heap address stored in an
 heap space (identified by heap address).  Each protocol header or
 trailer capsule indicates the length and the address (within SDR
 heap space) of a single protocol header or trailer at some layer
-of the stack.  Note that the source data object for each
-ZCO extent is specified indirectly, by reference to a content lien
-reference structure to a heap space object, mass storage item, or file;
+of the stack.  Note that the source data object for each ZCO extent
+is specified indirectly, by reference to a content lien reference
+structure that refers to a heap space object, mass storage item, or file;
 the reference structures contain the actual locations of the source data
 together with reference counts, enabling any number of "clones" of a
 given ZCO extent to be constructed without consuming additional resources.
@@ -309,13 +309,13 @@ prepend and append functions return 0 on success, -1 on any error.
 =item Object zco_header_text(Sdr sdr, Object zco, int skip, vast *length)
 
 Skips over the first I<skip> headers of I<zco> and returns the address of
-the text of next header, placing the length of the header's text in
+the text of the next header, placing the length of the header's text in
 I<*length>.  Returns 0 on any error.
 
 =item Object zco_trailer_text(Sdr sdr, Object zco, int skip, vast *length)
 
 Skips over the first I<skip> trailers of I<zco> and returns the address of
-the text of next trailer, placing the length of the trailer's text in
+the text of the next trailer, placing the length of the trailer's text in
 I<*length>.  Returns 0 on any error.
 
 =item void zco_destroy(Sdr sdr, Object zco)

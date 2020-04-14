@@ -495,6 +495,7 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	PsmAddress	addr;
+	char		hostNameBuf[MAXHOSTNAMELEN + 1];
 	Object		elt;
 
 	schemeObj = sdr_list_data(sdr, schemeElt);
@@ -523,8 +524,29 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	vscheme->schemeElt = schemeElt;
 	istrcpy(vscheme->name, scheme.name, sizeof vscheme->name);
 	vscheme->nameLength = scheme.nameLength;
-	vscheme->endpoints = sm_list_create(bpwm);
 	vscheme->codeNumber = scheme.codeNumber;
+	if (vscheme->codeNumber != imc)
+	{
+		if (vscheme->codeNumber == ipn)
+		{
+			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
+				getOwnNodeNbr());
+		}
+		else	/*	Assume it's dtn.			*/
+		{
+#ifdef ION_NO_DNS
+			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
+#else
+			getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
+#endif
+			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.15s://%.60s.dtn", vscheme->name,
+				hostNameBuf);
+		}
+	}
+
+	vscheme->endpoints = sm_list_create(bpwm);
 	if (vscheme->endpoints == 0)
 	{
 		oK(sm_list_delete(bpwm, vschemeElt, NULL, NULL));
@@ -584,7 +606,6 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 static void	startScheme(VScheme *vscheme)
 {
 	Sdr		sdr = getIonsdr();
-	char		hostNameBuf[MAXHOSTNAMELEN + 1];
 	MetaEid		metaEid;
 	VScheme		*vscheme2;
 	PsmAddress	vschemeElt;
@@ -597,24 +618,6 @@ static void	startScheme(VScheme *vscheme)
 
 	if (vscheme->codeNumber != imc)
 	{
-		if (vscheme->codeNumber == ipn)
-		{
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
-				getOwnNodeNbr());
-		}
-		else	/*	Assume it's dtn.			*/
-		{
-#ifdef ION_NO_DNS
-			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
-#else
-			getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
-#endif
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.15s://%.60s.dtn", vscheme->name,
-				hostNameBuf);
-		}
-
 		if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
 				&vschemeElt) == 0)
 		{
@@ -2745,22 +2748,6 @@ void	destroyBpTimelineEvent(Object timelineElt)
 	sdr_list_delete(sdr, timelineElt, NULL, NULL);
 }
 
-static void	destroyCtDueEvent(Sdr sdr, Bundle *bundle)
-{
-	Object	eventObj;
-	BpEvent	event;
-	Object	trackingElt;
-	Object	bundleObj;
-
-	eventObj = sdr_list_data(sdr, bundle->ctDueElt);
-	sdr_read(sdr, (char *) &event, eventObj, sizeof(BpEvent));
-	trackingElt = event.ref;
-	bundleObj = sdr_list_data(sdr, trackingElt);
-	bp_untrack(bundleObj, trackingElt);
-	sdr_list_delete(sdr, trackingElt, NULL, NULL);
-	destroyBpTimelineEvent(bundle->ctDueElt);
-}
-
 static void	purgeStationsStack(Bundle *bundle)
 {
 	Sdr	sdr = getIonsdr();
@@ -2938,7 +2925,7 @@ incomplete bundle.", NULL);
 
 	if (bundle.ctDueElt)
 	{
-		destroyCtDueEvent(sdr, &bundle);
+		bibeCtCancel(&bundle);
 	}
 
 	/*	Remove bundle from applications' bundle tracking lists.	*/
@@ -2995,7 +2982,7 @@ incomplete bundle.", NULL);
 	eraseEid(&bundle.destination);
 	eraseEid(&bundle.reportTo);
 	sdr_free(sdr, bundleObj);
-	bpDiscardTally(bundle.priority, bundle.payload.length);
+	bpDiscardTally(bundle.classOfService, bundle.payload.length);
 	bpDbTally(BP_DB_DISCARD, bundle.payload.length);
 	noteBundleRemoved(&bundle);
 	return 0;
@@ -6480,7 +6467,7 @@ when asking for status reports.");
 				bundle.payload.length);
 	}
 
-	bpSourceTally(bundle.priority, bundle.payload.length);
+	bpSourceTally(bundle.classOfService, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
 		iwatch('a');
@@ -9022,7 +9009,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
-	bpRecvTally(bundle->priority, bundle->payload.length);
+	bpRecvTally(bundle->classOfService, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
 		iwatch('y');
@@ -10526,10 +10513,7 @@ int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 		/*	Bundle was un-queued before transmission,
 		 *	so disable custody transfer timer.		*/
 
-		destroyCtDueEvent(sdr, &bundle);
-		bundle.ctDueElt = 0;
-		bundle.xmitId = 0;
-		bundle.deadline = 0;
+		bibeCtCancel(&bundle);
 	}
 
 	return enqueueToLimbo(&bundle, bundleAddr);
@@ -10934,8 +10918,17 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 	sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 
-	/*	At this point we check the stewardshipAccepted flag.
-	 *	If the bundle is critical then copies have been queued
+	/*	At this point we adjust the stewardshipAccepted flag.
+	 *	If reliable transmission is requested for this
+	 *	bundle, then stewardship is accepted pending further
+	 *	checks.							*/
+
+	if (bundle.ancillaryData.flags & BP_RELIABLE)
+	{
+		stewardshipAccepted = 1;
+	}
+
+	/*	If the bundle is critical then copies have been queued
 	 *	for transmission on all possible routes and none of
 	 *	them are subject to reforwarding (see notes on this in
 	 *	bpReforwardBundle).  Since this bundle is not subject
@@ -11654,10 +11647,11 @@ int	bpReforwardBundle(Object bundleAddr)
 
 	if (bundle.ctDueElt)
 	{
-		destroyCtDueEvent(sdr, &bundle);
-		bundle.ctDueElt = 0;
-		bundle.xmitId = 0;
-		bundle.deadline = 0;
+		if (bibeCtRetry(&bundle) < 0)
+		{
+			putErrmsg("Can't reschedule CT timeout.", NULL);
+			return -1;
+		}
 	}
 
 	if (bundle.fwdQueueElt)

@@ -37,7 +37,6 @@
  **              bcbDefaultConstruct
  **              bcbDefaultEncrypt
  **
- **                                              bcbDefaultConstruct
  **                                              bcbDefaultDecrypt
  **
  **
@@ -385,7 +384,6 @@ int	bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock 
 	CHKERR(asb);
 
 	/* Step 1: Populate block-instance-agnostic parts of the ASB. */
-	asb->targets = sdr_list_create(sdr);
 	asb->contextId = suite;
 	asb->parmsData = sdr_list_create(sdr);
 

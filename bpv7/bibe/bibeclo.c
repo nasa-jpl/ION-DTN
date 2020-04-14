@@ -108,7 +108,7 @@ static void	handleQuit(int signum)
 typedef struct
 {
 	char		sourceEid[SDRSTRING_BUFSZ];
-	char		destinationEid[SDRSTRING_BUFSZ];
+	char		peerEid[SDRSTRING_BUFSZ];
 	Object		bclaAddr;
 	BpSAP		sap;
 	ReqAttendant	attendant;
@@ -167,8 +167,10 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	uvtemp = disposition;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	Serialize sequences.					*/
+	/*	Serialize disposition scope report.			*/
 
+	uvtemp = sdr_list_length(sdr, signal->sequences);
+	oK(cbor_encode_array_open(uvtemp, &cursor));
 	while ((elt = sdr_list_first(sdr, signal->sequences)))
 	{
 		sequenceAddr = sdr_list_data(sdr, elt);
@@ -200,7 +202,7 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 
 	/*	Reset the signal for future BPDU reception.		*/
 
-	signal->deadline = (time_t) -1;
+	signal->deadline = (time_t) MAX_TIME;
 	sdr_write(sdr, stp->bclaAddr, (char *) &bcla, sizeof(Bcla));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -219,10 +221,11 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 		return -1;
 	}
 
-	if (bp_send(stp->sap, stp->destinationEid, NULL,
+	if (bpSend(&(stp->sap->endpointMetaEid), stp->peerEid, NULL,
 			bcla.fwdLatency + BIBE_SIGNAL_TIME_MARGIN,
 			bcla.classOfService, NoCustodyRequested, 0,
-			0, &(bcla.ancillaryData), payloadZco, NULL) < 1)
+			0, &(bcla.ancillaryData), payloadZco, NULL,
+			BP_BIBE_SIGNAL) < 1)
 	{
 		putErrmsg("Can't send custody signal.", NULL);
 		result = -1;
@@ -271,6 +274,11 @@ static void	*sendSignals(void *parm)
 		arrivalTime += (bcla.fwdLatency + BIBE_SIGNAL_TIME_MARGIN);
 		for (i = 0; i < CT_DISPOSITIONS; i++)
 		{
+			if (bcla.signals[i].sequences == 0)
+			{
+				continue;
+			}
+
 			if (bcla.signals[i].deadline <= arrivalTime)
 			{
 				if (sendSignal(stp, i) < 0)
@@ -300,13 +308,15 @@ static void	*sendSignals(void *parm)
 int	bibeclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char			*destEid = (char *) a1;
+	char			*peerEid = (char *) a1;
+	char			*destEid = (char *) a2;
 #else
 int	main(int argc, char *argv[])
 {
-	char			*destEid = argc > 1 ? argv[1] : NULL;
+	char			*peerEid = argc > 1 ? argv[1] : NULL;
+	char			*destEid = argc > 2 ? argv[2] : NULL;
 #endif
-	Sdr			sdr = getIonsdr();
+	Sdr			sdr;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
 	Outduct			outduct;
@@ -319,25 +329,25 @@ int	main(int argc, char *argv[])
 	ReqAttendant		attendant;
 	unsigned char		*buffer;
 	pthread_t		signalThread;
-	Object			aduZco;
+	Object			bpduZco;
+	vast			bpduZcoLength;
 	BpAncillaryData		ancillaryData;
 	unsigned char		*cursor;
 	uvast			uvtemp;
 	DtnTime			deadline;
 	int			hdrlen;
-	Object			bpduZco;
 	Object			newBundle;
 	Bundle			bundle;
 	BpEvent			event;
 	Object			elt;
 
-	if (destEid == NULL)
+	if (peerEid == NULL || destEid == NULL)
 	{
-		PUTS("Usage: bibeclo <remote node's ID>");
+		PUTS("Usage: bibeclo <peer node's ID> <destination node's ID>");
 		return 0;
 	}
 
-	istrcpy(stp.destinationEid, destEid, SDRSTRING_BUFSZ);
+	istrcpy(stp.peerEid, peerEid, SDRSTRING_BUFSZ);
 	if (bpAttach() < 0)
 	{
 		putErrmsg("bibeclo can't attach to BP.", NULL);
@@ -358,10 +368,10 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	bibeFind(destEid, &bclaAddr, &bclaElt);
+	bibeFind(peerEid, &bclaAddr, &bclaElt);
 	if (bclaElt == 0)
 	{
-		putErrmsg("No BIBE CLA for this destination node", destEid);
+		putErrmsg("No such bcla.", peerEid);
 		return -1;
 	}
 
@@ -369,6 +379,7 @@ int	main(int argc, char *argv[])
 
 	/*	All command-line arguments are now validated.		*/
 
+	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
 	sdr_string_read(sdr, stp.sourceEid, bcla.source);
@@ -376,10 +387,14 @@ int	main(int argc, char *argv[])
 			sizeof(Outduct));
 	sdr_exit_xn(sdr);
 	ttl = bcla.fwdLatency + bcla.rtnLatency;
+	if (bcla.lifespan > ttl)
+	{
+		ttl = bcla.lifespan;
+	}
 
 	/*	Note: we open this SAP with the Detain flag set to 1
 	 *	so that newly transmitted bundles can be tracked in
-	 *	the Bcla's list of bundles subject to custodial
+	 *	the bcla's list of bundles subject to custodial
 	 *	retransmission driven by timeout expiration.		*/
 
 	if (bp_open_source(stp.sourceEid, &sap, 1) < 0)
@@ -407,7 +422,9 @@ int	main(int argc, char *argv[])
 
 	/*	Allocate buffer for admin record header.		*/
 
-	buffer = (unsigned char *) MTAKE(1	/*	Array open	*/
+	buffer = (unsigned char *) MTAKE(1	/*	Array (2) open	*/
+					+ 9	/*	Admin rec type	*/
+					+ 1	/*	Array (3) open	*/
 					+ 9	/*	Xmit ID		*/
 					+ 9);	/*	Deadline	*/
 	if (buffer == NULL)
@@ -432,33 +449,60 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	writeMemo("[i] bibeclo is running.");
+	writeMemoNote("[i] bibeclo is running for", destEid);
+	writeMemoNote("[i]     transmitting to", peerEid);
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		if (bpDequeue(vduct, &aduZco, &ancillaryData, 0) < 0)
+		if (bpDequeue(vduct, &bpduZco, &ancillaryData, 0) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			shutDownClo();
 			break;
 		}
 
-		if (aduZco == 0)	 /*	Outduct closed.		*/
+		if (bpduZco == 0)	 /*	Outduct closed.		*/
 		{
 			writeMemo("[i] bibeclo outduct closed.");
 			sm_SemEnd(bibecloSemaphore(NULL));/*	Stop.	*/
 			continue;
 		}
 
-		if (aduZco == 1)	/*	Got a corrupt bundle.	*/
+
+		if (bpduZco == 1)	/*	Got a corrupt bundle.	*/
 		{
 			continue;	/*	Get next bundle.	*/
 		}
 
-		/*	Serialize the admin record header.		*/
+		/*	The BPDU (an administrative record containing
+		 *	the entire outbound bundle; the payload of
+		 *	the encapsulating bundle) will be formed by
+		 *	prepending an administrative record header
+		 *	to a clone of the outbound bundle.		*/
+
+		bpduZcoLength = zco_length(sdr, bpduZco);
+
+		/*	Serialize the admin record, an array of 2
+		 *	elements.					*/
 
 		cursor = buffer;
+		uvtemp = 2;
+		oK(cbor_encode_array_open(uvtemp, &cursor));
+
+		/*	First element of array is admin record type.	*/
+
+		uvtemp = BP_BIBE_PDU;
+		oK(cbor_encode_integer(uvtemp, &cursor));
+
+		/*	Next element of array is admin record content.
+		 *	For a BPDU, admin record content is an array
+		 *	of 3 elements.					*/ 
+
 		uvtemp = 3;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
+
+		/*	First two elements of content array are xmit
+		 *	count and deadline.				*/
+
 		if (ancillaryData.flags & BP_RELIABLE)
 		{
 			bcla.count += 1;
@@ -477,12 +521,21 @@ int	main(int argc, char *argv[])
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
 
+		/*	Last element of content array is the
+		 *	encapsulated bundle, represented as a byte
+		 *	string.						*/
+
+		uvtemp = bpduZcoLength;
+		cbor_encode_byte_string(NULL, uvtemp, &cursor);
 		hdrlen = cursor - buffer;
 
-		/*	Embed bundle in admin record.			*/
+		/*	Embed bundle in admin record by prepending
+		 *	the admin record header to the encapsulated
+		 *	bundle (a ZCO).					*/
 
 		CHKZERO(sdr_begin_xn(sdr));
-		zco_prepend_header(sdr, aduZco, (char *) buffer, hdrlen);
+		zco_prepend_header(sdr, bpduZco, (char *) buffer, hdrlen);
+		zco_bond(sdr, bpduZco);
 		if (sdr_end_xn(sdr))
 		{
 			putErrmsg("Can't prepend header; CLO stopping.", NULL);
@@ -490,30 +543,11 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		/*	Impose flow control.				*/
+		/*	Send bundle whose payload is the ZCO
+		 *	comprising the admin record header and the
+		 *	encapsulated bundle.				*/
 
-		bpduZco = ionCreateZco(ZcoZcoSource, aduZco, 0,
-				zco_length(sdr, aduZco), bcla.classOfService,
-				0, ZcoOutbound, &attendant);
-		CHKZERO(sdr_begin_xn(sdr));
-		zco_destroy(sdr, aduZco);
-		if (sdr_end_xn(sdr))
-		{
-			putErrmsg("Can't destroy old ZCO; CLO stopping.", NULL);
-			shutDownClo();
-			continue;
-		}
-
-		if (bpduZco == 0)
-		{
-			putErrmsg("Can't get outbound space for BPDU.", NULL);
-			shutDownClo();
-			continue;
-		}
-
-		/*	Send bundle containing the encapsulated bundle.	*/
-
-		switch (bpSend(&(sap->endpointMetaEid), destEid, NULL, ttl,
+		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL, ttl,
 				bcla.classOfService, NoCustodyRequested, 0, 0,
 			       	&bcla.ancillaryData, bpduZco, &newBundle,
 				BP_BIBE_PDU))
@@ -553,7 +587,7 @@ int	main(int argc, char *argv[])
 					continue;
 				}
 
-				sdr_stage(sdr, (char *) & bundle, newBundle,
+				sdr_stage(sdr, (char *) &bundle, newBundle,
 					sizeof(Bundle));
 				bundle.xmitId = bcla.count;
 				bundle.deadline = deadline;
@@ -563,13 +597,13 @@ int	main(int argc, char *argv[])
 				if ((bundle.ctDueElt =
 					insertBpTimelineEvent(&event)) == 0)
 				{
-					putErrmsg("Can't track bundle.", NULL);
+					putErrmsg("Can't schedule rfwd.", NULL);
 					sdr_cancel_xn(sdr);
 					shutDownClo();
 					continue;
 				}
 
-				sdr_write(sdr, newBundle, (char *) & bundle,
+				sdr_write(sdr, newBundle, (char *) &bundle,
 						sizeof(Bundle));
 			}
 

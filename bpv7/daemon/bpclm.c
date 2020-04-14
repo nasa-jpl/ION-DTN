@@ -478,7 +478,7 @@ int	main(int argc, char *argv[])
 		if (getOutboundBundle(outflows, vplan, &bundleElt, &bundle) < 0)
 		{
 			sdr_exit_xn(sdr);
-			putErrmsg("CLO can't get next outbound bundle.", NULL);
+			putErrmsg("bpclm can't get outbound bundle.", NULL);
 			running = 0;		/*	Stop daemon.	*/
 			continue;
 		}

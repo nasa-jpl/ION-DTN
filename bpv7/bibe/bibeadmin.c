@@ -49,7 +49,7 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	isprintf(buffer, sizeof buffer, "Syntax error at line %d of bibeadmin.c",
+	isprintf(buffer, sizeof buffer, "Syntax error @ line %d of bibeadmin.c",
 			lineNbr);
 	printText(buffer);
 }
@@ -66,14 +66,14 @@ static void	printUsage()
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a bcla <destination EID> <fwd> <rtn> <priority> <ordinal> \
-[<data label>]");
+	PUTS("\t   a bcla <peer EID> <fwd> <rtn> <lifespan> <priority> \
+<ordinal> [<data label>]");
 	PUTS("\tc\tChange");
-	PUTS("\t   a bcla <destination EID> <fwd> <rtn> <priority> <ordinal> \
-[<data label>]");
+	PUTS("\t   a bcla <peer EID> <fwd> <rtn> <lifespan> <priority> \
+<ordinal> [<data label>]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
-	PUTS("\t   {d|i} bcla <destination EID>");
+	PUTS("\t   {d|i} bcla <peer EID>");
 	PUTS("\tl\tList");
 	PUTS("\t   l bcla <scheme name>");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
@@ -97,6 +97,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	unsigned int	fwdLatency;
 	unsigned int	rtnLatency;
+	int		lifespan;
 	unsigned char	priority;
 	unsigned char	ordinal;
 	unsigned int	label;
@@ -113,12 +114,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 		flags = BP_BEST_EFFORT | BP_RELIABLE;
 		switch (tokenCount)
 		{
-		case 8:
-			label = strtoul(tokens[7], NULL, 0);
+		case 9:
+			label = strtoul(tokens[8], NULL, 0);
 			flags |= BP_DATA_LABEL_PRESENT;
 			break;
 
-		case 7:
+		case 8:
 			label = 0;
 			break;
 
@@ -129,10 +130,11 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		fwdLatency = strtoul(tokens[3], NULL, 0);
 		rtnLatency = strtoul(tokens[4], NULL, 0);
-		priority = strtoul(tokens[5], NULL, 0);
-		ordinal = strtoul(tokens[6], NULL, 0);
-		bibeAdd(tokens[2], fwdLatency, rtnLatency, priority, ordinal,
-				label, flags);
+		lifespan = strtoul(tokens[5], NULL, 0);
+		priority = strtoul(tokens[6], NULL, 0);
+		ordinal = strtoul(tokens[7], NULL, 0);
+		bibeAdd(tokens[2], fwdLatency, rtnLatency, lifespan, priority,
+				ordinal, label, flags);
 		return;
 	}
 
@@ -143,6 +145,7 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	unsigned int	fwdLatency;
 	unsigned int	rtnLatency;
+	int		lifespan;
 	unsigned char	priority;
 	unsigned char	ordinal;
 	unsigned int	label;
@@ -159,12 +162,12 @@ static void	executeChange(int tokenCount, char **tokens)
 		flags = BP_BEST_EFFORT | BP_RELIABLE;
 		switch (tokenCount)
 		{
-		case 8:
-			label = strtoul(tokens[7], NULL, 0);
+		case 9:
+			label = strtoul(tokens[8], NULL, 0);
 			flags |= BP_DATA_LABEL_PRESENT;
 			break;
 
-		case 7:
+		case 8:
 			label = 0;
 			break;
 
@@ -175,10 +178,11 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		fwdLatency = strtoul(tokens[3], NULL, 0);
 		rtnLatency = strtoul(tokens[4], NULL, 0);
-		priority = strtoul(tokens[5], NULL, 0);
-		ordinal = strtoul(tokens[6], NULL, 0);
-		bibeChange(tokens[2], fwdLatency, rtnLatency, priority, ordinal,
-				label, flags);
+		lifespan = strtoul(tokens[5], NULL, 0);
+		priority = strtoul(tokens[6], NULL, 0);
+		ordinal = strtoul(tokens[7], NULL, 0);
+		bibeChange(tokens[2], fwdLatency, rtnLatency, lifespan,
+				priority, ordinal, label, flags);
 		return;
 	}
 
@@ -211,25 +215,26 @@ static void	executeDelete(int tokenCount, char **tokens)
 static void	printBcla(Bcla *bcla)
 {
 	Sdr	sdr = getIonsdr();
-	char	destinationEid[SDRSTRING_BUFSZ];
+	char	peerEid[SDRSTRING_BUFSZ];
 	char	buffer[1024];
 
-	sdr_string_read(sdr, destinationEid, bcla->dest);
+	sdr_string_read(sdr, peerEid, bcla->dest);
 	if (bcla->ancillaryData.flags & BP_DATA_LABEL_PRESENT)
 	{
-		isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  rtn: %lu  \
-priority: %c  ordinal: %c  count: " UVAST_FIELDSPEC, destinationEid,
-			bcla->fwdLatency, bcla->rtnLatency,
-			bcla->classOfService, bcla->ancillaryData.ordinal,
-			bcla->count);
+		isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  \
+rtn: %lu  lifespan: %d priority: %c  ordinal: %c  data label: %lu  \
+count: " UVAST_FIELDSPEC, peerEid, bcla->fwdLatency, bcla->rtnLatency,
+			bcla->lifespan, bcla->classOfService,
+			bcla->ancillaryData.ordinal,
+			bcla->ancillaryData.dataLabel, bcla->count);
 	}
 	else
 	{
-		isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  rtn: %lu  \
-priority: %c  ordinal: %c  data label: %lu  count: " UVAST_FIELDSPEC,
-			destinationEid, bcla->fwdLatency, bcla->rtnLatency,
-			bcla->classOfService, bcla->ancillaryData.ordinal,
-			bcla->ancillaryData.dataLabel, bcla->count);
+		isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  \
+rtn: %lu  lifespan: %d priority: %c  ordinal: %c  \
+count: " UVAST_FIELDSPEC, peerEid, bcla->fwdLatency, bcla->rtnLatency,
+			bcla->lifespan, bcla->classOfService,
+			bcla->ancillaryData.ordinal, bcla->count);
 	}
 
 	printText(buffer);

@@ -183,7 +183,7 @@ typedef struct
 	 *	to any particular bundle.				*/
 
 	Scalar		overbooked;	/*	Bytes needing reforward.*/
-	Scalar		protected;	/*	Bytes not overbooked.	*/
+	Scalar		committed;	/*	Bytes not overbooked.	*/
 	double		maxVolumeAvbl;
 	size_t		bundleECCC;
 	time_t		eto;		/*	Earliest xmit oppor'ty.	*/

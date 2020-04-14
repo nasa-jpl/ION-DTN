@@ -100,6 +100,8 @@ extern "C" {
 
 #define	TYPICAL_STACK_OVERHEAD		(36)
 
+#define	MAX_TIME			((unsigned int) ((1U << 31) - 1))
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.

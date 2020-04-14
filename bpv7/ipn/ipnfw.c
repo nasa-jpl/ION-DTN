@@ -436,7 +436,9 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 		&& bundle->payload.length > 1
 		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT))
 		{
-//printf("*** fragmenting; to node %lu, volume avbl %lu, bundle ECCC %lu.\n", route->toNodeNbr, route->maxVolumeAvbl, route->bundleECCC);
+#if 0
+printf("*** fragmenting; to node %lu, volume avbl %lu, bundle ECCC %lu.\n", route->toNodeNbr, route->maxVolumeAvbl, route->bundleECCC);
+#endif
 			if (proactivelyFragment(bundle, &bundleObj, route) < 0)
 			{
 				putErrmsg("Anticipatory fragmentation failed.",
@@ -608,8 +610,8 @@ static int	manageOverbooking(CgrRoute *route, Bundle *newBundle,
 		return 0;	/*	No overbooking to manage.	*/
 	}
 
-	protected += (ONE_GIG * route->protected.gigs)
-			+ route->protected.units;
+	protected += (ONE_GIG * route->committed.gigs)
+			+ route->committed.units;
 	if (protected == 0.0)
 	{
 		TRACE(CgrPartialOverbooking, overbooked);
@@ -1328,21 +1330,18 @@ int	main(int argc, char *argv[])
 
 		/*	Note any applicable class of service override.	*/
 
+		bundle.priority = bundle.classOfService;
+		bundle.ordinal = bundle.ancillaryData.ordinal;
 		if (ipn_lookupOvrd(bundle.ancillaryData.dataLabel,
 				bundle.id.source.ssp.ipn.nodeNbr,
 				bundle.destination.ssp.ipn.nodeNbr, &ovrdAddr))
 		{
 			sdr_read(sdr, (char *) &ovrd, ovrdAddr,
 					sizeof(IpnOverride));
-			if (ovrd.priority == (unsigned char) -1)
+			if (ovrd.priority != (unsigned char) -1)
 			{
-				/*	No CoS override.		*/
+				/*	Override requested CoS.		*/
 
-				bundle.priority = bundle.classOfService;
-				bundle.ordinal = bundle.ancillaryData.ordinal;
-			}
-			else	/*	Override requested CoS.		*/
-			{
 				bundle.priority = ovrd.priority;
 				bundle.ordinal = ovrd.ordinal;
 			}

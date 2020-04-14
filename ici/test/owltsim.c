@@ -28,7 +28,7 @@ typedef struct
 	sm_SemId	mutex;
 	pthread_t	timerThread;
 	int		verbose;
-	unsigned short	modulus;
+	short		modulus;
 } SimThreadParms;
 
 typedef struct
@@ -137,6 +137,7 @@ length %d from %s destined for %s.\n", timebuf, dg->length, stp->fromNode,
 static void	*receiveUdp(void *parm)
 {
 	SimThreadParms		*stp = (SimThreadParms *) parm;
+	unsigned int		datagramCount = 0;
 	char			*buffer;
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
@@ -242,7 +243,24 @@ static void	*receiveUdp(void *parm)
 			break;
 		}
 
-		if (stp->modulus != 0)
+		datagramCount++;
+		if (stp->modulus < 0)
+		{
+			if (datagramCount % (0 - stp->modulus) == 0)
+			{
+				if (stp->verbose)
+				{
+					writeTimestampLocal(time(NULL),
+						timebuf);
+					printf("at %s owlt DETERMINISTICALLY \
+DROPPED a dg of length %d from %s destined for %s.\n", timebuf, datagramLen,
+						stp->fromNode, stp->toNode);
+				}
+
+				continue;
+			}
+		}
+		else if (stp->modulus > 0)
 		{
 			if ((rand() % stp->modulus) == 0)
 			{
@@ -370,9 +388,11 @@ int	main(int argc, char *argv[])
 		puts("numbers are intended to make the configuration file");
 		puts("somewhat self-documenting.  <from> may be '*' if 'all'.");
 		puts("Normally <modulus> should always be zero.  If you use");
-		puts("a non-zero value for <modulus> then owltsim will");
+		puts("a value greater than 0 for <modulus> then owltsim will");
 		puts("randomly discard one out of every <modulus> datagrams");
-		puts("it receives on this simulated link.");
+		puts("it receives on this simulated link; if you use a value");
+		puts("N where N < 0 for <modulus> then owlt will discard");
+		puts("every Nth datagram it receives on this simulated link.");
 		owltsimExit(0);
 	}
 
@@ -390,7 +410,7 @@ int	main(int argc, char *argv[])
 		lineNbr++;
 		memset((char *) &stpBuf, 0, sizeof(SimThreadParms));
 		stpBuf.verbose = verbose;
-		switch (fscanf(configFile, "%32s %32s %hu %255s %hu %hu %hu",
+		switch (fscanf(configFile, "%32s %32s %hu %255s %hu %hu %hd",
 				stpBuf.toNode, stpBuf.fromNode,
 				&stpBuf.myPortNbr, stpBuf.destHostName,
 				&stpBuf.destPortNbr, &stpBuf.owlt,

@@ -25,11 +25,11 @@ LDFLAGS = -fPIC -shared
 LD = $(TLD) $(LDFLAGS)
 
 PUBINCLS = \
+	$(INCL)/bpsec.h \
 	$(INCL)/bp.h
 
 BPINCLS = \
 	$(API)/bpP.h \
-	$(API)/bpsec.h \
 	$(API)/saga.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \

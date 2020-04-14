@@ -245,7 +245,7 @@ extern int		bp_open_source(	char *eid,
 			 *	Returns 0 on success, -1 on any error.	*/
 
 #define BP_PARSE_QUALITY_OF_SERVICE_USAGE				\
-	"<custody-requested>.<priority>[.<ordinal>" 	\
+	"<custody-requested>.<priority>[.<ordinal>" 			\
 	"[.<unreliable>.<critical>[.<data-label>]]]"
 
 extern int		bp_parse_quality_of_service(	const char *token,
