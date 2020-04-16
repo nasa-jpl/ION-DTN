@@ -20,12 +20,12 @@ cp Makefile.winion Makefile
 
 cp /bin/make.exe /bin/gmake.exe
 
-mkdir -p /opt/bin
-mkdir -p /opt/lib
-mkdir -p /opt/include
-mkdir -p /opt/man/man1
-mkdir -p /opt/man/man3
-mkdir -p /opt/man/man5
+mkdir -p /local/bin
+mkdir -p /local/lib
+mkdir -p /local/include
+mkdir -p /local/man/man1
+mkdir -p /local/man/man3
+mkdir -p /local/man/man5
 
 for f in ${makefiles[@]}; do 
 	fname=`echo "$f/Makefile"`
