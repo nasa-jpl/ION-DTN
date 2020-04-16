@@ -632,7 +632,7 @@ sbr_def_t sbrdef_deserialize(QCBORDecodeContext *array_it, int *success)
 	expr_t *e = expr_deserialize_ptr(array_it, success);
 	QCBORDecode_EndOctets(array_it);
 #endif
-	
+
 	result.expr = *e;
 	SRELEASE(e); // Just release container since we shallow-copied contents.
 

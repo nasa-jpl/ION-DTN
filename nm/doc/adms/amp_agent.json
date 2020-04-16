@@ -458,37 +458,6 @@
     "description": "This constant is the time epoch for the Agent."
   }],
 
-  "Mac": [{
-    "name": "user_desc",
-    "parmspec": [{
-        "type": "AC",
-        "name": "RPTTs"
-    },
-    {
-        "type": "AC",
-        "name": "Rules"
-    }],
-
-    "definition": [{
-        "ns": "Amp/Agent",
-        "nm": "ctrl.desc_rptt",
-        "ap": [{
-            "type": "ParmName",
-            "value": "RPTTs"
-        }]
-      },
-      {
-        "ns": "Amp/Agent",
-        "nm": "ctrl.desc_rule",
-        "ap": [{
-            "type": "ParmName",
-            "value": "Rules"
-        }]
-      }
-    ],
-    "description": "This macro lists all of the user defined data."
-  }],
-
   "Oper": [{
       "name": "plusINT",
       "result-type": "INT",

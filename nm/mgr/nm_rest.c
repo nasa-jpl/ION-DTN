@@ -22,6 +22,8 @@
 #include "nm_mgr_ui.h"
 #include "nm_mgr_print.h"
 
+#include "ion.h" // Used only to retrieve IONVERSIONNUMBER for reference
+
 struct mg_context *ctx;
 
 #define MAX_INPUT_BYTES 4096
@@ -180,7 +182,8 @@ static int versionHandler(struct mg_connection *conn, void *cbdata)
 	cJSON_AddStringToObject(obj, "civetweb_version", CIVETWEB_VERSION);
 	cJSON_AddNumberToObject(obj, "amp_version", AMP_VERSION);
     cJSON_AddStringToObject(obj, "amp_uri", AMP_PROTOCOL_URL);
-
+	cJSON_AddStringToObject(obj, "amp_version_str", AMP_VERSION_STR);
+    
     cJSON_AddStringToObject(obj, "bp_version",
 #ifdef BUILD_BPv6
                             "6"
@@ -190,7 +193,6 @@ static int versionHandler(struct mg_connection *conn, void *cbdata)
                             "?"
 #endif
        );
-      
                             
     cJSON_AddStringToObject(obj, "build_date", __DATE__);
     cJSON_AddStringToObject(obj, "build_time", __TIME__);

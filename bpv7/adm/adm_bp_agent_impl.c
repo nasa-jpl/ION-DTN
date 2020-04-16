@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-09  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -23,6 +23,7 @@
 
 
 /*   STOP CUSTOM INCLUDES HERE  */
+
 
 #include "shared/adm/adm.h"
 #include "adm_bp_agent_impl.h"
@@ -215,7 +216,7 @@ tnv_t *dtn_bp_agent_get_num_registrations(tnvc_t *parms)
 	NmbpNode node_state;
 	bpnm_node_get(&node_state);
 
-	result = tnv_from_uvast(node_state.nbrOfRegistrations);
+	result = tnv_from_uint(node_state.nbrOfRegistrations);
 	
 	/*
 	 * +-------------------------------------------------------------------------+

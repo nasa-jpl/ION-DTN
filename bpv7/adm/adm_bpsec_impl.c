@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-15  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -155,6 +155,56 @@ tnv_t *dtn_bpsec_meta_organization(tnvc_t *parms)
 
 /* Constant Functions */
 /* Table Functions */
+
+
+/*
+ * This table lists all keys in the security policy database.
+ */
+tbl_t *dtn_bpsec_tblt_keys(ari_t *id)
+{
+	tbl_t *table = NULL;
+	if((table = tbl_create(id)) == NULL)
+	{
+		return NULL;
+	}
+
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION tblt_keys BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION tblt_keys BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return table;
+}
+
+
+/*
+ * This table lists supported ciphersuites.
+ */
+tbl_t *dtn_bpsec_tblt_ciphersuites(ari_t *id)
+{
+	tbl_t *table = NULL;
+	if((table = tbl_create(id)) == NULL)
+	{
+		return NULL;
+	}
+
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |START CUSTOM FUNCTION tblt_ciphersuites BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	/*
+	 * +-------------------------------------------------------------------------+
+	 * |STOP CUSTOM FUNCTION tblt_ciphersuites BODY
+	 * +-------------------------------------------------------------------------+
+	 */
+	return table;
+}
 
 
 /*
@@ -847,7 +897,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes(tnvc_t *parms)
 
 
 /*
- * Last bpsec update
+ * Last BPSEC update
  */
 tnv_t *dtn_bpsec_get_last_update(tnvc_t *parms)
 {
@@ -1520,7 +1570,7 @@ tnv_t *dtn_bpsec_get_num_fwd_bib_bytes_src(tnvc_t *parms)
 
 
 /*
- * Last bpsec update from SRC
+ * Last BPSEC update from SRC
  */
 tnv_t *dtn_bpsec_get_last_update_src(tnvc_t *parms)
 {
@@ -1577,7 +1627,7 @@ tnv_t *dtn_bpsec_get_last_reset(tnvc_t *parms)
 		return result;
 	}
 
-	result->type = AMP_TYPE_UINT;
+	result->type = AMP_TYPE_TS;
 	result->value.as_uint = misc.last_reset;
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1593,7 +1643,7 @@ tnv_t *dtn_bpsec_get_last_reset(tnvc_t *parms)
 
 /*
  * This control causes the Agent to reset all counts associated with block or byte statistics and to se
- * t the Last Reset Time of the bpsec EDD data to the time when the control was run.
+ * t the Last Reset Time of the BPsec EDD data to the time when the control was run.
  */
 tnv_t *dtn_bpsec_ctrl_rst_all_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -1648,7 +1698,7 @@ tnv_t *dtn_bpsec_ctrl_rst_src_cnts(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control deletes a key from the bpsec system.
+ * This control deletes a key from the BPsec system.
  */
 tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -1691,7 +1741,7 @@ tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control adds a key to the bpsec system.
+ * This control adds a key to the BPsec system.
  */
 tnv_t *dtn_bpsec_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -1732,10 +1782,10 @@ tnv_t *dtn_bpsec_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 
 
 /*
- * This control configures policy on the bpsec protocol implementation that describes how BIB blocks sho
- * uld be applied to bundles in the system. This policy is captured as a rule which states when transmi
- * tting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of typ
- * e target should have a BIB added to them using the given ciphersuite and the given key.
+ * This control configures policy on the BPsec protocol implementation that describes how BIB blocks sh
+ * ould be applied to bundles in the system. This policy is captured as a rule which states when transm
+ * itting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of ty
+ * pe target should have a BIB added to them using the given ciphersuite and the given key.
  */
 tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -1798,9 +1848,9 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control removes any configured policy on the bpsec protocol implementation that describes how BI
- * B blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a source
- *  endpoint Id, a destination Id, and a target block type.
+ * This control removes any configured policy on the BPsec protocol implementation that describes how B
+ * IB blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a sourc
+ * e endpoint Id, a destination Id, and a target block type.
  */
 tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -1836,10 +1886,10 @@ tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control configures policy on the bpsec protocol implementation that describes how BCB blocks sho
- * uld be applied to bundles in the system. This policy is captured as a rule which states when transmi
- * tting a bundle from the given source endpoint id to the given destination endpoint id, blocks of typ
- * e target should have a bcb added to them using the given ciphersuite and the given key.
+ * This control configures policy on the BPsec protocol implementation that describes how BCB blocks sh
+ * ould be applied to bundles in the system. This policy is captured as a rule which states when transm
+ * itting a bundle from the given source endpoint id to the given destination endpoint id, blocks of ty
+ * pe target should have a bcb added to them using the given ciphersuite and the given key.
  */
 tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -1904,9 +1954,9 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /*
- * This control removes any configured policy on the bpsec protocol implementation that describes how BC
- * B blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a source
- *  endpoint id, a destination endpoint id, and a target block type.
+ * This control removes any configured policy on the BPsec protocol implementation that describes how B
+ * CB blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a sourc
+ * e endpoint id, a destination endpoint id, and a target block type.
  */
 tnv_t *dtn_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {

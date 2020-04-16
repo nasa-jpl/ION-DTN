@@ -2141,8 +2141,8 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-AMP_VERSION ?= 7
-$(warning "AMP_VERSION is ${AMP_VERSION}")
+AMP_VERSION ?= 8
+#$(warning "AMP_VERSION is ${AMP_VERSION}")
 NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
 
 # NM Shared library
@@ -2237,7 +2237,7 @@ nmmans = \
 	$(top_builddir)/nm/doc/nm_mgr.1
 
 libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
 libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la
 
 
@@ -2245,7 +2245,7 @@ nm_agent_LDADD = libici.la libbp.la libltp.la libnm.la libnmAgentADM.la $(LIBOBJ
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/nm \
-                  -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   -DAGENT_ROLE $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 

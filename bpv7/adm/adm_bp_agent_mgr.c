@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-09  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -26,13 +26,15 @@
 #include "nm_mgr_ui.h"
 
 
+
+
 #define _HAVE_DTN_BP_AGENT_ADM_
 #ifdef _HAVE_DTN_BP_AGENT_ADM_
 static vec_idx_t g_dtn_bp_agent_idx[11];
+
 void dtn_bp_agent_init()
 {
-
-	adm_add_adm_info("bp_agent", ADM_ENUM_DTN_BP_AGENT);
+	adm_add_adm_info("dtn_bp_agent", ADM_ENUM_DTN_BP_AGENT);
 
 	VDB_ADD_NN(((ADM_ENUM_DTN_BP_AGENT * 20) + ADM_META_IDX), &(g_dtn_bp_agent_idx[ADM_META_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_DTN_BP_AGENT * 20) + ADM_RPTT_IDX), &(g_dtn_bp_agent_idx[ADM_RPTT_IDX]));
@@ -41,10 +43,14 @@ void dtn_bp_agent_init()
 
 
 	dtn_bp_agent_init_meta();
-
+	dtn_bp_agent_init_cnst();
 	dtn_bp_agent_init_edd();
+	dtn_bp_agent_init_op();
+	dtn_bp_agent_init_var();
 	dtn_bp_agent_init_ctrl();
+	dtn_bp_agent_init_mac();
 	dtn_bp_agent_init_rpttpl();
+	dtn_bp_agent_init_tblt();
 }
 
 void dtn_bp_agent_init_meta()
@@ -121,13 +127,13 @@ void dtn_bp_agent_init_edd()
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_BY_PRIORITY);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bundles_by_priority", "number of bundles for the given priority. Priority is given as a priority mask where Bulk=0x1, normal=0x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned count");
-	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 
+	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_BY_PRIORITY);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "bytes_by_priority", "number of bytes of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles matching any of the masked priorities will be included in the returned count.");
-	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 
+	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BUNDLES_BY_PRIORITY);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "src_bundles_by_priority", "number of bundles sourced by this node of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles sourced by this node and matching any of the masked priorities will be included in the returned count.");
@@ -136,8 +142,8 @@ void dtn_bp_agent_init_edd()
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BYTES_BY_PRIORITY);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "src_bytes_by_priority", "number of bytes sourced by this node of the given priority. Priority is given as a priority mask where bulk=0x1, normal=0x2, express=0x4. Any bundles sourced by this node and matching any of the masked priorities will be included in the returned count");
-	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 
+	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FRAGMENTED_BUNDLES);
 	adm_add_edd(id, NULL);
 	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "num_fragmented_bundles", "number of fragmented bundles");
@@ -149,8 +155,8 @@ void dtn_bp_agent_init_edd()
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "num_failed_by_reason", "number of bundles failed for any of the given reasons. (noInfo=0x1, Expired=0x2, UniFwd=0x4, Cancelled=0x8, NoStorage=0x10, BadEID=0x20, NoRoute=0x40, NoContact=0x80, BadBlock=0x100)");
-	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 
+	meta_add_parm(meta, "mask", AMP_TYPE_UINT);
 	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_BUNDLES_DELETED);
 	adm_add_edd(id, NULL);
 	meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "num_bundles_deleted", "number of bundles deleted by this node");
@@ -194,16 +200,17 @@ void dtn_bp_agent_init_edd()
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_ACTIVE);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "endpoint_active", "is the given endpoint active? (0=no)");
-	meta_add_parm(meta, "endpoint_name", AMP_TYPE_STR);
 
+	meta_add_parm(meta, "endpoint_name", AMP_TYPE_STR);
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_SINGLETON);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "endpoint_singleton", "is the given endpoint singleton? (0=no)");
-	meta_add_parm(meta, "endpoint_name", AMP_TYPE_STR);
 
+	meta_add_parm(meta, "endpoint_name", AMP_TYPE_STR);
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_POLICY);
 	adm_add_edd(id, NULL);
 	meta = meta_add_edd(AMP_TYPE_UINT, id, ADM_ENUM_DTN_BP_AGENT, "endpoint_policy", "Does the endpoint abandon on fail (0=no)");
+
 	meta_add_parm(meta, "endpoint_name", AMP_TYPE_STR);
 }
 
@@ -238,7 +245,9 @@ void dtn_bp_agent_init_mac()
 
 void dtn_bp_agent_init_rpttpl()
 {
+
 	metadata_t *meta = NULL;
+
 	rpttpl_t *def = NULL;
 
 	/* FULL_REPORT */
@@ -254,27 +263,20 @@ void dtn_bp_agent_init_rpttpl()
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_PEND_DIS));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_IN_CUST));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_PEND_REASSEMBLY));
-
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BUNDLES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BUNDLES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BUNDLES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BYTES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BYTES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BYTES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FRAGMENTED_BUNDLES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FRAGMENTS_PRODUCED));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(4)));
@@ -284,7 +286,6 @@ void dtn_bp_agent_init_rpttpl()
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(64)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(128)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(256)));
-
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_BUNDLES_DELETED));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_FAILED_CUSTODY_BUNDLES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_FAILED_CUSTODY_BYTES));
@@ -296,17 +297,14 @@ void dtn_bp_agent_init_rpttpl()
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_NAMES));
 	adm_add_rpttpl(def);
 	meta_add_rpttpl(def->id, ADM_ENUM_DTN_BP_AGENT, "full_report", "This is all known meta-data, EDD, and VAR values known by the agent.");
-
 	/* ENDPOINT_REPORT */
 	def = rpttpl_create_id(adm_build_ari(AMP_TYPE_RPTTPL, 1, g_dtn_bp_agent_idx[ADM_RPTT_IDX], DTN_BP_AGENT_RPTTPL_ENDPOINT_REPORT));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_ACTIVE, tnv_from_map(AMP_TYPE_STR, 0)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_SINGLETON, tnv_from_map(AMP_TYPE_STR, 0)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_POLICY, tnv_from_map(AMP_TYPE_STR, 0)));
 	adm_add_rpttpl(def);
 	meta = meta_add_rpttpl(def->id, ADM_ENUM_DTN_BP_AGENT, "endpoint_report", "This is all known endpoint information");
 	meta_add_parm(meta, "endpoint_id", AMP_TYPE_STR);
-
 }
 
 void dtn_bp_agent_init_tblt()

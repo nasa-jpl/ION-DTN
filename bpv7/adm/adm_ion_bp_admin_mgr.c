@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-18  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -30,7 +30,7 @@
 
 #define _HAVE_DTN_ION_BPADMIN_ADM_
 #ifdef _HAVE_DTN_ION_BPADMIN_ADM_
-vec_idx_t g_dtn_ion_bpadmin_idx[11];
+static vec_idx_t g_dtn_ion_bpadmin_idx[11];
 
 void dtn_ion_bpadmin_init()
 {

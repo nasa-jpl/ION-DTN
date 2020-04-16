@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-15  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -26,12 +26,12 @@
 #include "nm_mgr_ui.h"
 
 
-#include "shared/adm/adm_amp_agent.h"
+#include "adm_amp_agent.h"
 
 
 #define _HAVE_DTN_SBSP_ADM_
 #ifdef _HAVE_DTN_SBSP_ADM_
-vec_idx_t g_dtn_sbsp_idx[11];
+static vec_idx_t g_dtn_sbsp_idx[11];
 
 void dtn_sbsp_init()
 {

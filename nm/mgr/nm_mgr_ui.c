@@ -672,9 +672,18 @@ int ui_automator_parse_input(char *str)
       }
       break;
    case 'V': // Version command
-      printf("VERSION: Built on %s %s\nAMP Protocol Version %d - %s/%02d\n",
+      printf("VERSION: Built on %s %s\nAMP Protocol Version %s\nBP Version %s",
              __DATE__, __TIME__,
-             AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION);
+             AMP_VERSION_STR,
+             
+#ifdef BUILD_BPv6
+                            "6"
+#elif defined(BUILD_BPv7)
+                            "7"
+#else
+                            "?"
+#endif
+         );
       return 1; 
    default:
       printf("Unrecognized Command\n");

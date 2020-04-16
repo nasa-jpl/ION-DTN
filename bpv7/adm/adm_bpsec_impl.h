@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-15  AUTO             Auto-generated header file 
+ **  2020-04-13  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -55,9 +55,9 @@ void name_adm_init_agent();
 
 
 /*
- * +-----------------------------------------------------------------------------------------------------------+
- * |                                            Retrieval Functions                                            +
- * +-----------------------------------------------------------------------------------------------------------+
+ * +---------------------------------------------------------------------------------------------+
+ * |                                     Retrieval Functions                                     +
+ * +---------------------------------------------------------------------------------------------+
  */
 /*   START CUSTOM FUNCTIONS HERE */
 /*   STOP CUSTOM FUNCTIONS HERE  */
@@ -148,6 +148,8 @@ tnv_t *dtn_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 
 
 /* Table Build Functions */
+tbl_t *dtn_bpsec_tblt_keys(ari_t *id);
+tbl_t *dtn_bpsec_tblt_ciphersuites(ari_t *id);
 tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id);
 tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id);
 

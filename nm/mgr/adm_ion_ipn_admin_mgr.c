@@ -11,17 +11,17 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-18  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
 
 #include "ion.h"
 #include "platform.h"
-#include "../shared/adm/adm_ion_ipn_admin.h"
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/blob.h"
+#include "adm_ion_ipn_admin.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/blob.h"
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
@@ -30,7 +30,7 @@
 
 #define _HAVE_DTN_ION_IPNADMIN_ADM_
 #ifdef _HAVE_DTN_ION_IPNADMIN_ADM_
-vec_idx_t g_dtn_ion_ipnadmin_idx[11];
+static vec_idx_t g_dtn_ion_ipnadmin_idx[11];
 
 void dtn_ion_ipnadmin_init()
 {
@@ -145,8 +145,8 @@ void dtn_ion_ipnadmin_init_ctrl()
 	adm_add_ctrldef_ari(id, 2, NULL);
 	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_IPNADMIN, "plan_add", "This control establishes an egress plan for the bundles that must be transmitted to the neighboring node that is identified by it's nodeNbr.");
 
-	meta_add_parm(meta, "node_nbr", AMP_TYPE_UINT);
-	meta_add_parm(meta, "default_duct_expression", AMP_TYPE_STR);
+	meta_add_parm(meta, "node_nbr", AMP_TYPE_UVAST);
+	meta_add_parm(meta, "xmit_rate", AMP_TYPE_UINT);
 
 	/* PLAN_CHANGE */
 
@@ -184,8 +184,8 @@ void dtn_ion_ipnadmin_init_tblt()
 	/* EXITS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_EXITS), NULL);
-	tblt_add_col(def, AMP_TYPE_UINT, "first_node_nbr");
-	tblt_add_col(def, AMP_TYPE_UINT, "last_node_nbr");
+	tblt_add_col(def, AMP_TYPE_UVAST, "first_node_nbr");
+	tblt_add_col(def, AMP_TYPE_UVAST, "last_node_nbr");
 	tblt_add_col(def, AMP_TYPE_STR, "gateway_endpoint_id");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_IPNADMIN, "exits", "This table lists all of the exits that are defined in the IPN database for the local node.");
@@ -193,8 +193,9 @@ void dtn_ion_ipnadmin_init_tblt()
 	/* PLANS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_PLANS), NULL);
-	tblt_add_col(def, AMP_TYPE_UINT, "node_nbr");
-	tblt_add_col(def, AMP_TYPE_STR, "default_duct_expression");
+	tblt_add_col(def, AMP_TYPE_UVAST, "node_nbr");
+	tblt_add_col(def, AMP_TYPE_STR, "action");
+	tblt_add_col(def, AMP_TYPE_STR, "spec");
 	adm_add_tblt(def);
 	meta_add_tblt(def->id, ADM_ENUM_DTN_ION_IPNADMIN, "plans", "This table lists all of the egress plans that are established in the IPN database for the local node.");
 }

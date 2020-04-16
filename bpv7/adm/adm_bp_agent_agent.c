@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-09  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -34,8 +34,7 @@ static vec_idx_t g_dtn_bp_agent_idx[11];
 
 void dtn_bp_agent_init()
 {
-
-	adm_add_adm_info("bp_agent", ADM_ENUM_DTN_BP_AGENT);
+	adm_add_adm_info("dtn_bp_agent", ADM_ENUM_DTN_BP_AGENT);
 
 	VDB_ADD_NN(((ADM_ENUM_DTN_BP_AGENT * 20) + ADM_META_IDX), &(g_dtn_bp_agent_idx[ADM_META_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_DTN_BP_AGENT * 20) + ADM_RPTT_IDX), &(g_dtn_bp_agent_idx[ADM_RPTT_IDX]));
@@ -45,9 +44,14 @@ void dtn_bp_agent_init()
 
 	dtn_bp_agent_setup();
 	dtn_bp_agent_init_meta();
+	dtn_bp_agent_init_cnst();
 	dtn_bp_agent_init_edd();
+	dtn_bp_agent_init_op();
+	dtn_bp_agent_init_var();
 	dtn_bp_agent_init_ctrl();
+	dtn_bp_agent_init_mac();
 	dtn_bp_agent_init_rpttpl();
+	dtn_bp_agent_init_tblt();
 }
 
 void dtn_bp_agent_init_meta()
@@ -126,7 +130,6 @@ void dtn_bp_agent_init_rpttpl()
 
 	/* FULL_REPORT */
 	def = rpttpl_create_id(adm_build_ari(AMP_TYPE_RPTTPL, 0, g_dtn_bp_agent_idx[ADM_RPTT_IDX], DTN_BP_AGENT_RPTTPL_FULL_REPORT));
-
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_bp_agent_idx[ADM_META_IDX], DTN_BP_AGENT_META_NAME));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_CNST, 0, g_dtn_bp_agent_idx[ADM_META_IDX], DTN_BP_AGENT_META_VERSION));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BP_NODE_ID));
@@ -138,27 +141,20 @@ void dtn_bp_agent_init_rpttpl()
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_PEND_DIS));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_IN_CUST));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_PEND_REASSEMBLY));
-
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BUNDLES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_BYTES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BUNDLES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BUNDLES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BUNDLES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BYTES_BY_PRIORITY, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BYTES_BY_PRIORITY, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_SRC_BYTES_BY_PRIORITY, tnv_from_uint(4)));
-
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FRAGMENTED_BUNDLES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FRAGMENTS_PRODUCED));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(1)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(2)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(4)));
@@ -168,7 +164,6 @@ void dtn_bp_agent_init_rpttpl()
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(64)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(128)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_FAILED_BY_REASON, tnv_from_uint(256)));
-
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_NUM_BUNDLES_DELETED));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_FAILED_CUSTODY_BUNDLES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_FAILED_CUSTODY_BYTES));
@@ -178,11 +173,9 @@ void dtn_bp_agent_init_rpttpl()
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_DISCARDED_BUNDLES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_DISCARDED_BYTES));
 	rpttpl_add_item(def, adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_NAMES));
-
 	adm_add_rpttpl(def);
 	/* ENDPOINT_REPORT */
 	def = rpttpl_create_id(adm_build_ari(AMP_TYPE_RPTTPL, 1, g_dtn_bp_agent_idx[ADM_RPTT_IDX], DTN_BP_AGENT_RPTTPL_ENDPOINT_REPORT));
-
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_ACTIVE, tnv_from_map(AMP_TYPE_STR, 0)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_SINGLETON, tnv_from_map(AMP_TYPE_STR, 0)));
 	rpttpl_add_item(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_EDD, g_dtn_bp_agent_idx[ADM_EDD_IDX], DTN_BP_AGENT_EDD_ENDPOINT_POLICY, tnv_from_map(AMP_TYPE_STR, 0)));

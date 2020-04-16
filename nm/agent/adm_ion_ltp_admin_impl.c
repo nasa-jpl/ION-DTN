@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-18  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -21,7 +21,7 @@
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/adm/adm.h"
+#include "shared/adm/adm.h"
 #include "adm_ion_ltp_admin_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */

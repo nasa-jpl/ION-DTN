@@ -135,11 +135,11 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 	/* Get the Issuer, if defined */
 	if((*success == AMP_OK) && ARI_GET_FLAG_ISS(flags))
 	{
-#if AMP_VERSION < 7
+#if AMP_VERSION < 8 // V8 defines issuer as a blob for added flexibility
 		cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
 
 		VDB_ADD_ISS(temp, &(result.as_reg.iss_idx));
-#else // Note: This change pending AMPv8
+#else
 		blob_t issuer = blob_deserialize(it, success);
 		if (*success == AMP_OK)
 		{
@@ -271,7 +271,7 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 	// Encode the issuer, if defined
 	if(ARI_GET_FLAG_ISS(ari->as_reg.flags))
 	{
-#if AMP_VERSION < 7
+#if AMP_VERSION < 8
 		uvast *iss = (uvast *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
 
 		if (iss != NULL)

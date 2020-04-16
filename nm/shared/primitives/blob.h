@@ -80,6 +80,7 @@ blob_t*   blob_copy_ptr(blob_t *src);
 
 blob_t    blob_deserialize(QCBORDecodeContext *it, int *success);
 blob_t    blob_deserialize_as_bytes(QCBORDecodeContext *it, int *success, size_t len);
+blob_t*   blob_deserialize_as_bytes_ptr(QCBORDecodeContext *it, int *success, size_t len);
 blob_t*   blob_deserialize_ptr(QCBORDecodeContext *it, int *success);
 int       blob_serialize(QCBOREncodeContext *encoder, blob_t *item);
 int       blob_serialize_as_bytes(QCBOREncodeContext *it, blob_t *blob);

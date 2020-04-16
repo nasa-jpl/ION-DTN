@@ -380,12 +380,16 @@ ac_t *ui_input_ac(char *prompt)
 	for(i = 0; i < num; i++)
 	{
 		char ari_prompt[24];
-		sprintf(ari_prompt, "Build ARI %d", i);
+		snprintf(ari_prompt, 24, "Build ARI %d", i);
 		ari_t *cur = ui_input_ari(ari_prompt, ADM_ENUM_ALL, TYPE_MASK_ALL);
 		if(cur == NULL || vec_push(&(result->values), cur) != VEC_OK)
 		{
 			AMP_DEBUG_ERR("ui_input_ac","Could not input ARI %d.", i);
 			ac_release(result, 1);
+			if (cur != NULL)
+			{
+				ari_release(cur, 1);
+			}
 			result = NULL;
 			break;
 		}

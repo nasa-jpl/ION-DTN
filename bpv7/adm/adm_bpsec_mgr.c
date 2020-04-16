@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-15  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -26,12 +26,12 @@
 #include "nm_mgr_ui.h"
 
 
-#include "shared/adm/adm_amp_agent.h"
+#include "adm_amp_agent.h"
 
 
 #define _HAVE_DTN_BPSEC_ADM_
 #ifdef _HAVE_DTN_BPSEC_ADM_
-vec_idx_t g_dtn_bpsec_idx[11];
+static vec_idx_t g_dtn_bpsec_idx[11];
 
 void dtn_bpsec_init()
 {
@@ -193,7 +193,7 @@ void dtn_bpsec_init_edd()
 
 	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bpsec_idx[ADM_EDD_IDX], DTN_BPSEC_EDD_LAST_UPDATE);
 	adm_add_edd(id, NULL);
-	meta_add_edd(AMP_TYPE_TV, id, ADM_ENUM_DTN_BPSEC, "last_update", "Last bpsec update");
+	meta_add_edd(AMP_TYPE_TV, id, ADM_ENUM_DTN_BPSEC, "last_update", "Last BPSEC update");
 
 	id = adm_build_ari(AMP_TYPE_EDD, 0, g_dtn_bpsec_idx[ADM_EDD_IDX], DTN_BPSEC_EDD_NUM_KNOWN_KEYS);
 	adm_add_edd(id, NULL);
@@ -333,7 +333,7 @@ void dtn_bpsec_init_edd()
 	meta_add_parm(meta, "Src", AMP_TYPE_STR);
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bpsec_idx[ADM_EDD_IDX], DTN_BPSEC_EDD_LAST_UPDATE_SRC);
 	adm_add_edd(id, NULL);
-	meta = meta_add_edd(AMP_TYPE_TV, id, ADM_ENUM_DTN_BPSEC, "last_update_src", "Last bpsec update from SRC");
+	meta = meta_add_edd(AMP_TYPE_TV, id, ADM_ENUM_DTN_BPSEC, "last_update_src", "Last BPSEC update from SRC");
 
 	meta_add_parm(meta, "Src", AMP_TYPE_STR);
 	id = adm_build_ari(AMP_TYPE_EDD, 1, g_dtn_bpsec_idx[ADM_EDD_IDX], DTN_BPSEC_EDD_LAST_RESET);
@@ -380,7 +380,7 @@ void dtn_bpsec_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 0, g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_RST_ALL_CNTS);
 	adm_add_ctrldef_ari(id, 0, NULL);
-	meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "rst_all_cnts", "This control causes the Agent to reset all counts associated with block or byte statistics and to set the Last Reset Time of the bpsec EDD data to the time when the control was run.");
+	meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "rst_all_cnts", "This control causes the Agent to reset all counts associated with block or byte statistics and to set the Last Reset Time of the BPsec EDD data to the time when the control was run.");
 
 
 	/* RST_SRC_CNTS */
@@ -395,7 +395,7 @@ void dtn_bpsec_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_DELETE_KEY);
 	adm_add_ctrldef_ari(id, 1, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "delete_key", "This control deletes a key from the bpsec system.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "delete_key", "This control deletes a key from the BPsec system.");
 
 	meta_add_parm(meta, "key_name", AMP_TYPE_STR);
 
@@ -403,7 +403,7 @@ void dtn_bpsec_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_ADD_KEY);
 	adm_add_ctrldef_ari(id, 2, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "add_key", "This control adds a key to the bpsec system.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "add_key", "This control adds a key to the BPsec system.");
 
 	meta_add_parm(meta, "key_name", AMP_TYPE_STR);
 	meta_add_parm(meta, "keyData", AMP_TYPE_BYTESTR);
@@ -412,7 +412,7 @@ void dtn_bpsec_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_ADD_BIB_RULE);
 	adm_add_ctrldef_ari(id, 5, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "add_bib_rule", "This control configures policy on the bpsec protocol implementation that describes how BIB blocks should be applied to bundles in the system. This policy is captured as a rule which states when transmitting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of type target should have a BIB added to them using the given ciphersuite and the given key.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "add_bib_rule", "This control configures policy on the BPsec protocol implementation that describes how BIB blocks should be applied to bundles in the system. This policy is captured as a rule which states when transmitting a bundle from the given source endpoint ID to the given destination endpoint ID, blocks of type target should have a BIB added to them using the given ciphersuite and the given key.");
 
 	meta_add_parm(meta, "source", AMP_TYPE_STR);
 	meta_add_parm(meta, "destination", AMP_TYPE_STR);
@@ -424,7 +424,7 @@ void dtn_bpsec_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_DEL_BIB_RULE);
 	adm_add_ctrldef_ari(id, 3, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "del_bib_rule", "This control removes any configured policy on the bpsec protocol implementation that describes how BIB blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a source endpoint Id, a destination Id, and a target block type.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "del_bib_rule", "This control removes any configured policy on the BPsec protocol implementation that describes how BIB blocks should be applied to bundles in the system. A BIB policy is uniquely identified by a source endpoint Id, a destination Id, and a target block type.");
 
 	meta_add_parm(meta, "source", AMP_TYPE_STR);
 	meta_add_parm(meta, "destination", AMP_TYPE_STR);
@@ -434,7 +434,7 @@ void dtn_bpsec_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_ADD_BCB_RULE);
 	adm_add_ctrldef_ari(id, 5, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "add_bcb_rule", "This control configures policy on the bpsec protocol implementation that describes how BCB blocks should be applied to bundles in the system. This policy is captured as a rule which states when transmitting a bundle from the given source endpoint id to the given destination endpoint id, blocks of type target should have a bcb added to them using the given ciphersuite and the given key.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "add_bcb_rule", "This control configures policy on the BPsec protocol implementation that describes how BCB blocks should be applied to bundles in the system. This policy is captured as a rule which states when transmitting a bundle from the given source endpoint id to the given destination endpoint id, blocks of type target should have a bcb added to them using the given ciphersuite and the given key.");
 
 	meta_add_parm(meta, "source", AMP_TYPE_STR);
 	meta_add_parm(meta, "destination", AMP_TYPE_STR);
@@ -446,7 +446,7 @@ void dtn_bpsec_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_bpsec_idx[ADM_CTRL_IDX], DTN_BPSEC_CTRL_DEL_BCB_RULE);
 	adm_add_ctrldef_ari(id, 3, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "del_bcb_rule", "This control removes any configured policy on the bpsec protocol implementation that describes how BCB blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a source endpoint id, a destination endpoint id, and a target block type.");
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_BPSEC, "del_bcb_rule", "This control removes any configured policy on the BPsec protocol implementation that describes how BCB blocks should be applied to bundles in the system. A bcb policy is uniquely identified by a source endpoint id, a destination endpoint id, and a target block type.");
 
 	meta_add_parm(meta, "source", AMP_TYPE_STR);
 	meta_add_parm(meta, "destination", AMP_TYPE_STR);
@@ -535,6 +535,20 @@ void dtn_bpsec_init_tblt()
 {
 
 	tblt_t *def = NULL;
+
+	/* KEYS */
+
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_bpsec_idx[ADM_TBLT_IDX], DTN_BPSEC_TBLT_KEYS), NULL);
+	tblt_add_col(def, AMP_TYPE_STR, "key_name");
+	adm_add_tblt(def);
+	meta_add_tblt(def->id, ADM_ENUM_DTN_BPSEC, "keys", "This table lists all keys in the security policy database.");
+
+	/* CIPHERSUITES */
+
+	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_bpsec_idx[ADM_TBLT_IDX], DTN_BPSEC_TBLT_CIPHERSUITES), NULL);
+	tblt_add_col(def, AMP_TYPE_STR, "csname");
+	adm_add_tblt(def);
+	meta_add_tblt(def->id, ADM_ENUM_DTN_BPSEC, "ciphersuites", "This table lists supported ciphersuites.");
 
 	/* BIB_RULES */
 

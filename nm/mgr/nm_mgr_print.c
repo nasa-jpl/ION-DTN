@@ -240,7 +240,7 @@ int ui_print_agents()
       if (tmp > 0)
       {
          list[i].description = malloc(32);
-         sprintf(list[i].description, "%d reports & %d tables", tmp, tmp2);
+         snprintf(list[i].description, 32, "%d reports & %d tables", tmp, tmp2);
       }
       else
       {

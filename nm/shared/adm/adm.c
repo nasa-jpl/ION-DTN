@@ -45,7 +45,7 @@ vector_t g_adm_info;
  * It is initialized in adm_amp_agent_(agent|mgr).c, but it is a resource global to all ADMs.
  * That initialization should be moved to this file at a later date (TODO)
  */
-vec_idx_t g_amp_agent_idx[11];
+//vec_idx_t g_amp_agent_idx[11];
 
 int adm_add_adm_info(char *name, int id)
 {

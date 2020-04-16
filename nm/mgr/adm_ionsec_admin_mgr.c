@@ -11,17 +11,17 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-18  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
 
 #include "ion.h"
 #include "platform.h"
-#include "../shared/adm/adm_ionsec_admin.h"
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/blob.h"
+#include "adm_ionsec_admin.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/blob.h"
 #include "metadata.h"
 #include "nm_mgr_ui.h"
 
@@ -30,7 +30,7 @@
 
 #define _HAVE_DTN_ION_IONSECADMIN_ADM_
 #ifdef _HAVE_DTN_ION_IONSECADMIN_ADM_
-vec_idx_t g_dtn_ion_ionsecadmin_idx[11];
+static vec_idx_t g_dtn_ion_ionsecadmin_idx[11];
 
 void dtn_ion_ionsecadmin_init()
 {

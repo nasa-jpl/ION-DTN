@@ -98,7 +98,6 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length)
 /** This encodes a raw byte.  This is not strictly compliant with CBOR protocol and uses internal APIs to achieve this effect.
  * This borrows from internal functions in QCBOR, including Nesting_Increment()
  */
-#define cut_enc_byte(encoder, byte) cut_enc_bytes(encoder, &byte, sizeof(uint8_t))
 int cut_enc_bytes(QCBOREncodeContext *encoder, uint8_t *buf, size_t len)
 {
    CHKUSR(encoder,AMP_FAIL);
