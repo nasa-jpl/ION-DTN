@@ -301,7 +301,7 @@ of Service\n");
 
 	recv_running=1;
 	if (pthread_begin(&rcv_thread, NULL, &rcv_msg_thread,
-				(void*) &recv_running), "rcv_msgs")
+				(void*) &recv_running))
 	{
 		dbgprintf(0, "Error: Can't start message thread\n");
 		sm_SemEnd(events_sem);
