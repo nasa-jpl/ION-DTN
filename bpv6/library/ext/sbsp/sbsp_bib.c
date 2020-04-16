@@ -1401,44 +1401,93 @@ int	sbsp_bibOffer(ExtensionBlock *blk, Bundle *bundle)
 int	sbsp_bibReview(AcqWorkArea *wk)
 {
 	Sdr	sdr = getIonsdr();
-	char	secDestEid[32];
+	char	*secDestEid = NULL;
+	char    *secSrcEid = NULL;
 	Object	rules;
 	Object	elt;
 	Object	ruleAddr;
 		OBJ_POINTER(BspBibRule, rule);
 	char	eidBuffer[SDRSTRING_BUFSZ];
 	int	result = 1;	/*	Default: no problem.		*/
+	Bundle  *bundle;
+	char    *dictionary;
 
 	BIB_DEBUG_PROC("+ sbsp_bibReview(%x)", (unsigned long) wk);
 
 	CHKERR(wk);
 
-	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
+	/* Check if security database exists */
 	rules = sec_get_bspBibRuleList();
 	if (rules == 0)
 	{
-		BIB_DEBUG_PROC("- sbsp_bibReview -> no security database", NULL);
+		BIB_DEBUG_PROC("- sbsp_bibReview -> no security database");
 		return result;
 	}
 
+	/* Retrieve secDestEid */
+	bundle = &(wk->bundle);
+	dictionary = retrieveDictionary(bundle);
+	if ( dictionary == (char*) bundle )
+	{
+		BIB_DEBUG_ERR("x sbsp_Review: Unable to obtain dictionary");
+		return -1;
+	}
+	if ( printEid(&bundle->destination,
+				  dictionary,
+				  &secDestEid) < 0
+		|| printEid(&bundle->id.source,
+				  dictionary,
+				  &secSrcEid) < 0
+		)
+	{
+		BIB_DEBUG_ERR("x sbsp_Review: Unable to identify bundle src/destination");
+		if (secDestEid)
+		{
+			MRELEASE(secDestEid);
+		}
+		if (secSrcEid)
+		{
+			MRELEASE(secSrcEid);
+		}
+		return -1;
+	}
+
+	/* Cleanup dictionary here since we do not currently reuse it.
+	 *  Optimization note: An identical dictionary is MTAKE'd and
+	 *  released for each call to sbsp_requiredBlockExists() below.
+	 *  Retrieving it once here and adding as a parameter may be
+	 *  beneficial.
+	 */
+	if (dictionary)
+	{
+		releaseDictionary(dictionary);
+	}
+	
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, rules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
+		/* Validate security destination */
 		ruleAddr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, BspBibRule, rule, ruleAddr);
 		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
-		if (strcmp(eidBuffer, secDestEid) != 0)
+
+		if (eidsMatch(eidBuffer, strlen(eidBuffer), secDestEid, strlen(secDestEid)) != 1)
 		{
 			/*	No requirement against local node.	*/
 
 			continue;
 		}
-
-		/*	A block satisfying this rule is required.	*/
-
+			
+		/*	Validate security source */
 		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
+
+		if (eidsMatch(eidBuffer, strlen(eidBuffer), secSrcEid, strlen(secSrcEid)) != 1)
+		{
+			continue;
+		}
+
+		/* A block satisfying this rule is required.	*/		
 		result = sbsp_requiredBlockExists(wk, BLOCK_TYPE_BIB,
 				rule->blockTypeNbr, eidBuffer);
 		if (result != 1)
@@ -1449,8 +1498,16 @@ int	sbsp_bibReview(AcqWorkArea *wk)
 
 	sdr_exit_xn(sdr);
 
-	BIB_DEBUG_PROC("- sbsp_bibReview -> %d", result);
+	if (secDestEid)
+	{
+		MRELEASE(secDestEid);
+	}
+	if (secSrcEid)
+	{
+		MRELEASE(secSrcEid);
+	}
 
+	BIB_DEBUG_PROC("- sbsp_bibReview -> %d", result);
 	return result;
 }
 

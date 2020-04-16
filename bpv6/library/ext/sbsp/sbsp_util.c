@@ -355,7 +355,7 @@ ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
 
 	extractSmallSdnv(&itemp, &cursor, &unparsedBytes);
 	asb.targetBlockType = itemp;
-
+	
 	/*	The "subscript" portion of the compound security-
 	 *	target field of the inbound SBSP block is the
 	 *	occurrence number of the target block.			*/
@@ -540,10 +540,10 @@ dictionary.", NULL);
  *****************************************************************************/
 
 LystElt	sbsp_findAcqBlock(AcqWorkArea *wk,
-		                   uint8_t type,
-						   uint8_t targetBlockType,
+						  uint8_t type,
+						  uint8_t targetBlockType,
 						   uint8_t targetBlockOccurrence,
-						   uint8_t instance)
+						  uint8_t instance)
 {
 	uint32_t	 idx;
 	LystElt		elt;
@@ -565,7 +565,7 @@ LystElt	sbsp_findAcqBlock(AcqWorkArea *wk,
 			asb = (SbspInboundBlock *) (blk->object);
 			if (asb->targetBlockType == targetBlockType
 			&& asb->targetBlockOccurrence == targetBlockOccurrence
-			&& asb->instance == instance)
+				&& asb->instance == instance)
 			{
 				return elt;
 			}
@@ -604,10 +604,10 @@ LystElt	sbsp_findAcqBlock(AcqWorkArea *wk,
  *****************************************************************************/
 
 Object	sbsp_findBlock(Bundle *bundle,
-						uint8_t type,
-				        uint8_t targetBlockType,
+					   uint8_t type,
+					   uint8_t targetBlockType,
 						uint8_t targetBlockOccurrence,
-						uint8_t instance)
+					   uint8_t instance)
 {
 	Sdr	sdr = getIonsdr();
 	int	idx;
@@ -633,7 +633,7 @@ Object	sbsp_findBlock(Bundle *bundle,
 					blk->object);
 			if (asb->targetBlockType == targetBlockType
 			&& asb->targetBlockOccurrence == targetBlockOccurrence
-			&& asb->instance == instance)
+				&& asb->instance == instance)
 			{
 				return elt;
 			}
@@ -1212,7 +1212,7 @@ csi_val_t sbsp_retrieveKey(char *keyName)
 
 	memset(&key, 0, sizeof(csi_val_t));
 
-	if(keyName == NULL)
+	if(keyName == NULL || strlen(keyName) == 0)
 	{
 		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Bad Parms", NULL);
 		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
@@ -1398,11 +1398,14 @@ int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
 	uint32_t		idx;
 	LystElt			elt;
 	AcqExtBlock		*blk;
-	SbspInboundBlock	*asb;
 	Bundle			*bundle;
 	char			*dictionary;
 	int			result;
 	char			*fromEid;
+
+	unsigned char *cursor;
+	int unparsedBytes;
+	unsigned int asbTargetBlockType;
 
 	CHKZERO(wk);
 	bundle = &(wk->bundle);
@@ -1423,8 +1426,20 @@ int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
 				continue;	/*	Not a BIB.	*/
 			}
 
-			asb = (SbspInboundBlock *) (blk->object);
-			if (asb->targetBlockType != targetBlockType)
+			/* The ASB (blk->object) has not yet been deserialized by
+			 * the sbsp_bibParse() function, so we explicitly decode
+			 * it. */
+			unparsedBytes = blk->length;
+			cursor = ((unsigned char *)(blk->bytes)) + (blk->length - blk->dataLength);
+
+			// Retrieve & discard # targets
+			_extractSmallSdnv(&asbTargetBlockType, &cursor, &unparsedBytes, __LINE__ );
+
+			// Get type
+			asbTargetBlockType = (int)(cursor[0]);
+
+
+			if (asbTargetBlockType != targetBlockType)
 			{
 				continue;	/*	Wrong target.	*/
 			}
@@ -1556,7 +1571,7 @@ unsigned char	*sbsp_serializeASB(uint32_t *length, SbspOutboundBlock *asb)
 	 *	know how many bytes they will take up. We don't want a
 	 *	separate function to calculate this length as it would
 	 *	result in generating multiple SDNV values needlessly.	*/
-
+	
 	encodeSdnv(&targetBlockType, asb->targetBlockType);
 	*length = targetBlockType.length;
 	encodeSdnv(&targetBlockOccurrence, asb->targetBlockOccurrence);
