@@ -3,7 +3,7 @@
 	bibe.h:	definition of the application programming interface
 		for bundle-in-bundle encapsulation.
 
-	Copyright (c) 2019, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
@@ -20,19 +20,19 @@ extern "C" {
 
 /*		Functions for bundle-in-bundle encapsulation.		*/
 
-extern void	bibeAdd(char *destEid, unsigned int fwdLatency,
-			unsigned int rtnLatency, unsigned char priority,
-			unsigned char ordinal, unsigned int label,
-			unsigned char flags);
+extern void	bibeAdd(char *peerEid, unsigned int fwdLatency,
+			unsigned int rtnLatency, int lifespan,
+			unsigned char priority, unsigned char ordinal,
+			unsigned int label, unsigned char flags);
 
-extern void	bibeChange(char *destEid, unsigned int fwdLatency,
-			unsigned int rtnLatency, unsigned char priority,
-			unsigned char ordinal, unsigned int label,
-			unsigned char flags);
+extern void	bibeChange(char *peerEid, unsigned int fwdLatency,
+			unsigned int rtnLatency, int lifespan,
+			unsigned char priority, unsigned char ordinal,
+			unsigned int label, unsigned char flags);
 
-extern void	bibeDelete(char *destEid);
+extern void	bibeDelete(char *peerEid);
 
-extern void	bibeFind(char *destEid, Object *addr, Object *elt);
+extern void	bibeFind(char *peerEid, Object *addr, Object *elt);
  
 extern int	bibeHandleBpdu(BpDelivery *dlv);
  
@@ -40,6 +40,10 @@ extern int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes);
  
 extern int	bibeHandleTimeout(Object trackingElt);
+
+extern int	bibeCtRetry(Bundle *bundle);
+
+extern void	bibeCtCancel(Bundle *bundle);
 
 #ifdef __cplusplus
 }

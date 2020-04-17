@@ -50,15 +50,6 @@ cd ../4.ipn.ltp
 ionadmin amroc.ionrc
 
 cd ../1.ipn.ltp
-ionadmin ../global.ionrc
-cd ../2.ipn.ltp
-ionadmin ../global.ionrc
-cd ../3.ipn.ltp
-ionadmin ../global.ionrc
-cd ../4.ipn.ltp
-ionadmin ../global.ionrc
-
-cd ../1.ipn.ltp
 ionsecadmin amroc.ionsecrc
 cd ../2.ipn.ltp
 ionsecadmin amroc.ionsecrc
@@ -125,7 +116,7 @@ sleep ${TIMETOWAITFORTESTFINISH}
 echo -e "\n\n***Sending one bundle from node 1 to node 6.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.2 ipn:6.1 ipn:1.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
+bptrace ipn:1.1 ipn:6.1 ipn:1.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -135,7 +126,7 @@ sleep ${TIMETOWAITFORTESTFINISH}
 echo -e "\n\n***Sending one bundle from node 1 to node 7.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.3 ipn:7.1 ipn:1.0 3600 0.1 "test_trace4" rcv,ct,fwd,dlv,del
+bptrace ipn:1.1 ipn:7.1 ipn:1.0 3600 0.1 "test_trace7" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -155,6 +146,19 @@ fi
 ############################################################
 #   END OF TESTS                ........
 
+sleep 1
+
+cd ../1.ipn.ltp
+bpstats
+cd ../2.ipn.ltp
+bpstats
+cd ../3.ipn.ltp
+bpstats
+cd ../4.ipn.ltp
+bpstats
+
+sleep 1
+
 # Shut down ION processes.
 echo "Stopping ION..."
 cd ../1.ipn.ltp
@@ -171,7 +175,7 @@ cd ..
 # Give all four nodes time to shut down, then clean up.
 sleep 7
 killm
-echo "Status reports test completed."
+echo "BIBE test completed."
 
 if [ $PASS -eq 1 ]
 then

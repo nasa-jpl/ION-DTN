@@ -3,7 +3,7 @@
 	bibeP.h:	definition of private structures supporting
 			bundle-in-bundle encapsulation.
 
-	Copyright (c) 2019, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
@@ -41,15 +41,16 @@ typedef struct
 
 typedef struct
 {
-	Object		source;		/*	EID, an sdrstring.	*/ 
-	Object		dest;		/*	EID, an sdrstring.	*/ 
+	Object		source;		/*	Own EID, an sdrstring.	*/ 
+	Object		dest;		/*	Peer EID, an sdrstring.	*/ 
 	uvast		count;		/*	xmitId counter.		*/
 	Object		bundles;	/*	sdrlist of Bundle objs.	*/
 
-	/*	Transmission parameters for BPDUs sent to dest node.	*/
+	/*	Transmission parameters for BPDUs sent to peer node.	*/
 
 	unsigned int	fwdLatency;	/*	seconds			*/
 	unsigned int	rtnLatency;	/*	seconds			*/
+	int		lifespan;
 	unsigned char	classOfService;
 	BpAncillaryData	ancillaryData;	/*	Ordinal, label, flags.	*/
 

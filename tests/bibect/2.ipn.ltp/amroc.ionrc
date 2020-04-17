@@ -1,0 +1,18 @@
+1 2 amroc.ionconfig
+s
+m horizon +0
+a range	+0 +3600 1 2 0
+a range	+0 +3600 2 3 0
+a contact +0 +3600 1 2 10000
+a contact +0 +3600 2 1 10000
+a contact +0 +3600 2 3 10000
+a contact +0 +3600 3 2 10000
+#	Abstract contacts for BIBE
+a contact +0 +100000000 2 4 1000000000
+a contact +0 +100000000 4 2 1000000000
+a contact +0 +100000000 2 5 1000000000
+a contact +0 +100000000 5 2 1000000000
+a contact +0 +100000000 2 6 1000000000
+a contact +0 +100000000 6 2 1000000000
+a contact +0 +100000000 2 7 1000000000
+a contact +0 +100000000 7 2 1000000000

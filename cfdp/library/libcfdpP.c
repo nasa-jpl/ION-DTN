@@ -152,8 +152,7 @@ int	checkFile(char *fileName)
 	/*	Spawn a separate thread that hangs on opening the file
 	 *	if there's an error in the file system.			*/
 
-	if (pthread_begin(&statThread, &attr, checkFileExists,
-		&parms, "libcfdpP_stat"))
+	if (pthread_begin(&statThread, &attr, checkFileExists, &parms))
 	{
 		oK(pthread_mutex_destroy(&mutex));
 		oK(pthread_cond_destroy(&cv));

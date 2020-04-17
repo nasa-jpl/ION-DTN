@@ -37,8 +37,6 @@
  **              bibDefaultConstruct
  **              bibDefaultSign
  **
- **                                              bibDefaultConstruct
- **                                              bibDefaultSign
  **                                              bibDefaultVerify
  **
  **
@@ -663,9 +661,9 @@ int	bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
 	CHKERR(blk);
 	CHKERR(asb);
 
-	/* Step 1: Populate block-instance-agnostic parts of the ASB. */
+	/*	Step 1: Populate the unpopulated block-instance-agnostic
+	 *	parts of the ASB.					*/
 
-	asb->targets = sdr_list_create(sdr);
 	asb->contextId = suite;
 	asb->parmsData = sdr_list_create(sdr);
 

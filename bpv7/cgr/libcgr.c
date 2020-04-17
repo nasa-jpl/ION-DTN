@@ -19,8 +19,6 @@
 									*/
 #include "cgr.h"
 
-#define	MAX_TIME	((unsigned int) ((1U << 31) - 1))
-
 #define CGRVDB_NAME	"cgrvdb"
 
 typedef struct
@@ -1358,7 +1356,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	PsmAddress	elt2;
 
 	computePriorClaims(plan, bundle, &priorClaims, &totalBacklog);
-	copyScalar(&(route->protected), &totalBacklog);
+	copyScalar(&(route->committed), &totalBacklog);
 
 	/*	Reduce prior claims on the first contact in this
 	 *	route by all transmission to this contact's neighbor
@@ -1421,7 +1419,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 		 *	contact has.					*/
 
 		copyScalar(&allotment, &volume);
-		subtractFromScalar(&allotment, &(route->protected));
+		subtractFromScalar(&allotment, &(route->committed));
 		if (!scalarIsValid(&allotment))
 		{
 			/*	Volume is less than remaining
@@ -1438,19 +1436,19 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 			 *	contact, possibly with some volume
 			 *	left over.				*/
 
-			copyScalar(&allotment, &(route->protected));
+			copyScalar(&allotment, &(route->committed));
 		}
 
 		/*	Determine how much of the total backlog has
 		 *	been allotted to subsequent contacts.		*/
 
-		subtractFromScalar(&(route->protected), &volume);
-		if (!scalarIsValid(&(route->protected)))
+		subtractFromScalar(&(route->committed), &volume);
+		if (!scalarIsValid(&(route->committed)))
 		{
 			/*	No bundles scheduled for transmission
 			 *	during any subsequent contacts.		*/
 
-			loadScalar(&(route->protected), 0);
+			loadScalar(&(route->committed), 0);
 		}
 
 		/*	Loop limit check.				*/

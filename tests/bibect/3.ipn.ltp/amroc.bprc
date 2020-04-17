@@ -1,0 +1,19 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+r 'bibeadmin amroc.biberc'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a protocol ltp 1400 100
+a induct ltp 3 ltpcli
+a outduct ltp 4 ltpclo
+a protocol stcp 1400 100
+a induct stcp 127.0.0.1:5003 stcpcli
+a outduct stcp 127.0.0.1:5002 stcpclo
+a protocol udp 1400 100
+a induct udp 127.0.0.1:5003 udpcli
+a protocol bibe 1400 100
+a induct bibe * ''
+a outduct bibe ipn:1.0 'bibeclo ipn:2.0'
+r 'ipnadmin amroc.ipnrc'
+w 1
+s

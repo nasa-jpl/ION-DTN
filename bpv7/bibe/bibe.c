@@ -28,7 +28,8 @@ static void	getSchemeName(char *eid, char *schemeNameBuf)
 	}
 }
 
-void	bibeAdd(char *destEid, unsigned int fwdLatency, unsigned int rtnLatency,
+void	bibeAdd(char *peerEid, unsigned int fwdLatency,
+		unsigned int rtnLatency, int lifespan,
 		unsigned char priority, unsigned char ordinal,
 		unsigned int label, unsigned char flags)
 {
@@ -41,26 +42,39 @@ void	bibeAdd(char *destEid, unsigned int fwdLatency, unsigned int rtnLatency,
 	Scheme		scheme;
 	Bcla		bcla;
 
-	bibeFind(destEid, &bclaAddr, &bclaElt);
+	bibeFind(peerEid, &bclaAddr, &bclaElt);
 	if (bclaElt)
 	{
-		writeMemoNote("[?] Duplicate BIBE CLA", destEid);
+		writeMemoNote("[?] Duplicate BIBE CLA", peerEid);
 		return;
 	}
 
-	getSchemeName(destEid, schemeName);
+	getSchemeName(peerEid, schemeName);
+	if (schemeName[0] == '\0')
+	{
+		writeMemoNote("[?] No scheme name in bcla ID", peerEid);
+		return;
+	}
+
 	findScheme(schemeName, &vscheme, &vschemeElt);
+	if (vscheme == NULL)
+	{
+		writeMemoNote("[?] bcla ID scheme name unknown", peerEid);
+		return;
+	}
+
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr, vscheme->schemeElt),
 			sizeof(Scheme));
 	CHKVOID(sdr_begin_xn(sdr));
 	memset((char *) &bcla, 0, sizeof(Bcla));
-	bcla.dest = sdr_string_create(sdr, destEid);
 	bcla.source = sdr_string_create(sdr, vscheme->adminEid);
+	bcla.dest = sdr_string_create(sdr, peerEid);
 	bcla.bundles = sdr_list_create(sdr);
-	bcla.signals[CT_ACCEPTED].deadline = (time_t) -1;
+	bcla.signals[CT_ACCEPTED].deadline = (time_t) MAX_TIME;
 	bcla.signals[CT_ACCEPTED].sequences = sdr_list_create(sdr);
 	bcla.fwdLatency = fwdLatency;
 	bcla.rtnLatency = rtnLatency;
+	bcla.lifespan = lifespan;
 	bcla.classOfService = priority;
 	if (flags & BP_DATA_LABEL_PRESENT)
 	{
@@ -70,25 +84,32 @@ void	bibeAdd(char *destEid, unsigned int fwdLatency, unsigned int rtnLatency,
 	bcla.ancillaryData.flags = flags;
 	bcla.ancillaryData.ordinal = ordinal;
 	bclaAddr = sdr_malloc(sdr, sizeof(Bcla));
-	sdr_write(sdr, bclaAddr, (char *) &bcla, sizeof(Bcla));
-	oK(sdr_list_insert_last(sdr, scheme.bclas, bclaAddr));
-	oK(sdr_end_xn(sdr));
+	if (bclaAddr)
+	{
+		sdr_write(sdr, bclaAddr, (char *) &bcla, sizeof(Bcla));
+		oK(sdr_list_insert_last(sdr, scheme.bclas, bclaAddr));
+	}
+
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed adding bcla.", peerEid);
+	}
 }
 
-void	bibeChange(char *destEid, unsigned int fwdLatency,
-		unsigned int rtnLatency, unsigned char priority,
-		unsigned char ordinal, unsigned int label,
-		unsigned char flags)
+void	bibeChange(char *peerEid, unsigned int fwdLatency,
+		unsigned int rtnLatency, int lifespan,
+		unsigned char priority, unsigned char ordinal,
+		unsigned int label, unsigned char flags)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
 	Object		bclaElt;
 	Bcla		bcla;
 
-	bibeFind(destEid, &bclaAddr, &bclaElt);
+	bibeFind(peerEid, &bclaAddr, &bclaElt);
 	if (bclaElt == 0)
 	{
-		writeMemoNote("[?] Can't find BIBE CLA to change", destEid);
+		writeMemoNote("[?] Can't find BIBE CLA to change", peerEid);
 		return;
 	}
 
@@ -96,6 +117,7 @@ void	bibeChange(char *destEid, unsigned int fwdLatency,
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
 	bcla.fwdLatency = fwdLatency;
 	bcla.rtnLatency = rtnLatency;
+	bcla.lifespan = lifespan;
 	bcla.classOfService = priority;
 	if (flags & BP_DATA_LABEL_PRESENT)
 	{
@@ -105,10 +127,13 @@ void	bibeChange(char *destEid, unsigned int fwdLatency,
 	bcla.ancillaryData.flags = flags;
 	bcla.ancillaryData.ordinal = ordinal;
 	sdr_write(sdr, bclaAddr, (char *) &bcla, sizeof(Bcla));
-	oK(sdr_end_xn(sdr));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed changing bcla.", peerEid);
+	}
 }
 
-void	bibeDelete(char *destEid)
+void	bibeDelete(char *peerEid)
 {
 	Sdr	sdr = getIonsdr();
 	Object	bclaAddr;
@@ -118,10 +143,10 @@ void	bibeDelete(char *destEid)
 	Object	addr;
 	Bundle	bundle;
 
-	bibeFind(destEid, &bclaAddr, &bclaElt);
+	bibeFind(peerEid, &bclaAddr, &bclaElt);
 	if (bclaElt == 0)
 	{
-		writeMemoNote("[?] Can't find BIBE CLA to delete", destEid);
+		writeMemoNote("[?] Can't find BIBE CLA to delete", peerEid);
 		return;
 	}
 
@@ -155,10 +180,13 @@ void	bibeDelete(char *destEid)
 	sdr_list_destroy(sdr, bcla.signals[CT_ACCEPTED].sequences, NULL, NULL);
 	sdr_free(sdr, bclaAddr);
 	sdr_list_delete(sdr, bclaElt, NULL, NULL);
-	oK(sdr_end_xn(sdr));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Failed deleting bcla.", peerEid);
+	}
 }
 
-void	bibeFind(char *destEid, Object *bclaAddr, Object *bclaElt)
+void	bibeFind(char *peerEid, Object *bclaAddr, Object *bclaElt)
 {
 	Sdr		sdr = getIonsdr();
 	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
@@ -170,10 +198,10 @@ void	bibeFind(char *destEid, Object *bclaAddr, Object *bclaElt)
 			OBJ_POINTER(Bcla, bcla);
 	char		dest[SDRSTRING_BUFSZ];
 
-	CHKVOID(destEid && bclaAddr && bclaElt);
+	CHKVOID(peerEid && bclaAddr && bclaElt);
 	*bclaAddr = 0;
 	*bclaElt = 0;
-	getSchemeName(destEid, schemeName);
+	getSchemeName(peerEid, schemeName);
 	findScheme(schemeName, &vscheme, &vschemeElt);
 	if (vscheme == NULL)
 	{
@@ -187,6 +215,7 @@ void	bibeFind(char *destEid, Object *bclaAddr, Object *bclaElt)
 		return;
 	}
 
+	oK(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, scheme.bclas); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -198,13 +227,16 @@ void	bibeFind(char *destEid, Object *bclaAddr, Object *bclaElt)
 			continue;
 		}
 
-		if (strcmp(dest, destEid) == 0)
+		if (strcmp(dest, peerEid) == 0)
 		{
 			*bclaAddr = addr;
 			*bclaElt = elt;
-			return;
+			break;
 		}
+
 	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
@@ -226,6 +258,7 @@ static void	handleCustodyTransfer(Object bclaObj, unsigned int xmitId,
 	if (deadline < signal->deadline)
 	{
 		signal->deadline = deadline;
+		sdr_write(sdr, bclaObj, (char *) &bcla, sizeof(Bcla));
 	}
 
 	for (elt = sdr_list_first(sdr, signal->sequences); elt;
@@ -345,35 +378,47 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();
 	vast		bpduLength;
+	Object		bpduZco;
 	ZcoReader	reader;
-	unsigned char	headerBuf[19];
+	unsigned char	headerBuf[36];
 	unsigned int	bytesToParse;
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		uvtemp;
 	unsigned int	xmitId;
 	time_t		deadline;
+	vast		bundleLength;
 	vast		headerLength;
 	Object		bclaObj;
 	Object		bclaElt;
-	char		schemeName[MAX_SCHEME_NAME_LEN + 1];
 	VInduct		*vinduct;
 	PsmAddress	vinductElt;	
 	AcqWorkArea	*work;
 
-	/*	Read and strip off the BPDU header: array open (1
-	 *	byte), xmitId (up to 9 bytes), deadline (up to 9
-	 *	bytes.							*/
+	/*	The ADU in the dlv structure is the ZCO representation
+	 *	of the *payload* of a BPDU (a bundle sent by BIBE).  As
+	 *	such, it is a BPDU, i.e., an administrative record that
+	 *	encapsulates a bundle that is to be dispatched.		*/
 
 	CHKERR(sdr_begin_xn(sdr));
 	bpduLength = zco_source_data_length(sdr, dlv->adu);
-	zco_start_receiving(dlv->adu, &reader);
-	bytesToParse = zco_receive_source(sdr, &reader, 19, (char *) headerBuf);
+
+	/*	By cloning this ZCO we enable bp_release_delivery
+	 *	to destroy the ADU safely.				*/
+
+	bpduZco = zco_clone(sdr, dlv->adu, 0, bpduLength);
+
+	/*	Read and strip off the BPDU's header: 3-element array
+	 *	open (up to 9 bytes), xmitId (up to 9 bytes), deadline
+	 *	(up to 9 bytes, byte string tag (up to 9 bytes).	*/
+
+	zco_start_receiving(bpduZco, &reader);
+	bytesToParse = zco_receive_source(sdr, &reader, 36, (char *) headerBuf);
 	if (bytesToParse < 3)
 	{
 		putErrmsg("Can't receive BPDU header.", NULL);
 		oK(sdr_end_xn(sdr));
-		return -1;
+		return 0;
 	}
 
 	cursor = headerBuf;
@@ -402,14 +447,31 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 	}
 
 	deadline = uvtemp;
+	uvtemp = (uvast) -1;
+	if (cbor_decode_byte_string(NULL, &uvtemp, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] bibecli can't decode BPDU encapsulated bundle.");
+		oK(sdr_end_xn(sdr));
+		return 0;
+	}
+
+	bundleLength = uvtemp;
+	headerLength = cursor - headerBuf;
+	if ((bundleLength + headerLength) != bpduLength)
+	{
+		writeMemo("[?] BIBE encoding of payload is invalid.");
+		writeMemoNote("[?]     bpduLength  ", itoa(bpduLength));
+		writeMemoNote("[?]     headerLength", itoa(headerLength));
+		writeMemoNote("[?]     bundleLength", itoa(bundleLength));
+		oK(sdr_end_xn(sdr));
+		return 0;
+	}
 
 	/*	Now strip off the BPDU header, leaving just the
 	 *	encapsulated serialized bundle.				*/
 
-	headerLength = cursor - headerBuf;
-	zco_delimit_source(sdr, dlv->adu, headerLength,
-			bpduLength - headerLength);
-	zco_strip(sdr, dlv->adu);
+	zco_delimit_source(sdr, bpduZco, headerLength, bundleLength);
+	zco_strip(sdr, bpduZco);
 
 	/*	Do custody transfer processing if necessary.		*/
 
@@ -435,11 +497,10 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 
 	/*	Now acquire and dispatch the encapsulated bundle.	*/
 
-	getSchemeName(dlv->bundleSourceEid, schemeName);
-	findInduct("bibe", schemeName, &vinduct, &vinductElt);
+	findInduct("bibe", "*", &vinduct, &vinductElt);
 	if (vinductElt == 0)
 	{
-		putErrmsg("Can't get BIBE Induct", dlv->bundleSourceEid);
+		putErrmsg("Can't get bibe Induct", "*");
 		return -1;
 	}
 
@@ -456,7 +517,7 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 		return -1;
 	}
 
-	if (bpLoadAcq(work, dlv->adu) < 0)
+	if (bpLoadAcq(work, bpduZco) < 0)
 	{
 		putErrmsg("Can't continue bundle acquisition.", NULL);
 		return -1;
@@ -538,6 +599,7 @@ int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 
 	while (sequenceCount > 0)
 	{
+		sequenceCount--;
 		/*	Each sequence is an array of two elements:
 		 *	first xmitId followed by number of consecutive
 		 *	xmitIds in the sequence (including the first).	*/
@@ -675,4 +737,67 @@ int	bibeHandleTimeout(Object trackingElt)
 
 	bundleObj = sdr_list_data(sdr, trackingElt);
 	return bpReforwardBundle(bundleObj);
+}
+
+int	bibeCtRetry(Bundle *bundle)
+{
+	Sdr	sdr = getIonsdr();
+	char	*peerEid;
+	Object	bclaAddr;
+	Object	bclaElt;
+	Bcla	bcla;
+	Object	eventObj;
+	BpEvent	event;
+	DtnTime	deadline;
+
+	if (readEid(&bundle->destination, &peerEid) < 0)
+	{
+		putErrmsg("Can't read bundle's destination EID.", NULL);
+		return -1;
+	}
+
+	bibeFind(peerEid, &bclaAddr, &bclaElt);
+	if (bclaElt == 0)
+	{
+		putErrmsg("Can't retrieve bcla.", peerEid);
+		MRELEASE(peerEid);
+		return -1;
+	}
+
+	MRELEASE(peerEid);
+	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
+	getCurrentDtnTime(&deadline);
+	deadline += (bcla.fwdLatency + bcla.rtnLatency);
+	bundle->deadline = deadline;
+	eventObj = sdr_list_data(sdr, bundle->ctDueElt);
+	sdr_read(sdr, (char *) &event, eventObj, sizeof(BpEvent));
+	destroyBpTimelineEvent(bundle->ctDueElt);
+	event.time = deadline + EPOCH_2000_SEC;
+	if ((bundle->ctDueElt = insertBpTimelineEvent(&event)) == 0)
+	{
+		putErrmsg("Can't reschedule rfwd.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+void	bibeCtCancel(Bundle *bundle)
+{
+	Sdr	sdr = getIonsdr();
+	Object	eventObj;
+	BpEvent	event;
+	Object	trackingElt;
+	Object	bundleObj;
+
+	eventObj = sdr_list_data(sdr, bundle->ctDueElt);
+	sdr_read(sdr, (char *) &event, eventObj, sizeof(BpEvent));
+	destroyBpTimelineEvent(bundle->ctDueElt);
+	trackingElt = event.ref;
+	bundleObj = sdr_list_data(sdr, trackingElt);
+	bp_untrack(bundleObj, trackingElt);
+	sdr_list_delete(sdr, trackingElt, NULL, NULL);
+	bundle->ctDueElt = 0;
+	bundle->xmitId = 0;
+	bundle->deadline = 0;
 }
