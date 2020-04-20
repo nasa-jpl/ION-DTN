@@ -667,6 +667,7 @@ void ui_fprint_json_report(ui_print_cfg_t *fd, rpt_t *rpt)
    {
       char *str = cJSON_Print(json);
       ui_fprintf(fd, str);
+      ui_fprintf(fd, "\n");
       cJSON_free(str);
       cJSON_Delete(json);
    }
