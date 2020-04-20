@@ -223,8 +223,7 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	Sdr			sdr = getIonsdr();
 	BpsecOutboundBlock	oldAsb;
 	BpsecOutboundBlock	newAsb;
-	char			eidBuf[300];
-	char			*cursor = eidBuf;
+	char			*eidBuf;
 	MetaEid			meid;
 	int			result;
 	VScheme			*vscheme;
@@ -266,7 +265,7 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	/*	First, security source.					*/
 
-	if (readEid(&oldAsb.securitySource, &cursor) < 0)
+	if (readEid(&oldAsb.securitySource, &eidBuf) < 0)
 	{
 		return -1;
 	}
@@ -274,6 +273,7 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	CHKERR(parseEidString(eidBuf, &meid, &vscheme, &schemeElt));
 	result = writeEid(&newAsb.securitySource, &meid);
 	restoreEidString(&meid);
+	MRELEASE(eidBuf);
        	if (result < 0) return -1;
 
 	/*	Next, targets.						*/

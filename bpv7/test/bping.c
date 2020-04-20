@@ -91,6 +91,7 @@ static long llsqrt(long long a)
 
 static void handleQuit()
 {
+	signal(SIGINT, handleQuit);
 	shutdownnow = 1;
 	bp_interrupt(recvsap);
 	if(sendRequestsThreadRunning

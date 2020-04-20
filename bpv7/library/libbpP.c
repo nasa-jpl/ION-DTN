@@ -8929,7 +8929,8 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		if (parseEidString(eidString, &senderMetaEid, &vscheme,
 				&vschemeElt) == 0)
 		{
-			putErrmsg("Can't parse sender EID.", NULL);
+			restoreEidString(&senderMetaEid);
+			putErrmsg("Can't parse sender EID.", eidString);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
@@ -8937,7 +8938,8 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		bundle->clDossier.senderNodeNbr = senderMetaEid.elementNbr;
 		if (writeEid(&bundle->clDossier.senderEid, &senderMetaEid) < 0)
 		{
-			putErrmsg("No space for sender EID.", NULL);
+			restoreEidString(&senderMetaEid);
+			putErrmsg("No space for sender EID.", eidString);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
@@ -11234,13 +11236,6 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	while (1)
 	{
-		if (unparsedBytes > 0)
-		{
-			writeMemo("[?] Extra bytes at end of block, ignored.");
-			cursor += unparsedBytes;
-			unparsedBytes = 0;
-		}
-
 		/*	Move any remaining unparsed data in the buffer
 		 *	to the front of the buffer (overwriting the
 		 *	block that we just parsed), and fill up the

@@ -376,7 +376,8 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
  *  11/05/15  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
-int	bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock *asb)
+int	bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
+		BpsecOutboundBlock *asb)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -384,11 +385,26 @@ int	bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk, BpsecOutboundBlock 
 	CHKERR(asb);
 
 	/* Step 1: Populate block-instance-agnostic parts of the ASB. */
+
+	if (asb->targets == 0)
+	{
+		asb->targets = sdr_list_create(sdr);
+	}
+
 	asb->contextId = suite;
-	asb->parmsData = sdr_list_create(sdr);
+	if (asb->parmsData == 0)
+	{
+		asb->parmsData = sdr_list_create(sdr);
+	}
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
+
 	asb->contextFlags = BPSEC_ASB_PARM;
+	if (asb->targets == 0 || asb->parmsData == 0)
+	{
+		putErrmsg("Can't construct BCB.", NULL);
+		return -1;
+	}
 
 	return 0;
 }
@@ -874,6 +890,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	{
 		BCB_DEBUG(2,"NOT adding BCB; no target.", NULL);
 
+		MRELEASE(toEid);
 		result = 0;
 		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- bcbAttach -> %d", result);
@@ -1093,10 +1110,11 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	CHKERR(sdr_begin_xn(sdr));
 	asb.targets = sdr_list_create(sdr);
-	if (asb.targets == 0)
+	asb.parmsData = sdr_list_create(sdr);
+	if (asb.targets == 0 || asb.parmsData == 0)
 	{
 		sdr_cancel_xn(sdr);
-		BCB_DEBUG_ERR("x bcbOffer: Failed to create targets list.");
+		BCB_DEBUG_ERR("x bcbOffer: Failed to initialize BCB ASB.");
 		result = -1;
 		BCB_DEBUG_PROC("- bcbOffer -> %d", result);
 		return result;

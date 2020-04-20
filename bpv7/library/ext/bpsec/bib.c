@@ -664,12 +664,25 @@ int	bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
 	/*	Step 1: Populate the unpopulated block-instance-agnostic
 	 *	parts of the ASB.					*/
 
+	if (asb->targets == 0)
+	{
+		asb->targets = sdr_list_create(sdr);
+	}
+
 	asb->contextId = suite;
-	asb->parmsData = sdr_list_create(sdr);
+	if (asb-> parmsData == 0)
+	{
+		asb->parmsData = sdr_list_create(sdr);
+	}
 
 	/* Step 2: Populate instance-specific parts of the ASB. */
 
 	asb->contextFlags = 0;
+	if (asb->targets == 0 || asb->parmsData == 0)
+	{
+		putErrmsg("Can't construct BIB.", NULL);
+		return -1;
+	}
 
 	return 0;
 }
@@ -1188,10 +1201,11 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 
 	CHKERR(sdr_begin_xn(sdr));
 	asb.targets = sdr_list_create(sdr);
-	if (asb.targets == 0)
+	asb.parmsData = sdr_list_create(sdr);
+	if (asb.targets == 0 || asb.parmsData == 0)
 	{
 		sdr_cancel_xn(sdr);
-		BIB_DEBUG_ERR("x bibOffer: Failed to create targets list.");
+		BIB_DEBUG_ERR("x bibOffer: Failed to initialize BIB ASB.");
 		result = -1;
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
