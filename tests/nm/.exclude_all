@@ -1,0 +1,1 @@
+This test requires NM to be configured with "--enable-nmrest" and the installation of Perl dependencies. See dotest inline documentation for details.

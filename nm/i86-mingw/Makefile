@@ -115,7 +115,7 @@ TGT_MGR_OBJS := $(notdir ${MGR_OBJS})
 TGT_AGENT_OBJS := $(notdir ${AGENT_OBJS})
 
 # OPT = -O -Dlinux
-OPT += -g -Wall -Werror -Wno-unused-variable -Dmingw -DAMP_VERSION=7
+OPT += -g -Wall -Werror -Wno-unused-variable -Dmingw -DAMP_VERSION=8
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
