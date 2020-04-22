@@ -59,13 +59,13 @@ al_bp_extB_error_t al_bp_extB_unregister(al_bp_extB_registration_descriptor regi
 // passed in input. For the sake of backward compatibility the 
 // destination and "reply to" originally contained in the bundle object 
 // are saved and restored at the end of the function.
-al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t* bundle, al_bp_endpoint_id_t destination, al_bp_endpoint_id_t reply_to);
+al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t bundle, al_bp_endpoint_id_t destination, al_bp_endpoint_id_t reply_to);
 
 // It receives a bundle object destined to the registration_descriptor 
 // passed in input. It is a wrapper of the al_bp_bundle_receive. 
 // Payload_location is a structure passed to al_bp lower layers. Timeval 
 // is a timeout value passed to al_bp_lower layers.
-al_bp_extB_error_t al_bp_extB_receive(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t bundle, al_bp_bundle_payload_location_t payload_location, al_bp_timeval_t timeval);
+al_bp_extB_error_t al_bp_extB_receive(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t* bundle, al_bp_bundle_payload_location_t payload_location, al_bp_timeval_t timeval);
 
 // It initializes the Abstraction Layer extension "B". The "force_eid" 
 // (N|D|I) is used to specify if the default format of the registration 

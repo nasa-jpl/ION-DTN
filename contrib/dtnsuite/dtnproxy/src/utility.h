@@ -34,5 +34,6 @@
 void close_socket(int sd, int side);
 void set_is_running_to_false(pthread_mutex_t mutex, int * is_running);
 void signal_to_main(pthread_mutex_t mutex, pthread_cond_t cond);
-
+int numberOfChar(char toFind, char * address);
+void criticalStopExecution();
 #endif /* DTNPROXY_SRC_UTILITY_H_ */

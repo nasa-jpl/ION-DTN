@@ -17,6 +17,9 @@
  */
 
 #include "al_bp_ion.h"
+
+#include <bpP.h>
+
 /**
  * bp_open_source() is present only in ION >= 3.3.0
  * If using ION < 3.3.0, please comment the following line.
@@ -33,7 +36,7 @@
 
 /* It's for private function */
 #include <ion.h>
-int albp_parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt,BpCtSignal *csig, void **otherPtr, Object payload);
+int albp_parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt, void **otherPtr, Object payload);
 int	albp_parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,int unparsedBytes, int isFragment);
 /*********************************/
 
@@ -81,10 +84,7 @@ al_bp_error_t bp_ion_build_local_eid(al_bp_endpoint_id_t* local_eid,
 			}
 		}
 		long int service_num = strtol(service_tag,NULL,10);
-		sprintf(eidString, "%s:%lu",
-								CBHESCHEMENAME,(unsigned long int) getOwnNodeNbr());
-		sprintf(eidString, "%s.%lu",
-				eidString,service_num);
+		sprintf(eidString, "%s:%lu.%lu", CBHESCHEMENAME,(unsigned long int) getOwnNodeNbr(), service_num);
 		(*local_eid) = ion_al_endpoint_id(eidString);
 	}
 	else if(type == DTN_SCHEME)
@@ -322,10 +322,7 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	sdr_read(bpSdr,(char*)&bundleION,(SdrAddress) newBundleObj,sizeof(Bundle));
 	sdr_end_xn(bpSdr);
 	char * tmpEidSource;
-	char * dictionary = retrieveDictionary(&bundleION);
-	printEid(&(bundleION.id.source),dictionary,&tmpEidSource);
-//dz debug             --- Note that calling retrieveDictionary without releasing it results in
-//dz debug             --- an SDR "memory leak"
+	readEid(&(bundleION.id.source),&tmpEidSource);
 #ifdef BP_OPEN_SOURCE
 	id->source = ion_al_endpoint_id(tmpEidSource);
 	bp_release((SdrAddress) newBundleObj);
@@ -343,8 +340,6 @@ al_bp_error_t bp_ion_send(al_bp_handle_t handle,
 	id->orig_length = bundleION.totalAduLength;
 
 	handle = ion_al_handle(ion_handle);
-	//Free resource
-	releaseDictionary(dictionary);
 	free(destEid);
 	free(reportEid);
 	free(tokenClassOfService);
@@ -362,8 +357,7 @@ al_bp_error_t bp_ion_recv(al_bp_handle_t handle,
 	// or unique SAP if BP_OPEN_SOURCE is undefined
 	BpSAP * bpSap = ion_handle->recv;
 	BpDelivery dlv;
-	DtnTime ion_timeout = al_ion_timeval(timeout);
-	int second_timeout = (int) ion_timeout.seconds;
+	int second_timeout = (int) timeout;
 	int result;
 	result = bp_receive(*bpSap ,&dlv, second_timeout);
 	if(result < 0)
@@ -417,9 +411,8 @@ al_bp_error_t bp_ion_recv(al_bp_handle_t handle,
 	free(filename);
 	/* Status Report */
 	BpStatusRpt statusRpt;
-	BpCtSignal ctSignal;
 	void * acsptr;
-	if(albp_parseAdminRecord(&dlv.adminRecord,&statusRpt,&ctSignal,&acsptr,dlv.adu) == 1)
+	if(albp_parseAdminRecord(&dlv.adminRecord,&statusRpt,&acsptr,dlv.adu) == 1)
 	{
 		al_bp_bundle_status_report_t bp_statusRpt = ion_al_bundle_status_report(statusRpt);
 		if(payload->status_report == NULL)
@@ -460,7 +453,7 @@ void bp_ion_copy_eid(al_bp_endpoint_id_t* dst, al_bp_endpoint_id_t* src)
 	ion_src = al_ion_endpoint_id((*src));
 	length = strlen(ion_src)+1;
 	ion_dst = (char *)malloc(sizeof(char)*length);
-	strncpy(ion_dst,ion_src,length);
+	memcpy(ion_dst,ion_src,length);
 	(*dst) = ion_al_endpoint_id(ion_dst);
 	free(ion_dst);
 	free(ion_src);
@@ -473,7 +466,7 @@ al_bp_error_t bp_ion_parse_eid_string(al_bp_endpoint_id_t* eid, const char* str)
 	MetaEid metaEid;
 	VScheme * vscheme;
 	endpoint = (char *) malloc(sizeof(char)*AL_BP_MAX_ENDPOINT_ID);
-	strncpy(endpoint,str,strlen(str)+1);
+	memcpy(endpoint,str,strlen(str)+1);
 	if(parseEidString(endpoint,&metaEid,&vscheme,&psmAddress) == 0) {
 		free(endpoint);
 		return BP_EPARSEEID;
@@ -569,27 +562,33 @@ al_bp_error_t bp_ion_error(int err)
  * Parse the admin record to have a status report.
  * Return 1 on success
  * */
-int albp_parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt, BpCtSignal *csig, void **otherPtr, Object payload)
+int albp_parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt, void **otherPtr, Object payload)
 {
-	Sdr				bpSdr = bp_get_sdr();
-	unsigned int	buflen;
-	char			*buffer;
+	Sdr			bpSdr = bp_get_sdr();
+	unsigned int		buflen;
+	unsigned char		*buffer;
 	ZcoReader		reader;
-	char			*cursor;
-	int				bytesToParse;
-	int				unparsedBytes;
-	int				bundleIsFragment;
-	int				result;
+	unsigned char		*cursor;
+	int			bytesToParse;
+	unsigned int		unparsedBytes;
+	int			result;
+	uvast 			uvtemp;
+
+	/*****
+	 ***** This code is partially copied from ION files. libbpP.c file in "bp/library" folder.
+	 ***** In case of future errors, please, check it out if the original one si modified and try to copy the differences.
+	 *****/
+
 	sdr_begin_xn(bpSdr);
 	buflen = zco_source_data_length(bpSdr, payload);
-	buffer = (char *) malloc(sizeof(char)*buflen);
+	buffer = (unsigned char *) malloc(sizeof(unsigned char)*buflen);
 	if ( buffer == NULL )
 	{
 		sdr_end_xn(bpSdr);
 		return -1;
 	}
 	zco_start_receiving(payload, &reader);
-	bytesToParse = zco_receive_source(bpSdr, &reader, buflen, buffer);
+	bytesToParse = zco_receive_source(bpSdr, &reader, buflen, (char*)buffer);
 	if (bytesToParse < 0)
 	{
 		sdr_end_xn(bpSdr);
@@ -598,22 +597,38 @@ int albp_parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt, BpCtSignal *cs
 	}
 	cursor = buffer;
 	unparsedBytes = bytesToParse;
+
 	if (unparsedBytes < 1)
+        {
+                sdr_end_xn(bpSdr);
+                free(buffer);
+                return -1;
+        }
+
+	uvtemp = 2; /* Decode array of size 2. */
+	if (cbor_decode_array_open(&uvtemp, &cursor, &unparsedBytes) < 1)
 	{
 		sdr_end_xn(bpSdr);
 		free(buffer);
 		return -1;
 	}
-	*adminRecordType = (*cursor >> 4 ) & 0x0f;
-	bundleIsFragment = *cursor & 0x01;
-	cursor++;
-	unparsedBytes--;
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		sdr_end_xn(bpSdr);
+		free(buffer);
+		return -1;
+	}
+
+	*adminRecordType = uvtemp;
+
 	switch (*adminRecordType)
 	{
 		case BP_STATUS_REPORT:
-		result = albp_parseStatusRpt(rpt, (unsigned char *) cursor,unparsedBytes, bundleIsFragment); break;
-		case BP_CUSTODY_SIGNAL:
-		result = 0; break;
+		result = parseStatusRpt(rpt, (unsigned char*) cursor, unparsedBytes);
+		break;
+		/*case BP_CUSTODY_SIGNAL:
+		result = 0; break;*/
 		default: result = 0; break;
 	}
 	sdr_end_xn(bpSdr);
@@ -624,7 +639,7 @@ int albp_parseAdminRecord(int *adminRecordType, BpStatusRpt *rpt, BpCtSignal *cs
 /* *
  * Parse cursor to have a status report
  * Return 1 on success
- * */
+ * *//*
 int	albp_parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,int unparsedBytes, int isFragment)
 {
 	unsigned int	eidLength;
@@ -691,7 +706,7 @@ int	albp_parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,int unparsedByte
 	memcpy(rpt->sourceEid, cursor, eidLength);
 	rpt->sourceEid[eidLength] = '\0';
 	return 1;
-}
+}*/
 
 /*****************************************************/
 /*

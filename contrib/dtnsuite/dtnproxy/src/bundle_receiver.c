@@ -1,6 +1,7 @@
 /********************************************************
     Authors:
     Lorenzo Mustich, lorenzo.mustich@studio.unibo.it
+	Lorenzo Tullini, lorenzo.tullini@studio.unibo.it
     Carlo Caini (DTNproxy project supervisor), carlo.caini@unibo.it
 
     License:
@@ -22,12 +23,10 @@
 
  ********************************************************/
 
-/*
+/**
  * bundle_receiver.c
- *
- * This file contains code for receving from
- * a DTN sending application
- *
+ * Thread to receive file vai BP protocol,
+ * it uses Semaphores (POSIX) to avoid concurrency whith tcp sender side.
  */
 
 #include "proxy_thread.h"
@@ -35,16 +34,17 @@
 #include "debugger.h"
 #include "utility.h"
 
-/**
- * static variables
- */
+/* ---------------------------
+ *      Global variables
+ * --------------------------- */
 static al_bp_bundle_object_t bundle;
 
-/**
- * function interfaces
- */
+/* -------------------------------
+ *       Function interfaces
+ * ------------------------------- */
 al_bp_error_t read_dtnperf_header(char* filename);
-//void handlerBundleReceiver(int signal);
+int setTCPdestParameter (al_bp_extension_block_t *metadata,circular_buffer_item * toSend,int debugLeavel);
+static void criticalError(void *arg);
 
 /**
  * Thread code
@@ -60,11 +60,15 @@ void * bundleReceiving(void * arg) {
 	char * file_name_payload;
 	uint file_name_payload_len;
 	char filename[FILE_NAME];
+	char temp_filename[256];
 
 	int fd, fdNew;
 	char char_read;
 
 	int index = 0;
+
+	//Changing of default exit routine
+	pthread_cleanup_push(criticalError, NULL);
 
 	opendir(DTN_TCP_DIR);
 	if(errno == ENOENT) {
@@ -72,11 +76,8 @@ void * bundleReceiving(void * arg) {
 		mkdir(DTN_TCP_DIR, 0700);
 	}
 
-//	signal(SIGUSR1, handlerBundleReceiver);
-
-	while(*(proxy_inf->is_running)) {
-		sem_wait(&proxy_inf->bundleRecv);
-
+	//Start daemon like execution
+	while(1==1) {
 		//Create bundle
 		utility_error = al_bp_bundle_create(&bundle);
 		if (utility_error != BP_EXTB_SUCCESS) {
@@ -86,24 +87,24 @@ void * bundleReceiving(void * arg) {
 		}
 		printf("Waiting for a bundle...\n");
 
-		//Receive a bundle
-		if(*(proxy_inf->is_running) == 0)
-			break;
 
-		utility_error = al_bp_extB_receive(proxy_inf->rd_receive, bundle, location, -1);
-		if (utility_error != BP_EXTB_SUCCESS) {
-			error_print("Error in al_bp_extB_receive_bundle() (%s)\n", al_bp_strerror(utility_error));
-			al_bp_bundle_free(&bundle);
-
-			set_is_running_to_false(proxy_inf->mutex, proxy_inf->is_running);
-//			kill(proxy_inf->tid_snd, SIGUSR1);
+		/*Receiving bundle
+		while (al_bp_extB_receive(proxy_inf->rd_receive, &bundle, location, -1)!= BP_EXTB_SUCCESS) {
+			printf("Registration busy\n");
 			break;
 		}
+		printf("Bundle received\n");*/
+
+		utility_error = al_bp_extB_receive(proxy_inf->rd_receive, &bundle, location, -1);
+		if (utility_error != BP_EXTB_SUCCESS) {
+			error_print("Error in al_bp_bundle_get_file_name_payload_file() (%s)\n", al_bp_strerror(utility_error));
+			al_bp_bundle_free(&bundle);
+			if(utility_error==BP_EXTB_ERRRECEIVE){
+				break;
+			}
+			continue;
+		}
 		printf("Bundle received\n");
-
-		if(*(proxy_inf->is_running) == 0)
-			break;
-
 
 		utility_error = al_bp_bundle_get_payload_file(bundle, &file_name_payload, &file_name_payload_len);
 		if (utility_error != BP_EXTB_SUCCESS) {
@@ -118,95 +119,98 @@ void * bundleReceiving(void * arg) {
 			al_bp_bundle_free(&bundle);
 			continue;
 		}
+
 		debug_print(proxy_inf->debug_level,
 				"[DEBUG] file_name: %s EID_src: %s\n", basename(file_name_payload), source_eid.uri);
 
-		if(proxy_inf->options == 'm') {
-			fd = open(file_name_payload, O_RDONLY);
-			if (fd < 0) {
-				error_print("Opening file %s failed (%s)\n", file_name_payload, strerror(errno));
-				al_bp_bundle_free(&bundle);
-				continue;
-			}
+		circular_buffer_item toSend;
+		//Set tcp ip dest parameter if it's not correct abort reception
+		if((setTCPdestParameter(bundle.spec->metadata.metadata_val,&toSend,proxy_inf->debug_level))==0){
+			if(proxy_inf->options == 'm') {
+				fd = open(file_name_payload, O_RDONLY);
+				if (fd < 0) {
+					error_print("Opening file %s failed (%s)\n", file_name_payload, strerror(errno));
+					al_bp_bundle_free(&bundle);
+					continue;
+				}
 
-			strcpy(filename, DTN_TCP_DIR);
-			strcat(filename, &source_eid.uri[4]);
-			strcat(filename, "_");
-			strcat(filename, &file_name_payload[5]);
-			sprintf(filename, "%s_%d", filename, index);
+				strcpy(temp_filename, DTN_TCP_DIR);
+				strcat(temp_filename, &source_eid.uri[4]);
+				strcat(temp_filename, "_");
+				strcat(temp_filename, &file_name_payload[5]);
+				sprintf(filename, "%s_%d", temp_filename, index);
+//				sprintf(filename, "%s_%d", filename, index);
 
-			fdNew = open(filename, O_WRONLY | O_CREAT, 0700);
-			if (fd < 0) {
-				error_print("Reading file %s failed (%s)\n", file_name_payload, strerror(errno));
-				al_bp_bundle_free(&bundle);
+				fdNew = open(filename, O_WRONLY | O_CREAT, 0700);
+				if (fd < 0) {
+					error_print("Reading file %s failed (%s)\n", file_name_payload, strerror(errno));
+					al_bp_bundle_free(&bundle);
+					close(fd);
+					continue;
+				}
+
+
+				while(read(fd, &char_read, sizeof(char)) > 0) {
+					write(fdNew, &char_read, sizeof(char));
+				}
 				close(fd);
-				continue;
+				close(fdNew);
+
+
+				strcpy(toSend.fileName, filename);
 			}
+			else { //DTNperf compatibility
+				HEADER_TYPE bundle_header;
+				if (get_dtnperf_bundle_header_and_options(&bundle, &bundle_header) < 0) {
+					error_print("Error in getting bundle header and options\n");
+					al_bp_bundle_free(&bundle);
+					continue;
+				}
 
-			if(*(proxy_inf->is_running) == 0)
-				break;
+				error = read_dtnperf_header(toSend.fileName);
 
-			while(read(fd, &char_read, sizeof(char)) > 0) {
-				write(fdNew, &char_read, sizeof(char));
+				if(error != BP_SUCCESS) {
+					error_print("Error in reading dtnperf header (%s)\n", al_bp_strerror(error));
+					al_bp_bundle_free(&bundle);
+					continue;
+				}
 			}
-			close(fd);
-			close(fdNew);
-
-			if(*(proxy_inf->is_running) == 0)
-				break;
-
-			strcpy(proxy_inf->buffer[index], filename);
-		}
-		else { //DTNperf compatibility
-			HEADER_TYPE bundle_header;
-			if (get_dtnperf_bundle_header_and_options(&bundle, &bundle_header) < 0) {
-				error_print("Error in getting bundle header and options\n");
+			utility_error = al_bp_bundle_free(&bundle);
+			if (utility_error != BP_EXTB_SUCCESS) {
+				error_print("Error in al_bp_bundle_free() (%s)\n", al_bp_strerror(utility_error));
 				al_bp_bundle_free(&bundle);
-				continue;
+				//set_is_running_to_false(proxy_inf->mutex, proxy_inf->is_running);
+				//kill(proxy_inf->tid_snd, SIGUSR1);
+				break;
 			}
-
-			error = read_dtnperf_header(proxy_inf->buffer[index]);
-			if(error != BP_SUCCESS) {
-				error_print("Error in reading dtnperf header (%s)\n", al_bp_strerror(error));
+			strcpy(filename, "");
+			if(circular_buffer_isFull(&(proxy_inf->bp_tcp_buffer))==0) printf("BP->TCP buffer full\n");
+			while(circular_buffer_isFull(&(proxy_inf->bp_tcp_buffer))==0) sleep(1);
+			pthread_mutex_lock(&(proxy_inf->bp_tcp_buffer.mutex));
+			circular_buffer_push(&(proxy_inf->bp_tcp_buffer),toSend);
+			pthread_mutex_unlock(&(proxy_inf->bp_tcp_buffer.mutex));
+		}else{
+			//there is an error in metedata tcp dest
+			utility_error = al_bp_bundle_free(&bundle);
+			if (utility_error != BP_EXTB_SUCCESS) {
+				error_print("Error in al_bp_bundle_free() (%s)\n", al_bp_strerror(utility_error));
 				al_bp_bundle_free(&bundle);
-				continue;
+				//set_is_running_to_false(proxy_inf->mutex, proxy_inf->is_running);
+				//kill(proxy_inf->tid_snd, SIGUSR1);
+				break;
 			}
+			strcpy(filename, "");
 		}
 
-		debug_print(proxy_inf->debug_level,
-				"[DEBUG] index: %d %s\n", index, proxy_inf->buffer[index]);
-		index = (index + 1) % MAX_NUM_FILE;
 
-		utility_error = al_bp_bundle_free(&bundle);
-		if (utility_error != BP_EXTB_SUCCESS) {
-			error_print("Error in al_bp_bundle_free() (%s)\n", al_bp_strerror(utility_error));
-			al_bp_bundle_free(&bundle);
+	}//while
 
-			set_is_running_to_false(proxy_inf->mutex, proxy_inf->is_running);
-			//kill(proxy_inf->tid_snd, SIGUSR1);
-			break;
-		}
-
-		strcpy(filename, "");
-
-		sem_post(&proxy_inf->tcpSnd);
-	}//for
-//
-//	printf("BundleSender: i'm here\n");
-//
-//	int value;
-//	sem_getvalue(&proxy_inf->tcpSnd, &value);
-//	if(value == 0)
-//		sem_post(&proxy_inf->tcpSnd);
-//
-//	pthread_exit((void *) EXIT_FAILURE);
-
+	//Signaling to main an error in daemon like execution
+	proxy_inf->error=utility_error;
+	kill(getpid(),SIGINT);
+	pthread_cleanup_pop(1);
 	return NULL;
 }
-
-//void handlerBundleReceiver(int signal) {
-//
-//}
 
 /**
  * Function for dtnperf compability
@@ -220,8 +224,7 @@ al_bp_error_t read_dtnperf_header(char * filename) {
 	//Get info about bundle size
 	al_bp_bundle_get_payload_size(bundle, &pl_size);
 
-	if (dtnperf_open_payload_stream_read(bundle, &pl_stream) < 0)
-	{
+	if (dtnperf_open_payload_stream_read(bundle, &pl_stream) < 0){
 		error_print("Error in opening file transfer bundle (%s)\n", strerror(errno));
 		return BP_ERRBASE;
 	}
@@ -230,8 +233,7 @@ al_bp_error_t read_dtnperf_header(char * filename) {
 	transfer = (char*) malloc(transfer_len);
 	memset(transfer, 0, transfer_len);
 
-	if (fread(transfer, transfer_len, 1, pl_stream) != 1 && ferror(pl_stream)!=0)
-	{
+	if (fread(transfer, transfer_len, 1, pl_stream) != 1 && ferror(pl_stream)!=0){
 		error_print("Error in processing file transfer bundle (%s)\n", strerror(errno));
 		return BP_ERRBASE;
 	}
@@ -243,8 +245,7 @@ al_bp_error_t read_dtnperf_header(char * filename) {
 	transfer = (char*) malloc(transfer_len);
 	memset(transfer, 0, transfer_len);
 
-	if (fread(transfer, transfer_len, 1, pl_stream) != 1 && ferror(pl_stream)!=0)
-	{
+	if (fread(transfer, transfer_len, 1, pl_stream) != 1 && ferror(pl_stream)!=0){
 		error_print("Error in processing file transfer bundle (%s)\n", strerror(errno));
 		return BP_ERRBASE;
 	}
@@ -257,5 +258,65 @@ al_bp_error_t read_dtnperf_header(char * filename) {
 	return BP_SUCCESS;
 }
 
+/**
+ * Funciton:
+ * -) uses metedata to set ip and port of the tcp destination
+ * -) tests ip tcp dest format
+ * -) parses address
+ */
+ //da sistemare i valori di ritorno con macro
+int setTCPdestParameter (al_bp_extension_block_t *metadata,circular_buffer_item * toSend,int debugLeavel){
+	debug_print(debugLeavel,"[DEBUG] Metadata size: %llu\n",metadata->data.data_len);
+	debug_print(debugLeavel,"[DEBUG] Metadata val: %s\n",metadata->data.data_val);
+	//printf("Metadata size: %i\n",metadata->data.data_len);
+	//printf("Metadata val: %s\n",metadata->data.data_val);
+	strcpy(toSend->ip_dest,metadata->data.data_val);
 
+	if(strstr(toSend->ip_dest, ":") == NULL){//test if ip_dest contains ip and port of server
+		error_print("Error use %s is an invalid IPv4 address format (use ip:port)\n",toSend->ip_dest);
+		return WRONG_TCP_IP_ADDRESS;
+	}
+	int nbytes=numberOfChar('.',toSend->ip_dest);
+	printf("Numero di bytes: %i\n",nbytes);
+	if(nbytes<4){ //check if ip tcp dest has 4 bytes and no more or less
+	   error_print("Error use %s is an invalid IPv4 address format (too short)\n",toSend->ip_dest);
+	   return WRONG_TCP_IP_ADDRESS;
+	}
+	if(nbytes>4){ //check if ip tcp dest has 4 bytes and no more or less
+		error_print("Error use %s is an invalid IPv4 address format (too long)\n",toSend->ip_dest);
+		return WRONG_TCP_IP_ADDRESS;
+	}
+	char* token = strtok(toSend->ip_dest, ":");
+	strcpy(toSend->ip_dest,token);
+	token = strtok(NULL, ":");
+	toSend->port_dest=atoi(token);
+	if(toSend->port_dest==0 || (toSend->port_dest)>65535){//test dest port
+		error_print("Error use %s is an invalid TCP port\n", token);
+		return WRONG_TCP_IP_ADDRESS;
+	}
+	//check if all bytes of ip address is valid
+	char temp[20];
+	strcpy(temp,toSend->ip_dest);
+	char *token2 = strtok(temp, ".");
+	int ipIndex=0;
+	while (token2 != NULL || ipIndex>4) {
+	   int byte=atoi(token2);
+	   if(byte>255){//test every bytes of dest ip
+		   error_print("Error use %s is an invalid IPv4 address format (in byte %i)\n",toSend->ip_dest, ipIndex);
+		   return WRONG_TCP_IP_ADDRESS;
+	   }
+	   token2 = strtok(NULL, ".");
+	   ipIndex++;
+	}
+	debug_print(debugLeavel,"[DEBUG] ip sintax checked: %s\n",toSend->ip_dest);
+	debug_print(debugLeavel,"[DEBUG] port checked: %lu\n",toSend->port_dest);
+	return 0;
+}
+
+/**
+ * Custom routine started in case of reception of pthread_cancel by parent.
+ */
+static void criticalError(void *arg){
+	//al_bp_bundle_free(&bundle);
+}
 

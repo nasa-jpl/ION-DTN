@@ -28,6 +28,12 @@
  * Define cosnstans used by DTNproxy
  *
  */
+ #include <unistd.h>
+ #include <sys/syscall.h>
+ #include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifndef DTNPROXY_SRC_DEFINITIONS_H_
 #define DTNPROXY_SRC_DEFINITIONS_H_
 
@@ -65,7 +71,6 @@
 #define BUNDLE_OPT_TYPE uint16_t
 // header of bundles sent in file mode
 #define FILE_HEADER 0x4
-
 // default value (in bytes) for bundle payload
 #define DEFAULT_PAYLOAD 50000
 // window based
@@ -78,7 +83,6 @@
 #define BO_ACK_MON_FORCE_YES 0x2000
 // force server to not send acks to monitor
 #define BO_ACK_MON_FORCE_NO 0x1000
-
 // ack priority options
 // set ack priority bit
 #define BO_SET_PRIORITY 0x0040
@@ -87,10 +91,8 @@
 #define BO_PRIORITY_NORMAL 0x0010
 #define BO_PRIORITY_EXPEDITED 0x0020
 #define BO_PRIORITY_RESERVED 0x0030
-
 // set ack expiration time as this bundle one
 #define BO_SET_EXPIRATION 0x0080
-
 // crc options (BO HEADER)
 #define BO_CRC_DISABLED 0x0000
 
@@ -99,17 +101,26 @@
  **-------------------------*/
 // Bundle constants
 #define BUNDLE_EXPIRATION 180
-
 // Max files num in thread directories
-#define MAX_NUM_FILE 10
+#define MAX_BUFFER_SIZE 10
+//Max number of senders in tcp send side
+#define N_SENDERS 1000
+//Max number of receivers in tcp receive side
+#define N_RECEIVERS 10
+//Return value wrong tcp ipv4 address
+#define WRONG_TCP_IP_ADDRESS 99
 
 /**
  * String length
  */
 // Filename length
-#define FILE_NAME 256
+#define FILE_NAME 512
 // IP address length
 #define IP_LENGTH 16
+//Max number of tentative in tcp send side
+#define NUMBER_ATTEMPTS 5
+//debug leavel
+#define DEBUGLEAVEL 0
 
 /**
  * Default filename

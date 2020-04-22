@@ -68,5 +68,6 @@ typedef struct {
 result_codes al_bp_check_bp_options(int argc, char **argv, bundle_options_t* bundle_options, result_options_t* result_options);
 void al_bp_free_result_options(result_options_t result_options);
 char * get_help_bp_options(void);
+al_bp_error_t al_bp_create_bundle_with_option(al_bp_bundle_object_t *bundle, bundle_options_t bundle_options);
 
 #endif

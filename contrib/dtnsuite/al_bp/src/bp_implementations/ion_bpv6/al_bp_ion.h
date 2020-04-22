@@ -20,7 +20,7 @@
 #ifndef BP_ION_H_
 #define BP_ION_H_
 
-#include "../al_bp_types.h"
+#include <al_bp_types.h>
 
 #define CBHESCHEMENAME "ipn"
 #define DTN2SCHEMENAME "dtn"

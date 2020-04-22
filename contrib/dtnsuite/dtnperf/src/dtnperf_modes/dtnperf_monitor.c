@@ -218,7 +218,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 
 		// wait until receive a bundle
 		debug_print(DEBUG_L2,"[DEBUG_L2] waiting for bundles...\n");
-		utility_error = al_bp_extB_receive(registration_descriptor, bundle_object, BP_PAYLOAD_MEM, -1);
+		utility_error = al_bp_extB_receive(registration_descriptor, &bundle_object, BP_PAYLOAD_MEM, -1);
 		receive_ok = FALSE;
 		switch (utility_error) {
 		case BP_EXTB_SUCCESS:
@@ -393,7 +393,7 @@ void run_dtnperf_monitor(monitor_parameters_t * parameters)
 					filename = (char *) malloc(filename_len);
 					memset(filename, 0, filename_len);
 					sprintf(filename, "%u_", relative_creation_timestamp.secs);
-					strncpy(temp, relative_source_addr.uri, strlen(relative_source_addr.uri) + 1);
+					memcpy(temp, relative_source_addr.uri, strlen(relative_source_addr.uri) + 1);
 
 					if(strncmp(relative_source_addr.uri,"ipn",3) == 0)
 					{
