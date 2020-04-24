@@ -1,6 +1,6 @@
-= Release Notes for ION 3.7.0 =
+= Release Notes for ION 4.0.0 =
 
-October 7, 2019
+April 24, 2020
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,118 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.0.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The focus of ION version 4.0.0 was implementation of the new version of Bundle
+Protocol - BPv7 - that is currently being standardized within the IETF DTN
+Working Group.
+
+Branches:
+
+ion-4.0.0
+	* BPv7 (Bundle Protocol version 7) was implemented.
+	* BPSEC replaced SBSP for BPv7.
+	* An enhanced BIBE implementation replaced Aggregate Custody Signaling
+	      (ACS) for BPv7.
+	* All of this new code is in a new "bpv7" subdirectory of the
+	      ion-open-source root directory.
+	* NOTE that the original bpv6 implementation is still included in ION
+	      and is still supported.  But it has been moved to a new "bpv6"
+	      subdirectory of the ion-open-source root directory.
+
+fix-unibo-contrib - Updates were made to ECLSAv4 and the dtnsuite
+     (dtnbox, dtnfog, dtnperf, dtnproxy).
+
+cfdpv1-updates - CFDP was revised based on the CFDPV1 pink sheets including a
+     fix for CRC computation.
+
+bp-configure-switch - Updates were made to the autoconf system to enable
+     configuration of ION with bpv6 or bpv7. It is important to note that to
+     minimize application program changes, bpv6 and bpv7 builds use the same
+     library and utility program names. As a side effect, to ensure you are
+     running the expected code, make sure you remove any old libraries and
+     executable programs before rebuilding with a different bp version so bpv7
+     utilities do not pull in bpv6 libraries or vice versa. Also, the testing
+     architecture has been enhanced to allow tests to be distinguished as bpv6
+     or bpv7 only.
+
+ION 4 NM Release Notes:
+
+NM has been upgraded to support the latest revision of the AMP specification.
+     Prior releases were based on AMPv6. This version has been updated to
+     support AMPv8.
+
+These updates change the format of the CBOR-encoded messages and, as such,
+     break backwards compatibility when enabled. The updated specification
+     optimizes the size of the CBOR encodings by eliminating selected CBOR
+     container delimiters when not required for processing by NM through the
+     newly introduced concept of 'OCTETS'.
+
+An OCTETS sequence is functionally equivalent to a CBOR indefinite-length array
+     for which the header and size bytes are omitted from the encoded CBOR
+     data. The NM application explicitly instructs the QCBOR encoder as to the
+     start and end of an octets sequence. This enables the entirety of the
+     OCTETS sequence to be counted as a single element in any encapsulating
+     CBOR array and for error detection (ie: of unmatched array opens & closes)
+     to proceed as normal.
+
+Two new (experimental) UI features have been added to aide automation. The
+     'Automator UI mode' provides a simple shell-style interface to the Manager
+     optimized for scripted usage. The second is a preliminary REST API. This
+     API is subject change in future releases.
+
+Command line options have been added to nm_mgr for configuration of expanded
+     file logging capabilities.  See the man page for details.
+
+This release includes also includes several bug fixes, updates to the CAMP tool
+     for generating ADM source files, and the inclusion of Doxygen
+     documentation.  See nm/docs/doxygen/README.md for instructions on
+     generating Doxygen output.
+
+NOTE for Solaris users: This version of network management is NOT fully
+     functioning on Solaris at this time. There is a segmentation fault that we
+     have not yet fully diagnosed.
+
+
+Other ways that bpv7 differs from bpv6:
+
+- CBOR encoding replaced the SDNV encoding scheme.
+
+- qos was renamed to bpq to avoid build problems resulting from existing
+     qos implementations.
+
+
+Other changes:
+
+- A new test for prioritized transmission including priority override has been
+     added.
+
+- A new BIBE custody transfer test for BPv7 has been added.
+
+- llcv was updated to help stabilize TCP reconnection.
+
+- bpversion, a utility that prints the version of BP ION was compiled with,
+     has been added.
+
+- The Windows(mingw) build was updated to use local/ locations rather than opt/.
+
+- The Deployment Guide was updated with additional information about
+     multi-node operations and configuring for bundle-in-bundle encapsulation.
+
+- Deterministic data loss capability was added to owltsim.
+
+- cgrfetch was repaired. 
+
+- Assorted bugs were fixed.
+
+- SourceForge Bug #133: documentation of the standard build process was added
+     to ION.pdf
+
+- SourceForge Feature Request #54: the ion-open-source folder has been renamed
+     ion-open-source-VERSION for the official release tarball.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.7.0 =

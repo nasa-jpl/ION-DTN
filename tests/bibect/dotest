@@ -152,7 +152,7 @@ echo ""
 cd ../4.ipn.ltp
 
 COUNT=`grep "test_trace4" results.txt | wc -l`
-if [ $COUNT -ne 20 ]
+if [ $COUNT -lt 20 ]
 then
 	echo "ERROR: bundles for node 4 not received."
         PASS=0
