@@ -130,11 +130,13 @@ void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 	}
 }
 
+#ifndef ENABLE_HIGH_SPEED
 void	cfdp_update_checksum(unsigned char octet, vast *offset,
 		unsigned int *checksum, CfdpCksumType ckType)
 {
 	addToChecksum(octet, offset, checksum, ckType);
 }
+#endif
 
 static int	defaultReader(int fd, unsigned int *checksum,
 			CfdpCksumType ckType)
@@ -182,7 +184,9 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum,
 	CfdpDB		*cfdpConstants = getCfdpConstants();
 	vast		offset;
 	int		length;
+#ifndef ENABLE_HIGH_SPEED
 	int		i;
+#endif
 	char		*octet;
 	unsigned int	recordLen;
 	unsigned short	pktlen;
@@ -258,11 +262,15 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum,
 
 	/*	Add record to checksum.					*/
 
+#ifdef ENABLE_HIGH_SPEED
+	addDataToChecksum((unsigned char *) pktReaderBuf, length, &offset, checksum, ckType);
+#else
 	for (i = 0, octet = pktReaderBuf; i < length; i++, octet++)
 	{
 		addToChecksum((unsigned char) *octet, &offset, checksum,
 				ckType);
 	}
+#endif
 
 	return length;
 }
@@ -324,11 +332,15 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum,
 
 	/*	Add record to checksum.					*/
 
+#ifdef ENABLE_HIGH_SPEED
+	addDataToChecksum((unsigned char *) textReaderBuf, length, &offset, checksum, ckType);
+#else
 	for (i = 0, octet = textReaderBuf; i < length; i++, octet++)
 	{
 		addToChecksum((unsigned char) *octet, &offset, checksum,
 				ckType);
 	}
+#endif
 
 	return length;
 }

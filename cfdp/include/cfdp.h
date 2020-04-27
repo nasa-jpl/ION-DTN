@@ -26,6 +26,7 @@ typedef enum
 	CksumTypeUnknown = -1,
 	ModularChecksum = 0,
 	CRC32CChecksum = 2,
+	CRC32Checksum = 3,
 	NullChecksum = 15
 } CfdpCksumType;
 

@@ -257,7 +257,13 @@ void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 		break;
 
 	case CRC32CChecksum:
-		*checksum = ion_CRC32_1EDC6F41_C_slice((char *) data, dLen, *checksum);
+		*checksum = ion_CRC32_1EDC6F41_C_slice((char *) data,
+				dLen, *checksum);
+		break;
+	
+	case CRC32Checksum:
+		*checksum = ion_CRC32_04C11DB7_slice((char *) data,
+				dLen, *checksum);
 		break;
 
 	case NullChecksum:
@@ -272,6 +278,7 @@ void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 }
 #endif
 
+#ifndef ENABLE_HIGH_SPEED
 void	addToChecksum(unsigned char octet, vast *offset,
 		unsigned int *checksum, CfdpCksumType ckType)
 {
@@ -297,6 +304,7 @@ void	addToChecksum(unsigned char octet, vast *offset,
 
 	return;
 }
+#endif
 
 int	getReqNbr()
 {

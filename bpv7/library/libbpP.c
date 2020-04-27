@@ -7737,8 +7737,11 @@ uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 
 		memset(buffer + (bytesToProcess - bytesToMask), 0, 4);
 	}
-
+#ifdef ENABLE_HIGH_SPEED
+	crc32 = ion_CRC32_1EDC6F41_C_slice((char *) buffer, bytesToProcess, crc32);
+#else
 	crc32 = ion_CRC32_1EDC6F41_C((char *) buffer, bytesToProcess, crc32);
+#endif
 	if (bytesToMask > 0)
 	{
 		insertedCrc32 = htonl(crc32);

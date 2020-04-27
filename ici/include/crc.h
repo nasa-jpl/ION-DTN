@@ -16,19 +16,23 @@ extern "C" {
 
 extern uint16_t	ion_CRC16_1021_X25(const char *data, uint32_t dLen,
 			uint16_t crc);
-
-extern uint32_t ion_CRC32_04C11DB7_bzip2(const char *data, uint32_t dLen,
+#ifdef ENABLE_HIGH_SPEED
+extern uint32_t ion_CRC32_1EDC6F41_C_slice(const char *data, uint32_t dLen,
 			uint32_t crc);
 
+extern uint32_t ion_CRC32_04C11DB7_slice(const char *data, uint32_t dLen,
+			uint32_t crc);
+#else
+#if (BZIP_2_NEEDED)
+extern uint32_t ion_CRC32_04C11DB7_bzip2(const char *data, uint32_t dLen,
+			uint32_t crc);
+#endif
 extern uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen,
 			uint32_t crc);
 
 extern uint32_t ion_CRC32_1EDC6F41_C(const char *data, uint32_t dLen,
 			uint32_t crc);
-#ifdef ENABLE_HIGH_SPEED
-extern uint32_t ion_CRC32_1EDC6F41_C_slice(const char *data, uint32_t dLen,
-			uint32_t crc);
-#endif
+#endif 
 #ifdef __cplusplus
 }
 #endif
