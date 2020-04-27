@@ -190,6 +190,17 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 
 #
+# allow the user running configure to enable high-speed ION 
+#
+AC_ARG_ENABLE(
+    high-speed,
+    [AC_HELP_STRING([--enable-high-speed], [Enable high-speed ION, increases memory usage.])],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_HIGH_SPEED"
+     ENABLE_HIGH_SPEED=yes])
+    [],
+AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
+
+#
 # Try to enable DCCP support
 #
 AC_ARG_ENABLE(

@@ -25,7 +25,10 @@ extern uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen,
 
 extern uint32_t ion_CRC32_1EDC6F41_C(const char *data, uint32_t dLen,
 			uint32_t crc);
-
+#ifdef ENABLE_HIGH_SPEED
+extern uint32_t ion_CRC32_1EDC6F41_C_slice(const char *data, uint32_t dLen,
+			uint32_t crc);
+#endif
 #ifdef __cplusplus
 }
 #endif
