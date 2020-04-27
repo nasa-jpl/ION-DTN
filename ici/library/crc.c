@@ -2764,12 +2764,10 @@ uint32_t crc32_16bytes(const char* data, uint32_t dLen, uint32_t crc, const uint
 	const size_t	unroll =	4;
 	const size_t	bytesAtOnce =	16 * unroll;
 	size_t		unrolling;
-#if __BYTE_ORDER == __BIG_ENDIAN
 	uint32_t	one;
 	uint32_t	two;
 	uint32_t	three;
 	uint32_t	four;
-#endif
 	const uint8_t*	currentChar = (const uint8_t*) current;
 
 	crc = ~crc; // same as previousCrc32 ^ 0xFFFFFFFF
@@ -2800,10 +2798,10 @@ uint32_t crc32_16bytes(const char* data, uint32_t dLen, uint32_t crc, const uint
 				crc32Lookup[14][(one   >> 16) & 0xFF] ^
 				crc32Lookup[15][(one   >> 24) & 0xFF];
 #else
-			uint32_t one   = *current++ ^ crc;
-			uint32_t two   = *current++;
-			uint32_t three = *current++;
-			uint32_t four  = *current++;
+			one   = *current++ ^ crc;
+			two   = *current++;
+			three = *current++;
+			four  = *current++;
 			crc  = crc32Lookup[ 0][(four  >> 24) & 0xFF] ^
 				crc32Lookup[ 1][(four  >> 16) & 0xFF] ^
 				crc32Lookup[ 2][(four  >>  8) & 0xFF] ^
