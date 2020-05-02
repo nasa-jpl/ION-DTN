@@ -132,17 +132,6 @@ sleep ${TIMETOWAITFORTESTFINISH}
 
 echo ""
 
-cd ../4.ipn.ltp
-
-COUNT=`grep "test_trace4" results.txt | wc -l`
-if [ $COUNT -ne 1 ]
-then
-	echo "ERROR: bundle for node 4 not received."
-        PASS=0
-else
-	echo "Bundle for node 4 was received."
-fi
-
 ############################################################
 #   END OF TESTS                ........
 
@@ -170,11 +159,19 @@ cd ../3.ipn.ltp
 cd ../4.ipn.ltp
 ./ionstop &
 
-cd ..
-
 # Give all four nodes time to shut down, then clean up.
 sleep 7
 killm
+
+COUNT=`grep "test_trace4" results.txt | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "ERROR: bundle for node 4 not received."
+        PASS=0
+else
+	echo "Bundle for node 4 was received."
+fi
+
 echo "BIBE test completed."
 
 if [ $PASS -eq 1 ]
@@ -183,3 +180,4 @@ then
 else
 	exit 1
 fi
+

@@ -30,7 +30,7 @@
 # We send 20 bundles from 1 to destination 4.  All bundle should be delivered.
 
 TIMETODISPLAYTEXT=2
-TIMETOWAITFORTESTFINISH=5
+TIMETOWAITFORTESTFINISH=20
 echo "Cleaning up old ION..."
 rm -f 1.ipn.ltp/ion.log 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
 killm
@@ -149,17 +149,6 @@ sleep ${TIMETOWAITFORTESTFINISH}
 
 echo ""
 
-cd ../4.ipn.ltp
-
-COUNT=`grep "test_trace4" results.txt | wc -l`
-if [ $COUNT -lt 20 ]
-then
-	echo "ERROR: bundles for node 4 not received."
-        PASS=0
-else
-	echo "Bundles for node 4 were received."
-fi
-
 ############################################################
 #   END OF TESTS                ........
 
@@ -184,6 +173,19 @@ killall owltsim
 # Give all four nodes time to shut down, then clean up.
 sleep 7
 killm
+
+# Check results.txt on node 4
+cd 4.ipn.ltp
+
+COUNT=$(grep "test_trace4" ./results.txt | wc -l)
+if [ $COUNT -lt 20 ]
+then
+	echo "ERROR: bundles for node 4 not received."
+        PASS=0
+else
+	echo "Bundles for node 4 were received."
+fi
+
 echo "BIBE custody transfer test completed."
 
 if [ $PASS -eq 1 ]
@@ -192,3 +194,4 @@ then
 else
 	exit 1
 fi
+

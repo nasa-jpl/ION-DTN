@@ -62,9 +62,9 @@ BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpsecadmin bpcancel bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpsecadmin bpcancel bpchat bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
-# bpchat - executable will build but the test does not work
+# bpchat - executable will build but the standard test relies on mkfifo which is not implemented for mingw
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
 
 

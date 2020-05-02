@@ -1,6 +1,6 @@
 = Release Notes for ION 4.0.0 =
 
-April 24, 2020
+May 5, 2020
 
 %%%%%%%%%%%
 = GENERAL =
@@ -176,6 +176,9 @@ Other changes:
 
 - SourceForge Feature Request #54: the ion-open-source folder has been renamed
      ion-open-source-VERSION for the official release tarball.
+
+- SourceForge Feature Request #72: bpchat was enabled for Windows builds and
+     man pages were added for bpstats2 and bpchat.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.7.0 =
