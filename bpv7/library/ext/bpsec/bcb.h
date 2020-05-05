@@ -154,6 +154,9 @@
 extern int		bcbAcquire(AcqExtBlock *blk,
 						AcqWorkArea *wk);
 
+extern int		bcbRecord(ExtensionBlock *newBlk,
+						AcqExtBlock *oldBlk);
+
 extern void		bcbClear(AcqExtBlock *blk);
 
 extern int		bcbCopy(ExtensionBlock *newBlk,
@@ -171,14 +174,16 @@ extern int		bcbDefaultConstruct(uint32_t suite,
 extern int		bcbDefaultDecrypt(uint32_t suite,
 	       					AcqWorkArea *wk,
 						AcqExtBlock *blk,
-						uvast *bytes);
+						uvast *bytes,
+						char *fromEid);
 
 extern uint32_t		bcbDefaultEncrypt(uint32_t suite,
 						Bundle *bundle,
 						ExtensionBlock *blk,
 						BpsecOutboundBlock *asb,
 						size_t xmitRate,
-						uvast *bytes);
+						uvast *bytes,
+						char *toEid);
 
 extern BcbProfile	*bcbGetProfile(char *secSrc,
 						char *secDest,

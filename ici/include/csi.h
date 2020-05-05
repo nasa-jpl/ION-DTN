@@ -2,9 +2,9 @@
  **
  ** File Name: csi.h
  **
- ** Description: The crypto package defines a generic interface for ciphersuites.
- **       This interface is independent of any particular ciphersuite or
- **       cryptographic approach.
+ ** Description: The crypto package defines a generic interface for
+ **       ciphersuites.  This interface is independent of any particular
+ **       ciphersuite or cryptographic approach.
  **
  **	  The ION Cryptographic Interface provides a series of generic
  **	  functions that can be applied to any ION-supported ciphersuite.
@@ -111,7 +111,7 @@ typedef struct
 	csi_val_t salt;
 	csi_val_t icv;
 	csi_val_t intsig;
-	csi_val_t add;
+	csi_val_t aad;
 	csi_val_t keyinfo;
 } csi_cipherparms_t;
 
@@ -132,7 +132,7 @@ typedef struct
 	sci_inbound_tlv	salt;
 	sci_inbound_tlv	icv;
 	sci_inbound_tlv	intsig;
-	sci_inbound_tlv	add;
+	sci_inbound_tlv	aad;
 	sci_inbound_tlv	keyinfo;
 } sci_inbound_parms;
 

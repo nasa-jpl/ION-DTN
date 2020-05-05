@@ -60,6 +60,8 @@ A pointer to a B<copy> function.
 
 A pointer to an B<acquire> function.
 
+A pointer to a B<review> function.
+
 A pointer to a B<decrypt> function.
 
 A pointer to a B<parse> function.
@@ -79,11 +81,10 @@ An array of ExtensionSpec structures named I<extensionSpecs> is
 also required.  Each ExtensionSpec provides the specification for
 producing an outbound extension block: block definition (identified by
 block type number), three discriminator tags whose semantics are
-block-type-specific, and a list index value indicating whether the
-extension block is to be inserted before or after the Payload block.
-The order of appearance of extension specifications in the extensionSpecs
-array determines the order in which extension blocks will be inserted
-into locally sourced bundles.
+block-type-specific, and CRC type indicating what type of CRC must
+be used to protect this extension block.  The order of appearance of
+extension specifications in the extensionSpecs array determines the
+order in which extension blocks will be inserted into locally sourced bundles.
 
 The standard extensionDefs array -- which is empty -- is in the
 I<noextensions.c> prototype source file.  The procedure for extending
@@ -198,6 +199,13 @@ B<MTAKE> and its I<size> must be indicated in I<blk>.  Return zero if
 the block is malformed (this will cause the bundle to be discarded), 1 if
 the block is successfully parsed, -1 on any system failure.
 
+=item int (*BpAcqExtBlkReviewFn)(AcqWorkArea *work)
+
+Reviews the extension blocks that have been acquired for this bundle,
+checking to make sure that all blocks of this type that are required
+by policy are present.  Returns 0 if any blocks are missing, 1 if
+all required blocks are present, -1 on any system failure.
+
 =item int (*BpAcqExtBlkDecryptFn)(AcqExtBlock *acqblk, AcqWorkArea *work)
 
 Decrypts some other extension block that has been acquired but not yet
@@ -263,15 +271,15 @@ recording of the bundle in the ION database.
 Deletes this block from the bundle after the bundle has been recorded in the
 ION database.
 
-=item Object findExtensionBlock(Bundle *bundle, unsigned int type, unsigned int listIdx)
+=item Object findExtensionBlock(Bundle *bundle, unsigned int type, unsigned char tag1, unsigned char tag2, unsigned char tag3)
 
 On success, returns the address of the ExtensionBlock in I<bundle> for the
-indicated I<type> and I<listIdx>.  If no such extension block exists, returns
+indicated I<type> and tag values.  If no such extension block exists, returns
 zero.
 
-=item int serializeExtBlk(ExtensionBlock *blk, Lyst eidReferences, char *blockData)
+=item int serializeExtBlk(ExtensionBlock *blk, char *blockData)
 
-Constructs an RFC5050-conformant serialized representation of this extension
+Constructs a BPv7-conformant serialized representation of this extension
 block in blk->bytes.  Returns 0 on success, -1 on an unrecoverable system
 error.
 

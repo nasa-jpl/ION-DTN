@@ -128,16 +128,8 @@ void	bpsec_releaseInboundAsb(BpsecInboundBlock *asb)
 	if (asb)
 	{
 		eraseEid(&asb->securitySource);
-		if (asb->targets)
-		{
-			bpsec_releaseInboundTargets(asb->targets);
-		}
-
-		if (asb->parmsData)
-		{
-			bpsec_releaseInboundTlvs(asb->parmsData);
-		}
-	
+		bpsec_releaseInboundTargets(asb->targets);
+		bpsec_releaseInboundTlvs(asb->parmsData);
 		MRELEASE(asb);
 	}
 }
@@ -218,6 +210,188 @@ void	bpsec_releaseOutboundAsb(Sdr sdr, Object obj)
 	}
 }
 
+int	bpsec_recordAsb(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
+{
+	Sdr			sdr = getIonsdr();
+	BpsecInboundBlock	*oldAsb;
+	BpsecOutboundBlock	newAsb;
+	char			*eidBuf;
+	MetaEid			meid;
+	int			result;
+	VScheme			*vscheme;
+	PsmAddress		schemeElt;
+	LystElt			elt;
+	BpsecInboundTarget	*oldTarget;
+	BpsecOutboundTarget	newTarget;
+	LystElt			elt2;
+	sci_inbound_tlv		*oldTlv;
+	BpsecOutboundTlv	newTlv;
+	Object			obj;
+
+	BPSEC_DEBUG_PROC("+ bpsec_record(0x%x, 0x%x)", (unsigned long) newBlk,
+			(unsigned long) oldBlk);
+
+	/* Step 1 - Sanity Checks.					*/
+	CHKERR(newBlk);
+	CHKERR(oldBlk);
+	if (oldBlk->object == NULL || oldBlk->size == 0)
+	{
+		/*	Nothing to do.					*/
+
+		newBlk->object = 0;
+		newBlk->size = 0;
+		return 0;
+	}
+
+	/* Step 2 - Allocate the new in-heap ASB.			*/
+	newBlk->size = sizeof(newAsb);
+	if ((newBlk->object = sdr_malloc(sdr, sizeof newAsb)) == 0)
+	{
+		BPSEC_DEBUG_ERR("x bpsec_record: Failed to allocate: %d",
+				sizeof(newAsb));
+		BPSEC_DEBUG_PROC("- bpsec_record -> -1", NULL);
+		return -1;
+	}
+
+	/*  Step 3 - Copy the received ASB into the in-heap block.	*/
+
+	/* Step 3.1 - Copy the fixed data.				*/
+	oldAsb = (BpsecInboundBlock *) (oldBlk->object);
+	memset((char *) &newAsb, 0, sizeof newAsb);
+	newAsb.contextId = oldAsb->contextId;
+	memcpy(newAsb.keyName, oldAsb->keyName, BPSEC_KEY_NAME_LEN);
+	newAsb.contextFlags = oldAsb->contextFlags;
+
+	/* Step 3.2 - Copy non-fixed data from received ASB.		*/
+
+	/*	First, security source if it's not the bundle source.	*/
+
+	if (oldAsb->securitySource.schemeCodeNbr)	/*	Waypoint*/
+	{
+		if (readEid(&oldAsb->securitySource, &eidBuf) < 0)
+		{
+			return -1;
+		}
+
+		CHKERR(parseEidString(eidBuf, &meid, &vscheme, &schemeElt));
+		result = writeEid(&newAsb.securitySource, &meid);
+		restoreEidString(&meid);
+		MRELEASE(eidBuf);
+       		if (result < 0)
+		{
+			return -1;
+		}
+	}
+
+	/*	Next, targets.						*/
+
+	newAsb.targets = sdr_list_create(sdr);
+	if (newAsb.targets == 0) return -1;
+	for (elt = lyst_first(oldAsb->targets); elt; elt = lyst_next(elt))
+	{
+		oldTarget = (BpsecInboundTarget *) lyst_data(elt);
+		newTarget.targetBlockNumber = oldTarget->targetBlockNumber;
+		newTarget.targetBlockType = oldTarget->targetBlockType;
+		newTarget.metatargetBlockNumber =
+				oldTarget->metatargetBlockNumber;
+		newTarget.metatargetBlockType = oldTarget->metatargetBlockType;
+
+		/*	Pending full implementation of target
+		 *	multiplicity:					*/
+
+		newBlk->tag1 = newTarget.targetBlockType;
+		newBlk->tag2 = newTarget.metatargetBlockType;
+		newBlk->tag3 = 0;
+
+		/*	For each target, record all results (TLVs).	*/
+
+		newTarget.results = sdr_list_create(sdr);
+		if (newTarget.results == 0)
+		{
+			return -1;
+		}
+
+		for (elt2 = lyst_first(oldTarget->results); elt2;
+				elt2 = lyst_next(elt2))
+		{
+			oldTlv = (sci_inbound_tlv *) lyst_data(elt2);
+			newTlv.id = oldTlv->id;
+			newTlv.length = oldTlv->length;
+			newTlv.value = sdr_malloc(sdr, newTlv.length);
+			if (newTlv.value == 0)
+			{
+				return -1;
+			}
+
+			sdr_write(sdr, newTlv.value, oldTlv->value,
+					newTlv.length);
+			obj = sdr_malloc(sdr, sizeof newTlv);
+			if (obj == 0)
+			{
+				return -1;
+			}
+
+			sdr_write(sdr, obj, (char *) &newTlv, sizeof newTlv);
+			if (sdr_list_insert_last(sdr, newTarget.results, obj)
+					== 0)
+			{
+				return -1;
+			}
+		}
+
+		obj = sdr_malloc(sdr, sizeof newTarget);
+		if (obj == 0)
+		{
+			return -1;
+		}
+
+		sdr_write(sdr, obj, (char *) &newTarget, sizeof newTarget);
+		if (sdr_list_insert_last(sdr, newAsb.targets, obj) == 0)
+		{
+			return -1;
+		}
+	}
+
+	/*	Finally, parms.						*/
+
+	newAsb.parmsData = sdr_list_create(sdr);
+	if (newAsb.parmsData == 0)
+	{
+		return -1;
+	}
+
+	for (elt2 = lyst_first(oldAsb->parmsData); elt2; elt2 = lyst_next(elt2))
+	{
+		oldTlv = (sci_inbound_tlv *) lyst_data(elt2);
+		newTlv.id = oldTlv->id;
+		newTlv.length = oldTlv->length;
+		newTlv.value = sdr_malloc(sdr, newTlv.length);
+		if (newTlv.value == 0)
+		{
+			return -1;
+		}
+
+		sdr_write(sdr, newTlv.value, oldTlv->value, newTlv.length);
+		obj = sdr_malloc(sdr, sizeof newTlv);
+		if (obj == 0)
+		{
+			return -1;
+		}
+
+		sdr_write(sdr, obj, (char *) &newTlv, sizeof newTlv);
+		if (sdr_list_insert_last(sdr, newTarget.results, obj) == 0)
+		{
+			return -1;
+		}
+	}
+
+	/* Step 4 - Write copied block to the SDR. */
+
+	sdr_write(sdr, newBlk->object, (char *) &newAsb, sizeof newAsb);
+	BPSEC_DEBUG_PROC("- bpsec_record -> 0", NULL);
+	return 0;
+}
+
 int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 {
 	Sdr			sdr = getIonsdr();
@@ -245,7 +419,7 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	CHKERR(newBlk);
 	CHKERR(oldBlk);
 
-	/* Step 2 - Allocate the new destination BIB. */
+	/* Step 2 - Allocate the new destination ASb. */
 	newBlk->size = sizeof(newAsb);
 	if ((newBlk->object = sdr_malloc(sdr, sizeof newAsb)) == 0)
 	{
@@ -255,9 +429,9 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 		return -1;
 	}
 
-	/*  Step 3 - Copy the source BIB into the destination.		*/
+	/*  Step 3 - Copy the source ASB into the destination.		*/
 
-	/* Step 3.1 - Read the old BIB from the SDR, copy fixed data.	*/
+	/* Step 3.1 - Read the old ASB from the SDR, copy fixed data.	*/
 	sdr_read(sdr, (char *) &oldAsb, oldBlk->object, sizeof(oldAsb));
 	memcpy((char *) &newAsb, (char *) &oldAsb, sizeof newAsb);
 
@@ -265,16 +439,22 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	/*	First, security source.					*/
 
-	if (readEid(&oldAsb.securitySource, &eidBuf) < 0)
+	if (oldAsb.securitySource.schemeCodeNbr)	/*	Waypoint*/
 	{
-		return -1;
-	}
+		if (readEid(&oldAsb.securitySource, &eidBuf) < 0)
+		{
+			return -1;
+		}
 
-	CHKERR(parseEidString(eidBuf, &meid, &vscheme, &schemeElt));
-	result = writeEid(&newAsb.securitySource, &meid);
-	restoreEidString(&meid);
-	MRELEASE(eidBuf);
-       	if (result < 0) return -1;
+		CHKERR(parseEidString(eidBuf, &meid, &vscheme, &schemeElt));
+		result = writeEid(&newAsb.securitySource, &meid);
+		restoreEidString(&meid);
+		MRELEASE(eidBuf);
+		if (result < 0)
+		{
+			return -1;
+		}
+	}
 
 	/*	Next, targets.						*/
 
@@ -483,9 +663,9 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 		}
 	}
 
-	if (parms->add.length > 0)
+	if (parms->aad.length > 0)
 	{
-		if (appendItem(sdr, asb->parmsData, &parms->add) < 0)
+		if (appendItem(sdr, asb->parmsData, &parms->aad) < 0)
 		{
 			return -1;
 		}
@@ -593,7 +773,7 @@ int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr,
 	}
 
 	obj = sdr_malloc(sdr, sizeof(BpsecOutboundTarget));
-	if (target.results == 0)
+	if (obj == 0)
 	{
 		sdr_free(sdr, target.results);
 		putErrmsg("Can't allocate target object.", NULL);
@@ -650,32 +830,11 @@ int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr,
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
  *****************************************************************************/
 
-static void	destroyInboundTarget(LystElt elt, void *userData)
-{
-	BpsecInboundTarget	*target;
-
-	target = (BpsecInboundTarget *) lyst_data(elt);
-	if (target->results)
-	{
-		bpsec_releaseInboundTlvs(target->results);
-	}
-
-	MRELEASE(target);
-}
-
 static void	loseInboundAsb(BpsecInboundBlock *asb)
 {
 	eraseEid(&(asb->securitySource));
-	if (asb->targets)
-	{
-		bpsec_releaseInboundTargets(asb->targets);
-	}
-
-	if (asb->parmsData)
-	{
-		bpsec_releaseInboundTlvs(asb->parmsData);
-	}
-
+	bpsec_releaseInboundTargets(asb->targets);
+	bpsec_releaseInboundTlvs(asb->parmsData);
 	MRELEASE(asb);
 }
 
@@ -690,7 +849,7 @@ int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 	BpsecInboundTarget	*target;
 	uvast			uvtemp;
 	sci_inbound_tlv		*tv;
-	unsigned char		buffer[255];
+	unsigned char		buffer[4096];
 	LystElt			elt;
 
 	BPSEC_DEBUG_PROC("+ bpsec_deserializeASB(" ADDR_FIELDSPEC \
@@ -739,7 +898,6 @@ targets list", NULL);
 		return -1;
 	}
 
-	lyst_delete_set(asb->targets, destroyInboundTarget, NULL);
 	arrayLength = 0;
 	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
@@ -753,10 +911,11 @@ targets list", NULL);
 		target = (BpsecInboundTarget *)
 				MTAKE(sizeof(BpsecInboundTarget));
 		if (target == NULL
-		|| lyst_insert_last(asb->targets, target))
+		|| (target->results = lyst_create_using(memIdx)) == NULL 
+		|| lyst_insert_last(asb->targets, target) == NULL)
 		{
 			BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for \
-ASB targets list", NULL);
+ASB target", NULL);
 			loseInboundAsb(asb);
 			return -1;
 		}
@@ -770,6 +929,20 @@ ASB targets list", NULL);
 		}
 
 		target->targetBlockNumber = uvtemp;
+
+		/*	NOTE!!!  The next line is a TEMPORARY hack,
+		 *	which works for the moment because the only
+		 *	types of blocks bpsec can currently operate
+		 *	on are Primary and Payload, for which block
+		 *	type and block number are the same.  For
+		 *	next release, this function or some other
+		 *	bpsec function MUST find the block identified
+		 *	by targetBlockNumber, obtain its type, and
+		 *	set target->targetBlockType to that block
+		 *	type number, before any operations are
+		 *	performed on this ASB.				*/
+
+		target->targetBlockType = uvtemp;	/*	HACK!	*/
 		arrayLength -= 1;
 	}
 
@@ -807,7 +980,7 @@ length %d", asb->contextId, asb->contextFlags, blk->dataLength);
 		{
 		case -1:
 			BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for \
-securityu source EID", NULL);
+security source EID", NULL);
 			loseInboundAsb(asb);
 			return -1;
 
@@ -853,6 +1026,15 @@ ASB parms list", NULL);
 space for ASB parms TV", NULL);
 				loseInboundAsb(asb);
 				return -1;
+			}
+
+			uvtemp = 2;
+			if (cbor_decode_array_open(&uvtemp, &cursor,
+					&unparsedBytes) < 1)
+			{
+				writeMemo("[?] Can't decode parm TV array");
+				loseInboundAsb(asb);
+				return 0;
 			}
 
 			if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
@@ -1033,6 +1215,7 @@ int	bpsec_destinationIsLocal(Bundle *bundle)
 	return result;
 }
 
+#if 0
 /******************************************************************************
  *
  * \par Function Name: bpsec_findAcqBlock
@@ -1052,8 +1235,8 @@ int	bpsec_destinationIsLocal(Bundle *bundle)
  * \par Notes:
  *****************************************************************************/
 
-LystElt	bpsec_findAcqBlock(AcqWorkArea *wk, uint8_t type,
-		uint8_t targetBlockType, uint8_t metatargetBlockType)
+LystElt	bpsec_findAcqBlock(AcqWorkArea *wk, BpBlockType type,
+		BpBlockType targetBlockType, BpBlockType metatargetBlockType)
 {
 	LystElt			elt;
 	AcqExtBlock		*blk;
@@ -1085,6 +1268,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk, uint8_t type,
 
 	return 0;
 }
+#endif
 
 /******************************************************************************
  *
@@ -1093,7 +1277,7 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk, uint8_t type,
  * \par Purpose: This function searches the lists of extension blocks in a
  * 			bundle looking for a bpsec block of the indicated type,
  *			among whose targets is a block of indicated type and
- *			(as relevant) target type..
+ *			(as relevant) target type.
  *
  * \retval Object
  *
@@ -1112,16 +1296,13 @@ LystElt	bpsec_findAcqBlock(AcqWorkArea *wk, uint8_t type,
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-Object	bpsec_findBlock(Bundle *bundle, uint8_t type, uint8_t targetBlockType,
-		uint8_t metatargetBlockType)
+Object	bpsec_findBlock(Bundle *bundle, BpBlockType type,
+		BpBlockType targetBlockType, BpBlockType metatargetBlockType)
 {
 	Sdr	sdr = getIonsdr();
 	Object	elt;
-	Object	elt2;
 	Object	addr;
 		OBJ_POINTER(ExtensionBlock, blk);
-		OBJ_POINTER(BpsecOutboundBlock, asb);
-		OBJ_POINTER(BpsecOutboundTarget, target);
 
 	CHKZERO(bundle);
 	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
@@ -1129,6 +1310,23 @@ Object	bpsec_findBlock(Bundle *bundle, uint8_t type, uint8_t targetBlockType,
 	{
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
+		if (blk->type == type
+		&& blk->tag1 == targetBlockType
+		&& blk->tag2 == targetBlockType)
+		{
+			return elt;
+		}
+#if 0
+		/*	Note: when we get target multiplicity fully
+		 *	implemented, we will need to use this sort
+		 *	of logic to find the requested block.  But
+		 *	initially we continue to use the tag fields
+		 *	in the ExtensionBlock as search fields.		*/
+
+		Object	elt2;
+			OBJ_POINTER(BpsecOutboundBlock, asb);
+			OBJ_POINTER(BpsecOutboundTarget, target);
+
 		if (blk->type != type)
 		{
 			continue;
@@ -1146,6 +1344,7 @@ Object	bpsec_findBlock(Bundle *bundle, uint8_t type, uint8_t targetBlockType,
 				return elt;
 			}
 		}
+#endif
 	}
 
 	return 0;
@@ -1642,8 +1841,8 @@ int	bpsec_securityPolicyViolated(AcqWorkArea *wk)
  *
  *****************************************************************************/
 
-int	bpsec_requiredBlockExists(AcqWorkArea *wk, uint8_t bpsecBlockType,
-			uint8_t targetBlockType, char *secSrcEid)
+int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
+			BpBlockType targetBlockType, char *secSrcEid)
 {
 	LystElt			elt;
 	AcqExtBlock		*blk;
@@ -1771,22 +1970,10 @@ static void	releaseAsbBuffers(unsigned char *serializedTargets,
 {
 	if (serializedTargets) MRELEASE(serializedTargets);
 	if (serializedSource) MRELEASE(serializedSource);
-	if (serializedParms)
-	{
-		bpsec_releaseInboundTlvs(serializedParms);
-	}
-
-	if (serializedTlvs)
-	{
-		bpsec_releaseInboundTlvs(serializedTlvs);
-	}
-
+	bpsec_releaseInboundTlvs(serializedParms);
+	bpsec_releaseInboundTlvs(serializedTlvs);
 	if (serializedParmsBuffer) MRELEASE(serializedParmsBuffer);
-	if (serializedResults)
-	{
-		bpsec_releaseInboundTlvs(serializedResults);
-	}
-
+	bpsec_releaseInboundTlvs(serializedResults);
 	if (serializedResultsBuffer) MRELEASE(serializedResultsBuffer);
 }
 
@@ -1832,7 +2019,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	itemsCount = 4;	/*	Min. # items in serialized ASB array.	*/
 
 	/*	Serialize the targets and the results in a single
-		bpass through the ASB's list of targets.		*/
+		pass through the ASB's list of targets.			*/
 
 	serializedResults = lyst_create_using(getIonMemoryMgr());
 	if (serializedResults == NULL)
@@ -1915,7 +2102,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 				elt2 = sdr_list_next(sdr, elt2))
 		{
 			GET_OBJ_POINTER(sdr, BpsecOutboundTlv, tv,
-					sdr_list_data(sdr, elt));
+					sdr_list_data(sdr, elt2));
 			stv = (Stv *) MTAKE(sizeof(Stv));
 			if (stv == NULL
 			|| lyst_insert_last(serializedTlvs, stv) == NULL
@@ -1981,6 +2168,8 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 					       	serializedResultsBuffer);
 				return NULL;
 			}
+
+			serializedTlvs = NULL;
 		}
 	}
 
@@ -2098,7 +2287,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 				elt2 = sdr_list_next(sdr, elt2))
 		{
 			GET_OBJ_POINTER(sdr, BpsecOutboundTlv, tv,
-					sdr_list_data(sdr, elt));
+					sdr_list_data(sdr, elt2));
 			stv = (Stv *) MTAKE(sizeof(Stv));
 			if (stv == NULL
 			|| lyst_insert_last(serializedTlvs, stv) == NULL
@@ -2147,7 +2336,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 		}
 
 		/*	We have now got upper bound on total length
-			of the serialized results buffer.		*/
+			of the serialized parms buffer.		*/
 
 		serializedParmsBuffer = MTAKE(serializedParmsLen);
 		if (serializedParmsBuffer == NULL)

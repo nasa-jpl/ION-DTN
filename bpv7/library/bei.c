@@ -456,6 +456,7 @@ int	patchExtensionBlocks(Bundle *bundle)
 			blk.tag1 = spec->tag1;
 			blk.tag2 = spec->tag2;
 			blk.tag3 = spec->tag3;
+			blk.crcType = spec->crcType;
 			if (def->offer(&blk, bundle) < 0)
 			{
 				putErrmsg("Failed offering patch block.",
@@ -1091,6 +1092,7 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 		oldBlk = (AcqExtBlock *) lyst_data(elt);
 		memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
 		newBlk.type = oldBlk->type;
+		newBlk.number = oldBlk->number;
 		newBlk.blkProcFlags = oldBlk->blkProcFlags;
 		newBlk.dataLength = oldBlk->dataLength;
 		headerLength = oldBlk->length - oldBlk->dataLength;
@@ -1106,7 +1108,11 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 		{
 			/*	Record extension object.		*/
 
-			def->record(&newBlk, oldBlk);
+			if (def->record(&newBlk, oldBlk) < 0)
+			{
+				putErrmsg("Failed recording ext. obj.", NULL);
+				return -1;
+			}
 		}
 
 		spec = findExtensionSpec(newBlk.type, newBlk.tag1, newBlk.tag2,

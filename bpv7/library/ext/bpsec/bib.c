@@ -215,7 +215,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 
 	result = (prof->construct == NULL) ?
 			bibDefaultConstruct(prof->suiteId, bibBlk, bibAsb)
-			: prof->construct(bibBlk, bibAsb);
+			: prof->construct(prof->suiteId, bibBlk, bibAsb);
 	if (result < 0)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, 0);
@@ -232,15 +232,15 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 
 	result = (prof->sign == NULL) ?
 			bibDefaultSign(prof->suiteId, bundle, bibBlk,
-			bibAsb, &bytes)
-			: prof->sign(bundle, bibBlk, bibAsb, &bytes);
+				bibAsb, &bytes, toEid)
+			: prof->sign(prof->suiteId, bundle, bibBlk,
+				bibAsb, &bytes, toEid);
 
 	if (result < 0)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
 
-		BIB_DEBUG_ERR("x bibAttach: Can't sign target block.",
-				NULL);
+		BIB_DEBUG_ERR("x bibAttach: Can't sign target block.", NULL);
 		result = -1;
 		bundle->corrupt = 1;
 		scratchExtensionBlock(bibBlk);
@@ -407,8 +407,8 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	/*	Invoke ciphersuite-specific check procedure.		*/
 
 	result = (prof->verify == NULL) ?
-			bibDefaultVerify(prof->suiteId, wk, blk, &bytes)
-			: prof->verify(wk, blk, &bytes);
+		bibDefaultVerify(prof->suiteId, wk, blk, &bytes, fromEid)
+		: prof->verify(prof->suiteId, wk, blk, &bytes, fromEid);
 
 	/*	Discard the BIB if the local node is the destination
 	 *	of the bundle or the BIB is invalid or verification
@@ -436,6 +436,34 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	MRELEASE(fromEid);
 
 	BIB_DEBUG_PROC("- bibCheck(%d)", result);
+	return result;
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: bibRecord
+ *
+ * \par Purpose:	This callback copies an acquired BIB block's object
+ *			into the object of a non-volatile BIB in heap space.
+ *
+ * \retval   0 - Recording was successful.
+ *          -1 - There was a system error.
+ *
+ * \param[in]  oldBlk	The acquired BIB in working memory.
+ * \param[in]  newBlk	The non-volatle BIB in heap space.
+ *
+ *****************************************************************************/
+
+int	bibRecord(ExtensionBlock *new, AcqExtBlock *old)
+{
+	int	result;
+
+	BIB_DEBUG_PROC("+ bibRecord(%x, %x)", (unsigned long) new,
+			(unsigned long) old);
+
+	result = bpsec_recordAsb(new, old);
+
+	BIB_DEBUG_PROC("- bibRecord", NULL);
 	return result;
 }
 
@@ -553,7 +581,7 @@ int	bibDefaultCompute(Object dataObj, uint32_t chunkSize, uint32_t suite,
 	if ((dataBuffer = MTAKE(chunkSize)) == NULL)
 	{
 		BIB_DEBUG_ERR("x bibDefaultCompute - Can't allocate buffer of \
-				size %d.", chunkSize);
+size %d.", chunkSize);
 		return ERROR;
 	}
 
@@ -661,8 +689,8 @@ int	bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
 	CHKERR(blk);
 	CHKERR(asb);
 
-	/*	Step 1: Populate the unpopulated block-instance-agnostic
-	 *	parts of the ASB.					*/
+	/*	Step 1: Populate the unpopulated
+	 *	block-instance-agnostic parts of the ASB.		*/
 
 	if (asb->targets == 0)
 	{
@@ -675,18 +703,19 @@ int	bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
 		asb->parmsData = sdr_list_create(sdr);
 	}
 
-	/* Step 2: Populate instance-specific parts of the ASB. */
-
-	asb->contextFlags = 0;
 	if (asb->targets == 0 || asb->parmsData == 0)
 	{
 		putErrmsg("Can't construct BIB.", NULL);
 		return -1;
 	}
 
+	/* Step 2: Populate instance-specific parts of the ASB. */
+
+	asb->contextFlags = 0;
 	return 0;
 }
 
+#if 0
 /******************************************************************************
  *
  * \par Function Name: bibDefaultResultLen
@@ -753,6 +782,7 @@ uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 	csi_ctx_free(suite, context);
 	return result;
 }
+#endif
 
 /******************************************************************************
  *
@@ -784,7 +814,7 @@ uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
  *****************************************************************************/
 
 int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
-		BpsecOutboundBlock *asb, uvast *bytes)
+		BpsecOutboundBlock *asb, uvast *bytes, char *toEid)
 {
 	Sdr			sdr = getIonsdr();
 	int8_t			retval = 0;
@@ -917,7 +947,7 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
  *                           implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
-		uvast *bytes)
+		uvast *bytes, char *fromEid)
 {
 	BpsecInboundBlock	*asb;
 	BpsecInboundTarget	*target;
@@ -1211,7 +1241,9 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
+#if 0
 	bpsec_insertSecuritySource(bundle, &asb);
+#endif
 	if (bpsec_insert_target(sdr, &asb, (blk->tag1 == PayloadBlk ? 1 : 0),
 			blk->tag1, 0, 0))
 	{
@@ -1228,8 +1260,8 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	if ((blk->object = sdr_malloc(sdr, blk->size)) == 0)
 	{
 		sdr_cancel_xn(sdr);
-		BIB_DEBUG_ERR("x bibOffer: Failed to SDR allocate %d bytes",
-				      blk->size);
+		BIB_DEBUG_ERR("x bibOffer: Failed to SDR allocate object \
+of size %d bytes", blk->size);
 		result = -1;
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
@@ -1459,6 +1491,15 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm,
 		BIB_DEBUG_PROC("- bibProcessOnDequeue --> %d", -1);
 		scratchExtensionBlock(blk);
 		return -1;
+	}
+
+	/* Step 1.1.1 - If block was received from elsewhere, nothing
+	 * to do; it's already attached to the bundle.			*/
+
+	if (blk->bytes)
+	{
+		BIB_DEBUG_PROC("- bibProcessOnDequeue(%d) no-op", result);
+		return 0;
 	}
 
 	/*

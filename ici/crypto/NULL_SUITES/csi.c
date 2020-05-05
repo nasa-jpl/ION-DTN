@@ -538,7 +538,7 @@ length %d.", result.len);
 		return result;
 	}
 
-	if(parms.add.len > 0)
+	if(parms.aad.len > 0)
 	{
 		memcpy(result.contents+offset, (char *) intsig.contents,
 				intsig.len);
@@ -1289,7 +1289,7 @@ sci_inbound_tlv	sci_crypt_parm_get(csi_csid_t suite, csi_parmid_t parmid)
 {
 	sci_inbound_tlv result;
 
-	result.id = 0;		/*	FIX THIS -- what should it be?	*/
+	result.id = parmid;
 	if ((result.value = (uint8_t*) MTAKE(20)) == NULL)
 	{
 		result.length = 0;
@@ -1412,6 +1412,7 @@ int8_t	sci_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc,
 {
 	CHKERR(context);
 
+	parms->icv.id = CSI_PARM_ICV;
 	parms->icv.length = 20;
 	if((parms->icv.value = MTAKE(parms->icv.length)) == NULL)
 	{

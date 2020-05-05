@@ -2243,6 +2243,7 @@ void	eraseEid(EndpointId *eid)
 {
 	PsmPartition	wm;
 
+	CHKVOID(eid);
 	switch (eid->schemeCodeNbr)
 	{
 	case dtn:

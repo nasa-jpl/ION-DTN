@@ -151,6 +151,8 @@ extern int	bibReview(AcqWorkArea *wk);
 
 extern int	bibCheck(AcqExtBlock *blk, AcqWorkArea *wk);
 
+extern int	bibRecord(ExtensionBlock *newBlk, AcqExtBlock *oldBlk);
+
 extern void	bibClear(AcqExtBlock *blk);
 
 extern int	bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
@@ -166,10 +168,10 @@ extern uint32_t	bibDefaultResultLen(uint32_t suite, uint8_t tlv);
 
 extern int	bibDefaultSign(uint32_t suite, Bundle *bundle,
 			ExtensionBlock *blk, BpsecOutboundBlock *asb,
-			uvast *bytes);
+			uvast *bytes, char *toEid);
 
 extern int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk,
-			AcqExtBlock *blk, uvast *bytes);
+			AcqExtBlock *blk, uvast *bytes, char *fromEid);
 
 extern BibProfile *bibGetProfile(char *securitySource, char *securityDest,
 			BpBlockType targetBlkType, BPsecBibRule *bibRule);

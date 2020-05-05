@@ -58,7 +58,7 @@ static ExtensionDef	extensionDefs[] =
 				bcbDecrypt,
 				0,
 				0,
-                                0,
+                                bcbRecord,
 				bcbClear
 		},
 		{ "bib", BlockIntegrityBlk,
@@ -75,7 +75,7 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				bibParse,
 				bibCheck,
-				0,
+				bibRecord,
 				bibClear
 		},
 #endif

@@ -111,6 +111,34 @@ int	bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 
 /******************************************************************************
  *
+ * \par Function Name: bcbRecord
+ *
+ * \par Purpose:	This callback copies an acquired BCB block's object
+ *			into the object of a non-volatile BCB in heap space.
+ *
+ * \retval   0 - Recording was successful.
+ *          -1 - There was a system error.
+ *
+ * \param[in]  oldBlk	The acquired BCB in working memory.
+ * \param[in]  newBlk	The non-volatle BCB in heap space.
+ *
+ *****************************************************************************/
+
+int	bcbRecord(ExtensionBlock *new, AcqExtBlock *old)
+{
+	int	result;
+
+	BCB_DEBUG_PROC("+ bcbRecord(%x, %x)", (unsigned long) new,
+			(unsigned long) old);
+
+	result = bpsec_recordAsb(new, old);
+
+	BCB_DEBUG_PROC("- bcbRecord", NULL);
+	return result;
+}
+
+/******************************************************************************
+ *
  * \par Function Name: bcbClear
  *
  * \par Purpose: This callback removes all memory allocated by the bpsec module
@@ -212,7 +240,7 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	BPsecBcbRule		bpsecRule;
 	BcbProfile		*prof = NULL;
 	int			result;
-	uvast bytes = 0;
+	uvast			bytes = 0;
 
 	BCB_DEBUG_PROC("+ bcbDecrypt(0x%x, 0x%x)", (unsigned long) blk,
 			(unsigned long) wk);
@@ -315,8 +343,8 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	/*	Invoke ciphersuite-specific check procedure.		*/
 	result = (prof->decrypt == NULL) ?
-			 bcbDefaultDecrypt(prof->suiteId, wk, blk, &bytes) :
-			 prof->decrypt(wk, blk, &bytes);
+		 bcbDefaultDecrypt(prof->suiteId, wk, blk, &bytes, fromEid) :
+		 prof->decrypt(prof->suiteId, wk, blk, &bytes, fromEid);
 
 	/*	Discard the BCB if the local node is the destination
 	 *	of the bundle or if decryption failed (meaning the
@@ -413,7 +441,7 @@ int	bcbDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
  * Assume the asb key has been udpated with the key to use for decrypt.
  */
 int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
-		uvast *bytes)
+		uvast *bytes, char *fromEid)
 {
 	BpsecInboundBlock	*asb;
 	BpsecInboundTarget	*target;
@@ -437,8 +465,8 @@ int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 	asb = (BpsecInboundBlock *) (blk->object);
 	if (bpsec_getInboundTarget(asb->targets, &target) < 0)
 	{
-		BCB_DEBUG_ERR("x bcbDefaultEncrypt - Can't get target.", NULL);
-		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> 0", NULL);
+		BCB_DEBUG_ERR("x bcbDefaultDecrypt - Can't get target.", NULL);
+		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> 0", NULL);
 		return 0;
 	}
 
@@ -532,7 +560,7 @@ type %d: canonicalization not implemented.", asb->targetBlockType);
 
 uint32_t	bcbDefaultEncrypt(uint32_t suite, Bundle *bundle,
 			ExtensionBlock *blk, BpsecOutboundBlock *asb,
-			size_t xmitRate, uvast *bytes)
+			size_t xmitRate, uvast *bytes, char *toEid)
 {
 	Sdr			sdr = getIonsdr();
 	BpsecOutboundTarget	target;
@@ -937,7 +965,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 
 	result = (prof->construct == NULL) ?
 			bcbDefaultConstruct(prof->suiteId, bcbBlk, bcbAsb)
-			: prof->construct(bcbBlk, bcbAsb);
+			: prof->construct(prof->suiteId, bcbBlk, bcbAsb);
 
 	if (result < 0)
 	{
@@ -955,9 +983,10 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	/* Step 2.2 - Encrypt the target block and attach it. 		*/
 
 	result = (prof->encrypt == NULL) ?
-			bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk,
-			bcbAsb, xmitRate, &bytes) : prof->encrypt(bundle,
-			bcbBlk, bcbAsb, xmitRate, &bytes);
+		bcbDefaultEncrypt(prof->suiteId, bundle, bcbBlk, bcbAsb,
+				xmitRate, &bytes, toEid)
+		: prof->encrypt(prof->suiteId, bundle, bcbBlk, bcbAsb,
+				xmitRate, &bytes, toEid);
 	if (result < 0)
 	{
 		BCB_DEBUG_ERR("x bcbAttach: Can't encrypt target block.",
@@ -1120,7 +1149,9 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
+#if 0
 	bpsec_insertSecuritySource(bundle, &asb);
+#endif
 	if (bpsec_insert_target(sdr, &asb, (blk->tag1 == PayloadBlk ? 1 : 0),
 			blk->tag1, 0, blk->tag2))
 	{
@@ -1227,6 +1258,15 @@ parm 0x%x, blk 0x%x, blk->size %d", (unsigned long) bundle,
 		return -1;
 	}
 
+	/* Step 1.1.1 - If block was received from elsewhere, nothing
+	 * to do; it's already attached to the bundle.			*/
+
+	if (blk->bytes)
+	{
+		BCB_DEBUG_PROC("- bcbProcessOnDequeue(%d) no-op", result);
+		return 0;
+	}
+
 	/*
 	 * Step 2 - Calculate the BCB for the target and attach it
 	 *          to the bundle.
@@ -1279,7 +1319,9 @@ Object	bcbStoreOverflow(uint32_t suite, uint8_t *context,
 	Sdr	sdr = getIonsdr();
 	Object	cipherBuffer = 0;
 
-	/* Step 4: Create SDR space and store any extra encryption that won't fit in the payload. */
+	/*	Step 4: Create SDR space and store any extra encryption
+	 *	that won't fit in the payload.				*/
+
 	ciphertext.length = 0;
 	ciphertext.value = NULL;
 	if ((readOffset < blocksize->plaintextLen) || (cipherOverflow > 0))

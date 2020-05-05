@@ -44,15 +44,19 @@
  * +--------------------------------------------------------------------------+
  */
 
-typedef int	(*BibConstructFn)(ExtensionBlock *, BpsecOutboundBlock *);
-typedef int	(*BibSignFn)(Bundle *, ExtensionBlock *, BpsecOutboundBlock *,
-			uvast *);
-typedef int	(*BibVerifyFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
+typedef int	(*BibConstructFn)(uint16_t, ExtensionBlock *,
+			BpsecOutboundBlock *);
+typedef int	(*BibSignFn)(uint16_t, Bundle *, ExtensionBlock *,
+			BpsecOutboundBlock *, uvast *, char *);
+typedef int	(*BibVerifyFn)(uint16_t, AcqWorkArea *, AcqExtBlock *,
+			uvast *, char *);
 
-typedef int	(*BcbConstructFn)(ExtensionBlock *, BpsecOutboundBlock *);
-typedef int	(*BcbEncryptFn)(Bundle *, ExtensionBlock *,
-			BpsecOutboundBlock *, size_t, uvast *);
-typedef int	(*BcbDecryptFn)(AcqWorkArea *, AcqExtBlock *, uvast *);
+typedef int	(*BcbConstructFn)(uint16_t, ExtensionBlock *,
+			BpsecOutboundBlock *);
+typedef int	(*BcbEncryptFn)(uint16_t, Bundle *, ExtensionBlock *,
+			BpsecOutboundBlock *, size_t, uvast *, char *);
+typedef int	(*BcbDecryptFn)(uint16_t, AcqWorkArea *, AcqExtBlock *,
+			uvast *, char *);
 
 /**
  * PROFILES

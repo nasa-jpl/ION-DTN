@@ -147,14 +147,6 @@ extern char	gMsg[GMSG_BUFLEN];
 #define bpsec_TX		0
 #define bpsec_RX		1
 
-/** 
- * Block Types
- */
-#define BLOCK_TYPE_PRIMARY	0x00	/*	Primary block type.	*/
-#define BLOCK_TYPE_PAYLOAD	0x01	/*	Payload block type.	*/
-#define BLOCK_TYPE_BIB  	0x03	/*	bpsec BIB block type.	*/
-#define BLOCK_TYPE_BCB  	0x04	/*	bpsec BCB block type.	*/
-
 /**
  * Context Flags - From bpsec Spec.
  *
@@ -220,11 +212,11 @@ the block's sourceEID.)							*/
  */
 typedef struct
 {
-	uint8_t	   targetBlockNumber;
-	uint8_t	   targetBlockType;
-	uint8_t	   metatargetBlockNumber;
-	uint8_t	   metatargetBlockType;
-	Lyst	   results;	/*	Lyst of csi_inbound_tvs		*/
+	uint8_t		targetBlockNumber;
+	BpBlockType	targetBlockType;
+	uint8_t		metatargetBlockNumber;
+	BpBlockType	metatargetBlockType;
+	Lyst		results;	/*	Lyst of csi_inbound_tvs	*/
 } BpsecInboundTarget;
 
 /** 
@@ -264,11 +256,11 @@ typedef struct
 
 typedef struct
 {
-	uint8_t	   targetBlockNumber;
-	uint8_t	   targetBlockType;
-	uint8_t	   metatargetBlockNumber;
-	uint8_t	   metatargetBlockType;
-	Object	   results;	/*	sdr_list of BpsecOutboundTlv	*/
+	uint8_t		targetBlockNumber;
+	BpBlockType	targetBlockType;
+	uint8_t		metatargetBlockNumber;
+	BpBlockType	metatargetBlockType;
+	Object		results;	/*	BpsecOutboundTlv sdr_list*/
 } BpsecOutboundTarget;
 
 /** 
@@ -300,6 +292,8 @@ extern void		bpsec_releaseOutboundTlvs(Sdr sdr, Object tlvs);
 extern void		bpsec_releaseOutboundTargets(Sdr sdr, Object targets);
 extern void		bpsec_releaseOutboundAsb(Sdr sdr, Object asb);
 
+extern int		bpsec_recordAsb(ExtensionBlock *newBlk,
+				AcqExtBlock *oldBlk);
 extern int		bpsec_copyAsb(ExtensionBlock *newBlk,
 				ExtensionBlock *oldBlk);
 
@@ -321,14 +315,14 @@ extern int		bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb,
 extern int		bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
 
 extern int		bpsec_destinationIsLocal(Bundle *bundle);
-
-extern LystElt		bpsec_findAcqBlock(AcqWorkArea *wk, uint8_t type,
-				uint8_t targetBlockType,
-				uint8_t metatargetBlockOccurrence);
-
-extern Object		bpsec_findBlock(Bundle *bundle, uint8_t type,
-				uint8_t targetBlockType,
-				uint8_t metatargetBlockType);
+#if 0
+extern LystElt		bpsec_findAcqBlock(AcqWorkArea *wk, BpBlockType type,
+				BpBlockType targetBlockType,
+				BpBlockType metatargetBlockType);
+#endif
+extern Object		bpsec_findBlock(Bundle *bundle, BpBlockType type,
+				BpBlockType targetBlockType,
+				BpBlockType metatargetBlockType);
 #if 0
 extern void		bpsec_getInboundItem(int itemNeeded, unsigned char *buf,
 				unsigned int bufLen, unsigned char **val,
@@ -361,7 +355,8 @@ extern sci_inbound_tlv	bpsec_retrieveKey(char *keyName);
 extern int		bpsec_securityPolicyViolated(AcqWorkArea *wk);
 
 extern int		bpsec_requiredBlockExists(AcqWorkArea *wk,
-				uint8_t bpsecBlockType, uint8_t targetBlockType,
+				BpBlockType bpsecBlockType,
+				BpBlockType targetBlockType,
 				char *secSrcEid);
 
 extern unsigned char	*bpsec_serializeASB(uint32_t *length,
