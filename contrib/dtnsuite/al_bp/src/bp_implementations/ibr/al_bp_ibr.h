@@ -19,7 +19,7 @@
 #ifndef BP_IBR_H_
 #define BP_IBR_H_
 
-#include "../al_bp_types.h"
+#include <al_bp_types.h>
 
 #ifdef __cplusplus
 /* prevents the C++ compiler from performing name mangling on the functions defined in al_bp_ibr.cpp, 

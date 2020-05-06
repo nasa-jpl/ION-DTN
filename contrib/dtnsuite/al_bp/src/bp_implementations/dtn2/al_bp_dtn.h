@@ -20,7 +20,7 @@
 #ifndef BP_DTN_H_
 #define BP_DTN_H_
 
-#include "../al_bp_types.h"
+#include <al_bp_types.h>
 
 #ifdef DTN2_IMPLEMENTATION
 #ifdef HAVE_CONFIG_H

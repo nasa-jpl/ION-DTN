@@ -7,7 +7,7 @@ SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 
-OPT = -g -Wall -Dmingw
+OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.0.0
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../../$(BPv)/include/ -I../../$(BPv)/library/ -I../../ltp/include/ -I../../ltp/library/
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -70,8 +70,7 @@ ICIINCLS = \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 
-UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionlog ionunlock
-#ionexit
+UTILITIES = sdrmend sdrwatch psmwatch ionadmin ionsecadmin ionlog ionwarn ionunlock ionxnowner
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim
 # owlttb - requires SIGPIPE which is not supported by Windows
@@ -127,13 +126,13 @@ killm:		killm.o libici.dll
 		$(CC) -o killm killm.o -L./lib -lici -lpthread -lm
 		cp killm ./bin
 
-ionexit:	ionexit.o libici.dll
-		$(CC) -o ionexit ionexit.o -L./lib -L../../$(BPv)/i86-mingw/lib -L../../ltp/i86-mingw/lib -lltp -lici -lm -lbp -lpthread
-		cp ionexit ./bin
-
 ionunlock:	ionunlock.o libici.dll
 		$(CC) -o ionunlock ionunlock.o -L./lib -lici -lpthread -lm
 		cp ionunlock ./bin
+
+ionxnowner:	ionxnowner.o libici.dll
+		$(CC) -o ionxnowner ionxnowner.o -L./lib -lici -lpthread -lm
+		cp ionxnowner ./bin
 		
 ionlog:	ionlog.o libici.dll
 		$(CC) -o ionlog ionlog.o -L./lib -lici -lpthread -lm

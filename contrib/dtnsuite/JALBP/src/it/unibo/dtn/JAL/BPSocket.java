@@ -2,6 +2,7 @@ package it.unibo.dtn.JAL;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.function.Consumer;
 
 import it.unibo.dtn.JAL.exceptions.JALCloseErrorException;
 import it.unibo.dtn.JAL.exceptions.JALDTN2ParametersException;
@@ -149,7 +150,7 @@ public class BPSocket implements Closeable, AutoCloseable {
 	}
 	
 	/**
-	 * Receives a bundle from the BPSocket
+	 * Receives a bundle from the BPSocket.
 	 * @return The bundle received
 	 * @throws JALNotRegisteredException - in case you are trying to receive through a not initialized socket
 	 * @throws JALReceptionInterruptedException - in case the receive is interrupted (in the most cases it is just a warning)
@@ -219,6 +220,51 @@ public class BPSocket implements Closeable, AutoCloseable {
 		} while (loop);
 		
 		return result;
+	}
+	
+	/**
+	 * The non-blocking-receive with handlers.
+	 * @param handler The handler will be called when the bundle will be received
+	 * @param exceptionHandler The handler will be called whether an exception will be throwed
+	 * @see BPSocket#receive(BundlePayloadLocation, int, Consumer, Consumer)
+	 */
+	public void receive(Consumer<Bundle> handler, Consumer<Throwable> exceptionHandler) {
+		this.receive(null, -1, handler, exceptionHandler);
+	}
+	
+	/**
+	 * The non-blocking-receive with a timeout and handlers. Negative timeout means blocking receive.
+	 * @param timeout In seconds
+	 * @param handler The handler will be called when the bundle will be received
+	 * @param exceptionHandler The handler will be called whether an exception will be throwed
+	 * @see BPSocket#receive(BundlePayloadLocation, int, Consumer, Consumer)
+	 */
+	public void receive(int timeout, Consumer<Bundle> handler, Consumer<Throwable> exceptionHandler) {
+		this.receive(null, timeout, handler, exceptionHandler);
+	}
+	
+	/**
+	 * The non-blocking-receive with a specific payload location and timeout. Negative timeout means blocking receive.
+	 * @param location Payload location
+	 * @param timeout In seconds
+	 * @param handler The handler will be called when the bundle will be received
+	 * @param exceptionHandler The handler will be called whether an exception will be throwed
+	 */
+	public void receive(BundlePayloadLocation location, int timeout, Consumer<Bundle> handler, Consumer<Throwable> exceptionHandler) {
+		final Thread handlerThread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					final Bundle bundle = receive(location, timeout);
+					handler.accept(bundle);
+				} catch (Throwable t) {
+					if (exceptionHandler != null)
+						exceptionHandler.accept(t);
+				} 
+			}
+		}, "Receive thread for receiving");
+		handlerThread.setDaemon(true);
+		handlerThread.start();
 	}
 	
 	/**

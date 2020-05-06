@@ -1,6 +1,7 @@
 /********************************************************
     Authors:
     Lorenzo Mustich, lorenzo.mustich@studio.unibo.it
+	Lorenzo Tullini, lorenzo.tullini@studio.unibo.it
     Carlo Caini (DTNproxy project supervisor), carlo.caini@unibo.it
 
     License:
@@ -35,9 +36,9 @@
 #include "debugger.h"
 #include "utility.h"
 
-/**
- * Static variables
- */
+/* ---------------------------
+ *      Global variables
+ * --------------------------- */
 static char source_file[256];
 static char * transfer_file_name;			//Basename of the file to transfer
 static u32_t file_total_length;				//Size of the file to transfer
@@ -46,10 +47,11 @@ static int transfer_fd;
 static al_bp_bundle_object_t bundle;
 static al_bp_timeval_t bundle_expiration;
 
-/**
- * Functions interfaces
- */
+/* -------------------------------
+ *       Function interfaces
+ * ------------------------------- */
 al_bp_error_t prepare_dtnperf_header();
+static void criticalError(void *arg);
 //void handlerBundleSender(int signal);
 
 /**
@@ -65,13 +67,21 @@ void * bundleSending(void * arg) {
 	al_bp_bundle_priority_t bundle_priority;
 
 	char file_name[FILE_NAME];
-	int index = 0;
 	int error;
 
-//	signal(SIGUSR1, handlerBundleSender);
+	//Changing of default exit routine
+	pthread_cleanup_push(criticalError, NULL);
 
-	while(*(proxy_inf->is_running)) {
-		sem_wait(&proxy_inf->bundleSnd);
+	//Start daemon like execution
+	while(1==1) {
+		//sem_wait(&proxy_inf->bundleSnd);
+		sleep(1);
+		//Block while circular buffer is not empty
+		if(circular_buffer_isEmpty(&(proxy_inf->tcp_bp_buffer))==0) printf("Bpsender: to send buffer empty\n");
+		while(circular_buffer_isEmpty(&(proxy_inf->tcp_bp_buffer))==0) sleep(1);
+		pthread_mutex_lock(&(proxy_inf->tcp_bp_buffer.mutex));
+		circular_buffer_item toSend = circular_buffer_pop(&(proxy_inf->tcp_bp_buffer));
+		pthread_mutex_unlock(&(proxy_inf->tcp_bp_buffer.mutex));
 
 		memset((char *)&to.uri, 0, strlen(to.uri));
 		memset((char *)&reply_to.uri, 0, strlen(reply_to.uri));
@@ -94,9 +104,7 @@ void * bundleSending(void * arg) {
 			continue;
 		}
 
-		strcpy(file_name, proxy_inf->buffer[index]);
-		debug_print(proxy_inf->debug_level,
-				"[DEBUG] file_received: %s, index: %d\n", basename(file_name), index);
+		strcpy(file_name, toSend.fileName);
 
 		//Check if DTNproxy is in --no-header mode
 		if(proxy_inf->options == 'd') {
@@ -174,22 +182,16 @@ void * bundleSending(void * arg) {
 
 		printf("Sending bundle with file %s\n", basename(file_name));
 
-		if(*(proxy_inf->is_running) == 0) {
-			free(transfer_file_name);
-			break;
-		}
 
-		al_bp_parse_eid_string(&to, proxy_inf->eid_dest);
+		al_bp_parse_eid_string(&to, toSend.eid_dest);
 		al_bp_parse_eid_string(&reply_to, "ipn:5.0");
 //		al_bp_get_none_endpoint(&reply_to);
 		debug_print(proxy_inf->debug_level, "filename: %s\n", bundle.payload->filename.filename_val);
-		utility_error = al_bp_extB_send(proxy_inf->rd_send, &bundle, to, reply_to);
+		utility_error = al_bp_extB_send(proxy_inf->rd_send, bundle, to, reply_to);
 		if (utility_error != BP_EXTB_SUCCESS) {
 			error_print("Error in al_bp_extB_send_bundle() (%s)\n", al_bp_strerror(utility_error));
 			al_bp_bundle_free(&bundle);
 			free(transfer_file_name);
-
-			set_is_running_to_false(proxy_inf->mutex, proxy_inf->is_running);
 			break;
 		}
 		debug_print(proxy_inf->debug_level, "[DEBUG] al_bp_extB_send_bundle: %s\n", al_bp_strerror(utility_error));
@@ -198,8 +200,6 @@ void * bundleSending(void * arg) {
 		if (utility_error != BP_EXTB_SUCCESS) {
 			error_print("Error in al_bp_bundle_free() (%s)\n", al_bp_strerror(utility_error));
 			free(transfer_file_name);
-
-			set_is_running_to_false(proxy_inf->mutex, proxy_inf->is_running);
 			break;
 		}
 
@@ -208,30 +208,16 @@ void * bundleSending(void * arg) {
 			error_print("Error in removing file %s (%s)\n", file_name, strerror(errno));
 			continue;
 		}
-
-		sem_post(&proxy_inf->tcpRecv);
-
+		//sem_post(&proxy_inf->tcpRecv);
 		strcpy(file_name, "");
-		index = (index + 1) % MAX_NUM_FILE;
 
 		free(transfer_file_name);
 	}//for
 
-//	printf("BundleSender: i'm here\n");
-//
-//	int value;
-//	sem_getvalue(&proxy_inf->tcpRecv, &value);
-//	if(value == 0)
-//		sem_post(&proxy_inf->tcpRecv);
-//
-//	pthread_kill(proxy_inf->tid_recv, SIGUSR1);
-
+	kill(getpid(),SIGINT);
+	pthread_cleanup_pop(1);
 	return NULL;
 }
-
-//void handlerBundleSender(int signal) {
-//
-//}
 
 /**
  * Function for writing DTNperf --client -F header
@@ -306,3 +292,8 @@ al_bp_error_t prepare_dtnperf_header(dtnperf_options_t * opt, dtnperf_connection
 
 	return BP_SUCCESS;
 }
+
+/**
+ * Custom routine started in case of reception of pthread_cancel by parent.
+ */
+static void criticalError(void *arg){}

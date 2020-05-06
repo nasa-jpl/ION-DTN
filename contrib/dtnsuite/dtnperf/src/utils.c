@@ -372,9 +372,8 @@ int find_proc(char * cmd)
 	memset(cmd_args, 0, sizeof(cmd_args));
 	memset(cmd_exe, 0, sizeof(cmd_exe));
 	strcpy(cmd_args, strchr(cmd, ' '));
-	strcpy(cmd_exe, get_exe_name(strtok(cmd, " ")));
-	strncat(cmd_exe, cmd_args, strlen(cmd_args));
-
+    sprintf(cmd_exe, "%s%s", get_exe_name(strtok(cmd, " ")), cmd_args);
+    
 	proc = opendir("/proc/");
 	while ((item = readdir(proc)) != NULL)
 	{

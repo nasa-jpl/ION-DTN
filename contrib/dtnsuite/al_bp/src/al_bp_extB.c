@@ -23,7 +23,7 @@
 
 #include "list.h"
 
-//#define DEBUG
+//#define EXTB_DEBUG
 
 typedef struct
 {
@@ -151,7 +151,7 @@ al_bp_extB_error_t al_bp_extB_unregister(al_bp_extB_registration_descriptor regi
 	return error;
 }
 
-#ifdef DEBUG
+#ifdef EXTB_DEBUG
 static void debug_print_timestamp(al_bp_timestamp_t ts) {
 	printf("%d.%d", ts.secs,ts.seqno);
 }
@@ -238,15 +238,12 @@ static void debug_print_bundle_object(al_bp_bundle_object_t b) {
 // passed in input. For the sake of backward compatibility the 
 // destination and "reply to" originally contained in the bundle object 
 // are saved and restored at the end of the function.
-al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t* bundle, al_bp_endpoint_id_t destination, al_bp_endpoint_id_t reply_to)
+al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t bundle, al_bp_endpoint_id_t destination, al_bp_endpoint_id_t reply_to)
 {
 	al_bp_extB_registration_t* registration;
 	al_bp_endpoint_id_t old_destination;
 	al_bp_endpoint_id_t old_reply_to;
 	al_bp_handle_t handle;
-
-	if (bundle == NULL)
-		return BP_EXTB_ERRNULLPTR;
 
 	registration = get_registration_from_reg_des(registration_descriptor);
 	if (registration == NULL)
@@ -255,12 +252,12 @@ al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registrati
 	if (strcmp(destination.uri, al_bp_get_none_endpoint_string()) == 0)
 		return BP_EXTB_ERRRECEIVER;
 
-	old_destination = bundle->spec->dest;
+	old_destination = bundle.spec->dest;
 	// save old values
-	old_reply_to = bundle->spec->replyto;
-	al_bp_bundle_set_source(bundle, registration->local_eid);
-	al_bp_bundle_set_dest(bundle, destination);
-	al_bp_bundle_set_replyto(bundle, reply_to);
+	old_reply_to = bundle.spec->replyto;
+	al_bp_bundle_set_source(&bundle, registration->local_eid);
+	al_bp_bundle_set_dest(&bundle, destination);
+	al_bp_bundle_set_replyto(&bundle, reply_to);
 	
 	// This should avoid the blocking in getting handle
 	/*if (registration->bp_implementation == BP_DTN)
@@ -273,7 +270,7 @@ al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registrati
 		pthread_mutex_lock(&(registration->mutexDTN2send_receive));
 
 	#ifdef DEBUG
-	debug_print_bundle_object(*bundle);
+	debug_print_bundle_object(bundle);
 	#endif
 
 	registration->error = al_bp_bundle_send(handle, registration->regid, bundle);
@@ -281,8 +278,8 @@ al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registrati
 	if (registration->bp_implementation == BP_DTN)
 		pthread_mutex_unlock(&(registration->mutexDTN2send_receive));
 	// reset old destination and old reply_to
-	al_bp_bundle_set_dest(bundle, old_destination);
-	al_bp_bundle_set_replyto(bundle, old_reply_to);
+	al_bp_bundle_set_dest(&bundle, old_destination);
+	al_bp_bundle_set_replyto(&bundle, old_reply_to);
 	switch (registration->error)
 	{
 	case BP_EXTB_SUCCESS:
@@ -296,12 +293,15 @@ al_bp_extB_error_t al_bp_extB_send(al_bp_extB_registration_descriptor registrati
 // passed in input. It is a wrapper of the al_bp_bundle_receive. 
 // Payload_location is a structure passed to al_bp lower layers. Timeval 
 // is a timeout value passed to al_bp_lower layers.
-al_bp_extB_error_t al_bp_extB_receive(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t bundle, al_bp_bundle_payload_location_t payload_location, al_bp_timeval_t timeval)
+al_bp_extB_error_t al_bp_extB_receive(al_bp_extB_registration_descriptor registration_descriptor, al_bp_bundle_object_t* bundle, al_bp_bundle_payload_location_t payload_location, al_bp_timeval_t timeval)
 {
 	al_bp_extB_registration_t* registration;
 	struct timeval begin;
 	struct timeval loop;
 	boolean_t negative_timeval = (timeval < 0);
+
+	if (bundle == NULL)
+                return BP_EXTB_ERRNULLPTR;
 
 	registration = get_registration_from_reg_des(registration_descriptor);
 	if (registration == NULL)

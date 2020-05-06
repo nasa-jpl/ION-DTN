@@ -337,7 +337,6 @@ icibin = \
 	file2sdr \
 	file2sm \
 	ionadmin \
-	ionexit \
 	ionlog \
 	ionsecadmin \
 	ionunlock \
@@ -547,10 +546,6 @@ ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 ionxnowner_SOURCES = ici/utils/ionxnowner.c
 ionxnowner_LDADD = libici.la $(LIBOBJS) -lm
 ionxnowner_CFLAGS = $(icicflags) $(AM_CFLAGS)
-
-ionexit_SOURCES = ici/utils/ionexit.c
-ionexit_LDADD = libltp.la libici.la -lm libbp.la $(LIBOBJS)
-ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS) -lm
@@ -2298,12 +2293,16 @@ $(top_builddir)/nm/doc/%.3: nm/doc/pod3/%.pod
 #
 ##########################
 
-restartbin = ionrestart
+restartbin = ionrestart ionexit
 
 # --- Utility Programs --- #
 ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
+
+ionexit_SOURCES = restart/utils/ionexit.c
+ionexit_LDADD = libltp.la libici.la -lm libbp.la $(LIBOBJS)
+ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 
 ##########################

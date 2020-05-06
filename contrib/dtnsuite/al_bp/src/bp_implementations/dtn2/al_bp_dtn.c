@@ -1,6 +1,7 @@
 /********************************************************
  **  Authors: Michele Rodolfi, michele.rodolfi@studio.unibo.it
  **           Anna d'Amico, anna.damico@studio.unibo.it
+ **	      Andrea Bisacchi, andrea.bisacchi5@studio.unibo.it
  **           Carlo Caini (DTNperf_3 project supervisor), carlo.caini@unibo.it
  **
  **
@@ -212,24 +213,34 @@ void bp_dtn_free_extension_blocks(al_bp_bundle_spec_t* spec)
 {
         int i;
         for ( i=0; i<spec->blocks.blocks_len; i++ ) {
-            printf("Freeing extension block [%d].data at 0x%08X\n",
+            //printf("Freeing extension block [%d].data at 0x%08X\n",
                                i, (unsigned int) *(spec->blocks.blocks_val[i].data.data_val));
-            free(spec->blocks.blocks_val[i].data.data_val);
+            if (spec->blocks.blocks_val[i].data.data_val != NULL) {
+		    free(spec->blocks.blocks_val[i].data.data_val);
+		    spec->blocks.blocks_val[i].data.data_val = NULL;
+            }
         }
-        free(spec->blocks.blocks_val);
-        spec->blocks.blocks_val = NULL;
+        if (spec->blocks.blocks_val != NULL) {
+		free(spec->blocks.blocks_val);
+		spec->blocks.blocks_val = NULL;
+        }
         spec->blocks.blocks_len = 0;
 }
 void bp_dtn_free_metadata_blocks(al_bp_bundle_spec_t* spec)
 {
         int i;
         for ( i=0; i<spec->metadata.metadata_len; i++ ) {
-            printf("Freeing metadata block [%d].data at 0x%08X\n",
+            //printf("Freeing metadata block [%d].data at 0x%08X\n",
                                i, (unsigned int) *(spec->metadata.metadata_val[i].data.data_val));
-            free(spec->metadata.metadata_val[i].data.data_val);
+            if (spec->metadata.metadata_val[i].data.data_val != NULL) {
+            	free(spec->metadata.metadata_val[i].data.data_val);
+            	spec->metadata.metadata_val[i].data.data_val = NULL;
+            }
         }
-        free(spec->metadata.metadata_val);
-        spec->metadata.metadata_val = NULL;
+        if (spec->metadata.metadata_val != NULL) {
+		free(spec->metadata.metadata_val);
+		spec->metadata.metadata_val = NULL;
+        }
         spec->metadata.metadata_len = 0;
 }
 

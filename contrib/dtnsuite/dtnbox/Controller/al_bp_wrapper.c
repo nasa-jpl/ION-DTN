@@ -179,7 +179,7 @@ int dtnbox_send(al_bp_extB_registration_descriptor register_descriptor,
 
 	al_bp_parse_eid_string(&to, dest.EID);
 	al_bp_get_none_endpoint(&reply_to);
-	extB_error = al_bp_extB_send(register_descriptor, &bundle, to,
+	extB_error = al_bp_extB_send(register_descriptor, bundle, to,
 			reply_to);
 	if (extB_error != BP_EXTB_SUCCESS) {
 		error_print("dtnbox_send: error in al_bp_extB_send_bundle(): %s\n",
@@ -220,7 +220,7 @@ int dtnbox_receive(al_bp_extB_registration_descriptor register_descriptor,
 
 	//aspetto di riceverlo
 	debug_print(DEBUG_L1,"dtnbox_receive: waiting for a bundle...\n");
-	extB_error = al_bp_extB_receive(register_descriptor, bundle,
+	extB_error = al_bp_extB_receive(register_descriptor, &bundle,
 			location, -1);
 	if (extB_error != BP_EXTB_SUCCESS) {
 		switch(extB_error){

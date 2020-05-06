@@ -331,4 +331,80 @@ char * get_help_bp_options(void){
 }
 
 
+al_bp_error_t al_bp_create_bundle_with_option(al_bp_bundle_object_t *bundle, bundle_options_t bundle_options) {
+	al_bp_error_t err;
+	al_bp_bundle_delivery_opts_t dopts = BP_DOPTS_NONE;
+	
+	if (bundle == NULL)
+		return BP_ENULLPNTR;
+	
+	if (bundle->id == NULL) { // I suppose the bundle_object is not initialized
+		al_bp_bundle_create(bundle); // create the bundle
+	}
+
+	// Bundle expiration
+	err = al_bp_bundle_set_expiration(bundle, bundle_options.lifetime);
+	if (err != BP_SUCCESS) {
+		return BP_EINVAL;
+	}
+
+	// Bundle priority
+	err = al_bp_bundle_set_priority(bundle, bundle_options.priority);
+	if (err != BP_SUCCESS) {
+		return BP_EINVAL;
+	}
+
+	// Bundle unreliable
+	err = al_bp_bundle_set_unreliable(bundle, bundle_options.unreliable);
+	if (err != BP_SUCCESS) {
+		return BP_EINVAL;
+	}
+
+	// Bundle critical
+	err = al_bp_bundle_set_critical(bundle, bundle_options.critical);
+	if (err != BP_SUCCESS) {
+		return BP_EINVAL;
+	}
+
+	// Bundle flow label
+	err = al_bp_bundle_set_flow_label(bundle, bundle_options.flow_label);
+	if (err != BP_SUCCESS) {
+		return BP_EINVAL;
+	}
+	
+	// Delivery receipt option
+	if (bundle_options.delivery_reports)
+		dopts |= BP_DOPTS_DELIVERY_RCPT;
+
+	// Forward receipt option
+	if (bundle_options.forwarding_reports)
+		dopts |= BP_DOPTS_FORWARD_RCPT;
+
+	// Custody transfer
+	if (bundle_options.custody_transfer && (bundle_options.critical == FALSE))
+		dopts |= BP_DOPTS_CUSTODY;
+
+	// Custody receipts
+	if (bundle_options.custody_reports)
+		dopts |= BP_DOPTS_CUSTODY_RCPT;
+
+	// Receive receipt
+	if (bundle_options.reception_reports)
+		dopts |= BP_DOPTS_RECEIVE_RCPT;
+
+	// Deleted receipts
+	if (bundle_options.deletion_reports)
+		dopts |= BP_DOPTS_DELETE_RCPT;
+
+	//Disable bundle fragmentation
+	if (bundle_options.disable_fragmentation)
+		dopts |= BP_DOPTS_DO_NOT_FRAGMENT;
+
+	//Set options
+	err = al_bp_bundle_set_delivery_opts(bundle, dopts);
+
+	return err;
+}
+
+
 

@@ -20,7 +20,7 @@
 
 #ifdef DTN2_IMPLEMENTATION
 
-#include "../al_bp_types.h"
+#include <al_bp_types.h>
 
 #include <dtn_types.h>
 #include <dtn_api.h>

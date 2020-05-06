@@ -26,7 +26,7 @@
 
 #ifdef ION_IMPLEMENTATION
 
-#include "../al_bp_types.h"
+#include <al_bp_types.h>
 
 #include <bpP.h>
 

@@ -3,6 +3,9 @@ package it.unibo.dtn.JAL;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,6 +25,8 @@ import java.util.List;
  */
 public final class Bundle {
 
+	private static final ZonedDateTime baseDateTime = ZonedDateTime.of(LocalDateTime.of(2000, 01, 01, 00, 00), ZoneOffset.UTC);
+	
 	// *** BUNDLE ID
 	private BundleEID source = null;
 	private BundleTimestamp creationTimestamp = null;
@@ -155,11 +160,19 @@ public final class Bundle {
 	}
 
 	/**
-	 * Returns the creation timestamp
+	 * Returns the creation timestamp.
 	 * @return the creation timestamp
 	 */
 	public BundleTimestamp getCreationTimestamp() {
 		return creationTimestamp;
+	}
+	
+	/**
+	 * Returns the creation date time in UTC time.
+	 * @return The creation date time in UTC time
+	 */
+	public ZonedDateTime getCreationDateTime() {
+		return baseDateTime.plusSeconds(this.creationTimestamp.getSeconds());
 	}
 
 	/**

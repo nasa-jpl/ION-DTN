@@ -61,6 +61,7 @@ function run_a_test () {
 
     if [ -f "$TEST/.exclude_all" ]; then
     	echo "Test universally excluded, skipping $TEST"
+	cat $TEST/.exclude_all
     	skip_test $TEST
     	return
     fi
@@ -69,6 +70,7 @@ function run_a_test () {
     if [ -f "$TEST/.exclude_expert" ]; then
 	    if [ -n "$ION_EXCLUDE_EXPERT" ]; then
 		echo "Test excluded by expertise class, skipping $TEST"
+		cat $TEST/.exclude_expert
 		skip_test $TEST
 		return
 	    fi
@@ -78,6 +80,7 @@ function run_a_test () {
     if [ -f "$TEST/.exclude_cbased" ]; then
 	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
 		echo "Test excluded because of C code, skipping $TEST"
+		cat $TEST/.exclude_cbased
 		skip_test $TEST
 		return
 	    fi
@@ -86,6 +89,7 @@ function run_a_test () {
     # check if test is excluded by OS version
     if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
     	echo "Test excluded by OS type, skipping $TEST"
+	cat $TEST/.exclude_$OS_VERSION
     	excludeOS_test $TEST
     	return
     fi
@@ -93,6 +97,7 @@ function run_a_test () {
     # check if test is excluded by BP version
     if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
     	echo "Test excluded by BP version, skipping $TEST"
+	cat $TEST/.exclude_$BP_VERSION
     	excludeBPv_test $TEST
     	return
     fi

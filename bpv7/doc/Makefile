@@ -7,6 +7,7 @@ MANFILES = \
 	./man/man1/bibeadmin.1 \
 	./man/man1/bpadmin.1 \
 	./man/man1/bpsecadmin.1 \
+	./man/man1/bpchat.1 \
 	./man/man1/bpclock.1 \
 	./man/man1/bptransit.1 \
 	./man/man1/bpcounter.1 \
@@ -66,6 +67,7 @@ HTMLFILES = \
 	./html/man1/bibeadmin.html \
 	./html/man1/bpadmin.html \
 	./html/man1/bpsecadmin.html \
+	./html/man1/bpchat.html \
 	./html/man1/bpclock.html \
 	./html/man1/bptransit.html \
 	./html/man1/bpcounter.html \

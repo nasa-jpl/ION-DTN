@@ -33,6 +33,9 @@
 
 #include "al_bp_ion_conversions.h"
 
+#include <bpP.h>
+
+
 al_ion_handle_t al_ion_handle(al_bp_handle_t handle){
 	return (al_ion_handle_t) handle;
 }
@@ -46,14 +49,58 @@ char * al_ion_endpoint_id(al_bp_endpoint_id_t endpoint_id)
 	char * eid_ion;
 	int length_eid = strlen(endpoint_id.uri)+1;
 	eid_ion = (char *)(malloc(sizeof(char)*length_eid));
-	strncpy(eid_ion,endpoint_id.uri,length_eid);
+	memcpy(eid_ion,endpoint_id.uri,length_eid);
 	return eid_ion;
+}
+EndpointId al_ion_endpointId(al_bp_endpoint_id_t endpoint_id)
+{
+	EndpointId result;
+	MetaEid metaEid;
+	VScheme* scheme;
+	PsmAddress schemeElt;
+	SSP ssp;
+
+	parseEidString(endpoint_id.uri, &metaEid, &scheme, &schemeElt);
+
+	result.schemeCodeNbr = metaEid.schemeCodeNbr;
+
+	switch (metaEid.schemeCodeNbr) {
+		case dtn:
+			ssp.dtn.endpointName.s = metaEid.nss;
+			ssp.dtn.nssLength = metaEid.nssLength;
+			break;
+		case ipn:
+			ssp.ipn.nodeNbr = metaEid.elementNbr;
+			ssp.ipn.serviceNbr = metaEid.serviceNbr;
+			break;
+		case imc:
+			ssp.imc.groupNbr = metaEid.elementNbr;
+			ssp.imc.serviceNbr = metaEid.serviceNbr;
+			break;
+		default:
+			break;
+	}
+
+	result.ssp = ssp;
+
+	return result;
 }
 al_bp_endpoint_id_t ion_al_endpoint_id(char * endpoint_id)
 {
 	al_bp_endpoint_id_t eid_bp;
 	int length = strlen(endpoint_id)+1;
-	strncpy(eid_bp.uri,endpoint_id,length);
+	memcpy(eid_bp.uri,endpoint_id,length);
+	return eid_bp;
+}
+al_bp_endpoint_id_t ion_al_endpointId(EndpointId endpointId)
+{
+	al_bp_endpoint_id_t eid_bp;
+	char* result;
+	
+	readEid(&endpointId, &result);
+	
+	memcpy(&(eid_bp.uri[0]), result, strlen(result)+1);
+	
 	return eid_bp;
 }
 
@@ -74,15 +121,10 @@ al_bp_timestamp_t ion_al_timestamp(BpTimestamp timestamp)
 }
 
 DtnTime al_ion_timeval(al_bp_timeval_t timeval){
-	DtnTime dtntime;
-	dtntime.seconds = timeval;
-	dtntime.nanosec = 0;
-	return dtntime;
+	return timeval;
 }
 al_bp_timeval_t ion_al_timeval(DtnTime timeval){
-	al_bp_timeval_t time;
-	time = timeval.seconds;
-	return time;
+	return timeval;
 }
 
 unsigned char al_ion_bundle_srrFlags(al_bp_bundle_delivery_opts_t bundle_delivery_opts){
@@ -141,8 +183,8 @@ int al_ion_status_report_flags(al_bp_status_report_flags_t status_repot_flags){
 	int ion_statusRpt_flags =0;
 	if(status_repot_flags & BP_STATUS_RECEIVED)
 		ion_statusRpt_flags |= BP_STATUS_RECEIVE;
-	if(status_repot_flags & BP_STATUS_CUSTODY_ACCEPTED)
-			ion_statusRpt_flags |= BP_STATUS_ACCEPT;
+	/*if(status_repot_flags & BP_STATUS_CUSTODY_ACCEPTED)
+			ion_statusRpt_flags |= BP_STATUS_ACCEPT;*/
 	if(status_repot_flags & BP_STATUS_FORWARDED)
 			ion_statusRpt_flags |= BP_STATUS_FORWARD;
 	if(status_repot_flags & BP_STATUS_DELIVERED)
@@ -203,7 +245,7 @@ BpStatusRpt al_ion_bundle_status_report(al_bp_bundle_status_report_t bundle_stat
 {
 	BpStatusRpt ion_statusRpt;
 	memset(&ion_statusRpt,0,sizeof(BpStatusRpt));
-	ion_statusRpt.acceptanceTime = al_ion_timeval(bundle_status_report.ack_by_app_ts.secs);
+	//ion_statusRpt.acceptanceTime = al_ion_timeval(bundle_status_report.ack_by_app_ts.secs);
 	ion_statusRpt.creationTime = al_ion_timestamp(bundle_status_report.bundle_id.creation_ts);
 	ion_statusRpt.deletionTime = al_ion_timeval(bundle_status_report.deletion_ts.secs);
 	ion_statusRpt.deliveryTime = al_ion_timeval(bundle_status_report.delivery_ts.secs);
@@ -215,14 +257,16 @@ BpStatusRpt al_ion_bundle_status_report(al_bp_bundle_status_report_t bundle_stat
 	ion_statusRpt.fragmentLength = bundle_status_report.bundle_id.orig_length;
 	ion_statusRpt.reasonCode = al_ion_status_report_reason(bundle_status_report.reason);
 	ion_statusRpt.receiptTime = al_ion_timeval(bundle_status_report.receipt_ts.secs);
-	ion_statusRpt.sourceEid = al_ion_endpoint_id(bundle_status_report.bundle_id.source);
+	
+	ion_statusRpt.sourceEid = al_ion_endpointId(bundle_status_report.bundle_id.source);
+	
 	return ion_statusRpt;
 }
 al_bp_bundle_status_report_t ion_al_bundle_status_report(BpStatusRpt bundle_status_report)
 {
 	al_bp_bundle_status_report_t bp_statusRpt;
 	memset(&bp_statusRpt,0,sizeof(al_bp_bundle_status_report_t));
-	bp_statusRpt.custody_ts.secs = ion_al_timeval(bundle_status_report.acceptanceTime);
+	//bp_statusRpt.custody_ts.secs = ion_al_timeval(bundle_status_report.acceptanceTime);
 	bp_statusRpt.deletion_ts.secs = ion_al_timeval(bundle_status_report.deletionTime);
 	bp_statusRpt.delivery_ts.secs = ion_al_timeval(bundle_status_report.deliveryTime);
 	bp_statusRpt.flags = ion_al_status_report_flags(bundle_status_report.flags);
@@ -232,7 +276,9 @@ al_bp_bundle_status_report_t ion_al_bundle_status_report(BpStatusRpt bundle_stat
 	bp_statusRpt.bundle_id.creation_ts = ion_al_timestamp(bundle_status_report.creationTime);
 	bp_statusRpt.bundle_id.frag_offset = (u32_t) bundle_status_report.fragmentOffset;
 	bp_statusRpt.bundle_id.orig_length = (u32_t) bundle_status_report.fragmentLength;
-	bp_statusRpt.bundle_id.source = ion_al_endpoint_id(bundle_status_report.sourceEid);
+	
+	bp_statusRpt.bundle_id.source = ion_al_endpointId(bundle_status_report.sourceEid);
+	
 	return bp_statusRpt;
 }
 

@@ -589,14 +589,14 @@ al_bp_error_t bp_ibr_recv(al_bp_handle_t handle,
 	
 	memset(spec, 0, sizeof(*spec));
 	
-	strncpy(spec->source.uri, bundle.source.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
+	memcpy(spec->source.uri, bundle.source.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
 	spec->source.uri[AL_BP_MAX_ENDPOINT_ID - 1] = '\0'; //ensures the string terminator
 	
-	strncpy(spec->dest.uri, bundle.destination.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
+	memcpy(spec->dest.uri, bundle.destination.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
 	spec->dest.uri[AL_BP_MAX_ENDPOINT_ID - 1] = '\0';
 	
 	//I assume spec->replyto is the report-to EID described in RFC5050...
-	strncpy(spec->replyto.uri, bundle.reportto.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
+	memcpy(spec->replyto.uri, bundle.reportto.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
 	spec->replyto.uri[AL_BP_MAX_ENDPOINT_ID - 1] = '\0';
 	//...otherwise use
 	// strcpy(spec->replyto.uri, "dtn:none"); //as per al_bp_ion.c	
@@ -745,7 +745,7 @@ al_bp_error_t bp_ibr_recv(al_bp_handle_t handle,
 					payload->status_report = new al_bp_bundle_status_report_t;
 					memset(payload->status_report, 0, sizeof(*payload->status_report));
 					
-					strncpy(payload->status_report->bundle_id.source.uri, srblock.bundleid.source.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
+					memcpy(payload->status_report->bundle_id.source.uri, srblock.bundleid.source.getString().c_str(), AL_BP_MAX_ENDPOINT_ID);
 					payload->status_report->bundle_id.source.uri[AL_BP_MAX_ENDPOINT_ID - 1] = '\0';
 					
 					payload->status_report->bundle_id.creation_ts.secs = srblock.bundleid.timestamp.get();

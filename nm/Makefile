@@ -32,7 +32,7 @@ clean:
 #		cd doc; \
 #		gmake -i clean; \
 #		cd ..; \
-#
+
 		for PF in $(PLATFORMS); \
 			do cd $$PF; gmake -i clean; cd ..; done
 
@@ -40,6 +40,7 @@ install:
 #		cd doc; \
 #		gmake -i install ROOT=$(OPT); \
 #		cd ..; \
-#
+
 		for PF in $(PLATFORMS); \
 			do cd $$PF; gmake -i install ROOT=$(OPT); cd ..; done
+

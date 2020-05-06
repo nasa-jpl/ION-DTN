@@ -1,5 +1,7 @@
 package it.unibo.dtn.JAL.tests;
 
+import java.util.function.Consumer;
+
 import it.unibo.dtn.JAL.BPSocket;
 import it.unibo.dtn.JAL.Bundle;
 import it.unibo.dtn.JAL.BundleDeliveryOption;
@@ -11,6 +13,19 @@ import it.unibo.dtn.JAL.exceptions.JALTimeoutException;
 class Main {
 
 	public static void main(String[] args) throws Exception {
+		
+		BPSocket testNonBlocking = BPSocket.register(15);
+		Consumer<Bundle> handler = System.out::println;
+		handler = handler.andThen(b -> {
+			try {testNonBlocking.unregister();} catch (Throwable e) {}
+		});
+		Consumer<Throwable> exceptionHandler = System.err::println;
+		exceptionHandler = exceptionHandler.andThen(b -> {
+			try {testNonBlocking.unregister();} catch (Throwable e) {}
+		});
+		testNonBlocking.receive(handler, exceptionHandler);
+		
+		
 		BPSocket socket = BPSocket.register(10);
 		
 		boolean stop = false;

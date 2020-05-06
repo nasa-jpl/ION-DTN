@@ -34,6 +34,7 @@
 #ifndef DTNPROXY_SRC_BUNDLE_HEADER_UTILITY_H_
 #define DTNPROXY_SRC_BUNDLE_HEADER_UTILITY_H_
 
+
 #include "proxy_thread.h"
 
 /**

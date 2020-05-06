@@ -114,7 +114,7 @@ cd ../3.ipn.tcp
 ./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
-sleep 5
+sleep 8
 killm
 
 echo "Verifying results..."

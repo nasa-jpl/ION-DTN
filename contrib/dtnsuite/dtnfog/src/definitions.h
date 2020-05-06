@@ -118,7 +118,7 @@
  * String length
  */
 // Filename length
-#define FILE_NAME 256
+#define FILE_NAME 512
 // Dirname length
 #define DIR_NAME 512
 // IP address length
