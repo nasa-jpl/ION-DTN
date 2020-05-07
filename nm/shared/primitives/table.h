@@ -96,7 +96,7 @@ tbl_t*   tbl_copy_ptr(tbl_t *tbl);
 
 tbl_t*   tbl_create(ari_t *id);
 
-tbl_t*   tbl_deserialize_ptr(QCBORDecodeContext *it, int *success);
+void*   tbl_deserialize_ptr(QCBORDecodeContext *it, int *success);
 
 tbl_t*   tbl_deserialize_raw(blob_t *data, int *success);
 
@@ -110,7 +110,9 @@ int      tbl_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*   tbl_serialize_wrapper(tbl_t *tbl);
 
-
+void      tbl_cb_del_fn(void *item);
+void*     tbl_cb_copy_fn(void *item);
+int tbl_cb_comp_fn(void *i1, void *i2);
 
 
 
@@ -120,6 +122,7 @@ int       tblt_add_col(tblt_t *tblt, amp_type_e type, char *name);
 
 
 void      tblt_cb_del_fn(void *item);
+int tblt_cb_comp_fn(void *i1, void *i2);
 void*     tblt_cb_copy_fn(void *item);
 void      tblt_cb_ht_del_fn(rh_elt_t *elt);
 

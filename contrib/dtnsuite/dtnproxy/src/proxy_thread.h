@@ -1,6 +1,7 @@
 /********************************************************
     Authors:
     Lorenzo Mustich, lorenzo.mustich@studio.unibo.it
+	Lorenzo Tullini, lorenzo.tullini@studio.unibo.it
     Carlo Caini (DTNproxy project supervisor), carlo.caini@unibo.it
 
     License:
@@ -41,7 +42,6 @@
 #include <al_bp_api.h>
 #include <types.h>
 #include <includes.h>
-
 #include <fcntl.h>
 #include <ctype.h>
 #include <sys/types.h>
@@ -54,12 +54,23 @@
 #include <semaphore.h>
 #include <libgen.h>
 
-#include "../../al_bp/src/al_bp_extB.h"
+#include "al_bp_extB.h"
 #include "definitions.h"
 
 /**
  * Data structures
  */
+
+/*Data structure to describe initialization status
+typedef struct proxy_init_status_t {
+	int SOCKET;
+    int THREADS_STARTED;
+	int SEMAPHORETCP;
+	int SEMAPHOREBP;
+	int BPSEND_REGISTRED;
+	int BPRECIVE_REGISTRED;
+	int BPINIT;
+}proxy_init_status_t;*/
 
 //Data structure for error
 typedef enum proxy_error_t {
@@ -69,35 +80,54 @@ typedef enum proxy_error_t {
 	THREAD_ERROR			//Error returned by thread
 }proxy_error_t;
 
+//Data structure for cricular buffer item
+typedef struct circular_buffer_item {
+	char fileName[FILE_NAME];
+	char eid_dest[AL_BP_MAX_ENDPOINT_ID];
+	char ip_dest[IP_LENGTH];
+	int port_dest;
+}circular_buffer_item;
+
+//Data structure for ring buffer tpc->bp
+typedef struct circular_buffer_t{
+	circular_buffer_item * buffer;
+	circular_buffer_item * buffer_end;
+	circular_buffer_item * data_start;
+	circular_buffer_item * data_end;
+    int count;
+    int size;
+	pthread_mutex_t mutex;
+} circular_buffer_t;
+
 //Data structure for threads TCP-BUNDLE
 typedef struct tcp_to_bundle_inf_t {
 	int listenSocket_fd;
 	al_bp_extB_registration_descriptor rd_send;
-	sem_t tcpRecv;
-	sem_t bundleSnd;
-	char buffer[MAX_NUM_FILE][FILE_NAME];
-	char eid_dest[AL_BP_MAX_ENDPOINT_ID];
-	char options;
 	int debug_level;
-	int * is_running;
-	pthread_mutex_t mutex;
-	pthread_t tid_recv;
+	char options;
+	circular_buffer_t tcp_bp_buffer;
 }tcp_to_bundle_inf_t;
 
 //Data structure for threads BUNDLE-TCP
 typedef struct bundle_to_tcp_inf_t {
 	al_bp_extB_registration_descriptor rd_receive;
-	sem_t bundleRecv;
-	sem_t tcpSnd;
-	char buffer[MAX_NUM_FILE][FILE_NAME];
-	char ip_dest[IP_LENGTH];
-	int port_dest;
 	char options;
 	int debug_level;
-	int * is_running;
 	pthread_mutex_t mutex;
-	pthread_t tid_snd;
+	int error;
+	circular_buffer_t bp_tcp_buffer;
 }bundle_to_tcp_inf_t;
+
+//Data structure for tcp receiver thread which contains the minimum information to coplete the job
+typedef struct tcp_receiver_info_t{
+	int connectClientSocket;
+	tcp_to_bundle_inf_t * proxy_info;
+	struct sockaddr_in cliaddr;
+	circular_buffer_t * tcp_bp_buffer;
+}tcp_receiver_info_t;
+
+
+
 
 /**
  * Function interfaces
@@ -108,10 +138,24 @@ void *tcpReceiving(void * arg);
 void *bundleSending(void * arg);
 //Thread for bundle receiving
 void *bundleReceiving(void * arg);
-//Thread for TCP sending
+//Thread for TCP sending list
 void *tcpSending(void * arg);
-
+//Thread for TCP sender thread
+void * tcpSenderThread(void * arg);
+//Thread for TCP receiver thread
+void * tcpReceiverThread(void * arg);
 //Function for program clean exit
 void proxy_exit(int error);
 
+void circular_buffer_init(circular_buffer_t * cb, int size);
+void circular_buffer_free(circular_buffer_t* cb);
+int circular_buffer_isFull(circular_buffer_t* cb);
+int circular_buffer_push(circular_buffer_t* cb, circular_buffer_item data);
+circular_buffer_item circular_buffer_pop(circular_buffer_t* cb);
+int circular_buffer_isEmpty(circular_buffer_t* cb);
+
 #endif /* DTNPROXY_SRC_PROXY_THREAD_H_ */
+
+
+
+

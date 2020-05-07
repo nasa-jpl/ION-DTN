@@ -59,7 +59,7 @@ static jint c_register(JNIEnv *env, jobject obj, jobject ALBPSocket_, jstring dt
 	
     dtnDemux = (char*) (*env)->GetStringUTFChars(env, dtnDemuxString , NULL);
 	
-	int result = al_bp_extB_register(&RD, dtnDemux, IPNDemux);
+	al_bp_extB_error_t result = al_bp_extB_register(&RD, dtnDemux, IPNDemux);
 	
 	// Debug
 	#ifdef DEBUG
@@ -70,7 +70,7 @@ static jint c_register(JNIEnv *env, jobject obj, jobject ALBPSocket_, jstring dt
 	jmethodID mid = (*env)->GetMethodID(env, ALBPSocket, "setRegistrationDescriptor_C", "(I)V");
 	(*env)->CallVoidMethod(env, ALBPSocket_, mid, (jint)RD);
 
-	return result;
+	return (jint) result;
 }
 
 #define CleanFree(p) {if (p!=NULL) {free(p);p=NULL;}}
@@ -82,7 +82,15 @@ static jint c_send(JNIEnv *env, jobject obj, jint registrationDescriptor, jobjec
 	// Convert bundle from Java to C format
 	copy_bundle_from_java(env, ALBPBundle_, &bundle_object);
 	
-	int result = al_bp_extB_send((int)registrationDescriptor, &bundle_object, bundle_object.spec->dest, bundle_object.spec->replyto);
+	al_bp_extB_error_t result = al_bp_extB_send((int)registrationDescriptor, bundle_object, bundle_object.spec->dest, bundle_object.spec->replyto);
+	
+	if (result == BP_EXTB_SUCCESS) {   // Set the creation timestamp back to Java
+		jclass ALBPBundle = (*env)->GetObjectClass(env, ALBPBundle_);
+		jmethodID mid;
+		mid = (*env)->GetMethodID(env, ALBPBundle, "setCreationTimestamp_C", "(II)V");
+		CHECKMIDNOTNULL(mid);
+		(*env)->CallVoidMethod(env, ALBPBundle_, mid, (jint) bundle_object.id->creation_ts.secs, (jint) bundle_object.id->creation_ts.seqno);
+	}
 	
 	CleanFree(bundle_object.payload->buf.buf_val);
 	CleanFree(bundle_object.payload->filename.filename_val);
@@ -227,7 +235,7 @@ static jint c_receive(JNIEnv *env, jobject obj, jint registrationDescriptor, job
 	al_bp_bundle_object_t bundle_object;
 	al_bp_bundle_create(&bundle_object);
 	
-	int result = al_bp_extB_receive((al_bp_extB_registration_descriptor) registrationDescriptor, bundle_object, (al_bp_bundle_payload_location_t) payloadLocation, (al_bp_timeval_t) timeout);
+	al_bp_extB_error_t result = al_bp_extB_receive((al_bp_extB_registration_descriptor) registrationDescriptor, &bundle_object, (al_bp_bundle_payload_location_t) payloadLocation, (al_bp_timeval_t) timeout);
 	
 	#ifdef DEBUG
 	printf("Exited from al_bp_extB_receive.\n\tResult=%d\n", result);
@@ -236,13 +244,20 @@ static jint c_receive(JNIEnv *env, jobject obj, jint registrationDescriptor, job
 	fflush(stdout);
 	#endif
 	
-	boolean_t copied = copy_bundle_to_java(env, ALBPBundle_, bundle_object, (al_bp_bundle_payload_location_t) payloadLocation);
-	
-	if (!copied)
-		printf("Error on copying bundle to Java.\n");
-	
-	if (payloadLocation == BP_PAYLOAD_FILE || payloadLocation == BP_PAYLOAD_TEMP_FILE) {
-		bundle_object.payload->filename.filename_val = NULL; // Avoid the deletion of the bundle file (removing file). Java will do it.
+	if (result == BP_EXTB_SUCCESS) {
+		boolean_t copied = copy_bundle_to_java(env, ALBPBundle_, bundle_object, (al_bp_bundle_payload_location_t) payloadLocation);
+
+		if (!copied) {
+			#ifdef DEBUG
+			printf("Error on copying bundle to Java.\n");
+			fflush(stdout);
+			#endif
+			result = BP_EXTB_ERRRECEIVE;
+		}
+
+		if (payloadLocation == BP_PAYLOAD_FILE || payloadLocation == BP_PAYLOAD_TEMP_FILE) {
+			bundle_object.payload->filename.filename_val = NULL; // Avoid the deletion of the bundle file (removing file). Java will do it.
+		}
 	}
 	
 	al_bp_bundle_free(&bundle_object);

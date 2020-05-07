@@ -212,13 +212,13 @@ char * al_bp_strerror(int err);
  */
 al_bp_error_t al_bp_bundle_send(al_bp_handle_t handle,
 							al_bp_reg_id_t regid,
-							al_bp_bundle_object_t * bundle_object);
+							al_bp_bundle_object_t bundle_object);
 
 /**
  * Receive bundle
  */
 al_bp_error_t al_bp_bundle_receive(al_bp_handle_t handle,
-							al_bp_bundle_object_t bundle_object,
+							al_bp_bundle_object_t * bundle_object,
 							al_bp_bundle_payload_location_t payload_location,
 							al_bp_timeval_t timeout);
 

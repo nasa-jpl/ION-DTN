@@ -1,0 +1,75 @@
+=head1 NAME
+
+acslist - Aggregate Custody Signals (ACS) utility for checking custody IDs.
+
+=head1 SYNOPSIS
+
+B<acslist> [I<-s|--stdout>]
+
+=head1 DESCRIPTION
+
+B<acslist> is a utility program that lists all mappings from bundle ID to
+custody ID currently in the local bundle agent's ACS ID database, in no
+specific order.  A bundle ID (defined in RFC5050) is the tuple of
+(source EID, creation time, creation count, fragment offset, fragment length).
+A custody ID (defined in draft-jenkins-aggregate-custody-signals) is an
+integer that the local bundle agent will be able to map to a bundle ID for
+the purposes of aggregating and compressing custody signals.
+
+The format for mappings is:
+
+(ipn:13.1,333823688,95,0,0)->(26)
+
+While listing, B<acslist> also checks the custody ID database for
+self-consistency, and if it detects any errors it will print a line starting
+with "Mismatch:" and describing the error.
+
+I<-s|--stdout> tells B<acslist> to print results to stdout, rather than to
+the ION log.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<acslist> terminated after verifying the consistency of the custody ID database.
+
+=item "1"
+
+B<acslist> was unable to attach to the ACS database, or it detected an
+inconsistency.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued:
+
+=over 4
+
+=item Can't attach to ACS.
+
+B<acsadmin> has not yet initialized ACS operations.
+
+=item Mismatch: (description of the mismatch)
+
+B<acslist> detected an inconsistency in the database; this is a bug in ACS.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+acsadmin(1), bplist(1)

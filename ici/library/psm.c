@@ -301,22 +301,16 @@ actual name.", map->name);
 		break;	/*	Proceed with managing the partition.	*/
 
 	default:	/*	Must initialize the partition.		*/
-		map->directory = 0;
-		map->desperate = 0;
+		memset((char *) map, 0, sizeof(PartitionMap));
 		map->partitionSize = length;
 		istrcpy(map->name, name, sizeof map->name);
 		map->startOfSmallPool = sizeof(PartitionMap);
 		map->endOfSmallPool = map->startOfSmallPool;
-		memset((char *) (map->smallPoolFree), 0,
-				sizeof map->smallPoolFree);
 		map->endOfLargePool = length;
 		map->startOfLargePool = map->endOfLargePool;
-		memset((char *) (map->largePoolFree), 0,
-				sizeof map->largePoolFree);
 		map->unassignedSpace = map->startOfLargePool -
 				map->endOfSmallPool;
 		map->traceKey = sm_GetUniqueKey();
-		map->traceSize = 0;
 	}
 
 	map->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -1180,8 +1174,7 @@ block size %lu", nbytes);
 		nbytes >>= SPACE_ORDER;	/*	Truncate.		*/
 		i = nbytes - 1;		/*	(gives bucket #)	*/
 		nbytes <<= SPACE_ORDER;	/*	Restore size.		*/
-		block = map->smallPoolFree[i].firstFreeBlock;
-		if (block == 0)
+		if (map->smallPoolFree[i].freeBlocks == 0)
 		{
 			increment = nbytes + SMALL_BLOCK_OHD;
 			if (map->unassignedSpace < increment)
@@ -1200,6 +1193,7 @@ block size %lu", nbytes);
 		}
 		else	/*	Found a free block.			*/
 		{
+			block = map->smallPoolFree[i].firstFreeBlock;
 			map->smallPoolFree[i].freeBlocks--;
 			blk = SMALL(block);
 			map->smallPoolFree[i].firstFreeBlock = blk->next;

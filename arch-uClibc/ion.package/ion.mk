@@ -4,8 +4,8 @@
 #
 #############################################################
 
-#ION_VERSION_MAJOR=3
-#ION_VERSION_MINOR=7.0
+#ION_VERSION_MAJOR=4
+#ION_VERSION_MINOR=0.0
 #ION_VERSION:=$(ION_VERSION_MAJOR).$(ION_VERSION_MINOR)
 ION_VERSION:=open-source
 ION_SOURCE:=ion-$(ION_VERSION).tar.gz
@@ -29,8 +29,8 @@ define ION_BUILD_CMDS
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/ltp/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bssp/arm-uClibc all
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bssp/arm-uClibc install
- $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bp/arm-uClibc all
- $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bp/arm-uClibc install
+ $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/$(BP)/arm-uClibc all
+ $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/$(BP)/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/cfdp/arm-uClibc all
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/cfdp/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/ams/arm-uClibc all
@@ -44,7 +44,7 @@ define ION_INSTALL_TARGET_CMDS
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/dgr/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/ltp/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bssp/arm-uClibc install
- $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bp/arm-uClibc install
+ $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/$(BP)/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/cfdp/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/ams/arm-uClibc install
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bss/arm-uClibc install
@@ -55,7 +55,7 @@ define ION_CLEAN_CMDS
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/dgr/arm-uClibc clean
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/ltp/arm-uClibc clean
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bssp/arm-uClibc clean
- $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bp/arm-uClibc clean
+ $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/$(BP)/arm-uClibc clean
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/cfdp/arm-uClibc clean
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/ams/arm-uClibc clean
  $(MAKE) TCC="$(TARGET_CC)" TLD="$(TARGET_CC)" ROOT="$(TARGET_DIR)/opt" -C $(@D)/bss/arm-uClibc clean

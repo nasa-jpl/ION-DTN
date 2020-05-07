@@ -62,10 +62,19 @@
 #define UI_CTRL_MENU  2
 #define UI_DB_MENU	  3
 
+
+typedef enum mgr_ui_mode_enum {
+   MGR_UI_STANDARD, // Standard Shell-Based UI
+   MGR_UI_NCURSES, // NCURSES-Based UI (currently a compile-time flag mutually exclusive with MGR_UI_STANDARD)
+   MGR_UI_AUTOMATOR, // Special Altenrative UI Optimized for Automation
+} mgr_ui_mode_enum;
+extern mgr_ui_mode_enum mgr_ui_mode;
+
 extern int gContext;
 
 int ui_build_control(agent_t* agent);
 void ui_clear_reports(agent_t* agent);
+void ui_clear_tables(agent_t* agent);
 
 rpttpl_t* ui_create_rpttpl_from_parms(tnvc_t parms);
 var_t* ui_create_var_from_parms(tnvc_t parms);
@@ -123,7 +132,8 @@ typedef enum form_types_enum {
    TYPE_CHECK_ENUM,
    TYPE_CHECK_INT,
    TYPE_CHECK_NUM,
-   TYPE_CHECK_REGEXP
+   TYPE_CHECK_REGEXP,
+   TYPE_CHECK_BOOL,
 } form_types_enum;
 
 typedef struct form_fields_t {
@@ -132,6 +142,7 @@ typedef struct form_fields_t {
    uint32_t width; // Maximum length for value field (null-char included)
    int opts_off; // NCURSES Field Options to disable
    form_types_enum type; // If not NULL, use validation
+   void *parsed_value;
    union args {
       // For ALPHA or ALNUM types
       int width; // Minimum length for value field (excluded null-char)
@@ -183,6 +194,21 @@ typedef enum ui_cb_return_values_t
    
 } ui_cb_return_values_t;
 
+typedef struct ui_print_cfg_t
+{
+   FILE *fd;
+#ifdef USE_CIVETWEB
+   struct mg_connection *conn;
+#endif
+} ui_print_cfg_t;
+
+#ifdef USE_CIVETWEB
+#define INIT_UI_PRINT_CFG_FD(fd) {fd, NULL};
+#define INIT_UI_PRINT_CFG_CONN(conn) { NULL, conn };
+#else
+#define INIT_UI_PRINT_CFG_FD(fd) {fd};
+#endif
+
 /** Callback function prototype for ui_menu_listing
  * @param[in] idx Index into the menu listing configuration for the currently selected item.
  * @param[in] keypress The key that the user pressed to make the current selection. 
@@ -209,7 +235,7 @@ typedef ui_cb_return_values_t (*ui_menu_listing_cb_fn)(int idx, int keypress, vo
  *    choices array representing the user selection otherwise.
  */
 int ui_menu(char* title, char** choices, char** descriptions, int n_choices, char* msg);
-#ifdef USE_NCURSES //EJB
+
 /** Display a form of one or more fields for the user to fill out.
  * @param title A title to display for this form
  * @param msg An optional user-defined message to display at the bottom of the menu.
@@ -219,7 +245,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
  * @returns 1 on submission, 0 if user cancelled input, or -1 on error.
  */
 int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields);
-#endif //EJB
+
 /** Display the user with a simple confirmation dialog with 1-3 options.
  *    Specify NULL or choiceB or C to suppress display of the corresponding choices.
  * @returns User selection
@@ -271,7 +297,8 @@ void ui_display_to_file_close();
  *     is called.
  *   In stdio mode, this is a wrapper to printf.
  */
-void ui_printf(const char* format, ...);
+#define ui_printf(...) ui_fprintf(NULL, __VA_ARGS__)
+void ui_fprintf(ui_print_cfg_t *fd, const char* format, ...);
 
 /** Signals the completion of a ui_printf based dialog.
  *    If file redirection is active, this function will cause the file to be closed
@@ -304,5 +331,7 @@ void ui_display_init(char* title);
 #define ui_display_init(title) ui_printf("\n\n--------------------\n%s\n--------------------\n", title)
 #endif
 
+/** Log information on transmitted messages (dependent on logging settings) */
+void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg);
 
 #endif // _NM_MGR_UI_H

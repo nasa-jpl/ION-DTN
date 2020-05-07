@@ -53,7 +53,6 @@ static void p_rhht_bkwrd_shft(rhht_t *ht, rh_idx_t idx)
 {
 	rh_idx_t i;
 	rh_idx_t next_idx;
-	rh_idx_t ideal_idx;
 
 	CHKVOID(ht);
 	CHKVOID(idx < ht->num_bkts);

@@ -1,0 +1,38 @@
+=head1 NAME
+
+tcpclo - TCPCL-compliant convergence layer adapter output task [DEPRECATED]
+
+=head1 SYNOPSIS
+
+B<tcpclo>
+
+=head1 DESCRIPTION
+
+B<tcpclo> is deprecated.  The outducts for the "tcp" convergence-layer
+adapter are now drained by threads managed within tcpcli.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcpclo> terminated normally.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+No diagnostics apply.
+
+=head1 SEE ALSO
+
+tcpcli(1)

@@ -1,0 +1,98 @@
+=head1 NAME
+
+dgrclo - DGR-based BP convergence layer transmission task
+
+=head1 SYNOPSIS
+
+B<dgrclo> I<remote_hostname>[:I<remote_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<dgrclo> is a background "daemon" task that spawns two threads, one that
+handles DGR convergence layer protocol input (positive and negative
+acknowledgments) and a second that handles DGR convergence layer protocol
+output.
+
+The output thread extracts bundles from the queues of bundles ready for
+transmission via DGR to a remote bundle protocol agent, encapsulates them in
+DGR messages, and uses a randomly configured local UDP socket to send those
+messages to the remote UDP socket bound to I<remote_hostname> and
+I<remote_port_nbr>.  (I<local_port_nbr> defaults to 1113 if not specified.)
+
+The input thread receives DGR messages via the same local UDP socket and uses
+them to manage DGR retransmission of transmitted datagrams.
+
+B<dgrclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<dgrclo> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the DGR convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dgrclo> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<dgrclo>.
+
+=item "1"
+
+B<dgrclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<dgrclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dgrclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item CLI task is already started for this engine.
+
+Redundant initiation of B<dgrclo>.
+
+=item No such dgr outduct.
+
+No DGR outduct with duct name matching I<remote_hostname> and I<remote_port_nbr>
+has been added to the BP database.  Use B<bpadmin> to stop the DGR
+convergence-layer protocol, add the outduct, and then restart the DGR protocol.
+
+=item dgrclo can't open DGR service access point.
+
+DGR system error.  Check prior messages in B<ion.log> log file, correct
+problem, and then stop and restart the DGR protocol.
+
+=item dgrclo can't create sender thread
+
+Operating system error.  Check errtext, correct problem, and restart DGR.
+
+=item dgrclo can't create receiver thread
+
+Operating system error.  Check errtext, correct problem, and restart DGR.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5)

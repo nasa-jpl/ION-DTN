@@ -1,0 +1,77 @@
+=head1 NAME
+
+ipnadminep - administrative endpoint task for the IPN scheme
+
+=head1 SYNOPSIS
+
+B<ipnadminep>
+
+=head1 DESCRIPTION
+
+B<ipnadminep> is a background "daemon" task that receives and processes
+administrative bundles (all custody signals and, nominally, all bundle
+status reports) that are sent to the IPN-scheme administrative endpoint
+on the local ION node, if and only if such an endpoint was established by
+B<bpadmin>.  It is spawned automatically by B<bpadmin> in response to the
+'s' (START) command that starts operation of Bundle Protocol on the local
+ION node, and it is terminated by B<bpadmin> in response to an 'x' (STOP)
+command.  B<ipnadminep> can also be spawned and terminated in response to
+START and STOP commands that pertain specifically to the IPN scheme.
+
+B<ipnadminep> responds to custody signals as specified in the Bundle
+Protocol specification, RFC 5050.  It responds to bundle status reports
+by logging ASCII text messages describing the reported activity.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ipnadminep> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<ipnadminep>.
+
+=item "1"
+
+B<ipnadminep> was unable to attach to Bundle Protocol operations or was
+unable to load the IPN scheme database, probably because B<bpadmin> has
+not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item ipnadminep can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item ipnadminep can't load routing database.
+
+B<ipnadmin> has not yet initialized the IPN scheme.
+
+=item ipnadminep crashed.
+
+An unrecoverable database error was encountered.  B<ipnadminep> terminates.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), ipnadmin(1), bprc(5).

@@ -192,11 +192,17 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 
 	if (state->currentOperation != LoadDormant)
 	{
-		return noteLoadError(state, "Already in an operation.");
+		noteLoadError(state, "Already in an operation.");
+		return;
 	}
 
 	mib = _mib(NULL);
-	if (mib) return noteLoadError(state, "Already initialized.");
+	if (mib)
+	{
+		noteLoadError(state, "Already initialized.");
+		return;
+	}
+
 	state->currentOperation = LoadInitializing;
 	for (att = (char **) atts; *att; att++)
 	{
@@ -219,7 +225,11 @@ static void	handle_init_start(LoadMibState *state, const char **atts)
 		{
 			privkeyname = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	parms.continuumNbr = cnbr;
@@ -237,7 +247,8 @@ static void	handle_op_start(LoadMibState *state, LoadMibOp op)
 {
 	if (state->currentOperation != LoadDormant)
 	{
-		return noteLoadError(state, "Already in an operation.");
+		noteLoadError(state, "Already in an operation.");
+		return;
 	}
 
 	state->currentOperation = op;
@@ -273,12 +284,17 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 		{
 			desc = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{	
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (contname == NULL)
 	{
-		return noteLoadError(state, "Need name of continuum.");
+		noteLoadError(state, "Need name of continuum.");
+		return;
 	}
 
 	idx = lookUpContinuum(contname);
@@ -294,8 +310,8 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 		}
 		else
 		{
-			return noteLoadError(state, "Continuum name/nbr \
-mismatch.");
+			noteLoadError(state, "Continuum name/nbr mismatch.");
+			return;
 		}
 	}
 
@@ -315,18 +331,22 @@ mismatch.");
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
 		if (contin == NULL)
 		{
-			return noteLoadError(state, "No such continuum.");
+			noteLoadError(state, "No such continuum.");
+			return;
 		}
 
-		return noteLoadError(state, "'Delete' not yet implemented.");
+		noteLoadError(state, "'Delete' not yet implemented.");
+		return;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -351,7 +371,8 @@ static void	handle_csendpoint_start(LoadMibState *state, const char **atts)
 			after = atoi(value);
 			if (after < 0)
 			{
-				return noteLoadError(state, "'after' illegal");
+				noteLoadError(state, "'after' illegal");
+				return;
 			}
 
 			count = after;
@@ -364,14 +385,19 @@ static void	handle_csendpoint_start(LoadMibState *state, const char **atts)
 
 			if (count > 0)
 			{
-				return noteLoadError(state, "'after' invalid");
+				noteLoadError(state, "'after' invalid");
+				return;
 			}
 		}
 		else if (strcmp(name, "epspec") == 0)
 		{
 			epspec = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	switch (state->currentOperation)
@@ -385,8 +411,9 @@ static void	handle_csendpoint_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "CS endpoints can only be added \
+		noteLoadError(state, "CS endpoints can only be added \
 and deleted.");
+		return;
 
 	case LoadDeleting:
        		if (elt == NULL)
@@ -398,7 +425,8 @@ and deleted.");
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -425,17 +453,23 @@ static void	handle_amsendpoint_start(LoadMibState *state, const char **atts)
 		{
 			epspec = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (tsname == NULL)
 	{
-		return noteLoadError(state, "Need name of transport service.");
+		noteLoadError(state, "Need name of transport service.");
+		return;
 	}
 
 	if (epspec == NULL)
 	{
-		return noteLoadError(state, "Need AMS endpoint spec.");
+		noteLoadError(state, "Need AMS endpoint spec.");
+		return;
 	}
 
 	switch (state->currentOperation)
@@ -451,13 +485,16 @@ static void	handle_amsendpoint_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
-		return noteLoadError(state, "'Delete' not yet implemented.");
+		noteLoadError(state, "'Delete' not yet implemented.");
+		return;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -474,7 +511,8 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->app)
 	{
-		return noteLoadError(state, "Already working on an app.");
+		noteLoadError(state, "Already working on an app.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -494,12 +532,17 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 		{
 			privkeyname = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (appname == NULL)
 	{
-		return noteLoadError(state, "Need name of application.");
+		noteLoadError(state, "Need name of application.");
+		return;
 	}
 
 	state->app = lookUpApplication(appname);
@@ -521,12 +564,14 @@ static void	handle_application_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
 		if (state->app == NULL)
 		{
-			return noteLoadError(state, "No such application.");
+			noteLoadError(state, "No such application.");
+			return;
 		}
 
 		state->target = state->app;	/*	May be target.	*/
@@ -552,7 +597,8 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->venture)
 	{
-		return noteLoadError(state, "Already working on a venture.");
+		noteLoadError(state, "Already working on a venture.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -591,7 +637,11 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		{
 			rzrsp = atoi(value);
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (appname == NULL)
@@ -622,12 +672,14 @@ static void	handle_venture_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
 		if (state->venture == NULL)
 		{
-			return noteLoadError(state, "No such venture.");
+			noteLoadError(state, "No such venture.");
+			return;
 		}
 
 		state->target = state->venture;/*	May be target.	*/
@@ -652,7 +704,8 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->venture == NULL)
 	{
-		return noteLoadError(state, "Venture not specified.");
+		noteLoadError(state, "Venture not specified.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -676,12 +729,17 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 		{
 			privkeyname = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (rolename == NULL)
 	{
-		return noteLoadError(state, "Need name of role.");
+		noteLoadError(state, "Need name of role.");
+		return;
 	}
 
 	role = lookUpRole(state->venture, rolename);
@@ -700,25 +758,29 @@ static void	handle_role_start(LoadMibState *state, const char **atts)
 		}
 		else
 		{
-			return noteLoadError(state, "Role already in MIB.");
+			noteLoadError(state, "Role already in MIB.");
+			return;
 		}
 
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
 		if (role == NULL)
 		{
-			return noteLoadError(state, "No such role.");
+			noteLoadError(state, "No such role.");
+			return;
 		}
 
 		state->target = role;	/*	May be deletion target.	*/
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -737,12 +799,14 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->venture == NULL)
 	{
-		return noteLoadError(state, "Venture not specified.");
+		noteLoadError(state, "Venture not specified.");
+		return;
 	}
 
 	if (state->subject)
 	{
-		return noteLoadError(state, "Already working on a subject.");
+		noteLoadError(state, "Already working on a subject.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -774,12 +838,17 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		{
 			unmarshalfnname = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (subjname == NULL)
 	{
-		return noteLoadError(state, "Need name of subject.");
+		noteLoadError(state, "Need name of subject.");
+		return;
 	}
 
 	state->subject = lookUpSubject(state->venture, subjname);
@@ -801,12 +870,14 @@ static void	handle_subject_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
 		if (state->subject == NULL)
 		{
-			return noteLoadError(state, "No such subject.");
+			noteLoadError(state, "No such subject.");
+			return;
 		}
 
 		state->target = state->subject;	/*	May be target.	*/
@@ -827,7 +898,8 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->subject == NULL)
 	{
-		return noteLoadError(state, "Subject not specified.");
+		noteLoadError(state, "Subject not specified.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -839,12 +911,17 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 		{
 			rolename = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (rolename == NULL)
 	{
-		return noteLoadError(state, "Need role name of sender.");
+		noteLoadError(state, "Need role name of sender.");
+		return;
 	}
 
 	switch (state->currentOperation)
@@ -860,14 +937,16 @@ static void	handle_sender_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not applicable.");
+		noteLoadError(state, "'Change' not applicable.");
+		return;
 
 	case LoadDeleting:
 		state->target = rolename;	/*	May be target.	*/
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -881,7 +960,8 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->subject == NULL)
 	{
-		return noteLoadError(state, "Subject not specified.");
+		noteLoadError(state, "Subject not specified.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -893,12 +973,17 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 		{
 			rolename = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (rolename == NULL)
 	{
-		return noteLoadError(state, "Need role name of receiver.");
+		noteLoadError(state, "Need role name of receiver.");
+		return;
 	}
 
 	switch (state->currentOperation)
@@ -914,14 +999,16 @@ static void	handle_receiver_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not applicable.");
+		noteLoadError(state, "'Change' not applicable.");
+		return;
 
 	case LoadDeleting:
 		state->target = rolename;	/*	May be target.	*/
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -938,7 +1025,8 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->venture == NULL)
 	{
-		return noteLoadError(state, "Venture not specified.");
+		noteLoadError(state, "Venture not specified.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -958,12 +1046,17 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 		{
 			rsp = atoi(value);
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (zname == NULL)
 	{
-		return noteLoadError(state, "Need name of unit.");
+		noteLoadError(state, "Need name of unit.");
+		return;
 	}
 
 	unit = lookUpUnit(state->venture, zname);
@@ -980,25 +1073,29 @@ static void	handle_unit_start(LoadMibState *state, const char **atts)
 		}
 		else
 		{
-			return noteLoadError(state, "Unit already in MIB.");
+			noteLoadError(state, "Unit already in MIB.");
+			return;
 		}
 
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
 		if (unit == NULL)
 		{
-			return noteLoadError(state, "No such unit.");
+			noteLoadError(state, "No such unit.");
+			return;
 		}
 
 		state->target = unit;	/*	May be deletion target.	*/
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -1017,12 +1114,14 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 	if (noMibYet(state)) return;
 	if (state->venture == NULL)
 	{
-		return noteLoadError(state, "Venture not specified.");
+		noteLoadError(state, "Venture not specified.");
+		return;
 	}
 
 	if (state->subject)
 	{
-		return noteLoadError(state, "Already working on a subject.");
+		noteLoadError(state, "Already working on a subject.");
+		return;
 	}
 
 	for (att = (char **) atts; *att; att++)
@@ -1046,18 +1145,24 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		{
 			symkeyname = value;
 		}
-		else return noteLoadError(state, "Unknown attribute.");
+		else
+		{
+			noteLoadError(state, "Unknown attribute.");
+			return;
+		}
 	}
 
 	if (contnbr < 1 || contnbr > MAX_CONTIN_NBR)
 	{
-		return noteLoadError(state, "Need number of continuum.");
+		noteLoadError(state, "Need number of continuum.");
+		return;
 	}
 
 	contin = (_mib(NULL))->continua[contnbr];
 	if (contin == NULL)
 	{
-		return noteLoadError(state, "Unknown continuum.");
+		noteLoadError(state, "Unknown continuum.");
+		return;
 	}
 
 	msgspace = state->venture->msgspaces[contnbr];
@@ -1078,19 +1183,22 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		break;
 
 	case LoadChanging:
-		return noteLoadError(state, "'Change' not yet implemented.");
+		noteLoadError(state, "'Change' not yet implemented.");
+		return;
 
 	case LoadDeleting:
 		if (msgspace == NULL)
 		{
-			return noteLoadError(state, "No such continuum.");
+			noteLoadError(state, "No such continuum.");
+			return;
 		}
 
 		state->target = msgspace;	/*	May be target.	*/
 		break;
 
 	default:
-		return noteLoadError(state, "Not in an operation.");
+		noteLoadError(state, "Not in an operation.");
+		return;
 	}
 }
 
@@ -1185,6 +1293,7 @@ static void XMLCALL	startElement(void *userData, const char *name,
 	}
 
 	noteLoadError(state, "Unknown element name.");
+	return;
 }
 
 static void	handle_load_end(LoadMibState *state)
@@ -1386,6 +1495,7 @@ static void XMLCALL	endElement(void *userData, const char *name)
 	}
 
 	noteLoadError(state, "Unknown element name.");
+	return;
 }
 
 #ifdef NOEXPAT

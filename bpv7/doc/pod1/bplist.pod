@@ -1,0 +1,68 @@
+=head1 NAME
+
+bplist - Bundle Protocol (BP) utility for listing queued bundles
+
+=head1 SYNOPSIS
+
+B<bplist> [{count | detail} [I<destination_EID>[/I<priority>]]]
+
+=head1 DESCRIPTION
+
+B<bplist> is a utility program that reports on bundles that currently
+reside in the local node, as identified by entries in the local bundle
+agent's "timeline" list.
+
+Either a count of bundles or a detailed list of bundles (noting primary block
+information together with hex and ASCII dumps of the payload and all
+extension blocks, in expiration-time sequence) may be requested.
+
+Either all bundles or just a subset of bundles - restricted to bundles
+for a single destination endpoint, or to bundles of a given level of priority
+that are all destined for some specified endpoint - may be included in the
+report.
+
+By default, B<bplist> prints a detailed list of all bundles residing in
+the local node.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bplist> terminated, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<bplist> was unable to attach to Bundle Protocol operations, probably because
+B<bpadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpclock(1)

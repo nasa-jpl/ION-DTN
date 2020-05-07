@@ -58,7 +58,6 @@ char *cut_get_cbor_str(QCBORDecodeContext *it, int *success)
 	
 	if(value.uDataType == QCBOR_TYPE_TEXT_STRING)
 	{
-		size_t len = 0;
 		result = STAKE(value.val.string.len+1);
 		CHKNULL(result);
 		strncpy(result, value.val.string.ptr, value.val.string.len);
@@ -97,19 +96,18 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length)
 
 
 /** This encodes a raw byte.  This is not strictly compliant with CBOR protocol and uses internal APIs to achieve this effect.
- * TODO/VERIFY this works as expected
  * This borrows from internal functions in QCBOR, including Nesting_Increment()
  */
-int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t byte)
+int cut_enc_bytes(QCBOREncodeContext *encoder, uint8_t *buf, size_t len)
 {
    CHKUSR(encoder,AMP_FAIL);
-   if(1 >= QCBOR_MAX_ITEMS_IN_ARRAY - encoder->nesting.pCurrentNesting->uCount) {
+   if(len >= QCBOR_MAX_ITEMS_IN_ARRAY - encoder->nesting.pCurrentNesting->uCount) {
       return AMP_FAIL; // QCBOR_ERR_ARRAY_TOO_LONG;
    }
    
    UsefulOutBuf_InsertData(&(encoder->OutBuf),
-                           &byte,
-                           1,
+                           buf,
+                           len,
                            UsefulOutBuf_GetEndPosition(&(encoder->OutBuf))
       );
    encoder->uError = Nesting_Increment(&(encoder->nesting));
@@ -121,6 +119,45 @@ int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t byte)
    {
       return AMP_OK;
    }
+}
+
+/** This function allows for decoding a series of raw bytes from a CBOR string.  As with cut_enc_byte, this is not
+ *    a feature strictly compliant with CBOR.  The bytes decoded in this method do NOT include CBOR types or headers.
+ */
+int cut_dec_bytes(QCBORDecodeContext *it, uint8_t *buf, size_t len)
+{
+   // This isn't directly supported, so we get a reference to underlying data buf
+   UsefulInputBuf *inbuf = &(it->InBuf);
+   const void *tmp;
+
+   // Check that there is space left in the decoder buffer
+   if (UsefulInputBuf_BytesUnconsumed(inbuf) < len)
+   {
+      AMP_DEBUG_ERR("cut_dec_bytes", "Can't read byte(s) past end of buffer", NULL);
+      return AMP_FAIL;
+   }
+
+   // Retrieve bytes & advance it
+   tmp = UsefulInputBuf_GetBytes(inbuf, len);
+   if (tmp == NULL)
+   {
+      return AMP_FAIL;
+   }
+   memcpy(buf, tmp, len);
+
+   // Decrement the nesting level
+   DecodeNesting_DecrementCount(&(it->nesting)); // VERIFY
+
+   // And check for errors
+   if (UsefulInputBuf_GetError(inbuf) == 0) {
+      return AMP_OK;
+   } else {
+      AMP_DEBUG_ERR("cut_cbor_numeric","Error retrieving byte", NULL);
+      return AMP_FAIL;
+   }
+
+   return AMP_OK;
+
 }
 
 /** Encode a UVAST into CBOR-encoding and return as a blob
@@ -305,7 +342,6 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 	blob_t *result = NULL;
 	QCBOREncodeContext encoder;
 	QCBORError err;
-	size_t len;
 
 	if(item == NULL)
 	{
@@ -412,7 +448,6 @@ int cut_deserialize_vector(vector_t *vec, QCBORDecodeContext *it, vec_des_fn des
 int cut_serialize_vector(QCBOREncodeContext *encoder, vector_t *vec, cut_enc_fn enc_fn)
 {
 	vecit_t it;
-	int success;
     int err;
 	CHKUSR(encoder, AMP_FAIL);
 	CHKUSR(vec, AMP_FAIL);

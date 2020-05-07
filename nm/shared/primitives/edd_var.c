@@ -200,7 +200,6 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 {
 	var_t *result = NULL;
 	tnv_t val;
-	int success;
 
 	if((id == NULL) || (expr == NULL))
 	{
@@ -325,19 +324,31 @@ var_t *var_deserialize_ptr(QCBORDecodeContext *it, int *success)
 
 
     /* Grab the var ARI. */
+#if AMP_VERSION < 7
     blob_t *tmp = blob_deserialize_ptr(it, success);
     result->id = ari_deserialize_raw(tmp, success);
     blob_release(tmp, 1);
+#else
+	QCBORDecode_StartOctets(it);
+	result->id = ari_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
     if((result->id == NULL) || (*success != AMP_OK))
     {
     	SRELEASE(result);
     	return NULL;
     }
-
+	
     /* Grab the TNV. */
+#if AMP_VERSION < 7
     tmp = blob_deserialize_ptr(it, success);
     result->value = tnv_deserialize_raw(tmp, success);
     blob_release(tmp, 1);
+#else
+	QCBORDecode_StartOctets(it);
+	result->value = tnv_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
 
     if((result->value == NULL) || (*success != AMP_OK))
     {
@@ -431,18 +442,25 @@ void var_release(var_t *var, int destroy)
 int var_serialize(QCBOREncodeContext *encoder, void *item)
 {
 	int err;
+#if AMP_VERSION < 7
 	blob_t *result;
-	int success;
+#endif
 	var_t *var = (var_t*) item;
 
 	CHKUSR(encoder, AMP_FAIL);
 	CHKUSR(var, AMP_FAIL);
 
 	/* Step 1: Encode the ARI. */
+#if AMP_VERSION < 7
 	result = ari_serialize_wrapper(var->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = ari_serialize(encoder, var->id);
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
+	
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("var_serialize","CBOR Error: %d", err);
@@ -450,9 +468,15 @@ int var_serialize(QCBOREncodeContext *encoder, void *item)
 	}
 
 	/* Step 2: Encode the value. */
+#if AMP_VERSION < 7
 	result = tnv_serialize_wrapper(var->value);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = tnv_serialize(encoder, var->value);
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
 
 	return err;
 }
@@ -467,7 +491,6 @@ blob_t*   var_serialize_wrapper(var_t *var)
 var_def_t  vardef_deserialize(QCBORDecodeContext *it, int *success)
 {
 	var_def_t result;
-	uint8_t *byte;
 
 	AMP_DEBUG_ENTRY("vardef_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 	memset(&result,0,sizeof(var_def_t));

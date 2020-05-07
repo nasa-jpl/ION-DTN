@@ -1,0 +1,75 @@
+=head1 NAME
+
+bpclm - DTN bundle protocol convergence layer management daemon
+
+=head1 SYNOPSIS
+
+B<bpclm> I<neighboring_node_ID>
+
+=head1 DESCRIPTION
+
+B<bpclm> is a background "daemon" task that manages the transmission of
+bundles to a single designated neighboring node (as constrained by an
+"egress plan" data structure for that node) by one or more convergence-layer
+(CL) adapter output daemons (via buffer structures called "outducts").
+
+B<bpclm> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<bpclm> can also be
+spawned and terminated in response to commands that START and STOP the
+corresponding node's egress plan.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpclm> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart the egress plan for this node.
+
+=item "1"
+
+B<bpclm> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart the egress plan for this node.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bpclm can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No egress plan for this node
+
+No egress plan for the node identified by I<neighboring_node_ID> has been
+added to the BP database.  Use B<bpadmin> to add and start the plan.
+
+=item bpclm task is already started for this node
+
+Redundant initiation of B<bpclm>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5)

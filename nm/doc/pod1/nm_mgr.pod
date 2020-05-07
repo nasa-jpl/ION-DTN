@@ -1,0 +1,70 @@
+=head1 NAME
+
+nm_mgr - Network Management server implementing the Asynchronous Management Protocol (AMP)
+
+=head1 SYNOPSIS
+
+B<nm_mgr> [I<options>] I<manager eid>
+
+The following options may be specified to customize behavior:
+
+=over
+
+=item -A
+
+Startup directly in the alternative Automator UI mode. This mode is
+designed to provide a consistent line-based interface suitable for
+automated scripting.  Type ? when active for usage details.
+
+=item -l
+
+If specified, enable file-based logging of Manager Activity on startup.  This can be toggled at any time from the main menu of the UI.
+
+If logging is not enabled, the following arguments have no affect until enabled in UI.
+
+=item -d
+
+Log each agent to a different directory.
+
+=item -L #
+
+Specify maximum number of entries (reports+tables) per file before rotating.
+
+=item -D DIR
+
+NM logs will be placed in this directory.
+
+=item -r
+
+Log all received reports to file in text format (as shown in UI).
+
+=item -t
+
+Log all received tables to file in text format (as shown in UI).
+
+=item -T
+
+Log all transmitted message as ASCII-encoded CBOR HEX strings.
+
+=item -R
+
+Log all received messages as ASCII-encoded CBOR HEX strings.
+
+=back
+
+
+=head1 DESCRIPTION
+
+Starts the B<nm_mgr> application listening on I<mgr eid> for messages from B<nm_agent> clients.
+
+An agent will automatically attempt to register with it's configured manager on startup.  Agents may also be added manually through the managers UI.
+
+The manager provides a text based UI as its primary interface.  The UI provides capabilities to list, register, or delete agents. It can view received reports and tables, and be used to send commands (ARIs) to registered agents.
+
+An experimental REST API is available if built with the configuration option "--enable-rest".  The default configuration will be accessible at http://localhost:8089/nm/api.
+
+=head1 SEE ALSO
+
+L<Asynchronous Management Protocol|https://datatracker.ietf.org/doc/draft-birrane-dtn-amp/>
+
+nm_agent(1)

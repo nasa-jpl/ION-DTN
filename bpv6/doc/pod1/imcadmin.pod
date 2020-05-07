@@ -1,0 +1,102 @@
+=head1 NAME
+
+imcadmin - Interplanetary Multicast (IMC) scheme administration interface
+
+=head1 SYNOPSIS
+
+B<imcadmin> [ I<commands_filename> ]
+
+=head1 DESCRIPTION
+
+B<imcadmin> configures the local ION node's routing of bundles to endpoints
+whose IDs conform to the I<imc> endpoint ID scheme.  I<imc> is a CBHE-conformant
+scheme; that is, every endpoint ID in the I<imc> scheme is a string of the
+form "imc:I<group_number>.I<service_number>" where I<group_number> (an IMC
+multicast group number) serves as a CBHE "node number" and I<service_number>
+identifies a specific application processing point.
+
+B<imcadmin> operates in response to IMC scheme configuration commands found
+in the file I<commands_filename>, if provided; if not, B<imcadmin> prints
+a simple prompt (:) so that the user may type commands
+directly into standard input.
+
+The format of commands for I<commands_filename> can be queried from B<imcadmin>
+with the 'h' or '?' commands at the prompt.  The commands are documented in
+imcrc(5).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+Successful completion of IMC scheme administration.
+
+=item "1"
+Unsuccessful completion of IMC scheme administration, due to inability to
+attach to the Bundle Protocol system or to initialize the IMC scheme.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item imcadmin
+
+Enter interactive IMC scheme configuration command entry mode.
+
+=item imcadmin host1.imcrc
+
+Execute all configuration commands in I<host1.imcrc>, then terminate
+immediately.
+
+=back
+
+=head1 FILES
+
+See imcrc(5) for details of the IMC scheme configuration commands.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+B<Note>: all ION administration utilities expect source file input to be
+lines of ASCII text that are NL-delimited.  If you edit the imcrc file on
+a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
+before presenting it to B<imcadmin>.  Otherwise B<imcadmin> will detect syntax
+errors and will not function satisfactorily.
+
+The following diagnostics may be issued to the logfile ion.log:
+
+=over 4
+
+=item imcadmin can't attach to BP.
+
+Bundle Protocol has not been initialized on this computer.  You need to run
+bpadmin(1) first.
+
+=item imcadmin can't initialize routing database.
+
+There is no SDR data store for I<imcadmin> to use.  Please run ionadmin(1) to
+start the local ION node.
+
+=item Can't open command file...
+
+The I<commands_filename> specified in the command line doesn't exist.
+
+=back
+
+Various errors that don't cause B<imcadmin> to fail but are noted in the
+B<ion.log> log file may be caused by improperly formatted commands
+given at the prompt or in the I<commands_filename> file.
+Please see imcrc(5) for details.
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+imcrc(5)

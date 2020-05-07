@@ -1,0 +1,190 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# March 2, 2020
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.udp/amroc.bprc \
+./2.ipn.udp/amroc.ionconfig \
+./2.ipn.udp/global.ionrc \
+./2.ipn.udp/amroc.ionrc \
+./2.ipn.udp/amroc.ionsecrc \
+./2.ipn.udp/amroc.ipnrc \
+./3.ipn.udp/amroc.bprc \
+./3.ipn.udp/amroc.ionconfig \
+./3.ipn.udp/global.ionrc \
+./3.ipn.udp/amroc.ionrc \
+./3.ipn.udp/amroc.ionsecrc \
+./3.ipn.udp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing priority in transmission.  Node 2 sends 5 files to
+	node 3:
+
+	1.  12 bytes with priority 1
+	2.  24 bytes with priority 2
+	3.  36 bytes with priority 0
+	4.  48 bytes with priority 2, ordinal 200
+	5.  60 bytes with priority 2, data label 6
+
+	Node 2 has an override rule that forces priority to be 1 for any
+	bundle whose data label is 6, regardless of source and destination.
+
+	All bundles are sent at a time when there is no contact between
+	nodes 2 and 3.  When contact begins 10 seconds later, the files
+	should arrive in this order:
+
+		file 4 (expedited with high ordinal)
+		file 2 (expedited but with default ordinal)
+		file 1 (standard)
+		file 5 (expedited but overridden to standard; FIFO)
+		file 3 (bulk)
+
+	The test succeeds if the files all arrive in the correct order."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.udp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.udp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+echo "Starting bprecvfile on node 3..."
+sleep 1
+bprecvfile ipn:3.1 &
+BPCOUNTER_PID=$!
+
+cd ../2.ipn.udp
+
+echo "Sending file 1: 12 bytes, priority 1..."
+bpsendfile ipn:2.1 ipn:3.1 file1 0.1.0.0.0.0
+sleep 1
+
+echo "Sending file 2: 24 bytes, priority 2..."
+bpsendfile ipn:2.1 ipn:3.1 file2 0.2.0.0.0.0
+sleep 1
+
+echo "Sending file 3: 36 bytes, priority 0..."
+bpsendfile ipn:2.1 ipn:3.1 file3 0.0.0.0.0.0
+sleep 1
+
+echo "Sending file 4: 48 bytes, priority 2, ordinal 200..."
+bpsendfile ipn:2.1 ipn:3.1 file4 0.2.200.0.0.0
+sleep 1
+
+echo "Sending file 5: 60 bytes, priority 2, data label 6..."
+bpsendfile ipn:2.1 ipn:3.1 file5 0.2.0.0.0.6
+sleep 1
+
+# Wait for transmission to finish.
+echo "Waiting 15 seconds for contact to start and transmission to finish..."
+sleep 15
+echo "Transmission finished.  Verifying results..."
+
+# Verify file was transmitted.
+RETVAL=0
+
+cd ../3.ipn.udp
+
+COUNT=`grep testfile1 ion.log | grep 48 | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "File 4 was received first."
+else
+	echo "File 4 was not received first."
+	RETVAL=1
+fi
+
+COUNT=`grep testfile2 ion.log | grep 24 | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "File 2 was received second."
+else
+	echo "File 2 was not received second."
+	RETVAL=1
+fi
+
+COUNT=`grep testfile3 ion.log | grep 12 | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "File 1 was received third."
+else
+	echo "File 1 was not received third."
+	RETVAL=1
+fi
+
+COUNT=`grep testfile4 ion.log | grep 60 | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "File 5 was received fourth."
+else
+	echo "File 5 was not received fourth."
+	RETVAL=1
+fi
+
+COUNT=`grep testfile5 ion.log | grep 36 | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "File 3 was received fifth."
+else
+	echo "File 3 was not received fifth."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.udp
+./ionstop &
+cd ../3.ipn.udp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Priority test completed."
+exit $RETVAL

@@ -1,0 +1,118 @@
+=head1 NAME
+
+tcpcli - DTN TCPCL-compliant convergence layer input task
+
+=head1 SYNOPSIS
+
+B<tcpcli> I<local_hostname>[:I<local_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<tcpcli> is a background "daemon" task comprising 3 + 2*N threads: an
+executive thread; a clock thread that periodically attempts to connect
+to remote TCPCL entities as identified by the tcp outducts enumerated in
+the bprc(5) file (each of which must specify the I<hostname>[:I<port_nbr>]
+to connect to); a thread that handles TCP connections from remote TCPCL
+entities, spawning sockets for data reception from those tasks; plus one
+input thread and one output thread for each connection, to handle data
+reception and transmission over that socket.
+
+The connection thread simply accepts connections on a TCP socket bound to
+I<local_hostname> and I<local_port_nbr> and spawns reception threads.  The
+default value for I<local_port_nbr>, if omitted, is 4556.
+
+Each time a connection is established, the entities will first exchange
+contact headers, because connection parameters need to be negotiated.
+B<tcpcli> records the acknowledgement flags, reactive fragmentation flag,
+and negative acknowledgements flag in the contact header it receives from
+its peer TCPCL entity.
+ 
+Each reception thread receives bundles over the associated connected socket.
+Each bundle received on the connection is preceded by message type,
+fragmentation flags, and size represented as an SDNV.  The received bundles
+are passed to the bundle protocol agent on the local ION node.
+
+Similarly, each transmission thread obtains outbound bundles from the local
+ION node, encapsulates them as noted above, and transmits them over the
+associated connected socket.
+
+B<tcpcli> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "tcp" convergence layer protocol is added to the BP database.
+The convergence layer input task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.  B<tcpcli> can also be spawned and
+terminated in response to START and STOP commands that pertain specifically
+to the TCP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcpcli> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<tcpcli>.
+
+=item "1"
+
+B<tcpcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<tcpcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item tcpcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such tcp duct.
+
+No TCP induct matching I<local_hostname> and I<local_port_nbr> has been added
+to the BP database.  Use B<bpadmin> to stop the TCP convergence-layer
+protocol, add the induct, and then restart the TCP protocol.
+
+=item CLI task is already started for this duct.
+
+Redundant initiation of B<tcpcli>.
+
+=item Can't get IP address for host
+
+Operating system error.  Check errtext, correct problem, and restart TCP.
+
+=item Can't open TCP socket
+
+Operating system error.  Check errtext, correct problem, and restart TCP.
+
+=item Can't initialize socket
+
+Operating system error.  Check errtext, correct problem, and restart TCP.
+
+=item tcpcli can't create access thread
+
+Operating system error.  Check errtext, correct problem, and restart TCP.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5)

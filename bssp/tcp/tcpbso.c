@@ -37,7 +37,7 @@ static sm_SemId	tcpbsoSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
-static void	shutDownBso()	/*	Commands CLO termination.	*/
+static void	shutDownBso(int signum)	/*	Commands CLO shutdown.	*/
 {
 	isignal(SIGTERM, shutDownBso);
 	sm_SemEnd(tcpbsoSemaphore(NULL));
@@ -83,7 +83,7 @@ static void	*sendKeepalives(void *parm)
 		pthread_mutex_unlock(parms->mutex);
 		if (bytesSent < 0)
 		{
-			shutDownBso();
+			shutDownBso(SIGTERM);
 			break;
 		}
 	}

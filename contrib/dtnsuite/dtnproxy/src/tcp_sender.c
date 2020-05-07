@@ -1,6 +1,6 @@
 /********************************************************
     Authors:
-    Lorenzo Mustich, lorenzo.mustich@studio.unibo.it
+    Lorenzo Tullini, lorenzo.tullini@studio.unibo.it
     Carlo Caini (DTNproxy project supervisor), carlo.caini@unibo.it
 
     License:
@@ -22,176 +22,92 @@
 
  ********************************************************/
 
-/*
+/**
  * tcp_sender.c
- *
- * This thread is used to send
- * a file using TCP sockets
- *
+ * This thread has the function of handling bp -> tcp requests
+ * and managing the pool of senders threads.
+ * This uses two static array:
+ * -) sender for senders threads
+ * -) sendingQueqe to give thread an exceptionally accessible memory space.
+ * The two arrays are statically allocated to N_SENDERS macro (definition.h)
+ * which indicates the level of parallelization.
+ * Shemaphore is used to block BP receiver side until sender thread is started.
  */
 
 #include "proxy_thread.h"
 #include "debugger.h"
 #include "utility.h"
 
-#define PORT_SERVER 3000
-#define IP_DEST "10.0.2.4"
+/* ---------------------------
+ *      Global variables
+ * --------------------------- */
+pthread_t sender[N_SENDERS];
+circular_buffer_item sendingQueqe[N_SENDERS];
 
-#define NUMBER_ATTEMPTS 5
+/* -------------------------------
+ *       Function interfaces
+ * ------------------------------- */
+static void criticalError(void *arg);
+void startThread(circular_buffer_item info);
 
-//void handlerTCPSender(int signal);
 
 /**
  * Thread code
  */
 void * tcpSending(void * arg) {
-	int error;
-
-	struct hostent * host;
-	struct sockaddr_in clientaddr, servaddr;
-	int sd;
-
-	int index = 0;
-
-	int fd;
-	char file_name[FILE_NAME];
-	char char_read;
-	int len, i;
+	//Changing of default exit routine
+	pthread_cleanup_push(criticalError, NULL);
 
 	bundle_to_tcp_inf_t * proxy_inf = (bundle_to_tcp_inf_t *) arg;
-
-	//ClientTCP address
-	memset((char *)&clientaddr, 0, sizeof(struct sockaddr_in));
-	clientaddr.sin_family = AF_INET;
-	clientaddr.sin_addr.s_addr = INADDR_ANY;
-	clientaddr.sin_port = 0;
-
-//	proxy_inf->tid_snd = pthread_self();
-//	signal(SIGUSR1, handlerTCPSender);
-
-	while(*(proxy_inf->is_running)) {
-		sem_wait(&proxy_inf->tcpSnd);
-
-		//To be replaced with ION metadata or new DTNperf header (-Fp)
-		strcpy(proxy_inf->ip_dest, IP_DEST);
-		proxy_inf->port_dest = PORT_SERVER;
-
-		//ServerTCP address
-		memset((char *)&servaddr, 0, sizeof(struct sockaddr_in));
-		servaddr.sin_family = AF_INET;
-		host = gethostbyname(proxy_inf->ip_dest);
-
-		if(host == NULL) {
-			error_print("Server not found: %s\n", strerror(errno));
-			continue;
-		} else {
-			servaddr.sin_addr.s_addr = ((struct in_addr *)(host->h_addr))->s_addr;
-			servaddr.sin_port = htons(proxy_inf->port_dest);
-		}
-
-		sd = socket(AF_INET, SOCK_STREAM, 0);
-		if(sd < 0) {
-			error_print("Creating socket failed: %s\n", strerror(errno));
-			continue;
-		}
-
-		//Try to connect to server
-		int attempt;
-		for(attempt = 0; attempt < (NUMBER_ATTEMPTS); attempt ++) {
-			if(connect(sd, (struct sockaddr *)&servaddr, sizeof(struct sockaddr)) < 0) {
-				error_print("Connect to: %s failed (%s)\n", host->h_name, strerror(errno));
-				error_print("Trying to connect, attemp n%d\n", attempt);
-				sleep(10);
-				continue;
-			}
-			else
-				break;
-		}
-		if(attempt == (NUMBER_ATTEMPTS - 1)) {
-			error_print("Failed to connect to %s\n", host->h_name);
-			continue;
-		}
-
-		printf("Connect to %s\n", host->h_name);
-
-		shutdown(sd, SHUT_RD);
-
-		strcpy(file_name, proxy_inf->buffer[index]);
-		debug_print(proxy_inf->debug_level, "[DEBUG] file_received: %s, index: %d\n",
-				basename(file_name), index);
-
-		len = strlen(basename(file_name));
-		error = write(sd, &len, sizeof(int));
-		if(error < 0) {
-			error_print("Writing socket failed: %s\n", strerror(errno));
-			close_socket(sd, SHUT_WR);
-			continue;
-		}
-
-		char * basename_file = (char *) malloc(sizeof(char) * strlen(basename(file_name)));
-		strcpy(basename_file, basename(file_name));
-		for(i = 0; i < len; i++) {
-			error = write(sd, &basename_file[i], sizeof(char));
-			if(error < 0) {
-				error_print("Writing socket failed: %s\n", strerror(errno));
-				close_socket(sd, SHUT_WR);
-				continue;
-			}
-		}
-		free(basename_file);
-
-		if(*(proxy_inf->is_running) == 0) {
-			close_socket(sd, SHUT_WR);
-			break;
-		}
-
-		fd = open(file_name, O_RDONLY);
-		if(fd < 0) {
-			error_print("Error in open() file %s: %s\n", file_name, strerror(errno));
-			close_socket(sd, SHUT_WR);
-			continue;
-		}
-
-		while((error = read(fd, &char_read, sizeof(char))) > 0) {
-			error = write(sd, &char_read, sizeof(char));
-			if(error < 0) {
-				error_print("Writing socket failed: %s\n", strerror(errno));
-				close_socket(sd, SHUT_WR);
-				close(fd);
-				continue;
-			}
-		}
-		close(fd);
-
-		if(*(proxy_inf->is_running) == 0) {
-			close_socket(sd, SHUT_WR);
-			break;
-		}
-
-		printf("File sent\n");
-
-		error = remove(file_name);
-		if(error < 0) {
-			error_print("Removing file failed: %s\n", strerror(errno));
-			close_socket(sd, SHUT_WR);
-			continue;
-		}
-
-		close_socket(sd, SHUT_WR);
-
-		strcpy(file_name, "");
-		index = (index + 1) % MAX_NUM_FILE;
-
-		sem_post(&proxy_inf->bundleRecv);
+	while(1==1) {
+		if(circular_buffer_isEmpty(&(proxy_inf->bp_tcp_buffer))==0) printf("TCPsender: to send buffer empty\n");
+		while(circular_buffer_isEmpty(&(proxy_inf->bp_tcp_buffer))==0) sleep(1);
+		pthread_mutex_lock(&(proxy_inf->bp_tcp_buffer.mutex));
+		circular_buffer_item info=circular_buffer_pop(&(proxy_inf->bp_tcp_buffer));
+		pthread_mutex_unlock(&(proxy_inf->bp_tcp_buffer.mutex));
+		//Starting sender thread
+		startThread(info);
 	}//while
 
-//	printf("TCPSender: i'm here\n");
-	//pthread_exit((void *) EXIT_FAILURE);
-
+	//Signaling to main an error in daemon like execution
+	kill(getpid(),SIGINT);
+	pthread_cleanup_pop(1);
 	return NULL;
 }
 
-//void handlerTCPSender(int signal) {
-////	printf("TCPSender: signal\n");
-////	pthread_exit((void *) EXIT_FAILURE);
-//}
+/**
+ * Custom routine started in case of reception of pthread_cancel by parent. It kills all running threads.
+ */
+static void criticalError(void *arg){
+	int i;
+	for(i=0;i<N_SENDERS;i++){
+		if(sender[i] && (pthread_kill(sender[i], 0 )) == 0){
+			//thread is running
+			if(pthread_cancel(sender[i])!=0){
+				error_print("Error to close thread: %d\n",i);
+			}
+		}
+	}
+}
+
+/**
+ * Function uses to start a new thread, this has two different behaviors:
+ * -)If there are not running threads, assign reception to a new thread
+ * -)If all threads are busy it becomes blocking and cycles until one is freed.
+ * it uses i index to reserve i memory space to i-thread in an exclusive manner thus avoiding concurrency.
+ */
+void startThread(circular_buffer_item info) {
+	int i=0;
+	while(1==1){
+		for(i=0;i<N_SENDERS;i++){
+			if(!sender[i]||(pthread_kill(sender[i], 0 )) != 0){
+				sendingQueqe[i]=info;
+				pthread_create(&(sender[i]), NULL, tcpSenderThread, (void *)&(sendingQueqe[i]));
+				printf("Asseggnato al thread %d\n",i);
+				return;
+			}
+		}
+		printf("All sender thread are busy retry in 1 sec\n");
+		sleep(1);
+	}
+}

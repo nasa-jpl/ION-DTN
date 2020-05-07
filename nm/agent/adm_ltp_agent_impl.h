@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-18  AUTO             Auto-generated header file 
+ **  2020-04-13  AUTO             Auto-generated header file 
  **
  ****************************************************************************/
 
@@ -24,10 +24,10 @@
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/ctrl.h"
-#include "../shared/primitives/table.h"
-#include "../shared/primitives/tnv.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/ctrl.h"
+#include "shared/primitives/table.h"
+#include "shared/primitives/tnv.h"
 
 /*   START typeENUM */
 /*   STOP typeENUM  */
@@ -37,9 +37,9 @@ void name_adm_init_agent();
 
 
 /*
- * +-----------------------------------------------------------------------------------------------------------+
- * |                                            Retrieval Functions                                            +
- * +-----------------------------------------------------------------------------------------------------------+
+ * +---------------------------------------------------------------------------------------------+
+ * |                                     Retrieval Functions                                     +
+ * +---------------------------------------------------------------------------------------------+
  */
 /*   START CUSTOM FUNCTIONS HERE */
 /*   STOP CUSTOM FUNCTIONS HERE  */

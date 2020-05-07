@@ -28,6 +28,8 @@ LIBICIOBJS = \
 	ionsec.o \
 	crypto.o \
 	csi.o \
+	crc.o \
+	cbor.o \
 	bulk.o \
 	zco.o \
 	sdrxn.o \
@@ -53,6 +55,8 @@ PUBINCLS = \
 	$(INCL)/ionsec.h \
 	$(INCL)/crypto.h \
 	$(INCL)/csi.h \
+	$(INCL)/crc.h \
+	$(INCL)/cbor.h \
 	$(INCL)/bulk.h \
 	$(INCL)/zco.h \
 	$(INCL)/sdrxn.h \

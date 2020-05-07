@@ -1,0 +1,104 @@
+=head1 NAME
+
+sstcpcli - DTN simple TCP convergence layer input task
+
+=head1 SYNOPSIS
+
+B<stcpcli> I<local_hostname>[:I<local_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<stcpcli> is a background "daemon" task comprising 1 + N threads: one that
+handles TCP connections from remote B<stcpclo> tasks, spawning sockets for
+data reception from those tasks, plus one input thread for each spawned
+socket to handle data reception over that socket.
+
+The connection thread simply accepts connections on a TCP socket bound to
+I<local_hostname> and I<local_port_nbr> and spawns reception threads.  The
+default value for I<local_port_nbr>, if omitted, is 4556.
+
+Each reception thread receives bundles over the associated connected socket.
+Each bundle received on the connection is preceded by a 32-bit unsigned
+integer in network byte order indicating the length of the bundle.  The
+received bundles are passed to the bundle protocol agent on the local ION node.
+
+B<stcpcli> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "stcp" convergence layer protocol is added to the BP database.
+The convergence layer input task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.  B<stcpcli> can also be spawned and
+terminated in response to START and STOP commands that pertain specifically
+to the STCP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<stcpcli> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<stcpcli>.
+
+=item "1"
+
+B<stcpcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<stcpcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item stcpcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such stcp duct.
+
+No STCP induct matching I<local_hostname> and I<local_port_nbr> has been added
+to the BP database.  Use B<bpadmin> to stop the STCP convergence-layer
+protocol, add the induct, and then restart the STCP protocol.
+
+=item CLI task is already started for this duct.
+
+Redundant initiation of B<stcpcli>.
+
+=item Can't get IP address for host
+
+Operating system error.  Check errtext, correct problem, and restart STCP.
+
+=item Can't open TCP socket
+
+Operating system error.  Check errtext, correct problem, and restart STCP.
+
+=item Can't initialize socket
+
+Operating system error.  Check errtext, correct problem, and restart STCP.
+
+=item stcpcli can't create access thread
+
+Operating system error.  Check errtext, correct problem, and restart STCP.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), stcpclo(1)

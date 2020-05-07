@@ -30,14 +30,14 @@ static sm_SemId	dccplsoSemaphore(sm_SemId *semid)
 }
 
 /* Commands LSO termination 						*/
-static void	shutDownLso()
+static void	shutDownLso(int signum)
 {
 	isignal(SIGTERM, shutDownLso);
 	sm_SemEnd(dccplsoSemaphore(NULL));
 }
 
 #ifndef mingw
-void	handleConnectionLoss()
+void	handleConnectionLoss(int signum)
 {
 	isignal(SIGPIPE, handleConnectionLoss);
 }

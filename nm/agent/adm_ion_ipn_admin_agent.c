@@ -11,26 +11,26 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-18  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
 
 #include "ion.h"
 #include "platform.h"
-#include "../shared/adm/adm_ion_ipn_admin.h"
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/blob.h"
+#include "adm_ion_ipn_admin.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/blob.h"
 #include "adm_ion_ipn_admin_impl.h"
-#include "rda.h"
+#include "agent/rda.h"
 
 
 
 #define _HAVE_DTN_ION_IPNADMIN_ADM_
 #ifdef _HAVE_DTN_ION_IPNADMIN_ADM_
 
-vec_idx_t g_dtn_ion_ipnadmin_idx[11];
+static vec_idx_t g_dtn_ion_ipnadmin_idx[11];
 
 void dtn_ion_ipnadmin_init()
 {
@@ -113,16 +113,17 @@ void dtn_ion_ipnadmin_init_tblt()
 	/* EXITS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_EXITS), dtn_ion_ipnadmin_tblt_exits);
-	tblt_add_col(def, AMP_TYPE_UINT, "first_node_nbr");
-	tblt_add_col(def, AMP_TYPE_UINT, "last_node_nbr");
+	tblt_add_col(def, AMP_TYPE_UVAST, "first_node_nbr");
+	tblt_add_col(def, AMP_TYPE_UVAST, "last_node_nbr");
 	tblt_add_col(def, AMP_TYPE_STR, "gateway_endpoint_id");
 	adm_add_tblt(def);
 
 	/* PLANS */
 
 	def = tblt_create(adm_build_ari(AMP_TYPE_TBLT, 0, g_dtn_ion_ipnadmin_idx[ADM_TBLT_IDX], DTN_ION_IPNADMIN_TBLT_PLANS), dtn_ion_ipnadmin_tblt_plans);
-	tblt_add_col(def, AMP_TYPE_UINT, "node_nbr");
-	tblt_add_col(def, AMP_TYPE_STR, "default_duct_expression");
+	tblt_add_col(def, AMP_TYPE_UVAST, "node_nbr");
+	tblt_add_col(def, AMP_TYPE_STR, "action");
+	tblt_add_col(def, AMP_TYPE_STR, "spec");
 	adm_add_tblt(def);
 }
 

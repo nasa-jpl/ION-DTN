@@ -35,16 +35,53 @@
 #include "../shared/primitives/rules.h"
 #include "../shared/primitives/expr.h"
 #include "../shared/adm/adm.h"
-
+#include "nm_mgr_ui.h"
 #include "nm_mgr.h"
 #include "metadata.h"
+
+#ifdef USE_JSON
+#include "cJSON.h"
+#endif
+
+// ASCII Color Codes & Macros for formatting stdout
+#define RST  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+
+#define FRED(x) KRED x RST
+#define FGRN(x) KGRN x RST
+#define FYEL(x) KYEL x RST
+#define FBLU(x) KBLU x RST
+#define FMAG(x) KMAG x RST
+#define FCYN(x) KCYN x RST
+#define FWHT(x) KWHT x RST
+
+#define BOLD(x) "\x1B[1m" x RST
+#define UNDL(x) "\x1B[4m" x RST
 
 
 int   ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg);
 int   ui_print_agents();
-void  ui_print_report(rpt_t *rpt);
-void  ui_print_report_entry(char *name, tnv_t *val);
+
+#define ui_print_report(rpt) ui_fprint_report(NULL, rpt)
+void  ui_fprint_report(ui_print_cfg_t *fd, rpt_t *rpt);
 void  ui_print_report_set(agent_t* agent);
+
+#ifdef USE_JSON
+cJSON* ui_json_report(rpt_t *rpt);
+void ui_fprint_json_report(ui_print_cfg_t *fd, rpt_t *rpt);
+void ui_fprint_json_table(ui_print_cfg_t *fd, tbl_t *rpt);
+#endif
+
+#define ui_print_table(tbl) ui_fprint_table(NULL, tbl)
+void  ui_fprint_table(ui_print_cfg_t *fd, tbl_t *rpt);
+void  ui_print_table_set(agent_t* agent);
+
 
 char* ui_str_from_ac(ac_t *ac);
 char* ui_str_from_ari(ari_t *id, tnvc_t *ap, int desc);

@@ -1,0 +1,133 @@
+=head1 NAME
+
+brsccla - BRSC-based BP convergence layer adapter (input and output) task
+
+=head1 SYNOPSIS
+
+B<brsccla> I<server_hostname>[:I<server_port_nbr>]_I<own_node_nbr>
+
+=head1 DESCRIPTION
+
+BRSC is the "client" side of the Bundle Relay Service (BRS) convergence
+layer protocol for BP.  It is complemented by BRSS, the "server" side of
+the BRS convergence layer protocol for BP.  BRS clients send bundles directly
+only to the server, regardless of their final destinations, and the server
+forwards them to other clients as necessary.
+
+B<brsccla> is a background "daemon" task comprising three threads:
+one that connects to the BRS server, spawns the other threads, and then
+handles BRSC protocol output by transmitting bundles over the connected
+socket to the BRS server; one that simply sends periodic "keepalive"
+messages over the connected socket to the server (to assure that local
+inactivity doesn't cause the connection to be lost); and one that
+handles BRSC protocol input from the connected server.
+
+The output thread connects to the server's TCP socket at I<server_hostname>
+and I<server_port_nbr>, sends over the connected socket the client's
+I<own_node_nbr> (in SDNV representation) followed by a 32-bit time tag
+and a 160-bit HMAC-SHA1 digest of that time tag, to authenticate
+itself; checks the authenticity of the 160-bit countersign returned by
+the server; spawns the keepalive and receiver threads; and then begins
+extracting bundles from the queues of bundles ready for transmission
+via BRSC and transmitting those bundles over the connected socket to
+the server.  Each transmitted bundle is preceded by its length, a
+32-bit unsigned integer in network byte order.  The default value for
+I<server_port_nbr>, if omitted, is 80.
+
+The reception thread receives bundles over the connected socket and passes
+them to the bundle protocol agent on the local ION node.  Each bundle
+received on the connection is preceded by its length, a 32-bit unsigned
+integer in network byte order.
+
+The keepalive thread simply sends a "bundle length" value of zero (a 32-bit
+unsigned integer in network byte order) to the server once every 15 seconds.
+
+B<brsccla> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol, and it is
+terminated by B<bpadmin> in response to an 'x' (STOP) command.  B<brsccla>
+can also be spawned and terminated in response to START and STOP commands
+that pertain specifically to the BRSC convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<brsccla> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart the BRSC protocol.
+
+=item "1"
+
+B<brsccla> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart the BRSC protocol.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item brsccla can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such brsc induct.
+
+No BRSC induct with duct name matching I<server_hostname>, I<own_node_nbr>,
+and I<server_port_nbr> has been added to the BP database.  Use B<bpadmin>
+to stop the BRSC convergence-layer protocol, add the induct, and then
+restart the BRSC protocol.
+
+=item CLI task is already started for this duct.
+
+Redundant initiation of B<brsccla>.
+
+=item No such brsc outduct.
+
+No BRSC outduct with duct name matching I<server_hostname>, I<own_node_nbr>,
+and I<server_port_nbr> has been added to the BP database.  Use B<bpadmin>
+to stop the BRSC convergence-layer protocol, add the outduct, and then
+restart the BRSC protocol.
+
+=item Can't connect to server.
+
+Operating system error.  Check errtext, correct problem, and restart BRSC.
+
+=item Can't register with server.
+
+Configuration error.  Authentication has failed, probably because (a) the
+client and server are using different HMAC/SHA1 keys or (b) the
+clocks of the client and server differ by more than 5 seconds.  Update
+security policy database(s), as necessary, and assure that the clocks are
+synchronized.
+
+=item brsccla can't create receiver thread
+
+Operating system error.  Check errtext, correct problem, and restart BRSC.
+
+=item brsccla can't create keepalive thread
+
+Operating system error.  Check errtext, correct problem, and restart BRSC.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), brsscla(1)

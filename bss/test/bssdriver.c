@@ -167,7 +167,7 @@ int	main(int argc, char **argv)
 	{
 		puts("Usage: bssdriver <own endpoint ID> <destination \
 endpoint ID> <number of bundles> [<class of service>]");
-		puts("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
+		puts("\tclass of service: " BP_PARSE_QUALITY_OF_SERVICE_USAGE);
 		return 0;
 	}
 

@@ -1,0 +1,96 @@
+=head1 NAME
+
+cgrfetch - Visualize CGR simulations
+
+=head1 SYNOPSIS
+
+B<cgrfetch> [I<OPTIONS>] I<DEST-NODE>
+
+=head1 DESCRIPTION
+
+B<cgrfetch> uses CGR to simulate sending a bundle from the local node to
+I<DEST-NODE>. It traces the execution of CGR to generate graphs of the routes
+that were considered and the routes that were ultimately chosen to forward
+along. No bundle is sent during the simulation.
+
+A JSON representation of the simulation is output to I<OUTPUT-FILE>. The
+representation includes parameters of the simulation and a structure for each
+considered route, which in turn includes calculated parameters for the route and
+an image of the contact graph.
+
+The dot(1) tool from the Graphviz package is used to generate the contact graph
+images and is required for cgrfetch(1). The base64(1) tool from coreutils is
+used to embed the images in the JSON and is also required.
+
+Note that a trace of the route computation logic performed by CGR is printed
+to stderr; there is currently no cgrfetch option for redirecting this output
+to a file.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<DEST-NODE>
+
+The final destination to route to. To be useful, it should be a node that exists
+in the contact plan.
+
+=item B<-q>
+
+Disable trace message output.
+
+=item B<-j>
+
+Disable JSON output.
+
+=item B<-m>
+
+Use a minimum-latency extended COS for the bundle. This ends up sending the
+bundle to all proximate nodes.
+
+=item B<-t DISPATCH-OFFSET>
+
+Request a dispatch time of I<DISPATCH-OFFSET> seconds from the time the command
+is run (default: 0).
+
+=item B<-e EXPIRATION-OFFSET>
+
+Set the bundle expiration time to I<EXPIRATION-OFFSET> seconds from the time the
+command is run (default: 3600).
+
+=item B<-s BUNDLE-SIZE>
+
+Set the bundle payload size to I<BUNDLE-SIZE> bytes (default: 0).
+
+=item B<-o OUTPUT-FILE>
+
+Send JSON to I<OUTPUT-FILE> (default: stdout).
+
+=item B<-d PROTO:NAME>
+
+Use I<PROTO> as the outduct protocol and I<NAME> as the outduct name (default:
+udp:*). Use B<list> to list all available outducts.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item cgrfetch 8
+
+Simulate CGR with destination node 8 and dispatch time equal to the current time.
+
+=item cgrfetch 8 -t 60
+
+Do the same with a dispatch time 60 seconds in the future.
+
+=item cgrfetch -d list
+
+List all available outducts.
+
+=back
+
+=head1 SEE ALSO
+
+dot(1), base64(1)

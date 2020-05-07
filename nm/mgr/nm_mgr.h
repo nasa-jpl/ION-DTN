@@ -29,17 +29,18 @@
 #ifndef NM_MGR_H
 #define NM_MGR_H
 
+// ION includes
+#include "platform.h"
+#include "sdr.h"
+
 // Standard includes
 #include "stdint.h"
 #include "pthread.h"
 #include "unistd.h"
 
-// ION includes
-#include "platform.h"
-#include "sdr.h"
 
 // Application includes
-
+#include "../shared/nm.h"
 #include "../shared/utils/nm_types.h"
 #include "../shared/msg/ion_if.h"
 
@@ -66,6 +67,7 @@ typedef struct
 	vector_t agents;  /* (agent_t *) */
 	rhht_t metadata; /* (metadata_t*) */
 	uvast tot_rpts;
+	uvast tot_tbls;
 	eid_t mgr_eid;
 
 #ifdef HAVE_MYSQL
@@ -88,7 +90,7 @@ extern iif_t ion_ptr;
 int      main(int argc, char *argv[]);
 
 int      mgr_cleanup();
-int      mgr_init(char *argv[]);
+int      mgr_init(char *eid);
 void*    mgr_rx_thread(int *running);
 
 

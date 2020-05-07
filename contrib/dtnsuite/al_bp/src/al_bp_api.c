@@ -73,7 +73,7 @@ BOOL FindProcessId(const char *processname)
 	if (!Process32First(hProcessSnap, &pe32))
 	{
 		CloseHandle(hProcessSnap);          // clean the snapshot object
-		printf("!!! Failed to gather information on system processes! \n");
+		//printf("!!! Failed to gather information on system processes! \n");
 		return(FALSE);
 	}
 
@@ -625,58 +625,67 @@ char * al_bp_strerror(int err){
 
 al_bp_error_t al_bp_bundle_send(al_bp_handle_t handle,
 		al_bp_reg_id_t regid,
-		al_bp_bundle_object_t * bundle_object)
+		al_bp_bundle_object_t bundle_object)
 {
-	if (bundle_object == NULL)
-		return BP_ENULLPNTR;
-
-	memset(bundle_object->id, 0, sizeof(al_bp_bundle_id_t));
-	return al_bp_send(handle, regid, bundle_object->spec, bundle_object->payload, bundle_object->id);
+	memset(bundle_object.id, 0, sizeof(al_bp_bundle_id_t));
+	return al_bp_send(handle, regid, bundle_object.spec, bundle_object.payload, bundle_object.id);
 }
 al_bp_error_t al_bp_bundle_receive(al_bp_handle_t handle,
-		al_bp_bundle_object_t bundle_object,
+		al_bp_bundle_object_t * bundle_object,
 		al_bp_bundle_payload_location_t payload_location,
 		al_bp_timeval_t timeout)
 {
-	al_bp_free_payload(bundle_object.payload);
-	al_bp_free_extension_blocks(bundle_object.spec);
-	al_bp_free_metadata_blocks(bundle_object.spec);
-	memset(bundle_object.id, 0, sizeof(al_bp_bundle_id_t));
-	memset(bundle_object.payload, 0, sizeof(al_bp_bundle_payload_t));
-	memset(bundle_object.spec, 0, sizeof(al_bp_bundle_spec_t));
-	return al_bp_recv(handle, bundle_object.spec, payload_location, bundle_object.payload, timeout);
+	al_bp_free_payload(bundle_object->payload);
+	al_bp_free_extension_blocks(bundle_object->spec);
+	al_bp_free_metadata_blocks(bundle_object->spec);
+	memset(bundle_object->id, 0, sizeof(al_bp_bundle_id_t));
+	memset(bundle_object->payload, 0, sizeof(al_bp_bundle_payload_t));
+	memset(bundle_object->spec, 0, sizeof(al_bp_bundle_spec_t));
+	return al_bp_recv(handle, bundle_object->spec, payload_location, bundle_object->payload, timeout);
 }
 
 al_bp_error_t al_bp_bundle_create(al_bp_bundle_object_t * bundle_object)
 {
 	if (bundle_object == NULL)
 		return BP_ENULLPNTR;
+	
+	// ID
 	bundle_object->id = (al_bp_bundle_id_t*) malloc(sizeof(al_bp_bundle_id_t));
+	memset(bundle_object->id, 0, sizeof(al_bp_bundle_id_t));
+	
+	// SPEC
 	bundle_object->spec = (al_bp_bundle_spec_t*) malloc(sizeof(al_bp_bundle_spec_t));
-	bundle_object->spec->blocks.blocks_val =
-			(al_bp_extension_block_t*) malloc(sizeof(al_bp_extension_block_t));
-	bundle_object->spec->metadata.metadata_val =
-			(al_bp_extension_block_t*) malloc(sizeof(al_bp_extension_block_t));
+	memset(bundle_object->spec, 0, sizeof(al_bp_bundle_spec_t));
+	bundle_object->spec->blocks.blocks_val = (al_bp_extension_block_t*) malloc(sizeof(al_bp_extension_block_t));
+	bundle_object->spec->metadata.metadata_val = (al_bp_extension_block_t*) malloc(sizeof(al_bp_extension_block_t));
 	memset(bundle_object->spec->blocks.blocks_val, 0, sizeof(al_bp_extension_block_t));
 	memset(bundle_object->spec->metadata.metadata_val, 0, sizeof(al_bp_extension_block_t));
+	
+	// PAYLOAD
 	bundle_object->payload = (al_bp_bundle_payload_t*) malloc(sizeof(al_bp_bundle_payload_t));
-	memset(bundle_object->id, 0, sizeof(al_bp_bundle_id_t));
-	memset(bundle_object->spec, 0, sizeof(al_bp_bundle_spec_t));
 	memset(bundle_object->payload, 0, sizeof(al_bp_bundle_payload_t));
+	
 	return BP_SUCCESS;
 }
 al_bp_error_t al_bp_bundle_free(al_bp_bundle_object_t * bundle_object)
 {
 	if (bundle_object == NULL)
 		return BP_ENULLPNTR;
-	free(bundle_object->id);
-//	free(bundle_object->spec->blocks.blocks_val);
-//	free(bundle_object->spec->metadata.metadata_val);
+	al_bp_free_payload(bundle_object->payload);
 	al_bp_free_extension_blocks(bundle_object->spec);
 	al_bp_free_metadata_blocks(bundle_object->spec);
-	free(bundle_object->spec);
-	al_bp_free_payload(bundle_object->payload);
-	free(bundle_object->payload);
+	if (bundle_object->id != NULL) {
+		free(bundle_object->id);
+		bundle_object->id = NULL;
+	}
+	if (bundle_object->spec != NULL) {
+		free(bundle_object->spec);
+		bundle_object->spec = NULL;
+	}
+	if (bundle_object->payload != NULL) {
+		free(bundle_object->payload);
+		bundle_object->payload = NULL;
+	}
 	return BP_SUCCESS;
 }
 

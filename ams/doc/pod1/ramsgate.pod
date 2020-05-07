@@ -94,7 +94,7 @@ but for now the best mitigations are simply to (a) build with compiler option
 memory and SDR heap (see ionconfig(5)) and (c) limit the rate of AMS message
 issuance.
 
-Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 

@@ -175,7 +175,7 @@ typedef struct
 extern int		dtpcInit();
 #define dtpcStart()	_dtpcStart()
 extern int		_dtpcStart();
-#define dtpcStop()	_dtpcStop();
+#define dtpcStop()	_dtpcStop()
 extern void		dtpcStop();
 extern int		dtpcAttach();
 extern unsigned int 	dtpcGetProfile(unsigned int maxRtx,

@@ -1,0 +1,223 @@
+=head1 NAME
+
+ipnrc - IPN scheme configuration commands file
+
+=head1 DESCRIPTION
+
+IPN scheme configuration commands are passed to B<ipnadmin> either in a file of
+text lines or interactively at B<ipnadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.
+
+IPN scheme configuration commands (a) establish egress plans for direct
+transmission to neighboring nodes that are members of endpoints identified
+in the "ipn" URI scheme and (b) establish static default routing rules
+for forwarding bundles to specified destination nodes.
+
+The egress B<plan> established for a given node associates a B<duct expression>
+with that node.  Each duct expression is a string of the form
+"I<protocol_name>/I<outduct_name>" signifying that the bundle is to be
+queued for transmission via the indicated convergence layer protocol outduct.
+
+Note that egress plans B<must> be established for all neighboring nodes,
+regardless of whether or not contact graph routing is used for computing
+dynamic routes to distant nodes.  This is by definition: if there isn't
+an egress plan to a node, it can't be considered a neighbor.
+
+Static default routes are declared as B<exits> in the ipn-scheme routing
+database.  An exit is a range of node numbers identifying a set of nodes
+for which defined default routing behavior is established.  Whenever a
+bundle is to be forwarded to a node whose number is in the exit's node
+number range B<and> it has not been possible to compute a dynamic route
+to that node from the contact schedules that have been provided to the
+local node B<and> that node is not a neighbor to which the bundle can
+be directly transmitted, BP will forward the bundle to the B<gateway> node
+associated with this exit.  The gateway node for any exit is identified
+by an endpoint ID, which might or might not be an ipn-scheme EID; regardless,
+directing a bundle to the gateway for an exit causes the bundle to be
+re-forwarded to that intermediate destination endpoint.  Multiple exits
+may encompass the same node number, in which case the gateway associated
+with the most restrictive exit (the one with the smallest range) is
+always selected.
+
+B<Note> that "exits" were termed "groups" in earlier versions of ION.  The
+term "exit" has been adopted instead, to minimize any possible confusion
+with multicast groups.  To protect backward compatibility, the keyword
+"group" continues to be accepted by ipnadmin as an alias for the new keyword
+"exit", but the older terminology is deprecated.
+
+The formats and effects of the IPN scheme configuration commands are
+described below.
+
+=head1 GENERAL COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by ipnadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 PLAN COMMANDS
+
+=over 4
+
+=item B<a plan> I<node_nbr> I<duct_expression> [I<nominal_data_rate>]
+
+The B<add plan> command.  This command establishes an egress plan for
+the bundles that must be transmitted to the neighboring node identified
+by I<node_nbr>.  The I<nominal_data_rate> is the assumed rate of
+transmission to this node in the absence of contact plan information.
+A I<nominal_data_rate> of zero (the default) in the absence of contact
+plan information completely disables rate control.
+
+B<Note that the plan commands consumed by ipnadmin are a simplified
+shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)).
+The syntax of these commands is DIFFERENT from that of the more general
+and more powerful bpadmin commands.>
+
+=item B<c plan> I<node_nbr> I<nominal_data_rate>
+
+The B<change plan> command.  This command changes the nominal data rate
+for the indicated plan.
+
+=item B<d plan> I<node_nbr>
+
+The B<delete plan> command.  This command deletes the egress plan
+for the node identified by I<node_nbr>.
+
+=item B<i plan> I<node_nbr>
+
+This command will print information about the egress plan for the node
+identified by I<node_nbr>.
+
+=item B<l plan>
+
+This command lists all egress plans established in the IPN database for the
+local node.
+
+=back
+
+=head1 EXIT COMMANDS
+
+=over 4
+
+=item B<a exit> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
+
+The B<add exit> command.  This command establishes an "exit" for static 
+default routing as described above.
+
+=item B<c exit> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
+
+The B<change exit> command.  This command changes the gateway node
+number for the exit identified by I<first_node_nbr> and I<last_node_nbr> .
+
+=item B<d exit> I<first_node_nbr> I<last_node_nbr>
+
+The B<delete exit> command.  This command deletes the exit identified
+by I<first_node_nbr> and I<last_node_nbr>.
+
+=item B<i exit> I<first_node_nbr> I<last_node_nbr>
+
+This command will print information (the gateway endpoint ID) about the
+exit identified by I<first_node_nbr> and I<last_node_nbr>.
+
+=item B<l exit>
+
+This command lists all exits defined in the IPN database for the local node.
+
+=back
+
+=head1 OVERRIDE COMMANDS
+
+=over 4
+
+=item B<a rtovrd> I<data_label> I<dest_node_nbr> I<source_node_nbr> I<neighbor>
+
+The B<add rtovrd> command.  This command cause bundles characterized by
+I<data_label>, I<dest_node_nbr> ("all other destinations" if this node
+number is zero) and I<source_node_nbr> ("all other sources" if this node
+number is zero) to be forwarded to I<neighbor>.  If I<neighbor> is zero,
+the override will be "learned" by ION: the neighbor selected for this
+bundle, by whatever means, becomes the override for all subsequent matching
+bundles.
+
+=item B<c rtovrd> I<data_label> I<dest_node_nbr> I<source_node_nbr> I<neighbor>
+
+The B<change rtovrd> command.  This command changes the override neighbor
+for the override identified by I<data_label>, I<dest_node_nbr>, and
+I<source_node_nbr>.  To cause ION to forget the override, use -1 as
+I<neighbor>.
+
+=item B<a cosovrd> I<data_label> I<dest_node_nbr> I<source_node_nbr> I<priority> I<ordinal>
+
+The B<add cosovrd> command.  This command cause bundles characterized by
+I<data_label>, I<dest_node_nbr> ("all other destinations" if this node
+number is zero) and I<source_node_nbr> ("all other sources" if this node
+number is zero) to have their effective class of service (priority and
+ordinal) changed as noted.
+
+=item B<c cosovrd> I<data_label> I<dest_node_nbr> I<source_node_nbr> I<priority> I<ordinal>
+
+The B<change cosovrd> command.  This command changes the override priority
+and ordinal for the override identified by I<data_label>, I<dest_node_nbr>,
+and I<source_node_nbr>.  To cause ION to forget the override, use -1 as
+I<priority>.
+
+=item B<d ovrd> I<data_label> I<dest_node_nbr> I<source_node_nbr>
+
+The B<delete override> command.  This command deletes all overrides identified
+by I<data_label>, I<dest_node_nbr>, and I<source_node_nbr>.
+
+=item B<i ovrd> I<data_label> I<dest_node_nbr> I<source_node_nbr>
+
+This command will print information for all overrides identified
+by I<data_label>, I<dest_node_nbr>, and I<source_node_nbr>.
+
+=item B<l ovrd>
+
+This command lists all overrides defined in the IPN database for the local node.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item a plan 18 ltp/18
+
+Declares the egress plan to use for transmission from the local node to
+neighboring node 18.  By default, any bundle for which the computed "next
+hop" node is node 18 will be queued for transmission on LTP outduct 18.
+
+=item a exit 1 999 dtn://stargate
+
+Declares a default route for bundles destined for all nodes whose numbers
+are in the range 1 through 999 inclusive: absent any other routing decision,
+such bundles are to be forwarded to "dtn://stargate".
+
+=back
+
+=head1 SEE ALSO
+
+ipnadmin(1)

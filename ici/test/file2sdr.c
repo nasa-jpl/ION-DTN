@@ -63,7 +63,7 @@ static Object	endCycle(Sdr sdr, Object cycleList, Cycle *currentCycle,
 	return newCycle(sdr, cycleList, currentCycle, file2sdr_semaphore);
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	int	stopped = 1;
 

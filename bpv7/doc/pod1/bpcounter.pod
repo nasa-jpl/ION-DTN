@@ -1,0 +1,65 @@
+=head1 NAME
+
+bpcounter - Bundle Protocol reception test program
+
+=head1 SYNOPSIS
+
+B<bpcounter> I<ownEndpointId> [I<maxCount>]
+
+=head1 DESCRIPTION
+
+B<bpcounter> uses Bundle Protocol to receive application data units
+from a remote B<bpdriver> application task.  When the total number of
+application data units it has received exceeds I<maxCount>, it terminates
+and prints its reception count.  If I<maxCount> is omitted, the default
+limit is 2 billion application data units.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpcounter> has terminated.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<bpcounter> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item Can't open own endpoint.
+
+Another application has already opened I<ownEndpointId>.  Terminate that
+application and rerun.
+
+=item bpcounter bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bpdriver(1), bpecho(1), bp(3)

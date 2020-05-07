@@ -24,7 +24,7 @@
  **  08/21/16  E. Birrane     Update to AMP v02 (Secure DTN - NASA: NNX14CS58P)
  **  09/21/18  E. Birrane     Update to AMP v03 (JHU/APL).
  *****************************************************************************/
-
+#include "../nm.h"
 #include "expr.h"
 #include "../adm/adm.h"
 
@@ -148,7 +148,6 @@ expr_t expr_copy(expr_t expr)
 
 expr_t *expr_copy_ptr(expr_t *expr)
 {
-	ac_t rpn;
 	expr_t *result = NULL;
 
 	if(expr == NULL)
@@ -174,7 +173,9 @@ expr_t *expr_copy_ptr(expr_t *expr)
 expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 {
 	expr_t result;
+#if AMP_VERSION < 7
 	blob_t *data = NULL;
+#endif
 
 	AMP_DEBUG_ENTRY("expr_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
 
@@ -184,28 +185,43 @@ expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 
 	CHKUSR(it, result);
 
+#if AMP_VERSION < 7
 	/* Unpack the byte string holding the expression. */
 	data = blob_deserialize_ptr(it, success);
 
 	/* Grab and verify the expression type. */
 	result.type = data->value[0];
+#else
+	cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &result.type);
+#endif
     if(type_is_known(result.type) == 0)
     {
     	AMP_DEBUG_ERR("expr_deserialize","Unknown expression type %d", result.type);
     	*success = AMP_FAIL;
+		
+#if AMP_VERSION < 7
     	blob_release(data, 1);
+#endif
+		
     	return result;
     }
 
+#if AMP_VERSION < 7
     /* Create fake blob to point after first byte. */
     blob_t tmp;
     tmp.value = data->value + sizeof(uint8_t);
     tmp.length = data->length - 1;
     tmp.alloc = data->alloc-1;
+#endif
 
     /* Deserialize the AC list holding the RPN expression. */
+#if AMP_VERSION < 7
     result.rpn = ac_deserialize_raw(&tmp, success);
     blob_release(data, 1);
+#else
+	result.rpn = ac_deserialize(it, success);
+#endif
+	
     if(*success != AMP_OK)
     {
     	result.type = AMP_TYPE_UNK;
@@ -514,8 +530,10 @@ void expr_release(expr_t *expr, int destroy)
 
 int expr_serialize(QCBOREncodeContext *encoder, void *item)
 {
+#if AMP_VERSION < 7
 	blob_t *result = NULL;
 	blob_t *ac_data = NULL;
+#endif
 	expr_t *expr = (expr_t*) item;
 	int err;
 
@@ -523,7 +541,7 @@ int expr_serialize(QCBOREncodeContext *encoder, void *item)
 	{
 		return AMP_FAIL;
 	}
-
+#if AMP_VERSION < 7
 	result = blob_create((uint8_t*)&(expr->type), 1, 1);
 
 	if((ac_data = ac_serialize_wrapper(&(expr->rpn))) == NULL)
@@ -539,6 +557,17 @@ int expr_serialize(QCBOREncodeContext *encoder, void *item)
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
 
+#else
+	err = cut_enc_byte(encoder, expr->type);
+	if (err != AMP_OK)
+	{
+		AMP_DEBUG_ERR("expr_serialize", "Can't serialize type", NULL);
+		return AMP_FAIL;
+	}
+	ac_serialize(encoder, &(expr->rpn));
+
+#endif
+	
 	return err;
 }
 

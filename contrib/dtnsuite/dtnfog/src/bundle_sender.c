@@ -181,7 +181,7 @@ void * bundleSending(void * arg) {
 		al_bp_parse_eid_string(&reply_to, "ipn:5.0");
 //		al_bp_get_none_endpoint(&reply_to);
 		debug_print(proxy_inf->debug_level, "filename: %s\n", bundle.payload->filename.filename_val);
-		utility_error = al_bp_extB_send(proxy_inf->rd_send, &bundle, to, reply_to);
+		utility_error = al_bp_extB_send(proxy_inf->rd_send, bundle, to, reply_to);
 		if (utility_error != BP_EXTB_SUCCESS) {
 			error_print("Error in al_bp_extB_send_bundle() (%s)\n", al_bp_strerror(utility_error));
 			al_bp_bundle_free(&bundle);

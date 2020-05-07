@@ -139,7 +139,7 @@ The B<amsmib> utility failed to register, for reasons noted in the log file.
 
 =head1 BUGS
 
-Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 

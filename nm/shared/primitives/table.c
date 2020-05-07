@@ -134,13 +134,12 @@ tbl_t*   tbl_create(ari_t *id)
 }
 
 
-tbl_t* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
+void* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	tbl_t *result = NULL;
 	size_t i;
 	size_t len;
 	ari_t *tpl_id;
-	tnvc_t entries;
 	QCBORError err;
 	QCBORItem item;
 
@@ -165,10 +164,16 @@ tbl_t* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	len = item.val.uCount;
 
 	/* Step 2: grab the Id. */
+#if AMP_VERSION < 7
 	blob_t *blob = blob_deserialize_ptr(it, success);
 	tpl_id = ari_deserialize_raw(blob, success);
 	blob_release(blob, 1);
-
+#else
+	QCBORDecode_StartOctets(it);
+	tpl_id = ari_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
+	
 	if((tpl_id == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
@@ -190,8 +195,9 @@ tbl_t* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	 */
 	for(i = 1; i < len; i++)
 	{
-		blob_t bytestr = blob_deserialize(it, success);
 		tnvc_t *cur_row = NULL;
+#if AMP_VERSION < 7
+		blob_t bytestr = blob_deserialize(it, success);
 
 		if(*success != AMP_OK)
 		{
@@ -201,7 +207,11 @@ tbl_t* tbl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 
 		cur_row = tnvc_deserialize_ptr_raw(&bytestr, success);
 		blob_release(&bytestr, 0);
-
+#else
+		QCBORDecode_StartOctets(it);
+		cur_row = tnvc_deserialize_ptr(it, success);
+		QCBORDecode_EndOctets(it);
+#endif
 		if((cur_row == NULL) || (*success != AMP_OK))
 		{
 			AMP_DEBUG_ERR("tbl_deserialize_ptr","Can't get row.", NULL);
@@ -280,7 +290,6 @@ int tbl_serialize(QCBOREncodeContext *encoder, void *item)
 {
 	blob_t *result;
 	int err = AMP_OK;
-	int success;
 	size_t num;
 	size_t i;
 	tbl_t *tbl = (tbl_t *) item;
@@ -294,10 +303,15 @@ int tbl_serialize(QCBOREncodeContext *encoder, void *item)
 	QCBOREncode_OpenArray(encoder);
 
 	/* Step 1: Encode the ARI. */
+#if AMP_VERSION < 7
 	result = ari_serialize_wrapper(tbl->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = ari_serialize(encoder, tbl->id);
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
 	if(err != AMP_OK)
 	{
 		QCBOREncode_CloseArray(encoder);
@@ -314,10 +328,15 @@ int tbl_serialize(QCBOREncodeContext *encoder, void *item)
 	for(i = 1; i < num; i++)
 	{
 		tnvc_t *cur_row = tbl_get_row(tbl, i-1);
+#if AMP_VERSION < 7
 		result = tnvc_serialize_wrapper(cur_row);
 		err = blob_serialize(encoder, result);
 		blob_release(result, 1);
-
+#else
+		QCBOREncode_OpenArray(encoder);
+		err = tnvc_serialize(encoder, cur_row);
+		QCBOREncode_CloseArrayOctet(encoder);
+#endif
 		if(err != AMP_OK)
 		{
 			QCBOREncode_CloseArray(encoder);
@@ -333,6 +352,26 @@ blob_t*   tbl_serialize_wrapper(tbl_t *tbl)
 {
 	return cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE, tbl, (cut_enc_fn)tbl_serialize);
 }
+
+void tbl_cb_del_fn(void *item)
+{
+	tbl_release((tbl_t*) item, 1);
+}
+int tbl_cb_comp_fn(void *i1, void *i2)
+{
+	tbl_t* t1 = (tbl_t*)i1;
+	tbl_t* t2 = (tbl_t*)i2;
+
+	CHKUSR(t1, -1);
+	CHKUSR(t2, -1);
+
+	return ari_compare(t1->id, t2->id, 0);
+}
+void* tbl_cb_copy_fn(void *item)
+{
+	return tbl_copy_ptr((tbl_t*)item);
+}
+
 
 
 /* TABLE TEMPLATE FUNCTIONS */

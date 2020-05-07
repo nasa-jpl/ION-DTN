@@ -23,7 +23,7 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 	return attendant;
 }
 
-static void	shutDown()
+static void	shutDown(int signum)
 {
 	sm_SemEnd((getLtpVdb())->deliverySemaphore);
 	ionPauseAttendant(_attendant(NULL));
@@ -368,7 +368,7 @@ putErrmsg("LTP delivered service data.", itoa(sessionBuf.redPartLength));
 		sm_TaskYield();
 	}
 
-	shutDown();
+	shutDown(SIGTERM);
 	ionStopAttendant(&attendant);
 	writeErrmsgMemos();
 	writeMemo("[i] ltpdeliv has ended.");

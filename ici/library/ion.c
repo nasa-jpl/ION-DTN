@@ -1710,10 +1710,11 @@ void	writeTimestampUTC(time_t timestamp, char *timestampBuffer)
 {
 	struct tm	tsbuf;
 	struct tm	*ts = &tsbuf;
-
+	
 	CHKVOID(timestampBuffer);
 #if defined (mingw)
-	oK(gmtime_s(&tsbuf, &timestamp));
+	ts = gmtime(&timestamp);
+	oK(ts);
 #else
 	oK(gmtime_r(&timestamp, &tsbuf));
 #endif

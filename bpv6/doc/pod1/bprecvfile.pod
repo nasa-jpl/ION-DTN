@@ -1,0 +1,91 @@
+=head1 NAME
+
+bprecvfile - Bundle Protocol (BP) file reception utility
+
+=head1 SYNOPSIS
+
+B<bprecvfile> I<own_endpoint_ID> [I<max_files>]
+
+=head1 DESCRIPTION
+
+B<bprecvfile> is intended to serve as the counterpart to B<bpsendfile>.  It
+uses bp_receive() to receive bundles containing file content.  The content
+of each bundle is simply written to a file named "testfileN" where N is
+the total number of bundles received since the program began running.
+
+If a I<max_files> value of N (where N > 0) is provided, the program will
+terminate automatically upon completing its Nth file reception.  Otherwise
+it will run indefinitely; use ^C to terminate the program.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bprecvfile> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item Can't open own endpoint.
+
+Another BP application task currently has I<own_endpoint_ID> open for
+bundle origination and reception.  Try again after that task has terminated.
+If no such task exists, it may have crashed while still holding the endpoint
+open; the easiest workaround is to select a different source endpoint.
+
+=item bprecvfile bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item bprecvfile: can't open test file
+
+File system error.  B<bprecvfile> terminates.
+
+=item bprecvfile: can't receive bundle content.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item bprecvfile: can't write to test file
+
+File system error.  B<bprecvfile> terminates.
+
+=item bprecvfile cannot continue.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item bprecvfile: can't handle bundle delivery.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpsendfile(1), bp(3)

@@ -147,7 +147,6 @@ int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms)
 {
 	vecit_t it;
 	int result = AMP_OK;
-	int success;
 
 	if(mac == NULL)
 	{

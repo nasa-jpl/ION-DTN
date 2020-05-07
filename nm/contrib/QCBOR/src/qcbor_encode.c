@@ -600,6 +600,25 @@ void QCBOREncode_CloseMapOrArray(QCBOREncodeContext *me,
    }
 }
 
+
+void QCBOREncode_CloseArrayOctet(QCBOREncodeContext *me)
+{
+   if(me->uError == QCBOR_SUCCESS) {
+      if(!Nesting_IsInNest(&(me->nesting))) {
+         me->uError = QCBOR_ERR_TOO_MANY_CLOSES;
+      } else if(Nesting_GetMajorType(&(me->nesting)) != CBOR_MAJOR_TYPE_ARRAY) {
+         me->uError = QCBOR_ERR_CLOSE_MISMATCH;
+      } else {
+         // When the array, map or bstr wrap was started, nothing was done
+         // except note the position of the start of it. This code goes back
+         // and inserts the actual CBOR array, map or bstr but omits the length
+         // per the OCTETS defintion.
+         Nesting_Decrease(&(me->nesting));
+      }
+   }
+
+}
+
 /*
  Public functions for closing arrays and maps. See header qcbor.h
  */

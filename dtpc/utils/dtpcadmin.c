@@ -42,7 +42,7 @@ static void	printText(char *text)
 	PUTS(text);
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	printText("Please enter command 'q' to stop the program.");
 }

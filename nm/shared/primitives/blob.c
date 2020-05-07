@@ -28,7 +28,7 @@
  **  08/30/18  E. Birrane     CBOR Updates and Structure Optimization (JHU/APL)
  *****************************************************************************/
 #include "platform.h"
-
+#include "../nm.h"
 #include "../adm/adm.h"
 
 #include "../primitives/blob.h"
@@ -61,7 +61,6 @@
 
 int blob_append(blob_t *blob, uint8_t *buffer, uint32_t length)
 {
-	uint32_t new_len = 0;
 	int success = AMP_OK;
 
 	if((blob == NULL) || (buffer == NULL) || (length == 0))
@@ -206,7 +205,7 @@ blob_t* blob_copy_ptr(blob_t *src)
  *
  * \par Function Name: blob_deserialize
  *
- * \par Extracts a BLOB from a byte buffer. When serialized, a
+ * \par Extracts a BLOB from a byte string buffer. When serialized, a
  *      BLOB is an SDNV # of bytes, followed by a byte stream.
  *
  * \retval NULL - Failure
@@ -268,6 +267,76 @@ blob_t blob_deserialize(QCBORDecodeContext *it, int *success)
 	return result;
 }
 
+/******************************************************************************
+ *
+ * \par Function Name: blob_deserialize_as_bytes()
+ *
+ * \par Extracts a BLOB from a byte buffer. When serialized, a
+ *      BLOB is an SDNV # of bytes, followed by a byte stream.
+ *
+ *      This differs from blob_deserialize() in that raw bytes of specified
+ *      length are decoded in place of a self-describing CBOR-encoded byte string.
+ *
+ * \retval NULL - Failure
+ *         !NULL - The created/deserialized BLOB.
+ *
+ * \param[in]  cborval  The CBOR value to be deserialized
+ *
+ * \par Notes:
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  09/13/19  D. Edell      Initial implementation
+ *****************************************************************************/
+
+blob_t blob_deserialize_as_bytes(QCBORDecodeContext *it, int *success, size_t len)
+{
+	blob_t result;
+
+    AMP_DEBUG_ENTRY("blob_deserialize_as_bytes","(0x"ADDR_FIELDSPEC",0x"ADDR_FIELDSPEC"), %d", (uaddr) it, (uaddr) success, len);
+    
+    memset(&result, 0, sizeof(blob_t));
+	*success = AMP_FAIL;
+
+	/* Create an empty-but-allocated blob. */
+	result.length = len;
+	result.alloc = len;
+	if((result.value = STAKE(len)) == NULL)
+	{
+		AMP_DEBUG_ERR("blob_deserialize", "Can't make new blob.", NULL);
+		return result;
+	}
+
+	/* Copy bytes into the BLOB */
+    *success = cut_dec_bytes(it, result.value, len);
+
+	return result;
+
+}
+
+blob_t *blob_deserialize_as_bytes_ptr(QCBORDecodeContext *it, int *success, size_t len)
+{
+	blob_t *result = NULL;
+
+	if((result = (blob_t*)STAKE(sizeof(blob_t))) == NULL)
+	{
+		AMP_DEBUG_ERR("blob_deserialize_as_byteS_ptr","Can't allocate new struct.", NULL);
+		*success = AMP_FAIL;
+		return result;
+	}
+
+	*result = blob_deserialize_as_bytes(it, success, len);
+	if(*success != AMP_OK)
+	{
+		SRELEASE(result);
+		result = NULL;
+	}
+
+	return result;
+}
+
+
 blob_t *blob_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	blob_t *result = NULL;
@@ -276,6 +345,7 @@ blob_t *blob_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	{
 		AMP_DEBUG_ERR("blob_deserialize_ptr","Can't allocate new struct.", NULL);
 		*success = AMP_FAIL;
+		return result;
 	}
 
 	*result = blob_deserialize(it, success);
@@ -456,6 +526,37 @@ int blob_serialize(QCBOREncodeContext *it, blob_t *blob)
 
 	return AMP_OK;
 }
+
+/**
+ * Adds a blob to the CBOR string as a series of RAW bytes.  Unlike blob_serialize,
+ *  these are written without a CBOR header byte denoting the type and length.
+ *  It is the caller's responsibility to ensure message format and length is well
+ *  understood to allow decoding without the CBOR meta data provided by an array or
+ *  bytestring.
+ */
+int blob_serialize_as_bytes(QCBOREncodeContext *it, blob_t *blob)
+{
+   int i = 0;
+   int err;
+   
+	if(blob == NULL || it == NULL)
+	{
+		return AMP_FAIL;
+	}
+
+    for(i = 0; i < blob->length; i++)
+    {
+       err = cut_enc_byte(it, blob->value[i]);
+       if (err != AMP_OK)
+       {
+          AMP_DEBUG_ERR("blob_serialize_as_bytes", "Cbor Error: %d", err);
+          return err;
+       }
+    }
+
+	return AMP_OK;
+}
+
 
 /*
  * For now, just adjust the length, no need to reallocate if shrinking.

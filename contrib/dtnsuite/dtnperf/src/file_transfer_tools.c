@@ -54,7 +54,7 @@ file_transfer_info_t * file_transfer_info_create(al_bp_endpoint_id_t client_eid,
 	al_bp_copy_eid(&(info->client_eid), &client_eid);
 	info->filename_len = filename_len;
 	info->full_dir = (char*) malloc(strlen(full_dir) + 1);
-	strncpy(info->full_dir, full_dir, strlen(full_dir) + 1);
+	memcpy(info->full_dir, full_dir, strlen(full_dir) + 1);
  	info->filename = (char*) malloc(filename_len + 1);
 	strncpy(info->filename, filename, filename_len +1);
 	info->file_dim = file_dim;
@@ -268,7 +268,7 @@ int process_incoming_file_transfer_bundle(file_transfer_info_list_t *info_list,
 		//get file size
 		if(fread(&file_dim, sizeof(file_dim), 1, pl_stream)!=1){return -1;}
 		// create destination dir for file
-		strncpy(temp, client_eid.uri, strlen(client_eid.uri) + 1);
+		memcpy(temp, client_eid.uri, strlen(client_eid.uri) + 1);
 		// if is a URI endpoint remove service tag
 		if(strncmp(temp,"ipn",3) !=0 )
 		{

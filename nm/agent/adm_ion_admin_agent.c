@@ -11,26 +11,26 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-15  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
 
 #include "ion.h"
 #include "platform.h"
-#include "../shared/adm/adm_ion_admin.h"
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/blob.h"
+#include "adm_ion_admin.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/blob.h"
 #include "adm_ion_admin_impl.h"
-#include "rda.h"
+#include "agent/rda.h"
 
 
 
 #define _HAVE_DTN_ION_IONADMIN_ADM_
 #ifdef _HAVE_DTN_ION_IONADMIN_ADM_
 
-vec_idx_t g_dtn_ion_ionadmin_idx[11];
+static vec_idx_t g_dtn_ion_ionadmin_idx[11];
 
 void dtn_ion_ionadmin_init()
 {

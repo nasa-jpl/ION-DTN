@@ -334,7 +334,7 @@ if (match == 0)
 	return match;
 }
 
-static void	printRecord(uvast nodeNbr, BpTimestamp *effectiveTime,
+static void	printRecord(uvast nodeNbr, time_t effectiveTime,
 			time_t assertionTime, unsigned short datLength,
 			unsigned char *datValue)
 {
@@ -344,9 +344,8 @@ static void	printRecord(uvast nodeNbr, BpTimestamp *effectiveTime,
 	int	i;
 	int	len;
 
-	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %d %d.%d ",
-			nodeNbr, assertionTime, effectiveTime->seconds,
-			effectiveTime->count);
+	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %lu %lu ",
+			nodeNbr, assertionTime, effectiveTime);
 	cursor += len;
 	bytesRemaining -= len;
 	if (datLength == 0)
@@ -374,7 +373,7 @@ static int	handleBulletin(unsigned char *buffer, int bufSize)
 	unsigned char	*cursor = buffer;
 	int		bytesRemaining = bufSize;
 	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLength;
 	unsigned char	datValue[DTKA_MAX_DATLEN];
@@ -398,11 +397,11 @@ static int	handleBulletin(unsigned char *buffer, int bufSize)
 		}
 
 		recCount++;
-		printRecord(nodeNbr, &effectiveTime, assertionTime, datLength,
+		printRecord(nodeNbr, effectiveTime, assertionTime, datLength,
 				datValue);
 		if (datLength == 0)
 		{
-			if (sec_removePublicKey(nodeNbr, &effectiveTime) < 0)
+			if (sec_removePublicKey(nodeNbr, effectiveTime) < 0)
 			{
 				putErrmsg("Failed handling bulletin.", NULL);
 				MRELEASE(buffer);
@@ -412,7 +411,7 @@ static int	handleBulletin(unsigned char *buffer, int bufSize)
 			continue;
 		}
 
-		if (sec_addPublicKey(nodeNbr, &effectiveTime, assertionTime,
+		if (sec_addPublicKey(nodeNbr, effectiveTime, assertionTime,
 				datLength, datValue) < 0)
 		{
 			putErrmsg("Failed handling bulletin.", NULL);

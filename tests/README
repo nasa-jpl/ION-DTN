@@ -7,15 +7,44 @@ subdirectory of this directory.  Each test is implemented by a script
 named "$TESTNAME/dotest".
 
 
+Exclude files
+~~~~~~~~~~~~~~~~
+
+Exclude files are hidden files that allow for tests to be disabled based
+on certain conditions that may cause the test to not run properly. If an
+exclude file exists, it should have a short message about why the test has
+been excluded.
+
+Exclude files can exist in any of the following formats:
+
+.exclude_OS-TYPE    : Disables a test for an operating system that it does
+		      not run successfully on. Acceptable values to fill in
+		      for OS-TYPE are "windows", "linux", "mac", and "solaris"
+.exclude_BP-VERSION : Disables a test for a version of the bundle protocol
+		      that it does not run correctly or does not make sense
+		      with. As of ION 4.0.0, the acceptable values to fill in
+		      for BP-VERSION are "bpv6" and "bpv7".
+.exclude_all	    : Disables a test for all platforms.
+.exclude_expert     : Disables a test because of additional utilities that are
+		      required for the test. To work around this exclusion if
+		      you want to run an expert test, you can set
+		      ION_RUN_EXPERT="yes" in your shell environment to
+		      enable all ION tests classified as expert.
+.exclude_cbased     : Disables a test that relys on compiling a C program to
+		      generate the dotest executable script. If you want to
+		      exclude C based tests, you need to define the environment
+		      variable ION_EXCLUDE_CBASED.
+
+
 Running the tests
 ~~~~~~~~~~~~~~~~~
 
-The tests are run by running "make test" in the top-level directory,
+The tests are run by running "make test-all" in the top-level directory,
 or by running "runtests" in this directory.
 
-A subset of the tests can also be run:
+An individual test can also be run:
 
-	./runtests xyz a*
+	./runtests test_name
 
 A file defining a set of tests can be run with runtestset.  The arguments
 to runtestset are files that contain globs of tests to run:

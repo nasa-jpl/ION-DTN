@@ -353,11 +353,12 @@ from memory and file system.
 
 =over 4
 
-=item void sdr_begin_xn(Sdr sdr)
+=item int sdr_begin_xn(Sdr sdr)
 
-Initiates a transaction.  Note that transactions are single-threaded;
-any task that calls sdr_begin_xn() is suspended until all previously
-requested transactions have been ended or canceled.
+Initiates a transaction.  Returns 1 on success, 0 on any failure.  Note
+that transactions are single-threaded; any task that calls sdr_begin_xn()
+is suspended until all previously requested transactions have been ended
+or canceled.
 
 =item int sdr_in_xn(Sdr sdr)
 

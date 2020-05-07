@@ -17,6 +17,7 @@
 #include "zco.h"
 #include "rfx.h"
 #include "lyst.h"
+#include <limits.h>
 
 typedef struct
 {

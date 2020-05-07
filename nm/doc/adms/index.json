@@ -1,0 +1,14 @@
+{
+    "namespaces" : 
+    [
+        {"reserved" : true},
+        {"file" : "amp_agent.json", "ns" : "IANA:Amp.Agent", "issuer" : "IANA", "name" : "amp.agent", "uri" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-agent-05"},
+        {"file" : "bp_agent.json", "ns" : "IANA:DTN.bp_agent", "issuer" : "DTN", "name" : "bp.agent", "uri" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-bp-03"},
+        {"file" : "ltp_agent.json", "ns" : "IANA:DTN.ltp_agent", "issuer" : "DTN", "name" : "ltp.agent", "uri" : "http2s://tools.ietf.org/html/draft-birrane-dtn-adm-ltp-01", "comment" : "Verify ns here and below"},
+        {"file" : "ion_bpsec_admin.json", "ns" : "IANA:DTN.bpsec", "issuer" : "IANA", "name" : "bpsec", "url" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-bpsec-01"},
+        {"file" : "ion_bp_admin.json", "ns" : "IANA:DTN.bpadmin", "issuer" : "IANA", "name" : "bpadmin", "url" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-ion-bpadmin-01"},
+        {"file" : "ion_ipn_admin.json", "ns" : "IANA:DTN.ipnadmin", "issuer" : "IANA", "name" : "ipnadmin", "url" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-ion-ipnadmin-00"},
+        {"file" : "ion_admin.json", "ns" : "IANA:DTN.ionadmin", "issuer" : "IANA", "name" : "ion.admin", "uri" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-ionadmin-01", "comment" : "VERIFY: Is name+issuer correct?"},
+        {"file" : "ion_ionsec_admin.json", "ns" : "IANA:DTN.ionsec", "issuer" : "IANA", "name" : "ionsec", "url" : "https://tools.ietf.org/html/draft-birrane-dtn-adm-ionsec-01"}
+    ]
+}

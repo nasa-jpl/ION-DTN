@@ -351,7 +351,7 @@ static void	KillGateway()
 }
 #endif
 
-static void	InterruptGateway()
+static void	InterruptGateway(int signum)
 {
 	isignal(SIGTERM, InterruptGateway);
 	KillGateway();

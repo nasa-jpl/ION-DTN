@@ -1,0 +1,52 @@
+=head1 NAME
+
+crc - ION library for computing several types of checksums.
+
+=head1 SYNOPSIS
+
+    #include "crc.h"
+
+=head1 DESCRIPTION
+
+ION's "crc" library implements functions for computing four types of
+checksums: X.25 (16-bit), bzip2 (32-bit), CRC32 (32-bit), and CRC32C
+(32-bit).
+
+All checksum computation functions were provided by Antara Teknik, LLC.
+
+=over 4
+
+=item uint16_t ion_CRC16_1021_X25(const char *data, uint32_t dLen, uint16_t crc)
+
+Computes the CRC16 value for poly 0x1021.  I<data> points to the data block
+over which the checksum value is to be computed, I<len> must be the length of
+that data block, and I<crc> is the current value of the checksum that is
+being incrementally computed over a multi-block extent of data (zero for
+the first block of this extent, or if this block is the entire extent).
+
+=item uint32_t ion_CRC32_04C11DB7_bzip2(const char *data, uint32_t dLen, uint32_t crc)
+
+Computes the bzip2 CRC32 checksum value for poly 0x04c11db7.  I<data> points
+to the data block over which the checksum value is to be computed, I<len> must
+be the length of that data block, and I<crc> is the current value of the
+checksum that is being incrementally computed over a multi-block extent of
+data (zero for the first block of this extent, or if this block is the entire
+extent).
+
+=item uint32_t ion_CRC32_04C11DB7(const char *data, uint32_t dLen, uint32_t crc)
+
+Computes the ISO-HDLC CRC32 value for poly 0x04c11db7.  I<data> points to the
+data block over which the checksum value is to be computed, I<len> must be the
+length of that data block, and I<crc> is the current value of the checksum
+that is being incrementally computed over a multi-block extent of data (zero
+for the first block of this extent, or if this block is the entire extent).
+
+=item uint32_t ion_CRC32_1EDC6F41_C(const char *data, uint32_t dLen, uint32_t crc)
+
+Computes the CRC32C value for poly 0x1edc6f41.  I<data> points to the data
+block over which the checksum value is to be computed, I<len> must be the
+length of that data block, and I<crc> is the current value of the checksum
+that is being incrementally computed over a multi-block extent of data (zero
+for the first block of this extent, or if this block is the entire extent).
+
+=back

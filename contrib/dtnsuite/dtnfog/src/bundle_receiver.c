@@ -59,6 +59,7 @@ void * bundleReceiving(void * arg) {
 	char * file_name_payload;
 	uint file_name_payload_len;
 	char filename[FILE_NAME];
+	char temp_filename[256];
 
 	int fd, fdNew;
 	char char_read;
@@ -85,20 +86,20 @@ void * bundleReceiving(void * arg) {
 		}
 		printf("Waiting for a bundle...\n");
 
-		utility_error=al_bp_extB_receive(proxy_inf->rd_receive, bundle, location, -1);
+		utility_error=al_bp_extB_receive(proxy_inf->rd_receive, &bundle, location, -1);
 		while (utility_error!= BP_EXTB_SUCCESS) {
 			if(utility_error==BP_EXTB_ERRRECEIVE){
 				break;
 			}
 			printf("Registration busy\n");
-			utility_error=al_bp_extB_receive(proxy_inf->rd_receive, bundle, location, -1);
+			utility_error=al_bp_extB_receive(proxy_inf->rd_receive, &bundle, location, -1);
 		}
 		if(utility_error==BP_EXTB_ERRRECEIVE){
 			break;
 		}
 		printf("Bundle received\n");
 
-		/*utility_error = al_bp_extB_receive(proxy_inf->rd_receive, bundle, location, -1);
+		/*utility_error = al_bp_extB_receive(proxy_inf->rd_receive, &bundle, location, -1);
 		if (utility_error != BP_EXTB_SUCCESS) {
 			error_print("Error in al_bp_bundle_get_file_name_payload_file() (%s)\n", al_bp_strerror(utility_error));
 			al_bp_bundle_free(&bundle);
@@ -134,11 +135,11 @@ void * bundleReceiving(void * arg) {
 				al_bp_bundle_free(&bundle);
 				continue;
 			}
-			strcpy(filename, CLC_DIR);
-			strcat(filename, &source_eid.uri[4]);
-			strcat(filename, "_");
-			strcat(filename, &file_name_payload[5]);
-			sprintf(filename, "%s_%d", filename, index);
+			strcpy(temp_filename, CLC_DIR);
+			strcat(temp_filename, &source_eid.uri[4]);
+			strcat(temp_filename, "_");
+			strcat(temp_filename, &file_name_payload[5]);
+			sprintf(filename, "%s_%d", temp_filename, index);
 			strcat(filename, ".tar");
 
 			fdNew = open(filename, O_WRONLY | O_CREAT, 0700);

@@ -1,0 +1,89 @@
+=head1 NAME
+
+tcpclo - DTN TCPCL-compliant convergence layer adapter output task
+
+=head1 SYNOPSIS
+
+B<tcpclo> I<remote_hostname>[:I<remote_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<tcpclo> is a background "daemon" task that connects to a remote node's
+TCP socket at I<remote_hostname> and I<remote_port_nbr>.  It sends
+a contact header, and it records the acknowledgement flag, reactive
+fragmentation flag and negative acknowledgements flag in the contact
+header it receives from its peer B<tcpcli> task.  It then begins
+extracting bundles from the queues of bundles ready for transmission via
+TCP to this remote bundle protocol agent and transmitting those bundles
+over the connected socket to that node.  Each transmitted bundle is
+preceded by message type, segmentation flags, and an SDNV indicating the
+size of the bundle (in bytes).
+
+If not specified, I<remote_port_nbr> defaults to 4556.
+
+B<tcpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<tcpclo> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the TCP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcpclo> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart the TCPCL protocol.
+
+=item "1"
+
+B<tcpclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart the TCPCL protocol.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item tcpclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such tcp duct.
+
+No TCP outduct with duct name matching I<remote_hostname> and
+I<remote_port_nbr> has been added to the BP database.  Use B<bpadmin> to
+stop the TCP convergence-layer protocol, add the outduct, and then restart the
+TCP protocol.
+
+=item CLO task is already started for this duct.
+
+Redundant initiation of B<tcpclo>.
+
+=item Can't get IP address for host
+
+Operating system error.  Check errtext, correct problem, and restart TCP.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), tcpcli(1)
