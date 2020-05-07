@@ -85,12 +85,12 @@ static int	handleProposedBulletin(Sdr sdr, DtkaAuthDB *db, char *src,
 	int		len;
 	int		recordLength;
 	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	time_t	effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLength;
 	unsigned char	datValue[DTKA_MAX_DATLEN];
 	uvast		priorNodeNbr = 0;
-	BpTimestamp	priorEffTime = { 0, 0 };
+	time_t		priorEffTime = 0;
 
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
 	if (!parsedOkay)
@@ -198,9 +198,7 @@ fflush(stdout);
 
 		if (nodeNbr < priorNodeNbr
 		|| (nodeNbr == priorNodeNbr
-		    && (effectiveTime.seconds < priorEffTime.seconds
-		        || (effectiveTime.seconds == priorEffTime.seconds
-			    && effectiveTime.count < priorEffTime.count))))
+		    && (effectiveTime < priorEffTime)))
 		{
 			isprintf(msgBuffer, sizeof msgBuffer, "Malformed \
 bulletin (order): '%s'.", src);
@@ -222,27 +220,16 @@ bulletin (order): '%s'.", src);
 				break;
 			}
 
-			if (record.effectiveTime.seconds
-					< effectiveTime.seconds)
+			if (record.effectiveTime < effectiveTime)
 			{
 				continue;
 			}
 
-			if (record.effectiveTime.seconds
-					> effectiveTime.seconds)
+			if (record.effectiveTime > effectiveTime)
 			{
 				break;
 			}
 
-			if (record.effectiveTime.count < effectiveTime.count)
-			{
-				continue;
-			}
-
-			if (record.effectiveTime.count > effectiveTime.count)
-			{
-				break;
-			}
 #if DTKA_DEBUG
 puts("\tFound matching record.");
 fflush(stdout);
@@ -278,8 +265,7 @@ fflush(stdout);
 		/*	Now consider the next record in the bulletin.	*/
 
 		priorNodeNbr = nodeNbr;
-		priorEffTime.seconds = effectiveTime.seconds;
-		priorEffTime.count = effectiveTime.count;
+		priorEffTime = effectiveTime;
 
 		/*	Move any residual buffered bytes to the front
 		 *	of the buffer, to be processed as the start
@@ -307,10 +293,9 @@ static void	noteNoConsensus(DtkaRecord *rec)
 	int	i;
 	int	len;
 
-	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %d %d.%d ",
+	len = _isprintf(cursor, bytesRemaining, UVAST_FIELDSPEC " %lu %lu ",
 			rec->nodeNbr, rec->assertionTime,
-			rec->effectiveTime.seconds,
-			rec->effectiveTime.count);
+			rec->effectiveTime);
 	cursor += len;
 	bytesRemaining -= len;
 	if (rec->datLength == 0)
@@ -455,8 +440,7 @@ declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 		recCount++;
 		if (db->hijacked)
 		{
-			rec->effectiveTime.seconds = 0;
-			rec->effectiveTime.count = 0;
+			rec->effectiveTime = 0;
 		}
 
 		recLen = dtka_serialize(cursor, bytesRemaining, rec->nodeNbr,

@@ -42,7 +42,7 @@ static BptestState	*_bptestState(BptestState *newState)
 	return state;
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	BptestState	*state;
 
@@ -219,7 +219,7 @@ int	main(int argc, char **argv)
 	{
 		PUTS("Usage: bssStreamingApp <own endpoint ID> <destination \
 endpoint ID> [<class of service>]");
-		PUTS("\tclass of service: " BP_PARSE_CLASS_OF_SERVICE_USAGE);
+		PUTS("\tclass of service: " BP_PARSE_QUALITY_OF_SERVICE_USAGE);
 		return 0;
 	}
 

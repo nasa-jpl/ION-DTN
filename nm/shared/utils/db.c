@@ -156,7 +156,6 @@ int  db_read_objs(char *name)
 int  db_persist(blob_t *blob, db_desc_t *desc, Object list)
 {
 	Sdr sdr = getIonsdr();
-	int success;
 
 	CHKUSR(blob, AMP_FAIL);
 	CHKUSR(desc, AMP_FAIL);
@@ -505,7 +504,7 @@ void db_destroy()
 }
 
 
-int db_init(char *name)
+int db_init(char *name, void (*adm_init_cb)()) 
 {
 	int success = AMP_FAIL;
 	int num;
@@ -544,13 +543,27 @@ int db_init(char *name)
 	gVDB.nicknames = vec_create(DB_MAX_NN, vec_simple_del, vec_uvast_comp, vec_uvast_copy, 0, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	gVDB.issuers = vec_create(DB_MAX_NN, vec_simple_del, vec_uvast_comp, vec_uvast_copy, 0, &success);
+	gVDB.issuers = vec_create(DB_MAX_NN,
+#if AMP_VERSION < 7
+		vec_simple_del, vec_uvast_comp, vec_uvast_copy,
+#else
+		vec_blob_del, vec_blob_comp, vec_blob_copy,
+#endif
+		0, &success);
 	CHKUSR(success == AMP_OK, success);
 
 	gVDB.tags = vec_create(DB_MAX_NN, vec_blob_del, vec_blob_comp, vec_blob_copy, 0, &success);
 	CHKUSR(success == AMP_OK, success);
 
-	adm_init();
+	adm_common_init();
+	if (adm_init_cb == NULL)
+	{
+		AMP_DEBUG_ERR("vdb_init", "Error: adm_init_cb not registered.", NULL);
+	}
+	else
+	{
+		adm_init_cb();
+	}
 
 
 	success = db_read_objs(name);

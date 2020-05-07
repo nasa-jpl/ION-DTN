@@ -1,0 +1,103 @@
+=head1 NAME
+
+bptrace - Bundle Protocol (BP) network trace utility
+
+=head1 SYNOPSIS
+
+B<bptrace> I<own_endpoint_ID> I<destination_endpoint_ID> I<report-to_endpoint_ID> I<TTL> I<class_of_service> "I<trace_text>" [I<status_report_flags>]
+
+=head1 DESCRIPTION
+
+B<bptrace> uses bp_send() to issue a single bundle to a designated
+destination endpoint, with status reporting options enabled as selected
+by the user, then terminates.  The status reports returned as the bundle
+makes its way through the network provide a view of the operation of the
+network as currently configured.
+
+I<TTL> indicates the number of seconds the trace bundle may remain in the
+network, undelivered, before it is automatically destroyed.
+
+I<class_of_service> is I<custody-requested>.I<priority>[.I<ordinal>[.I<unreliable>.I<critical>[.I<data-label>]]],
+where I<custody-requested> must be 0 or 1 (Boolean), I<priority> must be 0
+(bulk) or 1 (standard) or 2 (expedited), I<ordinal> must be 0-254,
+I<unreliable> must be 0 or 1 (Boolean), I<critical> must also be 0 or 1
+(Boolean), and I<data-label> may be any unsigned integer.  I<custody-requested>
+is passed in with the bundle transmission request, but if set to 1 it serves
+only to request the use of reliable convergence-layer protocols; this will
+have the effect of enabling custody transfer whenever the applicable
+convergence-layer protocol is bundle-in-bundle encapsulation (BIBE).
+I<ordinal> is ignored if I<priority> is not 2.  Setting I<class_of_service> to
+"0.2.254" or "1.2.254" gives a bundle the highest possible priority.  Setting
+I<unreliable> to 1 causes BP to forego convergence-layer retransmission in
+the event of data loss.  Setting I<critical> to 1 causes contact graph routing
+to forward the bundle on all plausible routes rather than just the "best" route
+it computes; this may result in multiple copies of the bundle arriving at the
+destination endpoint, but when used in conjunction with priority 2.254 it
+ensures that the bundle will be delivered as soon as physically possible.
+
+I<trace_text> can be any string of ASCII text; alternatively, if we want to send
+a file, it can be "@" followed by the name of the file.
+
+I<status_report_flags> must be a sequence of status report flags, separated
+by commas, with no embedded whitespace.  Each status report flag must be one
+of the following: rcv, fwd, dlv, del.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bptrace> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bptrace can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item bptrace can't open own endpoint.
+
+Another BP application task currently has I<own_endpoint_ID> open for
+bundle origination and reception.  Try again after that task has terminated.
+If no such task exists, it may have crashed while still holding the endpoint
+open; the easiest workaround is to select a different source endpoint.
+
+=item No space for bptrace text.
+
+Probably an unrecoverable database error, in which case the local ION
+node must be terminated and re-initialized.
+
+=item bptrace can't create ZCO.
+
+Probably an unrecoverable database error, in which case the local ION
+node must be terminated and re-initialized.
+
+=item bptrace can't send message.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bp(3)

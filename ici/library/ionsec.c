@@ -98,22 +98,12 @@ static int	orderKeyRefs(PsmPartition wm, PsmAddress refData,
 
 	/*	Matching node number.					*/
 
-	if (ref->effectiveTime.seconds < argRef->effectiveTime.seconds)
+	if (ref->effectiveTime < argRef->effectiveTime)
 	{
 		return -1;
 	}
 
-	if (ref->effectiveTime.seconds > argRef->effectiveTime.seconds)
-	{
-		return 1;
-	}
-
-	if (ref->effectiveTime.count < argRef->effectiveTime.count)
-	{
-		return -1;
-	}
-
-	if (ref->effectiveTime.count > argRef->effectiveTime.count)
+	if (ref->effectiveTime > argRef->effectiveTime)
 	{
 		return 1;
 	}
@@ -143,8 +133,7 @@ static int	loadPublicKey(PsmPartition wm, PsmAddress rbt, PublicKey *key,
 	ref = (PubKeyRef *) psp(wm, refAddr);
 	CHKERR(ref);
 	ref->nodeNbr = key->nodeNbr;
-	ref->effectiveTime.seconds = key->effectiveTime.seconds;
-	ref->effectiveTime.count = key->effectiveTime.count;
+	ref->effectiveTime = key->effectiveTime;
 	ref->publicKeyElt = elt;
 	if (sm_rbt_insert(wm, rbt, refAddr, orderKeyRefs, ref) == 0)
 	{
@@ -386,7 +375,7 @@ SecVdb	*getSecVdb()
 	return _secvdb(NULL);
 }
 
-static Object	locatePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
+static Object	locatePublicKey(uvast nodeNbr, time_t effectiveTime,
 			PubKeyRef *argRef)
 {
 	SecDB		*secdb = _secConstants();
@@ -404,11 +393,10 @@ static Object	locatePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 	}
 
 	CHKZERO(vdb);
-	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%u.%u", nodeNbr,
-			effectiveTime->seconds, effectiveTime->count);
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", nodeNbr,
+			effectiveTime);
 	argRef->nodeNbr = nodeNbr;
-	argRef->effectiveTime.seconds = effectiveTime->seconds;
-	argRef->effectiveTime.count = effectiveTime->count;
+	argRef->effectiveTime = effectiveTime;
 	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, argRef,
 			&successor);
 	if (rbtNode == 0)
@@ -424,8 +412,8 @@ static Object	locatePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 	return ref->publicKeyElt;
 }
 
-void	sec_findPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
-		Object *keyAddr, Object *eltp)
+void	sec_findPublicKey(uvast nodeNbr, time_t effectiveTime, Object *keyAddr,
+		Object *eltp)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -434,7 +422,6 @@ void	sec_findPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 	/*	This function finds the PublicKey for the specified
 	 *	node and time, if any.					*/
 
-	CHKVOID(effectiveTime);
 	CHKVOID(keyAddr);
 	CHKVOID(eltp);
 	*eltp = 0;
@@ -451,7 +438,7 @@ void	sec_findPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 	*eltp = elt;
 }
 
-int	sec_addPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
+int	sec_addPublicKey(uvast nodeNbr, time_t effectiveTime,
 		time_t assertionTime, int keyLen, unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();
@@ -482,14 +469,12 @@ int	sec_addPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 
 	CHKERR(vdb);
 	CHKERR(nodeNbr > 0);
-	CHKERR(effectiveTime);
 	CHKERR(keyLen > 0);
 	CHKERR(keyValue);
-	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%u.%u", nodeNbr,
-			effectiveTime->seconds, effectiveTime->count);
+	isprintf(keyId, sizeof keyId, UVAST_FIELDSPEC ":%lu", nodeNbr,
+			effectiveTime);
 	argRef.nodeNbr = nodeNbr;
-	argRef.effectiveTime.seconds = effectiveTime->seconds;
-	argRef.effectiveTime.count = effectiveTime->count;
+	argRef.effectiveTime = effectiveTime;
 	CHKERR(sdr_begin_xn(sdr));
 	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, &argRef,
 			&successor);
@@ -503,8 +488,7 @@ int	sec_addPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 	/*	New key may be added.					*/
 
 	newPublicKey.nodeNbr = nodeNbr;
-	newPublicKey.effectiveTime.seconds = effectiveTime->seconds;
-	newPublicKey.effectiveTime.count = effectiveTime->count;
+	newPublicKey.effectiveTime = effectiveTime;
 	newPublicKey.assertionTime = assertionTime;
 	newPublicKey.length = keyLen;
 	newPublicKey.value = sdr_malloc(sdr, keyLen);
@@ -549,7 +533,7 @@ int	sec_addPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
 	return 1;
 }
 
-int	sec_removePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime)
+int	sec_removePublicKey(uvast nodeNbr, time_t effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecVdb		*vdb = getSecVdb();
@@ -558,7 +542,6 @@ int	sec_removePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime)
 	Object		keyObj;
 	PublicKey	publicKey;
 
-	CHKERR(effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	elt = locatePublicKey(nodeNbr, effectiveTime, &argRef);
 	if (elt == 0)
@@ -583,7 +566,7 @@ int	sec_removePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime)
 	return 0;
 }
 
-static Object	locateOwnPublicKey(BpTimestamp *effectiveTime, Object *nextKey)
+static Object	locateOwnPublicKey(time_t effectiveTime, Object *nextKey)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
@@ -607,23 +590,12 @@ static Object	locateOwnPublicKey(BpTimestamp *effectiveTime, Object *nextKey)
 	{
 		GET_OBJ_POINTER(sdr, OwnPublicKey, key,
 				sdr_list_data(sdr, elt));
-		if (key->effectiveTime.seconds < effectiveTime->seconds)
+		if (key->effectiveTime < effectiveTime)
 		{
 			continue;
 		}
 
-		if (key->effectiveTime.seconds > effectiveTime->seconds)
-		{
-			if (nextKey) *nextKey = elt;
-			break;		/*	Same as end of list.	*/
-		}
-
-		if (key->effectiveTime.count < effectiveTime->count)
-		{
-			continue;
-		}
-
-		if (key->effectiveTime.count > effectiveTime->count)
+		if (key->effectiveTime > effectiveTime)
 		{
 			if (nextKey) *nextKey = elt;
 			break;		/*	Same as end of list.	*/
@@ -635,7 +607,7 @@ static Object	locateOwnPublicKey(BpTimestamp *effectiveTime, Object *nextKey)
 	return 0;
 }
 
-int	sec_addOwnPublicKey(BpTimestamp *effectiveTime, int keyLen, 
+int	sec_addOwnPublicKey(time_t effectiveTime, int keyLen, 
 		unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();
@@ -646,11 +618,9 @@ int	sec_addOwnPublicKey(BpTimestamp *effectiveTime, int keyLen,
 	OwnPublicKey	newOwnPublicKey;
 
 	CHKERR(secdb);
-	CHKERR(effectiveTime);
 	CHKERR(keyLen > 0);
 	CHKERR(keyValue);
-	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
-			effectiveTime->count);
+	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	if (locateOwnPublicKey(effectiveTime, &nextKey) != 0)
 	{
@@ -661,8 +631,7 @@ int	sec_addOwnPublicKey(BpTimestamp *effectiveTime, int keyLen,
 
 	/*	New key may be added.					*/
 
-	newOwnPublicKey.effectiveTime.seconds = effectiveTime->seconds;
-	newOwnPublicKey.effectiveTime.count = effectiveTime->count;
+	newOwnPublicKey.effectiveTime = effectiveTime;
 	newOwnPublicKey.length = keyLen;
 	newOwnPublicKey.value = sdr_malloc(sdr, keyLen);
 	keyObj = sdr_malloc(sdr, sizeof(OwnPublicKey));
@@ -693,7 +662,7 @@ int	sec_addOwnPublicKey(BpTimestamp *effectiveTime, int keyLen,
 	return 1;
 }
 
-int	sec_removeOwnPublicKey(BpTimestamp *effectiveTime)
+int	sec_removeOwnPublicKey(time_t effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
@@ -707,9 +676,7 @@ int	sec_removeOwnPublicKey(BpTimestamp *effectiveTime)
 		return 0;
 	}
 
-	CHKERR(effectiveTime);
-	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
-			effectiveTime->count);
+	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	keyElt = locateOwnPublicKey(effectiveTime, NULL);
 	if (keyElt == 0)
@@ -735,7 +702,7 @@ int	sec_removeOwnPublicKey(BpTimestamp *effectiveTime)
 	return 0;
 }
 
-static Object	locatePrivateKey(BpTimestamp *effectiveTime, Object *nextKey)
+static Object	locatePrivateKey(time_t effectiveTime, Object *nextKey)
 {
 	Sdr	sdr = getIonsdr();
 	SecDB	*secdb = _secConstants();
@@ -758,23 +725,12 @@ static Object	locatePrivateKey(BpTimestamp *effectiveTime, Object *nextKey)
 			elt = sdr_list_next(sdr, elt))
 	{
 		GET_OBJ_POINTER(sdr, PrivateKey, key, sdr_list_data(sdr, elt));
-		if (key->effectiveTime.seconds < effectiveTime->seconds)
+		if (key->effectiveTime < effectiveTime)
 		{
 			continue;
 		}
 
-		if (key->effectiveTime.seconds > effectiveTime->seconds)
-		{
-			if (nextKey) *nextKey = elt;
-			break;		/*	Same as end of list.	*/
-		}
-
-		if (key->effectiveTime.count < effectiveTime->count)
-		{
-			continue;
-		}
-
-		if (key->effectiveTime.count > effectiveTime->count)
+		if (key->effectiveTime > effectiveTime)
 		{
 			if (nextKey) *nextKey = elt;
 			break;		/*	Same as end of list.	*/
@@ -786,7 +742,7 @@ static Object	locatePrivateKey(BpTimestamp *effectiveTime, Object *nextKey)
 	return 0;
 }
 
-int	sec_addPrivateKey(BpTimestamp *effectiveTime, int keyLen,
+int	sec_addPrivateKey(time_t effectiveTime, int keyLen,
 		unsigned char *keyValue)
 {
 	Sdr		sdr = getIonsdr();
@@ -797,11 +753,9 @@ int	sec_addPrivateKey(BpTimestamp *effectiveTime, int keyLen,
 	OwnPublicKey	newPrivateKey;
 
 	CHKERR(secdb);
-	CHKERR(effectiveTime);
 	CHKERR(keyLen > 0);
 	CHKERR(keyValue);
-	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
-			effectiveTime->count);
+	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	if (locatePrivateKey(effectiveTime, &nextKey) != 0)
 	{
@@ -812,8 +766,7 @@ int	sec_addPrivateKey(BpTimestamp *effectiveTime, int keyLen,
 
 	/*	New key may be added.					*/
 
-	newPrivateKey.effectiveTime.seconds = effectiveTime->seconds;
-	newPrivateKey.effectiveTime.count = effectiveTime->count;
+	newPrivateKey.effectiveTime = effectiveTime;
 	newPrivateKey.length = keyLen;
 	newPrivateKey.value = sdr_malloc(sdr, keyLen);
 	keyObj = sdr_malloc(sdr, sizeof(PrivateKey));
@@ -844,7 +797,7 @@ int	sec_addPrivateKey(BpTimestamp *effectiveTime, int keyLen,
 	return 1;
 }
 
-int	sec_removePrivateKey(BpTimestamp *effectiveTime)
+int	sec_removePrivateKey(time_t effectiveTime)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = _secConstants();
@@ -858,9 +811,7 @@ int	sec_removePrivateKey(BpTimestamp *effectiveTime)
 		return 0;
 	}
 
-	CHKERR(effectiveTime);
-	isprintf(keyId, sizeof keyId, ":%lu.%lu", effectiveTime->seconds,
-			effectiveTime->count);
+	isprintf(keyId, sizeof keyId, ":%lu", effectiveTime);
 	CHKERR(sdr_begin_xn(sdr));
 	keyElt = locatePrivateKey(effectiveTime, NULL);
 	if (keyElt == 0)
@@ -886,7 +837,7 @@ int	sec_removePrivateKey(BpTimestamp *effectiveTime)
 	return 0;
 }
 
-int	sec_get_public_key(uvast nodeNbr, BpTimestamp *effectiveTime,
+int	sec_get_public_key(uvast nodeNbr, time_t effectiveTime,
 		int *keyBufferLen, unsigned char *keyValueBuffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -907,13 +858,11 @@ int	sec_get_public_key(uvast nodeNbr, BpTimestamp *effectiveTime,
 	}
 
 	CHKERR(vdb);
-	CHKERR(effectiveTime);
 	CHKERR(keyBufferLen);
 	CHKERR(*keyBufferLen > 0);
 	CHKERR(keyValueBuffer);
 	argRef.nodeNbr = nodeNbr;
-	argRef.effectiveTime.seconds = effectiveTime->seconds;
-	argRef.effectiveTime.count = effectiveTime->count;
+	argRef.effectiveTime = effectiveTime;
 	CHKERR(sdr_begin_xn(sdr));
 	rbtNode = sm_rbt_search(wm, vdb->publicKeys, orderKeyRefs, &argRef,
 			&successor);
@@ -964,7 +913,7 @@ int	sec_get_public_key(uvast nodeNbr, BpTimestamp *effectiveTime,
 	return publicKey.length;
 }
 
-int	sec_get_own_public_key(BpTimestamp *effectiveTime, int *keyBufferLen,
+int	sec_get_own_public_key(time_t effectiveTime, int *keyBufferLen,
 		unsigned char *keyValueBuffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -979,7 +928,6 @@ int	sec_get_own_public_key(BpTimestamp *effectiveTime, int *keyBufferLen,
 		return 0;
 	}
 
-	CHKERR(effectiveTime);
 	CHKERR(keyBufferLen);
 	CHKERR(*keyBufferLen > 0);
 	CHKERR(keyValueBuffer);
@@ -1023,7 +971,7 @@ int	sec_get_own_public_key(BpTimestamp *effectiveTime, int *keyBufferLen,
 	return ownPublicKey.length;
 }
 
-int	sec_get_private_key(BpTimestamp *effectiveTime, int *keyBufferLen,
+int	sec_get_private_key(time_t effectiveTime, int *keyBufferLen,
 		unsigned char *keyValueBuffer)
 {
 	Sdr		sdr = getIonsdr();
@@ -1038,7 +986,6 @@ int	sec_get_private_key(BpTimestamp *effectiveTime, int *keyBufferLen,
 		return 0;
 	}
 
-	CHKERR(effectiveTime);
 	CHKERR(keyBufferLen);
 	CHKERR(*keyBufferLen > 0);
 	CHKERR(keyValueBuffer);
@@ -1129,8 +1076,8 @@ void	sec_findKey(char *keyName, Object *keyAddr, Object *eltp)
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 
-	/*	This function finds the SecKey for the specified
-	 *	node, if any.						*/
+	/*	This function finds the SecKey identified by the
+	 *	specified name, if any.					*/
 
 	CHKVOID(keyName);
 	CHKVOID(keyAddr);

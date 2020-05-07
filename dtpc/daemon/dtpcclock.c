@@ -28,7 +28,7 @@ static uaddr	_running(uaddr *newValue)
 	return state;
 }
 
-static void	shutDown()	/*	Commands dtpcclock termination.	*/
+static void	shutDown(int signum)	/*	Stops dtpcclock.	*/
 {
 	uaddr	stop = 0;
 

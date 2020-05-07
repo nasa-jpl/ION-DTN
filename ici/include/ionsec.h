@@ -36,14 +36,14 @@ typedef struct
 
 typedef struct
 {
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 	int		length;
 	Object		value;
 } OwnPublicKey;
 
 typedef struct
 {
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 	int		length;
 	Object		value;
 } PrivateKey;
@@ -51,7 +51,7 @@ typedef struct
 typedef struct
 {
 	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 	time_t		assertionTime;
 	int		length;
 	Object		value;
@@ -60,7 +60,7 @@ typedef struct
 typedef struct
 {
 	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 	Object		publicKeyElt;	/*	Ref. to PublicKey.	*/
 } PubKeyRef;				/*	Not used for Own keys.	*/
 
@@ -89,19 +89,19 @@ extern int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
 
 /*	*	Functions for managing public keys.			*/
 
-extern void	sec_findPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
+extern void	sec_findPublicKey(uvast nodeNbr, time_t effectiveTime,
 			Object *keyAddr, Object *eltp);
-extern int	sec_addPublicKey(uvast nodeNbr, BpTimestamp *effectiveTime,
+extern int	sec_addPublicKey(uvast nodeNbr, time_t effectiveTime,
 			time_t assertionTime, int datLen, unsigned char *data);
-extern int	sec_removePublicKey(uvast nodeNbr, BpTimestamp *effectiveTime);
-extern int	sec_addOwnPublicKey(BpTimestamp *effectiveTime, int datLen,
+extern int	sec_removePublicKey(uvast nodeNbr, time_t effectiveTime);
+extern int	sec_addOwnPublicKey(time_t effectiveTime, int datLen,
 			unsigned char *data);
-extern int	sec_removeOwnPublicKey(BpTimestamp *effectiveTime);
-extern int	sec_addPrivateKey(BpTimestamp *effectiveTime, int datLen,
+extern int	sec_removeOwnPublicKey(time_t effectiveTime);
+extern int	sec_addPrivateKey(time_t effectiveTime, int datLen,
 			unsigned char *data);
-extern int	sec_removePrivateKey(BpTimestamp *effectiveTime);
+extern int	sec_removePrivateKey(time_t effectiveTime);
 
-extern int	sec_get_public_key(uvast nodeNbr, BpTimestamp *effectiveTime,
+extern int	sec_get_public_key(uvast nodeNbr, time_t effectiveTime,
 			int *datBufferLen, unsigned char *datBuffer);
 		/*	Retrieves the value of the public key that
 		 *	was valid at "effectiveTime" for the node
@@ -120,8 +120,8 @@ extern int	sec_get_public_key(uvast nodeNbr, BpTimestamp *effectiveTime,
 		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
-extern int	sec_get_own_public_key(BpTimestamp *effectiveTime,
-			int *datBufferLen, unsigned char *datBuffer);
+extern int	sec_get_own_public_key(time_t effectiveTime, int *datBufferLen,
+			unsigned char *datBuffer);
 		/*	Retrieves the value of the public key that was
 		 *	valid at "effectiveTime" for the local node.
 		 *	The value is written into datBuffer unless
@@ -137,8 +137,8 @@ extern int	sec_get_own_public_key(BpTimestamp *effectiveTime,
 		 *	value in *datBufferLen unchanged.  On
 		 *	system failure returns -1.			*/
 
-extern int	sec_get_private_key(BpTimestamp *effectiveTime,
-			int *datBufferLen, unsigned char *datBuffer);
+extern int	sec_get_private_key(time_t effectiveTime, int *datBufferLen,
+			unsigned char *datBuffer);
 		/*	Retrieves the value of the private key that was
 		 *	valid at "effectiveTime" for the local node.
 		 *	The value is written into datBuffer unless

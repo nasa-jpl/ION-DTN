@@ -30,6 +30,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+
 /**
  * Auxiliary functions for clean thread exit
  */
@@ -49,3 +50,14 @@ void signal_to_main(pthread_mutex_t mutex, pthread_cond_t cond) {
 	pthread_cond_signal(&cond);
 	pthread_mutex_unlock(&mutex);
 }
+
+int numberOfChar(char toFind, char * address){ //tullini
+	int n=1,i=0;
+	while(address[i]!='\0'){
+		if(address[i]==toFind) n++;
+		i++;
+	}
+	return n;
+}
+
+

@@ -1121,6 +1121,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CfdpDB		db;
 	Object		elt;
 			OBJ_POINTER(Entity, entity);
+	CfdpHandler	handler;
 	char		sourceFileBuf[MAXPATHLEN + 1];
 	int		sourceFile;
 	vast		fileSize;
@@ -1128,7 +1129,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	vast		progress;
 	int		recordLength;
 	unsigned int	checksum = 0;
-	CfdpHandler	handler;
 	Object		pduObj;
 	FileDataPdu	pdu;
 	int		lengthRemaining;
@@ -1191,7 +1191,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		return 0;
 	}
 
-	fdu.ckType = CksumTypeUnknown;
+	fdu.ckType = ModularChecksum;	/*	Default.		*/
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(CfdpDB));
 	for (elt = sdr_list_first(sdr, db.entities); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1199,7 +1199,20 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		GET_OBJ_POINTER(sdr, Entity, entity, sdr_list_data(sdr, elt));
 		if (entity->entityId == destinationEntityId)
 		{
-			fdu.ckType = entity->outCkType;
+			if (ckTypeOkay(entity->outCkType))
+			{
+				fdu.ckType = entity->outCkType;
+			}
+			else
+			{
+				if (handleFault(&fdu.transactionId,
+					CfdpUnsupportedChecksumType,
+					&handler) < 0)
+				{
+					putErrmsg("No fault handler.", NULL);
+				}
+			}
+
 			break;
 		}
 	}
@@ -1290,18 +1303,10 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		if (truncatedFileSize == fileSize)
 		{
 			fdu.largeFile = 0;
-			if (fdu.ckType == CksumTypeUnknown)
-			{
-				fdu.ckType = ModularChecksum;
-			}
 		}
 		else
 		{
 			fdu.largeFile = 1;
-			if (fdu.ckType == CksumTypeUnknown)
-			{
-				fdu.ckType = CRC32;
-			}
 		}
 
 		fdu.fileDataPdus = sdr_list_create(sdr);

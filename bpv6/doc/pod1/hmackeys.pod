@@ -1,0 +1,77 @@
+=head1 NAME
+
+hmackeys - utility program for generating good HMAC-SHA1 keys
+
+=head1 SYNOPSIS
+
+B<hmackeys> [ I<keynames_filename> ]
+
+=head1 DESCRIPTION
+
+B<hmackeys> writes files containing randomized 160-bit key values suitable
+for use by HMAC-SHA1 in support of Bundle Authentication Block processing,
+Bundle Relay Service connections, or other functions for which symmetric
+hash computation is applicable.  One file is written for each key name
+presented to I<hmackeys>; the content of each file is 20 consecutive randomly
+selected 8-bit integer values, and the name given to each file is simply
+"I<keyname>.hmk".
+
+B<hmackeys> operates in response to the key names found in the file
+I<keynames_filename>, one name per file text line, if provided; if not,
+B<hmackeys> prints a simple prompt (:) so that the user may type key names
+directly into standard input.
+
+When the program is run in interactive mode, either enter 'q' or press ^C to
+terminate.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+Completion of key generation.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item hmackeys
+
+Enter interactive HMAC/SHA1 key generation mode.
+
+=item hmackeys host1.keynames
+
+Create a key file for each key name in I<host1.keynames>, then terminate
+immediately.
+
+=back
+
+=head1 FILES
+
+No other files are used in the operation of I<hmackeys>.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the logfile ion.log:
+
+=over 4
+
+=item Can't open keynames file...
+
+The I<keynames_filename> specified in the command line doesn't exist.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+brsscla(1), ionsecadmin(1)

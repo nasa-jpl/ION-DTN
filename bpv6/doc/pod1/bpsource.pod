@@ -1,0 +1,91 @@
+=head1 NAME
+
+bpsource - Bundle Protocol transmission test shell
+
+=head1 SYNOPSIS
+
+B<bpsource> I<destinationEndpointId> ["I<text>"] [-tI<TTL>]
+
+=head1 DESCRIPTION
+
+When I<text> is supplied, B<bpsource> simply uses Bundle Protocol
+to send I<text> to a counterpart B<bpsink> application task that
+has opened the BP endpoint identified by I<destinationEndpointId>, then
+terminates.
+
+
+Otherwise, B<bpsource> offers the user an interactive "shell" for testing
+Bundle Protocol data transmission.  B<bpsource> prints a prompt string (": ")
+to stdout, accepts a string of text from stdin, uses Bundle Protocol
+to send the string to a counterpart B<bpsink> application task that
+has opened the BP endpoint identified by I<destinationEndpointId>, then
+prints another prompt string and so on.  To terminate the program, enter
+a string consisting of a single exclamation point (!) character.
+
+I<TTL> indicates the number of seconds the bundles may remain in the
+network, undelivered, before they are automatically destroyed. If omitted, I<TTL>
+defaults to 300 seconds.
+
+The source endpoint ID for each bundle sent by B<bpsource> is the null
+endpoint ID, i.e., the bundles are anonymous.  All bundles are sent standard
+priority with no custody transfer and no status reports requested.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpsource> has terminated.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+The service data units transmitted by B<bpsource> are sequences of text
+obtained from a file in the current working directory named "bpsourceAduFile",
+which B<bpsource> creates automatically.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<bpsource> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item bpsource fgets failed
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item No space for ZCO extent.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't create ZCO extent.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item bpsource can't send ADU
+
+Bundle Protocol service to the remote endpoint has been stopped.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bpsink(1), bp(3)

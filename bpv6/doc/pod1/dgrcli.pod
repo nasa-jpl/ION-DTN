@@ -1,0 +1,92 @@
+=head1 NAME
+
+dgrcli - DGR-based BP convergence layer reception task
+
+=head1 SYNOPSIS
+
+B<dgrcli> I<local_hostname>[:I<local_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<dgrcli> is a background "daemon" task that handles DGR convergence layer
+protocol input.
+
+The daemon receives DGR messages via a UDP socket bound to
+I<local_hostname> and I<local_port_nbr>, extracts bundles from those
+messages, and passes them to the bundle protocol agent on the local ION node.
+(I<local_port_nbr> defaults to 1113 if not specified.)
+
+B<dgrcli> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<dgrcli> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the DGR convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dgrcli> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<dgrcli>.
+
+=item "1"
+
+B<dgrcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<dgrcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dgrcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such dgr induct.
+
+No DGR induct with duct name matching I<local_hostname> and I<local_port_nbr>
+has been added to the BP database.  Use B<bpadmin> to stop the DGR
+convergence-layer protocol, add the induct, and then restart the DGR protocol.
+
+=item CLI task is already started for this engine.
+
+Redundant initiation of B<dgrcli>.
+
+=item Can't get IP address for host
+
+Operating system error.  Check errtext, correct problem, and restart DGR.
+
+=item dgrcli can't open DGR service access point.
+
+DGR system error.  Check prior messages in B<ion.log> log file, correct
+problem, and then stop and restart the DGR protocol.
+
+=item dgrcli can't create receiver thread
+
+Operating system error.  Check errtext, correct problem, and restart DGR.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5)

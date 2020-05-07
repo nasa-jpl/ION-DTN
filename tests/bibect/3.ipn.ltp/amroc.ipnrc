@@ -1,0 +1,3 @@
+a plan 2 stcp/127.0.0.1:5002
+a plan 4 ltp/4
+a exit 1 1 ipn:2.0

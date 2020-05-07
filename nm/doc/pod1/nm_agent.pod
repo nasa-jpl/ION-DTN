@@ -1,0 +1,19 @@
+=head1 NAME
+
+nm_agent - Network Management Agent implementing the Asynchronous Management Protocol (AMP)
+
+=head1 SYNOPSIS
+
+B<nm_agent> <agent eid> I<manager eid>
+
+=head1 DESCRIPTION
+
+Starts the network management agent listening on I<agent eid> and communicating with a remote
+ manager at I<manager eid>
+
+
+=head1 SEE ALSO
+
+L<Asynchronous Management Protocol|https://datatracker.ietf.org/doc/draft-birrane-dtn-amp/>
+
+nm_mgr(1)

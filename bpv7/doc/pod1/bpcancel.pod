@@ -1,0 +1,70 @@
+=head1 NAME
+
+bpcancel - Bundle Protocol (BP) bundle cancellation utility
+
+=head1 SYNOPSIS
+
+B<bpcancel> I<source_EID> I<creation_seconds> [I<creation_count> [I<fragment_offset> [I<fragment_length>]]]
+
+=head1 DESCRIPTION
+
+B<bpcancel> attempts to locate the bundle identified by the command-line
+parameter values and cancel transmission of this bundle.  Bundles for which
+multiple copies have been queued for transmission can't be canceled, because
+one or more of those copies might already have been transmitted.  Transmission
+of a bundle that has never been cloned and that is still in local bundle
+storage is cancelled by simulation of an immediate time-to-live expiration.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpcancel> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item bpcancel failed finding bundle.
+
+The attempt to locate the subject bundle failed due to some serious system
+error.  It will probably be necessary to terminate and re-initialize the
+local ION node.
+
+=item bpcancel failed destroying bundle.
+
+Probably an unrecoverable database error, in which case the local ION
+node must be terminated and re-initialized.
+
+=item bpcancel failed.
+
+Probably an unrecoverable database error, in which case the local ION
+node must be terminated and re-initialized.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bplist(1)

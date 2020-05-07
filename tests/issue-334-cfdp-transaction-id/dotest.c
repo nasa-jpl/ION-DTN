@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 	int ret;
 
 	ionstop();
-	sleep(15);
+	sleep(30);
 
 	/* Start ION */
 	printf("Starting ION...\n");
@@ -89,6 +89,7 @@ int main(int argc, char **argv)
 	writeErrmsgMemos();
 	_xadmin("cfdpadmin", "", ".");
 	ionstop();
+	sleep(30);
 
 	/*Fail on ION start/stop errors*/
 	if(check_summary(argv[0])==1){

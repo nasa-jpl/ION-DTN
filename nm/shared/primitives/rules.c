@@ -193,9 +193,16 @@ rule_t*  rule_deserialize_helper(QCBORDecodeContext *array_it, int *success)
 	sbr_def_t as_sbr;
 	tbr_def_t as_tbr;
 
+#if AMP_VERSION < 7
 	blob_t *tmp = blob_deserialize_ptr(array_it, success);
 	id = ari_deserialize_raw(tmp, success);
 	blob_release(tmp, 1);
+#else
+	QCBORDecode_StartOctets(array_it);
+	id = ari_deserialize_ptr(array_it, success);
+	QCBORDecode_EndOctets(array_it);
+#endif
+	
 	if(*success != AMP_OK)
 	{
 		return result;
@@ -216,10 +223,16 @@ rule_t*  rule_deserialize_helper(QCBORDecodeContext *array_it, int *success)
 		as_tbr = tbrdef_deserialize(array_it, success);
 	}
 
+#if AMP_VERSION < 7
 	tmp = blob_deserialize_ptr(array_it, success);
 	action = ac_deserialize_raw(tmp, success);
 	blob_release(tmp, 1);
-
+#else
+	QCBORDecode_StartOctets(array_it);
+	action = ac_deserialize(array_it, success);
+	QCBORDecode_EndOctets(array_it);
+#endif
+	
 	if(*success != AMP_OK)
 	{
 		ari_release(id, 1);
@@ -262,7 +275,6 @@ rule_t*  rule_deserialize_helper(QCBORDecodeContext *array_it, int *success)
 rule_t*  rule_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	QCBORItem item;
-	size_t length = 0;
 	rule_t *result = NULL;
 	QCBORError err;
 
@@ -277,6 +289,7 @@ rule_t*  rule_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	 * Make sure we are in a container. All rules are captured as
 	 * arrays.
 	 */
+#if AMP_VERSION < 7
 	err = QCBORDecode_GetNext(it, &item);
 	if (err != QCBOR_SUCCESS || item.uDataType != QCBOR_TYPE_ARRAY)
 	{
@@ -292,9 +305,16 @@ rule_t*  rule_deserialize_ptr(QCBORDecodeContext *it, int *success)
 						   item.val.uCount);
 		return NULL;
 	}
-
+#else // virtual array (octets)
+	QCBORDecode_StartOctets(it);
+#endif
+	
 	result = rule_deserialize_helper(it, success);
 
+#if AMP_VERSION >= 7
+	QCBORDecode_EndOctets(it);
+#endif
+	
 	return result;
 }
 
@@ -328,7 +348,6 @@ rule_t* rule_deserialize_raw(blob_t *data, int *success)
 rule_t*  rule_db_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	QCBORItem item;
-	size_t length = 0;
 	rule_t *result = NULL;
 	QCBORError err;
 
@@ -339,6 +358,7 @@ rule_t*  rule_db_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	*success = AMP_FAIL;
 	CHKNULL(it);
 
+#if AMP_VERSION < 7
 	/*
 	 * Make sure we are in a container. All rules are captured as
 	 * arrays.
@@ -358,9 +378,15 @@ rule_t*  rule_db_deserialize_ptr(QCBORDecodeContext *it, int *success)
 						   item.val.uCount);
 		return NULL;
 	}
-
+#else // virtual array (octets)
+	QCBORDecode_StartOctets(it);
+#endif
 
 	result = rule_deserialize_helper(it, success);
+
+#if AMP_VERSION >= 7
+	QCBORDecode_EndOctets(it);
+#endif
 
 	if((*success != AMP_OK) || (result == NULL))
 	{
@@ -434,12 +460,16 @@ int rule_db_serialize(QCBOREncodeContext *encoder, void *item)
 	/* Start a container. */
 	//length = (rule->id.type == AMP_TYPE_SBR) ? 8 : 7;
 	QCBOREncode_OpenArray(encoder);
-
+	
 	/* Step 1: Encode the rule definition. */
 	err = rule_serialize_helper(encoder, rule);
 	if(err != AMP_OK)
 	{
+#if AMP_VERSION < 7
 	   QCBOREncode_CloseArray(encoder);
+#else
+	   QCBOREncode_CloseArrayOctet(encoder);
+#endif
 	   return err;
 	}
 
@@ -450,8 +480,11 @@ int rule_db_serialize(QCBOREncodeContext *encoder, void *item)
 
 	/* Step 3:Encode the flag byte. */
 	err = cut_enc_byte(encoder, rule->flags);
-
+#if AMP_VERSION < 7
 	QCBOREncode_CloseArray(encoder);
+#else
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
 	return err;
 }
 
@@ -489,14 +522,17 @@ int rule_serialize(QCBOREncodeContext *encoder, void *item)
 	CHKUSR(encoder, AMP_FAIL);
 	CHKUSR(rule, AMP_FAIL);
 
-
 	/* Start a container. */
 	//length = (rule->id.type == AMP_TYPE_SBR) ? 6 : 5;
 	QCBOREncode_OpenArray(encoder);
-
+	
 	err = rule_serialize_helper(encoder, rule);
 
+#if AMP_VERSION < 7
 	QCBOREncode_CloseArray(encoder);
+#else
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
 	return err;
 }
 
@@ -506,10 +542,16 @@ int rule_serialize_helper(QCBOREncodeContext *array_enc, rule_t *rule)
 	blob_t *result;
 
 	/* Step 1: Encode the ARI. */
+#if AMP_VERSION < 7
 	result = ari_serialize_wrapper(&(rule->id));
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(array_enc);
+	err = ari_serialize(array_enc, &(rule->id));
+	QCBOREncode_CloseArrayOctet(array_enc);
+#endif
+	
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("rule_serialize_helper","CBOR Error: %d", err);
@@ -536,10 +578,15 @@ int rule_serialize_helper(QCBOREncodeContext *array_enc, rule_t *rule)
 	}
 
 	/* Step 4: Encode the action. */
+#if AMP_VERSION < 7
 	result = ac_serialize_wrapper(&(rule->action));
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(array_enc);
+	err = ac_serialize(array_enc, &(rule->action));
+	QCBOREncode_CloseArrayOctet(array_enc);
+#endif
 	return err;
 }
 
@@ -576,18 +623,24 @@ sbr_def_t sbrdef_deserialize(QCBORDecodeContext *array_it, int *success)
 {
 	sbr_def_t result;
 
-	// TODO: Clean this up, very messy.
+#if AMP_VERSION < 7
 	blob_t *tmp = blob_deserialize_ptr(array_it, success);
 	expr_t *e = expr_deserialize_raw(tmp, success);
+	blob_release(tmp, 1);
+#else
+	QCBORDecode_StartOctets(array_it);
+	expr_t *e = expr_deserialize_ptr(array_it, success);
+	QCBORDecode_EndOctets(array_it);
+#endif
+
 	result.expr = *e;
 	SRELEASE(e); // Just release container since we shallow-copied contents.
-	blob_release(tmp, 1);
 
 	if(*success != AMP_OK)
 	{
 		return result;
 	}
-
+	
 	*success = cut_get_cbor_numeric(array_it, AMP_TYPE_UVAST, &(result.max_eval));
 	if(*success != AMP_OK)
 	{
@@ -610,10 +663,16 @@ int sbrdef_serialize(QCBOREncodeContext *array_enc, sbr_def_t *def)
 	blob_t *result;
 
 	/* Step 1: Encode the Expr. */
+#if AMP_VERSION < 7
 	result = expr_serialize_wrapper(&(def->expr));
 	err = blob_serialize(array_enc, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(array_enc);
+	err = expr_serialize(array_enc, &(def->expr));
+	QCBOREncode_CloseArrayOctet(array_enc);
+#endif
+	
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("sbrdef_serialize","CBOR Error: %d", err);

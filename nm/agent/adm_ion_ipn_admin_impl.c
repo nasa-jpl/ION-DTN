@@ -11,17 +11,17 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-18  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
 /*   START CUSTOM INCLUDES HERE  */
-#include "bp/ipn/ipnfw.h"
+#include "ipn/ipnfw.h"
 
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/adm/adm.h"
+#include "shared/adm/adm.h"
 #include "adm_ion_ipn_admin_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
@@ -259,7 +259,7 @@ tnv_t *dtn_ion_ipnadmin_get_ion_version(tnvc_t *parms)
 /* Control Functions */
 
 /*
- * This control establishes an "exit" for static default routing.
+ * This control establishes an exit for static default routing.
  */
 tnv_t *dtn_ion_ipnadmin_ctrl_exit_add(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {

@@ -1,0 +1,87 @@
+=head1 NAME
+
+bpecho - Bundle Protocol reception test program
+
+=head1 SYNOPSIS
+
+B<bpecho> I<ownEndpointId>
+
+=head1 DESCRIPTION
+
+B<bpecho> uses Bundle Protocol to receive application data units
+from a remote B<bpdriver> application task.  In response to each
+received application data unit it sends back an "echo" application data
+unit of length 2, the NULL-terminated string "x".
+
+B<bpecho> terminates upon receiving the SIGQUIT signal, i.e., ^C from the
+keyboard.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpecho> has terminated normally.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=item "1"
+
+B<bpecho> has terminated due to a BP reception failure.  Details should be
+noted in the B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<bpecho> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item Can't open own endpoint.
+
+Another application has already opened I<ownEndpointId>.  Terminate that
+application and rerun.
+
+=item bpecho bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item No space for ZCO extent.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't create ZCO.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item bpecho can't send echo bundle.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bpdriver(1), bpcounter(1), bp(3)

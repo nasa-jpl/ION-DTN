@@ -1,0 +1,90 @@
+=head1 NAME
+
+ltpcli - LTP-based BP convergence layer input task
+
+=head1 SYNOPSIS
+
+B<ltpcli> I<local_node_nbr>
+
+=head1 DESCRIPTION
+
+B<ltpcli> is a background "daemon" task that receives LTP data transmission
+blocks, extracts bundles from the received blocks, and passes them to the
+bundle protocol agent on the local ION node.
+
+B<ltpcli> is spawned automatically by B<bpadmin> in response to the 's'
+(START) command that starts operation of the Bundle Protocol; the text
+of the command that is used to spawn the task must be provided at the
+time the "ltp" convergence layer protocol is added to the BP database.
+The convergence layer input task is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.  B<ltpcli> can also be spawned and
+terminated in response to START and STOP commands that pertain specifically
+to the LTP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ltpcli> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<ltpcli>.
+
+=item "1"
+
+B<ltpcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<ltpcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item ltpcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such ltp duct.
+
+No LTP induct matching I<local_node_nbr> has been added to the BP
+database.  Use B<bpadmin> to stop the LTP convergence-layer protocol,
+add the induct, and then restart the LTP protocol.
+
+=item CLI task is already started for this duct.
+
+Redundant initiation of B<ltpcli>.
+
+=item ltpcli can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP operations.
+
+=item ltpcli can't open client access.
+
+Another task has already opened the client service for BP over LTP.
+
+=item ltpcli can't create receiver thread
+
+Operating system error.  Check errtext, correct problem, and restart LTP.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), ltpadmin(1), ltprc(5), ltpclo(1)

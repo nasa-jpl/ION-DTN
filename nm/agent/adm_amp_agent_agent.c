@@ -11,30 +11,29 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-11  AUTO             Auto-generated c file 
+ **  2020-04-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
 
 #include "ion.h"
 #include "platform.h"
-#include "../shared/adm/adm_amp_agent.h"
-#include "../shared/utils/utils.h"
-#include "../shared/primitives/report.h"
-#include "../shared/primitives/blob.h"
+#include "adm_amp_agent.h"
+#include "shared/utils/utils.h"
+#include "shared/primitives/report.h"
+#include "shared/primitives/blob.h"
 #include "adm_amp_agent_impl.h"
-#include "rda.h"
+#include "agent/rda.h"
 
 
 
 #define _HAVE_AMP_AGENT_ADM_
 #ifdef _HAVE_AMP_AGENT_ADM_
 
-vec_idx_t g_amp_agent_idx[11];
+//vec_idx_t g_amp_agent_idx[11];
 
 void amp_agent_init()
 {
-
 	adm_add_adm_info("amp_agent", ADM_ENUM_AMP_AGENT);
 
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_OPER_IDX), &(g_amp_agent_idx[ADM_OPER_IDX]));
@@ -43,7 +42,6 @@ void amp_agent_init()
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_EDD_IDX), &(g_amp_agent_idx[ADM_EDD_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_CTRL_IDX), &(g_amp_agent_idx[ADM_CTRL_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_META_IDX), &(g_amp_agent_idx[ADM_META_IDX]));
-	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_MAC_IDX), &(g_amp_agent_idx[ADM_MAC_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_TBLT_IDX), &(g_amp_agent_idx[ADM_TBLT_IDX]));
 	VDB_ADD_NN(((ADM_ENUM_AMP_AGENT * 20) + ADM_VAR_IDX), &(g_amp_agent_idx[ADM_VAR_IDX]));
 
@@ -194,14 +192,6 @@ void amp_agent_init_ctrl()
 void amp_agent_init_mac()
 {
 
-	macdef_t *def = NULL;
-
-
-	/* USER_DESC */
-	def = macdef_create(2, adm_build_ari(AMP_TYPE_MAC, 1, g_amp_agent_idx[ADM_MAC_IDX], AMP_AGENT_MAC_USER_DESC));
-	adm_add_macdef_ctrl(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_CTRL, g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DESC_RPTT, tnv_from_map(AMP_TYPE_UINT, 0)));
-	adm_add_macdef_ctrl(def, ADM_BUILD_ARI_PARM_1(AMP_TYPE_CTRL, g_amp_agent_idx[ADM_CTRL_IDX], AMP_AGENT_CTRL_DESC_RULE, tnv_from_map(AMP_TYPE_UINT, 1)));
-	adm_add_macdef(def);
 }
 
 void amp_agent_init_rpttpl()

@@ -100,7 +100,7 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 		case LLCV_POLL:
 			errno = ETIMEDOUT;
 			result = -1;
-			break;
+			break;		/*	Out of switch.		*/
 
 		case LLCV_BLOCKING:
 			/*	Atomically, unlock the mutex and wait
@@ -116,7 +116,7 @@ int	llcv_wait(Llcv llcv, LlcvPredicate condition, int usec)
 				result = -1;
 			}
 
-			break;
+			break;		/*	Out of switch.		*/
 
 		default:
 			getCurrentTime(&workTime);
@@ -150,6 +150,8 @@ pthread_cond error", itoa(usec));
 
 				result = -1;
 			}
+
+			break;		/*	Out of switch.		*/
 		}
 	}
 
@@ -169,8 +171,7 @@ void	llcv_signal(Llcv llcv, LlcvPredicate condition)
 	if (llcv->mutex_initialized != 1
 	|| llcv->mutex_address != &llcv->mutex)
 	{
-		writeMemo("[?] Can't signal llcv, already closed.");
-		return;			/*	Already closed.		*/
+		return;			/*	llcv is closed.		*/
 	}
 
 	/*	Lock the mutex to assure stable state when signaling.	*/
@@ -216,25 +217,26 @@ void	llcv_close(Llcv llcv)
 {
 	if (llcv)
 	{
+		int	result;
+
 		if (llcv->mutex_initialized != 1
 		|| llcv->mutex_address != &llcv->mutex)
 		{
-			writeMemo("[?] Can't close llcv, already closed.");
-			return;	/*	Already closed.			*/
+			return;		/*	Already closed.		*/
 		}
 
 		pthread_mutex_lock(&llcv->mutex);
-
-		if (pthread_cond_destroy(&llcv->cv))
-		{
-			pthread_mutex_unlock(&llcv->mutex);
-			putSysErrmsg("llcv_close: cond_destroy failed.", NULL);
-			return;
-		}
-
+		result = pthread_cond_destroy(&llcv->cv);
 		if (pthread_mutex_unlock(&llcv->mutex))
 		{
 			putSysErrmsg("llcv_close: mutex_unlock failed.", NULL);
+		}
+
+		if (result != 0)
+		{
+			putSysErrmsg("llcv_close: cond_destroy failed.", NULL);
+			writeMemo("[?] Can't close llcv.");
+			return;
 		}
 
 		if (pthread_mutex_destroy(&llcv->mutex))

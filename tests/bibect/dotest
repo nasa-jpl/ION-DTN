@@ -1,0 +1,197 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 6, 2020
+#
+# This script tests custody transfer (CT) in BIBE encapsulation.
+#
+# Four nodes (1, 2, 3, 4) are in series.
+#
+# Node 1 is configured to send everything directly to node 2 via LTP.
+#
+# Node 2 is configured:
+#	To use bibe/ipn:3.0 with CT for bundles destined for node 4.
+#	To use udp/127.0.0.1:4546 for bundles with destination 3.
+#
+#	The UDP traffic from node 2 to node 3 is silently forwarded through
+#	an owltsim task that discards every 6th datagram.
+#	Datagram loss causes custodial retransmission from node 2.
+#
+# Node 3 is configured:
+#	To send to node 2 all bundles destined for node 1.
+#	To use stcp/127.0.0.1:5002 for bundles with destination 2.
+#	To use LTP for transmission of bundles to node 4.
+#
+# Node 4 is configured to send everything directly to node 3 via LTP.
+#
+# That is, all bundles for destination node 4 are tunneled through node 3
+# via BIBE.
+#
+# We send 20 bundles from 1 to destination 4.  All bundle should be delivered.
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=20
+echo "Cleaning up old ION..."
+rm -f 1.ipn.ltp/ion.log 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+PASS=1
+
+# Start nodes.
+cd 1.ipn.ltp
+ionadmin amroc.ionrc
+cd ../2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../4.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../1.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../4.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../1.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../4.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../1.ipn.ltp
+bpadmin amroc.bprc
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../4.ipn.ltp
+bpadmin amroc.bprc
+
+# Start link simulator
+
+cd ../2.ipn.ltp
+#	owltsim amroc.owltrc -v &
+owltsim amroc.owltrc &
+
+cd ..
+
+rm -f 4.ipn.ltp/results.txt
+touch 4.ipn.ltp/results.txt
+
+echo "------------------"
+echo "Starting bpsink on node 4..."
+cd 4.ipn.ltp
+bpsink ipn:4.1 >> results.txt &
+
+sleep 1
+
+cd ../1.ipn.ltp
+
+##############################
+# Send 20 bundles from node 1 to node 4.
+
+echo -e "\n\n***Sending twenty bundles from node 1 to node 4.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4a"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4b"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4c"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4d"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4e"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4f"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4g"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4h"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4i"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4j"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4k"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4l"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4m"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4n"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4o"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4p"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4q"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4r"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4s"
+sleep 1
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4t"
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+echo ""
+
+############################################################
+#   END OF TESTS                ........
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+bpstats
+./ionstop &
+cd ../2.ipn.ltp
+bpstats
+./ionstop &
+cd ../3.ipn.ltp
+bpstats
+./ionstop &
+cd ../4.ipn.ltp
+bpstats
+./ionstop &
+
+cd ..
+killall owltsim
+
+# Give all four nodes time to shut down, then clean up.
+sleep 7
+killm
+
+# Check results.txt on node 4
+cd 4.ipn.ltp
+
+COUNT=$(grep "test_trace4" ./results.txt | wc -l)
+if [ $COUNT -lt 20 ]
+then
+	echo "ERROR: bundles for node 4 not received."
+        PASS=0
+else
+	echo "Bundles for node 4 were received."
+fi
+
+echo "BIBE custody transfer test completed."
+
+if [ $PASS -eq 1 ]
+then
+	exit 0
+else
+	exit 1
+fi
+

@@ -1,0 +1,50 @@
+=head1 NAME
+
+bpstats - Bundle Protocol (BP) processing statistics query utility
+
+=head1 SYNOPSIS
+
+B<bpstats>
+
+=head1 DESCRIPTION
+
+B<bpstats> simply logs messages containing the current values of all BP
+processing statistics accumulators, then terminates.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpstats> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bpstats can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+ion(3)

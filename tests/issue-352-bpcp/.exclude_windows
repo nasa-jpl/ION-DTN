@@ -1,1 +1,1 @@
-Return 1, ERROR: local remote copy failed.
+This test relies on bpcp which is not built on Window as it relies on system calls that are not implemented for mingw.

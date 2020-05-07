@@ -1,0 +1,77 @@
+=head1 NAME
+
+bpsink - Bundle Protocol reception test program
+
+=head1 SYNOPSIS
+
+B<bpsink> I<ownEndpointId>
+
+=head1 DESCRIPTION
+
+B<bpsink> uses Bundle Protocol to receive application data units from a
+remote B<bpsource> application task.  For each application data unit it
+receives, it prints the ADU's length and -- if length is less than 80 -- its
+text.
+
+B<bpsink> terminates upon receiving the SIGQUIT signal, i.e., ^C from the
+keyboard.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpsink> has terminated.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<bpsink> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item Can't open own endpoint.
+
+Another application has already opened I<ownEndpointId>.  Terminate that
+application and rerun.
+
+=item bpsink bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't receive payload.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't handle delivery.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bpsource(1), bp(3)

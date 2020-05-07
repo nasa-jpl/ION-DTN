@@ -1,0 +1,114 @@
+=head1 NAME
+
+cbor - ION library for encoding and decoding CBOR data representations
+
+=head1 SYNOPSIS
+
+    #include "cbor.h"
+
+=head1 DESCRIPTION
+
+ION's "cbor" library implements a subset of the Concise Binary Object
+Representation (CBOR) standard, RFC 7049; only those data types used in
+ION code are implemented.  Unlike other CBOR implementations, ION CBOR
+is specifically intended for compatibility with zero-copy objects, i.e.,
+the data being decoded need not all be in a memory buffer.
+
+For all functions, I<*cursor> is a pointer to the location in the CBOR
+coding buffer at which bytes are to be encoded or decoded.  This pointer
+is automatically advanced as the encoding or decoding operation is
+performed.
+
+Most of the ION CBOR decoding functions entail the decoding of unsigned
+integers.  The invoking code may require that an integer representation
+have a specific size by indicating the integer size "class" that is
+required.  Class -1 indicates that an integer of any size is acceptable;
+the other classes (0, 1, 2, 4, 8) indicate the number of bytes of integer
+data that MUST follow the integers initial byte.
+
+=over 4
+
+=item int cbor_encode_integer(uvast value, unsigned char **cursor)
+
+Represent this value in an integer of the smallest possible integer class.
+Cursor is automatically advanced.  Returns number of bytes written.
+
+=item int cbor_encode_fixed_int(uvast value, int class, unsigned char **cursor)
+
+Represent this value in an integer of the indicated class.  Cursor is
+automatically advanced.  Returns number of bytes written, 0 on encoding error.
+
+=item int cbor_encode_byte_string(unsigned char *value, uvast size, unsigned char **cursor)
+
+I<size> is the number of bytes to write.  If value is NULL, only the size of
+the byte string is written; otherwise the byte string itself is written as
+well.  Cursor is advanced by the number of bytes written in either case.
+Returns number of bytes written.
+
+=item int cbor_encode_text_string(char *value, uvast size, unsigned char **cursor)
+
+I<size> is the number of bytes to write.  If value is NULL, only the size of
+the text string is written; otherwise the text string itself is written
+as well.  Cursor is advanced by the number of bytes written in either case.
+Returns number of bytes written.	
+
+=item int cbor_encode_array_open(uvast size, unsigned char **cursor)
+
+If I<size> is ((uvast) -1), the array is of indefinite size; otherwise I<size>
+indicates the number of items in the array.  Cursor is automatically advanced.
+Returns number of bytes written.
+
+=item int cbor_encode_break(unsigned char **cursor)
+
+Break code is written at the indicated location.  Cursor is automatically
+advanced.  Returns number of bytes written (always 1).
+
+=item int cbor_decode_initial_byte(unsigned char **cursor, unsigned int *bytesBuffered, int *majorType, int *additionalInfo)
+
+This function just extracts major type and additional info from the byte
+identified by I<cursor>.  Cursor is automatically advanced.  Returns number of
+bytes decoded (always 1) or 0 on decoding error (e.g., no byte to decode).
+
+=item int cbor_decode_integer(	uvast *value, int class, unsigned char **cursor, unsigned int *bytesBuffered)
+
+If I<class> is CborAny, any class of data item is accepted; otherwise only an
+integer data item of the indicated class is accepted.  Cursor is automatically
+advanced.  Returns number of bytes read, 0 on decoding error (e.g., integer
+is of the wrong class).
+
+=item int cbor_decode_byte_string(unsigned char *value, uvast *size, unsigned char **cursor, unsigned int *bytesBuffered)
+
+Initial value of I<size> is the maximum allowable size of the decoded byte
+string; the actual number of bytes in the byte string (which, B<NOTE>, is
+less than the number of bytes read) is returned in I<size>.  If I<value> is
+non-NULL, the decoded byte string is copied into I<value> and cursor is
+automatically advanced to the end of the byte string; otherwise, cursor is
+advanced only to the beginning of the byte string.  Returns number of bytes
+read, 0 on decoding error (e.g., byte string exceeds maximum size).
+
+=item int cbor_decode_text_string(char *value, uvast *size, unsigned char **cursor, unsigned int *bytesBuffered)
+
+Initial value of I<size> is the maximum allowable size of the decoded text
+string; the actual number of bytes in the text string (which, B<NOTE>, is
+less than the number of bytes read) is returned in size.  If I<value> is
+non-NULL, the decoded text string is copied into I<value> and cursor is
+automatically advanced to the end of the text string; otherwise, cursor
+is advanced only to the beginning of the text string.  Returns number of
+bytes read, 0 on decoding error (e.g., text string exceeds maximum size).
+
+=item int cbor_decode_array_open(uvast *size, unsigned char **cursor, unsigned int *bytesBuffered)
+
+If I<size> is zero, any array is accepted and the actual size of the decoded
+array is returned in I<size>; ((uvast) -1) is returned in I<size> if the array
+is of indefinite size.  If I<size> is ((uvast) -1), B<only> an array of
+indefinite length is accepted.  Otherwise, I<size> indicates the required
+number of items in the array.  Cursor is automatically advanced.  Returns
+number of bytes read, 0 on decoding error (such as wrong number of items).
+
+=item int cbor_decode_break(unsigned char **cursor, unsigned int *bytesBuffered)
+
+Break code is read from the indicated location.  Cursor is automatically
+advanced.  Returns number of bytes read, 0 on decoding error (e.g., no
+break character at this location).
+
+=back

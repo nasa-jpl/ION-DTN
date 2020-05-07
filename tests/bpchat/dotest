@@ -58,7 +58,7 @@ exec 7> bpchatinfifo
 cat bpchatinput >&7
 
 echo "Wait to allow ION and bpecho to reflect the bundles back to bpchat."
-sleep 5
+sleep 10
 
 echo "Close bpchat and bpecho.  Time how long it takes bpchat to close."
 SECONDS=0

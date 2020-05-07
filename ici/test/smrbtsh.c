@@ -28,7 +28,7 @@ static int	stopped(int *newState)
 	return state;
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	int	stop = 1;
 

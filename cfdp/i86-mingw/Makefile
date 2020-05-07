@@ -17,7 +17,7 @@ PUBINCLS = \
 
 CFDPINCLS = \
 	$(API)/cfdpP.h \
-	$(API)/bputa.h
+	$(INCL)/bputa.h
 #	$(UTILS)/bpcp.h \
 
 LBP = -lbp -limcfw -lipnfw -ldtn2fw

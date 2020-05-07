@@ -181,7 +181,7 @@ if  [ ! -e ./test3 ] || [ -n "$TEST" ]; then
 	RETVAL=1
 	exit $RETVAL
 else
-	echo "OK: Remote to Remote Copy Sucessful. SUCESS!"
+	echo "OK: Remote to Remote Copy Sucessful. SUCCESS!"
 fi
 
 RETVAL=0

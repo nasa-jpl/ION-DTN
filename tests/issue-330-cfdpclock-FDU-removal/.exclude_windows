@@ -1,1 +1,1 @@
-Didn't work in 3.5.0.
+This test requires you have built cfdplisten.c which does not happen on Windows at this time.

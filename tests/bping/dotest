@@ -89,7 +89,7 @@ SECONDS=0
 kill -s SIGINT $BPINGPID
 wait $BPINGPID
 PINGSECONDS=$SECONDS
-if [ $PINGSECONDS -ge 2 ]; then
+if [ $PINGSECONDS -ge 15 ]; then
     echo "ERROR: It took $PINGSECONDS seconds for bping to clean up and exit, too long."
     FAIL=1
 fi

@@ -97,7 +97,7 @@ static int	_amsdRunning(int *state)
 	return running;
 }
 
-static void	shutDownAmsd()
+static void	shutDownAmsd(int signum)
 {
 	int	stop = 0;
 

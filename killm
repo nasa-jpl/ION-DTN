@@ -20,6 +20,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	aoslsi lt-aoslsi \
 	aoslso lt-aoslso \
 	beacon lt-beacon \
+	bibeadmin lt-bibeadmin \
 	bibeclo lt-bibeclo \
 	bpadmin lt-bpadmin \
 	bpcancel lt-bpcancel \
@@ -33,6 +34,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bplist lt-bplist \
 	bpnmtest lt-bpnmtest \
 	bprecvfile lt-bprecvfile \
+	bpsecadmin lt-bpsecadmin \
 	bpsendfile lt-bpsendfile \
 	bpsink lt-bpsink \
 	bpsource lt-bpsource \
@@ -94,6 +96,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	ltpdeliv lt-ltpdeliv \
 	ltpdriver lt-ltpdriver \
 	ltpmeter lt-ltpmeter \
+	ltpsecadmin lt-ltpsecadmin \
 	nm_agent lt-nm_agent \
 	nm_mgr lt-nm_mgr \
 	node lt-node \

@@ -1,0 +1,108 @@
+=head1 NAME
+
+dccpcli - DCCP-based BP convergence layer input task
+
+=head1 SYNOPSIS
+
+B<dccpcli> I<local_hostname>[:I<local_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<dccpcli> is a background "daemon" task that receives DCCP datagrams via a
+DCCP socket bound to I<local_hostname> and I<local_port_nbr>, extracts
+bundles from those datagrams, and passes them to the bundle protocol agent
+on the local ION node.
+
+If not specified, port number defaults to 4556.
+
+Note that B<dccpcli> has no fragmentation support at all. Therefore, the
+largest bundle that can be sent via this convergence layer is limited to
+just under the link's MTU (typically 1500 bytes).
+
+The convergence layer input task is spawned automatically by B<bpadmin> in
+response to the 's' (START) command that starts operation of the Bundle
+Protocol; the text of the command that is used to spawn the task must be
+provided at the time the "dccp" convergence layer protocol is added to the BP
+database.  The convergence layer input task is terminated by B<bpadmin>
+in response to an 'x' (STOP) command.  B<dccpcli> can also be spawned and
+terminated in response to START and STOP commands that pertain specifically
+to the DCCP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dccpcli> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<dccpcli>.
+
+=item "1"
+
+B<dccpcli> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<dccpcli>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dccpcli can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such dccp duct.
+
+No DCCP induct matching I<local_hostname> and I<local_port_nbr> has been added
+to the BP database.  Use B<bpadmin> to stop the DCCP convergence-layer
+protocol, add the induct, and then restart the DCCP protocol.
+
+=item CLI task is already started for this duct.
+
+Redundant initiation of B<dccpcli>.
+
+=item dccpcli can't get IP address for host.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccpcli>.
+
+=item CLI can't open DCCP socket. This probably means DCCP is not supported on your system.
+
+Operating system error. This probably means that you are not using an
+operating system that supports DCCP. Make sure that you are using a current
+Linux kernel and that the DCCP modules are being compiled. Check errtext, 
+correct problem, and restart B<dccpcli>.
+
+=item CLI can't initialize socket.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccpcli>.
+
+=item dccpcli can't get acquisition work area.
+
+ION system error.  Check errtext, correct problem, and restart B<dccpcli>.
+
+=item dccpcli can't create new thread.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccpcli>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), dccpclo(1)

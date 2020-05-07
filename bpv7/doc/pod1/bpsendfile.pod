@@ -1,0 +1,82 @@
+=head1 NAME
+
+bpsendfile - Bundle Protocol (BP) file transmission utility
+
+=head1 SYNOPSIS
+
+B<bpsendfile> I<own_endpoint_ID> I<destination_endpoint_ID> I<file_name> [I<class_of_service> [I<time_to_live (seconds)> ]]
+
+=head1 DESCRIPTION
+
+B<bpsendfile> uses bp_send() to issue a single bundle to a designated
+destination endpoint, containing the contents of the file identified by
+I<file_name>, then terminates.  The bundle is sent with no custody transfer
+requested.  When I<class_of_service> is omitted, the bundle is sent at
+standard priority; for details of the I<class_of_service> parameter,
+see bptrace(1).  I<time_to_live>, if not specified, defaults to 300
+seconds (5 minutes).  B<NOTE> that I<time_to_live> is specified B<AFTER>
+I<class_of_service>, rather than before it as in bptrace(1).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpsendfile> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item Can't open own endpoint.
+
+Another BP application task currently has I<own_endpoint_ID> open for
+bundle origination and reception.  Try again after that task has terminated.
+If no such task exists, it may have crashed while still holding the endpoint
+open; the easiest workaround is to select a different source endpoint.
+
+=item Can't stat the file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item bpsendfile can't create file ref.
+
+Probably an unrecoverable database error, in which case the local ION
+node must be terminated and re-initialized.
+
+=item bpsendfile can't create ZCO.
+
+Probably an unrecoverable database error, in which case the local ION
+node must be terminated and re-initialized.
+
+=item bpsendfile can't send file in bundle.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bprecvfile(1), bp(3)

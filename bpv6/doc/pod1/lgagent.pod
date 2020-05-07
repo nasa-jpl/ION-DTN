@@ -1,0 +1,110 @@
+=head1 NAME
+
+lgagent - ION Load/Go remote agent program
+
+=head1 SYNOPSIS
+
+B<lgagent> I<own_endpoint_ID>
+
+=head1 DESCRIPTION
+
+ION Load/Go is a system for management of an ION-based network, enabling the
+execution of ION administrative programs at remote nodes.  The system
+comprises two programs, B<lgsend> and B<lgagent>.
+
+The B<lgagent> task on a given node opens the indicated ION endpoint
+for bundle reception, receives the extracted payloads of Load/Go bundles
+sent to it by B<lgsend> as run on one or more remote nodes, and processes
+those payloads, which are the text of Load/Go source files.
+
+Load/Go source file content is limited to newline-terminated lines of ASCII
+characters.  More specifically, the text of any Load/Go source file is a
+sequence of I<line sets> of two types: I<file capsules> and I<directives>.
+Any Load/Go source file may contain any number of file capsules and any
+number of directives, freely intermingled in any order, but the typical
+structure of a Load/Go source file is simply a single file capsule
+followed by a single directive.
+
+When B<lgagent> identifies a file capsule, it copies all of the capsule's
+text lines to a new file that it creates in the current working directory.
+When B<lgagent> identifies a directive, it executes the directive by
+passing the text of the directive to the pseudoshell() function
+(see platform(3)).  B<lgagent> processes the line sets of a Load/Go source
+file in the order in which they appear in the file, so the text
+of a directive may reference a file that was created as the result of
+processing a prior file capsule in the same source file.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Load/Go remote agent processing has terminated.
+
+=back
+
+=head1 FILES
+
+B<lgfile> contains the Load/Go file capsules and directives that are to be
+processed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item lgagent: can't attach to BP.
+
+Bundle Protocol is not running on this computer.  Run bpadmin(1) to start BP.
+
+=item lgagent: can't open own endpoint.
+
+I<own_endpoint_ID> is not a declared endpoint on the local ION node.  Run
+bpadmin(1) to add it.
+
+=item lgagent: bundle reception failed.
+
+ION system problem.  Investigate and correct before restarting.
+
+=item lgagent cannot continue.
+
+lgagent processing problem.  See earlier diagnostic messages for details.
+Investigate and correct before restarting.
+
+=item lgagent: no space for bundle content.
+
+ION system problem: have exhausted available SDR data store reserves.
+
+=item lgagent: can't receive bundle content.
+
+ION system problem: have exhausted available SDR data store reserves.
+
+=item lgagent: can't handle bundle delivery.
+
+ION system problem.  Investigate and correct before restarting.
+
+=item lgagent: pseudoshell failed.
+
+Error in directive line, usually an attempt to execute a non-existent
+administration program (e.g., a misspelled program name).  Terminates
+processing of source file content.
+
+=back
+
+A variety of other diagnostics noting source file parsing problems may also
+be reported.  These errors are non-fatal but they terminate the processing
+of the source file content from the most recently received bundle.
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+lgsend(1), lgfile(5)

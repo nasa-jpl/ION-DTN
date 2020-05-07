@@ -199,7 +199,6 @@ ctrl_t *ctrl_db_deserialize(blob_t *data)
 	ctrl_t *result;
 	uvast start;
 	eid_t caller;
-	size_t len = AMP_MAX_EID_LEN;
 	int success;
 
 	CHKNULL(data);
@@ -281,11 +280,16 @@ void*    ctrl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 {
 	ctrl_t *result = NULL;
 
+#if AMP_VERSION < 7
 	blob_t *blob = blob_deserialize_ptr(it, success);
-
 	ari_t *ari = ari_deserialize_raw(blob, success);
-
 	blob_release(blob, 1);
+#else
+	QCBORDecode_StartOctets(it);
+	ari_t *ari = ari_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
+	
 	if((ari == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
@@ -356,6 +360,7 @@ int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 		ctrl_id->as_reg.parms = *(ctrl->parms);
 	}
 
+#if AMP_VERSION < 7
 	blob_t *blob = ari_serialize_wrapper(ctrl_id);
 	if(blob != NULL)
 	{
@@ -366,7 +371,15 @@ int ctrl_serialize(QCBOREncodeContext *encoder, void *item)
 	{
 		AMP_DEBUG_ERR("ctrl_serialize","Error serializing control.", NULL);
 	}
-
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = ari_serialize(encoder, ctrl_id);
+	QCBOREncode_CloseArrayOctet(encoder);
+	if(err != AMP_OK)
+	{
+		AMP_DEBUG_ERR("ctrl_serialize","Error serializing control.", NULL);
+	}
+#endif
 	if(ctrl->parms != NULL)
 	{
 		ctrl_id->as_reg.parms = parms;
@@ -432,6 +445,8 @@ blob_t*   ctrl_serialize_wrapper(ctrl_t *ctrl)
  *   - The start time is always converted to an absolute time. This is because
  *     the control may be persisted to the SDR, and re-read upon startup at
  *     which point a relative time may lead to incorrect execution.
+ *   - A timestamp of 0 is an exception to the above, and is always treated
+ *     to mean execute now.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -442,7 +457,7 @@ void ctrl_set_exec(ctrl_t *ctrl, time_t start, eid_t caller)
 {
 	CHKVOID(ctrl);
 
-	if(start < AMP_RELATIVE_TIME_EPOCH)
+	if(start < AMP_RELATIVE_TIME_EPOCH && start != 0)
 	{
 		ctrl->start = getCtime() + start;
 	}
@@ -637,10 +652,16 @@ macdef_t  macdef_deserialize(QCBORDecodeContext *it, int *success)
 	memset(&result,0,sizeof(result));
 	*success = AMP_FAIL;
 
+#if AMP_VERSION < 7
 	blob_t *tmp = blob_deserialize_ptr(it, success);
 	new_ari = ari_deserialize_raw(tmp, success);
 	blob_release(tmp, 1);
-
+#else
+	QCBORDecode_StartOctets(it);
+	new_ari = ari_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
+	
 	if((new_ari == NULL) || (*success != AMP_OK))
 	{
 		return result;
@@ -729,7 +750,6 @@ void    macdef_release(macdef_t *mac, int destroy)
 
 int macdef_serialize(QCBOREncodeContext *encoder, void *item)
 {
-	blob_t *result;
 	macdef_t *mac = (macdef_t*) item;
 	int err;
 
@@ -739,10 +759,15 @@ int macdef_serialize(QCBOREncodeContext *encoder, void *item)
 	}
 
 	/* Step 1: Encode the ARI. */
-	result = ari_serialize_wrapper(mac->ari);
+#if AMP_VERSION < 7
+	blob_t *result = ari_serialize_wrapper(mac->ari);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = ari_serialize(encoder, mac->ari);
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("macdef_serialize","CBOR Error: %d", err);
@@ -751,6 +776,12 @@ int macdef_serialize(QCBOREncodeContext *encoder, void *item)
 
 	/* Step 2: Encode the contents. */
 	err = cut_serialize_vector(encoder, &(mac->ctrls), (cut_enc_fn)ctrl_serialize);
+	if (err != AMP_OK)
+	{
+		AMP_DEBUG_ERR("macdef_serialize", "CBOR Error: %d", err);
+		return err;
+	}
+	
 	return AMP_OK;
 }
 

@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-11  AUTO             Auto-generated c file 
+ **  2020-04-16  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -19,7 +19,6 @@
 #include "../shared/primitives/expr.h"
 #include "../shared/primitives/tnv.h"
 #include "instr.h"
-#include "../shared/adm/adm.h"
 #include "../shared/msg/msg.h"
 #include "rda.h"
 #include "ldc.h"
@@ -27,6 +26,7 @@
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
+#include "shared/adm/adm.h"
 #include "adm_amp_agent_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */

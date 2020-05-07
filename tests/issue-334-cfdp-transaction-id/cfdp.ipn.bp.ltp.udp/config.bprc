@@ -21,5 +21,3 @@ a induct ltp 10 ltpcli
 
 # Add an outduct.
 a outduct ltp 1 ltpclo
-
-s

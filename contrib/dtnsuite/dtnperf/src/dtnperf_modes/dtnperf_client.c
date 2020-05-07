@@ -447,7 +447,7 @@ void run_dtnperf_client(dtnperf_global_options_t * perf_g_opt)
 			print_bundle(&bundle_stop);
 //			 send stop bundle to monitor
 			debug_print(DEBUG_L1,"sending the stop bundle to the monitor...");
-			if ((utility_error = al_bp_extB_send(registration_descriptor, &bundle_stop, mon_eid, none)) != BP_EXTB_SUCCESS)
+			if ((utility_error = al_bp_extB_send(registration_descriptor, bundle_stop, mon_eid, none)) != BP_EXTB_SUCCESS)
 			{
 				error_print("[DTNperf fatal error] in sending stop bundle: %d (%s)\n", al_bp_extB_get_error(registration_descriptor), al_bp_extB_strerror(registration_descriptor));
 				client_clean_exit(1);
@@ -674,7 +674,7 @@ void parse_monitor(al_bp_endpoint_id_t* endpoint_pointer)
 			strcpy(temp, &(temp_eid.uri[0]));
 			ptr = strtok(temp , ".");
 			sprintf(temp, "%s.%s", ptr, MON_EP_NUM_SERVICE);
-			strncpy(&(perf_opt->mon_eid[0]), temp, strlen(temp));
+			memcpy(&(perf_opt->mon_eid[0]), temp, strlen(temp));
 			free(temp);
 			break;
 		}
@@ -961,7 +961,7 @@ void * send_bundles(void * opt)
 		// Send the bundle
 		debug_print(DEBUG_L1,"passing the bundle to BP...\n");
 
-		if ((utility_error = al_bp_extB_send(registration_descriptor, &bundle, dest_eid, mon_eid)) != BP_EXTB_SUCCESS)
+		if ((utility_error = al_bp_extB_send(registration_descriptor, bundle, dest_eid, mon_eid)) != BP_EXTB_SUCCESS)
 		{
 			error_print("[DTNperf fatal error] in passing the bundle to BP: %d (%s)\n", al_bp_extB_get_error(registration_descriptor), al_bp_extB_strerror(registration_descriptor));
 			client_clean_exit(1);
@@ -1046,7 +1046,7 @@ static boolean_t receive_ack(dtnperf_options_t *perf_opt)
 		printed_message = TRUE;
 	}
 
-	utility_error = al_bp_extB_receive(registration_descriptor, ack, BP_PAYLOAD_MEM, timeout);
+	utility_error = al_bp_extB_receive(registration_descriptor, &ack, BP_PAYLOAD_MEM, timeout);
 	if (utility_error == BP_EXTB_ERRTIMEOUT)
 	{
 		al_bp_bundle_free(&ack);
@@ -1295,7 +1295,7 @@ void send_force_stop_bundle()
 		al_bp_bundle_set_source(&bundle_force_stop, al_bp_extB_get_local_eid(registration_descriptor));
 
 		printf("Sending the force stop bundle to the monitor...");
-		error = al_bp_bundle_send(force_stop_handle, al_bp_extB_get_regid(registration_descriptor), &bundle_force_stop);
+		error = al_bp_bundle_send(force_stop_handle, al_bp_extB_get_regid(registration_descriptor), bundle_force_stop);
 		if (error != BP_SUCCESS)
 		{
 			error_print("[DTNperf fatal error] in sending force stop bundle: %d (%s)\n", error, al_bp_strerror(error));
@@ -1314,7 +1314,7 @@ void send_force_stop_bundle()
 		al_bp_endpoint_id_t none;
 		al_bp_extB_error_t utility_error;
 		al_bp_get_none_endpoint(&none);
-		utility_error = al_bp_extB_send(registration_descriptor, &bundle_force_stop, mon_eid, none);
+		utility_error = al_bp_extB_send(registration_descriptor, bundle_force_stop, mon_eid, none);
 		if (utility_error != BP_EXTB_SUCCESS && utility_error != BP_EXTB_ERRRECEIVER) {
 			error_print("[DTNperf fatal error] in sending force stop bundle: %d (%s)\n", al_bp_extB_get_error(registration_descriptor), al_bp_extB_strerror(registration_descriptor));
 			debugger_destroy();
@@ -1517,11 +1517,11 @@ void parse_client_options(int argc, char ** argv, dtnperf_global_options_t * per
 			break;
 
 		case 'd':
-			strncpy(perf_opt->dest_eid, optarg, AL_BP_MAX_ENDPOINT_ID);
+			memcpy(perf_opt->dest_eid, optarg, AL_BP_MAX_ENDPOINT_ID);
 			break;
 
 		case 'm':
-			strncpy(perf_opt->mon_eid, optarg, AL_BP_MAX_ENDPOINT_ID);
+			memcpy(perf_opt->mon_eid, optarg, AL_BP_MAX_ENDPOINT_ID);
 			break;
 			/*
 		case 'i':
@@ -2123,11 +2123,11 @@ void ctrlc_win_handler () {
 		// send force_stop bundle to monitor
 		printf("Sending the force stop bundle to the monitor...");
 		if(perf_opt->bp_implementation == BP_DTN)
-			error = al_bp_bundle_send(force_stop_handle, regid, &bundle_force_stop);
+			error = al_bp_bundle_send(force_stop_handle, regid, bundle_force_stop);
 		else if(perf_opt->bp_implementation == BP_ION)
-			error = al_bp_bundle_send(handle, regid, &bundle_force_stop);
+			error = al_bp_bundle_send(handle, regid, bundle_force_stop);
 		else if(perf_opt->bp_implementation == BP_IBR)
-			error = al_bp_bundle_send(handle, regid, &bundle_force_stop);
+			error = al_bp_bundle_send(handle, regid, bundle_force_stop);
 		if ((error) != BP_SUCCESS)
 		{
 			fprintf(stderr, "[DTNperf fatal error] in sending force stop bundle: %d (%s)\n", error, al_bp_strerror(error));

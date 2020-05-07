@@ -32,6 +32,10 @@
 #include "nm_mgr_ui.h"
 #include "metadata.h"
 
+#ifdef USE_CIVETWEB
+#include "nm_rest.h"
+#endif
+
 #include "agents.h"
 
 #include "../shared/primitives/rules.h"
@@ -42,7 +46,8 @@ mgr_db_t gMgrDB;
 iif_t ion_ptr;
 int  gRunning;
 
-
+char* mgr_parse_args(int argc, char* argv[]);
+void mgr_print_usage(void);
 
 /******************************************************************************
  *
@@ -76,20 +81,37 @@ int main(int argc, char *argv[])
     char rx_thr_name[]     = "rx_thread";
     char ui_thr_name[]     = "ui_thread";
     char daemon_thr_name[] = "run_daemon";
+    char *mgr_eid;
 
     errno = 0;
 
-    if(argc != 2)
+    if (argc > 2)
     {
-    	fprintf(stderr,"Usage: nm_mgr <manager eid>\n");
+        // Assume argv[1] is required manager_eid
+        mgr_eid = mgr_parse_args(argc, argv);
+        if (mgr_eid == NULL)
+        {
+            mgr_print_usage();
+            return 1;
+        }
+
+    }
+    else if(argc != 2)
+    {
+        fprintf(stderr,"Invalid number of arguments for nm_mgr\n");
+        mgr_print_usage();
         return 1;
+    }
+    else
+    {
+        mgr_eid = argv[1];
     }
 
     /* Indicate that the threads should run once started. */
     gRunning = 1;
 
     /* Initialize the AMP Manager. */
-    if(mgr_init(argv) != AMP_OK)
+    if(mgr_init(mgr_eid) != AMP_OK)
     {
     	AMP_DEBUG_ERR("main","Can't init Manager.", NULL);
     	exit(EXIT_FAILURE);
@@ -124,6 +146,10 @@ int main(int argc, char *argv[])
     }
 #endif
 
+#ifdef USE_CIVETWEB
+    nm_rest_start();
+#endif
+
     if (pthread_join(rx_thr, NULL))
     {
         AMP_DEBUG_ERR("main","Can't join pthread %s. Errnor = %s",
@@ -137,8 +163,10 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    pthread_kill(rx_thr, 0);
-
+#ifdef USE_CIVETWEB
+    nm_rest_stop();
+#endif
+    
 #ifdef HAVE_MYSQL
     if (pthread_join(db_thr, NULL))
     {
@@ -208,11 +236,11 @@ int mgr_cleanup()
  **  08/20/13  E. Birrane      Code Review Updates
  **  10/06/18  E. Birrane      Update to AMP v0.5 (JHU/APL)
  *****************************************************************************/
-int mgr_init(char *argv[])
+int mgr_init(char *arg_eid)
 {
 	int success;
 
-	AMP_DEBUG_ENTRY("mgr_init","("ADDR_FIELDSPEC")",(uaddr) argv);
+	AMP_DEBUG_ENTRY("mgr_init","("ADDR_FIELDSPEC")",(uaddr) arg_eid);
 
     /* Step 2: Make sure that ION is running and we can attach. */
 	if (ionAttach() < 0)
@@ -239,7 +267,8 @@ int mgr_init(char *argv[])
 
 
 	gMgrDB.tot_rpts = 0;
-    istrcpy((char *) gMgrDB.mgr_eid.name, argv[1], AMP_MAX_EID_LEN);
+    gMgrDB.tot_tbls = 0;
+    istrcpy((char *) gMgrDB.mgr_eid.name, arg_eid, AMP_MAX_EID_LEN);
 
 
 	/* Step 2:  Attach to ION. */
@@ -264,7 +293,7 @@ int mgr_init(char *argv[])
 
 
     if((utils_mem_int()       != AMP_OK) ||
-       (db_init("nmmgr_db") != AMP_OK))
+       (db_init("nmmgr_db", &adm_init) != AMP_OK))
     {
     	db_destroy();
     	AMP_DEBUG_ERR("mgr_init","Unable to initialize DB.", NULL);
@@ -281,5 +310,97 @@ int mgr_init(char *argv[])
     return success;
 }
 
+/**
+ * Parse optional command line arguments
+ */
+char* mgr_parse_args(int argc, char* argv[])
+{
+    int i;
+    int c;
+    
+    while ((c = getopt(argc, argv, "ldL:D:rtTRaAjJ")) != -1)
+    {
+        switch(c)
+        {
+        case 'l':
+            agent_log_cfg.enabled = 1;
+            break;
+        case 'd':
+            agent_log_cfg.agent_dirs = 1;
+            break;
+        case 'r':
+            agent_log_cfg.rx_rpt = 1;
+            break;
+        case 't':
+            agent_log_cfg.rx_tbl = 1;
+            break;
+        case 'T':
+            agent_log_cfg.tx_cbor = 1;
+            break;
+        case 'R':
+            agent_log_cfg.rx_cbor = 1;
+            break;
+#ifdef USE_JSON
+        case 'j':
+            agent_log_cfg.rx_json_rpt = 1;
+            break;
+        case 'J':
+            agent_log_cfg.rx_json_tbl = 1;
+            break;
+#endif
+        case 'D':
+            strncpy(agent_log_cfg.dir, optarg, sizeof(agent_log_cfg.dir)-1);
+            break;
+        case 'L':
+            agent_log_cfg.limit = atoi(optarg);
+            break;
+        case 'a':
+        case 'A':
+            mgr_ui_mode = MGR_UI_AUTOMATOR;
+            break;
+        case 'h':
+            return NULL;
+        default:
+            fprintf(stderr, "Error parsing arguments\n");
+            return NULL;
+        }
+    }
 
+    // Check for any remaining unrecognized arguments
+    if ((argc-optind) != 1)
+    {
+        fprintf(stderr,"%d unrecognized arguments:\n", (argc-optind));
+        for(i = optind; i < argc; i++)
+        {
+            printf("\t%s\n", argv[i]);
+        }
+        return NULL;
+    }
+    else
+    {
+        return argv[optind];
+    }
+}
 
+void mgr_print_usage(void)
+{
+
+    printf("AMP Protocol Version %d - %s/%02d, built on %s %s\n",
+           AMP_VERSION,
+           AMP_PROTOCOL_URL,
+           AMP_VERSION,
+           __DATE__, __TIME__);
+
+    printf("Usage: nm_mgr [options] <manager eid>\n");
+    printf("Supported Options:\n");
+    printf("-A       Startup directly in the alternative Automator UI mode\n");
+    printf("-l       If specified, enable file-based logging of Manager Activity.\n");
+    printf("           If logging is not enabled, the following have no affect until enabled in UI\n");
+    printf("-d       Log each agent to a different directory\n");
+    printf("-L #      Specify maximum number of entries (reports+tables) per file before rotating\n");
+    printf("-D DIR   NM logs will be placed in this directory\n");
+    printf("-r       Log all received reports to file in text format (as shown in UI)\n");
+    printf("-t       Log all received tables to file in text format (as shown in UI)\n");
+    printf("-T       Log all transmitted message as ASCII-encoded CBOR HEX strings\n");
+    printf("-R       Log all received messages as ASCII-encoded CBOR HEX strings\n");
+}

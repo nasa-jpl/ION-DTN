@@ -1,0 +1,116 @@
+=head1 NAME
+
+dccpclo - DCCP-based BP convergence layer output task
+
+=head1 SYNOPSIS
+
+B<dccpclo> I<remote_hostname>[:I<remote_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<dccpclo> is a background "daemon" task that connects to a remote node's
+DCCP socket at I<remote_hostname> and I<remote_port_nbr>. It then begins
+extracting bundles from the queues of bundles ready for transmission via
+DCCP to this remote bundle protocol agent and transmitting those bundles
+as DCCP datagrams to the remote host.
+
+If not specified, I<remote_port_nbr> defaults to 4556.
+
+Note that B<dccpclo> has no fragmentation support at all. Therefore, the
+largest bundle that can be sent via this convergence layer is limited to
+just under the link's MTU (typically 1500 bytes).
+
+B<dccpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<dccpclo> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the DCCP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dccpclo> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<dccpclo>.
+
+=item "1"
+
+B<dccpclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart B<dccpclo>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dccpclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No memory for DCCP buffer in dccpclo.
+
+ION system error.  Check errtext, correct problem, and restart B<dccpclo>.
+
+=item No such dccp duct.
+
+No DCCP outduct matching I<local_hostname> and I<local_port_nbr> has been
+added to the BP database.  Use B<bpadmin> to stop the DCCP convergence-layer
+protocol, add the outduct, and then restart B<dccpclo>.
+
+=item CLO task is already started for this duct.
+
+Redundant initiation of B<dccpclo>.
+
+=item dccpclo can't get IP address for host.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccpclo>.
+
+=item dccpclo can't create thread.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccpclo>.
+
+=item CLO can't open DCCP socket. This probably means DCCP is not supported on your system.
+
+Operating system error. This probably means that you are not using an
+operating system that supports DCCP. Make sure that you are using a current
+Linux kernel and that the DCCP modules are being compiled. Check errtext, 
+correct problem, and restart B<dccpclo>.
+
+=item CLO can't initialize socket.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccpclo>.
+
+=item CLO send() error on socket.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccpclo>.
+
+=item Bundle is too big for DCCP CLO.
+
+Configuration error: bundles that are too large for DCCP transmission (i.e.,
+larger than the MTU of the link or 65535 bytes--whichever is smaller) are being
+enqueued for B<dccpclo>.  Change routing or use smaller bundles.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), dccpcli(1)

@@ -8,9 +8,17 @@ if BUILD_CONTRIB
 SUBDIRS= . contrib
 else
 SUBDIRS= .
-endif
+endif # end BUILD_CONTRIB
 
 DIST_SUBDIRS= . contrib
+
+if BUILD_BPv6
+BP_DIR = bpv6
+else # BUILD_BPv7
+BP_DIR = bpv7
+endif # end BUILD_BPv6
+
+BP_SRC_DIR = $(srcdir)/$(BP_DIR)
 
 AM_CFLAGS += \
 	-g \
@@ -18,7 +26,7 @@ AM_CFLAGS += \
 	-I$(srcdir)/ici/include \
 	-I$(srcdir)/ltp/include \
 	-I$(srcdir)/dgr/include \
-	-I$(srcdir)/bp/include \
+	-I$(srcdir)/$(BP_DIR)/include \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
 	-I$(srcdir)/bssp/include \
@@ -32,10 +40,15 @@ AM_CFLAGS += \
 	-Kpic
 NO_UNUSED_VARIABLE = 
 else
-AM_CFLAGS += \ 
-	-Wall -Werror\
-	-fPIC
+AM_CFLAGS += \
+	-Wall \
+	-fPIC -Werror
+
 NO_UNUSED_VARIABLE = -Wno-unused-variable
+endif # end SOLARIS_STUDIO_CC
+
+if WINDOWS
+LIBOBJS += -lws2_32 -lwsock32
 endif
 
 # This will add CFLAGS to make the valgrind macros compile without
@@ -71,7 +84,8 @@ EXTRA_DIST = 	\
 	$(dtpcextra) \
 	$(bsspextra) \
 	$(amsextra) \
-	$(cfdpextra)
+	$(cfdpextra) \
+	$(nmextra)
 #	$(twonodestcp_DATA) \
 #	$(threenodestcpltp_DATA)
 
@@ -115,7 +129,7 @@ cov-report:
 
 cov:
 	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
-endif
+endif # end ENABLE_GCOV
 
 
 # clean-local refers to existing documents.
@@ -125,12 +139,13 @@ build-man-directories:
 	mkdir -p $(top_builddir)/ici/doc
 	mkdir -p $(top_builddir)/ltp/doc
 	mkdir -p $(top_builddir)/dgr/doc
-	mkdir -p $(top_builddir)/bp/doc
+	mkdir -p $(top_builddir)/$(BP_DIR)/doc
 	mkdir -p $(top_builddir)/bss/doc
 	mkdir -p $(top_builddir)/dtpc/doc
 	mkdir -p $(top_builddir)/bssp/doc
 	mkdir -p $(top_builddir)/ams/doc
 	mkdir -p $(top_builddir)/cfdp/doc
+	mkdir -p $(top_builddir)/nm/doc
 
 
 bin_PROGRAMS = \
@@ -156,7 +171,8 @@ lib_LTLIBRARIES = \
 	$(dtpclib) \
 	$(bssplib) \
 	$(amslib) \
-	$(cfdplib)
+	$(cfdplib) \
+	$(nmlib)
 
 include_HEADERS = \
 	$(iciinclude) \
@@ -191,8 +207,9 @@ man_MANS = \
 	$(dtpcmans) \
 	$(bsspmans) \
 	$(amsmans) \
-	$(cfdpmans)
-endif
+	$(cfdpmans) \
+	$(nmmans)
+endif # end ENABLE_MANPAGES
 
 #################
 #
@@ -314,28 +331,32 @@ iciPODM1 = pod2man -s 1 -c "ICI executables"
 iciPODM3 = pod2man -s 3 -c "ICI library functions"
 iciPODM5 = pod2man -s 5 -c "ICI configuration files"
 
-icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/crypto -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2
+icicflags = -I$(srcdir)/ici/library -I$(srcdir)/ici/crypto -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/test -I$(srcdir)/ici/sdr -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2
 
 icibin = \
-	sdrwatch \
-	psmwatch \
+	file2sdr \
+	file2sm \
 	ionadmin \
-	ionexit \
 	ionlog \
 	ionsecadmin \
-	ionwarn \
 	ionunlock \
-	sdrmend \
-	file2sm \
-	sm2file \
-	file2sdr \
-	sdr2file \
+	ionwarn \
+	owltsim \
 	psmshell \
+	psmwatch \
+	sdr2file \
+	sdrmend \
+	sdrwatch \
+	sm2file \
 	smlistsh \
 	smrbtsh \
-	rfxclock \
+	rfxclock
+
+if !WINDOWS
+icibin += \
 	owlttb \
-	owltsim
+	ionxnowner
+endif
 
 icilib = \
 	libici.la
@@ -343,27 +364,29 @@ icilib = \
 
 iciinclude = \
 	ici/include/crypto.h \
+	ici/include/icinm.h \
+	ici/include/ion.h \
+	ici/include/ionsec.h \
 	ici/include/llcv.h \
+	ici/include/lyst.h \
+	ici/include/memmgr.h \
 	ici/include/platform.h \
 	ici/include/platform_sm.h \
-	ici/include/memmgr.h \
-	ici/include/lyst.h \
 	ici/include/psm.h \
-	ici/include/smlist.h \
-	ici/include/sptrace.h \
-	ici/include/ion.h \
 	ici/include/rfx.h \
-	ici/include/ionsec.h \
-	ici/include/zco.h \
-	ici/include/sdrxn.h \
+	ici/include/sdr.h \
+	ici/include/sdrhash.h \
+	ici/include/sdrlist.h \
 	ici/include/sdrmgt.h \
 	ici/include/sdrstring.h \
-	ici/include/sdrlist.h \
 	ici/include/sdrtable.h \
-	ici/include/sdrhash.h \
-	ici/include/sdr.h \
+	ici/include/sdrxn.h \
+	ici/include/smlist.h \
 	ici/include/smrbt.h \
-	ici/include/icinm.h
+	ici/include/sptrace.h \
+	ici/include/zco.h
+
+
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -373,22 +396,24 @@ icinoinst = \
 iciextra = \
 	ici/README.txt \
 	ici/library/symtab.c \
-	ici/doc/pod1/ionadmin.pod \
-	ici/doc/pod1/ionsecadmin.pod \
-	ici/doc/pod1/ionunlock.pod \
-	ici/doc/pod1/rfxclock.pod \
-	ici/doc/pod1/psmwatch.pod \
-	ici/doc/pod1/sdrwatch.pod \
-	ici/doc/pod1/sdrmend.pod \
 	ici/doc/pod1/file2sdr.pod \
 	ici/doc/pod1/file2sm.pod \
+	ici/doc/pod1/ionadmin.pod \
+	ici/doc/pod1/ionlog.pod \
+	ici/doc/pod1/ionsecadmin.pod \
+	ici/doc/pod1/ionunlock.pod \
+	ici/doc/pod1/ionxnowner.pod \
+	ici/doc/pod1/owltsim.pod \
+	ici/doc/pod1/owlttb.pod \
 	ici/doc/pod1/psmshell.pod \
+	ici/doc/pod1/psmwatch.pod \
+	ici/doc/pod1/rfxclock.pod \
 	ici/doc/pod1/sdr2file.pod \
+	ici/doc/pod1/sdrmend.pod \
+	ici/doc/pod1/sdrwatch.pod \
 	ici/doc/pod1/sm2file.pod \
 	ici/doc/pod1/smlistsh.pod \
 	ici/doc/pod1/smrbtsh.pod \
-	ici/doc/pod1/owltsim.pod \
-	ici/doc/pod1/owlttb.pod \
 	ici/doc/pod5/ionconfig.pod \
 	ici/doc/pod5/ionrc.pod \
 	ici/doc/pod5/ionsecrc.pod \
@@ -400,16 +425,24 @@ iciextra = \
 	ici/doc/pod3/psm.pod \
 	ici/doc/pod3/zco.pod \
 	ici/doc/pod3/smlist.pod \
+	ici/doc/pod3/smrbt.pod \
 	ici/doc/pod3/sdrlist.pod \
 	ici/doc/pod3/sdrstring.pod \
 	ici/doc/pod3/sdrtable.pod \
 	ici/doc/pod3/sdrhash.pod \
 	ici/doc/pod3/sdr.pod
+if BUILD_BPv7
+iciextra += \
+	ici/doc/pod3/ioncbor.pod \
+	ici/doc/pod3/ioncrc.pod
+endif # end BUILD_BPv7
 
 icimans = \
 	$(top_builddir)/ici/doc/ionadmin.1 \
+	$(top_builddir)/ici/doc/ionlog.1 \
 	$(top_builddir)/ici/doc/ionsecadmin.1 \
 	$(top_builddir)/ici/doc/ionunlock.1 \
+	$(top_builddir)/ici/doc/ionxnowner.1 \
 	$(top_builddir)/ici/doc/rfxclock.1 \
 	$(top_builddir)/ici/doc/psmwatch.1 \
 	$(top_builddir)/ici/doc/sdrwatch.1 \
@@ -434,11 +467,17 @@ icimans = \
 	$(top_builddir)/ici/doc/psm.3 \
 	$(top_builddir)/ici/doc/zco.3 \
 	$(top_builddir)/ici/doc/smlist.3 \
+	$(top_builddir)/ici/doc/smrbt.3 \
 	$(top_builddir)/ici/doc/sdrlist.3 \
 	$(top_builddir)/ici/doc/sdrstring.3 \
 	$(top_builddir)/ici/doc/sdrtable.3 \
 	$(top_builddir)/ici/doc/sdrhash.3 \
 	$(top_builddir)/ici/doc/sdr.3
+if BUILD_BPv7
+icimans += \
+	$(top_builddir)/ici/doc/ioncbor.3 \
+	$(top_builddir)/ici/doc/ioncrc.3
+endif # end BUILD_BPv7
 
 iciclean-local:
 	rm -f $(top_builddir)/ici/doc/*.1
@@ -456,27 +495,30 @@ $(top_builddir)/ici/doc/%.5: ici/doc/pod5/%.pod
 
 # -- Libraries --- #
 
-libici_la_SOURCES =	ici/library/llcv.c \
-			ici/library/libicinm.c \
-			ici/library/platform.c \
-			ici/library/platform_sm.c \
-			ici/library/memmgr.c \
-			ici/library/lyst.c \
-			ici/library/psm.c \
-			ici/library/smlist.c \
-			ici/library/sptrace.c \
-			ici/library/rfx.c \
+libici_la_SOURCES =	\
+			ici/library/cbor.c \
+			ici/library/crc.c \
 			ici/library/ion.c \
 			ici/library/ionsec.c \
-			ici/library/zco.c \
+			ici/library/libicinm.c \
+			ici/library/llcv.c \
+			ici/library/lyst.c \
+			ici/library/memmgr.c \
+			ici/library/platform.c \
+			ici/library/platform_sm.c \
+			ici/library/psm.c \
+			ici/library/rfx.c \
+			ici/library/smlist.c \
 			ici/library/smrbt.c \
-			ici/sdr/sdrxn.c \
+			ici/library/sptrace.c \
+			ici/library/zco.c \
+			ici/sdr/sdrcatlg.c \
+			ici/sdr/sdrhash.c \
+			ici/sdr/sdrlist.c \
 			ici/sdr/sdrmgt.c \
 			ici/sdr/sdrstring.c \
-			ici/sdr/sdrlist.c \
 			ici/sdr/sdrtable.c \
-			ici/sdr/sdrhash.c \
-			ici/sdr/sdrcatlg.c \
+			ici/sdr/sdrxn.c \
 			ici/bulk/STUB_BULK/bulk.c
 
 
@@ -501,9 +543,9 @@ ionadmin_SOURCES = ici/utils/ionadmin.c
 ionadmin_LDADD = libici.la $(LIBOBJS) -lm
 ionadmin_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
-ionexit_SOURCES = ici/utils/ionexit.c
-ionexit_LDADD = libltp.la libici.la -lm libbp.la $(LIBOBJS)
-ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
+ionxnowner_SOURCES = ici/utils/ionxnowner.c
+ionxnowner_LDADD = libici.la $(LIBOBJS) -lm
+ionxnowner_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionsecadmin_SOURCES = ici/utils/ionsecadmin.c
 ionsecadmin_LDADD = libici.la $(LIBOBJS) -lm
@@ -581,18 +623,18 @@ ltpmandir = $(top_builddir)/ltp/doc
 ltpcflags = -I$(srcdir)/ltp/library -I$(srcdir)/ltp/library/ext
 
 ltpbin = \
-	ltpadmin \
-	ltpsecadmin \
-	ltpclock \
-	ltpmeter \
-	ltpdeliv \
-	udplsi \
-	udplso \
-	ltpdriver \
-	ltpcounter \
-	sdatest \
 	dccplsi \
-	dccplso
+	dccplso \
+	ltpadmin \
+	ltpclock \
+	ltpcounter \
+	ltpdeliv \
+	ltpdriver \
+	ltpmeter \
+	ltpsecadmin \
+	sdatest \
+	udplsi \
+	udplso
 
 ltplib = \
 	libltp.la
@@ -654,11 +696,12 @@ $(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
 
 libltp_la_SOURCES = \
 	ltp/library/libltp.c \
+	ltp/library/libltpnm.c \
 	ltp/library/libltpP.c \
 	ltp/library/ltpei.c \
 	ltp/library/ltpsec.c \
-	ltp/sda/libsda.c \
-	ltp/library/libltpnm.c
+	ltp/sda/libsda.c
+
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LIBADD = libici.la -lm
 
@@ -742,12 +785,16 @@ dgrPODM3 = pod2man -s 3 -c "DGR library functions"
 dgrcflags = -I$(srcdir)/dgr/library -I$(srcdir)/dgr/test
 
 dgrbin = \
-	file2dgr \
 	dgr2file \
+	file2dgr \
 	file2tcp \
 	tcp2file \
-	file2udp \
 	udp2file
+
+if !WINDOWS
+dgrbin += \
+	file2udp
+endif
 
 dgrlib = \
 	libdgr.la
@@ -815,75 +862,96 @@ tcp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 #
 ##########################
 
+# Build bpv6
+#ifeq ($(BP_DIR),bpv6)
+#if BUILD_BPv6
 # Define pod2man stuff
 bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(srcdir)/bp/library -I$(srcdir)/bp/library/acs -I$(srcdir)/bp/library/ext -I$(srcdir)/bp/library/ext/meb -I$(srcdir)/bp/library/ext/bae -I$(srcdir)/bp/library/ext/cteb -I$(srcdir)/bp/include -I$(srcdir)/bp/ipn -I$(srcdir)/bp/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(srcdir)/bp/dtn2 -I$(srcdir)/bp/library/crypto -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/library/ext/sbsp/ciphersuites -I$(srcdir)/bp/library/ext/phn -I$(srcdir)/bp/imc -I$(srcdir)/bp/tcp -I$(srcdir)/bp/udp -I$(srcdir)/ici/include -I$(srcdir)/bp/library/ext/ecos -I$(srcdir)/bp/library/ext/snw -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/bp/imc -DBP_EXTENDED
+bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED
+
+if BUILD_BPv6
+bpcflags += -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/cteb
+endif # end BUILD_BPv6
+if BUILD_BPv7
+bpcflags += -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq
+endif # end BUILD_BPv7
 
 bpbin = \
+	beacon \
+	bibeclo \
 	bpadmin \
-	bpsecadmin \
-	bpsink \
-	bpdriver \
-	bpsource \
-	bpecho \
 	bpcancel \
-	bpcounter \
-	bplist \
-	bpsendfile \
-	bprecvfile \
 	bpclm \
 	bpclock \
+	bpcounter \
 	bpcrash \
+	bpdriver \
+	bpecho \
+	bping \
+	bplist \
+	bpnmtest \
+	bprecvfile \
+	bpsecadmin \
+	bpsendfile \
+	bpsink \
+	bpsource \
+	bpstats \
+	bptrace \
 	bptransit \
-	ipnadmin \
-	ipnfw \
+	bpversion \
+	brsccla \
+	brsscla \
 	bsspcli \
 	bsspclo \
-	ipnadminep \
-	dtn2admin \
-	dtn2fw \
-	dtn2adminep \
-	ipnd \
-	beacon \
-	node \
-	tcpcli \
-	tcpclo \
-	stcpcli \
-	stcpclo \
-	brsscla \
-	brsccla \
-	udpcli \
-	udpclo \
-	bibeclo \
-	dccpcli \
-	dccpclo	\
+	cgrfetch \
 	dgrcli \
 	dgrclo \
+	dtn2admin \
+	dtn2adminep \
+	dtn2fw \
+	hmackeys \
+	ipnadmin \
+	ipnadminep \
+	ipnd \
+	ipnfw \
+	lgagent \
+	lgsend \
 	ltpcli \
 	ltpclo \
-	lgsend \
-	lgagent \
-	bptrace \
-	bping \
-	bpnmtest \
-	bpstats \
+	node \
+	stcpcli \
+	stcpclo \
+	tcpcli \
+	tcpclo \
+	udpcli \
+	udpclo
+
+if !WINDOWS
+bpbin += \
 	bpstats2 \
 	bpchat \
-	hmackeys \
-	cgrfetch
+	dccpcli \
+	dccpclo
+endif
 
+if BUILD_BPv7
+bpbin += bibeadmin
+endif # end BUILD_BPv7
+
+if BUILD_BPv6
 if ENABLE_BPACS
 bpbin += acsadmin \
 	acslist
-endif
+endif # end ENABLE_BPACS
+endif # End BUILD_BPv6
 
 if ENABLE_IMC
 bpbin += imcadmin \
 	imcfw
-endif
+endif # end ENABLE_IMC
 
 bplib = \
 	libbp.la \
@@ -894,105 +962,135 @@ bplib = \
 #	libecos.la
 
 bpinclude = \
-	bp/include/bp.h \
-	bp/include/eureka.h
-#bp/include/bpP.h \
-#bp/include/bei.h
+	$(BP_DIR)/include/bp.h \
+	$(BP_DIR)/include/eureka.h
+#$(BP_DIR)/include/bpP.h \
+#$(BP_DIR)/include/bei.h
 
 #ecos.h goes here?
 #bp/library/ecos.h
 bpnoinst = \
-	bp/library/bpP.h \
-	bp/library/bpsec.h \
-	bp/library/saga.h \
-	bp/ipn/ipnfw.h \
-	bp/ipnd/ipndP.h \
-	bp/dtn2/dtn2fw.h \
-	bp/brs/brscla.h \
-	bp/udp/udpcla.h \
-	bp/ltp/ltpcla.h \
-	bp/stcp/stcpcla.h \
-	bp/dccp/dccpcla.h
-#	bp/library/ext/phn/phn.h
+	$(BP_DIR)/library/bpP.h \
+	$(BP_DIR)/include/bpsec.h \
+	$(BP_DIR)/ipn/ipnfw.h \
+	$(BP_DIR)/ipnd/ipndP.h \
+	$(BP_DIR)/dtn2/dtn2fw.h \
+	$(BP_DIR)/brs/brscla.h \
+	$(BP_DIR)/udp/udpcla.h \
+	$(BP_DIR)/ltp/ltpcla.h \
+	$(BP_DIR)/stcp/stcpcla.h \
+	$(BP_DIR)/dccp/dccpcla.h
+
+if BUILD_BPv6
+bpnoinst += 	$(BP_DIR)/library/saga.h
+else # BUILD_BPv7
+bpnoinst += 	$(BP_DIR)/saga/saga.h
+endif # end BUILD_BPv6
 
 bpextra = \
-	bp/doc/pod1/bpadmin.pod \
-	bp/doc/pod1/bpclock.pod \
-	bp/doc/pod1/bptransit.pod \
-	bp/doc/pod1/bpcounter.pod \
-	bp/doc/pod1/bpcancel.pod \
-	bp/doc/pod1/bpclm.pod \
-	bp/doc/pod1/bplist.pod \
-	bp/doc/pod1/bpdriver.pod \
-	bp/doc/pod1/bpecho.pod \
-	bp/doc/pod1/bpsecadmin.pod \
-	bp/doc/pod1/bpsendfile.pod \
-	bp/doc/pod1/bprecvfile.pod \
-	bp/doc/pod1/bpsink.pod \
-	bp/doc/pod1/bpsource.pod \
-	bp/doc/pod1/bpstats.pod \
-	bp/doc/pod1/bptrace.pod \
-	bp/doc/pod1/brsccla.pod \
-	bp/doc/pod1/brsscla.pod \
-	bp/doc/pod1/dgrcli.pod \
-	bp/doc/pod1/dgrclo.pod \
-	bp/doc/pod1/dtn2adminep.pod \
-	bp/doc/pod1/dtn2admin.pod \
-	bp/doc/pod1/dtn2fw.pod \
-	bp/doc/pod1/ipnadminep.pod \
-	bp/doc/pod1/ipnadmin.pod \
-	bp/doc/pod1/ipnfw.pod \
-	bp/doc/pod1/lgagent.pod \
-	bp/doc/pod1/lgsend.pod \
-	bp/doc/pod1/ltpcli.pod \
-	bp/doc/pod1/ltpclo.pod \
-	bp/doc/pod1/stcpcli.pod \
-	bp/doc/pod1/tcpcli.pod \
-	bp/doc/pod1/stcpclo.pod \
-	bp/doc/pod1/tcpclo.pod \
-	bp/doc/pod1/udpcli.pod \
-	bp/doc/pod1/udpclo.pod \
-	bp/doc/pod1/bibeclo.pod \
-	bp/doc/pod1/dccpcli.pod \
-	bp/doc/pod1/dccpclo.pod \
-	bp/doc/pod1/bping.pod \
-	bp/doc/pod1/bpnmtest.pod \
-	bp/doc/pod1/bpstats2.pod \
-	bp/doc/pod1/bpchat.pod \
-	bp/doc/pod1/hmackeys.pod \
-	bp/doc/pod5/bprc.pod \
-	bp/doc/pod5/ipnrc.pod \
-	bp/doc/pod5/dtn2rc.pod \
-	bp/doc/pod5/lgfile.pod \
-	bp/doc/pod3/bp.pod \
-	bp/README.txt \
-	bp/doc/pod3/bpextensions.pod \
-	bp/library/bpextensions.c \
-	bp/library/noextensions.c \
-	bp/library/ext/ecos/ecos.h \
-	bp/library/ext/ecos/ecos.c \
-	bp/library/ext/meb \
-	bp/library/ext/meb/meb.h \
-	bp/library/ext/meb/meb.c \
-	bp/library/bei.c \
-	bp/library/bpsec.h \
-	bp/library/bpsec.c \
-	bp/library/saga.h \
-	bp/library/saga.c \
-	bp/library/ext/bae/bae.h \
-	bp/library/ext/bae/bae.c \
-	bp/library/ext/sbsp/sbsp_instr.h \
-	bp/library/ext/sbsp/sbsp_instr.c \
-	bp/library/ext/sbsp/sbsp_bcb.h \
-	bp/library/ext/sbsp/sbsp_bcb.c \
-	bp/library/ext/sbsp/sbsp_bib.h \
-	bp/library/ext/sbsp/sbsp_bib.c \
-	bp/library/ext/sbsp/sbsp_util.h \
-	bp/library/ext/sbsp/sbsp_util.c \
-	bp/library/ext/sbsp/profiles.h \
-	bp/library/ext/sbsp/profiles.c \
+	$(BP_DIR)/README.txt \
+	$(BP_DIR)/doc/pod1/bibeclo.pod \
+	$(BP_DIR)/doc/pod1/bpadmin.pod \
+	$(BP_DIR)/doc/pod1/bpcancel.pod \
+	$(BP_DIR)/doc/pod1/bpchat.pod \
+	$(BP_DIR)/doc/pod1/bpclm.pod \
+	$(BP_DIR)/doc/pod1/bpclock.pod \
+	$(BP_DIR)/doc/pod1/bpcounter.pod \
+	$(BP_DIR)/doc/pod1/bpdriver.pod \
+	$(BP_DIR)/doc/pod1/bpecho.pod \
+	$(BP_DIR)/doc/pod1/bping.pod \
+	$(BP_DIR)/doc/pod1/bplist.pod \
+	$(BP_DIR)/doc/pod1/bpnmtest.pod \
+	$(BP_DIR)/doc/pod1/bprecvfile.pod \
+	$(BP_DIR)/doc/pod1/bpsecadmin.pod \
+	$(BP_DIR)/doc/pod1/bpsendfile.pod \
+	$(BP_DIR)/doc/pod1/bpsink.pod \
+	$(BP_DIR)/doc/pod1/bpsource.pod \
+	$(BP_DIR)/doc/pod1/bpstats.pod \
+	$(BP_DIR)/doc/pod1/bpstats2.pod \
+	$(BP_DIR)/doc/pod1/bptrace.pod \
+	$(BP_DIR)/doc/pod1/bptransit.pod \
+	$(BP_DIR)/doc/pod1/brsccla.pod \
+	$(BP_DIR)/doc/pod1/brsscla.pod \
+	$(BP_DIR)/doc/pod1/cgrfetch.pod \
+	$(BP_DIR)/doc/pod1/dccpcli.pod \
+	$(BP_DIR)/doc/pod1/dccpclo.pod \
+	$(BP_DIR)/doc/pod1/dgrcli.pod \
+	$(BP_DIR)/doc/pod1/dgrclo.pod \
+	$(BP_DIR)/doc/pod1/dtn2admin.pod \
+	$(BP_DIR)/doc/pod1/dtn2adminep.pod \
+	$(BP_DIR)/doc/pod1/dtn2fw.pod \
+	$(BP_DIR)/doc/pod1/hmackeys.pod \
+	$(BP_DIR)/doc/pod1/ipnadmin.pod \
+	$(BP_DIR)/doc/pod1/ipnadminep.pod \
+	$(BP_DIR)/doc/pod1/ipnd.pod \
+	$(BP_DIR)/doc/pod1/ipnfw.pod \
+	$(BP_DIR)/doc/pod1/lgagent.pod \
+	$(BP_DIR)/doc/pod1/lgsend.pod \
+	$(BP_DIR)/doc/pod1/ltpcli.pod \
+	$(BP_DIR)/doc/pod1/ltpclo.pod \
+	$(BP_DIR)/doc/pod1/stcpcli.pod \
+	$(BP_DIR)/doc/pod1/stcpclo.pod \
+	$(BP_DIR)/doc/pod1/tcpcli.pod \
+	$(BP_DIR)/doc/pod1/tcpclo.pod \
+	$(BP_DIR)/doc/pod1/udpcli.pod \
+	$(BP_DIR)/doc/pod1/udpclo.pod \
+	$(BP_DIR)/doc/pod3/bp.pod \
+	$(BP_DIR)/doc/pod3/bpextensions.pod \
+	$(BP_DIR)/doc/pod5/bprc.pod \
+	$(BP_DIR)/doc/pod5/bpsecrc.pod \
+	$(BP_DIR)/doc/pod5/dtn2rc.pod \
+	$(BP_DIR)/doc/pod5/ipnrc.pod \
+	$(BP_DIR)/doc/pod5/lgfile.pod \
+	$(BP_DIR)/include/bpsec.h \
+	$(BP_DIR)/library/bpextensions.c \
+	$(BP_DIR)/library/noextensions.c \
+	$(BP_DIR)/library/ext/ecos/ecos.h \
+	$(BP_DIR)/library/ext/ecos/ecos.c \
+	$(BP_DIR)/library/ext/meb \
+	$(BP_DIR)/library/ext/meb/meb.h \
+	$(BP_DIR)/library/ext/meb/meb.c \
+	$(BP_DIR)/library/bei.c \
+	$(BP_DIR)/library/bpsec.c \
+	$(BP_DIR)/library/saga.h \
+	$(BP_DIR)/library/saga.c \
+	$(BP_DIR)/library/ext/bae/bae.h \
+	$(BP_DIR)/library/ext/bae/bae.c \
 	ici/include/crypto.h \
-	ici/include/csi.h 
+	ici/include/csi.h
+
+if BUILD_BPv6
+bpextra += \
+	$(BP_DIR)/library/ext/sbsp/sbsp_instr.h \
+	$(BP_DIR)/library/ext/sbsp/sbsp_instr.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bcb.h \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bcb.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bib.h \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bib.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_util.h \
+	$(BP_DIR)/library/ext/sbsp/sbsp_util.c \
+	$(BP_DIR)/library/ext/sbsp/profiles.h \
+	$(BP_DIR)/library/ext/sbsp/profiles.c
+if ENABLE_IMC
+bpextra += \
+	$(BP_DIR)/doc/pod1/imcadmin.pod \
+	$(BP_DIR)/doc/pod1/imcfw.pod \
+	$(BP_DIR)/doc/pod5/imcrc.pod
+endif # end ENABLE_IMC
+endif # end BUILD_BPv6
+
+if BUILD_BPv7
+bpextra += \
+	$(BP_DIR)/library/ext/bpsec/bcb.h \
+	$(BP_DIR)/library/ext/bpsec/bib.h \
+	$(BP_DIR)/library/ext/bpsec/bpsec_instr.h \
+	$(BP_DIR)/library/ext/bpsec/bpsec_util.h \
+	$(BP_DIR)/library/ext/bpsec/profiles.h \
+	$(BP_DIR)/library/ext/hcb/hcb.h \
+	$(BP_DIR)/doc/pod1/bibeadmin.pod \
+	$(BP_DIR)/doc/pod5/biberc.pod \
+	$(BP_DIR)/bibe/bibe.h
+endif # end BUILD_BPv7
 
 # noextensions.c is C code, but it isn't explicitly compiled.
 # instead, the whole file is #included into libbpP.c
@@ -1001,138 +1099,155 @@ bpextra = \
 # installed in the normal case- so we shall leave them extra_DIST for now.
 
 bpmans = \
-	$(top_builddir)/bp/doc/bpadmin.1 \
-	$(top_builddir)/bp/doc/bpclock.1 \
-	$(top_builddir)/bp/doc/bptransit.1 \
-	$(top_builddir)/bp/doc/bpcounter.1 \
-	$(top_builddir)/bp/doc/bpcancel.1 \
-	$(top_builddir)/bp/doc/bpclm.1 \
-	$(top_builddir)/bp/doc/bplist.1 \
-	$(top_builddir)/bp/doc/bpdriver.1 \
-	$(top_builddir)/bp/doc/bpecho.1 \
-	$(top_builddir)/bp/doc/bpsecadmin.1 \
-	$(top_builddir)/bp/doc/bpsendfile.1 \
-	$(top_builddir)/bp/doc/bprecvfile.1 \
-	$(top_builddir)/bp/doc/bpsink.1 \
-	$(top_builddir)/bp/doc/bpsource.1 \
-	$(top_builddir)/bp/doc/bpstats.1 \
-	$(top_builddir)/bp/doc/bptrace.1 \
-	$(top_builddir)/bp/doc/brsccla.1 \
-	$(top_builddir)/bp/doc/brsscla.1 \
-	$(top_builddir)/bp/doc/dgrcli.1 \
-	$(top_builddir)/bp/doc/dgrclo.1 \
-	$(top_builddir)/bp/doc/dtn2adminep.1 \
-	$(top_builddir)/bp/doc/dtn2admin.1 \
-	$(top_builddir)/bp/doc/dtn2fw.1 \
-	$(top_builddir)/bp/doc/ipnadminep.1 \
-	$(top_builddir)/bp/doc/ipnadmin.1 \
-	$(top_builddir)/bp/doc/ipnfw.1 \
-	$(top_builddir)/bp/doc/lgagent.1 \
-	$(top_builddir)/bp/doc/lgsend.1 \
-	$(top_builddir)/bp/doc/ltpcli.1 \
-	$(top_builddir)/bp/doc/ltpclo.1 \
-	$(top_builddir)/bp/doc/stcpcli.1 \
-	$(top_builddir)/bp/doc/tcpcli.1 \
-	$(top_builddir)/bp/doc/stcpclo.1 \
-	$(top_builddir)/bp/doc/tcpclo.1 \
-	$(top_builddir)/bp/doc/udpcli.1 \
-	$(top_builddir)/bp/doc/udpclo.1 \
-	$(top_builddir)/bp/doc/bibeclo.1 \
-	$(top_builddir)/bp/doc/dccpcli.1 \
-	$(top_builddir)/bp/doc/dccpclo.1 \
-	$(top_builddir)/bp/doc/cgrfetch.1 \
-	$(top_builddir)/bp/doc/bping.1 \
-	$(top_builddir)/bp/doc/bpnmtest.1 \
-	$(top_builddir)/bp/doc/bpstats2.1 \
-	$(top_builddir)/bp/doc/bpchat.1 \
-	$(top_builddir)/bp/doc/hmackeys.1 \
-	$(top_builddir)/bp/doc/bprc.5 \
-	$(top_builddir)/bp/doc/ipnrc.5 \
-	$(top_builddir)/bp/doc/dtn2rc.5 \
-	$(top_builddir)/bp/doc/lgfile.5 \
-	$(top_builddir)/bp/doc/bp.3 \
-	$(top_builddir)/bp/doc/bpextensions.3
+	$(top_builddir)/$(BP_DIR)/doc/bibeclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpcancel.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpchat.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpclm.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpclock.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpcounter.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpdriver.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpecho.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bping.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bplist.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpnmtest.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bprecvfile.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpsecadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpsendfile.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpsink.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpsource.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpstats.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bpstats2.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bptrace.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bptransit.1 \
+	$(top_builddir)/$(BP_DIR)/doc/brsccla.1 \
+	$(top_builddir)/$(BP_DIR)/doc/brsscla.1 \
+	$(top_builddir)/$(BP_DIR)/doc/cgrfetch.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dccpcli.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dccpclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dgrcli.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dgrclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dtn2admin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dtn2adminep.1 \
+	$(top_builddir)/$(BP_DIR)/doc/dtn2fw.1 \
+	$(top_builddir)/$(BP_DIR)/doc/hmackeys.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnadminep.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnd.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnfw.1 \
+	$(top_builddir)/$(BP_DIR)/doc/lgagent.1 \
+	$(top_builddir)/$(BP_DIR)/doc/lgsend.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ltpcli.1 \
+	$(top_builddir)/$(BP_DIR)/doc/ltpclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/stcpcli.1 \
+	$(top_builddir)/$(BP_DIR)/doc/stcpclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/tcpcli.1 \
+	$(top_builddir)/$(BP_DIR)/doc/tcpclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/udpcli.1 \
+	$(top_builddir)/$(BP_DIR)/doc/udpclo.1 \
+	$(top_builddir)/$(BP_DIR)/doc/bp.3 \
+	$(top_builddir)/$(BP_DIR)/doc/bpextensions.3 \
+	$(top_builddir)/$(BP_DIR)/doc/bprc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/bpsecrc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/dtn2rc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/ipnrc.5 \
+	$(top_builddir)/$(BP_DIR)/doc/lgfile.5
 
+if BUILD_BPv7
+bpmans += \
+	$(top_builddir)/$(BP_DIR)/doc/bibeadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/biberc.5
+endif # end BUILD_BPv7
+
+# ACS only exists in BPv6 so only build the docs if BPv6 and ACS is enabled
+if BUILD_BPv6
 if ENABLE_BPACS
 bpmans += \
-	$(top_builddir)/bp/doc/acsadmin.1 \
-	$(top_builddir)/bp/doc/acslist.1 \
-	$(top_builddir)/bp/doc/acsrc.5
-endif
+	$(top_builddir)/$(BP_DIR)/doc/acsadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/acslist.1 \
+	$(top_builddir)/$(BP_DIR)/doc/acsrc.5
+endif # end ENABLE_BPACS
+endif # end BUILD_BPv6
 
 if ENABLE_IMC
 bpmans += \
-	$(top_builddir)/bp/doc/imcadmin.1 \
-	$(top_builddir)/bp/doc/imcfw.1 \
-	$(top_builddir)/bp/doc/imcrc.5
-endif
+	$(top_builddir)/$(BP_DIR)/doc/imcadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/imcfw.1 \
+	$(top_builddir)/$(BP_DIR)/doc/imcrc.5
+endif # end ENABLE_IMC
 
 
 bpclean-local:
-	rm -f $(top_builddir)/bp/doc/*.1
-	rm -f $(top_builddir)/bp/doc/*.3
-	rm -f $(top_builddir)/bp/doc/*.5
+	rm -f $(top_builddir)/$(BP_DIR)/doc/*.1
+	rm -f $(top_builddir)/$(BP_DIR)/doc/*.3
+	rm -f $(top_builddir)/$(BP_DIR)/doc/*.5
 
-$(top_builddir)/bp/doc/%.1: bp/doc/pod1/%.pod
+$(top_builddir)/$(BP_DIR)/doc/%.1: $(BP_DIR)/doc/pod1/%.pod
 	$(bpPODM1) $< $@
 
-$(top_builddir)/bp/doc/%.3: bp/doc/pod3/%.pod
+$(top_builddir)/$(BP_DIR)/doc/%.3: $(BP_DIR)/doc/pod3/%.pod
 	$(bpPODM3) $< $@
 
-$(top_builddir)/bp/doc/%.5: bp/doc/pod5/%.pod
+$(top_builddir)/$(BP_DIR)/doc/%.5: $(BP_DIR)/doc/pod5/%.pod
 	$(bpPODM5) $< $@
 
 # -- Libraries --- #
 
-libstcpcla_la_SOURCES = bp/stcp/libstcpcla.c
+libstcpcla_la_SOURCES = $(BP_DIR)/stcp/libstcpcla.c
 libstcpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libstcpcla_la_LIBADD = libbp.la libici.la
 
-libudpcla_la_SOURCES = bp/udp/libudpcla.c
+libudpcla_la_SOURCES = $(BP_DIR)/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
 
-
 libbp_la_SOURCES = \
-	bp/dtn2/libdtn2fw.h \
-	bp/dtn2/libdtn2fw.c \
-	bp/library/libbp.c \
-	bp/library/libbpP.c \
-	bp/library/libbpnm.c \
-	bp/library/eureka.c \
-	bp/library/ext/phn/phn.c \
-	bp/library/ext/ecos/ecos.c \
-	bp/library/bei.c \
-	bp/library/bpsec.h \
-	bp/library/bpsec.c \
-	bp/library/saga.h \
-	bp/library/saga.c \
-	bp/library/ext/meb/meb.c \
-	bp/library/ext/bae/bae.c \
-	bp/library/ext/sbsp/sbsp_instr.h \
-	bp/library/ext/sbsp/sbsp_instr.c \
-	bp/library/ext/sbsp/sbsp_bcb.h \
-	bp/library/ext/sbsp/sbsp_bcb.c \
-	bp/library/ext/sbsp/sbsp_bib.h \
-	bp/library/ext/sbsp/sbsp_bib.c \
-	bp/library/ext/sbsp/sbsp_util.h \
-	bp/library/ext/sbsp/sbsp_util.c \
-	bp/library/ext/sbsp/profiles.h \
-	bp/library/ext/sbsp/profiles.c \
-	bp/library/ext/snid/snid.c \
-	bp/library/ext/snw/snw.h \
-	bp/library/ext/snw/snw.c \
-	bp/ipn/libipnfw.h \
-	bp/ipn/libipnfw.c \
-	bp/ipnd/ipnd.c \
-	bp/ipnd/beacon.c \
-	bp/ipnd/helper.c \
-	bp/ipnd/node.c \
+	$(BP_DIR)/dtn2/libdtn2fw.c \
+	$(BP_DIR)/library/libbp.c \
+	$(BP_DIR)/library/libbpP.c \
+	$(BP_DIR)/library/libbpnm.c \
+	$(BP_DIR)/library/eureka.c \
+	$(BP_DIR)/library/bei.c \
+	$(BP_DIR)/library/bpsec.c \
+	$(BP_DIR)/library/ext/meb/meb.c \
+	$(BP_DIR)/library/ext/bae/bae.c \
+	$(BP_DIR)/library/ext/snw/snw.c \
+	$(BP_DIR)/ipn/libipnfw.c \
+	$(BP_DIR)/ipnd/ipnd.c \
+	$(BP_DIR)/ipnd/beacon.c \
+	$(BP_DIR)/ipnd/helper.c \
+	$(BP_DIR)/ipnd/bpa.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
-	ici/libbloom-master/murmur2/murmurhash2.h \
 	ici/libbloom-master/murmur2/MurmurHash2.c
+
+if BUILD_BPv6
+libbp_la_SOURCES += \
+	$(BP_DIR)/library/acs/acs.h \
+	$(BP_DIR)/library/ext/ecos/ecos.c \
+	$(BP_DIR)/library/ext/phn/phn.c \
+	$(BP_DIR)/library/saga.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_instr.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bcb.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_bib.c \
+	$(BP_DIR)/library/ext/sbsp/sbsp_util.c \
+	$(BP_DIR)/library/ext/sbsp/profiles.c \
+	$(BP_DIR)/library/ext/snid/snid.c
+else # BUILD_BPv7
+libbp_la_SOURCES += \
+	$(BP_DIR)/bibe/bibe.c \
+	$(BP_DIR)/library/ext/bpsec/bcb.c \
+	$(BP_DIR)/library/ext/bpsec/bib.c \
+	$(BP_DIR)/library/ext/bpsec/bpsec_instr.c \
+	$(BP_DIR)/library/ext/bpsec/bpsec_util.c \
+	$(BP_DIR)/library/ext/bpsec/profiles.c \
+	$(BP_DIR)/library/ext/hcb/hcb.c \
+	$(BP_DIR)/library/ext/pnb/pnb.c \
+	$(BP_DIR)/library/ext/pnb/pnb.h \
+	$(BP_DIR)/library/ext/bpq/bpq.c \
+	$(BP_DIR)/saga/saga.c
+endif # end BUILD_BPv6
 
 if CRYPTO
 libici_la_SOURCES+= \
@@ -1142,289 +1257,307 @@ else
 libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
-endif
-libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(srcdir)/bp/library/ext/sbsp
+endif # end CRYPTO
+
+libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
+
 #libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
 #EJB
+if BUILD_BPv6
 if ENABLE_BPACS
 libbp_la_SOURCES += \
-	bp/library/acs/acsrx.c \
-	bp/library/acs/acstx.c \
-	bp/library/acs/acsserialize.c \
-	bp/library/acs/acsappend.c \
-	bp/library/acs/acsid.c \
-	bp/library/ext/cteb/cteb.c \
+	$(BP_DIR)/library/acs/acsrx.c \
+	$(BP_DIR)/library/acs/acstx.c \
+	$(BP_DIR)/library/acs/acsserialize.c \
+	$(BP_DIR)/library/acs/acsappend.c \
+	$(BP_DIR)/library/acs/acsid.c \
+	$(BP_DIR)/library/ext/cteb/cteb.c \
 	$(NULL)
-endif
+endif # end ENABLE_BPACS
+endif # end BUILD_BPv6
 
 if ENABLE_IMC
 libbp_la_SOURCES += \
-	bp/imc/libimcfw.c \
+	$(BP_DIR)/imc/libimcfw.c \
 	$(NULL)
-endif
+endif # end ENABLE_IMC
 
-libcgr_la_SOURCES = bp/cgr/libcgr.c
+libcgr_la_SOURCES = $(BP_DIR)/cgr/libcgr.c
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LIBADD = libbp.la libici.la
 
 # --- Utility Programs --- #
 
-bpadmin_SOURCES = bp/utils/bpadmin.c
+bpadmin_SOURCES = $(BP_DIR)/utils/bpadmin.c
 bpadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpsecadmin_SOURCES = bp/utils/bpsecadmin.c
+bpsecadmin_SOURCES = $(BP_DIR)/utils/bpsecadmin.c
 bpsecadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-ipnadmin_SOURCES = bp/ipn/ipnadmin.c
+ipnadmin_SOURCES = $(BP_DIR)/ipn/ipnadmin.c
 ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+# Only try to build ACS if BPv6 and ACS is enabled
+if BUILD_BPv6
 if ENABLE_BPACS
-acsadmin_SOURCES = bp/utils/acsadmin.c
+acsadmin_SOURCES = $(BP_DIR)/utils/acsadmin.c
 acsadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-acslist_SOURCES = bp/utils/acslist.c
+acslist_SOURCES = $(BP_DIR)/utils/acslist.c
 acslist_LDADD = libbp.la libici.la $(LIBOBJS)
 acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-endif
+endif # end ENABLE_BPACS
+endif # end BUILD_BPACS
 
 if ENABLE_IMC
-imcadmin_SOURCES = bp/imc/imcadmin.c
+imcadmin_SOURCES = $(BP_DIR)/imc/imcadmin.c
 imcadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 imcadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-imcfw_SOURCES = bp/imc/imcfw.c
+imcfw_SOURCES = $(BP_DIR)/imc/imcfw.c
 imcfw_LDADD = libbp.la libici.la $(LIBOBJS)
 imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-endif
+endif # end ENABLE_IMC
 
-dtn2admin_SOURCES = bp/dtn2/dtn2admin.c
+dtn2admin_SOURCES = $(BP_DIR)/dtn2/dtn2admin.c
 dtn2admin_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-lgsend_SOURCES = bp/utils/lgsend.c
+lgsend_SOURCES = $(BP_DIR)/utils/lgsend.c
 lgsend_LDADD = libbp.la libici.la $(LIBOBJS)
 lgsend_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-lgagent_SOURCES = bp/utils/lgagent.c
+lgagent_SOURCES = $(BP_DIR)/utils/lgagent.c
 lgagent_LDADD = libbp.la libici.la $(LIBOBJS)
 lgagent_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpstats_SOURCES = bp/utils/bpstats.c
+bpstats_SOURCES = $(BP_DIR)/utils/bpstats.c
 bpstats_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bptrace_SOURCES = bp/utils/bptrace.c
+bptrace_SOURCES = $(BP_DIR)/utils/bptrace.c
 bptrace_LDADD = libbp.la libici.la $(LIBOBJS)
 bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpcancel_SOURCES = bp/utils/bpcancel.c
+bpcancel_SOURCES = $(BP_DIR)/utils/bpcancel.c
 bpcancel_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bplist_SOURCES = bp/utils/bplist.c
+bpversion_SOURCES = $(BP_DIR)/utils/bpversion.c
+bpversion_LDADD = libbp.la libici.la $(LIBOBJS)
+bpversion_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+bplist_SOURCES = $(BP_DIR)/utils/bplist.c
 bplist_LDADD = libbp.la libici.la $(LIBOBJS)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-hmackeys_SOURCES = bp/utils/hmackeys.c
+hmackeys_SOURCES = $(BP_DIR)/utils/hmackeys.c
 hmackeys_LDADD = libici.la -lm libbp.la $(LIBOBJS)
 hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DTN Executables --- #
 
-dtn2fw_SOURCES = bp/dtn2/dtn2fw.c
+dtn2fw_SOURCES = $(BP_DIR)/dtn2/dtn2fw.c
 dtn2fw_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2fw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-dtn2adminep_SOURCES = bp/dtn2/dtn2adminep.c
+dtn2adminep_SOURCES = $(BP_DIR)/dtn2/dtn2adminep.c
 dtn2adminep_LDADD = libbp.la libici.la $(LIBOBJS)
 dtn2adminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPN Executables --- #
 
-ipnfw_SOURCES = bp/ipn/ipnfw.c
+ipnfw_SOURCES = $(BP_DIR)/ipn/ipnfw.c
 ipnfw_LDADD = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-ipnadminep_SOURCES = bp/ipn/ipnadminep.c
+ipnadminep_SOURCES = $(BP_DIR)/ipn/ipnadminep.c
 ipnadminep_LDADD = libbp.la libici.la $(LIBOBJS)
 ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPND Executables --- #
 
-#helper_SOURCES = bp/ipnd/helper.c
+#helper_SOURCES = $(BP_DIR)/ipnd/helper.c
 #helper_LDADD = libbp.la libipnfw.la  libdtn2fw.la libici.la $(LIBOBJS)
 #helper_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-ipnd_SOURCES = bp/ipnd/ipnd.c
+ipnd_SOURCES = $(BP_DIR)/ipnd/ipnd.c
 ipnd_LDADD = libcgr.la libbp.la libici.la $(LIBOBJS)
 ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-beacon_SOURCES = bp/ipnd/beacon.c
+beacon_SOURCES = $(BP_DIR)/ipnd/beacon.c
 beacon_LDADD = libbp.la libici.la $(LIBOBJS)
 beacon_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-node_SOURCES = bp/ipnd/node.c
+node_SOURCES = $(BP_DIR)/ipnd/bpa.c
 node_LDADD = libbp.la libici.la $(LIBOBJS)
 node_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BSSP Executables --- #
 
-bsspcli_SOURCES = bp/bssp/bsspcli.c
+bsspcli_SOURCES = $(BP_DIR)/bssp/bsspcli.c
 bsspcli_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bsspclo_SOURCES = bp/bssp/bsspclo.c
+bsspclo_SOURCES = $(BP_DIR)/bssp/bsspclo.c
 bsspclo_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS)
 bsspclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- LTP Executables --- #
 
-ltpcli_SOURCES = bp/ltp/ltpcli.c
+ltpcli_SOURCES = $(BP_DIR)/ltp/ltpcli.c
 ltpcli_LDADD = libbp.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-ltpclo_SOURCES = bp/ltp/ltpclo.c
+ltpclo_SOURCES = $(BP_DIR)/ltp/ltpclo.c
 ltpclo_LDADD = libbp.la libltp.la libici.la $(LIBOBJS)
 ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 
-tcpcli_SOURCES = bp/tcp/tcpcli.c
+tcpcli_SOURCES = $(BP_DIR)/tcp/tcpcli.c
 tcpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-tcpclo_SOURCES = bp/tcp/tcpclo.c
+tcpclo_SOURCES = $(BP_DIR)/tcp/tcpclo.c
 tcpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 tcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- STCP Executables --- #
 
-stcpcli_SOURCES = bp/stcp/stcpcli.c
+stcpcli_SOURCES = $(BP_DIR)/stcp/stcpcli.c
 stcpcli_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-stcpclo_SOURCES = bp/stcp/stcpclo.c
+stcpclo_SOURCES = $(BP_DIR)/stcp/stcpclo.c
 stcpclo_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
-udpcli_SOURCES = bp/udp/udpcli.c
+udpcli_SOURCES = $(BP_DIR)/udp/udpcli.c
 udpcli_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-udpclo_SOURCES = bp/udp/udpclo.c
+udpclo_SOURCES = $(BP_DIR)/udp/udpclo.c
 udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-# --- UDP Executables --- #
+# --- BIBE Executables --- #
 
-bibeclo_SOURCES = bp/bibe/bibeclo.c
+bibeclo_SOURCES = $(BP_DIR)/bibe/bibeclo.c
 bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+if BUILD_BPv7
+bibeadmin_SOURCES = $(BP_DIR)/bibe/bibeadmin.c
+bibeadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+endif # end BUILD_BPv7
+
 # --- DCCP Executables --- #
 
-dccpcli_SOURCES = bp/dccp/dccpcli.c
+dccpcli_SOURCES = $(BP_DIR)/dccp/dccpcli.c
 dccpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-dccpclo_SOURCES = bp/dccp/dccpclo.c
+dccpclo_SOURCES = $(BP_DIR)/dccp/dccpclo.c
 dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
-dgrcli_SOURCES = bp/dgr/dgrcli.c
+dgrcli_SOURCES = $(BP_DIR)/dgr/dgrcli.c
 dgrcli_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dgrcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-dgrclo_SOURCES = bp/dgr/dgrclo.c
+dgrclo_SOURCES = $(BP_DIR)/dgr/dgrclo.c
 dgrclo_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 dgrclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
 
-brsscla_SOURCES = bp/brs/brsscla.c
+brsscla_SOURCES = $(BP_DIR)/brs/brsscla.c
 brsscla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsscla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-brsccla_SOURCES = bp/brs/brsccla.c
+brsccla_SOURCES = $(BP_DIR)/brs/brsccla.c
 brsccla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsccla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
-bpsource_SOURCES = bp/test/bpsource.c
+bpsource_SOURCES = $(BP_DIR)/test/bpsource.c
 bpsource_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsource_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpsink_SOURCES = bp/test/bpsink.c
+bpsink_SOURCES = $(BP_DIR)/test/bpsink.c
 bpsink_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsink_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpdriver_SOURCES = bp/test/bpdriver.c
+bpdriver_SOURCES = $(BP_DIR)/test/bpdriver.c
 bpdriver_LDADD = libbp.la libici.la $(LIBOBJS)
 bpdriver_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpecho_SOURCES = bp/test/bpecho.c
+bpecho_SOURCES = $(BP_DIR)/test/bpecho.c
 bpecho_LDADD = libbp.la libici.la $(LIBOBJS)
 bpecho_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpcounter_SOURCES = bp/test/bpcounter.c
+bpcounter_SOURCES = $(BP_DIR)/test/bpcounter.c
 bpcounter_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcounter_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpsendfile_SOURCES = bp/utils/bpsendfile.c
+bpsendfile_SOURCES = $(BP_DIR)/utils/bpsendfile.c
 bpsendfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bprecvfile_SOURCES = bp/utils/bprecvfile.c
+bprecvfile_SOURCES = $(BP_DIR)/utils/bprecvfile.c
 bprecvfile_LDADD = libbp.la libici.la $(LIBOBJS)
 bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bping_SOURCES = bp/test/bping.c
+bping_SOURCES = $(BP_DIR)/test/bping.c
 bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpnmtest_SOURCES = bp/test/bpnmtest.c
+bpnmtest_SOURCES = $(BP_DIR)/test/bpnmtest.c
 bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpcrash_SOURCES = bp/test/bpcrash.c
+bpcrash_SOURCES = $(BP_DIR)/test/bpcrash.c
 bpcrash_LDADD = libbp.la libici.la $(LIBOBJS)
 bpcrash_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpstats2_SOURCES = bp/test/bpstats2.c
+bpstats2_SOURCES = $(BP_DIR)/test/bpstats2.c
 bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpchat_SOURCES = bp/test/bpchat.c
+bpchat_SOURCES = $(BP_DIR)/test/bpchat.c
 bpchat_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-cgrfetch_SOURCES = bp/utils/cgrfetch.c
+cgrfetch_SOURCES = $(BP_DIR)/utils/cgrfetch.c
 cgrfetch_LDADD = libbp.la libici.la libcgr.la $(LIBOBJS)
 cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
-bpclock_SOURCES = bp/daemon/bpclock.c
+bpclock_SOURCES = $(BP_DIR)/daemon/bpclock.c
 bpclock_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bptransit_SOURCES = bp/daemon/bptransit.c
+bptransit_SOURCES = $(BP_DIR)/daemon/bptransit.c
 bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpclm_SOURCES = bp/daemon/bpclm.c
+bpclm_SOURCES = $(BP_DIR)/daemon/bpclm.c
 bpclm_LDADD = libbp.la libici.la $(LIBOBJS)
 bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
 
 ##########################
 #
@@ -1442,7 +1575,6 @@ amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams
 
 amsbin = \
 	amsd \
-	amshello \
 	amsshell \
 	amslog \
 	amslogprt \
@@ -1451,6 +1583,11 @@ amsbin = \
 	amsbenchr \
 	amsstop \
 	ramsgate
+
+if !WINDOWS
+amsbin += \
+	amshello
+endif
 
 amslib = \
 	libams.la
@@ -1594,9 +1731,13 @@ cfdpbin = \
 	cfdpclock \
 	bputa \
 	cfdptest \
-	bpcp \
-	bpcpd \
 	tcputa
+
+if !WINDOWS
+cfdpbin +=\
+	bpcp \
+	bpcpd
+endif
 
 cfdplib = \
 	libcfdp.la
@@ -1606,7 +1747,7 @@ cfdpinclude = \
 	cfdp/include/cfdpops.h
 
 cfdpnoinst = \
-	cfdp/library/bputa.h \
+	cfdp/include/bputa.h \
 	cfdp/library/cfdpP.h \
 	cfdp/utils/bpcp.h
 
@@ -1983,6 +2124,10 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 ##########################
 
 nmbin= nm_agent nm_mgr
+nmlib= libnm.la libnmAgentADM.la
+
+nmPODM1 = pod2man -s 1 -c "NM executables"
+nmPODM3 = pod2man -s 1 -c "NM libraries"
 
 # CBOR Library Sources
 nm_cbor_src = \
@@ -1991,11 +2136,14 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc
+AMP_VERSION ?= 8
+#$(warning "AMP_VERSION is ${AMP_VERSION}")
+NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
 
+# NM Shared library
+#  This library is standalone (no dependencies on other ION components)
 nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/msg/msg.c				\
-			nm/shared/msg/ion_if.c			\
 			nm/shared/primitives/ari.c		\
 			nm/shared/primitives/blob.c		\
 			nm/shared/primitives/ctrl.c		\
@@ -2013,23 +2161,35 @@ nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/utils/vector.c		\
 			$(nm_cbor_src)
 
-nm_agent_SOURCES =  	$(nm_shared_src)		\
+libnm_la_SOURCES = $(nm_shared_src)
+libnm_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/$(BP_DIR)/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  $(NM_CBOR_CFLAGS)
+# Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
+libnm_la_LIBADD = libici.la
+
+# Note: AMP Agent ADM must be built directly with the agent, whereas all other ADMs can be modularized as needed.
+nm_agent_SOURCES = \
 			nm/agent/ingest.c  		\
 			nm/agent/instr.c		\
 			nm/agent/lcc.c     		\
 			nm/agent/nmagent.c 		\
 			nm/agent/ldc.c 			\
-			nm/agent/rda.c 			\
+			nm/agent/rda.c          \
+			nm/shared/msg/ion_if.c  \
 			nm/agent/adm_amp_agent_impl.c   \
 			nm/agent/adm_amp_agent_agent.c	\
-			nm/agent/adm_bp_agent_impl.c	\
-			nm/agent/adm_bp_agent_agent.c	\
-			nm/agent/adm_sbsp_impl.c	\
-			nm/agent/adm_sbsp_agent.c	\
+			nm/shared/adm/adm_init.c
+
+NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR)
+
+nm_agent_ADM_SOURCES = \
+			$(BP_DIR)/adm/adm_bp_agent_impl.c	    \
+			$(BP_DIR)/adm/adm_bp_agent_agent.c      \
+			$(BP_DIR)/adm/adm_ion_bp_admin_impl.c	\
+			$(BP_DIR)/adm/adm_ion_bp_admin_agent.c  \
 			nm/agent/adm_ion_admin_agent.c 	\
 			nm/agent/adm_ion_admin_impl.c	\
-			nm/agent/adm_ion_bp_admin_impl.c	\
-			nm/agent/adm_ion_bp_admin_agent.c	\
 			nm/agent/adm_ionsec_admin_impl.c	\
 			nm/agent/adm_ionsec_admin_agent.c	\
 			nm/agent/adm_ion_ipn_admin_impl.c	\
@@ -2037,18 +2197,54 @@ nm_agent_SOURCES =  	$(nm_shared_src)		\
 			nm/agent/adm_ion_ltp_admin_impl.c	\
 			nm/agent/adm_ion_ltp_admin_agent.c	\
 			nm/agent/adm_ltp_agent_impl.c	\
-			nm/agent/adm_ltp_agent_agent.c 
+			nm/agent/adm_ltp_agent_agent.c
 
 
-nm_agent_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_mgr_ADM_SOURCES = \
+			nm/mgr/adm_amp_agent_mgr.c   	\
+			$(BP_DIR)/adm/adm_ion_bp_admin_mgr.c	\
+			$(BP_DIR)/adm/adm_bp_agent_mgr.c \
+			nm/mgr/adm_ion_admin_mgr.c	\
+			nm/mgr/adm_ionsec_admin_mgr.c	\
+			nm/mgr/adm_ion_ipn_admin_mgr.c	\
+			nm/mgr/adm_ion_ltp_admin_mgr.c	\
+			nm/mgr/adm_ltp_agent_mgr.c
+
+if BUILD_BPv6
+nm_agent_ADM_SOURCES += \
+			$(BP_DIR)/adm/adm_sbsp_impl.c	\
+			$(BP_DIR)/adm/adm_sbsp_agent.c   
+nm_mgr_ADM_SOURCES += \
+			$(BP_DIR)/adm/adm_sbsp_mgr.c		
+else
+nm_agent_ADM_SOURCES += $(BP_DIR)/adm/adm_bpsec_impl.c \
+	$(BP_DIR)/adm/adm_bpsec_agent.c
+nm_mgr_ADM_SOURCES += $(BP_DIR)/adm/adm_bpsec_mgr.c
+
+endif # end BUILD_BPv6
+
+nmextra = \
+	nm/doc/pod1/nm_agent.pod \
+	nm/doc/pod1/nm_mgr.pod
+
+nmmans = \
+	$(top_builddir)/nm/doc/nm_agent.1 \
+	$(top_builddir)/nm/doc/nm_mgr.1
+
+libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
+libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la
+
+
+nm_agent_LDADD = libici.la libbp.la libltp.la libnm.la libnmAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
-nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
-                  -I$(srcdir)/nm/agent -I$(srcdir)/bp/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
-                  -DAGENT_ROLE $(CBOR_CFLAGS)
+nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/nm \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  -DAGENT_ROLE $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 
-nm_mgr_SOURCES =	$(nm_shared_src)		\
+nm_mgr_SOURCES =	\
 			nm/mgr/agents.c 		\
 			nm/mgr/metadata.c		\
 			nm/mgr/nm_mgr_print.c 	 	\
@@ -2057,21 +2253,38 @@ nm_mgr_SOURCES =	$(nm_shared_src)		\
 			nm/mgr/nm_mgr_ui.c 		\
 			nm/mgr/nm_mgr.c			\
 			nm/mgr/ui_input.c 		\
-			nm/mgr/adm_amp_agent_mgr.c   	\
-			nm/mgr/adm_bp_agent_mgr.c	\
-			nm/mgr/adm_sbsp_mgr.c		\
-			nm/mgr/adm_ion_admin_mgr.c	\
-			nm/mgr/adm_ion_bp_admin_mgr.c	\
-			nm/mgr/adm_ionsec_admin_mgr.c	\
-			nm/mgr/adm_ion_ipn_admin_mgr.c	\
-			nm/mgr/adm_ion_ltp_admin_mgr.c	\
-			nm/mgr/adm_ltp_agent_mgr.c
+			$(nm_mgr_ADM_SOURCES)   \
+			nm/shared/msg/ion_if.c \
+			nm/shared/adm/adm_init.c
 
-nm_mgr_LDADD = libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+# TODO: Split cJSON as a seperate configurable supporting library
+CIVETWEB_SOURCES = \
+	nm/contrib/civetweb/src/civetweb.c \
+	nm/contrib/civetweb/examples/rest/cJSON/cJSON.c \
+	nm/contrib/civetweb/examples/rest/cJSON/cJSON_Utils.c \
+	nm/mgr/nm_rest.c
+CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contrib/civetweb/examples/rest/cJSON
+CIVETWEB_LDFLAGS = -ldl
+CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
 
-# Note: NCURSES and MySql support are optional and controlled at configure time with --enable-mysql and --disable-ncurses
+nm_mgr_LDADD = libnm.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+
+# Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/bp/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(CBOR_CFLAGS)
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
+
+if BUILD_NM_REST
+nm_mgr_LDFLAGS += $(CIVETWEB_LDFLAGS)
+nm_mgr_CFLAGS += $(CIVETWEB_INCLUDES) $(CIVETWEB_CFLAGS)
+nm_mgr_SOURCES += $(CIVETWEB_SOURCES)
+
+endif
+
+$(top_builddir)/nm/doc/%.1: nm/doc/pod1/%.pod
+	$(nmPODM1) $< $@
+
+$(top_builddir)/nm/doc/%.3: nm/doc/pod3/%.pod
+	$(nmPODM3) $< $@
 
 
 ##########################
@@ -2080,12 +2293,16 @@ nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/b
 #
 ##########################
 
-restartbin = ionrestart
+restartbin = ionrestart ionexit
 
 # --- Utility Programs --- #
 ionrestart_SOURCES = restart/utils/ionrestart.c
 ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
-ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/bp/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
+ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
+
+ionexit_SOURCES = restart/utils/ionexit.c
+ionexit_LDADD = libltp.la libici.la -lm libbp.la $(LIBOBJS)
+ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 
 ##########################
@@ -2107,12 +2324,12 @@ buildcheck: $(check_PROGRAMS)
 
 # Runs the tests listed in "normaltests"
 test: buildcheck
-	cd tests && ./runtestset normaltests
+	cd $(srcdir)/tests && ./runtestset normaltests
 
 # Uses the runtest script that simply runs "dotest" including compiled tests.
 # Could also use ./runtestset alltests, they should be equivalent.
 test-all: buildcheck
-	cd tests && ./runtests
+	cd $(srcdir)/tests && ./runtests
 
 # Builds a testset file with the same name as a mercurial branch.
 # This is intended as a per-branch unit test.
@@ -2120,12 +2337,12 @@ test-branch: buildcheck
 	@echo
 	@echo "You need mercurial (hg) installed for this."
 	@echo
-	cd tests && hg branch | xargs -L1 ./runtestset
+	cd $(srcdir)/tests && hg branch | xargs -L1 ./runtestset
 
 # Catch-all for tests, basically any string after "make test-" will run a
 # testset file with the same name as that string.
 test-%: buildcheck
-	cd tests && ./runtestset $*
+	cd $(srcdir)/tests && ./runtestset $*
 
 # Runtest will make a file called "retest" containing all "failed" tests.
 # The file will not exist at first (resulting in an error).
@@ -2134,14 +2351,14 @@ test-%: buildcheck
 # This ensures that "make restest" will only pass when some testing has
 # already been performed with total success.
 retest: buildcheck
-	cd tests && ./runtestset retest
+	cd $(srcdir)/tests && ./runtestset retest
 
 # "make check" is the same as "make test"
 check: test
 
 # This library contains utility code that's helpful for tests in C.
 TESTUTILOBJS = tests/library/libtestutil.la
-TESTUTILCFLAGS = -Itests/library
+TESTUTILCFLAGS = -I$(srcdir)/tests/library
 check_LTLIBRARIES = $(TESTUTILOBJS)
 tests_library_libtestutil_la_SOURCES = \
 	tests/library/check.c \
@@ -2149,6 +2366,26 @@ tests_library_libtestutil_la_SOURCES = \
 	tests/library/ionstart.c \
 	tests/library/ionstop.c
 tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+# C TAP Harness Library.  Provides enhanced functions for writing unit tests and outputting TAP-conformant output
+#  Note: TAP = Test anything Protocol
+#  Note: This library includes a harness to run tests similar to runtests, but which is ot being used at this time.
+# TESTTAPOBJS = tests/library/libtesttap.la
+# TEST_TAP_DIR = contrib/c-tap-harness/tests/tap
+# TESTTAPCFLAGS = -I$(srcdir)/contrib/c-tap-harness
+# check_LTLIBRARIES = $(TESTTAPOBJS)
+# tests_library_libtesttap_la_SOURCES = \
+# 	$(TEST_TAP_DIR)/basic.c \
+# 	$(TEST_TAP_DIR)/float.c
+# tests_library_libtesttap_la_CFLAGS = $(TESTTAPCFLAGS) $(AM_CFLAGS)
+
+# Unity Test Framework (http://throwtheswitch.org/unity) Utility
+TESTUNITYOBJS = tests/library/libtestunity.la
+TEST_UNITY_DIR = contrib/c-unity-harness/tests/unity
+TESTUNITYCFLAGS = -I$(srcdir)/contrib/Unity/src
+check_LTLIBRARIES += $(TESTUNITYOBJS)
+tests_library_libtestunity_la_SOURCES = $(srcdir)/contrib/Unity/src/unity.c
+tests_library_libtestunity_la_CFLAGS = $(TESTUNITYCFLAGS) $(AM_CFLAGS)
 
 # TEST AUTHORS: README
 # If a test does not require compilation, it should not be listed here.  Just make a
@@ -2160,16 +2397,39 @@ tests_library_libtestutil_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1500.loopback-brs/dotest \
 	tests/issue-260-teach-valgrind-mtake/domtake \
-	tests/issue-279-bpMemo-timeline/driver \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
 	tests/issue-334-cfdp-transaction-id/dotest \
-	tests/nm-unit/dotest
+	tests/nm-unit/dotest \
+	tests/nm-unit/utils/vector/dotest \
+	tests/nm-unit/utils/rhht/dotest
+#	tests/nm-unit/primitives/ari/dotest
 
-tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES)
-tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS)
-tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) -DTEST_MAIN -DUSE_MALLOC
+if BUILD_BPv6
+check_PROGRAMS += \
+	tests/issue-279-bpMemo-timeline/driver
+endif #end BUILD_BPv6
+
+# Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
+tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_shared_src) $(nm_agent_ADM_SOURCES)
+#tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
+tests_nm_unit_dotest_LDADD = libici.la libbp.la libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
+tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DTEST_MAIN -DUSE_MALLOC \
+	-I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm/shared
+
+tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c $(nm_shared_src)
+tests_nm_unit_utils_vector_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
+tests_nm_unit_utils_vector_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
+
+tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(nm_shared_src)
+tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
+tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+
+#tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
+#tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
+#tests_nm_unit_primitives_ari_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS)
+
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
@@ -2198,9 +2458,13 @@ tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-val
 tests_issue_260_teach_valgrind_mtake_domtake_LDADD = libici.la -lm $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
+# issue_279_bpMemo_timeline_driver is bpv6 only
+# bpMemo function does not exist for bpv7
+if BUILD_BPv6
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
 tests_issue_279_bpMemo_timeline_driver_LDADD =  libici.la -lm libbp.la $(LIBOBJS) $(TESTUTILOBJS)
-tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) -I$(BP_DIR)/library/ $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+endif # end BUILD_BPv6
 
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD= libici.la -lm libbp.la $(LIBOBJS)
@@ -2300,9 +2564,9 @@ endif #ENABLE_AUTODOC
 #
 ##########################
 
-DOC_VERSION_NUMBER := $(shell cat version.txt)
-DOC_VERSION_MAJOR := $(shell cat version.txt | sed 's/\..*//')
-DOC_VERSION_MINOR := $(shell cat version.txt | sed 's/[0-9]*\.//')
+DOC_VERSION_NUMBER := $(shell cat $(srcdir)/version.txt)
+DOC_VERSION_MAJOR := $(shell cat $(srcdir)/version.txt | sed 's/\..*//')
+DOC_VERSION_MINOR := $(shell cat $(srcdir)/version.txt | sed 's/[0-9]*\.//')
 DOC_DATE := $(shell date -I)
 
 distribution: doc/ION-beginning.pdf doc/ION-manpages.ps

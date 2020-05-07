@@ -94,20 +94,21 @@ msg_agent_t *msg_agent_deserialize(blob_t *data, int *success)
 		msg_agent_release(result, 1);
 		return NULL;
 	}
-	
+		
 	// Verify Decoding Completed Successfully
 	cut_decode_finish(&decoder);
 
 	// Copy String and ensure it is NULL-terminated
 	len = item.val.string.len;
-	if (len > AMP_MAX_EID_LEN)
+
+	if (len >= AMP_MAX_EID_LEN)
 	{
 	   AMP_DEBUG_WARN("msg_agent_deserialize", "String length (%d) greater than AMP_MAX_EID_LEN, truncating", len);
 	   len = AMP_MAX_EID_LEN - 1;
 	}
-	strncpy(tmp.name, item.val.string.ptr, item.val.string.len);
-	tmp.name[AMP_MAX_EID_LEN-1] = 0; // Ensure it's NULL-terminated
-	
+	memcpy(tmp.name, item.val.string.ptr, len);
+	tmp.name[len] = 0; // Ensure it's NULL-terminated
+
 	msg_agent_set_agent(result, tmp);	 
 	
 	return result;
@@ -191,7 +192,6 @@ msg_ctrl_t* msg_ctrl_deserialize(blob_t *data, int *success)
 {
 	msg_ctrl_t *result = msg_ctrl_create();
 	QCBORDecodeContext decoder;
-	QCBORItem it;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
@@ -294,6 +294,7 @@ msg_rpt_t* msg_rpt_create(char *rx_name)
 	int success;
 	msg_rpt_t *result = STAKE(sizeof(msg_rpt_t));
 	char *name_copy;
+	int len;
 	CHKNULL(result);
 
 	MSG_HDR_SET_OPCODE(result->hdr.flags,MSG_TYPE_RPT_SET);
@@ -306,13 +307,16 @@ msg_rpt_t* msg_rpt_create(char *rx_name)
 
 	if(rx_name != NULL)
 	{
-		if((name_copy = STAKE(strlen(rx_name) + 1)) == NULL)
+		len = strlen(rx_name);
+		if((name_copy = STAKE(len + 1)) == NULL)
 		{
 			vec_release(&(result->rx), 0);
 			SRELEASE(result);
 			return NULL;
 		}
-		strncpy(name_copy, rx_name, strlen(rx_name) + 1);
+		memcpy(name_copy, rx_name, len );
+		name_copy[len] = 0; // Ensure null-termination
+		
 		if(vec_push(&(result->rx), name_copy) != VEC_OK)
 		{
 			vec_release(&(result->rx), 0);
@@ -339,7 +343,6 @@ msg_rpt_t *msg_rpt_deserialize(blob_t *data, int *success)
 {
 	msg_rpt_t *result;
 	QCBORDecodeContext it;
-	QCBORItem item;
 
 	*success = AMP_FAIL;
 	CHKNULL(data);
@@ -427,7 +430,173 @@ blob_t* msg_rpt_serialize_wrapper(msg_rpt_t *msg)
 }
 
 
+int msg_tbl_add_tbl(msg_tbl_t *msg, tbl_t *tbl)
+{
+	CHKUSR(msg, AMP_FAIL);
+	CHKUSR(tbl, AMP_FAIL);
 
+	if(vec_push(&(msg->tbls), tbl) != VEC_OK)
+	{
+		return AMP_FAIL;
+	}
+
+	return AMP_OK;	
+}
+
+void msg_tbl_cb_del_fn(void *item)
+{
+	msg_tbl_release((msg_tbl_t*)item, 1);
+}
+
+msg_tbl_t* msg_tbl_create(char *rx_name)
+{
+	int success;
+	msg_tbl_t *result = STAKE(sizeof(msg_tbl_t));
+	char *name_copy;
+	int len;
+	CHKNULL(result);
+
+	MSG_HDR_SET_OPCODE(result->hdr.flags,MSG_TYPE_TBL_SET);
+
+	if(vec_str_init(&(result->rx), 0) != VEC_OK)
+	{
+		SRELEASE(result);
+		return NULL;
+	}
+
+	if(rx_name != NULL)
+	{
+		len = strlen(rx_name);
+		if((name_copy = STAKE(len + 1)) == NULL)
+		{
+			vec_release(&(result->rx), 0);
+			SRELEASE(result);
+			return NULL;
+		}
+		memcpy(name_copy, rx_name, len);
+		name_copy[len] = 0; // Ensure enull-termination
+
+		if(vec_push(&(result->rx), name_copy) != VEC_OK)
+		{
+			vec_release(&(result->rx), 0);
+			SRELEASE(result);
+			SRELEASE(name_copy);
+			return NULL;
+		}
+	}
+
+	result->tbls = vec_create(0, tbl_cb_del_fn, tbl_cb_comp_fn, NULL, VEC_FLAG_AS_STACK, &success);
+	if(success != VEC_OK)
+	{
+		vec_release(&(result->rx), 0);
+		SRELEASE(result);
+		return NULL;
+	}
+
+	return result;
+}
+
+msg_tbl_t *msg_tbl_deserialize(blob_t *data, int *success)
+{
+	msg_tbl_t *result;
+	QCBORDecodeContext it;
+
+	*success = AMP_FAIL;
+	CHKNULL(data);
+
+	result = msg_tbl_create(NULL);
+	CHKNULL(result);
+
+	QCBORDecode_Init(&it,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+
+	/* Step 1: Grab the header. */
+	result->hdr = msg_hdr_deserialize(&it, success);
+	if(*success != AMP_OK)
+	{
+		msg_tbl_release(result, 1);
+		return NULL;
+	}
+
+	/* Step 2: Grab the array of recipients. */
+	if((cut_deserialize_vector(&(result->rx), &it, cut_char_deserialize)) != AMP_OK)
+	{
+		*success = AMP_FAIL;
+		msg_tbl_release(result, 1);
+		return NULL;
+	}
+
+	/* Step 3: Grab the array of table entries. */
+	if((cut_deserialize_vector(&(result->tbls), &it, tbl_deserialize_ptr)) != AMP_OK)
+	{
+		*success = AMP_FAIL;
+		msg_tbl_release(result, 1);
+		return NULL;
+	}
+
+	// Verify Decoding Completed Successfully
+	cut_decode_finish(&it);
+	
+	return result;
+}
+
+
+void msg_tbl_release(msg_tbl_t *msg, int destroy)
+{
+	CHKVOID(msg);
+	vec_release(&(msg->rx), 0);
+	vec_release(&(msg->tbls), 0);
+	if(destroy)
+	{
+		SRELEASE(msg);
+	}
+}
+
+
+int msg_tbl_serialize(QCBOREncodeContext *encoder, void *item)
+{
+	msg_tbl_t *msg = (msg_tbl_t *)item;
+
+	if (msg_hdr_serialize(encoder, msg->hdr) != AMP_OK)
+	{
+		return AMP_FAIL;
+	}
+
+
+	if (cut_serialize_vector(encoder, &(msg->rx), (cut_enc_fn)cut_char_serialize) != AMP_OK)
+	{
+		return AMP_FAIL;
+	}
+
+
+	return cut_serialize_vector(encoder, &(msg->tbls), (cut_enc_fn)tbl_serialize);
+
+}
+
+
+blob_t* msg_tbl_serialize_wrapper(msg_tbl_t *msg)
+{
+	return cut_serialize_wrapper(MSG_DEFAULT_ENC_SIZE, msg, (cut_enc_fn)msg_tbl_serialize);
+}
+
+#if 0
+void msg_release(void *msg, int msg_type, int destroy)
+{
+	switch(type) {
+	case MSG_TYPE_PERF_CTRL:
+		msg_ctrl_release(msg, destroy);
+		break;
+	case MSG_TYPE_RPT_SET:
+		msg_rpt_release(msg, destroy);
+		break;
+	case MSG_TYPE_REG_AGENT:
+		msg_agent_release(msg, destroy);
+		break;
+		// TODO: case MSG_TYPE_TABLE_SET
+	}
+}
+#endif
 int msg_grp_add_msg(msg_grp_t *grp, blob_t *msg, uint8_t type)
 {
 	CHKUSR(grp, AMP_FAIL);
@@ -492,6 +661,25 @@ int msg_grp_add_msg_rpt(msg_grp_t *grp, msg_rpt_t *msg)
 	CHKUSR(result, AMP_FAIL);
 
 	if((success = msg_grp_add_msg(grp, result, MSG_TYPE_RPT_SET)) != AMP_OK)
+	{
+		blob_release(result, 1);
+	}
+
+	return success;
+}
+
+int msg_grp_add_msg_tbl(msg_grp_t *grp, msg_tbl_t *msg)
+{
+	blob_t *result = NULL;
+	int success;
+
+	CHKUSR(grp, AMP_FAIL);
+	CHKUSR(msg, AMP_FAIL);
+
+	result = msg_tbl_serialize_wrapper(msg);
+	CHKUSR(result, AMP_FAIL);
+
+	if((success = msg_grp_add_msg(grp, result, MSG_TYPE_TBL_SET)) != AMP_OK)
 	{
 		blob_release(result, 1);
 	}

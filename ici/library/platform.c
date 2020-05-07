@@ -3303,7 +3303,15 @@ char	*igets(int fd, char *buffer, int buflen, int *lineLen)
 	int	maxLine = buflen - 1;
 	int	len;
 
-	if (fd < 0 || buffer == NULL || buflen < 1 || lineLen == NULL)
+	if (buffer == NULL)
+	{
+		ABORT_AS_REQD;
+		putErrmsg("No buffer passed to igets().", NULL);
+		return NULL;
+	}
+
+	*buffer = '\0';				/*	Default.	*/
+	if (fd < 0 || buflen < 1 || lineLen == NULL)
 	{
 		ABORT_AS_REQD;
 		putErrmsg("Invalid argument(s) passed to igets().", NULL);
@@ -3413,7 +3421,7 @@ int	iputs(int fd, char *string)
 /*	*	*	Standard TCP functions	*	*	*	*/
 
 #ifndef mingw
-void	itcp_handleConnectionLoss()
+void	itcp_handleConnectionLoss(int signum)
 {
 	isignal(SIGPIPE, itcp_handleConnectionLoss);
 }
@@ -3468,7 +3476,16 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 
 	if (connect(*sock, &socketName, sizeof(struct sockaddr)) < 0)
 	{
-		putSysErrmsg("Can't connect to TCP socket", socketTag);
+		if (errno == ECONNREFUSED)
+		{
+			writeMemoNote("[i] Can't connect to TCP socket \
+(refused)", socketTag);
+		}
+		else
+		{
+			putSysErrmsg("Can't connect to TCP socket", socketTag);
+		}
+
 		closesocket(*sock);
 		*sock = -1;
 		return 0;

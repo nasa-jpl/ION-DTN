@@ -1,0 +1,89 @@
+=head1 NAME
+
+bpsecadmin - BP security policy administration interface
+
+=head1 SYNOPSIS
+
+B<bpsecadmin> [ I<commands_filename> ]
+
+=head1 DESCRIPTION
+
+B<bpsecadmin> configures and manages BP security policy on the local computer.
+
+It configures and manages BP security policy on the local
+computer in response to BP configuration commands found in
+I<commands_filename>, if provided; if not, B<bpsecadmin> prints
+a simple prompt (:) so that the user may type commands directly
+into standard input.
+
+The format of commands for I<commands_filename> can be queried from
+B<bpsecadmin> by entering the command 'h' or '?' at the prompt.  The
+commands are documented in bpsecrc(5).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Successful completion of BP security policy administration.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item bpsecadmin
+
+Enter interactive ION security policy administration command entry mode.
+
+=item bpsecadmin host1.bpsecrc
+
+Execute all configuration commands in I<host1.bpsecrc>, then terminate
+immediately.
+
+=back
+
+=head1 FILES
+
+Status and diagnostic messages from B<bpsecadmin> and from other software that
+utilizes the ION node are nominally written to a log file in the current
+working directory within which B<bpsecadmin> was run.  The log file is
+typically named B<ion.log>.
+
+See also bpsecrc(5).
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+B<Note>: all ION administration utilities expect source file input to be
+lines of ASCII text that are NL-delimited.  If you edit the ionrc file on
+a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
+before presenting it to B<bpsecadmin>.  Otherwise B<bpsecadmin> will detect
+syntax errors and will not function satisfactorily.
+
+The following diagnostics may be issued to the log file:
+
+=over 4
+
+=item Can't open command file...
+
+The I<commands_filename> specified in the command line doesn't exist.
+
+=back
+
+Various errors that don't cause B<bpsecadmin> to fail but are noted in the
+log file may be caused by improperly formatted commands given at the prompt
+or in the I<commands_filename>.  Please see bpsecrc(5) for details.
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpsecrc(5)

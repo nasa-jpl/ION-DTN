@@ -2697,25 +2697,14 @@ void	closeImportSession(Object sessionObj)
 	Sdr	sdr = getIonsdr();
 		OBJ_POINTER(ImportSession, session);
 		OBJ_POINTER(LtpSpan, span);
-#if 0
-	Object	elt;
-#endif
 
 	CHKVOID(ionLocked());
 	GET_OBJ_POINTER(sdr, ImportSession, session, sessionObj);
 	GET_OBJ_POINTER(sdr, LtpSpan, span, session->span);
 
 	/*	Remove the rest of the import session.			*/
-#if 0
-	cancelEvent(LtpResendRecvCancel, span->engineId, session->sessionNbr,
-			0);
-#endif
+
 	noteClosedImport(sdr, span, session);
-#if 0
-	sdr_hash_remove(sdr, span->importSessionsHash,
-			(char *) &(session->sessionNbr), (Address *) &elt);
-	sdr_list_delete(sdr, elt, NULL, NULL);
-#endif
 	sdr_free(sdr, sessionObj);
 #if LTPDEBUG
 putErrmsg("Closed import session.", itoa(session->sessionNbr));
@@ -7052,9 +7041,6 @@ static int	handleCAS(LtpDB *ltpdb, unsigned int sessionNbr,
 	LtpSpan		spanBuf;
 	LtpVspan	*vspan;
 	PsmAddress	vspanElt;
-#if 0
-	Object		spanObj;
-#endif
 
 	endOfHeader = *cursor;
 #if LTPDEBUG
@@ -7065,23 +7051,6 @@ putErrmsg("Handling ack of cancel by sender.", utoa(sessionNbr));
 	 *	cancellation of session.				*/
 
 	CHKERR(sdr_begin_xn(sdr));
-#if 0
-	getSessionContext(ltpdb, sessionNbr, &sessionObj, &sessionBuf,
-			&spanObj, &spanBuf, &vspan, &vspanElt);
-	if (spanObj == 0)	/*	Unknown provenance, ignore.	*/
-	{
-		/*	Previously:
-		sdr_exit_xn(sdr);
-		return 0;
-			Now we assume that the referenced session
-			cancellation retransmission timer can be
-			found and disabled.
-		*/		
-
-		cancelEvent(LtpResendXmitCancel, 0, sessionNbr, 0);
-		return sdr_end_xn(sdr);
-	}
-#endif
 	getCanceledExport(sessionNbr, &sessionObj, &sessionElt);
 	if (sessionObj == 0)	/*	Nothing to apply ack to.	*/
 	{

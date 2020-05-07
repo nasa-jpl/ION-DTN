@@ -1,0 +1,84 @@
+=head1 NAME
+
+bptransit - Bundle Protocol (BP) daemon task for forwarding received bundles
+
+=head1 SYNOPSIS
+
+B<bptransit>
+
+=head1 DESCRIPTION
+
+B<bptransit> is a background "daemon" task that is responsible for presenting
+to ION's forwarding daemons any bundles that were received from other nodes
+(i.e., bundles whose payloads reside in Inbound ZCO space) and are destined
+for yet other nodes.  In doing so, it migrates these bundles from Inbound
+buffer space to Outbound buffer space on the same prioritized basis as the
+insertion of locally sourced outbound bundles.
+
+Management of the bptransit daemon is automatic.  It is spawned automatically
+by B<bpadmin> in response to the 's' command that starts operation of Bundle
+Protocol on the local ION node, and it is terminated by B<bpadmin> in
+response to an 'x' (STOP) command.
+
+Whenever a received bundle is determined to have a destination other than the
+local node, a pointer to that bundle is appended to one of two queues of 
+"in-transit" bundles, one for bundles whose forwarding is provisional
+(depending on the availability of Outbound ZCO buffer space; bundles in
+this queue are potentially subject to congestion loss) and one for bundles
+whose forwarding is confirmed.  Bundles received via convergence-layer adapters
+that can sustain flow control, such as STCP, are appended to the "confirmed"
+queue, while those from CLAs that cannot sustain flow control (such as LTP)
+are appended to the "provisional" queue.
+
+B<bptransit> comprises two threads, one for each in-transit queue.  The
+confirmed in-transit thread dequeues bundles from the "confirmed" queue
+and moves them from Inbound to Outbound ZCO buffer space, blocking (if
+necessary) until space becomes available.  The provisional in-transit queue
+dequeues bundles from the "provisional" queue and moves them from Inbound
+to Outbound ZCO buffer space if Outbound space is available, discarding
+("abandoning") them if it is not.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bptransit> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<bptransit>.
+
+=item "1"
+
+B<bptransit> was unable to attach to Bundle Protocol operations, probably
+because B<bpadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bptransit can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1)

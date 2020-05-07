@@ -1,0 +1,115 @@
+=head1 NAME
+
+bpstats2 - Bundle Protocol (BP) processing statistics query utility via bundles
+
+=head1 SYNOPSIS
+
+B<bpstats2> I<sourceEID> [I<default destEID>] [ct]
+
+=head1 DESCRIPTION
+
+B<bpstats2> creates bundles containing the current values of all BP processing
+statistics accumulators.  It creates these bundles when:
+
+=over 4
+
+=item *
+
+an interrogation bundle is delivered to I<sourceEID>: the contents of the
+bundle are discarded, a new statistics bundle is generated and sent to the
+source of the interrogation bundle.  The format of the interrogation bundle
+is irrelevant.
+
+=item *
+
+a SIGUSR1 signal is delivered to the B<bpstats2> application: a new
+statistics bundle is generated and sent to I<default destEID>.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpstats2> has terminated. Any problems encountered during operation will be
+noted in the B<ion.log> log file.
+
+=item "1"
+
+B<bpstats2> failed to start up or receive bundles.  Diagnose the issue 
+reported in the B<ion.log> file and try again.
+
+=back
+
+=head1 OPTIONS
+
+=over 4
+
+=item [ct]
+
+If the string "ct" is appended as the last argument, then statistics bundles
+will be sent with custody transfer requested.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item bpstats2 can't bp_attach().
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item bpstats2 can't open own endpoint.
+
+Another BP application has opened that endpoint; close it and try again.
+
+=item No space for ZCO extent.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't create ZCO extent.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item bpstats2 can't send stats bundle.
+
+Bundle Protocol service to the remote endpoint has been stopped.
+
+=item Can't send stats: bad dest EID (dest EID)
+
+The destination EID printed is an invalid destination EID.  The destination
+EID may be specified in I<default destEID> or the source EID of the
+interrogation bundle.  Ensure that I<default destEID> is an EID that 
+is valid for ION, and that the interrogator is a source EID that is also
+a valid destination EID.  Note that "dtn:none" is not a valid destination
+EID, but is a valid source EID.
+
+=back
+
+=head1 NOTES
+
+A very simple interrogator is L<bpchat> which can repeatedly interrogate
+B<bpstats2> by just striking the enter key.
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpstats(1), bpchat(1)

@@ -1,0 +1,104 @@
+=head1 NAME
+
+bpchat - Bundle Protocol chat test program
+
+=head1 SYNOPSIS
+
+B<bpchat> I<sourceEID> I<destEID> [ct]
+
+=head1 DESCRIPTION
+
+B<bpchat> uses Bundle Protocol to send input text in bundles, and display the
+payload of received bundles as output.  It is similar to the L<talk> utility,
+but operates over the Bundle Protocol.  It operates like a combination of the
+L<bpsource> and L<bpsink> utilities in one program (unlike L<bpsource>, 
+B<bpchat> emits bundles with a I<sourceEID>).
+
+If the I<sourceEID> and I<destEID> are both B<bpchat> applications, then two
+users can chat with each other over the Bundle Protocol: lines that one user
+types on the keyboard will be transported over the network in bundles and
+displayed on the screen of the other user (and the reverse).
+
+B<bpchat> terminates upon receiving the SIGQUIT signal, i.e., ^C from the
+keyboard.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpchat> has terminated normally.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=item "1"
+
+B<bpchat> has terminated due to a BP transmit or reception failure.  Details
+should be noted in the B<ion.log> log file.
+
+=back
+
+=head1 OPTIONS
+
+=over 4
+
+=item [ct]
+
+If the string "ct" is appended as the last argument, then bundles will be sent
+with custody transfer requested.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<bpchat> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item Can't open own endpoint.
+
+Another application has already opened I<ownEndpointId>.  Terminate that
+application and rerun.
+
+=item bpchat bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item No space for ZCO extent.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't create ZCO.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item bpchat can't send echo bundle.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpecho(1), bpsource(1), bpsink(1), bp(3)

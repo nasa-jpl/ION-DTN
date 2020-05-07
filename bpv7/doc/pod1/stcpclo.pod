@@ -1,0 +1,86 @@
+=head1 NAME
+
+stcpclo - DTN simple TCP convergence layer adapter output task
+
+=head1 SYNOPSIS
+
+B<stcpclo> I<remote_hostname>[:I<remote_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<stcpclo> is a background "daemon" task that connects to a remote node's
+TCP socket at I<remote_hostname> and I<remote_port_nbr>.  It then begins
+extracting bundles from the queues of bundles ready for transmission via
+TCP to this remote bundle protocol agent and transmitting those bundles
+over the connected socket to that node.  Each transmitted bundle is
+preceded by a 32-bit integer in network byte order indicating the length
+of the bundle.
+
+If not specified, I<remote_port_nbr> defaults to 4556.
+
+B<stcpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<stcpclo> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the STCP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<stcpclo> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart the STCP protocol.
+
+=item "1"
+
+B<stcpclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart the STCP protocol.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item stcpclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such stcp duct.
+
+No STCP outduct with duct name matching I<remote_hostname> and
+I<remote_port_nbr> has been added to the BP database.  Use B<bpadmin> to
+stop the STCP convergence-layer protocol, add the outduct, and then restart the
+STCP protocol.
+
+=item CLO task is already started for this duct.
+
+Redundant initiation of B<stcpclo>.
+
+=item Can't get IP address for host
+
+Operating system error.  Check errtext, correct problem, and restart STCP.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), stcpcli(1)

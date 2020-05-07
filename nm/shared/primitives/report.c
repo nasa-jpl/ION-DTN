@@ -193,7 +193,7 @@ rpt_t* rpt_create(ari_t *id, time_t timestamp, tnvc_t *entries)
 
 /******************************************************************************
  *
- * \par Function Name: rpt_deserialize_data
+ * \par Function Name: rpt_deserialize_ptr
  *
  * \par Extracts a Report from a byte buffer. When serialized, a
  *      Report is a timestamp, the # entries as an SDNV, then a
@@ -244,10 +244,16 @@ void* rpt_deserialize_ptr(QCBORDecodeContext *it, int *success)
 	len = item.val.uCount;
 
 	/* Step 2: grab the Id. */
+#if AMP_VERSION < 7
 	blob_t *blob = blob_deserialize_ptr(it, success);
 	id = ari_deserialize_raw(blob, success);
 	blob_release(blob, 1);
-
+#else
+	QCBORDecode_StartOctets(it);
+	id = ari_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
+	
 	if((id == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
@@ -267,10 +273,15 @@ void* rpt_deserialize_ptr(QCBORDecodeContext *it, int *success)
 		timestamp = 0;
 	}
 
-
+#if AMP_VERSION < 7
 	blob = blob_deserialize_ptr(it, success);
 	entries = tnvc_deserialize_ptr_raw(blob, success);
 	blob_release(blob, 1);
+#else
+	QCBORDecode_StartOctets(it);
+	entries = tnvc_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
 
 	if(*success != AMP_OK)
 	{
@@ -352,8 +363,10 @@ void rpt_release(rpt_t *rpt, int destroy)
 
 int rpt_serialize(QCBOREncodeContext *encoder, void *item)
 {
+#if AMP_VERSION < 7
 	blob_t *result;
-	int success, err;
+#endif
+	int err;
 	size_t num;
 	rpt_t *rpt = (rpt_t *) item;
 
@@ -366,24 +379,36 @@ int rpt_serialize(QCBOREncodeContext *encoder, void *item)
 	QCBOREncode_OpenArray(encoder);
 
 	/* Step 1: Encode the ARI. */
+#if AMP_VERSION < 7
 	result = ari_serialize_wrapper(rpt->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = ari_serialize(encoder, rpt->id);
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
+	
 	if(err != AMP_OK)
 	{
 		return err;
 	}
-
+	
 	if(num == 3)
 	{
 	   QCBOREncode_AddUInt64(encoder, rpt->time);
 	}
 
 	/* Step 3: Encode the entries. */
+#if AMP_VERSION < 7
 	result = tnvc_serialize_wrapper(rpt->entries);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = tnvc_serialize(encoder, rpt->entries);
+	QCBOREncode_CloseArrayOctet(encoder);	
+#endif
 
 	QCBOREncode_CloseArray(encoder);
 	return err;
@@ -544,18 +569,30 @@ rpttpl_t* rpttpl_deserialize_ptr(QCBORDecodeContext *it, int *success)
 
 	CHKNULL(it);
 
+#if AMP_VERSION < 7
 	blob_t *tmp = blob_deserialize_ptr(it, success);
 	ari = ari_deserialize_raw(tmp, success);
 	blob_release(tmp, 1);
-
+#else
+	QCBORDecode_StartOctets(it);
+	ari = ari_deserialize_ptr(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
+	
 	if((ari == NULL) || (*success != AMP_OK))
 	{
 		return NULL;
 	}
 
+#if AMP_VERSION < 7
 	tmp = blob_deserialize_ptr(it, success);
 	new_ac = ac_deserialize_raw(tmp, success);
 	blob_release(tmp, 1);
+#else
+	QCBORDecode_StartOctets(it);
+	new_ac = ac_deserialize(it, success);
+	QCBORDecode_EndOctets(it);
+#endif
 	if(*success != AMP_OK)
 	{
 		ari_release(ari, 1);
@@ -641,20 +678,31 @@ int rpttpl_serialize(QCBOREncodeContext *encoder, void *item)
 	CHKUSR(rpttpl, AMP_FAIL);
 
 	/* Step 1: Encode the ARI. */
+#if AMP_VERSION < 7
 	result = ari_serialize_wrapper(rpttpl->id);
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
-
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = ari_serialize(encoder, rpttpl->id);
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
 	if(err != AMP_OK)
 	{
 		AMP_DEBUG_ERR("rpttpl_serialize","CBOR Error: %d", err);
 		return err;
 	}
-
+	
 	/* Step 2: Encode the type. */
+#if AMP_VERSION < 7
 	result = ac_serialize_wrapper(&(rpttpl->contents));
 	err = blob_serialize(encoder, result);
 	blob_release(result, 1);
+#else
+	QCBOREncode_OpenArray(encoder);
+	err = ac_serialize(encoder, &(rpttpl->contents));
+	QCBOREncode_CloseArrayOctet(encoder);
+#endif
 
 	return err;
 }

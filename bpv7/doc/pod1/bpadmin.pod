@@ -1,0 +1,111 @@
+=head1 NAME
+
+bpadmin - ION Bundle Protocol (BP) administration interface
+
+=head1 SYNOPSIS
+
+B<bpadmin> [ I<commands_filename> | . ]
+
+=head1 DESCRIPTION
+
+B<bpadmin> configures, starts, manages, and stops bundle protocol operations
+for the local ION node.
+	
+It operates in response to BP configuration commands found in the file
+I<commands_filename>, if provided; if not, B<bpadmin> prints
+a simple prompt (:) so that the user may type commands
+directly into standard input.  If I<commands_filename> is a period (.), the
+effect is the same as if a command file containing the single command 'x'
+were passed to B<bpadmin> -- that is, the ION node's I<bpclock> task, 
+forwarder tasks, and convergence layer adapter tasks are stopped.
+
+The format of commands for I<commands_filename> can be queried from B<bpadmin>
+with the 'h' or '?' commands at the prompt.  The commands are documented in
+bprc(5).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+Successful completion of BP administration.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item bpadmin
+
+Enter interactive BP configuration command entry mode.
+
+=item bpadmin host1.bp
+
+Execute all configuration commands in I<host1.bp>, then terminate immediately.
+
+=item bpadmin .
+
+Stop all bundle protocol operations on the local node.
+
+=back
+
+=head1 FILES
+
+See bprc(5) for details of the BP configuration commands.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+B<Note>: all ION administration utilities expect source file input to be
+lines of ASCII text that are NL-delimited.  If you edit the bprc file on
+a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
+before presenting it to B<bpadmin>.  Otherwise B<bpadmin> will detect syntax
+errors and will not function satisfactorily.
+
+The following diagnostics may be issued to the logfile ion.log:
+
+=over 4
+
+=item ION can't set custodian EID information.
+
+The I<custodial_endpoint_id> specified in the BP initialization ('1')
+command is malformed.  Remember that the format for this argument is 
+ipn:I<element_number>.0 and that the final 0 is required, as 
+custodial/administration service is always service 0.  Additional detail
+for this error is provided if one of the following other errors is present:
+
+=over 4
+
+Malformed EID.
+
+Malformed custodian EID.
+
+=back
+
+=item bpadmin can't attach to ION.
+
+There is no SDR data store for I<bpadmin> to use.  You should run ionadmin(1)
+first, to set up an SDR data store for ION.
+
+=item Can't open command file...
+
+The I<commands_filename> specified in the command line doesn't exist.
+
+=back
+
+Various errors that don't cause B<bpadmin> to fail but are noted in the
+B<ion.log> log file may be caused by improperly formatted commands
+given at the prompt or in the I<commands_filename> file.
+Please see bprc(5) for details.
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+ionadmin(1), bprc(5), ipnadmin(1), ipnrc(5), dtnadmin(1), dtnrc(5)

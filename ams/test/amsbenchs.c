@@ -16,7 +16,7 @@ static void	reportError(void *userData, AmsEvent *event)
 	PUTS("AMS event loop crashed.");
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	PUTS("Terminating amsbenchs.");
 }

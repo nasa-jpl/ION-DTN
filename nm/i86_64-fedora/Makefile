@@ -53,9 +53,9 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_amp_agent_impl.c   \
 	$(AGENT)/adm_amp_agent_agent.c	\
 	$(AGENT)/adm_bp_agent_impl.c	\
-	$(AGENT)/adm_bp_agent_agent.c \
-	$(AGENT)/adm_sbsp_impl.c	\
-	$(AGENT)/adm_sbsp_agent.c	\
+	$(AGENT)/adm_bp_agent_agent.c   \
+	$(AGENT)/adm_bpsec_impl.c	\
+	$(AGENT)/adm_bpsec_agent.c	\
 	$(AGENT)/adm_ion_admin_agent.c 	\
 	$(AGENT)/adm_ion_admin_impl.c	\
 	$(AGENT)/adm_ion_bp_admin_impl.c	\
@@ -68,6 +68,8 @@ AGENT_SOURCES = \
 	$(AGENT)/adm_ion_ltp_admin_agent.c	\
 	$(AGENT)/adm_ltp_agent_impl.c	\
 	$(AGENT)/adm_ltp_agent_agent.c 
+#	$(AGENT)/adm_sbsp_impl.c	
+#	$(AGENT)/adm_sbsp_agent.c	
 
 
 MGR_SOURCES = \
@@ -81,13 +83,14 @@ MGR_SOURCES = \
 	$(MGR)/ui_input.c 		\
 	$(MGR)/adm_amp_agent_mgr.c      \
 	$(MGR)/adm_bp_agent_mgr.c	\
-	$(MGR)/adm_sbsp_mgr.c	\
-	$(MGR)/adm_ion_admin_mgr.c \
+	$(MGR)/adm_bpsec_mgr.c		\
+	$(MGR)/adm_ion_admin_mgr.c 	\
 	$(MGR)/adm_ion_bp_admin_mgr.c	\
 	$(MGR)/adm_ionsec_admin_mgr.c	\
 	$(MGR)/adm_ion_ipn_admin_mgr.c	\
 	$(MGR)/adm_ion_ltp_admin_mgr.c	\
 	$(MGR)/adm_ltp_agent_mgr.c
+#	$(MGR)/adm_sbsp_mgr.c
 
 
 
@@ -100,7 +103,7 @@ TGT_MGR_OBJS := $(notdir ${MGR_OBJS})
 TGT_AGENT_OBJS := $(notdir ${AGENT_OBJS})
 
 # OPT = -O -Dlinux
-OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux
+OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux -DAMP_VERSION=7
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 

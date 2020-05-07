@@ -59,7 +59,7 @@
 
 int iif_deregister_node(iif_t *iif)
 {
-    AMP_DEBUG_ENTRY("iif_deregister_node","(%#llx)", (unsigned long)iif);
+    AMP_DEBUG_ENTRY("iif_deregister_node","(%#llx)", (size_t)iif);
 
     /* Step 0: Sanity Check */
     if(iif == NULL)
@@ -401,7 +401,7 @@ int iif_send_grp(iif_t *iif, msg_grp_t *group, char *rx)
 
     /* Information on bitstream we are sending. */
     char *msg_str = utils_hex_to_string(data->value, data->length);
-    AMP_DEBUG_ALWAYS("iif_send","Sending %s to %s:", msg_str, rx);
+    AMP_DEBUG_ALWAYS("iif_send","Sending msgs:%s to %s:", msg_str, rx);
     SRELEASE(msg_str);
 
 
@@ -492,6 +492,9 @@ int iif_send_msg(iif_t *iif, int msg_type, void *msg, char *recipient)
 		case MSG_TYPE_PERF_CTRL:
 			success = msg_grp_add_msg_ctrl(grp, msg);
 			break;
+		case MSG_TYPE_TBL_SET:
+            success = msg_grp_add_msg_tbl(grp, msg);
+            break;
 		default:
 			success = AMP_FAIL;
 			break;

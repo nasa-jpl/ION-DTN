@@ -1,1 +1,1 @@
-Hangs when trying to stop bpadmin in ionstop script.
+This test requires you have built dotest.c which does not happen on Windows at this time.

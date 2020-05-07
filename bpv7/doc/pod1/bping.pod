@@ -1,0 +1,106 @@
+=head1 NAME
+
+bping - Send and receive Bundle Protocol echo bundles.
+
+=head1 SYNOPSIS
+
+B<bping> [B<-c> I<count>] [B<-i> I<interval>] [B<-p> I<priority>] [B<-q> I<wait>] [B<-r> I<flags>] [B<-t> I<ttl>] I<srcEID> I<destEID> [I<reporttoEID>]
+
+=head1 DESCRIPTION
+
+B<bping> sends bundles from I<srcEID> to I<destEID>.  If the I<destEID> echoes
+the bundles back (for instance, it is a B<bpecho> endpoint), B<bping> will
+print the round-trip time.  When complete, bping will print statistics before
+exiting.  It is very similar to B<ping>, except it works with the bundle
+protocol.
+
+B<bping> terminates when one of the following happens: it receives the SIGINT
+signal (Ctrl+C), it receives responses to all of the bundles it sent, or it has
+sent all I<count> of its bundles and waited I<wait> seconds.
+
+When B<bping> is executed in a VxWorks or RTEMS environment, its runtime
+arguments are presented positionally rather than by keyword, in this order:
+count, interval, priority, wait, flags, TTL, verbosity (a Boolean, defaulting
+to zero), source EID, destination EID, report-to EID.
+
+Source EID and destination EID are always required.
+
+=head1 EXIT STATUS
+
+These exit statuses are taken from B<ping>.
+
+=over 4
+
+=item "0"
+
+B<bping> has terminated normally, and received responses to all the packets it
+sent.
+
+=item "1"
+
+B<bping> has terminated normally, but it did not receive responses to all the
+packets it sent.
+
+=item "2"
+
+B<bping> has terminated due to an error.  Details should be noted in the
+B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<bping> are written to the ION log file
+I<ion.log> and printed to standard error.  Diagnostic messages that don't cause
+B<bping> to terminate indicate a failure parsing an echo response bundle.  This
+means that I<destEID> isn't an echo endpoint: it's responding with some other
+bundle message of an unexpected format.
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item Can't open own endpoint.
+
+Another application has already opened I<ownEndpointId>.  Terminate that
+application and rerun.
+
+=item bping bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item No space for ZCO extent.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't create ZCO.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item bping can't send echo bundle.
+
+BP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpecho(1), bptrace(1), bpadmin(1), bp(3), ping(8)

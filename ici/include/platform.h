@@ -243,13 +243,18 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <sys/types.h>
 
 #elif defined(mingw)		/****   Windows vs all others	*********/
-
 #include <winsock2.h>
 #include <process.h>
 #include <Winbase.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <ws2tcpip.h>
+#include <winerror.h>
+  
+#ifndef EMSGSIZE
+#define EMSGSIZE WSAEMSGSIZE
+#endif
+
 #define MAXHOSTNAMELEN		256
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0
@@ -627,13 +632,11 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
-#ifdef uClibc			/****	uClibc subset of Linux	     ****/
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
-#else				/****	Not bionic and not uClibc    ****/
-#include <rpc/types.h>		/****	...to get MAXHOSTNAMELEN     ****/
+#ifndef uClibc			/****	uClibc subset of Linux	     ****/
 #include <execinfo.h>		/****	...to get backtrace	     ****/
-#endif				/*	End of #ifdef uClibc	     ****/
+#endif				/*	End of #ifndef uClibc	     ****/
 #endif				/****	End of #ifdef bionic	     ****/
 
 #define	_MULTITHREADED
@@ -885,6 +888,10 @@ extern void			findToken(char **cursorPtr, char **token);
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 200 // debug
 #endif
 
 #endif  /* _PLATFORM_H_ */

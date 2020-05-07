@@ -6,9 +6,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef SOLARIS_COMPILER
+
+#define fail_unless(expr) \
+    _fail_unless((expr), __FILE__, __LINE__, \
+    "Failure '"#expr"' occurred")
+
+#else
+
 #define fail_unless(expr, ...) \
     _fail_unless((expr), __FILE__, __LINE__, \
-    "Failure '"#expr"' occured", ## __VA_ARGS__, NULL)
+    "Failure '"#expr"' occurred", ## __VA_ARGS__, NULL)
+
+#endif
 
 #define CHECK_FINISH \
     return check_summary(argv[0])

@@ -75,7 +75,11 @@
 #define VDB_ADD_TBLT(key, value)    rhht_insert(&(gVDB.adm_tblts),    key, value, NULL)
 #define VDB_ADD_VAR(key, value)     rhht_insert(&(gVDB.vars),         key, value, NULL)
 #define VDB_ADD_NN(value, idx)      vec_uvast_add(&(gVDB.nicknames),  value, idx)
+#if AMP_VERSION < 7
 #define VDB_ADD_ISS(value, idx)     vec_uvast_add(&(gVDB.issuers),    value, idx)
+#else
+#define VDB_ADD_ISS(value, idx)     vec_blob_add(&(gVDB.issuers),    value, idx)
+#endif
 #define VDB_ADD_TAG(value, idx)     vec_blob_add(&(gVDB.tags),        value, idx)
 
 #define VDB_FINDKEY_EDD(key)     rhht_retrieve_key(&(gVDB.adm_edds),  key)
@@ -242,7 +246,7 @@ int  db_read_objs(char *name);
 
 void db_destroy();
 
-int db_init(char *name);
+int db_init(char *name, void (*adm_init_cb)());
 
 
 int vdb_obj_init(Object sdr_list, vdb_init_cb_fn init_cb);

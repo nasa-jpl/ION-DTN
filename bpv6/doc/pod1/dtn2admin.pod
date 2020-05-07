@@ -1,0 +1,107 @@
+=head1 NAME
+
+dtn2admin - baseline "dtn" scheme administration interface
+
+=head1 SYNOPSIS
+
+B<dtn2admin> [ I<commands_filename> ]
+
+=head1 DESCRIPTION
+
+B<dtn2admin> configures the local ION node's routing of bundles to endpoints
+whose IDs conform to the I<dtn> endpoint ID scheme.  I<dtn> is a
+non-CBHE-conformant scheme.  The structure of I<dtn> endpoint IDs remains
+somewhat in flux at the time of this writing, but endpoint IDs in the I<dtn>
+scheme historically have been strings of the form
+"dtn://I<node_name>[/I<demux_token>]", where I<node_name>
+normally identifies a computer somewhere on the network and I<demux_token>
+normally identifies a specific application processing point.  Although
+the I<dtn> endpoint ID scheme imposes more transmission overhead than the
+I<ipn> scheme, ION provides support for I<dtn> endpoint IDs to enable
+interoperation with other implementations of Bundle Protocol.
+
+B<dtn2admin> operates in response to "dtn" scheme configuration commands found
+in the file I<commands_filename>, if provided; if not, B<dtn2admin> prints
+a simple prompt (:) so that the user may type commands
+directly into standard input.
+
+The format of commands for I<commands_filename> can be queried from B<dtn2admin>
+with the 'h' or '?' commands at the prompt.  The commands are documented in
+dtn2rc(5).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+Successful completion of "dtn" scheme administration.
+
+=item "1"
+Unsuccessful completion of "dtn" scheme administration, due to inability to
+attach to the Bundle Protocol system or to initialize the "dtn" scheme.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item dtn2admin
+
+Enter interactive "dtn" scheme configuration command entry mode.
+
+=item dtn2admin host1.dtn2rc
+
+Execute all configuration commands in I<host1.dtn2rc>, then terminate
+immediately.
+
+=back
+
+=head1 FILES
+
+See dtn2rc(5) for details of the DTN scheme configuration commands.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+B<Note>: all ION administration utilities expect source file input to be
+lines of ASCII text that are NL-delimited.  If you edit the dtn2rc file on
+a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
+before presenting it to B<dtn2admin>.  Otherwise B<dtn2admin> will detect syntax
+errors and will not function satisfactorily.
+
+The following diagnostics may be issued to the logfile ion.log:
+
+=over 4
+
+=item dtn2admin can't attach to BP.
+
+Bundle Protocol has not been initialized on this computer.  You need to run
+bpadmin(1) first.
+
+=item dtn2admin can't initialize routing database.
+
+There is no SDR data store for I<dtn2admin> to use.  Please run ionadmin(1)
+to start the local ION node.
+
+=item Can't open command file...
+
+The I<commands_filename> specified in the command line doesn't exist.
+
+=back
+
+Various errors that don't cause B<dtn2admin> to fail but are noted in the
+B<ion.log> log file may be caused by improperly formatted commands
+given at the prompt or in the I<commands_filename> file.
+Please see dtn2rc(5) for details.
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+dtn2rc(5)

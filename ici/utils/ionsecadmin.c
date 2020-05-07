@@ -52,7 +52,7 @@ static void	printText(char *text)
 	PUTS(text);
 }
 
-static void	handleQuit()
+static void	handleQuit(int signum)
 {
 	printText("Please enter command 'q' to stop the program.");
 }
@@ -112,7 +112,7 @@ static void	initializeIonSecurity(int tokenCount, char **tokens)
 static void	executeAdd(int tokenCount, char **tokens)
 {
 	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLen;
 	unsigned char	datValue[1024];
@@ -148,8 +148,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		nodeNbr = strtouvast(tokens[2]);
-		effectiveTime.seconds = strtoul(tokens[3], NULL, 0);
-		effectiveTime.count = 0;
+		effectiveTime = strtoul(tokens[3], NULL, 0);
 		assertionTime = strtoul(tokens[4], NULL, 0);
 		datLen = atoi(tokens[5]);
 		cursor = tokens[6];
@@ -168,7 +167,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 			cursor += 2;
 		}
 
-		sec_addPublicKey(nodeNbr, &effectiveTime, assertionTime,
+		sec_addPublicKey(nodeNbr, effectiveTime, assertionTime,
 				datLen, datValue);
 		return;
 	}
@@ -201,8 +200,8 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
-	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	uvast	nodeNbr;
+	time_t	effectiveTime;
 
 	if (tokenCount < 3)
 	{
@@ -231,9 +230,8 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		nodeNbr = strtouvast(tokens[2]);
-		effectiveTime.seconds = strtoul(tokens[3], NULL, 0);
-		effectiveTime.count = 0;
-		sec_removePublicKey(nodeNbr, &effectiveTime);
+		effectiveTime = strtoul(tokens[3], NULL, 0);
+		sec_removePublicKey(nodeNbr, effectiveTime);
 		return;
 	}
 
@@ -267,7 +265,7 @@ static void	printPubKey(Object keyAddr)
 	char		buf[(sizeof datValueDisplay) * 2];
 
 	GET_OBJ_POINTER(sdr, PublicKey, key, keyAddr);
-	writeTimestampUTC(key->effectiveTime.seconds, effectiveTime);
+	writeTimestampUTC(key->effectiveTime, effectiveTime);
 	writeTimestampUTC(key->assertionTime, assertionTime);
 	len = key->length;
 	if (len < 0)
@@ -302,7 +300,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	Object		addr;
 	Object		elt;
 	uvast		nodeNbr;
-	BpTimestamp	effectiveTime;
+	time_t		effectiveTime;
 
 	if (tokenCount < 2)
 	{
@@ -343,9 +341,8 @@ static void	executeInfo(int tokenCount, char **tokens)
 
 		CHKVOID(sdr_begin_xn(sdr));
 		nodeNbr = strtouvast(tokens[2]);
-		effectiveTime.seconds = strtoul(tokens[3], NULL, 0);
-		effectiveTime.count = 0;
-		sec_findPublicKey(nodeNbr, &effectiveTime, &addr, &elt);
+		effectiveTime = strtoul(tokens[3], NULL, 0);
+		sec_findPublicKey(nodeNbr, effectiveTime, &addr, &elt);
 		if (elt == 0)
 		{
 			printText("Public key not found.");

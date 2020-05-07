@@ -38,7 +38,7 @@ int setscreensize(void);
 void parseDirectoryListingResponse(unsigned char *text, int bytesRemaining,
 		CfdpDirListingResponse *opsData);
 #ifdef SIG_HANDLER
-static void handle_sigterm();
+static void handle_sigterm(int signum);
 #endif
 
 /*Command line flags*/
@@ -1807,7 +1807,7 @@ int setscreensize(void)
 
 #ifdef SIG_HANDLER
 /*Perform some simple cleanup on SIGTERM*/
-static void handle_sigterm()
+static void handle_sigterm(int signum)
 {
 	/*Reset signal handlers for portability*/
 	isignal(SIGTERM, handle_sigterm);

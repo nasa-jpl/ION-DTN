@@ -29,11 +29,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "ctype.h"
+#include <ctype.h>
 
 #include "platform.h"
-
+#include "../shared/nm.h"
 #include "../shared/utils/utils.h"
 #include "../shared/adm/adm.h"
 #include "../shared/primitives/ctrl.h"
@@ -49,6 +48,10 @@
 #include "nm_mgr_sql.h"
 #endif
 
+#ifdef USE_CIVETWEB
+#include "civetweb.h"
+#endif
+
 #ifdef USE_NCURSES
 #include <curses.h>
 #include <form.h>
@@ -59,7 +62,7 @@
 // UI Display Constants
 #define MENU_START_LINE 4
 #define STARTX 15
-#define FORM_STARTX (STARTX+10)
+#define FORM_STARTX (COLS/2)
 #define FORM_MAX_WIDTH (COLS-FORM_STARTX)
 #define STARTY 4
 #define WIDTH 25
@@ -70,21 +73,39 @@
 WINDOW *ui_dialog_win;
 PANEL *ui_dialog_pan;
 
-#endif
+#endif // USE_NCURSES
 
 char *main_menu_choices[] = {
    "Version",
    "Register Agent",
    "List & Manage Registered Agent(s)",
    "List AMM Object Information",
+   "Activate Automator UI Prompt (limited functionality, optimized for scripting)",
 #ifdef HAVE_MYSQL
    "Database Menu",
 #endif
+#ifdef USE_NCURSES
+   // Log file is currently written to only when NCURSES is enabled, so we will hide this menu option otherwise
    "View Log File",
+#endif
+   "Logging Configuration",
    "Exit",
                   };
-#define MAIN_MENU_EXIT (ARRAY_SIZE(main_menu_choices)-1)
-#define MAIN_MENU_LOG  (MAIN_MENU_EXIT-1)
+typedef enum main_menu_t {
+   MAIN_MENU_VERSION = 0,
+   MAIN_MENU_REGISTER,
+   MAIN_MENU_LIST_AGENTS,
+   MAIN_MENU_LIST_AMM,
+   MAIN_MENU_AUTOMATOR_UI,
+#ifdef HAVE_MYSQL
+   MAIN_MENU_DB,
+#endif
+#ifdef USE_NCURSES
+   MAIN_MENU_LOG,
+#endif
+   MAIN_MENU_LOG_CFG,
+   MAIN_MENU_EXIT
+} main_menu_t;
 
 char *ctrl_menu_list_choices[] = {
    "List all supported ADMs.      ",
@@ -121,7 +142,15 @@ form_fields_t db_conn_form_fields[] = {
 
 #endif
 
+#ifdef USE_NCURSES
+#define MGR_UI_DEFAULT MGR_UI_NCURSES
+#else
+#define MGR_UI_DEFAULT MGR_UI_STANDARD
+#endif
+
 int gContext;
+int *global_nm_running = NULL;
+mgr_ui_mode_enum mgr_ui_mode = MGR_UI_DEFAULT;
 
 /* Prototypes */
 void ui_eventLoop(int *running);
@@ -138,6 +167,27 @@ void ui_shutdown();
 #else
 #define ui_shutdown() ui_display_init("Shutting down . . . ");
 #endif
+
+/** Utility function for logging a transmitted Ctrl Message to file
+ *   NOTE: This is intended for debug/testing purposes.
+ */
+void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg) {
+   blob_t *data;
+   char *msg_str;
+   
+   if (agent_log_cfg.tx_cbor && agent->log_fd) {
+      data = msg_ctrl_serialize_wrapper(msg);
+      if (data) {
+         msg_str = utils_hex_to_string(data->value, data->length);
+         if (msg_str) {
+            fprintf(agent->log_fd, "TX: msg:%s\n", msg_str);
+            fflush(agent->log_fd);
+            SRELEASE(msg_str);
+         }
+         blob_release(data, 1);
+      }
+   }
+}
 
 int ui_build_control(agent_t* agent)
 {
@@ -180,9 +230,19 @@ int ui_build_control(agent_t* agent)
 
 	ui_postprocess_ctrl(id);
 
+#if 0 // DEBUG
+    /* Information on bitstream we are sending. */
+    blob_t *data = ari_serialize_wrapper(id);
+    char *msg_str = utils_hex_to_string(data->value, data->length);
+    AMP_DEBUG_ALWAYS("iif_send","Sending ari:%s to %s:", msg_str, agent->eid.name);
+    SRELEASE(msg_str);
+    blob_release(data, 1);
+#endif
+
 	if((msg = msg_ctrl_create_ari(id)) != NULL)
 	{
 		msg->start = ts;
+        ui_log_transmit_msg(agent, msg);
 		rtv = iif_send_msg(&ion_ptr, MSG_TYPE_PERF_CTRL, msg, agent->eid.name);
 		msg_ctrl_release(msg, 1);
         return rtv;
@@ -223,6 +283,25 @@ void ui_clear_reports(agent_t* agent)
 	vec_clear(&(agent->rpts));
 }
 
+/******************************************************************************
+ *
+ * \par Function Name: ui_clear_tables
+ *
+ * \par Clears the list of received data tables from an agent.
+ *
+ * \par Notes:
+ *	\todo - Add ability to clear tables from a particular agent, or of a
+ *	\todo   particular type, or for a particular timeframe.
+ *
+ *****************************************************************************/
+void ui_clear_tables(agent_t* agent)
+{
+	CHKVOID(agent);
+
+	gMgrDB.tot_tbls -= vec_num_entries(agent->tbls);
+
+	vec_clear(&(agent->tbls));
+}
 
 /******************************************************************************
  *
@@ -391,6 +470,257 @@ void ui_show_log(char *title, char *fn)
    ui_display_exec();
 }
 
+void ui_log_cfg_menu()
+{
+   int status;
+   vecit_t it;
+   
+   // Build Form
+   form_fields_t log_cfg_fields[] = {
+      {"Enable logging to files", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.enabled},
+      // FUTURE: Enable logging to UDP Socket or global file. (And corresponding port/server settings)
+      //{"Enable logging to socket", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.net_enabled},
+      // TX IP, Port (used for TX+RX).  Protocol fixed as UDP
+      {"Log TX CBOR", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.tx_cbor},
+      {"Log RX CBOR", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_cbor},
+      {"Log Received Reports (ASCII)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_rpt},
+      {"Log Received Tables (ASCII)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_tbl},
+#ifdef USE_JSON
+      {"Log Received Reports (JSON)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_json_rpt},
+      {"Log Received Tables (JSON)", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.rx_json_tbl},
+#endif
+      {"Use discrete directories per agent", NULL, 8, 0, TYPE_CHECK_BOOL, &agent_log_cfg.agent_dirs},
+      {"Max Entries Per Log File", NULL, 8, 0, TYPE_CHECK_NUM, &agent_log_cfg.limit},
+      {"Root Log directory", agent_log_cfg.dir, 32, 0, 0},
+   };
+
+   // Display Form
+   status = ui_form("Logging Configuration Options", NULL, log_cfg_fields, ARRAY_SIZE(log_cfg_fields) );
+
+   // If user submitted (ie: didn't cancel it), reset file logging as appropriate
+   if (status == 1)
+   {
+      printf("Settings updated. Forcing log rotation as applicable.\n");
+
+      for(it = vecit_first(&(gMgrDB.agents)); vecit_valid(it); it = vecit_next(it))
+      {
+         agent_rotate_log((agent_t *) vecit_data(it), 1 );
+      }
+   }
+   else
+   {
+      printf("Cancelled.  If settings have been altered, they MAY not have been activated.\n");
+   }
+}
+
+// Automator Mode Helper Defines
+// Space-delimited UI inputs
+#define AUT_DELIM " "
+#define AUT_GET_TOK()  strtok(NULL, AUT_DELIM)
+#define AUT_GET_NEXT() token = AUT_GET_TOK(); CHKZERO(token)
+
+
+
+/** Automator Mode is an alternate UI interface in which all commands
+ * and responses are single-line text optimized for automated parsing.
+ *
+ * The following commands are currently supported:
+ *
+ * - EXIT_UI           Exit the AUTOMATOR UI Interface and return to the primary UI
+ * - EXIT_SHUTDOWN     Shutdown the nm_mgr service.
+ * - V                 Display version information
+ * - R $EID            Register an agent with the given $EID
+ * - H $EID [$TS] $HEX Send the ARI specified as a CBOR-encoded HEX string to the agent $EID.
+ *                        TS is an optional timestamp parameter. If omitted, a value of 0 will be used.
+ * - CR $EID           Clear all received reports from given Agent
+ * - CT $EID           Clear all received tables from given Agent.
+ * - L                 List all registered agents. Output will be a comma seperated list beginning with "Agents: "
+ *
+ * Note: It is recommended to use file-based logging or DB support
+ * (future) for automated handling of received reports and tables.
+ */
+int ui_automator_parse_input(char *str)
+{
+   char *token, *token2;
+   eid_t agent_eid;
+   agent_t *agent = NULL;
+   int ts, err_cnt, i;
+   char tmp;
+   const char s[2] = AUT_DELIM;
+   CHKZERO(str);
+
+   int success;
+
+   // Get Command (first space-delimited token)
+   //  Note: We currently look at only the first character of the first token
+   token = strtok(str, s);
+
+   switch(token[0])
+   {
+   case '?': // Help menu
+      printf(
+         "?                  Display this help menu\n"
+         "CT $EID            Clear all received Tables for specified agent\n"
+         "CR $EID            Clear all received Reports for specified agent\n"
+         "H $EID [$TS] $HEX  Send the RAW HEX-Encoded CBOR ARI to the specified agent with optional timestamp\n"
+         "L                  List registered agents\n"
+         "R $EID             Register Agent with specified EID\n"
+         "V                  Display version and build information\n"
+         "EXIT_UI            Return to main UI menu\n"
+         "EXIT_SHUTDOWN      Exit NM Manager\n"
+         );
+      break;
+   case 'C': // Clear Commands
+      tmp = token[1];
+      if (strlen(token) != 2 && (tmp == 'T' || tmp == 'R'))
+      {
+         printf("Invalid command %s\n", token);
+         return -1;
+      }
+      
+      AUT_GET_NEXT();
+      strcpy(agent_eid.name, token);
+      agent = agent_get((eid_t*)token);
+      CHKZERO(agent);
+
+      if (tmp == 'T')
+      {
+         ui_clear_tables(agent);
+         printf("Tables cleared for %s\n", token);
+      }
+      else if (tmp == 'R')
+      {
+         ui_clear_reports(agent);
+         printf("Reports cleared for %s\n", token);
+      }
+      break;
+   case 'E': // Exit Commands
+      if (strncmp(token, "EXIT_UI", 8) == 0)
+      {
+         // To minimize errors in automation, the full string must match to exit to standard UI
+         mgr_ui_mode = MGR_UI_DEFAULT;
+         return 1;
+      }
+      else if (strncmp(token, "EXIT_SHUTDOWN", 16) == 0)
+      {
+         printf("Signaling Manager Shutdown . . . \n");
+         *global_nm_running = 0;
+         return 1;
+      }
+      break;
+   case 'H': // Send Raw HEX CBOR
+      // Get EID
+      AUT_GET_NEXT();
+      agent = agent_get((eid_t*)token);
+      CHKZERO(agent);
+
+      // Timestamp - Optional parameter
+      AUT_GET_NEXT();
+      token2 = AUT_GET_TOK();
+      if (token2)
+      {
+         ts = atoi(token);
+      }
+      else // Timestamp not specified
+      {
+         ts = 0;
+         token2 = token;
+      }
+
+      // Get Input string
+      blob_t *data = utils_string_to_hex(token2);
+      ari_t *id = ari_deserialize_raw(data, &success);
+      blob_release(data, 1);
+      CHKZERO(id);
+
+      // Parse the control
+      ui_postprocess_ctrl(id);
+
+      msg_ctrl_t *msg;
+      if ((msg = msg_ctrl_create_ari(id)) == NULL)
+      {
+         ari_release(id, 1);
+         return 0;
+      }
+      msg->start = ts;
+      ui_log_transmit_msg(agent, msg);
+      iif_send_msg(&ion_ptr, MSG_TYPE_PERF_CTRL, msg, agent->eid.name);
+      msg_ctrl_release(msg, 1);
+      break;
+   case 'L': // List Agents
+      printf("Agents: ");
+      for(i = vec_num_entries_ptr(&gMgrDB.agents); i > 0; i--)
+      {
+         agent = (agent_t*)vec_at(&gMgrDB.agents, i-1);
+         printf("%s", agent->eid.name);
+         if (i != 1) {
+            printf(",");
+         }
+      }
+      printf("\n");
+      break;
+   case 'R': // Register agent
+      AUT_GET_NEXT();
+      strcpy(agent_eid.name, token);
+      if (agent_add(agent_eid) == AMP_OK)
+      {
+         printf("Successfully registered agent %s\n", token);
+      }
+      else
+      {
+         printf("ERROR: Unable to register agent %s\n", token);
+      }
+      break;
+   case 'V': // Version command
+      printf("VERSION: Built on %s %s\nAMP Protocol Version %s\nBP Version %s",
+             __DATE__, __TIME__,
+             AMP_VERSION_STR,
+             
+#ifdef BUILD_BPv6
+                            "6"
+#elif defined(BUILD_BPv7)
+                            "7"
+#else
+                            "?"
+#endif
+         );
+      return 1; 
+   default:
+      printf("Unrecognized Command\n");
+      return -1;
+   }
+   
+   return 1;
+}
+void ui_automator_run(int *running)
+{
+   char line[MAX_INPUT_BYTES];
+   int len;
+
+   while(mgr_ui_mode == MGR_UI_AUTOMATOR && *running)
+   {
+      // Print prompt
+      printf("\n#-NM->");
+      fflush(stdout); // Show the prompt without a newline
+
+      // Read Input Line
+      if(igets(fileno(stdin), line, MAX_INPUT_BYTES, &len) == NULL)
+      {
+         AMP_DEBUG_ERR("ui_automator_run", "igets failed.", NULL);
+         return;
+      }
+
+      // Parse & Execute Line
+      if (len > 0)
+      {
+         if (ui_automator_parse_input(line) != 1)
+         {
+            printf("\nFailed: Unable to execute last command\n");
+         }
+      }
+   }
+}
+
 /******************************************************************************
  *
  * \par Function Name: ui_eventLoop
@@ -415,46 +745,63 @@ void ui_eventLoop(int *running)
    
    while(*running)
    {
-      choice = ui_menu("Main Menu", main_menu_choices, NULL, n_choices, ((new_msg==0) ? NULL : msg) );
-      new_msg = 0;
-      
-      if (choice < 0 || choice == MAIN_MENU_EXIT)
+      if (mgr_ui_mode == MGR_UI_AUTOMATOR)
       {
-         *running = 0;
-         break;
-      } else {
-         switch(choice)
+         ui_automator_run(running);
+      }
+      else
+      {
+         choice = ui_menu("Main Menu", main_menu_choices, NULL, n_choices, ((new_msg==0) ? NULL : msg) );
+         new_msg = 0;
+      
+         if (choice == MAIN_MENU_EXIT)
          {
-         case 0:
-            sprintf(msg, "VERSION: Built on %s %s", __DATE__, __TIME__); // TODO: ION/NM/Protocol version?
-            new_msg = 1;            
+            *running = 0;
             break;
-         case 1: // Register new Agent
-            ui_register_agent(msg);
-            new_msg = 1;
-            break;
-         case 2:
-            if (ui_print_agents() == 0)
+         } else {
+            switch(choice)
             {
+            case MAIN_MENU_VERSION:
+               sprintf(msg, "VERSION: Built on %s %s\nAMP Protocol Version %d - %s/%02d",
+                       __DATE__, __TIME__, AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION);
+               new_msg = 1;            
+               break;
+            case MAIN_MENU_REGISTER: // Register new Agent
+               ui_register_agent(msg);
                new_msg = 1;
-               sprintf(msg, "No Agents Defined");
-            }
-            break;
-         case 3: // List Object Information (old Control Menu merged with Admmin Menu's List Agents)
-            ui_ctrl_list_menu(running);
-            break;
+               break;
+            case MAIN_MENU_LIST_AGENTS:
+               if (ui_print_agents() == 0)
+               {
+                  new_msg = 1;
+                  sprintf(msg, "No Agents Defined");
+               }
+               break;
+            case MAIN_MENU_LIST_AMM: // List Object Information (old Control Menu merged with Admmin Menu's List Agents)
+               ui_ctrl_list_menu(running);
+               break;
 #ifdef HAVE_MYSQL
-         case 4: // DB
-            ui_db_menu(running);
-            break;
+            case MAIN_MENU_DB: // DB
+               ui_db_menu(running);
+               break;
 #endif
-         case MAIN_MENU_LOG:
-            fflush(stderr); // Flush the log
-            ui_show_log("NM Log File", NM_LOG_FILE);
-            break;
-         default:
-            new_msg = 1;
-            sprintf(msg, "ERROR: Menu choice %d (\"%s\") is not currently supported.", choice, main_menu_choices[choice]);
+#ifdef USE_NCURSES // Log file is currently written to only when NCURSES is enabled
+            case MAIN_MENU_LOG:
+               fflush(stderr); // Flush the log
+               ui_show_log("NM Log File", NM_LOG_FILE);
+               break;
+#endif
+            case MAIN_MENU_LOG_CFG:
+               ui_log_cfg_menu();
+               break;
+            case MAIN_MENU_AUTOMATOR_UI:
+               mgr_ui_mode = MGR_UI_AUTOMATOR;
+               printf("Switching to alternate AUTOMATOR interface. Type 'EXIT_UI' to return to this menu, '?' for usage.");
+               break;
+            default:
+               new_msg = 1;
+               sprintf(msg, "ERROR: Menu choice %d is not valid.", choice);
+            }
          }
       }
    }
@@ -892,7 +1239,10 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	int success;
 
 	CHKVOID(agent);
-
+#ifdef mingw
+        AMP_DEBUG_ERR("ui_send_file", "Is not currently available for this platform", NULL);
+        return;
+#else
 	ts = (enter_ts) ? ui_input_uint("Control Timestamp") : 0;
 
 
@@ -986,6 +1336,7 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 		}
 
 		msg->start = ts;
+        ui_log_transmit_msg(agent, msg);
 		iif_send_msg(&ion_ptr, MSG_TYPE_PERF_CTRL, msg, agent->eid.name);
 
 		msg_ctrl_release(msg, 1);
@@ -995,6 +1346,7 @@ void ui_send_file(agent_t* agent, uint8_t enter_ts)
 	blob_release(contents, 1);
 
 	AMP_DEBUG_EXIT("ui_send_file","->.", NULL);
+#endif
 }
 
 
@@ -1025,6 +1377,7 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 		return;
 	}
 	msg->start = ts;
+    ui_log_transmit_msg(agent, msg);
 	iif_send_msg(&ion_ptr, MSG_TYPE_PERF_CTRL, msg, agent->eid.name);
 
 	msg_ctrl_release(msg, 1);
@@ -1033,7 +1386,10 @@ void ui_send_raw(agent_t* agent, uint8_t enter_ts)
 
 void *ui_thread(int *running)
 {
-	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (unsigned long) running);
+	AMP_DEBUG_ENTRY("ui_thread","(0x%x)", (size_t) running);
+
+    // Cache running as an NM UI Global for simplicity. This is always the entrypoint to ui
+    global_nm_running = running;
 
 	ui_eventLoop(running);
 
@@ -1395,13 +1751,48 @@ int ui_display_to_file(char* filename)
    return AMP_OK;
 }
 
+void ui_fprintf(ui_print_cfg_t *fd, const char* format, ...)
+{
+   va_list args;
+   va_start(args, format);
+   if (fd != NULL) {
+      if (fd->fd != NULL)
+      {
+         vfprintf(fd->fd, format, args);
+      }
+#ifdef USE_CIVETWEB
+      else if (fd->conn != NULL)
+      {
+         mg_vprintf(fd->conn, format, args);
+      }
+#endif
+      else
+      {
+         printf("NM UI ERROR: ui_fprintf called with illegal arguments\n");
+      }
+   }
+   else if (display_fd != NULL)
+   {
+      vfprintf(display_fd, format, args);
+   } else {
+#ifdef USE_NCURSES
+      vw_printw(ui_dialog_win, format, args);
+#else
+      vprintf(format, args);
+#endif
+   }
+   va_end(args);
+}
 
 #ifdef USE_NCURSES
 void ui_init()
 {
     /* Redirect STDERR (ie: AMP_DEBUG_*) to file */
     fflush(stderr);
-    freopen(NM_LOG_FILE, "w", stderr);
+    if (freopen(NM_LOG_FILE, "w", stderr) == NULL)
+    {
+       printf("WARNING: stderr file redirection failed (%i). Warning messages may interfere with NCURSES menus", errno);
+    }
    
     /* Initialize curses */
 	initscr();
@@ -1448,23 +1839,6 @@ void ui_display_init(char* title)
       print_in_middle(ui_dialog_win, 1, 0, COLS + 4, title, COLOR_PAIR(1));
       wmove(ui_dialog_win, 3, 0); // Add a break after the title
    }
-}
-
-void ui_printf(const char* format, ...)
-{
-   va_list args;
-   va_start(args, format);
-
-   if (display_fd != NULL)
-   {
-      vfprintf(display_fd, format, args);
-   }
-   else
-   {
-      vwprintw(ui_dialog_win, format, args);
-   }
-   
-   va_end(args);
 }
 
 /** Displays default dialog window (populated with ui_printf). 
@@ -1715,6 +2089,7 @@ int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
     int rows, cols;
     int running = 1;
     int status = 0;
+    char tmp[32];
 	
     /* Initialize the fields */
 	for(i = 0; i < num_fields; ++i)
@@ -1750,10 +2125,38 @@ int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
     /* Field Labels & Default Values */
     for(i = 0; i < num_fields; i++)
     {
-       set_field_just(field[i], JUSTIFY_CENTER); /* Center Justification */
+       set_field_just(field[i], JUSTIFY_RIGHT); /* Center Justification */
 
        // Default value
-       if (strlen(fields[i].value) > 0)
+       if (fields[i].parsed_value != NULL)
+       {
+          switch(fields[i].type)
+          {
+          case TYPE_CHECK_INT:
+          case TYPE_CHECK_NUM:
+             sprintf(tmp, "%i", *((int*)fields[i].parsed_value) );
+             break;
+          case TYPE_CHECK_BOOL:
+             if ( (*((int*)fields[i].parsed_value)) == 1)
+             {
+                sprintf(tmp, "True");
+             }
+             else
+             {
+                sprintf(tmp, "False");
+             }
+             break;
+          default:
+             tmp[0] = 0; // Leave it blank / unimplemented
+          }
+          
+          // Set it
+          set_field_buffer(field[i], 0, tmp);
+
+          // Mark as unmodified
+          set_field_status(field[i], FALSE);
+       }
+       else if (fields[i].value != NULL && strlen(fields[i].value) > 0)
        {
           // Set it
           set_field_buffer(field[i], 0, fields[i].value);
@@ -1790,8 +2193,9 @@ int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
        case TYPE_CHECK_REGEXP:
           set_field_type(field[i], TYPE_REGEXP, fields[i].args.regex);
           break;
-
-          
+       case TYPE_CHECK_BOOL:
+          // Nothing to do here, validated below
+          // TODO: Define this as TYPE_ALNUM matching True|False|0|1|t|f
        case TYPE_CHECK_NONE:
        default:
              // Nothing to do
@@ -1813,7 +2217,7 @@ int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
 	wrefresh(my_form_win);
 
     // Print title /border
-    // NOTE: In example, this is done before refresh - but here doing so prevents titel from appearing
+    // NOTE: In example, this is done before refresh - but here doing so prevents title from appearing
     box(my_form_win, 0, 0);
     print_in_middle(my_form_win, 1, 0, cols + 4, title, COLOR_PAIR(1));
     
@@ -1959,7 +2363,41 @@ int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
                   *   Additional buffers (seocnd arg) not currently used.
                   *   NCurses automatically pads all fields with spaces, so we trim it before copying back
                   */
-                 strcpy(fields[i].value, trimstring(field_buffer(field[i], 0)));
+                 if (fields[i].value != NULL)
+                 {
+                    strcpy(fields[i].value, trimstring(field_buffer(field[i], 0)));
+                 }
+                 if (fields[i].parsed_value != NULL)
+                 {
+                    switch(fields[i].type)
+                    {
+                    case TYPE_CHECK_INT:
+                    case TYPE_CHECK_NUM:
+                       *((int*)fields[i].parsed_value) = atoi(field_buffer(field[i], 0));
+                       break;
+                    case TYPE_CHECK_BOOL:
+                       switch(field_buffer(field[i], 0)[0])
+                       {
+                       case '1':
+                       case 't':
+                       case 'T':
+                       case '+':
+                          *((int*)fields[i].parsed_value)=1;
+                          break;
+                       case '0':
+                       case 'f':
+                       case 'F':
+                       case '-':
+                       default: // For now, anything that isn't a valid truth string is considered false
+                          // (Alternatively, default case could fail validation ... but that seems unnecessary for BOOL)
+                          *((int*)fields[i].parsed_value)=0;
+                          break;
+            
+                       }
+                    default:
+                       break; // Unsupported
+                    }
+                 }
               }
            }
            break;
@@ -2001,7 +2439,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
 	MENU *my_menu;
 	int i;
 	ITEM *cur_item;
-	int running =1;
+	int running = 1;
     int rtv = -1;
     char label[4];
 		
@@ -2049,7 +2487,7 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
 	post_menu(my_menu);
 	wrefresh(my_menu_win);
 
-	while(running && (c = wgetch(my_menu_win)) != KEY_F(1))
+	while(*global_nm_running && running && (c = wgetch(my_menu_win)) != KEY_F(1))
 	{
        show_panel(my_pan);
        update_panels();
@@ -2198,7 +2636,7 @@ int ui_menu_listing(
        set_current_item(my_menu, my_items[i]);
     }
 
-	while(running)
+	while(running && *global_nm_running)
 	{
        i = item_index(current_item(my_menu));
 
@@ -2465,25 +2903,32 @@ int ui_menu(char* title, char** choices, char** descriptions, int n_choices, cha
    int i;
    ui_display_init(title);
 
-   for(i = 0; i < n_choices; i++)
-   {
-      printf("%i. %s", i, choices[i]);
-      if (descriptions != NULL && descriptions[i] != NULL)
+   while(*global_nm_running) {
+
+      for(i = 0; i < n_choices; i++)
       {
-         printf("\t %s\n", descriptions[i]);
+         printf("%i. %s", i, choices[i]);
+         if (descriptions != NULL && descriptions[i] != NULL)
+         {
+            printf("\t %s\n", descriptions[i]);
+         }
+         else
+         {
+            printf("\n");
+         }
       }
-      else
+      
+      if (msg != NULL)
       {
-         printf("\n");
+         printf("\n %s \n\n" ,msg);
+      }
+
+      i = ui_input_uint("Select by # (-1 to cancel, -2 to repeat menu):");
+
+      if (i != -2) {
+         break;
       }
    }
-
-   if (msg != NULL)
-   {
-      printf("\n %s \n\n" ,msg);
-   }
-
-   i = ui_input_uint("Select by # (-1 to cancel):");
    
    ui_display_exec();
 
@@ -2495,10 +2940,12 @@ int ui_menu_listing(
    char* status_msg, int default_idx, char* usage_msg,
    ui_menu_listing_cb_fn fn, int flags)
 {
-   int i, status, running = 1;
+   int i = -1;
+   int status;
+   int running = 1;
    char line[20];
 
-   while(running)
+   while(running && *global_nm_running)
    {
       ui_display_init(title);
 
@@ -2599,9 +3046,13 @@ int ui_menu_listing(
 #endif
       else
       {
-         i = ui_input_uint("Select by # (-1 to cancel)");
+         i = ui_input_uint("Select by # (-1 to cancel, -2 to repeat menu)");
 
-         if (i < 0 || i >= n_choices)
+         if (i == -2)
+         {
+            continue;
+         }
+         else if (i < 0 || i >= n_choices)
          {
             printf("Cancelling ...\n");
             running = 0;
@@ -2648,21 +3099,6 @@ int ui_menu_listing(
 
 }
 
-void ui_printf(const char* format, ...)
-{
-   va_list args;
-   va_start(args, format);
-   
-   if(display_fd != NULL) {
-      vfprintf(display_fd, format, args);
-   }
-   else
-   {
-      vprintf(format, args);
-   }
-   va_end(args);
-}
-
 int ui_display_exec()
 {
    if(display_fd != NULL) {
@@ -2675,5 +3111,264 @@ int ui_display_exec()
    return AMP_OK;
 }
 
+/**
+ * Create an interactive form containing multiple fields from configuration structure.
+ *
+ * - At end of input, user can confirm all fields entered and choose to edit or submit
+ * - Optional field validation.
+ * -  For bool, output will be normalized to a strlen=0 string if false
+ * -  For numeric types, caller should call atoi onv alue to convert
+ */
+#define UI_FORM_LEN 128
 
-#endif // End USE_NCURSES
+static void ui_form_show_value(form_fields_t *field)
+{
+   if (field->parsed_value != NULL) {
+      switch(field->type) {
+      case TYPE_CHECK_INT:
+      case TYPE_CHECK_NUM:
+         printf(BOLD("%i"), *( (int*)(field->parsed_value) ) );
+         break;
+      case TYPE_CHECK_BOOL:
+         if ( *((int*)field->parsed_value) == 0) {
+            printf( BOLD("False" ) );
+         } else {
+            printf( BOLD("True" ) );
+         }
+         break;
+      default:
+         printf(BOLD("%i"), *( (int*)(field->parsed_value) ) );
+      }
+   } else if (field->value != NULL) {
+      printf("%s", field->value);
+   } else {
+      printf( KRED "ERROR: Illegal field definition. No var defined to store result." RST);
+   }
+}
+
+// Returns -1 if invalid, 1 if valid, 0 if empty and not required
+// field->value and field->parsed_value will be populated if appropriate.
+static int ui_form_field_validate(form_fields_t *field, char *value)
+{
+   int tmp, j, len;
+         
+   if (field == NULL)
+   {
+      return -1;
+   }
+
+   if (value == NULL)
+   {
+      // TODO: Is this field required?
+      return 0;
+   }
+
+               
+   // Check for validation (not all validation options shall be implemented)
+   switch(field->type) {
+      // TODO: What was the difference between these in ncurses?
+   case TYPE_CHECK_INT:
+   case TYPE_CHECK_NUM:
+      // Iterate through chars in string and verify that each is numeric
+      //   loop and call isdigit(in[i]) where fn provided by string.h
+      for(j = 0, len = strlen(value); j < len; j++) {
+         if(isdigit(value[j] == 0) ) {
+            printf("*ERROR: Not a Number - ");
+            return -1;
+         }
+      }
+      if (field->parsed_value != NULL)
+      {
+         *((int*)field->parsed_value) = atoi(value);
+      }      
+      break;
+   case TYPE_CHECK_BOOL:
+      if (strlen(value) == 0) {
+         tmp=0;
+      } else {
+         switch(value[0])
+         {
+         case '1':
+         case 't':
+         case 'T':
+         case '+':
+            tmp=1;
+            break;
+         case '0':
+         case 'f':
+         case 'F':
+         case '-':
+         default: // For now, anything that isn't a valid truth string is considered false
+            // (Alternatively, default case could fail validation ... but that seems unnecessary for BOOL)
+            tmp=0;
+            break;
+            
+         }
+      }
+      if (field->parsed_value != NULL) {
+         *((int*)field->parsed_value) = tmp;
+      }
+      if (field->value != NULL) {
+         if (tmp == 0) {
+            strncpy(field->value, "False", field->width);
+         } else {
+            strncpy(field->value, "True", field->width);
+         }
+      }
+      return 1; // BOOL is a special case where we bypass nominal copying
+      
+   default:
+      break; // Nothing to be done
+      
+   }
+   if (field->value != NULL)
+   {
+      strncpy(field->value, value, field->width);
+   }
+   return 1;
+}
+
+static int do_ui_form_confirm(char* title, int status, form_fields_t *fields, int num_fields)
+{
+   int i;
+   char tmp;
+   
+   // Print recap of all fields.  TODO: Check if any fields fail validation
+   printf("-------\n" KGRN "%s (summary)\n" RST "-----\n", title);
+
+  
+   // If validation fails, prevent submission.
+   for(i = 0; i < num_fields; i++)
+   {
+      form_fields_t *field = &fields[i];
+      int tmp = 0;
+
+      printf("%s:\t", field->title);
+      ui_form_show_value(field);
+      printf("\n");
+   }
+
+   if (status == 0) {
+      printf("\n ERROR: One or more fields failed validation. Press 'e' to edit or 'c' to cancel.");
+   } else {
+      printf("\n Press 's' to submit, 'e' to edit, or 'c' to cancel\n");
+   }
+   while( (tmp = getchar()) ) {
+      if (tmp == 'e') {
+         // Try again
+         return -1;
+      } else if (tmp == 'c') {
+         return 0;
+      } else if (tmp == 's' && status != 0) {
+         // NOTE: We require 's', because checking for newline is not always relaible
+         return 1;
+      }
+   }
+   return -2; // Input Error
+}
+static int do_ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
+{
+   int status = 1;
+   char in[UI_FORM_LEN] = "";
+   int i;
+
+   if (msg != NULL) {
+      printf(KGRN "%s\n" RST "%s\n-----\n", title, msg);
+   }
+      
+   if (do_ui_form_confirm(title, status, fields, num_fields) != -1)
+   {
+      // User does not wish to edit settings
+      return 0;
+   }
+   
+   for(i = 0; i < num_fields && status; i++)
+   {
+      form_fields_t *field = &fields[i];
+      int skipFlag = 0;
+      
+      // (Re-)Print Title Line and prompt
+      // TODO: Update prompt
+      printf(KGRN "%s (field %i of %i)\n" RST "-----\n%s: ",
+             title,
+             i+1, num_fields,
+             field->title
+         );
+      ui_form_show_value(field);
+      printf("\n");
+
+      // Prompt User for input
+      while(1) {
+         int len;
+         
+         switch(field->type) {
+            case TYPE_CHECK_INT:
+            case TYPE_CHECK_NUM:
+               printf("INT :->");
+               break;
+         case TYPE_CHECK_BOOL:
+            printf("BOOL :->");
+            break;
+         default:
+            printf(":->");
+         }
+         fflush(stdout);
+         if (igets(STDIN_FILENO, in, UI_FORM_LEN, &len) == NULL || len == 0)
+         {          
+            if (field->parsed_value != NULL || (field->value != NULL && strlen(field->value) > 0) )
+            {
+               // Use default value
+               /* NOTE:
+                * If only field->value is defined with non-0 length, it shall have a valid default value
+                * If parsed_value is defined, it is assummed to contain a valid default value.
+                *  TODO: Additional validation options may be added in future if needed.
+               */ 
+               break;
+            }
+            else if (skipFlag==0)
+            {
+               // Require confirmation to skip
+               printf("No input.  Press enter again to use default (if defined) or cancel.\n");
+               skipFlag=1;
+            }
+            else
+            {
+               if (field->opts_off & O_NULLOK)
+               {
+                  printf(KRED "ERROR: This field is required\n" RST);
+                  status = 0;
+               }
+               else
+               {
+                  printf("Skipping optional field\n");
+               }
+               break;
+            }
+         }
+         else if (ui_form_field_validate(field, in) == 1)
+         {
+            break;
+         }
+         else
+         {
+            printf("Invalid Input (Press enter twice to skip)\n");
+         }
+
+      }
+      
+   }
+   // 1 for succcess, 0 for failure or user-cancelled input.
+   return do_ui_form_confirm(title, status, fields, num_fields); 
+}
+int ui_form(char* title, char* msg, form_fields_t *fields, int num_fields)
+{
+   int status;
+   do
+   {
+      status = do_ui_form(title,msg,fields,num_fields);
+   } while ( status == -1);
+   return status;
+}
+
+
+#endif // End !USE_NCURSES

@@ -332,6 +332,7 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 	CHKERR(ep);
 	CHKERR(ep->ept);
 	colon = strchr(ep->ept, ':');
+	CHKERR(colon);
 	*colon = '\0';
 	istrcpy(hostName, ep->ept, sizeof hostName);
 	*colon = ':';
@@ -365,6 +366,7 @@ static int	udpParseAmsEndpoint(AmsEndpoint *dp)
 	CHKERR(dp);
 	CHKERR(dp->ept);
 	colon = strchr(dp->ept, ':');
+	CHKERR(colon);
 	*colon = '\0';
 	istrcpy(hostName, dp->ept, sizeof hostName);
 	*colon = ':';

@@ -34,7 +34,7 @@ static uaddr	_running(uaddr *newValue)
 	return state;
 }
 
-static void	shutDown()	/*	Commands rfxclock termination.	*/
+static void	shutDown(int signum)	/*	Stops rfxclock.	*/
 {
 	uaddr	stop = 0;
 
@@ -343,6 +343,13 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 					/*	Must start cleanup.	*/
 
 					alarm->term = 0;
+
+					/*	Setting term to zero
+					 *	forces one more timeout
+					 *	event, 1 second in the
+					 *	future, that kills the
+					 *	alarm without giving
+					 *	the alarm's semaphore.	*/
 				}
 			}
 		}

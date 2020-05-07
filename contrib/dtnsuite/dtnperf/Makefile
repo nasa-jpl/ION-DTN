@@ -7,7 +7,7 @@ LIB_PATHS=-L/usr/local/lib -L$(AL_BP_DIR)
 INSTALL_PATH=/usr/local/bin
 DEBUG=0
 ifeq ($(DEBUG),0)
-DEBUG_FLAG= -O2
+DEBUG_FLAG=-O2
 else
 DEBUG_FLAG=-g -fno-inline -O0
 endif
@@ -20,9 +20,9 @@ all: help
 else ifeq ($(or $(strip $(DTN2_DIR)),$(strip $(ION_DIR)),$(strip $(IBRDTN_DIR))),)
 # NOTHING
 all: help
-else 
+else
 all: bin
-endif 
+endif
 
 ifeq ($(or $(strip $(ION_DIR)),$(strip $(IBRDTN_DIR))),)
 ifneq ($(strip $(DTN2_DIR)),)
@@ -34,9 +34,9 @@ endif
 else ifeq ($(or $(strip $(DTN2_DIR)),$(strip $(IBRDTN_DIR))),)
 ifneq ($(strip $(ION_DIR)),)
 # ION
-INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(ION_DIR)/include -I$(ION_DIR)/library
-#LIBS=$(AL_BP_DIR)/libal_bp_vION.a -lbp -lici -limcfw -ldtn2fw -lipnfw -lpthread
-LIBS=$(AL_BP_DIR)/libal_bp_vION.a -lbp -lici -lpthread
+INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src 
+LIBS=$(AL_BP_DIR)/libal_bp_vION.a -lbp -lici -limcfw -ldtn2fw -lipnfw -lpthread
+#LIBS=$(AL_BP_DIR)/libal_bp_vION.a -lbp -lici -lpthread
 BIN_NAME=$(BIN_NAME_BASE)_vION
 endif
 else ifeq ($(or $(strip $(DTN2_DIR)),$(strip $(ION_DIR))),)
@@ -50,9 +50,9 @@ endif
 else ifeq ($(strip $(IBRDTN_DIR)),)
 ifneq ($(and $(strip $(DTN2_DIR)),$(strip $(ION_DIR))),)
 # DTN2 & ION
-INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(DTN2_DIR) -I$(DTN2_DIR)/applib -I$(ION_DIR)/include -I$(ION_DIR)/library
-#LIBS=$(AL_BP_DIR)/libal_bp_vDTN2+ION.a -ldtnapi -lbp -lici -limcfw -ldtn2fw -lipnfw -lpthread
-LIBS=$(AL_BP_DIR)/libal_bp_vDTN2+ION.a -ldtnapi -lbp -lici -lpthread
+INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(DTN2_DIR) -I$(DTN2_DIR)/applib
+LIBS=$(AL_BP_DIR)/libal_bp_vDTN2+ION.a -ldtnapi -lbp -lici -limcfw -ldtn2fw -lipnfw -lpthread
+#LIBS=$(AL_BP_DIR)/libal_bp_vDTN2+ION.a -ldtnapi -lbp -lici -lpthread 
 BIN_NAME=$(BIN_NAME_BASE)_vDTN2+ION
 endif
 else ifeq ($(strip $(ION_DIR)),)
@@ -67,25 +67,25 @@ else ifeq ($(strip $(DTN2_DIR)),)
 ifneq ($(and $(strip $(ION_DIR)),$(strip $(IBRDTN_DIR))),)
 # ION & IBRDTN
 IBRDTN_VERSION=1.0.1
-INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(ION_DIR)/include -I$(ION_DIR)/library -I$(IBRDTN_DIR)/ibrcommon-$(IBRDTN_VERSION) -I$(IBRDTN_DIR)/ibrdtn-$(IBRDTN_VERSION)
-#LIBS=$(AL_BP_DIR)/libal_bp_vION+IBRDTN.a -lbp -lici -limcfw -ldtn2fw -lipnfw -librcommon -librdtn -lz -lpthread
-LIBS=$(AL_BP_DIR)/libal_bp_vION+IBRDTN.a -lbp -lici -librcommon -librdtn -lz -lpthread
+INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(IBRDTN_DIR)/ibrcommon-$(IBRDTN_VERSION) -I$(IBRDTN_DIR)/ibrdtn-$(IBRDTN_VERSION)
+LIBS=$(AL_BP_DIR)/libal_bp_vION+IBRDTN.a -lbp -lici -limcfw -ldtn2fw -lipnfw -librcommon -librdtn -lz -lpthread
+#LIBS=$(AL_BP_DIR)/libal_bp_vION+IBRDTN.a -lbp -lici -librcommon -librdtn -lz -lpthread 
 BIN_NAME=$(BIN_NAME_BASE)_vION+IBRDTN
 endif
 else ifneq ($(and $(strip $(DTN2_DIR)),$(strip $(ION_DIR)),$(strip $(IBRDTN_DIR))),)
 # ALL THREE
 IBRDTN_VERSION=1.0.1
-INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(DTN2_DIR) -I$(DTN2_DIR)/applib -I$(ION_DIR)/include -I$(ION_DIR)/library -I$(IBRDTN_DIR)/ibrcommon-$(IBRDTN_VERSION) -I$(IBRDTN_DIR)/ibrdtn-$(IBRDTN_VERSION)
-#LIBS=$(AL_BP_DIR)/libal_bp.a -ldtnapi -lbp -lici -limcfw -ldtn2fw -lipnfw -librcommon -librdtn -lz -lpthread
-LIBS=$(AL_BP_DIR)/libal_bp.a -ldtnapi -lbp -lici -librcommon -librdtn -lz -lpthread
+INC=-I$(AL_BP_DIR)/src/bp_implementations -I$(AL_BP_DIR)/src -I$(DTN2_DIR) -I$(DTN2_DIR)/applib -I$(IBRDTN_DIR)/ibrcommon-$(IBRDTN_VERSION) -I$(IBRDTN_DIR)/ibrdtn-$(IBRDTN_VERSION)
+LIBS=$(AL_BP_DIR)/libal_bp.a -ldtnapi -lbp -lici -limcfw -ldtn2fw -lipnfw -librcommon -librdtn -lz -lpthread
+#LIBS=$(AL_BP_DIR)/libal_bp.a -ldtnapi -lbp -lici -librcommon -librdtn -lz -lpthread 
 BIN_NAME=$(BIN_NAME_BASE)
 endif
 
-bin: 
+bin:
 	$(CC) $(INC) $(CFLAGS) -c src/*.c src/dtnperf_modes/*.c
 	g++ $(LIB_PATHS) -o $(BIN_NAME) *.o $(LIBS)
 
-install: 
+install:
 	cp $(BIN_NAME_BASE)* $(INSTALL_PATH)/
 
 uninstall:

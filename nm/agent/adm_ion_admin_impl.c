@@ -11,7 +11,7 @@
  ** Modification History: 
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2018-11-15  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file 
  **
  ****************************************************************************/
 
@@ -20,7 +20,7 @@
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
-#include "../shared/adm/adm.h"
+#include "shared/adm/adm.h"
 #include "adm_ion_admin_impl.h"
 
 /*   START CUSTOM FUNCTIONS HERE */
@@ -1155,9 +1155,9 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	time_t  start = 0;
 	time_t  stop  = 0;
-	uint    from_node = 0;
-	uint    to_node   = 0;
-	uint    distance  = 0;
+	uint32_t    from_node = 0;
+	uint32_t    to_node   = 0;
+	uint32_t    distance  = 0;
 	int 	success   = 0;
 	PsmAddress xaddr;
 
@@ -1217,8 +1217,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 	 */
 	
 	time_t  start = 0;
-	uint    from_node = 0;
-	uint    to_node   = 0;
+	uint32_t    from_node = 0;
+	uint32_t    to_node   = 0;
 	int 	success   = 0;
 	PsmAddress xaddr;
 

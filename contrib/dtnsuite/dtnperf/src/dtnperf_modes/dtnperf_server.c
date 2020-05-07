@@ -273,7 +273,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 		// wait until receive a bundle
 		debug_print(DEBUG_L2,"[DEBUG_L2] waiting for the next bundle...\n");
 
-		utility_error = al_bp_extB_receive(registration_descriptor, bundle_object, pl_location, -1);
+		utility_error = al_bp_extB_receive(registration_descriptor, &bundle_object, pl_location, -1);
 		receive_ok = FALSE;
 		switch (utility_error)
 		{
@@ -709,7 +709,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 				if (send_ack_to_client)
 				{
 					debug_print(DEBUG_L2,"[DEBUG_L2] sending bundle ack to client...");
-					utility_error = al_bp_extB_send(registration_descriptor, &bundle_ack_object, bundle_source_addr, bundle_replyto_addr);
+					utility_error = al_bp_extB_send(registration_descriptor, bundle_ack_object, bundle_source_addr, bundle_replyto_addr);
 					switch (utility_error)
 					{
 					case BP_EXTB_SUCCESS:
@@ -728,7 +728,7 @@ void run_dtnperf_server(dtnperf_global_options_t * perf_g_opt)
 				if (send_ack_to_monitor)
 				{
 					debug_print(DEBUG_L2,"[DEBUG_L2] sending bundle ack to monitor...");
-					utility_error = al_bp_extB_send(registration_descriptor, &bundle_ack_object, bundle_replyto_addr, bundle_replyto_addr);
+					utility_error = al_bp_extB_send(registration_descriptor, bundle_ack_object, bundle_replyto_addr, bundle_replyto_addr);
 					switch (utility_error)
 					{
 					case BP_EXTB_SUCCESS:

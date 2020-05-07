@@ -395,9 +395,10 @@ indicated interval.
 
 =item B<fwd>
 
-This message reports on the bundles forwarded by the local node.  When a
-bundle is re-forwarded due to custody transfer timeout it is counted a second
-time here.
+This message is about routing; it reports on the number of bundles queued
+for forwarding to neighboring nodes as selected by the routing procedure.
+When a bundle must be re-forwarded due to convergence-layer transmission
+failure it is counted a second time here.
 
 =item B<xmt>
 

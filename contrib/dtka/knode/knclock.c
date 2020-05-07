@@ -67,7 +67,7 @@ static void	shutDown()	/*	Commands knclock termination.	*/
 }
 
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-static int	writeAddPubKeyCmd(BpTimestamp *effectiveTime,
+static int	writeAddPubKeyCmd(time_t effectiveTime,
 			unsigned short publicKeyLen, unsigned char *publicKey)
 {
 	int		fd;
@@ -88,7 +88,7 @@ static int	writeAddPubKeyCmd(BpTimestamp *effectiveTime,
 	}
 
 	len = _isprintf(cmdbuf, sizeof cmdbuf, "a pubkey " UVAST_FIELDSPEC 
-			" %d %d %d ", getOwnNodeNbr(), effectiveTime->seconds,
+			" %d %d %d ", getOwnNodeNbr(), effectiveTime,
 			getCtime(), publicKeyLen);
 	cursor += len;
 	bytesRemaining -= len;
@@ -120,7 +120,7 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 #ifdef CRYPTO_SOFTWARE_INSTALLED
 	time_t			currentTime = getCtime();
 	Sdr			sdr = getIonsdr();
-	BpTimestamp		effectiveTime;
+	time_t			effectiveTime;
 	entropy_context		entropy;
 	ctr_drbg_context	ctr_drbg;
 	const char		*pers = "rsa_genkey";
@@ -139,8 +139,7 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 	char			destEid[32];
 	Object			newBundle;
 
-	effectiveTime.seconds = currentTime + db->effectiveLeadTime;
-	effectiveTime.count = 0;
+	effectiveTime = currentTime + db->effectiveLeadTime;
 	entropy_init(&entropy);
 	if (ctr_drbg_init(&ctr_drbg, entropy_func, &entropy,
 			(const unsigned char *) pers, strlen(pers)))
@@ -196,13 +195,13 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 
 	/*	Store public and private keys locally.			*/
 
-	if (sec_addOwnPublicKey(&effectiveTime, publicKeyLen, publicKey) < 0)
+	if (sec_addOwnPublicKey(effectiveTime, publicKeyLen, publicKey) < 0)
 	{
 		putErrmsg("Can't add own public key.", NULL);
 		return -1;
 	}
 
-	if (sec_addPrivateKey(&effectiveTime, privateKeyLen, privateKey) < 0)
+	if (sec_addPrivateKey(effectiveTime, privateKeyLen, privateKey) < 0)
 	{
 		putErrmsg("Can't add own public key.", NULL);
 		return -1;
@@ -210,7 +209,7 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 
 	/*	Write "add public key" command to kn.ionsecrc file.	*/
 
-	if (writeAddPubKeyCmd(&effectiveTime, publicKeyLen, publicKey) < 0)
+	if (writeAddPubKeyCmd(effectiveTime, publicKeyLen, publicKey) < 0)
 	{
 		putErrmsg("Can't write command to add node public key.", NULL);
 		return -1;
@@ -219,7 +218,7 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 	/*	Publish new public key declaration record.		*/
 
 	recordLen = dtka_serialize(recordBuffer, sizeof recordBuffer,
-			getOwnNodeNbr(), &effectiveTime, currentTime,
+			getOwnNodeNbr(), effectiveTime, currentTime,
 			publicKeyLen, publicKey);
 	if (recordLen < 0)
 	{

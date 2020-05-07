@@ -1,0 +1,81 @@
+=head1 NAME
+
+ltpclo - LTP-based BP convergence layer adapter output task
+
+=head1 SYNOPSIS
+
+B<ltpclo> I<remote_node_nbr>
+
+=head1 DESCRIPTION
+
+B<ltpclo> is a background "daemon" task that extracts bundles from the
+queues of segments ready for transmission via LTP to the remote bundle
+protocol agent identified by I<remote_node_nbr> and passes them to the
+local LTP engine for aggregation, segmentation, and transmission to the
+remote node.
+
+B<ltpclo> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.  B<ltpclo> can also be
+spawned and terminated in response to START and STOP commands that pertain
+specifically to the LTP convergence layer protocol.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ltpclo> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart the BRSC protocol.
+
+=item "1"
+
+B<ltpclo> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart the BRSC protocol.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item ltpclo can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item No such ltp duct.
+
+No LTP outduct with duct name matching I<remote_node_nbr> has been added
+to the BP database.  Use B<bpadmin> to stop the LTP convergence-layer
+protocol, add the outduct, and then restart the LTP protocol.
+
+=item CLO task is already started for this duct.
+
+Redundant initiation of B<ltpclo>.
+
+=item ltpclo can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP operations.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5), ltpadmin(1), ltprc(5), ltpcli(1)

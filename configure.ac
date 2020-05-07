@@ -3,15 +3,15 @@
 # June 14, 2013
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.60)
-AC_INIT(ion, open source 3.7.0, http://korgano.eecs.ohiou.edu/mailman/listinfo/ion-bugs)
+AC_PREREQ(2.69)
+AC_INIT(ion, open source 3.7.1/4.0.0, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
 #  automake v1.12.
 #AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
-AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
+AM_INIT_AUTOMAKE([subdir-objects no-dependencies -Wall foreign])
 
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
@@ -68,11 +68,13 @@ case $host_os in
 		#check for DCCP support
 		CHECK_DCCP()
 		;;
-
-	cygwin*)
-		AC_DEFINE([cygwin],[1],[Build Cygwin specific platform code.])
-		PLATFORM="cygwin"
+	mingw*|cygwin*)
+		AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
+		PLATFORM="mingw"
+                AM_CFLAGS="$AM_CFLAGS -Dmingw"
+                build_windows=yes
 		;;
+
 	interix*)
 		AC_DEFINE([interix],[1],[Build Interix specific platform code.])
 		PLATFORM="iterix"
@@ -101,7 +103,7 @@ case $host_os in
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
 			AM_LDFLAGS="$AM_LDFLAGS -lrt -lsocket -lnsl"
 
-			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
+			AM_CFLAGS="$AM_CFLAGS -Dsolaris -Dunix -D__SVR4 -D_REENTRANT -DLONG_LONG_OKAY=0 -xmemalign=4i  -features=extensions  -xalias_level=any -xbuiltin=%none -DSPACE_ORDER=2"	
 			echo "Build 32-bit ION on 64-bit solaris"
 		elif test $host_cpu = "sparc" ; then
 			AC_DEFINE([solaris],[1],[Build Solaris specific platform code.])
@@ -133,21 +135,48 @@ case $host_os in
 		AC_DEFINE([vxworks],[1],[Build VXWorks specific platform code.])
 		PLATFORM="vxworks"
 		;;
+        *)
+                AC_MSG_ERROR(["OS $host_os is not supported"])
 esac
 
 
 ##Process user flags
 
 #
-# allow the user running configure to disable ACS
+# allow the user running configure to disable ACS when using bpv6
 #
 AC_ARG_ENABLE(
     acs,
     [AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals])],
-    [],
-    [AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS"
-     ENABLE_BPACS=yes])
+    [ENABLE_BPACS=no],
+    [ENABLE_BPACS=yes])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
+
+
+#
+# allow the user running configure to build bpv6
+#
+AC_ARG_ENABLE(
+    bpv6,
+    [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
+    [VER=$(cat bpv6version.txt)
+     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
+     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
+     BUILD_BPv6=true
+     case "${ENABLE_BPACS}" in
+		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
+		no)  ENABLE_BPACS=no;;
+     esac
+     echo "Building ION with BP version 6"],
+    [VER=$(cat bpv7version.txt)
+     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
+     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
+     BUILD_BPv7=true
+     ENABLE_BPACS=no
+     echo "Building ION with BP version 7"])
+AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
+AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
+
 
 #
 # allow the user running configure to disable IMC
@@ -343,6 +372,14 @@ else
 fi
 AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
 
+AC_ARG_ENABLE(
+        nmrest,
+        [AC_HELP_STRING([--enable-nmrest], [Enable REST API for NM Mgr])],
+        [BUILD_NM_REST=true],
+        [BUILD_NM_REST=false]
+        )
+AM_CONDITIONAL([BUILD_NM_REST], [test "x$BUILD_NM_REST" = "xtrue"])
+
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
@@ -473,6 +510,7 @@ AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
 AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
+AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])

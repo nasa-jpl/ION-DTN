@@ -1,1 +1,1 @@
-Should not work on Windows because there is no bpchat.
+This test relies on mkfifo which is not implemented on mingw.

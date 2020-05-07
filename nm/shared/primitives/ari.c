@@ -99,7 +99,6 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 	{
 		/* Get the UVAST nickname. */
 		*success = cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
-
 		VDB_ADD_NN(temp, &(result.as_reg.nn_idx));
 	}
 
@@ -109,15 +108,19 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 		result.as_reg.name = blob_deserialize(it, success);
 	}
 
+	/* Get the Parameters, if given */
 	if((*success == AMP_OK) && ARI_GET_FLAG_PARM(flags))
 	{
-		blob_t blob;
 		tnvc_t tmp;
-
-		blob = blob_deserialize(it, success);
+#if AMP_VERSION < 7
+		blob_t blob = blob_deserialize(it, success);
 		tmp = tnvc_deserialize_raw(&blob, success);
 		blob_release(&blob, 0);
-
+#else
+		QCBORDecode_StartOctets(it);
+		tmp = tnvc_deserialize(it, success);
+		QCBORDecode_EndOctets(it);
+#endif
 		if(*success != AMP_OK)
 		{
 			ari_release(&result, 0);
@@ -129,14 +132,24 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 		}
 	}
 
+	/* Get the Issuer, if defined */
 	if((*success == AMP_OK) && ARI_GET_FLAG_ISS(flags))
 	{
-		/* Get the UVAST nickname. */
+#if AMP_VERSION < 8 // V8 defines issuer as a blob for added flexibility
 		cut_get_cbor_numeric(it, AMP_TYPE_UVAST, &temp);
 
 		VDB_ADD_ISS(temp, &(result.as_reg.iss_idx));
+#else
+		blob_t issuer = blob_deserialize(it, success);
+		if (*success == AMP_OK)
+		{
+			*success = VDB_ADD_ISS(issuer, &(result.as_reg.iss_idx));
+			blob_release(&issuer, 0);
+		}
+#endif
 	}
 
+	/* Get the Tag, if defined */
 	if((*success == AMP_OK) && ARI_GET_FLAG_TAG(flags))
 	{
 		blob_t tag = blob_deserialize(it, success);
@@ -175,7 +188,6 @@ static ari_t p_ari_deserialize_reg(QCBORDecodeContext *it, uint8_t flags, int *s
 static int p_ari_serialize_lit(QCBOREncodeContext *encoder, ari_t *ari)
 {
 	uint8_t byte;
-	blob_t *result;
 
 	if((encoder == NULL) || (ari == NULL))
 	{
@@ -211,19 +223,20 @@ static int p_ari_serialize_lit(QCBOREncodeContext *encoder, ari_t *ari)
 static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 {
 	blob_t *result;
-	int success;
 
 	if((encoder == NULL) || (ari == NULL))
 	{
 		return AMP_FAIL;
 	}
 
+	// Encode Flags as BYTE
 	if ( cut_enc_byte(encoder, ari->as_reg.flags) != AMP_OK)
 	{
 		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
 		return AMP_FAIL;
 	}
 
+	// Encode Nickname (if defined)
 	if(ARI_GET_FLAG_NN(ari->as_reg.flags))
 	{
 		uvast *nn = (uvast *) VDB_FINDIDX_NN(ari->as_reg.nn_idx);
@@ -234,34 +247,49 @@ static int p_ari_serialize_reg(QCBOREncodeContext *encoder, ari_t *ari)
 		}
 	}
 
+	// Encode Name as BYTESTR
 	if ( blob_serialize(encoder, &(ari->as_reg.name)) != AMP_OK )
 	{
 		AMP_DEBUG_ERR("p_ari_serialize_reg","CBOR Error", NULL);
 		return AMP_FAIL;
 	}
 
+	// Encode Parameters
 	if(ARI_GET_FLAG_PARM(ari->as_reg.flags))
 	{
+#if AMP_VERSION < 7
 		blob_t *result = tnvc_serialize_wrapper(&(ari->as_reg.parms));
 		blob_serialize(encoder, result);
 		blob_release(result, 1);
+#else
+		QCBOREncode_OpenArray(encoder);
+		tnvc_serialize(encoder, &(ari->as_reg.parms) );
+		QCBOREncode_CloseArrayOctet(encoder);
+#endif
 	}
 
+	// Encode the issuer, if defined
 	if(ARI_GET_FLAG_ISS(ari->as_reg.flags))
 	{
+#if AMP_VERSION < 8
 		uvast *iss = (uvast *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
 
 		if (iss != NULL)
 		{
 		   QCBOREncode_AddUInt64(encoder, *iss);
 		}
+#else
+		result = (blob_t *)VDB_FINDIDX_ISS(ari->as_reg.iss_idx);
+		blob_serialize(encoder, result);
+
+#endif
 	}
 
+	// Encode the Tag, if defined
 	if(ARI_GET_FLAG_TAG(ari->as_reg.flags))
 	{
 		result = (blob_t *)VDB_FINDIDX_TAG(ari->as_reg.tag_idx);
 		blob_serialize(encoder, result);
-		blob_release(result, 1);
 	}
 
 	return AMP_OK;
@@ -390,9 +418,9 @@ rh_idx_t  ari_cb_hash(void *table, void *key)
 	else
 	{
 		hash = (hash * seed) + id->as_reg.flags;
-		hash = (hash * seed) + id->as_reg.iss_idx;
-		hash = (hash * seed) + id->as_reg.nn_idx;
-		hash = (hash * seed) + id->as_reg.tag_idx;
+			hash = (hash * seed) + id->as_reg.iss_idx;
+			hash = (hash * seed) + id->as_reg.nn_idx;
+			hash = (hash * seed) + id->as_reg.tag_idx;
 		for(i = 0; i < id->as_reg.name.length; i++)
 		{
 			hash = (hash * seed) + id->as_reg.name.value[i];
@@ -1061,7 +1089,6 @@ ac_t ac_deserialize(QCBORDecodeContext *it, int *success)
 {
 	QCBORItem item;
 	QCBORError err;
-	uint8_t *flag;
 	ac_t result;
 	size_t length;
 	size_t i;
@@ -1089,10 +1116,16 @@ ac_t ac_deserialize(QCBORDecodeContext *it, int *success)
 
 	for(i = 0; i < length; i++)
 	{
+#if AMP_VERSION < 7
 		blob_t *blob = blob_deserialize_ptr(it, success);
 		ari_t *cur_ari = ari_deserialize_raw(blob, success);
 		blob_release(blob, 1);
-
+#else
+		QCBORDecode_StartOctets(it);
+		ari_t *cur_ari = ari_deserialize_ptr(it, success);
+		QCBORDecode_EndOctets(it);
+#endif
+		
 		if((*success = ac_insert(&result, cur_ari)) != AMP_OK)
 		{
 			AMP_DEBUG_ERR("ac_deserialize","Can't grab ARI #%d.", i);
@@ -1202,7 +1235,6 @@ int ac_serialize(QCBOREncodeContext *encoder, void *item)
 {
 	vec_idx_t i;
 	vec_idx_t max;
-	int success;
 	ac_t *ac = (ac_t*) item;
 
 	CHKUSR(encoder, AMP_FAIL);
@@ -1213,6 +1245,7 @@ int ac_serialize(QCBOREncodeContext *encoder, void *item)
 
 	for(i = 0; i < max; i++)
 	{
+#if AMP_VERSION < 7
 		blob_t *result = ari_serialize_wrapper((ari_t*) vec_at(&(ac->values), i));
 
 		if(result != NULL)
@@ -1220,9 +1253,12 @@ int ac_serialize(QCBOREncodeContext *encoder, void *item)
 			QCBOREncode_AddBytes(encoder, (UsefulBufC){result->value,result->length} );
 			blob_release(result, 1);
 		}
-        
+#else
+		QCBOREncode_OpenArray(encoder);
+		ari_serialize(encoder, vec_at(&(ac->values), i) );
+		QCBOREncode_CloseArrayOctet(encoder); // Close Octets Sequence in parent Container
+#endif
 	}
-
 	QCBOREncode_CloseArray(encoder);
 
 	return AMP_OK;

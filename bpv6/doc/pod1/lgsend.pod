@@ -1,0 +1,104 @@
+=head1 NAME
+
+lgsend - ION Load/Go command program
+
+=head1 SYNOPSIS
+
+B<lgsend> I<command_file_name> I<own_endpoint_ID> I<destination_endpoint_ID>
+
+=head1 DESCRIPTION
+
+ION Load/Go is a system for management of an ION-based network, enabling the
+execution of ION administrative programs at remote nodes.  The system
+comprises two programs, B<lgsend> and B<lgagent>.
+
+The B<lgsend> program reads a Load/Go source file from a local file system,
+encapsulates the text of that source file in a bundle, and sends the bundle
+to an B<lgagent> task that is waiting for data at a designated DTN endpoint
+on the remote node.
+
+To do so, it first reads all lines of the Load/Go source file identified
+by I<command_file_name> into a temporary buffer in ION's SDR data store,
+concatenating the lines of the file and retaining all newline characters.
+Then it invokes the bp_send() function to create and send a bundle whose
+payload is this temporary buffer, whose destination is
+I<destination_endpoint_ID>, and whose source endpoint ID is
+I<own_endpoint_ID>.  Then it terminates.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Load/Go file transmission succeeded.
+
+=item "1"
+
+Load/Go file transmission failed.  Examine B<ion.log> to determine the
+cause of the failure, then re-run.
+
+=back
+
+=head1 FILES
+
+B<lgfile> contains the Load/Go file capsules and directive that are to
+be sent to the remote node.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item lgsend: can't attach to BP.
+
+Bundle Protocol is not running on this computer.  Run bpadmin(1) to start BP.
+
+=item lgsend: can't open own endpoint.
+
+I<own_endpoint_ID> is not a declared endpoint on the local ION node.
+Run bpadmin(1) to add it.
+
+=item lgsend: can't open file of LG commands: I<error description>
+
+I<command_file_name> doesn't identify a file that can be opened.  Correct
+spelling of file name or file's access permissions.
+
+=item lgsend: can't get size of LG command file: I<error description>
+
+Operating system problem.  Investigate and correct before rerunning.
+
+=item lgsend: LG cmd file size > 64000.
+
+Load/Go command file is too large.  Split it into multiple files if possible.
+
+=item lgsend: no space for application data unit.
+
+ION system problem: have exhausted available SDR data store reserves.
+
+=item lgsend: fgets failed: I<error description>
+
+Operating system problem.  Investigate and correct before rerunning.
+
+=item lgsend: can't create application data unit.
+
+ION system problem: have exhausted available SDR data store reserves.
+
+=item lgsend: can't send bundle.
+
+ION system problem.  Investigate and correct before rerunning.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+lgagent(1), lgfile(5)

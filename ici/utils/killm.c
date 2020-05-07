@@ -19,6 +19,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "aoslsi.exe", "lt-aoslsi.exe", \
 "aoslso.exe", "lt-aoslso.exe", \
 "beacon.exe", "lt-beacon.exe", \
+"bibeadmin.exe", "lt-bibeadmin.exe", \
 "bibeclo.exe", "lt-bibeclo.exe", \
 "bpadmin.exe", "lt-bpadmin.exe", \
 "bpcancel.exe", "lt-bpcancel.exe", \
@@ -32,6 +33,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "bplist.exe", "lt-bplist.exe", \
 "bpnmtest.exe", "lt-bpnmtest.exe", \
 "bprecvfile.exe", "lt-bprecvfile.exe", \
+"bpsecadmin.exe", "lt-bpsecadmin.exe", \
 "bpsendfile.exe", "lt-bpsendfile.exe", \
 "bpsink.exe", "lt-bpsink.exe", \
 "bpsource.exe", "lt-bpsource.exe", \
@@ -89,6 +91,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "ltpdeliv.exe", "lt-ltpdeliv.exe", \
 "ltpdriver.exe", "lt-ltpdriver.exe", \
 "ltpmeter.exe", "lt-ltpmeter.exe", \
+"ltpsecadmin.exe", "lt-ltpsecadmin.exe", \
 "nm_agent.exe", "lt-nm_agent.exe", \
 "nm_mgr.exe", "lt-nm_mgr.exe", \
 "owltsim.exe", "lt-owltsim.exe", \

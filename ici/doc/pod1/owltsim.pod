@@ -53,9 +53,10 @@ received datagram.
 
 =item I<modulus> controls the artificial random data loss imposed on this traffic by B<owltsim>.
 
-A value of '0' specifies "no random data loss".  Any other modulus value N
+A value of '0' specifies "no imposed data loss".  Any modulus value N > 0
 causes B<owltsim> to randomly drop (i.e., not transmit upon expiration of the
-delay interval) one out of every N packets.
+delay interval) one out of every N packets.  Any modulus value N < 0
+causes B<owltsim> to deterministically drop every (0 - N)th packet.
 
 =back
 
@@ -181,7 +182,7 @@ affected datagram.
 
 =head1 BUGS
 
-Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 

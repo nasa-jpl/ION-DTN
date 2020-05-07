@@ -364,8 +364,7 @@ int	main(int argc, char **argv)
 
 	parms.recvSocket = -1;
 	parms.running = 1;
-	if (pthread_begin(&rxThread, NULL, receivePdus,
-		&parms, "tcputa_receiver"))
+	if (pthread_begin(&rxThread, NULL, receivePdus, &parms))
 	{
 		putSysErrmsg("tcputa can't create receiver thread", NULL);
 		MRELEASE(buffer);

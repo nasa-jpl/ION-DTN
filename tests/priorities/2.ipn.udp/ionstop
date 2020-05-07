@@ -1,0 +1,5 @@
+# shell script to stop all daemons
+#!/bin/bash
+bpadmin		.
+sleep 1
+ionadmin	.
