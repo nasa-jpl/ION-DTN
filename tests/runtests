@@ -68,7 +68,7 @@ function run_a_test () {
 
     # check for environment variable to skip these	
     if [ -f "$TEST/.exclude_expert" ]; then
-	    if [ -n "$ION_EXCLUDE_EXPERT" ]; then
+	    if [ -z "$ION_RUN_EXPERT" ]; then
 		echo "Test excluded by expertise class, skipping $TEST"
 		cat $TEST/.exclude_expert
 		skip_test $TEST

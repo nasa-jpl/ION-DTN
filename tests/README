@@ -25,8 +25,11 @@ Exclude files can exist in any of the following formats:
 		      with. As of ION 4.0.0, the acceptable values to fill in
 		      for BP-VERSION are "bpv6" and "bpv7".
 .exclude_all	    : Disables a test for all platforms.
-.exclude_expert     : Disables a test if the ION_EXCLUDE_EXPERT environment
-		      variable is defined.
+.exclude_expert     : Disables a test because of additional utilities that are
+		      required for the test. To work around this exclusion if
+		      you want to run an expert test, you can set
+		      ION_RUN_EXPERT="yes" in your shell environment to
+		      enable all ION tests classified as expert.
 .exclude_cbased     : Disables a test that relys on compiling a C program to
 		      generate the dotest executable script. If you want to
 		      exclude C based tests, you need to define the environment
