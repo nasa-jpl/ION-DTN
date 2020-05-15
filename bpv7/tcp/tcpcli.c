@@ -18,6 +18,8 @@
 #define	TCPCL_BUFSZ		(512 * 1024)
 #endif
 
+#define MIN_SNOOZE		1000
+
 #ifndef MAX_RESCAN_INTERVAL
 #define MAX_RESCAN_INTERVAL	(20)
 #endif
@@ -115,6 +117,9 @@ typedef struct
 	pthread_t		receiver;
 	int			hasReceiver;	/*	Boolean.	*/
 	vast			lengthReceived;	/*	Current in.	*/
+	struct timeval		prevTime;
+	struct timeval		currentTime;
+	vast			byteAllowance;
 
 	/*	Administration function.				*/
 
@@ -440,6 +445,8 @@ static int	beginSession(LystElt neighborElt, int newSocket, int sessionIdx)
 
 	rtp->neighbors = lyst_lyst(neighborElt);
 	rtp->session = session;
+	session->byteAllowance = 0;
+	getCurrentTime(&session->prevTime);
 	pthread_mutex_init(&(session->socketMutex), NULL);
 	session->hasSocketMutex = 1;
 	pthread_mutex_init(&(session->plMutex), NULL);
@@ -1556,6 +1563,11 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 	uvast		bytesRemaining;
 	int		bytesToRead;
 	int		extentSize;
+	struct timeval		*prevTime = &rtp->session->prevTime;
+	struct timeval		*currentTime = &rtp->session->currentTime;
+	struct timeval		tmpTime;
+	vast		*byteAllowance = &rtp->session->byteAllowance;
+	double		deltaTime;
 
 	result = receiveSdnv(session, &dataLength);
 	if (result < 1)
@@ -1586,18 +1598,7 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		}
 	}
 
-	/*	Enforce rate control: snooze appropriate interval
-	 *	as dictated by contact plan reception rate.		*/
-
 	receptionRate = rtp->session->neighbor->receptionRate;
-	if (receptionRate > 0)
-	{
-		snoozeInterval = ((float) dataLength / (float) receptionRate)
-		       		* 1000000.0;
-		microsnooze((int) snoozeInterval);
-	}
-
-	/*	Now finish reading the data segment.			*/
 
 	bytesRemaining = dataLength;
 	while (bytesRemaining > 0)
@@ -1607,7 +1608,46 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		{
 			bytesToRead = TCPCL_BUFSZ;
 		}
- 
+
+		/*	Enforce rate control				*/
+		if (receptionRate > 0)
+		{
+			if(*byteAllowance <= 0)
+			{
+				/*	Snooze enough to increase byte allowance
+				 *	to bytes to read or to reception rate *
+				 *	times 1 second				*/
+				snoozeInterval = (-1.0 * (float)(*byteAllowance)) /
+					(float) receptionRate * 1000000.0;
+				if (bytesToRead < receptionRate) {
+					snoozeInterval += bytesToRead /
+						(float) receptionRate * 1000000.0;
+				}
+				else
+				{
+					snoozeInterval += (float) receptionRate * 1000000.0;
+				}
+
+				if (snoozeInterval < MIN_SNOOZE) snoozeInterval = MIN_SNOOZE;
+
+				microsnooze((int) snoozeInterval);
+			}
+
+			getCurrentTime(currentTime);
+			tmpTime = *currentTime;
+			if (currentTime->tv_usec < prevTime->tv_usec)
+			{
+				currentTime->tv_usec += 1000000;
+				currentTime->tv_sec -= 1;
+			}
+
+			deltaTime = ((currentTime->tv_sec - prevTime->tv_sec) * 
+				1000000 + (currentTime->tv_usec - prevTime->tv_usec)) /
+				1000000.0;
+			*byteAllowance += ((int) deltaTime)*receptionRate;
+			*prevTime = tmpTime;
+		}
+
 		extentSize = itcp_recv(&session->sock, rtp->buffer,
 				bytesToRead);
 		if (extentSize < 1)
@@ -1624,6 +1664,7 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		}
 
 		bytesRemaining -= extentSize;
+		*byteAllowance -= extentSize;
 		session->lengthReceived += extentSize;
 		if (session->segmentAcks)	/*	Send ack.	*/
 		{
