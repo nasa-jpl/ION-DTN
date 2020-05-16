@@ -1,6 +1,6 @@
 /*
 	bibeclo.c:	BP BIBE-based convergence-layer output
-			daemon.
+			daemon, for use with BPv6.
 
 	Author:		Scott Burleigh, JPL
 
@@ -10,6 +10,7 @@
 	
 									*/
 #include "bpP.h"
+#include "bibeP.h"
 
 static sm_SemId		bibecloSemaphore(sm_SemId *semid)
 {
@@ -23,8 +24,27 @@ static sm_SemId		bibecloSemaphore(sm_SemId *semid)
 	return semaphore;
 }
 
+static BpSAP	_bpduSap(BpSAP *newSap)
+{
+	void	*value;
+	BpSAP	sap;
+
+	if (newSap)			/*	Add task variable.	*/
+	{
+		value = (void *) (*newSap);
+		sap = (BpSAP) sm_TaskVar(&value);
+	}
+	else				/*	Retrieve task variable.	*/
+	{
+		sap = (BpSAP) sm_TaskVar(NULL);
+	}
+
+	return sap;
+}
+
 static void	shutDownClo(int signum)
 {
+	bp_interrupt(_bpduSap(NULL));
 	sm_SemEnd(bibecloSemaphore(NULL));
 }
 
@@ -34,32 +54,31 @@ static void	shutDownClo(int signum)
 int	bibeclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char			*endpointSpec = (char *) a1;
+	char			*peerEid = (char *) a1;
+	char			*destEid = (char *) a2;
 #else
 int	main(int argc, char *argv[])
 {
-	char			*endpointSpec = argc > 1 ? argv[1] : NULL;
+	char			*peerEid = argc > 1 ? argv[1] : NULL;
+	char			*destEid = argc > 2 ? argv[2] : NULL;
 #endif
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
-	Sdr			sdr;
 	Outduct			outduct;
-	ClProtocol		protocol;
-	unsigned char		*buffer;
+	Object			bclaAddr;
+	Object			bclaElt;
+	Bcla			bcla;
+	Sdr			sdr;
 	char			adminHeader[1];
+	char			sourceEid[SDRSTRING_BUFSZ];
+	BpSAP			sap;
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
-	Bundle			image;
-	char			*dictionary = 0;
-	unsigned int		bundleLength;
-	time_t			currentTime;
-	unsigned int		bundleAge;
-	unsigned int		ttl;
-	Object			newBundle;
+	int			protocolClassReq;
 
-	if (endpointSpec == NULL)
+	if (peerEid == NULL || destEid == NULL)
 	{
-		PUTS("Usage: bibeclo <remote node's ID>");
+		PUTS("Usage: bibeclo <peer node's ID> <destination node's ID>");
 		return 0;
 	}
 
@@ -69,36 +88,44 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	findOutduct("bibe", endpointSpec, &vduct, &vductElt);
+	findOutduct("bibe", destEid, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("No such bibe outduct.", endpointSpec);
+		writeMemoNote("[?] No such bibe outduct", destEid);
 		return -1;
 	}
 
 	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
 	{
-		putErrmsg("CLO task is already started for this duct.",
+		writeMemoNote("[?] CLO task is already started for this duct",
 				itoa(vduct->cloPid));
+		return -1;
+	}
+
+	bibeFind(peerEid, &bclaAddr, &bclaElt);
+	if (bclaElt == 0)
+	{
+		writeMemoNote("[?] No such bcla", peerEid);
 		return -1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
 
-	buffer = (unsigned char *) MTAKE(BP_MAX_BLOCK_SIZE);
-	if (buffer == NULL)
-	{
-		putErrmsg("Can't create buffer for CLO; stopping.", NULL);
-		return -1;
-	}
-
 	adminHeader[0] = BP_ENCAPSULATED_BUNDLE << 4;
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
+	sdr_string_read(sdr, sourceEid, bcla.source);
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
-	sdr_read(sdr, (char *) &protocol, outduct.protocol, sizeof(ClProtocol));
 	sdr_exit_xn(sdr);
+	if (bp_open_source(sourceEid, &sap, 1) < 0)
+	{
+		putErrmsg("Can't open source SAP.", sourceEid);
+		return -1;
+	}
+
+	_bpduSap(&sap);
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -107,7 +134,8 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	writeMemo("[i] bibeclo is running.");
+	writeMemoNote("[i] bibeclo is running for", destEid);
+	writeMemoNote("[i]        transmitting to", peerEid);
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
@@ -129,18 +157,23 @@ int	main(int argc, char *argv[])
 			continue;	/*	Get next bundle.	*/
 		}
 
-		CHKZERO(sdr_begin_xn(sdr));
-		if (decodeBundle(sdr, bundleZco, buffer, &image, &dictionary,
-				&bundleLength) < 0)
+		protocolClassReq = ancillaryData.flags & BP_PROTOCOL_ANY;
+		memcpy((char *) &ancillaryData, (char *) &bcla.ancillaryData,
+				sizeof(BpAncillaryData));
+		if (protocolClassReq & BP_RELIABLE)
 		{
-			putErrmsg("Can't decode bundle; CLO stopping.", NULL);
-			shutDownClo(SIGTERM);
-			continue;
+			ancillaryData.flags |= BP_RELIABLE;
+		}
+		else
+		{
+			ancillaryData.flags |= BP_BEST_EFFORT;
 		}
 
 		/*	Embed bundle in admin record.			*/
 
+		CHKZERO(sdr_begin_xn(sdr));
 		zco_prepend_header(sdr, bundleZco, adminHeader, 1);
+		zco_bond(sdr, bundleZco);
 		if (sdr_end_xn(sdr))
 		{
 			putErrmsg("Can't prepend header; CLO stopping.", NULL);
@@ -148,14 +181,15 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-		currentTime = getCtime();
-		bundleAge = currentTime -
-			(image.id.creationTime.seconds + EPOCH_2000_SEC);
-		ttl = image.timeToLive - bundleAge;
-		switch (bpSend(NULL, endpointSpec, NULL, ttl,
-				COS_FLAGS(image.bundleProcFlags),
-				NoCustodyRequested, 0, 0, &ancillaryData,
-				bundleZco, &newBundle, BP_ENCAPSULATED_BUNDLE))
+		/*	Send bundle whose payload is the ZCO
+		 *	comprising the admin record header and the
+		 *	encapsulated bundle.				*/
+
+		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL,
+				bcla.lifespan, bcla.classOfService,
+				NoCustodyRequested, 0, 0,
+				&bcla.ancillaryData, bundleZco,
+				NULL, BP_ENCAPSULATED_BUNDLE))
 		{
 		case -1:	/*	System error.			*/
 			putErrmsg("Can't send encapsulated bundle.", NULL);
@@ -163,7 +197,7 @@ int	main(int argc, char *argv[])
 			continue;
 
 		case 0:		/*	Malformed request.		*/
-			writeMemo("[!] Encapsulated bundle not sent.");
+			writeMemo("[?] Encapsulated bundle not sent.");
 		}	
 
 		/*	Make sure other tasks have a chance to run.	*/
@@ -173,7 +207,7 @@ int	main(int argc, char *argv[])
 
 	writeErrmsgMemos();
 	writeMemo("[i] bibeclo duct has ended.");
-	MRELEASE(buffer);
+	bp_close(sap);
 	ionDetach();
 	return 0;
 }

@@ -739,6 +739,7 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	PsmAddress	addr;
+	char		hostNameBuf[MAXHOSTNAMELEN + 1];
 	Object		elt;
 
 	schemeObj = sdr_list_data(bpSdr, schemeElt);
@@ -769,6 +770,27 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	vscheme->nameLength = scheme.nameLength;
 	vscheme->cbhe = scheme.cbhe;
 	vscheme->unicast = scheme.unicast;
+
+	/*	Compute admin EID for this scheme.			*/
+
+	if (isCbhe(vscheme->name))
+	{
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
+				getOwnNodeNbr());
+	}
+	else	/*	Assume it's "dtn".			*/
+	{
+#ifdef ION_NO_DNS
+		istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
+#else
+		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
+#endif
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.15s://%.60s.dtn", vscheme->name,
+				hostNameBuf);
+	}
+
 	vscheme->endpoints = sm_list_create(bpwm);
 	if (vscheme->endpoints == 0)
 	{
@@ -829,7 +851,6 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 static void	startScheme(VScheme *vscheme)
 {
 	Sdr		bpSdr = getIonsdr();
-	char		hostNameBuf[MAXHOSTNAMELEN + 1];
 	MetaEid		metaEid;
 	VScheme		*vscheme2;
 	PsmAddress	vschemeElt;
@@ -838,28 +859,8 @@ static void	startScheme(VScheme *vscheme)
 	Scheme		scheme;
 	char		cmdString[SDRSTRING_BUFSZ];
 
-	/*	Compute admin EID for this scheme.			*/
-
 	if (isUnicast(vscheme->name))
 	{
-		if (isCbhe(vscheme->name))
-		{
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
-				getOwnNodeNbr());
-		}
-		else	/*	Assume it's "dtn".			*/
-		{
-#ifdef ION_NO_DNS
-			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
-#else
-			getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
-#endif
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.15s://%.60s.dtn", vscheme->name,
-				hostNameBuf);
-		}
-
 		if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
 				&vschemeElt) == 0)
 		{
@@ -2219,7 +2220,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	if (throttle->nominalRate > 0)
 	{
-		committed = throttle->nominalRate - throttle->capacity;
+		committed = (vast) (throttle->nominalRate) - throttle->capacity;
 	}
 
 	/*	Since bpclock never increases capacity to a value
@@ -3298,6 +3299,12 @@ too long", admAppCmd);
 
 	schemeBuf.forwardQueue = sdr_list_create(bpSdr);
 	schemeBuf.endpoints = sdr_list_create(bpSdr);
+	if (strcmp(schemeName, "ipn") == 0
+	|| strcmp(schemeName, "dtn") == 0)
+	{
+		schemeBuf.bclas = sdr_list_create(bpSdr);
+	}
+
 	addr = sdr_malloc(bpSdr, sizeof(Scheme));
 	if (addr)
 	{
@@ -3474,6 +3481,17 @@ int	removeScheme(char *schemeName)
 		return 0;
 	}
 
+	if (schemeBuf.bclas)
+	{
+		if (sdr_list_length(bpSdr, schemeBuf.bclas) != 0)
+		{
+			sdr_exit_xn(bpSdr);
+			writeMemoNote("[?] Scheme has BCLAs, can't be removed",
+					schemeName);
+			return 0;
+		}
+	}
+
 	/*	Okay to remove this scheme from the database.		*/
 
 	dropScheme(vscheme, vschemeElt);
@@ -3489,6 +3507,11 @@ int	removeScheme(char *schemeName)
 
 	sdr_list_destroy(bpSdr, schemeBuf.forwardQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, schemeBuf.endpoints, NULL, NULL);
+	if (schemeBuf.bclas)
+	{
+		sdr_list_destroy(bpSdr, schemeBuf.bclas, NULL, NULL);
+	}
+
 	sdr_free(bpSdr, addr);
 	sdr_list_delete(bpSdr, schemeElt, NULL, NULL);
 	if (sdr_end_xn(bpSdr) < 0)

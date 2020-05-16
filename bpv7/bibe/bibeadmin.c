@@ -111,7 +111,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bcla") == 0)
 	{
-		flags = BP_BEST_EFFORT | BP_RELIABLE;
+		flags = (BP_RELIABLE | BP_BEST_EFFORT);
 		switch (tokenCount)
 		{
 		case 9:
@@ -159,7 +159,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bcla") == 0)
 	{
-		flags = BP_BEST_EFFORT | BP_RELIABLE;
+		flags = (BP_RELIABLE | BP_BEST_EFFORT);
 		switch (tokenCount)
 		{
 		case 9:

@@ -230,7 +230,7 @@ static void	applyRateControl(Sdr sdr)
 		if (throttle->nominalRate > 0)
 		{
 			throttle->capacity += throttle->nominalRate;
-			if (throttle->capacity > throttle->nominalRate)
+			if (throttle->capacity > (vast) (throttle->nominalRate))
 			{
 				throttle->capacity = throttle->nominalRate;
 			}

@@ -409,7 +409,7 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	protClassReqd = bundle->ancillaryData.flags & BP_PROTOCOL_BOTH;
 	if (protClassReqd == 0)		/*	Don't care.		*/
 	{
-		protClassReqd = -1;	/*	Matches any.		*/
+		protClassReqd = BP_PROTOCOL_ANY;
 	}
 	else if (protClassReqd == 10)	/*	Need BSS.		*/
 	{

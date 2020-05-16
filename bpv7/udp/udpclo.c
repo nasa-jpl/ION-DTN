@@ -163,11 +163,6 @@ int	main(int argc, char *argv[])
 		if (planObj)
 		{
 			sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
-			if (plan.neighborNodeNbr)
-			{
-				neighbor = findNeighbor(getIonVdb(),
-						plan.neighborNodeNbr, &nextElt);
-			}
 		}
 	}
 
@@ -250,7 +245,11 @@ int	main(int argc, char *argv[])
 
 		/*	Get current time cost, in seconds, per byte.	*/
 
-		if (neighbor && neighbor->xmitRate > 0)
+		if (planObj
+		&& plan.neighborNodeNbr
+		&& (neighbor = findNeighbor(getIonVdb(), plan.neighborNodeNbr,
+				&nextElt))
+		&& neighbor->xmitRate > 0)
 		{
 			timeCostPerByte = 1.0 / (neighbor->xmitRate);
 		}

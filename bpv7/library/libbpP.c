@@ -525,6 +525,9 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	istrcpy(vscheme->name, scheme.name, sizeof vscheme->name);
 	vscheme->nameLength = scheme.nameLength;
 	vscheme->codeNumber = scheme.codeNumber;
+
+	/*	Compute admin EID for this scheme.			*/
+
 	if (vscheme->codeNumber != imc)
 	{
 		if (vscheme->codeNumber == ipn)
@@ -613,8 +616,6 @@ static void	startScheme(VScheme *vscheme)
 	PsmAddress	vpointElt;
 	Scheme		scheme;
 	char		cmdString[SDRSTRING_BUFSZ];
-
-	/*	Compute admin EID for this scheme.			*/
 
 	if (vscheme->codeNumber != imc)
 	{
@@ -1960,7 +1961,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	if (throttle->nominalRate > 0)
 	{
-		committed = throttle->nominalRate - throttle->capacity;
+		committed = (vast) (throttle->nominalRate) - throttle->capacity;
 	}
 
 	/*	Since bpclock never increases capacity to a value

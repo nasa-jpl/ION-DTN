@@ -1,10 +1,10 @@
 /*
 	bibeclo.c:	BP BIBE-based convergence-layer output
-			daemon.
+			daemon, for use with BPv7.
 
 	Author:		Scott Burleigh, JPL
 
-	Copyright (c) 2014, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 	
@@ -95,7 +95,7 @@ static void	shutDownClo()
 
 static void	handleQuit(int signum)
 {
-	isignal(SIGINT, handleQuit);
+	isignal(SIGTERM, handleQuit);
 	bp_interrupt(_bpduSap(NULL));
 	bp_interrupt(_signalSap(NULL));
 	ionPauseAttendant(_bpduAttendant(NULL));
@@ -118,6 +118,7 @@ typedef struct
 static int	sendSignal(SignalThreadParms *stp, int disposition)
 {
 	Sdr		sdr = getIonsdr();
+	BpAncillaryData	ancillaryData;
 	Bcla		bcla;
 	CtSignal	*signal;
 	int		sequenceCount;
@@ -133,6 +134,8 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	Object		payloadZco;
 	int		result = 0;
 
+	memset((char *) &ancillaryData, 0, sizeof(BpAncillaryData));
+	ancillaryData.flags = BP_RELIABLE | BP_BEST_EFFORT;
 	oK(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
 	signal = bcla.signals + disposition;
@@ -224,7 +227,7 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	if (bpSend(&(stp->sap->endpointMetaEid), stp->peerEid, NULL,
 			bcla.fwdLatency + BIBE_SIGNAL_TIME_MARGIN,
 			bcla.classOfService, NoCustodyRequested, 0,
-			0, &(bcla.ancillaryData), payloadZco, NULL,
+			0, &ancillaryData, payloadZco, NULL,
 			BP_BIBE_SIGNAL) < 1)
 	{
 		putErrmsg("Can't send custody signal.", NULL);
@@ -316,7 +319,6 @@ int	main(int argc, char *argv[])
 	char			*peerEid = argc > 1 ? argv[1] : NULL;
 	char			*destEid = argc > 2 ? argv[2] : NULL;
 #endif
-	Sdr			sdr;
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
 	Outduct			outduct;
@@ -324,6 +326,7 @@ int	main(int argc, char *argv[])
 	Object			bclaElt;
 	Bcla			bcla;
 	SignalThreadParms	stp;
+	Sdr			sdr;
 	int			ttl;
 	BpSAP			sap;
 	ReqAttendant		attendant;
@@ -332,6 +335,7 @@ int	main(int argc, char *argv[])
 	Object			bpduZco;
 	vast			bpduZcoLength;
 	BpAncillaryData		ancillaryData;
+	int			protocolClassReq;
 	unsigned char		*cursor;
 	uvast			uvtemp;
 	DtnTime			deadline;
@@ -357,13 +361,13 @@ int	main(int argc, char *argv[])
 	findOutduct("bibe", destEid, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("No such bibe outduct.", destEid);
+		writeMemoNote("[?] No such bibe outduct", destEid);
 		return -1;
 	}
 
 	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
 	{
-		putErrmsg("CLO task is already started for this duct.",
+		writeMemoNote("[?] CLO task is already started for this duct",
 				itoa(vduct->cloPid));
 		return -1;
 	}
@@ -371,7 +375,7 @@ int	main(int argc, char *argv[])
 	bibeFind(peerEid, &bclaAddr, &bclaElt);
 	if (bclaElt == 0)
 	{
-		putErrmsg("No such bcla.", peerEid);
+		writeMemoNote("[?] No such bcla", peerEid);
 		return -1;
 	}
 
@@ -399,12 +403,12 @@ int	main(int argc, char *argv[])
 
 	if (bp_open_source(stp.sourceEid, &sap, 1) < 0)
 	{
-		putErrmsg("Can't open source SAP.", NULL);
+		putErrmsg("Can't open source SAP.", stp.sourceEid);
 		shutDownClo();
 		return -1;
 	}
 
-	_bpduSap(&(sap));
+	_bpduSap(&sap);
 	if (ionStartAttendant(&attendant))
 	{
 		bp_close(sap);
@@ -450,7 +454,7 @@ int	main(int argc, char *argv[])
 	/*	Can now begin transmitting to remote duct.		*/
 
 	writeMemoNote("[i] bibeclo is running for", destEid);
-	writeMemoNote("[i]     transmitting to", peerEid);
+	writeMemoNote("[i]        transmitting to", peerEid);
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, &bpduZco, &ancillaryData, 0) < 0)
@@ -473,11 +477,15 @@ int	main(int argc, char *argv[])
 			continue;	/*	Get next bundle.	*/
 		}
 
+		protocolClassReq = ancillaryData.flags & BP_PROTOCOL_ANY;
+		memcpy((char *) &ancillaryData, (char *) &bcla.ancillaryData,
+				sizeof(BpAncillaryData));
+
 		/*	The BPDU (an administrative record containing
 		 *	the entire outbound bundle; the payload of
 		 *	the encapsulating bundle) will be formed by
 		 *	prepending an administrative record header
-		 *	to a clone of the outbound bundle.		*/
+		 *	to the outbound bundle.				*/
 
 		bpduZcoLength = zco_length(sdr, bpduZco);
 
@@ -503,7 +511,7 @@ int	main(int argc, char *argv[])
 		/*	First two elements of content array are xmit
 		 *	count and deadline.				*/
 
-		if (ancillaryData.flags & BP_RELIABLE)
+		if (protocolClassReq & BP_RELIABLE)
 		{
 			bcla.count += 1;
 			uvtemp = bcla.count;
@@ -549,7 +557,7 @@ int	main(int argc, char *argv[])
 
 		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL, ttl,
 				bcla.classOfService, NoCustodyRequested, 0, 0,
-			       	&bcla.ancillaryData, bpduZco, &newBundle,
+			       	&ancillaryData, bpduZco, &newBundle,
 				BP_BIBE_PDU))
 		{
 		case -1:	/*	System error.			*/
@@ -558,12 +566,12 @@ int	main(int argc, char *argv[])
 			continue;
 
 		case 0:		/*	Malformed request.		*/
-			writeMemo("[!] Encapsulated bundle not sent.");
+			writeMemo("[?] Encapsulated bundle not sent.");
 			break;
 
 		default:
 			CHKZERO(sdr_begin_xn(sdr));
-			if (ancillaryData.flags & BP_RELIABLE)
+			if (protocolClassReq & BP_RELIABLE)
 			{
 				/*	Must record bundle's xmitId &
 				 *	deadline to enable custodial

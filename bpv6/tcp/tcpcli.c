@@ -866,6 +866,7 @@ static int	sendBundleByTcpcl(SenderThreadParms *stp, Object bundleZco)
 	Sdnv		segLengthSdnv;
 	char		segHeader[4];
 	int		segHeaderLen;
+	int		result;
 
 	if (session->sock == -1)
 	{
@@ -944,6 +945,20 @@ pipeline.", session->outductName);
 		pthread_mutex_unlock(&(session->socketMutex));
 		flags = 0x00;			/*	No longer 1st.	*/
 		bytesRemaining -= bytesToSend;
+	}
+
+	if (!(session->segmentAcks))
+	{
+		/*	Assume successful transmission.			*/
+
+		CHKERR(sdr_begin_xn(sdr));
+		result = bpHandleXmitSuccess(bundleZco, 0);
+		if (sdr_end_xn(sdr) < 0 || result != 1)
+		{
+			putErrmsg("Failed handling TCP transmission success.",
+					NULL);
+			return -1;
+		}
 	}
 
 	return 1;	/*	Bundle was successfully sent.		*/

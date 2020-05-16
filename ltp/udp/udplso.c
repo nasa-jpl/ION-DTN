@@ -356,7 +356,6 @@ compatibility, but it is ignored.");
 		writeMemo(memoBuf);
 	}
 
-	neighbor = findNeighbor(getIonVdb(), remoteEngineId, &nextElt);
 	startTimestamp = getUsecTimestamp();
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
@@ -417,6 +416,7 @@ compatibility, but it is ignored.");
 
 		/*	Get current time cost, in seconds, per byte.	*/
 
+		neighbor = findNeighbor(getIonVdb(), remoteEngineId, &nextElt);
 		if (neighbor && neighbor->xmitRate > 0)
 		{
 			timeCostPerByte = 1.0 / (neighbor->xmitRate);

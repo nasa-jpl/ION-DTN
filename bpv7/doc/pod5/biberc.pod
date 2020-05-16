@@ -50,12 +50,12 @@ formats.  It is the same as the B<?> command.
 =item B<a> bcla I<peer_EID> I<fwd_latency> I<rtn_latency> I<time_to_live> I<priority> I<ordinal> [I<data label>]
 
 The B<add bcla> command.  This command adds the neighboring node identified
-by I<node_nbr> as a BIBE destination of the local node.
+by I<peer_EID> as a BIBE destination of the local node.
 
 =item B<c> bcla I<peer_EID> I<fwd_latency> I<rtn_latency> I<time_to_live> I<priority> I<ordinal> [I<data label>]
 
 The B<change bcla> command.  This command changes the transmission parameters
-governing BIBE PDU transmission to the indicated node.
+governing BIBE PDU transmission to the indicated peer node.
 
 =item B<d> bcla I<peer_EID>
 
