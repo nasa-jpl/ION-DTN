@@ -313,13 +313,13 @@ result of length %d.", tmp.len);
 
 int	sbsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int		result = 1;
+	int			result = 1;
 	SbspInboundBlock	asb;
-	unsigned char	*cursor = NULL;
-	int	unparsedBytes = 0;
-	LystElt		elt;
-	uvast	 ltemp;
-	unsigned int itemp;
+	unsigned char		*cursor = NULL;
+	int			unparsedBytes = 0;
+	LystElt			elt;
+	uvast	 		ltemp;
+	unsigned int		itemp;
 
 	SBSP_DEBUG_PROC("+ sbsp_deserializeASB(" ADDR_FIELDSPEC "," \
 ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
@@ -336,10 +336,10 @@ ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
 	{
 		asb.securitySource.unicast = 1;
 		elt = lyst_first(blk->eidReferences);
-		ltemp = (unsigned long) lyst_data(elt);
+		ltemp = (uvast) lyst_data(elt);
 		asb.securitySource.d.schemeNameOffset = ltemp;
 		elt = lyst_next(elt);
-		ltemp = (unsigned long) lyst_data(elt);
+		ltemp = (uvast) lyst_data(elt);
 		asb.securitySource.d.nssOffset = ltemp;
 	}
 
@@ -772,6 +772,7 @@ int	sbsp_getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
 	EndpointId	securitySource;
 	LystElt		elt1;
 	LystElt		elt2;
+	uvast		ltemp;
 
 	if (dictionary == NULL
 	|| (elt1 = lyst_first(blk->eidReferences)) == NULL
@@ -782,8 +783,10 @@ int	sbsp_getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
 
 	securitySource.cbhe = 0;
 	securitySource.unicast = 1;
-	securitySource.d.schemeNameOffset = (long) lyst_data(elt1);
-	securitySource.d.nssOffset = (long) lyst_data(elt2);
+	ltemp = (uvast) lyst_data(elt1);
+	securitySource.d.schemeNameOffset = ltemp;
+	ltemp = (uvast) lyst_data(elt2);
+	securitySource.d.nssOffset = ltemp;
 	if (printEid(&securitySource, dictionary, fromEid) < 0)
 	{
 		return -1;
