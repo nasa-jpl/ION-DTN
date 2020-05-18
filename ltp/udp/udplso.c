@@ -198,7 +198,7 @@ int	main(int argc, char *argv[])
 	socklen_t		nameLength;
 	ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
-	IonNeighbor		*neighbor;
+	IonNeighbor		*neighbor = NULL;
 	PsmAddress		nextElt;
 	int			segmentLength;
 	char			*segment;
@@ -416,7 +416,12 @@ compatibility, but it is ignored.");
 
 		/*	Get current time cost, in seconds, per byte.	*/
 
-		neighbor = findNeighbor(getIonVdb(), remoteEngineId, &nextElt);
+		if (neighbor == NULL)
+		{
+			neighbor = findNeighbor(getIonVdb(), remoteEngineId,
+					&nextElt);
+		}
+
 		if (neighbor && neighbor->xmitRate > 0)
 		{
 			timeCostPerByte = 1.0 / (neighbor->xmitRate);

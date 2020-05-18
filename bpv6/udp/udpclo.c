@@ -66,7 +66,7 @@ int	main(int argc, char *argv[])
 	Object			planDuctList;
 	Object			planObj;
 	BpPlan			plan;
-	IonNeighbor		*neighbor;
+	IonNeighbor		*neighbor = NULL;
 	PsmAddress		nextElt;
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
@@ -237,11 +237,16 @@ node's host name> | @} [:<its port number>]");
 
 		/*	Get current time cost, in seconds, per byte.	*/
 
-		if (planObj
-		&& plan.neighborNodeNbr
-		&& (neighbor = findNeighbor(getIonVdb(), plan.neighborNodeNbr,
-				&nextElt))
-		&& neighbor->xmitRate > 0)
+		if (neighbor == NULL)
+		{
+			if (planObj && plan.neighborNodeNbr)
+			{
+				neighbor = findNeighbor(getIonVdb(),
+						plan.neighborNodeNbr, &nextElt);
+			}
+		}
+
+		if (neighbor && neighbor->xmitRate > 0)
 		{
 			timeCostPerByte = 1.0 / (neighbor->xmitRate);
 		}

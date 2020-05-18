@@ -74,7 +74,6 @@ int	main(int argc, char *argv[])
 	BpSAP			sap;
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
-	int			protocolClassReq;
 
 	if (peerEid == NULL || destEid == NULL)
 	{
@@ -157,17 +156,8 @@ int	main(int argc, char *argv[])
 			continue;	/*	Get next bundle.	*/
 		}
 
-		protocolClassReq = ancillaryData.flags & BP_PROTOCOL_ANY;
 		memcpy((char *) &ancillaryData, (char *) &bcla.ancillaryData,
 				sizeof(BpAncillaryData));
-		if (protocolClassReq & BP_RELIABLE)
-		{
-			ancillaryData.flags |= BP_RELIABLE;
-		}
-		else
-		{
-			ancillaryData.flags |= BP_BEST_EFFORT;
-		}
 
 		/*	Embed bundle in admin record.			*/
 
@@ -187,9 +177,8 @@ int	main(int argc, char *argv[])
 
 		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL,
 				bcla.lifespan, bcla.classOfService,
-				NoCustodyRequested, 0, 0,
-				&bcla.ancillaryData, bundleZco,
-				NULL, BP_ENCAPSULATED_BUNDLE))
+				NoCustodyRequested, 0, 0, &ancillaryData,
+				bundleZco, NULL, BP_ENCAPSULATED_BUNDLE))
 		{
 		case -1:	/*	System error.			*/
 			putErrmsg("Can't send encapsulated bundle.", NULL);

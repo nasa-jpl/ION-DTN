@@ -480,6 +480,7 @@ int	main(int argc, char *argv[])
 		protocolClassReq = ancillaryData.flags & BP_PROTOCOL_ANY;
 		memcpy((char *) &ancillaryData, (char *) &bcla.ancillaryData,
 				sizeof(BpAncillaryData));
+		ancillaryData.flags |= (BP_RELIABLE | BP_BEST_EFFORT);
 
 		/*	The BPDU (an administrative record containing
 		 *	the entire outbound bundle; the payload of
