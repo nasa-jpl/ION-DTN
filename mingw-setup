@@ -48,6 +48,6 @@ done
 cp ici/libbloom-master/Makefile ici/libbloom-master/Makefile.saved
 cp ici/libbloom-master/Makefile.winion ici/libbloom-master/Makefile
 
-echo -e "export PATH=/opt/bin:/opt/lib:/c/DTN/test:\$PATH\nalias ll='ls -l'\nalias vi='vim'" >> ~/.profile
+echo -e "export PATH=/local/bin:/local/lib:/c/DTN/test:\$PATH\nalias ll='ls -l'\nalias vi='vim'" >> ~/.profile
 
 source ~/.profile
