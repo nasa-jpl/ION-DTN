@@ -64,7 +64,7 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	Outduct			outduct;
 	Object			planDuctList;
-	Object			planObj;
+	Object			planObj = NULL;
 	BpPlan			plan;
 	IonNeighbor		*neighbor = NULL;
 	PsmAddress		nextElt;
