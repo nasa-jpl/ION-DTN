@@ -268,7 +268,7 @@ brsccla:	brsccla.o $(BPLIBS) libstcpcla.dll
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32 -lm
 		cp brsccla ./bin
 
-#	-	-	BIBE executable	-	-	-	-	-
+#	-	-	BIBE executables	-	-	-	-	-
 
 bibeadmin:	bibeadmin.o $(BPLIBS)
 		$(CC) -o bibeadmin bibeadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
@@ -278,7 +278,7 @@ bibeclo:	bibeclo.o $(BPLIBS)
 		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
 		cp bibeclo ./bin
 
-#	-	-	IPND executable	-	-	-	-	-
+#	-	-	IPND executables	-	-	-	-	-
 
 ipnd:		$(IPNDOBJS) $(BPLIBS)
 		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
