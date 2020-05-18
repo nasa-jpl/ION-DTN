@@ -881,6 +881,7 @@ endif # end BUILD_BPv7
 
 bpbin = \
 	beacon \
+	bibeadmin \
 	bibeclo \
 	bpadmin \
 	bpcancel \
@@ -937,19 +938,17 @@ bpbin += \
 	dccpclo
 endif
 
-if BUILD_BPv7
-bpbin += bibeadmin
-endif # end BUILD_BPv7
-
 if BUILD_BPv6
 if ENABLE_BPACS
-bpbin += acsadmin \
+bpbin += \
+	acsadmin \
 	acslist
 endif # end ENABLE_BPACS
 endif # End BUILD_BPv6
 
 if ENABLE_IMC
-bpbin += imcadmin \
+bpbin += \
+	imcadmin \
 	imcfw
 endif # end ENABLE_IMC
 
@@ -982,9 +981,11 @@ bpnoinst = \
 	$(BP_DIR)/dccp/dccpcla.h
 
 if BUILD_BPv6
-bpnoinst += 	$(BP_DIR)/library/saga.h
+bpnoinst += \
+	$(BP_DIR)/library/saga.h
 else # BUILD_BPv7
-bpnoinst += 	$(BP_DIR)/saga/saga.h
+bpnoinst += \
+	$(BP_DIR)/saga/saga.h
 endif # end BUILD_BPv6
 
 bpextra = \
@@ -1042,6 +1043,7 @@ bpextra = \
 	$(BP_DIR)/doc/pod5/dtn2rc.pod \
 	$(BP_DIR)/doc/pod5/ipnrc.pod \
 	$(BP_DIR)/doc/pod5/lgfile.pod \
+	$(BP_DIR)/bibe/bibe.h \
 	$(BP_DIR)/include/bpsec.h \
 	$(BP_DIR)/library/bpextensions.c \
 	$(BP_DIR)/library/noextensions.c \
@@ -1081,15 +1083,14 @@ endif # end BUILD_BPv6
 
 if BUILD_BPv7
 bpextra += \
+	$(BP_DIR)/doc/pod1/bibeadmin.pod \
+	$(BP_DIR)/doc/pod5/biberc.pod \
 	$(BP_DIR)/library/ext/bpsec/bcb.h \
 	$(BP_DIR)/library/ext/bpsec/bib.h \
 	$(BP_DIR)/library/ext/bpsec/bpsec_instr.h \
 	$(BP_DIR)/library/ext/bpsec/bpsec_util.h \
 	$(BP_DIR)/library/ext/bpsec/profiles.h \
-	$(BP_DIR)/library/ext/hcb/hcb.h \
-	$(BP_DIR)/doc/pod1/bibeadmin.pod \
-	$(BP_DIR)/doc/pod5/biberc.pod \
-	$(BP_DIR)/bibe/bibe.h
+	$(BP_DIR)/library/ext/hcb/hcb.h
 endif # end BUILD_BPv7
 
 # noextensions.c is C code, but it isn't explicitly compiled.
@@ -1153,12 +1154,6 @@ bpmans = \
 	$(top_builddir)/$(BP_DIR)/doc/ipnrc.5 \
 	$(top_builddir)/$(BP_DIR)/doc/lgfile.5
 
-if BUILD_BPv7
-bpmans += \
-	$(top_builddir)/$(BP_DIR)/doc/bibeadmin.1 \
-	$(top_builddir)/$(BP_DIR)/doc/biberc.5
-endif # end BUILD_BPv7
-
 # ACS only exists in BPv6 so only build the docs if BPv6 and ACS is enabled
 if BUILD_BPv6
 if ENABLE_BPACS
@@ -1168,6 +1163,12 @@ bpmans += \
 	$(top_builddir)/$(BP_DIR)/doc/acsrc.5
 endif # end ENABLE_BPACS
 endif # end BUILD_BPv6
+
+if BUILD_BPv7
+bpmans += \
+	$(top_builddir)/$(BP_DIR)/doc/bibeadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/biberc.5
+endif # end BUILD_BPv7
 
 if ENABLE_IMC
 bpmans += \
@@ -1203,6 +1204,7 @@ libudpcla_la_LIBADD = libbp.la libici.la
 
 
 libbp_la_SOURCES = \
+	$(BP_DIR)/bibe/bibe.c \
 	$(BP_DIR)/dtn2/libdtn2fw.c \
 	$(BP_DIR)/library/libbp.c \
 	$(BP_DIR)/library/libbpP.c \
@@ -1236,7 +1238,6 @@ libbp_la_SOURCES += \
 	$(BP_DIR)/library/ext/snid/snid.c
 else # BUILD_BPv7
 libbp_la_SOURCES += \
-	$(BP_DIR)/bibe/bibe.c \
 	$(BP_DIR)/library/ext/bpsec/bcb.c \
 	$(BP_DIR)/library/ext/bpsec/bib.c \
 	$(BP_DIR)/library/ext/bpsec/bpsec_instr.c \
@@ -1454,11 +1455,9 @@ bibeclo_SOURCES = $(BP_DIR)/bibe/bibeclo.c
 bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-if BUILD_BPv7
 bibeadmin_SOURCES = $(BP_DIR)/bibe/bibeadmin.c
 bibeadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-endif # end BUILD_BPv7
 
 # --- DCCP Executables --- #
 
