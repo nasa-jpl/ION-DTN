@@ -2564,9 +2564,9 @@ endif #ENABLE_AUTODOC
 #
 ##########################
 
-DOC_VERSION_NUMBER := $(shell cat $(srcdir)/version.txt)
-DOC_VERSION_MAJOR := $(shell cat $(srcdir)/version.txt | sed 's/\..*//')
-DOC_VERSION_MINOR := $(shell cat $(srcdir)/version.txt | sed 's/[0-9]*\.//')
+DOC_VERSION_NUMBER := $(shell cat $(srcdir)/$(BP_DIR)version.txt)
+DOC_VERSION_MAJOR := $(shell cat $(srcdir)/$(BP_DIR)version.txt | sed 's/\..*//')
+DOC_VERSION_MINOR := $(shell cat $(srcdir)/$(BP_DIR)version.txt | sed 's/[0-9]*\.//')
 DOC_DATE := $(shell date -I)
 
 distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
@@ -2574,9 +2574,6 @@ distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
 	@echo "UPDATING VERSION NUMBER IN:"
 	@echo "configure.ac"
 	sed -r -i.bak 's/ion, open source [0-9]+\.[0-9]+\.[0-9]+[a-Z]*/ion, open source $(DOC_VERSION_NUMBER)/' configure.ac
-	@echo "ici/include/ion.h"
-	sed -r -i.bak 's/[0-9]+\-[0-9]+\-[0-9]+/$(DOC_DATE)/' ./ici/include/ion.h
-	sed -r -i.bak 's/[0-9]+\.[0-9]+\.[0-9]+[a-Z]*/$(DOC_VERSION_NUMBER)/' ./ici/include/ion.h
 	@echo "arch-uClib/ion.package/ion.mk"
 	sed -r -i.bak 's/ION_VERSION_MAJOR=[0-9]+/ION_VERSION_MAJOR=$(DOC_VERSION_MAJOR)/' ./arch-uClibc/ion.package/ion.mk
 	sed -r -i.bak 's/ION_VERSION_MINOR=[0-9]+\.[0-9]+[a-Z]*+/ION_VERSION_MINOR=$(DOC_VERSION_MINOR)/' ./arch-uClibc/ion.package/ion.mk
