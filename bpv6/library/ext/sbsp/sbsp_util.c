@@ -706,27 +706,14 @@ int	sbsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 	}
 
 	result = 0;
-#if 0
-	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
+	if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 	{
-		result = sbsp_getInboundSecuritySource(blk, dictionary,
-				fromEid);
+		result = -1;
 	}
-
-	if (result == 0)	/*	No security source in block.	*/
+	else
 	{
-#endif
-		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
-		{
-			result = -1;
-		}
-		else
-		{
-			result = 1;
-		}
-#if 0
+		result = 1;
 	}
-#endif
 
 	if (dictionary)
 	{
@@ -1010,27 +997,14 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 	}
 
 	result = 0;
-#if 0
-	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
+	if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 	{
-		result = sbsp_getOutboundSecuritySource(blk, dictionary,
-				fromEid);
+		result = -1;
 	}
-
-	if (result == 0)	/*	No security source in block.	*/
+	else
 	{
-#endif
-		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
-		{
-			result = -1;
-		}
-		else
-		{
-			result = 1;
-		}
-#if 0
+		result = 1;
 	}
-#endif
 
 	if (dictionary)
 	{
@@ -1429,55 +1403,36 @@ int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
 				continue;	/*	Not a BIB.	*/
 			}
 
-			/* The ASB (blk->object) has not yet been deserialized by
-			 * the sbsp_bibParse() function, so we explicitly decode
-			 * it. */
+			/* The ASB (blk->object) has not yet been deserialized
+			 * by * the sbsp_bibParse() function, so we explicitly
+			 * decode it. */
 			unparsedBytes = blk->length;
-			cursor = ((unsigned char *)(blk->bytes)) + (blk->length - blk->dataLength);
+			cursor = ((unsigned char *)(blk->bytes))
+					+ (blk->length - blk->dataLength);
 
 			// Retrieve & discard # targets
-			_extractSmallSdnv(&asbTargetBlockType, &cursor, &unparsedBytes, __LINE__ );
-
-			// Get type
-			asbTargetBlockType = (int)(cursor[0]);
-
-
-			if (asbTargetBlockType != targetBlockType)
-			{
-				continue;	/*	Wrong target.	*/
-			}
+			_extractSmallSdnv(&asbTargetBlockType, &cursor,
+					&unparsedBytes, __LINE__ );
 
 			/*	Now see if source of BIB matches the
 				source EID for this BIB rule.		*/
 
 			result = 0;
 			fromEid = NULL;
-#if 0
-			if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
-			{
-				result = sbsp_getInboundSecuritySource(blk,
-						dictionary, &fromEid);
-			}
 
-			if (result == 0)
-			{
-#endif
-				/*	No security source in block,
-					so source of BIB is the source
-					of the bundle.		.	*/
+			/*	No security source in block,
+				so source of BIB is the source
+				of the bundle.		.	*/
 
-				if (printEid(&bundle->id.source, dictionary,
-						&fromEid) < 0)
-				{
-					result = -1;
-				}
-				else
-				{
-					result = 1;
-				}
-#if 0
+			if (printEid(&bundle->id.source, dictionary,
+					&fromEid) < 0)
+			{
+				result = -1;
 			}
-#endif
+			else
+			{
+				result = 1;
+			}
 
 			if (result == 1)
 			{
