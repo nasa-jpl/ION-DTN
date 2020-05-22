@@ -9435,13 +9435,13 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
 	/*	If applicable, the fifth and sixth items are the
-	 *	fragment offset & length.				*/
+	 *	fragment offset & total ADU length.			*/
 
 	if (rpt->isFragment)
 	{
 		uvtemp = bundle->id.fragmentOffset;
 		oK(cbor_encode_integer(uvtemp, &cursor));
-		uvtemp = bundle->payload.length;
+		uvtemp = bundle->totalAduLength;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
@@ -9946,9 +9946,9 @@ static int	catenateBundle(Bundle *bundle)
 		uvtemp = bundle->id.fragmentOffset;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 
-		/*	Fragment length.				*/
+		/*	Total ADU length.				*/
 
-		uvtemp = bundle->payload.length;
+		uvtemp = bundle->totalAduLength;
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
