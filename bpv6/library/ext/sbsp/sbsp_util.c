@@ -336,10 +336,10 @@ ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
 	{
 		asb.securitySource.unicast = 1;
 		elt = lyst_first(blk->eidReferences);
-		ltemp = (uvast) lyst_data(elt);
+		ltemp = (uaddr) lyst_data(elt);
 		asb.securitySource.d.schemeNameOffset = ltemp;
 		elt = lyst_next(elt);
-		ltemp = (uvast) lyst_data(elt);
+		ltemp = (uaddr) lyst_data(elt);
 		asb.securitySource.d.nssOffset = ltemp;
 	}
 
@@ -770,9 +770,9 @@ int	sbsp_getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
 
 	securitySource.cbhe = 0;
 	securitySource.unicast = 1;
-	ltemp = (uvast) lyst_data(elt1);
+	ltemp = (uaddr) lyst_data(elt1);
 	securitySource.d.schemeNameOffset = ltemp;
-	ltemp = (uvast) lyst_data(elt2);
+	ltemp = (uaddr) lyst_data(elt2);
 	securitySource.d.nssOffset = ltemp;
 	if (printEid(&securitySource, dictionary, fromEid) < 0)
 	{
