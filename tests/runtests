@@ -152,6 +152,11 @@ function run_a_test () {
         fail_test $TEST
     fi
 
+    # Allow some extra time for ION to fully shutdown on Windows and Solaris
+    if [ $OS_VERSION == "solaris" ] || [ $OS_VERSION == "windows" ] ; then
+	sleep 5
+    fi
+
     popd > /dev/null
 
 }
