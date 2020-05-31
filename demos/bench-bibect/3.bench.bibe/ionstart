@@ -1,0 +1,11 @@
+# shell script to get node running
+#!/bin/bash
+ionadmin	bench.ionrc
+sleep 1
+ionadmin	../global.ionrc
+sleep 1
+ionsecadmin	bench.ionsecrc
+sleep 1
+bpadmin		bench.bprc
+sleep 1
+sdrwatch ion3 5 24 > sdrwatch.log &

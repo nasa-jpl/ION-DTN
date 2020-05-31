@@ -92,12 +92,6 @@ B<b>	bundle is queued for transmission
 
 B<c>	bundle is popped from its transmission queue
 
-B<m>	custody acceptance signal is received
-
-B<w>	custody of bundle is accepted
-
-B<x>	custody of bundle is refused
-
 B<y>	bundle is accepted upon arrival
 
 B<z>	bundle is queued for delivery to an application
@@ -106,15 +100,11 @@ B<~>	bundle is abandoned (discarded) on attempt to forward it
 
 B<!>	bundle is destroyed due to TTL expiration
 
-B<&>	custody refusal signal is received
-
 B<#>	bundle is queued for re-forwarding due to CL protocol failure
 
 B<j>	bundle is placed in "limbo" for possible future re-forwarding
 
 B<k>	bundle is removed from "limbo" and queued for re-forwarding
-
-B<$>	bundle's custodial retransmission timeout interval expired
 
 Note that a slightly amended interpretation should be applied to watch
 characters printed in the course of multicast transmission.  The '~'
@@ -126,7 +116,6 @@ is printed by a node that has forwarded copies of the bundle to all of its
 children and no longer needs to retain the original - so it does an immediate
 permanent bundle destruction just as if the bundle's time to live had expired.
 Neither condition is anomalous.
-
 
 =item B<h>
 

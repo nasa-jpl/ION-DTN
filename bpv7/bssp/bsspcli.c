@@ -77,14 +77,12 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 		*buflen = length;
 	}
 
-
 	/*	Extract data from block ZCO so that it can be
 	 *	appended to the bundle acquisition ZCO.			*/
 
 	zco_start_receiving(zco, &reader);
 	CHKERR(sdr_begin_xn(sdr));
 	result = zco_receive_source(sdr, &reader, length, *buffer);
-	
 	if (sdr_end_xn(sdr) < 0 || result < 0)
 	{
 		putErrmsg("Failed reading bssp block data.", NULL);
@@ -118,7 +116,6 @@ static void	*handleNotices(void *parm)
 	unsigned char		reasonCode;
 	unsigned int		dataLength;
 	Object			data;		/*	ZCO reference.	*/
-	int			result;
 	unsigned int		buflen = 0;
 	char			*buffer = NULL;
 
@@ -162,26 +159,11 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			result = bpHandleXmitSuccess(data);
-			if (result < 0)
+			if (bpHandleXmitSuccess(data) < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
-			}
-
-			if (result == 1)
-			{
-				CHKNULL(sdr_begin_xn(sdr));
-				zco_destroy(sdr, data);
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Crashed on data cleanup.",
-							NULL);
-					ionKillMainThread(procName);
-					rtp->running = 0;
-				}
 			}
 
 			break;		/*	Out of switch.		*/
@@ -192,26 +174,11 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			result = bpHandleXmitFailure(data);
-			if (result < 0)
+			if (bpHandleXmitFailure(data) < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
-			}
-
-			if (result == 1)
-			{
-				CHKNULL(sdr_begin_xn(sdr));
-				zco_destroy(sdr, data);
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Crashed on data cleanup.",
-							NULL);
-					ionKillMainThread(procName);
-					rtp->running = 0;
-				}
 			}
 
 			break;		/*	Out of switch.		*/

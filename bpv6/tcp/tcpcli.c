@@ -793,6 +793,7 @@ static void	endSession(TcpclSession *session, char reason)
 
 	if (session->throttle)
 	{
+		llcv_signal(session->throttle, pipeline_not_full);
 		llcv_close(session->throttle);
 		session->throttle = NULL;
 	}

@@ -1,0 +1,11 @@
+m horizon  +0
+a range    +0 +600		2 3   1
+a range    +0 +600		3 4   1
+a contact  +0 +600		2 3   10000000
+a contact  +0 +600		3 2   10000000
+a contact  +0 +600		3 4   10000000
+a contact  +0 +600		4 3   10000000
+#	Artifical contacts enabling BIBE
+a range    +0 +600		2 4   0
+a contact  +0 +600		2 4   10000000
+a contact  +0 +600		4 2   10000000

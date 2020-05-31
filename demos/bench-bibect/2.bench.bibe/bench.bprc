@@ -1,0 +1,18 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+r 'bibeadmin bench.biberc'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a endpoint ipn:2.64 x
+a endpoint ipn:2.65 x
+a protocol bibe 1400 100
+a induct bibe * ''
+a outduct bibe ipn:4.0 'bibeclo ipn:3.0'
+a protocol udp 1400 100
+a outduct udp 127.0.0.1:5003 udpclo
+a protocol stcp 1400 100
+a induct stcp 127.0.0.1:5002 stcpcli
+r 'ipnadmin bench.ipnrc'
+w #
+s
