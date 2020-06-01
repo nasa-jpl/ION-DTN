@@ -134,7 +134,7 @@ when connectivity is restored.");
 	{
 		if (bpHandleXmitSuccess(bundleZco) < 0)
 		{
-			putErrmsg("Can't handle xmit failure.", NULL);
+			putErrmsg("Can't handle xmit success.", NULL);
 			return -1;
 		}
 	}

@@ -153,7 +153,7 @@ static void	*handleNotices(void *parm)
 
 		switch (type)
 		{
-		case BsspXmitSuccess:	/*	Xmit success.	*/
+		case BsspXmitSuccess:		/*	Xmit success.	*/
 			if (data == 0)		/*	Ignore it.	*/
 			{
 				break;		/*	Out of switch.	*/
@@ -166,9 +166,9 @@ static void	*handleNotices(void *parm)
 				rtp->running = 0;
 			}
 
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
-		case BsspXmitFailure:	/*	Xmit failure.	*/
+		case BsspXmitFailure:		/*	Xmit failure.	*/
 			if (data == 0)		/*	Ignore it.	*/
 			{
 				break;		/*	Out of switch.	*/
@@ -181,7 +181,7 @@ static void	*handleNotices(void *parm)
 				rtp->running = 0;
 			}
 
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 		case BsspRecvSuccess:
 			if (acquireBundle(work, &sessionId, dataLength,
@@ -203,11 +203,11 @@ static void	*handleNotices(void *parm)
 				rtp->running = 0;
 			}
 
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 
 		default:
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/

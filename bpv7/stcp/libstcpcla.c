@@ -198,7 +198,6 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 		Object bundleZco, char *buffer)
 {
 	unsigned int	preamble;
-	int		result;
 
 	/*	Connect to CLI as necessary.				*/
 
@@ -260,8 +259,7 @@ int	sendBundleByStcp(char *protocolName, char *ductName,
 		break;		/*	Out of switch.			*/
 	}
 
-	result = bpHandleXmitSuccess(bundleZco);
-       	if (result < 0)
+	if (bpHandleXmitSuccess(bundleZco) < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		return -1;

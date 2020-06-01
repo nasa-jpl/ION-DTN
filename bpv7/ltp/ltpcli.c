@@ -294,10 +294,9 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
 			}
 
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 		case LtpExportSessionCanceled:	/*	Xmit failure.	*/
 			if (data == 0)		/*	Ignore it.	*/
@@ -310,10 +309,9 @@ static void	*handleNotices(void *parm)
 				putErrmsg("Crashed on xmit failure.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
 			}
 
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 		case LtpImportSessionCanceled:
 			/*	None of the red data for the import

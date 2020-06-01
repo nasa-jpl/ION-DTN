@@ -30,7 +30,9 @@ extern "C" {
 #define ASSERT_BPSDR_XN     assert(sdr_in_xn(bpSdr) != 0)
 #define ASSERT_BPSDR_NOXN   assert(sdr_in_xn(bpSdr) == 0)
 
+#ifndef ACS_TTL
 #define ACS_TTL              (86400)   /* Bundle lifetime of an ACS */
+#endif
 #define MAX_ACSLOG_LEN       (512)
 #define MAX_REPRACS_LEN      (MAX_ACSLOG_LEN - 50)  /* Max len of a printAcs */
 #define DEFAULT_ACS_DELAY    (15)      /* Default s to wait before generating */

@@ -11476,7 +11476,7 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	}
 
 	/*	At this point the bundle object is subject to
-	 *	destruction unless the bundle is pending delivery,
+	 *	destruction unless the bundle is pending delivery
 	 *	or the bundle is pending another transmission.
 	 *	Note that the bundle's *payload* object won't be
 	 *	destroyed until the calling CLO function destroys

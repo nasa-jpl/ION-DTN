@@ -325,7 +325,6 @@ static void	cancelXmit(LystElt elt, void *userdata)
 		putErrmsg("tcpcli neighbor closure can't handle failed xmit.",
 				NULL);
 		ionKillMainThread(procName());
-		return;
 	}
 }
 
@@ -1783,7 +1782,7 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't destroy bundle ZCO.",
+		putErrmsg("Can't handle TCPCL ack.",
 				session->neighbor->vplan->neighborEid);
 		return -1;
 	}

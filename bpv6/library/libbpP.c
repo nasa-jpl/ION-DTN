@@ -11928,6 +11928,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 
 	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
+		zco_destroy(bpSdr, bundleZco);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
 			putErrmsg("Failed handling xmit success.", NULL);
@@ -11989,6 +11990,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 		return -1;
 	}
 
+	zco_destroy(bpSdr, bundleZco);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't handle transmission success.", NULL);
@@ -12015,6 +12017,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
+		zco_destroy(bpSdr, bundleZco);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
 			putErrmsg("Failed handling xmit failure.", NULL);
@@ -12044,6 +12047,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return -1;
 	}
 
+	zco_destroy(bpSdr, bundleZco);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't handle transmission failure.", NULL);

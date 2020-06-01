@@ -84,7 +84,6 @@ int	acquireBundle(AcqWorkArea *work, BsspSessionId *sessionId,
 	zco_start_receiving(zco, &reader);
 	CHKERR(sdr_begin_xn(sdr));
 	result = zco_receive_source(sdr, &reader, length, *buffer);
-	
 	if (sdr_end_xn(sdr) < 0 || result < 0)
 	{
 		putErrmsg("Failed reading bssp block data.", NULL);
@@ -118,7 +117,6 @@ static void	*handleNotices(void *parm)
 	unsigned char		reasonCode;
 	unsigned int		dataLength;
 	Object			data;		/*	ZCO reference.	*/
-	int			result;
 	unsigned int		buflen = 0;
 	char			*buffer = NULL;
 
@@ -156,65 +154,35 @@ static void	*handleNotices(void *parm)
 
 		switch (type)
 		{
-		case BsspXmitSuccess:	/*	Xmit success.	*/
+		case BsspXmitSuccess:		/*	Xmit success.	*/
 			if (data == 0)		/*	Ignore it.	*/
 			{
 				break;		/*	Out of switch.	*/
 			}
 
-			result = bpHandleXmitSuccess(data, 0);
-			if (result < 0)
+			if (bpHandleXmitSuccess(data, 0) < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
 			}
 
-			if (result == 1)
-			{
-				CHKNULL(sdr_begin_xn(sdr));
-				zco_destroy(sdr, data);
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Crashed on data cleanup.",
-							NULL);
-					ionKillMainThread(procName);
-					rtp->running = 0;
-				}
-			}
+			break;			/*	Out of switch.	*/
 
-			break;		/*	Out of switch.		*/
-
-		case BsspXmitFailure:	/*	Xmit failure.	*/
+		case BsspXmitFailure:		/*	Xmit failure.	*/
 			if (data == 0)		/*	Ignore it.	*/
 			{
 				break;		/*	Out of switch.	*/
 			}
 
-			result = bpHandleXmitFailure(data);
-			if (result < 0)
+			if (bpHandleXmitFailure(data) < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
 			}
 
-			if (result == 1)
-			{
-				CHKNULL(sdr_begin_xn(sdr));
-				zco_destroy(sdr, data);
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Crashed on data cleanup.",
-							NULL);
-					ionKillMainThread(procName);
-					rtp->running = 0;
-				}
-			}
-
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 		case BsspRecvSuccess:
 			if (acquireBundle(work, &sessionId, dataLength,
@@ -236,11 +204,11 @@ static void	*handleNotices(void *parm)
 				rtp->running = 0;
 			}
 
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 
 		default:
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 		}
 
 		/*	Make sure other tasks have a chance to run.	*/
