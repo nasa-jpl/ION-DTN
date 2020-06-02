@@ -153,7 +153,7 @@ function run_a_test () {
     fi
 
     # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [ $OS_VERSION == "solaris" ] || [ $OS_VERSION == "windows" ] ; then
+    if [ "$OS_VERSION" == "solaris" ] || [ "$OS_VERSION" == "windows" ] ; then
 	sleep 5
     fi
 
@@ -228,7 +228,7 @@ then
 elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]] || [[ $version == *"Darwin"* ]]
 then
 	OS_VERSION=mac;
-elif [[ $version == "*Solaris*" ]] || [[ $version == "*SunOS*" ]]
+elif [[ $version == *"Solaris"* ]] || [[ $version == *"SunOS"* ]]
 then
         OS_VERSION=solaris;
 fi
