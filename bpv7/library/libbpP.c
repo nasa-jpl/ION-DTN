@@ -2925,11 +2925,6 @@ incomplete bundle.", NULL);
 		destroyBpTimelineEvent(bundle.overdueElt);
 	}
 
-	if (bundle.ctDueElt)
-	{
-		bibeCtCancel(&bundle);
-	}
-
 	/*	Remove bundle from applications' bundle tracking lists.	*/
 
 	if (bundle.trackingElts)
@@ -5783,7 +5778,6 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	/*	Detach new bundle from all pointers to old bundle.	*/
 
 	newBundle->overdueElt = 0;
-	newBundle->ctDueElt = 0;
 	newBundle->fwdQueueElt = 0;
 	newBundle->fragmentElt = 0;
 	newBundle->dlvQueueElt = 0;
@@ -8611,6 +8605,8 @@ static int	acqFromWork(AcqWorkArea *work)
 		if (bytesRecd != unreceivedPayload)
 		{
 			work->bundleLength += (work->bytesBuffered + bytesRecd);
+writeMemoNote("    Wanted", itoa(bytesToSkip));
+writeMemoNote("       Got", itoa(work->bytesBuffered + bytesRecd));
 			writeMemoNote("[?] Payload truncated",
 					itoa(unreceivedPayload - bytesRecd));
 			work->malformed = 1;
@@ -10512,14 +10508,6 @@ int	reverseEnqueue(Object xmitElt, BpPlan *plan, int sendToLimbo)
 		bundle.overdueElt = 0;
 	}
 
-	if (bundle.ctDueElt)
-	{
-		/*	Bundle was un-queued before transmission,
-		 *	so disable custody transfer timer.		*/
-
-		bibeCtCancel(&bundle);
-	}
-
 	return enqueueToLimbo(&bundle, bundleAddr);
 }
 
@@ -11200,12 +11188,14 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 
 	image->id.fragmentOffset = uvtemp;
 
-	/*	Skip over total ADU length.				*/
+	/*	Get total ADU length, cues serialized bundle retrieval.	*/
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
 		return -1;
 	}
+
+	image->totalAduLength = uvtemp;
 
 	/*	Must also skip over primary block's CRC, if any.	*/
 
@@ -11454,6 +11444,7 @@ int	bpHandleXmitSuccess(Object bundleZco)
 
 	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
+		zco_destroy(sdr, bundleZco);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Failed handling xmit success.", NULL);
@@ -11485,7 +11476,7 @@ int	bpHandleXmitSuccess(Object bundleZco)
 	}
 
 	/*	At this point the bundle object is subject to
-	 *	destruction unless the bundle is pending delivery,
+	 *	destruction unless the bundle is pending delivery
 	 *	or the bundle is pending another transmission.
 	 *	Note that the bundle's *payload* object won't be
 	 *	destroyed until the calling CLO function destroys
@@ -11500,6 +11491,7 @@ int	bpHandleXmitSuccess(Object bundleZco)
 		return -1;
 	}
 
+	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't handle transmission success.", NULL);
@@ -11526,6 +11518,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
+		zco_destroy(sdr, bundleZco);
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Failed handling xmit failure.", NULL);
@@ -11554,6 +11547,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return -1;
 	}
 
+	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't handle transmission failure.", NULL);
@@ -11640,15 +11634,6 @@ int	bpReforwardBundle(Object bundleAddr)
 	{
 		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
-	}
-
-	if (bundle.ctDueElt)
-	{
-		if (bibeCtRetry(&bundle) < 0)
-		{
-			putErrmsg("Can't reschedule CT timeout.", NULL);
-			return -1;
-		}
 	}
 
 	if (bundle.fwdQueueElt)
@@ -11829,11 +11814,11 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 		{
 			if (bibeHandleBpdu(&dlv) < 0)
 			{
-				putErrmsg("bibecli failed.", NULL);
+				putErrmsg("BIBE PDU handler failed.", NULL);
 				running = 0;
 			}
 
-			bp_release_delivery(&dlv, 1);
+			bp_release_delivery(&dlv, 0);
 
 			/*	Make sure other tasks have a chance
 			 *	to run.					*/
@@ -11907,7 +11892,7 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 		case BP_BIBE_SIGNAL:
 			if (bibeHandleSignal(&dlv, cursor, unparsedBytes) < 0)
 			{
-				putErrmsg("Custody signal handler failed.",
+				putErrmsg("BIBE custody signal handler failed.",
 						NULL);
 				running = 0;
 			}

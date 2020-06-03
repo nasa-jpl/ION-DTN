@@ -16,6 +16,16 @@
 #define	BIBE_SIGNAL_TIME_MARGIN	10
 #endif
 
+typedef struct
+{
+	char		sourceEid[SDRSTRING_BUFSZ];
+	char		peerEid[SDRSTRING_BUFSZ];
+	Object		bclaAddr;
+	BpSAP		sap;
+	ReqAttendant	attendant;
+	int		running;
+} SignalThreadParms;
+
 static sm_SemId		bibecloSemaphore(sm_SemId *semid)
 {
 	static sm_SemId	semaphore = SM_SEM_NONE;
@@ -103,17 +113,77 @@ static void	handleQuit(int signum)
 	shutDownClo();
 }
 
-/*	*	Signal transmission thread functions	*	*	*/
+/*	*	Bundle retransmission thread functions	*	*	*/
 
-typedef struct
+static void	*retransmitBundles(void *parm)
 {
-	char		sourceEid[SDRSTRING_BUFSZ];
-	char		peerEid[SDRSTRING_BUFSZ];
-	Object		bclaAddr;
-	BpSAP		sap;
-	ReqAttendant	attendant;
-	int		running;
-} SignalThreadParms;
+	/*	Main loop for retransmission of bpdus per CT.		*/
+
+	Sdr			sdr = getIonsdr();
+	SignalThreadParms	*stp = (SignalThreadParms *) parm;
+	time_t			currentTime;
+	Bcla			bcla;
+	Object			elt;
+	Object			nextElt;
+	Object			bpduObj;
+	Bpdu			bpdu;
+
+	snooze(1);	/*	Let main thread become interruptible.	*/
+
+	/*	Can now start bpdu retransmission cycle.		*/
+
+	while (stp->running)
+	{
+		getCurrentDtnTime(&currentTime);
+		sdr_read(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
+		oK(sdr_begin_xn(sdr));
+		for (elt = sdr_list_first(sdr, bcla.bpdus); elt; elt = nextElt)
+		{
+			nextElt = sdr_list_next(sdr, elt);
+			bpduObj = sdr_list_data(sdr, elt);
+			sdr_stage(sdr, (char *) &bpdu, bpduObj, sizeof(Bpdu));
+			if (bpdu.deadline > currentTime)
+			{
+				break;	/*	No more to retransmit.	*/
+			}
+
+			/*	No timely custody acknowledgment, so
+			 *	custodial BIBE has failed.		*/
+
+			if ((getBpVdb())->watching & WATCH_timeout)
+			{
+				iwatch('$');
+			}
+
+			sdr_list_delete(sdr, elt, NULL, NULL);
+			sdr_free(sdr, bpduObj);
+			if (bpHandleXmitFailure(bpdu.bundleZco) < 0)
+			{
+				putErrmsg("Can't handle xmit failure.", NULL);
+				sdr_cancel_xn(sdr);
+				shutDownClo();
+				stp->running = 0;
+				return NULL;
+			}
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			putErrmsg("Failed reviewing bundles in bcla.", NULL);
+			shutDownClo();
+			stp->running = 0;
+			return NULL;
+		}
+
+		snooze(1);
+	}
+
+	writeErrmsgMemos();
+	writeMemo("[i] bibeclo bpdu retransmission thread has ended.");
+	return NULL;
+}
+
+/*	*	Signal transmission thread functions	*	*	*/
 
 static int	sendSignal(SignalThreadParms *stp, int disposition)
 {
@@ -132,7 +202,6 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	int		msglen;
 	Object		msg;
 	Object		payloadZco;
-	int		result = 0;
 
 	memset((char *) &ancillaryData, 0, sizeof(BpAncillaryData));
 	ancillaryData.flags = BP_RELIABLE | BP_BEST_EFFORT;
@@ -140,6 +209,12 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	sdr_stage(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
 	signal = bcla.signals + disposition;
 	sequenceCount = sdr_list_length(sdr, signal->sequences);
+	if (sequenceCount == 0)
+	{
+		sdr_exit_xn(sdr);
+		return 0;
+	}
+
 	buflen = 1		/*	Admin record array open		*/
 		+ 1		/*	Admin record type code		*/
 		+ 1		/*	Signal array open		*/
@@ -231,10 +306,10 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 			BP_BIBE_SIGNAL) < 1)
 	{
 		putErrmsg("Can't send custody signal.", NULL);
-		result = -1;
+		return -1;
 	}
 
-	return result;
+	return 0;
 }
 
 static void	*sendSignals(void *parm)
@@ -242,8 +317,8 @@ static void	*sendSignals(void *parm)
 	/*	Main loop for transmission of BIBE CT signals.		*/
 
 	Sdr			sdr = getIonsdr();
-	Bcla			bcla;
 	SignalThreadParms	*stp = (SignalThreadParms *) parm;
+	Bcla			bcla;
 	int			i;
 	DtnTime			arrivalTime;
 
@@ -295,7 +370,7 @@ static void	*sendSignals(void *parm)
 			}
 		}
 
-		snooze(1);
+		microsnooze(1000000);
 	}
 
 	bp_close(stp->sap);
@@ -329,20 +404,21 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	int			ttl;
 	BpSAP			sap;
-	ReqAttendant		attendant;
+	ReqAttendant		bpduAttendant;
 	unsigned char		*buffer;
+	pthread_t		retransmissionThread;
 	pthread_t		signalThread;
+	Object			bundleZco;
+	vast			bundleZcoLength;
 	Object			bpduZco;
-	vast			bpduZcoLength;
 	BpAncillaryData		ancillaryData;
 	int			protocolClassReq;
 	unsigned char		*cursor;
 	uvast			uvtemp;
 	DtnTime			deadline;
 	int			hdrlen;
-	Object			newBundle;
-	Bundle			bundle;
-	BpEvent			event;
+	Object			bpduObj;
+	Bpdu			bpdu;
 	Object			elt;
 
 	if (peerEid == NULL || destEid == NULL)
@@ -396,12 +472,7 @@ int	main(int argc, char *argv[])
 		ttl = bcla.lifespan;
 	}
 
-	/*	Note: we open this SAP with the Detain flag set to 1
-	 *	so that newly transmitted bundles can be tracked in
-	 *	the bcla's list of bundles subject to custodial
-	 *	retransmission driven by timeout expiration.		*/
-
-	if (bp_open_source(stp.sourceEid, &sap, 1) < 0)
+	if (bp_open_source(stp.sourceEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open source SAP.", stp.sourceEid);
 		shutDownClo();
@@ -409,15 +480,15 @@ int	main(int argc, char *argv[])
 	}
 
 	_bpduSap(&sap);
-	if (ionStartAttendant(&attendant))
+	if (ionStartAttendant(&bpduAttendant))
 	{
 		bp_close(sap);
-		putErrmsg("Can't start attendant.", NULL);
+		putErrmsg("Can't start bpdu attendant.", NULL);
 		shutDownClo();
 		return -1;
 	}
 
-	_bpduAttendant(&attendant);
+	_bpduAttendant(&bpduAttendant);
 
 	/*	Set up signal handling.  SIGTERM is shutdown signal.	*/
 
@@ -434,18 +505,33 @@ int	main(int argc, char *argv[])
 	if (buffer == NULL)
 	{
 		bp_close(sap);
-		ionStopAttendant(&attendant);
+		ionStopAttendant(&bpduAttendant);
 		putErrmsg("Can't create buffer for CLO; stopping.", NULL);
+		return -1;
+	}
+
+	stp.running = 1;
+
+	/*	Start bundle retransmission thread.			*/
+
+	if (pthread_begin(&retransmissionThread, NULL, retransmitBundles, &stp))
+	{
+		bp_close(sap);
+		ionStopAttendant(&bpduAttendant);
+		putSysErrmsg("Can't start bundle retransmission thread.", NULL);
+		MRELEASE(buffer);
 		return -1;
 	}
 
 	/*	Start custody signal transmission thread.		*/
 
-	stp.running = 1;
 	if (pthread_begin(&signalThread, NULL, sendSignals, &stp))
 	{
+		stp.running = 0;
+		snooze(1);
+		pthread_join(retransmissionThread, NULL);
 		bp_close(sap);
-		ionStopAttendant(&attendant);
+		ionStopAttendant(&bpduAttendant);
 		putSysErrmsg("Can't start signal transmission thread.", NULL);
 		MRELEASE(buffer);
 		return -1;
@@ -457,14 +543,14 @@ int	main(int argc, char *argv[])
 	writeMemoNote("[i]        transmitting to", peerEid);
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
-		if (bpDequeue(vduct, &bpduZco, &ancillaryData, 0) < 0)
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
 		{
 			putErrmsg("Can't dequeue bundle.", NULL);
 			shutDownClo();
 			break;
 		}
 
-		if (bpduZco == 0)	 /*	Outduct closed.		*/
+		if (bundleZco == 0)	 /*	Outduct closed.		*/
 		{
 			writeMemo("[i] bibeclo outduct closed.");
 			sm_SemEnd(bibecloSemaphore(NULL));/*	Stop.	*/
@@ -472,7 +558,7 @@ int	main(int argc, char *argv[])
 		}
 
 
-		if (bpduZco == 1)	/*	Got a corrupt bundle.	*/
+		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
 		{
 			continue;	/*	Get next bundle.	*/
 		}
@@ -482,13 +568,25 @@ int	main(int argc, char *argv[])
 				sizeof(BpAncillaryData));
 		ancillaryData.flags |= (BP_RELIABLE | BP_BEST_EFFORT);
 
-		/*	The BPDU (an administrative record containing
-		 *	the entire outbound bundle; the payload of
-		 *	the encapsulating bundle) will be formed by
-		 *	prepending an administrative record header
-		 *	to the outbound bundle.				*/
+		/*	The BPDU (an administrative record whose
+		 *	content is a BPDU message, comprising a header
+		 *	followed by the serialized outbound bundle;
+		 *	the payload of the encapsulating bundle) will
+		 *	be formed by prepending an administrative
+		 *	record header and BPDU message header to a
+		 *	copy of the outbound bundle.			*/
 
-		bpduZcoLength = zco_length(sdr, bpduZco);
+		bundleZcoLength = zco_length(sdr, bundleZco);
+		CHKZERO(sdr_begin_xn(sdr));
+		zco_bond(sdr, bundleZco);
+		bpduZco = zco_clone(sdr, bundleZco, 0, bundleZcoLength);
+		if (sdr_end_xn(sdr))
+		{
+			putErrmsg("Can't clone source bundle; CLO stopping.",
+					NULL);
+			shutDownClo();
+			continue;
+		}
 
 		/*	Serialize the admin record, an array of 2
 		 *	elements.					*/
@@ -518,7 +616,7 @@ int	main(int argc, char *argv[])
 			uvtemp = bcla.count;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 			getCurrentDtnTime(&deadline);
-			deadline += (bcla.fwdLatency + bcla.rtnLatency);
+			deadline += (bcla.fwdLatency + bcla.rtnLatency + 2);
 			uvtemp = deadline;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -534,17 +632,11 @@ int	main(int argc, char *argv[])
 		 *	encapsulated bundle, represented as a byte
 		 *	string.						*/
 
-		uvtemp = bpduZcoLength;
+		uvtemp = bundleZcoLength;
 		cbor_encode_byte_string(NULL, uvtemp, &cursor);
 		hdrlen = cursor - buffer;
-
-		/*	Embed bundle in admin record by prepending
-		 *	the admin record header to the encapsulated
-		 *	bundle (a ZCO).					*/
-
 		CHKZERO(sdr_begin_xn(sdr));
 		zco_prepend_header(sdr, bpduZco, (char *) buffer, hdrlen);
-		zco_bond(sdr, bpduZco);
 		if (sdr_end_xn(sdr))
 		{
 			putErrmsg("Can't prepend header; CLO stopping.", NULL);
@@ -553,21 +645,28 @@ int	main(int argc, char *argv[])
 		}
 
 		/*	Send bundle whose payload is the ZCO
-		 *	comprising the admin record header and the
-		 *	encapsulated bundle.				*/
+		 *	comprising the admin record header, the BPDU
+		 *	message header, and the encapsulated bundle.	*/
 
 		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL, ttl,
 				bcla.classOfService, NoCustodyRequested, 0, 0,
-			       	&ancillaryData, bpduZco, &newBundle,
-				BP_BIBE_PDU))
+			       	&ancillaryData, bpduZco, NULL, BP_BIBE_PDU))
 		{
 		case -1:	/*	System error.			*/
-			putErrmsg("Can't send encapsulated bundle.", NULL);
+			putErrmsg("Can't send encapsulating bundle.", NULL);
 			shutDownClo();
 			continue;
 
 		case 0:		/*	Malformed request.		*/
-			writeMemo("[?] Encapsulated bundle not sent.");
+			writeMemo("[?] Encapsulating bundle not sent.");
+			zco_destroy(sdr, bpduZco);
+			if (bpHandleXmitFailure(bundleZco) < 0)
+			{
+				putErrmsg("Can't handle xmit failure.", NULL);
+				shutDownClo();
+				continue;
+			}
+
 			break;
 
 		default:
@@ -584,39 +683,36 @@ int	main(int argc, char *argv[])
 				sdr_write(sdr, bclaAddr, (char *) &bcla,
 						sizeof(Bcla));
 
-				/*	Now record CT stuff in bundle.	*/
+				/*	Now record CT stuff in Bpdu.	*/
 
-				if ((elt = sdr_list_insert_last(sdr,
-					bcla.bundles, newBundle)) == 0
-				|| bp_track(newBundle, elt) < 0)
+				bpduObj = sdr_malloc(sdr, sizeof(Bpdu));
+				if (bpduObj == 0
+				|| (elt = sdr_list_insert_last(sdr,
+						bcla.bpdus, bpduObj)) == 0)
 				{
-					putErrmsg("Can't track bundle.", NULL);
+					putErrmsg("Can't track BPDU.", NULL);
 					sdr_cancel_xn(sdr);
 					shutDownClo();
 					continue;
 				}
 
-				sdr_stage(sdr, (char *) &bundle, newBundle,
-					sizeof(Bundle));
-				bundle.xmitId = bcla.count;
-				bundle.deadline = deadline;
-				event.type = ctOverdue;
-				event.time = deadline + EPOCH_2000_SEC;
-				event.ref = elt;
-				if ((bundle.ctDueElt =
-					insertBpTimelineEvent(&event)) == 0)
+				bpdu.xmitId = bcla.count;
+				bpdu.deadline = deadline;
+				bpdu.bundleZco = bundleZco;
+				sdr_write(sdr, bpduObj, (char *) &bpdu,
+						sizeof(Bpdu));
+			}
+			else	/*	Best effort, no CT.		*/
+			{
+				if (bpHandleXmitSuccess(bundleZco) < 0)
 				{
-					putErrmsg("Can't schedule rfwd.", NULL);
-					sdr_cancel_xn(sdr);
+					putErrmsg("Can't handle xmit success.",
+						       	NULL);
 					shutDownClo();
 					continue;
 				}
-
-				sdr_write(sdr, newBundle, (char *) &bundle,
-						sizeof(Bundle));
 			}
 
-			oK(bp_release(newBundle));
 			if (sdr_end_xn(sdr))
 			{
 				putErrmsg("Can't release ZCO; CLO stopping.",
@@ -634,9 +730,11 @@ int	main(int argc, char *argv[])
 	writeErrmsgMemos();
 	writeMemo("[i] bibeclo duct has ended.");
 	MRELEASE(buffer);
-	bp_close(sap);
-	ionStopAttendant(&attendant);
 	stp.running = 0;
+	snooze(1);	/*	Wait for retransmission thread to stop.	*/
+	pthread_join(retransmissionThread, NULL);
+	bp_close(sap);
+	ionStopAttendant(&bpduAttendant);
 	bp_interrupt(_signalSap(NULL));
 	ionPauseAttendant(_signalAttendant(NULL));
 	pthread_join(signalThread, NULL);

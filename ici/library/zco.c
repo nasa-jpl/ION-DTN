@@ -18,7 +18,7 @@
 #define ZCODEBUG	0
 #endif
 
-static const char	*bookNames[] = { "inbound", "outbound" };
+static const char	*bookNames[] = { "inbound ", "outbound" };
 
 /*	The INBOUND and OUTBOUND "books" control ZCOs' occupancy of
  *	SDR heap, bulk storage, and file system space.  Inbound and
@@ -208,17 +208,14 @@ void	zco_status(Sdr sdr)
 	GET_OBJ_POINTER(sdr, ZcoDB, db, obj);
 	for (i = 0, book = db->books; i < 2; i++, book++)
 	{
-		isprintf(buffer, sizeof buffer, "[i] %s file  max: "
-VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
-				book->maxFileOccupancy, book->fileOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s file  max: %13.0f  \
+current: %13.0f", bookNames[i], book->maxFileOccupancy, book->fileOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s bulk  max: "
-VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
-				book->maxBulkOccupancy, book->bulkOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s bulk  max: %13.0f  \
+current: %13.0f", bookNames[i], book->maxBulkOccupancy, book->bulkOccupancy);
 		writeMemo(buffer);
-		isprintf(buffer, sizeof buffer, "[i] %s heap  max: "
-VAST_FIELDSPEC "  current: " VAST_FIELDSPEC, bookNames[i],
-				book->maxHeapOccupancy, book->heapOccupancy);
+		isprintf(buffer, sizeof buffer, "[i] %s heap  max: %13.0f  \
+current: %13.0f", bookNames[i], book->maxHeapOccupancy, book->heapOccupancy);
 		writeMemo(buffer);
 	}
 }
