@@ -223,8 +223,6 @@ return NULL;
 
 int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 {
-	Sdr	sdr = getIonsdr();
-
 	/*	Handle the de-queued bundle.				*/
 	if (bpHandleXmitFailure(*bundleZco) < 0)
 	{
