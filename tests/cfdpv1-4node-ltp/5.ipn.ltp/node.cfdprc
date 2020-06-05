@@ -1,0 +1,8 @@
+1
+e 1
+w 1
+a entity 3 bp ipn:3.0 7 0 0
+m discard 1
+m segsize 1000
+m requirecrc 1
+s 'bputa'

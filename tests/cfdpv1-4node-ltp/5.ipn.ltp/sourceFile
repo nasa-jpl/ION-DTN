@@ -130,7 +130,7 @@ void	cfdp_decompress_number(uvast *val, CfdpNumber *nbr)
 	}
 }
 
-void	cfdp_update_checksum(unsigned char octet, vast *offset,
+void	cfdp_update_checksum(unsigned char octet, uvast *offset,
 		unsigned int *checksum, CfdpCksumType ckType)
 {
 	addToChecksum(octet, offset, checksum, ckType);
@@ -141,13 +141,13 @@ static int	defaultReader(int fd, unsigned int *checksum,
 {
 	static char	defaultReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
-	vast		offset;
+	uvast		offset;
 	int		length;
 	int		i;
 	char		*octet;
 
-	offset = ilseek(fd, 0, SEEK_CUR);
-	if (offset < 0)
+	offset = (uvast) lseek(fd, 0, SEEK_CUR);
+	if (offset == (uvast) -1)
 	{
 		putSysErrmsg("CFDP can't get current file offset", NULL);
 		return -1;
@@ -174,15 +174,15 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum,
 {
 	static char	pktReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
-	vast		offset;
+	uvast		offset;
 	int		length;
 	int		i;
 	char		*octet;
 	unsigned int	recordLen;
 	unsigned short	pktlen;
 
-	offset = ilseek(fd, 0, SEEK_CUR);
-	if (offset < 0)
+	offset = (uvast) lseek(fd, 0, SEEK_CUR);
+	if (offset == (uvast) -1)
 	{
 		putSysErrmsg("CFDP can't get current file offset", NULL);
 		return -1;
@@ -244,7 +244,7 @@ int	cfdp_read_space_packets(int fd, unsigned int *checksum,
 	/*	Now know the record length, so reposition to the
 	 *	end of this record for next read.			*/
 
-	if (ilseek(fd, offset + length, SEEK_SET) < 0)
+	if (lseek(fd, offset + length, SEEK_SET) < 0)
 	{
 		putSysErrmsg("CFDP space packet reader failed", NULL);
 		return -1;
@@ -266,13 +266,13 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum,
 {
 	static char	textReaderBuf[CFDP_MAX_PDU_SIZE];
 	CfdpDB		*cfdpConstants = getCfdpConstants();
-	vast		offset;
+	uvast		offset;
 	int		length;
 	int		i;
 	char		*octet;
 
-	offset = ilseek(fd, 0, SEEK_CUR);
-	if (offset < 0)
+	offset = (uvast) lseek(fd, 0, SEEK_CUR);
+	if (offset == (uvast) -1)
 	{
 		putSysErrmsg("CFDP can't get current file offset", NULL);
 		return -1;
@@ -310,7 +310,7 @@ int	cfdp_read_text_lines(int fd, unsigned int *checksum,
 	/*	Now know the record length, so reposition to the
 	 *	end of this record for next read.			*/
 
-	if (ilseek(fd, offset + length, SEEK_SET) < 0)
+	if (lseek(fd, offset + length, SEEK_SET) < 0)
 	{
 		putSysErrmsg("CFDP text line reader failed", NULL);
 		return -1;
@@ -735,10 +735,9 @@ static int	constructMetadataPdu(OutFdu *fdu, char *sourceFileName,
 	cursor++;
 	mpduLength++;
 
-	/*	Note closure request and checksum type.			*/
+	/*	Note closure request.					*/
 
 	*cursor = (fdu->closureLatency > 0) << 6;
-	*cursor += (fdu->ckType & 0x0f);
 	cursor++;
 	mpduLength++;
 
@@ -1121,7 +1120,6 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CfdpDB		db;
 	Object		elt;
 			OBJ_POINTER(Entity, entity);
-	CfdpHandler	handler;
 	char		sourceFileBuf[MAXPATHLEN + 1];
 	int		sourceFile;
 	vast		fileSize;
@@ -1129,6 +1127,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	vast		progress;
 	int		recordLength;
 	unsigned int	checksum = 0;
+	CfdpHandler	handler;
 	Object		pduObj;
 	FileDataPdu	pdu;
 	int		lengthRemaining;
@@ -1142,6 +1141,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	CHKZERO(destinationEntityNbr
 	&& destinationEntityNbr->length > 0
 	&& destinationEntityNbr->length < 9);
+	CHKZERO(utParmsLength <= sizeof(BpUtParms));
 	if (utParmsLength == 0)
 	{
 		CHKZERO(utParms == NULL);
@@ -1149,7 +1149,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 	else
 	{
 		CHKZERO(utParms);
-		CHKZERO(utParmsLength <= sizeof fdu.utParms);
+		CHKZERO(utParmsLength <= sizeof(BpUtParms));
 	}
 
 	CHKZERO(flowLabelLength >= 0 && flowLabelLength < 256);
@@ -1191,7 +1191,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		return 0;
 	}
 
-	fdu.ckType = ModularChecksum;	/*	Default.		*/
+	fdu.ckType = CksumTypeUnknown;
 	sdr_stage(sdr, (char *) &db, dbObj, sizeof(CfdpDB));
 	for (elt = sdr_list_first(sdr, db.entities); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1199,20 +1199,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		GET_OBJ_POINTER(sdr, Entity, entity, sdr_list_data(sdr, elt));
 		if (entity->entityId == destinationEntityId)
 		{
-			if (ckTypeOkay(entity->outCkType))
-			{
-				fdu.ckType = entity->outCkType;
-			}
-			else
-			{
-				if (handleFault(&fdu.transactionId,
-					CfdpUnsupportedChecksumType,
-					&handler) < 0)
-				{
-					putErrmsg("No fault handler.", NULL);
-				}
-			}
-
+			fdu.ckType = entity->outCkType;
 			break;
 		}
 	}
@@ -1280,17 +1267,17 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 			fdu.recordBoundsRespected = 1;
 		}
 
-		sourceFile = ifopen(sourceFileName, O_RDONLY, 0);
+		sourceFile = iopen(sourceFileName, O_RDONLY, 0);
 		if (sourceFile < 0)
 		{
 			sdr_exit_xn(sdr);
 			putSysErrmsg("CFDP can't open source file",
 					sourceFileName);
-			return 0;
+			return -1;
 		}
 
-		fileSize = ilseek(sourceFile, 0, SEEK_END);
-		if (fileSize < 0 || ilseek(sourceFile, 0, SEEK_SET) < 0)
+		fileSize = lseek(sourceFile, 0, SEEK_END);
+		if (fileSize < 0 || lseek(sourceFile, 0, SEEK_SET) < 0)
 		{
 			close(sourceFile);
 			sdr_exit_xn(sdr);
@@ -1303,10 +1290,18 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 		if (truncatedFileSize == fileSize)
 		{
 			fdu.largeFile = 0;
+			if (fdu.ckType == CksumTypeUnknown)
+			{
+				fdu.ckType = ModularChecksum;
+			}
 		}
 		else
 		{
 			fdu.largeFile = 1;
+			if (fdu.ckType == CksumTypeUnknown)
+			{
+				fdu.ckType = CRC32;
+			}
 		}
 
 		fdu.fileDataPdus = sdr_list_create(sdr);
@@ -1334,7 +1329,7 @@ int	createFDU(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength,
 
 			if (recordLength == 0)
 			{
-				if (ilseek(sourceFile, 0, SEEK_CUR)
+				if (lseek(sourceFile, 0, SEEK_CUR)
 						== fdu.fileSize)
 				{
 					break;	/*	No more records.*/
@@ -1503,6 +1498,14 @@ too long.", sourceFileName);
 		memcpy((char *) &fdu.originatingTransactionId,
 				(char *) originatingTransactionId,
 				sizeof(CfdpTransactionId));
+	}
+
+	fdu.extantPdus = sdr_list_create(sdr);
+	if (fdu.extantPdus == 0)
+	{
+		sdr_cancel_xn(sdr);
+		putErrmsg("CFDP can't create list of extant PDUs.", NULL);
+		return -1;
 	}
 
 	/*	Construct the Metadata PDU.				*/
@@ -1858,12 +1861,8 @@ int	cfdp_report(CfdpTransactionId *transactionId)
 	CfdpDB	*db = getCfdpConstants();
 
 	CHKERR(transactionId);
-	if (transactionId->sourceEntityNbr.length == 0
-	|| transactionId->transactionNbr.length == 0)
-	{
-		return 0;
-	}
-
+	CHKERR(transactionId->sourceEntityNbr.length);
+	CHKERR(transactionId->transactionNbr.length);
 	if (memcmp(transactionId->sourceEntityNbr.buffer,
 			db->ownEntityNbr.buffer, 8) == 0)
 	{
@@ -1947,9 +1946,8 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 		if (sm_SemEnded(vdb->eventSemaphore))
 		{
-			*type = CfdpAccessEnded;
-			writeMemo("[i] CFDP user app access terminated.");
-			return 0;
+			putErrmsg("CFDP user app access terminated.", NULL);
+			return -1;
 		}
 
 		CHKERR(sdr_begin_xn(sdr));
@@ -2212,14 +2210,14 @@ int	cfdp_preview(CfdpTransactionId *transactionId, uvast offset,
 
 	sdr_string_read(sdr, fileName, fduBuf.workingFileName);
 	sdr_exit_xn(sdr);
-	fd = ifopen(fileName, O_RDONLY, 0);
+	fd = iopen(fileName, O_RDONLY, 0);
 	if (fd < 0)
 	{
 		putSysErrmsg("Can't open working file", fileName);
-		return 0;
+		return -1;
 	}
 
-	if (ilseek(fd, offset, SEEK_SET) < 0)
+	if (lseek(fd, offset, SEEK_SET) == (off_t) -1)
 	{
 		close(fd);
 		truncatedOffset = offset;

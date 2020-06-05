@@ -2220,7 +2220,7 @@ void	computePriorClaims(BpPlan *plan, Bundle *bundle, Scalar *priorClaims,
 
 	if (throttle->nominalRate > 0)
 	{
-		committed = (vast) (throttle->nominalRate) - throttle->capacity;
+		committed = throttle->nominalRate - throttle->capacity;
 	}
 
 	/*	Since bpclock never increases capacity to a value

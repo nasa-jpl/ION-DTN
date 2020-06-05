@@ -1,0 +1,116 @@
+#!/bin/bash
+#
+# Cheol Koo, adapted from Scott Burleigh
+# April 22, 2020
+#
+# See explanatory remarks for the "cfdpv1" test.  This test extends cfdpv1
+# to operate over a 4-node network.
+
+function getStatsCounter() {
+	TYPE=$1
+	PRI=$2
+	FILE=$3
+
+	grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
+}
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 5.ipn.ltp
+./ionstart &
+sleep 1
+cd ../3.ipn.ltp
+./ionstart &
+sleep 1
+cd ../1.ipn.ltp
+./ionstart &
+sleep 1
+cd ../2.ipn.ltp
+./ionstart &
+
+echo "Sleeping 10 sec.."
+sleep 10
+
+#####################################################################
+
+echo "Starting cfdptest on each node..."
+cd ../3.ipn.ltp
+cfdptest < cfdp_cmds >& node3.stdout &
+cd ../5.ipn.ltp
+cfdptest < cfdp_cmds >& node5.stdout &
+
+sleep 60
+echo ""
+echo "Checking for file arrivals...."
+RETVAL=0
+
+cd ../5.ipn.ltp
+
+COUNT=`ls -al receivedFile | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo ""
+	echo "Error: node 5 did not receive file from node 3."
+	RETVAL=1
+else
+	echo ""
+	echo "Okay: node 5 received file from node 3."
+fi
+
+cd ../3.ipn.ltp
+
+COUNT=`ls -al receivedFile | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo ""
+	echo "Error: node 3 did not receive file from node 5."
+	RETVAL=1
+else
+	echo ""
+	echo "Okay: node 3 received file from node 5."
+fi
+
+#####################################################################
+
+# Print the bplist for debugging purposes
+echo ""
+echo "bplist for node 3:"
+cd ../3.ipn.ltp
+bplist
+echo ""
+echo "bplist for node 1:"
+cd ../1.ipn.ltp
+bplist
+echo ""
+echo "bplist for node 2:"
+cd ../2.ipn.ltp
+bplist
+echo ""
+echo "bplist for node 5:"
+cd ../5.ipn.ltp
+bplist
+
+
+echo ""
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../5.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "cfdpv1-4node-ltp test completed."
+exit $RETVAL
