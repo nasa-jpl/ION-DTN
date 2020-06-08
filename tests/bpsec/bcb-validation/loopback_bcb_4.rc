@@ -1,0 +1,120 @@
+## Run the following command to start ION node:
+##	% ionstart -I "loopback.rc"
+# This is a bad configuration that tries to use BIB-SHA256-AES128 as a BCB scheme
+
+## begin ionadmin 
+# ionrc configuration file for loopback test.
+#	This uses tcp as the primary convergence layer.
+#	command: % ionadmin loopback.ionrc
+# 	This command should be run FIRST.
+#
+#	Ohio University, July 2009
+
+# Initialization command (command 1). 
+#	Set this node to be node 1 (as in ipn:1).
+#	Use default sdr configuration (empty configuration file name '').
+1 1 ''
+
+# start ion node
+s
+
+# Add a contact.
+# 	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself
+#	It will transmit 100000 bytes/second.
+a contact +1 +3600 1 1 100000
+
+# Add a range. This is the physical distance between nodes.
+#	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself.
+#	Data on the link is expected to take 1 second to reach the other
+#	end (One Way Light Time).
+a range +1 +3600 1 1 1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 1000000
+m consumption 1000000
+## end ionadmin 
+
+## begin bpadmin 
+# bprc configuration file for the loopback test.
+#	Command: % bpadmin loopback.bprc
+#	This command should be run AFTER ionadmin and ltpadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, July 2009
+
+# Initialization command (command 1).
+1 
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+#	Note that the custodian endpoint "ipn:1.0" is automatically generated.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add a protocol. 
+#	Add the protocol named tcp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, tcp on ethernet) for payload, and 100 bytes for overhead.
+a protocol udp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the tcp protocol.
+#	The induct will listen on port 4556, the IANA assigned default DTN
+#	TCP convergence layer port.
+#	The induct itself is implemented by the 'tcpcli' command.
+a induct udp localhost:4557 udpcli
+
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the tcp protocol.
+#	The outduct will connect to the localhost IP using the
+#	IANA assigned default DTN TCP port of 4556.
+#	The outduct itself is implemented by the 'tcpclo' command.
+a outduct udp localhost:4556 'udpclo 2'
+
+# Start the Daemons.
+s
+## end bpadmin 
+
+## begin ipnadmin 
+# ipnrc configuration file for the loopback test.
+#	Essentially, this is the IPN scheme's routing table.
+#	Command: % ipnadmin loopback.ipnrc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, July 2009
+
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1 (that is, yourself).
+#	Transmission should use the tcp convergence layer for 127.0.0.1:4556
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan 1 udp/localhost:4556
+## end ipnadmin 
+
+## begin ionsecadmin
+1
+e 1
+
+# ENCRYPTION RULE
+a key 'sha256_aes128' aes_gcm_1.key
+
+## end ionsecadmin
+
+## begin bpsecadmin
+
+a bspbcbrule * * 1 'BIB-SHA256-AES128' sha256_aes128
+
+## end bpsecadmin
