@@ -2123,7 +2123,7 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 ##########################
 
 nmbin= nm_agent nm_mgr
-nmlib= libnm.la libnmAgentADM.la
+nmlib= libamp.la libampAgentADM.la
 
 nmPODM1 = pod2man -s 1 -c "NM executables"
 nmPODM3 = pod2man -s 1 -c "NM libraries"
@@ -2160,12 +2160,12 @@ nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/utils/vector.c		\
 			$(nm_cbor_src)
 
-libnm_la_SOURCES = $(nm_shared_src)
-libnm_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+libamp_la_SOURCES = $(nm_shared_src)
+libamp_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/$(BP_DIR)/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   $(NM_CBOR_CFLAGS)
 # Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
-libnm_la_LIBADD = libici.la
+libamp_la_LIBADD = libici.la
 
 # Note: AMP Agent ADM must be built directly with the agent, whereas all other ADMs can be modularized as needed.
 nm_agent_SOURCES = \
@@ -2230,12 +2230,12 @@ nmmans = \
 	$(top_builddir)/nm/doc/nm_agent.1 \
 	$(top_builddir)/nm/doc/nm_mgr.1
 
-libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
-libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la
+libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
+libampAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libampAgentADM_la_LIBADD = libamp.la libici.la libbp.la libltp.la
 
 
-nm_agent_LDADD = libici.la libbp.la libltp.la libnm.la libnmAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_agent_LDADD = libici.la libbp.la libltp.la libamp.la libampAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/nm \
@@ -2266,7 +2266,7 @@ CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contr
 CIVETWEB_LDFLAGS = -ldl
 CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
 
-nm_mgr_LDADD = libnm.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_mgr_LDADD = libamp.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
@@ -2419,11 +2419,11 @@ tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCF
 
 tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c $(nm_shared_src)
 tests_nm_unit_utils_vector_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
-tests_nm_unit_utils_vector_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
+tests_nm_unit_utils_vector_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
 
 tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(nm_shared_src)
 tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
-tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
 
 #tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
 #tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
