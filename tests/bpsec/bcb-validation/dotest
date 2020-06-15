@@ -19,6 +19,9 @@ WIRESHARK_CHECK=`head -1 wireshark_check.txt`
 if [ "$WIRESHARK_CHECK" = "tshark: Some fields aren't valid:" ] ; then
   echo "Your version of Wireshark does not support the bundle.ciphersuite_type field. Exiting..."
   exit 1
+elif [[ "$WIRESHARK_CHECK" == *"command not found"* ]] ; then
+  echo "You do not have tshark installed. Exiting..."
+  exit 1
 fi
 
 # remove possible files left from previous run
