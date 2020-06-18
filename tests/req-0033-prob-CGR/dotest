@@ -106,6 +106,14 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
 
+# need to use pkill instead of killall on Solaris
+OSNAME=`uname`
+if [ "$OSNAME" == "SunOS" ]; then
+    killcmd="pkill"
+else
+    killcmd="killall"
+fi
+
 # Start all nodes, but don't load contact plans yet.
 sleep 1
 echo "Starting all nodes..."
@@ -203,9 +211,9 @@ echo "File should have been forwarded from 2 to 3 and deleted locally."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-killall ipnd
+$killcmd ipnd
 echo "Killing all lt-ipnd tasks..."
-killall lt-ipnd
+$killcmd lt-ipnd
 
 # After 5 seconds, start ipnd for nodes 2 and 5 so that the file
 # destined for node 7 will be forwarded to node 5.
@@ -228,9 +236,9 @@ echo "File should have been forwarded from 2 to 5 with a copy saved in limbo."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-killall ipnd
+$killcmd ipnd
 echo "Killing all lt-ipnd tasks..."
-killall lt-ipnd
+$killcmd lt-ipnd
 
 # After 5 seconds, start ipnd for nodes 3 and 6 so that the file
 # destined for node 6 will be forwarded to node 6.
@@ -250,9 +258,9 @@ echo "File x (915 bytes) in 3 destined for 6 should be forwarded to 6."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-killall ipnd
+$killcmd ipnd
 echo "Killing all lt-ipnd tasks..."
-killall lt-ipnd
+$killcmd lt-ipnd
 
 # After 5 seconds, start ipnd for nodes 5 and 7 so that the file
 # destined for node 7 will be forwarded to node 7.
@@ -272,9 +280,9 @@ echo "File y (1070 bytes) in 5 destined for 7 should be forwarded to 7."
 sleep 5
 echo ""
 echo "Killing all ipnd tasks..."
-killall ipnd
+$killcmd ipnd
 echo "Killing all lt-ipnd tasks..."
-killall lt-ipnd
+$killcmd lt-ipnd
 
 # After 5 seconds, check all results.
 sleep 5

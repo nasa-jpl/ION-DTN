@@ -33,8 +33,13 @@ static int	setUpSendingSocket(const int multicastTTL,
 	/* Sets up sending sockets */
 
 	int	sendSocket;
+#ifdef sparc
+	char	multicastLoopSockOption;
+	char	multicastTTLSockOption;
+#else
 	int	multicastLoopSockOption;
 	int	multicastTTLSockOption;
+#endif
 	int	broadcastDiscoverySockOption;
 
 	/* Initialize sending socket */
