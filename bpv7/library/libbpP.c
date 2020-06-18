@@ -8795,22 +8795,6 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bundle->payload.content = zco_clone(sdr, work->rawBundle,
 			work->headerLength, bundle->payload.length);
 
-	/*	Make sure all required security blocks are present.	*/
-
-	switch (reviewExtensionBlocks(work))
-	{
-	case -1:
-		putErrmsg("Failed reviewing extension blocks.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
-
-	case 0:
-		writeMemo("[?] Malformed bundle.");
-		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-		return abortBundleAcq(work);
-	}
-
 	/*	Do all decryption indicated by extension blocks.	*/
 
 	if (decryptPerExtensionBlocks(work) < 0)
@@ -8830,12 +8814,28 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return -1;
 	}
 
+	/*	Make sure all required security blocks are present.	*/
+
+	switch (reviewExtensionBlocks(work))
+	{
+	case -1:
+		putErrmsg("Failed reviewing extension blocks.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+
+	case 0:
+		writeMemo("[?] Malformed bundle: missing extension block(s).");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
 	/*	Now that acquisition is complete, check the bundle
 	 *	for problems.						*/
 
 	if (work->malformed)
 	{
-		writeMemo("[?] Malformed bundle.");
+		writeMemo("[?] Malformed bundle: extension blocks processing.");
 		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
 				bundle->payload.length);
 		return abortBundleAcq(work);

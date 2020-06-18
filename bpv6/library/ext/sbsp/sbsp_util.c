@@ -1224,18 +1224,6 @@ key of size %d", key.len);
 		}
 
 		memcpy(key.contents, stdBuffer, key.len);
-
-#ifdef BSP_DEBUGING
-		char *str = NULL;
-
-		if((str = csi_val_print(key)) != NULL)
-		{
-			SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  Len: %d  \
-Val: %s...", key.len, str);
-			MRELEASE(str);
-		}
-#endif
-
 		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 
 		return key;
@@ -1265,7 +1253,6 @@ Val: %s...", key.len, str);
 	 *           try again.
 	 */
 
-
 	if ((key.contents = MTAKE(ReqBufLen)) == NULL)
 	{
 		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate key of \
@@ -1287,22 +1274,9 @@ size %d", ReqBufLen);
 	}
 
 	key.len = ReqBufLen;
-
-#ifdef BSP_DEBUGING
-		char *str = NULL;
-
-			if((str = csi_val_print(key)) != NULL)
-			{
-				SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  \
-Len: %d  Val: %s...", key.len, str);
-				MRELEASE(str);
-			}
-#endif
-
 	SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 	return key;
 }
-
 
 
 /******************************************************************************

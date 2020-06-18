@@ -939,7 +939,7 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 			return -1;
 		}
 
-		if (blk->length == 0)	/*	Discarded.		*/
+		if (blk->length == 0)	/*	Block is discarded.	*/
 		{
 			bundle->extensionsLength -= oldLength;
 			deleteAcqExtBlock(elt);

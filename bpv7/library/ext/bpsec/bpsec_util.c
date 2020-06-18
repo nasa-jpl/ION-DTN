@@ -360,28 +360,34 @@ int	bpsec_recordAsb(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 		return -1;
 	}
 
-	for (elt2 = lyst_first(oldAsb->parmsData); elt2; elt2 = lyst_next(elt2))
+	if (oldAsb->parmsData)
 	{
-		oldTlv = (sci_inbound_tlv *) lyst_data(elt2);
-		newTlv.id = oldTlv->id;
-		newTlv.length = oldTlv->length;
-		newTlv.value = sdr_malloc(sdr, newTlv.length);
-		if (newTlv.value == 0)
+		for (elt2 = lyst_first(oldAsb->parmsData); elt2;
+				elt2 = lyst_next(elt2))
 		{
-			return -1;
-		}
+			oldTlv = (sci_inbound_tlv *) lyst_data(elt2);
+			newTlv.id = oldTlv->id;
+			newTlv.length = oldTlv->length;
+			newTlv.value = sdr_malloc(sdr, newTlv.length);
+			if (newTlv.value == 0)
+			{
+				return -1;
+			}
 
-		sdr_write(sdr, newTlv.value, oldTlv->value, newTlv.length);
-		obj = sdr_malloc(sdr, sizeof newTlv);
-		if (obj == 0)
-		{
-			return -1;
-		}
+			sdr_write(sdr, newTlv.value, oldTlv->value,
+					newTlv.length);
+			obj = sdr_malloc(sdr, sizeof newTlv);
+			if (obj == 0)
+			{
+				return -1;
+			}
 
-		sdr_write(sdr, obj, (char *) &newTlv, sizeof newTlv);
-		if (sdr_list_insert_last(sdr, newTarget.results, obj) == 0)
-		{
-			return -1;
+			sdr_write(sdr, obj, (char *) &newTlv, sizeof newTlv);
+			if (sdr_list_insert_last(sdr, newTarget.results, obj)
+					== 0)
+			{
+				return -1;
+			}
 		}
 	}
 
@@ -796,10 +802,11 @@ int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr,
  *
  * \par Function Name: bpsec_deserializeASB
  *
- * \par Purpose: This utility function accepts a serialized Abstract Security
- *               Block from a bundle during acquisition and places it in a
- *               bpsecInboundBlock structure stored in the Acquisition Extension
- *               Block's scratchpad area.
+ * \par Purpose: This utility function accepts an Acquisition extension
+ * 		 block in the course of bundle acquisition, parses that
+ * 		 block's serialized content into an Abstract Security
+ * 		 Block structure, and stores that structure as the
+ * 		 scratchpad object of the extension block.
  *
  * \par Date Written:  5/30/09
  *
@@ -807,18 +814,23 @@ int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr,
  *                0 - The deserialized ASB did not pass its sanity check.
  *               -1 - There was a system error.
  *
- * \param[in,out]  blk  A pointer to the acquisition block holding the
- *                      serialized abstract security block.
+ * \param[in,out]  blk  A pointer to the acquisition extension block holding
+ * 			the serialized abstract security block.
  * \param[in]      wk   Work area holding bundle information.
  *
  * \par Notes: 
- *      1. This function allocates memory using the MTAKE method.  This
- *         scratchpad must be freed by the caller iff the method does
- *         not return -1.  Any system error will release the memory.
+ *      1.  This function allocates memory for the scratchpad object
+ *          using the MTAKE method.  This memory is released immediately
+ *          if the function returns 0 or -1; if the function returns 1
+ *          (successful deserialization) then release of this memory must
+ *          be ensured by subsequent processing.
  *
- *      2.  If we return a 1, the ASB is considered invalid and not usable.
- *          The block should be discarded. It is still returned, though, so that
- *          the caller may examine it.
+ *      2.  If we return a 0, the extension block is considered invalid
+ *          and not usable; it should be discarded. The extension block
+ *          is not discarded, though, in case the caller wants to examine
+ *          it.  (The ASB structure, however, *is* discarded immediately.
+ *          It never becomes the "object" of this extension block.)
+ *
  *
  * \par Revision History:
  *
@@ -872,7 +884,7 @@ scratchpad", NULL);
 	/*
 	 * Position cursor at start of block-type-specific data of the
 	 * extension block, by skipping over the extension block header.
-	 */
+	*/
 
 	cursor = ((unsigned char *)(blk->bytes))
 			+ (blk->length - blk->dataLength);
@@ -1312,7 +1324,7 @@ Object	bpsec_findBlock(Bundle *bundle, BpBlockType type,
 		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
 		if (blk->type == type
 		&& blk->tag1 == targetBlockType
-		&& blk->tag2 == targetBlockType)
+		&& blk->tag2 == metatargetBlockType)
 		{
 			return elt;
 		}
@@ -1661,7 +1673,7 @@ sci_inbound_tlv	bpsec_retrieveKey(char *keyName)
 
 	memset(&key, 0, sizeof(sci_inbound_tlv));
 
-	if(keyName == NULL)
+	if(keyName == NULL || strlen(keyName) == 0)
 	{
 		BPSEC_DEBUG_ERR("x bpsec_retrieveKey: Bad Parms", NULL);
 		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)",
@@ -1698,18 +1710,6 @@ key of size %d", key.length);
 		}
 
 		memcpy(key.value, stdBuffer, key.length);
-
-#ifdef BSP_DEBUGING
-		char *str = NULL;
-
-		if((str = sci_val_print(key)) != NULL)
-		{
-			BPSEC_DEBUG_INFO("i bpsec_retrieveKey: Key  Len: %d  \
-Val: %s...", key.length, str);
-			MRELEASE(str);
-		}
-#endif
-
 		BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)",
 				key.length);
 
@@ -1762,18 +1762,6 @@ size %d", ReqBufLen);
 	}
 
 	key.length = ReqBufLen;
-
-#ifdef BSP_DEBUGING
-		char *str = NULL;
-
-		if((str = sci_val_print(key)) != NULL)
-		{
-			BPSEC_DEBUG_INFO("i bpsec_retrieveKey: Key  \
-Len: %d  Val: %s...", key.length, str);
-			MRELEASE(str);
-		}
-#endif
-
 	BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.length);
 	return key;
 }
@@ -1858,16 +1846,19 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
 	for (elt = lyst_first(wk->extBlocks); elt; elt = lyst_next(elt))
 	{
 		blk = (AcqExtBlock *) lyst_data(elt);
+		CHKERR(blk);
 		if (blk->type != bpsecBlockType)
 		{
-			continue;		/*	Not a BIB.	*/
+			continue;		/*	No type match.	*/
 		}
 
 		asb = (BpsecInboundBlock *) (blk->object);
+		CHKERR(asb);
 		for (elt2 = lyst_first(asb->targets); elt2;
 				elt2 = lyst_next(elt2))
 		{
 			target = (BpsecInboundTarget *) lyst_data(elt2);
+			CHKERR(target);
 			if (target->targetBlockType == targetBlockType)
 			{
 				break;		/*	Target matches.	*/
@@ -1876,7 +1867,7 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
 
 		if (elt2 == NULL)	/*	Reached end of list.	*/
 		{
-			continue;	/*	Wrong BIB.		*/
+			continue;	/*	No target match.	*/
 		}
 
 		/*	Now see if source of BIB matches the source
@@ -1884,12 +1875,11 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
 
 		result = 0;
 		fromEid = NULL;
-
 		if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 		{
 			if (readEid(&(asb->securitySource), &fromEid) < 0)
 			{
-				result = -1;
+				return -1;
 			}
 		}
 		else
@@ -1899,22 +1889,23 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
 
 			if (readEid(&bundle->id.source, &fromEid) < 0)
 			{
-				result = -1;
+				return -1;
 			}
 		}
 
-		if (fromEid)
+		if (fromEid == NULL)
 		{
-			if (eidsMatch(secSrcEid, strlen(secSrcEid),
-					fromEid, strlen(fromEid)))
-			{
-				result = 1;
-			}
-
-			MRELEASE(fromEid);
+			continue;	/*	No source EID match.	*/
 		}
 
-		if (result != 0)		/*	1 or -1.	*/
+		if (eidsMatch(secSrcEid, strlen(secSrcEid),
+				fromEid, strlen(fromEid)))
+		{
+			result = 1;
+		}
+
+		MRELEASE(fromEid);
+		if (result == 1)
 		{
 			return result;
 		}
@@ -2552,7 +2543,8 @@ Can't get acq file length %s.", fileName);
 		}
 	}
 
-	// Write the data to the file
+	/*	Write the data to the file.				*/
+
 	if (write(fd, bytes, length) < 0)
 	{
 		BPSEC_DEBUG_ERR("x bpsec_transferToZcoFileSource: Can't append \
