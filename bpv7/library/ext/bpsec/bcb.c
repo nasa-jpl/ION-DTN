@@ -53,6 +53,7 @@
  **                           [Secure DTN implementation (NASA: NNX14CS58P)]
  **  09/02/19  S. Burleigh    Rename everything for bpsec
  *****************************************************************************/
+
 #include "zco.h"
 #include "csi.h"
 #include "bpsec_util.h"
@@ -62,8 +63,6 @@
 #if (BCB_DEBUGGING == 1)
 extern char		gMsg[];		/*	Debug message buffer.	*/
 #endif
-
-/* 2/27 */
 
 /******************************************************************************
  *
@@ -548,7 +547,7 @@ payload.", NULL);
 
 	default:
 		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't decrypt block \
-type %d: canonicalization not implemented.", asb->targetBlockType);
+type %d: canonicalization not implemented.", target->targetBlockType);
 		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> NULL", NULL);
 		MRELEASE(sessionKeyClear.value);
 		return 0;
@@ -672,7 +671,7 @@ payload.", NULL);
 
 	default:
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt: Can't encrypt block \
-type %d: canonicalization not implemented.", asb->targetBlockType);
+type %d: canonicalization not implemented.", target.targetBlockType);
 		BCB_DEBUG_PROC("- bcbDefaultEncrypt--> NULL", NULL);
 		MRELEASE(longtermKey.value);
 		MRELEASE(sessionKey.value);
@@ -1143,7 +1142,8 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	if (asb.targets == 0 || asb.parmsData == 0)
 	{
 		sdr_cancel_xn(sdr);
-		BCB_DEBUG_ERR("x bcbOffer: Failed to initialize BCB ASB.");
+		BCB_DEBUG_ERR("x bcbOffer: Failed to initialize BCB ASB.",
+				NULL);
 		result = -1;
 		BCB_DEBUG_PROC("- bcbOffer -> %d", result);
 		return result;
@@ -1156,7 +1156,7 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 			blk->tag1, 0, blk->tag2))
 	{
 		sdr_cancel_xn(sdr);
-		BCB_DEBUG_ERR("x bcbOffer: Failed to insert target.");
+		BCB_DEBUG_ERR("x bcbOffer: Failed to insert target.", NULL);
 		result = -1;
 		BCB_DEBUG_PROC("- bcbOffer -> %d", result);
 		return result;
@@ -1468,7 +1468,7 @@ int32_t	bcbUpdatePayloadInPlace(uint32_t suite, sci_inbound_parms parms,
 
 	/* Step 3: Walk through payload writing ciphertext. */
 
-	if((sci_crypt_start(suite, context, parms)) == ERROR)
+	if ((sci_crypt_start(suite, context, parms)) == ERROR)
 	{
 		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace: Could not start \
 context.", NULL);

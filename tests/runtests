@@ -59,6 +59,12 @@ function run_a_test () {
     TEST=${TEST##./}
     TEST=${TEST%%/}
 
+    echo
+    echo "***"
+    echo "*** ${TEST}"
+    echo "***"
+
+    # check if test is excluded on all platforms
     if [ -f "$TEST/.exclude_all" ]; then
     	echo "Test universally excluded, skipping $TEST"
 	cat $TEST/.exclude_all
@@ -102,7 +108,7 @@ function run_a_test () {
     	return
     fi
 
-
+    # check for existance of dotest script
     if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
         echo "test $TEST does not exist!"
         NUM_FAILED=$((NUM_FAILED + 1))
@@ -110,11 +116,7 @@ function run_a_test () {
         return
     fi
 
-    echo
-    echo "***"
-    echo "*** ${TEST}"
-    echo "***"
-
+    # make sure dotest script is executable
     if [ ! -x "$TEST/dotest" ]; then
         echo "dotest script not executable, skipping"
         NUM_SKIPPED=$((NUM_SKIPPED + 1))
@@ -150,6 +152,11 @@ function run_a_test () {
     else 
         echo "test returned unknown value $TEST_RETVAL"
         fail_test $TEST
+    fi
+
+    # Allow some extra time for ION to fully shutdown on Windows and Solaris
+    if [ "$OS_VERSION" == "solaris" ] || [ "$OS_VERSION" == "windows" ] ; then
+	sleep 5
     fi
 
     popd > /dev/null
@@ -223,7 +230,7 @@ then
 elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]] || [[ $version == *"Darwin"* ]]
 then
 	OS_VERSION=mac;
-elif [[ $version == "*Solaris*" ]] || [[ $version == "*SunOS*" ]]
+elif [[ $version == *"Solaris"* ]] || [[ $version == *"SunOS"* ]]
 then
         OS_VERSION=solaris;
 fi

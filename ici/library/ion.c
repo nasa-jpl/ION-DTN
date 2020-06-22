@@ -2171,7 +2171,7 @@ void	ionPauseMainThread(int seconds)
 {
 	if (seconds < 0)
 	{
-		seconds = 2000000000;
+		seconds = 1000000000;	/*	About 32 years.		*/
 	}
 
 	snooze(seconds);

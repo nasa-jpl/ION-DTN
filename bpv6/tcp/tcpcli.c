@@ -313,33 +313,18 @@ static LystElt	addTcpclNeighbor(VPlan *vplan, VInduct *induct, Lyst neighbors)
 
 static void	cancelXmit(LystElt elt, void *userdata)
 {
-	Sdr	sdr = getIonsdr();
 	Object	bundleZco = (Object) lyst_data(elt);
-	int	result;
 
 	if (bundleZco == 0)
 	{
 		return;
 	}
 
-	result = bpHandleXmitFailure(bundleZco);
-       	if (result < 0)
+	if (bpHandleXmitFailure(bundleZco) < 0)
 	{
 		putErrmsg("tcpcli neighbor closure can't handle failed xmit.",
 				NULL);
 		ionKillMainThread(procName());
-		return;
-	}
-
-	if (result == 1)
-	{
-		oK(sdr_begin_xn(sdr));
-		zco_destroy(sdr, bundleZco);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("tcpcli can't destroy ZCO.", NULL);
-			ionKillMainThread(procName());
-		}
 	}
 }
 
@@ -793,6 +778,7 @@ static void	endSession(TcpclSession *session, char reason)
 
 	if (session->throttle)
 	{
+		llcv_signal(session->throttle, pipeline_not_full);
 		llcv_close(session->throttle);
 		session->throttle = NULL;
 	}
@@ -944,6 +930,18 @@ pipeline.", session->outductName);
 		pthread_mutex_unlock(&(session->socketMutex));
 		flags = 0x00;			/*	No longer 1st.	*/
 		bytesRemaining -= bytesToSend;
+	}
+
+	if (session->segmentAcks == 0)
+	{
+		/*	Assume successful transmission.			*/
+
+		if (bpHandleXmitSuccess(bundleZco, 0) < 0)
+		{
+			putErrmsg("Failed handling TCP transmission success.",
+					NULL);
+			return -1;
+		}
 	}
 
 	return 1;	/*	Bundle was successfully sent.		*/
@@ -1774,32 +1772,17 @@ static int	handleAck(ReceiverThreadParms *rtp, unsigned char msgtypeByte)
 		result = bpHandleXmitSuccess(bundleZco, 0);
 	}
 
-	if (result != 1)
+	if (result < 0)
 	{
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't clear oldest bundle.",
-					session->neighbor->vplan->neighborEid);
-			return -1;
-		}
-
-		if (result == 0)	/*	Bundle already gone.	*/
-		{
-			session->lengthSent = 0;
-			return 1;	/*	In effect, ack handled.	*/
-		}
-
+		oK (sdr_end_xn(sdr));
 		putErrmsg("Can't clear oldest bundle.",
 				session->neighbor->vplan->neighborEid);
 		return -1;		/*	System failure.		*/
 	}
 
-	/*	Destroy bundle, unless there's stewardship or custody.	*/
-
-	zco_destroy(sdr, bundleZco);
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("Can't destroy bundle ZCO.",
+		putErrmsg("Can't handle TCPCL ack.",
 				session->neighbor->vplan->neighborEid);
 		return -1;
 	}

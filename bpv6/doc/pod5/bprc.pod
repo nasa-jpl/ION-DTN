@@ -457,7 +457,7 @@ to be transmitted.
 
 The B<declare gateway> command.  This command declares the name of the
 endpoint to which bundles queued for transmission to the node[s]
-identified byI<endpoint_name> must be re-routed.  Declaring
+identified by I<endpoint_name> must be re-routed.  Declaring
 I<gateway_endpoint_name> to be the zero-length string "''" disables
 re-routing: bundles will instead be transmitted using the plan's attached
 convergence-layer protocol outduct[s].

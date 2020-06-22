@@ -21,8 +21,8 @@ withbpv6:
 	gmake -C bss install
 	gmake -C dtpc all
 	gmake -C dtpc install
-	gmake -C nm all
-	gmake -C nm install
+#	gmake -C nm all
+#	gmake -C nm install
 	gmake -C restart all BP=$(BP)
 	gmake -C restart install BP=$(BP)
 

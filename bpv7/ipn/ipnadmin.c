@@ -396,8 +396,8 @@ static void	printPlan(BpPlan *plan)
 		}
 	}
 
-	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s %s",
-			plan->neighborNodeNbr, action, spec);
+	isprintf(buffer, sizeof buffer, UVAST_FIELDSPEC " %s %s xmit rate: %lu",
+			plan->neighborNodeNbr, action, spec, plan->nominalRate);
 	printText(buffer);
 }
 

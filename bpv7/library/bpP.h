@@ -35,13 +35,24 @@ extern "C" {
 #define	WATCH_a				(1)
 #define	WATCH_b				(2)
 #define	WATCH_c				(4)
+#define	WATCH_m				(8)
+#define	WATCH_w				(16)
+#define	WATCH_x				(32)
 #define	WATCH_y				(64)
 #define	WATCH_z				(128)
 #define	WATCH_abandon			(256)
 #define	WATCH_expire			(512)
+#define	WATCH_refusal			(1024)
 #define	WATCH_clfail			(2048)
 #define	WATCH_limbo			(4096)
 #define	WATCH_delimbo			(8192)
+#define	WATCH_timeout			(16384)
+
+#define WATCH_BP	(WATCH_a | WATCH_b | WATCH_c | WATCH_y | WATCH_z \
+| WATCH_abandon | WATCH_expire | WATCH_clfail | WATCH_limbo | WATCH_delimbo)
+
+#define WATCH_BIBE	(WATCH_m | WATCH_w | WATCH_x | WATCH_refusal \
+| WATCH_timeout)
 
 #define SDR_LIST_ELT_OVERHEAD		(WORD_SIZE * 4)
 
@@ -389,12 +400,6 @@ typedef struct
 	Object		trackingElts;	/*	List of app. list refs.	*/
 
 	Object		incompleteElt;	/*	Ref. to Incomplete.	*/
-
-	/*	BIBE custody transfer stuff.				*/
-
-	unsigned int	xmitId;		/*	In CT sequence.		*/
-	time_t		deadline;	/*	Epoch 2000.		*/
-	Object		ctDueElt;	/*	CT deadline (Cti) ref.	*/
 
 	/*	Transmission queue (or limbo list) stuff.		*/
 

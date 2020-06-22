@@ -46,7 +46,6 @@ static void	*receiveBundles(void *parm)
 	int			length;
 	int			errnbr;
 	Object			bundleZco;
-	int			result;
 	char			hostName[MAXHOSTNAMELEN + 1];
 
 	snooze(1);	/*	Let main thread become interruptable.	*/
@@ -119,25 +118,12 @@ temporary ZCO.", NULL);
 						continue;
 					}
 
-					result = bpHandleXmitSuccess(bundleZco,
-							0);
-					if (result < 0)
+					if (bpHandleXmitSuccess(bundleZco, 0)
+							< 0)
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
 success.", NULL);
-					}
-
-					if (result == 1)
-					{
-						CHKNULL(sdr_begin_xn(sdr));
-						zco_destroy(sdr, bundleZco);
-						if (sdr_end_xn(sdr) < 0)
-						{
-							threadRunning = 0;
-							putErrmsg("Failed \
-destroying bundle ZCO.", NULL);
-						}
 					}
 
 					if (threadRunning == 0)
@@ -171,24 +157,11 @@ temporary ZCO.", NULL);
 						continue;
 					}
 
-					result = bpHandleXmitFailure(bundleZco);
-					if (result < 0)
+					if (bpHandleXmitFailure(bundleZco) < 0)
 					{
 						threadRunning = 0;
 						putErrmsg("Crashed handling \
 failure.", NULL);
-					}
-
-					if (result == 1)
-					{
-						CHKNULL(sdr_begin_xn(sdr));
-						zco_destroy(sdr, bundleZco);
-						if (sdr_end_xn(sdr) < 0)
-						{
-							threadRunning = 0;
-							putErrmsg("Failed \
-destroying bundle ZCO.", NULL);
-						}
 					}
 
 					if (threadRunning == 0)

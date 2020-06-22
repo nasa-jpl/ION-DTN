@@ -1,0 +1,423 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# February 6, 2019
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.bench.bibe/bench.bprc \
+./2.bench.bibe/bench.biberc \
+./2.bench.bibe/bench.ionconfig \
+./2.bench.bibe/bench.ionrc \
+./2.bench.bibe/bench.ionsecrc \
+./2.bench.bibe/bench.ipnrc \
+./3.bench.bibe/bench.bprc \
+./3.bench.bibe/bench.biberc \
+./3.bench.bibe/bench.ionconfig \
+./3.bench.bibe/bench.ionrc \
+./3.bench.bibe/bench.ionsecrc \
+./3.bench.bibe/bench.ipnrc \
+./4.bench.bibe/bench.ionconfig \
+./4.bench.bibe/bench.ionrc \
+./4.bench.bibe/bench.ionsecrc \
+./4.bench.bibe/bench.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: produce simple throughput benchmark results, for direct
+	comparison among computing platforms running ION.  All tests are
+	performed using the BIBE convergence-layer protocol (over UDP/IP)
+	between neighboring nodes residing on the same computer, relying
+	on BIBE custodial retransmission for reliability; bundles received
+	via BIBE are forwarded to the final destination by STCP.  So the
+	results exercise BP and BIBE CT in a non-loopback configuration,
+	over loopback IP; the results are therefore unaffected by network
+	traffic, router performance, or network interface card performance."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+echo
+echo "***PLEASE NOTE: this benchmark test requires Bundle Protocol version 7."
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 2.bench.bibe
+./ionstart
+cd ../4.bench.bibe
+./ionstart
+cd ../3.bench.bibe
+./ionstart
+
+sleep 3
+echo ""
+echo "Test 1: 1,000 bundles of 1000 bytes each."
+cd ../4.bench.bibe
+bpcounter ipn:4.1 1000 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bibe
+bpdriver -1000 ipn:2.1 ipn:4.1 -1000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bibe
+	./ionstop &
+	cd ../3.bench.bibe
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+sleep 3
+echo ""
+echo "Test 2: 1000 bundles of 10,000 bytes each."
+cd ../4.bench.bibe
+bpcounter ipn:4.1 1000 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bibe
+bpdriver -1000 ipn:2.1 ipn:3.1 -10000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bibe
+	./ionstop &
+	cd ../3.bench.bibe
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+sleep 3
+echo ""
+echo "Test 3: 1000 bundles of 100,000 bytes each."
+cd ../4.bench.bibe
+bpcounter ipn:4.1 1000 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bibe
+bpdriver -1000 ipn:2.1 ipn:4.1 -100000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bibe
+	./ionstop &
+	cd ../3.bench.bibe
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+sleep 3
+echo ""
+echo "Test 4: 1000 bundles of 1,000,000 bytes each."
+cd ../4.bench.bibe
+bpcounter ipn:4.1 1000 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bibe
+bpdriver -1000 ipn:2.1 ipn:4.1 -1000000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bibe
+	./ionstop &
+	cd ../3.bench.bibe
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+sleep 3
+echo ""
+echo "Test 5: 100 bundles of 10,000,000 bytes each."
+cd ../4.bench.bibe
+bpcounter ipn:4.1 100 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bibe
+bpdriver -100 ipn:2.1 ipn:4.1 -10000000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bibe
+	./ionstop &
+	cd ../3.bench.bibe
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+sleep 3
+echo ""
+echo "Test 6: 10 bundles of 100,000,000 bytes each."
+cd ../4.bench.bibe
+bpcounter ipn:4.1 10 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bibe
+bpdriver -10 ipn:2.1 ipn:4.1 -100000000 &
+
+#Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+	echo "Stopping ION..."
+	cd ../2.bench.bibe
+	./ionstop &
+	cd ../3.bench.bibe
+	./ionstop &
+	sleep 5
+	killm
+	echo "...benchmarking terminated."
+	exit $RETVAL
+fi
+
+sleep 3
+echo ""
+echo "Test 7: 1 bundle of 1,000,000,000 bytes."
+cd ../4.bench.bibe
+bpcounter ipn:4.1 1 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../2.bench.bibe
+bpdriver -1 ipn:2.1 ipn:4.1 -1000000000 &
+
+#Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+fi
+
+echo "Stopping ION..."
+cd ../2.bench.bibe
+./ionstop &
+cd ../3.bench.bibe
+./ionstop &
+cd ../4.bench.bibe
+./ionstop &
+sleep 5
+killm
+echo "...benchmarking terminated."
+exit $RETVAL

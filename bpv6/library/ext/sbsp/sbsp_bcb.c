@@ -2201,10 +2201,12 @@ int	sbsp_bcbReview(AcqWorkArea *wk)
 
 	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
+
+	/* Check if security datbase exists */
 	rules = sec_get_bspBcbRuleList();
 	if (rules == 0)
 	{
-		BCB_DEBUG_PROC("- sbsp_bcbReview -> no security database", NULL);
+		BCB_DEBUG_PROC("- sbsp_bcbReview -> no security database");
 		return result;
 	}
 

@@ -739,6 +739,7 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	PsmAddress	addr;
+	char		hostNameBuf[MAXHOSTNAMELEN + 1];
 	Object		elt;
 
 	schemeObj = sdr_list_data(bpSdr, schemeElt);
@@ -769,6 +770,27 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 	vscheme->nameLength = scheme.nameLength;
 	vscheme->cbhe = scheme.cbhe;
 	vscheme->unicast = scheme.unicast;
+
+	/*	Compute admin EID for this scheme.			*/
+
+	if (isCbhe(vscheme->name))
+	{
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
+				getOwnNodeNbr());
+	}
+	else	/*	Assume it's "dtn".			*/
+	{
+#ifdef ION_NO_DNS
+		istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
+#else
+		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
+#endif
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+				"%.15s://%.60s.dtn", vscheme->name,
+				hostNameBuf);
+	}
+
 	vscheme->endpoints = sm_list_create(bpwm);
 	if (vscheme->endpoints == 0)
 	{
@@ -829,7 +851,6 @@ static void	dropScheme(VScheme *vscheme, PsmAddress vschemeElt)
 static void	startScheme(VScheme *vscheme)
 {
 	Sdr		bpSdr = getIonsdr();
-	char		hostNameBuf[MAXHOSTNAMELEN + 1];
 	MetaEid		metaEid;
 	VScheme		*vscheme2;
 	PsmAddress	vschemeElt;
@@ -838,28 +859,8 @@ static void	startScheme(VScheme *vscheme)
 	Scheme		scheme;
 	char		cmdString[SDRSTRING_BUFSZ];
 
-	/*	Compute admin EID for this scheme.			*/
-
 	if (isUnicast(vscheme->name))
 	{
-		if (isCbhe(vscheme->name))
-		{
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
-				getOwnNodeNbr());
-		}
-		else	/*	Assume it's "dtn".			*/
-		{
-#ifdef ION_NO_DNS
-			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
-#else
-			getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
-#endif
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.15s://%.60s.dtn", vscheme->name,
-				hostNameBuf);
-		}
-
 		if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
 				&vschemeElt) == 0)
 		{
@@ -3298,6 +3299,12 @@ too long", admAppCmd);
 
 	schemeBuf.forwardQueue = sdr_list_create(bpSdr);
 	schemeBuf.endpoints = sdr_list_create(bpSdr);
+	if (strcmp(schemeName, "ipn") == 0
+	|| strcmp(schemeName, "dtn") == 0)
+	{
+		schemeBuf.bclas = sdr_list_create(bpSdr);
+	}
+
 	addr = sdr_malloc(bpSdr, sizeof(Scheme));
 	if (addr)
 	{
@@ -3474,6 +3481,17 @@ int	removeScheme(char *schemeName)
 		return 0;
 	}
 
+	if (schemeBuf.bclas)
+	{
+		if (sdr_list_length(bpSdr, schemeBuf.bclas) != 0)
+		{
+			sdr_exit_xn(bpSdr);
+			writeMemoNote("[?] Scheme has BCLAs, can't be removed",
+					schemeName);
+			return 0;
+		}
+	}
+
 	/*	Okay to remove this scheme from the database.		*/
 
 	dropScheme(vscheme, vschemeElt);
@@ -3489,6 +3507,11 @@ int	removeScheme(char *schemeName)
 
 	sdr_list_destroy(bpSdr, schemeBuf.forwardQueue, NULL, NULL);
 	sdr_list_destroy(bpSdr, schemeBuf.endpoints, NULL, NULL);
+	if (schemeBuf.bclas)
+	{
+		sdr_list_destroy(bpSdr, schemeBuf.bclas, NULL, NULL);
+	}
+
 	sdr_free(bpSdr, addr);
 	sdr_list_delete(bpSdr, schemeElt, NULL, NULL);
 	if (sdr_end_xn(bpSdr) < 0)
@@ -8652,22 +8675,6 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bundle->payload.content = zco_clone(bpSdr, work->rawBundle,
 			work->headerLength, bundle->payload.length);
 
-	/*	Make sure all required security blocks are present.	*/
-
-	switch (reviewExtensionBlocks(work))
-	{
-	case -1:
-		putErrmsg("Failed reviewing extension blocks.", NULL);
-		sdr_cancel_xn(bpSdr);
-		return -1;
-
-	case 0:
-		writeMemo("[?] Malformed bundle.");
-		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-		return abortBundleAcq(work);
-	}
-
 	/*	Do all decryption indicated by extension blocks.	*/
 
 	if (decryptPerExtensionBlocks(work) < 0)
@@ -8685,6 +8692,22 @@ static int	acquireBundle(Sdr bpSdr, AcqWorkArea *work, VEndpoint **vpoint)
 		putErrmsg("Failed parsing extension blocks.", NULL);
 		sdr_cancel_xn(bpSdr);
 		return -1;
+	}
+
+	/*	Make sure all required security blocks are present.	*/
+
+	switch (reviewExtensionBlocks(work))
+	{
+	case -1:
+		putErrmsg("Failed reviewing extension blocks.", NULL);
+		sdr_cancel_xn(bpSdr);
+		return -1;
+
+	case 0:
+		writeMemo("[?] Malformed bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+		return abortBundleAcq(work);
 	}
 
 	/*	Now that acquisition is complete, check the bundle
@@ -11905,6 +11928,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 
 	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
+		zco_destroy(bpSdr, bundleZco);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
 			putErrmsg("Failed handling xmit success.", NULL);
@@ -11966,6 +11990,7 @@ int	bpHandleXmitSuccess(Object bundleZco, unsigned int timeoutInterval)
 		return -1;
 	}
 
+	zco_destroy(bpSdr, bundleZco);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't handle transmission success.", NULL);
@@ -11992,6 +12017,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if (bundleAddr == 0)	/*	Bundle not found.		*/
 	{
+		zco_destroy(bpSdr, bundleZco);
 		if (sdr_end_xn(bpSdr) < 0)
 		{
 			putErrmsg("Failed handling xmit failure.", NULL);
@@ -12021,6 +12047,7 @@ int	bpHandleXmitFailure(Object bundleZco)
 		return -1;
 	}
 
+	zco_destroy(bpSdr, bundleZco);
 	if (sdr_end_xn(bpSdr) < 0)
 	{
 		putErrmsg("Can't handle transmission failure.", NULL);

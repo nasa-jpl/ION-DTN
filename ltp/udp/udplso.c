@@ -198,7 +198,7 @@ int	main(int argc, char *argv[])
 	socklen_t		nameLength;
 	ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
-	IonNeighbor		*neighbor;
+	IonNeighbor		*neighbor = NULL;
 	PsmAddress		nextElt;
 	int			segmentLength;
 	char			*segment;
@@ -356,7 +356,6 @@ compatibility, but it is ignored.");
 		writeMemo(memoBuf);
 	}
 
-	neighbor = findNeighbor(getIonVdb(), remoteEngineId, &nextElt);
 	startTimestamp = getUsecTimestamp();
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
@@ -416,6 +415,12 @@ compatibility, but it is ignored.");
 		}
 
 		/*	Get current time cost, in seconds, per byte.	*/
+
+		if (neighbor == NULL)
+		{
+			neighbor = findNeighbor(getIonVdb(), remoteEngineId,
+					&nextElt);
+		}
 
 		if (neighbor && neighbor->xmitRate > 0)
 		{

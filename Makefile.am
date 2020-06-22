@@ -881,6 +881,7 @@ endif # end BUILD_BPv7
 
 bpbin = \
 	beacon \
+	bibeadmin \
 	bibeclo \
 	bpadmin \
 	bpcancel \
@@ -937,19 +938,17 @@ bpbin += \
 	dccpclo
 endif
 
-if BUILD_BPv7
-bpbin += bibeadmin
-endif # end BUILD_BPv7
-
 if BUILD_BPv6
 if ENABLE_BPACS
-bpbin += acsadmin \
+bpbin += \
+	acsadmin \
 	acslist
 endif # end ENABLE_BPACS
 endif # End BUILD_BPv6
 
 if ENABLE_IMC
-bpbin += imcadmin \
+bpbin += \
+	imcadmin \
 	imcfw
 endif # end ENABLE_IMC
 
@@ -982,9 +981,11 @@ bpnoinst = \
 	$(BP_DIR)/dccp/dccpcla.h
 
 if BUILD_BPv6
-bpnoinst += 	$(BP_DIR)/library/saga.h
+bpnoinst += \
+	$(BP_DIR)/library/saga.h
 else # BUILD_BPv7
-bpnoinst += 	$(BP_DIR)/saga/saga.h
+bpnoinst += \
+	$(BP_DIR)/saga/saga.h
 endif # end BUILD_BPv6
 
 bpextra = \
@@ -1042,6 +1043,7 @@ bpextra = \
 	$(BP_DIR)/doc/pod5/dtn2rc.pod \
 	$(BP_DIR)/doc/pod5/ipnrc.pod \
 	$(BP_DIR)/doc/pod5/lgfile.pod \
+	$(BP_DIR)/bibe/bibe.h \
 	$(BP_DIR)/include/bpsec.h \
 	$(BP_DIR)/library/bpextensions.c \
 	$(BP_DIR)/library/noextensions.c \
@@ -1081,15 +1083,14 @@ endif # end BUILD_BPv6
 
 if BUILD_BPv7
 bpextra += \
+	$(BP_DIR)/doc/pod1/bibeadmin.pod \
+	$(BP_DIR)/doc/pod5/biberc.pod \
 	$(BP_DIR)/library/ext/bpsec/bcb.h \
 	$(BP_DIR)/library/ext/bpsec/bib.h \
 	$(BP_DIR)/library/ext/bpsec/bpsec_instr.h \
 	$(BP_DIR)/library/ext/bpsec/bpsec_util.h \
 	$(BP_DIR)/library/ext/bpsec/profiles.h \
-	$(BP_DIR)/library/ext/hcb/hcb.h \
-	$(BP_DIR)/doc/pod1/bibeadmin.pod \
-	$(BP_DIR)/doc/pod5/biberc.pod \
-	$(BP_DIR)/bibe/bibe.h
+	$(BP_DIR)/library/ext/hcb/hcb.h
 endif # end BUILD_BPv7
 
 # noextensions.c is C code, but it isn't explicitly compiled.
@@ -1153,12 +1154,6 @@ bpmans = \
 	$(top_builddir)/$(BP_DIR)/doc/ipnrc.5 \
 	$(top_builddir)/$(BP_DIR)/doc/lgfile.5
 
-if BUILD_BPv7
-bpmans += \
-	$(top_builddir)/$(BP_DIR)/doc/bibeadmin.1 \
-	$(top_builddir)/$(BP_DIR)/doc/biberc.5
-endif # end BUILD_BPv7
-
 # ACS only exists in BPv6 so only build the docs if BPv6 and ACS is enabled
 if BUILD_BPv6
 if ENABLE_BPACS
@@ -1168,6 +1163,12 @@ bpmans += \
 	$(top_builddir)/$(BP_DIR)/doc/acsrc.5
 endif # end ENABLE_BPACS
 endif # end BUILD_BPv6
+
+if BUILD_BPv7
+bpmans += \
+	$(top_builddir)/$(BP_DIR)/doc/bibeadmin.1 \
+	$(top_builddir)/$(BP_DIR)/doc/biberc.5
+endif # end BUILD_BPv7
 
 if ENABLE_IMC
 bpmans += \
@@ -1203,6 +1204,7 @@ libudpcla_la_LIBADD = libbp.la libici.la
 
 
 libbp_la_SOURCES = \
+	$(BP_DIR)/bibe/bibe.c \
 	$(BP_DIR)/dtn2/libdtn2fw.c \
 	$(BP_DIR)/library/libbp.c \
 	$(BP_DIR)/library/libbpP.c \
@@ -1236,7 +1238,6 @@ libbp_la_SOURCES += \
 	$(BP_DIR)/library/ext/snid/snid.c
 else # BUILD_BPv7
 libbp_la_SOURCES += \
-	$(BP_DIR)/bibe/bibe.c \
 	$(BP_DIR)/library/ext/bpsec/bcb.c \
 	$(BP_DIR)/library/ext/bpsec/bib.c \
 	$(BP_DIR)/library/ext/bpsec/bpsec_instr.c \
@@ -1454,11 +1455,9 @@ bibeclo_SOURCES = $(BP_DIR)/bibe/bibeclo.c
 bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-if BUILD_BPv7
 bibeadmin_SOURCES = $(BP_DIR)/bibe/bibeadmin.c
 bibeadmin_LDADD = libbp.la libici.la $(LIBOBJS)
 bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-endif # end BUILD_BPv7
 
 # --- DCCP Executables --- #
 
@@ -2124,7 +2123,7 @@ dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 ##########################
 
 nmbin= nm_agent nm_mgr
-nmlib= libnm.la libnmAgentADM.la
+nmlib= libamp.la libampAgentADM.la
 
 nmPODM1 = pod2man -s 1 -c "NM executables"
 nmPODM3 = pod2man -s 1 -c "NM libraries"
@@ -2161,12 +2160,12 @@ nm_shared_src	 =		nm/shared/adm/adm.c	\
 			nm/shared/utils/vector.c		\
 			$(nm_cbor_src)
 
-libnm_la_SOURCES = $(nm_shared_src)
-libnm_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+libamp_la_SOURCES = $(nm_shared_src)
+libamp_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/$(BP_DIR)/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   $(NM_CBOR_CFLAGS)
 # Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
-libnm_la_LIBADD = libici.la
+libamp_la_LIBADD = libici.la
 
 # Note: AMP Agent ADM must be built directly with the agent, whereas all other ADMs can be modularized as needed.
 nm_agent_SOURCES = \
@@ -2231,12 +2230,12 @@ nmmans = \
 	$(top_builddir)/nm/doc/nm_agent.1 \
 	$(top_builddir)/nm/doc/nm_mgr.1
 
-libnmAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libnmAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
-libnmAgentADM_la_LIBADD = libnm.la libici.la libbp.la libltp.la
+libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
+libampAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libampAgentADM_la_LIBADD = libamp.la libici.la libbp.la libltp.la
 
 
-nm_agent_LDADD = libici.la libbp.la libltp.la libnm.la libnmAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_agent_LDADD = libici.la libbp.la libltp.la libamp.la libampAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
 nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/nm \
@@ -2267,7 +2266,7 @@ CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contr
 CIVETWEB_LDFLAGS = -ldl
 CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
 
-nm_mgr_LDADD = libnm.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_mgr_LDADD = libamp.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
 nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
@@ -2420,11 +2419,11 @@ tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCF
 
 tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c $(nm_shared_src)
 tests_nm_unit_utils_vector_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
-tests_nm_unit_utils_vector_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
+tests_nm_unit_utils_vector_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC
 
 tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(nm_shared_src)
 tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
-tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libnm_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
 
 #tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
 #tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
@@ -2564,9 +2563,9 @@ endif #ENABLE_AUTODOC
 #
 ##########################
 
-DOC_VERSION_NUMBER := $(shell cat $(srcdir)/version.txt)
-DOC_VERSION_MAJOR := $(shell cat $(srcdir)/version.txt | sed 's/\..*//')
-DOC_VERSION_MINOR := $(shell cat $(srcdir)/version.txt | sed 's/[0-9]*\.//')
+DOC_VERSION_NUMBER := $(shell cat $(srcdir)/$(BP_DIR)version.txt)
+DOC_VERSION_MAJOR := $(shell cat $(srcdir)/$(BP_DIR)version.txt | sed 's/\..*//')
+DOC_VERSION_MINOR := $(shell cat $(srcdir)/$(BP_DIR)version.txt | sed 's/[0-9]*\.//')
 DOC_DATE := $(shell date -I)
 
 distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
@@ -2574,9 +2573,6 @@ distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
 	@echo "UPDATING VERSION NUMBER IN:"
 	@echo "configure.ac"
 	sed -r -i.bak 's/ion, open source [0-9]+\.[0-9]+\.[0-9]+[a-Z]*/ion, open source $(DOC_VERSION_NUMBER)/' configure.ac
-	@echo "ici/include/ion.h"
-	sed -r -i.bak 's/[0-9]+\-[0-9]+\-[0-9]+/$(DOC_DATE)/' ./ici/include/ion.h
-	sed -r -i.bak 's/[0-9]+\.[0-9]+\.[0-9]+[a-Z]*/$(DOC_VERSION_NUMBER)/' ./ici/include/ion.h
 	@echo "arch-uClib/ion.package/ion.mk"
 	sed -r -i.bak 's/ION_VERSION_MAJOR=[0-9]+/ION_VERSION_MAJOR=$(DOC_VERSION_MAJOR)/' ./arch-uClibc/ion.package/ion.mk
 	sed -r -i.bak 's/ION_VERSION_MINOR=[0-9]+\.[0-9]+[a-Z]*+/ION_VERSION_MINOR=$(DOC_VERSION_MINOR)/' ./arch-uClibc/ion.package/ion.mk

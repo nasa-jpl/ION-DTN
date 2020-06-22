@@ -89,15 +89,6 @@ static int	dispatchEvents(Sdr sdr, Object events, time_t currentTime)
 
 			break;		/*	Out of switch.		*/
 
-		case ctOverdue:
-			result = bibeHandleTimeout(event->ref);
-
-			/*	Note that bibeHandleTimeout() always
-			 *	erases the bundle's ctDueElt event,
-			 *	so we must NOT do so here.		*/
-
-			break;		/*	Out of switch.		*/
-
 		default:		/*	Spurious event; erase.	*/
 			destroyBpTimelineEvent(elt);
 			result = 0;	/*	Event is ignored.	*/

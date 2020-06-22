@@ -1,0 +1,1 @@
+This test relies on Wireshark to confirm that BIB blocks are created and structured correctly when requested by ION. At this time, Wireshark does not have a BPv7 dissector so this test is BPv6 only until Wireshark has been updated.

@@ -151,7 +151,7 @@ echo "Waiting for all contacts to terminate..."
 echo "During this time, there are two contact intervals.
 
 Before interval A, both files sourced at node 2 are queued for
-transmission: files x is queued for transmission to node 3
+transmission: file x is queued for transmission to node 3
 during interval A while file y is queued for transmission to
 node 5 during interval A.
 
@@ -169,7 +169,7 @@ A the session simply remains open.
 During interval B, simplex contacts with nodes 3 and 5 are restarted;
 The queued-up second copy of the file destined for node 3 is transmitted
 and received, but no additional transmission happens on the contact
-with node 5; that session is simply resumed.  Neither sessions close
+with node 5; that session is simply resumed.  Neither session closes
 because no return traffic arrives.
 
 So at the end of the test, node 3 has two copies of file x and node 5

@@ -64,9 +64,9 @@ int	main(int argc, char *argv[])
 	Sdr			sdr;
 	Outduct			outduct;
 	Object			planDuctList;
-	Object			planObj;
+	Object			planObj = 0;
 	BpPlan			plan;
-	IonNeighbor		*neighbor;
+	IonNeighbor		*neighbor = NULL;
 	PsmAddress		nextElt;
 	Object			bundleZco;
 	BpAncillaryData		ancillaryData;
@@ -155,11 +155,6 @@ node's host name> | @} [:<its port number>]");
 		if (planObj)
 		{
 			sdr_read(sdr, (char *) &plan, planObj, sizeof(BpPlan));
-			if (plan.neighborNodeNbr)
-			{
-				neighbor = findNeighbor(getIonVdb(),
-						plan.neighborNodeNbr, &nextElt);
-			}
 		}
 	}
 
@@ -241,6 +236,15 @@ node's host name> | @} [:<its port number>]");
 		}
 
 		/*	Get current time cost, in seconds, per byte.	*/
+
+		if (neighbor == NULL)
+		{
+			if (planObj && plan.neighborNodeNbr)
+			{
+				neighbor = findNeighbor(getIonVdb(),
+						plan.neighborNodeNbr, &nextElt);
+			}
+		}
 
 		if (neighbor && neighbor->xmitRate > 0)
 		{

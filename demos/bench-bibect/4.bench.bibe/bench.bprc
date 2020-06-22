@@ -1,0 +1,12 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:4.0 x
+a endpoint ipn:4.1 x
+a endpoint ipn:4.2 x
+a endpoint ipn:4.64 x
+a endpoint ipn:4.65 x
+a protocol stcp 1400 100
+a induct stcp 127.0.0.1:5004 stcpcli
+a outduct stcp 127.0.0.1:5003 stcpclo
+r 'ipnadmin bench.ipnrc'
+s

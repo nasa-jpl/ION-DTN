@@ -17,10 +17,8 @@
 #include "bae.h"
 #include "hcb.h"
 #include "snw.h"
-#if defined(BPSEC)
 #include "bib.h"
 #include "bcb.h"
-#endif
 
 /*	... and here.							*/
 
@@ -43,7 +41,6 @@ static ExtensionDef	extensionDefs[] =
 				pnb_record,
 				pnb_clear
 		},
-#if defined(BPSEC)
 		{ "bcb", BlockConfidentialityBlk,
 				bcbOffer,
 				{0,
@@ -78,7 +75,6 @@ static ExtensionDef	extensionDefs[] =
 				bibRecord,
 				bibClear
 		},
-#endif
 		{ "bpq", QualityOfServiceBlk,
 				qos_offer,
 				{qos_processOnFwd,
@@ -170,7 +166,12 @@ static ExtensionDef	extensionDefs[] =
 /*	NOTE: the order of appearance of extension definitions in the
  *	baseline extensionSpecs array determines the order in which
  *	these extension blocks will be inserted into locally sourced
- *	bundles between the primary block and the payload block.	*/
+ *	bundles between the primary block and the payload block.
+ *
+ *	Note that both a BIB and a BCB are prescribed for the payload
+ *	block.  In practical operations the payload block should have
+ *	only one or the other, but we include both here to support
+ *	thorough regression testing.				 	*/
 
 static ExtensionSpec	extensionSpecs[] =
 			{
@@ -178,9 +179,7 @@ static ExtensionSpec	extensionSpecs[] =
 				{ QualityOfServiceBlk, 0, 0, 0, 0 },
 				{ BundleAgeBlk, 0, 0, 0, 0 },
 				{ SnwPermitsBlk, 0, 0, 0, 0 },
-#if defined(BPSEC)
-				{ BlockIntegrityBlk, 0, 0, 0, 0 },
+				{ BlockIntegrityBlk, 1, 0, 0, 0 },
 				{ BlockConfidentialityBlk, 1, 0, 0, 0 },
-#endif
 				{ UnknownBlk, 0, 0, 0, 0 }
 			};

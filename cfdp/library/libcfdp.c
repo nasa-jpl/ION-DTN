@@ -1947,8 +1947,9 @@ int	cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr,
 
 		if (sm_SemEnded(vdb->eventSemaphore))
 		{
-			putErrmsg("CFDP user app access terminated.", NULL);
-			return -1;
+			*type = CfdpAccessEnded;
+			writeMemo("[i] CFDP user app access terminated.");
+			return 0;
 		}
 
 		CHKERR(sdr_begin_xn(sdr));

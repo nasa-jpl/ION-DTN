@@ -120,7 +120,7 @@ int	sendBundleByUDP(struct sockaddr *socketName, int *bundleSocket,
 
 			writeMemo("[i] Lost UDP connection to CLI; restart CLO \
 when connectivity is restored.");
-			bytesSent = 0;
+			return 0;
 		}
 		else
 		{
@@ -130,13 +130,13 @@ when connectivity is restored.");
 			return -1;
 		}
 	}
-
-	CHKERR(sdr_begin_xn(sdr));
-	zco_destroy(sdr, bundleZco);
-	if (sdr_end_xn(sdr) < 0)
+	else
 	{
-		putErrmsg("Can't destroy bundle ZCO.", NULL);
-		return -1;
+		if (bpHandleXmitSuccess(bundleZco) < 0)
+		{
+			putErrmsg("Can't handle xmit success.", NULL);
+			return -1;
+		}
 	}
 
 	return bytesSent;

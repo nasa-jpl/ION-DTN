@@ -76,6 +76,8 @@ static void	printUsage()
 	PUTS("\t   {d|i} bcla <peer EID>");
 	PUTS("\tl\tList");
 	PUTS("\t   l bcla <scheme name>");
+	PUTS("\tw\tWatch BIBE custody transfer activity");
+	PUTS("\t   w { 0 | 1 | <activity spec> }");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
@@ -111,7 +113,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bcla") == 0)
 	{
-		flags = BP_BEST_EFFORT | BP_RELIABLE;
+		flags = 0;
 		switch (tokenCount)
 		{
 		case 9:
@@ -159,7 +161,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bcla") == 0)
 	{
-		flags = BP_BEST_EFFORT | BP_RELIABLE;
+		flags = 0;
 		switch (tokenCount)
 		{
 		case 9:
@@ -333,6 +335,82 @@ static void	executeList(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+static void	noteWatchValue()
+{
+	BpVdb	*vdb = getBpVdb();
+	Sdr	sdr = getIonsdr();
+	Object	dbObj = getBpDbObject();
+	BpDB	db;
+
+	if (vdb != NULL && dbObj != 0)
+	{
+		CHKVOID(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &db, dbObj, sizeof(BpDB));
+		db.watching = vdb->watching;
+		sdr_write(sdr, dbObj, (char *) &db, sizeof(BpDB));
+		oK(sdr_end_xn(sdr));
+	}
+}
+
+static void	switchWatch(int tokenCount, char **tokens)
+{
+	BpVdb	*vdb = getBpVdb();
+	char	buffer[80];
+	char	*cursor;
+
+	if (tokenCount < 2)
+	{
+		printText("Switch watch in what way?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "1") == 0)
+	{
+		vdb->watching |= WATCH_BIBE;
+		return;
+	}
+
+	vdb->watching &= ~(WATCH_BIBE);
+	if (strcmp(tokens[1], "0") == 0)
+	{
+		return;
+	}
+
+	cursor = tokens[1];
+	while (*cursor)
+	{
+		switch (*cursor)
+		{
+		case 'w':
+			vdb->watching |= WATCH_w;
+			break;
+
+		case 'm':
+			vdb->watching |= WATCH_m;
+			break;
+
+		case 'x':
+			vdb->watching |= WATCH_x;
+			break;
+
+		case '&':
+			vdb->watching |= WATCH_refusal;
+			break;
+
+		case '$':
+			vdb->watching |= WATCH_timeout;
+			break;
+
+		default:
+			isprintf(buffer, sizeof buffer,
+					"Invalid watch char %c.", *cursor);
+			printText(buffer);
+		}
+
+		cursor++;
+	}
+}
+
 static void	switchEcho(int tokenCount, char **tokens)
 {
 	int	state;
@@ -453,6 +531,15 @@ static int	processLine(char *line, int lineLength, int *rc)
 			if (attachToBp() == 0)
 			{
 				executeList(tokenCount, tokens);
+			}
+
+			return 0;
+
+		case 'w':
+			if (attachToBp() == 0)
+			{
+				switchWatch(tokenCount, tokens);
+				noteWatchValue();
 			}
 
 			return 0;

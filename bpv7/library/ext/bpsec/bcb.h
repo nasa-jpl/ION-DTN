@@ -84,7 +84,7 @@
 #define BCB_DEBUG_LVL   BCB_DEBUG_LVL_ERR
 
 #define GMSG_BUFLEN     256
-#if BCB_DEBUGGING == 1
+#if (BCB_DEBUGGING == 1)
 
 /**
  * \def BCB_DEBUG

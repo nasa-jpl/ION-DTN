@@ -579,24 +579,6 @@ length %d.", result.len);
 	return result;
 }
 
-#if 0
-	csi_val_t result;
-
-	memset(&result, 0, sizeof(csi_val_t));
-	result.len = 20;
-
-	if((result.contents = MTAKE(result.len)) == 0)
-	{
-		CSI_DEBUG_ERR("csi_serialize_parms: Can't allocate result of \
-length %d.", result.len);
-		result.len = 0;
-		return result;
-	}
-	memset(result.contents, 0, result.len);
-	return result;
-}
-#endif
-
 int8_t	csi_crypt_key(csi_csid_t suite, csi_svcid_t svc,
 		csi_cipherparms_t *parms, csi_val_t longtermkey,
 		csi_val_t input, csi_val_t *output)

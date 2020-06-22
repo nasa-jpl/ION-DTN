@@ -1432,23 +1432,22 @@ int	sbsp_bibReview(AcqWorkArea *wk)
 		BIB_DEBUG_ERR("x sbsp_Review: Unable to obtain dictionary");
 		return -1;
 	}
-	if ( printEid(&bundle->destination,
-				  dictionary,
-				  &secDestEid) < 0
-		|| printEid(&bundle->id.source,
-				  dictionary,
-				  &secSrcEid) < 0
-		)
+
+	if (printEid(&bundle->destination, dictionary, &secDestEid) < 0
+	|| printEid(&bundle->id.source, dictionary, &secSrcEid) < 0)
 	{
-		BIB_DEBUG_ERR("x sbsp_Review: Unable to identify bundle src/destination");
+		BIB_DEBUG_ERR("x sbsp_Review: Unable to identify bundle \
+src/destination");
 		if (secDestEid)
 		{
 			MRELEASE(secDestEid);
 		}
+
 		if (secSrcEid)
 		{
 			MRELEASE(secSrcEid);
 		}
+
 		return -1;
 	}
 
@@ -1472,7 +1471,8 @@ int	sbsp_bibReview(AcqWorkArea *wk)
 		GET_OBJ_POINTER(sdr, BspBibRule, rule, ruleAddr);
 		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
 
-		if (eidsMatch(eidBuffer, strlen(eidBuffer), secDestEid, strlen(secDestEid)) != 1)
+		if (eidsMatch(eidBuffer, strlen(eidBuffer), secDestEid,
+				strlen(secDestEid)) != 1)
 		{
 			/*	No requirement against local node.	*/
 
@@ -1482,7 +1482,8 @@ int	sbsp_bibReview(AcqWorkArea *wk)
 		/*	Validate security source */
 		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
 
-		if (eidsMatch(eidBuffer, strlen(eidBuffer), secSrcEid, strlen(secSrcEid)) != 1)
+		if (eidsMatch(eidBuffer, strlen(eidBuffer), secSrcEid,
+				strlen(secSrcEid)) != 1)
 		{
 			continue;
 		}

@@ -1,0 +1,10 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.0 x
+a endpoint ipn:3.1 x
+a endpoint ipn:3.2 x
+a endpoint ipn:3.64 x
+a endpoint ipn:3.65 x
+a protocol stcp 1400 100 -1
+a induct stcp localhost:3113 stcpcli
+s

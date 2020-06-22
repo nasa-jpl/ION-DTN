@@ -1,0 +1,340 @@
+#!/bin/bash
+
+#### MAKE SURE NETCAT IS INSTALLED ####
+PROGRAMTEST="netcat"
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no netcat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+  echo "${PROGRAMTEST} is not present in this system. Exiting..."
+  exit 1
+fi
+
+#### MAKE SURE WIRESHARK IS UPDATED ####
+tshark -r hello.pcap -T fields -e bundle.ciphersuite_type &>wireshark_check.txt
+WIRESHARK_CHECK=`head -1 wireshark_check.txt`
+if [ "$WIRESHARK_CHECK" = "tshark: Some fields aren't valid:" ]
+then
+  echo "Your version of Wireshark does not support the bundle.ciphersuite_type field. Exiting..."
+  exit 1
+elif [[ "$WIRESHARK_CHECK" == *"command not found"* ]] ; then
+  echo "You do not have tshark installed. Exiting..."
+  exit 1
+fi
+
+# remove possible files left from previous run
+rm version.txt
+rm wireshark_check.txt
+rm killm.txt
+rm ionstart.txt
+
+# make sure we are starting out fresh
+echo "Running killm..."
+killm >> killm.txt
+rm *.log
+RETURN_STATUS=0
+
+# pull ION version string
+ionadmin > version.txt <<'END'
+v
+q
+END
+
+ION_REPORTED_VERSION=`head -1 version.txt`
+ION_REPORTED_VERSION=${ION_REPORTED_VERSION:2:15}
+echo "ION version = $ION_REPORTED_VERSION"
+
+CONFIGS_LIST="loopback_bib_1.rc loopback_bib_2.rc loopback_bib_3.rc loopback_bib_4.rc loopback_bib_5.rc loopback_bib_6.rc loopback_bib_7.rc loopback_bib_8.rc loopback_bib_9.rc loopback_bib_10.rc loopback_bib_11.rc loopback_bib_12.rc"
+
+FAILED_TESTS=""
+test_num=0
+
+# loop over the available configs and test for failure conditions
+for i in $CONFIGS_LIST; do
+((test_num++))
+
+# start 2 ion nodes
+./cleanup
+echo -e "\n\n***** TEST $test_num *****"
+# print description of what this configuration does
+head -3 $i | tail -1
+echo -e "\nRunning ionstart with $i"
+ionstart -I $i >> ionstart.txt
+sleep 1
+
+
+# determine if security was requested
+# grab the last line in ion.log that contains "bundle security"
+# compare that to "Bundle security is enabled", if they don't match assume security is not enabled
+# the other option being "Warning: running without bundle security"
+SECURITY_REQUESTED=""
+SECURITY_REQUESTED=`grep -i "bundle security" ion.log | tail -1`
+SECURITY_REQUESTED=`echo $SECURITY_REQUESTED | grep "Bundle security is enabled"`
+if [ "$SECURITY_REQUESTED" != "" ]
+  then
+    SECURITY_REQUESTED="TRUE"
+  else
+    SECURITY_REQUESTED="FALSE"
+fi
+echo "Security Requested = $SECURITY_REQUESTED"
+
+# start netcat to capture the bundle
+netcat -l -u -p 4556 > netcat_output &
+
+# send bundle using udp to a "dummy" endpoint so that we can capture it
+# we don't care about successful reception, we just need to see what was sent
+bpsendfile ipn:1.1 ipn:1.2 file.txt
+
+sleep 2
+
+# determine if an security rule was added to the database
+# issue the "l bspbcbrule" command to ionsecadmin to list all BCB rules stored
+# check the output file, if the only line is "Stopping ionsecadmin" then there were no rules to list
+# if a rule is added, grab the ciphersuite type out of it
+# if security was not requested then skip this step because no rules can be added
+bpsecadmin > bpsec.txt <<ENDOFBPSECADMINCOMMANDS
+l bspbibrule
+q
+ENDOFBPSECADMINCOMMANDS
+
+if [ "$SECURITY_REQUESTED" == "TRUE" ] ; then
+    SECURITY_RULE_ADDED=""
+    SECURITY_RULE_ADDED=`head -1 bpsec.txt`
+    SECURITY_TYPE="$SECURITY_RULE_ADDED"
+    SECURITY_RULE_ADDED=`echo $SECURITY_RULE_ADDED | grep -i "stopping bpsecadmin"`
+    if [ "$SECURITY_RULE_ADDED" == "" ] ; then
+        SECURITY_RULE_ADDED="TRUE"
+  # pull the ciphersuite of the rule in the database and cast it to and integer so it can be compared to the ciphersuite type from the bundle
+    SECURITY_TYPE=${SECURITY_TYPE#*"ciphersuite '"}
+    SECURITY_TYPE=${SECURITY_TYPE%%"'"*}
+	case $SECURITY_TYPE in
+    	BIB-HMAC-SHA256)
+      	  SECURITY_TYPE="5"
+      	  SECURITY_TYPE=$(($SECURITY_TYPE+0))
+      	  ;;
+    	BIB-HMAC-SHA384)
+      	  SECURITY_TYPE="209"
+      	  SECURITY_TYPE=$(($SECURITY_TYPE+0))
+      	  ;;
+    	BIB-ECDSA-SHA256)
+     	  SECURITY_TYPE="210"
+      	  SECURITY_TYPE=$(($SECURITY_TYPE+0))
+      	  ;;
+    	BIB-ECDSA-SHA384)
+      	  SECURITY_TYPE="211"
+      	  SECURITY_TYPE=$(($SECURITY_TYPE+0))
+      	  ;;
+    	*)
+      	  echo "Unknown security type"
+      	  ;;
+    	esac
+    else
+	SECURITY_TYPE=""
+        SECURITY_RULE_ADDED="FALSE"
+    fi
+else
+    SECURITY_RULE_ADDED="FALSE"
+fi
+echo "Security Rule Added = $SECURITY_RULE_ADDED"
+
+echo "Running ionstop..."
+ionstop >> killm.txt
+
+# build a file that can be read by tshark
+if [ "$ION_REPORTED_VERSION" == "ION-OPEN-SOURCE" ] ; then
+  cat wireshark_header_IOS netcat_output padding > init.pcap
+  dd count=1 bs=248 < init.pcap > checkme.pcap
+elif [ "$ION_REPORTED_VERSION" == "ION-NASA-BASELI" ] ; then
+  cat wireshark_header_INB netcat_output padding > init.pcap
+  dd count=1 bs=240 < init.pcap > checkme.pcap
+else
+  echo "Unknown ION version. Exiting"
+  exit 1
+fi
+
+# pull out the security type from the sent bundle
+CIPHERSUITE_TYPE=0
+CIPHERSUITE_TYPE=`tshark -r checkme.pcap -T fields -e bundle.ciphersuite_type`
+echo "Ciphersuite Type = $CIPHERSUITE_TYPE"
+
+INTEGRITY_SIGNATURE=""
+INTEGRITY_SIGNATURE=`tshark -r checkme.pcap -T fields -e bundle.block.ciphersuite_result_type`
+echo "Integrity Signature = $INTEGRITY_SIGNATURE"
+
+case $CIPHERSUITE_TYPE in
+  5)
+    if [ $SECURITY_TYPE == $CIPHERSUITE_TYPE ] ; then
+      echo "BIB-HMAC-SHA256"
+      if [ "$ION_REPORTED_VERSION" == "ION-NASA-BASELI" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. ION version was reported as ION Nasa Baseline, security was requested and reported as BIB-HMAC-SHA256 but no integrity signature was present."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      elif [ "$ION_REPORTED_VERSION" == "ION-OPEN-SOURCE" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. Integrity block is present but there is no integrity signature."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      else
+        echo "FAILED. ION reported version is not valid"
+	FAILED_TESTS="$FAILED_TESTS $test_num"
+        RETURN_STATUS=1
+      fi
+    else
+      echo "FAILED. Security type requested and reported do not match"
+      FAILED_TESTS="$FAILED_TESTS $test_num"
+      RETURN_STATUS=1
+    fi
+    ;;
+  209)
+    if [ $SECURITY_TYPE == $CIPHERSUITE_TYPE ] ; then
+      echo "BIB-HMAC-SHA384"
+      if [ "$ION_REPORTED_VERSION" == "ION-NASA-BASELI" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. ION version was reported as ION Nasa Baseline, security was requested and reported as BIB-HMAC-SHA384 but no integrity signature was present."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      elif [ "$ION_REPORTED_VERSION" == "ION-OPEN-SOURCE" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. Integrity block is present but there is no integrity signature."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      else
+        echo "FAILED. ION reported version is not valid"
+	FAILED_TESTS="$FAILED_TESTS $test_num"
+        RETURN_STATUS=1
+      fi
+    else
+      echo "FAILED. Security type requested and reported do not match"
+      FAILED_TESTS="$FAILED_TESTS $test_num"
+      RETURN_STATUS=1
+    fi
+    ;;
+  210)
+    if [ $SECURITY_TYPE == $CIPHERSUITE_TYPE ] ; then
+      echo "BIB-ECDSA-SHA256"
+      if [ "$ION_REPORTED_VERSION" == "ION-NASA-BASELI" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. ION version was reported as ION Nasa Baseline, security was requested and reported as BIB-ECDSA-SHA256 but no integrity signature was present."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      elif [ "$ION_REPORTED_VERSION" == "ION-OPEN-SOURCE" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. Integrity block is present but there is no integrity signature."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      else
+        echo "FAILED. ION reported version is not valid"
+	FAILED_TESTS="$FAILED_TESTS $test_num"
+        RETURN_STATUS=1
+      fi
+    else
+      echo "FAILED. Security type requested and reported do not match"
+      FAILED_TESTS="$FAILED_TESTS $test_num"
+      RETURN_STATUS=1
+    fi
+    ;;
+  211)
+    if [ $SECURITY_TYPE == $CIPHERSUITE_TYPE ] ; then
+      echo "BIB-ECDSA-SHA384"
+      if [ "$ION_REPORTED_VERSION" == "ION-NASA-BASELI" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. ION version was reported as ION Nasa Baseline, security was requested and reported as BIB-ECDSA-SHA384 but no integrity signature was present."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      elif [ "$ION_REPORTED_VERSION" == "ION-OPEN-SOURCE" ] ; then
+        if [ "$SECURITY_REQUESTED" == "TRUE" -a "$SECURITY_RULE_ADDED" == "TRUE" -a $INTEGRITY_SIGNATURE != 5 ] ; then
+          echo "FAILED. Integrity block is present but there is no integrity signature."
+	  FAILED_TESTS="$FAILED_TESTS $test_num"
+          RETURN_STATUS=1
+        else
+          echo "PASSED"
+        fi
+      else
+        echo "FAILED. ION reported version is not valid"
+	FAILED_TESTS="$FAILED_TESTS $test_num"
+        RETURN_STATUS=1
+      fi
+    else
+      echo "FAILED. Security type requested and reported do not match"
+      FAILED_TESTS="$FAILED_TESTS $test_num"
+      RETURN_STATUS=1
+    fi
+    ;;
+  *)
+    echo "Invalid ciphersuite type $CIPHERSUITE_TYPE"
+    if [ "$ION_REPORTED_VERSION" == "ION-NASA-BASELI" ] ; then
+      if [ "$SECURITY_REQUESTED" == "TRUE" ] ; then
+        if [ "$SECURITY_RULE_ADDED" == "TRUE" ] ; then
+          if [ "$INTEGRITY_SIGNATURE" == "" ] ; then
+            echo "OK. Security was requested but no data was sent. Check ion.log for details."
+          else
+            echo "FAILED. ION version reported as ION Nasa Baseline and security was requested but no security was reported."
+	    FAILED_TESTS="$FAILED_TESTS $test_num"
+            RETURN_STATUS=1
+          fi
+        else
+          echo "OK. No security rule was added to the database so by default bundles are sent unprotected. Check ion.log for details."
+        fi
+      else
+        echo "OK. ION version reported as ION Nasa Baseline but no security was requested or reported."
+      fi
+    elif [ "$ION_REPORTED_VERSION" == "ION-OPEN-SOURCE" ] ; then
+      if [ "$SECURITY_REQUESTED" == "TRUE" ] ; then
+        if [ "$SECURITY_RULE_ADDED" == "TRUE" ] ; then
+          if [ "$INTEGRITY_SIGNATURE" == "" ] ; then
+            echo "OK. Security was requested but no data was sent. Check ion.log for details."
+          else
+            echo "FAILED. ION version reported as ION Open Source and security was requested but no security block was generated."
+	    FAILED_TESTS="$FAILED_TESTS $test_num"
+            RETURN_STATUS=1
+          fi
+        else
+          echo "OK. No security rule was added to the database so by default bundles are sent unprotected. Check ion.log for details."
+        fi
+      else
+        echo "OK. ION version reported as ION Open Source but no security was requested or reported."
+      fi
+    else
+      echo "FAILED. Unknown ION version."
+      FAILED_TESTS="$FAILED_TESTS $test_num"
+      RETURN_STATUS=1
+    fi
+    ;;
+esac
+
+mv ion.log "$i".log
+
+done
+
+if [ $RETURN_STATUS == 1 ] ; then
+  echo "FAILED - One or more cases ($FAILED_TESTS ) failed, check console output for messages."
+else
+  echo "PASSED - ALL test cases passed."
+fi
+
+exit $RETURN_STATUS

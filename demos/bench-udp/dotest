@@ -44,6 +44,8 @@ done
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
+echo
+echo "***PLEASE NOTE: this benchmark test requires Bundle Protocol version 6."
 
 ./cleanup
 sleep 1

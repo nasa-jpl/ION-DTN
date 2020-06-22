@@ -162,7 +162,7 @@ fi
 
 sleep 3
 echo ""
-echo "Test 3: 1000 bundles of 100,000 bytes each."
+echo "Test 3: 1000 bundles of 63,800 bytes each."
 cd ../3.bench.ltp
 bpcounter ipn:3.3 1000 &
 BPCOUNTER_PID=$!
