@@ -223,8 +223,6 @@ return NULL;
 
 int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 {
-	Sdr	sdr = getIonsdr();
-
 	/*	Handle the de-queued bundle.				*/
 	if (bpHandleXmitFailure(*bundleZco) < 0)
 	{
@@ -243,7 +241,6 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
 	int		bytesSent;
 	int		bytesToSend;
 	int		bundleLength;
-	int		result;
 
 	/* Connect socket				*/
 	if (!itp->active)
