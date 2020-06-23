@@ -29,7 +29,7 @@ extern "C" {
 
 typedef struct
 {
-	unsigned int		seconds;	/*	Epoch 2000.	*/
+	time_t			seconds;	/*	Epoch 2000.	*/
 	unsigned int		count;
 } BpTimestamp;
 
