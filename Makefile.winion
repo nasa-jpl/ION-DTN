@@ -1,8 +1,8 @@
-bpv6: export BPv = bpv6
-bpv6: all
-
 bpv7: export BPv = bpv7
 bpv7: all
+
+bpv6: export BPv = bpv6
+bpv6: all
 
 all:
 	gmake -C ici $@

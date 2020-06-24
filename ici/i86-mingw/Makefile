@@ -7,7 +7,7 @@ SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 
-OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-3.7.1
+OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.0.0
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../../$(BPv)/include/ -I../../$(BPv)/library/ -I../../ltp/include/ -I../../ltp/library/
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
