@@ -311,8 +311,8 @@ typedef struct
 
 typedef struct
 {
-	size_t		nominalRate;	/*	In bytes per second.	*/
-	vast		capacity;	/*	Bytes, current second.	*/
+	double		nominalRate;	/*	In bytes per second.	*/
+	double		capacity;	/*	Bytes, current second.	*/
 } Throttle;
 
 typedef struct

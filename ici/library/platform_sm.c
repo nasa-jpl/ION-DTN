@@ -3150,7 +3150,14 @@ void	sm_Wakeup(DWORD processId)
 
 int	sm_TaskIdSelf()
 {
-	return getpid();
+	static int	taskId = 0;
+
+	if (taskId == 0)
+	{
+		taskId = getpid();
+	}
+
+	return taskId;
 }
 
 int	sm_TaskExists(int task)

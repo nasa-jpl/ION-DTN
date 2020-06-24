@@ -244,7 +244,6 @@ static void	*handleNotices(void *parm)
 	unsigned int		dataOffset;
 	unsigned int		dataLength;
 	Object			data;		/*	ZCO reference.	*/
-	int			result;
 	unsigned int		greenBuflen = 0;
 	char			*greenBuffer = NULL;
 
@@ -290,29 +289,14 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			result = bpHandleXmitSuccess(data);
-			if (result < 0)
+			if (bpHandleXmitSuccess(data) < 0)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
 			}
 
-			if (result == 1)
-			{
-				CHKNULL(sdr_begin_xn(sdr));
-				zco_destroy(sdr, data);
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Crashed on data cleanup.",
-							NULL);
-					ionKillMainThread(procName);
-					rtp->running = 0;
-				}
-			}
-
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 		case LtpExportSessionCanceled:	/*	Xmit failure.	*/
 			if (data == 0)		/*	Ignore it.	*/
@@ -320,29 +304,14 @@ static void	*handleNotices(void *parm)
 				break;		/*	Out of switch.	*/
 			}
 
-			result = bpHandleXmitFailure(data);
-		       	if (result < 0)
+		       	if (bpHandleXmitFailure(data) < 0)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
 				ionKillMainThread(procName);
 				rtp->running = 0;
-				break;		/*	Out of switch.	*/
 			}
 
-			if (result == 1)
-			{
-				CHKNULL(sdr_begin_xn(sdr));
-				zco_destroy(sdr, data);
-				if (sdr_end_xn(sdr) < 0)
-				{
-					putErrmsg("Crashed on data cleanup.",
-							NULL);
-					ionKillMainThread(procName);
-					rtp->running = 0;
-				}
-			}
-
-			break;		/*	Out of switch.		*/
+			break;			/*	Out of switch.	*/
 
 		case LtpImportSessionCanceled:
 			/*	None of the red data for the import

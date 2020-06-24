@@ -77,6 +77,7 @@
 #define	GMSG_BUFLEN	256
 
 #if (BPSEC_DEBUGGING == 1)
+#define DEBUGGING 1
 
 extern char	gMsg[GMSG_BUFLEN];
 

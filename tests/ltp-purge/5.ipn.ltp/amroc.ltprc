@@ -2,4 +2,5 @@
 a span 2 2 2000 2 2000 1500 60 1 'udplso localhost:2113 960000'
 m heapmax 10000
 w 1
+m screening n
 s 'udplsi localhost:5113'

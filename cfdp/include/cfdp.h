@@ -175,6 +175,7 @@ typedef enum
 
 typedef enum
 {
+	CfdpAccessEnded = -1,
 	CfdpNoEvent = 0,
 	CfdpTransactionInd,
 	CfdpEofSentInd,

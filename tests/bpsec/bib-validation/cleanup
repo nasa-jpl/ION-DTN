@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# clean up files from previous runs if necessary
+rm bpsec.txt
+rm netcat_output
+rm init.pcap
+rm checkme.pcap
+echo "This is a test file for the sbsp security tests." > file.txt

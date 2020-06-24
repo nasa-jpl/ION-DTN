@@ -29,7 +29,7 @@ ionrestart:	ionrestart.o
 		cp ionrestart ./bin
 
 ionexit:	ionexit.o
-		$(CC) -o ionexit ionexit.o -L./lib -L../../$(BP)/i86-mingw/lib -L../../ici/i86-mingw/lib -L../../ltp/i86-mingw/lib -lltp -lici -lm -lbp -lpthread
+		$(CC) -o ionexit ionexit.o -L./lib -L../../$(BP)/i86-mingw/lib -L../../ici/i86-mingw/lib -L../../ltp/i86-mingw/lib $(LBP) -lltp -lici -lpthread -lm
 		cp ionexit ./bin
 
 #	-	-	Object modules	-	-	-	-	-

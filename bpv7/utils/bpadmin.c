@@ -1495,11 +1495,11 @@ static void	switchWatch(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "1") == 0)
 	{
-		vdb->watching = -1;
+		vdb->watching |= WATCH_BP;
 		return;
 	}
 
-	vdb->watching = 0;
+	vdb->watching &= ~(WATCH_BP);
 	if (strcmp(tokens[1], "0") == 0)
 	{
 		return;

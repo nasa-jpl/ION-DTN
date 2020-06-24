@@ -36,6 +36,27 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 Echo control.  Setting echo to 1 causes all output printed by bibeadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
+=item B<w> { 0 | 1 | I<activity_spec> }
+
+The B<watch> command.  This command enables and disables production of a
+continuous stream of user-selected Bundle-in-Bundle Encapsulation
+custody transfer activity indication characters.  A watch parameter of "1"
+selects all BIBE-CT activity indication characters; "0" de-selects all
+BIBE-CT activity indication characters; any other I<activity_spec> such
+as "mw" selects all activity indicators in the string, de-selecting all
+others.  BIBE will print each selected activity indication character to
+B<stdout> every time a processing event of the associated type occurs:
+
+B<w>	custody of bundle is accepted
+
+B<m>	custody acceptance is received for one bundle
+
+B<x>	custody of bundle is refused
+
+B<&>	custody refusal is received for one bundle
+
+B<$>	bundle retransmitted due to expired custodial retransmission interval
+
 =item B<h>
 
 The B<help> command.  This will display a listing of the commands and their
@@ -50,12 +71,12 @@ formats.  It is the same as the B<?> command.
 =item B<a> bcla I<peer_EID> I<fwd_latency> I<rtn_latency> I<time_to_live> I<priority> I<ordinal> [I<data label>]
 
 The B<add bcla> command.  This command adds the neighboring node identified
-by I<node_nbr> as a BIBE destination of the local node.
+by I<peer_EID> as a BIBE destination of the local node.
 
 =item B<c> bcla I<peer_EID> I<fwd_latency> I<rtn_latency> I<time_to_live> I<priority> I<ordinal> [I<data label>]
 
 The B<change bcla> command.  This command changes the transmission parameters
-governing BIBE PDU transmission to the indicated node.
+governing BIBE PDU transmission to the indicated peer node.
 
 =item B<d> bcla I<peer_EID>
 

@@ -743,6 +743,11 @@ static void	*handleEvents(void *parm)
 			return NULL;
 		}
 
+		if (type == CfdpAccessEnded)
+		{
+			break;		/*	Shut down.		*/
+		}
+
 		if (type == CfdpNoEvent)
 		{
 			continue;	/*	Interrupted.		*/

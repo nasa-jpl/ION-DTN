@@ -35,6 +35,7 @@ PUBINCLS = \
 	$(INCL)/bp.h
 
 BPINCLS = \
+	$(BIBE)/bibe.h \
 	$(API)/bpP.h \
 	$(INCL)/bpsec.h \
 	$(API)/saga.h \
@@ -55,14 +56,12 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
-# snid.o
-BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
+BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = acsadmin acslist beacon bibeclo bpadmin bpsecadmin bpcancel bpchat bpclm bpclock bpcounter bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = acsadmin acslist beacon bibeadmin bibeclo bpadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsecadmin bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the standard test relies on mkfifo which is not implemented for mingw
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -283,8 +282,12 @@ brsccla:	brsccla.o $(BPLIBS) libstcpcla.dll
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32 -lm
 		cp brsccla ./bin
 
-#	-	-	BIBE executable	-	-	-	-	-
+#	-	-	BIBE executables	-	-	-	-	-
 
+bibeadmin:	bibeadmin.o $(BPLIBS)
+		$(CC) -o bibeadmin bibeadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
+		cp bibeadmin ./bin
+		
 bibeclo:	bibeclo.o $(BPLIBS)
 		$(CC) -o bibeclo bibeclo.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
 		cp bibeclo ./bin
@@ -312,6 +315,10 @@ bpsource:	bpsource.o libbp.dll $(BPLIBS)
 bpsink:		bpsink.o libbp.dll $(BPLIBS)
 		$(CC) -o bpsink bpsink.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsink ./bin
+
+bpcrash:	bpcrash.o libbp.dll $(BPLIBS)
+		$(CC) -o bpcrash bpcrash.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpcrash ./bin
 
 bpdriver:	bpdriver.o libbp.dll $(BPLIBS)
 		$(CC) -o bpdriver bpdriver.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
@@ -453,4 +460,5 @@ libudpcla.dll:	libudpcla.o
 
 %.o:		$(IPND)/%.c
 		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<
+
 

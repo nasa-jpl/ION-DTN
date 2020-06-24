@@ -27,7 +27,7 @@
 # That is, all bundles for destination node 4 are tunneled through node 3
 # via BIBE.
 #
-# We send 20 bundles from 1 to destination 4.  All bundle should be delivered.
+# We send 20 bundles from 1 to destination 4.  All bundles should be delivered.
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=20

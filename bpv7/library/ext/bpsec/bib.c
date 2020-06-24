@@ -876,7 +876,7 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 
 	default:
 		BIB_DEBUG_ERR("x bibDefaultSign: Block type %d not supported.",
-				asb->targetBlockType);
+				target.targetBlockType);
 		MRELEASE(key.value);
 		csi_ctx_free(suite, context);
 		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
@@ -908,7 +908,7 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 	digest.id = BPSEC_CSPARM_INT_SIG;
 	if (bpsec_write_one_result(sdr, asb, &digest) < 0)
 	{
-		BIB_DEBUG_ERR("x bibDefaultSign: Can't write result.");
+		BIB_DEBUG_ERR("x bibDefaultSign: Can't write result.", NULL);
 		MRELEASE(digest.value);
 		BIB_DEBUG_PROC("- bibDefaultSign --> %d", -1);
 		return -1;
@@ -1013,7 +1013,7 @@ int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 
 	default:
 		BIB_DEBUG_ERR("x bibDefaultVerify: Block type %d \
-not supported.", asb->targetBlockType);
+not supported.", target->targetBlockType);
 		csi_ctx_free(suite, context);
 		MRELEASE(key.value);
 		BIB_DEBUG_PROC("- bibDefaultVerify--> NULL", NULL);
@@ -1235,7 +1235,8 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	if (asb.targets == 0 || asb.parmsData == 0)
 	{
 		sdr_cancel_xn(sdr);
-		BIB_DEBUG_ERR("x bibOffer: Failed to initialize BIB ASB.");
+		BIB_DEBUG_ERR("x bibOffer: Failed to initialize BIB ASB.",
+				NULL);
 		result = -1;
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
@@ -1248,7 +1249,7 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 			blk->tag1, 0, 0))
 	{
 		sdr_cancel_xn(sdr);
-		BIB_DEBUG_ERR("x bibOffer: Failed to insert target.");
+		BIB_DEBUG_ERR("x bibOffer: Failed to insert target.", NULL);
 		result = -1;
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
@@ -1294,7 +1295,7 @@ of size %d bytes", blk->size);
 
 		result = 0;
 		BIB_DEBUG_WARN("i bibOffer: Integrity for type %d not yet \
-supported.", asb.targetBlockType);
+supported.", blk->tag1);
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
 	}
@@ -1339,25 +1340,39 @@ supported.", asb.targetBlockType);
 int	bibReview(AcqWorkArea *wk)
 {
 	Sdr	sdr = getIonsdr();
-	char	secDestEid[32];
+	int	result = 1;	/*	Default: no problem.		*/
+	Bundle	*bundle;
+	char	*destinationEid;
+	char	*sourceEid;
 	Object	rules;
 	Object	elt;
 	Object	ruleAddr;
 		OBJ_POINTER(BPsecBibRule, rule);
-	char	eidBuffer[SDRSTRING_BUFSZ];
-	int	result = 1;	/*	Default: no problem.		*/
+	char	ruleDestinationEid[SDRSTRING_BUFSZ];
+	char	ruleSourceEid[SDRSTRING_BUFSZ];
 
 	BIB_DEBUG_PROC("+ bibReview(%x)", (unsigned long) wk);
 
 	CHKERR(wk);
-
-	isprintf(secDestEid, sizeof secDestEid, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
 	rules = sec_get_bpsecBibRuleList();
 	if (rules == 0)
 	{
 		BIB_DEBUG_PROC("- bibReview -> no security database", NULL);
 		return result;
+	}
+
+	bundle = &(wk->bundle);
+	if (readEid(&(bundle->destination), &destinationEid) < 0)
+	{
+		BIB_DEBUG_PROC("- bibReview -> no bundle destination", NULL);
+		return -1;
+	}
+
+	if (readEid(&(bundle->id.source), &sourceEid) < 0)
+	{
+		BIB_DEBUG_PROC("- bibReview -> no bundle source", NULL);
+		MRELEASE(destinationEid);
+		return -1;
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
@@ -1366,25 +1381,37 @@ int	bibReview(AcqWorkArea *wk)
 	{
 		ruleAddr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, BPsecBibRule, rule, ruleAddr);
-		oK(sdr_string_read(sdr, eidBuffer, rule->destEid));
-		if (strcmp(eidBuffer, secDestEid) != 0)
+		oK(sdr_string_read(sdr, ruleDestinationEid, rule->destEid));
+		if (eidsMatch(ruleDestinationEid, strlen(ruleDestinationEid),
+				destinationEid, strlen(destinationEid)) != 1)
 		{
-			/*	No requirement against local node.	*/
+			/*	Rule n/a for bundle's destination.	*/
 
 			continue;
 		}
 
-		/*	A block satisfying this rule is required.	*/
+		oK(sdr_string_read(sdr, ruleSourceEid, rule->securitySrcEid));
+		if (eidsMatch(ruleSourceEid, strlen(ruleSourceEid),
+				sourceEid, strlen(sourceEid)) != 1)
+		{
+			/*	Rule n/a for bundle's source.		*/
 
-		oK(sdr_string_read(sdr, eidBuffer, rule->securitySrcEid));
+			continue;
+		}
+
+		/*	Rule applies to this bundle.  A block that
+		 *	satisfies this rule is required.		*/
+
 		result = bpsec_requiredBlockExists(wk, BlockIntegrityBlk,
-				rule->blockType, eidBuffer);
+				rule->blockType, ruleSourceEid);
 		if (result != 1)
 		{
 			break;
 		}
 	}
 
+	MRELEASE(destinationEid);
+	MRELEASE(sourceEid);
 	sdr_exit_xn(sdr);
 
 	BIB_DEBUG_PROC("- bibReview -> %d", result);

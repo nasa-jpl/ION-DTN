@@ -488,6 +488,7 @@ typedef struct
 	Object		admAppCmd; 	/*	For starting admin app.	*/
 	Object		forwardQueue;	/*	SDR list of Bundles	*/
 	Object		endpoints;	/*	SDR list of Endpoints	*/
+	Object		bclas;		/*	SDR list of BIBE CLAs	*/
 } Scheme;
 
 typedef struct
@@ -676,6 +677,7 @@ typedef struct
 #define	BP_PROTOCOL_UNRELIABLE		2
 #define	BP_PROTOCOL_RELIABLE		8
 #define	BP_PROTOCOL_BOTH		10
+#define BP_PROTOCOL_ANY			(BP_PROTOCOL_STREAMING | BP_PROTOCOL_UNRELIABLE | BP_PROTOCOL_RELIABLE)
 
 typedef struct
 {

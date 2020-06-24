@@ -35,16 +35,23 @@ typedef struct
 
 typedef struct
 {
-	time_t		deadline;	/*	Epoch 1970, not 2000.	*/
+	time_t		deadline;	/*	Epoch 2000.		*/
 	Object		sequences;	/*	sdrlist of CtSequence.	*/
 } CtSignal;	/*	Parameters of pending outbound CT signal.	*/
+
+typedef struct
+{
+	unsigned int	xmitId;		/*	Within CT sequence.	*/
+	time_t		deadline;	/*	Epoch 2000.		*/
+	Object		bundleZco;	/*	Encapsulated bundle.	*/
+} Bpdu;
 
 typedef struct
 {
 	Object		source;		/*	Own EID, an sdrstring.	*/ 
 	Object		dest;		/*	Peer EID, an sdrstring.	*/ 
 	uvast		count;		/*	xmitId counter.		*/
-	Object		bundles;	/*	sdrlist of Bundle objs.	*/
+	Object		bpdus;		/*	sdrlist of Bpdu objects.*/
 
 	/*	Transmission parameters for BPDUs sent to peer node.	*/
 

@@ -224,25 +224,12 @@ return NULL;
 int	handleDccpFailure(char* ductname, struct sockaddr *sn, Object *bundleZco)
 {
 	Sdr	sdr = getIonsdr();
-	int	result;
 
 	/*	Handle the de-queued bundle.				*/
-	result = bpHandleXmitFailure(*bundleZco);
-       	if (result < 0)
+	if (bpHandleXmitFailure(*bundleZco) < 0)
 	{
 		putErrmsg("Can't handle DCCP xmit failure.", NULL);
 		return -1;
-	}
-
-	if (result == 1)
-	{
-		CHKERR(sdr_begin_xn(sdr));
-		zco_destroy(sdr, *bundleZco);
-		if (sdr_end_xn(sdr) < 0	)
-		{
-			putErrmsg("Can't destroy bundle ZCO.", NULL);
-			return -1;
-		}
 	}
 
 	return 0;
@@ -317,23 +304,10 @@ int	sendBundleByDCCP(clo_state* itp, Object* bundleZco,
 	}while(1);
 
 	/* Notify BP of success transmitting		*/
-	result = bpHandleXmitSuccess(*bundleZco);
-       	if (result < 0)
+	if (bpHandleXmitSuccess(*bundleZco) < 0)
 	{
 		putErrmsg("Can't handle xmit success.", NULL);
 		bytesSent=-1;
-	}
-
-	if (result == 1)
-	{
-		/* Cleanup ZCO					*/
-		CHKERR(sdr_begin_xn(sdr));
-		zco_destroy(sdr, *bundleZco);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't destroy bundle ZCO.", NULL);
-			bytesSent=-1;
-		}
 	}
 
 	return bytesSent;

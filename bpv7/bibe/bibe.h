@@ -33,15 +33,13 @@ extern void	bibeChange(char *peerEid, unsigned int fwdLatency,
 extern void	bibeDelete(char *peerEid);
 
 extern void	bibeFind(char *peerEid, Object *addr, Object *elt);
- 
+
 extern int	bibeHandleBpdu(BpDelivery *dlv);
  
 extern int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes);
  
-extern int	bibeHandleTimeout(Object trackingElt);
-
-extern int	bibeCtRetry(Bundle *bundle);
+extern int	bibeCtRetry(Bundle *bundle, Object bundleAddr);
 
 extern void	bibeCtCancel(Bundle *bundle);
 

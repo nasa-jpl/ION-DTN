@@ -313,13 +313,13 @@ result of length %d.", tmp.len);
 
 int	sbsp_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	int		result = 1;
+	int			result = 1;
 	SbspInboundBlock	asb;
-	unsigned char	*cursor = NULL;
-	int	unparsedBytes = 0;
-	LystElt		elt;
-	uvast	 ltemp;
-	unsigned int itemp;
+	unsigned char		*cursor = NULL;
+	int			unparsedBytes = 0;
+	LystElt			elt;
+	uvast	 		ltemp;
+	unsigned int		itemp;
 
 	SBSP_DEBUG_PROC("+ sbsp_deserializeASB(" ADDR_FIELDSPEC "," \
 ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
@@ -336,10 +336,10 @@ ADDR_FIELDSPEC "%d)", (uaddr) blk, (uaddr) wk);
 	{
 		asb.securitySource.unicast = 1;
 		elt = lyst_first(blk->eidReferences);
-		ltemp = (unsigned long) lyst_data(elt);
+		ltemp = (uaddr) lyst_data(elt);
 		asb.securitySource.d.schemeNameOffset = ltemp;
 		elt = lyst_next(elt);
-		ltemp = (unsigned long) lyst_data(elt);
+		ltemp = (uaddr) lyst_data(elt);
 		asb.securitySource.d.nssOffset = ltemp;
 	}
 
@@ -706,27 +706,14 @@ int	sbsp_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 	}
 
 	result = 0;
-#if 0
-	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
+	if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 	{
-		result = sbsp_getInboundSecuritySource(blk, dictionary,
-				fromEid);
+		result = -1;
 	}
-
-	if (result == 0)	/*	No security source in block.	*/
+	else
 	{
-#endif
-		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
-		{
-			result = -1;
-		}
-		else
-		{
-			result = 1;
-		}
-#if 0
+		result = 1;
 	}
-#endif
 
 	if (dictionary)
 	{
@@ -772,6 +759,7 @@ int	sbsp_getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
 	EndpointId	securitySource;
 	LystElt		elt1;
 	LystElt		elt2;
+	uvast		ltemp;
 
 	if (dictionary == NULL
 	|| (elt1 = lyst_first(blk->eidReferences)) == NULL
@@ -782,8 +770,10 @@ int	sbsp_getInboundSecuritySource(AcqExtBlock *blk, char *dictionary,
 
 	securitySource.cbhe = 0;
 	securitySource.unicast = 1;
-	securitySource.d.schemeNameOffset = (long) lyst_data(elt1);
-	securitySource.d.nssOffset = (long) lyst_data(elt2);
+	ltemp = (uaddr) lyst_data(elt1);
+	securitySource.d.schemeNameOffset = ltemp;
+	ltemp = (uaddr) lyst_data(elt2);
+	securitySource.d.nssOffset = ltemp;
 	if (printEid(&securitySource, dictionary, fromEid) < 0)
 	{
 		return -1;
@@ -1007,27 +997,14 @@ int	sbsp_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 	}
 
 	result = 0;
-#if 0
-	if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
+	if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
 	{
-		result = sbsp_getOutboundSecuritySource(blk, dictionary,
-				fromEid);
+		result = -1;
 	}
-
-	if (result == 0)	/*	No security source in block.	*/
+	else
 	{
-#endif
-		if (printEid(&bundle->id.source, dictionary, fromEid) < 0)
-		{
-			result = -1;
-		}
-		else
-		{
-			result = 1;
-		}
-#if 0
+		result = 1;
 	}
-#endif
 
 	if (dictionary)
 	{
@@ -1247,18 +1224,6 @@ key of size %d", key.len);
 		}
 
 		memcpy(key.contents, stdBuffer, key.len);
-
-#ifdef BSP_DEBUGING
-		char *str = NULL;
-
-		if((str = csi_val_print(key)) != NULL)
-		{
-			SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  Len: %d  \
-Val: %s...", key.len, str);
-			MRELEASE(str);
-		}
-#endif
-
 		SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 
 		return key;
@@ -1288,7 +1253,6 @@ Val: %s...", key.len, str);
 	 *           try again.
 	 */
 
-
 	if ((key.contents = MTAKE(ReqBufLen)) == NULL)
 	{
 		SBSP_DEBUG_ERR("x sbsp_retrieveKey: Can't allocate key of \
@@ -1310,22 +1274,9 @@ size %d", ReqBufLen);
 	}
 
 	key.len = ReqBufLen;
-
-#ifdef BSP_DEBUGING
-		char *str = NULL;
-
-			if((str = csi_val_print(key)) != NULL)
-			{
-				SBSP_DEBUG_INFO("i sbsp_retrieveKey: Key  \
-Len: %d  Val: %s...", key.len, str);
-				MRELEASE(str);
-			}
-#endif
-
 	SBSP_DEBUG_PROC("- sbsp_retrieveKey -> key (len=%d)", key.len);
 	return key;
 }
-
 
 
 /******************************************************************************
@@ -1426,55 +1377,36 @@ int	sbsp_requiredBlockExists(AcqWorkArea *wk, uint8_t sbspBlockType,
 				continue;	/*	Not a BIB.	*/
 			}
 
-			/* The ASB (blk->object) has not yet been deserialized by
-			 * the sbsp_bibParse() function, so we explicitly decode
-			 * it. */
+			/* The ASB (blk->object) has not yet been deserialized
+			 * by * the sbsp_bibParse() function, so we explicitly
+			 * decode it. */
 			unparsedBytes = blk->length;
-			cursor = ((unsigned char *)(blk->bytes)) + (blk->length - blk->dataLength);
+			cursor = ((unsigned char *)(blk->bytes))
+					+ (blk->length - blk->dataLength);
 
 			// Retrieve & discard # targets
-			_extractSmallSdnv(&asbTargetBlockType, &cursor, &unparsedBytes, __LINE__ );
-
-			// Get type
-			asbTargetBlockType = (int)(cursor[0]);
-
-
-			if (asbTargetBlockType != targetBlockType)
-			{
-				continue;	/*	Wrong target.	*/
-			}
+			_extractSmallSdnv(&asbTargetBlockType, &cursor,
+					&unparsedBytes, __LINE__ );
 
 			/*	Now see if source of BIB matches the
 				source EID for this BIB rule.		*/
 
 			result = 0;
 			fromEid = NULL;
-#if 0
-			if (asb->ciphersuiteFlags & SBSP_ASB_SEC_SRC)
-			{
-				result = sbsp_getInboundSecuritySource(blk,
-						dictionary, &fromEid);
-			}
 
-			if (result == 0)
-			{
-#endif
-				/*	No security source in block,
-					so source of BIB is the source
-					of the bundle.		.	*/
+			/*	No security source in block,
+				so source of BIB is the source
+				of the bundle.		.	*/
 
-				if (printEid(&bundle->id.source, dictionary,
-						&fromEid) < 0)
-				{
-					result = -1;
-				}
-				else
-				{
-					result = 1;
-				}
-#if 0
+			if (printEid(&bundle->id.source, dictionary,
+					&fromEid) < 0)
+			{
+				result = -1;
 			}
-#endif
+			else
+			{
+				result = 1;
+			}
 
 			if (result == 1)
 			{

@@ -116,7 +116,7 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 				"lookup (%s, %u, %u, %u, %u) in bid: @%lu "
 				"(%s,%u,%u,%u,%u)->(%u)",
 				cid->id,
-				cbidAddr,
+				(unsigned long) cbidAddr,
 				cbid.bundleId.sourceEid,
 				(unsigned int)
 				cbid.bundleId.creationTime.seconds,
@@ -130,7 +130,7 @@ static void printAndCheckByCid(Sdr acsSdr, Object hash, char *key, Address cbidA
 				cbid.bundleId.creationTime.count,
 				cbid.bundleId.fragmentOffset,
 				cbid.bundleId.fragmentLength,
-				bidCbidAddr,
+				(unsigned long) bidCbidAddr,
 				bidCbid.bundleId.sourceEid,
 				(unsigned int)
 				bidCbid.bundleId.creationTime.seconds,
@@ -235,7 +235,7 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 				bid->creationTime.count,
 				bid->fragmentOffset,
 				bid->fragmentLength,
-				cbidAddr,
+				(unsigned long) cbidAddr,
 				cbid.bundleId.sourceEid,
 				(unsigned int)
 				cbid.bundleId.creationTime.seconds,
@@ -244,7 +244,7 @@ static void checkByBid(Sdr acsSdr, Object hash, char *key, Address cbidAddr,
 				cbid.bundleId.fragmentLength,
 				cbid.custodyId.id,
 				cbid.custodyId.id,
-				cidCbidAddr,
+				(unsigned long) cidCbidAddr,
 				cidCbid.bundleId.sourceEid,
 				(unsigned int)
 				cidCbid.bundleId.creationTime.seconds,
