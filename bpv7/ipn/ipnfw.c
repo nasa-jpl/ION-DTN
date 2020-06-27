@@ -21,11 +21,11 @@
 #endif
 
 #ifndef	MIN_PROSPECT
-#define	MIN_PROSPECT	(0.0)
+#define	MIN_PROSPECT		(0.0)
 #endif
 
 #ifndef CGR_DEBUG
-#define CGR_DEBUG	0
+#define CGR_DEBUG		1
 #endif
 
 #if CGR_DEBUG == 1
@@ -38,7 +38,7 @@ static void	printCgrTraceLine(void *data, unsigned int lineNbr,
 	va_start(args, traceType);
 	text = cgr_tracepoint_text(traceType);
 	vprintf(text, args);
-	switch(traceType)
+	switch (traceType)
 	{
 	case CgrIgnoreContact:
 	case CgrExcludeRoute:
@@ -50,6 +50,7 @@ static void	printCgrTraceLine(void *data, unsigned int lineNbr,
 	}
 
 	putchar('\n');
+	fflush(stdout);
 	va_end(args);
 }
 #endif
@@ -74,6 +75,18 @@ static sm_SemId		_ipnfwSemaphore(sm_SemId *newValue)
 	temp = (uaddr) value;
 	sem = temp;
 	return sem;
+}
+
+static CgrSAP	cgrSap(CgrSAP *newSap)
+{
+	static CgrSAP	sap;
+
+	if (newSap)
+	{
+		sap = *newSap;
+	}
+
+	return sap;
 }
 
 static void	shutDown(int signum)
@@ -436,9 +449,6 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 		&& bundle->payload.length > 1
 		&& !(bundle->bundleProcFlags & BDL_DOES_NOT_FRAGMENT))
 		{
-#if 0
-printf("*** fragmenting; to node %lu, volume avbl %lu, bundle ECCC %lu.\n", route->toNodeNbr, route->maxVolumeAvbl, route->bundleECCC);
-#endif
 			if (proactivelyFragment(bundle, &bundleObj, route) < 0)
 			{
 				putErrmsg("Anticipatory fragmentation failed.",
@@ -775,7 +785,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 	|| (sm_list_length(ionwm, routingObject->selectedRoutes) == 0
 	&& sm_list_length(ionwm, routingObject->knownRoutes) == 0))
 	{
-		return 0;	/*	No potential future forwarding.	*/
+		return 0; 	/*	No potential future forwarding.	*/
 	}
 
 	/*	Must put bundle in limbo, keep on trying to send it.	*/
@@ -879,8 +889,10 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	 *	terminus node identifies one or more routes over
 	 *	which the bundle may be sent in order to get it
 	 *	delivered to the terminus node.  If so, use the
-	 *	Plan asserted for the entry node of each of the
-	 *	best route ("dynamic route").
+	 *	Plan asserted for the entry node of the best route
+	 *	or - for a critical bundle - the Plans asserted
+	 *	for each neighboring node for which there is at
+	 *	least one route to the terminus node.
 	 *
 	 *	Note that CGR can be used to compute a route to an
 	 *	intermediate "station" node selected by another
@@ -896,7 +908,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 
 	CHKERR(bundle && bundleObj && terminusNode);
 	TRACE(CgrBuildRoutes, terminusNode->nodeNbr, bundle->payload.length,
-			(unsigned int)(atTime));
+			(unsigned int) atTime);
 
 	if (ionvdb->lastEditTime.tv_sec > cgrvdb->lastLoadTime.tv_sec
 	|| (ionvdb->lastEditTime.tv_sec == cgrvdb->lastLoadTime.tv_sec
@@ -951,7 +963,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	}
 
 	if (cgr_identify_best_routes(terminusNode, bundle, bundleObj,
-			excludedNodes, trace, bestRoutes, atTime) < 0)
+		excludedNodes, atTime, cgrSap(NULL), trace, bestRoutes) < 0)
 	{
 		putErrmsg("Can't identify best route(s) for bundle.", NULL);
 		lyst_destroy(excludedNodes);
@@ -1091,7 +1103,36 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 
 /*		Top-level ipnfw functions				*/
 
-static int	enqueueBundle(Bundle *bundle, Object bundleObj)
+static int	openCgr()
+{
+	CgrSAP	sap;
+
+	sap = cgrSap(NULL);
+	if (sap)	/*	CGR is already open.			*/
+	{
+		writeMemo("[i] CGR service access point is already open.");
+		return 0;
+	}
+
+	if (cgr_start_SAP(getOwnNodeNbr(), ionReferenceTime(NULL), &sap) < 0)
+	{
+		putErrmsg("Failed starting CGR SAP", NULL);
+		return -1;
+	}
+
+	oK(cgrSap(&sap));
+	return 0;
+}
+
+static void	closeCgr()
+{
+	CgrSAP	noSap = NULL;
+
+	cgr_stop_SAP(cgrSap(NULL));
+	oK(cgrSap(&noSap));
+}
+
+static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*ionvdb = getIonVdb();
@@ -1266,6 +1307,7 @@ int	main(int argc, char *argv[])
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
+	CgrSAP		sap;
 	Object		elt;
 	Object		bundleAddr;
 	Bundle		bundle;
@@ -1285,7 +1327,6 @@ int	main(int argc, char *argv[])
 	}
 
 	cgr_start();
-	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -1293,12 +1334,18 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));
 	sdr_exit_xn(sdr);
 	oK(_ipnfwSemaphore(&vscheme->semaphore));
 	isignal(SIGTERM, shutDown);
+	if (openCgr(getOwnNodeNbr(), ionReferenceTime(NULL), &sap) < 0)
+	{
+		putErrmsg("Can't open CGR service access point.", NULL);
+		return -1;
+	}
 
 	/*	Main loop: wait until forwarding queue is non-empty,
 	 *	then drain it.						*/
@@ -1358,7 +1405,7 @@ int	main(int argc, char *argv[])
 		 *	database.					*/
 
 		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
-		if (enqueueBundle(&bundle, bundleAddr) < 0)
+		if (enqueueBundle(&bundle, bundleAddr, sap) < 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't enqueue bundle.", NULL);
@@ -1377,6 +1424,7 @@ int	main(int argc, char *argv[])
 		sm_TaskYield();
 	}
 
+	closeCgr();
 	writeErrmsgMemos();
 	writeMemo("[i] ipnfw forwarder has ended.");
 	ionDetach();
