@@ -420,7 +420,8 @@ printf("Net confidence %f.\n", netConfidence);
 	if (xmitRate > 1)
 	{
 		if (rfx_insert_contact(regionIdx, horizon, horizon, fromNode,
-				toNode, xmitRate, netConfidence, &cxaddr) < 0)
+				toNode, xmitRate, netConfidence, &cxaddr) < 0
+		|| cxaddr == 0)
 		{
 			putErrmsg("Can't insert predicted contact.", NULL);
 			return -1;
