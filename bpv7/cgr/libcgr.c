@@ -2323,9 +2323,16 @@ int	cgr_create_routing_object(IonNode *node)
 	return 0;
 }
 
+int	cgr_start_SAP(uvast ownNodeNbr, time_t referenceTime, CgrSAP *sap)
+{
+	*sap = NULL;
+	return 0;
+}
+
 int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
-			Object bundleObj, Lyst excludedNodes, CgrTrace *trace,
-			Lyst bestRoutes, time_t currentTime)
+			Object bundleObj, Lyst excludedNodes, 
+			time_t currentTime, CgrSAP sap, CgrTrace *trace,
+			Lyst bestRoutes) 
 {
 	PsmPartition	ionwm = getIonwm();
 	CgrVdb		*cgrvdb = cgr_get_vdb();
@@ -2388,6 +2395,11 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	return 0;
 }
 
+void	cgr_stop_SAP(CgrSAP sap)
+{
+	return;
+}
+
 static void	deleteObject(LystElt elt, void *userdata)
 {
 	void	*object = lyst_data(elt);
@@ -2398,8 +2410,8 @@ static void	deleteObject(LystElt elt, void *userdata)
 	}
 }
 
-int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
-		uvast terminusNodeNbr, time_t atTime, CgrTrace *trace)
+int	cgr_preview_forward(uvast terminusNodeNbr, Bundle *bundle, Object
+			bundleObj, time_t atTime, CgrSAP sap, CgrTrace *trace)
 {
 	IonVdb		*ionvdb = getIonVdb();
 	IonNode		*terminusNode;
@@ -2433,7 +2445,7 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
 	}
 
 	result = cgr_identify_best_routes(terminusNode, bundle, bundleObj,
-			excludedNodes, trace, bestRoutes, atTime);
+			excludedNodes, atTime, sap, trace, bestRoutes);
 	lyst_destroy(bestRoutes);
 	lyst_destroy(excludedNodes);
        	if (result < 0)
