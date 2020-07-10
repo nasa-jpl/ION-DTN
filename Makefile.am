@@ -922,7 +922,7 @@ bpbin = \
 	lgsend \
 	ltpcli \
 	ltpclo \
-	node \
+	bpa \
 	stcpcli \
 	stcpclo \
 	tcpcli \
@@ -1395,9 +1395,9 @@ beacon_SOURCES = $(BP_DIR)/ipnd/beacon.c
 beacon_LDADD = libbp.la libici.la $(LIBOBJS)
 beacon_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-node_SOURCES = $(BP_DIR)/ipnd/bpa.c
-node_LDADD = libbp.la libici.la $(LIBOBJS)
-node_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+bpa_SOURCES = $(BP_DIR)/ipnd/bpa.c
+bpa_LDADD = libbp.la libici.la $(LIBOBJS)
+bpa_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BSSP Executables --- #
 
