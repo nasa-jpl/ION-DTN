@@ -23,7 +23,40 @@
  *                       attributes from LtpPdu structure.
  *                       Removed LtpAuthHeaderExtension and
  *                       LtpAuthTrailerExtension structures.
+ *	07-13-20    SB   UDP_MULTISEND option added, based on research
+ *			 and development done by Eric Yeh at Boeing
+ *			 Research and Technology.
  */
+
+/*	The UDP_MULTISEND option can improve LTP performance by
+ *	sharply reducing system call overhead: multiple LTP segments
+ *	encapsulated in UDP datagrams may be transmitted with a
+ *	single sendmmsg() call rather than multiple sendmsg() calls.
+ *	This reduces the cost of sending LTP blocks in small segments,
+ *	which in turn can limit IP fragmentation for LTP traffic.
+ *
+ *	Note that sendmmsg() has no built-in rate control and offers
+ *	no opportunity to exercise the rate control algorithm that
+ *	minimizes UDP congestion loss in non-MULTISEND LTP.  In order
+ *	to achieve similar reduction in UDP congestion loss, a node
+ *	that receives data sent by sendmmsg() may need to be configured
+ *	for larger socket buffers.  The sysctl utility may be used
+ *	for this purpose, setting new values for net.core.rmem_max
+ *	and _default and net.core.wmem_max and _default.		*/
+
+#ifdef	UDP_MULTISEND
+#if (defined(linux) && !(defined(bionic)))
+#ifndef MULTISEND_SEGMENT_SIZE
+#define	MULTISEND_SEGMENT_SIZE	(1450)
+#endif
+#ifndef MULTIRECV_BUFFER_COUNT
+#define	MULTIRECV_BUFFER_COUNT	(127)
+#endif
+#define	_GNU_SOURCE
+#else 	/*	!(defined(linux) && !(defined(bionic)))			*/
+#undef	UDP_MULTISEND
+#endif	/*	End of #if (defined(linux) && !(defined(bionic)))	*/
+#endif	/*	End if #ifdef UDP_MULTISEND				*/
 
 #include "rfx.h"
 #include "lyst.h"

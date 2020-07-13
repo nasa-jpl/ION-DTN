@@ -1363,6 +1363,20 @@ int	addSpan(uvast engineId, unsigned int maxExportSessions,
 		return 0;
 	}
 
+#ifdef UDP_MULTISEND
+	if (strlen(lsoCmd) > 2 && memcmp(lsoCmd, "udp", 3) == 0)
+	{
+		/*	Using UDP/IP at link service layer.		*/
+
+		if (maxSegmentSize > MULTISEND_SEGMENT_SIZE)
+		{
+			maxSegmentSize = MULTISEND_SEGMENT_SIZE;
+			writeMemoNote("[i] Note max segment size reduced \
+to work with UDP sendmmsg()", itoa(maxSegmentSize));
+		}
+	}
+#endif
+
 	/*	Note: RFC791 says that IPv4 hosts cannot set maximum
 	 *	IP packet length to any value less than 576 bytes (the
 	 *	PPP MTU size).  IPv4 packet header length ranges from
@@ -1473,6 +1487,20 @@ string too long.", lsoCmd);
 			}
 		}
 	}
+
+#ifdef UDP_MULTISEND
+	if (strlen(lsoCmd) > 2 && memcmp(lsoCmd, "udp", 3) == 0)
+	{
+		/*	Using UDP/IP at link service layer.		*/
+
+		if (maxSegmentSize > MULTISEND_SEGMENT_SIZE)
+		{
+			maxSegmentSize = MULTISEND_SEGMENT_SIZE;
+			writeMemoNote("[i] Note max segment size reduced \
+to work with UDP sendmmsg()", itoa(maxSegmentSize));
+		}
+	}
+#endif
 
 	if (maxSegmentSize)
 	{
@@ -5677,8 +5705,7 @@ static int	insertClaim(ExportSession *session, LtpReceptionClaim *claim)
 		return -1;
 	}
 
-	sdr_write(sdr, claimObj, (char *) claim,
-			sizeof(LtpReceptionClaim));
+	sdr_write(sdr, claimObj, (char *) claim, sizeof(LtpReceptionClaim));
 	return 0;
 }
 

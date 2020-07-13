@@ -292,6 +292,7 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
+
 #ifndef SOCK_CLOEXEC
 #define SOCK_CLOEXEC		0
 #endif
@@ -632,6 +633,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
+
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
 #ifndef uClibc			/****	uClibc subset of Linux	     ****/

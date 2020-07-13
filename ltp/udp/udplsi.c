@@ -16,77 +16,6 @@ static void	interruptThread(int signum)
 	ionKillMainThread("udplsi");
 }
 
-/*	*	*	Receiver thread functions	*	*	*/
-
-typedef struct
-{
-	int		linkSocket;
-	int		running;
-} ReceiverThreadParms;
-
-static void	*handleDatagrams(void *parm)
-{
-	/*	Main loop for UDP datagram reception and handling.	*/
-
-	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
-	char			*procName = "udplsi";
-	char			*buffer;
-	int			segmentLength;
-	struct sockaddr_in	fromAddr;
-	socklen_t		fromSize;
-
-	snooze(1);	/*	Let main thread become interruptable.	*/
-	buffer = MTAKE(UDPLSA_BUFSZ);
-	if (buffer == NULL)
-	{
-		putErrmsg("udplsi can't get UDP buffer.", NULL);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
-	/*	Can now start receiving bundles.  On failure, take
-	 *	down the LSI.						*/
-
-	while (rtp->running)
-	{	
-		fromSize = sizeof fromAddr;
-		segmentLength = irecvfrom(rtp->linkSocket, buffer, UDPLSA_BUFSZ,
-				0, (struct sockaddr *) &fromAddr, &fromSize);
-		switch (segmentLength)
-		{
-		case -1:
-			putSysErrmsg("Can't acquire segment", NULL);
-			ionKillMainThread(procName);
-
-			/*	Intentional fall-through to next case.	*/
-
-		case 1:				/*	Normal stop.	*/
-			rtp->running = 0;
-			continue;
-		}
-
-		if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
-		{
-			putErrmsg("Can't handle inbound segment.", NULL);
-			ionKillMainThread(procName);
-			rtp->running = 0;
-			continue;
-		}
-
-		/*	Make sure other tasks have a chance to run.	*/
-
-		sm_TaskYield();
-	}
-
-	writeErrmsgMemos();
-	writeMemo("[i] udplsi receiver thread has ended.");
-
-	/*	Free resources.						*/
-
-	MRELEASE(buffer);
-	return NULL;
-}
-
 /*	*	*	Main thread functions	*	*	*	*/
 
 #if defined (ION_LWT)
@@ -164,7 +93,7 @@ int	main(int argc, char *argv[])
 	|| getsockname(rtp.linkSocket, &socketName, &nameLength) < 0)
 	{
 		closesocket(rtp.linkSocket);
-		putSysErrmsg("Can't initialize socket", NULL);
+		putSysErrmsg("LSI can't initialize UDP socket", NULL);
 		return 1;
 	}
 
@@ -176,8 +105,8 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleDatagrams,
-		&rtp, "udplsi_receiver"))
+	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
+			&rtp, "udplsi_receiver"))
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("udplsi can't create receiver thread", NULL);
@@ -202,7 +131,9 @@ int	main(int argc, char *argv[])
 
 	rtp.running = 0;
 
-	/*	Create one-use socket for the closing quit byte.	*/
+	/*	Wake up the receiver thread by opening a single-use
+	 *	transmission socket and sending a 1-byte datagram
+	 *	to the reception socket.				*/
 
 	if (ipAddress == 0)	/*	Receiving on INADDR_ANY.	*/
 	{
@@ -214,9 +145,6 @@ int	main(int argc, char *argv[])
 		memcpy((char *) &(inetName->sin_addr.s_addr),
 				(char *) &ipAddress, 4);
 	}
-
-	/*	Wake up the receiver thread by sending it a 1-byte
-	 *	datagram.						*/
 
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)

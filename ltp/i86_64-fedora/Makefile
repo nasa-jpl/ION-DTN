@@ -85,12 +85,16 @@ sdatest:	sdatest.o libltp.so
 
 #	-	-	UDP executables	-	-	-	-	-
 
-udplsi:		udplsi.o libltp.so
-		$(CC) -o udplsi udplsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+libudplsa:	libudplsa.o libltp.so
+		$(CC) -o libudplsa libudplsa.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp libudplsa.o ./bin
+
+udplsi:		udplsi.o libltp.so libudplsa.o
+		$(CC) -o udplsi udplsi.o libudplsa.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp udplsi ./bin
 
-udplso:		udplso.o libltp.so
-		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+udplso:		udplso.o libltp.so libudplsa.o
+		$(CC) -o udplso udplso.o libudplsa.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp udplso ./bin
 
 #	-	-	DCCP executables-	-	-	-	-
