@@ -11,7 +11,7 @@ IS_NASA_B=0
 #  all of the portability warnings introduced by autoconf v2.69 and
 #  automake v1.12.
 #AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
-AM_INIT_AUTOMAKE([subdir-objects no-dependencies -Wall foreign])
+AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
@@ -163,6 +163,12 @@ AC_ARG_ENABLE(
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
      BUILD_BPv6=true
+     BP_DIR="bpv6"
+     AC_SUBST([BP_DIR])
+
+     # Insert bpv6 build steps into Makefile.am
+     sed '/# Build BP based on version chosen by configure.ac/r ./bpv6/bpv6_Makefile' ./Makefile.noBP > Makefile.am
+
      case "${ENABLE_BPACS}" in
 		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
 		no)  ENABLE_BPACS=no;;
@@ -172,6 +178,12 @@ AC_ARG_ENABLE(
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
      BUILD_BPv7=true
+     BP_DIR="bpv7"
+     AC_SUBST([BP_DIR])
+
+     # Insert bpv7 build steps into Makefile.am
+     sed '/# Build BP based on version chosen by configure.ac/r ./bpv7/bpv7_Makefile' ./Makefile.noBP > Makefile.am
+
      ENABLE_BPACS=no
      echo "Building ION with BP version 7"])
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)

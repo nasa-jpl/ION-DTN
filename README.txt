@@ -63,8 +63,8 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************
 
-To build and install the entire ION system on a Linux, OS/X, or Solaris platform,
-just cd into ion-open-source and enter three commands:
+To build and install the entire ION system on a Linux, OS/X, or Solaris
+platform, cd into ion-open-source and enter three commands:
 
 	./configure
 	make
@@ -104,8 +104,8 @@ this option, be aware of the dependencies among the packages:
 	and "ici".
 
 Also, be aware that these Makefiles install everything into subdirectories
-of /opt.  To override this behavior, change the value of OPT in the top-level
-Makefile of each package.
+of /usr/local.  To override this behavior, change the value of OPT in the
+top-level Makefile of each package.
 
 Additional details are provided in the README.txt files in the root
 directories of some of the subsystems.
