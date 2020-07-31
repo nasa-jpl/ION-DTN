@@ -1085,7 +1085,8 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	BpsecOutboundBlock	asb;
 	int			result = 0;
 
-//<<--	Must attach block, even if only as placeholder.
+	/*	Block must be offered as a placeholder to enable
+	 *	later extension block processing.			*/
 
 	BCB_DEBUG_PROC("+ bcbOffer(%x, %x)",
                   (unsigned long) blk, (unsigned long) bundle);

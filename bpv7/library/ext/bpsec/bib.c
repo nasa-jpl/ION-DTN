@@ -1183,7 +1183,8 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	BpsecOutboundBlock	asb;
 	int8_t			result = 0;
 
-//<<-- Must attach block, even if only as placeholder.
+	/*	Block must be offered as a placeholder to enable
+	 *	later extension block processing.			*/
 
 	BIB_DEBUG_PROC("+ bibOffer(0x%x, 0x%x)",
                   (unsigned long) blk, (unsigned long) bundle);

@@ -1,9 +1,8 @@
 /*
  *	snw.c:		implementation of the extension definition
- *			functions for the Extended Class of Service
- *			block.
+ *			functions for the Spray and Wait block.
  *
- *	Copyright (c) 2008, California Institute of Technology.
+ *	Copyright (c) 2019, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
  *
@@ -16,36 +15,10 @@
 
 int	snw_offer(ExtensionBlock *blk, Bundle *bundle)
 {
-	return 0;
-}
+	/*	Block must be offered as a placeholder to enable
+	 *	later extension block processing.			*/
 
-void	snw_release(ExtensionBlock *blk)
-{
-	return;
-}
-
-int	snw_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	snw_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	snw_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	snw_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	snw_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
+	blk->size = 1;	/*	Bogus object size, to avert deletion.	*/
 	return 0;
 }
 
@@ -56,19 +29,16 @@ int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 
-	if (bundle->permits == 0)
+	if (bundle->permits == 0)	/*	SNW block unnecessary.	*/
 	{
-		return 0;	/*	SNW block is unnecessary.	*/
+		blk->size = 0;
+		return 0;
 	}
 
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	blk->size = 0;
 	blk->object = 0;
-	if (bundle->permits == 1)
-	{
-		permits = 1;
-	}
-	else
+	if (bundle->permits > 1)
 	{
 		permits = (bundle->permits >> 1) & 0x7f;
 		bundle->permits -= permits;
@@ -117,9 +87,4 @@ int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	snw_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	snw_clear(AcqExtBlock *blk)
-{
-	return;
 }

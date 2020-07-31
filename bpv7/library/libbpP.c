@@ -2968,6 +2968,11 @@ incomplete bundle.", NULL);
 	 *	free space occupied by the bundle itself.		*/
 
 	eraseEid(&bundle.clDossier.senderEid);
+	if (bundle.destinations)	/*	For IMC multicast.	*/
+	{
+		sdr_list_destroy(sdr, bundle.destinations, NULL, NULL);
+	}
+
 	destroyExtensionBlocks(&bundle);
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
@@ -5611,6 +5616,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	Object		elt;
+	uvast		nodeNbr;
 
 	CHKERR(oldBundle && newBundle && newBundleObj);
 	if (oldBundle->payload.content == 0)
@@ -5723,6 +5730,30 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 			newBundle->id.fragmentOffset = offset;
 			newBundle->totalAduLength = oldBundle->payload.length;
 			newBundle->bundleProcFlags |= BDL_IS_FRAGMENT;
+		}
+	}
+
+	/*	Copy IMC multicast destinations list as needed.		*/
+
+	if (oldBundle->destinations)
+	{
+		newBundle->destinations = sdr_list_create(sdr);
+		if (newBundle->destinations == 0)
+		{
+			putErrmsg("Can't copy IMC destinations list.", NULL);
+			return -1;
+		}
+
+		for (elt = sdr_list_first(sdr, oldBundle->destinations); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			nodeNbr = (uvast) sdr_list_data(sdr, elt);
+			if (sdr_list_insert_last(sdr, newBundle->destinations,
+					nodeNbr) == 0)
+			{
+				putErrmsg("Can't copy IMC destination.", NULL);
+				return -1;
+			}
 		}
 	}
 
@@ -5864,8 +5895,8 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	stack, which is only sdrstrings.  We cannot
 		 *	forward this bundle.
 		 *
-		 *	Must write the bundle to the SDR in order to
-		 *	destroy it successfully.			*/
+		 *	But must write the bundle to the SDR in order
+		 *	to destroy it successfully.			*/
 
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);

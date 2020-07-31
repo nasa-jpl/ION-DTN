@@ -333,14 +333,18 @@ typedef struct
 	unsigned int	age;		/*	In microseconds.	*/
 	struct timeval	arrivalTime;
 
-	/*	Stuff in (or for) the Bundle Age extension block.	*/
+	/*	Stuff in (or for) the Hop Count extension block.	*/
 
 	unsigned int	hopLimit;
 	unsigned int	hopCount;
 
-	/*	Stuff in Spray and Wait extension block.		*/
+	/*	Stuff in the Spray and Wait extension block.		*/
 
 	unsigned char	permits;	/*	# SnW fwd permits left.	*/
+
+	/*	Stuff in the IPN Multicast extension block.		*/
+
+	Object		destinations;	/*	SDR list of node nbrs.	*/
 
 	/*	Stuff in Payload block.					*/
 

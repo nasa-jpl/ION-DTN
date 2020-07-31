@@ -89,7 +89,7 @@ static ImcDB	*_imcConstants()
 }
 
 /*	*	*	Petition exchange functions	*	*	*/
-
+#if 0
 static int	sendPetition(uvast nodeNbr, unsigned char *buffer, int length)
 {
 	char		sourceEid[32];
@@ -149,18 +149,18 @@ static int	sendPetition(uvast nodeNbr, unsigned char *buffer, int length)
 		return 0;
 	}
 }
-
+#endif
 static int	forwardPetition(ImcGroup *group, int isMember,
 			uvast senderNodeNbr)
 {
-	Sdr		sdr = getIonsdr();
+//	Sdr		sdr = getIonsdr();
 	int		maxPetition;
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
-	int		petitionLength;
-	Object		elt;
-			OBJ_POINTER(NodeId, node);
+//	int		petitionLength;
+//	Object		elt;
+//			OBJ_POINTER(NodeId, node);
 	int		result = 0;
 
 	/*	Create buffer for serializing petition message.		*/
@@ -203,7 +203,7 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 
 	uvtemp = isMember;
 	oK(cbor_encode_integer(uvtemp, &cursor));
-
+#if 0
 	/*	Now send the petition to all kin.			*/
 
 	petitionLength = cursor - buffer;
@@ -222,7 +222,7 @@ static int	forwardPetition(ImcGroup *group, int isMember,
 			break;
 		}
 	}
-
+#endif
 	MRELEASE(buffer);
 	return result;
 }
@@ -256,7 +256,9 @@ int	imcInit()
 		}
 
 		memset((char *) &imcdbBuf, 0, sizeof(ImcDB));
+#if 0
 		imcdbBuf.kin = sdr_list_create(sdr);
+#endif
 		imcdbBuf.groups = sdr_list_create(sdr);
 		sdr_write(sdr, imcdbObject, (char *) &imcdbBuf, sizeof(ImcDB));
 		sdr_catlg(sdr, IMC_DBNAME, 0, imcdbObject);
@@ -285,278 +287,6 @@ Object	getImcDbObject()
 ImcDB	*getImcConstants()
 {
 	return _imcConstants();
-}
-
-/*	*	*	Multicast tree mgt functions	*	*	*/
-
-static Object	locateRelative(uvast nodeNbr, Object *nextRelative)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(NodeId, node);
-
-	if (nextRelative) *nextRelative = 0;	/*	Default.	*/
-	for (elt = sdr_list_first(sdr, (_imcConstants())->kin); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, NodeId, node, sdr_list_data(sdr, elt));
-		if (node->nbr < nodeNbr)
-		{
-			continue;
-		}
-
-		if (node->nbr > nodeNbr)
-		{
-			if (nextRelative) *nextRelative = elt;
-			break;		/*	Same as end of list.	*/
-		}
-
-		return elt;
-	}
-
-	return 0;
-}
-
-int	imc_addKin(uvast nodeNbr, int isParent)
-{
-	Sdr		sdr = getIonsdr();
-	Object		dbObj = getImcDbObject();
-	ImcDB		db;
-	Object		nextRelative;
-	Object		addr;
-	Object		elt;
-			OBJ_POINTER(ImcGroup, group);
-	int		maxPetition;
-	unsigned char	*buffer;
-	unsigned char	*cursor;
-	uvast		uvtemp;
-	int		petitionLength;
-
-	CHKERR(nodeNbr);
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
-	if (locateRelative(nodeNbr, &nextRelative) != 0)
-	{
-		sdr_exit_xn(sdr);
-		writeMemoNote("[?] Duplicate multicast kin", utoa(nodeNbr));
-		return 0;
-	}
-
-	/*	Okay to add this relative to the database.		*/
-
-	addr = createNodeId(sdr, nodeNbr);
-	if (nextRelative)
-	{
-		oK(sdr_list_insert_before(sdr, nextRelative, addr));
-	}
-	else
-	{
-		oK(sdr_list_insert_last(sdr, db.kin, addr));
-	}
-
-	if (isParent)
-	{
-		db.parent = nodeNbr;
-		sdr_write(sdr, dbObj, (char *) &db, sizeof(ImcDB));
-	}
-
-	/*	Create a buffer for serializing petition messages.	*/
-
-	maxPetition = 1		/*	admin record array (2 items)	*/
-		+ 2		/*	record type, 2-item array	*/
-		+ 9		/*	max length of group number	*/
-		+ 1;		/*	membership switch (Boolean)	*/
-	buffer = MTAKE(maxPetition);
-	if (buffer == NULL)
-	{
-		putErrmsg("Can't construct IMC petition.", NULL);
-		sdr_cancel_xn(sdr);
-		return -1;
-	}
-
-	/*	Now send new relative an assertion petition for
-	 *	every group that has at least one member.		*/
-
-	for (elt = sdr_list_first(sdr, (_imcConstants())->groups); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt));
-		if (sdr_list_length(sdr, group->members) == 0
-		&& group->isMember == 0)
-		{
-			continue;
-		}
-
-		/*	Must send a petition for this group.		*/
-
-		cursor = buffer;
-
-		/*	Sending an admin record, an array of 2 items.	*/
-
-		uvtemp = 2;
-		oK(cbor_encode_array_open(uvtemp, &cursor));
-
-		/*	First item of admin record is record type code.	*/
-
-		uvtemp = BP_MULTICAST_PETITION;
-		oK(cbor_encode_integer(uvtemp, &cursor));
-
-		/*	Second item of admin record is content, the
-	 	*	petition message, which is an array of 2 items.	*/
-
-		uvtemp = 2;
-		oK(cbor_encode_array_open(uvtemp, &cursor));
-
-		/*	First item of array (petition) is the group
-		 *	number.						*/
-
-		uvtemp = group->groupNbr;
-		oK(cbor_encode_integer(uvtemp, &cursor));
-
-		/*	Second item of array is the membership switch.	*/
-
-		uvtemp = 1;
-		oK(cbor_encode_integer(uvtemp, &cursor));
-
-		/*	Now send this petition.				*/
-
-		petitionLength = cursor - buffer;
-		if (sendPetition(nodeNbr, buffer, petitionLength) < 0)
-		{
-			putErrmsg("Can't send subscription to new relative.",
-					itoa(group->groupNbr));
-			sdr_cancel_xn(sdr);
-			break;
-		}
-	}
-
-	MRELEASE(buffer);
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't add relative.", itoa(nodeNbr));
-		return -1;
-	}
-
-	return 1;
-}
-
-int	imc_updateKin(uvast nodeNbr, int isParent)
-{
-	Sdr	sdr = getIonsdr();
-	Object	dbObj = getImcDbObject();
-	ImcDB	db;
-
-	CHKERR(nodeNbr);
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
-	if (locateRelative(nodeNbr, NULL) == 0)
-	{
-		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This node is not kin", utoa(nodeNbr));
-		return 0;
-	}
-
-	/*	Okay to update status of this relative.			*/
-
-	if (isParent)	/*	This is the local node's new parent.	*/
-	{
-		db.parent = nodeNbr;
-		sdr_write(sdr, dbObj, (char *) &db, sizeof(ImcDB));
-	}
-	else	/*	This node is no longer the local node's parent.	*/
-	{
-		if (db.parent == nodeNbr)
-		{
-			db.parent = 0;
-			sdr_write(sdr, dbObj, (char *) &db, sizeof(ImcDB));
-		}
-	}
-
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't update relative.", itoa(nodeNbr));
-		return -1;
-	}
-
-	return 1;
-}
-
-void	imc_removeKin(uvast nodeNbr)
-{
-	Sdr	sdr = getIonsdr();
-	Object	dbObj = getImcDbObject();
-	uvast	ownNodeNbr = getOwnNodeNbr();
-	ImcDB	db;
-	Object	elt;
-	Object	elt2;
-	Object	nextElt;
-		OBJ_POINTER(ImcGroup, group);
-	Object	elt3;
-		OBJ_POINTER(NodeId, node);
-
-	CHKVOID(nodeNbr);
-	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &db, dbObj, sizeof(ImcDB));
-	elt = locateRelative(nodeNbr, NULL);
-	if (elt == 0)
-	{
-		sdr_exit_xn(sdr);
-		writeMemoNote("[?] This node is not kin", utoa(nodeNbr));
-		return;
-	}
-
-	/*	Okay to remove this relative.				*/
-
-	sdr_list_delete(sdr, elt, NULL, NULL);
-	if (db.parent == nodeNbr)
-	{
-		db.parent = 0;
-		sdr_write(sdr, dbObj, (char *) &db, sizeof(ImcDB));
-	}
-
-	/*	Cancel all of this relative's group memberships.	*/
-	
-	for (elt2 = sdr_list_first(sdr, (_imcConstants())->groups); elt2;
-			elt2 = nextElt)
-	{
-		nextElt = sdr_list_next(sdr, elt2);
-		GET_OBJ_POINTER(sdr, ImcGroup, group, sdr_list_data(sdr, elt2));
-		for (elt3 = sdr_list_first(sdr, group->members); elt3;
-				elt3 = sdr_list_next(sdr, elt3))
-		{
-			GET_OBJ_POINTER(sdr, NodeId, node,
-					sdr_list_data(sdr, elt3));
-			if (node->nbr == nodeNbr)
-			{
-				break;
-			}
-		}
-
-		if (elt3)	/*	Node is a member of this group.	*/
-		{
-			sdr_list_delete(sdr, elt3, NULL, NULL);
-			if (sdr_list_length(sdr, group->members) == 0
-			&& group->isMember == 0)
-			{
-				/*	No more members; unsubscribe.	*/
-
-				if (forwardPetition(group, 0, ownNodeNbr) < 0)
-				{
-					sdr_cancel_xn(sdr);
-					break;
-				}
-				else
-				{
-					destroyGroup(elt2);
-				}
-			}
-		}
-	}
-
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't remove relative.", itoa(nodeNbr));
-	}
 }
 
 /*	*	*	Multicast group mgt functions	*	*	*/
@@ -706,7 +436,6 @@ int	imcHandlePetition(BpDelivery *dlv, unsigned char *cursor,
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
-	Object		nextRelative;
 	Object		groupElt;
 	Object		nextGroup;
 			OBJ_POINTER(ImcGroup, group);
@@ -753,6 +482,7 @@ node " UVAST_FIELDSPEC ".\n", isMember, metaEid.nodeNbr, getOwnNodeNbr());
 fflush(stdout);
 #endif
 	CHKERR(sdr_begin_xn(sdr));
+#if 0
 	if (locateRelative(metaEid.elementNbr, &nextRelative) == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -760,6 +490,7 @@ fflush(stdout);
 				utoa(metaEid.elementNbr));
 		return 0;
 	}
+#endif
 
 	groupElt = locateGroup(groupNbr, &nextGroup);
 	if (groupElt == 0)

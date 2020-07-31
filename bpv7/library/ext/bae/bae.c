@@ -30,36 +30,6 @@ int	bae_offer(ExtensionBlock *blk, Bundle *bundle)
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
-void	bae_release(ExtensionBlock *blk)
-{
-	return;
-}
-
-int	bae_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	bae_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	bae_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	bae_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	bae_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
 int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	struct timeval	currentTime;
@@ -132,9 +102,4 @@ int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	bae_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	bae_clear(AcqExtBlock *blk)
-{
-	return;
 }
