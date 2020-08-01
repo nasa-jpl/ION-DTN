@@ -2338,6 +2338,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	CgrVdb		*cgrvdb = cgr_get_vdb();
 	time_t		deadline;
 	CgrRtgObject	*routingObj;
+	int		potential;
 
 	deadline = bundle->expirationTime + EPOCH_2000_SEC;
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
@@ -2392,7 +2393,9 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 		}
 	}
 
-	return 0;
+	potential = sm_list_length(ionwm, routingObj->selectedRoutes)
+			+ sm_list_length(ionwm, routingObj->knownRoutes);
+	return potential;
 }
 
 void	cgr_stop_SAP(CgrSAP sap)

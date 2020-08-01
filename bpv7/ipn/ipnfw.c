@@ -718,10 +718,9 @@ static int	proxNodeRedundant(Bundle *bundle, vast nodeNbr)
 }
 
 static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
-			IonNode *terminusNode, Lyst bestRoutes, int preview)
+			IonNode *terminusNode, Lyst bestRoutes, int potential,
+			int preview)
 {
-	PsmPartition	ionwm = getIonwm();
-	CgrRtgObject	*routingObject;
 	LystElt		elt;
 	LystElt		nextElt;
 	CgrRoute	*route;
@@ -779,11 +778,7 @@ static int	sendCriticalBundle(Bundle *bundle, Object bundleObj,
 		return 0;	/*	Potential future fwd unneeded.	*/
 	}
 
-	routingObject = (CgrRtgObject *) psp(ionwm,
-			terminusNode->routingObject);
-	if (routingObject == 0
-	|| (sm_list_length(ionwm, routingObject->selectedRoutes) == 0
-	&& sm_list_length(ionwm, routingObject->knownRoutes) == 0))
+	if (potential == 0)
 	{
 		return 0; 	/*	No potential future forwarding.	*/
 	}
@@ -872,16 +867,14 @@ static int	forwardOkay(CgrRoute *route, Bundle *bundle)
 static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 			time_t atTime, CgrTrace *trace, int preview)
 {
-	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	CgrVdb		*cgrvdb = cgr_get_vdb();
 	int		ionMemIdx;
 	Lyst		bestRoutes;
 	Lyst		excludedNodes;
+	int		potential;
 	LystElt		elt;
 	CgrRoute	*route;
-	PsmAddress	routingObjectAddr;
-	CgrRtgObject	*routingObject;
 	Bundle		newBundle;
 	Object		newBundleObj;
 
@@ -962,8 +955,9 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 		}
 	}
 
-	if (cgr_identify_best_routes(terminusNode, bundle, bundleObj,
-		excludedNodes, atTime, cgrSap(NULL), trace, bestRoutes) < 0)
+	potential = cgr_identify_best_routes(terminusNode, bundle, bundleObj,
+			excludedNodes, atTime, cgrSap(NULL), trace, bestRoutes);
+       	if (potential < 0)
 	{
 		putErrmsg("Can't identify best route(s) for bundle.", NULL);
 		lyst_destroy(excludedNodes);
@@ -979,7 +973,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 
 		TRACE(CgrUseAllRoutes);
 		return sendCriticalBundle(bundle, bundleObj, terminusNode,
-				bestRoutes, preview);
+				bestRoutes, potential, preview);
 	}
 
 	/*	Non-critical bundle; send to the most preferred
@@ -1024,14 +1018,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 		return 0;	/*	Potential future fwd unneeded.	*/
 	}
 
-	routingObjectAddr = terminusNode->routingObject;
-	if (routingObjectAddr == 0)
-	{
-		return 0;	/*	No potential future forwarding.	*/
-	}
-
-	routingObject = (CgrRtgObject *) psp(ionwm, routingObjectAddr);
-	if (sm_list_length(ionwm, routingObject->selectedRoutes) == 0)
+	if (potential == 0)
 	{
 		return 0;	/*	No potential future forwarding.	*/
 	}
