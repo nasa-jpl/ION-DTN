@@ -22,12 +22,35 @@ extern "C" {
 
 typedef struct
 {
+	uvast		groupNbr;
+	long		secUntilDelete;	/*	Default is -1.		*/
+	int		isMember;	/*	Boolean: local node	*/
+	Object		members;	/*	SDR list of node nbrs	*/
+	int		count[2];	/*	Passageway's counts	*/
+} ImcGroup;
+
+typedef struct
+{
 	Object		groups;		/*	SDR list of ImcGroups	*/
 } ImcDB;
+
+typedef struct
+{
+	uvast		groupNbr;
+	int		isMember;	/*	Boolean			*/
+} ImcPetition;
 
 extern int		imcInit();
 extern Object		getImcDbObject();
 extern ImcDB		*getImcConstants();
+
+extern void		imcFindGroup(uvast groupNbr, Object *addr,
+				Object *eltp);
+
+extern int		imcHandleBriefing(BpDelivery *dlv,
+				unsigned char *cursor,
+				unsigned int unparsedBytes);
+extern int		imcSendPetition(ImcPetition *petition, vast toRegion);
 
 #ifdef __cplusplus
 }

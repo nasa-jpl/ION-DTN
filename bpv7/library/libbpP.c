@@ -27,7 +27,7 @@
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
-#include "imcP.h"
+#include "imcfw.h"
 #include "saga.h"
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
@@ -528,25 +528,27 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 
 	/*	Compute admin EID for this scheme.			*/
 
-	if (vscheme->codeNumber != imc)
+	switch (vscheme->codeNumber)
 	{
-		if (vscheme->codeNumber == ipn)
-		{
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
-				getOwnNodeNbr());
-		}
-		else	/*	Assume it's dtn.			*/
-		{
+	case imc:
+		istrcpy(vscheme->adminEid, "imc:0.0", sizeof vscheme->adminEid);
+		break;
+
+	case ipn:
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+			"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
+			getOwnNodeNbr());
+		break;
+
+	default:	/*	Assume it's dtn.			*/
 #ifdef ION_NO_DNS
-			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
+		istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
 #else
-			getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
+		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
 #endif
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
 				"%.15s://%.60s.dtn", vscheme->name,
 				hostNameBuf);
-		}
 	}
 
 	vscheme->endpoints = sm_list_create(bpwm);
@@ -617,35 +619,32 @@ static void	startScheme(VScheme *vscheme)
 	Scheme		scheme;
 	char		cmdString[SDRSTRING_BUFSZ];
 
-	if (vscheme->codeNumber != imc)
+	if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
+			&vschemeElt) == 0)
 	{
-		if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
-				&vschemeElt) == 0)
-		{
-			restoreEidString(&metaEid);
-			writeMemoNote("[?] Malformed admin EID string",
-					vscheme->adminEid);
-			vscheme->adminNSSLength = 0;
-		}
-		else
-		{
-			vscheme->adminNSSLength = metaEid.nssLength;
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] Malformed admin EID string",
+				vscheme->adminEid);
+		vscheme->adminNSSLength = 0;
+	}
+	else
+	{
+		vscheme->adminNSSLength = metaEid.nssLength;
 
-			/*	Make sure admin endpoint exists.	*/
+		/*	Make sure admin endpoint exists.	*/
 
-			findEndpoint(vscheme->name, metaEid.nss, vscheme,
-					&vpoint, &vpointElt);
-			restoreEidString(&metaEid);
-			if (vpointElt == 0)
+		findEndpoint(vscheme->name, metaEid.nss, vscheme, &vpoint,
+				&vpointElt);
+		restoreEidString(&metaEid);
+		if (vpointElt == 0)
+		{
+			if (addEndpoint(vscheme->adminEid, EnqueueBundle, NULL)
+					< 1)
 			{
-				if (addEndpoint(vscheme->adminEid,
-						EnqueueBundle, NULL) < 1)
-				{
-					restoreEidString(&metaEid);
-					writeMemoNote("Can't add admin \
-endpoint", vscheme->adminEid);
-					vscheme->adminNSSLength = 0;
-				}
+				restoreEidString(&metaEid);
+				writeMemoNote("Can't add admin endpoint",
+						vscheme->adminEid);
+				vscheme->adminNSSLength = 0;
 			}
 		}
 	}
@@ -3370,7 +3369,7 @@ int	removeScheme(char *schemeName)
 	sdr_list_destroy(sdr, schemeBuf.endpoints, NULL, NULL);
 	if (schemeBuf.bclas)
 	{
-		sdr_list_destroy(sdr, schemeBuf.endpoints, NULL, NULL);
+		sdr_list_destroy(sdr, schemeBuf.bclas, NULL, NULL);
 	}
 
 	sdr_free(sdr, addr);
@@ -3475,6 +3474,7 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 {
 	MetaEid		metaEid;
 	PsmAddress	elt;
+	ImcPetition	petition;
 	int		result;
 
 	if (vscheme->codeNumber != imc || eid == NULL)
@@ -3482,24 +3482,13 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 		return 0;
 	}
 
-	if (imcInit() < 0)
-	{
-		putErrmsg("Can't initialize IMC database.", NULL);
-		return -1;
-	}
-
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in addEndpoint.				*/
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
-	if (metaEid.serviceNbr != 0)
-	{
-		restoreEidString(&metaEid);
-		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
-		return 0;
-	}
-
-	result = imcJoin(metaEid.elementNbr);
+	petition.groupNbr = metaEid.elementNbr;
+	petition.isMember = 1;
+	result = imcSendPetition(&petition, 0);
 	restoreEidString(&metaEid);
 	return result;
 }
@@ -3662,6 +3651,7 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 {
 	MetaEid		metaEid;
 	PsmAddress	elt;
+	ImcPetition	petition;
 	int		result;
 
 	if (vscheme->codeNumber != imc || eid == NULL)
@@ -3669,24 +3659,13 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 		return 0;
 	}
 
-	if (imcInit() < 0)
-	{
-		putErrmsg("Can't initialize IMC database.", NULL);
-		return -1;
-	}
-
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in removeEndpoint.			*/
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
-	if (metaEid.serviceNbr != 0)
-	{
-		restoreEidString(&metaEid);
-		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
-		return 0;
-	}
-
-	result = imcLeave(metaEid.elementNbr);
+	petition.groupNbr = metaEid.elementNbr;
+	petition.isMember = 0;
+	result = imcSendPetition(&petition, 0);
 	restoreEidString(&metaEid);
 	return result;
 }
@@ -11900,10 +11879,10 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 
 			break;			/*	Out of switch.	*/
 
-		case BP_MULTICAST_PETITION:
-			if (imcHandlePetition(&dlv, cursor, unparsedBytes) < 0)
+		case BP_MULTICAST_BRIEFING:
+			if (imcHandleBriefing(&dlv, cursor, unparsedBytes) < 0)
 			{
-				putErrmsg("Multicast petition handler failed.",
+				putErrmsg("Multicast briefing handler failed.",
 						NULL);
 				running = 0;
 			}

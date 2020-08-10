@@ -276,26 +276,8 @@ static void	deleteObject(LystElt elt, void *userdata)
 
 	if (object)
 	{
-		MRELEASE(lyst_data(elt));
+		MRELEASE(object);
 	}
-}
-
-static int	excludeNode(Lyst excludedNodes, uvast nodeNbr)
-{
-	NodeId	*node = (NodeId *) MTAKE(sizeof(NodeId));
-
-	if (node == NULL)
-	{
-		return -1;
-	}
-
-	node->nbr = nodeNbr;
-	if (lyst_insert_last(excludedNodes, node) == NULL)
-	{
-		return -1;
-	}
-
-	return 0;
 }
 
 static size_t	carryingCapacity(size_t avblVolume)
@@ -924,7 +906,6 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	}
 
 	lyst_delete_set(bestRoutes, deleteObject, NULL);
-	lyst_delete_set(excludedNodes, deleteObject, NULL);
 	if (!bundle->returnToSender)
 	{
 		/*	Must exclude sender of bundle from consideration
@@ -934,7 +915,8 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 		 *	because we have hit a dead end in routing and
 		 *	must backtrack.					*/
 
-		if (excludeNode(excludedNodes, bundle->clDossier.senderNodeNbr))
+		if (lyst_insert_last(excludedNodes, 
+			(void *) bundle->clDossier.senderNodeNbr) == NULL)
 		{
 			putErrmsg("Can't exclude sender from routes.", NULL);
 			lyst_destroy(excludedNodes);
@@ -955,7 +937,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 		}
 	}
 
-	potential = cgr_identify_best_routes(terminusNode, bundle, bundleObj,
+	potential = cgr_identify_best_routes(terminusNode, bundle,
 			excludedNodes, atTime, cgrSap(NULL), trace, bestRoutes);
        	if (potential < 0)
 	{

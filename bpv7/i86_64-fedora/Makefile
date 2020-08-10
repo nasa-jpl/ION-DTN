@@ -34,7 +34,6 @@ BPINCLS = \
 	$(SAGA)/saga.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
-	$(IMC)/imcP.h \
 	$(BSSP)/bsspcla.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
@@ -51,7 +50,7 @@ BPPOBJS = libbpP.o bpsec.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o s
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
@@ -171,9 +170,13 @@ ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
 
 #	-	-	IMC executables	-	-	-	-	-
 
-imcfw:		imcfw.o $(BPLIBS) libimcfw.so libipnfw.so
-		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+imcfw:		imcfw.o $(BPLIBS) libimcfw.so libipnfw.so libcgr.so
+		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread -lm
 		cp imcfw ./bin
+
+imcadminep:	imcadminep.o $(BPLIBS) libimcfw.so libipnfw.so
+		$(CC) -o imcadminep imcadminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp imcadminep ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
 

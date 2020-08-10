@@ -138,11 +138,6 @@ extern "C" {
  *	the "convergence layer" and below) to transmit the bundles
  *	to other nodes.							*/
 
-typedef struct
-{
-	uvast		nbr;
-} NodeId;				//	Still needed?
-
 typedef enum
 {
 	unknown = 0,
@@ -241,7 +236,7 @@ typedef struct
 
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
-#define	BP_MULTICAST_PETITION	(5)
+#define	BP_MULTICAST_BRIEFING	(5)
 #define	BP_SAGA_MESSAGE		(6)
 #define	BP_BIBE_PDU		(7)
 #define	BP_BIBE_SIGNAL		(8)	/*	Aggregate, in BIBE.	*/

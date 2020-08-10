@@ -331,9 +331,8 @@ than start time and earlier than 19 January 2038.");
 			xmitRate = strtol(tokens[6], NULL, 0);
 		}
 
-		oK(rfx_insert_contact(ionPickRegion(_regionIdx(NULL)),
-				fromTime, toTime, fromNodeNbr, toNodeNbr,
-				xmitRate, confidence, &xaddr));
+		oK(rfx_insert_contact(_regionIdx(NULL), fromTime, toTime,
+			fromNodeNbr, toNodeNbr, xmitRate, confidence, &xaddr));
 		oK(_forecastNeeded(1));
 		return;
 	}
