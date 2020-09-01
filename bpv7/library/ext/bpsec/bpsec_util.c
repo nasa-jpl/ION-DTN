@@ -268,7 +268,8 @@ int	bpsec_recordAsb(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 
 	if (oldAsb->securitySource.schemeCodeNbr)	/*	Waypoint*/
 	{
-		if (readEid(&oldAsb->securitySource, &eidBuf) < 0)
+		readEid(&oldAsb->securitySource, &eidBuf);
+		if (eidBuf == NULL)
 		{
 			return -1;
 		}
@@ -447,7 +448,8 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	if (oldAsb.securitySource.schemeCodeNbr)	/*	Waypoint*/
 	{
-		if (readEid(&oldAsb.securitySource, &eidBuf) < 0)
+		readEid(&oldAsb.securitySource, &eidBuf);
+		if (eidBuf == NULL)
 		{
 			return -1;
 		}
@@ -1404,21 +1406,24 @@ int	bpsec_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
 	*fromEid = NULL;	/*	Default.			*/
 	*toEid = NULL;		/*	Default.			*/
 
-	if (readEid(&(bundle->destination), toEid) < 0)
+	readEid(&(bundle->destination), toEid);
+	if (toEid == NULL)
 	{
 		return -1;
 	}
 
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		if (readEid(&(asb->securitySource), fromEid) < 0)
+		readEid(&(asb->securitySource), fromEid);
+		if (fromEid == NULL)
 		{
 			return -1;
 		}
 	}
 	else
 	{
-		if (readEid(&bundle->id.source, fromEid) < 0)
+		readEid(&bundle->id.source, fromEid);
+		if (fromEid == NULL)
 		{
 			return -1;
 		}
@@ -1561,21 +1566,24 @@ int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
 
 	*fromEid = NULL;	/*	Default.			*/
 	*toEid = NULL;		/*	Default.			*/
-	if (readEid(&(bundle->destination), toEid) < 0)
+	readEid(&(bundle->destination), toEid);
+	if (toEid == NULL)
 	{
 		return -1;
 	}
 
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		if (readEid(&(asb->securitySource), fromEid) < 0)
+		readEid(&(asb->securitySource), fromEid);
+		if (fromEid == NULL)
 		{
 			return -1;
 		}
 	}
 	else
 	{
-		if (readEid(&bundle->id.source, fromEid) < 0)
+		readEid(&bundle->id.source, fromEid);
+		if (fromEid == NULL)
 		{
 			return -1;
 		}
@@ -1615,7 +1623,8 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 	PsmAddress	elt;
 	int		result;
 
-	CHKVOID(readEid(&bundle->destination, &eidString) == 0);
+	readEid(&bundle->destination, &eidString);
+	CHKVOID(eidString);
 	adminEid = bpsec_getLocalAdminEid(eidString);
 	MRELEASE(eidString);
 	CHKVOID(parseEidString(adminEid, &metaEid, &vscheme, &elt));
@@ -1877,7 +1886,8 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
 		fromEid = NULL;
 		if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 		{
-			if (readEid(&(asb->securitySource), &fromEid) < 0)
+			readEid(&(asb->securitySource), &fromEid);
+			if (fromEid == NULL)
 			{
 				return -1;
 			}
@@ -1887,7 +1897,8 @@ int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
 			/*	No security source in block, so source
 			 *	of BIB is the source of the bundle.	*/
 
-			if (readEid(&bundle->id.source, &fromEid) < 0)
+			readEid(&bundle->id.source, &fromEid);
+			if (fromEid == NULL)
 			{
 				return -1;
 			}

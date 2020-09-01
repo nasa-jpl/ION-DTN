@@ -42,10 +42,138 @@ static int	parsePetition(ImcPetition *petition, unsigned char *cursor,
 	return 1;
 }
 
+static int	briefNewNode(uvast nodeNbr)
+{
+	Sdr		sdr = getIonsdr();
+	ImcDB		*imcConstants = getImcConstants();
+	char		ownEid[32];
+	MetaEid		sourceMetaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	char		destEid[32];
+	Lyst		ownGroups;
+	Object		elt;
+	Object		groupAddr;
+	ImcGroup	group;
+	int		bufsize;
+	unsigned char	*buffer;
+	unsigned char	*cursor;
+	uvast		uvtemp;
+	LystElt		elt2;
+	uvast		groupNbr;
+	int		aduLength;
+	Object		aduObj;
+	Object		aduZco;
+
+	isprintf(ownEid, sizeof(ownEid), "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	oK(parseEidString(ownEid, &sourceMetaEid, &vscheme, &vschemeElt));
+	isprintf(destEid, sizeof(destEid), "ipn:" UVAST_FIELDSPEC ".0",
+			nodeNbr);
+	ownGroups = lyst_create_using(getIonMemoryMgr());
+	if (ownGroups == NULL)
+	{
+		putErrmsg("Can't compile groups list for briefing.", NULL);
+		return -1;
+	}
+
+	for (elt = sdr_list_first(sdr, imcConstants->groups); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		groupAddr = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
+		if (group.isMember)
+		{
+			if (lyst_insert_last(ownGroups,
+					(void *) group.groupNbr) == NULL)
+			{
+				sdr_exit_xn(sdr);
+				lyst_destroy(ownGroups);
+				putErrmsg("Can't add group to list.", NULL);
+				return -1;
+			}
+		}
+	}
+
+	/*	Create buffer for serializing briefing message.		*/
+
+	bufsize = 1	/*	admin record array (2 items)		*/
+		+ 9	/*	admin record type, an integer		*/
+		+ 9	/*	group number array (N items)		*/
+		+ (lyst_length(ownGroups) * 9);
+	buffer = MTAKE(bufsize);
+	if (buffer == NULL)
+	{
+		lyst_destroy(ownGroups);
+		putErrmsg("Can't allocate buffer for briefing.", NULL);
+		return -1;
+	}
+
+	cursor = buffer;
+
+	/*	Sending an admin record, an array of 2 items.		*/
+
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	First item of admin record is record type code.		*/
+
+	uvtemp = BP_MULTICAST_BRIEFING;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Second item of admin record is content, the 
+	 *	briefing message, which is a definite-length array.	*/
+
+	uvtemp = lyst_length(ownGroups);
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	Groups in ownGroups list are the elements of the array.	*/
+
+	for (elt2 = lyst_first(ownGroups); elt2; elt2 = lyst_next(elt2))
+	{
+		groupNbr = (uvast) lyst_data(elt2);
+		oK(cbor_encode_integer(groupNbr, &cursor));
+	}
+
+	lyst_destroy(ownGroups);
+
+	/*	Now wrap the record buffer in a ZCO and send it to
+	 *	the destination node.					*/
+
+	aduLength = cursor - buffer;
+	aduObj = sdr_malloc(sdr, aduLength);
+	if (aduObj == 0)
+	{
+		putErrmsg("Can't create briefing message.", NULL);
+		return -1;
+	}
+
+	sdr_write(sdr, aduObj, (char *) buffer, aduLength);
+	MRELEASE(buffer);
+	aduZco = ionCreateZco(ZcoSdrSource, aduObj, 0, aduLength,
+			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
+	if (aduZco == 0 || aduZco == (Object) ERROR)
+	{
+		putErrmsg("Failed creating saga message ZCO.", NULL);
+		return 0;
+	}
+
+//puts("Sending briefing.");
+	if (bpSend(&sourceMetaEid, destEid, NULL, 60, BP_STD_PRIORITY,
+			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
+			BP_MULTICAST_BRIEFING) <= 0)
+	{
+		writeMemo("[?] Unable to send IMC briefing message.");
+	}
+
+	return 0;
+}
+
 static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	Sdr		sdr = getIonsdr();
+	uvast		ownNodeNbr = getOwnNodeNbr();
 	ImcPetition	petition;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -88,20 +216,20 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at node "
-UVAST_FIELDSPEC ".\n", petition->isMember, metaEid.elementNbr, getOwnNodeNbr());
+UVAST_FIELDSPEC ".\n", petition->isMember, metaEid.elementNbr, ownNodeNbr);
 fflush(stdout);
 #endif
-	CHKERR(sdr_begin_xn(sdr));
+	oK(sdr_begin_xn(sdr));
 	imcFindGroup(petition.groupNbr, &groupAddr, &groupElt);
+//printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.groupNbr);
 	if (groupElt == 0)	/*	System failure.			*/
 	{
+//puts("Group not found.");
 		if (petition.isMember)	/*	(Else nothing to do.)	*/
 		{
 			writeMemoNote("Can't handle IMC Join petition",
 					itoa(petition.groupNbr));
 		}
-
-		sdr_cancel_xn(sdr);
 
 		/*	Nothing to propagate even if node is a
 		 *	passageway.  Can't Join the group, and
@@ -110,11 +238,13 @@ fflush(stdout);
 		 *	group and thus cannot be Leaving in the
 		 *	other region.					*/
 
+		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
 	/*	The multicast group is known, though possibly empty.	*/
 
+//printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 	if (petition.isMember)	/*	Source node joining the group.	*/
 	{
@@ -141,7 +271,8 @@ fflush(stdout);
 			 *	has already been announced in the
 			 *	other region.				*/
 
-				return sdr_end_xn(sdr);
+				sdr_cancel_xn(sdr);
+				return 0;
 			}
 
 			break;	/*	Source node not in list.	*/
@@ -163,9 +294,28 @@ fflush(stdout);
 					metaEid.elementNbr));
 		}
 
-		if (metaEid.elementNbr == getOwnNodeNbr())
+		if (metaEid.elementNbr == ownNodeNbr)
 		{
 			group.isMember = 1;
+		}
+
+		if (petition.groupNbr == 0 && metaEid.elementNbr != ownNodeNbr)
+		{
+//printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+			/*	This node is subscribing to the IMC
+			 *	petitions group, i.e., it is a node
+			 *	that is newly announcing itself to
+			 *	the multicast community.  So it
+			 *	doesn't know about any other nodes'
+			 *	subscriptions.  So we must send this
+			 *	node a briefing.			*/
+
+			if (briefNewNode(metaEid.elementNbr) < 0)
+			{
+				putErrmsg("Failed briefing new node.", NULL);
+				sdr_cancel_xn(sdr);
+				return -1;
+			}
 		}
 
 		/*	Any scheduled deletion of the group is now
@@ -198,7 +348,8 @@ fflush(stdout);
 			 *	has already been announced in the
 			 *	other region.				*/
 
-				return sdr_end_xn(sdr);
+				sdr_cancel_xn(sdr);
+				return 0;
 			}
 
 			break;	/*	Source node may be in the list.	*/
@@ -212,7 +363,7 @@ fflush(stdout);
 		if (elt)	/*	Source node is a member.	*/
 		{
 			sdr_list_delete(sdr, elt, NULL, NULL);
-			if (metaEid.elementNbr == getOwnNodeNbr())
+			if (metaEid.elementNbr == ownNodeNbr)
 			{
 				group.isMember = 0;
 			}
@@ -242,7 +393,7 @@ fflush(stdout);
 		/*	Node is a passageway from its home region to
 		 *	the immediate encompassing region.		*/
 
-		sourceRegion = ionRegionOf(metaEid.elementNbr, getOwnNodeNbr());
+		sourceRegion = ionRegionOf(metaEid.elementNbr, ownNodeNbr);
 		if (sourceRegion < 0 || sourceRegion > 1)
 		{
 			putErrmsg("IMC system error.", NULL);
@@ -320,6 +471,7 @@ static void	shutDownAdminApp(int signum)
 static int	handlePetitions()
 {
 	Sdr		sdr = getIonsdr();
+	char		receptionEid[] = "imc:0.0";
 	int		running = 1;
 	BpSAP		sap;
 	BpDelivery	dlv;
@@ -330,7 +482,7 @@ static int	handlePetitions()
 	unsigned int	buflen;
 	unsigned char	buffer[32];
 
-	if (bp_open("imc:0.0", &sap) < 0)
+	if (bp_open(receptionEid, &sap) < 0)
 	{
 		putErrmsg("Can't open imcadmin endpoint 'imc:0.0'.", NULL);
 		return 1;

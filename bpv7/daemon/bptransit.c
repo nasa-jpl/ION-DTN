@@ -69,7 +69,8 @@ static int	initiateBundleForwarding(Sdr sdr, Bundle *bundle,
 
 	/*	Bundle is now ready to be forwarded.			*/
 
-	if (readEid(&(bundle->destination), &eidString) < 0)
+	readEid(&(bundle->destination), &eidString);
+	if (eidString == NULL)
 	{
 		putErrmsg("Can't print destination EID.", NULL);
 		return -1;

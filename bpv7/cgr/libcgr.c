@@ -2065,17 +2065,17 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	if (route->toNodeNbr == getOwnNodeNbr())
 	{
-		if (!(bundle->destination.schemeCodeNbr == 2
-		&& bundle->destination.ssp.ipn.nodeNbr == route->toNodeNbr))
+		/*	Okay if and only if self is the destination.	*/
+
+		if (route->toNodeNbr != terminusNode->nodeNbr)
 		{
-			/*	Never route via self -- a loop.		*/
+			/*	Can't route to a remote node via self
+			 *	-- would be a routing loop.		*/
 
 			TRACE(CgrExcludeRoute, CgrRouteViaSelf);
 			*elt = nextElt;
 			return 1;
 		}
-
-		/*	Self is final destination.			*/
 	}
 
 	/*	Is the neighbor that receives bundles during this

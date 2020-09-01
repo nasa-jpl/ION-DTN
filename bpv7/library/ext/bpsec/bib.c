@@ -340,7 +340,8 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
 	{
-		if (readEid(&(asb->securitySource), &fromEid) < 0)
+		readEid(&(asb->securitySource), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BIB_RX_FAIL(NULL, 1, 0);
 			return -1;
@@ -348,14 +349,16 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 	else
 	{
-		if (readEid(&(bundle->id.source), &fromEid) < 0)
+		readEid(&(bundle->id.source), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BIB_RX_FAIL(NULL, 1, 0);
 			return -1;
 		}
 	}
 
-	if (readEid(&(bundle->destination), &toEid) < 0)
+	readEid(&(bundle->destination), &toEid);
+	if (toEid == NULL)
 	{
 		ADD_BIB_RX_FAIL(fromEid, 1, 0);
 		MRELEASE(fromEid);
@@ -1363,13 +1366,15 @@ int	bibReview(AcqWorkArea *wk)
 	}
 
 	bundle = &(wk->bundle);
-	if (readEid(&(bundle->destination), &destinationEid) < 0)
+	readEid(&(bundle->destination), &destinationEid);
+	if (destinationEid == NULL)
 	{
 		BIB_DEBUG_PROC("- bibReview -> no bundle destination", NULL);
 		return -1;
 	}
 
-	if (readEid(&(bundle->id.source), &sourceEid) < 0)
+	readEid(&(bundle->id.source), &sourceEid);
+	if (sourceEid == NULL)
 	{
 		BIB_DEBUG_PROC("- bibReview -> no bundle source", NULL);
 		MRELEASE(destinationEid);

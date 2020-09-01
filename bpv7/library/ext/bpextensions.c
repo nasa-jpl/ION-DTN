@@ -169,7 +169,7 @@ static ExtensionDef	extensionDefs[] =
 				imc_processOnDequeue,
 				0},
 				imc_release,
-				0,
+				imc_copy,
 				0,
 				0,
 				0,

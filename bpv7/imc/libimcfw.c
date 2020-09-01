@@ -245,6 +245,7 @@ int	imcHandleBriefing(BpDelivery *dlv, unsigned char *cursor,
 	vast		destinationRegion;
 	ImcPetition	petition;
 
+//puts("Handling briefing.");
 	if (imcInit() < 0)
 	{
 		putErrmsg("Can't initialize IMC database.", NULL);
@@ -386,7 +387,7 @@ static int	xmitPetition(vast toRegion, unsigned char *buffer, int length)
 	PsmAddress	vschemeElt;
 	Object		sourceData;
 	Object		payloadZco;
-	char		*destEid = "imc:0.0";
+	char		destEid[] = "imc:0.0";
 	unsigned int	ttl = 86400;
 	BpAncillaryData	ancillary = { 0, 0, 255 };
 
@@ -420,6 +421,29 @@ static int	xmitPetition(vast toRegion, unsigned char *buffer, int length)
 		return -1;
 	}
 
+	/*	Note: it is possible for an IMC bundle to be sent
+	 *	to a node that does not exist yet or does not yet
+	 *	have all convergence-layer interfaces fully
+	 *	configured.  (In particular, a bundle sent via
+	 *	LTP may arrive at its proximate destination before
+	 *	BP has started its ltpcli daemon.  In this case,
+	 *	the receiving LTP service-layer adapter will be
+	 *	unable to deliver the block content because it's
+	 *	destined for an LTP client - BP - that the LTP
+	 *	engine doesn't know about yet; the LTP engine
+	 *	will thereupon cancel the import session,
+	 *	causing LTP session failure at the sender.)
+	 *	Any such convergence-layer transmission failure
+	 *	will cause the sending CLA to call the BPA's
+	 *	handleXmitFailure function, causing the bundle
+	 *	to be reforwarded.  Reforwarding a transmitted
+	 *	IMC bundle looks - to imcfw - exactly like
+	 *	relaying a receives IMC bundle except that the
+	 *	local node is not present in the imc extension
+	 *	block's array of destinations, and therefore
+	 *	need not be removed.					*/
+
+//puts("Transmitting petition.");
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
 			&ancillary, payloadZco, NULL, 0))
@@ -446,6 +470,7 @@ int	imcSendPetition(ImcPetition *petition, vast toRegion)
 	int		petitionLength;
 	int		result = 0;
 
+//printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->groupNbr);
 	if (imcInit() < 0)
 	{
 		putErrmsg("Can't initialize IMC database.", NULL);

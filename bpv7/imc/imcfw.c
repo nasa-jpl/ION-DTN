@@ -18,6 +18,37 @@ typedef struct
 	Lyst	members;
 } ImcGang;
 
+#ifndef CGR_DEBUG
+#define CGR_DEBUG	0
+#endif
+
+#if CGR_DEBUG == 1
+static void	printCgrTraceLine(void *data, unsigned int lineNbr,
+			CgrTraceType traceType, ...)
+{
+	va_list args;
+	const char *text;
+
+	va_start(args, traceType);
+	text = cgr_tracepoint_text(traceType);
+	vprintf(text, args);
+	switch (traceType)
+	{
+	case CgrIgnoreContact:
+	case CgrExcludeRoute:
+	case CgrSkipRoute:
+		fputc(' ', stdout);
+		fputs(cgr_reason_text(va_arg(args, CgrReason)), stdout);
+	default:
+		break;
+	}
+
+	putchar('\n');
+	fflush(stdout);
+	va_end(args);
+}
+#endif
+
 static sm_SemId		_imcfwSemaphore(sm_SemId *newValue)
 {
 	uaddr		temp;
@@ -61,231 +92,15 @@ static void	destroyGroup(Object groupElt)
 	sdr_list_delete(sdr, groupElt, NULL, NULL);
 }
 
-static int	noteThisNode(Lyst nodesList, uvast newNodeNbr)
-{
-	LystElt	elt;
-	uvast	nodeNbr;
-
-	for (elt = lyst_first(nodesList); elt; elt = lyst_next(elt))
-	{
-		nodeNbr = (uvast) lyst_data(elt);
-		if (nodeNbr < newNodeNbr)
-		{
-			continue;
-		}
-
-		if (nodeNbr == newNodeNbr)	/*	Duplicate.	*/
-		{
-			return 0;
-		}
-
-		break;
-	}
-
-	/*	Found insertion point for new node number.		*/
-
-	if (elt)
-	{
-		elt = lyst_insert_before(elt, (void *) newNodeNbr);
-	}
-	else
-	{
-		elt = lyst_insert_last(nodesList, (void *) newNodeNbr);
-	}
-
-	if (elt == NULL)
-	{
-		return -1;
-	}
-
-	return 0;
-}
-
-static int	briefNewNode(uvast nodeNbr)
-{
-	Sdr		sdr = getIonsdr();
-	ImcDB		*imcConstants = getImcConstants();
-	char		ownEid[32];
-	MetaEid		sourceMetaEid;
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
-	char		destEid[32];
-	Lyst		ownGroups;
-	Object		elt;
-	Object		groupAddr;
-	ImcGroup	group;
-	int		bufsize;
-	unsigned char	*buffer;
-	unsigned char	*cursor;
-	uvast		uvtemp;
-	LystElt		elt2;
-	uvast		groupNbr;
-	int		aduLength;
-	Object		aduObj;
-	Object		aduZco;
-
-	isprintf(ownEid, sizeof(ownEid), "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
-	oK(parseEidString(ownEid, &sourceMetaEid, &vscheme, &vschemeElt));
-	isprintf(destEid, sizeof(destEid), "ipn:" UVAST_FIELDSPEC ".0",
-			nodeNbr);
-
-	ownGroups = lyst_create_using(getIonMemoryMgr());
-	if (ownGroups == NULL)
-	{
-		putErrmsg("Can't compile groups list for briefing.", NULL);
-		return -1;
-	}
-
-	CHKERR(sdr_begin_xn(sdr));
-	for (elt = sdr_list_first(sdr, imcConstants->groups); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		groupAddr = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
-		if (group.isMember)
-		{
-			if (lyst_insert_last(ownGroups,
-					(void *) group.groupNbr) == NULL)
-			{
-				sdr_exit_xn(sdr);
-				lyst_destroy(ownGroups);
-				putErrmsg("Can't add group to list.", NULL);
-				return -1;
-			}
-		}
-	}
-
-	sdr_exit_xn(sdr);
-
-	/*	Create buffer for serializing briefing message.		*/
-
-	bufsize = 1	/*	admin record array (2 items)		*/
-		+ 9	/*	admin record type, an integer		*/
-		+ 9	/*	group number array (N items)		*/
-		+ (lyst_length(ownGroups) * 9);
-	buffer = MTAKE(bufsize);
-	if (buffer == NULL)
-	{
-		lyst_destroy(ownGroups);
-		putErrmsg("Can't allocate buffer for briefing.", NULL);
-		return -1;
-	}
-
-	cursor = buffer;
-
-	/*	Sending an admin record, an array of 2 items.		*/
-
-	uvtemp = 2;
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-
-	/*	First item of admin record is record type code.		*/
-
-	uvtemp = BP_SAGA_MESSAGE;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	Second item of admin record is content, the 
-	 *	briefing message, which is a definite-length array.	*/
-
-	uvtemp = lyst_length(ownGroups);
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-
-	/*	Groups in ownGroups list are the elements of the array.	*/
-
-	for (elt2 = lyst_first(ownGroups); elt2; elt2 = lyst_next(elt2))
-	{
-		groupNbr = (uvast) lyst_data(elt2);
-		oK(cbor_encode_integer(groupNbr, &cursor));
-	}
-
-	lyst_destroy(ownGroups);
-
-	/*	Now wrap the record buffer in a ZCO and send it to
-	 *	the destination node.					*/
-
-	aduLength = cursor - buffer;
-	CHKERR(sdr_begin_xn(sdr));
-	aduObj = sdr_malloc(sdr, aduLength);
-	if (aduObj == 0)
-	{
-		putErrmsg("Can't create briefing message.", NULL);
-		return -1;
-	}
-
-	sdr_write(sdr, aduObj, (char *) buffer, aduLength);
-	MRELEASE(buffer);
-	aduZco = ionCreateZco(ZcoSdrSource, aduObj, 0, aduLength,
-			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
-	if (aduZco == 0 || aduZco == (Object) ERROR)
-	{
-		putErrmsg("Failed creating saga message ZCO.", NULL);
-		return 0;
-	}
-
-	if (bpSend(&sourceMetaEid, destEid, NULL, 60, BP_STD_PRIORITY,
-			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
-			BP_MULTICAST_BRIEFING) <= 0)
-	{
-		writeMemo("[?] Unable to send IMC briefing message.");
-	}
-
-	return 0;
-}
-
-static int	briefNewNodes(Lyst oldNodesList, Lyst newNodesList)
-{
-	LystElt	oldNodeElt;
-	uvast	oldNode;
-	LystElt	newNodeElt;
-	uvast	newNode;
-
-	oldNode = 0;
-	oldNodeElt = lyst_first(oldNodesList);
-	for (newNodeElt = lyst_first(newNodesList); newNodeElt;
-			newNodeElt = lyst_next(newNodeElt))
-	{
-		newNode = (uvast) lyst_data(newNodeElt);
-		while (oldNode < newNode)
-		{
-			if (oldNodeElt == NULL)
-			{
-				break;
-			}
-
-			oldNode = (uvast) lyst_data(oldNodeElt);
-			oldNodeElt = lyst_next(oldNodeElt);
-		}
-
-		if (oldNode != newNode)
-		{
-			if (briefNewNode(newNode) < 0)
-			{
-				putErrmsg("Failed briefing new nodes.", NULL);
-				return -1;
-			}
-		}
-	}
-
-	return 0;
-}
-
 static void	*imcClock(void *parm)
 {
 	int		*running = (int *) parm;
 	ImcDB		*imcConstants = getImcConstants();
-	Object		ionDbAddr = getIonDbObject();
-	uvast		ownNodeNbr = getOwnNodeNbr();
 	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		nextElt;
 	Object		groupAddr;
 	ImcGroup	group;
-	IonDB		iondb;
-	Object		memberAddr;
-	RegionMember	member;
-	int		i;
-	Lyst		prevNodesList = NULL;
-	Lyst		nodesList;
 
 	/*	Main loop for time-driven IMC functionality.		*/
 
@@ -326,86 +141,11 @@ static void	*imcClock(void *parm)
 			continue;
 		}
 
-		/*	Brief new nodes.				*/
-
-		nodesList = lyst_create_using(getIonMemoryMgr());
-		if (nodesList == NULL)
-		{
-			putErrmsg("imcClock failed.", NULL);
-			shutDown(SIGTERM);
-			*running = 0;
-			continue;
-		}
-
-		CHKNULL((sdr_begin_xn(sdr)));
-		sdr_read(sdr, (char *) &iondb, ionDbAddr, sizeof(IonDB));
-		for (i = 0; i < 2; i++)
-		{
-			for (elt = sdr_list_first(sdr,
-					iondb.regions[i].members); elt;
-					elt = sdr_list_next(sdr, elt))
-			{
-				memberAddr = sdr_list_data(sdr, elt);
-				sdr_read(sdr, (char *) &member, memberAddr,
-						sizeof(RegionMember));
-				if (member.nodeNbr == ownNodeNbr)
-				{
-					continue;
-				}
-
-				if (noteThisNode(nodesList, member.nodeNbr) < 0)
-				{
-					break;	/*	members loop	*/
-				}
-			}
-
-			/*	Should always continue to the end of
-			 *	the members list; if didn't, then
-			 *	something failed.			*/
-
-			if (elt)	/*	noteThisNode failed.	*/
-			{
-				break;		/*	regions loop	*/
-			}
-
-		}
-
-		sdr_exit_xn(sdr);
-		if (elt)		/*	noteThisNode failed.	*/
-		{
-			putErrmsg("imcClock failed.", NULL);
-			shutDown(SIGTERM);
-			*running = 0;
-			continue;
-		}
-
-		if (prevNodesList)
-		{
-			if (briefNewNodes(prevNodesList, nodesList) < 0)
-			{
-				putErrmsg("imcClock failed.", NULL);
-				shutDown(SIGTERM);
-				*running = 0;
-				continue;
-			}
-
-			lyst_destroy(prevNodesList);
-		}
-
-		prevNodesList = nodesList;
 		snooze(1);
 	}
 
 	writeErrmsgMemos();
 	writeMemo("[i] imcClock thread has ended.");
-
-	/*	Free resources.						*/
-
-	if (prevNodesList)
-	{
-		lyst_destroy(prevNodesList);
-	}
-
 	return NULL;
 }
 
@@ -477,6 +217,11 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	Lyst		excludedNodes;
 	LystElt		elt;
 	CgrRoute	*route;
+#if CGR_DEBUG == 1
+	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
+#else
+	CgrTrace	*trace = NULL;
+#endif
 
 	/*	Determine whether or not the contact graph for the
 	 *	terminus node identifies one or more routes over
@@ -515,13 +260,17 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	/*	Must exclude sender of bundle from consideration as
 	 *	a station on the route, to minimize routing loops.  	*/
 
-	if (lyst_insert_last(excludedNodes,
-			(void *) bundle->clDossier.senderNodeNbr) == NULL)
+	if (bundle->clDossier.senderNodeNbr != 0
+	&& bundle->clDossier.senderNodeNbr != getOwnNodeNbr())
 	{
-		putErrmsg("Can't exclude sender from routes.", NULL);
-		lyst_destroy(excludedNodes);
-		lyst_destroy(bestRoutes);
-		return 0;
+		if (lyst_insert_last(excludedNodes,
+			(void *) bundle->clDossier.senderNodeNbr) == NULL)
+		{
+			putErrmsg("Can't exclude sender from routes.", NULL);
+			lyst_destroy(excludedNodes);
+			lyst_destroy(bestRoutes);
+			return 0;
+		}
 	}
 
 	/*	Consult the contact graph to identify the neighboring
@@ -532,15 +281,18 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 		if (cgr_create_routing_object(terminusNode) < 0)
 		{
 			putErrmsg("Can't initialize routing object.", NULL);
+			lyst_destroy(excludedNodes);
+			lyst_destroy(bestRoutes);
 			return 0;
 		}
 	}
 
 	if (cgr_identify_best_routes(terminusNode, bundle, excludedNodes,
-			atTime, NULL, 0, bestRoutes) < 0)
+			atTime, NULL, trace, bestRoutes) < 0)
 	{
 		putErrmsg("Can't identify best route(s) for bundle.", NULL);
 		lyst_destroy(excludedNodes);
+		lyst_destroy(bestRoutes);
 		return 0;
 	}
 
@@ -550,6 +302,7 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	{
 		route = (CgrRoute *) lyst_data_set(elt, NULL);
 		lyst_destroy(bestRoutes);
+//printf("Computed best route to " UVAST_FIELDSPEC " begins with transmission to " UVAST_FIELDSPEC ".\n", terminusNode->nodeNbr, route->toNodeNbr);
 		return route->toNodeNbr;
 	}
 
@@ -696,12 +449,14 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	PsmAddress	vplanElt;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
+//printf("Preparing to send to neighbor '%s'.\n", eid);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
 		return 0;
 	}
 
+//puts("Sending to neighbor.");
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
@@ -721,7 +476,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 		return -1;
 	}
 
-	if (bundle->ductXmitElt)
+	if (bundle->planXmitElt)
 	{
 		/*	Enqueued.					*/
 
@@ -731,6 +486,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 	/*	No plan for conveying bundle to this neighbor, so
 	 *	must give up on forwarding it.				*/
 
+//printf("enqueueBundle to node" UVAST_FIELDSPEC ".\n", nodeNbr);
 	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
@@ -749,7 +505,6 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 	Bundle		newBundle;
 	Object		newBundleObj;
 	LystElt		elt3;
-	int		copiesForwarded = 0;
 
 	gangs = lyst_create_using(memmgr);
 	if (gangs == NULL)
@@ -770,6 +525,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 			elt = sdr_list_next(sdr, elt))
 	{
 		nodeNbr = sdr_list_data(sdr, elt);
+//printf("Outbound destination is " UVAST_FIELDSPEC ".\n", nodeNbr);
 		regionIdx = ionRegionOf(nodeNbr, ownNodeNbr);
 		if (regionIdx < 0 || regionIdx > 1)
 		{
@@ -778,6 +534,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 			 *	or else it's impossble to forward
 			 *	the bundle to this destination node.	*/
 
+//puts("No common region.");
 			continue;
 		}
 
@@ -787,6 +544,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 			/*	No way to get the bundle to this
 			 *	destination.				*/
 
+//puts("No via node.");
 			continue;
 		}
 
@@ -829,6 +587,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 				elt3 = lyst_next(elt3))
 		{
 			nodeNbr = (uvast) lyst_data(elt3);
+//printf("Loading destination " UVAST_FIELDSPEC ".\n", nodeNbr);
 			if (loadDestination(&newBundle, nodeNbr) < 0)
 			{
 				putErrmsg("Failed loading destination.", NULL);
@@ -839,6 +598,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 
 		/*	Finally, enqueue the new bundle for xmit.	*/
 
+//printf("Gang bundle sent to " UVAST_FIELDSPEC " has %lu members.\n", gang->entryNode, lyst_length(gang->members));
 		if (enqueueBundle(&newBundle, newBundleObj, gang->entryNode)
 				< 0)
 		{
@@ -846,21 +606,13 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 			lyst_destroy(gangs);
 			return -1;
 		}
-
-		lyst_destroy(gangs);
-		copiesForwarded++;
 	}
 
-	if (copiesForwarded == 0)
-	{
-		oK(bpAbandon(bundleAddr, bundle, BP_REASON_NO_ROUTE));
-	}
-	else	/*	Destroy original forwarded bundle.		*/
-	{
-		oK(bpDestroyBundle(bundleAddr, 1));
-	}
+	/*	Destroy gangs list and originally received multicast
+	 *	bundle.							*/
 
-	return 0;
+	lyst_destroy(gangs);
+	return bpDestroyBundle(bundleAddr, 2);
 }
 
 static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
@@ -873,10 +625,15 @@ static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
 	int		i;
 	uvast		*nodeNbrPtr;
 
+	/*	Load the bundle's list of destinations from the
+	 *	array of gang members in the bundle's IMC extension
+	 *	block, except for self.					*/
+
 	destinationsCount = imcblock->size / sizeof(uvast);
 	if (destinationsCount < 1)
 	{
 		writeMemo("[?] IMC block has no destinations.");
+//puts("no destinations");
 		oK(bpAbandon(bundleAddr, bundle, BP_REASON_NO_ROUTE));
 		return 0;
 	}
@@ -893,27 +650,46 @@ static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
 	nodeNbrPtr = (uvast *) nodeNbrsArray;
 	for (i = 0; i < destinationsCount; i++, nodeNbrPtr++)
 	{
-		/*	Remove self from destinations list.		*/
-
 		if (*nodeNbrPtr == ownNodeNbr)
 		{
+			/*	Omit self from destinations list.	*/
+
 			continue;
 		}
 
 		/*	Load this destination into the bundle.		*/
 
-		if (loadDestination(bundle, *nodeNbrPtr) == 0)
+		if (loadDestination(bundle, *nodeNbrPtr) < 0)
 		{
+			MRELEASE(nodeNbrsArray);
 			putErrmsg("Can't load from IMC extension block.", NULL);
 			return -1;
 		}
 	}
 
-	/*	Reinitialize the extension block.			*/
+	MRELEASE(nodeNbrsArray);
 
+	/*	Reinitialize the IMC extension block.			*/
+
+	bundle->extensionsLength -= imcblock->length;
+	sdr_write(sdr, bundleAddr, (char *) bundle, sizeof(Bundle));
+	sdr_free(sdr, imcblock->bytes);
+	imcblock->bytes = 0;
+	imcblock->length = 0;
 	sdr_free(sdr, imcblock->object);
-	imcblock->size = 0;
-	sdr_write(sdr, imcblkAddr, (char *) &imcblock, sizeof(ExtensionBlock));
+	imcblock->object = 0;
+	imcblock->size = 1;
+	sdr_write(sdr, imcblkAddr, (char *) imcblock, sizeof(ExtensionBlock));
+
+	/*	Don't forward the bundle if there are no remaining
+	 *	destinations.						*/
+
+	if (sdr_list_length(sdr, bundle->destinations) == 0)
+	{
+		/*	No remaining gang members to forward to.	*/
+
+		return bpDestroyBundle(bundleAddr, 2);
+	}
 
 	/*	Forward the bundle.					*/
 
@@ -958,6 +734,11 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	uvast		nodeNbr;
 
 	groupNbr = bundle->destination.ssp.imc.groupNbr;
+
+	/*	Load the bundle's list of destinations, either from
+	 *	region membership (for a petition) or from group
+	 *	membership (for an application multicast message).	*/
+
 	if (groupNbr == 0)	/*	Petition.			*/
 	{
 		iondbObj = getIonDbObject();
@@ -965,6 +746,9 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 		regionNbr = bundle->destination.ssp.imc.serviceNbr;
 		if (regionNbr == 0)	/*	Native origination.	*/
 		{
+			/*	Send to all members of both home
+			 *	region and (if any) outer region.	*/
+
 			if (loadRegionMembers(bundle, 0, &iondb) < 0
 			|| loadRegionMembers(bundle, 1, &iondb) < 0)
 			{
@@ -974,6 +758,10 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 		}
 		else			/*	Propagation.		*/
 		{
+			/*	Send only to all members of the
+			 *	region into which the message must
+			 *	be propagated by the passageway.	*/
+
 			regionIdx = ionPickRegion(regionNbr);
 			if (regionIdx < 0 || regionIdx > 1)
 			{
@@ -996,6 +784,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 			/*	Nobody subscribes to bundles destined
 			 *	for this group.				*/
 
+//puts("no such group");
 			oK(bpAbandon(bundleAddr, bundle, BP_REASON_NO_ROUTE));
 			return 0;
 		}
@@ -1007,7 +796,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 				elt = sdr_list_next(sdr, elt))
 		{
 			nodeNbr = sdr_list_data(sdr, elt);
-			if (loadDestination(bundle, nodeNbr) == 0)
+			if (loadDestination(bundle, nodeNbr) < 0)
 			{
 				putErrmsg("Can't add IMC group member.", NULL);
 				return -1;
@@ -1028,8 +817,8 @@ int	imcfw(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char *argv[])
 {
 #endif
-	Sdr		sdr = getIonsdr();
 	int		running = 1;
+	Sdr		sdr;
 	uvast		ownNodeNbr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
@@ -1038,6 +827,7 @@ int	main(int argc, char *argv[])
 	Object		elt;
 	Object		bundleAddr;
 	Bundle		bundle;
+	Object		imcblkElt;
 	Object		imcblkAddr;
 	ExtensionBlock	imcblock;
 
@@ -1047,6 +837,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	sdr = getIonsdr();
 	if (imcInit() < 0)
 	{
 		putErrmsg("imcfw can't load IMC routing database.", NULL);
@@ -1125,44 +916,22 @@ int	main(int argc, char *argv[])
 
 		/*	Is bundle being relayed or sourced?		*/
 
-		imcblkAddr = findExtensionBlock(&bundle, ImcDestinationsBlk,
+		imcblkElt = findExtensionBlock(&bundle, ImcDestinationsBlk,
 				0, 0, 0);
-		if (imcblkAddr == 0)
+		if (imcblkElt == 0)
 		{
 			writeMemo("[?] IMC extension block is missing.");
+//puts("IMC extension block missing");
 			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_NO_ROUTE));
 			continue;
 		}
 
+		imcblkAddr = sdr_list_data(sdr, imcblkElt);
 		sdr_stage(sdr, (char *) &imcblock, imcblkAddr,
 				sizeof(ExtensionBlock));
-		if (imcblock.object != 0 && imcblock.size > 0)
+		if (imcblock.object == 0)
 		{
-			/*	Bundle is being relayed.		*/
-
-			if (bundle.clDossier.senderNodeNbr == 0
-			&& bundle.id.source.ssp.ipn.nodeNbr != ownNodeNbr)
-			{
-				/*	Received from unknown node,
-				 *	can't safely relay the bundle.	*/
-
-				oK(bpAbandon(bundleAddr, &bundle,
-						BP_REASON_NO_ROUTE));
-				continue;
-			}
-
-			if (relayImcBundle(&bundle, bundleAddr,
-					&imcblock, imcblkAddr) < 0)
-			{
-				putErrmsg("Can't relay IMC bundle.", NULL);
-				sdr_cancel_xn(sdr);
-				running = 0;
-				continue;
-			}
-		}
-		else
-		{
-			/*	Bundle is being sourced.		*/
+			/*	Bundle was never previously forwarded.	*/
 
 			if (originateImcBundle(&bundle, bundleAddr) < 0)
 			{
@@ -1170,6 +939,52 @@ int	main(int argc, char *argv[])
 				sdr_cancel_xn(sdr);
 				running = 0;
 				continue;
+			}
+		}
+		else	/*	Received from some node, possibly self.	*/
+		{
+			if (bundle.id.source.ssp.ipn.nodeNbr == ownNodeNbr)
+			{
+				if (bundle.clDossier.senderNodeNbr == 0)
+				{
+					/*	Received from unknown
+					 *	node, can't safely
+					 *	relay the bundle.	*/
+
+//puts("received from unknown node");
+					oK(bpAbandon(bundleAddr, &bundle,
+						BP_REASON_NO_ROUTE));
+				}
+				else
+				{
+					/*	Bundle has been
+					 *	locally delivered,
+					 *	must now be destroyed:
+					 *	it was either received
+					 *	via loopback, in which
+					 *	case no need to relay
+				 	*	(self can't be on
+					*	CGR path to any other
+					*	node) or received
+				 	*	from some other node,
+					*	in which case relaying
+					*	would introduce a
+					*	routing loop.		*/
+
+					oK(bpDestroyBundle(bundleAddr, 2));
+				}
+			}
+			else	/*	Bundle sourced by another node.	*/
+			{
+				if (relayImcBundle(&bundle, bundleAddr,
+						&imcblock, imcblkAddr) < 0)
+				{
+					putErrmsg("Can't relay IMC bundle.",
+							NULL);
+					sdr_cancel_xn(sdr);
+					running = 0;
+					continue;
+				}
 			}
 		}
 
@@ -1188,6 +1003,7 @@ int	main(int argc, char *argv[])
 
 	/*	Stop the clock thread.					*/
 
+	running = 0;
 	pthread_join(clockThread, NULL);
 
 	/*	Wrap up.						*/

@@ -272,7 +272,8 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
 	{
-		if (readEid(&(asb->securitySource), &fromEid) < 0)
+		readEid(&(asb->securitySource), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BCB_RX_FAIL(NULL, 1, 0);
 
@@ -281,14 +282,16 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 	else
 	{
-		if (readEid(&(bundle->id.source), &fromEid) < 0)
+		readEid(&(bundle->id.source), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BCB_RX_FAIL(NULL, 1, 0);
 			return 0;
 		}
 	}
 
-	if (readEid(&(bundle->destination), &toEid) < 0)
+	readEid(&(bundle->destination), &toEid);
+	if (toEid == NULL)
 	{
 		ADD_BCB_RX_FAIL(fromEid, 1, 0);
 

@@ -18,6 +18,7 @@ int	snw_offer(ExtensionBlock *blk, Bundle *bundle)
 	/*	Block must be offered as a placeholder to enable
 	 *	later extension block processing.			*/
 
+	blk->object = 0;
 	blk->size = 1;	/*	Bogus object size, to avert deletion.	*/
 	return 0;
 }
