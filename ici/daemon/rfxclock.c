@@ -93,6 +93,9 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	IonAlarm	*alarm;
 	time_t		currentTime;
 
+#ifdef TRACKRFXEVENTS
+#include "rfxtracker.c"
+#endif
 	switch (event->type)
 	{
 	case IonStopImputedRange:

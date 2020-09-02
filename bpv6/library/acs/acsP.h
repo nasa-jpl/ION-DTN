@@ -119,12 +119,14 @@ typedef	AcsFill		SdrAcsFill;
 
 typedef struct
 {
-	Object			pendingCusts;	/* SDR list of SdrAcsPendingCusts. */
+	Object		pendingCusts;	/* SDR list SdrAcsPendingCusts.	*/
 
-	Object			cidHash;		/* SDR hash custodianId -> cbId. */
-	Object			bidHash;		/* SDR hash bundleId    -> cbId. */
+	Object		cidHash;	/* SDR hash custodianId->cbId.	*/
+	Object		bidHash;	/* SDR hash bundleId   ->cbId.	*/
 
-	Address			id;				/* The next unused CID. */
+	Address		id;		/* The next unused CID.		*/
+
+	unsigned int	timeToLive;	/* ACS bundle lifetime.		*/
 
 	unsigned int    logLevel;       /* 0:    Only log errors.
 					 * else: Progressively more verbose. */

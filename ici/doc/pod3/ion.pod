@@ -214,6 +214,10 @@ an additional extent to an existing ZCO.  Returns -1 on failure, 0 on
 interruption by ionPauseAttendant() or if I<attendant> was NULL and sufficient
 space for the extent was not immediately available, I<length> on success.
 
+=item char *getIonVersionNbr()
+
+Returns the name of the ION version installed on the local machine.
+
 =item Sdr getIonsdr()
 
 Returns a pointer to the SDR management object, previously acquired by calling
