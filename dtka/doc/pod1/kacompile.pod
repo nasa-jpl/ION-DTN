@@ -1,0 +1,61 @@
+=head1 NAME
+
+kacompile - DTKA user daemon task for compiling public key information bulletins
+
+=head1 SYNOPSIS
+
+B<kacompile>
+
+=head1 DESCRIPTION
+
+B<kacompile> is a background "daemon" task that periodically generates new
+bulletins of recent public key assertions and revocations and multicasts
+those bulletins to all nodes in the DTKA distributed key authority.  It is
+spawned automatically by B<kaadmin> in response to the 's' command that
+starts operation of the DTKA key authority function, and it is terminated
+by B<kaadmin> in response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<kacompile> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<kaadmin> to restart B<kacompile>.
+
+=item "1"
+
+B<kacompile> was unable to attach to DTKA operations, probably because
+B<kaadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item kacompile can't attach to DTKA.
+
+B<kaadmin> has not yet initialized the DTKA user function.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+kaadmin(1), dtka(3), kauthrc(5)

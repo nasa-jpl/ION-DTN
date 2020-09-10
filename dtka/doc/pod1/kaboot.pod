@@ -1,0 +1,75 @@
+=head1 NAME
+
+kaboot - DTKA authority initialization utility
+
+=head1 SYNOPSIS
+
+B<kaboot> [ I<delay> ]
+
+=head1 DESCRIPTION
+
+B<kaboot> writes a DTKA authority administration command file that initializes
+the DTKA authority database.  The file, named "boot.karc", is written to the
+current working directory.  It simply contains a single "m compiletime"
+command, which sets the initial bulletin compilation time to the current
+ctime plus I<delay> seconds.  If omitted, I<delay> defaults to 5.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Successful generation of DTKA authority initialization file.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item kaboot
+
+Writes a boot.karc file that sets the next bulleting compilation time
+to the current time plus 5 seconds.
+
+=item kaboot 90
+
+Writes a boot.karc file that sets the next bulleting compilation time
+to the current time plus 90 seconds.
+
+=back
+
+=head1 FILES
+
+No files apply.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the log file:
+
+=over 4
+
+=item Can't open cmd file
+
+B<kaboot> is unable to create a file named boot.karc for the indicated reason,
+a system error.
+
+=item Can't write to cmd file
+
+B<kaboot> is unable to write to boot.karc for the indicated reason,
+a system error.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+kaadmin(1), kauthrc(5)

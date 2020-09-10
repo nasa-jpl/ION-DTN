@@ -1,0 +1,61 @@
+=head1 NAME
+
+knmgr - DTKA user daemon task for handling bulletins from the key authority
+
+=head1 SYNOPSIS
+
+B<knmgr>
+
+=head1 DESCRIPTION
+
+B<knmgr> is a background "daemon" task that receives code blocks multicast
+by key authority nodes, reassembles bulletins from compatible code blocks,
+and extracts and applies the public key assertion and revocation information
+in the bulletins.  It is spawned automatically by B<knadmin> in response to
+the 's' command that starts operation of the DTKA user function, and it is
+terminated by B<knadmin> in response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<knmgr> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<knadmin> to restart B<knmgr>.
+
+=item "1"
+
+B<knmgr> was unable to attach to DTKA operations, probably because
+B<knadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item knmgr can't attach to DTKA.
+
+B<knadmin> has not yet initialized the DTKA user function.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+knadmin(1), dtka(3), knoderc(5)

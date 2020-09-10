@@ -1,0 +1,67 @@
+=head1 NAME
+
+knclock - DTKA user daemon task for producing new public/private key pairs
+
+=head1 SYNOPSIS
+
+B<knclock>
+
+=head1 DESCRIPTION
+
+B<knclock> is a background "daemon" task that periodically generates new
+public/private key pairs, records them locally, and multicasts the public
+keys to the DTKA distributed key authority.  It is spawned automatically
+by B<knadmin> in response to the 's' command that starts operation of the
+DTKA user function, and it is terminated by B<knadmin> in response to an 'x'
+(STOP) command.
+
+B<NOTE> that knclock utilizes functions provided by cryptography software
+that is not distributed with ION.  To indicate that this supporting software
+has been installed, set the compiler flag -DCRYPTO_SOFTWARE_INSTALLED when
+compiling this program.  Absent that flag setting at compile time, knclock's
+generateKeyPair() function does nothing.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<knclock> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<knadmin> to restart B<knclock>.
+
+=item "1"
+
+B<knclock> was unable to attach to DTKA operations, probably because
+B<knadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item knclock can't attach to DTKA.
+
+B<knadmin> has not yet initialized the DTKA user function.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+knadmin(1), dtka(3), knoderc(5)

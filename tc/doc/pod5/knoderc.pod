@@ -1,0 +1,105 @@
+=head1 NAME
+
+knoderc - DTKA user configuration commands file
+
+=head1 DESCRIPTION
+
+DTKA user configuration commands are passed to B<knadmin> either
+in a file of text lines or interactively at B<knadmin>'s command prompt
+(:).  Commands are interpreted line-by line, with exactly one command per
+line.  The formats and effects of the DTKA key authority administration
+commands are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by knadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<1>
+
+The B<initialize> command.  Until this command is executed, the DTKA user
+function is not in operation on the local ION node and most I<knadmin>
+commands will fail.
+
+=item B<i>
+
+The B<info> This command will print information about the current state
+of the local node's DTKA user function, including the current settings of
+all parameters that can be managed as described below.
+
+=item B<s>
+
+The B<start> command.  This command starts the B<knclock> and B<knmgr>
+tasks for the local DTKA user function.
+
+=item B<m keygentime> I<time>
+
+The B<manage key generation time> command.  This command sets the time at
+which the node will next generate a public/private key pair and multicast
+the public key.  The command is not needed in normal operations, because
+future key generation times are computed automatically as key pairs are
+generated. I<time> must be in yyyy/mm/dd-hh:mm:ss format.
+
+=item B<m interval> I<key_pair_generation_interval>
+
+The B<manage key pair generation interval> command.  This interval,
+expressed as a number of seconds, controls the period on which the key
+authority node will generate new public/private key pairs.  The default
+value is 604800 (one week).
+
+=item B<m leadtime> I<key_pair_effectivenes_lead_time>
+
+The B<manage key pair effectivenes lead time> command.  This interval,
+expressed as a number of seconds, controls the length of time after the
+time of key pair generation at which the key pair will become effective.
+The default value is 345600 (four days).
+
+=item B<m authority> I<authority_array_index> I<node_number>
+
+This command asserts that the Nth member of the distributed key
+authority, where N is the I<authority_array_index> value, is the
+node identified by I<node_number>.
+
+=item B<x>
+
+The B<start> command.  This command starts the B<knclock> and B<knmgr>
+tasks for the local DTKA user function.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item m authority 3 6913
+
+Asserts that node 6913 is member 3 of the distributed key authority.
+
+=back
+
+=head1 SEE ALSO
+
+knadmin(1), dtka(3)
