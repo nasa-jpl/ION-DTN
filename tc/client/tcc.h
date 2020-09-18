@@ -8,7 +8,7 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "bp.h"
+#include "tc.h"
 
 #ifndef _TCC_H_
 #define _TCC_H_
@@ -17,8 +17,8 @@
 extern "C" {
 #endif
 
-extern int	tcc_getBulletin(int blocksGroupNbr,
-			unsigned char **bulletinContent, size_t *length);
+extern int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
+			int *length);
 			/*	Places in *bulletinContent a pointer
 			 *	to a private working memory buffer
 			 *	containing the content of the oldest

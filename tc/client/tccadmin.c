@@ -74,7 +74,9 @@ static void	printUsage()
 	PUTS("\tg\tSet blocks group number");
 	PUTS("\t   g <group number for multicast TC blocks>");
 	PUTS("\t1\tInitialize");
-	PUTS("\t   1 <number of authorities in collective>");
+	PUTS("\t   1 <number of authorities in collective> [ <K> [ <R> ]]");
+	PUTS("\t\tK is blocks per bulletin, defaulting to 50");
+	PUTS("\t\tR is redundancy, 0.0 < R < 1.0, defaulting to .2");
 	PUTS("\tm\tManage");
 	PUTS("\t   m authority <authority array index> <node number>");
 	PUTS("\ti\tInfo");
@@ -112,15 +114,29 @@ static void	setBlocksGroupNbr(int tokenCount, char **tokens)
 static void	initializeTcc(int tokenCount, char **tokens)
 {
 	int	numAuths;
+	int	K = 50;			/*	Default.		*/
+	double	R = .2;			/*	Default.		*/
 
-	if (tokenCount != 2)
+	switch (tokenCount)
 	{
+	case 4:
+		R = atof(tokens[3]);
+
+		/*	Intentional fall-through to next case.		*/
+	case 3:
+		K = atoi(tokens[2]);
+
+		/*	Intentional fall-through to next case.		*/
+	case 2:
+		numAuths = atoi(tokens[1]);
+		break;
+
+	default:
 		SYNTAX_ERROR;
 		return;
 	}
 
-	numAuths = atoi(tokens[1]);
-	if (tccInit(_blocksGroupNbr(NULL), numAuths) < 0)
+	if (tccInit(_blocksGroupNbr(NULL), numAuths, K, R) < 0)
 	{
 		putErrmsg("tccadmin can't initialize TCC.", NULL);
 	}
@@ -144,6 +160,7 @@ static void	manageAuthority(int tokenCount, char **tokens)
 	int		idx;
 	uvast		nodeNbr;
 	TccDB		db;
+	int		i;
 	Object		elt;
 	Object		authObj;
 	TccAuthority	auth;
@@ -181,7 +198,7 @@ static void	manageAuthority(int tokenCount, char **tokens)
 	}
 
 	authObj = sdr_list_data(sdr, elt);
-	sdr_stage(sdr, (char *) &auth, authObj, sizeof(TccAuthority)):
+	sdr_stage(sdr, (char *) &auth, authObj, sizeof(TccAuthority));
 	auth.nodeNbr = nodeNbr;
 	sdr_write(sdr, authObj, (char *) &auth, sizeof(TccAuthority));
 	if (sdr_end_xn(sdr) < 0)
@@ -399,7 +416,7 @@ abandoned.");
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	tccadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {

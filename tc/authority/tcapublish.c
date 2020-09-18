@@ -1,66 +1,67 @@
 /*
-	kapublish.c:	Key authority daemon for reception of key
-			records asserted by nodes.
+	tcapublish.c:	authority daemon for publication of Trusted
+			Collective bulletins.
 
 	Author: Scott Burleigh, JPL
 
-	Copyright (c) 2013, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 	
 									*/
-#include "kauth.h"
-#include "bpP.h"
+#include "tcaP.h"
+#include "crypto.h"
+#include "fec.h"
 
 typedef struct
 {
 	BpSAP	recvSAP;
 	int	running;
-} KapublishState;
+} TcaPublishState;
 
-static KapublishState	*_kapublishState(KapublishState *newState)
+static TcaPublishState	*_tcapublishState(TcaPublishState *newState)
 {
 	void		*value;
-	KapublishState	*state;
+	TcaPublishState	*state;
 	
 	if (newState)			/*	Add task variable.	*/
 	{
 		value = (void *) (newState);
-		state = (KapublishState *) sm_TaskVar(&value);
+		state = (TcaPublishState *) sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		state = (KapublishState *) sm_TaskVar(NULL);
+		state = (TcaPublishState *) sm_TaskVar(NULL);
 	}
 
 	return state;
 }
 
-static void	shutDown()	/*	Commands kapublish termination.	*/
+static void	shutDown()	/*	Commands tcapublish shutdown.	*/
 {
-	KapublishState	*state;
+	TcaPublishState	*state;
 
 	isignal(SIGTERM, shutDown);
-	PUTS("DTKA publisher daemon interrupted.");
-	state = _kapublishState(NULL);
+	PUTS("TCA publisher daemon interrupted.");
+	state = _tcapublishState(NULL);
 	bp_interrupt(state->recvSAP);
 	state->running = 0;
 }
 
 static Object	nextPendingRecord(Sdr sdr, Object elt, Object *obj,
-			DtkaRecord *record)
+			TcaRecord *record)
 {
 	elt = sdr_list_next(sdr, elt);
 	if (elt)
 	{
 		*obj = sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) record, *obj, sizeof(DtkaRecord));
+		sdr_stage(sdr, (char *) record, *obj, sizeof(TcaRecord));
 	}
 
 	return elt;
 }
 
-static int	handleProposedBulletin(Sdr sdr, DtkaAuthDB *db, char *src,
+static int	handleProposedBulletin(Sdr sdr, TcaDB *db, char *src,
 			Object adu)
 {
 	int		parsedOkay;
@@ -68,27 +69,30 @@ static int	handleProposedBulletin(Sdr sdr, DtkaAuthDB *db, char *src,
 	VScheme		*vscheme;
 	PsmAddress	schemeElt;
 	char		msgBuffer[256];
-	DtkaAuthority	*auth;
+	int		auths;
+	Object		elt;
 	int		i;		/*	Authority array index.	*/
+	Object		authObj;
+	TcaAuthority	auth;
 	ZcoReader	reader;
 	int		bulletinLength;
 	time_t		bulletinId;
 	char		timestamp[TIMESTAMPBUFSZ];
-	Object		elt;
 	Object		obj;
-	DtkaRecord	record;
+	TcaRecord	record;
+	char		*acknowledged;
 	int		bytesRemaining;
 	int		bytesBuffered;
 	int		residualBytesBuffered;
-	unsigned char	buffer[DTKA_MAX_REC];
-	unsigned char	*cursor;
+	char		buffer[TC_MAX_REC];
+	char		*cursor;
 	int		len;
 	int		recordLength;
 	uvast		nodeNbr;
-	time_t	effectiveTime;
+	time_t		effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLength;
-	unsigned char	datValue[DTKA_MAX_DATLEN];
+	unsigned char	datValue[TC_MAX_DATLEN];
 	uvast		priorNodeNbr = 0;
 	time_t		priorEffTime = 0;
 
@@ -101,29 +105,33 @@ of proposed bulletin: '%s'.", src);
 		return 0;
 	}
 
-	if (metaEid.nodeNbr == getOwnNodeNbr())
+	if (metaEid.elementNbr == getOwnNodeNbr())
 	{
 		/*	This is loopback multicast, which we ignore.	*/
 
 		return 0;
 	}
 
-#if DTKA_DEBUG
-printf("Got bulletin from node " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
+#if TC_DEBUG
+printf("Got bulletin from node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
 fflush(stdout);
 #endif
 	/*	Determine sending authority's position within array.	*/
 
-	for (auth = db->authorities, i = 0; i < DTKA_NUM_AUTHS; auth++, i++)
+	auths = sdr_list_length(sdr, db->authorities);
+	for (elt = sdr_list_first(sdr, db->authorities), i = 0; elt;
+			elt = sdr_list_next(sdr, elt), i++)
 	{
-		if (metaEid.nodeNbr == auth->nodeNbr)
+		authObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
+		if (metaEid.elementNbr == auth.nodeNbr)
 		{
 			break;
 		}
 	}
 
 	restoreEidString(&metaEid);
-	if (i == DTKA_NUM_AUTHS)
+	if (elt == 0)
 	{
 		isprintf(msgBuffer, sizeof msgBuffer, "Bulletin from unknown \
 authority: '%s'.", src);
@@ -131,7 +139,7 @@ authority: '%s'.", src);
 		return 0;
 	}
 
-	if (!auth->inService)
+	if (!auth.inService)
 	{
 		isprintf(msgBuffer, sizeof msgBuffer, "Bulletin from \
 out-of-svc authority: '%s'.", src);
@@ -144,7 +152,7 @@ out-of-svc authority: '%s'.", src);
 	bulletinLength = zco_source_data_length(sdr, adu);
 	if (bulletinLength < 4)
 	{
-		isprintf(msgBuffer, sizeof msgBuffer, "DTKA bulletin ID \
+		isprintf(msgBuffer, sizeof msgBuffer, "TCA bulletin ID \
 missing: %d.", bulletinLength);
 		PUTS(msgBuffer);
 		return 0;
@@ -156,7 +164,7 @@ missing: %d.", bulletinLength);
 	if (bulletinId != db->currentCompilationTime)
 	{
 		writeTimestampUTC(bulletinId, timestamp);
-		isprintf(msgBuffer, sizeof msgBuffer, "DTKA bulletin ID \
+		isprintf(msgBuffer, sizeof msgBuffer, "TCA bulletin ID \
 incorrect: '%s'.", timestamp);
 		PUTS(msgBuffer);
 		return 0;
@@ -164,11 +172,18 @@ incorrect: '%s'.", timestamp);
 
 	/*	Match records in bulletin against pending records.	*/
 
+	acknowledged = MTAKE(auths);
+	if (acknowledged == NULL)
+	{
+		putErrmsg("No memory for acknowledged array.", itoa(auths));
+		return -1;
+	}
+
 	elt = sdr_list_first(sdr, db->pendingRecords);
 	if (elt)
 	{
 		obj = sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) &record, obj, sizeof(DtkaRecord));
+		sdr_stage(sdr, (char *) &record, obj, sizeof(TcaRecord));
 	}
 
 	bytesBuffered = 0;
@@ -177,20 +192,21 @@ incorrect: '%s'.", timestamp);
 	while (bytesRemaining > 0)
 	{
 		bytesBuffered += zco_receive_source(sdr, &reader,
-				DTKA_MAX_REC - residualBytesBuffered,
+				TC_MAX_REC - residualBytesBuffered,
 				(char *) (buffer + residualBytesBuffered));
 		cursor = buffer;
 		len = bytesBuffered;
-		recordLength = dtka_deserialize(&cursor, &len, DTKA_MAX_DATLEN, 
+		recordLength = tc_deserialize(&cursor, &len, TC_MAX_DATLEN, 
 				&nodeNbr, &effectiveTime, &assertionTime,
 				&datLength, datValue);
 		if (recordLength < 1)
 		{
 			PUTS("Malformed proposed bulletin.");
+			MRELEASE(acknowledged);
 			return 0;
 		}
 
-#if DTKA_DEBUG
+#if TC_DEBUG
 printf("\tGot record for node " UVAST_FIELDSPEC ".\n", nodeNbr);
 fflush(stdout);
 #endif
@@ -203,6 +219,7 @@ fflush(stdout);
 			isprintf(msgBuffer, sizeof msgBuffer, "Malformed \
 bulletin (order): '%s'.", src);
 			PUTS(msgBuffer);
+			MRELEASE(acknowledged);
 			return 0;
 		}
 
@@ -230,36 +247,37 @@ bulletin (order): '%s'.", src);
 				break;
 			}
 
-#if DTKA_DEBUG
+#if TC_DEBUG
 puts("\tFound matching record.");
 fflush(stdout);
 #endif
 			/*	Remote authority has got the same
 			 *	record in its pendingRecords list.	*/
 
+			sdr_read(sdr, acknowledged, record.acknowledged, auths);
 			if (record.assertionTime != assertionTime
 			|| record.datLength != datLength
 			|| memcmp(record.datValue, datValue, datLength) != 0)
 			{
-				/*	Disagreement on asserted key.	*/
+				/*	Disagreement on asserted data.	*/
 
-				record.acknowledged[i] = -1;
-#if DTKA_DEBUG
-puts("\t\tDisagree on key.");
+				acknowledged[i] = -1;
+#if TC_DEBUG
+puts("\t\tDisagree on data.");
 fflush(stdout);
 #endif
 			}
 			else	/*	Advancing toward consensus.	*/
 			{
-				record.acknowledged[i] = 1;
-#if DTKA_DEBUG
-puts("\t\tAgree on key.");
+				acknowledged[i] = 1;
+#if TC_DEBUG
+puts("\t\tAgree on data.");
 fflush(stdout);
 #endif
 			}
 
-			sdr_write(sdr, obj, (char *) &record,
-					sizeof(DtkaRecord));
+			sdr_write(sdr, record.acknowledged, acknowledged,
+					auths);
 		}
 
 		/*	Now consider the next record in the bulletin.	*/
@@ -282,11 +300,15 @@ fflush(stdout);
 		bytesRemaining -= recordLength;
 	}
 
+	MRELEASE(acknowledged);
 	return 0;
 }
 
-static void	noteNoConsensus(DtkaRecord *rec)
+static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 {
+	Sdr	sdr = getIonsdr();
+	int	auths;
+	char	*acknowledged;
 	char	msgbuf[3072];
 	char	*cursor = msgbuf;
 	int	bytesRemaining = sizeof msgbuf;
@@ -315,80 +337,112 @@ static void	noteNoConsensus(DtkaRecord *rec)
 		}
 	}
 
-	for (i = 0; i < DTKA_NUM_AUTHS; i++)
+	auths = sdr_list_length(sdr, db->authorities);
+	acknowledged = MTAKE(auths);
+	CHKVOID(acknowledged);
+	sdr_read(sdr, acknowledged, rec->acknowledged, auths);
+	for (i = 0; i < auths; i++)
 	{
 		len = _isprintf(cursor, bytesRemaining, "  %d:%d", i,
-				rec->acknowledged[i]);
+				acknowledged[i]);
 		cursor += len;
 		bytesRemaining -= len;
 	}
 
+	MRELEASE(acknowledged);
 	PUTS(msgbuf);
 }
 
-static int	publishConsensusBulletin(Sdr sdr, DtkaAuthDB *db, BpSAP sap)
+static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 {
 	char		destEid[32];
-	int		i;
-	DtkaAuthority	*auth;
-	char		msgbuf[72];
-	int		dtka_fec_x = DTKA_NUM_AUTHS;
-	int		j;
-	unsigned int	secondaryBlockNbrs[DTKA_FEC_M - DTKA_FEC_K];
-	int		buflen;
-	unsigned char	*bulletin;
-	unsigned char	*cursor;
-	unsigned int	bytesRemaining;
 	Object		elt;
+	int		i;
+	Object		authObj;
+	TcaAuthority	auth;
+	char		msgbuf[72];
+	int		auths;
+	int		fec_x;
+	int		j;
+	unsigned int	*secondaryBlockNbrs;
+	int		buflen;
+	char		*bulletin;
+	char		*cursor;
+	unsigned int	bytesRemaining;
+	char		*acknowledged;
+	Object		elt2;
 	Object		nextElt;
 	Object		obj;
-			OBJ_POINTER(DtkaRecord, rec);
+			OBJ_POINTER(TcaRecord, rec);
 	int		recCount = 0;
 	int		recLen;
 	int		bulletinLen = 0;
 	int		blksize;
-	unsigned char	*buffer;
-	unsigned char	*primaryBlocks[DTKA_FEC_K];
-	unsigned char	*secondaryBlocks[DTKA_FEC_M - DTKA_FEC_K];
+	char		*buffer;
+	char		**primaryBlocks;
+	char		**secondaryBlocks;
 	unsigned char	hash[32];
 	fec_t		*fec;
 	unsigned int	sharenum;
-	unsigned int	sharenums[DTKA_FEC_Q];
+	unsigned int	*sharenums;
 	unsigned int	u4;
 	Object		zco;
 	Object		newBundle;
 
-	isprintf(destEid, 32, "imc:%d.0", DTKA_ANNOUNCE);
+	isprintf(destEid, 32, "imc:%d.0", db->blocksGroupNbr);
+	fec_x = auths = sdr_list_length(sdr, db->authorities);
 	PUTS("\n---Consensus bulletin report---");
 	PUTS("Authorities:");
-	for (auth = db->authorities, i = 0; i < DTKA_NUM_AUTHS; auth++, i++)
+	for (elt = sdr_list_first(sdr, db->authorities), i = 0; elt;
+			elt = sdr_list_next(sdr, elt), i++)
 	{
+		authObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
 		isprintf(msgbuf, sizeof msgbuf, "\t%d\t" UVAST_FIELDSPEC "\t%u",
-				i, auth->nodeNbr, auth->inService);
+				i, auth.nodeNbr, auth.inService);
 		PUTS(msgbuf);
-		if (auth->nodeNbr == getOwnNodeNbr())
+		if (auth.nodeNbr == getOwnNodeNbr())
 		{
-			dtka_fec_x = i;
+			fec_x = i;
 		}
 	}
 
-	if (dtka_fec_x == DTKA_NUM_AUTHS)
+	if (fec_x == auths)
 	{
 		isprintf(msgbuf, sizeof msgbuf, "Can't send bulletin: not a \
-declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
+declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 		PUTS(msgbuf);
 		return 0;
 	}
 
-	for (i = 0, j = DTKA_FEC_K; j < DTKA_FEC_M; i++, j++)
+	secondaryBlockNbrs = (unsigned int *) MTAKE(sizeof(int)
+			* (db->fec_M - db->fec_K));
+	primaryBlocks = (char **) MTAKE(sizeof(char *) * (db->fec_K));
+	secondaryBlocks = (char **) MTAKE(sizeof(char *)
+			* (db->fec_M - db->fec_K));
+	sharenums = (unsigned int *) MTAKE(sizeof(unsigned int) * (db->fec_Q));
+	if (secondaryBlockNbrs == NULL
+	|| primaryBlocks == NULL
+	|| secondaryBlocks == NULL
+	|| sharenums == NULL)
+	{
+		PUTS("Can't allocate arrays for bulletin publication.");
+		return -1;
+	}
+
+	for (i = 0, j = db->fec_K; j < db->fec_M; i++, j++)
 	{
 		secondaryBlockNbrs[i] = j;
 	}
 
-	buflen = sdr_list_length(sdr, db->pendingRecords) * DTKA_MAX_REC;
+	buflen = sdr_list_length(sdr, db->pendingRecords) * TC_MAX_REC;
 	if (buflen == 0)
 	{
 		PUTS("No records to publish.");
+		MRELEASE(secondaryBlockNbrs);
+		MRELEASE(primaryBlocks);
+		MRELEASE(secondaryBlocks);
+		MRELEASE(sharenums);
 		return 0;
 	}
 
@@ -397,6 +451,22 @@ declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 	{
 		putErrmsg("Not enough memory for consensus bulletin.",
 				utoa(buflen));
+		MRELEASE(secondaryBlockNbrs);
+		MRELEASE(primaryBlocks);
+		MRELEASE(secondaryBlocks);
+		MRELEASE(sharenums);
+		return -1;
+	}
+
+	acknowledged = MTAKE(auths);
+	if (acknowledged == NULL)
+	{
+		putErrmsg("Not enough memory for acknowledged array.",
+				itoa(auths));
+		MRELEASE(secondaryBlockNbrs);
+		MRELEASE(primaryBlocks);
+		MRELEASE(secondaryBlocks);
+		MRELEASE(sharenums);
 		return -1;
 	}
 
@@ -407,24 +477,29 @@ declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 	{
 		nextElt = sdr_list_next(sdr, elt);
 		obj = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, DtkaRecord, rec, obj);
-		for (i = 0; i < DTKA_NUM_AUTHS; i++)
+		GET_OBJ_POINTER(sdr, TcaRecord, rec, obj);
+		sdr_read(sdr, acknowledged, rec->acknowledged, auths);
+		for (elt2 = sdr_list_first(sdr, db->authorities), i = 0; elt2;
+				elt2 = sdr_list_next(sdr, elt2), i++)
 		{
-			if (db->authorities[i].inService == 0)
+			authObj = sdr_list_data(sdr, elt2);
+			sdr_read(sdr, (char *) &auth, authObj,
+					sizeof(TcaAuthority));
+			if (auth.inService == 0)
 			{
 				continue;
 			}
 
-			if (rec->acknowledged[i] == 1)
+			if (acknowledged[i] == 1)
 			{
 				continue;
 			}
 
-			noteNoConsensus(rec);
+			noteNoConsensus(db, rec);
 			break;	/*	No consensus on this record.	*/
 		}
 
-		if (i < DTKA_NUM_AUTHS)
+		if (elt2)	/*	No consensus.			*/
 		{
 			/*	TODO: insert this record into the
 			 *	db->currentRecords list for research
@@ -443,13 +518,18 @@ declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 			rec->effectiveTime = 0;
 		}
 
-		recLen = dtka_serialize(cursor, bytesRemaining, rec->nodeNbr,
-				&(rec->effectiveTime), rec->assertionTime,
+		recLen = tc_serialize(cursor, bytesRemaining, rec->nodeNbr,
+				rec->effectiveTime, rec->assertionTime,
 				rec->datLength, rec->datValue);
 		if (recLen < 0)
 		{
 			putErrmsg("Can't serialize record.", NULL);
+			MRELEASE(acknowledged);
 			MRELEASE(bulletin);
+			MRELEASE(secondaryBlockNbrs);
+			MRELEASE(primaryBlocks);
+			MRELEASE(secondaryBlocks);
+			MRELEASE(sharenums);
 			return -1;
 		}
 
@@ -463,6 +543,7 @@ declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
+	MRELEASE(acknowledged);
 	isprintf(msgbuf, sizeof msgbuf, "Number of records in consensus: %d",
 			recCount);
 	PUTS(msgbuf);
@@ -470,50 +551,63 @@ declared key authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 	if (recCount == 0)
 	{
 		MRELEASE(bulletin);
+		MRELEASE(secondaryBlockNbrs);
+		MRELEASE(primaryBlocks);
+		MRELEASE(secondaryBlocks);
+		MRELEASE(sharenums);
 		return 1;
 	}
 
-	blksize = (bulletinLen / DTKA_FEC_K)
-			+ (bulletinLen % DTKA_FEC_K > 0 ? 1 : 0);
-	buflen = blksize * DTKA_FEC_M;
+	blksize = (bulletinLen / db->fec_K)
+			+ (bulletinLen % db->fec_K > 0 ? 1 : 0);
+	buflen = blksize * db->fec_M;
 	buffer = MTAKE(buflen);
 	if (buffer == NULL)
 	{
 		putErrmsg("Not enough memory for erasure coding buffer.",
 				utoa(buflen));
 		MRELEASE(bulletin);
+		MRELEASE(secondaryBlockNbrs);
+		MRELEASE(primaryBlocks);
+		MRELEASE(secondaryBlocks);
+		MRELEASE(sharenums);
 		return -1;
 	}
 
 	memset(buffer, 0, buflen);
 	memcpy(buffer, bulletin, bulletinLen);
 	MRELEASE(bulletin);
-	sha2(buffer, DTKA_FEC_K * blksize, hash, 0);
+	sha2((unsigned char*) buffer, db->fec_K * blksize, hash, 0);
 	cursor = buffer;
-	for (i = 0; i < DTKA_FEC_K; i++)
+	for (i = 0; i < db->fec_K; i++)
 	{
 		primaryBlocks[i] = cursor;
 		cursor += blksize;
 	}
 
-	for (i = 0; i < (DTKA_FEC_M - DTKA_FEC_K); i++)
+	for (i = 0; i < (db->fec_M - db->fec_K); i++)
 	{
 		secondaryBlocks[i] = cursor;
 		cursor += blksize;
 	}
 
-	fec = fec_new(DTKA_FEC_K, DTKA_FEC_M);
+	fec = fec_new(db->fec_K, db->fec_M);
 	if (fec == NULL)
 	{
 		putErrmsg("Not enough memory for fec encoder.", NULL);
 		MRELEASE(buffer);
+		MRELEASE(secondaryBlockNbrs);
+		MRELEASE(primaryBlocks);
+		MRELEASE(secondaryBlocks);
+		MRELEASE(sharenums);
 		return -1;
 	}
 
-	fec_encode(fec, primaryBlocks, secondaryBlocks, secondaryBlockNbrs,
-			DTKA_FEC_M - DTKA_FEC_K, blksize);
-#if DTKA_DEBUG
-for (i = 0; i < DTKA_FEC_K; i++)
+	fec_encode(fec, (unsigned char **) primaryBlocks,
+			(unsigned char **) secondaryBlocks,
+			secondaryBlockNbrs, db->fec_M - db->fec_K, blksize);
+#if TC_DEBUG
+for (i = 0; i < db->fec_K; i++)
 {
 	printf("Primary block share number %d:\n", i);
 	for (j = 0; j < blksize; j++)
@@ -524,7 +618,7 @@ for (i = 0; i < DTKA_FEC_K; i++)
 	putchar('\n');
 }
 
-for (i = 0; i < (DTKA_FEC_M - DTKA_FEC_K); i++)
+for (i = 0; i < (db->fec_M - db->fec_K); i++)
 {
 	printf("Parity block share %d:\n", i);
 	for (j = 0; j < blksize; j++)
@@ -535,18 +629,18 @@ for (i = 0; i < (DTKA_FEC_M - DTKA_FEC_K); i++)
 	putchar('\n');
 }
 #endif
-	sharenum = (DTKA_FEC_Q / 2) * dtka_fec_x;
-	for (i = 0; i < DTKA_FEC_Q; i++)
+	sharenum = (db->fec_Q / 2) * fec_x;
+	for (i = 0; i < db->fec_Q; i++)
 	{
 		sharenums[i] = sharenum;
 		sharenum++;
-		if (sharenum == DTKA_FEC_M)
+		if (sharenum == db->fec_M)
 		{
 			sharenum = 0;
 		}
 	}
 
-	for (i = 0; i < DTKA_FEC_Q; i++)
+	for (i = 0; i < db->fec_Q; i++)
 	{
 		obj = sdr_malloc(sdr, 40 + blksize);
 		if (obj == 0)
@@ -554,6 +648,10 @@ for (i = 0; i < (DTKA_FEC_M - DTKA_FEC_K); i++)
 			putErrmsg("Not enough heap space for block ZCO.", NULL);
 			fec_free(fec);
 			MRELEASE(buffer);
+			MRELEASE(secondaryBlockNbrs);
+			MRELEASE(primaryBlocks);
+			MRELEASE(secondaryBlocks);
+			MRELEASE(sharenums);
 			return -1;
 		}
 
@@ -573,9 +671,13 @@ for (i = 0; i < (DTKA_FEC_M - DTKA_FEC_K); i++)
 			putErrmsg("Can't create block ZCO.", NULL);
 			fec_free(fec);
 			MRELEASE(buffer);
+			MRELEASE(secondaryBlockNbrs);
+			MRELEASE(primaryBlocks);
+			MRELEASE(secondaryBlocks);
+			MRELEASE(sharenums);
 			return -1;
 		}
-#if DTKA_DEBUG
+#if TC_DEBUG
 printf("Sending block for share number %d.\n", sharenum);
 fflush(stdout);
 #endif
@@ -588,34 +690,57 @@ fflush(stdout);
 
 	fec_free(fec);
 	MRELEASE(buffer);
+	MRELEASE(secondaryBlockNbrs);
+	MRELEASE(primaryBlocks);
+	MRELEASE(secondaryBlocks);
+	MRELEASE(sharenums);
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
-int	kapublish(int a1, int a2, int a3, int a4, int a5,
+#if defined (ION_LWT)
+int	tcapublish(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+	int	blocksGroupNbr = (a1 ? atoi((char *) a1) : -1);
 #else
 int	main(int argc, char *argv[])
 {
+	int	blocksGroupNbr = (argc > 1 ? atoi(argv[1]) : -1);
 #endif
 	char		ownEid[32];
-	KapublishState	state = { NULL, 1 };
+	TcaPublishState	state = { NULL, 1 };
 	BpSAP		sendSAP;
 	Sdr		sdr;
 	Object		dbobj;
-	DtkaAuthDB	db;
+	TcaDB		db;
 	time_t		currentTime;
 	int		interval;
 	BpDelivery	dlv;
+	int		result;
 
-	if (kauthAttach() < 0)
+	if (blocksGroupNbr < 1)
 	{
-		putErrmsg("kapublish can't attach to dtka.", NULL);
+		puts("Usage: tcapublish <IMC group number for TC blocks>");
+		return -1;
+	}
+
+	if (tcaAttach(blocksGroupNbr) < 0)
+	{
+		putErrmsg("tcapublish can't attach to tca.", NULL);
 		return 1;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "imc:%d.0", DTKA_CONFER);
+	sdr = getIonsdr();
+	dbobj = getTcaDBObject(blocksGroupNbr);
+	if (dbobj == 0)
+	{
+		putErrmsg("No TCA authority database.", NULL);
+		ionDetach();
+		return 1;
+	}
+
+	sdr_read(sdr, (char *) &db, dbobj, sizeof(TcaDB));
+	isprintf(ownEid, sizeof ownEid, "imc:%d.0", db.bulletinsGroupNbr);
 	if (bp_open(ownEid, &state.recvSAP) < 0)
 	{
 		putErrmsg("Can't open own reception endpoint.", ownEid);
@@ -624,7 +749,7 @@ int	main(int argc, char *argv[])
 	}
 
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
-			getOwnNodeNbr(), DTKA_ANNOUNCE);
+			getOwnNodeNbr(), blocksGroupNbr);
 	if (bp_open(ownEid, &sendSAP) < 0)
 	{
 		putErrmsg("Can't open own transmission endpoint.", ownEid);
@@ -632,23 +757,12 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	sdr = getIonsdr();
-	dbobj = getKauthDbObject();
-	if (dbobj == 0)
-	{
-		putErrmsg("No DTKA authority database.", NULL);
-		ionDetach();
-		return 1;
-	}
-
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(DtkaAuthDB));
-
 	/*	Main loop: receive proposed bulletins, mark toward
 	 *	consensus, until consensus interval ends.		*/
 
-	oK(_kapublishState(&state));
+	oK(_tcapublishState(&state));
 	isignal(SIGTERM, shutDown);
-	writeMemo("[i] kapublish is running.");
+	writeMemo("[i] tcapublish is running.");
 	while (state.running)
 	{
 		currentTime = getCtime();
@@ -669,7 +783,8 @@ int	main(int argc, char *argv[])
 
 		if (bp_receive(state.recvSAP, &dlv, interval) < 0)
 		{
-			putErrmsg("kapublish bulletin reception failed.", NULL);
+			putErrmsg("tcapublish bulletin reception failed.",
+					NULL);
 			state.running = 0;
 			continue;
 		}
@@ -690,12 +805,16 @@ int	main(int argc, char *argv[])
 		if (dlv.result == BpPayloadPresent)
 		{
 			CHKZERO(sdr_begin_xn(sdr));
-			if (handleProposedBulletin(sdr, &db,
-					dlv.bundleSourceEid, dlv.adu) < 0)
+			result = handleProposedBulletin(sdr, &db,
+					dlv.bundleSourceEid, dlv.adu);
+			bp_release_delivery(&dlv, 1);
+		       	if (result < 0)
 			{
 				putErrmsg("Can't handle proposed bulletin.",
 						NULL);
 				sdr_cancel_xn(sdr);
+				state.running = 0;
+				continue;
 			}
 
 			if (sdr_end_xn(sdr) < 0)
@@ -713,7 +832,7 @@ int	main(int argc, char *argv[])
 	bp_close(state.recvSAP);
 	bp_close(sendSAP);
 	writeErrmsgMemos();
-	writeMemo("[i] kapublish has ended.");
+	writeMemo("[i] tcapublish has ended.");
 	ionDetach();
 	return 0;
 }

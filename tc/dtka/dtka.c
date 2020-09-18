@@ -1,5 +1,5 @@
 /*
-	knode.c:	public/private key pair generator for ION
+	dtka.c:	public/private key pair generator for ION
 			nodes.
 
 			NOTE: this program utilizes functions
@@ -11,7 +11,7 @@
 				-DCRYPTO_SOFTWARE_INSTALLED
 				
 			when compiling this program.  Absent that
-			flag setting at compile time, knode's
+			flag setting at compile time, dtka's
 			generateKeyPair() function does nothing.
 
 
@@ -22,7 +22,9 @@
 	acknowledged.
 	
 									*/
-#include "knode.h"
+#include "dtka.h"
+#include "ionsec.h"
+#include "crypto.h"
 
 #ifndef _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_DEPRECATE 1
@@ -60,179 +62,14 @@ static long	_running(long *newValue)
 	return state;
 }
 
-static void	shutDown()	/*	Commands knode termination.	*/
+static void	shutDown()	/*	Commands dtka termination.	*/
 {
 	long	stop = 0;
 
-	oK(_running(&stop));	/*	Terminates knode.		*/
+	oK(_running(&stop));	/*	Terminates dtka.		*/
 }
 
 /*	*	*	Clock thread functions	*	*	*	*/
-
-static Object	_knodedbObject(Object *newDbObj)
-{
-	static Object	obj = 0;
-
-	if (newDbObj)
-	{
-		obj = *newDbObj;
-	}
-
-	return obj;
-}
-
-static DtkaNodeDB	*_knodeConstants()
-{
-	static DtkaNodeDB	buf;
-	static DtkaNodeDB	*db = NULL;
-	Sdr			sdr;
-	Object			dbObject;
-
-	if (db == NULL)
-	{
-		/*	Load constants into a conveniently accessed
-		 *	structure.  Note that this CANNOT be treated
-		 *	as a current database image in later
-		 *	processing.					*/
-
-		sdr = getIonsdr();
-		CHKNULL(sdr);
-		dbObject = _knodedbObject(NULL);
-		if (dbObject)
-		{
-			if (sdr_heap_is_halted(sdr))
-			{
-				sdr_read(sdr, (char *) &buf, dbObject,
-						sizeof(DtkaNodeDB));
-			}
-			else
-			{
-				CHKNULL(sdr_begin_xn(sdr));
-				sdr_read(sdr, (char *) &buf, dbObject,
-						sizeof(DtkaNodeDB));
-				sdr_exit_xn(sdr);
-			}
-
-			db = &buf;
-		}
-	}
-
-	return db;
-}
-
-static Object	getKnodeDbObject()
-{
-	return _knodedbObject(NULL);
-}
-
-static DtkaNodeDB	*getKnodeConstants()
-{
-	return _knodeConstants();
-}
-
-static char	*_knodedbName()
-{
-	return "knodedb";
-}
-
-static int	knodeInit()
-{
-	Sdr		sdr;
-	Object		knodedbObject;
-	DtkaNodeDB	knodedbBuf;
-	char		*knodevdbName = _knodevdbName();
-	int		i;
-	DtkaAuthority	*auth;
-	int		seqLength = DTKA_FEC_Q / 2;
-	int		sharenum;
-
-	sdr = getIonsdr();
-
-	/*	Recover the knode database, creating it if necessary.	*/
-
-	CHKERR(sdr_begin_xn(sdr));
-	knodedbObject = sdr_find(sdr, _knodedbName(), NULL);
-	switch (knodedbObject)
-	{
-	case -1:		/*	SDR error.			*/
-		sdr_cancel_xn(sdr);
-		putErrmsg("Can't search for knode database in SDR.", NULL);
-		return -1;
-
-	case 0:			/*	Not found; must create new DB.	*/
-		knodedbObject = sdr_malloc(sdr, sizeof(DtkaNodeDB));
-		if (knodedbObject == 0)
-		{
-			sdr_cancel_xn(sdr);
-			putErrmsg("No space for knode database.", NULL);
-			return -1;
-		}
-
-		/*	Initialize the knode database.			*/
-
-		memset((char *) &knodedbBuf, 0, sizeof(DtkaNodeDB));
-
-		/*	Default values.					*/
-
-		knodedbBuf.nextKeyGenTime = getCtime() + 4;
-		knodedbBuf.keyGenInterval = 604800;	/*	Weekly	*/
-		knodedbBuf.effectiveLeadTime = 345600;	/*	4 days	*/
-		sdr_write(sdr, knodedbObject, (char *) &knodedbBuf,
-				sizeof(DtkaNodeDB));
-		sdr_catlg(sdr, _knodedbName(), 0, knodedbObject);
-		if (sdr_end_xn(sdr))
-		{
-			putErrmsg("Can't create knode database.", NULL);
-			return -1;
-		}
-
-		break;
-
-	default:			/*	Found DB in the SDR.	*/
-		sdr_exit_xn(sdr);
-	}
-
-	oK(_knodedbObject(&knodedbObject));/*	Save database location.	*/
-	oK(_knodeConstants());
-	return 0;		/*	TCC service is available.	*/
-}
-
-static int	knodeAttach()
-{
-	Object		knodedbObject = _knodedbObject(NULL);
-	Sdr		sdr;
-	char		*knodevdbName = _knodevdbName();
-
-	if (bp_attach() < 0)
-	{
-		putErrmsg("DTKA can't attach to ION.", NULL);
-		return -1;
-	}
-
-	if (knodedbObject)
-	{
-		return 0;		/*	Already attached.	*/
-	}
-
-	sdr = getIonsdr();
-	CHKERR(sdr_begin_xn(sdr));	/*	Lock database.		*/
-	knodedbObject = sdr_find(sdr, _knodedbName(), NULL);
-	sdr_exit_xn(sdr);		/*	Unlock database.	*/
-	if (knodedbObject == 0)
-	{
-		if (knodeInit() < 0)
-		{
-			putErrmsg("Can't find DTKA database.", NULL);
-			return -1;
-		}
-
-		knodedbObject = sdr_find(sdr, _knodedbName(), NULL);
-	}
-
-	oK(_knodedbObject(&knodedbObject));
-	oK(_knodeConstants());
-	return 0;		/*	DTKA service is available.	*/
-}
 
 #ifdef CRYPTO_SOFTWARE_INSTALLED
 static int	writeAddPubKeyCmd(time_t effectiveTime,
@@ -283,7 +120,7 @@ static int	writeAddPubKeyCmd(time_t effectiveTime,
 }
 #endif
 
-static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
+static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 {
 #ifdef CRYPTO_SOFTWARE_INSTALLED
 	time_t			currentTime = getCtime();
@@ -385,7 +222,7 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 
 	/*	Publish new public key declaration record.		*/
 
-	recordLen = dtka_serialize(recordBuffer, sizeof recordBuffer,
+	recordLen = tc_serialize(recordBuffer, sizeof recordBuffer,
 			getOwnNodeNbr(), effectiveTime, currentTime,
 			publicKeyLen, publicKey);
 	if (recordLen < 0)
@@ -428,43 +265,47 @@ static int	generateKeyPair(BpSAP sap, DtkaNodeDB *db)
 	return 0;
 }
 
-static void	generateKeys(void *parm)
+static void	*generateKeys(void *parm)
 {
 	char		ownEid[32];
-	char		*procName = "knode";
+	char		*procName = "dtka";
 	BpSAP		sap;
 	Sdr		sdr;
 	Object		dbobj;
-	DtkaNodeDB	db;
+	DtkaDB		db;
 	time_t		currentTime;
 	unsigned int	secondsToWait;
+	long		state = 1;
 
 	/*	Main loop for DTKA key generation.			*/
 
 	snooze(1);	/*	Let main thread become interruptible.	*/
-	if (knodeAttach() < 0)
+	if (dtkaAttach() < 0)
 	{
-		putErrmsg("knode can't attach to ION.", NULL);
-		return 1;
+		putErrmsg("dtka can't attach to ION.", NULL);
+		ionKillMainThread(procName);
+		return NULL;
 	}
 
 	sdr = getIonsdr();
-	dbobj = getKnodeDbObject();
+	dbobj = getDtkaDbObject();
 	if (dbobj == 0)
 	{
 		putErrmsg("No DTKA node database.", NULL);
 		ionDetach();
-		return 1;
+		ionKillMainThread(procName);
+		return NULL;
 	}
 
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(DtkaNodeDB));
+	sdr_read(sdr, (char *) &db, dbobj, sizeof(DtkaDB));
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
 	if (bp_open(ownEid, &sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
 		ionDetach();
-		return 1;
+		ionKillMainThread(procName);
+		return NULL;
 	}
 
 	/*	Clock loop: wait until next key generation time,
@@ -486,36 +327,39 @@ static void	generateKeys(void *parm)
 			putErrmsg("Can't update DTKA next key gen time.", NULL);
 			state = 0;
 			oK(_running(&state));
+			ionKillMainThread(procName);
 			continue;
 		}
 
-		sdr_stage(sdr, (char *) &db, dbobj, sizeof(DtkaNodeDB));
+		sdr_stage(sdr, (char *) &db, dbobj, sizeof(DtkaDB));
 		db.nextKeyGenTime += db.keyGenInterval;
-		sdr_write(sdr, dbobj, (char *) &db, sizeof(DtkaNodeDB));
+		sdr_write(sdr, dbobj, (char *) &db, sizeof(DtkaDB));
 		if (sdr_end_xn(sdr) < 0)
 		{
 			putErrmsg("Can't update DTKA next key gen time.", NULL);
 			state = 0;
 			oK(_running(&state));
+			ionKillMainThread(procName);
 			continue;
 		}
 
 		if (generateKeyPair(sap, &db) < 0)
 		{
-			putErrmsg("knode key pair generation failed.", NULL);
+			putErrmsg("dtka key pair generation failed.", NULL);
 			state = 0;
 			oK(_running(&state));
+			ionKillMainThread(procName);
 			continue;
 		}
 	}
 
 	bp_close(sap);
 	writeErrmsgMemos();
-	writeMemo("[i] knode clock thread has ended.");
+	writeMemo("[i] dtka clock thread has ended.");
 	return NULL;
 }
 
-/*	*	Functions for main loop of knode.	*	*	*/
+/*	*	Functions for main loop of dtka.	*	*	*/
 
 static void	printRecord(uvast nodeNbr, time_t effectiveTime,
 			time_t assertionTime, unsigned short datLength,
@@ -551,22 +395,22 @@ static void	printRecord(uvast nodeNbr, time_t effectiveTime,
 	PUTS(msgbuf);
 }
 
-static int	handleBulletin(unsigned char *buffer, int bufSize)
+static int	handleBulletin(char *buffer, int bufSize)
 {
-	unsigned char	*cursor = buffer;
+	char		*cursor = buffer;
 	int		bytesRemaining = bufSize;
 	uvast		nodeNbr;
 	time_t		effectiveTime;
 	time_t		assertionTime;
 	unsigned short	datLength;
-	unsigned char	datValue[DTKA_MAX_DATLEN];
+	unsigned char	datValue[TC_MAX_DATLEN];
 	int		recCount = 0;
 	char		msgbuf[72];
 
 	PUTS("\n---Bulletin received---");
 	while (bytesRemaining >= 14)
 	{
-		if (dtka_deserialize(&cursor, &bytesRemaining, DTKA_MAX_DATLEN,
+		if (tc_deserialize(&cursor, &bytesRemaining, TC_MAX_DATLEN,
 				&nodeNbr, &effectiveTime, &assertionTime,
 				&datLength, datValue) < 1)
 		{
@@ -610,8 +454,8 @@ static int	handleBulletin(unsigned char *buffer, int bufSize)
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
-int	knode(int a1, int a2, int a3, int a4, int a5,
+#if defined (ION_LWT)
+int	dtka(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 #else
@@ -626,10 +470,10 @@ int	main(int argc, char *argv[])
 
 	oK(_running(&state));
 	isignal(SIGTERM, shutDown);
-	writeMemo("[i] knode is running.");
+	writeMemo("[i] dtka is running.");
 	if (pthread_begin(&clockThread, NULL, generateKeys, NULL))
 	{
-		putSysErrmsg("knode can't start clock thread", NULL);
+		putSysErrmsg("dtka can't start clock thread", NULL);
 		return -1;
 	}
 
@@ -669,7 +513,7 @@ int	main(int argc, char *argv[])
 
 	pthread_join(clockThread, NULL);
 	writeErrmsgMemos();
-	writeMemo("[i] knode has ended.");
+	writeMemo("[i] dtka has ended.");
 	ionDetach();
 	return 0;
 }

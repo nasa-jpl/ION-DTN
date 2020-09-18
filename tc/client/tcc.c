@@ -9,6 +9,8 @@
 	acknowledged.
 									*/
 #include "tccP.h"
+#include "crypto.h"
+#include "fec.h"
 
 typedef struct
 {
@@ -45,12 +47,15 @@ static void	shutDown()	/*	Commands tcc termination.	*/
 	state->running = 0;
 }
 
-static Object	retrieveBulletin(TccNodeDB *db, TccBlockHeader *header,
+static Object	retrieveBulletin(TccDB *db, TccBlockHeader *header,
 			size_t blksize, TccBulletin *bulletin)
 {
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	obj;
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	Object		obj;
+	int		i;
+	Object		shareObj;
+	TccShare	share;
 
 	for (elt = sdr_list_first(sdr, db->bulletins); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -104,6 +109,7 @@ static Object	retrieveBulletin(TccNodeDB *db, TccBlockHeader *header,
 	bulletin->timestamp = header->timestamp;
 	memcpy(bulletin->hash, header->hash, 32);
 	bulletin->blksize = blksize;
+	bulletin->shares = sdr_list_create(sdr);
 	sdr_write(sdr, obj, (char *) bulletin, sizeof(TccBulletin));
 	if (elt)
 	{
@@ -114,15 +120,48 @@ static Object	retrieveBulletin(TccNodeDB *db, TccBlockHeader *header,
 		elt = sdr_list_insert_last(sdr, db->bulletins, obj);
 	}
 
+	/*	Create "share" objects for all extents of bulletin.	*/
+
+	for (i = 0; i < db->fec_M; i++)
+	{
+		shareObj = sdr_malloc(sdr, sizeof(TccShare));
+		if (shareObj)
+		{
+			memset((char *) &share, 0, sizeof(TccShare));
+			sdr_write(sdr, shareObj, (char *) &share,
+					sizeof(TccShare));
+			oK(sdr_list_insert_last(sdr, bulletin->shares,
+					shareObj));
+		}
+	}
+
 	return elt;
 }
 
-#if TCC_DEBUG
+static Object	getShareObj(TccBulletin *bulletin, int shareNbr)
+{
+	Sdr	sdr = getIonsdr();
+	int	i;
+	Object	elt;
+
+	for (i = 0, elt = sdr_list_first(sdr, bulletin->shares); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		if (i == shareNbr)
+		{
+			return sdr_list_data(sdr, elt);
+		}
+	}
+
+	return 0;
+}
+
+#if TC_DEBUG
 static void	printBlockText(Object text, int offset, int blksize)
 {
 	Sdr		sdr = getIonsdr();
 	ZcoReader	reader;
-	unsigned char	datValue[TCC_MAX_DATLEN];
+	char		datValue[TC_MAX_DATLEN];
 	int		j;
 
 	zco_start_receiving(text, &reader);
@@ -136,26 +175,29 @@ static void	printBlockText(Object text, int offset, int blksize)
 	putchar('\n');
 }
 
-static void	snap(TccBulletin *bulletin, unsigned int *inputSharenums,
-		unsigned char **inputBlocks, unsigned char **outputBlocks,
-		unsigned char *inputBuffer, unsigned char *outputBuffer)
+static void	snap(TccDB *db, TccBulletin *bulletin,
+			unsigned int *inputSharenums, 
+			char **outputBlocks) 
 {
 	size_t		blksize = bulletin->blksize;
-	TccShare	*share;
+	Object		shareObj;
+	TccShare	share;
 	TccBlock	*block;
 	int		i;
-	unsigned char	*blk;
+	char		*blk;
 	int		j;
 
 	puts("\nBlocks from bulletin:");
-	for (i = 0; i < TCC_FEC_M; i++)
+	for (i = 0; i < db->fec_M; i++)
 	{
 		printf("\tfor share number %02d:\n", i);
-		share = bulletin->shares + i;
-		block = share->blocks + TCC_PRIMARY;
+		shareObj = getShareObj(bulletin, i);
+		CHKVOID(shareObj);
+		sdr_read(sdr, (char *) &share, shareObj, sizeof(TccShare));
+		block = share.blocks + TCC_PRIMARY;
 		if (block->text == 0)
 		{
-			block = share->blocks + TCC_BACKUP;
+			block = share.blocks + TCC_BACKUP;
 			if (block->text == 0)
 			{
 				puts("<none>");
@@ -168,14 +210,14 @@ static void	snap(TccBulletin *bulletin, unsigned int *inputSharenums,
 
 
 	puts("\nShare numbers:\n");
-	for (i = 0; i < TCC_FEC_K; i++)
+	for (i = 0; i < db->fec_K; i++)
 	{
 		printf("Buffer slot %02d contains block share number %02d.\n",
 				i, inputSharenums[i]);
 	}
 
 	puts("\nOutput blocks:\n");
-	for (i = 0; i < TCC_FEC_K; i++)
+	for (i = 0; i < db->fec_K; i++)
 	{
 		printf("Buffer slot %02d:\n", i);
 		blk = outputBlocks[i];
@@ -191,52 +233,74 @@ static void	snap(TccBulletin *bulletin, unsigned int *inputSharenums,
 }
 #endif
 
-static int	tryAuths(fec_t *fec, TccBulletin *bulletin,
-			unsigned char *inputBuffer,
-			unsigned char *outputBuffer,
+static int	tryAuths(TccDB *db, fec_t *fec, TccBulletin *bulletin,
+			char *inputBuffer,
+			char *outputBuffer,
 			int bufSize,
-			unsigned char **inputBlocks,
-			unsigned char **outputBlocks,
+			char **inputBlocks,
+			char **outputBlocks,
 			int suspectAuthNum1,
 			int suspectAuthNum2)
 {
 	Sdr		sdr = getIonsdr();
 	size_t		blksize = bulletin->blksize;
-	unsigned int	inputSharenums[TCC_FEC_K];
-	unsigned char	inputSlotOccupied[TCC_FEC_K];
+	int		sharenumsLen;
+	unsigned int	*inputSharenums;
+	int		inputslotsLen;
+	unsigned char	*inputSlotOccupied;
 	int		blocksLoaded;
 	int		i;
-	TccShare	*share;
+	Object		shareObj;
+	TccShare	share;
 	TccBlock	*block;
 	int		slotNbr;
 	int		j;
-	unsigned char	*blk;
+	char		*blk;
 	ZcoReader	reader;
 	vast		len;
 	unsigned int	sharenum;
-	unsigned char	**recoveredBlk;
+	char		**recoveredBlk;
 	unsigned char	hash[32];
 	int		match;
 
 	memset(inputBuffer, 0, bufSize);
 	memset(outputBuffer, 0, bufSize);
-	memset(inputSharenums, 0, sizeof inputSharenums);
-	memset(inputSlotOccupied, 0, sizeof inputSlotOccupied);
-	blocksLoaded = 0;
-	for (i = 0; i < TCC_FEC_M; i++)
+	sharenumsLen = sizeof(int) * db->fec_K;
+	inputSharenums = MTAKE(sharenumsLen);
+	if (inputSharenums == NULL)
 	{
-		share = bulletin->shares + i;
-		block = share->blocks + TCC_PRIMARY;
+		putErrmsg("No space for inputSharenums.", NULL);
+		return -1;
+	}
+
+	inputslotsLen = sizeof(char) * db->fec_K;
+	inputSlotOccupied = MTAKE(inputslotsLen);
+	if (inputSlotOccupied == NULL)
+	{
+		MRELEASE(inputSharenums);
+		putErrmsg("No space for inputSlotOccupied.", NULL);
+		return -1;
+	}
+
+	memset(inputSharenums, 0, sharenumsLen);
+	memset(inputSlotOccupied, 0, sizeof inputslotsLen);
+	blocksLoaded = 0;
+	for (i = 0; i < db->fec_M; i++)
+	{
+		shareObj = getShareObj(bulletin, i);
+		CHKERR(shareObj);
+		sdr_read(sdr, (char *) &share, shareObj, sizeof(TccShare));
+		block = share.blocks + TCC_PRIMARY;
 		if (block->text == 0
 		|| block->sourceAuthNum == suspectAuthNum1
 		|| block->sourceAuthNum == suspectAuthNum2)
 		{
-			block = share->blocks + TCC_BACKUP;
+			block = share.blocks + TCC_BACKUP;
 			if (block->text == 0
 			|| block->sourceAuthNum == suspectAuthNum1
 			|| block->sourceAuthNum == suspectAuthNum2)
 			{
-#if TCC_DEBUG
+#if TC_DEBUG
 printf("No block for share #%d.\n", i);
 fflush(stdout);
 #endif
@@ -244,14 +308,14 @@ fflush(stdout);
 			}
 		}
 
-		if (i < TCC_FEC_K)	/*	Primary block.		*/
+		if (i < db->fec_K)	/*	Primary block.		*/
 		{
 			inputSlotOccupied[i] = 1;
 			slotNbr = i;
 		}
 		else			/*	Parity block.		*/
 		{
-			for (j = 0; j < TCC_FEC_K; j++)
+			for (j = 0; j < db->fec_K; j++)
 			{
 				if (inputSlotOccupied[j] == 0)
 				{
@@ -261,7 +325,7 @@ fflush(stdout);
 				}
 			}
 
-			if (j == TCC_FEC_K)
+			if (j == db->fec_K)
 			{
 				/*	No empty slot for parity block.	*/
 
@@ -276,18 +340,22 @@ fflush(stdout);
 		if (len != blksize)
 		{
 			putErrmsg("Failure retrieving block text.", NULL);
+			MRELEASE(inputSharenums);
+			MRELEASE(inputSlotOccupied);
 			return -1;
 		}
 
 		blocksLoaded += 1;
-#if TCC_DEBUG
+#if TC_DEBUG
 printf("Loaded block for share %d into input buffer slot %d.\n", i, slotNbr);
 fflush(stdout);
 #endif
 	}
 
-	if (blocksLoaded < TCC_FEC_K)
+	if (blocksLoaded < db->fec_K)
 	{
+		MRELEASE(inputSharenums);
+		MRELEASE(inputSlotOccupied);
 		return 0;	/*	Not enough blocks for decode.	*/
 	}
 
@@ -299,11 +367,12 @@ fflush(stdout);
 	 *	bulletin content.  Finally, overwrite the output
 	 *	block array with the updated input block array.		*/
 
-	fec_decode(fec, inputBlocks, outputBlocks, inputSharenums, blksize);
-	for (i = 0, recoveredBlk = outputBlocks; i < TCC_FEC_K; i++)
+	fec_decode(fec, (unsigned char **) inputBlocks,
+		(unsigned char **) outputBlocks, inputSharenums, blksize);
+	for (i = 0, recoveredBlk = outputBlocks; i < db->fec_K; i++)
 	{
 		sharenum = inputSharenums[i];
-	       	if (sharenum >= TCC_FEC_K)
+	       	if (sharenum >= db->fec_K)
 		{
 			/*	This element of the input block array
 			 *	was originally occupied by a parity
@@ -317,45 +386,33 @@ fflush(stdout);
 	}
 
 	memmove(outputBuffer, inputBuffer, bufSize);
-	sha2(outputBuffer, bufSize, hash, 0);
+	sha2((unsigned char *) outputBuffer, bufSize, hash, 0);
 	match = (memcmp(hash, bulletin->hash, 32)) == 0;
-#if TCC_DEBUG
+#if TC_DEBUG
 printf("Match=%d; bulletin ID %d, block size %d, %u blocks in this bulletin.\n",
 match, (int) (bulletin->timestamp), (int) (bulletin->blksize),
 bulletin->sharesAnnounced);
 fflush(stdout);
 if (match == 0)
 {
-	snap(bulletin, inputSharenums, inputBlocks, outputBlocks, inputBuffer,
-			outputBuffer);
+	snap(db, bulletin, inputSharenums, outputBlocks);
 }
 #endif
+	MRELEASE(inputSharenums);
+	MRELEASE(inputSlotOccupied);
 	return match;
 }
 
-static int	enqueueBulletin(unsigned char *buffer, int bufSize)
+static int	enqueueBulletin(TccDB *db, TccVdb *vdb, char *buffer,
+			int bufSize)
 {
 	Sdr		sdr = getIonsdr();
-	Object		dbobj;
-	TccDB		db;
-	TccVdb		*vdb;
 	TccContent	content;
 	Object		contentObj;
-	Object		contentElt;
 
-	vdb = getTccVdb(blocksGroupNbr);
-	dbobj = getTccDBObj(blocksGroupNbr);
-	if (dbobj == 0)
-	{
-		putErrmsg("No TCC client database.", NULL);
-		ionDetach();
-		return -1;
-	}
-
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(TccNodeDB));
 	CHKERR(sdr_begin_xn(sdr));
 	content.length = bufSize;
-	content.data = sdr_malloc(sdr, bufsize);
+	content.data = sdr_malloc(sdr, bufSize);
 	if (content.data == 0)
 	{
 		sdr_exit_xn(sdr);
@@ -371,7 +428,7 @@ static int	enqueueBulletin(unsigned char *buffer, int bufSize)
 		return -1;
 	}
 
-	sdr_write(sdr, content.data, buffer, bufsize);
+	sdr_write(sdr, content.data, buffer, bufSize);
 	sdr_write(sdr, contentObj, (char *) &content, sizeof(TccContent));
 	if (sdr_list_insert_last(sdr, db->contents, contentObj) == 0)
 	{
@@ -386,24 +443,51 @@ static int	enqueueBulletin(unsigned char *buffer, int bufSize)
 		return -1;
 	}
 
+	MRELEASE(buffer);
 	sm_SemGive(vdb->contentSemaphore);
 	return 0;
 }
 
-static int	reconstructBulletin(TccNodeDB *db, TccBulletin *bulletin)
+static uvast	getAuthNodeNbr(TccDB *db, int idx)
 {
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	int		i;
+	TccAuthority	auth;
+
+	for (elt = sdr_list_first(sdr, db->authorities), i = 0; elt;
+			elt = sdr_list_next(sdr, elt), i++)
+	{
+		if (i < idx)
+		{
+			continue;
+		}
+
+		sdr_read(sdr, (char *) &auth, sdr_list_data(sdr, elt),
+				sizeof(TccAuthority));
+		return auth.nodeNbr;
+	}
+
+	return ((uvast) -1);
+}
+
+static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
+			TccBulletin *bulletin)
+{
+	Sdr		sdr = getIonsdr();
 	size_t		blksize = bulletin->blksize;
 	int		bufSize;
-	unsigned char	*inputBuffer;
-	unsigned char	*outputBuffer;
-	unsigned char	*inputBlocks[TCC_FEC_K];
-	unsigned char	*outputBlocks[TCC_FEC_K];
+	char		*inputBuffer;
+	char		*outputBuffer;
+	char		**inputBlocks;
+	char		**outputBlocks;
 	fec_t		*fec;
+	int		auths;
 	int		i;
 	int		j;
 	int		k;
 
-	bufSize = blksize * TCC_FEC_K;
+	bufSize = blksize * db->fec_K;
 	inputBuffer = MTAKE(bufSize);
 	if (inputBuffer == NULL)
 	{
@@ -419,23 +503,46 @@ static int	reconstructBulletin(TccNodeDB *db, TccBulletin *bulletin)
 		return -1;
 	}
 
-	for (i = 0; i < TCC_FEC_K; i++)
+	inputBlocks = MTAKE(sizeof(char *) * db->fec_K);
+	if (inputBlocks == NULL)
+	{
+		putErrmsg("Not enough memory for fec decode input.", NULL);
+		MRELEASE(outputBuffer);
+		MRELEASE(inputBuffer);
+		return -1;
+	}
+
+	outputBlocks = MTAKE(sizeof(char *) * db->fec_K);
+	if (outputBlocks == NULL)
+	{
+		putErrmsg("Not enough memory for fec decode output.", NULL);
+		MRELEASE(inputBlocks);
+		MRELEASE(outputBuffer);
+		MRELEASE(inputBuffer);
+		return -1;
+	}
+
+	for (i = 0; i < db->fec_K; i++)
 	{
 		inputBlocks[i] = inputBuffer + (i * blksize);
 		outputBlocks[i] = outputBuffer + (i * blksize);
 	}
 
-	fec = fec_new(TCC_FEC_K, TCC_FEC_M);
+	fec = fec_new(db->fec_K, db->fec_M);
 	if (fec == NULL)
 	{
 		putErrmsg("Not enough memory for fec decoder.", NULL);
 		MRELEASE(inputBuffer);
 		MRELEASE(outputBuffer);
+		MRELEASE(inputBlocks);
+		MRELEASE(outputBuffer);
 	}
+
+	auths = sdr_list_length(sdr, db->authorities);
 
 	/*	Try first K blocks in the bulletin, all authorities.	*/
 
-	switch (tryAuths(fec, bulletin, inputBuffer, outputBuffer,
+	switch (tryAuths(db, fec, bulletin, inputBuffer, outputBuffer,
 			bufSize, inputBlocks, outputBlocks, -1, -1))
 	{
 	case -1:
@@ -443,26 +550,30 @@ static int	reconstructBulletin(TccNodeDB *db, TccBulletin *bulletin)
 		fec_free(fec);
 		MRELEASE(inputBuffer);
 		MRELEASE(outputBuffer);
+		MRELEASE(inputBlocks);
+		MRELEASE(outputBlocks);
 		return -1;
 
 	case 1:
 		fec_free(fec);
 		MRELEASE(inputBuffer);
-		return enqueueBulletin(outputBuffer, bufSize);
+		MRELEASE(inputBlocks);
+		MRELEASE(outputBlocks);
+		return enqueueBulletin(db, vdb, outputBuffer, bufSize);
 
 	default:
 		break;
 	}
 
-#if TCC_DEBUG
+#if TC_DEBUG
 puts("First K blocks don't work.");
 fflush(stdout);
 #endif
-	/*	At least one of the key authorities is compromised.	*/
+	/*	At least one of the authorities is compromised.		*/
 
-	for (j = 0; j < TCC_NUM_AUTHS; j++)
+	for (j = 0; j < auths; j++)
 	{
-		switch (tryAuths(fec, bulletin, inputBuffer, outputBuffer,
+		switch (tryAuths(db, fec, bulletin, inputBuffer, outputBuffer,
 				bufSize, inputBlocks, outputBlocks, j, -1))
 		{
 		case -1:
@@ -470,36 +581,40 @@ fflush(stdout);
 			fec_free(fec);
 			MRELEASE(inputBuffer);
 			MRELEASE(outputBuffer);
+			MRELEASE(inputBlocks);
+			MRELEASE(outputBlocks);
 			return -1;
 
 		case 1:
 			writeMemoNote("[?] Compromised TCC authority",
-					itoa(db->authorities[j].nodeNbr));
+					itoa(getAuthNodeNbr(db, j)));
 			fec_free(fec);
 			MRELEASE(inputBuffer);
-			return enqueueBulletin(outputBuffer, bufSize);
+			MRELEASE(inputBlocks);
+			MRELEASE(outputBlocks);
+			return enqueueBulletin(db, vdb, outputBuffer, bufSize);
 
 		default:
 			break;			/*	Switch		*/
 		}
 	}
 
-#if TCC_DEBUG
+#if TC_DEBUG
 puts("Can't be just one compromised authority.");
 fflush(stdout);
 #endif
-	/*	At least two of the key authorities are compromised.	*/
+	/*	At least two of the authorities are compromised.	*/
 
-	for (j = 0; j < TCC_NUM_AUTHS; j++)
+	for (j = 0; j < auths; j++)
 	{
-		for (k = 0; k < TCC_NUM_AUTHS; k++)
+		for (k = 0; k < auths; k++)
 		{
 			if (k == j)
 			{
 				continue;
 			}
 
-			switch (tryAuths(fec, bulletin, inputBuffer,
+			switch (tryAuths(db, fec, bulletin, inputBuffer,
 					outputBuffer, bufSize,
 					inputBlocks, outputBlocks, j, k))
 			{
@@ -508,16 +623,21 @@ fflush(stdout);
 				fec_free(fec);
 				MRELEASE(inputBuffer);
 				MRELEASE(outputBuffer);
+				MRELEASE(inputBlocks);
+				MRELEASE(outputBlocks);
 				return -1;
 
 			case 1:
 				writeMemoNote("[?] Compromised TCC authority",
-					itoa(db->authorities[j].nodeNbr));
+					itoa(getAuthNodeNbr(db, j)));
 				writeMemoNote("[?] Compromised TCC authority",
-					itoa(db->authorities[k].nodeNbr));
+					itoa(getAuthNodeNbr(db, k)));
 				fec_free(fec);
 				MRELEASE(inputBuffer);
-				return enqueueBulletin(outputBuffer, bufSize);
+				MRELEASE(inputBlocks);
+				MRELEASE(outputBlocks);
+				return enqueueBulletin(db, vdb, outputBuffer,
+						bufSize);
 
 			default:
 				break;		/*	Switch		*/
@@ -525,26 +645,30 @@ fflush(stdout);
 		}
 	}
 
-#if TCC_DEBUG
+#if TC_DEBUG
 puts("Can't be just two compromised authorities.");
 fflush(stdout);
 #endif
-	/*	Need more blocks from non-compromised key authorities.	*/
+	/*	Need more blocks from non-compromised authorities.	*/
 
 	fec_free(fec);
 	MRELEASE(inputBuffer);
 	MRELEASE(outputBuffer);
+	MRELEASE(inputBlocks);
+	MRELEASE(outputBlocks);
 	return 0;
 }
 
-static int	acquireBlock(Sdr sdr, Object dbobj, TccNodeDB *db, char *src,
-			Object adu)
+static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
+			char *src, Object adu)
 {
 	int		parsedOkay;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	schemeElt;
-	TccAuthority	*auth;
+	Object		elt;
+	Object		authObj;
+	TccAuthority	auth;
 	int		i;
 	vast		aduLength;
 	size_t		blksize;
@@ -555,7 +679,9 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccNodeDB *db, char *src,
 	Object		bulletinElt;
 	Object		bulletinObj;
 	TccBulletin	bulletin;
-	TccShare	*share;
+	Object		shareElt;
+	Object		shareObj;
+	TccShare	share;
 	TccBlock	*block;
 	int		reconstructionResult;
 	int		j;
@@ -567,16 +693,19 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccNodeDB *db, char *src,
 		return 0;
 	}
 
-	for (auth = db->authorities, i = 0; i < TCC_NUM_AUTHS; auth++, i++)
+	for (i = 0, elt = sdr_list_first(sdr, db->authorities); elt;
+			i++, elt = sdr_list_next(sdr, elt))
 	{
-		if (metaEid.nodeNbr == auth->nodeNbr)
+		authObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &auth, authObj, sizeof(TccAuthority));
+		if (metaEid.elementNbr == auth.nodeNbr)
 		{
 			break;
 		}
 	}
 
 	restoreEidString(&metaEid);
-	if (i == TCC_NUM_AUTHS)
+	if (elt == 0)
 	{
 		writeMemoNote("[?] Bulletin block from non-authority", src);
 		return 0;
@@ -602,23 +731,20 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccNodeDB *db, char *src,
 	len = zco_receive_source(sdr, &reader, 32, (char *) header.hash);
 	len = zco_receive_source(sdr, &reader, 4, (char *) &header.sharenum);
 	header.sharenum = ntohl(header.sharenum);
-#if TCC_DEBUG
+#if TC_DEBUG
 printf("tcc received block for share #%d.\n", header.sharenum);
 fflush(stdout);
-if (header.sharenum >= TCC_FEC_K)
-{
-	printBlockText(adu, 40, blksize);
-}
+if (header.sharenum >= db->fec_K) printBlockText(adu, 40, blksize);
 #endif
-	if (header.sharenum >= auth->firstPrimaryShare
-	&& header.sharenum <= auth->lastPrimaryShare)
+	if (header.sharenum >= auth.firstPrimaryShare
+	&& header.sharenum <= auth.lastPrimaryShare)
 	{
 		blockIdx = TCC_PRIMARY;
 	}
 	else
 	{
-		if (header.sharenum >= auth->firstBackupShare
-		&& header.sharenum <= auth->lastBackupShare)
+		if (header.sharenum >= auth.firstBackupShare
+		&& header.sharenum <= auth.lastBackupShare)
 		{
 			blockIdx = TCC_BACKUP;
 		}
@@ -626,11 +752,11 @@ if (header.sharenum >= TCC_FEC_K)
 
 	if (blockIdx < 0)
 	{
-#if TCC_DEBUG
+#if TC_DEBUG
 printf("Block %d out of range for authority %d.  Authority node nbr "
 UVAST_FIELDSPEC ", primary %d - %d, backup %d - %d.\n", header.sharenum, i,
-auth->nodeNbr, auth->firstPrimaryShare, auth->lastPrimaryShare,
-auth->firstBackupShare, auth->lastBackupShare);
+auth.nodeNbr, auth.firstPrimaryShare, auth.lastPrimaryShare,
+auth.firstBackupShare, auth.lastBackupShare);
 fflush(stdout);
 #endif
 		/*	Block not within authority's purview.		*/
@@ -649,12 +775,15 @@ fflush(stdout);
 	}
 
 	bulletinObj = sdr_list_data(sdr, bulletinElt);
-	share = bulletin.shares + header.sharenum;
-	block = share->blocks + blockIdx;
-	if (share->blocksAnnounced == 0)	/*	1st block.	*/
+	sdr_read(sdr, (char *) &bulletin, bulletinObj, sizeof(TccBulletin));
+	shareObj = getShareObj(&bulletin, i);
+	CHKVOID(shareObj);
+	sdr_read(sdr, (char *) &share, shareObj, sizeof(TccShare));
+	block = share.blocks + blockIdx;
+	if (share.blocksAnnounced == 0)	/*	1st block.	*/
 	{
 		bulletin.sharesAnnounced += 1;
-#if TCC_DEBUG
+#if TC_DEBUG
 printf("Inserting first block for share %d, idx=%d, announced by authority \
 %d.\n", header.sharenum, blockIdx, i);
 fflush(stdout);
@@ -664,19 +793,16 @@ fflush(stdout);
 	{
 		if (block->text != 0)		/*	Duplicate.	*/
 		{
-#if TCC_DEBUG
+#if TC_DEBUG
 puts("Duplicates a previously received block.");
 fflush(stdout);
 #endif
 			return 0;
 		}
-#if TCC_DEBUG
+#if TC_DEBUG
 else
-{
 printf("Inserting other block for share %d, idx=%d, announced by authority \
-%d.\n", header.sharenum, blockIdx, i);
-fflush(stdout);
-}
+%d.\n", header.sharenum, blockIdx, i), fflush(stdout);
 #endif
 	}
 
@@ -690,11 +816,11 @@ fflush(stdout);
 		return -1;
 	}
 
-	share->blocksAnnounced += 1;
+	share.blocksAnnounced += 1;
 	sdr_write(sdr, bulletinObj, (char *) &bulletin, sizeof(TccBulletin));
-	if (bulletin.sharesAnnounced < TCC_FEC_K)
+	if (bulletin.sharesAnnounced < db->fec_K)
 	{
-#if dTKA_DEBUG
+#if TC_DEBUG
 printf("Bulletin can't be complete yet, sharesAnnounced = %u.\n",
 bulletin.sharesAnnounced);
 fflush(stdout);
@@ -704,7 +830,7 @@ fflush(stdout);
 
 	/*	Must check to see if the entire bulletin has arrived.	*/
 
-	reconstructionResult = reconstructBulletin(db, &bulletin);
+	reconstructionResult = reconstructBulletin(db, vdb, &bulletin);
 	if (reconstructionResult < 1)
 	{
 		return reconstructionResult;
@@ -713,26 +839,38 @@ fflush(stdout);
 	/*	Bulletin was reconstructed and handled successfully.
 	 *	Now delete it.						*/
 
-	sdr_stage(sdr, (char *) db, dbobj, sizeof(TccNodeDB));
+	sdr_stage(sdr, (char *) db, dbobj, sizeof(TccDB));
 	db->lastBulletinTime = bulletin.timestamp;
-	sdr_write(sdr, dbobj, (char *) db, sizeof(TccNodeDB));
+	sdr_write(sdr, dbobj, (char *) db, sizeof(TccDB));
 	sdr_list_delete(sdr, bulletinElt, NULL, NULL);
-	for (i = 0, share = bulletin.shares; i < TCC_FEC_M; i++, share++)
+	while (1)
 	{
-		for (j = 0, block = share->blocks; j < 2; j++, block++)
+		shareElt = sdr_list_first(sdr, bulletin.shares);
+		if (shareElt == 0)
+		{
+			break;
+		}
+
+		shareObj = sdr_list_data(sdr, shareElt);
+		sdr_read(sdr, (char *) &share, shareObj, sizeof(TccShare));
+		for (j = 0, block = share.blocks; j < 2; j++, block++)
 		{
 			if (block->text)
 			{
 				zco_destroy(sdr, block->text);
 			}
 		}
+
+		sdr_free(sdr, shareObj);
+		sdr_list_delete(sdr, shareElt, NULL, NULL);
 	}
 
+	sdr_list_destroy(sdr, bulletin.shares, NULL, NULL);
 	sdr_free(sdr, bulletinObj);
 	return 0;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
+#if defined (ION_LWT)
 int	tcc(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
@@ -746,10 +884,11 @@ int	main(int argc, char *argv[])
 	TccState	state = { NULL, 1 };
 	Sdr		sdr;
 	Object		dbobj;
-	TccNodeDB	db;
+	TccDB		db;
+	TccVdb		*vdb;
 	BpDelivery	dlv;
 
-	if (blockGroupNbr < 1)
+	if (blocksGroupNbr < 1)
 	{
 		puts("Usage: tcc <IMC group number for TC blocks>");
 		return -1;
@@ -757,7 +896,8 @@ int	main(int argc, char *argv[])
 
 	if (tccAttach(blocksGroupNbr) < 0)
 	{
-		putErrmsg("tcc can't attach to tcc system.", NULL);
+		putErrmsg("tcc can't attach to tcc system.",
+				itoa(blocksGroupNbr));
 		return 1;
 	}
 
@@ -770,7 +910,7 @@ int	main(int argc, char *argv[])
 	}
 
 	sdr = getIonsdr();
-	dbobj = getTccDbObject(blocksGroupNbr);
+	dbobj = getTccDBObj(blocksGroupNbr);
 	if (dbobj == 0)
 	{
 		putErrmsg("No TCC client database.", NULL);
@@ -778,7 +918,8 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(TccNodeDB));
+	sdr_read(sdr, (char *) &db, dbobj, sizeof(TccDB));
+	vdb = getTccVdb(blocksGroupNbr);
 
 	/*	Main loop: receive block, try to build bulletin.	*/
 
@@ -810,8 +951,8 @@ int	main(int argc, char *argv[])
 		if (dlv.result == BpPayloadPresent)
 		{
 			CHKZERO(sdr_begin_xn(sdr));
-			if (acquireBlock(sdr, dbobj, &db, dlv.bundleSourceEid,
-					dlv.adu) < 0)
+			if (acquireBlock(sdr, dbobj, &db, vdb,
+					dlv.bundleSourceEid, dlv.adu) < 0)
 			{
 				putErrmsg("Can't acquire block.", NULL);
 				sdr_cancel_xn(sdr);

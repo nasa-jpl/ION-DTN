@@ -1,22 +1,23 @@
 /*
-	libdtka.c:	common functions for DTKA implementation.
+	libtc.c:	common functions for all participants in
+			any Trusted Collective deployment.
 
 	Author: Scott Burleigh, JPL
 
-	Copyright (c) 2013, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 	
 									*/
-#include "dtka.h"
+#include "tc.h"
 
-int	dtka_serialize(unsigned char *buffer, unsigned int buflen,
+int	tc_serialize(char *buffer, unsigned int buflen,
 		uvast nodeNbr, time_t effectiveTime,
 		time_t assertionTime, unsigned short datLength,
 		unsigned char *datValue)
 {
 	int		length = 0;
-	unsigned char	*cursor;
+	char		*cursor;
 	Sdnv		nodeNbrSdnv;
 	unsigned int	u4;
 	unsigned short	u2;
@@ -55,7 +56,7 @@ int	dtka_serialize(unsigned char *buffer, unsigned int buflen,
 	return length;
 }
 
-int	dtka_deserialize(unsigned char **cursor, int *bytesRemaining,
+int	tc_deserialize(char **cursor, int *bytesRemaining,
 		unsigned short maxDatLength, uvast *nodeNbr,
 		time_t *effectiveTime, time_t *assertionTime,
 		unsigned short *datLength, unsigned char *datValue) 
@@ -71,9 +72,9 @@ int	dtka_deserialize(unsigned char **cursor, int *bytesRemaining,
 	CHKERR(datLength);
 	CHKERR(datValue);
 	extractSdnv(nodeNbr, cursor, bytesRemaining);
-	if (*bytesRemaining < 10)	/*	Times and key length.	*/
+	if (*bytesRemaining < 10)	/*	Times and data length.	*/
 	{
-		writeMemo("Malformed DTKA record: too short.");
+		writeMemo("Malformed TC record: too short.");
 		return 0;
 	}
 
@@ -91,14 +92,14 @@ int	dtka_deserialize(unsigned char **cursor, int *bytesRemaining,
 	*datLength = ntohs(*datLength);
 	if (*datLength > maxDatLength)
 	{
-		writeMemoNote("Malformed DTKA record: key is too long",
+		writeMemoNote("Malformed TC record: data too long",
 				utoa(*datLength));
 		return 0;
 	}
 
 	if (*bytesRemaining < *datLength)
 	{
-		writeMemo("Malformed DTKA record: key truncated.");
+		writeMemo("Malformed TC record: data truncated.");
 		return 0;
 	}
 

@@ -11,8 +11,8 @@
 									*/
 #include "tccP.h"
 
-int	tcc_getBulletin(int blocksGroupNbr, unsigned char **bulletinContent,
-	       	size_t *length);
+int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
+	       	int *length)
 {
 	Sdr		sdr = getIonsdr();
 	Object		dbobj;
@@ -33,7 +33,7 @@ int	tcc_getBulletin(int blocksGroupNbr, unsigned char **bulletinContent,
 
 	dbobj = getTccDBObj(blocksGroupNbr);
 	sdr_read(sdr, (char *) &db, dbobj, sizeof(TccDB));
-	vdb = getTccVcb(blocksGroupNbr);
+	vdb = getTccVdb(blocksGroupNbr);
 	CHKERR(sdr_begin_xn(sdr));
 	contentElt = sdr_list_first(sdr, db.contents);
 	while (contentElt == 0)
@@ -72,6 +72,6 @@ int	tcc_getBulletin(int blocksGroupNbr, unsigned char **bulletinContent,
 	sdr_read(sdr, *bulletinContent, content.data, content.length);
 	sdr_free(sdr, content.data);
 	sdr_free(sdr, contentObj);
-	sdr_list_delete(sdr, contentElt);
+	sdr_list_delete(sdr, contentElt, NULL, NULL);
 	return sdr_end_xn(sdr);
 }

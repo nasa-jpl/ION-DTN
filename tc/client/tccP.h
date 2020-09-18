@@ -9,8 +9,6 @@
  *	Author: Scott Burleigh, JPL
  */
 
-#include "lyst.h"
-#include "zco.h"
 #include "tcc.h"
 
 #ifndef _TCCP_H_
@@ -19,6 +17,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define TCC_PRIMARY	(0)
+#define TCC_BACKUP	(1)
 
 /*	*	*	Database structure	*	*	*	*/
 
@@ -47,7 +48,7 @@ typedef struct
 	unsigned char	hash[32];		/*	Key field 2.	*/
 	size_t		blksize;		/*	Key field 3.	*/
 	unsigned int	sharesAnnounced;
-	TccShare	shares[TCC_FEC_M];
+	Object		shares;		/*	sdr_list of TccShares	*/
 } TccBulletin;
 
 typedef struct
@@ -69,6 +70,41 @@ typedef struct
 {
 	int		blocksGroupNbr;
 	time_t		lastBulletinTime;
+
+	/*	fec_K is the mandated diffusion, i.e., the number
+	 *	of blocks into which each bulletin is divided for
+	 *	transmission.
+	 *
+	 *	fec_R is the mandated redundancy, i.e., the percentage
+	 *	of  blocks issued per bulletin that will be parity
+	 *	blocks rather than extents of the bulletin itself.
+	 *
+	 *	fec_M is the total number of distinct blocks that will
+	 *	be produced for each bulletin.
+	 *
+	 *		fec_M = fec_K + (fec_R * fec_K)
+	 *
+	 *	fec_N is the total number of blocks that will be
+	 *	transmitted per bulletin, accounting for 50% overlap
+	 *	in transmissions among the authorities of the trusted
+	 *	collective.  For each share of each bulletin, one
+	 *	authority is assigned prime responsibility for
+	 *	publishing that share and some other authority is
+	 *	assigned backup responsibility for publishing that
+	 *	same share.
+	 *
+	 *		fec_N = fec_M * 2
+	 *
+	 *	fec_Q is the number of blocks that will be transmitted
+	 *	by each authority per bulletin.
+	 *
+	 *		fec_Q = fec_N / sdr_list_length(authorities)	*/
+
+	int		fec_K;
+	double		fec_R;
+	int		fec_M;
+	int		fec_N;
+	int		fec_Q;
 	Object		authorities;	/*	SDR list: TccAuthority	*/
 	Object		bulletins;	/*	SDR list: TccBulletin	*/
 	Object		contents;	/*	SDR list: TccContent	*/
@@ -91,13 +127,13 @@ typedef struct
 	PsmAddress	vdbs;		/*	SmList: TccVdb		*/
 } TccMVdb;
 
-extern int		tccInit(int blocksGroupNbr, int numAuths);
+extern int		tccInit(int blocksGroupNbr, int auths, int K, double R);
 extern int		tccStart(int blocksGroupNbr);
 extern int		tccIsStarted(int blocksGroupNbr);
 extern void		tccStop(int blocksGroupNbr);
 extern int		tccAttach(int blocksGroupNbr);
 extern Object		getTccDBObj(int blocksGroupNbr);
-extern TccVapp		*getTccVdb(int blocksGroupNbr);
+extern TccVdb		*getTccVdb(int blocksGroupNbr);
 
 #ifdef __cplusplus
 }

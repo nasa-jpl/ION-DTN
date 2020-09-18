@@ -1,11 +1,12 @@
 /*
-	knadmin.c:	DTKA authority adminstration interface.
+	dtkaadmin.c:	DTKA adminstration interface.
 									*/
-/*	Copyright (c) 2013, California Institute of Technology.		*/
+/*	Copyright (c) 2020, California Institute of Technology.		*/
 /*	All rights reserved.						*/
-/*	Nodeor: Scott Burleigh, Jet Propulsion Laboratory		*/
+/*									*/
+/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 
-#include "knode.h"
+#include "dtka.h"
 
 static int	_echo(int *newValue)
 {
@@ -46,7 +47,7 @@ static void	printSyntaxError(int lineNbr)
 	char	buffer[80];
 
 	isprintf(buffer, sizeof buffer,
-			"Syntax error at line %d of knadmin.c", lineNbr);
+			"Syntax error at line %d of dtkaadmin.c", lineNbr);
 	printText(buffer);
 }
 
@@ -58,7 +59,6 @@ static void	printUsage()
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
-	PUTS("\tv\tPrint version of ION.");
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\tm\tManage");
@@ -66,20 +66,15 @@ static void	printUsage()
 	PUTS("\t\tTime format is yyyy/mm/dd-hh:mm:ss.");
 	PUTS("\t   m interval <new key pair generation interval, in seconds>");
 	PUTS("\t   m leadtime <key pair effectiveness lead time, in seconds>");
-	PUTS("\t   m authority <authority array index> <node number>");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i");
-	PUTS("\ts\tStart");
-	PUTS("\t   s");
-	PUTS("\tx\tStop");
-	PUTS("\t   x");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 }
 
-static void	initializeKnode(int tokenCount, char **tokens)
+static void	initializeDtka(int tokenCount, char **tokens)
 {
 	if (tokenCount != 1)
 	{
@@ -87,15 +82,15 @@ static void	initializeKnode(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (knodeInit() < 0)
+	if (dtkaInit() < 0)
 	{
-		putErrmsg("knadmin can't initialize DTKA.", NULL);
+		putErrmsg("dtkaadmin can't initialize DTKA.", NULL);
 	}
 }
 
-static int	attachToKnode()
+static int	attachToDtka()
 {
-	if (knodeAttach() < 0)
+	if (dtkaAttach() < 0)
 	{
 		printText("DTKA not initialized yet.");
 		return -1;
@@ -107,9 +102,9 @@ static int	attachToKnode()
 static void	manageKeyGenTime(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		knodedbObj = getKnodeDbObject();
+	Object		dtkadbObj = getDtkaDbObject();
 	time_t		newKeyGenTime;
-	DtkaNodeDB	knodedb;
+	DtkaDB	dtkadb;
 
 	if (tokenCount != 3)
 	{
@@ -125,9 +120,9 @@ static void	manageKeyGenTime(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &knodedb, knodedbObj, sizeof(DtkaNodeDB));
-	knodedb.nextKeyGenTime = newKeyGenTime;
-	sdr_write(sdr, knodedbObj, (char *) &knodedb, sizeof(DtkaNodeDB));
+	sdr_stage(sdr, (char *) &dtkadb, dtkadbObj, sizeof(DtkaDB));
+	dtkadb.nextKeyGenTime = newKeyGenTime;
+	sdr_write(sdr, dtkadbObj, (char *) &dtkadb, sizeof(DtkaDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change keygentime.", NULL);
@@ -137,8 +132,8 @@ static void	manageKeyGenTime(int tokenCount, char **tokens)
 static void	manageInterval(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		knodedbObj = getKnodeDbObject();
-	DtkaNodeDB	knodedb;
+	Object		dtkadbObj = getDtkaDbObject();
+	DtkaDB	dtkadb;
 	int		newInterval;
 
 	if (tokenCount != 3)
@@ -155,9 +150,9 @@ static void	manageInterval(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &knodedb, knodedbObj, sizeof(DtkaNodeDB));
-	knodedb.keyGenInterval = newInterval;
-	sdr_write(sdr, knodedbObj, (char *) &knodedb, sizeof(DtkaNodeDB));
+	sdr_stage(sdr, (char *) &dtkadb, dtkadbObj, sizeof(DtkaDB));
+	dtkadb.keyGenInterval = newInterval;
+	sdr_write(sdr, dtkadbObj, (char *) &dtkadb, sizeof(DtkaDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change interval.", NULL);
@@ -167,8 +162,8 @@ static void	manageInterval(int tokenCount, char **tokens)
 static void	manageLeadTime(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	Object		knodedbObj = getKnodeDbObject();
-	DtkaNodeDB	knodedb;
+	Object		dtkadbObj = getDtkaDbObject();
+	DtkaDB	dtkadb;
 	int		newLeadTime;
 
 	if (tokenCount != 3)
@@ -185,50 +180,12 @@ static void	manageLeadTime(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &knodedb, knodedbObj, sizeof(DtkaNodeDB));
-	knodedb.effectiveLeadTime = newLeadTime;
-	sdr_write(sdr, knodedbObj, (char *) &knodedb, sizeof(DtkaNodeDB));
+	sdr_stage(sdr, (char *) &dtkadb, dtkadbObj, sizeof(DtkaDB));
+	dtkadb.effectiveLeadTime = newLeadTime;
+	sdr_write(sdr, dtkadbObj, (char *) &dtkadb, sizeof(DtkaDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change leadtime.", NULL);
-	}
-}
-
-static void	manageAuthority(int tokenCount, char **tokens)
-{
-	Sdr		sdr = getIonsdr();
-	Object		knodedbObj = getKnodeDbObject();
-	DtkaNodeDB	knodedb;
-	int		idx;
-	uvast		nodeNbr;
-
-	if (tokenCount != 4)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	idx = atoi(tokens[2]);
-	if (idx < 0 || idx >= DTKA_NUM_AUTHS)
-	{
-		putErrmsg("authority index value invalid.", tokens[2]);
-		return;
-	}
-
-	nodeNbr = strtouvast(tokens[3]);
-	if (nodeNbr < 1)
-	{
-		putErrmsg("authority node number invalid.", tokens[3]);
-		return;
-	}
-
-	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &knodedb, knodedbObj, sizeof(DtkaNodeDB));
-	knodedb.authorities[idx].nodeNbr = nodeNbr;
-	sdr_write(sdr, knodedbObj, (char *) &knodedb, sizeof(DtkaNodeDB));
-	if (sdr_end_xn(sdr) < 0)
-	{
-		putErrmsg("Can't manage authority.", NULL);
 	}
 }
 
@@ -258,38 +215,22 @@ static void	executeManage(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "authority") == 0)
-	{
-		manageAuthority(tokenCount, tokens);
-		return;
-	}
-
 	SYNTAX_ERROR;
 }
 
 static void	executeInfo()
 {
 	Sdr		sdr = getIonsdr();
-			OBJ_POINTER(DtkaNodeDB, db);
+			OBJ_POINTER(DtkaDB, db);
 	char		buffer[256];
 	char		next[TIMESTAMPBUFSZ];
-	int		i;
-	DtkaAuthority	*auth;
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	GET_OBJ_POINTER(sdr, DtkaNodeDB, db, getKnodeDbObject());
+	GET_OBJ_POINTER(sdr, DtkaDB, db, getDtkaDbObject());
 	writeTimestampUTC(db->nextKeyGenTime, next);
 	isprintf(buffer, sizeof buffer, "nextKeyGentime=%s, keyGenInterval=%u, \
 effectiveLeadTime=%u", next, db->keyGenInterval, db->effectiveLeadTime);
 	printText(buffer);
-	printText("Authorities:");
-	for (i = 0, auth = db->authorities; i < DTKA_NUM_AUTHS; i++, auth++)
-	{
-		isprintf(buffer, sizeof buffer, "\t%d\t" UVAST_FIELDSPEC, i,
-				auth->nodeNbr);
-		printText(buffer);
-	}
-
 	sdr_exit_xn(sdr);
 }
 
@@ -323,13 +264,11 @@ static void	switchEcho(int tokenCount, char **tokens)
 
 static int	processLine(char *line, int lineLength)
 {
-	int		tokenCount;
-	char		*cursor;
-	int		i;
-	char		*tokens[9];
-	char		buffer[80];
-	struct timeval	done_time;
-	struct timeval	cur_time;
+	int	tokenCount;
+	char	*cursor;
+	int	i;
+	char	*tokens[9];
+	char	buffer[80];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -385,48 +324,11 @@ static int	processLine(char *line, int lineLength)
 			return 0;
 
 		case '1':
-			initializeKnode(tokenCount, tokens);
-			return 0;
-
-		case 's':
-			if (attachToKnode() == 0)
-			{
-				if (knodeStart(tokens[1]) < 0)
-				{
-					putErrmsg("Can't start DTKA.", NULL);
-				}
-
-				/* Wait for knode to start up. */
-				getCurrentTime(&done_time);
-				done_time.tv_sec += STARTUP_TIMEOUT;
-				while (knodeIsStarted() == 0)
-				{
-					snooze(1);
-					getCurrentTime(&cur_time);
-					if (cur_time.tv_sec >=
-						done_time.tv_sec 
-					&& cur_time.tv_usec >=
-						done_time.tv_usec)
-					{
-						printText("[?] start hung up, \
-abandoned.");
-						break;
-					}
-				}
-			}
-
-			return 0;
-
-		case 'x':
-			if (attachToKnode() == 0)
-			{
-				knodeStop();
-			}
-
+			initializeDtka(tokenCount, tokens);
 			return 0;
 
 		case 'm':
-			if (attachToKnode() == 0)
+			if (attachToDtka() == 0)
 			{
 				executeManage(tokenCount, tokens);
 			}
@@ -434,7 +336,7 @@ abandoned.");
 			return 0;
 
 		case 'i':
-			if (attachToKnode() == 0)
+			if (attachToDtka() == 0)
 			{
 				executeInfo();
 			}
@@ -454,8 +356,8 @@ abandoned.");
 	}
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
-int	knadmin(int a1, int a2, int a3, int a4, int a5,
+#if defined (ION_LWT)
+int	dtkaadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char	*cmdFileName = (char *) a1;
@@ -502,13 +404,6 @@ int	main(int argc, char **argv)
 		}
 #endif
 	}
-	else if (strcmp(cmdFileName, ".") == 0)	/*	Shutdown.	*/
-	{
-		if (knodeAttach() == 0)
-		{
-			knodeStop();
-		}
-	}
 	else					/*	Scripted.	*/
 	{
 		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
@@ -549,7 +444,7 @@ int	main(int argc, char **argv)
 	}
 
 	writeErrmsgMemos();
-	printText("Stopping knadmin.");
+	printText("Stopping dtkaadmin.");
 	ionDetach();
 
 	return 0;

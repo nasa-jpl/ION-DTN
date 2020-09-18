@@ -1,47 +1,47 @@
 /*
-	karecv.c:	Key authority daemon for reception of key
-			records asserted by nodes.
+	tcarecv.c:	Trusted Collective authority daemon for
+			reception of critical data records declared
+			by clients.
 
 	Author: Scott Burleigh, JPL
 
-	Copyright (c) 2013, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
 									*/
-#include "kauth.h"
-#include "bpP.h"
+#include "tcaP.h"
 
 typedef struct
 {
 	BpSAP	sap;
 	int	running;
-} KarecvState;
+} TcarecvState;
 
-static KarecvState	*_karecvState(KarecvState *newState)
+static TcarecvState	*_tcarecvState(TcarecvState *newState)
 {
 	void		*value;
-	KarecvState	*state;
+	TcarecvState	*state;
 	
 	if (newState)			/*	Add task variable.	*/
 	{
 		value = (void *) (newState);
-		state = (KarecvState *) sm_TaskVar(&value);
+		state = (TcarecvState *) sm_TaskVar(&value);
 	}
 	else				/*	Retrieve task variable.	*/
 	{
-		state = (KarecvState *) sm_TaskVar(NULL);
+		state = (TcarecvState *) sm_TaskVar(NULL);
 	}
 
 	return state;
 }
 
-static void	shutDown()	/*	Commands karecv termination.	*/
+static void	shutDown()	/*	Commands tcarecv termination.	*/
 {
-	KarecvState	*state;
+	TcarecvState	*state;
 
 	isignal(SIGTERM, shutDown);
-	PUTS("DTKA receiver daemon interrupted.");
-	state = _karecvState(NULL);
+	PUTS("TCA receiver daemon interrupted.");
+	state = _tcarecvState(NULL);
 	bp_interrupt(state->sap);
 	state->running = 0;
 }
@@ -52,7 +52,7 @@ static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
-	DtkaRecord	record;
+	TcaRecord	record;
 
 	CHKERR(recordsList);
 	CHKERR(nodeNbr);
@@ -68,7 +68,7 @@ static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
 			elt = sdr_list_next(sdr, elt))
 	{
 		sdr_read(sdr, (char *) &record, sdr_list_data(sdr, elt),
-				DTKA_HDR_LEN);
+				TC_HDR_LEN);
 		if (record.nodeNbr < nodeNbr)
 		{
 			continue;
@@ -79,22 +79,12 @@ static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
 			break;
 		}
 
-		if (record.effectiveTime.seconds < effectiveTime->seconds)
+		if (record.effectiveTime < effectiveTime)
 		{
 			continue;
 		}
 		
-		if (record.effectiveTime.seconds > effectiveTime->seconds)
-		{
-			break;
-		}
-
-		if (record.effectiveTime.count < effectiveTime->count)
-		{
-			continue;
-		}
-		
-		if (record.effectiveTime.count > effectiveTime->count)
+		if (record.effectiveTime > effectiveTime)
 		{
 			break;
 		}
@@ -113,7 +103,7 @@ static unsigned short	fetchRecord(Object recordsList, uvast nodeNbr,
 	return 0;			/*	Not found.		*/
 }
 
-static int	acquireRecord(Sdr sdr, DtkaAuthDB *db, char *src, Object adu)
+static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
 {
 	int		parsedOkay;
 	MetaEid		metaEid;
@@ -122,9 +112,13 @@ static int	acquireRecord(Sdr sdr, DtkaAuthDB *db, char *src, Object adu)
 	vast		recordLength;
 	ZcoReader	reader;
 	int		len;
-	char		buffer[DTKA_MAX_REC];
-	unsigned char	*cursor = (unsigned char *) buffer;
-	DtkaRecord	record;
+	char		buffer[TC_MAX_REC];
+	char		*cursor = buffer;
+	Object		clientElt;
+	uvast		client;
+	int		auths;
+	char		*acknowledged;
+	TcaRecord	record;
 	Object		recordElt;
 	Object		nextRecordElt;
 	Object		obj;
@@ -133,55 +127,84 @@ static int	acquireRecord(Sdr sdr, DtkaAuthDB *db, char *src, Object adu)
 	if (!parsedOkay)
 	{
 		restoreEidString(&metaEid);
-		writeMemoNote("[?] Can't parse source of DTKA record", src);
+		writeMemoNote("[?] Can't parse source of TCA record", src);
 		return 0;
 	}
 
 	recordLength = zco_source_data_length(sdr, adu);
 	len = recordLength;
-	if (len > DTKA_MAX_REC)
+	if (len > TC_MAX_REC)
 	{
 		restoreEidString(&metaEid);
-		writeMemoNote("[?] DTKA record length error", itoa(len));
+		writeMemoNote("[?] TCA record length error", itoa(len));
 		return 0;
 	}
 
-#if DTKA_DEBUG
-printf("Got pubkey record from " UVAST_FIELDSPEC " in karecv.\n",
+#if TC_DEBUG
+printf("Got record from " UVAST_FIELDSPEC " in tcarecv.\n",
 metaEid.nodeNbr);
 fflush(stdout);
 #endif
 	memset(&record, 0, sizeof record);
 	zco_start_receiving(adu, &reader);
-	recordLength = zco_receive_source(sdr, &reader, DTKA_MAX_REC, buffer);
+	recordLength = zco_receive_source(sdr, &reader, TC_MAX_REC, buffer);
 	len = recordLength;
-	if (dtka_deserialize(&cursor, &len, DTKA_MAX_DATLEN, 
+	if (tc_deserialize(&cursor, &len, TC_MAX_DATLEN, 
 			&(record.nodeNbr), &(record.effectiveTime),
 			&(record.assertionTime), &(record.datLength),
 			record.datValue) < 1)
 	{
-#if DTKA_DEBUG
+#if TC_DEBUG
 puts("Deserialize failed.");
 fflush(stdout);
 #endif
-		writeMemo("Unable to deserialize record.");
+		writeMemo("[?] Unable to deserialize record.");
 		restoreEidString(&metaEid);
 		return 0;
 	}
 
-	if (record.nodeNbr != metaEid.nodeNbr)
+	if (db->validClients)
 	{
-		restoreEidString(&metaEid);
-		writeMemoNote("[?] DTKA record posted from unauthorized EID",
-				src);
-		return 0;
+		/*	Only authorized clients may submit records.	*/
+
+		for (clientElt = sdr_list_first(sdr, db->validClients);
+			clientElt; clientElt = sdr_list_next(sdr, clientElt))
+		{
+			client = (uvast) sdr_list_data(sdr, clientElt);
+			if (client < metaEid.elementNbr)
+			{
+				continue;
+			}
+
+			break;
+		}
+
+		if (clientElt == 0 || client != metaEid.elementNbr)
+		{
+			restoreEidString(&metaEid);
+			writeMemoNote("[?] TCA record posted by unauthorized \
+client", src);
+			return 0;
+		}
+	}
+	else
+	{
+		/*	Nodes may only submit records for themselves.	*/
+
+		if (record.nodeNbr != metaEid.elementNbr)
+		{
+			restoreEidString(&metaEid);
+			writeMemoNote("[?] TCA record posted from unauthorized \
+EID", src);
+			return 0;
+		}
 	}
 
 	restoreEidString(&metaEid);
 	if (fetchRecord(db->pendingRecords, record.nodeNbr,
 			record.effectiveTime, &recordElt, &nextRecordElt))
 	{
-#if DTKA_DEBUG
+#if TC_DEBUG
 puts("Record already pending; ignored.");
 fflush(stdout);
 #endif
@@ -199,14 +222,30 @@ fflush(stdout);
 
 	/*	Record not previously submitted.  Okay to add it.	*/
 
-	obj = sdr_malloc(sdr, sizeof(DtkaRecord));
+	auths = sdr_list_length(sdr, db->authorities);
+	CHKERR(auths > 0);
+	acknowledged = MTAKE(auths);
+	CHKERR(acknowledged);
+	memset(acknowledged, 0, auths);
+	acknowledged[db->ownAuthIdx] = 1;
+	obj = sdr_malloc(sdr, sizeof(TcaRecord));
 	if (obj == 0)
 	{
+		MRELEASE(acknowledged);
 		return -1;
 	}
 
-	record.acknowledged[db->ownAuthIdx] = 1;
-	sdr_write(sdr, obj, (char *) &record, sizeof(DtkaRecord));
+	record.acknowledged = sdr_malloc(sdr, auths);
+	if (record.acknowledged == 0)
+	{
+		sdr_free(sdr, obj);
+		MRELEASE(acknowledged);
+		return -1;
+	}
+
+	sdr_write(sdr, record.acknowledged, acknowledged, auths);
+	MRELEASE(acknowledged);
+	sdr_write(sdr, obj, (char *) &record, sizeof(TcaRecord));
 	if (nextRecordElt)
 	{
 		recordElt = sdr_list_insert_before(sdr, nextRecordElt, obj);
@@ -224,56 +263,64 @@ fflush(stdout);
 	return record.datLength;
 }
 
-#if defined (VXWORKS) || defined (RTEMS) || defined (bionic)
-int	karecv(int a1, int a2, int a3, int a4, int a5,
+#if defined (ION_LWT)
+int	tcarecv(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
+	int	blocksGroupNbr = (a1 ? atoi((char *) a1) : -1);
 #else
 int	main(int argc, char *argv[])
 {
+	int	blocksGroupNbr = (argc > 1 ? atoi(argv[1]) : -1);
 #endif
 	char		ownEid[32];
-	KarecvState	state = { NULL, 1 };
+	TcarecvState	state = { NULL, 1 };
 	Sdr		sdr;
 	Object		dbobj;
-	DtkaAuthDB	db;
+	TcaDB		db;
 	BpDelivery	dlv;
 
-	if (kauthAttach() < 0)
+	if (blocksGroupNbr < 1)
 	{
-		putErrmsg("karecv can't attach to dtka.", NULL);
-		return 1;
+		puts("Usage: tcarecv <IMC group number for TC blocks>");
+		return -1;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "imc:%d.0", DTKA_DECLARE);
-	if (bp_open(ownEid, &state.sap) < 0)
+	if (tcaAttach(blocksGroupNbr) < 0)
 	{
-		putErrmsg("Can't open own endpoint.", ownEid);
-		ionDetach();
+		putErrmsg("tcarecv can't attach to tca system.",
+				itoa(blocksGroupNbr));
 		return 1;
 	}
 
 	sdr = getIonsdr();
-	dbobj = getKauthDbObject();
+	dbobj = getTcaDBObject(blocksGroupNbr);
 	if (dbobj == 0)
 	{
-		putErrmsg("No DTKA authority database.", NULL);
+		putErrmsg("No TCA authority database.", itoa(blocksGroupNbr));
 		ionDetach();
 		return 1;
 	}
 
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(DtkaAuthDB));
+	sdr_read(sdr, (char *) &db, dbobj, sizeof(TcaDB));
+	isprintf(ownEid, sizeof ownEid, "imc:%d.0", db.recordsGroupNbr);
+	if (bp_open(ownEid, &state.sap) < 0)
+	{
+		putErrmsg("Can't open own reception endpoint.", ownEid);
+		ionDetach();
+		return 1;
+	}
 
 	/*	Main loop: receive record, insert into list.		*/
 
-	oK(_karecvState(&state));
+	oK(_tcarecvState(&state));
 	isignal(SIGTERM, shutDown);
-	writeMemo("[i] karecv is running.");
+	writeMemo("[i] tcarecv is running.");
 	while (state.running)
 	{
 		if (bp_receive(state.sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("karecv bundle reception failed.", NULL);
+			putErrmsg("tcarecv bundle reception failed.", NULL);
 			state.running = 0;
 			continue;
 		}
@@ -303,7 +350,7 @@ int	main(int argc, char *argv[])
 
 			if (sdr_end_xn(sdr) < 0)
 			{
-				putErrmsg("Can't handle DTKA record.", NULL);
+				putErrmsg("Can't handle TCA record.", NULL);
 				state.running = 0;
 				continue;
 			}
@@ -314,7 +361,7 @@ int	main(int argc, char *argv[])
 
 	bp_close(state.sap);
 	writeErrmsgMemos();
-	writeMemo("[i] karecv has ended.");
+	writeMemo("[i] tcarecv has ended.");
 	ionDetach();
 	return 0;
 }

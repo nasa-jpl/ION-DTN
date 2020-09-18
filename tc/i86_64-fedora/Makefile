@@ -1,32 +1,33 @@
 API = ../library
 INCL = ../include
-UTILS = ../utils
-KAUTH = ../kauth
-KNODE = ../knode
-ZFEC = ../zfec
-BP = ../bp
+AUTHORITY = ../authority
+CLIENT = ../client
+DTKA = ../dtka
+ZFEC = ../../../zfec-1.4.24/zfec
+BP = ../../bpv7
 
 # OPT = -O -Dlinux
-OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
-CCZFEC = gcc -g -Wall -Dlinux -fPIC -DSPACE_ORDER=3 -I$(KAUTH) -I$(KNODE) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
+OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DNDEBUG
+CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
-DTKAINCLS = \
-	$(KAUTH)/kauth.h \
-	$(KNODE)/knode.h \
-	$(INCL)/dtka.h
+TCINCLS = \
+	$(DTKA)/dtka.h \
+	$(AUTHORITY)/tcaP.h \
+	$(CLIENT)/tcc.h \
+	$(CLIENT)/tccP.h \
+	$(INCL)/tc.h
 
-LBP = -lbp
+LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
-RUNTIMES = karecv kacompile kaadmin kaboot knadmin kapublish knmgr knclock
+RUNTIMES = tcaboot tcarecv tcacompile tcapublish tcaadmin tcc tccadmin dtka dtkaadmin
 
-ALL = check libkauth.so libknode.so libdtka.so $(RUNTIMES)
+ALL = check libtc.so libtcaP.so libtcc.so libtccP.so libdtka.so $(RUNTIMES)
 
 all:		$(ALL)
 
-check:		$(DTKAINCLS)
+check:		$(TCINCLS)
 		rm -f *.o
 		touch check
 
@@ -43,69 +44,81 @@ install:
 
 #	-	-	Authority executables	-	-	-	-
 
-karecv:		karecv.o libdtka.so
-		$(CC) -o karecv karecv.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
-		cp karecv ./bin
+tcarecv:		tcarecv.o libtcaP.so
+		$(CC) -o tcarecv tcarecv.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+		cp tcarecv ./bin
 
-kacompile:	kacompile.o libdtka.so
-		$(CC) -o kacompile kacompile.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
-		cp kacompile ./bin
+tcacompile:	tcacompile.o libtcaP.so
+		$(CC) -o tcacompile tcacompile.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+		cp tcacompile ./bin
 
-kapublish:	kapublish.o libdtka.so
-		$(CC) -o kapublish kapublish.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
-		cp kapublish ./bin
+tcapublish:	tcapublish.o libtcaP.so $(ZFEC)/fec.o
+		$(CC) -o tcapublish tcapublish.o $(ZFEC)/fec.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+		cp tcapublish ./bin
 
-#	-	-	Node executables	-	-	-	-
+tcaadmin:	tcaadmin.o libtcaP.so
+		$(CC) -o tcaadmin tcaadmin.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+		cp tcaadmin ./bin
 
-knclock:	knclock.o libdtka.so
-		$(CC) -o knclock knclock.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread -lm
-		cp knclock ./bin
+tcaboot:	tcaboot.o libtcaP.so
+		$(CC) -o tcaboot tcaboot.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+		cp tcaboot ./bin
 
-knmgr:		knmgr.o libdtka.so
-		$(CC) -o knmgr knmgr.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread -lm
-		cp knmgr ./bin
+libtcaP.so:	libtcaP.o
+		$(LD) -o libtcaP.so libtcaP.o
+		cp libtcaP.so ./lib
 
-#	-	-	Utility executables	-	-	-	-
+#	-	-	Client executables	-	-	-	-
 
-kaadmin:	kaadmin.o libdtka.so
-		$(CC) -o kaadmin kaadmin.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
-		cp kaadmin ./bin
+tcc:		tcc.o libtc.so libtcc.so libtccP.so $(ZFEC)/fec.o
+		$(CC) -o tcc tcc.o $(ZFEC)/fec.o  -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+		cp tcc ./bin
 
-kaboot:		kaboot.o libdtka.so
-		$(CC) -o kaboot kaboot.o -L./lib -L$(ROOT)/lib -lkauth -ldtka $(LBP) -lici -lpthread -lm
-		cp kaboot ./bin
+tccadmin:	tccadmin.o libtc.so libtcc.so libtccP.so
+		$(CC) -o tccadmin tccadmin.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+		cp tccadmin ./bin
 
-knadmin:	knadmin.o libdtka.so
-		$(CC) -o knadmin knadmin.o -L./lib -L$(ROOT)/lib -lknode -ldtka $(LBP) -lici -lpthread -lm
-		cp knadmin ./bin
+libtcc.so:	libtcc.o
+		$(LD) -o libtcc.so libtcc.o
+		cp libtcc.so ./lib
 
-#	-	-	Libraries	-	-	-	-	-
+libtccP.so:	libtccP.o
+		$(LD) -o libtccP.so libtccP.o
+		cp libtccP.so ./lib
 
-libdtka.so:	libdtka.o fec.o
-		$(LD) -o libdtka.so libdtka.o fec.o
+#	-	-	Library	-	-	-	-	-	-
+
+libtc.so:	libtc.o
+		$(LD) -o libtc.so libtc.o
+		cp libtc.so ./lib
+
+#	-	-	Application -	-	-	-	-	-
+
+dtka:		dtka.o libdtka.so libtcc.so
+		$(CC) -o dtka dtka.o -L./lib -L$(ROOT)/lib -ldtka -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+		cp dtka ./bin
+
+dtkaadmin:	dtkaadmin.o libdtka.so
+		$(CC) -o dtkaadmin dtkaadmin.o -L./lib -L$(ROOT)/lib -ldtka -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+		cp dtkaadmin ./bin
+
+libdtka.so:	libdtka.o
+		$(LD) -o libdtka.so libdtka.o
 		cp libdtka.so ./lib
-
-libkauth.so:	libkauth.o
-		$(LD) -o libkauth.so libkauth.o
-		cp libkauth.so ./lib
-
-libknode.so:	libknode.o
-		$(LD) -o libknode.so libknode.o
-		cp libknode.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
 %.o:		$(API)/%.c
 		$(CC) -c $<
 
-%.o:		$(KAUTH)/%.c
+%.o:		$(AUTHORITY)/%.c
 		$(CC) -c $<
 
-%.o:		$(KNODE)/%.c
+%.o:		$(CLIENT)/%.c
 		$(CC) -c $<
 
-%.o:		$(UTILS)/%.c
+%.o:		$(DTKA)/%.c
 		$(CC) -c $<
 
 fec.o:		$(ZFEC)/fec.c
-		$(CCZFEC) -c $(ZFEC)/fec.c
+		$(CC) -c $(ZFEC)/fec.c

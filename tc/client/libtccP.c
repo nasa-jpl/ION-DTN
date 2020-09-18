@@ -55,7 +55,7 @@ static Object	getTccMDB()
 		if (mdbobj == 0)
 		{
 			sdr_cancel_xn(sdr);
-			putErrmsg("No space for database.", NULL);
+			putErrmsg("No space for TCC database.", NULL);
 			return 0;
 		}
 
@@ -65,7 +65,7 @@ static Object	getTccMDB()
 		if (mdb.dbs == 0)
 		{
 			sdr_cancel_xn(sdr);
-			putErrmsg("Can't create list of dbs.", NULL);
+			putErrmsg("Can't create list of TCC dbs.", NULL);
 			return 0;
 		}
 
@@ -121,7 +121,7 @@ static PsmAddress	getTccMVdb()
 
 	if (psm_locate(wm, _tccvdbName(), &mvdbAddr, &elt) < 0)
 	{
-		putErrmsg("Failed searching for vdb.", NULL);
+		putErrmsg("Failed searching for TCC vdb.", NULL);
 		return 0;
 	}
 
@@ -138,26 +138,26 @@ static PsmAddress	getTccMVdb()
 	if (mvdbAddr == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("No space for volatile database.", NULL);
-		return NULL;
+		putErrmsg("No space for TCC volatile database.", NULL);
+		return 0;
 	}
 
 	/*	Initialize the volatile database.			*/
 
-	mvdb = (DtkaNodeVdb *) psp(wm, mvdbAddr);
+	mvdb = (TccMVdb *) psp(wm, mvdbAddr);
 	mvdb->vdbs = sm_list_create(wm);
-	if (mvdb->vdbs == NULL)
+	if (mvdb->vdbs == 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Can't create list of vdbs.", NULL);
+		putErrmsg("Can't create list of TCC vdbs.", NULL);
 		return 0;
 	}
 
 	if (psm_catlg(wm, _tccvdbName(), mvdbAddr) < 0)
 	{
 		sdr_exit_xn(sdr);
-		putErrmsg("Can't create volatile database.", NULL);
-		return NULL;
+		putErrmsg("Can't create TCC volatile database.", NULL);
+		return 0;
 	}
 
 	sdr_exit_xn(sdr);
@@ -169,7 +169,7 @@ static int	createTccVdb(int blocksGroupNbr)
 {
 	PsmPartition	wm = getIonwm();
 	PsmAddress	mvdbAddr;
-	TccMvdb		*mvdb;
+	TccMVdb		*mvdb;
 	PsmAddress	vdbAddr;
 	TccVdb		*vdb;
 	Sdr		sdr;
@@ -179,30 +179,29 @@ static int	createTccVdb(int blocksGroupNbr)
 		return 0;		/*	Already created.	*/
 	}
 
-	/*	Creating volatile database.				*/
+	/*	TCC volatile database doesn't exist yet.		*/
 
-	mvdbAddr = getTccMvdb();
+	mvdbAddr = getTccMVdb();
 	if (mvdbAddr == 0)
 	{
-		putErrmsg("Can't get TCC volatile multi-database.",
-				itoa(blocksGroupNbr));
+		putErrmsg("Can't get TCC volatile multi-database.", NULL);
 		return -1;
 	}
 
-	mvdb = (TccMvdb *) mvdbAddr;
+	mvdb = (TccMVdb *) mvdbAddr;
 	sdr = getIonsdr();
-	CHKNULL(sdr_begin_xn(sdr));	/*	To lock memory.		*/
+	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	vdbAddr = psm_zalloc(wm, sizeof(TccVdb));
 	if (vdbAddr == 0)
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("No space for TCC volatile database.",
-				itoa(blockGrouNbr));
+				itoa(blocksGroupNbr));
 		return -1;
 	}
 
-	vdb = (DtkaNodeVdb *) psp(wm, vdbAddress);
-	memset((char *) vdb, 0, sizeof(DtkaNodeVdb));
+	vdb = (TccVdb *) psp(wm, vdbAddr);
+	memset((char *) vdb, 0, sizeof(TccVdb));
 	vdb->blocksGroupNbr = blocksGroupNbr;
 	vdb->tccPid = ERROR;		/*	None yet.		*/
 	vdb->contentSemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -210,7 +209,7 @@ static int	createTccVdb(int blocksGroupNbr)
 	{
 		sdr_exit_xn(sdr);
 		putErrmsg("Can't create volatile database.",
-				itoa(blockGrouNbr));
+				itoa(blocksGroupNbr));
 		return -1;
 	}
 
@@ -219,7 +218,7 @@ static int	createTccVdb(int blocksGroupNbr)
 	return 0;
 }
 
-int	tccInit(int blocksGroupNbr, int numAuths)
+int	tccInit(int blocksGroupNbr, int auths, int K, double R)
 {
 	Sdr		sdr = getIonsdr();
 	Object		mdbobj;
@@ -229,12 +228,12 @@ int	tccInit(int blocksGroupNbr, int numAuths)
 	int		i;
 	Object		authObj;
 	TccAuthority	auth;
-	int		seqLength = TCC_FEC_Q / 2;
+	int		seqLength;
 	int		sharenum;
 
 	if (bp_attach() < 0)
 	{
-		putErrmsg("TCC can't attach to ION.", itoa(blockGrouNbr));
+		putErrmsg("TCC can't attach to ION.", NULL);
 		return -1;
 	}
 
@@ -245,12 +244,20 @@ int	tccInit(int blocksGroupNbr, int numAuths)
 		return -1;
 	}
 
-	if (getTccDbObj != 0)
+	if (getTccDBObj(blocksGroupNbr) != 0)
 	{
 		return 0;		/*	Already created.	*/
 	}
 
 	/*	Recover the TCC database, creating it if necessary.	*/
+
+	if (blocksGroupNbr < 1 || auths < 1 || K < 1
+	|| !(R > 0.0 && R < 1.0))
+	{
+		writeMemoNote("[?] Invalid TCC initialization parameter(s)",
+				itoa(blocksGroupNbr));
+		return 0;
+	}
 
 	mdbobj = getTccMDB();
 	if (mdbobj == 0)
@@ -275,6 +282,11 @@ int	tccInit(int blocksGroupNbr, int numAuths)
 
 	memset((char *) &db, 0, sizeof(TccDB));
 	db.blocksGroupNbr = blocksGroupNbr;
+	db.fec_K = K;
+	db.fec_R = R;
+	db.fec_M = K + ((int) (R * K));
+	db.fec_N = db.fec_M * 2;
+	db.fec_Q = db.fec_N / auths;
 	db.authorities = sdr_list_create(sdr);
 	db.bulletins = sdr_list_create(sdr);
 	db.contents = sdr_list_create(sdr);
@@ -289,14 +301,15 @@ int	tccInit(int blocksGroupNbr, int numAuths)
 
 	/*	Initialize responsibilities of authorities.		*/
 
-	for (i = 0; i < numAuths; i++)
+	seqLength = db.fec_Q / 2;
+	for (i = 0; i < auths; i++)
 	{
 		memset((char *) &auth, 0, sizeof(TccAuthority));
 		sharenum = seqLength * i;
 		auth.firstPrimaryShare = sharenum;
 		auth.lastPrimaryShare = (sharenum + seqLength) - 1;
 		sharenum += seqLength;
-		if (sharenum >= TCC_FEC_M)
+		if (sharenum >= db.fec_M)
 		{
 			sharenum = 0;
 		}
@@ -307,7 +320,7 @@ int	tccInit(int blocksGroupNbr, int numAuths)
 		if (authObj == 0)
 		{
 			sdr_cancel_xn(sdr);
-			putErrmsg("No space for TCC authority.",
+			putErrmsg("No space for TCC authority info.",
 					itoa(blocksGroupNbr));
 			return -1;
 		}
@@ -316,7 +329,7 @@ int	tccInit(int blocksGroupNbr, int numAuths)
 		if (sdr_list_insert_last(sdr, db.authorities, authObj) == 0)
 		{
 			sdr_cancel_xn(sdr);
-			putErrmsg("Can't create TCC authority.",
+			putErrmsg("Can't create TCC authority info.",
 					itoa(blocksGroupNbr));
 			return -1;
 		}
@@ -324,7 +337,7 @@ int	tccInit(int blocksGroupNbr, int numAuths)
 
 	if (sdr_end_xn(sdr))
 	{
-		putErrmsg("Can't create TCC database.", itoa(blockGrouNbr));
+		putErrmsg("Can't create TCC database.", itoa(blocksGroupNbr));
 		return -1;
 	}
 
@@ -357,7 +370,7 @@ int	tccStart(int blocksGroupNbr)
 
 int	tccIsStarted(int blocksGroupNbr)
 {
-	TccVdb	*vdb = getTccVcb(blocksGroupNbr);
+	TccVdb	*vdb = getTccVdb(blocksGroupNbr);
 
 	return (vdb && vdb->tccPid != ERROR);
 }
@@ -385,7 +398,7 @@ void	tccStop(int blocksGroupNbr)	/*	Reverses tccStart.	*/
 
 	/*	Stop user task.						*/
 
-	if (vdb->contentSempahore != SM_SEM_NONE)
+	if (vdb->contentSemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vdb->contentSemaphore);
 	}
@@ -424,20 +437,20 @@ int	tccAttach(int blocksGroupNbr)
 {
 	if (bp_attach() < 0)
 	{
-		putErrmsg("TCC can't attach to ION.", itoa(blockGrouNbr));
+		putErrmsg("TCC can't attach to ION.", itoa(blocksGroupNbr));
 		return -1;
 	}
 
-	if (getTccDbObj(blocksGroupNbr) != 0
+	if (getTccDBObj(blocksGroupNbr) != 0
 	&& getTccVdb(blocksGroupNbr) != NULL)
 	{
 		return 0;		/*	Already attached.	*/
 	}
 
-	return tccInit(blocksGroupNbr);
+	return -1;
 }
 
-Object	getTccDbObj(int blocksGroupNbr)
+Object	getTccDBObj(int blocksGroupNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	mdbobj = _tccmdbobject(NULL);
@@ -481,7 +494,7 @@ TccVdb	*getTccVdb(int blocksGroupNbr)
 	}
 
 	mvdb = (TccMVdb *) psp(wm, mvdbAddr);
-	for (elt = sm_list_first(wm, vdb->apps); elt;
+	for (elt = sm_list_first(wm, mvdb->vdbs); elt;
 			elt = sm_list_next(wm, elt))
 	{
 		vdbAddr = sm_list_data(wm, elt);
