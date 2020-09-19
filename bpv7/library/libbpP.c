@@ -27,7 +27,7 @@
 
 /*	Interfaces to other BP-related components of ION	*	*/
 
-#include "imcP.h"
+#include "imcfw.h"
 #include "saga.h"
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
@@ -528,25 +528,27 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 
 	/*	Compute admin EID for this scheme.			*/
 
-	if (vscheme->codeNumber != imc)
+	switch (vscheme->codeNumber)
 	{
-		if (vscheme->codeNumber == ipn)
-		{
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
-				getOwnNodeNbr());
-		}
-		else	/*	Assume it's dtn.			*/
-		{
+	case imc:
+		istrcpy(vscheme->adminEid, "imc:0.0", sizeof vscheme->adminEid);
+		break;
+
+	case ipn:
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+			"%.8s:" UVAST_FIELDSPEC ".0", vscheme->name,
+			getOwnNodeNbr());
+		break;
+
+	default:	/*	Assume it's dtn.			*/
 #ifdef ION_NO_DNS
-			istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
+		istrcpy(hostNameBuf, "localhost", sizeof hostNameBuf);
 #else
-			getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
+		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
 #endif
-			isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
+		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
 				"%.15s://%.60s.dtn", vscheme->name,
 				hostNameBuf);
-		}
 	}
 
 	vscheme->endpoints = sm_list_create(bpwm);
@@ -617,35 +619,32 @@ static void	startScheme(VScheme *vscheme)
 	Scheme		scheme;
 	char		cmdString[SDRSTRING_BUFSZ];
 
-	if (vscheme->codeNumber != imc)
+	if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
+			&vschemeElt) == 0)
 	{
-		if (parseEidString(vscheme->adminEid, &metaEid, &vscheme2,
-				&vschemeElt) == 0)
-		{
-			restoreEidString(&metaEid);
-			writeMemoNote("[?] Malformed admin EID string",
-					vscheme->adminEid);
-			vscheme->adminNSSLength = 0;
-		}
-		else
-		{
-			vscheme->adminNSSLength = metaEid.nssLength;
+		restoreEidString(&metaEid);
+		writeMemoNote("[?] Malformed admin EID string",
+				vscheme->adminEid);
+		vscheme->adminNSSLength = 0;
+	}
+	else
+	{
+		vscheme->adminNSSLength = metaEid.nssLength;
 
-			/*	Make sure admin endpoint exists.	*/
+		/*	Make sure admin endpoint exists.	*/
 
-			findEndpoint(vscheme->name, metaEid.nss, vscheme,
-					&vpoint, &vpointElt);
-			restoreEidString(&metaEid);
-			if (vpointElt == 0)
+		findEndpoint(vscheme->name, metaEid.nss, vscheme, &vpoint,
+				&vpointElt);
+		restoreEidString(&metaEid);
+		if (vpointElt == 0)
+		{
+			if (addEndpoint(vscheme->adminEid, EnqueueBundle, NULL)
+					< 1)
 			{
-				if (addEndpoint(vscheme->adminEid,
-						EnqueueBundle, NULL) < 1)
-				{
-					restoreEidString(&metaEid);
-					writeMemoNote("Can't add admin \
-endpoint", vscheme->adminEid);
-					vscheme->adminNSSLength = 0;
-				}
+				restoreEidString(&metaEid);
+				writeMemoNote("Can't add admin endpoint",
+						vscheme->adminEid);
+				vscheme->adminNSSLength = 0;
 			}
 		}
 	}
@@ -1593,7 +1592,7 @@ int	bpStart()
 	char		cmdString[SDRSTRING_BUFSZ];
 	PsmAddress	elt;
 
-	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	CHKERR(sdr_begin_xn(sdr));
 
 	/*	Start the bundle expiration clock if necessary.		*/
 
@@ -1647,8 +1646,7 @@ int	bpStart()
 		startOutduct((VOutduct *) psp(bpwm, sm_list_data(bpwm, elt)));
 	}
 
-	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
-	return 0;
+	return sdr_end_xn(sdr);
 }
 
 void	bpStop()		/*	Reverses bpStart.		*/
@@ -2107,7 +2105,6 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		return 1;
 
 	case ipn:
-	case imc:
 		if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u",
 			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
 		{
@@ -2119,6 +2116,17 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 		if (metaEid->elementNbr == 0 && metaEid->serviceNbr == 0)
 		{
 			metaEid->nullEndpoint = 1;
+		}
+
+		return 1;
+
+	case imc:
+		if (sscanf(metaEid->nss, UVAST_FIELDSPEC ".%u",
+			&(metaEid->elementNbr), &(metaEid->serviceNbr)) < 2)
+		{
+			*(metaEid->colon) = ':';
+			writeMemoNote("[?] Malformed URI", eidString);
+			return 0;
 		}
 
 		return 1;
@@ -2289,19 +2297,19 @@ void	eraseEid(EndpointId *eid)
 	eid->schemeCodeNbr = unknown;
 }
 
-static int	readDtnEid(DtnSSP *ssp, char **buffer)
+static void	readDtnEid(DtnSSP *ssp, char **buffer)
 {
 	EidMode	mode;
 	int	nssLength;
 	int	eidLength;
 	char	*eidString;
 
-	*buffer = NULL;		/*	Default.			*/
 	if (ssp->nssLength > 0)
 	{
 		if (ssp->endpointName.nv == 0)
 		{
-			return 0;
+			writeMemo("[?] dtn-scheme EID endpoint name missing.");
+			return;
 		}
 
 		mode = EidNV;
@@ -2311,7 +2319,8 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 	{
 		if (ssp->endpointName.v == 0)
 		{
-			return 0;
+			writeMemo("[?] dtn-scheme EID endpoint name missing.");
+			return;
 		}
 
 		mode = EidV;
@@ -2329,12 +2338,12 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 			{
 				putErrmsg("Can't create EID string.",
 						itoa(eidLength));
-				return -1;
+				return;
 			}
 
 			istrcpy(eidString, _nullEid(), eidLength);
 			*buffer = eidString;
-			return 0;
+			return;
 		}
 
 		mode = EidS;
@@ -2347,7 +2356,7 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 	if (eidString == NULL)
 	{
 		putErrmsg("Can't create EID string.", itoa(eidLength));
-		return -1;
+		return;
 	}
 
 	istrcpy(eidString, "dtn:", eidLength);
@@ -2369,10 +2378,9 @@ static int	readDtnEid(DtnSSP *ssp, char **buffer)
 
 	eidString[eidLength - 1] = '\0';
 	*buffer = eidString;
-	return 0;
 }
 
-static int	readIpnEid(IpnSSP *ssp, char **buffer)
+static void	readIpnEid(IpnSSP *ssp, char **buffer)
 {
 	char	*eidString;
 	int	eidLength = 36;
@@ -2382,16 +2390,16 @@ static int	readIpnEid(IpnSSP *ssp, char **buffer)
 	 *	   ipn:<nodenbr>.<servicenbr>\0
 	 *
 	 *	So max EID string length is 3 for "ipn" plus 1 for
-	 *	':' plus max length of nodeNbr (which is a 64-bit
+	 *	':' plus max length of nodenbr (which is a 64-bit
 	 *	number, so 20 digits) plus 1 for '.' plus max length
-	 *	of serviceNbr (which is a 32-bit number, so 10 digits)
+	 *	of servicenbr (which is a 32-bit number, so 10 digits)
 	 *	plus 1 for the terminating NULL.			*/
 
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
 	{
 		putErrmsg("Can't create EID string.", NULL);
-		return -1;
+		return;
 	}
 
 	if (ssp->nodeNbr == 0 && ssp->serviceNbr == 0)
@@ -2405,62 +2413,55 @@ static int	readIpnEid(IpnSSP *ssp, char **buffer)
 	}
 
 	*buffer = eidString;
-	return 0;
 }
 
-static int	readImcEid(ImcSSP *ssp, char **buffer)
+static void	readImcEid(ImcSSP *ssp, char **buffer)
 {
 	char	*eidString;
 	int	eidLength = 36;
 
 	/*	Printed EID string is
 	 *
-	 *	   imc:<nodenbr>.<servicenbr>\0
+	 *	   imc:<groupnbr>.<servicenbr>\0
 	 *
 	 *	So max EID string length is 3 for "imc" plus 1 for
-	 *	':' plus max length of nodeNbr (which is a 64-bit
+	 *	':' plus max length of groupnbr (which is a 64-bit
 	 *	number, so 20 digits) plus 1 for '.' plus max length
-	 *	of serviceNbr (which is a 32-bit number, so 10 digits)
+	 *	of servicenbr (which is a 32-bit number, so 10 digits)
 	 *	plus 1 for the terminating NULL.			*/
 
 	eidString = MTAKE(eidLength);
 	if (eidString == NULL)
 	{
 		putErrmsg("Can't create EID string.", NULL);
-		return -1;
+		return;
 	}
 
-	if (ssp->groupNbr == 0 && ssp->serviceNbr == 0)
-	{
-		istrcpy(eidString, _nullEid(), eidLength);
-	}
-	else
-	{
-		isprintf(eidString, eidLength, "imc:" UVAST_FIELDSPEC ".%u",
-				ssp->groupNbr, ssp->serviceNbr);
-	}
-
+	isprintf(eidString, eidLength, "imc:" UVAST_FIELDSPEC ".%u",
+			ssp->groupNbr, ssp->serviceNbr);
 	*buffer = eidString;
-	return 0;
 }
 
-int	readEid(EndpointId *eid, char **buffer)
+void	readEid(EndpointId *eid, char **buffer)
 {
-	CHKERR(eid && buffer);
-	*buffer = "";			/*	Default.		*/
+	CHKVOID(eid && buffer);
+	*buffer = NULL;			/*	Default.		*/
 	switch(eid->schemeCodeNbr)
 	{
 	case dtn:
-		return readDtnEid(&(eid->ssp.dtn), buffer);
+		readDtnEid(&(eid->ssp.dtn), buffer);
+		break;
 
 	case ipn:
-		return readIpnEid(&(eid->ssp.ipn), buffer);
+		readIpnEid(&(eid->ssp.ipn), buffer);
+		break;
 
 	case imc:
-		return readImcEid(&(eid->ssp.imc), buffer);
+		readImcEid(&(eid->ssp.imc), buffer);
+		break;
 
 	default:
-		return 0;
+		break;
 	}
 }
 
@@ -2777,7 +2778,7 @@ static void	purgeStationsStack(Bundle *bundle)
 	}
 }
 
-int	bpDestroyBundle(Object bundleObj, int ttlExpired)
+int	bpDestroyBundle(Object bundleObj, int unconditional)
 {
 	Sdr		sdr = getIonsdr();
 	Bundle		bundle;
@@ -2792,7 +2793,7 @@ int	bpDestroyBundle(Object bundleObj, int ttlExpired)
 
 	/*	Special handling for TTL expiration.			*/
 
-	if (ttlExpired)
+	if (unconditional)
 	{
 		/*	FORCES removal of all references to bundle.	*/
 
@@ -2852,32 +2853,38 @@ incomplete bundle.", NULL);
 		/*	Notify sender, if so requested.  But never
 		 *	for admin bundles.				*/
 
-		bpDbTally(BP_DB_EXPIRED, bundle.payload.length);
-		if ((_bpvdb(NULL))->watching & WATCH_expire)
+		if (unconditional == 1)	/*	Lifetime expired.	*/
 		{
-			iwatch('!');
-		}
-
-		if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
-		&& (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
-		{
-			bundle.statusRpt.flags |= BP_DELETED_RPT;
-			bundle.statusRpt.reasonCode = SrLifetimeExpired;
-			if (bundle.bundleProcFlags & BDL_STATUS_TIME_REQ)
+			bpDbTally(BP_DB_EXPIRED, bundle.payload.length);
+			if ((_bpvdb(NULL))->watching & WATCH_expire)
 			{
-				getCurrentDtnTime
+				iwatch('!');
+			}
+
+			if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
+			&& (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
+			{
+				bundle.statusRpt.flags |= BP_DELETED_RPT;
+				bundle.statusRpt.reasonCode = SrLifetimeExpired;
+				if (bundle.bundleProcFlags
+						& BDL_STATUS_TIME_REQ)
+				{
+					getCurrentDtnTime
 					(&(bundle.statusRpt.deletionTime));
+				}
+
+				if (sendStatusRpt(&bundle) < 0)
+				{
+					putErrmsg("can't send deletion notice",
+							NULL);
+					return -1;
+				}
 			}
 
-			if (sendStatusRpt(&bundle) < 0)
-			{
-				putErrmsg("can't send deletion notice", NULL);
-				return -1;
-			}
+			bpDelTally(SrLifetimeExpired);
 		}
 
 		bundle.detained = 0;
-		bpDelTally(SrLifetimeExpired);
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
 	}
 
@@ -2968,6 +2975,11 @@ incomplete bundle.", NULL);
 	 *	free space occupied by the bundle itself.		*/
 
 	eraseEid(&bundle.clDossier.senderEid);
+	if (bundle.destinations)	/*	For IMC multicast.	*/
+	{
+		sdr_list_destroy(sdr, bundle.destinations, NULL, NULL);
+	}
+
 	destroyExtensionBlocks(&bundle);
 	purgeStationsStack(&bundle);
 	if (bundle.stations)
@@ -3365,7 +3377,7 @@ int	removeScheme(char *schemeName)
 	sdr_list_destroy(sdr, schemeBuf.endpoints, NULL, NULL);
 	if (schemeBuf.bclas)
 	{
-		sdr_list_destroy(sdr, schemeBuf.endpoints, NULL, NULL);
+		sdr_list_destroy(sdr, schemeBuf.bclas, NULL, NULL);
 	}
 
 	sdr_free(sdr, addr);
@@ -3470,6 +3482,7 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 {
 	MetaEid		metaEid;
 	PsmAddress	elt;
+	ImcPetition	petition;
 	int		result;
 
 	if (vscheme->codeNumber != imc || eid == NULL)
@@ -3477,24 +3490,13 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 		return 0;
 	}
 
-	if (imcInit() < 0)
-	{
-		putErrmsg("Can't initialize IMC database.", NULL);
-		return -1;
-	}
-
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in addEndpoint.				*/
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
-	if (metaEid.serviceNbr != 0)
-	{
-		restoreEidString(&metaEid);
-		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
-		return 0;
-	}
-
-	result = imcJoin(metaEid.elementNbr);
+	petition.groupNbr = metaEid.elementNbr;
+	petition.isMember = 1;
+	result = imcSendPetition(&petition, 0);
 	restoreEidString(&metaEid);
 	return result;
 }
@@ -3657,6 +3659,7 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 {
 	MetaEid		metaEid;
 	PsmAddress	elt;
+	ImcPetition	petition;
 	int		result;
 
 	if (vscheme->codeNumber != imc || eid == NULL)
@@ -3664,24 +3667,13 @@ static int	removeEndpoint_IMC(VScheme *vscheme, char *eid)
 		return 0;
 	}
 
-	if (imcInit() < 0)
-	{
-		putErrmsg("Can't initialize IMC database.", NULL);
-		return -1;
-	}
-
 	/*	We know the EID parses okay, because it was already
 	 *	parsed earlier in removeEndpoint.			*/
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
-	if (metaEid.serviceNbr != 0)
-	{
-		restoreEidString(&metaEid);
-		writeMemoNote("[?] IMC EID service nbr must be zero", eid);
-		return 0;
-	}
-
-	result = imcLeave(metaEid.elementNbr);
+	petition.groupNbr = metaEid.elementNbr;
+	petition.isMember = 0;
+	result = imcSendPetition(&petition, 0);
 	restoreEidString(&metaEid);
 	return result;
 }
@@ -4899,7 +4891,7 @@ static int	flushOutduct(Outduct *outduct)
 		}
 		else
 		{
-			if (bpDestroyBundle(bundleObj, 1) < 0)
+			if (bpDestroyBundle(bundleObj, 4) < 0)
 			{
 				putErrmsg("Inferred CL-failure failed",
 						outduct->name);
@@ -5276,7 +5268,8 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 			sdr_list_data(sdr, vpoint->endpointElt));
 	if (bundle->id.source.schemeCodeNbr == dtn)
 	{
-		if (readEid(&(bundle->id.source), &bundleEid) < 0)
+		readEid(&(bundle->id.source), &bundleEid);
+	       	if (bundleEid == NULL)
 		{
 			putErrmsg("Can't get bundle's source EID.", NULL);
 			return -1;
@@ -5284,7 +5277,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 	}
 	else					/*	Must be ipn.	*/
 	{
-		/*	Note: only destination can ever be multicast.	*/
+		/*	Note: only destinations can ever be multicast.	*/
 
 		if (bundle->id.source.schemeCodeNbr != ipn)
 		{
@@ -5325,7 +5318,8 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 		}
 		else	/*	Source EID scheme must be dtn.		*/
 		{
-			if (readEid(&(fragment->id.source), &fragmentEid) < 0)
+			readEid(&(fragment->id.source), &fragmentEid);
+			if (fragmentEid == NULL)
 			{
 				putErrmsg("Can't get bundle's source EID.",
 						NULL);
@@ -5538,7 +5532,8 @@ static int	catalogueBundle(Bundle *bundle, Object bundleObj)
 
 	/*	Insert bundle into hashtable of all bundles.		*/
 
-	if (readEid(&(bundle->id.source), &sourceEid) < 0)
+	readEid(&(bundle->id.source), &sourceEid);
+	if (sourceEid == NULL)
 	{
 		putErrmsg("Can't print source EID.", NULL);
 		return -1;
@@ -5611,6 +5606,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	Object		elt;
+	uvast		nodeNbr;
 
 	CHKERR(oldBundle && newBundle && newBundleObj);
 	if (oldBundle->payload.content == 0)
@@ -5641,7 +5638,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 	memcpy((char *) newBundle, (char *) oldBundle, sizeof(Bundle));
 	if (oldBundle->id.source.schemeCodeNbr == dtn)
 	{
-		if (readEid(&(oldBundle->id.source), &eidString) < 0)
+		readEid(&(oldBundle->id.source), &eidString);
+		if (eidString == NULL)
 		{
 			putErrmsg("Can't recover source EID string.", NULL);
 			return -1;
@@ -5660,7 +5658,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 
 	if (oldBundle->destination.schemeCodeNbr == dtn)
 	{
-		if (readEid(&(oldBundle->destination), &eidString) < 0)
+		readEid(&(oldBundle->destination), &eidString);
+		if (eidString == NULL)
 		{
 			putErrmsg("Can't recover dest EID string.", NULL);
 			return -1;
@@ -5679,7 +5678,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 
 	if (oldBundle->reportTo.schemeCodeNbr == dtn)
 	{
-		if (readEid(&(oldBundle->reportTo), &eidString) < 0)
+		readEid(&(oldBundle->reportTo), &eidString);
+		if (eidString == NULL)
 		{
 			putErrmsg("Can't recover report-to EID string.", NULL);
 			return -1;
@@ -5726,6 +5726,30 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 		}
 	}
 
+	/*	Copy IMC multicast destinations list as needed.		*/
+
+	if (oldBundle->destinations)
+	{
+		newBundle->destinations = sdr_list_create(sdr);
+		if (newBundle->destinations == 0)
+		{
+			putErrmsg("Can't copy IMC destinations list.", NULL);
+			return -1;
+		}
+
+		for (elt = sdr_list_first(sdr, oldBundle->destinations); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			nodeNbr = (uvast) sdr_list_data(sdr, elt);
+			if (sdr_list_insert_last(sdr, newBundle->destinations,
+					nodeNbr) == 0)
+			{
+				putErrmsg("Can't copy IMC destination.", NULL);
+				return -1;
+			}
+		}
+	}
+
 	/*	Copy extension blocks.					*/
 
 	newBundle->extensions = 0;
@@ -5740,7 +5764,8 @@ int	bpClone(Bundle *oldBundle, Bundle *newBundle, Object *newBundleObj,
 
 	if (oldBundle->clDossier.senderEid.schemeCodeNbr == dtn)
 	{
-		if (readEid(&(oldBundle->clDossier.senderEid), &eidString) < 0)
+		readEid(&(oldBundle->clDossier.senderEid), &eidString);
+	       	if (eidString == NULL)
 		{
 			putErrmsg("Can't recover sender EID string.", NULL);
 			return -1;
@@ -5864,8 +5889,8 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		 *	stack, which is only sdrstrings.  We cannot
 		 *	forward this bundle.
 		 *
-		 *	Must write the bundle to the SDR in order to
-		 *	destroy it successfully.			*/
+		 *	But must write the bundle to the SDR in order
+		 *	to destroy it successfully.			*/
 
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
@@ -6038,16 +6063,16 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	BpVdb		*bpvdb = _bpvdb(NULL);
 	Object		bpDbObject = getBpDbObject();
 	PsmPartition	bpwm = getIonwm();
-	BpDB		bpdb;
+	MetaEid		destMetaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 	PsmAddress	discoveryElt;
 	Discovery	*discovery;
 	int		bundleProcFlags = 0;
 	unsigned int	srrFlags = srrFlagsByte;
 	int		aduLength;
 	Bundle		bundle;
-	VScheme		*vscheme;
-	PsmAddress	vschemeElt;
-	MetaEid		destMetaEid;
+	BpDB		bpdb;
 	char		sourceEidString[MAX_EID_LEN];
 	MetaEid		tempMetaEid;
 	VScheme		*vscheme2;
@@ -6357,12 +6382,14 @@ when asking for status reports.");
 	getCurrentTime(&bundle.arrivalTime);
 	bundle.timeToLive = lifespan;
 	computeExpirationTime(&bundle);
+	bundle.destinations = sdr_list_create(sdr);
 	bundle.extensions = sdr_list_create(sdr);
 	bundle.extensionsLength = 0;
 	bundle.stations = sdr_list_create(sdr);
 	bundle.trackingElts = sdr_list_create(sdr);
 	bundleAddr = sdr_malloc(sdr, sizeof(Bundle));
 	if (bundleAddr == 0
+	|| bundle.destinations == 0
 	|| bundle.stations == 0
 	|| bundle.trackingElts == 0
 	|| bundle.extensions == 0)
@@ -6912,6 +6939,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 			return -1;
 		}
 
+		newBundle.delivered = 0;
 		bundle = &newBundle;
 		bundleObj = newBundleObj;
 	}
@@ -7931,7 +7959,8 @@ bundle containing administrative record.");
 	/*	Determine whether or not the bundle is anonymous.
 	 *	There must be a more efficient way to do this.		*/
 
-	if (readEid(&(bundle->id.source), &eidString) < 0)
+	readEid(&(bundle->id.source), &eidString);
+	if (eidString == NULL)
 	{
 		putErrmsg("Can't print source EID string.", NULL);
 		return -1;
@@ -8721,7 +8750,8 @@ static int	recordBundleEid(Bundle *bundle, EndpointId *eid)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 
-	if (readEid(eid, &eidString) < 0)
+	readEid(eid, &eidString);
+	if (eidString == NULL)
 	{
 		putErrmsg("Can't read EID.", NULL);
 		return -1;
@@ -8917,7 +8947,8 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (work->senderEid.schemeCodeNbr != unknown)
 	{
-		if (readEid(&(work->senderEid), &eidString) < 0)
+		readEid(&(work->senderEid), &eidString);
+		if (eidString == NULL)
 		{
 		       putErrmsg("Can't read EID.", NULL);
 		       sdr_cancel_xn(sdr);
@@ -8975,6 +9006,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	/*	Construct other bundle stuctures.			*/
 
+	bundle->destinations = sdr_list_create(sdr);
 	bundle->stations = sdr_list_create(sdr);
 	bundle->trackingElts = sdr_list_create(sdr);
 	bundleObj = sdr_malloc(sdr, sizeof(Bundle));
@@ -9490,7 +9522,8 @@ int	sendStatusRpt(Bundle *bundle)
 
 	ttl = bundle->timeToLive;
 	if (ttl < 1) ttl = 1;
-	if (readEid(&bundle->reportTo, &reportToEid) < 0)
+	readEid(&bundle->reportTo, &reportToEid);
+	if (reportToEid == NULL)
 	{
 		putErrmsg("Can't recover report-to EID string.", NULL);
 		return -1;
@@ -9739,7 +9772,8 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 	switch (eid->schemeCodeNbr)
 	{
 	case dtn:
-		if (readEid(eid, &eidbuf) < 0)
+		readEid(eid, &eidbuf);
+		if (eidbuf == NULL)
 		{
 			putErrmsg("Can't serialize EID NSS.", NULL);
 			return -1;
@@ -10848,7 +10882,7 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	{
 		*bundleZco = 1;		/*	Client need not stop.	*/
 		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
-		if (bpDestroyBundle(bundleObj, 1) < 0)
+		if (bpDestroyBundle(bundleObj, 5) < 0)
 		{
 			putErrmsg("Failed trying to destroy bundle.", NULL);
 			sdr_cancel_xn(sdr);
@@ -11408,7 +11442,8 @@ int	retrieveSerializedBundle(Object bundleZco, Object *bundleObj)
 
 	/*	Recreate the source EID.				*/
 
-	if (readEid(&image.id.source, &sourceEid) < 0)
+	readEid(&image.id.source, &sourceEid);
+	if (sourceEid == NULL)
 	{
 		putErrmsg("Can't recover source EID string.", NULL);
 		return -1;
@@ -11643,7 +11678,8 @@ int	bpReforwardBundle(Object bundleAddr)
 	}
 
 	sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
-	if (readEid(&bundle.destination, &eidString) < 0)
+	readEid(&bundle.destination, &eidString);
+	if (eidString == NULL)
 	{
 		putErrmsg("Can't recover destination EID string.", NULL);
 		return -1;
@@ -11869,10 +11905,10 @@ int	_handleAdminBundles(char *adminEid, StatusRptCB handleStatusRpt)
 
 			break;			/*	Out of switch.	*/
 
-		case BP_MULTICAST_PETITION:
-			if (imcHandlePetition(&dlv, cursor, unparsedBytes) < 0)
+		case BP_MULTICAST_BRIEFING:
+			if (imcHandleBriefing(&dlv, cursor, unparsedBytes) < 0)
 			{
-				putErrmsg("Multicast petition handler failed.",
+				putErrmsg("Multicast briefing handler failed.",
 						NULL);
 				running = 0;
 			}

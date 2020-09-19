@@ -78,7 +78,7 @@ int	meb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	return 0;
 }
 
-int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;
@@ -136,9 +136,4 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 int	meb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	meb_clear(AcqExtBlock *blk)
-{
-	return;
 }

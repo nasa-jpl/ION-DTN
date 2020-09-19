@@ -210,7 +210,7 @@ static void	printBundle(Object bundleObj)
 
 	PUTS("\n**** Bundle");
 
-	oK(readEid(&(bundle->id.source), &eid));
+	readEid(&(bundle->id.source), &eid);
 	if (eid)
 	{
 		isprintf(buf, sizeof buf, "Source EID      '%s'", eid);
@@ -218,7 +218,7 @@ static void	printBundle(Object bundleObj)
 		MRELEASE(eid);
 	}
 
-	oK(readEid(&(bundle->destination), &eid));
+	readEid(&(bundle->destination), &eid);
 	if (eid)
 	{
 		isprintf(buf, sizeof buf, "Destination EID '%s'", eid);
@@ -226,7 +226,7 @@ static void	printBundle(Object bundleObj)
 		MRELEASE(eid);
 	}
 
-	oK(readEid(&(bundle->reportTo), &eid));
+	readEid(&(bundle->reportTo), &eid);
 	if (eid)
 	{
 		isprintf(buf, sizeof buf, "Report-to EID   '%s'", eid);

@@ -812,8 +812,8 @@ int	rfx_insert_contact(int regionIdx, time_t fromTime, time_t toTime,
 	*cxaddr = 0;			/*	Default.		*/
 	if (regionIdx < 0 || regionIdx > 1)
 	{
-		writeMemo("[?] Can't insert contact, nodes not in any \
-common region.");
+		writeMemo("[?] Can't insert contact, don't know which \
+region it's for.");
 		return 1;
 	}
 

@@ -88,7 +88,8 @@ typedef enum
 	MetadataBlk = 14,
 	DataLabelBlk = 15,
 	QualityOfServiceBlk = 19,
-	SnwPermitsBlk = 21
+	SnwPermitsBlk = 21,
+	ImcDestinationsBlk = 22
 } BpBlockType;
 
 /*	ExtensionSpec provides the specification for producing an

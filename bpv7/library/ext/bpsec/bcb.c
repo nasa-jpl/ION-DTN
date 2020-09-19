@@ -272,7 +272,8 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
 	{
-		if (readEid(&(asb->securitySource), &fromEid) < 0)
+		readEid(&(asb->securitySource), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BCB_RX_FAIL(NULL, 1, 0);
 
@@ -281,14 +282,16 @@ int	bcbDecrypt(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 	else
 	{
-		if (readEid(&(bundle->id.source), &fromEid) < 0)
+		readEid(&(bundle->id.source), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BCB_RX_FAIL(NULL, 1, 0);
 			return 0;
 		}
 	}
 
-	if (readEid(&(bundle->destination), &toEid) < 0)
+	readEid(&(bundle->destination), &toEid);
+	if (toEid == NULL)
 	{
 		ADD_BCB_RX_FAIL(fromEid, 1, 0);
 
@@ -1085,7 +1088,8 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 	BpsecOutboundBlock	asb;
 	int			result = 0;
 
-//<<--	Must attach block, even if only as placeholder.
+	/*	Block must be offered as a placeholder to enable
+	 *	later extension block processing.			*/
 
 	BCB_DEBUG_PROC("+ bcbOffer(%x, %x)",
                   (unsigned long) blk, (unsigned long) bundle);

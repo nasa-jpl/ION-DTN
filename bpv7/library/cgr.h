@@ -267,14 +267,14 @@ extern void		cgr_clear_vdb(CgrVdb *);
 extern int		cgr_create_routing_object(IonNode *node);
 extern int		cgr_start_SAP(uvast, time_t, CgrSAP *sap);
 extern int		cgr_identify_best_routes(IonNode *terminusNode,
-				Bundle *bundle, Object bundleObj,
-				Lyst excludedNodes, time_t currentTime,
-				CgrSAP sap, CgrTrace *trace, Lyst bestRoutes); 
+				Bundle *bundle, Lyst excludedNodes,
+				time_t currentTime, CgrSAP sap,
+				CgrTrace *trace, Lyst bestRoutes); 
 extern void		cgr_stop_SAP(CgrSAP sap);
 extern float		cgr_get_dlv_confidence(Bundle *bundle, CgrRoute *route);
 extern int		cgr_preview_forward(uvast terminusNodeNbr,
-				Bundle *bundle, Object bundleObj,
-				time_t atTime, CgrSAP sap, CgrTrace *trace);
+				Bundle *bundle, time_t atTime, CgrSAP sap,
+				CgrTrace *trace);
 extern int		cgr_prospect(uvast terminusNode, unsigned int deadline);
 extern const char	*cgr_tracepoint_text(CgrTraceType traceType);
 extern const char	*cgr_reason_text(CgrReason reason);

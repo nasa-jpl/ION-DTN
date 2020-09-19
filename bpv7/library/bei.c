@@ -267,6 +267,7 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 	newBundle->extensions = sdr_list_create(bpSdr);
 	CHKERR(newBundle->extensions);
 	newBundle->extensionsLength = oldBundle->extensionsLength;
+//puts("...in copyExtensionBlocks...");
 	if (oldBundle->extensions == 0)
 	{
 		return 0;
@@ -295,6 +296,7 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 		}
 
 		memset((char *) &newBlk, 0, sizeof(ExtensionBlock));
+//printf("Copying extension block of type %d.\n", oldBlk->type);
 		newBlk.type = oldBlk->type;
 		newBlk.blkProcFlags = oldBlk->blkProcFlags;
 		newBlk.dataLength = oldBlk->dataLength;
@@ -312,9 +314,11 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 		}
 
 		def = findExtensionDef(oldBlk->type);
+//if (def == NULL) puts("Block definition not found.");
 		if (def && def->copy)
 		{
-			/*	Must copy extension object.	*/
+//puts("Block definition has copy function.");
+			/*	Must copy extension object.		*/
 
 			if (def->copy(&newBlk, oldBlk) < 0)
 			{
@@ -331,6 +335,7 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 				newBlk.tag2, newBlk.tag3);
 		newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
 		CHKERR(newBlkAddr);
+//puts("Inserting extension block copy.");
 		if (insertExtensionBlock(spec, &newBlk, newBlkAddr,
 				newBundle) < 0)
 		{
@@ -338,6 +343,7 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 			return -1;
 		}
 	}
+//puts("...done with extension blocks...");
 
 	if (buf)
 	{

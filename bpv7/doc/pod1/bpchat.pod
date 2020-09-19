@@ -9,9 +9,9 @@ B<bpchat> I<sourceEID> I<destEID> [ct]
 =head1 DESCRIPTION
 
 B<bpchat> uses Bundle Protocol to send input text in bundles, and display the
-payload of received bundles as output.  It is similar to the L<talk> utility,
+payload of received bundles as output.  It is similar to the B<talk> utility,
 but operates over the Bundle Protocol.  It operates like a combination of the
-L<bpsource> and L<bpsink> utilities in one program (unlike L<bpsource>, 
+B<bpsource> and B<bpsink> utilities in one program (unlike B<bpsource>, 
 B<bpchat> emits bundles with a I<sourceEID>).
 
 If the I<sourceEID> and I<destEID> are both B<bpchat> applications, then two

@@ -340,7 +340,8 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
 	{
-		if (readEid(&(asb->securitySource), &fromEid) < 0)
+		readEid(&(asb->securitySource), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BIB_RX_FAIL(NULL, 1, 0);
 			return -1;
@@ -348,14 +349,16 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	}
 	else
 	{
-		if (readEid(&(bundle->id.source), &fromEid) < 0)
+		readEid(&(bundle->id.source), &fromEid);
+		if (fromEid == NULL)
 		{
 			ADD_BIB_RX_FAIL(NULL, 1, 0);
 			return -1;
 		}
 	}
 
-	if (readEid(&(bundle->destination), &toEid) < 0)
+	readEid(&(bundle->destination), &toEid);
+	if (toEid == NULL)
 	{
 		ADD_BIB_RX_FAIL(fromEid, 1, 0);
 		MRELEASE(fromEid);
@@ -1183,7 +1186,8 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	BpsecOutboundBlock	asb;
 	int8_t			result = 0;
 
-//<<-- Must attach block, even if only as placeholder.
+	/*	Block must be offered as a placeholder to enable
+	 *	later extension block processing.			*/
 
 	BIB_DEBUG_PROC("+ bibOffer(0x%x, 0x%x)",
                   (unsigned long) blk, (unsigned long) bundle);
@@ -1362,13 +1366,15 @@ int	bibReview(AcqWorkArea *wk)
 	}
 
 	bundle = &(wk->bundle);
-	if (readEid(&(bundle->destination), &destinationEid) < 0)
+	readEid(&(bundle->destination), &destinationEid);
+	if (destinationEid == NULL)
 	{
 		BIB_DEBUG_PROC("- bibReview -> no bundle destination", NULL);
 		return -1;
 	}
 
-	if (readEid(&(bundle->id.source), &sourceEid) < 0)
+	readEid(&(bundle->id.source), &sourceEid);
+	if (sourceEid == NULL)
 	{
 		BIB_DEBUG_PROC("- bibReview -> no bundle source", NULL);
 		MRELEASE(destinationEid);

@@ -24,7 +24,8 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 		return 0;
 	}
 
-	if (readEid(&rpt.sourceEid, &sourceEid) < 0)
+	readEid(&rpt.sourceEid, &sourceEid);
+	if (sourceEid == NULL)
 	{
 		eraseEid(&rpt.sourceEid);
 		return -1;

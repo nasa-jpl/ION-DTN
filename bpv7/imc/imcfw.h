@@ -22,18 +22,36 @@ extern "C" {
 
 typedef struct
 {
-	uvast		parent;		/*	node number		*/
-	Object		kin;		/*	SDR list of NodeIds	*/
+	uvast		groupNbr;
+	long		secUntilDelete;	/*	Default is -1.		*/
+	int		isMember;	/*	Boolean: local node	*/
+	Object		members;	/*	SDR list of node nbrs	*/
+	int		count[2];	/*	Passageway's counts	*/
+} ImcGroup;
+
+typedef struct
+{
 	Object		groups;		/*	SDR list of ImcGroups	*/
 } ImcDB;
+
+typedef struct
+{
+	uvast		groupNbr;
+	int		isMember;	/*	Boolean			*/
+} ImcPetition;
 
 extern int		imcInit();
 extern Object		getImcDbObject();
 extern ImcDB		*getImcConstants();
 
-extern int		imc_addKin(uvast nodeNbr, int isParent);
-extern int		imc_updateKin(uvast nodeNbr, int isParent);
-extern void		imc_removeKin(uvast nodeNbr);
+extern void		imcFindGroup(uvast groupNbr, Object *addr,
+				Object *eltp);
+
+extern int		imcHandleBriefing(BpDelivery *dlv,
+				unsigned char *cursor,
+				unsigned int unparsedBytes);
+extern int		imcSendPetition(ImcPetition *petition, vast toRegion);
+
 #ifdef __cplusplus
 }
 #endif

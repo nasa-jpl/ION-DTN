@@ -1488,7 +1488,7 @@ int	ionManagePassageway(uvast nodeNbr, vast homeRegionNbr,
 
 /*	Utility functions.						*/
 
-char	*getIonVersionNbr()
+const char	*getIonVersionNbr()
 {
 	return versionNbr;
 }

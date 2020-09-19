@@ -37,41 +37,6 @@ int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
-void	qos_release(ExtensionBlock *blk)
-{
-	return;
-}
-
-int	qos_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	qos_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	qos_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	qos_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	qos_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	qos_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
 int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
@@ -139,9 +104,4 @@ int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	qos_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	qos_clear(AcqExtBlock *blk)
-{
-	return;
 }

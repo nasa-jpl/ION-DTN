@@ -39,36 +39,6 @@ int	hcb_offer(ExtensionBlock *blk, Bundle *bundle)
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
-void	hcb_release(ExtensionBlock *blk)
-{
-	return;
-}
-
-int	hcb_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	hcb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	hcb_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	hcb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	hcb_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
 int	hcb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	unsigned char	dataBuffer[24];
@@ -148,9 +118,4 @@ int	hcb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	hcb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	hcb_clear(AcqExtBlock *blk)
-{
-	return;
 }
