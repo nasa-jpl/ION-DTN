@@ -1,0 +1,114 @@
+=head1 NAME
+
+kauthrc - DTKA key authority administration commands file
+
+=head1 DESCRIPTION
+
+DTKA key authority administration commands are passed to B<kaadmin> either
+in a file of text lines or interactively at B<kaadmin>'s command prompt
+(:).  Commands are interpreted line-by line, with exactly one command per
+line.  The formats and effects of the DTKA key authority administration
+commands are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by kaadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<1>
+
+The B<initialize> command.  Until this command is executed, the DTKA key
+authority function is not in operation on the local ION node and most
+I<kaadmin> commands will fail.
+
+=item B<i>
+
+The B<info> This command will print information about the current state
+of the local node's DTKA key authority function, including the current
+settings of all parameters that can be managed as described below.
+
+=item B<s>
+
+The B<start> command.  This command starts the B<karecv>, B<kacompile>,
+and B<kapublish> tasks for the local DTKA key authority function.
+
+=item B<m compiletime> I<time>
+
+The B<manage compile time> command.  This command sets the time at which
+the key authority node will next compile a bulletin.  The command is
+not needed in normal operations, because future compile times are computed
+automatically as bulletins are compiled. I<time> must be in
+yyyy/mm/dd-hh:mm:ss format.
+
+=item B<m interval> I<bulletin_compilation_interval>
+
+The B<manage bulletin compilation interval> command.  This interval,
+expressed as a number of seconds, controls the period on which the key
+authority node will compile new key information bulletins.  The default
+value is 3600 (one hour).
+
+=item B<m grace> I<bulletin_consensus_grace_time>
+
+The B<manage bulletin consensus grace time> command.  This interval,
+expressed as a number of seconds, controls the length of time the key
+authority node will wait after publishing a bulletin before computing
+a consensus bulletin; this parameter is intended to relax the degree
+to which the system clocks of all members of the distributed key
+authority must be in agreement.  The default value is 60 (1 minute).
+
+=item B<+> I<authority_array_index> I<node_number>
+
+This command asserts that the trusted Nth member of the distributed key
+authority, where N is the I<authority_array_index> value, is the
+node identified by I<node_number>.
+
+=item B<-> I<authority_array_index>
+
+This command asserts that the Nth member of the distributed key
+authority, where N is the I<authority_array_index> value, is no longer
+a trusted member of the distributed key authority; bulletins received
+from this key authority member must be discarded.
+
+=item B<x>
+
+The B<stop> command.  This command stops the B<karecv>, B<kacompile>,
+and B<kapublish> tasks for the local DTKA key authority function.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item + 3 6913
+
+Asserts that node 6913 is now member 3 of the distributed key authority.
+
+=back
+
+=head1 SEE ALSO
+
+kaadmin(1), dtka(3)

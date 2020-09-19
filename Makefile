@@ -21,6 +21,8 @@ withbpv6:
 	gmake -C bss install
 	gmake -C dtpc all
 	gmake -C dtpc install
+	gmake -C tc all
+	gmake -C tc install
 #	gmake -C nm all
 #	gmake -C nm install
 	gmake -C restart all BP=$(BP)
@@ -45,6 +47,8 @@ withbpv7:
 	gmake -C bss install
 	gmake -C dtpc all
 	gmake -C dtpc install
+	gmake -C tc all
+	gmake -C tc install
 #	gmake -C nm all
 #	gmake -C nm install
 	gmake -C restart all BP=$(BP)
@@ -60,6 +64,7 @@ clean:
 	gmake -C cfdp clean
 	gmake -C bss clean
 	gmake -C dtpc clean
+	gmake -C tc clean
 	gmake -C nm clean
 	gmake -C restart clean BP=$(BP)
 
