@@ -199,7 +199,7 @@ incorrect: '%s'.", timestamp);
 		recordLength = tc_deserialize(&cursor, &len, TC_MAX_DATLEN, 
 				&nodeNbr, &effectiveTime, &assertionTime,
 				&datLength, datValue);
-		if (recordLength < 1)
+		if (recordLength == 0)
 		{
 			PUTS("Malformed proposed bulletin.");
 			MRELEASE(acknowledged);

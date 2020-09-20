@@ -152,7 +152,7 @@ fflush(stdout);
 	if (tc_deserialize(&cursor, &len, TC_MAX_DATLEN, 
 			&(record.nodeNbr), &(record.effectiveTime),
 			&(record.assertionTime), &(record.datLength),
-			record.datValue) < 1)
+			record.datValue) == 0)
 	{
 #if TC_DEBUG
 puts("Deserialize failed.");

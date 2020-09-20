@@ -1,33 +1,37 @@
-PODM1 = pod2man -s 1 -c "DTKA executables"
-PODM3 = pod2man -s 3 -c "DTKA overview"
-PODM5 = pod2man -s 5 -c "DTKA configuration files"
+PODM1 = pod2man -s 1 -c "TC executables"
+PODM3 = pod2man -s 3 -c "TC overview"
+PODM5 = pod2man -s 5 -c "TC configuration files"
 PODH = pod2html --noindex
 
 MANFILES = \
-	./man/man1/knadmin.1 \
-	./man/man1/knclock.1 \
-	./man/man1/knmgr.1 \
-	./man/man1/kaboot.1 \
-	./man/man1/kaadmin.1 \
-	./man/man1/karecv.1 \
-	./man/man1/kacompile.1 \
-	./man/man1/kapublish.1 \
-	./man/man5/kauthrc.5 \
-	./man/man5/knoderc.5 \
-	./man/man3/dtka.3
+	./man/man1/dtka.1 \
+	./man/man1/dtkaadmin.1 \
+	./man/man1/tccadmin.1 \
+	./man/man1/tcc.1 \
+	./man/man1/tcaboot.1 \
+	./man/man1/tcaadmin.1 \
+	./man/man1/tcarecv.1 \
+	./man/man1/tcacompile.1 \
+	./man/man1/tcapublish.1 \
+	./man/man3/tc.3 \
+	./man/man5/dtkarc.5 \
+	./man/man5/tccrc.5 \
+	./man/man5/tcarc.5
 
 HTMLFILES = \
-	./html/man1/knadmin.html \
-	./html/man1/knclock.html \
-	./html/man1/knmgr.html \
-	./html/man1/kaboot.html \
-	./html/man1/kaadmin.html \
-	./html/man1/karecv.html \
-	./html/man1/kacompile.html \
-	./html/man1/kapublish.html \
-	./html/man5/kauthrc.html \
-	./html/man5/knoderc.html \
-	./html/man3/dtka.html
+	./html/man1/dtka.html \
+	./html/man1/dtkaadmin.html \
+	./html/man1/tccadmin.html \
+	./html/man1/tcc.html \
+	./html/man1/tcaboot.html \
+	./html/man1/tcaadmin.html \
+	./html/man1/tcarecv.html \
+	./html/man1/tcacompile.html \
+	./html/man1/tcapublish.html \
+	./html/man3/tc.html \
+	./html/man5/dtkarc.html \
+	./html/man5/tccrc.html \
+	./html/man5/tcarc.html
 
 ALL = $(MANFILES) $(HTMLFILES)
 

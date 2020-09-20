@@ -72,10 +72,10 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\tg\tSet blocks group number");
-	PUTS("\t   g <group number for multicast TC blocks>");
+	PUTS("\t   g <multicast group number for TC blocks>");
 	PUTS("\t1\tInitialize");
-	PUTS("\t   1 <group number for multicast TC bulletins> <group number \
-for multicast TC records> <nbr of authorities in collective> [ <K> [ <R> ]]");
+	PUTS("\t   1 <multicast group number for TC bulletins> <multicast \
+group number for TC records> <nbr of authorities in collective> [ <K> [ <R> ]]");
 	PUTS("\t\tK is blocks per bulletin, defaulting to 50");
 	PUTS("\t\tR is redundancy, 0.0 < R < 1.0, defaulting to .2");
 	PUTS("\tm\tManage");

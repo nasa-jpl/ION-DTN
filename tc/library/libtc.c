@@ -22,12 +22,11 @@ int	tc_serialize(char *buffer, unsigned int buflen,
 	unsigned int	u4;
 	unsigned short	u2;
 
-	CHKZERO(buffer);
-	CHKZERO(buflen);
-	CHKZERO(nodeNbr);
+	CHKERR(buffer);
+	CHKERR(buflen);
 	cursor = buffer;
 	encodeSdnv(&nodeNbrSdnv, nodeNbr);
-	CHKZERO(buflen > nodeNbrSdnv.length + 14 + datLength);
+	CHKERR(buflen > nodeNbrSdnv.length + 14 + datLength);
 	memcpy(cursor, nodeNbrSdnv.text, nodeNbrSdnv.length);
 	cursor += nodeNbrSdnv.length;
 	length += nodeNbrSdnv.length;
@@ -48,7 +47,7 @@ int	tc_serialize(char *buffer, unsigned int buflen,
 	length += 2;
 	if (datLength > 0)
 	{
-		CHKZERO(datValue);
+		CHKERR(datValue);
 		memcpy(cursor, datValue, datLength);
 		length += datLength;
 	}
@@ -69,6 +68,7 @@ int	tc_deserialize(char **cursor, int *bytesRemaining,
 	originalBytesRemaining = *bytesRemaining;
 	CHKERR(nodeNbr);
 	CHKERR(effectiveTime);
+	CHKERR(assertionTime);
 	CHKERR(datLength);
 	CHKERR(datValue);
 	extractSdnv(nodeNbr, cursor, bytesRemaining);

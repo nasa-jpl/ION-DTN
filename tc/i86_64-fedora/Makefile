@@ -23,7 +23,7 @@ LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = tcaboot tcarecv tcacompile tcapublish tcaadmin tcc tccadmin dtka dtkaadmin
 
-ALL = check libtc.so libtcaP.so libtcc.so libtccP.so libdtka.so $(RUNTIMES)
+ALL = check libtc.so libtcaP.so libtcc.so libtccP.so libdtka.so libzfec.so $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -52,8 +52,8 @@ tcacompile:	tcacompile.o libtcaP.so
 		$(CC) -o tcacompile tcacompile.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
 		cp tcacompile ./bin
 
-tcapublish:	tcapublish.o libtcaP.so $(ZFEC)/fec.o
-		$(CC) -o tcapublish tcapublish.o $(ZFEC)/fec.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lpthread -lm
+tcapublish:	tcapublish.o libtcaP.so
+		$(CC) -o tcapublish tcapublish.o -L./lib -L$(ROOT)/lib -ltcaP -ltc $(LBP) -lici -lzfec -lpthread -lm
 		cp tcapublish ./bin
 
 tcaadmin:	tcaadmin.o libtcaP.so
@@ -70,8 +70,8 @@ libtcaP.so:	libtcaP.o
 
 #	-	-	Client executables	-	-	-	-
 
-tcc:		tcc.o libtc.so libtcc.so libtccP.so $(ZFEC)/fec.o
-		$(CC) -o tcc tcc.o $(ZFEC)/fec.o  -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lpthread -lm
+tcc:		tcc.o libtc.so libtcc.so libtccP.so
+		$(CC) -o tcc tcc.o -L./lib -L$(ROOT)/lib -ltccP -ltcc -ltc $(LBP) -lici -lzfec -lpthread -lm
 		cp tcc ./bin
 
 tccadmin:	tccadmin.o libtc.so libtcc.so libtccP.so
@@ -91,6 +91,12 @@ libtccP.so:	libtccP.o
 libtc.so:	libtc.o
 		$(LD) -o libtc.so libtc.o
 		cp libtc.so ./lib
+
+#	-	-	zfec	-	-	-	-	-	-
+
+libzfec.so:	$(ZFEC)/fec.o
+		$(LD) -o libzfec.so $(ZFEC)/fec.o
+		cp libzfec.so ./lib
 
 #	-	-	Application -	-	-	-	-	-
 
@@ -120,5 +126,5 @@ libdtka.so:	libdtka.o
 %.o:		$(DTKA)/%.c
 		$(CC) -c $<
 
-fec.o:		$(ZFEC)/fec.c
-		$(CC) -c $(ZFEC)/fec.c
+%.o:		$(ZFEC)/%.c
+		$(CC) -c $(ZFEC)/%.c
