@@ -142,7 +142,7 @@ static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
 
 #if TC_DEBUG
 printf("Got record from " UVAST_FIELDSPEC " in tcarecv.\n",
-metaEid.nodeNbr);
+metaEid.elementNbr);
 fflush(stdout);
 #endif
 	memset(&record, 0, sizeof record);

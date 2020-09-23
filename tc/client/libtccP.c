@@ -31,9 +31,10 @@ static char	*_tccmdbName()
 static Object	getTccMDB()
 {
 	Sdr	sdr = getIonsdr();
-	Object	mdbobj = _tccmdbobject(NULL);
+	Object	mdbobj;
 	TccMDB	mdb;
 
+	mdbobj = _tccmdbobject(NULL);
 	if (mdbobj)		/*	Found previously.		*/
 	{
 		return mdbobj;
@@ -106,12 +107,13 @@ static char	*_tccvdbName()
 
 static PsmAddress	getTccMVdb()
 {
-	PsmPartition	wm = getIonwm();;
-	PsmAddress	mvdbAddr = _tccmvdbAddress(NULL);
+	PsmPartition	wm = getIonwm();
+	PsmAddress	mvdbAddr;
 	PsmAddress	elt;
 	Sdr		sdr;
 	TccMVdb		*mvdb;
 
+	mvdbAddr = _tccmvdbAddress(NULL);
 	if (mvdbAddr)		/*	Found previously.		*/
 	{
 		return mvdbAddr;
@@ -188,7 +190,7 @@ static int	createTccVdb(int blocksGroupNbr)
 		return -1;
 	}
 
-	mvdb = (TccMVdb *) mvdbAddr;
+	mvdb = (TccMVdb *) psp(wm, mvdbAddr);
 	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	vdbAddr = psm_zalloc(wm, sizeof(TccVdb));
@@ -220,7 +222,7 @@ static int	createTccVdb(int blocksGroupNbr)
 
 int	tccInit(int blocksGroupNbr, int auths, int K, double R)
 {
-	Sdr		sdr = getIonsdr();
+	Sdr		sdr;
 	Object		mdbobj;
 	TccMDB		mdb;
 	Object		dbobj;
@@ -234,6 +236,12 @@ int	tccInit(int blocksGroupNbr, int auths, int K, double R)
 	if (bp_attach() < 0)
 	{
 		putErrmsg("TCC can't attach to ION.", NULL);
+		return -1;
+	}
+
+	if (blocksGroupNbr < 1)
+	{
+		putErrmsg("Invalid blocks group number.", itoa(blocksGroupNbr));
 		return -1;
 	}
 
@@ -267,6 +275,7 @@ int	tccInit(int blocksGroupNbr, int auths, int K, double R)
 		return -1;
 	}
 
+	sdr = getIonsdr();
 	sdr_read(sdr, (char *) &mdb, mdbobj, sizeof(TccMDB));
 	CHKERR(sdr_begin_xn(sdr));
 	dbobj = sdr_malloc(sdr, sizeof(TccDB));
@@ -348,6 +357,7 @@ int	tccStart(int blocksGroupNbr)
 {
 	Sdr	sdr = getIonsdr();
 	TccVdb	*vdb = getTccVdb(blocksGroupNbr);
+	char	cmdBuffer[32];
 
 	if (vdb == NULL)
 	{
@@ -361,7 +371,8 @@ int	tccStart(int blocksGroupNbr)
 	if (vdb->tccPid == ERROR
 	|| sm_TaskExists(vdb->tccPid) == 0)
 	{
-		vdb->tccPid = pseudoshell("tcc");
+		isprintf(cmdBuffer, sizeof cmdBuffer, "tcc %d", blocksGroupNbr);
+		vdb->tccPid = pseudoshell(cmdBuffer);
 	}
 
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
@@ -441,6 +452,13 @@ int	tccAttach(int blocksGroupNbr)
 		return -1;
 	}
 
+	if (blocksGroupNbr < 1)
+	{
+abort();
+		putErrmsg("Invalid blocks group number.", itoa(blocksGroupNbr));
+		return -1;
+	}
+
 	if (getTccDBObj(blocksGroupNbr) != 0
 	&& getTccVdb(blocksGroupNbr) != NULL)
 	{
@@ -453,18 +471,20 @@ int	tccAttach(int blocksGroupNbr)
 Object	getTccDBObj(int blocksGroupNbr)
 {
 	Sdr	sdr = getIonsdr();
-	Object	mdbobj = _tccmdbobject(NULL);
+	Object	mdbobj;
 	TccMDB	mdb;
 	Object	elt;
 	Object	dbobj;
 	TccDB	db;
 
+	mdbobj = getTccMDB();
 	if (mdbobj == 0)
 	{
 		return 0;
 	}
 
-	sdr_read(sdr, (char *) &mdb, _tccmdbobject(NULL), sizeof(TccMDB));
+	CHKZERO(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &mdb, mdbobj, sizeof(TccMDB));
 	for (elt = sdr_list_first(sdr, mdb.dbs); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -472,8 +492,14 @@ Object	getTccDBObj(int blocksGroupNbr)
 		sdr_read(sdr, (char *) &db, dbobj, sizeof(TccDB));
 		if (db.blocksGroupNbr == blocksGroupNbr)
 		{
-			return dbobj;
+			break;
 		}
+	}
+
+	sdr_exit_xn(sdr);
+	if (elt)
+	{
+		return dbobj;
 	}
 
 	return 0;
@@ -482,12 +508,13 @@ Object	getTccDBObj(int blocksGroupNbr)
 TccVdb	*getTccVdb(int blocksGroupNbr)
 {
 	PsmPartition	wm = getIonwm();
-	PsmAddress	mvdbAddr = _tccmvdbAddress(NULL);
+	PsmAddress	mvdbAddr;
 	TccMVdb		*mvdb;
 	PsmAddress	elt;
 	PsmAddress	vdbAddr;
 	TccVdb		*vdb;
 
+	mvdbAddr = getTccMVdb();
 	if (mvdbAddr == 0)
 	{
 		return NULL;

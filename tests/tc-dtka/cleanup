@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# September 21, 2020
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion_nodes dtka.ionsecrc boot.tccrc boot.tcarc 1.ipn.ltp/ion.log 1.ipn.ltp/node1.stdou* 1.ipn.ltp/ltpblock.* 1.ipn.ltp/testfile* 1.ipn.ltp/dtka.ionsecrc 1.ipn.ltp/tca_proposed.* 2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdou* 2.ipn.ltp/ltpblock.* 2.ipn.ltp/testfile* 2.ipn.ltp/dtka.ionsecrc 2.ipn.ltp/tca_proposed.* 3.ipn.ltp/ion.log 3.ipn.ltp/node3.stdou* 3.ipn.ltp/ltpblock.* 3.ipn.ltp/testfile* 3.ipn.ltp/dtka.ionsecrc 3.ipn.ltp/tca_proposed.* 4.ipn.ltp/ion.log 4.ipn.ltp/node4.stdou* 4.ipn.ltp/ltpblock.* 4.ipn.ltp/testfile* 4.ipn.ltp/dtka.ionsecrc 4.ipn.ltp/tca_proposed.* 5.ipn.ltp/ion.log 5.ipn.ltp/node5.stdou* 5.ipn.ltp/ltpblock.* 5.ipn.ltp/testfile* 5.ipn.ltp/dtka.ionsecrc 5.ipn.ltp/tca_proposed.* 6.ipn.ltp/ion.log 6.ipn.ltp/node6.stdou* 6.ipn.ltp/ltpblock.* 6.ipn.ltp/testfile* 6.ipn.ltp/dtka.ionsecrc 6.ipn.ltp/tca_proposed.* 7.ipn.ltp/ion.log 7.ipn.ltp/node7.stdou* 7.ipn.ltp/ltpblock.* 7.ipn.ltp/testfile* 7.ipn.ltp/dtka.ionsecrc 7.ipn.ltp/*.keys 7.ipn.ltp/tca_proposed.* 8.ipn.ltp/ion.log 8.ipn.ltp/node8.stdou* 8.ipn.ltp/ltpblock.* 8.ipn.ltp/testfile* 8.ipn.ltp/dtka.ionsecrc 8.ipn.ltp/*.keys 8.ipn.ltp/tca_proposed.* 9.ipn.ltp/ion.log 9.ipn.ltp/node9.stdou* 9.ipn.ltp/ltpblock.* 9.ipn.ltp/testfile* 9.ipn.ltp/dtka.ionsecrc 9.ipn.ltp/*.keys 9.ipn.ltp/tca_proposed.*

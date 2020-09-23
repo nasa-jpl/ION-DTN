@@ -4,7 +4,7 @@ tccadmin - DTKA node administration interface
 
 =head1 SYNOPSIS
 
-B<tccadmin> [ I<commands_filename> ]
+B<tccadmin> I<blocks_group_number> [ I<commands_filename> ]
 
 =head1 DESCRIPTION
 
@@ -12,7 +12,14 @@ B<tccadmin> configures and manages the Trusted Collecive client databases
 for TC applications on the local ION node, enabling the node to utilize the
 services of one or more collective authorities.
 
-It configures and manages a TC client database in response to client
+The first command-line argument to B<tccadmin> is I<blocksGroupNumber>,
+which identifies the specific TC application to which all commands
+submitted to this instance of B<tccadmin> will apply.  A TC
+application is uniquely identified by the group number of the Bundle
+Protocol multicast group comprising all nodes hosting TC clients that
+subscribe to TC "blocks" published for that application.
+
+B<tccadmin> configures and manages a TC client database in response to client
 configuration commands found in I<commands_filename>, if provided; if not,
 B<tccadmin> prints a simple prompt (:) so that the user may type commands
 directly into standard input.

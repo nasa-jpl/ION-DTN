@@ -4,19 +4,18 @@ tcaboot - Trusted Collective (TC) authority initialization utility
 
 =head1 SYNOPSIS
 
-B<tcaboot> I<multicast group number for TC blocks> I<multicast group number for TC bulletins> I<multicast group number for TC records> I<number of authorities in collective> I<K> I<R> [ I<delay> ]
+B<tcaboot> I<multicast_group_number_for_TC_bulletins> I<multicast_group_number_for_TC_records> I<number_of_authorities_in_collective> I<K> I<R> [ I<delay> ]
 
 =head1 DESCRIPTION
 
 B<tcaboot> writes a TC authority administration command file that initializes
 a TC authority database.  The file, named "boot.tcarc", is written to the
-current working directory.  It simply contains three authority configuration
+current working directory.  It simply contains two authority configuration
 commands that initialize the TC authority database for the TC application
-identified by the indicated multicast group number and then set the initial
-bulletin compilation time for this authority to the current ctime plus
-I<delay> seconds.  If omitted, I<delay> defaults to 5.  The other
-command-line arguments for B<tcaboot> are discussed in the descriptions
-of application selection and initialization commands for B<tcaadmin>;
+and then set the initial bulletin compilation time for this authority to
+the current ctime plus I<delay> seconds.  If omitted, I<delay> defaults
+to 5.  The other command-line arguments for B<tcaboot> are discussed in
+the descriptions of application initialization commands for B<tcaadmin>;
 see the tcarc(5) manual page for details.
 
 =head1 EXIT STATUS
@@ -33,17 +32,17 @@ Successful generation of TC authority initialization file.
 
 =over 4
 
-=item tcaboot 211 210 209 6 50 .2
+=item tcaboot 210 209 6 50 .2
 
 Writes a boot.tcarc file that initializes the local node's TC authority
-database for TC application 211 as indicated and sets the next bulletin
-compilation time to the current time plus 5 seconds.
+database as indicated and sets the next bulletin compilation time to the
+current time plus 5 seconds.
 
-=item tcaboot 211 210 209 6 50 .2 90
+=item tcaboot 210 209 6 50 .2 90
 
 Writes a boot.tcarc file that initializes the local node's TC authority
-database for TC application 211 as indicated and sets the next bulletin
-compilation time to the current time plus 90 seconds.
+database as indicated and sets the next bulletin compilation time to the
+current time plus 90 seconds.
 
 =back
 

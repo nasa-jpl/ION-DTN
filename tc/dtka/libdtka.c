@@ -83,6 +83,12 @@ int	dtkaInit()
 	Object	dtkadbObject;
 	DtkaDB	dtkadbBuf;
 
+	if (bp_attach() < 0)
+	{
+		putErrmsg("DTKA can't attach to ION.", NULL);
+		return -1;
+	}
+
 	sdr = getIonsdr();
 
 	/*	Recover the dtka database, creating it if necessary.	*/
@@ -162,7 +168,9 @@ int	dtkaAttach()
 			return -1;
 		}
 
+		CHKERR(sdr_begin_xn(sdr));	/*	Lock database.	*/
 		dtkadbObject = sdr_find(sdr, _dtkadbName(), NULL);
+		sdr_exit_xn(sdr);		/*	Unlock database.*/
 	}
 
 	oK(_dtkadbObject(&dtkadbObject));

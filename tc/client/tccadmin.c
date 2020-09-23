@@ -71,8 +71,6 @@ static void	printUsage()
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
-	PUTS("\tg\tSet blocks group number");
-	PUTS("\t   g <multicast group number for TC blocks>");
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1 <number of authorities in collective> [ <K> [ <R> ]]");
 	PUTS("\t\tK is blocks per bulletin, defaulting to 50");
@@ -89,26 +87,6 @@ static void	printUsage()
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
-}
-
-static void	setBlocksGroupNbr(int tokenCount, char **tokens)
-{
-	int	blocksGroupNbr;
-
-	if (tokenCount != 2)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	blocksGroupNbr = atoi(tokens[1]);
-	if (blocksGroupNbr < 1)
-	{
-		printText("For 'g' command, blocks group number must be > 0.");
-		return;
-	}
-
-	_blocksGroupNbr(&blocksGroupNbr);
 }
 
 static void	initializeTcc(int tokenCount, char **tokens)
@@ -342,10 +320,6 @@ static int	processLine(char *line, int lineLength)
 			printText(buffer);
 			return 0;
 
-		case 'g':
-			setBlocksGroupNbr(tokenCount, tokens);
-			return 0;
-
 		case '1':
 			initializeTcc(tokenCount, tokens);
 			return 0;
@@ -420,16 +394,19 @@ abandoned.");
 int	tccadmin(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
-	char	*cmdFileName = (char *) a1;
+	int	blocksGroupNbr = (a1 ? atoi((char *) a1) : -1);
+	char	*cmdFileName = (a2 ? (char *) a2 : NULL);
 #else
 int	main(int argc, char **argv)
 {
-	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
+	int	blocksGroupNbr = (argc > 1 ? atoi(argv[1]) : -1);
+	char	*cmdFileName = (argc > 2 ? argv[2] : NULL);
 #endif
 	int	cmdFile;
 	char	line[256];
 	int	len;
 
+	_blocksGroupNbr(&blocksGroupNbr);
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER

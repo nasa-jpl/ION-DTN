@@ -10,6 +10,9 @@
 									*/
 #include "tccP.h"
 #include "crypto.h"
+
+#define restrict
+#define const
 #include "fec.h"
 
 typedef struct
@@ -179,6 +182,7 @@ static void	snap(TccDB *db, TccBulletin *bulletin,
 			unsigned int *inputSharenums, 
 			char **outputBlocks) 
 {
+	Sdr		sdr = getIonsdr();
 	size_t		blksize = bulletin->blksize;
 	Object		shareObj;
 	TccShare	share;
@@ -896,7 +900,7 @@ int	main(int argc, char *argv[])
 
 	if (tccAttach(blocksGroupNbr) < 0)
 	{
-		putErrmsg("tcc can't attach to tcc system.",
+		putErrmsg("tcc can't attach to TC client support",
 				itoa(blocksGroupNbr));
 		return 1;
 	}

@@ -25,9 +25,13 @@ Object	getTcaDBObject(int blocksGroupNbr)
 {
 	Sdr	sdr = getIonsdr();
 	char	dbname[32];
+	Object	obj;
 
 	_tcaDBName(dbname, sizeof dbname, blocksGroupNbr);
-	return sdr_find(sdr, dbname, NULL);
+	CHKERR(sdr_begin_xn(sdr));
+	obj = sdr_find(sdr, dbname, NULL);
+	sdr_exit_xn(sdr);
+	return obj;
 }
 
 TcaVdb	*getTcaVdb(int blocksGroupNbr)
@@ -96,7 +100,7 @@ static int	createTcaVdb(int blocksGroupNbr)
 int	tcaInit(int blocksGroupNbr, int bulletinsGroupNbr, int recordsGroupNbr,
 		int auths, int K, double R)
 {
-	Sdr		sdr = getIonsdr();
+	Sdr		sdr;
 	char		dbname[32];
 	Object		dbobj;
 	TcaDB		db;
@@ -107,6 +111,12 @@ int	tcaInit(int blocksGroupNbr, int bulletinsGroupNbr, int recordsGroupNbr,
 	if (bp_attach() < 0)
 	{
 		putErrmsg("TCA can't attach to ION.", NULL);
+		return -1;
+	}
+
+	if (blocksGroupNbr < 1)
+	{
+		putErrmsg("Invalid blocks group number.", itoa(blocksGroupNbr));
 		return -1;
 	}
 
@@ -133,6 +143,7 @@ int	tcaInit(int blocksGroupNbr, int bulletinsGroupNbr, int recordsGroupNbr,
 		return 0;
 	}
 
+	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));
 	dbobj = sdr_malloc(sdr, sizeof(TcaDB));
 	if (dbobj == 0)
@@ -202,8 +213,9 @@ int	tcaInit(int blocksGroupNbr, int bulletinsGroupNbr, int recordsGroupNbr,
 
 int	tcaStart(int blocksGroupNbr)
 {
-	Sdr		sdr = getIonsdr();
+	Sdr	sdr = getIonsdr();
 	TcaVdb	*vdb = getTcaVdb(blocksGroupNbr);
+	char	cmdBuffer[32];
 
 	if (vdb == NULL)
 	{
@@ -217,7 +229,9 @@ int	tcaStart(int blocksGroupNbr)
 	if (vdb->recvPid == ERROR
 	|| sm_TaskExists(vdb->recvPid) == 0)
 	{
-		vdb->recvPid = pseudoshell("tcarecv");
+		isprintf(cmdBuffer, sizeof cmdBuffer, "tcarecv %d",
+				blocksGroupNbr);
+		vdb->recvPid = pseudoshell(cmdBuffer);
 	}
 
 	/*	Start the TCA compiler daemon if necessary.		*/
@@ -225,7 +239,9 @@ int	tcaStart(int blocksGroupNbr)
 	if (vdb->compilePid == ERROR
 	|| sm_TaskExists(vdb->compilePid) == 0)
 	{
-		vdb->compilePid = pseudoshell("tcacompile");
+		isprintf(cmdBuffer, sizeof cmdBuffer, "tcacompile %d",
+				blocksGroupNbr);
+		vdb->compilePid = pseudoshell(cmdBuffer);
 	}
 
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
@@ -293,6 +309,13 @@ int	tcaAttach(int blocksGroupNbr)
 	if (bp_attach() < 0)
 	{
 		putErrmsg("TCA can't attach to BP.", NULL);
+		return -1;
+	}
+
+	if (blocksGroupNbr < 1)
+	{
+abort();
+		putErrmsg("Invalid blocks group number.", itoa(blocksGroupNbr));
 		return -1;
 	}
 

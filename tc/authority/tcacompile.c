@@ -183,7 +183,6 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	sdr = getIonsdr();
 	dbobj = getTcaDBObject(blocksGroupNbr);
 	if (dbobj == 0)
 	{
@@ -192,10 +191,9 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(TcaDB));
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
-			getOwnNodeNbr(), db.bulletinsGroupNbr);
-	if (bp_open(ownEid, &sap) < 0)
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	if (bp_open_source(ownEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
 		ionDetach();
@@ -208,6 +206,7 @@ int	main(int argc, char *argv[])
 	 *	then compile and publish proposed bulletin and
 	 *	schedule next compilation.				*/
 
+	sdr = getIonsdr();
 	oK(_running(&state));
 	writeMemo("[i] tcacompile is running.");
 	while (_running(NULL))
@@ -216,15 +215,6 @@ int	main(int argc, char *argv[])
 		 *	compilation opportunity.			*/
 
 		currentTime = getCtime();
-		interval = db.nextCompilationTime - currentTime;
-		if (interval > 5)
-		{
-			snooze(interval - 5);
-			continue;	/*	In case interrupted.	*/
-		}
-
-		/*	Time to start compiling a bulletin.		*/
-
 		if (sdr_begin_xn(sdr) < 0)
 		{
 			putErrmsg("Can't update TCA next compile time.", NULL);
@@ -234,6 +224,16 @@ int	main(int argc, char *argv[])
 		}
 
 		sdr_stage(sdr, (char *) &db, dbobj, sizeof(TcaDB));
+		interval = db.nextCompilationTime - currentTime;
+		if (interval > 5)
+		{
+			sdr_exit_xn(sdr);
+			snooze(interval - 5);
+			continue;	/*	In case interrupted.	*/
+		}
+
+		/*	Time to start compiling a bulletin.		*/
+
 		db.currentCompilationTime = db.nextCompilationTime;
 		db.nextCompilationTime += db.compilationInterval;
 		sdr_write(sdr, dbobj, (char *) &db, sizeof(TcaDB));

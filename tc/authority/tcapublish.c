@@ -11,6 +11,9 @@
 									*/
 #include "tcaP.h"
 #include "crypto.h"
+
+#define restrict
+#define const
 #include "fec.h"
 
 typedef struct
@@ -748,9 +751,9 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%d",
-			getOwnNodeNbr(), blocksGroupNbr);
-	if (bp_open(ownEid, &sendSAP) < 0)
+	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	if (bp_open_source(ownEid, &sendSAP, 0) < 0)
 	{
 		putErrmsg("Can't open own transmission endpoint.", ownEid);
 		ionDetach();

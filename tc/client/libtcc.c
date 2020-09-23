@@ -14,7 +14,7 @@
 int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
 	       	int *length)
 {
-	Sdr		sdr = getIonsdr();
+	Sdr		sdr;
 	Object		dbobj;
 	TccDB		db;
 	TccVdb		*vdb;
@@ -27,14 +27,16 @@ int	tcc_getBulletin(int blocksGroupNbr, char **bulletinContent,
 	*length = 0;			/*	Default.		*/
 	if (tccAttach(blocksGroupNbr) < 0)
 	{
-		putErrmsg("Can't attach to TC client support.", NULL);
+		putErrmsg("Can't attach to TC client support",
+				itoa(blocksGroupNbr));
 		return -1;
 	}
 
 	dbobj = getTccDBObj(blocksGroupNbr);
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(TccDB));
 	vdb = getTccVdb(blocksGroupNbr);
+	sdr = getIonsdr();
 	CHKERR(sdr_begin_xn(sdr));
+	sdr_read(sdr, (char *) &db, dbobj, sizeof(TccDB));
 	contentElt = sdr_list_first(sdr, db.contents);
 	while (contentElt == 0)
 	{

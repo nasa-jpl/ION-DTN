@@ -4,7 +4,7 @@ tcaadmin - Trusted Collective (TC) authority administration interface
 
 =head1 SYNOPSIS
 
-B<tcaadmin> [ I<commands_filename> ]
+B<tcaadmin> I<blocks_group_number> [ I<commands_filename> ]
 
 =head1 DESCRIPTION
 
@@ -12,10 +12,17 @@ B<tcaadmin> configures and manages the Trusted Collective authority
 databases for TC applications on the local ION node, enabling the node
 to function as a member of one or more collective authorities.
 
-It configures and manages a TC authority database in response to authority
-configuration commands found in I<commands_filename>, if provided; if not,
-B<tcaadmin> prints a simple prompt (:) so that the user may type commands
-directly into standard input.
+The first command-line argument to B<tcaadmin> is I<blocksGroupNumber>,
+which identifies the specific TC application to which all commands
+submitted to this instance of B<tcaadmin> will apply.  A TC
+application is uniquely identified by the group number of the Bundle
+Protocol multicast group comprising all nodes hosting TC clients that
+subscribe to TC "blocks" published for that application.
+
+B<tcaadmin> configures and manages a TC authority database in response to
+authority configuration commands found in I<commands_filename>, if provided;
+if not, B<tcaadmin> prints a simple prompt (:) so that the user may type
+commands directly into standard input.
 
 The format of commands for I<commands_filename> can be queried from
 B<tcaadmin> by entering the command 'h' or '?' at the prompt.  The
@@ -35,14 +42,15 @@ Successful completion of TC authority administration.
 
 =over 4
 
-=item tcaadmin
+=item tcaadmin 203
 
-Enter interactive TC authority administration command entry mode.
+Enter interactive TC authority administration command entry mode for
+application 203.
 
-=item tcaadmin host1.tcarc
+=item tcaadmin 203 host1.tcarc
 
-Execute all configuration commands in I<host1.tcarc>, then terminate
-immediately.
+Apply the application-203 configuration commands in I<host1.tcarc>, then
+terminate immediately.
 
 =back
 

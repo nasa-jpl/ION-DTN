@@ -85,10 +85,10 @@ static int	writeAddPubKeyCmd(time_t effectiveTime,
 	unsigned char	*keyCursor;
 	int		val;
 
-	fd = iopen("kn.ionsecrc", O_WRONLY | O_CREAT | O_APPEND, 0777);
+	fd = iopen("dtka.ionsecrc", O_WRONLY | O_CREAT | O_APPEND, 0777);
 	if (fd < 0)
 	{
-		putSysErrmsg("Can't open cmd file", "kn.ionsecrc");
+		putSysErrmsg("Can't open cmd file", "dtka.ionsecrc");
 		return -1;
 	}
 
@@ -111,7 +111,7 @@ static int	writeAddPubKeyCmd(time_t effectiveTime,
 	cmdLen += 1;
 	if (write(fd, cmdbuf, cmdLen) < 0)
 	{
-		putSysErrmsg("Can't write command to add key", "kn.ionsecrc");
+		putSysErrmsg("Can't write command to add key", "dtka.ionsecrc");
 		return -1;
 	}
 
@@ -212,7 +212,7 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 		return -1;
 	}
 
-	/*	Write "add public key" command to kn.ionsecrc file.	*/
+	/*	Write "add public key" command to dtka.ionsecrc file.	*/
 
 	if (writeAddPubKeyCmd(effectiveTime, publicKeyLen, publicKey) < 0)
 	{
@@ -274,7 +274,6 @@ static void	*generateKeys(void *parm)
 	Object		dbobj;
 	DtkaDB		db;
 	time_t		currentTime;
-	unsigned int	secondsToWait;
 	long		state = 1;
 
 	/*	Main loop for DTKA key generation.			*/
@@ -300,7 +299,7 @@ static void	*generateKeys(void *parm)
 	sdr_read(sdr, (char *) &db, dbobj, sizeof(DtkaDB));
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
-	if (bp_open(ownEid, &sap) < 0)
+	if (bp_open_source(ownEid, &sap, 0) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
 		ionDetach();
@@ -317,9 +316,8 @@ static void	*generateKeys(void *parm)
 		currentTime = getCtime();
 		if (currentTime < db.nextKeyGenTime)
 		{
-			secondsToWait = db.nextKeyGenTime - currentTime;
-			snooze(secondsToWait);
-			continue;	/*	In case interrupted.	*/
+			snooze(1);
+			continue;
 		}
 
 		if (sdr_begin_xn(sdr) < 0)
