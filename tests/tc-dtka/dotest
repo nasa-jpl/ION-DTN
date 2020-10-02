@@ -38,47 +38,75 @@
 # public keys without error in each re-keying cycle.			*/
 
 echo "Starting ION..."
-export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
+export ION_NODE_LIST_DIR=$PWD
 
-# Start all nodes and build multicast distribution tree.
+# Start all nodes, build multicast distribution tree, start DTKA.
 
 sleep 2
 tcaboot 202 201 6 50 .2 20
-sleep 1
+
+echo "Initializing all nodes..."
+sleep 2
+
 cd 1.ipn.ltp
-./ionstart >& node1.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../2.ipn.ltp
-./ionstart >& node2.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../3.ipn.ltp
-./ionstart >& node3.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../4.ipn.ltp
-./ionstart >& node4.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../5.ipn.ltp
-./ionstart >& node5.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../6.ipn.ltp
-./ionstart >& node6.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../7.ipn.ltp
-./ionstart >& node7.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../8.ipn.ltp
-./ionstart >& node8.stdout
+ionadmin node.ionrc
 sleep 1
 cd ../9.ipn.ltp
-./ionstart >& node9.stdout
+ionadmin node.ionrc
 
-echo "Finished starting all nodes."
+echo "Finished node initialization, starting all nodes..."
+sleep 2
 
-# Sleep 8 seconds and then load all nodes' public keys to each node.
+cd ../1.ipn.ltp
+./ionstart >& node1.stdout &
+cd ../2.ipn.ltp
+./ionstart >& node2.stdout &
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout &
+cd ../4.ipn.ltp
+./ionstart >& node4.stdout &
+cd ../5.ipn.ltp
+./ionstart >& node5.stdout &
+cd ../6.ipn.ltp
+./ionstart >& node6.stdout &
+cd ../7.ipn.ltp
+./ionstart >& node7.stdout &
+cd ../8.ipn.ltp
+./ionstart >& node8.stdout &
+cd ../9.ipn.ltp
+./ionstart >& node9.stdout &
+
+# Sleep 15 seconds to let all nodes finish initializing.
+# Then create all initial keys and load them to each node.
+
+echo "Waiting 15 seconds for node startup..."
+sleep 15
+
+echo "Finished starting DTKA, now loading initial keys to all nodes..."
 
 cd ..
-sleep 8
 cat 1.ipn.ltp/dtka.ionsecrc 2.ipn.ltp/dtka.ionsecrc 3.ipn.ltp/dtka.ionsecrc 4.ipn.ltp/dtka.ionsecrc 5.ipn.ltp/dtka.ionsecrc 6.ipn.ltp/dtka.ionsecrc 7.ipn.ltp/dtka.ionsecrc 8.ipn.ltp/dtka.ionsecrc 9.ipn.ltp/dtka.ionsecrc > dtka.ionsecrc
 cd 1.ipn.ltp
 ionsecadmin ../dtka.ionsecrc
@@ -103,36 +131,11 @@ ionsecadmin ../dtka.ionsecrc
 ionsecadmin list.ionsecrc > initial.keys
 
 sleep 1
-echo "Finished loading initial keys."
+echo "Finished loading initial keys, now sleeping 90 seconds."
 
-# Sleep 1 second and then start dtka on all nodes.
+# Sleep 90 seconds, note that first re-keying cycle should have completed.
 
-cd ..
-sleep 1
-cd 1.ipn.ltp
-dtka &
-cd ../2.ipn.ltp
-dtka &
-cd ../3.ipn.ltp
-dtka &
-cd ../4.ipn.ltp
-dtka &
-cd ../5.ipn.ltp
-dtka &
-cd ../6.ipn.ltp
-dtka &
-cd ../7.ipn.ltp
-dtka &
-cd ../8.ipn.ltp
-dtka &
-cd ../9.ipn.ltp
-dtka &
-
-sleep 1
-echo "Finished starting dtka on all nodes, now sleeping 81 seconds."
-
-# Sleep 81 seconds, note that first re-keying cycle should have completed.
-sleep 81
+sleep 90
 echo "First re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
 ionsecadmin list.ionsecrc > revised.keys
@@ -159,8 +162,8 @@ tcaadmin 203 recover.tcarc
 cd ../5.ipn.ltp
 tcaadmin 203 recover.tcarc
 
-# Sleep another 55 seconds, note that second re-keying cycle should be done.
-sleep 55
+# Sleep another 70 seconds, note that second re-keying cycle should be done.
+sleep 70
 echo "Second re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
 ionsecadmin list.ionsecrc > final.keys
@@ -268,7 +271,7 @@ cd ../9.ipn.ltp
 ./ionstop &
 
 # Give all nodes time to shut down, then clean up.
-sleep 5
+sleep 10
 killm
 echo "Key distribution test completed."
 exit $RETVAL

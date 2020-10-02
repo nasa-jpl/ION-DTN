@@ -40,7 +40,7 @@ static void	shutDown()	/*	Commands tcarecv termination.	*/
 	TcarecvState	*state;
 
 	isignal(SIGTERM, shutDown);
-	PUTS("TCA receiver daemon interrupted.");
+	writeMemo("TCA receiver daemon interrupted.");
 	state = _tcarecvState(NULL);
 	bp_interrupt(state->sap);
 	state->running = 0;
@@ -141,9 +141,7 @@ static int	acquireRecord(Sdr sdr, TcaDB *db, char *src, Object adu)
 	}
 
 #if TC_DEBUG
-printf("Got record from " UVAST_FIELDSPEC " in tcarecv.\n",
-metaEid.elementNbr);
-fflush(stdout);
+writeMemoNote("tcarecv: Got record from", itoa(metaEid.elementNbr));
 #endif
 	memset(&record, 0, sizeof record);
 	zco_start_receiving(adu, &reader);
@@ -155,8 +153,7 @@ fflush(stdout);
 			record.datValue) == 0)
 	{
 #if TC_DEBUG
-puts("Deserialize failed.");
-fflush(stdout);
+writeMemo("tcarecv: Deserialize failed.");
 #endif
 		writeMemo("[?] Unable to deserialize record.");
 		restoreEidString(&metaEid);
@@ -205,8 +202,7 @@ EID", src);
 			record.effectiveTime, &recordElt, &nextRecordElt))
 	{
 #if TC_DEBUG
-puts("Record already pending; ignored.");
-fflush(stdout);
+writeMemo("tcarecv: Record already pending; ignored.");
 #endif
 		return 0;	/*	Record already pending; ignore.	*/
 	}
@@ -217,11 +213,17 @@ fflush(stdout);
 	if (fetchRecord(db->currentRecords, record.nodeNbr,
 			record.effectiveTime, &recordElt, NULL))
 	{
+#if TC_DEBUG
+writeMemo("tcarecv: Record was previously posted.");
+#endif
 		return 0;	/*	Record already posted; ignore.	*/
 	}
 
 	/*	Record not previously submitted.  Okay to add it.	*/
 
+#if TC_DEBUG
+writeMemo("tcarecv: Adding record to list of pending records.");
+#endif
 	auths = sdr_list_length(sdr, db->authorities);
 	CHKERR(auths > 0);
 	acknowledged = MTAKE(auths);

@@ -27,6 +27,8 @@ extern "C" {
 #define	TC_MAX_DATLEN	1024
 #endif
 
+#define	TC_MAX_REC	(22 + TC_MAX_DATLEN)
+
 extern int	tc_serialize(char *buffer, unsigned int buflen,
 			uvast nodeNbr, time_t effectiveTime,
 			time_t assertionTime, unsigned short datLength,

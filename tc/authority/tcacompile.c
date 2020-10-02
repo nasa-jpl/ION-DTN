@@ -147,6 +147,9 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 		putErrmsg("Failed publishing proposed bulletin.", NULL);
 	}
 
+#ifdef TC_DEBUG
+	writeMemo("tcacompile: published proposed bulletin");
+#endif
 	return result;
 }
 

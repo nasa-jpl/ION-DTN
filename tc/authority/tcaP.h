@@ -17,8 +17,6 @@
 extern "C" {
 #endif
 
-#define	TC_MAX_REC	(22 + TC_MAX_DATLEN)
-
 /*	*	*	Database structure	*	*	*	*/
 
 typedef struct
@@ -47,7 +45,7 @@ typedef struct
 	time_t		currentCompilationTime;	/*	ctime		*/
 	time_t		nextCompilationTime;	/*	ctime		*/
 	unsigned int	compilationInterval;	/*	Default 3600	*/
-	unsigned int	consensusInterval;	/*	60 sec or more	*/
+	unsigned int	consensusInterval;	/*	"grace period"	*/
 	int		hijacked;		/*	Boolean		*/
 
 	/*	fec_K is the mandated diffusion, i.e., the number

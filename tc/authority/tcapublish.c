@@ -45,7 +45,7 @@ static void	shutDown()	/*	Commands tcapublish shutdown.	*/
 	TcaPublishState	*state;
 
 	isignal(SIGTERM, shutDown);
-	PUTS("TCA publisher daemon interrupted.");
+	writeMemo("tcapublish: TCA publisher daemon interrupted.");
 	state = _tcapublishState(NULL);
 	bp_interrupt(state->recvSAP);
 	state->running = 0;
@@ -80,7 +80,8 @@ static int	handleProposedBulletin(Sdr sdr, TcaDB *db, char *src,
 	ZcoReader	reader;
 	int		bulletinLength;
 	time_t		bulletinId;
-	char		timestamp[TIMESTAMPBUFSZ];
+	char		timestamp1[TIMESTAMPBUFSZ];
+	char		timestamp2[TIMESTAMPBUFSZ];
 	Object		obj;
 	TcaRecord	record;
 	char		*acknowledged;
@@ -102,9 +103,11 @@ static int	handleProposedBulletin(Sdr sdr, TcaDB *db, char *src,
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
 	if (!parsedOkay)
 	{
-		isprintf(msgBuffer, sizeof msgBuffer, "Can't parse source \
-of proposed bulletin: '%s'.", src);
-		PUTS(msgBuffer);
+#if TC_DEBUG
+		isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: Can't parse \
+source of proposed bulletin: '%s'.", src);
+		writeMemo(msgBuffer);
+#endif
 		return 0;
 	}
 
@@ -116,8 +119,8 @@ of proposed bulletin: '%s'.", src);
 	}
 
 #if TC_DEBUG
-printf("Got bulletin from node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
-fflush(stdout);
+writeMemoNote("tcapublish: Got proposed bulletin from node",
+itoa(metaEid.elementNbr));
 #endif
 	/*	Determine sending authority's position within array.	*/
 
@@ -136,17 +139,19 @@ fflush(stdout);
 	restoreEidString(&metaEid);
 	if (elt == 0)
 	{
-		isprintf(msgBuffer, sizeof msgBuffer, "Bulletin from unknown \
+#if TC_DEBUG
+isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: Bulletin from unknown \
 authority: '%s'.", src);
-		PUTS(msgBuffer);
+writeMemo(msgBuffer);
+#endif
 		return 0;
 	}
 
 	if (!auth.inService)
 	{
-		isprintf(msgBuffer, sizeof msgBuffer, "Bulletin from \
-out-of-svc authority: '%s'.", src);
-		PUTS(msgBuffer);
+		isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: Bulletin \
+from out-of-svc authority: '%s'.", src);
+		writeMemo(msgBuffer);
 		return 0;
 	}
 
@@ -155,9 +160,9 @@ out-of-svc authority: '%s'.", src);
 	bulletinLength = zco_source_data_length(sdr, adu);
 	if (bulletinLength < 4)
 	{
-		isprintf(msgBuffer, sizeof msgBuffer, "TCA bulletin ID \
-missing: %d.", bulletinLength);
-		PUTS(msgBuffer);
+		isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: TCA \
+bulletin ID missing: %d.", bulletinLength);
+		writeMemo(msgBuffer);
 		return 0;
 	}
 
@@ -166,10 +171,11 @@ missing: %d.", bulletinLength);
 	bulletinId = ntohl(bulletinId);
 	if (bulletinId != db->currentCompilationTime)
 	{
-		writeTimestampUTC(bulletinId, timestamp);
-		isprintf(msgBuffer, sizeof msgBuffer, "TCA bulletin ID \
-incorrect: '%s'.", timestamp);
-		PUTS(msgBuffer);
+		writeTimestampUTC(bulletinId, timestamp1);
+		writeTimestampUTC(db->currentCompilationTime, timestamp2);
+		isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: TCA \
+bulletin ID incorrect: '%s', s/b '%s'.", timestamp1, timestamp2);
+		writeMemo(msgBuffer);
 		return 0;
 	}
 
@@ -204,14 +210,13 @@ incorrect: '%s'.", timestamp);
 				&datLength, datValue);
 		if (recordLength == 0)
 		{
-			PUTS("Malformed proposed bulletin.");
+			writeMemo("tcapublish: Malformed proposed bulletin.");
 			MRELEASE(acknowledged);
 			return 0;
 		}
 
 #if TC_DEBUG
-printf("\tGot record for node " UVAST_FIELDSPEC ".\n", nodeNbr);
-fflush(stdout);
+writeMemoNote("tcapublish: Got record for node", itoa(nodeNbr));
 #endif
 		/*	Check record order in bulletin.			*/
 
@@ -219,9 +224,9 @@ fflush(stdout);
 		|| (nodeNbr == priorNodeNbr
 		    && (effectiveTime < priorEffTime)))
 		{
-			isprintf(msgBuffer, sizeof msgBuffer, "Malformed \
-bulletin (order): '%s'.", src);
-			PUTS(msgBuffer);
+			isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: \
+Malformed bulletin (order): '%s'.", src);
+			writeMemo(msgBuffer);
 			MRELEASE(acknowledged);
 			return 0;
 		}
@@ -251,8 +256,7 @@ bulletin (order): '%s'.", src);
 			}
 
 #if TC_DEBUG
-puts("\tFound matching record.");
-fflush(stdout);
+writeMemo("tcapublish: Found matching record.");
 #endif
 			/*	Remote authority has got the same
 			 *	record in its pendingRecords list.	*/
@@ -266,16 +270,14 @@ fflush(stdout);
 
 				acknowledged[i] = -1;
 #if TC_DEBUG
-puts("\t\tDisagree on data.");
-fflush(stdout);
+writeMemo("tcapublish: Disagree on data.");
 #endif
 			}
 			else	/*	Advancing toward consensus.	*/
 			{
 				acknowledged[i] = 1;
 #if TC_DEBUG
-puts("\t\tAgree on data.");
-fflush(stdout);
+writeMemo("tcapublish: Agree on data.");
 #endif
 			}
 
@@ -353,7 +355,7 @@ static void	noteNoConsensus(TcaDB *db, TcaRecord *rec)
 	}
 
 	MRELEASE(acknowledged);
-	PUTS(msgbuf);
+	writeMemo(msgbuf);
 }
 
 static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
@@ -363,7 +365,7 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	int		i;
 	Object		authObj;
 	TcaAuthority	auth;
-	char		msgbuf[72];
+	char		msgbuf[256];
 	int		auths;
 	int		fec_x;
 	int		j;
@@ -391,11 +393,16 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	unsigned int	u4;
 	Object		zco;
 	Object		newBundle;
+#if TC_DEBUG
+char	bytes[256];
+char	*byte;
+int	n;
+#endif
 
 	isprintf(destEid, 32, "imc:%d.0", db->blocksGroupNbr);
 	fec_x = auths = sdr_list_length(sdr, db->authorities);
-	PUTS("\n---Consensus bulletin report---");
-	PUTS("Authorities:");
+	writeMemo("tcapublish: ---Consensus bulletin report---");
+	writeMemo("tcapublish: Authorities:");
 	for (elt = sdr_list_first(sdr, db->authorities), i = 0; elt;
 			elt = sdr_list_next(sdr, elt), i++)
 	{
@@ -403,7 +410,7 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 		sdr_read(sdr, (char *) &auth, authObj, sizeof(TcaAuthority));
 		isprintf(msgbuf, sizeof msgbuf, "\t%d\t" UVAST_FIELDSPEC "\t%u",
 				i, auth.nodeNbr, auth.inService);
-		PUTS(msgbuf);
+		writeMemo(msgbuf);
 		if (auth.nodeNbr == getOwnNodeNbr())
 		{
 			fec_x = i;
@@ -412,9 +419,9 @@ static int	publishConsensusBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 
 	if (fec_x == auths)
 	{
-		isprintf(msgbuf, sizeof msgbuf, "Can't send bulletin: not a \
-declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
-		PUTS(msgbuf);
+		isprintf(msgbuf, sizeof msgbuf, "tcapublish: Can't send \
+bulletin: not a declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
+		writeMemo(msgbuf);
 		return 0;
 	}
 
@@ -429,7 +436,8 @@ declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 	|| secondaryBlocks == NULL
 	|| sharenums == NULL)
 	{
-		PUTS("Can't allocate arrays for bulletin publication.");
+		writeMemo("tcapublish: Can't allocate arrays for bulletin \
+publication.");
 		return -1;
 	}
 
@@ -441,7 +449,9 @@ declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 	buflen = sdr_list_length(sdr, db->pendingRecords) * TC_MAX_REC;
 	if (buflen == 0)
 	{
-		PUTS("No records to publish.");
+#if TC_DEBUG
+writeMemo("tcapublish: No records to publish.");
+#endif
 		MRELEASE(secondaryBlockNbrs);
 		MRELEASE(primaryBlocks);
 		MRELEASE(secondaryBlocks);
@@ -473,7 +483,7 @@ declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 		return -1;
 	}
 
-	PUTS("No consensus on these records:");
+	writeMemo("tcapublish: No consensus on these records...");
 	cursor = bulletin;
 	bytesRemaining = buflen;
 	for (elt = sdr_list_first(sdr, db->pendingRecords); elt; elt = nextElt)
@@ -520,7 +530,12 @@ declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 		{
 			rec->effectiveTime = 0;
 		}
-
+#if TC_DEBUG
+isprintf(msgbuf, sizeof msgbuf, "tcapublish: Appending record to bulletin \
+for node " UVAST_FIELDSPEC ", effective time %lu.", rec->nodeNbr,
+rec->effectiveTime);
+writeMemo(msgbuf);
+#endif
 		recLen = tc_serialize(cursor, bytesRemaining, rec->nodeNbr,
 				rec->effectiveTime, rec->assertionTime,
 				rec->datLength, rec->datValue);
@@ -546,11 +561,22 @@ declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 		sdr_list_delete(sdr, elt, NULL, NULL);
 	}
 
+	writeMemo("tcapublish: ...consensus reached on all other records.");
+#if TC_DEBUG
+for (byte = bulletin, n = 0; n < bulletinLen; byte++, n++)
+{
+	sprintf(bytes + n, "%x", (int) *byte);
+}
+
+bytes[n] = 0;
+isprintf(msgbuf, sizeof msgbuf, "tcapublish: Bulletin '%s'", bytes);
+writeMemo(msgbuf);
+#endif
 	MRELEASE(acknowledged);
-	isprintf(msgbuf, sizeof msgbuf, "Number of records in consensus: %d",
-			recCount);
-	PUTS(msgbuf);
-	PUTS("---End of consensus bulletin report---");
+	isprintf(msgbuf, sizeof msgbuf, "tcapublish: Number of records in \
+consensus: %d", recCount);
+	writeMemo(msgbuf);
+	writeMemo("tcapublish: ---End of consensus bulletin report---");
 	if (recCount == 0)
 	{
 		MRELEASE(bulletin);
@@ -579,8 +605,25 @@ declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 
 	memset(buffer, 0, buflen);
 	memcpy(buffer, bulletin, bulletinLen);
+#if TC_DEBUG
+for (byte = buffer, n = 0; n < buflen; byte++, n++)
+{
+	sprintf(bytes + n, "%x", (int) *byte);
+}
+
+bytes[n] = 0;
+isprintf(msgbuf, sizeof msgbuf, "tcapublish: Buffer '%s'", bytes);
+writeMemo(msgbuf);
+#endif
 	MRELEASE(bulletin);
-	sha2((unsigned char*) buffer, db->fec_K * blksize, hash, 0);
+
+	/*	We initialize the hash output to a dummy value in
+	 *	case we are running with NULL_SUITES crypto, which
+	 *	cannot compute an actual hash.				*/
+
+	memcpy(hash, buffer, 16);
+	memcpy(hash + 16, buffer, 16);
+	sha2((unsigned char *) buffer, db->fec_K * blksize, hash, 0);
 	cursor = buffer;
 	for (i = 0; i < db->fec_K; i++)
 	{
@@ -610,6 +653,8 @@ declared authority -- " UVAST_FIELDSPEC, getOwnNodeNbr());
 			(unsigned char **) secondaryBlocks,
 			secondaryBlockNbrs, db->fec_M - db->fec_K, blksize);
 #if TC_DEBUG
+writeMemoNote("tcapublish: Printing shares at", itoa(time(NULL)));
+printf("Shares at %lu\n", time(NULL));
 for (i = 0; i < db->fec_K; i++)
 {
 	printf("Primary block share number %d:\n", i);
@@ -681,8 +726,7 @@ for (i = 0; i < (db->fec_M - db->fec_K); i++)
 			return -1;
 		}
 #if TC_DEBUG
-printf("Sending block for share number %d.\n", sharenum);
-fflush(stdout);
+writeMemoNote("tcapublish: Sending block for share number", itoa(sharenum));
 #endif
 		if (bp_send(sap, destEid, NULL, 360000, BP_STD_PRIORITY,
 			NoCustodyRequested, 0, 0, NULL, zco, &newBundle) < 0)
@@ -773,6 +817,9 @@ int	main(int argc, char *argv[])
 				- currentTime;
 		if (interval <= 0)
 		{
+#ifdef TC_DEBUG
+writeMemo("tcapublish: consensus grace period has ended.");
+#endif
 			CHKZERO(sdr_begin_xn(sdr));
 			if (publishConsensusBulletin(sdr, &db, sendSAP) < 0
 			|| sdr_end_xn(sdr) < 0)

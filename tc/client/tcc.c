@@ -44,7 +44,7 @@ static void	shutDown()	/*	Commands tcc termination.	*/
 	TccState	*state;
 
 	isignal(SIGTERM, shutDown);
-	PUTS("TC client daemon interrupted.");
+	writeMemo("TC client daemon interrupted.");
 	state = _tccState(NULL);
 	bp_interrupt(state->sap);
 	state->running = 0;
@@ -148,7 +148,7 @@ static Object	getShareObj(TccBulletin *bulletin, int shareNbr)
 	Object	elt;
 
 	for (i = 0, elt = sdr_list_first(sdr, bulletin->shares); elt;
-			elt = sdr_list_next(sdr, elt))
+			i++, elt = sdr_list_next(sdr, elt))
 	{
 		if (i == shareNbr)
 		{
@@ -191,7 +191,8 @@ static void	snap(TccDB *db, TccBulletin *bulletin,
 	char		*blk;
 	int		j;
 
-	puts("\nBlocks from bulletin:");
+	writeMemoNote("tcc: Blocks from bulletin at", itoa(time(NULL)));
+	printf("\ntcc: Blocks from bulletin at %lu:\n", time(NULL));
 	for (i = 0; i < db->fec_M; i++)
 	{
 		printf("\tfor share number %02d:\n", i);
@@ -305,8 +306,7 @@ static int	tryAuths(TccDB *db, fec_t *fec, TccBulletin *bulletin,
 			|| block->sourceAuthNum == suspectAuthNum2)
 			{
 #if TC_DEBUG
-printf("No block for share #%d.\n", i);
-fflush(stdout);
+writeMemoNote("tcc: No block for share", itoa(i));
 #endif
 				continue;
 			}
@@ -351,13 +351,16 @@ fflush(stdout);
 
 		blocksLoaded += 1;
 #if TC_DEBUG
-printf("Loaded block for share %d into input buffer slot %d.\n", i, slotNbr);
-fflush(stdout);
+writeMemoNote("tcc: Loaded block for share", itoa(i));
+writeMemoNote("     into input buffer slot", itoa(slotNbr));
 #endif
 	}
 
 	if (blocksLoaded < db->fec_K)
 	{
+#if TC_DEBUG
+writeMemo("tcc: Not enough blocks for successful decode.");
+#endif
 		MRELEASE(inputSharenums);
 		MRELEASE(inputSlotOccupied);
 		return 0;	/*	Not enough blocks for decode.	*/
@@ -390,13 +393,20 @@ fflush(stdout);
 	}
 
 	memmove(outputBuffer, inputBuffer, bufSize);
+
+	/*	We initialize the hash output to a dummy value in
+	 *	case we are running with NULL_SUITES crypto, which
+	 *	cannot compute an actual hash.				*/
+
+	memcpy(hash, outputBuffer, 16);
+	memcpy(hash + 16, outputBuffer, 16);
 	sha2((unsigned char *) outputBuffer, bufSize, hash, 0);
 	match = (memcmp(hash, bulletin->hash, 32)) == 0;
 #if TC_DEBUG
-printf("Match=%d; bulletin ID %d, block size %d, %u blocks in this bulletin.\n",
-match, (int) (bulletin->timestamp), (int) (bulletin->blksize),
-bulletin->sharesAnnounced);
-fflush(stdout);
+writeMemoNote("tcc: Match", itoa(match));
+writeMemoNote("   bulletin ID", itoa(bulletin->timestamp));
+writeMemoNote("   block size", itoa(bulletin->blksize));
+writeMemoNote("   blocks in bulletin", itoa(bulletin->sharesAnnounced));
 if (match == 0)
 {
 	snap(db, bulletin, inputSharenums, outputBlocks);
@@ -449,7 +459,7 @@ static int	enqueueBulletin(TccDB *db, TccVdb *vdb, char *buffer,
 
 	MRELEASE(buffer);
 	sm_SemGive(vdb->contentSemaphore);
-	return 0;
+	return 1;
 }
 
 static uvast	getAuthNodeNbr(TccDB *db, int idx)
@@ -563,6 +573,9 @@ static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
 		MRELEASE(inputBuffer);
 		MRELEASE(inputBlocks);
 		MRELEASE(outputBlocks);
+#if TC_DEBUG
+writeMemo("tcc: Enqueuing bulletin from first K blocks.");
+#endif
 		return enqueueBulletin(db, vdb, outputBuffer, bufSize);
 
 	default:
@@ -570,8 +583,7 @@ static int	reconstructBulletin(TccDB *db, TccVdb *vdb,
 	}
 
 #if TC_DEBUG
-puts("First K blocks don't work.");
-fflush(stdout);
+writeMemo("tcc: First K blocks don't work.");
 #endif
 	/*	At least one of the authorities is compromised.		*/
 
@@ -590,12 +602,15 @@ fflush(stdout);
 			return -1;
 
 		case 1:
-			writeMemoNote("[?] Compromised TCC authority",
+			writeMemoNote("[?] Compromised TC authority",
 					itoa(getAuthNodeNbr(db, j)));
 			fec_free(fec);
 			MRELEASE(inputBuffer);
 			MRELEASE(inputBlocks);
 			MRELEASE(outputBlocks);
+#if TC_DEBUG
+writeMemo("tcc: Enqueuing bulletin despite 1 compromised TC authority.");
+#endif
 			return enqueueBulletin(db, vdb, outputBuffer, bufSize);
 
 		default:
@@ -604,8 +619,7 @@ fflush(stdout);
 	}
 
 #if TC_DEBUG
-puts("Can't be just one compromised authority.");
-fflush(stdout);
+writeMemo("tcc: Can't be just one compromised authority.");
 #endif
 	/*	At least two of the authorities are compromised.	*/
 
@@ -632,14 +646,17 @@ fflush(stdout);
 				return -1;
 
 			case 1:
-				writeMemoNote("[?] Compromised TCC authority",
+				writeMemoNote("[?] Compromised TC authority",
 					itoa(getAuthNodeNbr(db, j)));
-				writeMemoNote("[?] Compromised TCC authority",
+				writeMemoNote("[?] Compromised TC authority",
 					itoa(getAuthNodeNbr(db, k)));
 				fec_free(fec);
 				MRELEASE(inputBuffer);
 				MRELEASE(inputBlocks);
 				MRELEASE(outputBlocks);
+#if TC_DEBUG
+writeMemo("tcc: Enqueuing bulletin despite 2 compromised TC authorities.");
+#endif
 				return enqueueBulletin(db, vdb, outputBuffer,
 						bufSize);
 
@@ -650,8 +667,7 @@ fflush(stdout);
 	}
 
 #if TC_DEBUG
-puts("Can't be just two compromised authorities.");
-fflush(stdout);
+writeMemo("tcc: Can't be just two compromised authorities; too little data.");
 #endif
 	/*	Need more blocks from non-compromised authorities.	*/
 
@@ -689,6 +705,9 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 	TccBlock	*block;
 	int		reconstructionResult;
 	int		j;
+#if TC_DEBUG
+	char		msgbuf[1024];
+#endif
 
 	parsedOkay = parseEidString(src, &metaEid, &vscheme, &schemeElt);
 	if (!parsedOkay)
@@ -719,7 +738,7 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 	if (aduLength <= 40)
 	{
 		len = aduLength;
-		writeMemoNote("[?] TCC bulletin block too small", itoa(len));
+		writeMemoNote("[?] TC bulletin block too small", itoa(len));
 		return 0;
 	}
 
@@ -736,9 +755,13 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 	len = zco_receive_source(sdr, &reader, 4, (char *) &header.sharenum);
 	header.sharenum = ntohl(header.sharenum);
 #if TC_DEBUG
-printf("tcc received block for share #%d.\n", header.sharenum);
-fflush(stdout);
-if (header.sharenum >= db->fec_K) printBlockText(adu, 40, blksize);
+writeMemoNote("tcc: received block for share", itoa(header.sharenum));
+if (header.sharenum >= db->fec_K)
+{
+	writeMemoNote("tcc: Parity block printing at", itoa(time(NULL)));
+	printf("\ntcc: Parity block printing at %lu:\n", time(NULL));
+	printBlockText(adu, 40, blksize);
+}
 #endif
 	if (header.sharenum >= auth.firstPrimaryShare
 	&& header.sharenum <= auth.lastPrimaryShare)
@@ -757,11 +780,11 @@ if (header.sharenum >= db->fec_K) printBlockText(adu, 40, blksize);
 	if (blockIdx < 0)
 	{
 #if TC_DEBUG
-printf("Block %d out of range for authority %d.  Authority node nbr "
-UVAST_FIELDSPEC ", primary %d - %d, backup %d - %d.\n", header.sharenum, i,
-auth.nodeNbr, auth.firstPrimaryShare, auth.lastPrimaryShare,
+isprintf(msgbuf, sizeof msgbuf, "tcc: Block %d out of range for authority %d.  \
+Authority node nbr " UVAST_FIELDSPEC ", primary %d - %d, backup %d - %d.\n",
+header.sharenum, i, auth.nodeNbr, auth.firstPrimaryShare, auth.lastPrimaryShare,
 auth.firstBackupShare, auth.lastBackupShare);
-fflush(stdout);
+writeMemo(msgbuf);
 #endif
 		/*	Block not within authority's purview.		*/
 
@@ -779,18 +802,20 @@ fflush(stdout);
 	}
 
 	bulletinObj = sdr_list_data(sdr, bulletinElt);
-	sdr_read(sdr, (char *) &bulletin, bulletinObj, sizeof(TccBulletin));
-	shareObj = getShareObj(&bulletin, i);
+	sdr_stage(sdr, (char *) &bulletin, bulletinObj, sizeof(TccBulletin));
+	shareObj = getShareObj(&bulletin, header.sharenum);
 	CHKVOID(shareObj);
-	sdr_read(sdr, (char *) &share, shareObj, sizeof(TccShare));
+	sdr_stage(sdr, (char *) &share, shareObj, sizeof(TccShare));
 	block = share.blocks + blockIdx;
 	if (share.blocksAnnounced == 0)	/*	1st block.	*/
 	{
 		bulletin.sharesAnnounced += 1;
+		sdr_write(sdr, bulletinObj, (char *) &bulletin,
+				sizeof(TccBulletin));
 #if TC_DEBUG
-printf("Inserting first block for share %d, idx=%d, announced by authority \
-%d.\n", header.sharenum, blockIdx, i);
-fflush(stdout);
+isprintf(msgbuf, sizeof msgbuf, "tcc: Inserting first block for share %d, \
+idx=%d, announced by authority %d.\n", header.sharenum, blockIdx, i);
+writeMemo(msgbuf);
 #endif
 	}
 	else	/*	Not the first block received for this share.	*/
@@ -798,15 +823,15 @@ fflush(stdout);
 		if (block->text != 0)		/*	Duplicate.	*/
 		{
 #if TC_DEBUG
-puts("Duplicates a previously received block.");
-fflush(stdout);
+writeMemo("tcc: Duplicates a previously received block.");
 #endif
 			return 0;
 		}
 #if TC_DEBUG
 else
-printf("Inserting other block for share %d, idx=%d, announced by authority \
-%d.\n", header.sharenum, blockIdx, i), fflush(stdout);
+isprintf(msgbuf, sizeof msgbuf, "tcc: Inserting other block for share %d, \
+idx=%d, announced by authority %d.\n", header.sharenum, blockIdx, i);
+writeMemo(msgbuf);
 #endif
 	}
 
@@ -821,13 +846,12 @@ printf("Inserting other block for share %d, idx=%d, announced by authority \
 	}
 
 	share.blocksAnnounced += 1;
-	sdr_write(sdr, bulletinObj, (char *) &bulletin, sizeof(TccBulletin));
+	sdr_write(sdr, shareObj, (char *) &share, sizeof(TccShare));
 	if (bulletin.sharesAnnounced < db->fec_K)
 	{
 #if TC_DEBUG
-printf("Bulletin can't be complete yet, sharesAnnounced = %u.\n",
-bulletin.sharesAnnounced);
-fflush(stdout);
+writeMemoNote("tcc: Bulletin can't be complete yet, sharesAnnounced",
+itoa(bulletin.sharesAnnounced));
 #endif
 		return 0;	/*	Bulletin can't be complete.	*/
 	}
@@ -917,7 +941,7 @@ int	main(int argc, char *argv[])
 	dbobj = getTccDBObj(blocksGroupNbr);
 	if (dbobj == 0)
 	{
-		putErrmsg("No TCC client database.", NULL);
+		putErrmsg("No TC client database.", NULL);
 		ionDetach();
 		return 1;
 	}
@@ -964,7 +988,7 @@ int	main(int argc, char *argv[])
 
 			if (sdr_end_xn(sdr) < 0)
 			{
-				putErrmsg("Can't handle TCC block.", NULL);
+				putErrmsg("Can't handle TC block.", NULL);
 				state.running = 0;
 				continue;
 			}

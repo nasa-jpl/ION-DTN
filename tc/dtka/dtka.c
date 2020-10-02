@@ -2,17 +2,17 @@
 	dtka.c:	public/private key pair generator for ION
 			nodes.
 
-			NOTE: this program utilizes functions
-			provided by cryptography software that is
-			not distributed with ION.  To indicate that
-			this supporting software has been installed,
-			set the compiler flag
+		NOTE: this program utilizes functions provided by
+		cryptography software that is not distributed with
+		ION.  To indicate that this supporting software
+		has been installed, set the compiler flag
 			
-				-DCRYPTO_SOFTWARE_INSTALLED
+			-DCRYPTO_SOFTWARE_INSTALLED
 				
-			when compiling this program.  Absent that
-			flag setting at compile time, dtka's
-			generateKeyPair() function does nothing.
+		when compiling this program.  Absent that flag
+		setting at compile time, dtka's generateKeyPair()
+		function simply uses the rand() function to generate
+		pseudo keys for test purposes only.
 
 
 	Author: Scott Burleigh, JPL
@@ -71,7 +71,6 @@ static void	shutDown()	/*	Commands dtka termination.	*/
 
 /*	*	*	Clock thread functions	*	*	*	*/
 
-#ifdef CRYPTO_SOFTWARE_INSTALLED
 static int	writeAddPubKeyCmd(time_t effectiveTime,
 			unsigned short publicKeyLen, unsigned char *publicKey)
 {
@@ -118,26 +117,28 @@ static int	writeAddPubKeyCmd(time_t effectiveTime,
 	close(fd);
 	return 0;
 }
-#endif
 
 static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 {
-#ifdef CRYPTO_SOFTWARE_INSTALLED
 	time_t			currentTime = getCtime();
 	Sdr			sdr = getIonsdr();
 	time_t			effectiveTime;
+#ifdef CRYPTO_SOFTWARE_INSTALLED
 	entropy_context		entropy;
 	ctr_drbg_context	ctr_drbg;
 	const char		*pers = "rsa_genkey";
 	rsa_context		rsa;
 	int			result;
+#else		/*	For regression testing only.			*/
+	int			key;
+#endif
 	unsigned char		pubKeyBuf[16000];
 	unsigned short		publicKeyLen;
 	unsigned char		*publicKey;
 	unsigned char		privKeyBuf[16000];
 	unsigned short		privateKeyLen;
 	unsigned char		*privateKey;
-	unsigned char		recordBuffer[DTKA_MAX_REC];
+	char			recordBuffer[TC_MAX_REC];
 	int			recordLen;
 	Object			extent;
 	Object			bundleZco;
@@ -145,6 +146,7 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 	Object			newBundle;
 
 	effectiveTime = currentTime + db->effectiveLeadTime;
+#ifdef CRYPTO_SOFTWARE_INSTALLED
 	entropy_init(&entropy);
 	if (ctr_drbg_init(&ctr_drbg, entropy_func, &entropy,
 			(const unsigned char *) pers, strlen(pers)))
@@ -197,7 +199,19 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 
 	privateKeyLen = result;
 	privateKey = (privKeyBuf + (sizeof privKeyBuf - 1)) - privateKeyLen;
-
+	rsa_free(&rsa);
+#else		/*	For regression testing only.			*/
+	srand((unsigned int) currentTime / getOwnNodeNbr());
+	key = rand();
+	memcpy(pubKeyBuf, (char *) &key, sizeof key);
+	publicKey = pubKeyBuf;
+	publicKeyLen = sizeof key;
+	srand((unsigned int) key);
+	key = rand();
+	memcpy(privKeyBuf, (char *) &key, sizeof key);
+	privateKey = privKeyBuf;
+	privateKeyLen = sizeof key;
+#endif
 	/*	Store public and private keys locally.			*/
 
 	if (sec_addOwnPublicKey(effectiveTime, publicKeyLen, publicKey) < 0)
@@ -218,6 +232,14 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 	{
 		putErrmsg("Can't write command to add node public key.", NULL);
 		return -1;
+	}
+
+	if (sap == NULL)	/*	Initial key generation.		*/
+	{
+#if TC_DEBUG
+writeMemo("dtka: recorded initial keys.");
+#endif
+		return 0;	/*	No publication of this key.	*/
 	}
 
 	/*	Publish new public key declaration record.		*/
@@ -260,43 +282,64 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 		return -1;
 	}
 
-	rsa_free(&rsa);
+#if TC_DEBUG
+writeMemo("dtka: published key declaration bundle.");
 #endif
 	return 0;
 }
 
 static void	*generateKeys(void *parm)
 {
-	char		ownEid[32];
 	char		*procName = "dtka";
-	BpSAP		sap;
 	Sdr		sdr;
 	Object		dbobj;
 	DtkaDB		db;
 	time_t		currentTime;
+	char		ownEid[32];
+	BpSAP		sap;
 	long		state = 1;
 
 	/*	Main loop for DTKA key generation.			*/
 
 	snooze(1);	/*	Let main thread become interruptible.	*/
-	if (dtkaAttach() < 0)
-	{
-		putErrmsg("dtka can't attach to ION.", NULL);
-		ionKillMainThread(procName);
-		return NULL;
-	}
-
 	sdr = getIonsdr();
 	dbobj = getDtkaDbObject();
 	if (dbobj == 0)
 	{
 		putErrmsg("No DTKA node database.", NULL);
-		ionDetach();
 		ionKillMainThread(procName);
 		return NULL;
 	}
 
-	sdr_read(sdr, (char *) &db, dbobj, sizeof(DtkaDB));
+	/*	Generate initial keys and initial re-keying interval.	*/
+
+	if (generateKeyPair(NULL, &db) < 0)
+	{
+		putErrmsg("dtka initial key pair generation failed.", NULL);
+		ionKillMainThread(procName);
+		return NULL;
+	}
+
+	currentTime = getCtime();
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		putErrmsg("Can't start setting initial key gen time.", NULL);
+		ionKillMainThread(procName);
+		return NULL;
+	}
+
+	sdr_stage(sdr, (char *) &db, dbobj, sizeof(DtkaDB));
+	db.nextKeyGenTime = currentTime + db.keyGenInterval;
+	sdr_write(sdr, dbobj, (char *) &db, sizeof(DtkaDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't set initial DTKA next key gen time.", NULL);
+		ionKillMainThread(procName);
+		return NULL;
+	}
+
+	/*	Now prepare for re-keying cycle.			*/
+
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
 	if (bp_open_source(ownEid, &sap, 0) < 0)
@@ -311,18 +354,13 @@ static void	*generateKeys(void *parm)
 	 *	then generate key pair and schedule subsequent key
 	 *	generation time.					*/
 
+	writeMemo("[i] dtka clock thread is running.");
 	while (_running(NULL))
 	{
 		currentTime = getCtime();
-		if (currentTime < db.nextKeyGenTime)
-		{
-			snooze(1);
-			continue;
-		}
-
 		if (sdr_begin_xn(sdr) < 0)
 		{
-			putErrmsg("Can't update DTKA next key gen time.", NULL);
+			putErrmsg("Can't start key gen time update.", NULL);
 			state = 0;
 			oK(_running(&state));
 			ionKillMainThread(procName);
@@ -330,7 +368,17 @@ static void	*generateKeys(void *parm)
 		}
 
 		sdr_stage(sdr, (char *) &db, dbobj, sizeof(DtkaDB));
-		db.nextKeyGenTime += db.keyGenInterval;
+		if (currentTime < db.nextKeyGenTime)
+		{
+			sdr_exit_xn(sdr);
+			snooze(1);
+			continue;
+		}
+
+#if TC_DEBUG
+writeMemo("dtka: Re-keying.");
+#endif
+		db.nextKeyGenTime = currentTime + db.keyGenInterval;
 		sdr_write(sdr, dbobj, (char *) &db, sizeof(DtkaDB));
 		if (sdr_end_xn(sdr) < 0)
 		{
@@ -347,7 +395,6 @@ static void	*generateKeys(void *parm)
 			state = 0;
 			oK(_running(&state));
 			ionKillMainThread(procName);
-			continue;
 		}
 	}
 
@@ -359,6 +406,7 @@ static void	*generateKeys(void *parm)
 
 /*	*	Functions for main loop of dtka.	*	*	*/
 
+#if TC_DEBUG
 static void	printRecord(uvast nodeNbr, time_t effectiveTime,
 			time_t assertionTime, unsigned short datLength,
 			unsigned char *datValue)
@@ -390,8 +438,9 @@ static void	printRecord(uvast nodeNbr, time_t effectiveTime,
 		}
 	}
 
-	PUTS(msgbuf);
+	writeMemo(msgbuf);
 }
+#endif
 
 static int	handleBulletin(char *buffer, int bufSize)
 {
@@ -403,9 +452,10 @@ static int	handleBulletin(char *buffer, int bufSize)
 	unsigned short	datLength;
 	unsigned char	datValue[TC_MAX_DATLEN];
 	int		recCount = 0;
+#if TC_DEBUG
 	char		msgbuf[72];
-
-	PUTS("\n---Bulletin received---");
+	writeMemo("---DTKA: Bulletin received---");
+#endif
 	while (bytesRemaining >= 14)
 	{
 		if (tc_deserialize(&cursor, &bytesRemaining, TC_MAX_DATLEN,
@@ -422,8 +472,10 @@ static int	handleBulletin(char *buffer, int bufSize)
 		}
 
 		recCount++;
+#if TC_DEBUG
 		printRecord(nodeNbr, effectiveTime, assertionTime, datLength,
 				datValue);
+#endif
 		if (datLength == 0)
 		{
 			if (sec_removePublicKey(nodeNbr, effectiveTime) < 0)
@@ -446,9 +498,11 @@ static int	handleBulletin(char *buffer, int bufSize)
 	}
 
 	MRELEASE(buffer);
-	isprintf(msgbuf, sizeof msgbuf, "Number of records received: %d",
+#if TC_DEBUG
+	isprintf(msgbuf, sizeof msgbuf, "DTKA: Number of records received: %d",
 			recCount);
-	PUTS(msgbuf);
+	writeMemo(msgbuf);
+#endif
 	return 0;
 }
 
@@ -467,6 +521,12 @@ int	main(int argc, char *argv[])
 	int		length;
 
 	oK(_running(&state));
+	if (dtkaAttach() < 0)
+	{
+		putErrmsg("dtka can't attach to ION.", NULL);
+		return -1;
+	}
+
 	isignal(SIGTERM, shutDown);
 	writeMemo("[i] dtka is running.");
 	if (pthread_begin(&clockThread, NULL, generateKeys, NULL))

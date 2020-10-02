@@ -80,7 +80,7 @@ group number for TC records> <nbr of authorities in collective> [ <K> [ <R> ]]")
 	PUTS("\t   m compiletime <scheduled time of next compilation>");
 	PUTS("\t\tTime format is yyyy/mm/dd-hh:mm:ss.");
 	PUTS("\t   m interval <bulletin compilation interval, in seconds>");
-	PUTS("\t   m grace <bulletin consensus grace time, in seconds>");
+	PUTS("\t   m grace <bulletin consensus grace period, in seconds>");
 	PUTS("\t   m hijack { 0 | 1 }");
 	PUTS("\t\tSets 'hijacked' flag, for testing purposes only.");
 	PUTS("\t+\tEnable authority");
@@ -603,7 +603,7 @@ static void	executeInfo()
 	sdr_read(sdr, (char *) &db, dbobj, sizeof(TcaDB));
 	writeTimestampUTC(db.currentCompilationTime, current);
 	writeTimestampUTC(db.nextCompilationTime, next);
-	isprintf(buffer, sizeof buffer, "bulletins group = %d, records group \
+	isprintf(buffer, sizeof buffer, "\nbulletins group = %d, records group \
 = %d, current compilationTime=%s, next compilationTime=%s, compilation \
 interval=%u, consensus interval=%u", db.bulletinsGroupNbr, db.recordsGroupNbr,
 			current, next, db.compilationInterval,

@@ -1,7 +1,7 @@
 # shell script to get node running
 #!/bin/bash
-ionadmin	node.ionrc
-sleep 1
+#ionadmin	node.ionrc
+#sleep 1
 ionadmin	../global.ionrc
 sleep 1
 ionsecadmin	node.ionsecrc
@@ -9,7 +9,10 @@ sleep 1
 ltpadmin	node.ltprc
 sleep 1
 bpadmin		node.bprc
-sleep 1
+sleep 3
 tccadmin 203	node.tccrc
 sleep 1
 dtkaadmin	node.dtkarc
+sleep 1
+dtka &
+echo "Started node 8."

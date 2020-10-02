@@ -117,7 +117,7 @@ int	dtkaInit()
 
 		/*	Default values.					*/
 
-		dtkadbBuf.nextKeyGenTime = getCtime() + 4;
+		dtkadbBuf.nextKeyGenTime = 0;
 		dtkadbBuf.keyGenInterval = 604800;	/*	Weekly	*/
 		dtkadbBuf.effectiveLeadTime = 345600;	/*	4 days	*/
 		sdr_write(sdr, dtkadbObject, (char *) &dtkadbBuf,
