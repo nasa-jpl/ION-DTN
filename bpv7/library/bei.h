@@ -1,5 +1,5 @@
 /******************************************************************************
- 	_bei.h:	Private header file used to encapsulate structures, constants,
+ 	bei.h:	Private header file used to encapsulate structures, constants,
  	        and function prototypes that deal with BP extension blocks.
 
 	Author: Scott Burleigh, JPL
@@ -16,7 +16,7 @@
 
 /*****************************************************************************
  **
- ** File Name: _bei.h
+ ** File Name: bei.h
  **
  ** Subsystem: BP
  **
@@ -81,12 +81,9 @@ typedef struct
 
 	/*	Internally significant data for block production.	*/
 
-	unsigned char	tag1;		/**	Extension-specific.	*/
-	unsigned char	tag2;		/**	Extension-specific.	*/
-	unsigned char	tag3;		/**	Extension-specific.	*/
-	unsigned short	rank;		/**	Order within spec array.*/
+	char		tag;		/**	Extension-specific.	*/
 	BpCrcType	crcType;
-	int		suppressed;	/**	If suppressed.          */
+	int		suppressed;
 } ExtensionBlock;
 
 /**
@@ -114,6 +111,7 @@ typedef struct
 
 /** Functions used in creating and transmitting an outbound extension block. */
 typedef int		(*BpExtBlkOfferFn)(ExtensionBlock *, Bundle *);
+typedef int		(*BpExtBlkSerializeFn)(ExtensionBlock *, Bundle *);
 typedef int		(*BpExtBlkProcessFn)(ExtensionBlock *, Bundle *, void*);
 typedef void		(*BpExtBlkReleaseFn)(ExtensionBlock *);
 typedef int		(*BpExtBlkCopyFn)(ExtensionBlock *, ExtensionBlock *);
@@ -143,6 +141,7 @@ typedef struct
 	/*	Production callbacks.					*/
 
 	BpExtBlkOfferFn		offer;		/** Offer 		*/
+	BpExtBlkSerializeFn	serialize;	/** Serialize		*/
 	BpExtBlkProcessFn	process[5];	/** Process		*/
 	BpExtBlkReleaseFn	release;	/** Release 		*/
 	BpExtBlkCopyFn		copy;		/** Copy		*/
@@ -157,6 +156,39 @@ typedef struct
 	BpExtBlkRecordFn	record;		/** Record 		*/
 	BpAcqExtBlkClearFn	clear;		/** Clear 		*/
 } ExtensionDef;
+
+/*	NOTE: the "tag" values associated with block types in
+ *	extension specs have extension-specific semantics.  For
+ *	some applications, the BIB and BCB extensions in particular,
+ *	the tag value noted in the extension spec associates the
+ *	block with one or more other blocks of the bundle, termed
+ *	"target" blocks.
+ *
+ *	When this is the case, ION uses the numeric value of the
+ *	tag as a subscript into an array of "target scope" objects.
+ *	Each target scope contains an array of target references,
+ *	each of which is in turn a subscript into an array of
+ *	"target specification" objects.  Each target specfication
+ *	object identifies, by block type and tag value, one of the
+ *	extension blocks that have been inserted into the outbound
+ *	bundle.
+ *
+ *	This mechanism enables multiple target blocks, each one
+ *	identifed by a ExtensionTargetSpec, to be aggregated into a
+ *	single ExtensionTargetScope that functions as the (possibly
+ *	plural) target of a single extension block.			*/
+
+typedef struct
+{
+	BpBlockType		blockType;
+	char			tag;	/*	Extension-specific	*/
+} ExtensionTargetSpec;
+
+typedef struct
+{
+	int			count;
+	ExtensionTargetSpec	*targets;	/*	Array		*/
+} ExtensionTargetScope;
 
 /*****************************************************************************
  *                             FUNCTION PROTOTYPES                           *
@@ -189,18 +221,16 @@ void		destroyExtensionBlocks(Bundle *bundle);
  * \retval Object - The discovered block.
  * \param[in]  bundle  - The bundle holding the desired block.
  * \param[in]  type    - The block identifier desired.
- * \param[in]  tag1    - A discriminator indicating the role of the block.
- * \param[in]  tag2    - A discriminator indicating the role of the block.
- * \param[in]  tag3    - A discriminator indicating the role of the block.
+ * \param[in]  tag     - An annotation indicating the role of the block.
  * \par Notes:
  * \par Revision History:
  *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
  *  --------  ------------  ------ ----------------------------------------
  *            S. Burleigh		   Initial Implementation
  */
-extern Object	findExtensionBlock(Bundle *bundle, BpBlockType type,
-			unsigned char tag1, unsigned char tag2,
-			unsigned char tag3);
+extern Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag);
+
+extern Object	getExtensionBlock(Bundle *bundle, unsigned char nbr);
 
 extern int	patchExtensionBlocks(Bundle *bundle);
 extern int	processExtensionBlocks(Bundle *bundle, int fnIdx,
@@ -264,7 +294,7 @@ extern void	suppressExtensionBlock(ExtensionBlock *blk);
 extern int	acquireExtensionBlock(AcqWorkArea *wk, ExtensionDef *def,
 			unsigned char *startOfBlock, unsigned int blockLength,
 			BpBlockType blkType, unsigned int blkNumber,
-			unsigned int blkProcFlags, unsigned int dataLength);
+			unsigned char blkProcFlags, unsigned int dataLength);
 extern int	reviewExtensionBlocks(AcqWorkArea *wk);
 extern int	decryptPerExtensionBlocks(AcqWorkArea *wk);
 extern int	parseExtensionBlocks(AcqWorkArea *wk);
@@ -283,7 +313,6 @@ extern void	deleteAcqExtBlock(LystElt elt);
  *            S. Burleigh		   Initial Implementation
  */
 extern void	discardExtensionBlock(AcqExtBlock *blk);
-extern LystElt	findAcqExtensionBlock(AcqWorkArea *wk, BpBlockType type);
 extern int	recordExtensionBlocks(AcqWorkArea *wk);
 
 /*	Functions that operate on extension block definitions		*/
@@ -296,7 +325,6 @@ ExtensionDef	*findExtensionDef(BpBlockType type);
 
 extern void	getExtensionSpecs(ExtensionSpec **array, int *count);
 extern
-ExtensionSpec	*findExtensionSpec(BpBlockType type, unsigned char tag1,
-			unsigned char tag2, unsigned char tag3);
+ExtensionSpec	*findExtensionSpec(BpBlockType type, char tag);
 
 #endif /* _BEI_H_ */

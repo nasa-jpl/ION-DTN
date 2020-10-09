@@ -12,6 +12,7 @@
 #include "bei.h" 
 
 extern int	qos_offer(ExtensionBlock *, Bundle *);
+extern int	qos_serialize(ExtensionBlock *, Bundle *);
 extern void	qos_release(ExtensionBlock *);
 extern int	qos_record(ExtensionBlock *, AcqExtBlock *);
 extern int	qos_copy(ExtensionBlock *, ExtensionBlock *);

@@ -19,6 +19,7 @@
  **                     SEND SIDE                    RECEIVE SIDE
  **
  **              bibOffer
+ **              bibSerialize
  **              bibProcessOnDequeue
  **              bibRelease
  **              bibCopy
@@ -34,7 +35,6 @@
  **
  **                    SIGN SIDE                     VERIFY SIDE
  **
- **              bibDefaultConstruct
  **              bibDefaultSign
  **
  **                                              bibDefaultVerify
@@ -67,25 +67,18 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *
  * \par Function Name: bibAttach
  *
- * \par Purpose: Construct, compute, and attach a BIB block within the bundle.
- *               This function determines, through a policy lookup, whether
- *               a BIB should be applied to a particular block in a bundle and,
- *               if so, constructs the appropriate BIB block, using the
- *               appropriate ciphersuite, and generates a serialized version of
- *               the block appropriate for transmission.
+ * \par Purpose: Complete, compute, and attach a BIB block within the bundle.
+ *               This function completes construction of the ASB for a BIB,
+ *               using the appropriate ciphersuite, and generates a serialized
+ *               version of the block appropriate for transmission.
  * *
  * \retval int -1  - Error.
- *              0  - No BIB Policy
+ *              0  - Nothing to do
  *             >0  - BIB Attached
  *
- * \param[in|out]  bundle  The bundle to which a BIB might be attached.
- * \param[out]     bibBlk  The serialized BIB extension block.
- * \param[out]     bibAsb  The ASB for this BIB.
- *
- * \todo Update to handle target identifier beyond just block type.
- * \todo This function assumes bib asb and blk are partially initialized
- *       by other functions. Clean up/document this, removing
- *       such assumptions where practical.
+ * \param[in|out]  bundle  The bundle to which a BIB is to be attached.
+ * \param[out]     bibBlk  The BIB extension block.
+ * \param[out]     bibAsb  The initialized ASB for this BIB.
  *
  * \par Notes:
  *	    1. The blkAsb MUST be pre-allocated and of the correct size to hold
@@ -110,12 +103,9 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 {
 	Sdr			sdr = getIonsdr();
 	int8_t			result = 0;
-	char			eidBuf[32];
-	char			*fromEid;
-	char			*toEid;
-	BpsecOutboundTarget	target;
-	BPsecBibRule		bibRule;
 	BibProfile		*prof;
+	char			*fromEid;	/*	Instrumentation.*/
+	char			*toEid;		/*	For whatever.	*/
 	uint8_t			*serializedAsb;
 	uvast			bytes = 0;
 
@@ -127,100 +117,20 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 	CHKERR(bundle);
 	CHKERR(bibBlk);
 	CHKERR(bibAsb);
-
-	/* Step 1 -	Grab Policy for the candidate block. 		*/
-
-	/* Step 1.1 -   Retrieve the from/to EIDs that bound the
-			integrity service.				*/
-
-	if (bpsec_getOutboundSecurityEids(bundle, bibBlk, bibAsb, &fromEid,
-			&toEid) < 0 || toEid == NULL)
+	if (sdr_list_length(sdr, bibAsb->targets) == 0)
 	{
-		BIB_DEBUG_ERR("x bibAttach: Can't get security EIDs.",
-				NULL);
-		result = -1;
-		BIB_DEBUG_PROC("- bibAttach -> %d", result);
-		return result;
-	}
-
-	/*	We only attach a BIB per a rule for which the local
-		node is the security source.				*/
-
-	if (fromEid) MRELEASE(fromEid);
-	isprintf(eidBuf, sizeof eidBuf, "ipn:" UVAST_FIELDSPEC ".0",
-			getOwnNodeNbr());
-	fromEid = eidBuf;
-
-	/*
-	 * Step 1.2 -	Grab the profile for integrity for the target
-	 *		block from the EIDs. If there is no rule,
-	 *		then there is no policy for attaching BIBs
-	 *		in this instance.  If there is a rule but
-	 *		no matching profile then the bundle must not
-	 *		be forwarded.
-	 *
-	 *		NOTE: for now we are assuming that the block
-	 *		has only a single target.  We don't yet know
-	 *		how to do this if the block has multiple
-	 *		targets.
-	 */
-
-	if (bpsec_getOutboundTarget(sdr, bibAsb->targets, &target) < 0)
-	{
-		BIB_DEBUG(2, "NOT Attaching BIB; no target.", NULL);
+		BIB_DEBUG(2, "NOT Attaching BIB; no targets.", NULL);
 
 		result = 0;
-		scratchExtensionBlock(bibBlk);
-		BIB_DEBUG_PROC("- bibAttach -> %d", result);
-		return result;
-	}
-
-	prof = bibGetProfile(fromEid, toEid, target.targetBlockNumber,
-			&bibRule);
-	MRELEASE(toEid);
-	if (prof == NULL)
-	{
-		if (bibRule.destEid == 0)	/*	No rule.	*/
-		{
-			BIB_DEBUG(2, "NOT Attaching BIB; no rule.", NULL);
-
-			/*	No applicable valid construction rule.	*/
-
-			result = 0;
-			scratchExtensionBlock(bibBlk);
-			BIB_DEBUG_PROC("- bibAttach -> %d", result);
-			return result;
-		}
-
-		BIB_DEBUG(2, "NOT Attaching BIB; no profile.", NULL);
-
-		/*	No applicable ciphersuite profile.		*/
-
-		result = 0;
-		bundle->corrupt = 1;
 		scratchExtensionBlock(bibBlk);
 		BIB_DEBUG_PROC("- bibAttach -> %d", result);
 		return result;
 	}
 
 	BIB_DEBUG(2, "Attaching BIB.", NULL);
-
-	/* Step 2 - Populate the BIB ASB. */
-
-	/* Step 2.1 - Grab the key name for this operation. */
-
-	memcpy(bibAsb->keyName, bibRule.keyName, BPSEC_KEY_NAME_LEN);
-
-	/* Step 2.2 - Initialize the BIB ASB. */
-
-	result = (prof->construct == NULL) ?
-			bibDefaultConstruct(prof->suiteId, bibBlk, bibAsb)
-			: prof->construct(prof->suiteId, bibBlk, bibAsb);
-	if (result < 0)
+	if (bpsec_getOutboundSecuritySource(bundle, blk, bibAsb, &fromEid) < 0)
 	{
-		ADD_BIB_TX_FAIL(fromEid, 1, 0);
-
-		BIB_DEBUG_ERR("x bibAttach: Can't construct ASB.", NULL);
+		BIB_DEBUG_ERR("x bibAttach: Can't get security source.", NULL);
 		result = -1;
 		bundle->corrupt = 1;
 		scratchExtensionBlock(bibBlk);
@@ -228,19 +138,43 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 		return result;
 	}
 
-	/* Step 2.2 - Sign the target block and store the signature. */
+	/* Step 1 - Finish populating the BIB ASB.			*/
 
-	result = (prof->sign == NULL) ?
-			bibDefaultSign(prof->suiteId, bundle, bibBlk,
+	prof = get_bib_prof_by_number(bibAsb->contextId);
+	CHKERR(prof);
+	if (prof->construct)
+	{
+		if (prof->construct(prof->suiteId, bibBlk, bibAsb) < 0)
+		{
+			ADD_BIB_TX_FAIL(fromEid, 1, 0);
+			MRELEASE(fromEid);
+
+			BIB_DEBUG_ERR("x bibAttach: Can't construct ASB.",
+					NULL);
+			result = -1;
+			bundle->corrupt = 1;
+			scratchExtensionBlock(bibBlk);
+			BIB_DEBUG_PROC("- bibAttach --> %d", result);
+			return result;
+		}
+	}
+
+	/* Step 2 - Sign the target blocks and store the signatures.	*/
+
+	readEid(&(bundle->destination, &toEid));
+	CHKERR(toEid);
+	result = (prof->sign == NULL)
+			? bibDefaultSign(prof->suiteId, bundle, bibBlk,
 				bibAsb, &bytes, toEid)
 			: prof->sign(prof->suiteId, bundle, bibBlk,
 				bibAsb, &bytes, toEid);
-
+	MRELEASE(toEid);
 	if (result < 0)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
+		MRELEASE(fromEid);
 
-		BIB_DEBUG_ERR("x bibAttach: Can't sign target block.", NULL);
+		BIB_DEBUG_ERR("x bibAttach: Can't sign target blocks.", NULL);
 		result = -1;
 		bundle->corrupt = 1;
 		scratchExtensionBlock(bibBlk);
@@ -256,6 +190,7 @@ static int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			&(bibBlk->dataLength), bibAsb)) == NULL)
 	{
 		ADD_BIB_TX_FAIL(fromEid, 1, bytes);
+		MRELEASE(fromEid);
 
 		BIB_DEBUG_ERR("x bibAttach: Unable to serialize ASB.  \
 bibBlk->dataLength = %d", bibBlk->dataLength);
@@ -276,40 +211,51 @@ bibBlk->dataLength = %d", bibBlk->dataLength);
 	MRELEASE(serializedAsb);
 
 	ADD_BIB_TX_PASS(fromEid, 1, bytes);
+	MRELEASE(fromEid);
 
 	BIB_DEBUG_PROC("- bibAttach --> %d", result);
 	return result;
+}
+
+int	bibSerialize(ExtensionBlock *blk, Bundle *bundle)
+{
+	/*	NOTE: BIBs are automatically serialized at the time
+	 *	they are attached to a bundle, and they are not
+	 *	subject to canonicalization (a BIB cannot be the
+	 *	target of another BIB).  Nothing to do here.		*/
+
+	return 0;
 }
 
 /******************************************************************************
  *
  * \par Function Name: bibCheck
  *
- * \par Purpose: This callback determine whether or not a BIB's security
- * 		 target block has been corrupted end route.  Specifically,
- * 		 a newly computed hash for the security target block
- * 		 must match the security result encoded in the BIB.
+ * \par Purpose: This callback determine whether or not a BIB's
+ * 		 security target blocks have been corrupted en route.
+ * 		 Specifically, a newly computed hash for each target
+ * 		 block must match that block's security result as
+ * 		 encoded in the BIB.
  *
- * \retval   0 - The block was not found to be corrupt.
- *           3 - The block was found to be corrupt.
+ * \retval   0 - No blocks were found to be corrupt.
+ *           3 - At least one block was found to be corrupt.
  *          -1 - There was a system error.
  *
- * \param[in]  blk  The BIB whose target must be checked.
+ * \param[in]  blk  The BIB whose targets must be checked.
  * \param[in]  wk   The working area holding other acquisition blocks and the
  *                  rest of the received bundle.
  *
  * \par Notes:
  *****************************************************************************/
 
-int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
+int	bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle			*bundle;
 	BpsecInboundBlock	*asb = NULL;
 	BpsecInboundTarget	*target = NULL;
-	char			*fromEid;
-	char			*toEid;
-	BPsecBibRule		bibRule;
+	char			*fromEid;	/*	Instrumentation	*/
 	BibProfile		*prof;
+	BibVerifyFn		verify = NULL;
 	int8_t			result;
 	uvast			bytes = 0;
 
@@ -318,7 +264,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	if (blk == NULL || blk->object == NULL || wk == NULL)
 	{
-		BIB_DEBUG_ERR("x bibCheck:  Blocks are NULL. %x",
+		BIB_DEBUG_ERR("x bibCheck: Blocks are NULL. %x",
 				(unsigned long) blk);
 		BIB_DEBUG_PROC("- bibCheck --> %d", -1);
 		return -1;
@@ -332,14 +278,10 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 
 	bundle = &(wk->bundle);
 	asb = (BpsecInboundBlock *) (blk->object);
-	if (bpsec_getInboundTarget(asb->targets, &target) < 0)
+	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		ADD_BIB_RX_FAIL(NULL, 1, 0);
-		return -1;
-	}
+		/*	Waypoint source.				*/
 
-	if (asb->securitySource.schemeCodeNbr)	/*	Waypoint source.*/
-	{
 		readEid(&(asb->securitySource), &fromEid);
 		if (fromEid == NULL)
 		{
@@ -347,7 +289,7 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 			return -1;
 		}
 	}
-	else
+	else	/*	Bundle source is security source.		*/
 	{
 		readEid(&(bundle->id.source), &fromEid);
 		if (fromEid == NULL)
@@ -357,55 +299,29 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 		}
 	}
 
-	readEid(&(bundle->destination), &toEid);
-	if (toEid == NULL)
-	{
-		ADD_BIB_RX_FAIL(fromEid, 1, 0);
-		MRELEASE(fromEid);
-		return -1;
-	}
-
 	/*	Given sender & receiver EIDs, get applicable BIB rule.	*/
 
-	prof = bibGetProfile(fromEid, toEid, target->targetBlockNumber,
-			&bibRule);
-	MRELEASE(toEid);
-
+	prof = bib_bib_prof_by_number(asb->contextId);
 	if (prof == NULL)
 	{
-		/*	We can't verify this signature.			*/
-
-		if (bibRule.destEid == 0)	/*	No rule.	*/
-		{
-			/*	We don't care about verifying the
-			 *	signature on the target block for
-			 *	this BIB, but we preserve the BIB
-			 *	in case somebody else does.		*/
+		/*	We can't verify any of this BIB's signatures.
+		 *	If any of this BIB's targets blocks are
+		 *	subject to local BIB verification rules,
+		 *	clearly they can't be verified and must
+		 *	therefore be considered corrupted.  The
+		 *	bibDefaultVerify function will make this
+		 *	determination.					*/
 
 			ADD_BIB_RX_MISS(fromEid, 1, 0);
 			MRELEASE(fromEid);
 
 			BIB_DEBUG_INFO("- bibCheck - No rule.", NULL);
 			BIB_DEBUG_PROC("- bibCheck", NULL);
-			return 1;		/*	No information.	*/
-		}
-
-		/*	Rule is found, but we don't have this CS.
-		 *	We have to conclude that the BIB is invalid,
-		 *	in which case the bundle is judged corrupt.	*/
-
-		ADD_BIB_RX_FAIL(fromEid, 1, 0);
-		MRELEASE(fromEid);
-
-		discardExtensionBlock(blk);
-	 	BIB_DEBUG_ERR("- bibCheck - Profile missing!", NULL);
-		BIB_DEBUG_PROC("- bibCheck", NULL);
-		return 0;			/*	Bundle corrupt.	*/
 	}
-
-	/*	Fill in missing information in the scratchpad area.	*/
-
-	memcpy(asb->keyName, bibRule.keyName, BPSEC_KEY_NAME_LEN);
+	else
+	{
+		verify = prof->verify;
+	}
 
 	/*	Invoke ciphersuite-specific check procedure.		*/
 
@@ -418,6 +334,18 @@ int bibCheck(AcqExtBlock *blk, AcqWorkArea *wk)
 	 *	failed (meaning the block is altered and therefore
 	 *	the bundle is altered); otherwise make sure the BIB
 	 *	is retained.						*/
+
+		/*	Rule is found, but we don't have this CS.
+		 *	We have to conclude that the BIB is invalid,
+		 *	in which case the bundle is judged corrupt.	*/
+
+		ADD_BIB_RX_FAIL(fromEid, 1, 0);
+		MRELEASE(fromEid);
+
+		discardExtensionBlock(blk);
+	 	BIB_DEBUG_ERR("- bibCheck - Profile missing!", NULL);
+		BIB_DEBUG_PROC("- bibCheck", NULL);
+		return 0;			/*	Bundle corrupt.	*/
 
 	BIB_DEBUG_INFO("i bibCheck: Verify result was %d", result);
 	if ((result == 0) || (result == 4))
@@ -465,6 +393,10 @@ int	bibRecord(ExtensionBlock *new, AcqExtBlock *old)
 			(unsigned long) old);
 
 	result = bpsec_recordAsb(new, old);
+	new->tag = -1;
+	
+	/*	Tag value -1 indicates "unknown".  Negative tags are
+	 *	undefined for BIBs.					*/
 
 	BIB_DEBUG_PROC("- bibRecord", NULL);
 	return result;
@@ -655,69 +587,6 @@ but expected %d.", bytesRetrieved, chunkSize);
 	return 1;
 }
 
-/******************************************************************************
- *
- * \par Function Name: bibDefaultConstruct
- *
- * \par Given a pre-allocated extension block and abstract security block,
- *      initialize the abstract security block for subsequent processing.
- *
- * \param[in]   suite  The ciphersuite used by this profile.
- * \param[in]     blk  The pre-allocated extension block.
- * \param[in/out] asb  The abstract security block being initialized.
- *
- * \par Notes:
- *  - The ASB will be attached to the extension block and passed back
- *    to another function (sign) to help create the contents of the
- *    serialized extension block.
- *
- *  - It is assumed that other functions populate non-ciphersuite related
- *    portions of the ASB, such as the security source, target block info,
- *    ASB instance, and key information.
- *
- * \return 1 - Success
- *        -1 - Failure
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  11/05/15  E. Birrane     Initial Implementation [Secure DTN
- *                           implementation (NASA: NNX14CS58P)]
- *****************************************************************************/
-int	bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
-		BpsecOutboundBlock *asb)
-{
-	Sdr	sdr = getIonsdr();
-
-	CHKERR(blk);
-	CHKERR(asb);
-
-	/*	Step 1: Populate the unpopulated
-	 *	block-instance-agnostic parts of the ASB.		*/
-
-	if (asb->targets == 0)
-	{
-		asb->targets = sdr_list_create(sdr);
-	}
-
-	asb->contextId = suite;
-	if (asb-> parmsData == 0)
-	{
-		asb->parmsData = sdr_list_create(sdr);
-	}
-
-	if (asb->targets == 0 || asb->parmsData == 0)
-	{
-		putErrmsg("Can't construct BIB.", NULL);
-		return -1;
-	}
-
-	/* Step 2: Populate instance-specific parts of the ASB. */
-
-	asb->contextFlags = 0;
-	return 0;
-}
-
 #if 0
 /******************************************************************************
  *
@@ -789,17 +658,18 @@ uint32_t bibDefaultResultLen(uint32_t suite, uint8_t tlv)
 
 /******************************************************************************
  *
- * \par Function Name: bibSign
+ * \par Function Name: bibDefaultSign
  *
- * \par Calculates a digest for the given block and adds it to the provided
- *      abstract security block and also provides a serialized version of
- *      the BIB.
+ * \par For each of the BIB's target blocks, calculates a digest and
+ *      inserts the digest into the results list for that target.
+ *
  *
  * \param[in]  suite   - THe ciphersuite to be used for signing.
  * \param[in]  bundle  - The serialized bundle.
  * \param[in]  blk     - The BIB extension block instance.
  * \param[in]  asb     - The abstract security block for the BIB.
  * \param[out] bytes   - Number of bytes signed.
+ * \param[out] toEid   - Destination EID (not used).
  *
  * \par Notes:
  *   - The target block MUST NOT be modified after this function is called.
@@ -821,10 +691,14 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 {
 	Sdr			sdr = getIonsdr();
 	int8_t			retval = 0;
-	sci_inbound_tlv		key;
+	Object			elt;
+	Object			targetObj;
 	BpsecOutboundTarget	target;
-	sci_inbound_tlv		digest;
+	sci_inbound_tlv		key;
 	uint8_t			*context = NULL;
+	uvast			bytesSigned;
+	Object			targetZco;
+	sci_inbound_tlv		digest;
 
 	BIB_DEBUG_INFO("+ bibDefaultSign(%d, 0x%x, 0x%x, 0x%x", suite,
 			(unsigned long) bundle, (unsigned long) blk,
@@ -832,92 +706,83 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 
 	/* Step 0 - Sanity Checks. */
 	CHKERR(bundle && blk && asb && bytes);
-	*bytes = 0;
+	*bytes = 0;			/*	Initialize.		*/
 
-	/* Step 1 - Compute the security result for the target block. */
 	key = bpsec_retrieveKey(asb->keyName);
-	if (bpsec_getOutboundTarget(sdr, asb->targets, &target) < 0)
+	for (elt = sdr_list_first(sdr, asb->targets); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		BIB_DEBUG_ERR("x bibDefaultSign - Can't get target.", NULL);
-		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
-		return ERROR;
-	}
+		targetObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &target, targetObj,
+				sizeof(BpsecOutboundTarget));
 
-	/* Step 2 - Grab and initialize a crypto context. */
-	if ((context = sci_ctx_init(suite, key, CSI_SVC_SIGN)) == NULL)
-	{
-		BIB_DEBUG_ERR("x bibDefaultSign - Can't get context.", NULL);
-		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
-		return ERROR;
-	}
+		/*	Grab and initialize a crypto context.		*/
 
-	if (sci_sign_start(suite, context) == ERROR)
-	{
-		BIB_DEBUG_ERR("x bibDefaultSign - Can't start context.", NULL);
+		if ((context = sci_ctx_init(suite, key, CSI_SVC_SIGN)) == NULL)
+		{
+			BIB_DEBUG_ERR("x bibDefaultSign - Can't get context.",
+					NULL);
+			BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
+			MRELEASE(key.value);
+			return ERROR;
+		}
+
+		if (sci_sign_start(suite, context) == ERROR)
+		{
+			BIB_DEBUG_ERR("x bibDefaultSign - Can't start context.",
+					NULL);
+			csi_ctx_free(suite, context);
+			MRELEASE(key.value);
+			BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
+			return ERROR;
+		}
+
+		bytesSigned = bpsec_canonicalize(bundle,
+				target.targetBlockNumber, &targetZco);
+		*bytes += bytesSigned;
+		retval = bibDefaultCompute(targetZco, csi_blocksize(suite),
+				suite, context, CSI_SVC_SIGN);
+		zco_destroy(sdr, targetZco);
+		if (retval == ERROR)
+		{
+			BIB_DEBUG_ERR("x bibDefaultSign: Can't compute hash.",
+					NULL);
+			csi_ctx_free(suite, context);
+			MRELEASE(key.value);
+			BIB_DEBUG_PROC("- bibDefaultSign--> ERROR", NULL);
+			return ERROR;
+		}
+
+		if ((sci_sign_finish(suite, context, &digest, CSI_SVC_SIGN))
+				== ERROR)
+		{
+			BIB_DEBUG_ERR("x bibDefaultSign - Can't Finalize.",
+					NULL);
+			csi_ctx_free(suite, context);
+			MRELEASE(key.value);
+			BIB_DEBUG_PROC("- bibDefaultSign--> ERROR", NULL);
+			return ERROR;
+		}
+
 		csi_ctx_free(suite, context);
-		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
-		return ERROR;
-	}
 
-	switch (target.targetBlockType)
-	{
-	case PrimaryBlk:
-#if 0	//	This code is yet to be developed.
-		*bytes = bundle->payload.length;
-		retval = bibDefaultCompute(bundle->payload.content,
-				csi_blocksize(suite), suite, context,
-				CSI_SVC_SIGN);
-#endif
-		break;
+		/*	Insert the security result.			*/
 
-	case PayloadBlk:
-		*bytes = bundle->payload.length;
-		retval = bibDefaultCompute(bundle->payload.content,
-				csi_blocksize(suite), suite, context,
-				CSI_SVC_SIGN);
-		break;
+		digest.id = BPSEC_CSPARM_INT_SIG;
+		if (bpsec_appendItem(sdr, target.results, &digest) < 0)
+		{
+			BIB_DEBUG_ERR("x bibDefaultSign: Can't insert result.",
+					NULL);
+			MRELEASE(digest.value);
+			MRELEASE(key.value);
+			BIB_DEBUG_PROC("- bibDefaultSign --> %d", -1);
+			return ERROR;
+		}
 
-	default:
-		BIB_DEBUG_ERR("x bibDefaultSign: Block type %d not supported.",
-				target.targetBlockType);
-		MRELEASE(key.value);
-		csi_ctx_free(suite, context);
-		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
-		return 0;
+		MRELEASE(digest.value);
 	}
 
 	MRELEASE(key.value);
-
-	if (retval == ERROR)
-	{
-		BIB_DEBUG_ERR("x bibDefaultSign: Can't compute hash.", NULL);
-		csi_ctx_free(suite, context);
-		BIB_DEBUG_PROC("- bibDefaultSign--> ERROR", NULL);
-		return ERROR;
-	}
-
-	if ((sci_sign_finish(suite, context, &digest, CSI_SVC_SIGN)) == ERROR)
-	{
-		BIB_DEBUG_ERR("x bibDefaultSign - Can't Finalize.", NULL);
-		csi_ctx_free(suite, context);
-		BIB_DEBUG_PROC("- bibDefaultSign--> ERROR", NULL);
-		return ERROR;
-	}
-
-	csi_ctx_free(suite, context);
-
-	/* Step 2 - Build the security result. */
-
-	digest.id = BPSEC_CSPARM_INT_SIG;
-	if (bpsec_write_one_result(sdr, asb, &digest) < 0)
-	{
-		BIB_DEBUG_ERR("x bibDefaultSign: Can't write result.", NULL);
-		MRELEASE(digest.value);
-		BIB_DEBUG_PROC("- bibDefaultSign --> %d", -1);
-		return -1;
-	}
-
-	MRELEASE(digest.value);
 	return 0;
 }
 
@@ -969,6 +834,19 @@ int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 
 	*bytes = 0;
 	asb = (BpsecInboundBlock *) (blk->object);
+
+	/*	Fill in missing information in the scratchpad area.	*/
+
+For each target:
+	prof = bibGetProfile(fromEid, destinationEid, target->targetBlockType,
+			&bibRule)
+	memcpy(asb->keyName, bibRule.keyName, BPSEC_KEY_NAME_LEN);
+
+
+
+
+
+
 	if (bpsec_getInboundTarget(asb->targets, &target) < 0)
 	{
 		BIB_DEBUG_ERR("x bibDefaultVerify - Can't get target.", NULL);
@@ -1133,16 +1011,16 @@ unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
  * \par Function Name: bibOffer
  *
  * \par Purpose: This callback aims to ensure that the bundle contains
- * 		         a BIB for the block identified by the tag1
- * 		         value (here, block type) loaded into the
- * 		         proposed-block structure.  If the bundle
- * 		         already contains such a BIB (inserted by an
- * 		         upstream node) then the function simply
- * 		         returns 0.  Otherwise the function creates a
- * 		         BIB for the block identified by tag1.
- * 		         If the target block is the payload block, then the
- * 		         BIB is fully constructed at this time (because the
- * 		         final content of the payload block is complete).
+ * 		         a BIB for the block(s) identified by the tag
+ * 		         value loaded into the proposed-block structure.
+ * 		         If the bundle already contains such a BIB
+ * 		         (inserted by an upstream node) then the
+ * 		         function simply returns 0.  Otherwise the
+ * 		         function creates a BIB for the block(s)
+ * 		         identified by the tag.  If the target block
+ * 		         is the payload block, then the BIB is fully
+ * 		         constructed at this time (because the final
+ * 		         content of the payload block is complete).
  * 		         Otherwise, only a placeholder BIB is constructed;
  * 		         in effect, the placeholder BIB signals to later
  * 		         processing that such a BIB may or may not need
@@ -1155,22 +1033,20 @@ unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
  * \param[in,out]  blk    The block that might be added to the bundle.
  * \param[in]      bundle The bundle that would hold this new block.
  *
- * \todo Update to be used with any block, not just payload.
- *
  * \par Assumptions:
  *      1. The blk has been pre-initialized with correct block type (BIB)
- *         and a tag1 value that identifies the target of the proposed BIB.
+ *         and a tag value that identifies the target of the proposed BIB.
  *
  * \par Notes:
  *      1. All block memory is allocated using sdr_malloc.
- *      2. The target block must not have its content changed after this point.
- *         Note that if the target block is both signed and encrypted, the ION
- *         implementation of bpsec will assume that the target block must be
- *         decrypted before its integrity can be checked (in fact, before any
- *         operation at all can be performed on the target block).  So the
- *         target block's BIB must be computed on the clear text of the
- *         target block, i.e., the BIB must be constructed before the BCB is
- *         constructed.
+ *      2. The target block must not have its content changed after this
+ *         point.  Note that if the target block is both signed and
+ *         encrypted, the bpsec standard requires that the target block
+ *         must be decrypted before its integrity can be checked (in fact,
+ *         before any operation at all can be performed on the target
+ *         block).  So the target block's BIB must be computed on the
+ *         clear text of the target block, i.e., the BIB must be
+ *         constructed before the BCB is constructed.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -1183,7 +1059,22 @@ unknown '%s'.  No BIB processing for this bundle.", bibRule->ciphersuiteName);
 int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 {
 	Sdr			sdr = getIonsdr();
+	int			memIdx = getIonMemoryMgr();
+	ExtensionTargetScope	*scope;
+	Lyst			targets;
+	char			*eidString;
+	char			destinationEid[MAX_EID_LEN];
+	char			*sourceEid;
+	uint16_t		contextId = 0;
+	int			i;
+	ExtensionTargetSpec	*targetSpec;
+	BPsecBibRule		bibRule;
+	Object			targetElt;
+				OBJ_POINTER(ExtensionBlock, target);
+	unsigned char		blkNumber;
 	BpsecOutboundBlock	asb;
+	LystElt			elt;
+	LystElt			nextElt;
 	int8_t			result = 0;
 
 	/*	Block must be offered as a placeholder to enable
@@ -1201,13 +1092,10 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	blk->length = 0;	/*	Default.			*/
 	blk->bytes = 0;		/*	Default.			*/
 
-	/* Step 1.2 - Make sure that the security OP is valid. */
-	if (blk->tag1 == BlockIntegrityBlk
-	|| blk->tag1 == BlockConfidentialityBlk)
+	if (blk->tag < 0 || blk->tag >= targetScopesCount)
 	{
-		/*	Can't have a BIB for these types of block.	*/
-		BIB_DEBUG_ERR("x bibOffer - BIB can't target type %d",
-				blk->tag1);
+		/*	Invalid tag in BIB specification.		*/
+		BIB_DEBUG_ERR("x bibOffer - BIB tag %d not valid", blk->tag);
 		blk->size = 0;
 		blk->object = 0;
 		result = 0;
@@ -1215,25 +1103,103 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
-	/* Step 1.3 - Make sure OP(integrity, target) isn't already there. */
-	if (bpsec_findBlock(bundle, BlockIntegrityBlk, blk->tag1, 0))
+	scope = targetScopes + blk->tag;
+	readEid(&(bundle->destination), &eidString);
+	CHKERR(eidString);
+	istrcpy(destinationEid, eidString, sizeof(destinationEid));
+	MRELEASE(eidString);
+	sourceEid = bpsec_getLocalAdminEid(destinationEid);
+	CHKERR(sourceEid);
+	targets = lyst_create_using(memIdx);
+	CHKERR(targets);
+
+	/* Step 1.2 - Identify the target(s)				*/
+
+	for (i = 0; i < scope->count; i++)
 	{
-		/*	Don't create a placeholder BIB for this block.	*/
-		BIB_DEBUG_ERR("x bibOffer - BIB already exists for tgt %d",
-				blk->tag1);
-		blk->size = 0;
-		blk->object = 0;
-		result = 0;
-		BIB_DEBUG_PROC("- bibOffer -> %d", result);
-		return result;
+		targetSpec = scope->targets + i;
+		if (targetSpec->blockType == BlockIntegrityBlk
+		|| targetSpec->blockType == BlockConfidentialityBlk)
+		{
+			/*	Can't have a BIB for such a block.	*/
+			BIB_DEBUG_WARN("w bibOffer - BIB can't target type %d",
+					targetSpec->blockType);
+			continue;
+		}
+
+		prof = bibGetProfile(sourceEid, destinationEid,
+				targetSpec->blockType, &bibRule);
+		if (prof == NULL)
+		{
+			if (bibRule.destEid == 0)	/*	No rule.*/
+			{
+				BIB_DEBUG_WARN("w bibOffer - No rule for %d",
+					targetSpec->blockType);
+				continue;
+			}
+
+			/*	Found rule but no profile.		*/
+
+			BIB_DEBUG_WARN("w bibOffer - No profile for %d",
+					targetSpec->blockType);
+			continue;
+		}
+
+		if (contextId == 0)
+		{
+			contextId = prof->profNbr;
+		}
+		else
+		{
+			if (prof->profNbr != contextId)
+			{
+				BIB_DEBUG_WARN("w bibOffer - profile conflict \
+for %d", targetSpec->blockType);
+				continue;
+			}
+		}
+
+		targetBlockElt = findExtensionBlock(bundle,
+				targetSpec->blockType, targetSpec->tag);
+		if (targetBlockElt == 0)
+		{
+			BIB_DEBUG_WARN("i bibOffer - BIB target %d:%d unknown",
+					targetSpec->blockType, targetSpec->tag);
+			continue;
+		}
+
+		GET_OBJ_POINTER(sdr, ExtensionBlock, target,
+				sdr_list_data(sdr, targetBlockElt));
+		blkNumber = target->number;
+		if (bpsec_findBlock(bundle, BlockIntegrityBlk, blkNumber))
+		{
+			/*	A BIB for this target already exists.	*/
+			BIB_DEBUG_WARN("i bibOffer - BIB already exists for %d",
+					blkNumber);
+			continue;
+		}
+
+		if (!(lyst_insert_last(targets, (void *) blkNumber)))
+		{
+			putErrmsg("Can't insert BIB target into list.", NULL);
+			lyst_destroy(targets);
+			blk->size = 0;
+			blk->object = 0;
+			result = -1;
+			BIB_DEBUG_PROC("- bibOffer -> %d", result);
+			return result;
+		}
 	}
 
 	/* Step 2 - Initialize BIB structures. */
 
 	/* Step 2.1 - Populate the BIB ASB. */
-	memset((char *) &asb, 0, sizeof(BpsecOutboundBlock));
 
+	memset((char *) &asb, 0, sizeof(BpsecOutboundBlock));
 	CHKERR(sdr_begin_xn(sdr));
+	bpsec_insertSecuritySource(bundle, &asb);
+	asb.contextId = contextId;
+	memcpy(asb.keyName, bibRule.keyName, BPSEC_KEY_NAME_LEN);
 	asb.targets = sdr_list_create(sdr);
 	asb.parmsData = sdr_list_create(sdr);
 	if (asb.targets == 0 || asb.parmsData == 0)
@@ -1241,23 +1207,28 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 		sdr_cancel_xn(sdr);
 		BIB_DEBUG_ERR("x bibOffer: Failed to initialize BIB ASB.",
 				NULL);
+		lyst_destroy(targets);
 		result = -1;
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
 	}
 
-#if 0
-	bpsec_insertSecuritySource(bundle, &asb);
-#endif
-	if (bpsec_insert_target(sdr, &asb, (blk->tag1 == PayloadBlk ? 1 : 0),
-			blk->tag1, 0, 0))
+	for (elt = lyst_first(targets); elt; elt = lyst_next(elt))
 	{
-		sdr_cancel_xn(sdr);
-		BIB_DEBUG_ERR("x bibOffer: Failed to insert target.", NULL);
-		result = -1;
-		BIB_DEBUG_PROC("- bibOffer -> %d", result);
-		return result;
+		blkNumber = lyst_data(elt);
+		if (bpsec_insert_target(sdr, &asb, blkNumber) < 0)
+		{
+			sdr_cancel_xn(sdr);
+			BIB_DEBUG_ERR("x bibOffer: Failed to insert target.",
+					NULL);
+			lyst_destroy(targets);
+			result = -1;
+			BIB_DEBUG_PROC("- bibOffer -> %d", result);
+			return result;
+		}
 	}
+
+	lyst_destroy(targets);
 
 	/* Step 2.2 Populate the BIB Extension Block. */
 
@@ -1265,60 +1236,25 @@ int	bibOffer(ExtensionBlock *blk, Bundle *bundle)
 	if ((blk->object = sdr_malloc(sdr, blk->size)) == 0)
 	{
 		sdr_cancel_xn(sdr);
-		BIB_DEBUG_ERR("x bibOffer: Failed to SDR allocate object \
-of size %d bytes", blk->size);
+		BIB_DEBUG_ERR("x bibOffer: Failed to SDR allocate object of \
+size %d bytes", blk->size);
 		result = -1;
 		BIB_DEBUG_PROC("- bibOffer -> %d", result);
 		return result;
 	}
 
-	/* Step 3 - Write the ASB into the block. */
-
 	sdr_write(sdr, blk->object, (char *) &asb, blk->size);
-	sdr_end_xn(sdr);
 
-	/* Step 4 - Attach BIB if possible. */
+	/*	That's all we can do for now, as we can't assume
+	 *	that all of the BIB's target blocks exist in final
+	 *	form yet.  All we do is tell the BP agent that we
+	 *	want this BIB to be considered for attachment at
+	 *	the time the bundle is dequeued for transmission.
+	 *	For this purpose, we stop after initializing the
+	 *	block's scratchpad area (loading the ASB into it),
+	 *	resulting in insertion of a placeholder BIB.		*/
 
-	/*
-	 * Step 4.1 - If the target is not the payload, we have
-	 *            to defer integrity until a later date.
-	 */
-
-	if (blk->tag1 != PayloadBlk)
-	{
-		/*	We can't construct the block at this time
-		 *	because we can't assume that the target block
-		 *	exists in final form yet.  All we do is tell
-		 *	the BP agent that we want this BIB to be
-		 *	considered for construction at the time the
-		 *	bundle is dequeued for transmission.  For
-		 *	this purpose, we stop after initializing
-		 *	the block's scratchpad area, resulting in
-		 *	insertion of a placeholder BIB for the target
-		 *	block.						*/
-
-		result = 0;
-		BIB_DEBUG_WARN("i bibOffer: Integrity for type %d not yet \
-supported.", blk->tag1);
-		BIB_DEBUG_PROC("- bibOffer -> %d", result);
-		return result;
-	}
-
-	/*
-	 * Step 4.2 If target is the payload, sign the target
-	 * and attach the BIB.
-	 */
-
-	if ((result = bibAttach(bundle, blk, &asb)) <= 1)
-	{
-		CHKERR(sdr_begin_xn(sdr));
-		bpsec_releaseOutboundAsb(sdr, blk->object);
-		sdr_end_xn(sdr);
-
-		blk->object = 0;
-		blk->size = 0;
-	}
-
+	result = sdr_end_xn(sdr);
 	BIB_DEBUG_PROC("- bibOffer -> %d", result);
 	return result;
 }
@@ -1505,7 +1441,6 @@ int	bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *parm)
 {
 	Sdr			sdr = getIonsdr();
 	BpsecOutboundBlock	asb;
-	BpsecOutboundTarget	target;
 	int8_t		    	result = 0;
 
 	BIB_DEBUG_PROC("+ bibProcessOnDequeue(%x, %x, %x)",
@@ -1536,39 +1471,12 @@ blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm,
 	}
 
 	/*
-	 * Step 1.2 - If the target is the payload, the BIB was already
-	 *            handled in bibOffer. Nothing left to do.
+	 * Step 2 - Calculate the digests for the BIB's targets and
+	 *          attach the BIB to the bundle.
 	 */
+
 	sdr_read(sdr, (char *) &asb, blk->object, blk->size);
-	if (bpsec_getOutboundTarget(sdr, asb.targets, &target) < 0)
-	{
-		BIB_DEBUG_ERR("x bibProcessOnDequeue: No target.", NULL);
-		BIB_DEBUG_INFO("i bibProcessOnDequeue bundle %d, parm %d, \
-blk %d, blk->size %d", (unsigned long) bundle, (unsigned long) parm,
-			(unsigned long) blk, (blk == NULL) ? 0 : blk->size);
-		BIB_DEBUG_PROC("- bibProcessOnDequeue --> %d", -1);
-		scratchExtensionBlock(blk);
-		return -1;
-	}
-
-	if (target.targetBlockType == PayloadBlk)
-	{
-		/*	Do nothing; the block's bytes are correct
-		 *	and ready for transmission.  The block was
-		 *	constructed by the offer() function, because
-		 *	the payload block content was already final
-		 *	at that time.					*/
-
-		BIB_DEBUG_PROC("- bibProcessOnDequeue(%d)", result);
-		return 0;
-	}
-
-	/*
-	 * Step 2 - Calculate the BIB for the target and attach it
-	 *          to the bundle.
-	 */
 	result = bibAttach(bundle, blk, &asb);
-
 	BIB_DEBUG_PROC("- bibProcessOnDequeue(%d)", result);
 	return result;
 }

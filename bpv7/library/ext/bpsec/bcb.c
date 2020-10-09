@@ -131,6 +131,12 @@ int	bcbRecord(ExtensionBlock *new, AcqExtBlock *old)
 			(unsigned long) old);
 
 	result = bpsec_recordAsb(new, old);
+	new->tag = 0;		/*	Unknown.			*/
+
+	/*	Tag value 0 indicates "unknown".  The 0'th extension
+	 *	scope in the extension scopes array in bpextensions.c
+	 *	always references the primary block, and the primary
+	 *	block can never be encrypted.				*/
 
 	BCB_DEBUG_PROC("- bcbRecord", NULL);
 	return result;
@@ -1042,22 +1048,22 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
  * \par Function Name: bcbOffer
  *
  * \par Purpose: This callback aims to ensure that the bundle contains
- * 		 a BCB for the block identified by the tag1 and tag2
- * 		 values loaded into the proposed-block structure.
+ * 		 a BCB for the block(s) identified by the tag
+ * 		 value loaded into the proposed-block structure.
  * 		 If the bundle already contains such a BCB (inserted
  * 		 by an upstream node) then the function simply
  * 		 returns 0.  Otherwise the function creates a BCB
- * 		 for the block identified by tag1 and tag2.  Note
+ * 		 for the block(s) identified by the tag.  Note
  * 		 that only a placeholder BCB is constructed at this
  * 		 time; in effect, the placeholder BCB signals to
  * 		 later processing that such a BCB may or may not
  * 		 need to be attached to the bundle, depending on
  * 		 the final contents of other bundle blocks.  (Even
  * 		 encryption of the payload block is deferred,
- * 		 because in order ot make accurate decisions
- * 		 about in-place encryption we need the current data
- * 		 rate, which is only available at the time the bundle
- * 		 is dequeued.)
+ * 		 because in order to make accurate decisions about
+ * 		 in-place encryption we need the current data rate,
+ * 		 which is only available at the time the bundle is
+ * 		 dequeued.)
  *
  * \retval int 0 - The BCB was successfully created, or not needed.
  *            -1 - There was a system error.
@@ -1066,13 +1072,11 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
  * \param[in]      bundle The bundle that would hold this new block.
  *
  * \par Assumptions:
- *      1. The blk has been pre-initialized with correct block type
- *         (BCB) and tag1 and tag2 values that identify the target
- *         of the proposed BCB.
+ *      1. The blk has been pre-initialized with correct block type (BCB)
+ *         and a tag value that identifies the target of the proposed BCB.
  *
  * \par Notes:
  *      1. All block memory is allocated using sdr_malloc.
- *      2. tag3 is used to request destructive encryption (i.e., in-place).
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
@@ -1166,7 +1170,7 @@ int	bcbOffer(ExtensionBlock *blk, Bundle *bundle)
 		return result;
 	}
 
-	asb.encryptInPlace = blk->tag3;
+	asb.encryptInPlace = (blk->tag < 0 ? 1 : 0);
 
 	/* Step 2.2 Populate the BCB Extension Block. */
 
@@ -1968,7 +1972,7 @@ context.", NULL);
  *
  *****************************************************************************/
 
-int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
+static int	bcbHelper(Object *dataObj, uint32_t chunkSize, uint32_t suite,
 		sci_inbound_tlv key, sci_inbound_parms parms,
 		uint8_t encryptInPlace, size_t xmitRate, uint8_t function)
 {

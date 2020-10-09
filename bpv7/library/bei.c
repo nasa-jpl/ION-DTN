@@ -105,8 +105,7 @@ void	getExtensionSpecs(ExtensionSpec **array, int *count)
 	getExtInfo(&definitions, &definitionCount, array, count);
 }
 
-ExtensionSpec	*findExtensionSpec(BpBlockType type, unsigned char tag1,
-			unsigned char tag2, unsigned char tag3)
+ExtensionSpec	*findExtensionSpec(BpBlockType type, char tag)
 {
 	ExtensionSpec	*extensions;
 	int		extensionsCt;
@@ -117,9 +116,7 @@ ExtensionSpec	*findExtensionSpec(BpBlockType type, unsigned char tag1,
 	getExtensionSpecs(&extensions, &extensionsCt);
 	for (i = 0, spec = extensions; i < extensionsCt; i++, spec++)
 	{
-		if (spec->type == type && spec->tag1 == tag1
-				&& spec->tag2 == tag2
-				&& spec->tag3 == tag3)
+		if (spec->type == type && spec->tag == tag)
 		{
 			return spec;
 		}
@@ -128,64 +125,18 @@ ExtensionSpec	*findExtensionSpec(BpBlockType type, unsigned char tag1,
 	return NULL;
 }
 
-static unsigned int	getExtensionRank(ExtensionSpec *spec)
-{
-	ExtensionSpec	*extensions;
-	int		extensionsCt;
-
-	getExtensionSpecs(&extensions, &extensionsCt);
-	return ((uaddr) spec - (uaddr) extensions) / sizeof(ExtensionSpec);
-}
-
 /******************************************************************************
  *                OPERATIONS ON OUTBOUND EXTENSION BLOCKS                     *
  ******************************************************************************/
 
-static int	insertExtensionBlock(ExtensionSpec *spec,
-			ExtensionBlock *newBlk, Object blkAddr, Bundle *bundle)
+static int	insertExtensionBlock(ExtensionBlock *newBlk, Object blkAddr,
+			Bundle *bundle)
 {
 	Sdr	bpSdr = getIonsdr();
-	int	result;
-	Object	elt;
-		OBJ_POINTER(ExtensionBlock, blk);
 
 	CHKERR(newBlk);
 	CHKERR(bundle);
-	if (spec == NULL)	/*	Don't care where this goes.	*/
-	{
-		/*	Insert after all pre-payload blocks inserted
-		 *	by the local node and after all preceding
-		 *	pre-payload blocks inserted by upstream nodes.	*/
-
-		newBlk->rank = 255;
-	}
-	else			/*	Order in list is important.	*/
-	{
-		newBlk->rank = getExtensionRank(spec);
-	}
-
-	for (elt = sdr_list_first(bpSdr, bundle->extensions); elt;
-			elt = sdr_list_next(bpSdr, elt))
-	{
-		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk,
-				sdr_list_data(bpSdr, elt));
-		if (blk->rank > newBlk->rank)
-		{
-			break;	/*	Found a higher-ranking block.	*/
-		}
-	}
-
-	if (elt)	/*	Add before first higher-ranking block.	*/
-	{
-		result = sdr_list_insert_before(bpSdr, elt, blkAddr);
-	}
-	else		/*	There is no higher-ranking block.	*/
-	{
-		result = sdr_list_insert_last(bpSdr, bundle->extensions,
-				blkAddr);
-	}
-
-	if (result == 0)
+	if (sdr_list_insert_last(bpSdr, bundle->extensions, blkAddr) == 0)
 	{
 		putErrmsg("Failed inserting extension block.", NULL);
 		return -1;
@@ -236,7 +187,7 @@ int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
 	blk->number = selectBlkNumber(bundle);
 	blkAddr = sdr_malloc(getIonsdr(), sizeof(ExtensionBlock));
 	CHKERR(blkAddr);
-	if (insertExtensionBlock(spec, blk, blkAddr, bundle) < 0)
+	if (insertExtensionBlock(blk, blkAddr, bundle) < 0)
 	{
 		putErrmsg("Failed attaching extension block.", NULL);
 		return -1;
@@ -260,7 +211,6 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 	char		*buf = NULL;
 	unsigned int	buflen = 0;
 	ExtensionDef	*def;
-	ExtensionSpec	*spec;
 
 	CHKERR(newBundle);
 	CHKERR(oldBundle);
@@ -328,16 +278,11 @@ int	copyExtensionBlocks(Bundle *newBundle, Bundle *oldBundle)
 			}
 		}
 
-		newBlk.tag1 = oldBlk->tag1;
-		newBlk.tag2 = oldBlk->tag2;
-		newBlk.tag3 = oldBlk->tag3;
-		spec = findExtensionSpec(newBlk.type, newBlk.tag1,
-				newBlk.tag2, newBlk.tag3);
+		newBlk.tag = oldBlk->tag;
 		newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
 		CHKERR(newBlkAddr);
 //puts("Inserting extension block copy.");
-		if (insertExtensionBlock(spec, &newBlk, newBlkAddr,
-				newBundle) < 0)
+		if (insertExtensionBlock(&newBlk, newBlkAddr, newBundle) < 0)
 		{
 			putErrmsg("Failed copying ext. block.", NULL);
 			return -1;
@@ -404,8 +349,7 @@ void	destroyExtensionBlocks(Bundle *bundle)
 	sdr_list_destroy(bpSdr, bundle->extensions, NULL, NULL);
 }
 
-Object	findExtensionBlock(Bundle *bundle, BpBlockType type, 
-		unsigned char tag1, unsigned char tag2, unsigned char tag3)
+Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag);
 {
 	Sdr	bpSdr = getIonsdr();
 	Object	elt;
@@ -418,8 +362,29 @@ Object	findExtensionBlock(Bundle *bundle, BpBlockType type,
 	{
 		addr = sdr_list_data(bpSdr, elt);
 		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, addr);
-		if (blk->type == type && blk->tag1 == tag1
-		&& blk->tag2 == tag2 && blk->tag3 == tag3)
+		if (blk->type == type && blk->tag == tag)
+		{
+			return elt;
+		}
+	}
+
+	return 0;
+}
+
+Object	getExtensionBlock(Bundle *bundle, unsigned char nbr);
+{
+	Sdr	bpSdr = getIonsdr();
+	Object	elt;
+	Object	addr;
+		OBJ_POINTER(ExtensionBlock, blk);
+
+	CHKZERO(bundle);
+	for (elt = sdr_list_first(bpSdr, bundle->extensions); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		addr = sdr_list_data(bpSdr, elt);
+		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, addr);
+		if (blk->number == nbr)
 		{
 			return elt;
 		}
@@ -448,8 +413,7 @@ int	patchExtensionBlocks(Bundle *bundle)
 		}
 
 		if (def->offer != NULL
-		&& findExtensionBlock(bundle, spec->type, spec->tag1,
-				spec->tag2, spec->tag3) == 0)
+		&& findExtensionBlock(bundle, spec->type, spec->tag) == 0)
 		{
 			/*	This is a type of extension block that
 			 *	the local node normally offers, which
@@ -459,9 +423,7 @@ int	patchExtensionBlocks(Bundle *bundle)
 
 			memset((char *) &blk, 0, sizeof(ExtensionBlock));
 			blk.type = spec->type;
-			blk.tag1 = spec->tag1;
-			blk.tag2 = spec->tag2;
-			blk.tag3 = spec->tag3;
+			blk.tag = spec->tag;
 			blk.crcType = spec->crcType;
 			if (def->offer(&blk, bundle) < 0)
 			{
@@ -702,7 +664,6 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 		sdr_free(bpSdr, blk->bytes);
 	}
 
-	blk->bytes = 0;
 	blk->length = cursor - blkBuffer;
 	blk->bytes = sdr_malloc(bpSdr, blk->length);
 	if (blk->bytes == 0)
@@ -732,7 +693,7 @@ void	suppressExtensionBlock(ExtensionBlock *blk)
 int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 		unsigned char *startOfBlock, unsigned int blockLength,
 		BpBlockType blkType, unsigned int blkNumber,
-		unsigned int blkProcFlags, unsigned int dataLength)
+		unsigned char blkProcFlags, unsigned int dataLength)
 {
 	Bundle		*bundle = &(work->bundle);
 	int		blkSize;
@@ -1057,25 +1018,6 @@ void	discardExtensionBlock(AcqExtBlock *blk)
 	blk->length = 0;
 }
 
-LystElt	findAcqExtensionBlock(AcqWorkArea *work, BpBlockType type)
-{
-	LystElt		elt;
-	AcqExtBlock	*blk;
-
-	CHKNULL(work);
-	CHKNULL(type > 0);
-	for (elt = lyst_first(work->extBlocks); elt; elt = lyst_next(elt))
-	{
-		blk = (AcqExtBlock *) lyst_data(elt);
-		if (blk->type == type)
-		{
-			return elt;
-		}
-	}
-
-	return NULL;
-}
-
 int	recordExtensionBlocks(AcqWorkArea *work)
 {
 	Sdr		bpSdr = getIonsdr();
@@ -1085,7 +1027,6 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 	ExtensionBlock	newBlk;
 	int		headerLength;
 	ExtensionDef	*def;
-	ExtensionSpec	*spec;
 	Object		newBlkAddr;
 	int		additionalOverhead;
 
@@ -1109,6 +1050,12 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 			return -1;
 		}
 
+		/*	Note that the new outbound extension block's
+		 *	tag is set to zero by default.  The "record"
+		 *	function for this type of block (def->record
+		 *	below) may set it to a different value as
+		 *	needed; tags have extension-specific semantics.	*/
+
 		def = findExtensionDef(oldBlk->type);
 		if (def && def->record)
 		{
@@ -1121,11 +1068,9 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 			}
 		}
 
-		spec = findExtensionSpec(newBlk.type, newBlk.tag1, newBlk.tag2,
-				newBlk.tag3);
 		newBlkAddr = sdr_malloc(bpSdr, sizeof(ExtensionBlock));
 		CHKERR(newBlkAddr);
-		if (insertExtensionBlock(spec, &newBlk, newBlkAddr, bundle) < 0)
+		if (insertExtensionBlock(&newBlk, newBlkAddr, bundle) < 0)
 		{
 			putErrmsg("Failed recording ext. block.", NULL);
 			return -1;

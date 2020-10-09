@@ -8169,7 +8169,7 @@ static int	acquireBlock(AcqWorkArea *work)
 	int		length;
 	BpBlockType	blkType;
 	unsigned int	blkNumber;
-	unsigned int	blkProcFlags;
+	unsigned char	blkProcFlags;
 	BpCrcType	crcType;
 	vast		dataLength;
 	ExtensionDef	*def;
@@ -9820,6 +9820,201 @@ int	serializeEid(EndpointId *eid, unsigned char *buffer)
 	return cursor - buffer;
 }
 
+void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
+			unsigned char *destinationEid, int destinationEidLength,
+		       	unsigned char *sourceEid, int sourceEidLength,
+			unsigned char *reportToEid, int reportToEidLength)
+{
+	unsigned char	*startOfPrimaryBlock;
+	int		bundleIsFragment = 0;
+	uvast		uvtemp;
+	uint16_t	crc16;
+
+	startOfPrimaryBlock = *cursor;
+
+	/*	Primary block is an array of 9 or 11 items.		*/
+
+	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
+	{
+		bundleIsFragment = 1;
+	}
+
+	if (bundleIsFragment)
+	{
+		uvtemp = 11;
+	}
+	else
+	{
+		uvtemp = 9;
+	}
+
+	oK(cbor_encode_array_open(uvtemp, cursor));
+
+	/*	Version.						*/
+
+	uvtemp = BP_VERSION;
+	oK(cbor_encode_integer(uvtemp, cursor));
+
+	/*	Bundle processing flags.				*/
+
+	uvtemp = bundle->bundleProcFlags;
+	oK(cbor_encode_integer(uvtemp, cursor));
+
+	/*	Primary block CRC type.					*/
+
+	uvtemp = X25CRC16;
+	oK(cbor_encode_integer(uvtemp, cursor));
+
+	/*	Destination.						*/
+
+	memcpy(*cursor, destinationEid, destinationEidLength);
+	*cursor += destinationEidLength;
+
+	/*	Source.							*/
+
+	memcpy(*cursor, sourceEid, sourceEidLength);
+	*cursor += sourceEidLength;
+
+	/*	Report-to.						*/
+
+	memcpy(*cursor, reportToEid, reportToEidLength);
+	*cursor += reportToEidLength;
+
+	/*	Creation timestamp array.				*/
+
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, cursor));
+
+	/*	Creation time seconds.					*/
+
+	uvtemp = bundle->id.creationTime.seconds;
+	oK(cbor_encode_integer(uvtemp, cursor));
+
+	/*	Creation time count.					*/
+
+	uvtemp = bundle->id.creationTime.count;
+	oK(cbor_encode_integer(uvtemp, cursor));
+
+	/*	TTL.							*/
+
+	uvtemp = bundle->timeToLive;
+	oK(cbor_encode_integer(uvtemp, cursor));
+
+	/*	Fragment ID, if applicable.				*/
+
+	if (bundleIsFragment)
+	{
+		/*	Fragment offset.				*/
+
+		uvtemp = bundle->id.fragmentOffset;
+		oK(cbor_encode_integer(uvtemp, cursor));
+
+		/*	Total ADU length.				*/
+
+		uvtemp = bundle->totalAduLength;
+		oK(cbor_encode_integer(uvtemp, cursor));
+	}
+
+	/*	Compute and insert primary block CRC.			*/
+
+	crc16 = 0;
+	oK(cbor_encode_byte_string((unsigned char *) &crc16, 2, cursor));
+	crc16 = ion_CRC16_1021_X25((char *) startOfPrimaryBlock,
+				*cursor - startOfPrimaryBlock, 0);
+	crc16 = htons(crc16);
+	memcpy((*cursor) - 2, (char *) &crc16, 2);
+}
+
+int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
+{
+	unsigned char	payloadBuffer[50];
+	unsigned char	*cursor;
+	uvast		uvtemp;
+	int		payloadBlockHeaderLength;
+	uvast		crc;
+	uint32_t	crc32;
+	unsigned char	crcBuffer[8];
+	unsigned char	*cursor2;
+	ZcoReader	reader;
+
+	cursor = payloadBuffer;
+	uvtemp = (payload->crcType == NoCRC ? 5 : 6);
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	Block type and number are fixed.			*/
+
+	uvtemp = 1;		/*	Payload block type is 1.	*/
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	uvtemp = 1;		/*	Payload block number is 1.	*/
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Block processing flags.					*/
+
+	uvtemp = blkProcFlags;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Payload block CRC type.					*/
+
+	uvtemp = payload->crcType;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Payload byte string (CBOR header only at this point).	*/
+
+	uvtemp = payload->length;
+	oK(cbor_encode_byte_string(NULL, uvtemp, &cursor));
+
+	/*	Done with payload block header.				*/
+
+	payloadBlockHeaderLength = cursor - payloadBuffer;
+
+	/*	Prepend payload block header to payload ZCO.		*/
+
+	if (zco_prepend_header(sdr, payload->content, (char *) payloadBuffer,
+			payloadBlockHeaderLength) < 0)
+	{
+		putErrmsg("Can't prepend header to payload block.", NULL);
+		return -1;
+	}
+
+	/*	Compute and serialize payload block CRC if applicable.	*/
+
+	if (payload->crcType != NoCRC)
+	{
+		/*	Compute CRC over the entire payload block,
+		 *	including the CRC itself (temporarily 0).	*/
+
+		cursor2 = crcBuffer;
+		zco_start_transmitting(payload->content, &reader);
+		if (computeZcoCrc(payload->crcType, &reader, payload->length
+				+ payloadBlockHeaderLength, &crc, NULL) < 0)
+		{
+			putErrmsg("Can't compute payload block CRC.", NULL);
+			return -1;
+		}
+
+		/*	Append the computed CRC to the payload ZCO.	*/
+
+		if (payload->crcType == X25CRC16)
+		{
+			crc16 = crc;
+			crc16 = htons(crc16);
+			oK(cbor_encode_byte_string((unsigned char *) &crc16,
+					2, &cursor2));
+			oK(zco_append_trailer(sdr, payload->content,
+					(char *) crcBuffer, 3));
+		}
+		else
+		{
+			crc32 = crc;
+			crc32 = htonl(crc32);
+			oK(cbor_encode_byte_string((unsigned char *) &crc32,
+					4, &cursor2));
+			oK(zco_append_trailer(sdr, payload->content,
+					(char *) crcBuffer, 5));
+		}
+	}
+}
+
 static int	catenateBundle(Bundle *bundle)
 {
 	Sdr		sdr = getIonsdr();
@@ -9833,23 +10028,13 @@ static int	catenateBundle(Bundle *bundle)
 	unsigned char	*buffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
-	unsigned char	*startOfPrimaryBlock;
-	int		bundleIsFragment = 0;
-	uint16_t	crc16;
 	Object		elt;
 	Object		blkAddr;
 	ExtensionBlock	blk;
 	int		totalHeaderLength;
-	unsigned char	payloadBuffer[50];
-	unsigned char	*cursor2;
-	int		payloadBlockHeaderLength;
-	uvast		crc;
-	uint32_t	crc32;
-	unsigned char	crcBuffer[8];
-	unsigned char	*cursor3;
-	ZcoReader	reader;
+	int		result;
 	unsigned char	breakChar[1];
-	unsigned char	*cursor4;
+	unsigned char	*cursor2;
 
 	CHKZERO(ionLocked());
 
@@ -9900,96 +10085,10 @@ static int	catenateBundle(Bundle *bundle)
 
 	/*	Serialize primary block.				*/
 
-	startOfPrimaryBlock = cursor;
-	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
-	{
-		bundleIsFragment = 1;
-	}
-
-	if (bundleIsFragment)
-	{
-		uvtemp = 11;
-	}
-	else
-	{
-		uvtemp = 9;
-	}
-
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-
-	/*	Version.						*/
-
-	uvtemp = BP_VERSION;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	Bundle processing flags.				*/
-
-	uvtemp = bundle->bundleProcFlags;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	Primary block CRC type.					*/
-
-	uvtemp = X25CRC16;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	Destination.						*/
-
-	memcpy(cursor, destinationEid, destinationEidLength);
-	cursor += destinationEidLength;
-
-	/*	Source.							*/
-
-	memcpy(cursor, sourceEid, sourceEidLength);
-	cursor += sourceEidLength;
-
-	/*	Report-to.						*/
-
-	memcpy(cursor, reportToEid, reportToEidLength);
-	cursor += reportToEidLength;
-
-	/*	Creation timestamp array.				*/
-
-	uvtemp = 2;
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-
-	/*	Creation time seconds.					*/
-
-	uvtemp = bundle->id.creationTime.seconds;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	Creation time count.					*/
-
-	uvtemp = bundle->id.creationTime.count;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	TTL.							*/
-
-	uvtemp = bundle->timeToLive;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	Fragment ID, if applicable.				*/
-
-	if (bundleIsFragment)
-	{
-		/*	Fragment offset.				*/
-
-		uvtemp = bundle->id.fragmentOffset;
-		oK(cbor_encode_integer(uvtemp, &cursor));
-
-		/*	Total ADU length.				*/
-
-		uvtemp = bundle->totalAduLength;
-		oK(cbor_encode_integer(uvtemp, &cursor));
-	}
-
-	/*	Compute and insert primary block CRC.			*/
-
-	crc16 = 0;
-	oK(cbor_encode_byte_string((unsigned char *) &crc16, 2, &cursor));
-	crc16 = ion_CRC16_1021_X25((char *) startOfPrimaryBlock,
-				cursor - startOfPrimaryBlock, 0);
-	crc16 = htons(crc16);
-	memcpy(cursor - 2, (char *) &crc16, 2);
+	serializePrimaryBlk(bundle, &cursor,
+			destinationEid, destinationEidLength,
+		       	sourceEid, sourceEidLength,
+			reportToEid, reportToEidLength);
 
 	/*	Done with primary block, now insert extension blocks.	*/
 
@@ -10016,95 +10115,32 @@ static int	catenateBundle(Bundle *bundle)
 
 	/*	Serialize payload block.				*/
 
-	cursor2 = payloadBuffer;
-	uvtemp = (bundle->payload.crcType == NoCRC ? 5 : 6);
-	oK(cbor_encode_array_open(uvtemp, &cursor2));
-
-	/*	Block type and number are fixed.			*/
-
-	uvtemp = 1;		/*	Payload block type is 1.	*/
-	oK(cbor_encode_integer(uvtemp, &cursor2));
-	uvtemp = 1;		/*	Payload block number is 1.	*/
-	oK(cbor_encode_integer(uvtemp, &cursor2));
-
-	/*	Block processing flags.					*/
-
-	uvtemp = bundle->payloadBlockProcFlags;
-	oK(cbor_encode_integer(uvtemp, &cursor2));
-
-	/*	Payload block CRC type.					*/
-
-	uvtemp = bundle->payload.crcType;
-	oK(cbor_encode_integer(uvtemp, &cursor2));
-
-	/*	Payload byte string (CBOR header only at this point).	*/
-
-	uvtemp = bundle->payload.length;
-	oK(cbor_encode_byte_string(NULL, uvtemp, &cursor2));
-
-	/*	Done with payload block header.				*/
-
-	payloadBlockHeaderLength = cursor2 - payloadBuffer;
-
-	/*	Prepend payload block header to payload ZCO.		*/
-
-	oK(zco_prepend_header(sdr, bundle->payload.content,
-			(char *) payloadBuffer, payloadBlockHeaderLength));
-
-	/*	Compute and serialize payload block CRC if applicable.	*/
-
-	if (bundle->payload.crcType != NoCRC)
+	if (serializePayloadBlock(&(bundle->payload),
+			bundle->payloadBlockProcFlags) < 0)
 	{
-		/*	Compute CRC over the entire payload block,
-		 *	including the CRC itself (temporarily 0).	*/
-
-		cursor3 = crcBuffer;
-		zco_start_transmitting(bundle->payload.content, &reader);
-		if (computeZcoCrc(bundle->payload.crcType, &reader,
-			bundle->payload.length + payloadBlockHeaderLength,
-			&crc, NULL) < 0)
-		{
-			MRELEASE(buffer);
-			putErrmsg("Can't serialize payload block.", NULL);
-			return -1;
-		}
-
-		/*	Append the computed CRC to the payload ZCO.	*/
-
-		if (bundle->payload.crcType == X25CRC16)
-		{
-			crc16 = crc;
-			crc16 = htons(crc16);
-			oK(cbor_encode_byte_string((unsigned char *) &crc16,
-					2, &cursor3));
-			oK(zco_append_trailer(sdr, bundle->payload.content,
-					(char *) crcBuffer, 3));
-		}
-		else
-		{
-			crc32 = crc;
-			crc32 = htonl(crc32);
-			oK(cbor_encode_byte_string((unsigned char *) &crc32,
-					4, &cursor3));
-			oK(zco_append_trailer(sdr, bundle->payload.content,
-					(char *) crcBuffer, 5));
-		}
+		putErrmsg("Can't serialize bundle payload.", NULL);
+		MRELEASE(buffer);
+		return -1;
 	}
 
 	/*	Prepend bundle header (all other blocks) to payload ZCO.*/
 
-	oK(zco_prepend_header(sdr, bundle->payload.content, (char *) buffer,
-			totalHeaderLength));
+	result = zco_prepend_header(sdr, bundle->payload.content,
+			(char *) buffer, totalHeaderLength);
 	MRELEASE(buffer);
+	if (result < 0)
+	{
+		putErrmsg("Can't prepend bundle header to payload.", NULL);
+		return -1;
+	}
 
 	/*	Terminate indefinite array by appending break character
 	 *	to the payload ZCO (now the concatenated bundle).	*/
 
-	cursor4 = breakChar;
-	oK(cbor_encode_break(&cursor4));
-	oK(zco_append_trailer(sdr, bundle->payload.content, (char *) breakChar,
-			1));
-	return 0;
+	cursor2 = breakChar;
+	oK(cbor_encode_break(&cursor2));
+	return zco_append_trailer(sdr, bundle->payload.content,
+			(char *) breakChar, 1);
 }
 
 /*	*	*	Bundle transmission queue functions	*	*/

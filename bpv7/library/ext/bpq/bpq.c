@@ -15,11 +15,16 @@
 
 int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	return qos_serialize(blk, bundle);
+}
+
+int	qos_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[40];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	cursor = dataBuffer;
 	uvtemp = 4;
 	oK(cbor_encode_array_open(uvtemp, &cursor));

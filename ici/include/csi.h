@@ -59,14 +59,14 @@
 
 /** Ciphersuite types */
 typedef enum {
-	CSTYPE_HMAC_SHA1     = 0x001, /* From RFC 6257 */
-	CSTYPE_HMAC_SHA256   = 0x005, /* From RFC 6257 */
+	CSTYPE_HMAC_SHA1     = 0x001,	/* From RFC 6257 */
+	CSTYPE_HMAC_SHA256   = 0x005,	/* From RFC 6257 */
 	CSTYPE_HMAC_SHA384   = 0xD1,
-  	CSTYPE_ECDSA_SHA256  = 0xD2,
+	CSTYPE_ECDSA_SHA256  = 0xD2,
 	CSTYPE_ECDSA_SHA384  = 0xD3,
-  	CSTYPE_SHA256_AES128 = 0xD4,
+	CSTYPE_SHA256_AES128 = 0xD4,
 	CSTYPE_SHA384_AES256 = 0xD5,
-	CSTYPE_ARC4		     = 0x006  /* From RFC 6257 */
+	CSTYPE_ARC4	     = 0x006	/* From RFC 6257 */
 } csi_csid_t;
 
 typedef enum {

@@ -64,12 +64,16 @@
 #include "profiles.h"
 #include "csi.h"
 
+#ifndef
+#define ENCRYPT_IN_PLACE		0
+#endif
+
 #define BCB_FILENAME			"bcb_tmpfile"
 #define	MAX_TEMP_FILES_PER_SECOND	5
 
 // If bpsec debugging is turned on, then turn on bcb debugging.
 #if DEBUGGING == 1
-#define BCB_DEBUGGING 1
+#define BCB_DEBUGGING			1
 #endif
 
 #ifndef BCB_DEBUGGING
@@ -81,9 +85,9 @@
 #define BCB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BCB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BCB_DEBUG_LVL   BCB_DEBUG_LVL_ERR
+#define BCB_DEBUG_LVL			 BCB_DEBUG_LVL_ERR
 
-#define GMSG_BUFLEN     256
+#define GMSG_BUFLEN			256
 #if (BCB_DEBUGGING == 1)
 
 /**
