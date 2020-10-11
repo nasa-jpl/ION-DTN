@@ -93,9 +93,6 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	IonAlarm	*alarm;
 	time_t		currentTime;
 
-#ifdef TRACKRFXEVENTS
-#include "rfxtracker.c"
-#endif
 	switch (event->type)
 	{
 	case IonStopImputedRange:
@@ -412,6 +409,22 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 	}
 }
 
+#ifdef TRACKRFXEVENTS
+
+/*	Note: this user-provided source code MUST include a function
+ *	named handleEvent, with the same function prototype as the
+ *	default handleEvent() function defined below.  That function
+ *	MUST return the return code obtained by calling dispatchEvent().*/
+
+#include "rfxtracker.c"
+
+#else
+static int	handleEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
+{
+	return dispatchEvent(vdb, event, forecastNeeded);
+}
+#endif
+
 #if defined (ION_LWT)
 int	rfxclock(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -522,15 +535,16 @@ int	main(int argc, char *argv[])
 				break;
 			}
 
-			if (dispatchEvent(vdb, event, &forecastNeeded) < 0)
+			if (handleEvent(vdb, event, &forecastNeeded) < 0)
 			{
 				putErrmsg("Failed handling event.", NULL);
 				break;
 			}
 
-			/*	The dispatchEvent() function handles
-			 *	deletion of the timeline list element
-			 *	and event structure.			*/
+			/*	The handleEvent() function calls
+			 *	dispatchEvent(), which is responsible
+			 *	for deletion of the timeline list
+			 *	element and event structure.		*/
 		}
 
 		/*	Finally, clean up any ZCO space requisitions
