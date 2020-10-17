@@ -15,12 +15,17 @@
 
 int	bae_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	bundle->age = 0;
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	return bae_serialize(blk, bundle);
+}
+
+int	bae_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[32];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 
-	bundle->age = 0;
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	cursor = dataBuffer;
 	uvtemp = bundle->age;
 	oK(cbor_encode_integer(uvtemp, &cursor));

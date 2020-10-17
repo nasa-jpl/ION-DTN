@@ -12,6 +12,7 @@
 #include "bei.h" 
 
 extern int	bae_offer(ExtensionBlock *, Bundle *);
+extern int	bae_serialize(ExtensionBlock *, Bundle *);
 extern void	bae_release(ExtensionBlock *);
 extern int	bae_record(ExtensionBlock *, AcqExtBlock *);
 extern int	bae_copy(ExtensionBlock *, ExtensionBlock *);

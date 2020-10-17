@@ -64,10 +64,6 @@
 #include "profiles.h"
 #include "csi.h"
 
-#ifndef
-#define ENCRYPT_IN_PLACE		0
-#endif
-
 #define BCB_FILENAME			"bcb_tmpfile"
 #define	MAX_TEMP_FILES_PER_SECOND	5
 
@@ -178,15 +174,17 @@ extern int		bcbDefaultConstruct(uint32_t suite,
 extern int		bcbDefaultDecrypt(uint32_t suite,
 	       					AcqWorkArea *wk,
 						AcqExtBlock *blk,
-						uvast *bytes,
+						BpsecInboundBlock *asb,
+						BpsecInboundTarget *target,
 						char *fromEid);
 
-extern uint32_t		bcbDefaultEncrypt(uint32_t suite,
+extern int		bcbDefaultEncrypt(uint32_t suite,
 						Bundle *bundle,
 						ExtensionBlock *blk,
 						BpsecOutboundBlock *asb,
+						BpsecOutboundTarget *target,
 						size_t xmitRate,
-						uvast *bytes,
+						uvast *length,
 						char *toEid);
 
 extern BcbProfile	*bcbGetProfile(char *secSrc,
@@ -210,5 +208,11 @@ extern int		bcbProcessOnDequeue(ExtensionBlock *blk,
 						void *parm);
 
 extern void		bcbRelease(ExtensionBlock *blk);
+
+extern int		bcbSerialize(ExtensionBlock *blk, Bundle *bundle);
+
+extern int		bpsec_encrypt(Bundle *bundle);
+
+extern int		bpsec_decrypt(AcqWorkArea *work);
 
 #endif /* BCB_H_ */

@@ -391,11 +391,11 @@ int	sec_findBPsecBibRule(char *secSrcEid, char *secDestEid, int blkType,
 }
 
 int	sec_addBPsecBibRule(char *secSrcEid, char *secDestEid,
-		BpBlockType blockType, char *ciphersuiteName, char *keyName)
+		BpBlockType blockType, char *profileName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = getSecConstants();
-	int		csNameLen;
+	int		profNameLen;
 	int		keyNameLen;
 	char		buffer[256];
 	int		bufferLength = sizeof buffer;
@@ -405,13 +405,13 @@ int	sec_addBPsecBibRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
-	CHKERR(ciphersuiteName);
+	CHKERR(profileName);
 	CHKERR(keyName);
 	CHKERR(secdb);
-	csNameLen = istrlen(ciphersuiteName, 32);
-       	if (csNameLen > 31)
+	profNameLen = istrlen(profileName, 32);
+       	if (profNameLen > 31)
 	{
-		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
+		writeMemoNote("[?] Profile name too long", profileName);
 		return 0;
 	}
 
@@ -422,32 +422,29 @@ int	sec_addBPsecBibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if (csNameLen == 0)
+	if (profNameLen == 0)
 	{
 		if (keyNameLen != 0)
 		{
-			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			writeMemoNote("[?] Profile name omitted", keyName);
 			return 0;
 		}
 	}
 	else
 	{
-		if (keyNameLen == 0)
+		if (keyNameLen > 0)
 		{
-			writeMemoNote("[?] Key name omitted", ciphersuiteName);
-			return 0;
+			if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+			{
+				writeMemoNote("[?] Invalid key name", keyName);
+				return 0;
+			}
 		}
-
-		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+	
+		if (get_bib_prof_by_name(profileName) == NULL)
 		{
-			writeMemoNote("[?] Invalid key name", keyName);
-			return 0;
-		}
-
-		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
-		{
-			writeMemoNote("[?] Not a known BIB ciphersuite",
-					ciphersuiteName);
+			writeMemoNote("[?] Not a known BIB profile",
+					profileName);
 			return 0;
 		}
 	}
@@ -471,8 +468,7 @@ int	sec_addBPsecBibRule(char *secSrcEid, char *secDestEid,
 	rule.securitySrcEid = sdr_string_create(sdr, secSrcEid);
 	rule.destEid = sdr_string_create(sdr, secDestEid);
 	rule.blockType = blockType;
-	istrcpy(rule.ciphersuiteName, ciphersuiteName,
-			sizeof rule.ciphersuiteName);
+	istrcpy(rule.profileName, profileName, sizeof rule.profileName);
 	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	ruleObj = sdr_malloc(sdr, sizeof(BPsecBibRule));
 	if (ruleObj == 0)
@@ -494,10 +490,10 @@ int	sec_addBPsecBibRule(char *secSrcEid, char *secDestEid,
 }
 
 int	sec_updateBPsecBibRule(char *secSrcEid, char *secDestEid,
-		int BlockTypeNbr, char *ciphersuiteName, char *keyName)
+		int BlockTypeNbr, char *profileName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
-	int		csNameLen;
+	int		profNameLen;
 	int		keyNameLen;
 	char		buffer[256];
 	int		bufferLength = sizeof buffer;
@@ -507,12 +503,12 @@ int	sec_updateBPsecBibRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
-	CHKERR(ciphersuiteName);
+	CHKERR(profileName);
 	CHKERR(keyName);
-	csNameLen = istrlen(ciphersuiteName, 32);
-       	if (csNameLen > 31)
+	profNameLen = istrlen(profileName, 32);
+       	if (profNameLen > 31)
 	{
-		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
+		writeMemoNote("[?] Profile name too long", profileName);
 		return 0;
 	}
 
@@ -523,32 +519,29 @@ int	sec_updateBPsecBibRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if (csNameLen == 0)
+	if (profNameLen == 0)
 	{
 		if (keyNameLen != 0)
 		{
-			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			writeMemoNote("[?] Profile name omitted", keyName);
 			return 0;
 		}
 	}
 	else
 	{
-		if (keyNameLen == 0)
+		if (keyNameLen > 0)
 		{
-			writeMemoNote("[?] Key name omitted", ciphersuiteName);
-			return 0;
+			if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+			{
+				writeMemoNote("[?] Invalid key name", keyName);
+				return 0;
+			}
 		}
 
-		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		if (get_bib_prof_by_name(profileName) == NULL)
 		{
-			writeMemoNote("[?] Invalid key name", keyName);
-			return 0;
-		}
-
-		if (get_bib_prof_by_name(ciphersuiteName) == NULL)
-		{
-			writeMemoNote("[?] Not a known BIB ciphersuite",
-					ciphersuiteName);
+			writeMemoNote("[?] Not a known BIB profile",
+					profileName);
 			return 0;
 		}
 	}
@@ -569,8 +562,7 @@ int	sec_updateBPsecBibRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BPsecBibRule));
-	istrcpy(rule.ciphersuiteName, ciphersuiteName,
-			sizeof rule.ciphersuiteName);
+	istrcpy(rule.profileName, profileName, sizeof rule.profileName);
 	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BPsecBibRule));
 	if (sdr_end_xn(sdr) < 0)
@@ -702,11 +694,11 @@ int	sec_findBPsecBcbRule(char *secSrcEid, char *secDestEid, int blkType,
 }
 
 int	sec_addBPsecBcbRule(char *secSrcEid, char *secDestEid,
-		BpBlockType blockType, char *ciphersuiteName, char *keyName)
+		BpBlockType blockType, char *profileName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
 	SecDB		*secdb = getSecConstants();
-	int		csNameLen;
+	int		profNameLen;
 	int		keyNameLen;
 	char		buffer[256];
 	int		bufferLength = sizeof buffer;
@@ -716,13 +708,13 @@ int	sec_addBPsecBcbRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
-	CHKERR(ciphersuiteName);
+	CHKERR(profileName);
 	CHKERR(keyName);
 	CHKERR(secdb);
-	csNameLen = istrlen(ciphersuiteName, 32);
-       	if (csNameLen > 31)
+	profNameLen = istrlen(profileName, 32);
+       	if (profNameLen > 31)
 	{
-		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
+		writeMemoNote("[?] Profile name too long", profileName);
 		return 0;
 	}
 
@@ -733,32 +725,29 @@ int	sec_addBPsecBcbRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if (csNameLen == 0)
+	if (profNameLen == 0)
 	{
 		if (keyNameLen != 0)
 		{
-			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			writeMemoNote("[?] Profile name omitted", keyName);
 			return 0;
 		}
 	}
 	else
 	{
-		if (keyNameLen == 0)
+		if (keyNameLen > 0)
 		{
-			writeMemoNote("[?] Key name omitted", ciphersuiteName);
-			return 0;
+			if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+			{
+				writeMemoNote("[?] Invalid key name", keyName);
+				return 0;
+			}
 		}
 
-		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		if (get_bcb_prof_by_name(profileName) == NULL)
 		{
-			writeMemoNote("[?] Invalid key name", keyName);
-			return 0;
-		}
-
-		if (get_bcb_prof_by_name(ciphersuiteName) == NULL)
-		{
-			writeMemoNote("[?] Not a known BCB ciphersuite",
-					ciphersuiteName);
+			writeMemoNote("[?] Not a known BCB profile",
+					profileName);
 			return 0;
 		}
 	}
@@ -769,7 +758,6 @@ int	sec_addBPsecBcbRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	/* Don't expect a rule here already...*/
 	if (sec_findBPsecBcbRule(secSrcEid, secDestEid, blockType, &ruleObj,
 			&elt) != 0)
 	{
@@ -783,8 +771,7 @@ int	sec_addBPsecBcbRule(char *secSrcEid, char *secDestEid,
 	rule.securitySrcEid = sdr_string_create(sdr, secSrcEid);
 	rule.destEid = sdr_string_create(sdr, secDestEid);
 	rule.blockType = blockType;
-	istrcpy(rule.ciphersuiteName, ciphersuiteName,
-			sizeof rule.ciphersuiteName);
+	istrcpy(rule.profileName, profileName, sizeof rule.profileName);
 	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	ruleObj = sdr_malloc(sdr, sizeof(BPsecBcbRule));
 	if (ruleObj == 0)
@@ -807,10 +794,10 @@ int	sec_addBPsecBcbRule(char *secSrcEid, char *secDestEid,
 }
 
 int	sec_updateBPsecBcbRule(char *secSrcEid, char *secDestEid,
-		int BlockTypeNbr, char *ciphersuiteName, char *keyName)
+		int BlockTypeNbr, char *profileName, char *keyName)
 {
 	Sdr		sdr = getIonsdr();
-	int		csNameLen;
+	int		profNameLen;
 	int		keyNameLen;
 	char		buffer[256];
 	int		bufferLength = sizeof buffer;
@@ -820,12 +807,12 @@ int	sec_updateBPsecBcbRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(secSrcEid);
 	CHKERR(secDestEid);
-	CHKERR(ciphersuiteName);
+	CHKERR(profileName);
 	CHKERR(keyName);
-	csNameLen = istrlen(ciphersuiteName, 32);
-       	if (csNameLen > 31)
+	profNameLen = istrlen(profileName, 32);
+       	if (profNameLen > 31)
 	{
-		writeMemoNote("[?] Ciphersuite name too long", ciphersuiteName);
+		writeMemoNote("[?] Profile name too long", profileName);
 		return 0;
 	}
 
@@ -836,32 +823,29 @@ int	sec_updateBPsecBcbRule(char *secSrcEid, char *secDestEid,
 		return 0;
 	}
 
-	if (csNameLen == 0)
+	if (profNameLen == 0)
 	{
 		if (keyNameLen != 0)
 		{
-			writeMemoNote("[?] Ciphersuite name omitted", keyName);
+			writeMemoNote("[?] Profile name omitted", keyName);
 			return 0;
 		}
 	}
 	else
 	{
-		if (keyNameLen == 0)
+		if (keyNameLen > 0)
 		{
-			writeMemoNote("[?] Key name omitted", ciphersuiteName);
-			return 0;
+			if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+			{
+				writeMemoNote("[?] Invalid key name", keyName);
+				return 0;
+			}
 		}
 
-		if (sec_get_key(keyName, &bufferLength, buffer) < 1)
+		if (get_bcb_prof_by_name(profileName) == NULL)
 		{
-			writeMemoNote("[?] Invalid key name", keyName);
-			return 0;
-		}
-
-		if (get_bcb_prof_by_name(ciphersuiteName) == NULL)
-		{
-			writeMemoNote("[?] Not a known BCB ciphersuite",
-					ciphersuiteName);
+			writeMemoNote("[?] Not a known BCB profile",
+					profileName);
 			return 0;
 		}
 	}
@@ -883,8 +867,8 @@ int	sec_updateBPsecBcbRule(char *secSrcEid, char *secDestEid,
 
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &rule, ruleObj, sizeof(BPsecBcbRule));
-	istrcpy(rule.ciphersuiteName, ciphersuiteName,
-			sizeof rule.ciphersuiteName);
+	istrcpy(rule.profileName, profileName,
+			sizeof rule.profileName);
 	istrcpy(rule.keyName, keyName, sizeof rule.keyName);
 	sdr_write(sdr, ruleObj, (char *) &rule, sizeof(BPsecBcbRule));
 	if (sdr_end_xn(sdr) < 0)
@@ -1078,7 +1062,7 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 	CHKVOID(sdr_begin_xn(sdr));
 	cursor = buffer;
 
-	/* Walk through the BIB rules and gather ciphersuite names. */
+	/* Walk through the BIB rules and gather profile names. */
 
 	for (elt = sdr_list_first(sdr, secdb->bpsecBibRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1088,9 +1072,9 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 		GET_OBJ_POINTER(sdr, BPsecBibRule, bibRule, obj);
 
 		/* Make sure there is room in the buffer to
-		 * hold the ciphersuite name.
+		 * hold the profile name.
 		 */
-		size = strlen(bibRule->ciphersuiteName);
+		size = strlen(bibRule->profileName);
 		if ((size > 0) && (size <= 32))
 		{
 			if ((idx + size + 1) > length)
@@ -1101,7 +1085,7 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 			}
 
 			/* Copy current key name into the buffer. */
-			memcpy(cursor, bibRule->ciphersuiteName, size);
+			memcpy(cursor, bibRule->profileName, size);
 			cursor += size;
 			*cursor = ',';
 			cursor += 1;
@@ -1109,7 +1093,7 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 		}
 	}
 
-	/* Walk through the BCB rules and gather ciphersuite names. */
+	/* Walk through the BCB rules and gather profile names. */
 	for (elt = sdr_list_first(sdr, secdb->bpsecBcbRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1118,9 +1102,9 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 		GET_OBJ_POINTER(sdr, BPsecBcbRule, bcbRule, obj);
 
 		/* Make sure there is room in the buffer to
-		 * hold the ciphersuite name.
+		 * hold the profile name.
 		 */
-		size = strlen(bcbRule->ciphersuiteName);
+		size = strlen(bcbRule->profileName);
 		if ((size > 0) && (size <= 32))
 		{
 			if ((idx + size + 1) > length)
@@ -1131,7 +1115,7 @@ void sec_get_bpsecCSNames(char *buffer, int length)
 			}
 
 			/* Copy current key name into the buffer. */
-			memcpy(cursor, bcbRule->ciphersuiteName, size);
+			memcpy(cursor, bcbRule->profileName, size);
 			cursor += size;
 			*cursor = ',';
 			cursor += 1;
@@ -1189,7 +1173,7 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 	CHKVOID(sdr_begin_xn(sdr));
 	cursor = buffer;
 
-	/* Walk through the BIB rules and gather ciphersuite names. */
+	/* Walk through the BIB rules and gather source EIDs. */
 
 	for (elt = sdr_list_first(sdr, secdb->bpsecBibRules); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -1199,7 +1183,7 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 		GET_OBJ_POINTER(sdr, BPsecBibRule, bibRule, obj);
 
 		/* Make sure there is room in the buffer to
-		 * hold the ciphersuite name.
+		 * hold the source EID.
 		 */
 
 		size = sdr_string_read(sdr, eidBuffer, bibRule->securitySrcEid);
@@ -1221,7 +1205,7 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 		}
 	}
 
-	/* Walk through the BCB rules and gather ciphersuite names. */
+	/* Walk through the BCB rules and gather source EID names. */
 	for (elt = sdr_list_first(sdr, secdb->bpsecBcbRules); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
@@ -1230,7 +1214,7 @@ void sec_get_bpsecSrcEIDs(char *buffer, int length)
 		GET_OBJ_POINTER(sdr, BPsecBcbRule, bcbRule, obj);
 
 		/* Make sure there is room in the buffer to
-		 * hold the ciphersuite name.
+		 * hold the source EID.
 		 */
 		size = sdr_string_read(sdr, eidBuffer, bcbRule->securitySrcEid);
 		if ((size > 0) && (size <= 32))

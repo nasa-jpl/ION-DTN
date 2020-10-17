@@ -266,7 +266,7 @@ static void	printBPsecBibRule(Object ruleAddr)
 	sdr_string_read(sdr, destEidBuf, rule->destEid);
 	isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
 type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-		rule->blockType, rule->ciphersuiteName, rule->keyName);
+		rule->blockType, rule->profileName, rule->keyName);
 	printText(buf);
 }
 
@@ -282,7 +282,7 @@ static void     printBPsecBcbRule(Object ruleAddr)
         sdr_string_read(sdr, destEidBuf, rule->destEid);
         isprintf(buf, sizeof buf, "rule src eid '%.255s' dest eid '%.255s' \
 type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-		rule->blockType, rule->ciphersuiteName, rule->keyName);
+		rule->blockType, rule->profileName, rule->keyName);
         printText(buf);
 }
 

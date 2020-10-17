@@ -164,10 +164,13 @@ extern uint32_t	bibDefaultResultLen(uint32_t suite, uint8_t tlv);
 
 extern int	bibDefaultSign(uint32_t suite, Bundle *bundle,
 			ExtensionBlock *blk, BpsecOutboundBlock *asb,
-			uvast *bytes, char *toEid);
+			BpsecOutboundTarget *target, Object targetZco,
+			char *toEid);
 
 extern int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk,
-			AcqExtBlock *blk, uvast *bytes, char *fromEid);
+			AcqExtBlock *blk, BpsecInboundBlock *asb,
+			BpsecInboundTarget *target, Object targetZco,
+			char *fromEid);
 
 extern BibProfile *bibGetProfile(char *securitySource, char *securityDest,
 			BpBlockType targetBlkType, BPsecBibRule *bibRule);
@@ -180,6 +183,12 @@ extern int	bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
 			void *parm);
 
 extern void	bibRelease(ExtensionBlock *blk);
+
+extern int	bibSerialize(ExtensionBlock *blk, Bundle *bundle);
+
+extern int	bpsec_sign(Bundle *bundle);
+
+extern int	bpsec_verify(AcqWorkArea *work);
 
 
 #endif /* BIB_H_ */

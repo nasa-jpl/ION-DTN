@@ -71,7 +71,7 @@
 typedef struct
 {
 	BpBlockType	type;		/**	Per definitions array.	*/
-	unsigned char	number;		//	To be developed.
+	unsigned char	number;		/**	Identifies the block.	*/
 	unsigned char	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
@@ -100,7 +100,7 @@ typedef struct
 typedef struct
 {
 	BpBlockType	type;		/**	Per definitions array.	*/
-	unsigned char	number;		//	To be developed.
+	unsigned char	number;		/**	Identifies the block.	*/
 	unsigned char	blkProcFlags;	/**	Per BP spec.		*/
 	unsigned int	dataLength;	/**	Block content.		*/
 	unsigned int	length;		/**	Length of bytes array.	*/
@@ -157,54 +157,22 @@ typedef struct
 	BpAcqExtBlkClearFn	clear;		/** Clear 		*/
 } ExtensionDef;
 
-/*	NOTE: the "tag" values associated with block types in
- *	extension specs have extension-specific semantics.  For
- *	some applications, the BIB and BCB extensions in particular,
- *	the tag value noted in the extension spec associates the
- *	block with one or more other blocks of the bundle, termed
- *	"target" blocks.
- *
- *	When this is the case, ION uses the numeric value of the
- *	tag as a subscript into an array of "target scope" objects.
- *	Each target scope contains an array of target references,
- *	each of which is in turn a subscript into an array of
- *	"target specification" objects.  Each target specfication
- *	object identifies, by block type and tag value, one of the
- *	extension blocks that have been inserted into the outbound
- *	bundle.
- *
- *	This mechanism enables multiple target blocks, each one
- *	identifed by a ExtensionTargetSpec, to be aggregated into a
- *	single ExtensionTargetScope that functions as the (possibly
- *	plural) target of a single extension block.			*/
-
-typedef struct
-{
-	BpBlockType		blockType;
-	char			tag;	/*	Extension-specific	*/
-} ExtensionTargetSpec;
-
-typedef struct
-{
-	int			count;
-	ExtensionTargetSpec	*targets;	/*	Array		*/
-} ExtensionTargetScope;
-
 /*****************************************************************************
  *                             FUNCTION PROTOTYPES                           *
  *****************************************************************************/
 
 /*	Functions that operate on outbound extension blocks		*/
 
-extern int	attachExtensionBlock(ExtensionSpec *spec, ExtensionBlock *blk,
+extern Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
 			Bundle *bundle);
 /**
  * \par Function Name: copyExtensionBlock
  * \par Purpose:
  * \retval int
- * \param[out] newBundle The Bundle receiving the copied blocks
- * \param[in]  oldBundle The Bundle containing the original blocks.
- * \par Notes:
+ * \param[in]		image of new block
+ * \param[in/out]	bundle containing the new block
+ * \par Notes:	Returns the address of the newly created block, or
+ * 		zero on any error.
  * \par Revision History:
  *  MM/DD/YY  AUTHOR        IONWG#    DESCRIPTION
  *  --------  ------------  ------ ----------------------------------------
@@ -301,8 +269,10 @@ extern int	parseExtensionBlocks(AcqWorkArea *wk);
 extern int	checkPerExtensionBlocks(AcqWorkArea *wk);
 extern void	deleteAcqExtBlock(LystElt elt);
 
+extern LystElt	getAcqExtensionBlock(AcqWorkArea *wk, unsigned char nbr);
+
 /**
- * \par Function Name: discardExtensionBlock
+ * \par Function Name: discardAcqExtensionBlock
  * \par Purpose:
  * \retval void
  * \param[in]  blk  The inbound block being discarded.
@@ -312,7 +282,7 @@ extern void	deleteAcqExtBlock(LystElt elt);
  *  --------  ------------  ------ ----------------------------------------
  *            S. Burleigh		   Initial Implementation
  */
-extern void	discardExtensionBlock(AcqExtBlock *blk);
+extern void	discardAcqExtensionBlock(AcqExtBlock *blk);
 extern int	recordExtensionBlocks(AcqWorkArea *wk);
 
 /*	Functions that operate on extension block definitions		*/

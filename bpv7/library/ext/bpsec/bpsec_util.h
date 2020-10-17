@@ -215,11 +215,6 @@ the block's sourceEID.)							*/
 typedef struct
 {
 	uint8_t		targetBlockNumber;
-#if 0
-	BpBlockType	targetBlockType;
-	uint8_t		metatargetBlockNumber;
-	BpBlockType	metatargetBlockType;
-#endif
 	Lyst		results;/*	Lyst of csi_inbound_tvs		*/
 } BpsecInboundTarget;
 
@@ -261,11 +256,6 @@ typedef struct
 typedef struct
 {
 	uint8_t		targetBlockNumber;
-#if 0
-	BpBlockType	targetBlockType;
-	uint8_t		metatargetBlockNumber;
-	BpBlockType	metatargetBlockType;
-#endif
 	Object		results;/*	sdr_list of BpsecOutboundTlvs	*/
 } BpsecOutboundTarget;
 
@@ -303,9 +293,6 @@ extern int		bpsec_recordAsb(ExtensionBlock *newBlk,
 extern int		bpsec_copyAsb(ExtensionBlock *newBlk,
 				ExtensionBlock *oldBlk);
 
-extern int		bpsec_getInboundTarget(Lyst targets,
-				BpsecInboundTarget **target);
-
 extern int		bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 				sci_inbound_parms *parms);
 
@@ -315,43 +302,31 @@ extern int		bpsec_appendItem(Sdr sdr, Object list,
 extern int		bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb,
 				uint8_t nbr);
 
+extern int		bpsec_canonicalizeOut(Bundle *bundle, uint8_t blkNbr,
+				Object *zcoOut);
+
+extern int		bpsec_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr,
+				Object *zcoOut);
+
 extern int		bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
+
+extern int		bpsec_BibRuleApplies(Bundle *bundle, BPsecBibRule *r);
+extern int		bpsec_BcbRuleApplies(Bundle *bundle, BPsecBcbRule *r);
 
 extern int		bpsec_destinationIsLocal(Bundle *bundle);
 
-extern Object		bpsec_findBlock(Bundle *bundle, BpBlockType type,
-				unsigned char targetBlockNumber);
-#if 0
-extern void		bpsec_getInboundItem(int itemNeeded, unsigned char *buf,
-				unsigned int bufLen, unsigned char **val,
-				unsigned int *len);
-#endif
-extern int		bpsec_getInboundSecurityEids(Bundle *bundle,
-				AcqExtBlock *blk, BpsecInboundBlock *asb,
-				char **fromEid, char **toEid);
-#if 0
-extern int		bpsec_getInboundSecuritySource(AcqExtBlock *blk,
-				char **fromEid);
-#endif
 extern char		*bpsec_getLocalAdminEid(char *eid);
 
 extern void		bpsec_getOutboundItem(uint8_t itemNeeded, Object items,
 				Object *tvp);
 
-extern int		bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
-				char **fromEid);
+extern int		bpsec_getOutboundSecuritySource(Bundle *bundle,
+				BpsecOutboundBlock *asb, char **fromEid);
 
 extern void		bpsec_insertSecuritySource(Bundle *bundle,
 				BpsecOutboundBlock *asb);
 
 extern sci_inbound_tlv	bpsec_retrieveKey(char *keyName);
-
-extern int		bpsec_securityPolicyViolated(AcqWorkArea *wk);
-
-extern int		bpsec_requiredBlockExists(AcqWorkArea *wk,
-				BpBlockType bpsecBlockType,
-				BpBlockType targetBlockType,
-				char *secSrcEid);
 
 extern unsigned char	*bpsec_serializeASB(uint32_t *length,
 				BpsecOutboundBlock *blk);

@@ -14,6 +14,7 @@
 #include "bei.h" 
 
 extern int	imc_offer(ExtensionBlock *, Bundle *);
+extern int	imc_serialize(ExtensionBlock *, Bundle *);
 extern void	imc_release(ExtensionBlock *);
 extern int	imc_record(ExtensionBlock *, AcqExtBlock *);
 extern int	imc_copy(ExtensionBlock *, ExtensionBlock *);

@@ -19,13 +19,18 @@
 
 int	hcb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	bundle->hopCount = 0;
+	bundle->hopLimit = ION_HOP_LIMIT;
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	return hcb_serialize(blk, bundle);
+}
+
+int	hcb_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[24];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 
-	bundle->hopCount = 0;
-	bundle->hopLimit = ION_HOP_LIMIT;
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	cursor = dataBuffer;
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));

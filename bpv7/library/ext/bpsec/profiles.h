@@ -50,16 +50,19 @@
 typedef int	(*BibConstructFn)(uint16_t, ExtensionBlock *,
 			BpsecOutboundBlock *);
 typedef int	(*BibSignFn)(uint16_t, Bundle *, ExtensionBlock *,
-			BpsecOutboundBlock *, uvast *, char *);
+			BpsecOutboundBlock *, BpsecOutboundTarget *,
+			Object, char *);
 typedef int	(*BibVerifyFn)(uint16_t, AcqWorkArea *, AcqExtBlock *,
-			uvast *, char *);
+			BpsecInboundBlock *, BpsecInboundTarget *,
+			Object, char *);
 
 typedef int	(*BcbConstructFn)(uint16_t, ExtensionBlock *,
 			BpsecOutboundBlock *);
 typedef int	(*BcbEncryptFn)(uint16_t, Bundle *, ExtensionBlock *,
-			BpsecOutboundBlock *, size_t, uvast *, char *);
+			BpsecOutboundBlock *, BpsecOutboundTarget *,
+			size_t, uvast *, char *);
 typedef int	(*BcbDecryptFn)(uint16_t, AcqWorkArea *, AcqExtBlock *,
-			uvast *, char *);
+			BpsecInboundBlock *, BpsecInboundTarget *, char *);
 
 /**
  * PROFILES
@@ -79,7 +82,7 @@ typedef struct
 {
 	uint16_t	profNbr;	/*	A.K.A. context ID	*/
 	char		*profName;
-	uint16_t	suiteId;
+	uint16_t	suiteId;	/*	Ciphersuite number	*/
 	BibConstructFn	construct;
 	BibSignFn	sign;
 	BibVerifyFn	verify;
@@ -89,7 +92,7 @@ typedef struct
 {
 	uint16_t	profNbr;	/*	A.K.A. context ID	*/
 	char		*profName;
-	uint16_t    	suiteId;
+	uint16_t    	suiteId;	/*	Ciphersuite number	*/
 	BcbConstructFn	construct;
 	BcbEncryptFn	encrypt;
 	BcbDecryptFn	decrypt;

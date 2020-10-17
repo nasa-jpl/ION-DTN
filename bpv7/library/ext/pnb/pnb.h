@@ -12,6 +12,7 @@
 #include "bei.h"
 
 extern int	pnb_offer(ExtensionBlock *, Bundle *);
+extern int	pnb_serialize(ExtensionBlock *, Bundle *);
 extern void	pnb_release(ExtensionBlock *);
 extern int	pnb_record(ExtensionBlock *, AcqExtBlock *);
 extern int	pnb_copy(ExtensionBlock *, ExtensionBlock *);

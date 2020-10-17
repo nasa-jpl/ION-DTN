@@ -12,6 +12,7 @@
 #include "bei.h" 
 
 extern int	meb_offer(ExtensionBlock *, Bundle *);
+extern int	meb_serialize(ExtensionBlock *, Bundle *);
 extern void	meb_release(ExtensionBlock *);
 extern int	meb_record(ExtensionBlock *, AcqExtBlock *);
 extern int	meb_copy(ExtensionBlock *, ExtensionBlock *);

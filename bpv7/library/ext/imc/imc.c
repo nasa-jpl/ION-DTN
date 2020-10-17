@@ -23,6 +23,54 @@ int	imc_offer(ExtensionBlock *blk, Bundle *bundle)
 	return 0;
 }
 
+int	imc_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
+	Sdr		sdr = getIonsdr();
+	int		nbrOfDestinationNodes;
+	int		bufferLength;
+	unsigned char	*dataBuffer;
+	unsigned char	*cursor;
+	uvast		uvtemp;
+	Object		elt;
+	int		result;
+
+	if (bundle->destinations == 0)
+	{
+		return 0;	/*	IMC block is unnecessary.	*/
+	}
+
+	nbrOfDestinationNodes = sdr_list_length(sdr, bundle->destinations);
+	if (nbrOfDestinationNodes == 0)
+	{
+		return 0;	/*	IMC block is unnecessary.	*/
+	}
+
+	/*	Insert the new list of destinations into the block.	*/
+
+	bufferLength = 9 * (nbrOfDestinationNodes + 1);
+	dataBuffer = MTAKE(bufferLength);
+	if (dataBuffer == NULL)
+	{
+		putErrmsg("No space for constructing IMC block.", NULL);
+		return -1;
+	}
+
+	cursor = dataBuffer;
+	uvtemp = nbrOfDestinationNodes;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+	for (elt = sdr_list_first(sdr, bundle->destinations); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		uvtemp = (uvast) sdr_list_data(sdr, elt);
+		oK(cbor_encode_integer(uvtemp, &cursor));
+	}
+
+	blk->dataLength = cursor - dataBuffer;
+	result = serializeExtBlk(blk, (char *) dataBuffer);
+	MRELEASE(dataBuffer);
+	return result;
+}
+
 void	imc_release(ExtensionBlock *blk)
 {
 	Sdr	sdr = getIonsdr();
@@ -94,14 +142,7 @@ int	imc_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 int	imc_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
-	Sdr		sdr = getIonsdr();
-	int		nbrOfDestinationNodes;
-	int		bufferLength;
-	unsigned char	*dataBuffer;
-	unsigned char	*cursor;
-	uvast		uvtemp;
-	Object		elt;
-	int		result;
+	Sdr	sdr = getIonsdr();
 
 	if (blk->object)
 	{
@@ -112,41 +153,7 @@ int	imc_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	}
 
 	blk->size = 0;	/*	Zero out object size, bogus or not.	*/
-	if (bundle->destinations == 0)
-	{
-		return 0;	/*	IMC block is unnecessary.	*/
-	}
-
-	nbrOfDestinationNodes = sdr_list_length(sdr, bundle->destinations);
-	if (nbrOfDestinationNodes == 0)
-	{
-		return 0;	/*	IMC block is unnecessary.	*/
-	}
-
-	/*	Insert the new list of destinations into the block.	*/
-
-	bufferLength = 9 * (nbrOfDestinationNodes + 1);
-	dataBuffer = MTAKE(bufferLength);
-	if (dataBuffer == NULL)
-	{
-		putErrmsg("No space for constructing IMC block.", NULL);
-		return -1;
-	}
-
-	cursor = dataBuffer;
-	uvtemp = nbrOfDestinationNodes;
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-	for (elt = sdr_list_first(sdr, bundle->destinations); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		uvtemp = (uvast) sdr_list_data(sdr, elt);
-		oK(cbor_encode_integer(uvtemp, &cursor));
-	}
-
-	blk->dataLength = cursor - dataBuffer;
-	result = serializeExtBlk(blk, (char *) dataBuffer);
-	MRELEASE(dataBuffer);
-	return result;
+	return imc_serialize(blk, bundle);
 }
 
 int	imc_parse(AcqExtBlock *blk, AcqWorkArea *wk)

@@ -31,6 +31,8 @@
 #include "saga.h"
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
+#include "bib.h"
+#include "bcb.h"
 
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
@@ -6025,9 +6027,7 @@ static int	insertExtensions(Bundle *bundle, ExtensionSpec *extensions,
 		{
 			memset((char *) &blk, 0, sizeof(ExtensionBlock));
 			blk.type = spec->type;
-			blk.tag1 = spec->tag1;
-			blk.tag2 = spec->tag2;
-			blk.tag3 = spec->tag3;
+			blk.tag = spec->tag;
 			blk.crcType = spec->crcType;
 			if (def->offer(&blk, bundle) < 0)
 			{
@@ -6041,7 +6041,7 @@ static int	insertExtensions(Bundle *bundle, ExtensionSpec *extensions,
 				continue;
 			}
 
-			if (attachExtensionBlock(spec, &blk, bundle) < 0)
+			if (attachExtensionBlock(spec->type, &blk, bundle) < 0)
 			{
 				putErrmsg("Failed attaching extension block.",
 						NULL);
@@ -8223,9 +8223,12 @@ static int	acquireBlock(AcqWorkArea *work)
 	blkNumber = uvtemp;
 	itemsRemaining -= 1;
 
-	/*	Acquire block processing flags.				*/
+	/*	Acquire block processing flags, and change the value
+	 *	of that field to zero during acquisition to support
+	 *	future cryptographic verification of block integrity.	*/
 
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	if (cbor_decode_integer_destructive(&uvtemp, CborAny, &cursor,
+			&unparsedBytes) < 1)
 	{
 		writeMemo("[?] Missing block flags in canonical block.");
 		return 0;
@@ -8827,9 +8830,9 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	/*	Do all decryption indicated by extension blocks.	*/
 
-	if (decryptPerExtensionBlocks(work) < 0)
+	if (bpsec_decrypt(work) < 0)
 	{
-		putErrmsg("Failed parsing extension blocks.", NULL);
+		putErrmsg("Failed decrypting extension blocks.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -8882,8 +8885,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	/*	Check authenticity and integrity.			*/
 
 	initAuthenticity(work);	/*	Set default.			*/
-	if (checkPerExtensionBlocks(work) < 0)
-//<<-- Must call bpsec_securityPolicyViolated inside this check, somehow.
+	if (bpsec_verify(work) < 0)
 	{
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(sdr);
@@ -9927,11 +9929,13 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 {
+	Sdr		sdr = getIonsdr();
 	unsigned char	payloadBuffer[50];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		payloadBlockHeaderLength;
 	uvast		crc;
+	uint16_t	crc16;
 	uint32_t	crc32;
 	unsigned char	crcBuffer[8];
 	unsigned char	*cursor2;
@@ -10013,6 +10017,8 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 					(char *) crcBuffer, 5));
 		}
 	}
+
+	return 0;
 }
 
 static int	catenateBundle(Bundle *bundle)
@@ -10085,7 +10091,7 @@ static int	catenateBundle(Bundle *bundle)
 
 	/*	Serialize primary block.				*/
 
-	serializePrimaryBlk(bundle, &cursor,
+	serializePrimaryBlock(bundle, &cursor,
 			destinationEid, destinationEidLength,
 		       	sourceEid, sourceEidLength,
 			reportToEid, reportToEidLength);
@@ -10935,6 +10941,24 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 
 		destroyBpTimelineEvent(bundle.overdueElt);
 		bundle.overdueElt = 0;
+	}
+
+	/*	Next we sign the bundle's blocks per all applicable
+	 *	BIB rules and we then encrypt blocks per all
+	 *	applicable BCB rules.					*/
+
+	if (bpsec_sign(&bundle) < 0)
+	{
+		putErrmsg("Failed signing bundle blocks.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	if (bpsec_encrypt(&bundle) < 0)
+	{
+		putErrmsg("Failed encrypting bundle blocks.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
 	}
 
 	/*	We now serialize the bundle header and prepend that

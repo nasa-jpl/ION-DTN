@@ -44,26 +44,26 @@ static ExtensionDef	extensionDefs[] =
 				0
 		},
 		{ "bcb", BlockConfidentialityBlk,
-				bcbOffer,
-				bcbserialize,
+				0,
+				bcbSerialize,
 				{0,
 				0,
 				0,
-				bcbProcessOnDequeue,
+				0,
 				0},
 				bcbRelease,
 				bcbCopy,
 				bcbAcquire,
-				bcbReview,
-				bcbDecrypt,
+				0,
+				0,
 				0,
 				0,
                                 bcbRecord,
 				bcbClear
 		},
 		{ "bib", BlockIntegrityBlk,
-				bibOffer,
-				bibserialize,
+				0,
+				bibSerialize,
 				{0,
 				0,
 				0,
@@ -72,10 +72,10 @@ static ExtensionDef	extensionDefs[] =
 				bibRelease,
 				bibCopy,
 				0,
-				bibReview,
+				0,
 				0,
 				bibParse,
-				bibCheck,
+				0,
 				bibRecord,
 				bibClear
 		},
@@ -158,7 +158,6 @@ static ExtensionDef	extensionDefs[] =
 				0,
 				0,
 				snw_processOnDequeue,
-				pnb_serialize,
 				0},
 				0,
 				0,
@@ -191,48 +190,6 @@ static ExtensionDef	extensionDefs[] =
 		{ "unknown",-1,0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 
-/*	NOTE: see the comments in the bei.h header file for an
- *	explanation of the target scope mechanism that enables
- *	target multiplicity in the Bundle Security protocol.
- *
- *	The first target scope in the target scopes array MUST ALWAYS
- *	be a scope that includes the primary block, so that BIB
- *	protection of the primary block is always supported (even
- *	if operationally disabled at a given node).			*/
-
-static ExtensionTargetSpec	defaultBibTargets[] =
-				{
-					{ PrimaryBlk, 0 }
-				};
-
-static ExtensionTargetSpec	defaultBcbTargets[] =
-				{
-					{ PayloadBlk, 0 }
-				};
-
-static ExtensionTargetScope	defaultBibScope =
-				{
-					sizeof defaultBibTargets
-			       		/ sizeof(ExtensionTargetSpec), 
-					defaultBibTargets
-				};
-
-static ExtensionTargetScope	defaultBcbScope =
-				{
-					sizeof defaultBcbTargets
-					/ sizeof(ExtensionTargetSpec), 
-					defaultBcbTargets
-				};
-
-static ExtensionTargetScope	targetScopes[] =
-				{
-					defaultBibScope,
-					defaultBcbScope
-				};
-
-static int			targetScopesCount = sizeof targetScopes
-					/ sizeof(ExtensionTargetScope);
-
 static ExtensionSpec		extensionSpecs[] =
 				{
 					{ PreviousNodeBlk, 0, 0 },
@@ -240,7 +197,5 @@ static ExtensionSpec		extensionSpecs[] =
 					{ BundleAgeBlk, 0, 0 },
 					{ SnwPermitsBlk, 0, 0 },
 					{ ImcDestinationsBlk, 0, 0 },
-					{ BlockIntegrityBlk, 0, 0 },
-					{ BlockConfidentialityBlk, 1, 0 },
 					{ UnknownBlk, 0, 0 }
 				};

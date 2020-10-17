@@ -916,8 +916,7 @@ int	main(int argc, char *argv[])
 
 		/*	Is bundle being relayed or sourced?		*/
 
-		imcblkElt = findExtensionBlock(&bundle, ImcDestinationsBlk,
-				0, 0, 0);
+		imcblkElt = findExtensionBlock(&bundle, ImcDestinationsBlk, 0);
 		if (imcblkElt == 0)
 		{
 			writeMemo("[?] IMC extension block is missing.");
