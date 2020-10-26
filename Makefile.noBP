@@ -1016,7 +1016,7 @@ ramsgate_SOURCES = \
 	ams/rams/librams.c \
 	ams/rams/ramscommon.c \
 	ams/rams/ramsgate.c
-ramsgate_LDADD = libbp.la libams.la libdgr.la libici.la $(LIBOBJS)
+ramsgate_LDADD = $(bplib) libams.la libdgr.la libici.la $(LIBOBJS)
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 ##############
@@ -1118,7 +1118,7 @@ bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 # --- BP Programs --- #
 
 bputa_SOURCES = cfdp/bp/bputa.c
-bputa_LDADD = libcfdp.la libici.la libbp.la $(LIBOBJS) $(PTHREAD_LIBS)
+bputa_LDADD = libcfdp.la libici.la $(bplib) $(LIBOBJS) $(PTHREAD_LIBS)
 bputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
@@ -1193,16 +1193,16 @@ libbss_la_SOURCES = \
 	bss/library/libbss.c \
 	bss/library/libbssP.c
 libbss_la_CFLAGS = $(bsscflags) $(AM_CFLAGS)
-libbss_la_LIBADD = libici.la libbp.la
+libbss_la_LIBADD = libici.la $(bplib)
 
 # --- Test Programs --- #
 
 bssrecv_SOURCES = bss/test/bssrecv.c
-bssrecv_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bssrecv_LDADD = libbss.la libici.la $(bplib) $(LIBOBJS)
 bssrecv_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bssStreamingApp_SOURCES = bss/test/bssStreamingApp.c
-bssStreamingApp_LDADD = libbp.la libbss.la libici.la $(LIBOBJS)
+bssStreamingApp_LDADD = $(bplib) libbss.la libici.la $(LIBOBJS)
 bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bsscounter_SOURCES = bss/test/bsscounter.c
@@ -1210,7 +1210,7 @@ bsscounter_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
 bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bssdriver_SOURCES = bss/test/bssdriver.c
-bssdriver_LDADD = libbss.la libici.la libbp.la $(LIBOBJS)
+bssdriver_LDADD = libbss.la libici.la $(bplib) $(LIBOBJS)
 bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 
@@ -1394,7 +1394,7 @@ libdtpc_la_SOURCES = \
 	dtpc/library/libdtpcP.c
 libdtpc_la_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 libdtpc_la_LDFLAGS = $(ION_LINK_FLAGS)
-libdtpc_la_LIBADD = libici.la libbp.la $(PTHREAD_LIBS)
+libdtpc_la_LIBADD = libici.la $(bplib) $(PTHREAD_LIBS)
 
 # --- Utility Programs --- #
 
@@ -1405,7 +1405,7 @@ dtpcadmin_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 # --- Test Programs --- #
 
 dtpcreceive_SOURCES = dtpc/test/dtpcreceive.c
-dtpcreceive_LDADD = libdtpc.la libici.la libbp.la  $(LIBOBJS)
+dtpcreceive_LDADD = libdtpc.la libici.la $(bplib) $(LIBOBJS)
 dtpcreceive_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 dtpcsend_SOURCES = dtpc/test/dtpcsend.c
@@ -1433,11 +1433,11 @@ restartbin = ionrestart ionexit
 
 # --- Utility Programs --- #
 ionrestart_SOURCES = restart/utils/ionrestart.c
-ionrestart_LDADD = libici.la libcgr.la libbp.la libltp.la libcfdp.la $(LIBOBJS)
+ionrestart_LDADD = libici.la $(bplib) libltp.la libcfdp.la $(LIBOBJS)
 ionrestart_CFLAGS = -I$(srcdir)/ici/sdr  -I$(srcdir)/ici/library -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/ici/library -I$(srcdir)/cfdp/library $(AM_CFLAGS)
 
 ionexit_SOURCES = restart/utils/ionexit.c
-ionexit_LDADD = libltp.la libici.la -lm libbp.la $(LIBOBJS)
+ionexit_LDADD = libltp.la libici.la -lm $(bplib) $(LIBOBJS)
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 

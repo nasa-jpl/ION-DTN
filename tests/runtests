@@ -135,7 +135,7 @@ function run_a_test () {
         PATH="/usr/xpg4/bin:$PATH"
     fi    
         
-    ./dotest
+    ./dotest $OS_VERSION
     TEST_RETVAL=$?
     if [ $TEST_RETVAL -eq 0 ]; then
         echo "TEST PASSED!"
