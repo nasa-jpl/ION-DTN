@@ -22,14 +22,6 @@
  **		 modification, evaluation, and removal of bpsec blocks from
  **		 Bundle Protocol bundles.
  **
- ** Notes:  The original implementation of this file (6/2009) only supported
- **         the Bundle Authentication Block (BAB) with the following
- **         constraints:
- **         - Bundle fragmentation is not considered.
- **         - Only the HMAC-SHA1 context for BAB is considered.
- **         - No context parameters are utilized or supported.
- **         - All BAB blocks will utilize both the pre- and post-payload block.
- **
  ** Assumptions:
  **      1. We assume that this code is not under such tight profiling
  **         constraints that sanity checks are too expensive.

@@ -11,14 +11,6 @@
 	Date       Who     What
 	9-24-13    TC      Added atouc helper function to convert char* to
 			   unsigned char
-			   Updated printUsage function to print usage for
-			   newly added ltp authentication rules
-			   Updated executeAdd, executeChange, executeDelete,
-			   executeInfo, and executeList functions to process
-			   newly added ltp authentication rules
-			   Added printLtpRecvAuthRule and
-			   printXmitRecvAuthRule functions to print ltp
-			   authentication rules
 	6-27-19	    SB	   Extracted from ionsecadmin.
 									*/
 #include "bpsec.h"

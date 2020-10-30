@@ -801,69 +801,7 @@ int	reviewExtensionBlocks(AcqWorkArea *work)
 
 	return 1;
 }
-#if 0
-int	decryptPerExtensionBlocks(AcqWorkArea *work)
-{
-	Bundle		*bundle = &(work->bundle);
-	LystElt		elt;
-	LystElt		nextElt;
-	AcqExtBlock	*blk;
-	ExtensionDef	*def;
-	unsigned int	oldLength;
 
-	CHKERR(work);
-	for (elt = lyst_first(work->extBlocks); elt; elt = nextElt)
-	{
-		nextElt = lyst_next(elt);
-		blk = (AcqExtBlock *) lyst_data(elt);
-
-		/*	Now do block-specific decryption: if block has
-		 *	a decrypt callback (i.e., it knows how to
-		 *	decrypt something, nominally another block),
-		 *	then do that decryption.			*/
-
-		def = findExtensionDef(blk->type);
-		if (def == NULL || def->decrypt == NULL)
-		{
-			continue;
-		}
-
-		oldLength = blk->length;
-		switch (def->decrypt(blk, work))
-		{
-		case 0:			/*	Malformed block.	*/
-			work->malformed = 1;
-			break;
-
-		case 1:			/*	No problem.		*/
-			break;
-
-		default:		/*	System failure.		*/
-			lyst_delete(elt);
-			MRELEASE(blk);
-			putErrmsg("Can't decrypt extension block.", def->name);
-			return -1;
-		}
-
-		if (blk->length == 0)	/*	Discarded.		*/
-		{
-			bundle->extensionsLength -= oldLength;
-			deleteAcqExtBlock(elt);
-			return 0;
-		}
-
-		/*	Revise aggregate extensions length as necessary.*/
-
-		if (blk->length != oldLength)
-		{
-			bundle->extensionsLength -= oldLength;
-			bundle->extensionsLength += blk->length;
-		}
-	}
-
-	return 0;
-}
-#endif
 int	parseExtensionBlocks(AcqWorkArea *work)
 {
 	Bundle		*bundle = &(work->bundle);
@@ -923,77 +861,6 @@ int	parseExtensionBlocks(AcqWorkArea *work)
 
 	return 0;
 }
-#if 0
-int	checkPerExtensionBlocks(AcqWorkArea *work)
-{
-	Bundle		*bundle = &(work->bundle);
-	LystElt		elt;
-	LystElt		nextElt;
-	AcqExtBlock	*blk;
-	ExtensionDef	*def;
-	unsigned int	oldLength;
-
-	CHKERR(work);
-	bundle->clDossier.authentic = work->authentic;
-	for (elt = lyst_first(work->extBlocks); elt; elt = nextElt)
-	{
-		nextElt = lyst_next(elt);
-		blk = (AcqExtBlock *) lyst_data(elt);
-		def = findExtensionDef(blk->type);
-		if (def == NULL || def->check == NULL)
-		{
-			continue;
-		}
-
-		oldLength = blk->length;
-		switch (def->check(blk, work))
-		{
-		case 0:			/*	BSP Block is invalid.	*/
-			bundle->corrupt = 1;
-			break;
-
-		case 1:			/*	No additional info.	*/
-			break;
-
-		case 2:			/*	Bundle is inauthentic.	*/
-			bundle->clDossier.authentic = 0;
-			break;
-
-		case 3:			/*	Bundle is authentic.	*/
-			bundle->clDossier.authentic = 1;
-			break;
-
-		case 4:			/*	A block is altered.	*/
-			bundle->altered = 1;
-			break;
-
-		default:
-			lyst_delete(elt);
-			MRELEASE(blk);
-			putErrmsg("Failed checking extension block.",
-					def->name);
-			return -1;
-		}
-
-		if (blk->length == 0)	/*	Discarded.		*/
-		{
-			bundle->extensionsLength -= oldLength;
-			deleteAcqExtBlock(elt);
-			continue;
-		}
-
-		/*	Revise aggregate extensions length as necessary.*/
-
-		if (blk->length != oldLength)
-		{
-			bundle->extensionsLength -= oldLength;
-			bundle->extensionsLength += blk->length;
-		}
-	}
-
-	return 0;
-}
-#endif
 
 LystElt	getAcqExtensionBlock(AcqWorkArea *work, unsigned char nbr)
 {

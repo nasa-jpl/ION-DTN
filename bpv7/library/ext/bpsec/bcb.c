@@ -1183,6 +1183,7 @@ static Object	bcbCreate(Bundle *bundle, BcbProfile *prof, char *keyName)
 	ExtensionBlock		blk;
 	BpsecOutboundBlock	asb;
 
+	memset((char *) &blk, 0, sizeof(ExtensionBlock));
 	blk.type = BlockConfidentialityBlk;
 	blk.tag = 0;
 	blk.crcType = NoCRC;
@@ -2037,7 +2038,7 @@ int	bpsec_decrypt(AcqWorkArea *work)
 	char			keyBuffer[32];
 	int			keyBuflen = sizeof keyBuffer;
 	LystElt			elt2;
-	AcqExtBlock		*block;
+	AcqExtBlock		*blk;
 	BpsecInboundBlock	*asb;
 	char			*fromEid;	/*	Instrumentation.*/
 	LystElt			targetElt;
@@ -2045,6 +2046,7 @@ int	bpsec_decrypt(AcqWorkArea *work)
 	AcqExtBlock		*bcb;
 	LystElt			bibElt;
 	BpsecInboundTarget	*target;
+	unsigned int		oldLength;
 	int			result;
 	AcqExtBlock		*bib;
 
@@ -2098,15 +2100,16 @@ int	bpsec_decrypt(AcqWorkArea *work)
 		for (elt2 = lyst_first(work->extBlocks); elt2;
 				elt2 = lyst_next(elt2))
 		{
-			block = (AcqExtBlock *) lyst_data(elt2);
-			if (block->type != rule.blockType)
+			blk = (AcqExtBlock *) lyst_data(elt2);
+			if (blk->type != rule.blockType)
 			{
 				continue;	/*	Doesn't apply.	*/
 			}
 
 			/*	This rule would apply to this block.	*/
 
-			targetElt = bcbFindInboundTarget(work, block->number,
+			oldLength = blk->length;
+			targetElt = bcbFindInboundTarget(work, blk->number,
 					&bcbElt);
 			if (targetElt == NULL)
 			{
@@ -2134,7 +2137,7 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				readEid(&(asb->securitySource), &fromEid);
 				if (fromEid == NULL)
 				{
-					ADD_BIB_RX_FAIL(NULL, 1, 0);
+					ADD_BCB_RX_FAIL(NULL, 1, 0);
 					return -1;
 				}
 			}
@@ -2143,42 +2146,66 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				readEid(&(bundle->id.source), &fromEid);
 				if (fromEid == NULL)
 				{
-					ADD_BIB_RX_FAIL(NULL, 1, 0);
+					ADD_BCB_RX_FAIL(NULL, 1, 0);
 					return -1;
 				}
 			}
 
 			result = (prof->decrypt == NULL)
-				?  bcbDefaultDecrypt(prof->suiteId, work, block,
+				?  bcbDefaultDecrypt(prof->suiteId, work, blk,
 				asb, target, fromEid)
-				: prof->decrypt(prof->suiteId, work, block,
+				: prof->decrypt(prof->suiteId, work, blk,
 				asb, target, fromEid);
 
 			BCB_DEBUG_INFO("i bpsec_decrypt: Decrypt result was %d",
 					result);
-			if (result != 1)
+			switch (result)
 			{
+			case 0:	/*	Malformed block.		*/
+				work->malformed = 1;
+
+				/*	Intentional fall-through.	*/
+			case -1:
 				MRELEASE(fromEid);
-				ADD_BIB_RX_FAIL(fromEid, 1, 0);
+				ADD_BCB_RX_FAIL(fromEid, 1, 0);
 				continue;
+
+			default:
+				break;
 			}
 
-			/*	Target decrypted.			*/
+			/*	Decryption completed.			*/
 
-			if (bpsec_destinationIsLocal(&(work->bundle)))
+			if (blk->length == 0)	/*	Discarded.	*/
 			{
-				BCB_DEBUG(2, "BCB check passed.", NULL);
-				ADD_BIB_RX_PASS(fromEid, 1, 0);
+				deleteAcqExtBlock(elt2);
+				bundle->extensionsLength -= oldLength;
 				discardTarget(targetElt, bcbElt);
 			}
-			else
+			else	/*	Target decrypted.		*/
 			{
-				ADD_BIB_FWD(fromEid, 1, 0);
+				if (bpsec_destinationIsLocal(&(work->bundle)))
+				{
+					BCB_DEBUG(2, "BCB target decrypted.",
+							NULL);
+					ADD_BCB_RX_PASS(fromEid, 1, 0);
+					discardTarget(targetElt, bcbElt);
+				}
+				else
+				{
+					ADD_BCB_FWD(fromEid, 1, 0);
+				}
+
+				if (blk->length != oldLength)
+				{
+					bundle->extensionsLength -= oldLength;
+					bundle->extensionsLength += blk->length;
+				}
 			}
 
 			/*	Is this block also signed by a BIB?	*/
 
-			targetElt = bibFindInboundTarget(work, block->number,
+			targetElt = bibFindInboundTarget(work, blk->number,
 					&bibElt);
 			if (targetElt == NULL)
 			{
@@ -2192,6 +2219,7 @@ int	bpsec_decrypt(AcqWorkArea *work)
 			 *	decrypt that BIB as well.		*/
 
 			bib = (AcqExtBlock *) lyst_data(bibElt);
+			oldLength = bib->length;
 			targetElt = bcbFindInboundTarget(work, bib->number,
 					&bcbElt);
 			if (targetElt == NULL)
@@ -2203,7 +2231,7 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				continue;
 			}
 
-			/*	Block must be decrypted.		*/
+			/*	BIB must be decrypted.			*/
 
 			target = (BpsecInboundTarget *) lyst_data(targetElt);
 			result = (prof->decrypt == NULL)
@@ -2211,28 +2239,51 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				asb, target, fromEid)
 				: prof->decrypt(prof->suiteId, work, bib,
 				asb, target, fromEid);
-			MRELEASE(fromEid);
 
 			BCB_DEBUG_INFO("i bpsec_decrypt: Decrypt result was %d",
 					result);
-			if (result != 1)
+			switch (result)
 			{
-				ADD_BIB_RX_FAIL(fromEid, 1, 0);
+			case 0:	/*	Malformed BIB.			*/
+				work->malformed = 1;
+
+				/*	Intentional fall-through.	*/
+			case -1:
+				MRELEASE(fromEid);
+				ADD_BCB_RX_FAIL(fromEid, 1, 0);
 				continue;
+
+			default:
+				break;
 			}
 
-			/*	Target decrypted.			*/
-
-			if (bpsec_destinationIsLocal(&(work->bundle)))
+			if (bib->length == 0)	/*	Discarded.	*/
 			{
-				BCB_DEBUG(2, "BCB check passed.", NULL);
-				ADD_BIB_RX_PASS(fromEid, 1, 0);
+				deleteAcqExtBlock(bibElt);
+				bundle->extensionsLength -= oldLength;
 				discardTarget(targetElt, bcbElt);
 			}
-			else
+			else	/*	Target decrypted.		*/
 			{
-				ADD_BIB_FWD(fromEid, 1, 0);
+				if (bpsec_destinationIsLocal(&(work->bundle)))
+				{
+					BCB_DEBUG(2, "BIB decrypted.", NULL);
+					ADD_BCB_RX_PASS(fromEid, 1, 0);
+					discardTarget(targetElt, bcbElt);
+				}
+				else
+				{
+					ADD_BCB_FWD(fromEid, 1, 0);
+				}
+
+				if (bib->length != oldLength)
+				{
+					bundle->extensionsLength -= oldLength;
+					bundle->extensionsLength += bib->length;
+				}
 			}
+
+			MRELEASE(fromEid);
 		}
 	}
 

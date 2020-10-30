@@ -6998,7 +6998,7 @@ static void	clearAcqArea(AcqWorkArea *work)
 	/*	Reset all other per-bundle parameters.			*/
 
 	memset((char *) &(work->bundle), 0, sizeof(Bundle));
-	work->authentic = 0;
+	work->authentic = -1;
 	work->decision = AcqTBD;
 	work->malformed = 0;
 	work->congestive = 0;
@@ -8727,9 +8727,11 @@ static void	initAuthenticity(AcqWorkArea *work)
 {
 	Object		secdbObj;
 
-	work->authentic = work->allAuthentic;
-	if (work->authentic)		/*	Asserted by CL.		*/
+	work->authentic = -1;		/*	Unknown.		*/
+
+	if (work->allAuthentic)		/*	Asserted by CL.		*/
 	{
+		work->authentic = 1;
 		return;
 	}
 
@@ -8742,8 +8744,7 @@ static void	initAuthenticity(AcqWorkArea *work)
 		return;
 	}
 
-	work->authentic = 1;		/*	But check BIBs.		*/
-	return;
+	return;				/*	Still unknown.		*/
 }
 
 static int	recordBundleEid(Bundle *bundle, EndpointId *eid)
@@ -8847,7 +8848,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return -1;
 	}
 
-	/*	Make sure all required security blocks are present.	*/
+	/*	Check extension blocks in context.			*/
 
 	switch (reviewExtensionBlocks(work))
 	{
@@ -8915,15 +8916,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 				bundle->payload.length);
 		return abortBundleAcq(work);
 	}
-/*
-	if (bpsec_securityPolicyViolated(work))
-	{
-		writeMemo("[?] Security policy violated.");
-		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
-				bundle->payload.length);
-		return abortBundleAcq(work);
-	}
-*/
+
 	/*	Unintelligible extension headers don't make a bundle
 	 *	malformed (though we count it that way), but they may
 	 *	make it necessary to discard the bundle.		*/

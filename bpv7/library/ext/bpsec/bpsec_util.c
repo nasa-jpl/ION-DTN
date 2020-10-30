@@ -2307,8 +2307,8 @@ static int	canonicalizePayloadBlock(Bundle *bundle, Object *zcoOut)
 	*zcoOut = 0;
 	payload.length = bundle->payload.length;
 	payload.crcType = bundle->payload.crcType;
-	payload.content = zco_create(sdr, ZcoZcoSource, bundle->payload.content,
-			0, 0 - payload.length, ZcoOutbound);
+	payload.content = zco_clone(sdr, bundle->payload.content, 0,
+			payload.length);
 	switch (payload.content)
 	{
 	case ((Object) ERROR):

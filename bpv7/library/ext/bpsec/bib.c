@@ -459,6 +459,7 @@ static Object	bibCreate(Bundle *bundle, BibProfile *prof, char *keyName)
 	ExtensionBlock		blk;
 	BpsecOutboundBlock	asb;
 
+	memset((char *) &blk, 0, sizeof(ExtensionBlock));
 	blk.type = BlockIntegrityBlk;
 	blk.tag = 0;
 	blk.crcType = NoCRC;
@@ -1011,15 +1012,9 @@ static void	discardTarget(LystElt targetElt, LystElt bibElt)
 	}
 }
 
-static void	handleIntegrityFailure(AcqWorkArea *work, AcqExtBlock *block,
-			LystElt targetElt, LystElt bibElt)
+static void	discardTargetBlock(AcqExtBlock *block, LystElt targetElt,
+			LystElt bibElt)
 {
-	if (block->type == PrimaryBlk || block->type == PayloadBlk)
-	{
-		work->bundle.corrupt = 1;
-		return;
-	}
-
 	discardAcqExtensionBlock(block);
 	if (targetElt)
 	{
@@ -1255,10 +1250,18 @@ int	bpsec_verify(AcqWorkArea *work)
 					&bibElt);
 			if (targetElt == NULL)
 			{
-				/*	Block is not signed.  This is
-				 *	a security policy violation.	*/
+				/*	No BIB; block is not signed.
+				 *	A security policy violation.	*/
 
-				handleIntegrityFailure(work, block, NULL, NULL);
+				if (block->type == PrimaryBlk)
+				{
+					work->authentic = 0;
+				}
+				else	/*	Assume compromised.	*/
+				{
+					bundle->altered = 1;
+				}
+
 				continue;
 			}
 
@@ -1307,12 +1310,44 @@ int	bpsec_verify(AcqWorkArea *work)
 
 			BIB_DEBUG_INFO("i bpsec_verify: Verify result was %d",
 					result);
-			if (result != 1)
+			switch (result)
 			{
+			case -1:
+				bundle->corrupt = 1;
 				ADD_BIB_RX_FAIL(fromEid, 1, length);
-				handleIntegrityFailure(work, block, targetElt,
-						bibElt);
 				continue;
+
+			case 0:
+				if (work->authentic == 1)
+				{
+					continue;
+				}
+
+				switch (block->type)
+				{
+				case PrimaryBlk:
+					work->authentic = 0;
+					ADD_BIB_RX_FAIL(fromEid, 1, length);
+					break;
+
+				case PayloadBlk:
+					bundle->altered = 1;
+					ADD_BIB_RX_FAIL(fromEid, 1, length);
+					break;
+
+				default:
+					discardTargetBlock(block, targetElt,
+							bibElt);
+				}
+
+				continue;
+
+			default:	/*	Verified.		*/
+				if (work->authentic == -1
+				&& block->type == PrimaryBlk)
+				{
+					work->authentic = 1;
+				}
 			}
 
 			/*	Target signature verified.		*/
@@ -1328,6 +1363,15 @@ int	bpsec_verify(AcqWorkArea *work)
 				ADD_BIB_FWD(fromEid, 1, length);
 			}
 		}
+	}
+
+	if (work->authentic == 0)
+	{
+		bundle->clDossier.authentic = 0;
+	}
+	else
+	{
+		bundle->clDossier.authentic = 1;
 	}
 
 	return 0;
