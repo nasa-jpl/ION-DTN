@@ -343,7 +343,7 @@ typedef struct
 
 	/*	Stuff in Payload block.					*/
 
-	unsigned int	payloadBlockProcFlags;
+	unsigned char	payloadBlockProcFlags;
 	Payload		payload;
 
 	/*	Stuff in extension blocks: an SDR list of ExtensionBlock
@@ -1393,6 +1393,16 @@ extern void		lookUpEndpoint(EndpointId *eid, VScheme *vscheme,
 				VEndpoint **vpoint);
 
 extern int		serializeEid(EndpointId *eid, unsigned char *buffer);
+extern void		serializePrimaryBlock(Bundle *bundle,
+				unsigned char **cursor,
+				unsigned char *destinationEid,
+				int destinationEidLength,
+		       		unsigned char *sourceEid,
+				int sourceEidLength,
+				unsigned char *reportToEid,
+				int reportToEidLength);
+extern int		serializePayloadBlock(Payload *payload,
+				unsigned char blkProcFlags);
 
 extern void		findPlan(char *eid, VPlan **vplan, PsmAddress *elt);
 

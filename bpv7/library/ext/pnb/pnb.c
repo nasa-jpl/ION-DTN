@@ -23,6 +23,11 @@ int	pnb_offer(ExtensionBlock *blk, Bundle *bundle)
 	return 0;
 }
 
+int	pnb_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
+	return 0;	/*	Need context to determine content.	*/
+}
+
 int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	DequeueContext	*context = (DequeueContext *) ctxt;
@@ -111,6 +116,6 @@ int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	pnb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	discardExtensionBlock(blk);
+	discardAcqExtensionBlock(blk);
 	return 1;
 }

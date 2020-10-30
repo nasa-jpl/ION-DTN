@@ -117,6 +117,14 @@ extern int	cbor_decode_integer(	uvast *value,
 			 *	advanced.  Returns number of bytes
 			 *	read, 0 on decoding error.		*/
 
+extern int	cbor_decode_integer_destructive(uvast *value,
+					int class,
+					unsigned char **cursor,
+					unsigned int *bytesBuffered);
+			/*	Same as cbor_decode_integer except
+			 *	that the value is changed to zero
+			 *	in the buffer.				*/
+
 extern int	cbor_decode_byte_string(unsigned char *value,
 					uvast *size,
 					unsigned char **cursor,

@@ -69,7 +69,7 @@
 
 // If bpsec debugging is turned on, then turn on bcb debugging.
 #if DEBUGGING == 1
-#define BCB_DEBUGGING 1
+#define BCB_DEBUGGING			1
 #endif
 
 #ifndef BCB_DEBUGGING
@@ -81,9 +81,9 @@
 #define BCB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BCB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BCB_DEBUG_LVL   BCB_DEBUG_LVL_ERR
+#define BCB_DEBUG_LVL			 BCB_DEBUG_LVL_ERR
 
-#define GMSG_BUFLEN     256
+#define GMSG_BUFLEN			256
 #if (BCB_DEBUGGING == 1)
 
 /**
@@ -174,15 +174,17 @@ extern int		bcbDefaultConstruct(uint32_t suite,
 extern int		bcbDefaultDecrypt(uint32_t suite,
 	       					AcqWorkArea *wk,
 						AcqExtBlock *blk,
-						uvast *bytes,
+						BpsecInboundBlock *asb,
+						BpsecInboundTarget *target,
 						char *fromEid);
 
-extern uint32_t		bcbDefaultEncrypt(uint32_t suite,
+extern int		bcbDefaultEncrypt(uint32_t suite,
 						Bundle *bundle,
 						ExtensionBlock *blk,
 						BpsecOutboundBlock *asb,
+						BpsecOutboundTarget *target,
 						size_t xmitRate,
-						uvast *bytes,
+						uvast *length,
 						char *toEid);
 
 extern BcbProfile	*bcbGetProfile(char *secSrc,
@@ -206,5 +208,11 @@ extern int		bcbProcessOnDequeue(ExtensionBlock *blk,
 						void *parm);
 
 extern void		bcbRelease(ExtensionBlock *blk);
+
+extern int		bcbSerialize(ExtensionBlock *blk, Bundle *bundle);
+
+extern int		bpsec_encrypt(Bundle *bundle);
+
+extern int		bpsec_decrypt(AcqWorkArea *work);
 
 #endif /* BCB_H_ */

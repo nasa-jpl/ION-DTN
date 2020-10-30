@@ -161,8 +161,8 @@ int  db_persist(blob_t *blob, db_desc_t *desc, Object list)
 	CHKUSR(desc, AMP_FAIL);
 
 	/* Step 0: Sanity Checks. */
-	if (((desc->itemObj == 0) && (desc->itemObj != 0)) ||
-	   ((desc->itemObj != 0) && (desc->itemObj == 0)))
+	if (((desc->itemObj == 0) && (desc->itemSize != 0)) ||
+	   ((desc->itemObj != 0) && (desc->itemSize == 0)))
 	{
 		AMP_DEBUG_ERR("db_persist","bad params.",NULL);
 		return AMP_FAIL;

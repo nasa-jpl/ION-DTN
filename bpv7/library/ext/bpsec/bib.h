@@ -65,7 +65,7 @@
 
 // If bpsec debugging is turned on, then turn on bib debugging.
 #if DEBUGGING == 1
-#define BIB_DEBUGGING 1
+#define BIB_DEBUGGING	1
 #endif
 
 #ifndef BIB_DEBUGGING
@@ -160,18 +160,17 @@ extern int	bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
 extern int	bibDefaultCompute(Object dataObj, uint32_t chunkSize,
 			uint32_t suite, void *context, csi_svcid_t svc);
 
-extern int	bibDefaultConstruct(uint32_t suite, ExtensionBlock *blk,
-			BpsecOutboundBlock *asb);
-
-
 extern uint32_t	bibDefaultResultLen(uint32_t suite, uint8_t tlv);
 
 extern int	bibDefaultSign(uint32_t suite, Bundle *bundle,
 			ExtensionBlock *blk, BpsecOutboundBlock *asb,
-			uvast *bytes, char *toEid);
+			BpsecOutboundTarget *target, Object targetZco,
+			char *toEid);
 
 extern int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk,
-			AcqExtBlock *blk, uvast *bytes, char *fromEid);
+			AcqExtBlock *blk, BpsecInboundBlock *asb,
+			BpsecInboundTarget *target, Object targetZco,
+			char *fromEid);
 
 extern BibProfile *bibGetProfile(char *securitySource, char *securityDest,
 			BpBlockType targetBlkType, BPsecBibRule *bibRule);
@@ -184,6 +183,12 @@ extern int	bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
 			void *parm);
 
 extern void	bibRelease(ExtensionBlock *blk);
+
+extern int	bibSerialize(ExtensionBlock *blk, Bundle *bundle);
+
+extern int	bpsec_sign(Bundle *bundle);
+
+extern int	bpsec_verify(AcqWorkArea *work);
 
 
 #endif /* BIB_H_ */

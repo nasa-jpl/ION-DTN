@@ -27,6 +27,7 @@ static ExtensionDef	extensionDefs[] =
 			{
 		{ "pnb", PreviousNodeBlk,
 				pnb_offer,
+				pnb_serialize,
 				{0,
 				0,
 				0,
@@ -43,24 +44,26 @@ static ExtensionDef	extensionDefs[] =
 				0
 		},
 		{ "bcb", BlockConfidentialityBlk,
-				bcbOffer,
+				0,
+				bcbSerialize,
 				{0,
 				0,
 				0,
-				bcbProcessOnDequeue,
+				0,
 				0},
 				bcbRelease,
 				bcbCopy,
 				bcbAcquire,
-				bcbReview,
-				bcbDecrypt,
+				0,
+				0,
 				0,
 				0,
                                 bcbRecord,
 				bcbClear
 		},
 		{ "bib", BlockIntegrityBlk,
-				bibOffer,
+				0,
+				bibSerialize,
 				{0,
 				0,
 				0,
@@ -69,15 +72,16 @@ static ExtensionDef	extensionDefs[] =
 				bibRelease,
 				bibCopy,
 				0,
-				bibReview,
+				0,
 				0,
 				bibParse,
-				bibCheck,
+				0,
 				bibRecord,
 				bibClear
 		},
 		{ "bpq", QualityOfServiceBlk,
 				qos_offer,
+				qos_serialize,
 				{0,
 				0,
 				0,
@@ -95,6 +99,7 @@ static ExtensionDef	extensionDefs[] =
 		},
 		{ "meb", MetadataBlk,
 				meb_offer,
+				meb_serialize,
 				{0,
 				0,
 				0,
@@ -112,6 +117,7 @@ static ExtensionDef	extensionDefs[] =
 		},
 		{ "bae", BundleAgeBlk,
 				bae_offer,
+				bae_serialize,
 				{0,
 				0,
 				0,
@@ -129,6 +135,7 @@ static ExtensionDef	extensionDefs[] =
 		},
 		{ "hcb", HopCountBlk,
 				hcb_offer,
+				hcb_serialize,
 				{0,
 				0,
 				0,
@@ -146,6 +153,7 @@ static ExtensionDef	extensionDefs[] =
 		},
 		{ "snw", SnwPermitsBlk,
 				snw_offer,
+				snw_serialize,
 				{0,
 				0,
 				0,
@@ -163,6 +171,7 @@ static ExtensionDef	extensionDefs[] =
 		},
 		{ "imc", ImcDestinationsBlk,
 				imc_offer,
+				imc_serialize,
 				{0,
 				0,
 				0,
@@ -178,27 +187,15 @@ static ExtensionDef	extensionDefs[] =
 				imc_record,
 				imc_clear
 		},
-				{ "unknown",-1,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
+		{ "unknown",-1,0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 
-/*	NOTE: the order of appearance of extension definitions in the
- *	baseline extensionSpecs array determines the order in which
- *	these extension blocks will be inserted into locally sourced
- *	bundles between the primary block and the payload block.
- *
- *	Note that both a BIB and a BCB are prescribed for the payload
- *	block.  In practical operations the payload block should have
- *	only one or the other, but we include both here to support
- *	thorough regression testing.				 	*/
-
-static ExtensionSpec	extensionSpecs[] =
-			{
-				{ PreviousNodeBlk, 0, 0, 0, 0 },
-				{ QualityOfServiceBlk, 0, 0, 0, 0 },
-				{ BundleAgeBlk, 0, 0, 0, 0 },
-				{ SnwPermitsBlk, 0, 0, 0, 0 },
-				{ ImcDestinationsBlk, 0, 0, 0, 0 },
-				{ BlockIntegrityBlk, 1, 0, 0, 0 },
-				{ BlockConfidentialityBlk, 1, 0, 0, 0 },
-				{ UnknownBlk, 0, 0, 0, 0 }
-			};
+static ExtensionSpec		extensionSpecs[] =
+				{
+					{ PreviousNodeBlk, 0, 0 },
+					{ QualityOfServiceBlk, 0, 0 },
+					{ BundleAgeBlk, 0, 0 },
+					{ SnwPermitsBlk, 0, 0 },
+					{ ImcDestinationsBlk, 0, 0 },
+					{ UnknownBlk, 0, 0 }
+				};

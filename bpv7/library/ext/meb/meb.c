@@ -15,6 +15,11 @@
 
 int	meb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	return meb_serialize(blk, bundle);
+}
+
+int	meb_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[11 + BP_MAX_METADATA_LEN];
 	unsigned char	*cursor;
 	uvast		uvtemp;

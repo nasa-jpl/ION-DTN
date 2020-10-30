@@ -6,6 +6,9 @@
  **              interface in the ION implementation of Bundle Security
  **              Protocol (bpsec).
  **
+ **		 Note that "security context" is another way of saying
+ **		 "security profile."
+ **
  ** Notes:
  **   - This file was adapted from ciphersuite.h written by Scott Burleigh.
  **
@@ -47,38 +50,39 @@
 typedef int	(*BibConstructFn)(uint16_t, ExtensionBlock *,
 			BpsecOutboundBlock *);
 typedef int	(*BibSignFn)(uint16_t, Bundle *, ExtensionBlock *,
-			BpsecOutboundBlock *, uvast *, char *);
+			BpsecOutboundBlock *, BpsecOutboundTarget *,
+			Object, char *);
 typedef int	(*BibVerifyFn)(uint16_t, AcqWorkArea *, AcqExtBlock *,
-			uvast *, char *);
+			BpsecInboundBlock *, BpsecInboundTarget *,
+			Object, char *);
 
 typedef int	(*BcbConstructFn)(uint16_t, ExtensionBlock *,
 			BpsecOutboundBlock *);
 typedef int	(*BcbEncryptFn)(uint16_t, Bundle *, ExtensionBlock *,
-			BpsecOutboundBlock *, size_t, uvast *, char *);
+			BpsecOutboundBlock *, BpsecOutboundTarget *,
+			size_t, uvast *, char *);
 typedef int	(*BcbDecryptFn)(uint16_t, AcqWorkArea *, AcqExtBlock *,
-			uvast *, char *);
+			BpsecInboundBlock *, BpsecInboundTarget *, char *);
 
 /**
  * PROFILES
  *
- * Captures information necessary to process a Ciphersuite profile.
- * A Ciphersuite profile describes how a particular ciphersuite should
+ * Captures information necessary to process a security profile.
+ * A security profile describes how a particular ciphersuite should
  * be used in the context of an SBSP block.
  *
  * profNbr    - The unique identifier for this profile.
  * profName   - Human-readable name for this ciphersuite.
  * suiteId    - The ciphersuite used by this profile.
- * blockPair  - Whether this profile has a first/last or lone block.
  * construct/sign/verify - utility functions. A value of NULL indicates
  *                         that the generic profile functions should be used.
  */
 
 typedef struct
 {
-	uint16_t	profNbr;
+	uint16_t	profNbr;	/*	A.K.A. context ID	*/
 	char		*profName;
-	uint16_t	suiteId;
-	uint8_t		blockPair;	/*	Boolean.		*/
+	uint16_t	suiteId;	/*	Ciphersuite number	*/
 	BibConstructFn	construct;
 	BibSignFn	sign;
 	BibVerifyFn	verify;
@@ -86,10 +90,9 @@ typedef struct
 
 typedef struct
 {
-	uint16_t	profNbr;
+	uint16_t	profNbr;	/*	A.K.A. context ID	*/
 	char		*profName;
-	uint16_t    	suiteId;
-	uint8_t		blockPair;	/*	Boolean.		*/
+	uint16_t    	suiteId;	/*	Ciphersuite number	*/
 	BcbConstructFn	construct;
 	BcbEncryptFn	encrypt;
 	BcbDecryptFn	decrypt;

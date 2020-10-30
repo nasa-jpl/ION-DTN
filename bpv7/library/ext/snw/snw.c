@@ -23,12 +23,22 @@ int	snw_offer(ExtensionBlock *blk, Bundle *bundle)
 	return 0;
 }
 
-int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
+int	snw_serialize(ExtensionBlock *blk, Bundle *bundle)
 {
-	uvast		permits;
 	unsigned char	dataBuffer[9];
 	unsigned char	*cursor;
 	uvast		uvtemp;
+
+	cursor = dataBuffer;
+	uvtemp = bundle->permits;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+	blk->dataLength = cursor - dataBuffer;
+	return serializeExtBlk(blk, (char *) dataBuffer);
+}
+
+int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
+{
+	uvast	permits;
 
 	if (bundle->permits == 0)	/*	SNW block unnecessary.	*/
 	{
@@ -45,11 +55,7 @@ int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 		bundle->permits -= permits;
 	}
 
-	cursor = dataBuffer;
-	uvtemp = bundle->permits;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-	blk->dataLength = cursor - dataBuffer;
-	return serializeExtBlk(blk, (char *) dataBuffer);
+	return snw_serialize(blk, bundle);
 }
 
 int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)

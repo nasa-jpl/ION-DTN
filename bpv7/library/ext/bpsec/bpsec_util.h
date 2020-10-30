@@ -22,14 +22,6 @@
  **		 modification, evaluation, and removal of bpsec blocks from
  **		 Bundle Protocol bundles.
  **
- ** Notes:  The original implementation of this file (6/2009) only supported
- **         the Bundle Authentication Block (BAB) with the following
- **         constraints:
- **         - Bundle fragmentation is not considered.
- **         - Only the HMAC-SHA1 context for BAB is considered.
- **         - No context parameters are utilized or supported.
- **         - All BAB blocks will utilize both the pre- and post-payload block.
- **
  ** Assumptions:
  **      1. We assume that this code is not under such tight profiling
  **         constraints that sanity checks are too expensive.
@@ -180,16 +172,17 @@ AcqExtBlk is passed to bpsec_deserializeASB().
 An outbound bpsec block is an ExtensionBlock, which (if created locally)
 originally has a deserialized form - represented as a BpsecOutboundBlock
 (an ASB), residing in SDR heap space, in the scratchpad "object" of the
-ExtensionBlock.  In this case the serialized form of a block, represented
-in the block's "bytes" array (in SDR heap space), is generated when the
+ExtensionBlock.  The serialized form of the block, resident in the
+block's "bytes" array (in SDR heap space), is generated when the
 BpsecOutboundBlock is passed to bpsec_serializeASB().
 
-All inbound bpsec blocks are extracted from bundles created remotely and
-received locally.  All bpsec blocks created locally are outbound bpsec blocks.
-However, not all outbound bpsec blocks are created locally.  A bpsec block
-that was created remotely may need to be copied to an outbound bpsec block
-so that it may be forwarded to other nodes, just as locally created bpsec
-blocks must be.
+All inbound bpsec blocks are extracted from bundles created "remotely"
+(though possibly by the local node via BP loopback) and received locally.
+All bpsec blocks created locally are outbound bpsec blocks.  However,
+not all outbound bpsec blocks are created locally.  A bpsec block
+that was created remotely and acquired locally may need to be copied
+to an outbound bpsec block so that it may be forwarded to other nodes,
+just as locally created bpsec blocks must be.
 
 For this purpose, ASB serialization is not needed, since the serialized
 form of the block is already present in the "bytes" array of the inbound
@@ -214,10 +207,7 @@ the block's sourceEID.)							*/
 typedef struct
 {
 	uint8_t		targetBlockNumber;
-	BpBlockType	targetBlockType;
-	uint8_t		metatargetBlockNumber;
-	BpBlockType	metatargetBlockType;
-	Lyst		results;	/*	Lyst of csi_inbound_tvs	*/
+	Lyst		results;/*	Lyst of csi_inbound_tvs		*/
 } BpsecInboundTarget;
 
 /** 
@@ -230,8 +220,8 @@ typedef struct
 typedef struct
 {
 	EndpointId securitySource;
-	Lyst	   targets;	/*	Lyst of BpsecInboundTargets	*/
-	uint8_t	   contextId;
+	Lyst	   targets;	/*	Lyst of block numbers		*/
+	uint16_t   contextId;	/*	A.K.A. security profile nbr	*/
 	char	   keyName[BPSEC_KEY_NAME_LEN];
 	uint32_t   contextFlags;
 	Lyst	   parmsData;	/*	Lyst of csi_inbound_tvs		*/
@@ -258,10 +248,7 @@ typedef struct
 typedef struct
 {
 	uint8_t		targetBlockNumber;
-	BpBlockType	targetBlockType;
-	uint8_t		metatargetBlockNumber;
-	BpBlockType	metatargetBlockType;
-	Object		results;	/*	BpsecOutboundTlv sdr_list*/
+	Object		results;/*	sdr_list of BpsecOutboundTlvs	*/
 } BpsecOutboundTarget;
 
 /** 
@@ -274,9 +261,9 @@ typedef struct
 typedef struct
 {
 	EndpointId securitySource;
-	Object	   targets;	/*	sdr_list of BpsecOutboundTarget	*/
+	Object	   targets;	/*	sdr_list of block numbers	*/
+	uint16_t   contextId;	/*	A.K.A. security profile nbr	*/
 	uint8_t	   encryptInPlace;	/*  Boolean			*/
-	uint8_t	   contextId;
 	char       keyName[BPSEC_KEY_NAME_LEN];
 	uint32_t   contextFlags;
 	Object     parmsData;	/*	sdr_list of BpsecOutboundTlv	*/
@@ -298,67 +285,40 @@ extern int		bpsec_recordAsb(ExtensionBlock *newBlk,
 extern int		bpsec_copyAsb(ExtensionBlock *newBlk,
 				ExtensionBlock *oldBlk);
 
-extern int		bpsec_getInboundTarget(Lyst targets,
-				BpsecInboundTarget **target);
-extern int		bpsec_getOutboundTarget(Sdr sdr, Object targets,
-				BpsecOutboundTarget *target);
-
 extern int		bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 				sci_inbound_parms *parms);
 
-extern int		bpsec_write_one_result(Sdr sdr, BpsecOutboundBlock *asb,
+extern int		bpsec_appendItem(Sdr sdr, Object list,
 				sci_inbound_tlv *tlv);
 
 extern int		bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb,
-				uint8_t nbr, uint8_t type, uint8_t mnbr,
-				uint8_t mtyp);
+				uint8_t nbr);
+
+extern int		bpsec_canonicalizeOut(Bundle *bundle, uint8_t blkNbr,
+				Object *zcoOut);
+
+extern int		bpsec_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr,
+				Object *zcoOut);
 
 extern int		bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk);
 
+extern int		bpsec_BibRuleApplies(Bundle *bundle, BPsecBibRule *r);
+extern int		bpsec_BcbRuleApplies(Bundle *bundle, BPsecBcbRule *r);
+
 extern int		bpsec_destinationIsLocal(Bundle *bundle);
-#if 0
-extern LystElt		bpsec_findAcqBlock(AcqWorkArea *wk, BpBlockType type,
-				BpBlockType targetBlockType,
-				BpBlockType metatargetBlockType);
-#endif
-extern Object		bpsec_findBlock(Bundle *bundle, BpBlockType type,
-				BpBlockType targetBlockType,
-				BpBlockType metatargetBlockType);
-#if 0
-extern void		bpsec_getInboundItem(int itemNeeded, unsigned char *buf,
-				unsigned int bufLen, unsigned char **val,
-				unsigned int *len);
-#endif
-extern int		bpsec_getInboundSecurityEids(Bundle *bundle,
-				AcqExtBlock *blk, BpsecInboundBlock *asb,
-				char **fromEid, char **toEid);
-#if 0
-extern int		bpsec_getInboundSecuritySource(AcqExtBlock *blk,
-				char *dictionary, char **fromEid);
-#endif
+
 extern char		*bpsec_getLocalAdminEid(char *eid);
 
 extern void		bpsec_getOutboundItem(uint8_t itemNeeded, Object items,
 				Object *tvp);
 
-extern int		bpsec_getOutboundSecurityEids(Bundle *bundle,
-				ExtensionBlock *blk, BpsecOutboundBlock *asb,
-				char **fromEid, char **toEid);
-#if 0
-extern int		bpsec_getOutboundSecuritySource(ExtensionBlock *blk,
-				char *dictionary, char **fromEid);
-#endif
+extern int		bpsec_getOutboundSecuritySource(Bundle *bundle,
+				BpsecOutboundBlock *asb, char **fromEid);
+
 extern void		bpsec_insertSecuritySource(Bundle *bundle,
 				BpsecOutboundBlock *asb);
 
 extern sci_inbound_tlv	bpsec_retrieveKey(char *keyName);
-
-extern int		bpsec_securityPolicyViolated(AcqWorkArea *wk);
-
-extern int		bpsec_requiredBlockExists(AcqWorkArea *wk,
-				BpBlockType bpsecBlockType,
-				BpBlockType targetBlockType,
-				char *secSrcEid);
 
 extern unsigned char	*bpsec_serializeASB(uint32_t *length,
 				BpsecOutboundBlock *blk);
