@@ -798,7 +798,8 @@ typedef struct
 #define	BP_DB_EXPIRED		6
 #define	BP_DB_ABANDON		7
 #define	BP_DB_DISCARD		8
-#define	BP_DB_STATS		9
+#define	BP_DB_CUSTODY_REFUSED	9
+#define	BP_DB_STATS		10
 
 typedef struct
 {
@@ -1478,6 +1479,7 @@ extern int		parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 extern void		bpPlanTally(VPlan *vplan, unsigned int idx,
 				unsigned int size);
 extern void		bpXmitTally(unsigned int priority, unsigned int size);
+extern void		bpDbTally(unsigned int idx, unsigned int size);
 
 typedef int		(*StatusRptCB)(BpDelivery *, unsigned char *,
 				unsigned int);

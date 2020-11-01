@@ -595,6 +595,26 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 	return 0;
 }
 
+static void	noteCustodyRefused(Bpdu *bpdu)
+{
+	Sdr	sdr = getIonsdr();
+	Object	bundleAddr;
+	Bundle	bundle;
+
+	CHKVOID(bpdu);
+	CHKVOID(sdr_begin_xn(sdr));
+	if (retrieveSerializedBundle(bpdu->bundleZco, &bundleAddr) < 0
+	|| bundleAddr == 0)
+	{
+		sdr_exit_xn(sdr);
+		return;
+	}
+
+	sdr_read(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+	bpDbTally(BP_DB_CUSTODY_REFUSED, bundle.payload.length);
+	oK(sdr_end_xn(sdr));
+}
+
 int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
@@ -766,6 +786,7 @@ success.", NULL);
 				}
 				else	/*	Custody refused.	*/
 				{
+					noteCustodyRefused(&bpdu);
 					if ((getBpVdb())->watching
 							& WATCH_refusal)
 					{
