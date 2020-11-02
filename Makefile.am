@@ -637,7 +637,8 @@ ltpbin = \
 	udplso
 
 ltplib = \
-	libltp.la
+	libltp.la \
+	libudplsa.la
 
 ltpinclude = \
 	ltp/include/ltp.h \
@@ -705,6 +706,10 @@ libltp_la_SOURCES = \
 libltp_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 libltp_la_LIBADD = libici.la -lm
 
+libudplsa_la_SOURCES = ltp/udp/libudplsa.c
+libudplsa_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)
+libudplsa_la_LIBADD = libbp.la libici.la libltp.la -lm
+
 # --- Utility Programs --- #
 
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
@@ -746,11 +751,11 @@ ltpdeliv_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 # --- UDP Executables --- #
 
 udplsi_SOURCES = ltp/udp/udplsi.c
-udplsi_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udplsi_LDADD = libltp.la libudplsa.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 udplso_SOURCES = ltp/udp/udplso.c
-udplso_LDADD = libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udplso_LDADD = libltp.la libudplsa.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
 udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- AOS Executables --- #

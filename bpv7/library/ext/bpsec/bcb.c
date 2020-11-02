@@ -1223,7 +1223,7 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 	ExtensionBlock		clone;
 	BpsecOutboundBlock	cloneAsb;
 	Object			targetElt;
-	Object			targetObj;
+	Object			targetObj = 0;
 	BpsecOutboundTarget	target;
 	unsigned char		*serializedAsb;
 	Object			cloneObj;
