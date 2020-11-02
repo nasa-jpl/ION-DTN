@@ -1059,8 +1059,6 @@ bpextra = \
 if ENABLE_IMC
 bpextra += \
 	bpv7/doc/pod1/imcfw.pod
-#	bpv7/doc/pod5/imcrc.pod
-#	bpv7/doc/pod1/imcadmin.pod
 endif # end ENABLE_IMC
 
 # noextensions.c is C code, but it isn't explicitly compiled.
@@ -1129,8 +1127,6 @@ bpmans = \
 if ENABLE_IMC
 bpmans += \
 	$(top_builddir)/bpv7/doc/imcfw.1
-#	$(top_builddir)/bpv7/doc/imcrc.5
-#	$(top_builddir)/bpv7/doc/imcadmin.1
 endif # end ENABLE_IMC
 
 
@@ -1209,7 +1205,6 @@ libbp_la_SOURCES += \
 
 libimcfw_la_SOURCES = \
 	bpv7/imc/libimcfw.c \
-	#bpv7/imc/imcfw.c \
 	bpv7/library/ext/imc/imc.h \
 	bpv7/library/ext/imc/imc.c
 libimcfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -2153,7 +2148,7 @@ endif #end BUILD_BPv6
 # Note: Built without shared nm libraries to allow compilation with USE_MALLOC flag.
 tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_shared_src) $(nm_agent_ADM_SOURCES)
 #tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
-tests_nm_unit_dotest_LDADD = libici.la libbp.la libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
+tests_nm_unit_dotest_LDADD = libici.la $(bplib) libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
 tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DTEST_MAIN -DUSE_MALLOC \
 	-I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm/shared
 
@@ -2171,7 +2166,7 @@ tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) 
 
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
-tests_1000_loopback_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1000_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 #Disabled this test in ION 3.6.0 because tcpcl does not support loopback
@@ -2185,12 +2180,12 @@ tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 # tests_1400_loopback_stcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
-tests_1500_loopback_brs_dotest_LDADD =  libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_1500_loopback_brs_dotest_LDADD =  libici.la -lm $(bplib) $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 #Disabled this test in ION 3.7.0 due to routing changes
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
-tests_issue_188_common_cos_syntax_dotest_LDADD = libici.la -lm libbp.la $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_188_common_cos_syntax_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_188_common_cos_syntax_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_issue_260_teach_valgrind_mtake_domtake_SOURCES = tests/issue-260-teach-valgrind-mtake/domtake.c
@@ -2201,16 +2196,16 @@ tests_issue_260_teach_valgrind_mtake_domtake_CFLAGS = $(icicflags) $(AM_CFLAGS) 
 # bpMemo function does not exist for bpv7
 if BUILD_BPv6
 tests_issue_279_bpMemo_timeline_driver_SOURCES = tests/issue-279-bpMemo-timeline/driver.c
-tests_issue_279_bpMemo_timeline_driver_LDADD =  libici.la -lm libbp.la $(LIBOBJS) $(TESTUTILOBJS)
+tests_issue_279_bpMemo_timeline_driver_LDADD =  libici.la -lm $(bplib) $(LIBOBJS) $(TESTUTILOBJS)
 tests_issue_279_bpMemo_timeline_driver_CFLAGS = $(bpcflags) -I$(BP_DIR)/library/ $(icicflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 endif # end BUILD_BPv6
 
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_SOURCES=tests/bug-0015-tcpclo-bpcp-sig-handling/test.c
-tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD= libici.la -lm libbp.la $(LIBOBJS)
+tests_bug_0015_tcpclo_bpcp_sig_handling_test_LDADD= libici.la -lm $(bplib) $(LIBOBJS)
 tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(AM_CFLAGS)
 
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm libbp.la $(LIBOBJS)
+tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm $(bplib) $(LIBOBJS)
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c

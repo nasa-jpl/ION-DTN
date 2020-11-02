@@ -188,8 +188,6 @@ bpextra = \
 if ENABLE_IMC
 bpextra += \
 	bpv7/doc/pod1/imcfw.pod
-#	bpv7/doc/pod5/imcrc.pod
-#	bpv7/doc/pod1/imcadmin.pod
 endif # end ENABLE_IMC
 
 # noextensions.c is C code, but it isn't explicitly compiled.
@@ -258,8 +256,6 @@ bpmans = \
 if ENABLE_IMC
 bpmans += \
 	$(top_builddir)/bpv7/doc/imcfw.1
-#	$(top_builddir)/bpv7/doc/imcrc.5
-#	$(top_builddir)/bpv7/doc/imcadmin.1
 endif # end ENABLE_IMC
 
 
@@ -338,7 +334,6 @@ libbp_la_SOURCES += \
 
 libimcfw_la_SOURCES = \
 	bpv7/imc/libimcfw.c \
-	#bpv7/imc/imcfw.c \
 	bpv7/library/ext/imc/imc.h \
 	bpv7/library/ext/imc/imc.c
 libimcfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
