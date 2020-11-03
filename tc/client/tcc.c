@@ -292,6 +292,7 @@ static int	tryAuths(TccDB *db, fec_t *fec, TccBulletin *bulletin,
 	blocksLoaded = 0;
 	for (i = 0; i < db->fec_M; i++)
 	{
+		slotNbr = -1;
 		shareObj = getShareObj(bulletin, i);
 		CHKERR(shareObj);
 		sdr_read(sdr, (char *) &share, shareObj, sizeof(TccShare));
@@ -306,7 +307,7 @@ static int	tryAuths(TccDB *db, fec_t *fec, TccBulletin *bulletin,
 			|| block->sourceAuthNum == suspectAuthNum2)
 			{
 #if TC_DEBUG
-writeMemoNote("tcc: No block for share", itoa(i));
+writeMemoNote("tcc: No block for this share", itoa(i));
 #endif
 				continue;
 			}
@@ -335,6 +336,11 @@ writeMemoNote("tcc: No block for share", itoa(i));
 
 				continue;	/*	Don't use it.	*/
 			}
+		}
+
+		if (slotNbr < 0)
+		{
+			continue;
 		}
 
 		inputSharenums[slotNbr] = i;
@@ -804,7 +810,7 @@ writeMemo(msgbuf);
 	bulletinObj = sdr_list_data(sdr, bulletinElt);
 	sdr_stage(sdr, (char *) &bulletin, bulletinObj, sizeof(TccBulletin));
 	shareObj = getShareObj(&bulletin, header.sharenum);
-	CHKVOID(shareObj);
+	CHKERR(shareObj);
 	sdr_stage(sdr, (char *) &share, shareObj, sizeof(TccShare));
 	block = share.blocks + blockIdx;
 	if (share.blocksAnnounced == 0)	/*	1st block.	*/
