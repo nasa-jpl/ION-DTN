@@ -19,6 +19,7 @@ AM_CFLAGS += \
 	-I$(srcdir)/ltp/include \
 	-I$(srcdir)/dgr/include \
 	-I$(srcdir)/$(BP_DIR)/include \
+	-I$(srcdir)/tc/include \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
 	-I$(srcdir)/bssp/include \
@@ -72,6 +73,7 @@ EXTRA_DIST = 	\
 	$(ltpextra) \
 	$(dgrextra) \
 	$(bpextra) \
+	$(tcextra) \
 	$(bssextra) \
 	$(dtpcextra) \
 	$(bsspextra) \
@@ -132,6 +134,7 @@ build-man-directories:
 	mkdir -p $(top_builddir)/ltp/doc
 	mkdir -p $(top_builddir)/dgr/doc
 	mkdir -p $(top_builddir)/$(BP_DIR)/doc
+	mkdir -p $(top_builddir)/tc/doc
 	mkdir -p $(top_builddir)/bss/doc
 	mkdir -p $(top_builddir)/dtpc/doc
 	mkdir -p $(top_builddir)/bssp/doc
@@ -145,6 +148,7 @@ bin_PROGRAMS = \
 	$(ltpbin) \
 	$(dgrbin) \
 	$(bpbin) \
+	$(tcbin) \
 	$(bssbin) \
 	$(dtpcbin) \
 	$(bsspbin) \
@@ -159,6 +163,7 @@ lib_LTLIBRARIES = \
 	$(ltplib) \
 	$(dgrlib) \
 	$(bplib) \
+	$(tclib) \
 	$(bsslib) \
 	$(dtpclib) \
 	$(bssplib) \
@@ -171,6 +176,7 @@ include_HEADERS = \
 	$(ltpinclude) \
 	$(dgrinclude) \
 	$(bpinclude) \
+	$(tcinclude) \
 	$(bssinclude) \
 	$(dtpcinclude) \
 	$(bsspinclude) \
@@ -195,6 +201,7 @@ man_MANS = \
 	$(ltpmans) \
 	$(dgrmans) \
 	$(bpmans) \
+	$(tcmans) \
 	$(bssmans) \
 	$(dtpcmans) \
 	$(bsspmans) \

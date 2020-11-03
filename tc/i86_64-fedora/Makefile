@@ -3,7 +3,7 @@ INCL = ../include
 AUTHORITY = ../authority
 CLIENT = ../client
 DTKA = ../dtka
-ZFEC = ../../../zfec-1.4.24/zfec
+ZFEC = ../../ici/zfec-1.4.24/zfec
 BP = ../../bpv7
 
 # OPT = -O -Dlinux

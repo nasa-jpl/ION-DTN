@@ -19,6 +19,7 @@ AM_CFLAGS += \
 	-I$(srcdir)/ltp/include \
 	-I$(srcdir)/dgr/include \
 	-I$(srcdir)/$(BP_DIR)/include \
+	-I$(srcdir)/tc/include \
 	-I$(srcdir)/bss/include \
 	-I$(srcdir)/dtpc/include \
 	-I$(srcdir)/bssp/include \
@@ -72,6 +73,7 @@ EXTRA_DIST = 	\
 	$(ltpextra) \
 	$(dgrextra) \
 	$(bpextra) \
+	$(tcextra) \
 	$(bssextra) \
 	$(dtpcextra) \
 	$(bsspextra) \
@@ -132,6 +134,7 @@ build-man-directories:
 	mkdir -p $(top_builddir)/ltp/doc
 	mkdir -p $(top_builddir)/dgr/doc
 	mkdir -p $(top_builddir)/$(BP_DIR)/doc
+	mkdir -p $(top_builddir)/tc/doc
 	mkdir -p $(top_builddir)/bss/doc
 	mkdir -p $(top_builddir)/dtpc/doc
 	mkdir -p $(top_builddir)/bssp/doc
@@ -145,6 +148,7 @@ bin_PROGRAMS = \
 	$(ltpbin) \
 	$(dgrbin) \
 	$(bpbin) \
+	$(tcbin) \
 	$(bssbin) \
 	$(dtpcbin) \
 	$(bsspbin) \
@@ -159,6 +163,7 @@ lib_LTLIBRARIES = \
 	$(ltplib) \
 	$(dgrlib) \
 	$(bplib) \
+	$(tclib) \
 	$(bsslib) \
 	$(dtpclib) \
 	$(bssplib) \
@@ -171,6 +176,7 @@ include_HEADERS = \
 	$(ltpinclude) \
 	$(dgrinclude) \
 	$(bpinclude) \
+	$(tcinclude) \
 	$(bssinclude) \
 	$(dtpcinclude) \
 	$(bsspinclude) \
@@ -195,6 +201,7 @@ man_MANS = \
 	$(ltpmans) \
 	$(dgrmans) \
 	$(bpmans) \
+	$(tcmans) \
 	$(bssmans) \
 	$(dtpcmans) \
 	$(bsspmans) \
@@ -1441,6 +1448,157 @@ bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bpclm_SOURCES = bpv7/daemon/bpclm.c
 bpclm_LDADD = libici.la $(bplib)
 bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+############################
+#
+# TRUSTED COLLECTIVE SECTION
+#                                        
+############################
+
+# Define pod2man stuff
+tcPODM1 = pod2man -s 1 -c "TC executables"
+tcPODM3 = pod2man -s 3 -c "TC library functions"
+tcPODM5 = pod2man -s 5 -c "TC configuration files"
+
+tccflags = -I$(srcdir)/tc/authority -I$(srcdir)/tc/client -I$(srcdir)/tc/include -I$(srcdir)/ici/zfec-1.4.24/zfec -I$(BP_SRC_DIR)/library -I$(ROOT)/include
+
+tcbin = \
+	dtka \
+	dtkaadmin \
+	tcaadmin \
+	tcaboot \
+	tcacompile \
+	tcapublish \
+	tcarecv \
+	tcc \
+	tccadmin
+
+tclib = \
+	libdtka.la \
+	libtc.la \
+	libtcaP.la \
+	libtcc.la \
+	libtccP.la \
+	libzfec.la
+
+tcinclude = \
+	tc/dtka/dtka.h \
+	tc/authority/tcaP.h \
+	tc/client/tcc.h \
+	tc/client/tccP.h \
+	tc/include/tc.h
+
+tcextra = \
+	tc/doc/pod1/dtka.pod \
+	tc/doc/pod1/dtkaadmin.pod \
+	tc/doc/pod1/tcaadmin.pod \
+	tc/doc/pod1/tcaboot.pod \
+	tc/doc/pod1/tcacompile.pod \
+	tc/doc/pod1/tcapublish.pod \
+	tc/doc/pod1/tcarecv.pod \
+	tc/doc/pod1/tcc.pod \
+	tc/doc/pod1/tccadmin.pod \
+	tc/doc/pod3/tc.pod \
+	tc/doc/pod5/dtkarc.pod \
+	tc/doc/pod5/tcarc.pod \
+	tc/doc/pod5/tccrc.pod
+
+tcmans = \
+	$(top_builddir)/tc/doc/dtka.1 \
+	$(top_builddir)/tc/doc/dtkaadmin.1 \
+	$(top_builddir)/tc/doc/tcaadmin.1 \
+	$(top_builddir)/tc/doc/tcaboot.1 \
+	$(top_builddir)/tc/doc/tcacompile.1 \
+	$(top_builddir)/tc/doc/tcapublish.1 \
+	$(top_builddir)/tc/doc/tcarecv.1 \
+	$(top_builddir)/tc/doc/tcc.1 \
+	$(top_builddir)/tc/doc/tccadmin.1 \
+	$(top_builddir)/tc/doc/tc.3 \
+	$(top_builddir)/tc/doc/dtkarc.5 \
+	$(top_builddir)/tc/doc/tcarc.5 \
+	$(top_builddir)/tc/doc/tccrc.5
+
+tcclean-local:
+	rm -f $(top_builddir)/tc/doc/*.1
+	rm -f $(top_builddir)/tc/doc/*.3
+	rm -f $(top_builddir)/tc/doc/*.5
+
+$(top_builddir)/tc/doc/%.1: tc/doc/pod1/%.pod
+	$(tcPODM1) $< $@
+
+$(top_builddir)/tc/doc/%.3: tc/doc/pod3/%.pod
+	$(tcPODM3) $< $@
+
+$(top_builddir)/tc/doc/%.5: tc/doc/pod5/%.pod
+	$(tcPODM5) $< $@
+
+# -- Libraries --- #
+
+libdtka_la_SOURCES = tc/dtka/libdtka.c
+libdtka_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+#libdtka_la_LIBADD = libbp.la libici.la
+
+libtc_la_SOURCES = tc/library/libtc.c
+libtc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+#libtc_la_LIBADD = libbp.la libici.la
+
+libtcaP_la_SOURCES = tc/authority/libtcaP.c
+libtcaP_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+#libtcaP_la_LIBADD = libbp.la libici.la
+
+libtcc_la_SOURCES = tc/client/libtcc.c
+libtcc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+#libtcc_la_LIBADD = libbp.la libici.la
+
+libtccP_la_SOURCES = tc/client/libtccP.c
+libtccP_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+#libtccP_la_LIBADD = libbp.la libici.la
+
+libzfec_la_SOURCES = ici/zfec-1.4.24/zfec/fec.c
+libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+#libzfec_la_LIBADD = libbp.la libici.la
+
+# --- DTKA Executables --- #
+
+dtka_SOURCES = tc/dtka/dtka.c
+dtka_LDADD = libici.la $(tclib) $(bplib) -lm
+dtka_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+dtkaadmin_SOURCES = tc/dtka/dtkaadmin.c
+dtkaadmin_LDADD = libici.la $(tclib) $(bplib) -lm
+dtkaadmin_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+# --- Authority Executables --- #
+
+tcaadmin_SOURCES = tc/authority/tcaadmin.c
+tcaadmin_LDADD = libici.la $(tclib) $(bplib) -lm
+tcaadmin_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+tcaboot_SOURCES = tc/authority/tcaboot.c
+tcaboot_LDADD = libici.la $(tclib) $(bplib) -lm
+tcaboot_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+tcacompile_SOURCES = tc/authority/tcacompile.c
+tcacompile_LDADD = libici.la $(tclib) $(bplib) -lm
+tcacompile_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+tcapublish_SOURCES = tc/authority/tcapublish.c
+tcapublish_LDADD = libici.la $(tclib) $(bplib) -lm
+tcapublish_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+tcarecv_SOURCES = tc/authority/tcarecv.c
+tcarecv_LDADD = libici.la $(tclib) $(bplib) -lm
+tcarecv_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+# --- Client Executables --- #
+
+tcc_SOURCES = tc/client/tcc.c
+tcc_LDADD = libici.la $(tclib) $(bplib) -lm
+tcc_CFLAGS = $(tccflags) $(AM_CFLAGS)
+
+tccadmin_SOURCES = tc/client/tccadmin.c
+tccadmin_LDADD = libici.la $(tclib) $(bplib) -lm
+tccadmin_CFLAGS = $(tccflags) $(AM_CFLAGS)
 
 ############################
 #
