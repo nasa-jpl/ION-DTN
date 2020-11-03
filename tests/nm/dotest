@@ -67,6 +67,13 @@ my $mgr_eid = "ipn:2.65";
 my $agent1_eid = "ipn:3.64";
 my $agent2_eid = "ipn:4.64";
 
+# SQL Support
+my $dbhost = "db";
+my $dbuser = "amp";
+my $dbpass = "amp";
+my $db     = "amp_core";
+my $use_db = 0;
+
 Getopt::Long::GetOptions(
     "help"            => \$help,
     "man"             => \$man,
@@ -89,6 +96,11 @@ Getopt::Long::GetOptions(
     "term=s"          => \$spawn_term,
     "mode=s"          => \$spawn_mode,
     "old!"            => \$use_old_cbor,
+    "db!"             => \$use_db,
+    "sql-host=s"      => \$dbhost,
+    "sql-user=s"      => \$dbuser,
+    "sql-pass=s"      => \$dbpass,
+    "sql-db=s"        => \$db,
     );
 pod2usage(1) if $help;
 pod2usage(-exitval => 0, -verbose => 2) if $man;
@@ -839,7 +851,8 @@ sub local_startup
 {
     $mgr = Manager->new(eid => $mgr_eid,
                         dir => File::Spec->catdir(getcwd(), "2.ipn.ltp"),
-                        mode => ($spawn_mode eq "expect") ? "expect" : "rest", 
+                        mode => ($spawn_mode eq "expect") ? "expect" : "rest",
+                        "db" => $use_db, dbhost => $dbhost, dbuser => $dbuser, dbpass => $dbpass, db => $db
                        );
     $mgr->start();
     
@@ -1700,13 +1713,26 @@ sub gen_var_report_test
 
         # TODO: If screen mode, add argument to run automator interface
 
+        my @args = (
+            "-lRT", # Enable file logging for RX and TX CBOR
+            "-D$log_dir", # and specify log file directory
+            "-L0", # and specify no limit to entries per file
+            "-jJ", # and log to file in JSON format as well
+            "-A", # Start in Automator mode
+           );
+        if ($self->{db}) {
+            push(@args, ("--sql-user", $self->{dbuser})) if $self->{dbuser};
+            push(@args, ("--sql-pass", $self->{dbpass})) if $self->{dbpass};
+            push(@args, ("--sql-host", $self->{dbhost})) if $self->{dbhost};
+            push(@args, ("--sql-db", $self->{db})) if $self->{db};
+        }
+
+        # EID is last parameter
+        push(@args, $self->{eid} );
+
         $self->{process} = $td->start_cmd("nm_mgr",
-                                          "-lRT", # Enable file logging for RX and TX CBOR
-                                          "-D$log_dir", # and specify log file directory
-                                          "-L0", # and specify no limit to entries per file
-                                          "-jJ", # and log to file in JSON format as well
-                                          "-A", # Start in Automator mode
-                                          $self->{eid});
+                                          join(' ', @args) # TODO: Clean this up
+                                         );
 
         chdir($cwd);
         return $self->{process};
