@@ -1276,7 +1276,6 @@ int	main(int argc, char *argv[])
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Scheme		scheme;
-	CgrSAP		sap;
 	Object		elt;
 	Object		bundleAddr;
 	Bundle		bundle;
@@ -1310,7 +1309,7 @@ int	main(int argc, char *argv[])
 	sdr_exit_xn(sdr);
 	oK(_ipnfwSemaphore(&vscheme->semaphore));
 	isignal(SIGTERM, shutDown);
-	if (openCgr(getOwnNodeNbr(), ionReferenceTime(NULL), &sap) < 0)
+	if (openCgr() < 0)
 	{
 		putErrmsg("Can't open CGR service access point.", NULL);
 		return -1;
@@ -1374,7 +1373,7 @@ int	main(int argc, char *argv[])
 		 *	database.					*/
 
 		sdr_write(sdr, bundleAddr, (char *) &bundle, sizeof(Bundle));
-		if (enqueueBundle(&bundle, bundleAddr, sap) < 0)
+		if (enqueueBundle(&bundle, bundleAddr, cgrSap(NULL)) < 0)
 		{
 			sdr_cancel_xn(sdr);
 			putErrmsg("Can't enqueue bundle.", NULL);

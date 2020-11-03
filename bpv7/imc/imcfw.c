@@ -263,8 +263,8 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	if (bundle->clDossier.senderNodeNbr != 0
 	&& bundle->clDossier.senderNodeNbr != getOwnNodeNbr())
 	{
-		if (lyst_insert_last(excludedNodes,
-			(void *) bundle->clDossier.senderNodeNbr) == NULL)
+		if (lyst_insert_last(excludedNodes, (void *)
+			((uaddr) bundle->clDossier.senderNodeNbr)) == NULL)
 		{
 			putErrmsg("Can't exclude sender from routes.", NULL);
 			lyst_destroy(excludedNodes);
@@ -387,8 +387,8 @@ static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast nodeNbr)
 		{
 			/*	Join this gang.				*/
 
-			if (lyst_insert_last(gang->members, (void *) nodeNbr)
-					== NULL)
+			if (lyst_insert_last(gang->members,
+					(void *) ((uaddr) nodeNbr)) == NULL)
 			{
 				return -1;
 			}
@@ -433,7 +433,7 @@ static int	addNodeToGang(Lyst gangs, uvast viaNode, uvast nodeNbr)
 
 	/*	Now have got gang that this node can join.		*/
 
-	if (lyst_insert_last(gang->members, (void *) nodeNbr) == NULL)
+	if (lyst_insert_last(gang->members, (void *) ((uaddr) nodeNbr)) == NULL)
 	{
 		return -1;
 	}
@@ -586,7 +586,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 		for (elt3 = lyst_first(gang->members); elt3;
 				elt3 = lyst_next(elt3))
 		{
-			nodeNbr = (uvast) lyst_data(elt3);
+			nodeNbr = (uaddr) lyst_data(elt3);
 //printf("Loading destination " UVAST_FIELDSPEC ".\n", nodeNbr);
 			if (loadDestination(&newBundle, nodeNbr) < 0)
 			{
