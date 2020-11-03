@@ -293,6 +293,7 @@ void    bpnm_disposition_get(NmbpDisposition * results)
 	results->currentForwardPending += sdr_list_length(sdr, plan.bulkQueue);
     }
 
+    results->currentInCustody = 0;
     results->currentDispatchPending = 0;
     results->currentReassemblyPending = 0;
     for (elt = sdr_list_first(sdr, bpdb.schemes); elt;

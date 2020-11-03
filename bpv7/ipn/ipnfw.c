@@ -915,8 +915,8 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 		 *	because we have hit a dead end in routing and
 		 *	must backtrack.					*/
 
-		if (lyst_insert_last(excludedNodes, 
-			(void *) bundle->clDossier.senderNodeNbr) == NULL)
+		if (lyst_insert_last(excludedNodes, (void *)
+			((uaddr) bundle->clDossier.senderNodeNbr)) == NULL)
 		{
 			putErrmsg("Can't exclude sender from routes.", NULL);
 			lyst_destroy(excludedNodes);
