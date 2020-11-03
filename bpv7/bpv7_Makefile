@@ -80,17 +80,11 @@ bplib = \
 	libimcfw.la \
 	libstcpcla.la \
 	libudpcla.la
-#	libphn.la
-#	libecos.la
 
 bpinclude = \
 	bpv7/include/bp.h \
 	bpv7/include/eureka.h
-#bpv7/include/bpP.h \
-#bpv7/include/bei.h
 
-#ecos.h goes here?
-#bp/library/ecos.h
 bpnoinst = \
 	bpv7/brs/brscla.h \
 	bpv7/dccp/dccpcla.h \
@@ -323,9 +317,6 @@ endif # end CRYPTO
 
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
-
-#libbp_la_LIBADD = libici.la libipnfw.la libdtn2fw.la $(CRYPTO_LIBS) -lm
-#EJB
 
 if ENABLE_IMC
 libbp_la_SOURCES += \
