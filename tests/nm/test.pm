@@ -54,6 +54,8 @@ sub new
     $obj{log_dir} = File::Spec->rel2abs($obj{log_dir}) if $obj{log_dir};
     
     if (defined($obj{log_file})) {
+        mkdir($obj{log_dir}) unless -d $obj{log_dir};
+        
         $obj{log_file} = File::Spec->catfile($obj{log_dir}, $obj{log_file}) if $obj{log_dir};
 
         say CYAN "log_file is: ".$obj{log_file};

@@ -52,6 +52,7 @@ static inline int cut_enc_byte(QCBOREncodeContext *encoder, uint8_t buf)
 
 int cut_enc_uvast(uvast num, blob_t *result);
 
+int cut_get_cbor_numeric_raw(blob_t *data, amp_type_e type, void *val);
 int       cut_get_cbor_numeric(QCBORDecodeContext *value, amp_type_e type, void *val);
 char *    cut_get_cbor_str(QCBORDecodeContext *value, int *success);
 
