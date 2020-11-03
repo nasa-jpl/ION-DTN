@@ -1932,6 +1932,7 @@ static tnvc_t tnvc_deserialize_tvc(QCBORDecodeContext *array_it, size_t array_le
 		}
 		else
 		{
+			tnv_release(val, 1);
 			AMP_DEBUG_ERR("tnv_deserialize_tvc", "Failed to deserialize TNV %i\n", i);
 			break;
 		}

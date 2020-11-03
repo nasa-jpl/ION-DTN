@@ -147,14 +147,17 @@ int32_t db_add_agent(eid_t agent_eid);
 /* Database Management Functions. */
 void    *db_mgt_daemon(int *running);
 uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log);
+uint32_t db_mgt_init_con(size_t idx, sql_db_t parms);
+
 int      db_mgt_clear();
 int      db_mgt_clear_table(char *table);
 void     db_mgt_close();
-int      db_mgt_connected();
+void     db_mgt_close_conn(size_t i);
+int      db_mgt_connected(size_t i);
 int32_t  db_mgt_query_fetch(MYSQL_RES **res, char *format, ...);
 int32_t  db_mgt_query_insert(uint32_t *idx, char *format, ...);
 void     db_mgt_txn_start();
-void     db_mgt_txn_commit();
+//void     db_mgt_txn_commit();
 void     db_mgt_txn_rollback();
 
 int      db_mgr_sql_persist();
@@ -168,13 +171,14 @@ int      db_mgr_sql_init();
 int32_t  db_tx_msg_groups(MYSQL_RES *sql_res);
 int32_t  db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group);
 int      db_tx_collect_agents(int32_t grp_idx, vector_t *vec);
-int      db_outgoing_ready(MYSQL_RES **sql_res);
 
 
 /* Functions to process incoming messages. */
-int32_t db_incoming_initialize(time_t timestamp, eid_t sender_eid);
-int32_t db_incoming_finalize(uint32_t incomingID);
-int32_t db_incoming_process_message(int32_t incomingID, blob_t *data);
+uint32_t db_incoming_initialize(time_t timestamp, eid_t sender_eid);
+int32_t db_incoming_finalize(uint32_t incomingID, uint32_t grp_status, char* src_eid, char* raw_input);
+uint32_t db_insert_msg_reg_agent(uint32_t grp_id, msg_agent_t *msg, int *status);
+uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status);
+uint32_t db_insert_msg_tbl_set(uint32_t grp_id, msg_tbl_t *rpt, int *status);
 
 agent_t* db_fetch_agent(int32_t id);
 int32_t  db_fetch_agent_idx(eid_t *sender);
@@ -183,7 +187,6 @@ ac_t*    db_fetch_ari_col(int idx);
 #if 0
 /* Functions to write primitives to associated database tables. */
 int32_t db_add_adm(char *name, char *version, char *oid_root);
-int32_t db_add_agent(eid_t agent_eid);
 int32_t db_add_tdc(tdc_t tdc);
 int32_t db_add_mid(mid_t *mid);
 int32_t db_add_mc(Lyst mc);
@@ -217,8 +220,28 @@ int32_t           db_fetch_protomid_idx(mid_t *mid);
 
 #endif
 
-#endif
 
+// If set, always log CBOR-encoded inputs and outputs to DB for debug purposes.  Received reports shall always be logged in the event of an error.
+#define DB_LOG_RAW
+
+/** Utility function to insert debug or error informational messages into the database.
+ * NOTE: If operating within a transaction, caller is responsible for committing transaction.
+ **/
+void db_log_msg(size_t dbidx, const char* msg, const char* details, int level, const char *fun, const char* file, size_t line);
+void db_logf_msg(size_t dbidx, const char* msg, const char* details, int level, const char *fun, const char* file, size_t line, ...);
+#define DB_LOG_MSG(dbidx,msg,details,level) db_log_msg(dbidx,msg,details,level,__FUNCTION__,__FILE__,__LINE__)
+#define DB_LOGF_MSG(dbidx,msg,details,level,...) db_logf_msg(dbidx,msg,details,level,__FUNCTION__,__FILE__,__LINE__,__VA_ARGS__)
+
+#define DB_LOG_INFO(dbidx,msg) DB_LOG_MSG(dbidx,msg,NULL,AMP_DEBUG_LVL_INFO)
+#define DB_LOG_WARN(dbidx,msg) DB_LOG_MSG(dbidx,msg,NULL,AMP_DEBUG_LVL_WARN)
+#define DB_LOG_ERR(dbidx,msg) DB_LOG_MSG(dbidx,msg,NULL,AMP_DEBUG_LVL_ERR)
+
+#define DB_LOGF_INFO(dbidx,msg,details,...) DB_LOGF_MSG(dbidx,msg,details,AMP_DEBUG_LVL_INFO, __VA_ARGS__)
+#define DB_LOGF_WARN(dbidx,msg,details,...) DB_LOGF_MSG(dbidx,msg,details,AMP_DEBUG_LVL_WARN, __VA_ARGS__)
+#define DB_LOGF_ERR(dbidx,msg,details,...) DB_LOGF_MSG(dbidx,msg,details,AMP_DEBUG_LVL_ERR, __VA_ARGS__)
+
+	
+#endif // HDR
 #endif // HAVE_MYSQL
 
 
