@@ -352,7 +352,6 @@ endif
 
 icilib = \
 	libici.la
-#	librfx.la
 
 iciinclude = \
 	ici/include/crypto.h \
@@ -377,8 +376,6 @@ iciinclude = \
 	ici/include/smrbt.h \
 	ici/include/sptrace.h \
 	ici/include/zco.h
-
-
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -1445,6 +1442,164 @@ bpclm_SOURCES = bpv7/daemon/bpclm.c
 bpclm_LDADD = libici.la $(bplib)
 bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
+############################
+#
+# NETWORK MANAGEMENT SECTION
+#                                        
+############################
+
+nmbin= nm_agent nm_mgr
+nmlib= libamp.la libampAgentADM.la
+
+nmPODM1 = pod2man -s 1 -c "NM executables"
+nmPODM3 = pod2man -s 1 -c "NM libraries"
+
+# CBOR Library Sources
+nm_cbor_src = \
+	nm/contrib/QCBOR/src/UsefulBuf.c \
+	nm/contrib/QCBOR/src/qcbor_encode.c \
+	nm/contrib/QCBOR/src/qcbor_decode.c \
+	nm/contrib/QCBOR/src/ieee754.c
+
+AMP_VERSION ?= 8
+#$(warning "AMP_VERSION is ${AMP_VERSION}")
+NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
+
+# NM Shared library
+#  This library is standalone (no dependencies on other ION components)
+nm_shared_src = \
+	nm/shared/adm/adm.c \
+	nm/shared/msg/msg.c \
+	nm/shared/primitives/ari.c \
+	nm/shared/primitives/blob.c \
+	nm/shared/primitives/ctrl.c \
+	nm/shared/primitives/edd_var.c \
+	nm/shared/primitives/expr.c \
+	nm/shared/primitives/report.c \
+	nm/shared/primitives/rules.c \
+	nm/shared/primitives/table.c \
+	nm/shared/primitives/tnv.c \
+	nm/shared/utils/cbor_utils.c \
+	nm/shared/utils/db.c \
+	nm/shared/utils/nm_types.c \
+	nm/shared/utils/rhht.c \
+	nm/shared/utils/utils.c \
+	nm/shared/utils/vector.c \
+	$(nm_cbor_src)
+
+libamp_la_SOURCES = $(nm_shared_src)
+libamp_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+                  -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  $(NM_CBOR_CFLAGS)
+# Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
+libamp_la_LIBADD = libici.la
+
+# Note: AMP Agent ADM must be built directly with the agent, whereas all other ADMs can be modularized as needed.
+nm_agent_SOURCES = \
+	nm/agent/ingest.c \
+	nm/agent/instr.c \
+	nm/agent/lcc.c \
+	nm/agent/nmagent.c \
+	nm/agent/ldc.c \
+	nm/agent/rda.c \
+	nm/shared/msg/ion_if.c \
+	nm/agent/adm_amp_agent_impl.c \
+	nm/agent/adm_amp_agent_agent.c \
+	nm/shared/adm/adm_init.c
+
+NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR)
+
+nm_agent_ADM_SOURCES = \
+	bpv7/adm/adm_bp_agent_impl.c \
+	bpv7/adm/adm_bp_agent_agent.c \
+	bpv7/adm/adm_bpsec_impl.c \
+	bpv7/adm/adm_bpsec_agent.c \
+	bpv7/adm/adm_ion_bp_admin_impl.c \
+	bpv7/adm/adm_ion_bp_admin_agent.c \
+	nm/agent/adm_ion_admin_agent.c \
+	nm/agent/adm_ion_admin_impl.c \
+	nm/agent/adm_ionsec_admin_impl.c \
+	nm/agent/adm_ionsec_admin_agent.c \
+	nm/agent/adm_ion_ipn_admin_impl.c \
+	nm/agent/adm_ion_ipn_admin_agent.c \
+	nm/agent/adm_ion_ltp_admin_impl.c \
+	nm/agent/adm_ion_ltp_admin_agent.c \
+	nm/agent/adm_ltp_agent_impl.c \
+	nm/agent/adm_ltp_agent_agent.c
+
+nm_mgr_ADM_SOURCES = \
+	bpv7/adm/adm_bp_agent_mgr.c \
+	bpv7/adm/adm_bpsec_mgr.c \
+	bpv7/adm/adm_ion_bp_admin_mgr.c \
+	nm/mgr/adm_amp_agent_mgr.c \
+	nm/mgr/adm_ion_admin_mgr.c \
+	nm/mgr/adm_ionsec_admin_mgr.c \
+	nm/mgr/adm_ion_ipn_admin_mgr.c \
+	nm/mgr/adm_ion_ltp_admin_mgr.c \
+	nm/mgr/adm_ltp_agent_mgr.c
+
+nmextra = \
+	nm/doc/pod1/nm_agent.pod \
+	nm/doc/pod1/nm_mgr.pod
+
+nmmans = \
+	$(top_builddir)/nm/doc/nm_agent.1 \
+	$(top_builddir)/nm/doc/nm_mgr.1
+
+libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
+libampAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libampAgentADM_la_LIBADD = libamp.la libici.la $(bplib) libltp.la
+
+
+nm_agent_LDADD = libici.la $(bplib) libltp.la libamp.la libampAgentADM.la $(PTHREAD_LIBS)
+nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
+
+nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/nm \
+                  -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
+                  -DAGENT_ROLE $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
+
+
+nm_mgr_SOURCES = \
+	nm/mgr/agents.c \
+	nm/mgr/metadata.c \
+	nm/mgr/nm_mgr_print.c \
+	nm/mgr/nm_mgr_rx.c \
+	nm/mgr/nm_mgr_sql.c \
+	nm/mgr/nm_mgr_ui.c \
+	nm/mgr/nm_mgr.c \
+	nm/mgr/ui_input.c \
+	$(nm_mgr_ADM_SOURCES) \
+	nm/shared/msg/ion_if.c \
+	nm/shared/adm/adm_init.c
+
+# TODO: Split cJSON as a seperate configurable supporting library
+CIVETWEB_SOURCES = \
+	nm/contrib/civetweb/src/civetweb.c \
+	nm/contrib/civetweb/examples/rest/cJSON/cJSON.c \
+	nm/contrib/civetweb/examples/rest/cJSON/cJSON_Utils.c \
+	nm/mgr/nm_rest.c
+CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contrib/civetweb/examples/rest/cJSON
+CIVETWEB_LDFLAGS = -ldl
+CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
+
+nm_mgr_LDADD = libamp.la libici.la $(bplib) libltp.la $(PTHREAD_LIBS)
+
+# Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
+nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
+nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
+
+if BUILD_NM_REST
+nm_mgr_LDFLAGS += $(CIVETWEB_LDFLAGS)
+nm_mgr_CFLAGS += $(CIVETWEB_INCLUDES) $(CIVETWEB_CFLAGS)
+nm_mgr_SOURCES += $(CIVETWEB_SOURCES)
+
+endif
+
+$(top_builddir)/nm/doc/%.1: nm/doc/pod1/%.pod
+	$(nmPODM1) $< $@
+
+$(top_builddir)/nm/doc/%.3: nm/doc/pod3/%.pod
+	$(nmPODM3) $< $@
 
 ##########################
 #

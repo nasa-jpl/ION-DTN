@@ -262,7 +262,7 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
 
 				tnvc_insert(cur_row, tnv_from_uint(rule->blockType));
-				tnvc_insert(cur_row, tnv_from_str(rule->ciphersuiteName));
+				tnvc_insert(cur_row, tnv_from_str(rule->profileName));
 				tnvc_insert(cur_row, tnv_from_str(rule->keyName));
 
 				tbl_add_row(table, cur_row);
@@ -343,7 +343,7 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 				tnvc_insert(cur_row, tnv_from_str( (len > 0) ? strBuffer : "unk"));
 
 				tnvc_insert(cur_row, tnv_from_uint(rule->blockType));
-				tnvc_insert(cur_row, tnv_from_str(rule->ciphersuiteName));
+				tnvc_insert(cur_row, tnv_from_str(rule->profileName));
 				tnvc_insert(cur_row, tnv_from_str(rule->keyName));
 
 				tbl_add_row(table, cur_row);

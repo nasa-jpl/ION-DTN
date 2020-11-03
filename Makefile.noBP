@@ -352,7 +352,6 @@ endif
 
 icilib = \
 	libici.la
-#	librfx.la
 
 iciinclude = \
 	ici/include/crypto.h \
@@ -377,8 +376,6 @@ iciinclude = \
 	ici/include/smrbt.h \
 	ici/include/sptrace.h \
 	ici/include/zco.h
-
-
 
 icinoinst = \
 	ici/library/lystP.h \
