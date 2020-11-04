@@ -95,6 +95,7 @@ case $host_os in
 		;;
 	solaris*)
 		PLATFORM="solaris"
+		build_solaris=yes
 		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
 			if test "$CC" = "gcc"; then
 				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
@@ -523,6 +524,7 @@ AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
+AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])

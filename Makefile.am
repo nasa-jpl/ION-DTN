@@ -1223,7 +1223,7 @@ imcadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 imcfw_SOURCES = bpv7/imc/imcfw.c
 imcfw_LDADD = libici.la $(bplib)
-imcfw_CFLAGS = $(bpcflags) -lcgr $(AM_CFLAGS)
+imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif # end ENABLE_IMC
 
 dtn2admin_SOURCES = bpv7/dtn2/dtn2admin.c
@@ -1550,7 +1550,11 @@ libtccP_la_SOURCES = tc/client/libtccP.c
 libtccP_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
 
 libzfec_la_SOURCES = ici/zfec-1.4.24/zfec/fec.c
+if SOLARIS
 libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS) -Dconst= -Drestrict=
+else
+libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+endif # end SOLARIS
 
 # --- DTKA Executables --- #
 
