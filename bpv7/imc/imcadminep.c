@@ -84,8 +84,8 @@ static int	briefNewNode(uvast nodeNbr)
 		sdr_read(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 		if (group.isMember)
 		{
-			if (lyst_insert_last(ownGroups,
-					(void *) group.groupNbr) == NULL)
+			if (lyst_insert_last(ownGroups, (void *)
+					((uaddr) group.groupNbr)) == NULL)
 			{
 				sdr_exit_xn(sdr);
 				lyst_destroy(ownGroups);
@@ -131,7 +131,7 @@ static int	briefNewNode(uvast nodeNbr)
 
 	for (elt2 = lyst_first(ownGroups); elt2; elt2 = lyst_next(elt2))
 	{
-		groupNbr = (uvast) lyst_data(elt2);
+		groupNbr = (uaddr) lyst_data(elt2);
 		oK(cbor_encode_integer(groupNbr, &cursor));
 	}
 

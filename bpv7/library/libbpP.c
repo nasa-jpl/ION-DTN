@@ -6041,7 +6041,7 @@ static int	insertExtensions(Bundle *bundle, ExtensionSpec *extensions,
 				continue;
 			}
 
-			if (attachExtensionBlock(spec->type, &blk, bundle) < 0)
+			if (attachExtensionBlock(spec->type, &blk, bundle) == 0)
 			{
 				putErrmsg("Failed attaching extension block.",
 						NULL);
