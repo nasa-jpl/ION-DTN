@@ -704,7 +704,7 @@ libltp_la_LIBADD = libici.la -lm
 
 libudplsa_la_SOURCES = ltp/udp/libudplsa.c
 libudplsa_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)
-libudplsa_la_LIBADD = $(bplib) libici.la libltp.la -lm
+libudplsa_la_LIBADD = libici.la libltp.la -lm
 
 # --- Utility Programs --- #
 

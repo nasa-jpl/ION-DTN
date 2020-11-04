@@ -704,7 +704,7 @@ libltp_la_LIBADD = libici.la -lm
 
 libudplsa_la_SOURCES = ltp/udp/libudplsa.c
 libudplsa_la_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)
-libudplsa_la_LIBADD = $(bplib) libici.la libltp.la -lm
+libudplsa_la_LIBADD = libici.la libltp.la -lm
 
 # --- Utility Programs --- #
 
@@ -944,7 +944,6 @@ endif # end ENABLE_IMC
 bplib = \
 	libbp.la \
 	libcgr.la \
-	libimcfw.la \
 	libstcpcla.la \
 	libudpcla.la
 
@@ -1186,16 +1185,10 @@ libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SR
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
 
 if ENABLE_IMC
-libbp_la_SOURCES += \
-	bpv7/library/ext/imc/imc.h \
-	bpv7/library/ext/imc/imc.c
-
-libimcfw_la_SOURCES = \
+libbp_la_SOURCES = \
 	bpv7/imc/libimcfw.c \
 	bpv7/library/ext/imc/imc.h \
 	bpv7/library/ext/imc/imc.c
-libimcfw_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-libimcfw_la_LIBADD = libbp.la libici.la
 endif # end ENABLE_IMC
 
 libcgr_la_SOURCES = bpv7/cgr/libcgr.c
@@ -1536,18 +1529,23 @@ $(top_builddir)/tc/doc/%.5: tc/doc/pod5/%.pod
 
 libdtka_la_SOURCES = tc/dtka/libdtka.c
 libdtka_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+libdtka_la_LIBADD = libici.la libbp.la
 
 libtc_la_SOURCES = tc/library/libtc.c
 libtc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+libtc_la_LIBADD = libici.la
 
 libtcaP_la_SOURCES = tc/authority/libtcaP.c
 libtcaP_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+libtcaP_la_LIBADD = libici.la libbp.la
 
 libtcc_la_SOURCES = tc/client/libtcc.c
 libtcc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+libtcc_la_LIBADD = libici.la libtccP.la
 
 libtccP_la_SOURCES = tc/client/libtccP.c
 libtccP_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
+libtccP_la_LIBADD = libici.la libbp.la
 
 libzfec_la_SOURCES = ici/zfec-1.4.24/zfec/fec.c
 if SOLARIS
