@@ -41,14 +41,14 @@ echo "########################################"
 if [ -z $2 ]; then
     ITERATIONGOAL=100
 else
-    ITERATIONGOAL=$1
+    ITERATIONGOAL=$2
 fi
 
-# Guess what ION will say if a bundle containing $1 is received.
+# Guess what ION will say if a bundle containing $2 is received.
 predictreceived () {
     echo "ION event: Payload delivered."
-    echo "	payload length is ${#1}."
-    echo "	'${1}'"
+    echo "	payload length is ${#2}."
+    echo "	'${2}'"
 }
 
 # Try 10 times to see if the bundle has been received.

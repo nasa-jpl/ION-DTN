@@ -34,17 +34,17 @@ echo "########################################"
 if [ -z $2 ]; then
     ITERATIONGOAL=5
 else
-    ITERATIONGOAL=$1
+    ITERATIONGOAL=$2
 fi
 
-# Guess what ION will say if a bundle containing $1 is received.
+# Guess what ION will say if a bundle containing $2 is received.
 # The extra byte in the length is because bptrace adds a null terminator at 
 # the end (but bpsource does not).  How lame is that?
 predictreceived () {
-    EXLENGTH=`expr ${#1} + 1`
+    EXLENGTH=`expr ${#2} + 1`
     echo "ION event: Payload delivered."
     echo "	payload length is ${EXLENGTH}."
-    echo "	'${1}'"
+    echo "	'${2}'"
 }
 
 # Try 10 times to see if the bundle has been received.
