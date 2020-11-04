@@ -1688,7 +1688,7 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
 	return result;
 }
 
-static Object	bcbAttachAll(Bundle *bundle, size_t xmitRate)
+static int	bcbAttachAll(Bundle *bundle, size_t xmitRate)
 {
 	Sdr			sdr = getIonsdr();
 	Object			elt;

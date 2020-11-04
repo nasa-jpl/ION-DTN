@@ -1310,7 +1310,7 @@ static int	isExcluded(uvast nodeNbr, Lyst excludedNodes)
 
 	for (elt = lyst_first(excludedNodes); elt; elt = lyst_next(elt))
 	{
-		if (((uvast) lyst_data(elt)) == nodeNbr)
+		if (((uaddr) lyst_data(elt)) == nodeNbr)
 		{
 			return 1;	/*	Node is in the list.	*/
 		}

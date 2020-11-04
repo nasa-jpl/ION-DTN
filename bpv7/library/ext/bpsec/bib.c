@@ -818,7 +818,7 @@ bibBlk->dataLength = %d", bibBlk->dataLength);
 	return result;
 }
 
-static Object	bibAttachAll(Bundle *bundle)
+static int	bibAttachAll(Bundle *bundle)
 {
 	Sdr			sdr = getIonsdr();
 	Object			elt;
