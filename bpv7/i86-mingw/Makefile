@@ -21,7 +21,7 @@ IPND = ../ipnd
 ICI = ../../ici
 SAGA = ../saga
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC
 # -Werror
 CC = gcc $(OPT) -I$(ICI)/incude -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 
@@ -40,7 +40,6 @@ BPINCLS = \
 	$(ICI)/include/cbor.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
-	$(IMC)/imcP.h \
 	$(BSSP)/bsspcla.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
@@ -59,7 +58,7 @@ BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o pnb.o hcb.o bpq.o 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = beacon bibeadmin bibeclo bpadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = beacon bibeadmin bibeclo bpadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadminep imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the standard test relies on mkfifo which is not implemented for mingw
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -110,8 +109,8 @@ ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.dll
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread -lm
 		cp ipnadmin ./bin
 
-imcadmin:	imcadmin.o $(BPLIBS) libimcfw.dll
-		$(CC) -o imcadmin imcadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread -lm
+imcadminep:	imcadminep.o $(BPLIBS) libimcfw.dll libipnfw.dll
+		$(CC) -o imcadminep imcadminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp imcadmin ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.dll
@@ -175,7 +174,7 @@ ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.dll
 #	-	-	IMC executables	-	-	-	-	-
 
 imcfw:		imcfw.o $(BPLIBS) libimcfw.dll libipnfw.dll
-		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib -limcfw -lipnfw $(LBP) -lici -lpthread -lm
+		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp imcfw ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
@@ -268,7 +267,7 @@ brsccla:	brsccla.o $(BPLIBS) libstcpcla.dll
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32 -lm
 		cp brsccla ./bin
 
-#	-	-	BIBE executables	-	-	-	-	-
+#	-	-	BIBE executables -	-	-	-	-
 
 bibeadmin:	bibeadmin.o $(BPLIBS)
 		$(CC) -o bibeadmin bibeadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
@@ -283,14 +282,6 @@ bibeclo:	bibeclo.o $(BPLIBS)
 ipnd:		$(IPNDOBJS) $(BPLIBS)
 		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
 		cp ipnd ./bin
-
-beacon:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o beacon $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
-		cp beacon ./bin
-		
-node:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o node $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
-		cp node ./bin
 
 #	-	-	Test executables	-	-	-	-
 
