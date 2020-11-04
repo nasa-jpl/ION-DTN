@@ -1536,27 +1536,21 @@ $(top_builddir)/tc/doc/%.5: tc/doc/pod5/%.pod
 
 libdtka_la_SOURCES = tc/dtka/libdtka.c
 libdtka_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-#libdtka_la_LIBADD = libbp.la libici.la
 
 libtc_la_SOURCES = tc/library/libtc.c
 libtc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-#libtc_la_LIBADD = libbp.la libici.la
 
 libtcaP_la_SOURCES = tc/authority/libtcaP.c
 libtcaP_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-#libtcaP_la_LIBADD = libbp.la libici.la
 
 libtcc_la_SOURCES = tc/client/libtcc.c
 libtcc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-#libtcc_la_LIBADD = libbp.la libici.la
 
 libtccP_la_SOURCES = tc/client/libtccP.c
 libtccP_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-#libtccP_la_LIBADD = libbp.la libici.la
 
 libzfec_la_SOURCES = ici/zfec-1.4.24/zfec/fec.c
-libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-#libzfec_la_LIBADD = libbp.la libici.la
+libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS) -Dconst= -Drestrict=
 
 # --- DTKA Executables --- #
 
