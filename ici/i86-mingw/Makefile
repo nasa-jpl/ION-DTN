@@ -214,5 +214,3 @@ libici.dll:	$(LIBICIOBJS) libicinm.o
 
 %.o:		$(TEST)/%.c
 		$(CC) -c $<
-
-
