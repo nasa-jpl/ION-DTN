@@ -1,4 +1,3 @@
-AOS = ../aos
 API = ../library
 INCL = ../include
 UTILS = ../utils
@@ -56,6 +55,7 @@ ltpclock:	ltpclock.o libltp.dll
 ltpmeter:	ltpmeter.o libltp.dll
 		$(CC) -o ltpmeter ltpmeter.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpmeter ./bin
+
 ltpdeliv:	ltpdeliv.o libltp.dll
 		$(CC) -o ltpdeliv ltpdeliv.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
 		cp ltpdeliv ./bin
@@ -86,12 +86,12 @@ sdatest:	sdatest.o libltp.dll
 
 #	-	-	UDP executables	-	-	-	-	-
 
-udplsi:		udplsi.o libltp.dll
-		$(CC) -o udplsi udplsi.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+udplsi:		udplsi.o libltp.dll libudplsa.o
+		$(CC) -o udplsi udplsi.o libudplsa.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
 		cp udplsi ./bin
 
-udplso:		udplso.o libltp.dll
-		$(CC) -o udplso udplso.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
+udplso:		udplso.o libltp.dll libudplsa.o
+		$(CC) -o udplso udplso.o libudplsa.o -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lws2_32 -lm
 		cp udplso ./bin
 
 #	-	-	AOS Executables	-	-	-	-	-
@@ -119,6 +119,10 @@ dccplso:	dccplso.o libltp.dll
 libltp.dll:	libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o ltpsec.o
 		$(LD) -o libltp.dll libltpP.o ltpei.o auth.o libltp.o libltpnm.o libsda.o ltpsec.o -Wl,--output-def,libltp.def -L$(ROOT)/lib -lici -lpthread
 		cp libltp.dll ./lib
+
+libudplsa:	libudplsa.o libltp.dll
+		$(CC) -o libudplsa libudplsa.o -Wl,--output-def,libudplsa.def -L./lib -L$(ROOT)/lib -lltp -lici -lpthread -lm
+		cp libudplsa.o ./bin
 
 #	-	-	Object modules	-	-	-	-	-
 
