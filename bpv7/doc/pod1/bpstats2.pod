@@ -103,7 +103,7 @@ EID, but is a valid source EID.
 
 =head1 NOTES
 
-A very simple interrogator is L<bpchat> which can repeatedly interrogate
+A very simple interrogator is B<bpchat> which can repeatedly interrogate
 B<bpstats2> by just striking the enter key.
 
 =head1 BUGS

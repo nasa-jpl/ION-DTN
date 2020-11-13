@@ -133,9 +133,9 @@ ionsecadmin list.ionsecrc > initial.keys
 sleep 1
 echo "Finished loading initial keys, now sleeping 90 seconds."
 
-# Sleep 90 seconds, note that first re-keying cycle should have completed.
+# Sleep 180 seconds, note that first re-keying cycle should have completed.
 
-sleep 90
+sleep 180
 echo "First re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
 ionsecadmin list.ionsecrc > revised.keys
@@ -162,8 +162,8 @@ tcaadmin 203 recover.tcarc
 cd ../5.ipn.ltp
 tcaadmin 203 recover.tcarc
 
-# Sleep another 70 seconds, note that second re-keying cycle should be done.
-sleep 70
+# Sleep another 140 seconds, note that second re-keying cycle should be done.
+sleep 140
 echo "Second re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
 ionsecadmin list.ionsecrc > final.keys
@@ -179,7 +179,7 @@ RETVAL=0
 
 cd ../7.ipn.ltp
 COUNT=`cat revised.keys | wc -l`
-if [ $COUNT -eq 17 ]
+if [ $COUNT -ge 17 ]
 then
 	echo ""
 	echo "Node 7 got first key distribution."
@@ -190,7 +190,7 @@ else
 fi
 
 COUNT=`cat final.keys | wc -l`
-if [ $COUNT -eq 24 ]
+if [ $COUNT -ge 24 ]
 then
 	echo ""
 	echo "Node 7 got second key distribution."
@@ -204,7 +204,7 @@ fi
 
 cd ../8.ipn.ltp
 COUNT=`cat revised.keys | wc -l`
-if [ $COUNT -eq 17 ]
+if [ $COUNT -ge 17 ]
 then
 	echo ""
 	echo "Node 8 got first key distribution."
@@ -215,7 +215,7 @@ else
 fi
 
 COUNT=`cat final.keys | wc -l`
-if [ $COUNT -eq 24 ]
+if [ $COUNT -ge 24 ]
 then
 	echo ""
 	echo "Node 8 got second key distribution."
@@ -229,7 +229,7 @@ fi
 
 cd ../9.ipn.ltp
 COUNT=`cat revised.keys | wc -l`
-if [ $COUNT -eq 17 ]
+if [ $COUNT -ge 17 ]
 then
 	echo ""
 	echo "Node 9 got first key distribution."
@@ -240,7 +240,7 @@ else
 fi
 
 COUNT=`cat final.keys | wc -l`
-if [ $COUNT -eq 24 ]
+if [ $COUNT -ge 24 ]
 then
 	echo ""
 	echo "Node 9 got second key distribution."

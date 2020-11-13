@@ -1,4 +1,4 @@
 1
-m interval 60
-m leadtime 20
+m interval 120
+m leadtime 40
 i
