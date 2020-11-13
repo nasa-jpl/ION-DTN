@@ -111,8 +111,7 @@ do
 	echo "  shakespeare4"
 	bpsendfile ipn:2.1 ipn:3.1 shakespeare4
 
-#	sleep 420
-	sleep 60
+	sleep 240
 	cd ../3.ipn.ltp
 
 	# Verify that all four files arrived.
