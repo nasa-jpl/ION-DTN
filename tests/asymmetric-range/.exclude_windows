@@ -1,0 +1,1 @@
+This test relies heavily on timing so it does not currently work on Windows platforms which are slower because of the added overhead of using mingw.
