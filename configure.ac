@@ -166,10 +166,6 @@ AC_ARG_ENABLE(
      BUILD_BPv6=true
      BP_DIR="bpv6"
      AC_SUBST([BP_DIR])
-
-     # Insert bpv6 build steps into Makefile.am
-     sed '/# Build BP based on version chosen by configure.ac/r ./bpv6/bpv6_Makefile' ./Makefile.noBP > Makefile.am
-
      case "${ENABLE_BPACS}" in
 		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
 		no)  ENABLE_BPACS=no;;
@@ -181,10 +177,6 @@ AC_ARG_ENABLE(
      BUILD_BPv7=true
      BP_DIR="bpv7"
      AC_SUBST([BP_DIR])
-
-     # Insert bpv7 build steps into Makefile.am
-     sed '/# Build BP based on version chosen by configure.ac/r ./bpv7/bpv7_Makefile' ./Makefile.noBP > Makefile.am
-
      ENABLE_BPACS=no
      echo "Building ION with BP version 7"])
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
