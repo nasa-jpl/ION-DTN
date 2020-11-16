@@ -32,6 +32,7 @@ check:		$(TCINCLS)
 
 clean:
 		rm -f *.o
+		rm -f $(ZFEC)/fec.o
 		rm -f *.exe
 		rm -f *.def
 		rm -f $(ALL)
@@ -127,6 +128,5 @@ libdtka.dll:	libdtka.o
 %.o:		$(DTKA)/%.c
 		$(CC) -c $<
 
-%.o:		$(ZFEC)/%.c
-		$(CC) -Dconst= -Drestrict= -c $<
-
+$(ZFEC)/fec.o: $(ZFEC)/fec.c
+		$(CC) -Drestrict= -c $(ZFEC)/fec.c -o $(ZFEC)/fec.o

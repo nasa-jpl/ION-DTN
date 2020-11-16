@@ -17,6 +17,9 @@ all:		$(ALL)
 clean:
 		rm -f *.o
 		rm -f $(ALL)
+		rm -f *.exe
+		rm -f *.def
+		rm -f ./lib/*
 		rm -f ./bin/*
 
 install:
