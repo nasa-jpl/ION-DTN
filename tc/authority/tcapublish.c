@@ -79,7 +79,8 @@ static int	handleProposedBulletin(Sdr sdr, TcaDB *db, char *src,
 	TcaAuthority	auth;
 	ZcoReader	reader;
 	int		bulletinLength;
-	time_t		bulletinId;
+	uint32_t	bulletinId;
+	uint32_t	currentBulletinId;
 	char		timestamp1[TIMESTAMPBUFSZ];
 	char		timestamp2[TIMESTAMPBUFSZ];
 	Object		obj;
@@ -169,7 +170,8 @@ bulletin ID missing: %d.", bulletinLength);
 	zco_start_receiving(adu, &reader);
 	len = zco_receive_source(sdr, &reader, 4, (char *) &bulletinId);
 	bulletinId = ntohl(bulletinId);
-	if (bulletinId != db->currentCompilationTime)
+	currentBulletinId = db->currentCompilationTime;
+	if (bulletinId != currentBulletinId)
 	{
 		writeTimestampUTC(bulletinId, timestamp1);
 		writeTimestampUTC(db->currentCompilationTime, timestamp2);

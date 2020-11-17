@@ -48,7 +48,7 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 	int		bulletinLen = 0;
 	char		fileName[32];
 	int		fd;
-	time_t		bulletinId;
+	uint32_t	bulletinId;
 	char		destEid[32];
 	Object		fileRef;
 	Object		zco;
@@ -108,7 +108,8 @@ static int	publishBulletin(Sdr sdr, TcaDB *db, BpSAP sap)
 		return -1;
 	}
 
-	bulletinId = htonl(db->currentCompilationTime);
+	bulletinId = db->currentCompilationTime;
+	bulletinId = htonl(bulletinId);
 	if (write(fd, (char *) &bulletinId, 4) < 0
 	|| (buffer != NULL && write(fd, buffer, bulletinLen) < 0))
 	{
