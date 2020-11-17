@@ -151,6 +151,7 @@ void	*udplsa_handle_datagrams(void *parm)
 
 			/*	Intentional fall-through to next case.	*/
 
+		case 0:
 		case 1:				/*	Normal stop.	*/
 			rtp->running = 0;
 			continue;
