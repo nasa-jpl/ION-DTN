@@ -282,6 +282,7 @@ uint32_t db_incoming_initialize(time_t timestamp, eid_t sender_eid)
 {
 	uint32_t rtv = 0; // Note: An ID of 0 is reserved as an error condition. MySQL will never create a new entry for this table with a value of 0.
 	char *name = sender_eid.name;
+	CHKZERO(db_mgt_connected(DB_RPT_CON));
 
 	dbprep_declare(DB_RPT_CON, MSGS_INCOMING_CREATE, 2, 1);
 	dbprep_bind_param_int(0,timestamp);
@@ -426,10 +427,12 @@ uint32_t db_mgt_init(sql_db_t parms, uint32_t clear, uint32_t log)
 	db_mgt_init_con(DB_RPT_CON, parms);
 
 	// A mysql_commit or mysql_rollback will automatically start a new transaction as the old one is closed
-	mysql_autocommit(gConn[DB_RPT_CON], 0);
-
+	if (gConn[DB_RPT_CON] != NULL)
+	{
+		mysql_autocommit(gConn[DB_RPT_CON], 0);
+		DB_LOG_INFO(DB_CTRL_CON, "NM Manager Connections Initialized"); 
+	}
 	
-	DB_LOG_INFO(DB_CTRL_CON, "NM Manager Connections Initialized"); 
 
 	AMP_DEBUG_EXIT("db_mgt_init", "-->1", NULL);
 	return 1;
@@ -450,6 +453,11 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 		AMP_DEBUG_INFO("db_mgt_init", "(%s,%s,%s,%s)", parms.server, parms.username, parms.password, parms.database);
 		if (!mysql_real_connect(gConn[idx], parms.server, parms.username, parms.password, parms.database, 0, NULL, 0))
 		{
+			if (gConn[idx] != NULL)
+			{
+				mysql_close(gConn[idx]);
+			}
+			gConn[idx] = NULL;
 			if(log > 0)
             {
 				AMP_DEBUG_WARN("db_mgt_init", "SQL Error: %s", mysql_error(gConn[idx]));
@@ -4436,6 +4444,7 @@ void db_insert_msg_rpt_set_name(db_con_t dbidx, uint32_t entry_id, char* name, i
  */
 uint32_t db_insert_msg_reg_agent(uint32_t grp_id, msg_agent_t *msg, int *status)
 {
+	CHKZERO(gConn[DB_RPT_CON]);
 	DB_LOGF_INFO(DB_RPT_CON, "Registering agent","%s", msg->agent_id.name);
 	int rtv = 0;
 	enum cols {
@@ -4496,7 +4505,7 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 	uint32_t rtv = 0;
 	vecit_t it;
 	int dbstatus;
-	
+	CHKZERO(gConn[DB_RPT_CON]);
 	enum cols {
 		C_GRP_ID=0,
 		C_ACK,
