@@ -578,7 +578,9 @@ segment batch.", NULL);
 		closesocket(fd);
 	}
 
+#ifndef mingw
 	pthread_join(receiverThread, NULL);
+#endif
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");
