@@ -215,7 +215,9 @@ int	main(int argc, char *argv[])
 		closesocket(fd);
 	}
 
+#ifndef mingw
 	pthread_join(receiverThread, NULL);
+#endif
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udpbsi has ended.");

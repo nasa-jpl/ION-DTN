@@ -269,7 +269,9 @@ int	main(int argc, char *argv[])
 		closesocket(fd);
 	}
 
+#ifndef mingw
 	pthread_join(receiverThread, NULL);
+#endif
 	closesocket(rtp.ductSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udpcli duct has ended.");

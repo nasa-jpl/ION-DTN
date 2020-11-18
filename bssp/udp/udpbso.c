@@ -467,7 +467,9 @@ compatibility, but it is ignored.");
 		closesocket(fd);
 	}
 
+#ifndef mingw
 	pthread_join(receiverThread, NULL);
+#endif
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udpbso has ended.");
