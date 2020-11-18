@@ -315,6 +315,10 @@ void *mgr_rx_thread(int *running)
 
     		if((grp == NULL) || (success != AMP_OK))
     		{
+#ifdef HAVE_MYSQL
+                // Log discarded message in DB
+                db_incoming_finalize(0, AMP_FAIL, meta.senderEid.name, tmp);
+#endif
                 SRELEASE(tmp);
     			AMP_DEBUG_ERR("mgr_rx_thread","Discarding invalid message.", NULL);
     			continue;
@@ -366,7 +370,6 @@ void *mgr_rx_thread(int *running)
             			msg_agent_t *agent_msg = msg_agent_deserialize(msg_data, &success);
             			rx_agent_reg(&meta, agent_msg);
 #ifdef HAVE_MYSQL
-                        printf("DBG: calling db_insert_msg_reg_agent()\n");
                         db_insert_msg_reg_agent(incoming_idx, agent_msg, &db_status);
 #endif
                         msg_agent_release(agent_msg, 1);

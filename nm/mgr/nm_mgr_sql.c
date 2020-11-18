@@ -1212,7 +1212,7 @@ int db_query_tnvc(size_t dbidx, int tnvc_id, tnvc_t *parms)
 	int rtv = AMP_FAIL;
 	CHKZERO(parms);
 	memset(parms,0,sizeof(tnvc_t));
-	printf("DBG: query_tnvc %i\n", tnvc_id);
+
 	// Tmp variables
 	ac_t *ac_entry;
 	tnvc_t *tnvc_entry;
@@ -1382,7 +1382,7 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 	if (!is_null[C_ADM_TYPE] && !is_null[C_ADM_ENUM])
 	{
 		temp = (adm_enum*20) + adm_type;
-		printf("DBG: NN: adm_enum=%d, adm_type=%d => %ld\n", adm_enum, adm_type, temp);
+
 		VDB_ADD_NN(temp, &(ari->as_reg.nn_idx));
 		ARI_SET_FLAG_NN(ari->as_reg.flags);
 	} else if (!is_null[C_ISSUING_ORG] ) {
@@ -1395,7 +1395,7 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 
 	// Name
 	if (!is_null[C_OBJ_ENUM]) {
-		printf("DBG: OBJ_ENUM is %d\n", obj_enum);
+
 		cut_enc_uvast(obj_enum, &(ari->as_reg.name));
 	} else {
 		blob_t *name = utils_string_to_hex(obj_name);
@@ -1423,7 +1423,6 @@ ari_t* db_query_ari(size_t dbidx, int ari_id)
 
 ac_t* db_query_ac(size_t dbidx, int ac_id)
 {
-	printf("DBG: query_ac %i\n", ac_id);
 	ac_t *ac = ac_create();
 	
 	// Query AC
@@ -1446,7 +1445,6 @@ ac_t* db_query_ac(size_t dbidx, int ac_id)
 	for(int i = 0; !mysql_stmt_fetch(stmt); i++)
 	{
 		ari_ids[i] = ari_id;
-		printf("DBG: AC[%d] = %i\n", i, ari_id);
 	}
 	mysql_stmt_free_result(stmt);
 
@@ -1593,7 +1591,6 @@ int32_t db_tx_build_group(int32_t grp_idx, msg_grp_t *msg_group)
 		// NOTE: Support for other types can be added here in the future if needed, for debugging or other uses.
 		switch(r_type_id) {
 		case MSG_TYPE_PERF_CTRL:
-			printf("DBG: Fetch PERF_CTRL\n");
 			ctrl = db_tx_build_perf_ctrl(r_msg_id, r_ack, r_nak, r_acl);
 			if (ctrl == NULL) {
 				// Set return code to AMP_FAIL.
@@ -3913,7 +3910,6 @@ int32_t db_fetch_protomid_idx(mid_t *mid)
 void query_update_msg_group_state(size_t dbidx, int group_id, int is_error) {
    int status;
    int state = (is_error) ? 3 : 2;
-   printf("DBG: Updating state for group_id %i\n", group_id);
    dbprep_declare(dbidx,MSGS_UPDATE_GROUP_STATE, 2, 0);
    
    dbprep_bind_param_int(0,state);
@@ -3939,7 +3935,6 @@ void db_process_outgoing(void) {
 		
 	// Fetch all rows
 	while(!mysql_stmt_fetch(stmt)) {
-      printf("DBG: Found message set with id=%i and ts=%i | is_null(%i)\n", group_id, ts, is_null[1]);
 
 		/* Create an AMP PDU for this outgoing message. */
 		if((msg_group = msg_grp_create(1)) == NULL)
@@ -4400,7 +4395,6 @@ void db_insert_msg_rpt_set_rpt(db_con_t dbidx, uint32_t entry_id, rpt_t* rpt, in
 		// Either status==AMP_OK and this message has no parameters, or we failed to create tnvc record for some reason
 		dbprep_bind_param_null(C_PARMS_ID);
 	}
-	printf("DBG: msg_rpt_set_rpt INSERT %i, %ld, %i\n", entry_id, rpt->time, ari_id);
 	/** Insert Report **/	
 	mysql_stmt_bind_param(stmt, bind_param);
 #if 0 // We don't need ID at this time
