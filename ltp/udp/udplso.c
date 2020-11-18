@@ -323,6 +323,22 @@ compatibility, but it is ignored.");
 	 *	datagrams to the peer LTP engine and possibly for
 	 *	receiving datagrams from the peer LTP engine.		*/
 
+	ipAddress = INADDR_ANY;
+	portNbr = 0;	/*	Let O/S choose it.			*/
+
+	/*	This socket needs to be bound to the local socket
+	 *	address (just as in udplsi), so that the udplso
+	 *	main thread can send a 1-byte datagram to that
+	 *	socket to shut down the datagram handling thread.	*/
+
+	portNbr = htons(portNbr);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &ownSockName, 0, sizeof ownSockName);
+	ownInetName = (struct sockaddr_in *) &ownSockName;
+	ownInetName->sin_family = AF_INET;
+	ownInetName->sin_port = portNbr;
+	memcpy((char *) &(ownInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
 	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
 	{
@@ -330,25 +346,9 @@ compatibility, but it is ignored.");
 		return 1;
 	}
 
-	/*	This socket needs to be bound to the local socket
-	 *	address (just as in udplsi), so that the udplso
-	 *	main thread can send a 1-byte datagram to that
-	 *	socket to shut down the datagram handling thread.	*/
-
-	ipAddress = htonl(INADDR_ANY);
-	memset((char *) &ownSockName, 0, sizeof ownSockName);
-	ownInetName = (struct sockaddr_in *) &ownSockName;
-	ownInetName->sin_family = AF_INET;
-	ownInetName->sin_port = 0;	/*	Let O/S select it.	*/
-	memcpy((char *) &(ownInetName->sin_addr.s_addr),
-			(char *) &ipAddress, 4);
-
-	/*	Bind the socket to own socket address so that we can
-	 *	send a 1-byte datagram to that address to shut down
-	 *	the datagram handling thread.				*/
-
 	nameLength = sizeof(struct sockaddr);
-	if (bind(rtp.linkSocket, &ownSockName, nameLength) < 0
+	if (reUseAddress(rtp.linkSocket)
+	|| bind(rtp.linkSocket, &ownSockName, nameLength) < 0
 	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
 	{
 		closesocket(rtp.linkSocket);
@@ -585,4 +585,3 @@ segment batch.", NULL);
 	ionDetach();
 	return 0;
 }
-

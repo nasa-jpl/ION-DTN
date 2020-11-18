@@ -31,7 +31,7 @@ int	main(int argc, char *argv[])
 	LtpVdb			*vdb;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = INADDR_ANY;
-	struct sockaddr		socketName;
+	struct sockaddr		ownSockName;
 	struct sockaddr_in	*inetName;
 	ReceiverThreadParms	rtp;
 	socklen_t		nameLength;
@@ -75,8 +75,8 @@ int	main(int argc, char *argv[])
 
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
-	memset((char *) &socketName, 0, sizeof socketName);
-	inetName = (struct sockaddr_in *) &socketName;
+	memset((char *) &ownSockName, 0, sizeof ownSockName);
+	inetName = (struct sockaddr_in *) &ownSockName;
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &ipAddress, 4);
@@ -89,8 +89,8 @@ int	main(int argc, char *argv[])
 
 	nameLength = sizeof(struct sockaddr);
 	if (reUseAddress(rtp.linkSocket)
-	|| bind(rtp.linkSocket, &socketName, nameLength) < 0
-	|| getsockname(rtp.linkSocket, &socketName, &nameLength) < 0)
+	|| bind(rtp.linkSocket, &ownSockName, nameLength) < 0
+	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("LSI can't initialize UDP socket", NULL);
@@ -135,21 +135,10 @@ int	main(int argc, char *argv[])
 	 *	transmission socket and sending a 1-byte datagram
 	 *	to the reception socket.				*/
 
-	if (ipAddress == 0)	/*	Receiving on INADDR_ANY.	*/
-	{
-		/*	Can't send to host number 0, so send to
-		 *	loopback address.				*/
-
-		ipAddress = (127 << 24) + 1;	/*	127.0.0.1	*/
-		ipAddress = htonl(ipAddress);
-		memcpy((char *) &(inetName->sin_addr.s_addr),
-				(char *) &ipAddress, 4);
-	}
-
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		oK(isendto(fd, &quit, 1, 0, &socketName,
+		oK(isendto(fd, &quit, 1, 0, &ownSockName,
 				sizeof(struct sockaddr)));
 		closesocket(fd);
 	}
