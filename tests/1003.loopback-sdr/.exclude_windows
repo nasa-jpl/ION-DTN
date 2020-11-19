@@ -1,1 +1,1 @@
-Hangs in ltpadmin . while in ionstop script.
+There is an issue with bpsink not accepting the bundle sent by bpsource

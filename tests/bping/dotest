@@ -7,15 +7,6 @@ CONFIGFILES=" \
 ${CONFIGSROOT}/loopback-udp/loopback.rc \
 "
 
-# set timeouts based on OS type
-if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
-	TIMETOWAIT1=3
-	TIMETOWAIT2=15
-else
-	TIMETOWAIT1=6
-	TIMETOWAIT2=30
-fi
-
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -45,6 +36,15 @@ echo "########################################"
 
 
 FAIL=0
+# set timeouts based on OS type
+if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
+	TIMETOWAIT1=3
+	TIMETOWAIT2=15
+else
+	echo "Not linux or mac"
+	TIMETOWAIT1=4
+	TIMETOWAIT2=25
+fi
 
 echo "Killing old ION..."
 killm
@@ -122,3 +122,4 @@ echo "Terminating node."
 ionstop
 
 exit $FAIL
+
