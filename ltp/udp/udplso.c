@@ -128,6 +128,7 @@ static unsigned long	getUsecTimestamp()
 typedef struct
 {
 	unsigned long		startTimestamp;	/*	Billing cycle.	*/
+	uvast			remoteEngineId;
 	IonNeighbor		*neighbor;
 	unsigned int		prevPaid;
 } RateControlState;
@@ -143,6 +144,7 @@ static void	applyRateControl(RateControlState *rc, int bytesSent)
 	unsigned int		totalPaid;	/*	Since last send.*/
 	float			timeCostPerByte;/*	In seconds.	*/
 	unsigned int		currentPaid;	/*	Sending seg.	*/
+	PsmAddress		nextElt;
 	float			totalCostSecs;	/*	For this seg.	*/
 	unsigned int		totalCost;	/*	Microseconds.	*/
 	unsigned int		balanceDue;	/*	Until next seg.	*/
@@ -169,6 +171,12 @@ static void	applyRateControl(RateControlState *rc, int bytesSent)
 
 	/*	Get current time cost, in seconds, per byte.		*/
 
+	if (rc->neighbor == NULL)
+	{
+		rc->neighbor = findNeighbor(getIonVdb(), rc->remoteEngineId,
+				&nextElt);
+	}
+
 	if (rc->neighbor && rc->neighbor->xmitRate > 0)
 	{
 		timeCostPerByte = 1.0 / (rc->neighbor->xmitRate);
@@ -186,14 +194,10 @@ static void	applyRateControl(RateControlState *rc, int bytesSent)
 	}
 	else
 	{
-		balanceDue = 0;
+		balanceDue = 1;
 	}
 
-	if (balanceDue > 0)
-	{
-		microsnooze(balanceDue);
-	}
-
+	microsnooze(balanceDue);
 	rc->prevPaid = balanceDue;
 }
 #endif
@@ -243,7 +247,6 @@ int	main(int argc, char *argv[])
 	unsigned int		batchLength;
 #else
 	RateControlState	rc;
-	PsmAddress		nextElt;
 #endif
 	if (txbps != 0 && remoteEngineId == 0)	/*	Now nominal.	*/
 	{
@@ -523,7 +526,8 @@ segment batch.", NULL);
 #else
 	rc.startTimestamp = getUsecTimestamp();
 	rc.prevPaid = 0;
-	rc.neighbor = findNeighbor(getIonVdb(), remoteEngineId, &nextElt);
+	rc.remoteEngineId = remoteEngineId;
+	rc.neighbor = NULL;
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
