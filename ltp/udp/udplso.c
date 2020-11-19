@@ -573,14 +573,15 @@ segment batch.", NULL);
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		oK(isendto(fd, &quit, 1, 0, &ownSockName,
-				sizeof(struct sockaddr)));
+		if (isendto(fd, &quit, 1, 0, &ownSockName,
+				sizeof(struct sockaddr)) == 1)
+		{
+			pthread_join(receiverThread, NULL);
+		}
+
 		closesocket(fd);
 	}
 
-#ifndef mingw
-	pthread_join(receiverThread, NULL);
-#endif
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");

@@ -205,19 +205,22 @@ int	main(int argc, char *argv[])
 
 	rtp.running = 0;
 
-	/*	Wake up the receiver thread by sending it a 1-byte
-	 *	datagram.						*/
+	/*	Wake up the receiver thread by opening a single-use
+	 *	transmission socket and sending a 1-byte datagram
+	 *	to the reception socket.				*/
 
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		isendto(fd, &quit, 1, 0, &socketName, sizeof(struct sockaddr));
+		if (isendto(fd, &quit, 1, 0, &socketName,
+				sizeof(struct sockaddr)) == 1)
+		{
+			pthread_join(receiverThread, NULL);
+		}
+
 		closesocket(fd);
 	}
 
-#ifndef mingw
-	pthread_join(receiverThread, NULL);
-#endif
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udpbsi has ended.");
