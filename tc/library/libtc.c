@@ -16,11 +16,11 @@ int	tc_serialize(char *buffer, unsigned int buflen,
 		time_t assertionTime, unsigned short datLength,
 		unsigned char *datValue)
 {
-	int		length = 0;
-	char		*cursor;
-	Sdnv		nodeNbrSdnv;
-	unsigned int	u4;
-	unsigned short	u2;
+	int	length = 0;
+	char	*cursor;
+	Sdnv	nodeNbrSdnv;
+	uint32_t u4;
+	uint16_t u2;
 
 	CHKERR(buffer);
 	CHKERR(buflen);
@@ -61,6 +61,8 @@ int	tc_deserialize(char **cursor, int *bytesRemaining,
 		unsigned short *datLength, unsigned char *datValue) 
 {
 	int	originalBytesRemaining;
+	uint32_t u4;
+	uint16_t u2;
 	int	length;
 
 	CHKERR(cursor);
@@ -78,18 +80,23 @@ int	tc_deserialize(char **cursor, int *bytesRemaining,
 		return 0;
 	}
 
-	memcpy((char *) effectiveTime, *cursor, 4);
+	memcpy((char *) &u4, *cursor, 4);
 	*cursor += 4;
 	*bytesRemaining -= 4;
-	*effectiveTime = ntohl(*effectiveTime);
-	memcpy((char *) assertionTime, *cursor, 4);
+	u4 = ntohl(u4);
+	*effectiveTime = u4;
+
+	memcpy((char *) &u4, *cursor, 4);
 	*cursor += 4;
 	*bytesRemaining -= 4;
-	*assertionTime = ntohl(*assertionTime);
-	memcpy((char *) datLength, *cursor, 2);
+	u4 = ntohl(u4);
+	*assertionTime = u4;
+
+	memcpy((char *) &u2, *cursor, 2);
 	*cursor += 2;
 	*bytesRemaining -= 2;
-	*datLength = ntohs(*datLength);
+	u2 = ntohs(u2);
+	*datLength = u2;
 	if (*datLength > maxDatLength)
 	{
 		writeMemoNote("Malformed TC record: data too long",

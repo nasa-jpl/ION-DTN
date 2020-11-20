@@ -698,6 +698,7 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 	int		i;
 	vast		aduLength;
 	size_t		blksize;
+	uint32_t	timestamp;
 	int		blockIdx = -1;
 	ZcoReader	reader;
 	int		len;
@@ -750,8 +751,9 @@ static int	acquireBlock(Sdr sdr, Object dbobj, TccDB *db, TccVdb *vdb,
 
 	blksize = aduLength - 40;
 	zco_start_receiving(adu, &reader);
-	len = zco_receive_source(sdr, &reader, 4, (char *) &header.timestamp);
-	header.timestamp = ntohl(header.timestamp);
+	len = zco_receive_source(sdr, &reader, 4, (char *) &timestamp);
+	timestamp = ntohl(timestamp);
+	header.timestamp = timestamp;
 	if (header.timestamp <= db->lastBulletinTime)
 	{
 		return 0;	/*	Late-arriving block.		*/

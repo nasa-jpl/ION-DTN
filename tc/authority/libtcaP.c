@@ -314,7 +314,6 @@ int	tcaAttach(int blocksGroupNbr)
 
 	if (blocksGroupNbr < 1)
 	{
-abort();
 		putErrmsg("Invalid blocks group number.", itoa(blocksGroupNbr));
 		return -1;
 	}

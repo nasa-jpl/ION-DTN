@@ -223,8 +223,7 @@ writeMemoNote("tcapublish: Got record for node", itoa(nodeNbr));
 		/*	Check record order in bulletin.			*/
 
 		if (nodeNbr < priorNodeNbr
-		|| (nodeNbr == priorNodeNbr
-		    && (effectiveTime < priorEffTime)))
+		|| (nodeNbr == priorNodeNbr && (effectiveTime < priorEffTime)))
 		{
 			isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: \
 Malformed bulletin (order): '%s'.", src);
