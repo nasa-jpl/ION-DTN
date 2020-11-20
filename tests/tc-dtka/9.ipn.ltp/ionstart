@@ -10,9 +10,9 @@ ltpadmin	node.ltprc
 sleep 1
 bpadmin		node.bprc
 sleep 3
-tccadmin 203	node.tccrc
+tccadmin 203	../node.tccrc
 sleep 1
-dtkaadmin	node.dtkarc
+dtkaadmin	../node.dtkarc
 sleep 1
 dtka &
 echo "Started node 9."

@@ -38,7 +38,7 @@ combine withB<e 1> command to log the version number at startup.
 The B<help> command.  This will display a listing of the commands and their
 formats.  It is the same as the B<h> command.
 
-=item B<1> I<number of authorities in collective> [ I<K> [ I<R> ]]
+=item B<1> I<number_of_authorities_in_collective> [ I<K> [ I<R> ]]
 
 The B<initialize> command.  Until this command is executed, the client
 daemon for the selected TC application is not in operation on the local

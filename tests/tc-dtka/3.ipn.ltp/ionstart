@@ -12,11 +12,11 @@ bpadmin		node.bprc
 sleep 1
 tcaadmin 203	../boot.tcarc
 sleep 1
-tcaadmin 203	node.tcarc
+tcaadmin 203	../node.tcarc
 sleep 1
-tccadmin 203	node.tccrc
+tccadmin 203	../node.tccrc
 sleep 1
-dtkaadmin	node.dtkarc
+dtkaadmin	../node.dtkarc
 sleep 1
 dtka &
 echo "Started node 3."

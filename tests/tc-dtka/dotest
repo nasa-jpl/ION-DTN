@@ -98,11 +98,11 @@ cd ../8.ipn.ltp
 cd ../9.ipn.ltp
 ./ionstart >& node9.stdout &
 
-# Sleep 15 seconds to let all nodes finish initializing.
+# Sleep 30 seconds to let all nodes finish initializing.
 # Then create all initial keys and load them to each node.
 
-echo "Waiting 15 seconds for node startup..."
-sleep 15
+echo "Waiting 30 seconds for node startup..."
+sleep 30
 
 echo "Finished starting DTKA, now loading initial keys to all nodes..."
 
@@ -131,11 +131,11 @@ ionsecadmin ../dtka.ionsecrc
 ionsecadmin list.ionsecrc > initial.keys
 
 sleep 1
-echo "Finished loading initial keys, now sleeping 90 seconds."
+echo "Finished loading initial keys, now sleeping 6 minutes."
 
-# Sleep 180 seconds, note that first re-keying cycle should have completed.
+# Sleep 360 seconds, note that first re-keying cycle should have completed.
 
-sleep 180
+sleep 360
 echo "First re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
 ionsecadmin list.ionsecrc > revised.keys
@@ -162,8 +162,8 @@ tcaadmin 203 recover.tcarc
 cd ../5.ipn.ltp
 tcaadmin 203 recover.tcarc
 
-# Sleep another 140 seconds, note that second re-keying cycle should be done.
-sleep 140
+# Sleep another 6 minutes, note that second re-keying cycle should be done.
+sleep 360
 echo "Second re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
 ionsecadmin list.ionsecrc > final.keys
@@ -271,7 +271,7 @@ cd ../9.ipn.ltp
 ./ionstop &
 
 # Give all nodes time to shut down, then clean up.
-sleep 10
+sleep 20
 killm
 echo "Key distribution test completed."
 exit $RETVAL

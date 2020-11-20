@@ -38,7 +38,7 @@ combine with B<e 1> command to log the version number at startup.
 The B<help> command.  This will display a listing of the commands and their
 formats.  It is the same as the B<?> command.
 
-=item B<1> I<multicast group number for TC bulletins> I<multicast group number for TC records> I<number of authorities in collective> I<K> I<R>
+=item B<1> I<multicast_group_number_for_TC_bulletins> I<multicast_group_number_for_TC_records> I<number_of_authorities_in_collective> I<K> I<R>
 
 The B<initialize> command.  Until this command is executed, the authority
 function for the selected TC application is not in operation on the local
@@ -103,22 +103,22 @@ the selected TC application, where N is the I<authority_array_index> value,
 is no longer trusted; bulletins received from this collective authority
 member must be discarded.
 
-=item B<a> I<node number>
+=item B<a> I<node_number>
 
-This command adds the node identified by I<node number> to the list of nodes
-hosting B<authorized clients> for the selected TC application.  Once this
+This command adds the node identified by I<node_number> to the list of nodes
+hosting B<authorized_clients> for the selected TC application.  Once this
 list has been populated, TC records for this application that are received
 from clients residing on nodes that are not in the list are automatically
 discarded by the authority function residing on the local node.
 
-=item B<d> I<node number>
+=item B<d> I<node_number>
 
-This command deletes the node identified by I<node number> from the list of
-nodes hosting B<authorized clients> for the selected TC application.
+This command deletes the node identified by I<node_number> from the list of
+nodes hosting B<authorized_clients> for the selected TC application.
 
 =item B<l>
 
-This command lists all nodes currently hosting B<authorized clients> for
+This command lists all nodes currently hosting B<authorized_clients> for
 the selected TC application.
 
 =item B<x>

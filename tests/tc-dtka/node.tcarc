@@ -1,5 +1,5 @@
-m interval 50
-m grace 16
+m interval 100
+m grace 32
 + 0 1
 + 1 2
 + 2 3
