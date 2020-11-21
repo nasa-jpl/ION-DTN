@@ -41,10 +41,10 @@ fi
 # The extra byte in the length is because bptrace adds a null terminator at 
 # the end (but bpsource does not).  How lame is that?
 predictreceived () {
-    EXLENGTH=`expr ${#2} + 1`
+    EXLENGTH=`expr ${#1} + 1`
     echo "ION event: Payload delivered."
     echo "	payload length is ${EXLENGTH}."
-    echo "	'${2}'"
+    echo "	'${1}'"
 }
 
 # Try 10 times to see if the bundle has been received.
