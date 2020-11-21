@@ -41,7 +41,6 @@ if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
 	TIMETOWAIT1=3
 	TIMETOWAIT2=15
 else
-	echo "Not linux or mac"
 	TIMETOWAIT1=4
 	TIMETOWAIT2=25
 fi

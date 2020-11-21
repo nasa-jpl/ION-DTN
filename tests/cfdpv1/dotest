@@ -14,6 +14,13 @@
 # so the "get" operation should finish before the put operation (which must
 # wait for a Finished PDU from node 2).
 
+# set timeouts based on OS type
+if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
+	TIMETOWAIT=35
+else
+	TIMETOWAIT=55
+fi
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -32,7 +39,7 @@ cfdptest < cfdp_cmds >& node1.stdout &
 cd ../2.ipn.ltp
 cfdptest < cfdp_cmds >& node2.stdout &
 
-sleep 35
+sleep $TIMETOWAIT
 echo ""
 echo "Checking for file arrivals...."
 RETVAL=0
@@ -77,3 +84,4 @@ killm
 echo ""
 echo "CFDPv1 test completed."
 exit $RETVAL
+
