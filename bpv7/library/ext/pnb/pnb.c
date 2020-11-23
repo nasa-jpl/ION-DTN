@@ -23,34 +23,9 @@ int	pnb_offer(ExtensionBlock *blk, Bundle *bundle)
 	return 0;
 }
 
-void	pnb_release(ExtensionBlock *blk)
+int	pnb_serialize(ExtensionBlock *blk, Bundle *bundle)
 {
-	return;
-}
-
-int	pnb_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	pnb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	pnb_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	pnb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	pnb_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
+	return 0;	/*	Need context to determine content.	*/
 }
 
 int	pnb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
@@ -141,11 +116,6 @@ int	pnb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 
 int	pnb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
-	discardExtensionBlock(blk);
+	discardAcqExtensionBlock(blk);
 	return 1;
-}
-
-void	pnb_clear(AcqExtBlock *blk)
-{
-	return;
 }

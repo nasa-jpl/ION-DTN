@@ -1307,12 +1307,10 @@ static int	computeAnotherRoute(IonNode *terminusNode,
 static int	isExcluded(uvast nodeNbr, Lyst excludedNodes)
 {
 	LystElt	elt;
-	NodeId	*node;
 
 	for (elt = lyst_first(excludedNodes); elt; elt = lyst_next(elt))
 	{
-		node = (NodeId *) lyst_data(elt);
-		if (node->nbr == nodeNbr)
+		if (((uaddr) lyst_data(elt)) == nodeNbr)
 		{
 			return 1;	/*	Node is in the list.	*/
 		}
@@ -1851,9 +1849,9 @@ static int	tryRoute(CgrRoute *route, time_t currentTime, Bundle *bundle,
 }
 
 static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
-			PsmAddress *elt, Bundle *bundle, Object bundleObj,
-			Lyst excludedNodes, CgrTrace *trace, Lyst bestRoutes,
-			time_t currentTime, time_t deadline)
+			PsmAddress *elt, Bundle *bundle, Lyst excludedNodes,
+			CgrTrace *trace, Lyst bestRoutes, time_t currentTime,
+			time_t deadline)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	nextElt;
@@ -2067,17 +2065,17 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 
 	if (route->toNodeNbr == getOwnNodeNbr())
 	{
-		if (!(bundle->destination.schemeCodeNbr == 2
-		&& bundle->destination.ssp.ipn.nodeNbr == route->toNodeNbr))
+		/*	Okay if and only if self is the destination.	*/
+
+		if (route->toNodeNbr != terminusNode->nodeNbr)
 		{
-			/*	Never route via self -- a loop.		*/
+			/*	Can't route to a remote node via self
+			 *	-- would be a routing loop.		*/
 
 			TRACE(CgrExcludeRoute, CgrRouteViaSelf);
 			*elt = nextElt;
 			return 1;
 		}
-
-		/*	Self is final destination.			*/
 	}
 
 	/*	Is the neighbor that receives bundles during this
@@ -2107,9 +2105,9 @@ static int	checkRoute(IonNode *terminusNode, uvast viaNodeNbr,
 }
 
 static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
-			Bundle *bundle, Object bundleObj, Lyst excludedNodes,
-		       	CgrTrace *trace, Lyst bestRoutes, time_t currentTime,
-			time_t deadline, CgrRtgObject *routingObj)
+			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
+			Lyst bestRoutes, time_t currentTime, time_t deadline,
+			CgrRtgObject *routingObj)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
@@ -2122,8 +2120,8 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 	while (1)
 	{
 		switch (checkRoute(terminusNode, viaNodeNbr, &elt, bundle,
-				bundleObj, excludedNodes, trace, bestRoutes,
-				currentTime, deadline))
+				excludedNodes, trace, bestRoutes, currentTime,
+				deadline))
 		{
 		case 1:			/*	A route was checked.	*/
 			if (elt)	/*	There's another.	*/
@@ -2158,9 +2156,9 @@ static int	loadBestRoutesList(IonNode *terminusNode, uvast viaNodeNbr,
 }
 
 static int	loadCriticalBestRoutesList(IonNode *terminusNode,
-			Bundle *bundle, Object bundleObj, Lyst excludedNodes,
-		       	CgrTrace *trace, Lyst bestRoutes, time_t currentTime,
-			time_t deadline, CgrRtgObject *routingObj)
+			Bundle *bundle, Lyst excludedNodes, CgrTrace *trace,
+			Lyst bestRoutes, time_t currentTime, time_t deadline,
+			CgrRtgObject *routingObj)
 {
 	PsmPartition	ionwm = getIonwm();
 	uvast		ownNodeNbr = getOwnNodeNbr();
@@ -2271,7 +2269,7 @@ static int	loadCriticalBestRoutesList(IonNode *terminusNode,
 			elt2 = sm_list_next(ionwm, elt2))
 	{
 		nodeNbr = (uvast) sm_list_data(ionwm, elt2);
-		if (loadBestRoutesList(terminusNode, nodeNbr, bundle, bundleObj,
+		if (loadBestRoutesList(terminusNode, nodeNbr, bundle,
 				excludedNodes, trace, routes, currentTime,
 				deadline, routingObj) < 0)
 		{
@@ -2323,14 +2321,21 @@ int	cgr_create_routing_object(IonNode *node)
 	return 0;
 }
 
+int	cgr_start_SAP(uvast ownNodeNbr, time_t referenceTime, CgrSAP *sap)
+{
+	*sap = NULL;
+	return 0;
+}
+
 int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
-			Object bundleObj, Lyst excludedNodes, CgrTrace *trace,
-			Lyst bestRoutes, time_t currentTime)
+			Lyst excludedNodes, time_t currentTime, CgrSAP sap,
+			CgrTrace *trace, Lyst bestRoutes) 
 {
 	PsmPartition	ionwm = getIonwm();
 	CgrVdb		*cgrvdb = cgr_get_vdb();
 	time_t		deadline;
 	CgrRtgObject	*routingObj;
+	int		potential;
 
 	deadline = bundle->expirationTime + EPOCH_2000_SEC;
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
@@ -2364,9 +2369,9 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	TRACE(CgrIdentifyRoutes, deadline);
 	if (bundle->ancillaryData.flags & BP_MINIMUM_LATENCY)
 	{
-		if (loadCriticalBestRoutesList(terminusNode, bundle, bundleObj,
-				excludedNodes, trace, bestRoutes, currentTime,
-				deadline, routingObj) < 0)
+		if (loadCriticalBestRoutesList(terminusNode, bundle,
+				excludedNodes, trace, bestRoutes,
+				currentTime, deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find all best routes to destination.",
 					utoa(terminusNode->nodeNbr));
@@ -2375,9 +2380,9 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	}
 	else
 	{
-		if (loadBestRoutesList(terminusNode, 0, bundle, bundleObj,
-				excludedNodes, trace, bestRoutes, currentTime,
-				deadline, routingObj) < 0)
+		if (loadBestRoutesList(terminusNode, 0, bundle,
+				excludedNodes, trace, bestRoutes,
+				currentTime, deadline, routingObj) < 0)
 		{
 			putErrmsg("Can't find best route to destination.",
 					utoa(terminusNode->nodeNbr));
@@ -2385,7 +2390,14 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 		}
 	}
 
-	return 0;
+	potential = sm_list_length(ionwm, routingObj->selectedRoutes)
+			+ sm_list_length(ionwm, routingObj->knownRoutes);
+	return potential;
+}
+
+void	cgr_stop_SAP(CgrSAP sap)
+{
+	return;
 }
 
 static void	deleteObject(LystElt elt, void *userdata)
@@ -2398,8 +2410,8 @@ static void	deleteObject(LystElt elt, void *userdata)
 	}
 }
 
-int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
-		uvast terminusNodeNbr, time_t atTime, CgrTrace *trace)
+int	cgr_preview_forward(uvast terminusNodeNbr, Bundle *bundle,
+			time_t atTime, CgrSAP sap, CgrTrace *trace)
 {
 	IonVdb		*ionvdb = getIonVdb();
 	IonNode		*terminusNode;
@@ -2422,7 +2434,6 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
 	excludedNodes = lyst_create_using(ionMemIdx);
 	CHKERR(excludedNodes);
 	lyst_delete_set(bestRoutes, deleteObject, NULL);
-	lyst_delete_set(excludedNodes, deleteObject, NULL);
 	if (terminusNode->routingObject == 0)
 	{
 		if (cgr_create_routing_object(terminusNode) < 0)
@@ -2432,8 +2443,8 @@ int	cgr_preview_forward(Bundle *bundle, Object bundleObj,
 		}
 	}
 
-	result = cgr_identify_best_routes(terminusNode, bundle, bundleObj,
-			excludedNodes, trace, bestRoutes, atTime);
+	result = cgr_identify_best_routes(terminusNode, bundle,
+			excludedNodes, atTime, sap, trace, bestRoutes);
 	lyst_destroy(bestRoutes);
 	lyst_destroy(excludedNodes);
        	if (result < 0)

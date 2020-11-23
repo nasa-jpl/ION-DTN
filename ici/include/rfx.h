@@ -58,7 +58,8 @@ extern int		rfx_insert_contact(int regionIdx,
 				if the contact was rejected.
 
 				Returns zero on success, -1 on any
-				system error.				*/
+				system error, an indicative value
+				greater than 0 on any user error.	*/
 
 extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 			/*	Prints the indicated IonCXref
@@ -72,14 +73,22 @@ extern int		rfx_revise_contact(time_t fromTime,
 				size_t xmitRate,
 				float confidence);
 			/*	Revises the xmitRate of and possibly
-			 *	our confidence in an existing contact.	*/
+			 *	our confidence in an existing contact.
+
+				Returns zero on success, -1 on any
+				system error, an indicative value
+				greater than 0 on any user error.	*/
 
 extern int		rfx_remove_contact(time_t *fromTime,
 				uvast fromNode,
 				uvast toNode);
 			/*	Removes the indicated IonContact
 				object from the time-ordered contacts
-				list in the ION database.		*/
+				list in the ION database.
+
+				Returns zero on success, -1 on any
+				system error, an indicative value
+				greater than 0 on any user error.	*/
 
 /*	*	Functions for inserting and removing range notes.	*/
 
@@ -98,20 +107,29 @@ extern int		rfx_insert_range(time_t fromTime,
 				rejected.
 
 				Returns zero on success, -1 on any
-				system error.				*/
+				system error, an indicative value
+				greater than 0 on any user error.	*/
 
 extern char		*rfx_print_range(PsmAddress range, char *buffer);
 			/*	Prints the indicated IonRXref
 				object into buffer, which must be
 				of length no less than RFX_NOTE_LEN.
-				Returns buffer, or NULL on any error.	*/
+				Returns buffer, or NULL on any error.
+
+				Returns zero on success, -1 on any
+				system error, an indicative value
+				greater than 0 on any user error.	*/
 
 extern int		rfx_remove_range(time_t *fromTime,
 				uvast fromNode,
 				uvast toNode);
 			/*	Removes the indicated IonRange
 				object from the time-ordered ranges
-				list in the ION database.		*/
+				list in the ION database.
+
+				Returns zero on success, -1 on any
+				system error, an indicative value
+				greater than 0 on any user error.	*/
 
 /*	*	Functions for inserting and removing alarms.		*/
 

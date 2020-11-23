@@ -244,7 +244,7 @@ int	bpsec_recordAsb(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 	}
 
 	/* Step 2 - Allocate the new in-heap ASB.			*/
-	newBlk->size = sizeof(newAsb);
+	newBlk->size = sizeof newAsb;
 	if ((newBlk->object = sdr_malloc(sdr, sizeof newAsb)) == 0)
 	{
 		BPSEC_DEBUG_ERR("x bpsec_record: Failed to allocate: %d",
@@ -268,7 +268,8 @@ int	bpsec_recordAsb(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 
 	if (oldAsb->securitySource.schemeCodeNbr)	/*	Waypoint*/
 	{
-		if (readEid(&oldAsb->securitySource, &eidBuf) < 0)
+		readEid(&oldAsb->securitySource, &eidBuf);
+		if (eidBuf == NULL)
 		{
 			return -1;
 		}
@@ -291,17 +292,6 @@ int	bpsec_recordAsb(ExtensionBlock *newBlk, AcqExtBlock *oldBlk)
 	{
 		oldTarget = (BpsecInboundTarget *) lyst_data(elt);
 		newTarget.targetBlockNumber = oldTarget->targetBlockNumber;
-		newTarget.targetBlockType = oldTarget->targetBlockType;
-		newTarget.metatargetBlockNumber =
-				oldTarget->metatargetBlockNumber;
-		newTarget.metatargetBlockType = oldTarget->metatargetBlockType;
-
-		/*	Pending full implementation of target
-		 *	multiplicity:					*/
-
-		newBlk->tag1 = newTarget.targetBlockType;
-		newBlk->tag2 = newTarget.metatargetBlockType;
-		newBlk->tag3 = 0;
 
 		/*	For each target, record all results (TLVs).	*/
 
@@ -447,7 +437,8 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 	if (oldAsb.securitySource.schemeCodeNbr)	/*	Waypoint*/
 	{
-		if (readEid(&oldAsb.securitySource, &eidBuf) < 0)
+		readEid(&oldAsb.securitySource, &eidBuf);
+		if (eidBuf == NULL)
 		{
 			return -1;
 		}
@@ -540,41 +531,7 @@ int	bpsec_copyAsb(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 	BPSEC_DEBUG_PROC("- bpsec_copy -> 0", NULL);
 	return 0;
 }
-
-int	bpsec_getInboundTarget(Lyst targets, BpsecInboundTarget **target)
-{
-	LystElt	elt;
-
-	/*	NOTE: at this time we are assuming that each BPSEC
-	 *	block has only a single target.  We don't yet know
-	 *	how to implement BPSEC for multi-target blocks.		*/
-
-	CHKERR(targets && target);
-	elt = lyst_first(targets);
-	CHKERR(elt);
-	*target = (BpsecInboundTarget *) lyst_data(elt);
-	return 0;
-}
-
-int	bpsec_getOutboundTarget(Sdr sdr, Object targets,
-		BpsecOutboundTarget *target)
-{
-	Object	elt;
-	Object	obj;
-
-	/*	NOTE: at this time we are assuming that each BPSEC
-	 *	block has only a single target.  We don't yet know
-	 *	how to implement BPSEC for multi-target blocks.		*/
-
-	CHKERR(sdr && targets && target);
-	elt = sdr_list_first(sdr, targets);
-	CHKERR(elt);
-	obj = sdr_list_data(sdr, elt);
-	sdr_read(sdr, (char *) target, obj, sizeof(BpsecOutboundTarget));
-	return 0;
-}
-
-static int	appendItem(Sdr sdr, Object items, sci_inbound_tlv *itlv)
+int	bpsec_appendItem(Sdr sdr, Object items, sci_inbound_tlv *itlv)
 {
 	BpsecOutboundTlv	otlv;
 	Object			tlvAddr;
@@ -586,7 +543,7 @@ static int	appendItem(Sdr sdr, Object items, sci_inbound_tlv *itlv)
 	|| ((otlv.value = sdr_malloc(sdr, otlv.length)) == 0)
 	|| sdr_list_insert_last(sdr, items, tlvAddr) == 0)
 	{
-		BPSEC_DEBUG_ERR("appendItem: Can't allocate sdr item of \
+		BPSEC_DEBUG_ERR("bpsec_appendItem: Can't allocate sdr item of \
 length %d.", itlv->length);
 		return -1;
 	}
@@ -639,7 +596,7 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 
 	if (parms->iv.length > 0)
 	{
-		if (appendItem(sdr, asb->parmsData, &parms->iv) < 0)
+		if (bpsec_appendItem(sdr, asb->parmsData, &parms->iv) < 0)
 		{
 			return -1;
 		}
@@ -647,7 +604,7 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 
 	if (parms->salt.length > 0)
 	{
-		if (appendItem(sdr, asb->parmsData, &parms->salt) < 0)
+		if (bpsec_appendItem(sdr, asb->parmsData, &parms->salt) < 0)
 		{
 			return -1;
 		}
@@ -655,7 +612,7 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 
 	if (parms->icv.length > 0)
 	{
-		if (appendItem(sdr, asb->parmsData, &parms->icv) < 0)
+		if (bpsec_appendItem(sdr, asb->parmsData, &parms->icv) < 0)
 		{
 			return -1;
 		}
@@ -663,7 +620,7 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 
 	if (parms->intsig.length > 0)
 	{
-		if (appendItem(sdr, asb->parmsData, &parms->intsig) < 0)
+		if (bpsec_appendItem(sdr, asb->parmsData, &parms->intsig) < 0)
 		{
 			return -1;
 		}
@@ -671,7 +628,7 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 
 	if (parms->aad.length > 0)
 	{
-		if (appendItem(sdr, asb->parmsData, &parms->aad) < 0)
+		if (bpsec_appendItem(sdr, asb->parmsData, &parms->aad) < 0)
 		{
 			return -1;
 		}
@@ -679,56 +636,13 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 
 	if (parms->keyinfo.length > 0)
 	{
-		if (appendItem(sdr, asb->parmsData, &parms->keyinfo) < 0)
+		if (bpsec_appendItem(sdr, asb->parmsData, &parms->keyinfo) < 0)
 		{
 			return -1;
 		}
 	}
 
 	return result;
-}
-
-/******************************************************************************
- *
- * \par Function Name: bpsec_write_one_result
- *
- * \par Purpose: This utility function builds a result item and appends it
- *		 to the non-volatile linked list of result items for the
- *		 block's initial target.
- *
- * \par Date Written:  2/27/2016
- *
- * \retval int -- 0 on success, -1 on error
- *
- * \param[in|out] sdr    The SDR storing the result.
- * \param[in]     asb    The block to append the result for.
- * \param[in]     tlv    The item to write.
- *
- * \par Notes:
- *      1. The SDR object must be freed when no longer needed.
- *      2. This function does not use an SDR transaction.
- *
- * \par Revision History:
- *
- *  MM/DD/YY  AUTHOR        DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  02/27/16  E. Birrane    Initial Implementation [Secure DTN
- *                          implementation (NASA: NNX14CS58P)]
- *****************************************************************************/
-
-int	bpsec_write_one_result(Sdr sdr, BpsecOutboundBlock *asb,
-		sci_inbound_tlv *tlv)
-{
-	BpsecOutboundTarget	target;
-
-	CHKERR(sdr && asb && tlv);
-	if (bpsec_getOutboundTarget(sdr, asb->targets, &target) < 0)
-	{
-		putErrmsg("Can't retrieve outbound target", NULL);
-		return -1;
-	}
-
-	return appendItem(sdr, target.results, tlv);
 }
 
 /******************************************************************************
@@ -745,13 +659,10 @@ int	bpsec_write_one_result(Sdr sdr, BpsecOutboundBlock *asb,
  * \param[in|out] sdr    The SDR storing the result.
  * \param[in]     asb    The block to attach the target to.
  * \param[in]     nbr    The target block's number.
- * \param[in]     typ    The target block's type.
- * \param[in]     mnbr   The target block's own target's block number.
- * \param[in]     mtyp   The target block's own target's block type.
  *
  * \par Notes:
  *      1. The SDR object must be freed when no longer needed.
- *      2. This function does not use an SDR transaction.
+ *      2. This function does not start its own SDR transaction.
  *
  * \par Revision History:
  *
@@ -760,17 +671,13 @@ int	bpsec_write_one_result(Sdr sdr, BpsecOutboundBlock *asb,
  *  11/27/19  S. Burleigh   Initial Implementation
  *****************************************************************************/
 
-int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr,
-		uint8_t typ, uint8_t mnbr, uint8_t mtyp)
+int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr)
 {
 	Object			obj;
 	BpsecOutboundTarget	target;
 
 	CHKERR(sdr && asb);
 	target.targetBlockNumber = nbr;
-	target.targetBlockType = typ;
-	target.metatargetBlockNumber = mnbr;
-	target.metatargetBlockType = mtyp;
 	target.results = sdr_list_create(sdr);
 	if (target.results == 0)
 	{
@@ -941,20 +848,6 @@ ASB target", NULL);
 		}
 
 		target->targetBlockNumber = uvtemp;
-
-		/*	NOTE!!!  The next line is a TEMPORARY hack,
-		 *	which works for the moment because the only
-		 *	types of blocks bpsec can currently operate
-		 *	on are Primary and Payload, for which block
-		 *	type and block number are the same.  For
-		 *	next release, this function or some other
-		 *	bpsec function MUST find the block identified
-		 *	by targetBlockNumber, obtain its type, and
-		 *	set target->targetBlockType to that block
-		 *	type number, before any operations are
-		 *	performed on this ASB.				*/
-
-		target->targetBlockType = uvtemp;	/*	HACK!	*/
 		arrayLength -= 1;
 	}
 
@@ -1187,6 +1080,80 @@ space for ASB results value", NULL);
 	return result;
 }
 
+int	bpsec_BibRuleApplies(Bundle *bundle, BPsecBibRule *rule)
+{
+	Sdr	sdr = getIonsdr();
+	char	*bundleSourceEid;
+	char	*bundleDestinationEid;
+	char	ruleSourceEid[SDRSTRING_BUFSZ];
+	char	ruleDestinationEid[SDRSTRING_BUFSZ];
+	int	result = 0;
+
+	readEid(&(bundle->id.source), &bundleSourceEid);
+	if (bundleSourceEid == NULL)
+	{
+		return 0;
+	}
+
+	readEid(&(bundle->destination), &bundleDestinationEid);
+	if (bundleDestinationEid == NULL)
+	{
+		MRELEASE(bundleSourceEid);
+		return 0;
+	}
+
+	sdr_string_read(sdr, ruleSourceEid, rule->securitySrcEid);
+	sdr_string_read(sdr, ruleDestinationEid, rule->destEid);
+	if (eidsMatch(bundleSourceEid, strlen(bundleSourceEid),
+			ruleSourceEid, strlen(ruleSourceEid))
+	&& eidsMatch(bundleDestinationEid, strlen(bundleDestinationEid),
+			ruleDestinationEid, strlen(ruleDestinationEid)))
+	{
+		result = 1;
+	}
+
+	MRELEASE(bundleSourceEid);
+	MRELEASE(bundleDestinationEid);
+	return result;
+}
+
+int	bpsec_BcbRuleApplies(Bundle *bundle, BPsecBcbRule *rule)
+{
+	Sdr	sdr = getIonsdr();
+	char	*bundleSourceEid;
+	char	*bundleDestinationEid;
+	char	ruleSourceEid[SDRSTRING_BUFSZ];
+	char	ruleDestinationEid[SDRSTRING_BUFSZ];
+	int	result = 0;
+
+	readEid(&(bundle->id.source), &bundleSourceEid);
+	if (bundleSourceEid == NULL)
+	{
+		return 0;
+	}
+
+	readEid(&(bundle->destination), &bundleDestinationEid);
+	if (bundleDestinationEid == NULL)
+	{
+		MRELEASE(bundleSourceEid);
+		return 0;
+	}
+
+	sdr_string_read(sdr, ruleSourceEid, rule->securitySrcEid);
+	sdr_string_read(sdr, ruleDestinationEid, rule->destEid);
+	if (eidsMatch(bundleSourceEid, strlen(bundleSourceEid),
+			ruleSourceEid, strlen(ruleSourceEid))
+	&& eidsMatch(bundleDestinationEid, strlen(bundleDestinationEid),
+			ruleDestinationEid, strlen(ruleDestinationEid)))
+	{
+		result = 1;
+	}
+
+	MRELEASE(bundleSourceEid);
+	MRELEASE(bundleDestinationEid);
+	return result;
+}
+
 /******************************************************************************
  *
  * \par Function Name: bpsec_destinationIsLocal
@@ -1225,206 +1192,6 @@ int	bpsec_destinationIsLocal(Bundle *bundle)
 	}
 
 	return result;
-}
-
-#if 0
-/******************************************************************************
- *
- * \par Function Name: bpsec_findAcqBlock
- *
- * \par Purpose: This function searches the lists of extension blocks in
- * 		 an acquisition work area looking for a bpsec block of the
- * 		 indicated type, among whose targets is a block of indicated
- * 		 type and (as relevant) target type.
- *
- * \retval Object
- *
- * \param[in]  bundle      		The bundle within which to search.
- * \param[in]  type        		The type of bpsec block to look for.
- * \param[in]  targetBlockType		Identifies target of the bpsec block.
- * \param[in]  metatargetBlockType	Identifies target of the target block.
- *
- * \par Notes:
- *****************************************************************************/
-
-LystElt	bpsec_findAcqBlock(AcqWorkArea *wk, BpBlockType type,
-		BpBlockType targetBlockType, BpBlockType metatargetBlockType)
-{
-	LystElt			elt;
-	AcqExtBlock		*blk;
-	BpsecInboundBlock	*asb;
-	LystElt			elt2;
-	BpsecInboundTarget	*target;
-
-	CHKZERO(wk);
-	for (elt = lyst_first(wk->extBlocks); elt; elt = lyst_next(elt))
-	{
-		blk = (AcqExtBlock *) lyst_data(elt);
-		if (blk->type != type)
-		{
-			continue;
-		}
-
-		asb = (BpsecInboundBlock *) (blk->object);
-		for (elt2 = lyst_first(asb->targets); elt2;
-				elt2 = lyst_next(elt2))
-		{
-			target = (BpsecInboundTarget *) lyst_data(elt2);
-			if (target->targetBlockType == targetBlockType
-			&& target->metatargetBlockType == metatargetBlockType)
-			{
-				return elt;
-			}
-		}
-	}
-
-	return 0;
-}
-#endif
-
-/******************************************************************************
- *
- * \par Function Name: bpsec_findBlock
- *
- * \par Purpose: This function searches the lists of extension blocks in a
- * 			bundle looking for a bpsec block of the indicated type,
- *			among whose targets is a block of indicated type and
- *			(as relevant) target type.
- *
- * \retval Object
- *
- * \param[in]  bundle      		The bundle within which to search.
- * \param[in]  type        		The type of bpsec block to look for.
- * \param[in]  targetBlockType		Identifies target of the bpsec block.
- * \param[in]  metatargetBlockType	Identifies target of the target block.
- *
- * \par Notes:
- *
- * \par Revision History:
- *
- *  MM/DD/YY  AUTHOR        DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  03/14/16  E. Birrane    Documentation.[Secure DTN
- *                          implementation (NASA: NNX14CS58P)]
- *****************************************************************************/
-
-Object	bpsec_findBlock(Bundle *bundle, BpBlockType type,
-		BpBlockType targetBlockType, BpBlockType metatargetBlockType)
-{
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
-		OBJ_POINTER(ExtensionBlock, blk);
-
-	CHKZERO(bundle);
-	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		addr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-		if (blk->type == type
-		&& blk->tag1 == targetBlockType
-		&& blk->tag2 == metatargetBlockType)
-		{
-			return elt;
-		}
-#if 0
-		/*	Note: when we get target multiplicity fully
-		 *	implemented, we will need to use this sort
-		 *	of logic to find the requested block.  But
-		 *	initially we continue to use the tag fields
-		 *	in the ExtensionBlock as search fields.		*/
-
-		Object	elt2;
-			OBJ_POINTER(BpsecOutboundBlock, asb);
-			OBJ_POINTER(BpsecOutboundTarget, target);
-
-		if (blk->type != type)
-		{
-			continue;
-		}
-
-		GET_OBJ_POINTER(sdr, BpsecOutboundBlock, asb, blk->object);
-		for (elt2 = sdr_list_first(sdr, asb->targets); elt2;
-				elt2 = sdr_list_next(sdr, elt2))
-		{
-			addr = sdr_list_data(sdr, elt2);
-			GET_OBJ_POINTER(sdr, BpsecOutboundTarget, target, addr);
-			if (target->targetBlockType == targetBlockType
-			&& target->metatargetBlockType == metatargetBlockType)
-			{
-				return elt;
-			}
-		}
-#endif
-	}
-
-	return 0;
-}
-
-/******************************************************************************
- *
- * \par Function Name: bpsec_getInboundSecurityEids
- *
- * \par Purpose: This function retrieves the inbound and outbound security
- *               EIDs associated with an inbound abstract security block.
- *
- * \retval -1 on fatal error
- *          0 on success (but the returned From and/or To eid may be NULL)
- *
- * \param[in]   bundle   The inbound bundle.
- * \param[in]   blk      The inbound block.
- * \param[in]   asb	 The inbound Abstract Security Block.
- * \param[out]  fromEid  The security source EID to populate.
- * \param[out]  toEid    The bundle destination EID to populate
- *
- * \par Notes:
- *    - The fromEid will be populated from the security block, if the security
- *      block houses such an EID.  Otherwise the bundle source EID will be used.
- *
- * \par Revision History:
- *
- *  MM/DD/YY  AUTHOR        DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  03/14/16  E. Birrane    Documentation.[Secure DTN
- *                          implementation (NASA: NNX14CS58P)]
- *  07/14/16  E. Birrane    Update Return Codes.[Secure DTN
- *                          implementation (NASA: NNX14CS58P)]
- *****************************************************************************/
-
-int	bpsec_getInboundSecurityEids(Bundle *bundle, AcqExtBlock *blk,
-		BpsecInboundBlock *asb, char **fromEid, char **toEid)
-{
-	CHKERR(bundle);
-	CHKERR(blk);
-	CHKERR(asb);
-	CHKERR(fromEid);
-	CHKERR(toEid);
-
-	*fromEid = NULL;	/*	Default.			*/
-	*toEid = NULL;		/*	Default.			*/
-
-	if (readEid(&(bundle->destination), toEid) < 0)
-	{
-		return -1;
-	}
-
-	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
-	{
-		if (readEid(&(asb->securitySource), fromEid) < 0)
-		{
-			return -1;
-		}
-	}
-	else
-	{
-		if (readEid(&bundle->id.source, fromEid) < 0)
-		{
-			return -1;
-		}
-	}
-
-	return 0;
 }
 
 /******************************************************************************
@@ -1522,23 +1289,21 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
 
 /******************************************************************************
  *
- * \par Function Name: bpsec_getOutboundSecurityEids
+ * \par Function Name: bpsec_getOutboundSecuritySource
  *
- * \par Purpose: This function retrieves the inbound and outbound security
- *               EIDs associated with an outbound abstract security block.
+ * \par Purpose: This function retrieves the EID of the security source
+ * 		 for an outbound abstract security block.
  *
  * \retval -1 on Fatal error
  *          0 on success (but the returned From and/or To eid may be NULL)
  *
  * \param[in]   bundle   The outbound bundle.
- * \param[in]   blk      The outbound block.
  * \param[in]   asb	 The outbound Abstract Security Block.
  * \param[out]  fromEid  The security source EID to populate.
- * \param[out]  toEid    The bundle destination EID to populate
  *
  * \par Notes:
  *    - The fromEid will be populated from the security block, if the security
- *      block houses such an EID.  Otherwise, the bundle EID will be used.
+ *      block houses such an EID.  Otherwise, the bundle source EID will be used.
  *
  * \par Revision History:
  *
@@ -1550,32 +1315,26 @@ void	bpsec_getOutboundItem(uint8_t itemNeeded, Object items, Object *tvp)
  *                          implementation (NASA: NNX14CS58P)]
  *****************************************************************************/
 
-int	bpsec_getOutboundSecurityEids(Bundle *bundle, ExtensionBlock *blk,
-		BpsecOutboundBlock *asb, char **fromEid, char **toEid)
+int	bpsec_getOutboundSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb,
+		char **fromEid)
 {
 	CHKERR(bundle);
-	CHKERR(blk);
 	CHKERR(asb);
 	CHKERR(fromEid);
-	CHKERR(toEid);
 
 	*fromEid = NULL;	/*	Default.			*/
-	*toEid = NULL;		/*	Default.			*/
-	if (readEid(&(bundle->destination), toEid) < 0)
-	{
-		return -1;
-	}
-
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		if (readEid(&(asb->securitySource), fromEid) < 0)
+		readEid(&(asb->securitySource), fromEid);
+		if (fromEid == NULL)
 		{
 			return -1;
 		}
 	}
 	else
 	{
-		if (readEid(&bundle->id.source, fromEid) < 0)
+		readEid(&bundle->id.source, fromEid);
+		if (fromEid == NULL)
 		{
 			return -1;
 		}
@@ -1615,13 +1374,35 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 	PsmAddress	elt;
 	int		result;
 
-	CHKVOID(readEid(&bundle->destination, &eidString) == 0);
+	/*	Get the local node's admin EID for the scheme by
+	 *	which the bundle's destination is identified, since
+	 *	we know the destination understands that scheme.	*/
+
+	readEid(&bundle->destination, &eidString);
+	CHKVOID(eidString);
 	adminEid = bpsec_getLocalAdminEid(eidString);
 	MRELEASE(eidString);
+
+	/*	If security source is the bundle's source, nothing to
+	 *	do.							*/
+
+	readEid(&bundle->id.source, &eidString);
+	CHKVOID(eidString);
+	result = strcmp(eidString, adminEid);
+	MRELEASE(eidString);
+	if (result == 0)
+	{
+		return;	/*	No need for block security source.	*/
+	}
+
+	/*	Now note that this admin EID is the block's security
+	 *	source.							*/
+
 	CHKVOID(parseEidString(adminEid, &metaEid, &vscheme, &elt));
 	result = writeEid(&(asb->securitySource), &metaEid);
 	restoreEidString(&metaEid);
        	CHKVOID(result == 0);
+	asb->contextFlags &= BPSEC_ASB_SEC_SRC;
 }
 
 /******************************************************************************
@@ -1764,156 +1545,6 @@ size %d", ReqBufLen);
 	key.length = ReqBufLen;
 	BPSEC_DEBUG_PROC("- bpsec_retrieveKey -> key (len=%d)", key.length);
 	return key;
-}
-
-/******************************************************************************
- *
- * \par Function Name: bpsec_securityPolicyViolated
- *
- * \par Purpose: Determines if an incoming bundle/block has violated security
- *               policy.
- *
- * \retval 1 if the policy was violated.
- *         0 if the policy was not violated.
- *
- * \param[in]  wk  The incominb bundle work area.
- *
- * \par Notes:
- *    - This function is not implemented at this time.
- *    - \todo For each block in the bundle, find the matching BIB rule
- *            If rule found, find BIB for this block. If BIB not found,
- *            return 1.
- *
- * \par Revision History:
- *
- *  MM/DD/YY  AUTHOR        DESCRIPTION
- *  --------  ------------  ----------------------------------------
- *  03/14/16  E. Birrane    Reworked to use sci_inbound_tlv [Secure DTN
- *                          implementation (NASA: NNX14CS58P)]
- *****************************************************************************/
-
-int	bpsec_securityPolicyViolated(AcqWorkArea *wk)
-{
-	/*	TODO: eventually this function should do something like:
-	 *		1.  For each block in the bundle, find matching
-	 *		    BIB rule.  If rule found, find BIB for this
-	 *		    block.  If BIB not found, return 1.		*/
-
-	return 0;
-}
-
-/******************************************************************************
- *
- * \par Function Name: bpsec_requiredBlockExists
- *
- * \par Purpose: This function searches for the bpsec block that satisfies
-		 some bpsec security rule at the time of bundle acquisition..
- *
- * \retval  -1 on Fatal Error.
- *           0 on Failure (block not found).
- *           1 on Success (block was found).
- *
- * \param[in]   wk      	The bundle acquisition structure.
- * \param[in]   bpsecBlockType	The type of block to search for.
- * \param[in]   targetBlockType	The type of block the block must target.
- * \param[in]   secSrcEid	The EID of the node that must have attached
- *				the block to the bundle.
- *
- * \par Notes:
- *
- * \par Revision History:
- *
- *  MM/DD/YY  AUTHOR        DESCRIPTION
- *  --------  ------------  -----------------------------------------------
- *  07/19/18  S. Burleigh   Initial implementation.
- *
- *****************************************************************************/
-
-int	bpsec_requiredBlockExists(AcqWorkArea *wk, BpBlockType bpsecBlockType,
-			BpBlockType targetBlockType, char *secSrcEid)
-{
-	LystElt			elt;
-	AcqExtBlock		*blk;
-	BpsecInboundBlock	*asb;
-	LystElt			elt2;
-	BpsecInboundTarget	*target;
-	Bundle			*bundle;
-	int			result;
-	char			*fromEid;
-
-	CHKZERO(wk);
-	bundle = &(wk->bundle);
-	for (elt = lyst_first(wk->extBlocks); elt; elt = lyst_next(elt))
-	{
-		blk = (AcqExtBlock *) lyst_data(elt);
-		CHKERR(blk);
-		if (blk->type != bpsecBlockType)
-		{
-			continue;		/*	No type match.	*/
-		}
-
-		asb = (BpsecInboundBlock *) (blk->object);
-		CHKERR(asb);
-		for (elt2 = lyst_first(asb->targets); elt2;
-				elt2 = lyst_next(elt2))
-		{
-			target = (BpsecInboundTarget *) lyst_data(elt2);
-			CHKERR(target);
-			if (target->targetBlockType == targetBlockType)
-			{
-				break;		/*	Target matches.	*/
-			}
-		}
-
-		if (elt2 == NULL)	/*	Reached end of list.	*/
-		{
-			continue;	/*	No target match.	*/
-		}
-
-		/*	Now see if source of BIB matches the source
-		 *	EID for this BIB rule.				*/
-
-		result = 0;
-		fromEid = NULL;
-		if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
-		{
-			if (readEid(&(asb->securitySource), &fromEid) < 0)
-			{
-				return -1;
-			}
-		}
-		else
-		{
-			/*	No security source in block, so source
-			 *	of BIB is the source of the bundle.	*/
-
-			if (readEid(&bundle->id.source, &fromEid) < 0)
-			{
-				return -1;
-			}
-		}
-
-		if (fromEid == NULL)
-		{
-			continue;	/*	No source EID match.	*/
-		}
-
-		if (eidsMatch(secSrcEid, strlen(secSrcEid),
-				fromEid, strlen(fromEid)))
-		{
-			result = 1;
-		}
-
-		MRELEASE(fromEid);
-		if (result == 1)
-		{
-			return result;
-		}
-	}
-
-	/*	Did not find any BIB that satisfies this rule.		*/
-
-	return 0;
 }
 
 /******************************************************************************
@@ -2576,4 +2207,393 @@ acquire extent into file..", NULL);
 	}
 
 	return 1;
+}
+
+/*****************************************************************************
+ *            CANONICALIZATION FUNCTIONS (for BIB processing)                *
+ *****************************************************************************/
+
+static int	canonicalizePrimaryBlock(Bundle *bundle, Object *zcoOut)
+{
+	Sdr		sdr = getIonsdr();
+        unsigned char	destinationEid[300];
+        int		destinationEidLength;
+        unsigned char	sourceEid[300];
+        int		sourceEidLength;
+        unsigned char	reportToEid[300];
+        int		reportToEidLength;
+	int		maxBlockLength;
+	unsigned char	*buffer;
+	unsigned char	*cursor;
+	int		blkLength;
+	Object		blkBytes;
+	Object		zco;
+
+	*zcoOut = 0;
+	CHKERR((destinationEidLength = serializeEid(&(bundle->destination),
+			destinationEid)) > 0);
+        CHKERR((sourceEidLength = serializeEid(&(bundle->id.source),
+			sourceEid)) > 0);
+        CHKERR((reportToEidLength = serializeEid(&(bundle->reportTo),
+			reportToEid)) > 0);
+
+        /*	Can now compute max primary block length: EID lengths
+	 *	plus 50 for remainder of primary block.			*/
+
+        maxBlockLength = destinationEidLength + sourceEidLength
+			+ reportToEidLength + 50;
+        buffer = MTAKE(maxBlockLength);
+	if (buffer == NULL)
+	{
+		putErrmsg("Can't serialize primary block.", NULL);
+		return -1;
+	}
+
+	cursor = buffer;
+	serializePrimaryBlock(bundle, &cursor,
+			destinationEid, destinationEidLength,
+			sourceEid, sourceEidLength,
+			reportToEid, reportToEidLength);
+
+	/*	Wrap canonicalized block data in a ZCO for processing.	*/
+
+	blkLength = cursor - buffer;
+	blkBytes = sdr_malloc(sdr, blkLength);
+	if (blkBytes == 0)
+	{
+		MRELEASE(buffer);
+		putErrmsg("Can't serialize primary block.", NULL);
+		return -1;
+	}
+
+	sdr_write(sdr, blkBytes, (char *) buffer, blkLength);
+	MRELEASE(buffer);
+	zco = zco_create(sdr, ZcoSdrSource, blkBytes, 0, 0 - blkLength,
+			ZcoOutbound);
+	switch (zco)
+	{
+	case ((Object) ERROR):
+		return -1;
+
+	case 0:
+		putErrmsg("ZCO failure in primary block canonicalization.",
+				NULL);
+		return 0;	/*	No canonicalization.		*/
+
+	default:
+		*zcoOut = zco;
+		return blkLength;
+	}
+}
+
+static int	canonicalizePayloadBlock(Bundle *bundle, Object *zcoOut)
+{
+	Sdr	sdr = getIonsdr();
+	Payload	payload;
+
+	/*	Note: to canonicalize the bundle's payload block,
+	 *	we first create a ZCO that is a copy of the payload
+	 *	content.  We use that ZCO as the content of a
+	 *	temporary Payload structure.  We pass that structure
+	 *	to the serializePayloadBlock function along with a
+	 *	blkProcFlags value of 0 (required for canonicalization).
+	 *	That function creates the serialized payload block
+	 *	header, prepends the header to the content object,
+	 *	computes the applicable CRC, and appends the CRC to
+	 *	the content object.  We then simply pass that
+	 *	content object back as the canonicalization of the
+	 *	payload block.						*/
+
+	*zcoOut = 0;
+	payload.length = bundle->payload.length;
+	payload.crcType = bundle->payload.crcType;
+	payload.content = zco_clone(sdr, bundle->payload.content, 0,
+			payload.length);
+	switch (payload.content)
+	{
+	case ((Object) ERROR):
+		return -1;
+
+	case 0:
+		putErrmsg("ZCO failure in payload canonicalization.", NULL);
+		return 0;	/*	No canonicalization.		*/
+
+	default:
+		break;
+	}
+
+	if (serializePayloadBlock(&payload, 0) < 0)
+	{
+		putErrmsg("Failed serializing payload.", NULL);
+		return -1;
+	}
+
+	*zcoOut = payload.content;
+	return zco_length(sdr, payload.content);
+}
+
+static int	canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
+			Object *zcoOut)
+{
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	Object		blkObj;
+	ExtensionBlock	blk;
+	ExtensionDef	*def;
+	Object		zco;
+
+	/*	Note: to canonicalize this block we read the block
+	 *	into a buffer, tweak the buffer, and call the
+	 *	serialization function for outbound extension blocks
+	 *	of the indicated type.  This function constructs a
+	 *	serialized extension block, writes that serialized
+	 *	block to the SDR heap, and stores the address of
+	 *	that SDR heap object in the "bytes" field of our
+	 *	extension block buffer, but the extension block
+	 *	itself is not modified.  So we need not repair any
+	 *	modification to the extension block, since no such
+	 *	modification was recorded; we merely wrap the
+	 *	results of serialization (in the buffer's "bytes"
+	 *	field) in a temporary ZCO and return that ZCO.		*/
+
+	*zcoOut = 0;
+	elt = getExtensionBlock(bundle, blkNbr);
+	if (elt == 0)
+	{
+		return 0;	/*	Not found, can't canonicalize.	*/
+	}
+
+	blkObj = sdr_list_data(sdr, elt);
+	sdr_read(sdr, (char *) &blk, blkObj, sizeof(ExtensionBlock));
+
+	/*	Generate canonicalized form of block.			*/
+
+	blk.blkProcFlags = 0;	/*	Required for canonicalization.	*/
+	blk.bytes = 0;		/*	Ignore previous serialization.	*/
+	blk.length = 0;		/*	Ignore previous serialization.	*/
+	def = findExtensionDef(blk.type);
+	if (def && def->serialize)
+	{
+		if (def->serialize(&blk, bundle) < 0)
+		{
+			putErrmsg("Can't serialize extension block.", NULL);
+			return -1;
+		}
+
+		/*	Result of extension block serialization is
+		 *	written to SDR heap; pointer to that object
+		 *	is placed in blk->bytes, and its length is
+		 *	placed in blk->length.				*/
+	}
+
+	if (blk.bytes == 0)
+	{
+		return 0;	/*	No canonicalization.		*/
+	}
+
+	/*	Wrap canonicalized block data in a ZCO for processing.	*/
+
+	zco = zco_create(sdr, ZcoSdrSource, blk.bytes, 0, 0 - blk.length,
+			ZcoOutbound);
+	switch (*zcoOut)
+	{
+	case ((Object) ERROR):
+		return -1;
+
+	case 0:
+		putErrmsg("ZCO failure in extension block canonicalization.",
+				NULL);
+		return 0;	/*	No canonicalization.		*/
+
+	default:
+		*zcoOut = zco;
+		return blk.length;
+	}
+}
+
+static int	canonicalizeAcqExtensionBlock(AcqWorkArea *work, uint8_t blkNbr,
+			Object *zcoOut)
+{
+	Sdr		sdr = getIonsdr();
+	LystElt		elt;
+	AcqExtBlock	*blk;
+	Object		bytesObj;
+	Object		zco;
+
+	/*	Note: to canonicalize this extension block we first
+	 *	find the block within the acquisition work area.  The
+	 *	"bytes" array of the block contains precisely the
+	 *	canonicalized form of the block that we are looking
+	 *	for: the only difference between the received
+	 *	serialized block and the canonicalized block is
+	 *	that blkProcFlags must be set to zero in the latter,
+	 *	and that value within the received serialized block
+	 *	was changed to zero in the course of acquiring the
+	 *	block.  So now all we need to do is wrap the block's
+	 *	(preemptively tweaked) "bytes" array in a temporary
+	 *	ZCO and return that ZCO.				*/
+
+	*zcoOut = 0;
+	elt = getAcqExtensionBlock(work, blkNbr);
+	if (elt == NULL)
+	{
+		return 0;	/*	Not found, can't verify.	*/
+	}
+
+	blk = (AcqExtBlock *) lyst_data(elt);
+	CHKERR(blk);
+
+	/*	Wrap canonicalized block data in a ZCO for processing.	*/
+
+	bytesObj = sdr_malloc(sdr, blk->length);
+	CHKERR(bytesObj);
+	sdr_write(sdr, bytesObj, (char *) (blk->bytes), blk->length);
+	zco = zco_create(sdr, ZcoSdrSource, bytesObj, 0, 0 - blk->length,
+			ZcoInbound);
+	switch (*zcoOut)
+	{
+	case ((Object) ERROR):
+		sdr_free(sdr, bytesObj);
+		return -1;
+
+	case 0:
+		sdr_free(sdr, bytesObj);
+		putErrmsg("ZCO failure in extension block canonicalization.",
+				NULL);
+		return 0;	/*	No canonicalization.		*/
+
+	default:
+		*zcoOut = zco;
+		return blk->length;
+	}
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: bpsec_canonicalizeOut
+ *
+ * \par Purpose: This utility function generates a zero copy object
+ * 		 instantiating the canonicalized form of an outbound
+ * 		 BP block (primary, payload, or extension) for the
+ * 		 purpose of BIB signature computation.  The ZCO MUST
+ * 		 be destroyed after it has been used for signing the
+ * 		 block.
+ *
+ * \par Date Written:  8/15/11
+ *
+ * \retval -1 on Fatal Error
+ *          0 on Failure
+ *          length of canonicalized block on Success
+ *
+ * \param[in]  bundle     The bundle in which the block resides.
+ * \param]in]  blkNbr     The block number of the block to canonicalize.
+ * \param[out] zcoOut     Where to deliver the canonicalized block.
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  10/06/20  S. Burleigh   Initial implementation
+ *****************************************************************************/
+
+int	bpsec_canonicalizeOut(Bundle *bundle, uint8_t blkNbr, Object *zcoOut)
+{
+	Sdr	sdr = getIonsdr();
+	int	result;
+
+	CHKERR(bundle);
+	CHKERR(zcoOut);
+	CHKERR(sdr_begin_xn(sdr));
+	switch (blkNbr)
+	{
+	case 0:
+		result = canonicalizePrimaryBlock(bundle, zcoOut);
+		break;
+
+	case 1:
+		result = canonicalizePayloadBlock(bundle, zcoOut);
+		break;
+
+	default:
+		result = canonicalizeExtensionBlock(bundle, blkNbr, zcoOut);
+	}
+
+	if (result < 0)
+	{
+		sdr_cancel_xn(sdr);
+	}
+	else
+	{
+		if (sdr_end_xn(sdr) < 0)
+		{
+			result = -1;
+		}
+	}
+
+	return result;
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: bpsec_canonicalizeIn
+ *
+ * \par Purpose: This utility function generates a zero copy object
+ * 		 instantiating the canonicalized form of an inbound
+ * 		 BP block (primary, payload, or extension) for the
+ * 		 purpose of BIB signature computation.  The ZCO MUST
+ * 		 be destroyed after it has been used for verifying
+ * 		 the block.
+ *
+ * \par Date Written:  8/15/11
+ *
+ * \retval -1 on Fatal Error
+ *          0 on Failure
+ *          length of canonicalized block on Success
+ *
+ * \param[in]  bundle     The bundle in which the block resides.
+ * \param]in]  blkNbr     The block number of the block to canonicalize.
+ * \param[out] zcoOut     Where to deliver the canonicalized block.
+ *
+ * \par Revision History:
+ *
+ *  MM/DD/YY  AUTHOR        DESCRIPTION
+ *  --------  ------------  -----------------------------------------------
+ *  10/06/20  S. Burleigh   Initial implementation
+ *****************************************************************************/
+
+int	bpsec_canonicalizeIn(AcqWorkArea *work, uint8_t blkNbr, Object *zcoOut)
+{
+	Sdr	sdr = getIonsdr();
+	int	result;
+
+	CHKERR(work);
+	CHKERR(zcoOut);
+	CHKERR(sdr_begin_xn(sdr));
+	switch (blkNbr)
+	{
+	case 0:
+		result = canonicalizePrimaryBlock(&(work->bundle), zcoOut);
+		break;
+
+	case 1:
+		result = canonicalizePayloadBlock(&(work->bundle), zcoOut);
+		break;
+
+	default:
+		result = canonicalizeAcqExtensionBlock(work, blkNbr, zcoOut);
+	}
+
+	if (result < 0)
+	{
+		sdr_cancel_xn(sdr);
+	}
+	else
+	{
+		if (sdr_end_xn(sdr) < 0)
+		{
+			result = -1;
+		}
+	}
+
+	return result;
 }

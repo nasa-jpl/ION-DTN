@@ -1,0 +1,85 @@
+=head1 NAME
+
+dtkarc - DTKA user configuration commands file
+
+=head1 DESCRIPTION
+
+DTKA user configuration commands are passed to B<dtkaadmin> either
+in a file of text lines or interactively at B<dtkaadmin>'s command prompt
+(:).  Commands are interpreted line-by line, with exactly one command per
+line.  The formats and effects of the DTKA user function administration
+commands are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by dtkaadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<1>
+
+The B<initialize> command.  Until this command is executed, the DTKA user
+function is not in operation on the local ION node and most I<dtkaadmin>
+commands will fail.
+
+=item B<i>
+
+The B<info> This command will print information about the current state
+of the local node's DTKA user function, including the current settings of
+all parameters that can be managed as described below.
+
+=item B<m keygentime> I<time>
+
+The B<manage key generation time> command.  This command sets the time at
+which the node will next generate a public/private key pair and multicast
+the public key.  The command is not needed in normal operations, because
+future key generation times are computed automatically as key pairs are
+generated. I<time> must be in yyyy/mm/dd-hh:mm:ss format.
+
+=item B<m interval> I<key_pair_generation_interval>
+
+The B<manage key pair generation interval> command.  This interval,
+expressed as a number of seconds, controls the period on which the DTKA
+user function will generate new public/private key pairs.  The default
+value is 604800 (one week).
+
+=item B<m leadtime> I<key_pair_effectivenes_lead_time>
+
+The B<manage key pair effectivenes lead time> command.  This interval,
+expressed as a number of seconds, controls the length of time after the
+time of key pair generation at which the key pair will become effective.
+The default value is 345600 (four days).
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item m interval 3600
+
+Asserts that the DTKA function will generate a new key pair every 3600 seconds
+(one hour).
+
+=back
+
+=head1 SEE ALSO
+
+dtkaadmin(1)

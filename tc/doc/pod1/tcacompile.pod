@@ -1,0 +1,63 @@
+=head1 NAME
+
+tcacompile - Trusted Collective daemon task for compiling critical information bulletins
+
+=head1 SYNOPSIS
+
+B<tcacompile> I<blocks_group_number>
+
+=head1 DESCRIPTION
+
+B<tcacompile> is a background "daemon" task that periodically generates new
+proposed bulletins of recent critical information records and multicasts those
+bulletins to all nodes in the collective authority for the TC application
+identified by I<blocks_group_number>.  It is spawned automatically by
+B<tcaadmin> in response to the 's' command that starts operation of the
+TC authority function for this application on the local node, and it is
+terminated by B<tcaadmin> in response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcacompile> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<tcaadmin> to restart B<tcacompile>.
+
+=item "1"
+
+B<tcacompile> was unable to attach to TC authority operations, probably because
+B<tcaadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item tcacompile can't attach to tca system.
+
+B<tcaadmin> has not yet initialized the authority database for this TC
+application.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+tcaadmin(1), tc(3), tcarc(5)

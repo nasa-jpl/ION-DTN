@@ -12,6 +12,7 @@
 #include "bei.h" 
 
 extern int	hcb_offer(ExtensionBlock *, Bundle *);
+extern int	hcb_serialize(ExtensionBlock *, Bundle *);
 extern void	hcb_release(ExtensionBlock *);
 extern int	hcb_record(ExtensionBlock *, AcqExtBlock *);
 extern int	hcb_copy(ExtensionBlock *, ExtensionBlock *);

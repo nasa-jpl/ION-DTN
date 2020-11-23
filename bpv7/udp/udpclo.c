@@ -271,10 +271,14 @@ int	main(int argc, char *argv[])
 		}
 		else
 		{
-			balanceDue = 1;
+			balanceDue = 0;
 		}
 
-		microsnooze(balanceDue);
+		if (balanceDue > 0)
+		{
+			microsnooze(balanceDue);
+		}
+
 		prevPaid = balanceDue;
 
 		/*	Make sure other tasks have a chance to run.	*/

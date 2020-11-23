@@ -49,15 +49,18 @@ extern int		sm_BeginPthread(pthread_t *threadId,
 				void *(*function)(void *), void *arg);
 extern int		sm_BeginPthread_named(pthread_t *threadId,
 				const pthread_attr_t *attr,
-				void *(*function)(void *), void *arg, const char *name);
+				void *(*function)(void *), void *arg,
+				const char *name);
 #define pthread_begin4(w,x,y,z) sm_BeginPthread(w, x, y, z)
 #define pthread_begin5(w,x,y,z,u) sm_BeginPthread_named(w, x, y, z,u)
 extern void		sm_EndPthread(pthread_t threadId);
 #define pthread_end(x)	sm_EndPthread(x)
 #else			/*	Standard pthread functions available.	*/
 #define pthread_begin4(w,x,y,z) pthread_create(w, x, y, z)
-extern int		pthread_begin_named(pthread_t *thread, const pthread_attr_t *attr,
-				void *(*start_routine) (void *), void *arg, const char *name);
+extern int		pthread_begin_named(pthread_t *thread,
+				const pthread_attr_t *attr,
+				void *(*start_routine) (void *), void *arg,
+				const char *name);
 #define pthread_begin5(w,x,y,z,u) pthread_begin_named(w,x,y,z,u)
 #define pthread_end(x)		pthread_cancel(x)
 #endif			/*	end of #ifdef bionic || uClibc		*/

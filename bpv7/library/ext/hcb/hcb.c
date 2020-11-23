@@ -19,13 +19,18 @@
 
 int	hcb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	bundle->hopCount = 0;
+	bundle->hopLimit = ION_HOP_LIMIT;
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	return hcb_serialize(blk, bundle);
+}
+
+int	hcb_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[24];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 
-	bundle->hopCount = 0;
-	bundle->hopLimit = ION_HOP_LIMIT;
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	cursor = dataBuffer;
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
@@ -37,36 +42,6 @@ int	hcb_offer(ExtensionBlock *blk, Bundle *bundle)
 	blk->size = 0;
 	blk->object = 0;
 	return serializeExtBlk(blk, (char *) dataBuffer);
-}
-
-void	hcb_release(ExtensionBlock *blk)
-{
-	return;
-}
-
-int	hcb_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	hcb_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	hcb_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	hcb_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	hcb_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
 }
 
 int	hcb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
@@ -148,9 +123,4 @@ int	hcb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	hcb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	hcb_clear(AcqExtBlock *blk)
-{
-	return;
 }

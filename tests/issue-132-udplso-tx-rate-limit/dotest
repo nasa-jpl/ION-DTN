@@ -108,21 +108,14 @@ else
     tsdiff=$((recvfilets - sendfilets))
 
     if [ $tsdiff -ge 10 ]; then
-    
 	echo "bundle transfer successful!"
 	RETVAL=0
     else
-
 	echo "Oh noes, data OK but recv file timestamp not 10secs older than send file!"
-	RETVAL=2
+	RETVAL=1
     fi
 
 fi
-
-
-# clean up
-#rm -f $IONSENDFILE $IONRECEIVEFILE
-
 
 exit $RETVAL
 

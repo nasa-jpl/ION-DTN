@@ -1,1 +1,1 @@
-Hangs when trying to stop bpadmin while running the ionstop script.
+There is an issue with bpsink not accepting bundles on Windows

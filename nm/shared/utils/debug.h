@@ -102,4 +102,6 @@ AMP_DEBUG(AMP_DEBUG_LVL_ERR,'x',func,format, __VA_ARGS__)
 #define AMP_DEBUG_ALWAYS(func, format,...) \
 AMP_DEBUG(AMP_DEBUG_LVL,':',func,format, __VA_ARGS__)
 
+#define AMP_DBG_ERR(format,...) AMP_DEBUG_ERR(__func__,format,__VA_ARGS__)
+
 #endif // DEBUG_H_

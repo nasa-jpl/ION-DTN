@@ -420,7 +420,8 @@ printf("Net confidence %f.\n", netConfidence);
 	if (xmitRate > 1)
 	{
 		if (rfx_insert_contact(regionIdx, horizon, horizon, fromNode,
-				toNode, xmitRate, netConfidence, &cxaddr) < 0)
+				toNode, xmitRate, netConfidence, &cxaddr) < 0
+		|| cxaddr == 0)
 		{
 			putErrmsg("Can't insert predicted contact.", NULL);
 			return -1;
@@ -568,6 +569,9 @@ int	saga_send(uvast destinationNodeNbr, int regionIdx)
 	Sdr		sdr = getIonsdr();
 	BpDB		*bpConstants = getBpConstants();
 	char		ownEid[32];
+	MetaEid		ownMetaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 	char		destEid[32];
 	time_t		timeFloor;
 	int		maxSaga;
@@ -582,10 +586,10 @@ int	saga_send(uvast destinationNodeNbr, int regionIdx)
 	int		aduLength;
 	Object		aduObj;
 	Object		aduZco;
-	BpSAP		sap;
 
 	isprintf(ownEid, sizeof(ownEid), "ipn:" UVAST_FIELDSPEC ".0",
 			getOwnNodeNbr());
+	oK(parseEidString(ownEid, &ownMetaEid, &vscheme, &vschemeElt));
 	isprintf(destEid, sizeof(destEid), "ipn:" UVAST_FIELDSPEC ".0",
 			destinationNodeNbr);
 
@@ -674,38 +678,39 @@ int	saga_send(uvast destinationNodeNbr, int regionIdx)
 	 *	the destination node.					*/
 
 	aduLength = cursor - buffer;
+	oK(sdr_begin_xn(sdr));
 	aduObj = sdr_malloc(sdr, aduLength);
 	if (aduObj == 0)
 	{
+		sdr_cancel_xn(sdr);
 		putErrmsg("Can't create saga message.", NULL);
 		return -1;
 	}
 
 	sdr_write(sdr, aduObj, (char *) buffer, aduLength);
 	MRELEASE(buffer);
-	if (bp_open_source(ownEid, &sap, 0) < 0)
-	{
-		writeMemoNote("[?] Can't open own endpoint for saga message \
-transmission", ownEid);
-		return 0;
-	}
-
 	aduZco = ionCreateZco(ZcoSdrSource, aduObj, 0, aduLength,
 			BP_STD_PRIORITY, 0, ZcoOutbound, NULL);
 	if (aduZco == 0 || aduZco == (Object) ERROR)
 	{
-		writeMemo("[?] Unable to create saga message ZCO.");
-		bp_close(sap);
-		return 0;
+		sdr_cancel_xn(sdr);
+		putErrmsg("Failed creating saga message ZCO.", NULL);
+		return -1;
 	}
 
-	if (bp_send(sap, destEid, NULL, 60, BP_STD_PRIORITY,
-			NoCustodyRequested, 0, 0, NULL, aduZco, NULL) <= 0)
+	if (sdr_end_xn(sdr) < 0)
 	{
-		writeMemo("[?] Unable to send saga message ZCO.");
+		putErrmsg("Failed sending saga message.", NULL);
+		return -1;
 	}
 
-	bp_close(sap);
+	if (bpSend(&ownMetaEid, destEid, NULL, 60, BP_STD_PRIORITY,
+			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
+			BP_SAGA_MESSAGE) <= 0)
+	{
+		writeMemo("[?] Unable to send saga message.");
+	}
+
 	return 0;
 }
 

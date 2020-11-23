@@ -55,6 +55,8 @@ static void	printUsage()
 	puts("\t   a <custodianEid> <acsSize> [<acsDelay>]");
 	puts("\ts\tSet minimum custody ID");
 	puts("\t   s <minimumCustodyId>");
+	puts("\tt\tSet ACS bundle lifetime");
+	puts("\t   t <acsBundleLifetime>");
 	puts("\te\tEnable or disable echo of printed output to log file");
 	puts("\t   e { 0 | 1 }");
 	puts("\t#\tComment");
@@ -139,7 +141,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 static void executeSetMinimumCustodyId(int tokenCount, char **tokens)
 {
-	long minimumCustodyId;
+	long	minimumCustodyId;
 
 	if (acsAttach() < 0) return;
 	if (tokenCount < 2)
@@ -151,13 +153,33 @@ static void executeSetMinimumCustodyId(int tokenCount, char **tokens)
 	minimumCustodyId = atol(tokens[1]);
 	if (minimumCustodyId < 0)
 	{
-		printText("minimumCustodyId must be positive");
+		printText("minimum custody Id must be positive");
 		return;
 	}
 
-	updateMinimumCustodyId(minimumCustodyId);
+	oK(updateMinimumCustodyId((unsigned int) minimumCustodyId));
 }
 
+static void executeSetAcsBundleLifetime(int tokenCount, char **tokens)
+{
+	long	timeToLive;
+
+	if (acsAttach() < 0) return;
+	if (tokenCount < 2)
+	{
+		printText("Set ACS bundle lifetime to what?");
+		return;
+	}
+
+	timeToLive = atoi(tokens[1]);
+	if (timeToLive < 0)
+	{
+		printText("ACS bundle lifetime must be positive");
+		return;
+	}
+
+	oK(updateAcsBundleLifetime((unsigned int) timeToLive));
+}
 
 static void	switchEcho(int tokenCount, char **tokens)
 {
@@ -280,6 +302,10 @@ static int	acsadmin_processLine(char *line)
 
 		case 's':
 			executeSetMinimumCustodyId(tokenCount, tokens);
+			return 0;
+
+		case 't':
+			executeSetAcsBundleLifetime(tokenCount, tokens);
 			return 0;
 
 		case 'e':

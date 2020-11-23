@@ -627,8 +627,8 @@ static void run_cgrfetch(void)
 		DIES("Can't lock database");
 	}
 
-	if (cgr_preview_forward(&bundle, (Object)(&bundle), destNode,
-			dispatchTime, &trace) < 0)
+	if (cgr_preview_forward(destNode, &bundle, dispatchTime, NULL, &trace)
+			< 0)
 	{
 		DIES("unable to simulate cgr");
 	}

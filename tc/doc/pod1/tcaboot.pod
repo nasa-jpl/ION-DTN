@@ -1,0 +1,81 @@
+=head1 NAME
+
+tcaboot - Trusted Collective (TC) authority initialization utility
+
+=head1 SYNOPSIS
+
+B<tcaboot> I<multicast_group_number_for_TC_bulletins> I<multicast_group_number_for_TC_records> I<number_of_authorities_in_collective> I<K> I<R> [ I<delay> ]
+
+=head1 DESCRIPTION
+
+B<tcaboot> writes a TC authority administration command file that initializes
+a TC authority database.  The file, named "boot.tcarc", is written to the
+current working directory.  It simply contains two authority configuration
+commands that initialize the TC authority database for the TC application
+and then set the initial bulletin compilation time for this authority to
+the current ctime plus I<delay> seconds.  If omitted, I<delay> defaults
+to 5.  The other command-line arguments for B<tcaboot> are discussed in
+the descriptions of application initialization commands for B<tcaadmin>;
+see the tcarc(5) manual page for details.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Successful generation of TC authority initialization file.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item tcaboot 210 209 6 50 .2
+
+Writes a boot.tcarc file that initializes the local node's TC authority
+database as indicated and sets the next bulletin compilation time to the
+current time plus 5 seconds.
+
+=item tcaboot 210 209 6 50 .2 90
+
+Writes a boot.tcarc file that initializes the local node's TC authority
+database as indicated and sets the next bulletin compilation time to the
+current time plus 90 seconds.
+
+=back
+
+=head1 FILES
+
+No files apply.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the log file:
+
+=over 4
+
+=item Can't open cmd file
+
+B<tcaboot> is unable to create a file named boot.tcarc for the indicated reason,
+a system error.
+
+=item Can't write to cmd file
+
+B<tcaboot> is unable to write to boot.tcarc for the indicated reason,
+a system error.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+tcaadmin(1), tcarc(5)

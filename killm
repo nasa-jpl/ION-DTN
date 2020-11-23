@@ -19,7 +19,6 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
 	aoslsi lt-aoslsi \
 	aoslso lt-aoslso \
-	beacon lt-beacon \
 	bibeadmin lt-bibeadmin \
 	bibeclo lt-bibeclo \
 	bpadmin lt-bpadmin \
@@ -60,6 +59,8 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	dgr2file lt-dgr2file \
 	dgrcli lt-dgrcli \
 	dgrclo lt-dgrclo \
+	dtka lt-dtka \
+	dtkaadmin lt-dtkaadmin \
 	dtn2admin lt-dtn2admin \
 	dtn2adminep lt-dtn2adminep \
 	dtn2fw lt-dtn2fw \
@@ -75,6 +76,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	file2udp lt-file2udp \
 	hmackeys lt-hmackeys \
 	imcadmin lt-imcadmin \
+	imcadminep lt-imcadminep \
 	imcfw lt-imcfw \
 	ionadmin lt-ionadmin \
 	ionexit lt-ionexit \
@@ -99,7 +101,6 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	ltpsecadmin lt-ltpsecadmin \
 	nm_agent lt-nm_agent \
 	nm_mgr lt-nm_mgr \
-	node lt-node \
 	owltsim lt-owltsim \
 	owlttb lt-owlttb \
 	psmshell lt-psmshell \
@@ -115,6 +116,13 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	smrbtsh lt-smrbtsh \
 	stcpcli lt-stcpcli \
 	stcpclo lt-stcpclo \
+	tcaadmin lt-tcaadmin\
+	tcaboot lt-tcaboot\
+	tcacompile lt-tcacompile\
+	tcapublish lt-tcapublish\
+	tcarecv lt-tcarecv\
+	tcc lt-tcc\
+	tccadmin lt-tccadmin \
 	tcp2file lt-tcp2file \
 	tcpbsi lt-tcpbsi \
 	tcpbso lt-tcpbso \

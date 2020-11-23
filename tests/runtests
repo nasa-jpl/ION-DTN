@@ -135,7 +135,7 @@ function run_a_test () {
         PATH="/usr/xpg4/bin:$PATH"
     fi    
         
-    ./dotest
+    ./dotest $OS_VERSION
     TEST_RETVAL=$?
     if [ $TEST_RETVAL -eq 0 ]; then
         echo "TEST PASSED!"
@@ -155,7 +155,8 @@ function run_a_test () {
     fi
 
     # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [ "$OS_VERSION" == "solaris" ] || [ "$OS_VERSION" == "windows" ] ; then
+    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] 
+    then	
 	sleep 5
     fi
 
@@ -305,7 +306,7 @@ for TEST in $TESTS_EXCLUDED_BPv; do
 done
 
 
-if [ "$NUM_FAILED" = 0 ]; then
+if [[ $NUM_FAILED == 0 ]]; then
     exit 0
 else
     exit 1

@@ -22,6 +22,8 @@
 #define	ION_SM_NAME		"ionwm"
 #define	ION_DEFAULT_SDR_NAME	"ion"
 
+static char	versionNbr[32];
+
 #define timestampInFormat	"%4d/%2d/%2d-%2d:%2d:%2d"
 #define timestampOutFormat	"%.4d/%.2d/%.2d-%.2d:%.2d:%.2d"
 
@@ -802,6 +804,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		CloseHandle(thread);
 	}
 #endif
+	istrcpy(versionNbr, IONVERSIONNUMBER, sizeof(versionNbr));
 	return 0;
 }
 
@@ -1037,6 +1040,7 @@ int	ionAttach()
 		CloseHandle(thread);
 	}
 #endif
+	istrcpy(versionNbr, IONVERSIONNUMBER, sizeof(versionNbr));
 	return 0;
 }
 
@@ -1483,6 +1487,11 @@ int	ionManagePassageway(uvast nodeNbr, vast homeRegionNbr,
 }
 
 /*	Utility functions.						*/
+
+const char	*getIonVersionNbr()
+{
+	return versionNbr;
+}
 
 Sdr	getIonsdr()
 {

@@ -141,7 +141,6 @@ void rx_data_rpt(msg_metadata_t *meta, msg_rpt_t *msg)
 	// Make sure we don't delete items when we delete report
 	// since we shallow-copied them into the agent report list.
 	msg->rpts.delete_fn = NULL;
-	msg_rpt_release(msg, 1);
 }
 
 /******************************************************************************
@@ -236,7 +235,6 @@ void rx_data_tbl(msg_metadata_t *meta, msg_tbl_t *msg)
 	// Make sure we don't delete items when we delete report
 	// since we shallow-copied them into the agent report list.
 	msg->tbls.delete_fn = NULL;
-	msg_tbl_release(msg, 1);
 }
 
 void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
@@ -246,11 +244,6 @@ void rx_agent_reg(msg_metadata_t *meta, msg_agent_t *msg)
 
 	agent_add(msg->agent_id);
 
-#ifdef HAVE_MYSQL
-	db_add_agent(msg->agent_id);
-#endif
-
-	msg_agent_release(msg, 1);
 }
 
 /******************************************************************************
@@ -312,17 +305,21 @@ void *mgr_rx_thread(int *running)
                     SRELEASE(tmp);
                 }
             }
-#if 1 // DEBUG
+
+            // Convert to HEX for logging (DB & Shell)
             char *tmp = utils_hex_to_string(buf->value, buf->length);
             printf("RX from %s: msgs:%s\n", meta.senderEid.name, tmp);
-            SRELEASE(tmp);
-#endif
 
         	grp = msg_grp_deserialize(buf, &success);
         	blob_release(buf, 1);
 
     		if((grp == NULL) || (success != AMP_OK))
     		{
+#ifdef HAVE_MYSQL
+                // Log discarded message in DB
+                db_incoming_finalize(0, AMP_FAIL, meta.senderEid.name, tmp);
+#endif
+                SRELEASE(tmp);
     			AMP_DEBUG_ERR("mgr_rx_thread","Discarding invalid message.", NULL);
     			continue;
     		}
@@ -332,7 +329,8 @@ void *mgr_rx_thread(int *running)
 
 #ifdef HAVE_MYSQL
             /* Copy the message group to the database tables */
-            int32_t incoming_idx = db_incoming_initialize(grp->time, meta.senderEid);
+            uint32_t incoming_idx = db_incoming_initialize(grp->time, meta.senderEid);
+            int32_t db_status = AMP_OK;
 #endif
 
             /* For each message in the group. */
@@ -340,13 +338,6 @@ void *mgr_rx_thread(int *running)
             {
             	vec_idx_t i = vecit_idx(it);
             	blob_t *msg_data = (blob_t*) vecit_data(it);
-
-#ifdef HAVE_MYSQL
-            	if(msg_data != NULL)
-            	{
-            		db_incoming_process_message(incoming_idx, msg_data);
-            	}
-#endif
 
             	/* Get the message type. */
             	msg_type = msg_grp_get_type(grp, i);
@@ -357,18 +348,31 @@ void *mgr_rx_thread(int *running)
             		{
             			msg_rpt_t *rpt_msg = msg_rpt_deserialize(msg_data, &success);
             			rx_data_rpt(&meta, rpt_msg);
+#ifdef HAVE_MYSQL
+                        db_insert_msg_rpt_set(incoming_idx, rpt_msg, &db_status);
+#endif
+                        msg_rpt_release(rpt_msg, 1);
             			break;
             		}
             		case MSG_TYPE_TBL_SET:
             		{
             			msg_tbl_t *tbl_msg = msg_tbl_deserialize(msg_data, &success);
             			rx_data_tbl(&meta, tbl_msg);
+#ifdef HAVE_MYSQL
+                        db_insert_msg_tbl_set(incoming_idx, tbl_msg, &db_status);
+#endif
+                        msg_tbl_release(tbl_msg, 1);
+
             			break;
             		}
             		case MSG_TYPE_REG_AGENT:
             		{
             			msg_agent_t *agent_msg = msg_agent_deserialize(msg_data, &success);
             			rx_agent_reg(&meta, agent_msg);
+#ifdef HAVE_MYSQL
+                        db_insert_msg_reg_agent(incoming_idx, agent_msg, &db_status);
+#endif
+                        msg_agent_release(agent_msg, 1);
             			break;
             		}
             		default:
@@ -378,18 +382,16 @@ void *mgr_rx_thread(int *running)
 
             }
 
-            msg_grp_release(grp, 1);
 #ifdef HAVE_MYSQL
-            db_incoming_finalize(incoming_idx);
+            // Commit transaction and log as applicable
+            db_incoming_finalize(incoming_idx, db_status, meta.senderEid.name, tmp);
 #endif
+            msg_grp_release(grp, 1);
+            SRELEASE(tmp);
             memset(&meta, 0, sizeof(meta));
         }
     }
    
-
-#ifdef HAVE_MYSQL
-	db_mgt_close();
-#endif
 
     AMP_DEBUG_ALWAYS("mgr_rx_thread", "Exiting.", NULL);
     AMP_DEBUG_EXIT("mgr_rx_thread","->.", NULL);

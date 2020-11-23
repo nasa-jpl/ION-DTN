@@ -35,7 +35,7 @@ typedef struct
 	Object 	 	securitySrcEid;	/* 	An sdrstring.	        */
 	Object		destEid;	/*	An sdrstring.		*/
 	BpBlockType	blockType;	
-	char		ciphersuiteName[32];/*	NULL-terminated.	*/
+	char		profileName[32];/*	NULL-terminated.	*/
 	char		keyName[32];	/*	NULL-terminated.	*/
 } BPsecBibRule;
 
@@ -44,7 +44,7 @@ typedef struct
 	Object 	 	securitySrcEid;	/* 	An sdrstring.	        */
 	Object		destEid;	/*	An sdrstring.		*/
 	BpBlockType	blockType;	
-	char		ciphersuiteName[32];/*	NULL-terminated.	*/
+	char		profileName[32];/*	NULL-terminated.	*/
 	char		keyName[32];	/*	NULL-terminated.	*/
 } BPsecBcbRule;
 
@@ -57,9 +57,9 @@ extern void	sec_clearBPsecRules(char *fromNode, char *toNode,
 extern int	sec_findBPsecBibRule(char *srcEid, char *destEid,
 			BpBlockType type, Object *ruleAddr, Object *eltp);
 extern int	sec_addBPsecBibRule(char *srcEid, char *destEid,
-			BpBlockType type, char *ciphersuiteName, char *keyName);
+			BpBlockType type, char *profileName, char *keyName);
 extern int	sec_updateBPsecBibRule(char *srcEid, char *destEid,
-			BpBlockType type, char *ciphersuiteName, char *keyName);
+			BpBlockType type, char *profileName, char *keyName);
 extern int	sec_removeBPsecBibRule(char *srcEid, char *destEid,
 			BpBlockType type);
 
@@ -67,9 +67,9 @@ extern int	sec_removeBPsecBibRule(char *srcEid, char *destEid,
 extern int	sec_findBPsecBcbRule(char *srcEid, char *destEid,
 			BpBlockType type, Object *ruleAddr, Object *eltp);
 extern int	sec_addBPsecBcbRule(char *srcEid, char *destEid,
-			BpBlockType type, char *ciphersuiteName, char *keyName);
+			BpBlockType type, char *profileName, char *keyName);
 extern int	sec_updateBPsecBcbRule(char *srcEid, char *destEid,
-			BpBlockType type, char *ciphersuiteName, char *keyName);
+			BpBlockType type, char *profileName, char *keyName);
 extern int	sec_removeBPsecBcbRule(char *srcEid, char *destEid,
 			BpBlockType type);
 

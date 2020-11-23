@@ -7,7 +7,6 @@ MANFILES = \
 	./man/man1/acsadmin.1 \
 	./man/man1/acslist.1 \
 	./man/man1/bpadmin.1 \
-	./man/man1/bibeadmin.1 \
 	./man/man1/bpsecadmin.1 \
 	./man/man1/bpchat.1 \
 	./man/man1/bpclock.1 \
@@ -56,7 +55,6 @@ MANFILES = \
 	./man/man1/cgrfetch.1 \
 	./man/man5/acsrc.5 \
 	./man/man5/bprc.5 \
-	./man/man5/biberc.5 \
 	./man/man5/bpsecrc.5 \
 	./man/man5/ipnrc.5 \
 	./man/man5/imcrc.5 \
@@ -69,7 +67,6 @@ HTMLFILES = \
 	./html/man1/acsadmin.html \
 	./html/man1/acslist.html \
 	./html/man1/bpadmin.html \
-	./html/man1/bibeadmin.html \
 	./html/man1/bpsecadmin.html \
 	./html/man1/bpchat.html \
 	./html/man1/bpclock.html \
@@ -118,7 +115,6 @@ HTMLFILES = \
 	./html/man1/cgrfetch.html \
 	./html/man5/acsrc.html \
 	./html/man5/bprc.html \
-	./html/man5/biberc.html \
 	./html/man5/bpsecrc.html \
 	./html/man5/ipnrc.html \
 	./html/man5/imcrc.html \
@@ -164,3 +160,4 @@ install:
 
 ./html/man5/%.html:	pod5/%.pod
 		$(PODH) --infile=$< --outfile=$@
+

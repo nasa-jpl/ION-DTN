@@ -15,12 +15,17 @@
 
 int	bae_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	bundle->age = 0;
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	return bae_serialize(blk, bundle);
+}
+
+int	bae_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[32];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 
-	bundle->age = 0;
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	cursor = dataBuffer;
 	uvtemp = bundle->age;
 	oK(cbor_encode_integer(uvtemp, &cursor));
@@ -28,36 +33,6 @@ int	bae_offer(ExtensionBlock *blk, Bundle *bundle)
 	blk->size = 0;
 	blk->object = 0;
 	return serializeExtBlk(blk, (char *) dataBuffer);
-}
-
-void	bae_release(ExtensionBlock *blk)
-{
-	return;
-}
-
-int	bae_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	bae_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	bae_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	bae_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	bae_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
 }
 
 int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
@@ -132,9 +107,4 @@ int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	bae_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	bae_clear(AcqExtBlock *blk)
-{
-	return;
 }

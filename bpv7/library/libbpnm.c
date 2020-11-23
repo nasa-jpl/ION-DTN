@@ -11,6 +11,7 @@
  */
 
 #include "bpP.h"
+#include "bibeP.h"
 #include "bpnm.h"
 #include "bei.h"
 
@@ -271,6 +272,7 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     Object          elt;
     Scheme          scheme;
     Object          elt2;
+    Bcla	    bcla;
     Endpoint        endpoint;
     BpPlan          plan;
     BpDelStats      delStats;
@@ -294,6 +296,7 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     }
 
     results->currentDispatchPending = 0;
+    results->currentInCustody = 0;
     results->currentReassemblyPending = 0;
     for (elt = sdr_list_first(sdr, bpdb.schemes); elt;
             elt = sdr_list_next(sdr, elt))
@@ -302,10 +305,22 @@ void    bpnm_disposition_get(NmbpDisposition * results)
                     sizeof(Scheme));
             results->currentDispatchPending
 		    += sdr_list_length(sdr, scheme.forwardQueue);
+	    if (scheme.bclas)
+	    {
+	    	for (elt2 = sdr_list_first(sdr, scheme.bclas); elt2;
+                    	elt2 = sdr_list_next(sdr, elt2))
+	    	{
+	            sdr_read(sdr, (char *) &bcla, sdr_list_data(sdr, elt2),
+                            sizeof(Bcla));
+                    results->currentInCustody
+		            += sdr_list_length(sdr, bcla.bpdus);
+	    	}
+	    }
+
 	    for (elt2 = sdr_list_first(sdr, scheme.endpoints); elt2;
                     elt2 = sdr_list_next(sdr, elt2))
 	    {
-	        sdr_read(sdr, (char *) & endpoint, sdr_list_data(sdr, elt2),
+	        sdr_read(sdr, (char *) &endpoint, sdr_list_data(sdr, elt2),
                         sizeof(Endpoint));
                 results->currentReassemblyPending
 		        += sdr_list_length(sdr, endpoint.incompletes);

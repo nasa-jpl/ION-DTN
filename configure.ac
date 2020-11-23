@@ -4,14 +4,14 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 3.7.1/4.0.0, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 3.7.2/4.0.1, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
 #  automake v1.12.
 #AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
-AM_INIT_AUTOMAKE([subdir-objects no-dependencies -Wall foreign])
+AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
@@ -95,6 +95,7 @@ case $host_os in
 		;;
 	solaris*)
 		PLATFORM="solaris"
+		build_solaris=yes
 		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
 			if test "$CC" = "gcc"; then
 				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
@@ -157,23 +158,27 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 # allow the user running configure to build bpv6
 #
 AC_ARG_ENABLE(
-    bpv6,
-    [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
-    [VER=$(cat bpv6version.txt)
-     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
-     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
-     BUILD_BPv6=true
-     case "${ENABLE_BPACS}" in
-		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
-		no)  ENABLE_BPACS=no;;
-     esac
-     echo "Building ION with BP version 6"],
+    bpv7,
+    [AC_HELP_STRING([--enable-bpv7], [force build of bpv7])],
     [VER=$(cat bpv7version.txt)
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
      BUILD_BPv7=true
+     BP_DIR="bpv7"
+     AC_SUBST([BP_DIR])
      ENABLE_BPACS=no
-     echo "Building ION with BP version 7"])
+     echo "Building ION with BP version 7"],
+    [VER=$(cat bpv6version.txt)
+     VER="-DVNAME=ION-OPEN-SOURCE-$VER"
+     AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
+     BUILD_BPv6=true
+     BP_DIR="bpv6"
+     AC_SUBST([BP_DIR])
+     case "${ENABLE_BPACS}" in
+		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
+		no)  ENABLE_BPACS=no;;
+     esac
+     echo "Building ION with BP version 6"])
 AM_CONDITIONAL(BUILD_BPv7, test x$BUILD_BPv7 = xtrue)
 AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
 
@@ -511,6 +516,7 @@ AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])
+AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 
 #Output!
 AC_CONFIG_FILES([Makefile])

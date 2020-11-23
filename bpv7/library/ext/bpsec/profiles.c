@@ -6,6 +6,9 @@
  **              interface in the ION implementation of Bundle Security
  **              Protocol (bpsec).
  **
+ **		Note that "security context" is another way of saying
+ **		"security profile."
+ **
  ** Notes:
  **   - This file was adapted from ciphersuite.c written by Scott Burleigh.
  **
@@ -29,25 +32,25 @@ static BibProfile	*_bib_profiles(int *count)
 {
 	static BibProfile	specs[] =
 	{
-		{	2, "BIB-HMAC-SHA256", CSTYPE_HMAC_SHA256, 0,
+		{	2, "BIB-HMAC-SHA256", CSTYPE_HMAC_SHA256,
 			NULL,
 			NULL,
 			NULL
 		},
 		{
-			5, "BIB-HMAC-SHA384", CSTYPE_HMAC_SHA384, 0,
+			5, "BIB-HMAC-SHA384", CSTYPE_HMAC_SHA384,
 			NULL,
 			NULL,
 			NULL
 		},
 		{
-			6, "BIB-ECDSA-SHA256", CSTYPE_ECDSA_SHA256, 0,
+			6, "BIB-ECDSA-SHA256", CSTYPE_ECDSA_SHA256,
 			NULL,
 			NULL,
 			NULL
 		},
 		{
-			7, "BIB-ECDSA-SHA384", CSTYPE_ECDSA_SHA384, 0,
+			7, "BIB-ECDSA-SHA384", CSTYPE_ECDSA_SHA384,
 			NULL,
 			NULL,
 			NULL
@@ -100,17 +103,17 @@ static BcbProfile	*_bcb_profiles(int *count)
 {
 	static BcbProfile	specs[] =
 	{
-		{	3, "BCB-ARC4-AES128", CSTYPE_ARC4, 0,
+		{	3, "BCB-ARC4-AES128", CSTYPE_ARC4,
 			NULL,
 			NULL,
 			NULL
 		},
-		{	8, "BCB-SHA256-AES128", CSTYPE_SHA256_AES128, 0,
+		{	8, "BCB-SHA256-AES128", CSTYPE_SHA256_AES128,
 			NULL,
 			NULL,
 			NULL
 		},
-		{	9, "BCB-SHA384-AES256", CSTYPE_SHA384_AES256, 0,
+		{	9, "BCB-SHA384-AES256", CSTYPE_SHA384_AES256,
 			NULL,
 			NULL,
 			NULL

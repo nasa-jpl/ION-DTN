@@ -197,14 +197,15 @@ be different in different directions because (for example) the signal from
 B to A might need to be forwarded along a different convergence-layer network
 path from the one used for the signal from A to B.
 
-As a convenience, ION interprets a range command in which the node number of
-the first cited node is numerically less than that of the second cited node
-as implicitly declaring the same distance in the reverse direction B<UNLESS>
-a second range command is present that cites the same two nodes in the opposite
-order, which overrides the implicit declaration.  A range command in which
-the node number of the first cited node is numerically greater than that of
-the second cited node implies B<ABSOLUTELY NOTHING> about the distance in the
-reverse direction.
+For this reason, the range identification syntax for this command is
+asymmetrical: ION interprets an B<add range> command in which the node number
+of the first cited node is numerically less than that of the second cited node
+as implicitly declaring the same distance in the reverse direction (the
+normal case)  B<UNLESS> a second range command is present that cites the
+same two nodes in the opposite order, which overrides the implicit
+declaration.  A range command in which the node number of the first
+cited node is numerically greater than that of the second cited node
+implies B<ABSOLUTELY NOTHING> about the distance in the reverse direction.
 
 =item B<d range> I<start_time> I<one_node> I<the_other_node>
 
@@ -212,6 +213,16 @@ The B<delete range> command.  This command deletes the predicted period of
 constant distance between I<one_node> and I<the_other_node> starting
 at I<start_time>.  To delete all ranges between some pair of nodes,
 use '*' as I<start_time>.
+
+B<NOTE> that the range identification syntax for this command is
+asymmetrical, much as described for the B<add range> command described
+above.  ION interprets a B<delete range> command in which the node number of
+the first cited node is numerically less than that of the second cited node
+as implicitly requesting deletion of the range in the opposite direction
+as well.  A B<delete range> command in which the node number of the first
+cited node is numerically greater than that of the second cited node
+deletes only the range in that direction; the asserted range in the
+opposite direction is unaffected.
 
 =item B<i range> I<start_time> I<one_node> I<the_other_node>
 

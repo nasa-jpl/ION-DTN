@@ -1,9 +1,8 @@
 /*
  *	snw.c:		implementation of the extension definition
- *			functions for the Extended Class of Service
- *			block.
+ *			functions for the Spray and Wait block.
  *
- *	Copyright (c) 2008, California Institute of Technology.
+ *	Copyright (c) 2019, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
  *	acknowledged.
  *
@@ -16,69 +15,47 @@
 
 int	snw_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	/*	Block must be offered as a placeholder to enable
+	 *	later extension block processing.			*/
+
+	blk->object = 0;
+	blk->size = 1;	/*	Bogus object size, to avert deletion.	*/
 	return 0;
 }
 
-void	snw_release(ExtensionBlock *blk)
+int	snw_serialize(ExtensionBlock *blk, Bundle *bundle)
 {
-	return;
-}
-
-int	snw_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	snw_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	snw_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	snw_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	snw_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	uvast		permits;
 	unsigned char	dataBuffer[9];
 	unsigned char	*cursor;
 	uvast		uvtemp;
-
-	if (bundle->permits == 0)
-	{
-		return 0;	/*	SNW block is unnecessary.	*/
-	}
-
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	blk->size = 0;
-	blk->object = 0;
-	if (bundle->permits == 1)
-	{
-		permits = 1;
-	}
-	else
-	{
-		permits = (bundle->permits >> 1) & 0x7f;
-		bundle->permits -= permits;
-	}
 
 	cursor = dataBuffer;
 	uvtemp = bundle->permits;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 	blk->dataLength = cursor - dataBuffer;
 	return serializeExtBlk(blk, (char *) dataBuffer);
+}
+
+int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
+{
+	uvast	permits;
+
+	if (bundle->permits == 0)	/*	SNW block unnecessary.	*/
+	{
+		blk->size = 0;
+		return 0;
+	}
+
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	blk->size = 0;
+	blk->object = 0;
+	if (bundle->permits > 1)
+	{
+		permits = (bundle->permits >> 1) & 0x7f;
+		bundle->permits -= permits;
+	}
+
+	return snw_serialize(blk, bundle);
 }
 
 int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)
@@ -117,9 +94,4 @@ int	snw_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	snw_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	snw_clear(AcqExtBlock *blk)
-{
-	return;
 }

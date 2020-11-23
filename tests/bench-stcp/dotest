@@ -77,7 +77,12 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $1 == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
 	if [ $RETURN_VALUE -eq 0 ]
 	then
 		echo "...transmission finished."
@@ -127,7 +132,12 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $1 == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
 	if [ $RETURN_VALUE -eq 0 ]
 	then
 		echo "...transmission finished."
@@ -177,7 +187,12 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $1 == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
 	if [ $RETURN_VALUE -eq 0 ]
 	then
 		echo "...transmission finished."
@@ -227,7 +242,12 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $1 == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
 	if [ $RETURN_VALUE -eq 0 ]
 	then
 		echo "...transmission finished."
@@ -277,7 +297,12 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $1 == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
 	if [ $RETURN_VALUE -eq 0 ]
 	then
 		echo "...transmission finished."
@@ -327,7 +352,12 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $1 == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
 	if [ $RETURN_VALUE -eq 0 ]
 	then
 		echo "...transmission finished."
@@ -377,7 +407,12 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $1 == "windows" ]
+	then
+		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	else
+		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	fi
 	if [ $RETURN_VALUE -eq 0 ]
 	then
 		echo "...transmission finished."
@@ -406,3 +441,4 @@ sleep 8
 killm
 echo "...benchmarking terminated."
 exit $RETVAL
+

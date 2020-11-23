@@ -34,7 +34,6 @@ MANFILES = \
 	./man/man1/ipnadminep.1 \
 	./man/man1/ipnadmin.1 \
 	./man/man1/ipnfw.1 \
-	./man/man1/imcadmin.1 \
 	./man/man1/imcfw.1 \
 	./man/man1/ipnd.1 \
 	./man/man1/lgagent.1 \
@@ -57,7 +56,6 @@ MANFILES = \
 	./man/man5/bprc.5 \
 	./man/man5/bpsecrc.5 \
 	./man/man5/ipnrc.5 \
-	./man/man5/imcrc.5 \
 	./man/man5/dtn2rc.5 \
 	./man/man5/lgfile.5 \
 	./man/man3/bpextensions.3 \
@@ -94,7 +92,6 @@ HTMLFILES = \
 	./html/man1/ipnadminep.html \
 	./html/man1/ipnadmin.html \
 	./html/man1/ipnfw.html \
-	./html/man1/imcadmin.html \
 	./html/man1/imcfw.html \
 	./html/man1/ipnd.html \
 	./html/man1/lgagent.html \
@@ -117,7 +114,6 @@ HTMLFILES = \
 	./html/man5/bprc.html \
 	./html/man5/bpsecrc.html \
 	./html/man5/ipnrc.html \
-	./html/man5/imcrc.html \
 	./html/man5/dtn2rc.html \
 	./html/man5/lgfile.html \
 	./html/man3/bpextensions.html \

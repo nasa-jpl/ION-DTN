@@ -1,0 +1,63 @@
+=head1 NAME
+
+tcarecv - Trusted Collective daemon task for receiving newly generated records of critical information
+
+=head1 SYNOPSIS
+
+B<tcarecv> I<blocks_group_number>
+
+=head1 DESCRIPTION
+
+B<tcarecv> is a background "daemon" task that receives new critical
+information records multicast by user nodes of the TC application identified
+by I<blocks_group_number>.  It records those assertions in a database for
+future processing by B<tcacompile>.  It is spawned automatically by
+B<tcaadmin> in response to the 's' command that starts operation of
+the TC authority function for this application on the local node, and
+it is terminated by B<tcaadmin> in response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcarecv> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<tcaadmin> to restart B<tcarecv>.
+
+=item "1"
+
+B<tcarecv> was unable to attach to DTKA operations, probably because
+B<tcaadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item tcarecv can't attach to DTKA.
+
+B<tcaadmin> has not yet initialized the authority database for this TC
+application.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+tcaadmin(1), tc(3), tcarc(5)

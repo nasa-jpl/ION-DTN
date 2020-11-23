@@ -28,6 +28,7 @@
  *****************************************************************************/
 
 // Application headers.
+#include <getopt.h>
 #include "nm_mgr.h"
 #include "nm_mgr_ui.h"
 #include "metadata.h"
@@ -84,6 +85,12 @@ int main(int argc, char *argv[])
     char *mgr_eid;
 
     errno = 0;
+
+    /* Initialize the non-volatile database.
+     *   Note: Initializing the structure here allows some attributes to be pre-defined by
+     *   command line parsing if not re-initialized later.
+     */
+    memset((char*) &(gMgrDB), 0, sizeof(gMgrDB));
 
     if (argc > 2)
     {
@@ -317,8 +324,29 @@ char* mgr_parse_args(int argc, char* argv[])
 {
     int i;
     int c;
-    
-    while ((c = getopt(argc, argv, "ldL:D:rtTRaAjJ")) != -1)
+    int option_index = 0;
+    static struct option long_options[] =
+        {
+            {"log", no_argument, 0,'l'},
+            {"log-to-dirs", no_argument, 0,'d'},
+            {"log-rx-rpt", no_argument, 0,'r'},
+            {"log-rx-tbl", no_argument, 0,'t'},
+            {"log-tx-cbor", no_argument, 0,'T'},
+            {"log-rx-cbor", no_argument, 0,'R'},
+            {"log-tx-cbor", no_argument, 0,'j'},
+            {"log-rx-cbor", no_argument, 0,'J'},
+            
+            {"sql-user", required_argument, 0,'u'},
+            {"sql-pass", required_argument, 0,'p'},
+            {"sql-db", required_argument,0, 'S'},
+            {"sql-host", required_argument,0, 's'},
+            
+            {"log-dir", required_argument, 0,'D'},
+            {"log-limit", required_argument, 0,'L'},
+            {"automator", required_argument, 0,'a'},
+            {"help", required_argument, 0,'h'},
+        };
+    while ((c = getopt_long(argc, argv, "ldL:D:rtTRaAjJs:u:p:S:", long_options, &option_index)) != -1)
     {
         switch(c)
         {
@@ -347,6 +375,21 @@ char* mgr_parse_args(int argc, char* argv[])
         case 'J':
             agent_log_cfg.rx_json_tbl = 1;
             break;
+#endif
+#ifdef HAVE_MYSQL
+        case 's': // MySQL Server
+            strncpy(gMgrDB.sql_info.server, optarg, UI_SQL_SERVERLEN-1);
+            break;
+        case 'u': // MySQL Username
+            strncpy(gMgrDB.sql_info.username, optarg, UI_SQL_ACCTLEN-1);
+            break;
+        case 'p': // MySQL Password
+            strncpy(gMgrDB.sql_info.password, optarg, UI_SQL_ACCTLEN-1);
+            break;
+        case 'S': // MySQL Database Name
+            strncpy(gMgrDB.sql_info.database, optarg, UI_SQL_DBLEN-1);
+            break;
+
 #endif
         case 'D':
             strncpy(agent_log_cfg.dir, optarg, sizeof(agent_log_cfg.dir)-1);
@@ -403,4 +446,10 @@ void mgr_print_usage(void)
     printf("-t       Log all received tables to file in text format (as shown in UI)\n");
     printf("-T       Log all transmitted message as ASCII-encoded CBOR HEX strings\n");
     printf("-R       Log all received messages as ASCII-encoded CBOR HEX strings\n");
+#ifdef HAVE_MYSQL
+    printf("--sql-user MySQL Username\n");
+    printf("--sql-pass MySQL Password\n");
+    printf("--sql-db MySQL Datbase Name\n");
+    printf("--sql-host MySQL Host\n");
+#endif
 }

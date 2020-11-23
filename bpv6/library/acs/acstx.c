@@ -125,6 +125,7 @@ int acsInitialize(long heapWords, int logLevel)
 		acsdbBuf.bidHash = sdr_hash_create(acsSdr, sizeof(AcsBundleId),
 				ACS_BIDHASH_ROWCOUNT, 1);
 		acsdbBuf.id = sdr_stow(acsSdr, zero);
+		acsdbBuf.timeToLive = ACS_TTL;
 		acsdbObject = sdr_malloc(acsSdr, sizeof(AcsDB));
 		if (acsdbObject == 0)
 		{
@@ -133,7 +134,8 @@ int acsInitialize(long heapWords, int logLevel)
 			return -1;
 		}
 
-		sdr_write(acsSdr, acsdbObject, (char *) &acsdbBuf, sizeof(AcsDB));
+		sdr_write(acsSdr, acsdbObject, (char *) &acsdbBuf,
+				sizeof(AcsDB));
 		sdr_catlg(acsSdr, acsDbName, 0, acsdbObject);
 		if (sdr_end_xn(acsSdr))
 		{
@@ -373,7 +375,7 @@ int sendAcs(Object signalLElt)
 
 	/* Remove ref to this serialized ZCO from signal; also remove the bundle
 	 * IDs covered by this serialized ZCO. */
-	result = bpSend(NULL, pendingCust.eid, NULL, ACS_TTL,
+	result = bpSend(NULL, pendingCust.eid, NULL, acsConstants->timeToLive,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
 			&ancillaryData, signal.serializedZco, NULL,
 			BP_CUSTODY_SIGNAL);
@@ -694,11 +696,27 @@ int updateMinimumCustodyId(unsigned int minimumCustodyId)
 {
 	CHKERR(sdr_begin_xn(acsSdr));
 	sdr_poke(acsSdr, acsConstants->id, minimumCustodyId);
-	if(sdr_end_xn(acsSdr) < 0)
+	if (sdr_end_xn(acsSdr) < 0)
 	{
-		ACSLOG_ERROR("Couldn't update minimum custody ID to %u", minimumCustodyId);
+		ACSLOG_ERROR("Couldn't update minimum custody ID to %u",
+				minimumCustodyId);
 		return -1;
 	}
+
+	return 0;
+}
+
+int updateAcsBundleLifetime(unsigned int timeToLive)
+{
+	CHKERR(sdr_begin_xn(acsSdr));
+	sdr_poke(acsSdr, acsConstants->timeToLive, timeToLive);
+	if (sdr_end_xn(acsSdr) < 0)
+	{
+		ACSLOG_ERROR("Couldn't update ACS bundle lifetime to %u",
+				timeToLive);
+		return -1;
+	}
+
 	return 0;
 }
 

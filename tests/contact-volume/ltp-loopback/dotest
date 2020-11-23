@@ -49,7 +49,7 @@ bpsink ipn:1.1 > $IONRECEIVEFILE &
 BPSINKPID=$!
 
 # give bpsink some time to start up
-sleep 1
+sleep 2
 
 echo "Create test contact volume 1: 2e5 seconds * 1e5 B/s = 2e10 B"
 testvolume 200000 100000
@@ -60,10 +60,12 @@ testvolume 200000000 100000
 echo "Create test contact volume 3: 2e8 seconds * 1e6 B/s = 2e14 B"
 testvolume 200000000 1000000
 
+sleep 2
+
 # bpsink does not self-terminate, so send it SIGINT
 echo "stopping bpsink"
 kill -2 $BPSINKPID >/dev/null 2>&1
-sleep 1
+sleep 2
 kill -9 $BPSINKPID >/dev/null 2>&1
 
 

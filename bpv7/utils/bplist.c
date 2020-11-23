@@ -210,7 +210,7 @@ static void	printBundle(Object bundleObj)
 
 	PUTS("\n**** Bundle");
 
-	oK(readEid(&(bundle->id.source), &eid));
+	readEid(&(bundle->id.source), &eid);
 	if (eid)
 	{
 		isprintf(buf, sizeof buf, "Source EID      '%s'", eid);
@@ -218,7 +218,7 @@ static void	printBundle(Object bundleObj)
 		MRELEASE(eid);
 	}
 
-	oK(readEid(&(bundle->destination), &eid));
+	readEid(&(bundle->destination), &eid);
 	if (eid)
 	{
 		isprintf(buf, sizeof buf, "Destination EID '%s'", eid);
@@ -226,7 +226,7 @@ static void	printBundle(Object bundleObj)
 		MRELEASE(eid);
 	}
 
-	oK(readEid(&(bundle->reportTo), &eid));
+	readEid(&(bundle->reportTo), &eid);
 	if (eid)
 	{
 		isprintf(buf, sizeof buf, "Report-to EID   '%s'", eid);
@@ -369,6 +369,7 @@ static int	printAll(int detail)
 	Object	elt;
 	Object	addr;
 		OBJ_POINTER(BpEvent, event);
+	char	buf[300];
 
 	bpConstants = getBpConstants();
 	for (elt = sdr_list_first(sdr, bpConstants->timeline); elt;
@@ -391,6 +392,10 @@ static int	printAll(int detail)
 
 		/*	Need to print detail of bundle.			*/
 
+		isprintf(buf, sizeof buf, "Current ctime sec %lu", getCtime());
+		PUTS(buf);
+		isprintf(buf, sizeof buf, "Event ctime sec   %lu", event->time);
+		PUTS(buf);
 		printBundle(event->ref);
 	}
 

@@ -1245,6 +1245,7 @@ int	isend(int sockfd, char *buf, int len, int flags)
 		case WSAENETRESET:
 		case WSAECONNABORTED:
 		case WSAETIMEDOUT:
+		case WSAEINTR:
 			errno = EPIPE;	/*	Connection closed.	*/
 			break;
 
@@ -1279,13 +1280,17 @@ int	irecv(int sockfd, char *buf, int len, int flags)
 		switch (errcode)
 		{
 		case WSAECONNRESET:
+		case WSAENETRESET:
 		case WSAECONNABORTED:
+		case WSAETIMEDOUT:
 			errno = ECONNRESET;
 			length = 0;	/*	Connection closed.	*/
 			break;
 
+		case WSAEINTR:
 		case WSAESHUTDOWN:
 			errno = EINTR;	/*	Shut down socket.	*/
+			length = 0;
 			break;
 
 		default:
@@ -1325,11 +1330,18 @@ int	irecvfrom(int sockfd, char *buf, int len, int flags,
 			switch (errcode)
 			{
 			case WSAECONNRESET:
+			case WSAENETRESET:
 			case WSAECONNABORTED:
-			case WSAESHUTDOWN:
-				/*	Ignore; peer socket was closed.	*/
+			case WSAETIMEDOUT:
+				errno = ECONNRESET;
+				length = 0;	/*	Closed.		*/
+				break;
 
-				continue;
+			case WSAEINTR:
+			case WSAESHUTDOWN:
+				errno = EINTR;	/*	Shut down.	*/
+				length = 0;
+				break;
 
 			default:
 				writeMemoNote("[?] WinSock recvfrom error",

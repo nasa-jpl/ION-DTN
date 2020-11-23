@@ -34,14 +34,14 @@ echo
 echo "########################################"
 
 # like loopbacktest.sh, but loopbacks bundles over and over a specified 
-# number of times (first argument; default 100).  Fails the first time
+# number of times (second argument; default 100).  Fails the first time
 # a bundle fails.
 # Assumes the current working directory contains the built programs of ion.
 
-if [ -z $1 ]; then
+if [ -z $2 ]; then
     ITERATIONGOAL=100
 else
-    ITERATIONGOAL=$1
+    ITERATIONGOAL=$2
 fi
 
 # Guess what ION will say if a bundle containing $1 is received.
@@ -63,7 +63,7 @@ tryreceive () {
         # Check if bpsink got the file.
         if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
         then
-            X=`expr $X + 1`
+            X=$((X + 1))
         else
             # We received it.  Hooray.
             return 0
@@ -116,7 +116,7 @@ BPSINKPID=$!
 # give bpsink some time to start up
 sleep 2
 
-while [ ${PASS} -eq 1 ] && [ ! $ITERATION -gt $ITERATIONGOAL ]
+while [ $PASS -eq 1 ] && [ $ITERATION -le $ITERATIONGOAL ]
 do
     IONMESSAGE=$( date )
     
@@ -134,11 +134,11 @@ do
     if tryreceive 
     then
         echo -n "."
-        if [ `expr $ITERATION % 80` -eq 0 ]
+        if [ $((ITERATION % 80)) -eq 0 ]
         then
             echo $ITERATION
         fi
-        ITERATION=`expr $ITERATION + 1`
+        ITERATION=$((ITERATION + 1))
     else
         PASS=0
         echo "FAILED on ITERATION $ITERATION at `date`."
@@ -157,9 +157,9 @@ kill -9 $BPSINKPID >/dev/null 2>&1
 echo "Stopping ion..."
 ionstop
 
-if [ $ITERATION -eq `expr $ITERATIONGOAL + 1` ]
+if [ $ITERATION -eq $((ITERATIONGOAL + 1)) ]
 then
-    echo Completed `expr $ITERATION - 1` iterations successfully
+    echo Completed $((ITERATION - 1)) iterations successfully
     exit 0
 else
     exit 1

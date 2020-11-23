@@ -138,11 +138,6 @@ extern "C" {
  *	the "convergence layer" and below) to transmit the bundles
  *	to other nodes.							*/
 
-typedef struct
-{
-	uvast		nbr;
-} NodeId;				//	Still needed?
-
 typedef enum
 {
 	unknown = 0,
@@ -241,7 +236,7 @@ typedef struct
 
 /*	Administrative record types	*/
 #define	BP_STATUS_REPORT	(1)
-#define	BP_MULTICAST_PETITION	(5)
+#define	BP_MULTICAST_BRIEFING	(5)
 #define	BP_SAGA_MESSAGE		(6)
 #define	BP_BIBE_PDU		(7)
 #define	BP_BIBE_SIGNAL		(8)	/*	Aggregate, in BIBE.	*/
@@ -333,18 +328,22 @@ typedef struct
 	unsigned int	age;		/*	In microseconds.	*/
 	struct timeval	arrivalTime;
 
-	/*	Stuff in (or for) the Bundle Age extension block.	*/
+	/*	Stuff in (or for) the Hop Count extension block.	*/
 
 	unsigned int	hopLimit;
 	unsigned int	hopCount;
 
-	/*	Stuff in Spray and Wait extension block.		*/
+	/*	Stuff in the Spray and Wait extension block.		*/
 
 	unsigned char	permits;	/*	# SnW fwd permits left.	*/
 
+	/*	Stuff in the IPN Multicast extension block.		*/
+
+	Object		destinations;	/*	SDR list of node nbrs.	*/
+
 	/*	Stuff in Payload block.					*/
 
-	unsigned int	payloadBlockProcFlags;
+	unsigned char	payloadBlockProcFlags;
 	Payload		payload;
 
 	/*	Stuff in extension blocks: an SDR list of ExtensionBlock
@@ -799,7 +798,8 @@ typedef struct
 #define	BP_DB_EXPIRED		6
 #define	BP_DB_ABANDON		7
 #define	BP_DB_DISCARD		8
-#define	BP_DB_STATS		9
+#define	BP_DB_CUSTODY_REFUSED	9
+#define	BP_DB_STATS		10
 
 typedef struct
 {
@@ -1293,14 +1293,24 @@ extern int		bpEndAcq(	AcqWorkArea *workArea);
 			 *	if the return code had been 1.		*/
 
 extern int		bpDestroyBundle(Object bundleToDestroy,
-					int expired);
+					int unconditional);
 			/*	bpDestroyBundle destroys the bundle,
 			 *	provided all retention constraints
-			 *	have been removed.  "expired" is
-			 *	Boolean, set to 1 only by bpClock when
-			 *	it destroys a bundle whose TTL has
-			 *	expired or by bp_cancel on bundle
-			 *	cancellation.  Returns 1 if bundle
+			 *	have been removed.  "unconditional"
+			 *	is a switch that, when non-zero, forces
+			 *	immediate removal of all retention
+			 *	constraints; a value of 1 indicates
+			 *	that the bundle's lifetime has expired,
+			 *	a value of 2 indicates that the bundle
+			 *	was the basis for multicast cloning and
+			 *	is no longer needed, a value of 3
+			 *	indicates that the bundle has been
+			 *	canceled, a value of 4 indicates that
+			 *	the bundle was in an outduct buffer
+			 *	that was flushed, and a value of 5
+			 *	indicates that the bundle was found
+			 *	to be corrupt when dequeued for
+			 *	transmission.  Returns 1 if bundle
 			 *	is actually destroyed, 0 if bundle is
 			 *	retained because not all constraints
 			 *	have been removed, -1 on any error.	*/
@@ -1336,7 +1346,7 @@ extern int		recordEid(EndpointId *eid, MetaEid *meid, EidMode mode);
 #define jotEid(eid, meid)	recordEid(eid, meid, EidS)
 
 extern void		eraseEid(EndpointId *eid);
-extern int		readEid(EndpointId *eid, char **str);
+extern void		readEid(EndpointId *eid, char **str);
 
 extern int		acquireEid(EndpointId *eid,
 				unsigned char **cursor,
@@ -1384,6 +1394,16 @@ extern void		lookUpEndpoint(EndpointId *eid, VScheme *vscheme,
 				VEndpoint **vpoint);
 
 extern int		serializeEid(EndpointId *eid, unsigned char *buffer);
+extern void		serializePrimaryBlock(Bundle *bundle,
+				unsigned char **cursor,
+				unsigned char *destinationEid,
+				int destinationEidLength,
+		       		unsigned char *sourceEid,
+				int sourceEidLength,
+				unsigned char *reportToEid,
+				int reportToEidLength);
+extern int		serializePayloadBlock(Payload *payload,
+				unsigned char blkProcFlags);
 
 extern void		findPlan(char *eid, VPlan **vplan, PsmAddress *elt);
 
@@ -1459,6 +1479,7 @@ extern int		parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 extern void		bpPlanTally(VPlan *vplan, unsigned int idx,
 				unsigned int size);
 extern void		bpXmitTally(unsigned int priority, unsigned int size);
+extern void		bpDbTally(unsigned int idx, unsigned int size);
 
 typedef int		(*StatusRptCB)(BpDelivery *, unsigned char *,
 				unsigned int);

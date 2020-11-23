@@ -1,0 +1,4 @@
+[console_scripts]
+zfec = zfec.cmdline_zfec:main
+zunfec = zfec.cmdline_zunfec:main
+

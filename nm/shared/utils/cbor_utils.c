@@ -191,6 +191,17 @@ int cut_enc_uvast(uvast num, blob_t *result)
 	return AMP_OK;
 }
 
+int cut_get_cbor_numeric_raw(blob_t *data, amp_type_e type, void *val)
+{
+	QCBORDecodeContext decoder;
+	QCBORDecode_Init(&decoder,
+					 (UsefulBufC){data->value,data->length},
+					 QCBOR_DECODE_MODE_NORMAL);
+	cut_get_cbor_numeric(&decoder, type, val);
+	cut_decode_finish(&decoder);
+    return AMP_OK;
+}
+
 int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
 {
 	QCBORItem item;

@@ -1,0 +1,59 @@
+=head1 NAME
+
+tcc - Trusted Collective client daemon task for handling bulletins from a collective authority
+
+=head1 SYNOPSIS
+
+B<tcc> I<blocks_group_number>
+
+=head1 DESCRIPTION
+
+B<tcc> is a background "daemon" task that receives code blocks multicast
+by the authority nodes of the collective authority for the TC application
+identified by I<blocks_group_number>.  It reassembles bulletins from
+compatible code blocks and delivers those bulletins to the application's
+user function on the local node.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcc> terminated, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<tcc> was unable to attach to TC client operations, possibly because
+the TC client database for this application has not yet been initialized by
+B<tcaadmin>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item tcc can't attach to tcc system.
+
+B<tcaadmin> has not yet initialized the TC client database for this application.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+tcaadmin(1), tcarc(5)

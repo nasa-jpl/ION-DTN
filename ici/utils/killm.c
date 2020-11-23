@@ -18,7 +18,6 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "acslist.exe", "lt-acslist.exe", \
 "aoslsi.exe", "lt-aoslsi.exe", \
 "aoslso.exe", "lt-aoslso.exe", \
-"beacon.exe", "lt-beacon.exe", \
 "bibeadmin.exe", "lt-bibeadmin.exe", \
 "bibeclo.exe", "lt-bibeclo.exe", \
 "bpadmin.exe", "lt-bpadmin.exe", \
@@ -55,6 +54,8 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "dgr2file.exe", "lt-dgr2file.exe", \
 "dgrcli.exe", "lt-dgrcli.exe", \
 "dgrclo.exe", "lt-dgrclo.exe", \
+"dtka.exe", "lt-dtka.exe", \
+"dtkaadmin.exe", "lt-dtkaadmin.exe", \
 "dtn2admin.exe", "lt-dtn2admin.exe", \
 "dtn2adminep.exe", "lt-dtn2adminep.exe", \
 "dtn2fw.exe", "lt-dtn2fw.exe", \
@@ -70,7 +71,8 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "file2udp.exe", "lt-file2udp.exe", \
 "imcadmin.exe", "lt-imcadmin.exe", \
 "imcfw.exe", "lt-imcfw.exe", \
-"imdadmin.exe", "lt-imdadmin.exe", \
+"imcadmin.exe", "lt-imcadmin.exe", \
+"imcadminep.exe", "lt-imcadminep.exe", \
 "ionadmin.exe", "lt-ionadmin.exe", \
 "ionexit.exe", "lt-ionexit.exe", \
 "ionrestart.exe", "lt-ionrestart.exe", \
@@ -110,6 +112,13 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "smrbtsh.exe", "lt-smrbtsh.exe", \
 "stcpcli.exe", "lt-stcpcli.exe", \
 "stcpclo.exe", "lt-stcpclo.exe", \
+"tcaadmin.exe", "lt-tcaadmin.exe", \
+"tcaboot.exe", "lt-tcaboot.exe", \
+"tcacompile.exe", "lt-tcacompile.exe", \
+"tcapublish.exe", "lt-tcapublish.exe", \
+"tcarecv.exe", "lt-tcarecv.exe", \
+"tcc.exe", "lt-tcc.exe", \
+"tccadmin.exe", "lt-tccadmin.exe", \
 "tcp2file.exe", "lt-tcp2file.exe", \
 "tcpbsi.exe", "lt-tcpbsi.exe", \
 "tcpbso.exe", "lt-tcpbso.exe", \

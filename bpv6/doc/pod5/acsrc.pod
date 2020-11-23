@@ -92,6 +92,12 @@ The I<minimumCustodyId> provided is stored in SDR, and incremented every time a
 new custody ID is required.  So, this command should be used only when the
 local bundle agent has discarded its SDR and restarted.
 
+=item B<t> <acsBundleLifetime>
+
+This command sets the lifetime that will be asserted for every ACS bundle
+subsequently issued by the local bundle agent.  The new I<acsBundleLifetime>
+is stored in SDR.
+
 =back
 
 =head1 CUSTODIAN COMMANDS

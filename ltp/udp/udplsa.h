@@ -21,6 +21,14 @@ extern "C" {
 #define UDPLSA_BUFSZ		((256 * 256) - 1)
 #define LtpUdpDefaultPortNbr	1113
 
+typedef struct
+{
+	int			linkSocket;
+	int			running;
+} ReceiverThreadParms;
+
+extern void			*udplsa_handle_datagrams(void *parm);
+
 #ifdef __cplusplus
 }
 #endif

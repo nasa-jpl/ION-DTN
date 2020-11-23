@@ -1,0 +1,98 @@
+=head1 NAME
+
+tccrc - Trusted Collective client configuration commands file
+
+=head1 DESCRIPTION
+
+TC client configuration commands are passed to B<tccadmin> either
+in a file of text lines or interactively at B<tccadmin>'s command prompt
+(:).  Commands are interpreted line-by line, with exactly one command per
+line.  The formats and effects of the TC client configuration commands
+are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by tccadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v>
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine withB<e 1> command to log the version number at startup.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<1> I<number_of_authorities_in_collective> [ I<K> [ I<R> ]]
+
+The B<initialize> command.  Until this command is executed, the client
+daemon for the selected TC application is not in operation on the local
+ION node and most I<tccadmin> commands will fail.
+
+I<K> is the mandated B<diffusion> for the selected TC application, i.e.,
+the number of blocks into which each bulletin of published TC information
+is divided for transmission.
+
+I<R> is the mandated B<redundancy> for the selected TC application, i.e.,
+the percentage of  blocks issued per bulletin that will be parity blocks
+rather than extents of the bulletin itself.
+
+=item B<i>
+
+The B<info> This command will print information about the current state
+of the client daemon for the selected TC application on the local node,
+i.e., the identities of the TC authority nodes that the client daemon
+recognizes.
+
+=item B<s>
+
+The B<start> command.  This command starts the client daemon (B<tcc>)
+for the selected TC application.
+
+=item B<m authority> I<authority_array_index> I<node_number>
+
+This command asserts that the Nth member of the collective authority for
+the selected TC application, where N is the I<authority_array_index> value,
+is the node identified by I<node_number>.
+
+=item B<x>
+
+The B<stop> command.  This command stops the client daemon (B<tcc>) for
+the selected TC application.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item m authority 3 6913
+
+Asserts that node 6913 is member 3 of the collective authority for the
+selected application.
+
+=back
+
+=head1 SEE ALSO
+
+tccadmin(1)

@@ -76,16 +76,21 @@ extern int	updateCustodianAcsSize(const char *custodianEid,
 			unsigned long acsSize);
 	/* This function updates the database of information about custodians,
 	 * in particular, at what size of pending ACS the local bundle agent
-	 * should stop appending, serialize and send to custodianEid. */
+	 * should stop appending, serialize and send to custodianEid.	*/
 
 extern int	updateMinimumCustodyId(unsigned int minimumCustodyId);
-	/* This function updates the ACS database to use the new minimumCustodyId
-	 * as the next available custody ID. */
+	/* This function updates the ACS database to use the
+	 * minimumCustodyId value as the next available custody ID.	*/
+
+extern int	updateAcsBundleLifetime(unsigned int timeToLive);
+	/* This function updates the ACS database to use timeToLive as
+	 * the bundle lifetime for all subsequently issued ACS bundles.	*/
 
 extern void listCustodianInfo(void (*printer)(const char *));
-	/* This function passes a string to printer() for each custodian for which
-	 * information is known.  This string is the information known about that
-	 * custodian in human-readable form. */
+	/* This function passes a string to printer() for each
+	 * custodian for which information is known.  This string
+	 * is the information known about that custodian in
+	 * human-readable form.						*/
 
 #ifdef __cplusplus
 }	/* extern "C" */

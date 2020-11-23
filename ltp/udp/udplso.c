@@ -50,78 +50,34 @@ static void	shutDownLso()	/*	Commands LSO termination.	*/
 	sm_SemEnd(udplsoSemaphore(NULL));
 }
 
-/*	*	*	Receiver thread functions	*	*	*/
-
-typedef struct
-{
-	int		linkSocket;
-	int		running;
-} ReceiverThreadParms;
-
-static void	*handleDatagrams(void *parm)
-{
-	/*	Main loop for UDP datagram reception and handling.	*/
-
-	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
-	char			*buffer;
-	int			segmentLength;
-	struct sockaddr_in	fromAddr;
-	socklen_t		fromSize;
-
-	buffer = MTAKE(UDPLSA_BUFSZ);
-	if (buffer == NULL)
-	{
-		putErrmsg("udplsi can't get UDP buffer.", NULL);
-		shutDownLso();
-		return NULL;
-	}
-
-	/*	Can now start receiving bundles.  On failure, take
-	 *	down the LSO.						*/
-
-	iblock(SIGTERM);
-	while (rtp->running)
-	{	
-		fromSize = sizeof fromAddr;
-		segmentLength = irecvfrom(rtp->linkSocket, buffer, UDPLSA_BUFSZ,
-				0, (struct sockaddr *) &fromAddr, &fromSize);
-		switch (segmentLength)
-		{
-		case -1:
-			putSysErrmsg("Can't acquire segment", NULL);
-			shutDownLso();
-
-			/*	Intentional fall-through to next case.	*/
-
-		case 1:				/*	Normal stop.	*/
-			rtp->running = 0;
-			continue;
-		}
-
-		if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
-		{
-			putErrmsg("Can't handle inbound segment.", NULL);
-			shutDownLso();
-			rtp->running = 0;
-			continue;
-		}
-
-		/*	Make sure other tasks have a chance to run.	*/
-
-		sm_TaskYield();
-	}
-
-	writeErrmsgMemos();
-	writeMemo("[i] udplso receiver thread has ended.");
-
-	/*	Free resources.						*/
-
-	MRELEASE(buffer);
-	return NULL;
-}
-
 /*	*	*	Main thread functions	*	*	*	*/
 
+#ifdef UDP_MULTISEND
+static int	sendBatch(int linkSocket, struct mmsghdr *msgs,
+			unsigned int batchLength)
+{
+	int	totalBytesSent = 0;
+	int	bytesSent;
+	int	i;
+
+	if (sendmmsg(linkSocket, msgs, batchLength, 0) < 0)
+	{
+		putSysErrmsg("Failed in sendmmsg", itoa(batchLength));
+		return -1;
+	}
+
+	for (i = 0; i < batchLength; i++)
+	{
+		bytesSent = msgs[i].msg_len;
+		if (bytesSent > 0)
+		{
+			totalBytesSent += (IPHDR_SIZE + bytesSent);
+		}
+	}
+
+	return totalBytesSent;
+}
+#else
 int	sendSegmentByUDP(int linkSocket, char *from, int length,
 		struct sockaddr_in *destAddr )
 {
@@ -169,6 +125,83 @@ static unsigned long	getUsecTimestamp()
 	return ((tv.tv_sec * 1000000) + tv.tv_usec);
 }
 
+typedef struct
+{
+	unsigned long		startTimestamp;	/*	Billing cycle.	*/
+	uvast			remoteEngineId;
+	IonNeighbor		*neighbor;
+	unsigned int		prevPaid;
+} RateControlState;
+
+static void	applyRateControl(RateControlState *rc, int bytesSent)
+{
+	/*	Rate control calculation is based on treating elapsed
+	 *	time as a currency, the price you pay (by microsnooze)
+	 *	for sending a given number of bytes.  All cost figures
+	 *	are expressed in microseconds except the computed
+	 *	totalCostSecs of the transmission.			*/
+
+	unsigned int		totalPaid;	/*	Since last send.*/
+	float			timeCostPerByte;/*	In seconds.	*/
+	unsigned int		currentPaid;	/*	Sending seg.	*/
+	PsmAddress		nextElt;
+	float			totalCostSecs;	/*	For this seg.	*/
+	unsigned int		totalCost;	/*	Microseconds.	*/
+	unsigned int		balanceDue;	/*	Until next seg.	*/
+
+	totalPaid = getUsecTimestamp() - rc->startTimestamp;
+
+	/*	Start clock for next bill.				*/
+
+	rc->startTimestamp = getUsecTimestamp();
+
+	/*	Compute time balance due.				*/
+
+	if (totalPaid >= rc->prevPaid)
+	{
+	/*	This should always be true provided that
+	 *	clock_gettime() is supported by the O/S.		*/
+
+		currentPaid = totalPaid - rc->prevPaid;
+	}
+	else
+	{
+		currentPaid = 0;
+	}
+
+	/*	Get current time cost, in seconds, per byte.		*/
+
+	if (rc->neighbor == NULL)
+	{
+		rc->neighbor = findNeighbor(getIonVdb(), rc->remoteEngineId,
+				&nextElt);
+	}
+
+	if (rc->neighbor && rc->neighbor->xmitRate > 0)
+	{
+		timeCostPerByte = 1.0 / (rc->neighbor->xmitRate);
+	}
+	else	/*	No link service rate control.			*/ 
+	{
+		timeCostPerByte = 0.0;
+	}
+
+	totalCostSecs = timeCostPerByte * bytesSent;
+	totalCost = totalCostSecs * 1000000.0;		/*	usec.	*/
+	if (totalCost > currentPaid)
+	{
+		balanceDue = totalCost - currentPaid;
+	}
+	else
+	{
+		balanceDue = 1;
+	}
+
+	microsnooze(balanceDue);
+	rc->prevPaid = balanceDue;
+}
+#endif
+
 #if defined (ION_LWT)
 int	udplso(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	       saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -188,36 +221,33 @@ int	main(int argc, char *argv[])
 	PsmAddress		vspanElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
+	struct sockaddr		peerSockName;
+	struct sockaddr_in	*peerInetName;
 	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		ownSockName;
 	struct sockaddr_in	*ownInetName;
-	struct sockaddr		bindSockName;
-	struct sockaddr_in	*bindInetName;
-	struct sockaddr		peerSockName;
-	struct sockaddr_in	*peerInetName;
 	socklen_t		nameLength;
 	ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
-	IonNeighbor		*neighbor = NULL;
-	PsmAddress		nextElt;
 	int			segmentLength;
 	char			*segment;
 	int			bytesSent;
 	int			fd;
 	char			quit = '\0';
-
-	/*	Rate control calculation is based on treating elapsed
-	 *	time as a currency.					*/
-
-	float			timeCostPerByte;/*	In seconds.	*/
-	unsigned long		startTimestamp;	/*	Billing cycle.	*/
-	unsigned int		totalPaid;	/*	Since last send.*/
-	unsigned int		currentPaid;	/*	Sending seg.	*/
-	float			totalCostSecs;	/*	For this seg.	*/
-	unsigned int		totalCost;	/*	Microseconds.	*/
-	unsigned int		balanceDue;	/*	Until next seg.	*/
-	unsigned int		prevPaid = 0;	/*	Prior snooze.	*/
-
+#ifdef UDP_MULTISEND
+	Object			spanObj;
+	LtpSpan			spanBuf;
+	unsigned int		batchLimit;
+	char			*buffers;
+	char			*buffer;
+	struct iovec		*iovecs;
+	struct iovec		*iovec;
+	struct mmsghdr		*msgs;
+	struct mmsghdr		*msg;
+	unsigned int		batchLength;
+#else
+	RateControlState	rc;
+#endif
 	if (txbps != 0 && remoteEngineId == 0)	/*	Now nominal.	*/
 	{
 		remoteEngineId = txbps;
@@ -269,7 +299,7 @@ compatibility, but it is ignored.");
 	sdr_exit_xn(sdr);
 
 	/*	All command-line arguments are now validated.  First
-	 *	get peer's socket address.				*/
+	 *	compute the peer's socket address.			*/
 
 	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
 	if (portNbr == 0)
@@ -277,9 +307,9 @@ compatibility, but it is ignored.");
 		portNbr = LtpUdpDefaultPortNbr;
 	}
 
-	getNameOfHost(ownHostName, sizeof ownHostName);
-	if (ipAddress == 0)		/*	Default to local host.	*/
+	if (ipAddress == 0)	/*	Default to own IP address.	*/
 	{
+		getNameOfHost(ownHostName, sizeof ownHostName);
 		ipAddress = getInternetAddress(ownHostName);
 	}
 
@@ -292,22 +322,26 @@ compatibility, but it is ignored.");
 	memcpy((char *) &(peerInetName->sin_addr.s_addr),
 			(char *) &ipAddress, 4);
 
-	/*	Now compute own socket address, used when the peer
-	 *	responds to the link service output socket rather
-	 *	than to the advertised link service input socket.	*/
-
-	ipAddress = htonl(INADDR_ANY);
-	memset((char *) &bindSockName, 0, sizeof bindSockName);
-	bindInetName = (struct sockaddr_in *) &bindSockName;
-	bindInetName->sin_family = AF_INET;
-	bindInetName->sin_port = 0;	/*	Let O/S select it.	*/
-	memcpy((char *) &(bindInetName->sin_addr.s_addr),
-			(char *) &ipAddress, 4);
-
 	/*	Now create the socket that will be used for sending
-	 *	datagrams to the peer LTP engine and receiving
-	 *	datagrams from the peer LTP engine.			*/
+	 *	datagrams to the peer LTP engine and possibly for
+	 *	receiving datagrams from the peer LTP engine.		*/
 
+	ipAddress = INADDR_ANY;
+	portNbr = 0;	/*	Let O/S choose it.			*/
+
+	/*	This socket needs to be bound to the local socket
+	 *	address (just as in udplsi), so that the udplso
+	 *	main thread can send a 1-byte datagram to that
+	 *	socket to shut down the datagram handling thread.	*/
+
+	portNbr = htons(portNbr);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &ownSockName, 0, sizeof ownSockName);
+	ownInetName = (struct sockaddr_in *) &ownSockName;
+	ownInetName->sin_family = AF_INET;
+	ownInetName->sin_port = portNbr;
+	memcpy((char *) &(ownInetName->sin_addr.s_addr),
+			(char *) &ipAddress, 4);
 	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
 	{
@@ -315,16 +349,13 @@ compatibility, but it is ignored.");
 		return 1;
 	}
 
-	/*	Bind the socket to own socket address so that we can
-	 *	send a 1-byte datagram to that address to shut down
-	 *	the datagram handling thread.				*/
-
 	nameLength = sizeof(struct sockaddr);
-	if (bind(rtp.linkSocket, &bindSockName, nameLength) < 0
-	|| getsockname(rtp.linkSocket, &bindSockName, &nameLength) < 0)
+	if (reUseAddress(rtp.linkSocket)
+	|| bind(rtp.linkSocket, &ownSockName, nameLength) < 0
+	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
 	{
 		closesocket(rtp.linkSocket);
-		putSysErrmsg("LSO can't bind UDP socket", NULL);
+		putSysErrmsg("LSO can't initialize UDP socket", NULL);
 		return 1;
 	}
 
@@ -333,11 +364,11 @@ compatibility, but it is ignored.");
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
 	signal(SIGTERM, shutDownLso);
 
-	/*	Start the echo handler thread.				*/
+	/*	Start the receiver thread.				*/
 
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleDatagrams,
-		&rtp, "udplso_receiver"))
+	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
+			&rtp, "udplso_receiver"))
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("udplso can't create receiver thread", NULL);
@@ -356,7 +387,147 @@ compatibility, but it is ignored.");
 		writeMemo(memoBuf);
 	}
 
-	startTimestamp = getUsecTimestamp();
+#ifdef UDP_MULTISEND
+	spanObj = sdr_list_data(sdr, vspan->spanElt);
+	sdr_read(sdr, (char *) &spanBuf, spanObj, sizeof(LtpSpan));
+
+	/*	For multi-send, we normally send about one LTP block
+	 *	per system call.  But this can be overridden.		*/
+
+#ifdef MULTISEND_BATCH_LIMIT
+	batchLimit = MULTISEND_BATCH_LIMIT;
+#else
+	batchLimit = spanBuf.aggrSizeLimit / spanBuf.maxSegmentSize;
+#endif
+	buffers = MTAKE(spanBuf.maxSegmentSize * batchLimit);
+	if (buffers == NULL)
+	{
+		closesocket(rtp.linkSocket);
+		putErrmsg("No space for segment buffer array.", NULL);
+		return 1;
+	}
+
+	iovecs = MTAKE(sizeof(struct iovec) * batchLimit);
+	if (iovecs == NULL)
+	{
+		MRELEASE(buffers);
+		closesocket(rtp.linkSocket);
+		putErrmsg("No space for iovec array.", NULL);
+		return 1;
+	}
+
+	msgs = MTAKE(sizeof(struct mmsghdr) * batchLimit);
+	if (msgs == NULL)
+	{
+		MRELEASE(iovecs);
+		MRELEASE(buffers);
+		closesocket(rtp.linkSocket);
+		putErrmsg("No space for mmsghdr array.", NULL);
+		return 1;
+	}
+
+	memset(msgs, 0, sizeof(struct mmsghdr) * batchLimit);
+	batchLength = 0;
+	buffer = buffers;
+	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
+	{
+		if (sdr_list_length(sdr, spanBuf.segments) == 0)
+		{
+			/*	No segments ready to append to batch.	*/
+
+			microsnooze(100000);	/*	Wait .1 sec.	*/
+			if (sdr_list_length(sdr, spanBuf.segments) == 0)
+			{
+				/*	Still nothing read to add to
+				 *	batch.  Send partial batch,
+				 *	if any.				*/
+
+				if (batchLength > 0)
+				{
+					bytesSent = sendBatch(rtp.linkSocket,
+							msgs, batchLength);
+					if (bytesSent < 0)
+					{
+						putErrmsg("Failed sending \
+segment batch.", NULL);
+						rtp.running = 0;
+						continue;
+					}
+
+					batchLength = 0;
+					buffer = buffers;
+
+					/*	Let other tasks run.	*/
+
+					sm_TaskYield();
+				}
+				else
+				{
+					snooze(1);
+				}
+			}
+
+			/*	Now see if a segment is waiting.	*/
+
+			continue;
+		}
+
+		/*	A segment is waiting to be appended to batch.	*/
+
+		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
+		if (segmentLength < 0)
+		{
+			rtp.running = 0;	/*	Terminate LSO.	*/
+			continue;
+		}
+
+		if (segmentLength == 0)		/*	Interrupted.	*/
+		{
+			continue;
+		}
+
+		/*	Append this segment to current batch.		*/
+
+		memcpy(buffer, segment, segmentLength);
+		iovec = iovecs + batchLength;
+		iovec->iov_base = buffer;
+		iovec->iov_len = segmentLength;
+		msg = msgs + batchLength;
+		msg->msg_hdr.msg_name = (struct sockaddr *) peerInetName;
+		msg->msg_hdr.msg_namelen = sizeof(struct sockaddr);
+		msg->msg_hdr.msg_iov = iovec;
+		msg->msg_hdr.msg_iovlen = 1;
+		batchLength++;
+		buffer += spanBuf.maxSegmentSize;
+		if (batchLength >= batchLimit)
+		{
+			bytesSent = sendBatch(rtp.linkSocket, msgs,
+					batchLength);
+			if (bytesSent < 0)
+			{
+				putErrmsg("Failed sending segment batch.",
+						NULL);
+				rtp.running = 0;
+				continue;
+			}
+
+			batchLength = 0;
+			buffer = buffers;
+
+			/*	Let other tasks run.			*/
+
+			sm_TaskYield();
+		}
+	}
+
+	MRELEASE(msgs);
+	MRELEASE(iovecs);
+	MRELEASE(buffers);
+#else
+	rc.startTimestamp = getUsecTimestamp();
+	rc.prevPaid = 0;
+	rc.remoteEngineId = remoteEngineId;
+	rc.neighbor = NULL;
 	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
 	{
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
@@ -387,97 +558,37 @@ compatibility, but it is ignored.");
 			continue;
 		}
 
-		/*	Rate control calculation is based on treating
-		 *	elapsed time as a currency, the price you
-		 *	pay (by microsnooze) for sending a segment
-		 *	of a given size.  All cost figures are
-		 *	expressed in microseconds except the computed
-		 *	totalCostSecs of the segment.			*/
+		bytesSent += IPHDR_SIZE;
+		applyRateControl(&rc, bytesSent);
 
-		totalPaid = getUsecTimestamp() - startTimestamp;
-
-		/*	Start clock for next bill.			*/
-
-		startTimestamp = getUsecTimestamp();
-
-		/*	Compute time balance due.			*/
-
-		if (totalPaid >= prevPaid)
-		{
-		/*	This should always be true provided that
-		 *	clock_gettime() is supported by the O/S.	*/
-
-			currentPaid = totalPaid - prevPaid;
-		}
-		else
-		{
-			currentPaid = 0;
-		}
-
-		/*	Get current time cost, in seconds, per byte.	*/
-
-		if (neighbor == NULL)
-		{
-			neighbor = findNeighbor(getIonVdb(), remoteEngineId,
-					&nextElt);
-		}
-
-		if (neighbor && neighbor->xmitRate > 0)
-		{
-			timeCostPerByte = 1.0 / (neighbor->xmitRate);
-		}
-		else	/*	No link service rate control.		*/ 
-		{
-			timeCostPerByte = 0.0;
-		}
-
-		totalCostSecs = timeCostPerByte * (IPHDR_SIZE + segmentLength);
-		totalCost = totalCostSecs * 1000000.0;	/*	usec.	*/
-		if (totalCost > currentPaid)
-		{
-			balanceDue = totalCost - currentPaid;
-		}
-		else
-		{
-			balanceDue = 1;
-		}
-
-		microsnooze(balanceDue);
-		prevPaid = balanceDue;
-
-		/*	Make sure other tasks have a chance to run.	*/
+		/*	Let other tasks run.				*/
 
 		sm_TaskYield();
 	}
+#endif
+	/*	Time to shut down.					*/
 
-	/*	Create one-use socket for the closing quit byte.	*/
+	rtp.running = 0;
 
-	portNbr = bindInetName->sin_port;	/*	From binding.	*/
-	ipAddress = (127 << 24) + 1;		/*	127.0.0.1	*/
-	ipAddress = htonl(ipAddress);
-	memset((char *) &ownSockName, 0, sizeof ownSockName);
-	ownInetName = (struct sockaddr_in *) &ownSockName;
-	ownInetName->sin_family = AF_INET;
-	ownInetName->sin_port = portNbr;
-	memcpy((char *) &(ownInetName->sin_addr.s_addr),
-			(char *) &ipAddress, 4);
-
-	/*	Wake up the receiver thread by sending it a 1-byte
-	 *	datagram.						*/
+	/*	Wake up the receiver thread by opening a single-use
+	 *	transmission socket and sending a 1-byte datagram
+	 *	to the reception socket.				*/
 
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
-		oK(isendto(fd, &quit, 1, 0, &ownSockName,
-				sizeof(struct sockaddr)));
+		if (isendto(fd, &quit, 1, 0, &ownSockName,
+				sizeof(struct sockaddr)) == 1)
+		{
+			pthread_join(receiverThread, NULL);
+		}
+
 		closesocket(fd);
 	}
 
-	pthread_join(receiverThread, NULL);
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");
 	ionDetach();
 	return 0;
 }
-

@@ -411,6 +411,7 @@ static int	printAll(int detail)
 	Object	elt;
 	Object	addr;
 		OBJ_POINTER(BpEvent, event);
+	char	buf[300];
 
 	bpConstants = getBpConstants();
 	for (elt = sdr_list_first(sdr, bpConstants->timeline); elt;
@@ -433,6 +434,10 @@ static int	printAll(int detail)
 
 		/*	Need to print detail of bundle.			*/
 
+		isprintf(buf, sizeof buf, "Current ctime sec %lu", getCtime());
+		PUTS(buf);
+		isprintf(buf, sizeof buf, "Event ctime sec   %lu", event->time);
+		PUTS(buf);
 		printBundle(event->ref);
 	}
 

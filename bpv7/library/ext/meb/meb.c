@@ -15,6 +15,11 @@
 
 int	meb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	return meb_serialize(blk, bundle);
+}
+
+int	meb_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[11 + BP_MAX_METADATA_LEN];
 	unsigned char	*cursor;
 	uvast		uvtemp;
@@ -78,7 +83,7 @@ int	meb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 	return 0;
 }
 
-int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
+int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;
 	unsigned char	*cursor;
@@ -136,9 +141,4 @@ int	meb_acquire(AcqExtBlock *blk, AcqWorkArea *wk)
 int	meb_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	meb_clear(AcqExtBlock *blk)
-{
-	return;
 }

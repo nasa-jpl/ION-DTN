@@ -59,7 +59,7 @@ int	main(int argc, char **argv)
 
 	if (bundleObj)
 	{
-		if (bpDestroyBundle(bundleObj, 1) < 0)
+		if (bpDestroyBundle(bundleObj, 3) < 0)
 		{
 			sdr_cancel_xn(sdr);
 			bp_detach();

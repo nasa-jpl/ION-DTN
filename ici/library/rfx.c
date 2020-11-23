@@ -812,28 +812,28 @@ int	rfx_insert_contact(int regionIdx, time_t fromTime, time_t toTime,
 	*cxaddr = 0;			/*	Default.		*/
 	if (regionIdx < 0 || regionIdx > 1)
 	{
-		writeMemo("[?] Can't insert contact, nodes not in any \
-common region.");
-		return 0;
+		writeMemo("[?] Can't insert contact, don't know which \
+region it's for.");
+		return 1;
 	}
 
 	if (fromNode == 0)
 	{
 		writeMemo("[?] Can't insert contact From node 0.");
-		return 0;
+		return 2;
 	}
 
 	if (toNode == 0)
 	{
 		writeMemo("[?] Can't insert contact To node 0.");
-		return 0;
+		return 3;
 	}
 
 	if (confidence < 0.0 || confidence > 1.0)
 	{
 		writeMemo("[?] Can't insert contact: confidence must be \
 between 0.0 and 1.0.");
-		return 0;
+		return 4;
 	}
 
 	/*	Note: Discovered contacts are ONLY created by
@@ -866,7 +866,7 @@ between 0.0 and 1.0.");
 		if (xmitRate == 0)
 		{
 			writeMemo("[?] Can't insert contact with xmit rate 0.");
-			return 0;
+			return 5;
 		}
 
 		if (fromTime == toTime)	/*	Predicted.		*/
@@ -881,7 +881,7 @@ between 0.0 and 1.0.");
 			{
 				writeMemo("[?] Can't insert contact, To time \
 must be later than From time.");
-				return 0;
+				return 6;
 			}
 
 			/*	No artificial parameter values,
@@ -909,7 +909,7 @@ must be later than From time.");
 			writeMemo("[?] Won't insert redundant registration \
 contact.");
 			sdr_exit_xn(sdr);
-			return 0;	/*	Do not insert.		*/
+			return 7;	/*	Do not insert.		*/
 		}
 
 		/*	No registration contact, okay to add one.	*/
@@ -979,7 +979,7 @@ contact.");
 					writeMemo("[?] Can't replace \
 hypothetical contact, as that contact is now discovered.");
 					sdr_exit_xn(sdr);
-					return 0;
+					return 8;
 
 				case CtHypothetical:
 					/*	Replace this one.	*/
@@ -1070,7 +1070,12 @@ hypothetical contact, as that contact is now discovered.");
 				fromNode, toNode);
 		writeMemoNote("[?] Overlapping contact ignored",
 				contactIdString);
-		return sdr_end_xn(sdr);
+		if (sdr_end_xn(sdr) < 0)
+		{
+			return -1;
+		}
+
+		return 9;
 	}
 
 	/*	Contact isn't already in database; okay to add.		*/
@@ -1126,7 +1131,7 @@ int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
 	{
 		writeMemo("[!] Attempt to revise a nonexistent contact.");
 		sdr_exit_xn(sdr);
-		return 0;
+		return 1;
 	}
 
 	/*	Update the contact and its xref.			*/
@@ -1139,7 +1144,7 @@ int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
 	{
 		writeMemo("[!] Attempt to revise a non-managed contact.");
 		sdr_exit_xn(sdr);
-		return 0;
+		return 2;
 	}
 
 	obj = sdr_list_data(sdr, cxref->contactElt);
@@ -1783,19 +1788,21 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 			 *	existing asserted range with another
 			 *	asserted range, which is prohibited.	*/
 
-			if (rxref->owlt == owlt)
-			{
-				sdr_exit_xn(sdr);
-				return 0;	/*	Idempotent.	*/
-			}
-
 			isprintf(rangeIdString, sizeof rangeIdString,
 					"from %lu, %lu->%lu", fromTime,
 					fromNode, toNode);
+			if (rxref->owlt == owlt)
+			{
+				writeMemoNote("[?] This range is already \
+asserted", rangeIdString);
+				sdr_exit_xn(sdr);
+				return 1;	/*	Idempotent.	*/
+			}
+
 			writeMemoNote("[?] Range OWLT not revised",
 					rangeIdString);
 			sdr_exit_xn(sdr);
-			return 0;
+			return 2;
 		}
 	}
 
@@ -1809,10 +1816,10 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 		&& toNode == rxref->toNode
 		&& toTime > rxref->fromTime)
 		{
-			writeMemoNote("[?] Overlapping range for node",
+			writeMemoNote("[?] Overlapping end of range for node",
 					utoa(fromNode));
 			sdr_exit_xn(sdr);
-			return 0;
+			return 3;
 		}
 	}
 	else
@@ -1827,10 +1834,10 @@ int	rfx_insert_range(time_t fromTime, time_t toTime, uvast fromNode,
 		&& toNode == rxref->toNode
 		&& fromTime < rxref->toTime)
 		{
-			writeMemoNote("[?] Overlapping range for node",
+			writeMemoNote("[?] Overlapping start of range for node",
 					utoa(fromNode));
 			sdr_exit_xn(sdr);
-			return 0;
+			return 4;
 		}
 	}
 

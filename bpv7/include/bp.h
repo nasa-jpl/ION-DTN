@@ -88,21 +88,20 @@ typedef enum
 	MetadataBlk = 14,
 	DataLabelBlk = 15,
 	QualityOfServiceBlk = 19,
-	SnwPermitsBlk = 21
+	SnwPermitsBlk = 21,
+	ImcDestinationsBlk = 22
 } BpBlockType;
 
 /*	ExtensionSpec provides the specification for producing an
  *	outbound extension block: block definition (identified by
- *	block type number), three discriminator tags whose semantics
- *	are block-type-specific, and applicable CRC type.		*/
+ *	block type number), a formulation tag whose semantics are
+ *	block-type-specific, and applicable CRC type.			*/
 
 typedef struct
 {
-	BpBlockType		type;	/*	Block type		*/
-	unsigned char		tag1;	/*	Extension-specific	*/
-	unsigned char		tag2;	/*	Extension-specific	*/
-	unsigned char		tag3;	/*	Extension-specific	*/
-	BpCrcType		crcType;/*	Type of CRC on block	*/
+	BpBlockType	type;		/*	Block type		*/
+	unsigned char	tag;		/*	Extension-specific	*/
+	BpCrcType	crcType;	/*	Type of CRC on block	*/
 } ExtensionSpec;
 
 typedef struct

@@ -496,6 +496,7 @@ extern vast		ionAppendZcoExtent(Object zco,
 extern int		ionSendZcoByTCP(int *sock, Object zco, char *buffer,
 					int buflen);
 
+extern const char	*getIonVersionNbr();
 extern Sdr		getIonsdr();
 extern Object		getIonDbObject();
 extern PsmPartition	getIonwm();

@@ -1,0 +1,68 @@
+=head1 NAME
+
+tcapublish - Trusted Collective authority task that publishes consensus critical information bulletins
+
+=head1 SYNOPSIS
+
+B<tcapublish> I<blocks_group_number>
+
+=head1 DESCRIPTION
+
+B<tcapublish> is a background task that completes the processing of a single
+iteration of the bulletin publication cycle for the collective authority
+function of the TC application identified by I<blocks_group_number> on the
+local node.  To do so, it receives proposed bulletins multicast by
+B<tcacompile> daemons, resolves differences among the received bulletins
+to arrive at a consensus bulletin, computes a hash for the consensus bulletin,
+erasure-codes the consensus bulletin, and multicasts that subset of the
+resulting code blocks that is allocated to the local node according
+to the local node's assigned position in the authority array of the
+application's collective authority.  It is spawned automatically by the
+local node's B<tcacompile> daemon for the indicated application, at the time
+that daemon publishes its own proposed bulletin for this iteration of the
+bulletin compilation cycle; it terminates immediately after it has finished
+publishing code blocks.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<tcapublish> terminated, for reasons noted in the B<ion.log> file.
+
+=item "1"
+
+B<tcapublish> was unable to attach to TC authority operations, probably because
+B<tcaadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item tcapublish can't attach to DTKA.
+
+B<tcaadmin> has not yet initialized the authority database for this TC
+application.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+tcaadmin(1), tc(3), tcauthrc(5)

@@ -21,9 +21,9 @@ IPND = ../ipnd
 ICI = ../../ici
 SAGA = ../saga
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC
 # -Werror
-CC = gcc $(OPT) -I$(ICI)/incude -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(ICI)/incude -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(API)/ext/imc -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 
 
 LDFLAGS = -fPIC -shared
@@ -40,13 +40,13 @@ BPINCLS = \
 	$(ICI)/include/cbor.h \
 	$(IPN)/ipnfw.h \
 	$(IMC)/imcfw.h \
-	$(IMC)/imcP.h \
 	$(BSSP)/bsspcla.h \
 	$(DTN2)/dtn2fw.h \
 	$(BRS)/brscla.h \
 	$(UDP)/udpcla.h \
 	$(STCP)/stcpcla.h \
 	$(LTP)/ltpcla.h \
+	$(API)/ext/imc/imc.h \
 	$(API)/ext/snw/snw.h \
 	$(DGR_MAIN)/include/dgr.h \
 	$(DCCP)/dccpcla.h
@@ -54,12 +54,12 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
+BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o imc.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = beacon bibeadmin bibeclo bpadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = bibeadmin bibeclo bpadmin bpsecadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadminep imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the standard test relies on mkfifo which is not implemented for mingw
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -106,13 +106,17 @@ bpadmin:	bpadmin.o $(BPLIBS)
 		$(CC) -o bpadmin bpadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpadmin ./bin
 
+bpsecadmin:	bpsecadmin.o $(BPLIBS)
+		$(CC) -o bpsecadmin bpsecadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpsecadmin ./bin
+
 ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.dll
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread -lm
 		cp ipnadmin ./bin
 
-imcadmin:	imcadmin.o $(BPLIBS) libimcfw.dll
-		$(CC) -o imcadmin imcadmin.o -L./lib -L$(ROOT)/lib -lipnfw $(LBP) -lici -lpthread -lm
-		cp imcadmin ./bin
+imcadminep:	imcadminep.o $(BPLIBS) libimcfw.dll libipnfw.dll
+		$(CC) -o imcadminep imcadminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp imcadminep ./bin
 
 dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.dll
 		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib -ldtn2fw $(LBP) -lici -lpthread -lm
@@ -175,7 +179,7 @@ ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.dll
 #	-	-	IMC executables	-	-	-	-	-
 
 imcfw:		imcfw.o $(BPLIBS) libimcfw.dll libipnfw.dll
-		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib -limcfw -lipnfw $(LBP) -lici -lpthread -lm
+		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp imcfw ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
@@ -268,7 +272,7 @@ brsccla:	brsccla.o $(BPLIBS) libstcpcla.dll
 		$(CC) -o brsccla brsccla.o -L./lib -L$(ROOT)/lib -lstcpcla $(LBP) -lici -lpthread -lws2_32 -lm
 		cp brsccla ./bin
 
-#	-	-	BIBE executables	-	-	-	-	-
+#	-	-	BIBE executables -	-	-	-	-
 
 bibeadmin:	bibeadmin.o $(BPLIBS)
 		$(CC) -o bibeadmin bibeadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
@@ -281,16 +285,8 @@ bibeclo:	bibeclo.o $(BPLIBS)
 #	-	-	IPND executables	-	-	-	-	-
 
 ipnd:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
+		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lws2_32 -lm
 		cp ipnd ./bin
-
-beacon:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o beacon $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
-		cp beacon ./bin
-		
-node:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o node $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
-		cp node ./bin
 
 #	-	-	Test executables	-	-	-	-
 
@@ -378,7 +374,13 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(API)/ext/bpsec/%.c
 		$(CC) -c $<
 
+%.o:		$(API)/ext/cteb/%.c
+		$(CC) -c $<
+
 %.o:		$(API)/ext/hcb/%.c
+		$(CC) -c $<
+
+%.o:		$(API)/ext/imc/%.c
 		$(CC) -c $<
 
 %.o:		$(API)/ext/meb/%.c
@@ -426,9 +428,6 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(UDP)/%.c
 		$(CC) -c $<
 
-#%.o:		$(DCCP)/%.c
-#		$(CC) -c $<
-
 %.o:		$(BRS)/%.c
 		$(CC) -c $<
 
@@ -441,8 +440,5 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(SAGA)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/ext/cteb/%.c
-		$(CC) -c $<
-
 %.o:		$(IPND)/%.c
-		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<
+		$(CC) -I$(IPND) -c $<

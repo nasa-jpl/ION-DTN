@@ -15,11 +15,16 @@
 
 int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 {
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	return qos_serialize(blk, bundle);
+}
+
+int	qos_serialize(ExtensionBlock *blk, Bundle *bundle)
+{
 	unsigned char	dataBuffer[40];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
 	cursor = dataBuffer;
 	uvtemp = 4;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
@@ -35,41 +40,6 @@ int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 	blk->size = 0;
 	blk->object = 0;
 	return serializeExtBlk(blk, (char *) dataBuffer);
-}
-
-void	qos_release(ExtensionBlock *blk)
-{
-	return;
-}
-
-int	qos_record(ExtensionBlock *sdrBlk, AcqExtBlock *ramBlk)
-{
-	return 0;
-}
-
-int	qos_copy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
-{
-	return 0;
-}
-
-int	qos_processOnFwd(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	qos_processOnAccept(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	qos_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
-}
-
-int	qos_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
-{
-	return 0;
 }
 
 int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
@@ -139,9 +109,4 @@ int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 int	qos_check(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	return 1;
-}
-
-void	qos_clear(AcqExtBlock *blk)
-{
-	return;
 }

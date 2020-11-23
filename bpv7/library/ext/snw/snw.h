@@ -13,6 +13,7 @@
 #include "bei.h" 
 
 extern int	snw_offer(ExtensionBlock *, Bundle *);
+extern int	snw_serialize(ExtensionBlock *, Bundle *);
 extern void	snw_release(ExtensionBlock *);
 extern int	snw_record(ExtensionBlock *, AcqExtBlock *);
 extern int	snw_copy(ExtensionBlock *, ExtensionBlock *);

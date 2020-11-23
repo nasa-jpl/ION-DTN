@@ -1,1 +1,1 @@
-Disabled on Windows because the killall command does not exist on windows.
+bsscounter is not counting incoming bundles correctly
