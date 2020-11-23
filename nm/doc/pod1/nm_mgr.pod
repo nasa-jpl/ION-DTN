@@ -6,7 +6,7 @@ nm_mgr - Network Management server implementing the Asynchronous Management Prot
 
 B<nm_mgr> [I<options>] I<manager eid>
 
-The following options may be specified to customize behavior:
+The following options may be specified to customize behavior.  Use "nm_mgr --help" for full usage information:
 
 =over
 
@@ -55,7 +55,7 @@ Log all received messages as ASCII-encoded CBOR HEX strings.
 
 =head1 DESCRIPTION
 
-Starts the B<nm_mgr> application listening on I<mgr eid> for messages from B<nm_agent> clients.
+Starts the B<nm_mgr> application listening on I<mgr eid> for messages from B<nm_agent> clients.  Specify "--help" for full usage information.
 
 An agent will automatically attempt to register with it's configured manager on startup.  Agents may also be added manually through the managers UI.
 

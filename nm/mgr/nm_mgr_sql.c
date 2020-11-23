@@ -282,7 +282,7 @@ uint32_t db_incoming_initialize(time_t timestamp, eid_t sender_eid)
 {
 	uint32_t rtv = 0; // Note: An ID of 0 is reserved as an error condition. MySQL will never create a new entry for this table with a value of 0.
 	char *name = sender_eid.name;
-	CHKZERO(db_mgt_connected(DB_RPT_CON));
+	CHKZERO(!db_mgt_connected(DB_RPT_CON));
 
 	dbprep_declare(DB_RPT_CON, MSGS_INCOMING_CREATE, 2, 1);
 	dbprep_bind_param_int(0,timestamp);
@@ -524,14 +524,14 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 		queries[idx][MSGS_OUTGOING_GET]    = db_mgr_sql_prepare(idx,"SELECT group_id, ts FROM vw_ready_outgoing_message_groups");
 		queries[idx][MSGS_OUTGOING_CREATE] = db_mgr_sql_prepare(idx,"INSERT INTO message_group (state_id, is_outgoing) VALUES(1, TRUE)");
 		queries[idx][MSGS_INCOMING_GET]    = db_mgr_sql_prepare(idx,"SELECT * FROM vw_ready_INCOMING_message_groups");
-		queries[idx][MSGS_INCOMING_CREATE] = db_mgr_sql_prepare(idx,"SELECT create_incoming_message_group(?, FROM_UNIXTIME(?) )"); // Received timestamp, From Agent name (ie: ipn:2.1)
+		queries[idx][MSGS_INCOMING_CREATE] = db_mgr_sql_prepare(idx,"SELECT create_incoming_message_group(FROM_UNIXTIME(?), ? )"); // Received timestamp, From Agent name (ie: ipn:2.1)
 		
 		queries[idx][MSGS_AGENT_GROUP_ADD_NAME] = db_mgr_sql_prepare(idx,"SELECT insert_message_group_agent_name(?, ?)"); // group_id, agent_name
 //		queries[idx][MSGS_AGENT_GROUP_ADD_ID] = db_mgr_sql_prepare(idx,"SELECT insert_message_group_agent_id(?, ?)"); // group_id, agent_id
 		queries[idx][MSGS_AGENT_MSG_ADD] = db_mgr_sql_prepare(idx,"CALL SP__insert_message_entry_agent(?, ?)"); // message_id, agent_name
 		queries[idx][MSGS_ADD_REPORT_SET_ENTRY] = db_mgr_sql_prepare(idx,"SELECT insert_message_report_entry(?, NULL, ?, ?, FROM_UNIXTIME(?))"); // message_id, order_num, ari_id, tnvc_id, ts
 
-		queries[idx][MSGS_REGISTER_AGENT_INSERT] = db_mgr_sql_prepare(idx,"SELECT add_message_register_entry(?,?,?,?,?,NULL)"); // group_id, ack, nak, acl, idx, agent_name
+		queries[idx][MSGS_REGISTER_AGENT_INSERT] = db_mgr_sql_prepare(idx,"SELECT add_message_register_entry(?,?,?,?,NULL,?)"); // group_id, ack, nak, acl, idx, agent_name
 		queries[idx][MSGS_REGISTER_AGENT_GET] = db_mgr_sql_prepare(idx,"SELECT * FROM message_agents WHERE message_id = ?");
 		queries[idx][MSGS_PERF_CTRL_INSERT] = db_mgr_sql_prepare(idx,"SELECT add_message_ctrl_entry(?, ?, ?, ?, ?, ?, ?)"); // group_id, ack, nak, acl, idx, timevalue or NULL, ac_id
 		queries[idx][MSGS_PERF_CTRL_GET] = db_mgr_sql_prepare(idx,"SELECT tv, ac_id FROM message_perform_control WHERE message_id=?");
@@ -4518,10 +4518,10 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 	dbprep_bind_param_int(C_NAK,is_nak);
 	dbprep_bind_param_int(C_ACL,is_acl);
 	
-	mysql_stmt_bind_param(stmt, bind_param);
+	DB_CHKINT(mysql_stmt_bind_param(stmt, bind_param));
 
 	dbprep_bind_res_int(0, rtv);
-	mysql_stmt_bind_result(stmt, bind_res);
+	DB_CHKINT(mysql_stmt_bind_result(stmt, bind_res));
 	DB_CHKINT(mysql_stmt_execute(stmt));
 	
 	// Fetch results (Note: Because we are using a stored procedure, we can't depend on LAST_INSERT_ID)
@@ -4530,10 +4530,11 @@ uint32_t db_insert_msg_rpt_set(uint32_t grp_id, msg_rpt_t *rpt, int *status)
 	dbstatus = mysql_stmt_fetch(stmt);
 	if (dbstatus != 0)
 	{
-		DB_LOGF_ERR(DB_RPT_CON, "Failed to Create MSG_RPT_SET Entry", "status=%s, msg=%s, MSGS_REPORT_SET_INSERT(%i,%i,%i,%i)",
+		DB_LOGF_ERR(DB_RPT_CON, "Failed to Create MSG_RPT_SET Entry", "status=%d, msg=%s, MSGS_REPORT_SET_INSERT(%i,%i,%i,%i)",
 					dbstatus, mysql_stmt_error(stmt),
 					grp_id, is_ack, is_nak, is_acl
 			);
+
 		CHKZERO(status);
 		*status = AMP_FAIL;
 		return 0;
