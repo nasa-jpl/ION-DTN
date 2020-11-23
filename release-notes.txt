@@ -1,6 +1,6 @@
-= Release Notes for ION 4.0.0 and 3.7.1 =
+= Release Notes for ION 4.0.1 =
 
-June 23, 2020
+November 23, 2020
 
 %%%%%%%%%%%
 = GENERAL =
@@ -65,17 +65,86 @@ Features included:
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-= NOTES ON RELEASES 4.0.0 and 3.7.1 =
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.0.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Branches:
+
+cgr-multicast (bpv7 only)
+     Bundle multicast is made simpler and more resilient: multicast bundle
+     propagation is driven by routes computed by the contact graph routing
+     system, so no infratructural spanning tree is needed.  The imcadmin
+     utility is deprecated.
+
+trustedCollective
+     The prototype Delay-Tolerant Key Administration system in "contrib"
+     has been refactored into (a) a general-purpose "trusted collective"
+     mechanism ("tc") that relies on the new bundle multicast mechanism
+     and (b) an initial application of that mechanism, the delay-tolerant
+     key administration system.  Both are now in the main line of supported
+     ION code, no longer in "contrib".
+
+bpsec-completion
+     The BPsec implementation in ION (bpv7 only) has been reorganized and
+     has been upgraded to support features that were not fully supported
+     in ION 4.0.0: target multiplicity, interim security sources, and block
+     canonicalization.  Block Integrity Blocks may now target primary and
+     extension blocks as well as the payload block.  No support yet for
+     Block Confidentiality Blocks that target extension blocks.
+
+ION 4 NM Release Notes:
+
+    NM Manager has been updated with expanded support for the latest AMP
+    MySQL Database Schema. Note that functionality may not be complete for
+    all data types in this release.
+
+    Configure the build with "--with-mysql" to enable. Requires the MySQL C
+    Client API <= 8.0.0 or any version of MariaDB (default for most Linux
+    distributions when installing “mysql” via your package manager).
+
+    To automatically connect to the database on startup, specify connection
+    information at the command line. Ie:
+    nm_mgr ipn:1.3 --sql-user amp --sql-pass amp --sql-db amp_core --sql-host db
+    Run “nm_mgr” without arguments for full usage information.
+
+    The MySQL schema can be found under nm/contrib/amp-sql.  See the included
+    README file for details.
+
+    The CAMP tool has been updated, including added support for generating MySQL
+    definition files.  The generated SQL files are included in the packaged
+    amp-sql schema.
+
+    NEW: The “amp.me” tool has been added to nm/contrib/ampme.  This is an
+    experimental tool providing both command line and browser based interfaces
+    to interact with the database, and to provide transcoding of AMP messages
+    between CBOR, URI, and other reference views. See the included README file
+    for details.
+
+Other changes:
+
+- A new MULTISEND option has been added for underlying UDP transmission in
+     LTP, thanks to Eric Yeh and others at Boeing.  The new UDP option
+     uses sendmmsg to enable transmission of a large number of small LTP
+     segments (minimizing the effect of IP fragmentation) in a single
+     system call (minimizing system call overhead).
+
+- A new TRACKRFXEVENTS compile-time switch enables user-written code to
+     monitor system events processed by the rfxclock daemon.
+
+- Reconnection and shutdown processing has been somewhat stabilized in the
+     TCPCL convergence-layer implementation and in UDP transmission under
+     LTP, BSSP, and BP.
+
+- The Deployment Guide and Design Guide have been updated.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.0.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 The focus of ION version 4.0.0 was implementation of the new version of Bundle
 Protocol - BPv7 - that is currently being standardized within the IETF DTN
 Working Group.
-
-ION version 3.7.1 propagates into ION’s BPv6 implementation some the
-adaptations made for BPv7.  In the course of upgrading the BPv6 code in this
-way, we uncovered and fixed some bugs in the BPv7 code as noted below.
 
 Branches:
 
@@ -143,21 +212,21 @@ NOTE for Solaris users: This version of network management is NOT fully
      functioning on Solaris at this time. There is a segmentation fault that we
      have not yet fully diagnosed.
 
+
 Other ways that bpv7 differs from bpv6:
 
 - CBOR encoding replaced the SDNV encoding scheme.
 
-- qos was renamed to bpq to avoid build problems resulting from naming conflicts
-     with existing qos packages.
+- qos was renamed to bpq to avoid build problems resulting from existing
+     qos implementations.
+
 
 Other changes:
 
 - A new test for prioritized transmission including priority override has been
      added.
 
-- A new BIBE custody transfer test for BPv7 has been added.  [Debugging this test
-     uncovered a heap space leak in BIBE that has been fixed.  General overhaul
-     of BIBE in BPv7.]
+- A new BIBE custody transfer test for BPv7 has been added.
 
 - llcv was updated to help stabilize TCP reconnection.
 
@@ -173,6 +242,8 @@ Other changes:
 
 - cgrfetch was repaired. 
 
+- Assorted bugs were fixed.
+
 - SourceForge Bug #133: documentation of the standard build process was added
      to ION.pdf
 
@@ -181,17 +252,6 @@ Other changes:
 
 - SourceForge Feature Request #72: bpchat was enabled for Windows builds and
      man pages were added for bpstats2 and bpchat.
-
-- Support for operating TCPCL without session acknowledgments was added.
-
-- Fixes for errors in Block Integrity Block processing, identified during
-     development of the PACE mission software, have been integrated into both
-     BPv6 and BPv7 in ION.
-
-- A bug in BPv7 fragmentation processing (failing to set totalAduLength in
-     the bundle header) has been fixed.
-
-- Assorted other bugs were fixed.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 3.7.0 =
