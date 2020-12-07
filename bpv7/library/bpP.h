@@ -873,7 +873,8 @@ typedef struct
 
 	Object		rawBundle;
 	Bundle		bundle;
-	int		headerLength;
+	int		headerLength;	/*	All pre-payload blocks.	*/
+	int		preambleLength;	/*	Adds payload's header.	*/
 	int		bundleLength;
 	int		authentic;	/*	Boolean.		*/
 	Lyst		extBlocks;	/*	(AcqExtBlock *)		*/
@@ -1359,6 +1360,7 @@ extern uvast		computeBufferCrc(BpCrcType crcType,
 				uvast *extractedCrc);
 
 extern int		computeZcoCrc(BpCrcType crcType,
+				int crcSize,
 				ZcoReader *reader,
 				int bytesToProcess,
 				uvast *computedCrc,

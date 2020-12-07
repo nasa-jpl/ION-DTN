@@ -7004,6 +7004,7 @@ static void	clearAcqArea(AcqWorkArea *work)
 	work->congestive = 0;
 	work->mustAbort = 0;
 	work->headerLength = 0;
+	work->preambleLength = 0;
 	work->bundleLength = 0;
 }
 
@@ -7773,42 +7774,36 @@ uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 	return crc32;
 }
 
-int	computeZcoCrc(BpCrcType crcType, ZcoReader *reader, int bytesToProcess,
-		uvast *crc, uvast *extractedCrc)
+int	computeZcoCrc(BpCrcType crcType, int crcSize, ZcoReader *reader,
+		int bytesToProcess, uvast *computedCrc, uvast *extractedCrc)
 {
 	char	buffer[10000];
-	int	reloadLimit;
-	int	crcSize;
-	int	endOfBlock = 0;
 	int	bytesToReceive;
+	int	endOfBlock = 0;
 	int	bytesReceived;
+	uvast	crc = 0;
 
-	if (crcType == X25CRC16)
-	{
-		crcSize = 3;		/*	CBOR 16-bit integer.	*/
-	}
-	else
-	{
-		crcSize = 5;		/*	CBOR 32-bit integer.	*/
-	}
-
-	reloadLimit = sizeof buffer - crcSize;
 	while (bytesToProcess > 0)
 	{
-		if (bytesToProcess > reloadLimit)
+		if (bytesToProcess > sizeof buffer)
 		{
-			/*	Can't load all remaining data bytes
-			 *	plus CRC in this buffer, so don't
-			 *	load all remaining data bytes.		*/
+			/*	Must not load partial CRC into the
+			 *	buffer.					*/
 
-			bytesToReceive = reloadLimit;
+			if (bytesToProcess - sizeof buffer < crcSize)
+			{
+				bytesToReceive = bytesToProcess - crcSize;
+			}
+			else
+			{
+				bytesToReceive = sizeof buffer;
+			}
 		}
 		else
 		{
-			/*	Load all remaining data bytes plus CRC.	*/
+			/*	Load all remaining data bytes of ZCO.	*/
 
 			endOfBlock = 1;
-			bytesToProcess += crcSize;
 			bytesToReceive = bytesToProcess;
 		}
 
@@ -7819,11 +7814,12 @@ int	computeZcoCrc(BpCrcType crcType, ZcoReader *reader, int bytesToProcess,
 			return -1;
 		}
 
-		*crc = computeBufferCrc(crcType, (unsigned char *) buffer,
-				bytesReceived, endOfBlock, *crc, extractedCrc);
+		crc = computeBufferCrc(crcType, (unsigned char *) buffer,
+				bytesReceived, endOfBlock, crc, extractedCrc);
 		bytesToProcess -= bytesReceived;
 	}
 
+	*computedCrc = crc;
 	return 0;
 }
 
@@ -8141,7 +8137,7 @@ requests prohibited for anonymous bundle.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");
-			return 0;
+			work->malformed = 1;
 		}
 
 		unparsedBytes -= crcLength;
@@ -8153,6 +8149,7 @@ requests prohibited for anonymous bundle.");
 
 	bytesParsed = bytesToParse - unparsedBytes;
 	work->headerLength += bytesParsed;
+	work->preambleLength += bytesParsed;
 	return bytesParsed;
 }
 
@@ -8305,7 +8302,7 @@ undefined block.");
 		bundle->payload.length = dataLength;
 		bundle->payload.crcType = crcType;
 		bytesParsed = bytesToParse - unparsedBytes;
-		work->headerLength += bytesParsed;
+		work->preambleLength += bytesParsed;
 		return bytesParsed;
 	}
 
@@ -8417,7 +8414,7 @@ undefined block.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for extension block.");
-			return 0;
+			work->malformed = 1;
 		}
 
 		unparsedBytes -= crcLength;
@@ -8429,48 +8426,48 @@ undefined block.");
 
 	bytesParsed = bytesToParse - unparsedBytes;
 	work->headerLength += bytesParsed;
+	work->preambleLength += bytesParsed;
 	return bytesParsed;
 }
 
-static int	checkPayloadCrc(AcqWorkArea *work)
+static int	checkPayloadCrc(AcqWorkArea *work, uvast *crcComputed,
+			uvast *crcReceived)
 {
+	int		crcSize;
+	int		payloadHeaderLength;
 	ZcoReader	reader;
 	unsigned int	bytesToSkip;
 	unsigned int	bytesSkipped;
-	int		crcSize;
-	uvast		computedCrc;
-	uvast		extractedCrc;
-	
-	zco_start_receiving(work->zco, &reader);
-	bytesToSkip = work->zcoBytesReceived - work->bytesBuffered;
 
-	/*	Skipping this far at this time positions us at the
-	 *	first byte of data for the payload block (which is
-	 *	currently at the very beginning of work->buffer).	*/
-
-	if (bytesToSkip > 0)
+	if (work->bundle.payload.crcType == X25CRC16)
 	{
-		bytesSkipped = zco_receive_source(getIonsdr(), &reader,
-				bytesToSkip, NULL);
-		CHKERR(bytesSkipped == bytesToSkip);
+		crcSize = 2;
 	}
+	else
+	{
+		crcSize = 4;
+	}
+
+	payloadHeaderLength = work->preambleLength - work->headerLength;
+	zco_start_receiving(work->zco, &reader);
+	bytesToSkip = work->headerLength;
+
+	/*	Skipping this far positions us at the first byte
+	 *	of the payload block.					*/
+
+	bytesSkipped = zco_receive_source(getIonsdr(), &reader, bytesToSkip,
+			NULL);
+	CHKERR(bytesSkipped == bytesToSkip);
 
 	/*	Now compute the payload block's CRC and, in the
 	 *	process, extract the CRC value attached to the block.	*/
 
-	crcSize = computeZcoCrc(work->bundle.payload.crcType, &reader,
-			work->bundle.payload.length, &computedCrc,
-			&extractedCrc);
-	if (crcSize < 0)
+	if (computeZcoCrc(work->bundle.payload.crcType, crcSize, &reader,
+			payloadHeaderLength + work->bundle.payload.length
+			+ 1 + crcSize, crcComputed, crcReceived) < 0)
 	{
 		putErrmsg("Failed computing inbound payload CRC.", NULL);
 		return -1;
-	}
-
-	if (computedCrc != extractedCrc)
-	{
-		writeMemo("[?] CRC check failed for payload block.");
-		return 0;
 	}
 
 	return crcSize;
@@ -8486,6 +8483,8 @@ static int	acqFromWork(AcqWorkArea *work)
 	Bundle		*bundle;
 	int		bytesToSkip;
 	int		crcSize;
+	uvast		crcReceived;
+	uvast		crcComputed;
 	int		unreceivedPayload;
 	int		bytesRecd;
 
@@ -8502,6 +8501,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	}
 
 	work->headerLength = bytesParsed;
+	work->preambleLength = bytesParsed;
 	work->bundleLength = bytesParsed;
 	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
 
@@ -8572,7 +8572,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	 *	all we need to do now is seek past all of the payload
 	 *	data to its end.
 	 *
-	 *	All bytes of the bundle's "header" were cleared by
+	 *	All bytes of the bundle's "preamble" were cleared by
 	 *	advanceWorkBuffer above; the first byte of payload
 	 *	data is now in the first byte of the buffer.
 	 *
@@ -8588,9 +8588,11 @@ static int	acqFromWork(AcqWorkArea *work)
 	 *	follow the payload data bytes and its CRC; that is,
 	 *	we reload the buffer from the next bundle in the ZCO.	*/
 
+	bytesToSkip = bundle->payload.length;
 	if (bundle->payload.crcType == NoCRC)
 	{
-		bytesToSkip = bundle->payload.length;
+		crcComputed = 0;
+		crcReceived = 0;
 	}
 	else
 	{
@@ -8599,27 +8601,20 @@ static int	acqFromWork(AcqWorkArea *work)
 		 *	ZCO; the buffer in the AcqWorkArea is
 		 *	unaffected.					*/
 
-		crcSize = checkPayloadCrc(work);
-		switch (crcSize)
+		crcSize = checkPayloadCrc(work, &crcComputed, &crcReceived);
+		if (crcSize < 0)
 		{
-		case -1:			/*	System failure.	*/
-			return -1;
-
-		case 0:				/*	CRC failed.	*/
-			work->malformed = 1;
-			return 0;
-
-		default:			/*	CRC is okay.	*/
-			break;
+			return -1;	/*	System failure.		*/
 		}
 
-		bytesToSkip = bundle->payload.length + crcSize;
+		bytesToSkip += (1 + crcSize);
 	}
 
 	if (bytesToSkip <= work->bytesBuffered)
 	{
-		/*	All bytes of payload data are currently in the
-		 *	work area's buffer.				*/
+		/*	All remaining bytes of payload block
+		 *	(including CRC, if any) are currently
+		 *	in the work area's buffer.			*/
 
 		work->bundleLength += bytesToSkip;
 		CHKERR(advanceWorkBuffer(work, bytesToSkip) == 0);
@@ -8627,8 +8622,9 @@ static int	acqFromWork(AcqWorkArea *work)
 	else
 	{
 		/*	All bytes in the work area's buffer are
-		 *	payload, and some number of additional bytes
-		 *	not yet received are also part of the payload.	*/
+		 *	payload block bytes, and some number of
+		 *	additional bytes not yet received into
+		 *	the buffer are also payload block bytes.	*/
 
 		unreceivedPayload = bytesToSkip - work->bytesBuffered;
 		bytesRecd = zco_receive_source(sdr, &(work->reader),
@@ -8637,8 +8633,6 @@ static int	acqFromWork(AcqWorkArea *work)
 		if (bytesRecd != unreceivedPayload)
 		{
 			work->bundleLength += (work->bytesBuffered + bytesRecd);
-writeMemoNote("    Wanted", itoa(bytesToSkip));
-writeMemoNote("       Got", itoa(work->bytesBuffered + bytesRecd));
 			writeMemoNote("[?] Payload truncated",
 					itoa(unreceivedPayload - bytesRecd));
 			work->malformed = 1;
@@ -8663,6 +8657,12 @@ writeMemoNote("       Got", itoa(work->bytesBuffered + bytesRecd));
 
 	work->bundleLength += bytesParsed;
 	CHKERR(advanceWorkBuffer(work, bytesParsed) == 0);
+	if (crcComputed != crcReceived)
+	{
+		writeMemo("[?] CRC check failed for payload block.");
+		work->malformed = 1;
+	}
+
 	return 0;
 }
 
@@ -8824,10 +8824,11 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	}
 
 	/*	Reduce payload ZCO to just its source data, discarding
-	 *	BP header and trailer.  This simplifies decryption.	*/
+	 *	bundle header, payload block header, and payload CRC
+	 *	(if any).  This simplifies decryption.			*/
 
 	bundle->payload.content = zco_clone(sdr, work->rawBundle,
-			work->headerLength, bundle->payload.length);
+			work->preambleLength, bundle->payload.length);
 
 	/*	Do all decryption indicated by extension blocks.	*/
 
@@ -9927,11 +9928,13 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		payloadBlockHeaderLength;
-	uvast		crc;
-	uint16_t	crc16;
-	uint32_t	crc32;
 	unsigned char	crcBuffer[8];
 	unsigned char	*cursor2;
+	int		crcSize;
+	uint16_t	crc16;
+	uint32_t	crc32;
+	Object		crcObj;
+	uvast		crc;
 	ZcoReader	reader;
 
 	cursor = payloadBuffer;
@@ -9973,6 +9976,10 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 		return -1;
 	}
 
+	/*	But make it part of the ZCO source for CRC computation.	*/
+
+	zco_bond(sdr, payload->content);
+
 	/*	Compute and serialize payload block CRC if applicable.	*/
 
 	if (payload->crcType != NoCRC)
@@ -9981,34 +9988,59 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 		 *	including the CRC itself (temporarily 0).	*/
 
 		cursor2 = crcBuffer;
-		zco_start_transmitting(payload->content, &reader);
-		if (computeZcoCrc(payload->crcType, &reader, payload->length
-				+ payloadBlockHeaderLength, &crc, NULL) < 0)
+		if (payload->crcType == X25CRC16)
+		{
+			crcSize = 2;
+			crc16 = 0;
+			oK(cbor_encode_byte_string((unsigned char *) &crc16,
+					crcSize, &cursor2));
+		}
+		else
+		{
+			crcSize = 4;
+			crc32 = 0;
+			oK(cbor_encode_byte_string((unsigned char *) &crc32,
+					crcSize, &cursor2));
+		}
+
+		crcSize++;	/*	Add 1 for byte string header.	*/
+
+		/*	Append CRC to payload ZCO with temporary
+		 *	value zero.					*/
+
+		crcObj = sdr_insert(sdr, (char *) crcBuffer, crcSize);
+		if (crcObj == 0
+		|| zco_append_extent(sdr, payload->content, ZcoSdrSource,
+				crcObj, 0, crcSize) != crcSize)
+		{
+			putErrmsg("Can't append CRC to payload block.", NULL);
+			return -1;
+		}
+
+		zco_start_receiving(payload->content, &reader);
+		if (computeZcoCrc(payload->crcType, crcSize, &reader,
+			zco_length(sdr, payload->content), &crc, NULL) < 0)
 		{
 			putErrmsg("Can't compute payload block CRC.", NULL);
 			return -1;
 		}
 
-		/*	Append the computed CRC to the payload ZCO.	*/
+		/*	Patch the computed CRC value into the ZCO.	*/
 
 		if (payload->crcType == X25CRC16)
 		{
 			crc16 = crc;
 			crc16 = htons(crc16);
-			oK(cbor_encode_byte_string((unsigned char *) &crc16,
-					2, &cursor2));
-			oK(zco_append_trailer(sdr, payload->content,
-					(char *) crcBuffer, 3));
+			memcpy(crcBuffer + 1, (char *) &crc16, 2);
 		}
 		else
 		{
 			crc32 = crc;
 			crc32 = htonl(crc32);
-			oK(cbor_encode_byte_string((unsigned char *) &crc32,
-					4, &cursor2));
-			oK(zco_append_trailer(sdr, payload->content,
-					(char *) crcBuffer, 5));
+			memcpy(crcBuffer + 1, (char *) &crc32, 4);
 		}
+
+		sdr_write(sdr, crcObj, (char *) crcBuffer, crcSize);
 	}
 
 	return 0;
