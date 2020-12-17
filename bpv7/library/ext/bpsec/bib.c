@@ -874,6 +874,10 @@ int	bpsec_sign(Bundle *bundle)
 	ExtensionBlock		block;
 
 	rules = sec_get_bpsecBibRuleList();
+	if (rules == 0)
+	{
+		return 0;
+	}
 
 	/*	Apply all applicable BIB rules.				*/
 
@@ -1193,6 +1197,11 @@ int	bpsec_verify(AcqWorkArea *work)
 	uvast			length = 0;
 
 	rules = sec_get_bpsecBibRuleList();
+	if (rules == 0)
+	{
+		bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
+		return 0;
+	}
 
 	/*	Apply all applicable BIB rules.				*/
 
@@ -1365,14 +1374,6 @@ int	bpsec_verify(AcqWorkArea *work)
 		}
 	}
 
-	if (work->authentic == 0)
-	{
-		bundle->clDossier.authentic = 0;
-	}
-	else
-	{
-		bundle->clDossier.authentic = 1;
-	}
-
+	bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
 	return 0;
 }

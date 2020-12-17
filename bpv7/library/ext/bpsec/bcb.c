@@ -1752,6 +1752,10 @@ int	bpsec_encrypt(Bundle *bundle)
 	 *	as an API parameter.					*/
 
 	rules = sec_get_bpsecBcbRuleList();
+	if (rules == 0)
+	{
+		return 0;
+	}
 
 	/*	Apply all applicable BCB rules.				*/
 
@@ -2051,6 +2055,10 @@ int	bpsec_decrypt(AcqWorkArea *work)
 	AcqExtBlock		*bib;
 
 	rules = sec_get_bpsecBcbRuleList();
+	if (rules == 0)
+	{
+		return 0;
+	}
 
 	/*	Apply all applicable BCB rules.				*/
 
