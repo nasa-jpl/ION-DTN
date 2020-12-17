@@ -113,6 +113,18 @@ extern "C" {
 
 #define	MAX_TIME			((unsigned int) ((1U << 31) - 1))
 
+/*	The BLK_PROC_FLAG_MASK is the value of the Block Processing
+ *	Flags field obtained by setting every currently defined flag
+ *	to 1 (as of Rev. 30 of the Bundle Protocol specification).
+ *	It is used to set to zero every reserved or unassigned flag
+ *	bit in the Block Processing Flags value of a non-Primary
+ *	bundle block, to canonicalize the block for BPsec security
+ *	service purposes.  When additional Block Processing Flags
+ *	are defined, this MASK value will have to be revised to
+ *	include them.							*/
+
+#define	BLK_PROC_FLAGS_MASK		(475239)
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.

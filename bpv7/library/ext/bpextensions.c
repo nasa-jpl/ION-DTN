@@ -192,10 +192,10 @@ static ExtensionDef	extensionDefs[] =
 
 static ExtensionSpec		extensionSpecs[] =
 				{
-					{ PreviousNodeBlk, 0, 0 },
-					{ QualityOfServiceBlk, 0, 0 },
-					{ BundleAgeBlk, 0, 0 },
-					{ SnwPermitsBlk, 0, 0 },
-					{ ImcDestinationsBlk, 0, 0 },
-					{ UnknownBlk, 0, 0 }
+					{ PreviousNodeBlk, 0, NoCRC },
+					{ QualityOfServiceBlk, 0, NoCRC },
+					{ BundleAgeBlk, 0, NoCRC },
+					{ SnwPermitsBlk, 0, NoCRC },
+					{ ImcDestinationsBlk, 0, NoCRC },
+					{ UnknownBlk, 0, NoCRC }
 				};

@@ -8137,7 +8137,7 @@ requests prohibited for anonymous bundle.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");
-			work->malformed = 1;
+			bundle->altered = 1;
 		}
 
 		unparsedBytes -= crcLength;
@@ -8220,12 +8220,12 @@ static int	acquireBlock(AcqWorkArea *work)
 	blkNumber = uvtemp;
 	itemsRemaining -= 1;
 
-	/*	Acquire block processing flags, and change the value
-	 *	of that field to zero during acquisition to support
-	 *	future cryptographic verification of block integrity.	*/
+	/*	Acquire block processing flags, and revise the
+	 *	value of that field during acquisition to support
+	 *	cryptographic verification of block integrity.		*/
 
 	if (cbor_decode_integer_destructive(&uvtemp, CborAny, &cursor,
-			&unparsedBytes) < 1)
+			&unparsedBytes, BLK_PROC_FLAGS_MASK) < 1)
 	{
 		writeMemo("[?] Missing block flags in canonical block.");
 		return 0;
@@ -8386,7 +8386,7 @@ undefined block.");
 	{
 		if (itemsRemaining != 1)
 		{
-			writeMemo("[?] Extension blocks has too few items.");
+			writeMemo("[?] Extension block has too few items.");
 			return 0;
 		}
 
@@ -8414,7 +8414,7 @@ undefined block.");
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for extension block.");
-			work->malformed = 1;
+			bundle->altered = 1;
 		}
 
 		unparsedBytes -= crcLength;
@@ -8660,7 +8660,7 @@ static int	acqFromWork(AcqWorkArea *work)
 	if (crcComputed != crcReceived)
 	{
 		writeMemo("[?] CRC check failed for payload block.");
-		work->malformed = 1;
+		bundle->altered = 1;
 	}
 
 	return 0;
@@ -8798,29 +8798,36 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return -1;
 	}
 
-	if (work->bundleLength > 0)
+	if (work->malformed)
 	{
-		/*	Bundle has been parsed out of the work area's
-		 *	ZCO.  Split it off into a separate ZCO.		*/
-
-		work->rawBundle = zco_clone(sdr, work->zco,
-				work->zcoBytesConsumed, work->bundleLength);
-		if (work->rawBundle <= 0)
-		{
-			putErrmsg("Can't clone bundle out of work area", NULL);
-			return -1;
-		}
-
-		work->zcoBytesConsumed += work->bundleLength;
-	}
-	else
-	{
-		work->rawBundle = 0;
+		work->bundleLength = 0;
 	}
 
-	if (work->rawBundle == 0)
+	if (work->bundleLength <= 0)
 	{
 		return 0;	/*	No bundle at front of work ZCO.	*/
+	}
+
+	/*	Bundle has been parsed out of the work area's ZCO.
+	 *	Split it off into a separate ZCO.			*/
+
+	work->rawBundle = zco_clone(sdr, work->zco,
+			work->zcoBytesConsumed, work->bundleLength);
+	if (work->rawBundle <= 0)
+	{
+		putErrmsg("Can't clone bundle out of work area", NULL);
+		return -1;
+	}
+
+	work->zcoBytesConsumed += work->bundleLength;
+	if (bundle->altered)	/*	Failed a CRC check.		*/
+	{
+		/*	Don't bother to complete bundle acquisition.	*/
+
+		zco_destroy(sdr, work->rawBundle);
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
+		return 0;
 	}
 
 	/*	Reduce payload ZCO to just its source data, discarding
@@ -8829,6 +8836,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	bundle->payload.content = zco_clone(sdr, work->rawBundle,
 			work->preambleLength, bundle->payload.length);
+	zco_destroy(sdr, work->rawBundle);
 
 	/*	Do all decryption indicated by extension blocks.	*/
 
@@ -9230,15 +9238,18 @@ int	bpEndAcq(AcqWorkArea *work)
 		vpoint = NULL;
 		CHKERR(sdr_begin_xn(sdr));
 		result = acquireBundle(sdr, work, &vpoint);
-		if (work->rawBundle)
-		{
-			zco_destroy(sdr, work->rawBundle);
-		}
-
 		if (sdr_end_xn(sdr) < 0 || result < 0)
 		{
 			putErrmsg("Bundle acquisition failed.", NULL);
 			return -1;
+		}
+
+		if (work->bundleLength == 0)
+		{
+			/*	No bundle at front of the acquisition
+			 *	ZCO, so can't do any more acquisition.	*/
+
+			break;		/*	Terminate loop.		*/
 		}
 
 		/*	Has acquisition of this bundle enabled
@@ -9257,18 +9268,7 @@ int	bpEndAcq(AcqWorkArea *work)
 
 		/*	Finally, prepare to acquire next bundle.	*/
 
-		if (work->bundleLength == 0)
-		{
-			/*	No bundle at front of the acquisition
-			 *	ZCO, so can't do any more acquisition.	*/
-
-			acqLength = 0;	/*	Terminate loop.		*/
-		}
-		else
-		{
-			acqLength -= work->bundleLength;
-		}
-
+		acqLength -= work->bundleLength;
 		clearAcqArea(work);
 	}
 
