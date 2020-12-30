@@ -54,6 +54,14 @@
 #define	BUNDLES_HASH_SEARCH_LEN	20
 #endif
 
+#ifndef	PRIMARY_BLOCK_CRC_TYPE
+#define	PRIMARY_BLOCK_CRC_TYPE	1
+#endif
+
+#ifndef	PAYLOAD_BLOCK_CRC_TYPE
+#define	PAYLOAD_BLOCK_CRC_TYPE	0
+#endif
+
 /*	We hitchhike on the ZCO heap space management system to 
  *	manage the space occupied by Bundle objects.  In effect,
  *	the Bundle overhead objects compete with ZCOs for available
@@ -6313,6 +6321,7 @@ when asking for status reports.");
 	bundle.payloadBlockProcFlags = BLK_MUST_BE_COPIED;
 	bundle.payload.length = aduLength;
 	bundle.payload.content = adu;
+	bundle.payload.crcType = PAYLOAD_BLOCK_CRC_TYPE;
 
 	/*	Convert all payload header and trailer capsules
 	 *	into source data extents.  From the BP perspective,
@@ -7788,7 +7797,10 @@ int	computeZcoCrc(BpCrcType crcType, int crcSize, ZcoReader *reader,
 		if (bytesToProcess > sizeof buffer)
 		{
 			/*	Must not load partial CRC into the
-			 *	buffer.					*/
+			 *	buffer, as the final cycle of
+			 *	computeBufferCRC needs to mask (and
+			 *	potentially extract) the complete
+			 *	CRC value in a single operation.	*/
 
 			if (bytesToProcess - sizeof buffer < crcSize)
 			{
@@ -9858,7 +9870,7 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	/*	Primary block CRC type.					*/
 
-	uvtemp = X25CRC16;
+	uvtemp = PRIMARY_BLOCK_CRC_TYPE;
 	oK(cbor_encode_integer(uvtemp, cursor));
 
 	/*	Destination.						*/
@@ -9913,12 +9925,16 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	/*	Compute and insert primary block CRC.			*/
 
-	crc16 = 0;
-	oK(cbor_encode_byte_string((unsigned char *) &crc16, 2, cursor));
-	crc16 = ion_CRC16_1021_X25((char *) startOfPrimaryBlock,
-				*cursor - startOfPrimaryBlock, 0);
-	crc16 = htons(crc16);
-	memcpy((*cursor) - 2, (char *) &crc16, 2);
+	if (PRIMARY_BLOCK_CRC_TYPE == X25CRC16)
+	{
+		crc16 = 0;
+		oK(cbor_encode_byte_string((unsigned char *) &crc16, 2,
+				cursor));
+		crc16 = ion_CRC16_1021_X25((char *) startOfPrimaryBlock,
+					*cursor - startOfPrimaryBlock, 0);
+		crc16 = htons(crc16);
+		memcpy((*cursor) - 2, (char *) &crc16, 2);
+	}
 }
 
 int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
@@ -9928,12 +9944,13 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		payloadBlockHeaderLength;
+	Object		workZco;
 	unsigned char	crcBuffer[8];
 	unsigned char	*cursor2;
 	int		crcSize;
 	uint16_t	crc16;
 	uint32_t	crc32;
-	Object		crcObj;
+	int		itemSize;
 	uvast		crc;
 	ZcoReader	reader;
 
@@ -9976,16 +9993,37 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 		return -1;
 	}
 
-	/*	But make it part of the ZCO source for CRC computation.	*/
-
-	zco_bond(sdr, payload->content);
-
-	/*	Compute and serialize payload block CRC if applicable.	*/
+	/*	Compute and serialize payload block CRC and append it
+	 *	to the payload ZCO, if applicable.			*/
 
 	if (payload->crcType != NoCRC)
 	{
-		/*	Compute CRC over the entire payload block,
-		 *	including the CRC itself (temporarily 0).	*/
+		/*	Must compute CRC over the entire payload
+		 *	block, including the CRC itself (temporarily
+		 *	0).  For this purpose we make a temporary
+		 *	copy of the payload ZCO.			*/
+
+		workZco = zco_clone(sdr, payload->content, 0,
+				zco_source_data_length(sdr, payload->content));
+		if (workZco == 0)
+		{
+			putErrmsg("Can't clone payload source data.", NULL);
+			return -1;
+		}
+
+		/*	Cloning a ZCO strips off its headers and
+		 *	trailers, so we must re-prepend the block
+		 *	header to the copy.				*/
+
+		if (zco_prepend_header(sdr, workZco, (char *) payloadBuffer,
+				payloadBlockHeaderLength) < 0)
+		{
+			putErrmsg("Can't prepend header to payload clone.",
+					NULL);
+			return -1;
+		}
+
+		/*	Append the CRC with temporary value zero.	*/
 
 		cursor2 = crcBuffer;
 		if (payload->crcType == X25CRC16)
@@ -10003,44 +10041,56 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 					crcSize, &cursor2));
 		}
 
-		crcSize++;	/*	Add 1 for byte string header.	*/
-
-		/*	Append CRC to payload ZCO with temporary
-		 *	value zero.					*/
-
-		crcObj = sdr_insert(sdr, (char *) crcBuffer, crcSize);
-		if (crcObj == 0
-		|| zco_append_extent(sdr, payload->content, ZcoSdrSource,
-				crcObj, 0, crcSize) != crcSize)
+		itemSize = cursor2 - crcBuffer;
+		if (zco_append_trailer(sdr, workZco, (char *) crcBuffer,
+				itemSize) < 0)
 		{
-			putErrmsg("Can't append CRC to payload block.", NULL);
+			putErrmsg("Can't append CRC to payload clone.", NULL);
 			return -1;
 		}
 
-		zco_start_receiving(payload->content, &reader);
+		/*	Must merge block header and CRC into the
+		 *	payload block source for CRC computation.	*/
+
+		zco_bond(sdr, workZco);
+
+		/*	Can now compute the CRC value.			*/
+
+		zco_start_receiving(workZco, &reader);
 		if (computeZcoCrc(payload->crcType, crcSize, &reader,
-			zco_length(sdr, payload->content), &crc, NULL) < 0)
+				zco_length(sdr, workZco), &crc, NULL) < 0)
 		{
 			putErrmsg("Can't compute payload block CRC.", NULL);
 			return -1;
 		}
 
-		/*	Patch the computed CRC value into the ZCO.	*/
+		zco_destroy(sdr, workZco);
 
+		/*	Append the computed CRC to the payload ZCO.	*/
+
+		cursor2 = crcBuffer;
 		if (payload->crcType == X25CRC16)
 		{
 			crc16 = crc;
 			crc16 = htons(crc16);
-			memcpy(crcBuffer + 1, (char *) &crc16, 2);
+			oK(cbor_encode_byte_string((unsigned char *) &crc16,
+					crcSize, &cursor2));
 		}
 		else
 		{
 			crc32 = crc;
 			crc32 = htonl(crc32);
-			memcpy(crcBuffer + 1, (char *) &crc32, 4);
+			oK(cbor_encode_byte_string((unsigned char *) &crc32,
+					crcSize, &cursor2));
 		}
 
-		sdr_write(sdr, crcObj, (char *) crcBuffer, crcSize);
+		itemSize = cursor2 - crcBuffer;
+		if (zco_append_trailer(sdr, payload->content,
+				(char *) crcBuffer, itemSize) < 0)
+		{
+			putErrmsg("Can't append CRC to payload block.", NULL);
+			return -1;
+		}
 	}
 
 	return 0;
