@@ -126,11 +126,11 @@ Attributes:
 
 =item nbr
 
-Identifies the local continuum.
+Identifies the remote continuum.
 
 =item name
 
-Identifies the local continuum.
+Identifies the remote continuum.
 
 =item neighbor
 
@@ -160,7 +160,7 @@ Attributes:
 =item epspec
 
 Identifies the endpoint at which the configuration server may be
-reachable.  The endpoint specification must conform the endpoint
+reachable.  The endpoint specification must conform to the endpoint
 specification syntax defined for the continuum's primary transport
 service; see the AMS Blue Book for details.
 
@@ -197,8 +197,8 @@ specification is being supplied.
 
 Identifies an endpoint at which the application module will be reachable,
 in the context of the named transport service.  The endpoint specification
-must conform the endpoint specification syntax defined for the named transport
-service; see the AMS Blue Book for details.
+must conform to the endpoint specification syntax defined for the named
+transport service; see the AMS Blue Book for details.
 
 =back
 
@@ -441,11 +441,11 @@ Attributes:
 
 =item nbr
 
-Identifies the venture.
+Identifies the unit.
 
 =item name
 
-Identifies the venture.
+Identifies the unit.
 
 =item resync_period
 

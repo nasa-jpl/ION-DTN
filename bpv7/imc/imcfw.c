@@ -897,6 +897,12 @@ int	main(int argc, char *argv[])
 
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
+		bundle.priority = bundle.classOfService;
+		bundle.ordinal = bundle.ancillaryData.ordinal;
+		bundle.qosFlags = bundle.ancillaryData.flags;
+
+		/*	No override mechanism at this time.		*/
+
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		bundle.fwdQueueElt = 0;
 

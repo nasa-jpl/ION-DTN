@@ -242,7 +242,6 @@ int main(int argc, char **argv)
 	ReqAttendant	attendant;
 	BpDelivery      dlv;
 
-
 	if(argc < 2 || (argv[1][0] == '-')) {
 		fprintf(stderr, usage);
 		exit(1);
@@ -256,7 +255,6 @@ int main(int argc, char **argv)
 		custodySwitch = SourceCustodyRequired;
 		defaultDestEid = NULL;
 	}
-
 
 	if(bp_attach() < 0) {
 		putErrmsg("Can't bp_attach()", NULL);

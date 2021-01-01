@@ -18,6 +18,40 @@ structures.
 
 The formats and effects of the BIBE configuration commands are described below.
 
+NOTE: in order to cause bundles to be transmitted via BIBE:
+
+=over 4
+
+=item B<Plan>
+
+Remember that BIBE is a convergence-layer protocol; as such, it operates
+between two nodes that are topologically adjacent in a BP network (but in
+this case the BP network within which the nodes are topologically adjacent
+is an overlay on top of the real BP network).  Since the sending and
+receiving nodes are topologically adjacent they are neighbors: the sending
+node MUST have an egress plan for transmission to the receiving node, and
+there must be a BIBE outduct attached to that plan.
+
+=item B<Routing>
+
+In order to compel bundles bound for the receiving node to be forwarded via
+the BIBE outduct rather than over some other route computed by CGR, you have
+to override CGR routing for that bundle.  The way to do this is to (a) tag
+the bundle with flow label X (in ancillary data) and (b) use ipnadmin to
+establish a routing override that coerces all bundles with flow label X to
+be sent directly to the "neighboring" node for which you have declared an
+egress plan with a BIBE outduct.
+
+=item B<Quality of Service>
+
+If you want custody transfer to be invoked for each BIBE transmission of a
+bundle from the sending node to the receiving node, you must additionally
+use ipnadmin to establish a class-of-service override that locally and
+temporarily OR's the BP_CT_REQUESTED (64) flag to the quality-of-service
+flags of any bundle tagged with flow label X.
+
+=back
+
 =head1 GENERAL COMMANDS
 
 =over 4

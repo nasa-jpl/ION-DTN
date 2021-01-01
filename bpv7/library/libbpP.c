@@ -4338,8 +4338,7 @@ void	fetchProtocol(char *protocolName, ClProtocol *clp, Object *clpElt)
 	*clpElt = elt;
 }
 
-int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
-		int protocolClass)
+int	addProtocol(char *protocolName, int protocolClass)
 {
 	Sdr		sdr = getIonsdr();
 	ClProtocol	clpbuf;
@@ -4351,13 +4350,6 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 	|| strlen(protocolName) > MAX_CL_PROTOCOL_NAME_LEN)
 	{
 		writeMemoNote("[?] Invalid protocol name", protocolName);
-		return 0;
-	}
-
-	if (payloadPerFrame < 1 || ohdPerFrame < 1)
-	{
-		writeMemoNote("[?] Per-frame payload and overhead must be > 0",
-				protocolName);
 		return 0;
 	}
 
@@ -4374,8 +4366,6 @@ int	addProtocol(char *protocolName, int payloadPerFrame, int ohdPerFrame,
 
 	memset((char *) &clpbuf, 0, sizeof(ClProtocol));
 	istrcpy(clpbuf.name, protocolName, sizeof clpbuf.name);
-	clpbuf.payloadBytesPerFrame = payloadPerFrame;
-	clpbuf.overheadPerFrame = ohdPerFrame;
 	if (protocolClass == 26 || strcmp(protocolName, "bssp") == 0)
 	{
 		clpbuf.protocolClass = BP_PROTOCOL_ANY;
@@ -6439,7 +6429,11 @@ when asking for status reports.");
 
 	if (custodySwitch != NoCustodyRequested)
 	{
-		bundle.ancillaryData.flags |= BP_RELIABLE;
+		/*	Custody transfer is only provided by
+		 *	bundle-in-bundle encapsulation.			*/
+
+		bundle.ancillaryData.flags |=
+				(BP_BIBE_REQUESTED | BP_CT_REQUESTED);
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -11066,10 +11060,12 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	/*	Note that when stewardship is not accepted, the bundle
 	 *	is subject to destruction immediately.
 	 *
-	 *	Return the outbound bundle's extended class of service.	*/
+	 *	Return the outbound bundle's extended class of service,
+	 *	as potentially overridden by the forwarder daemon.	*/
 
 	memcpy((char *) ancillaryData, (char *) &bundle.ancillaryData,
 			sizeof(BpAncillaryData));
+	ancillaryData->flags = bundle.qosFlags;
 
 	/*	Finally, authorize transmission of applicable status
 	 *	report message and destruction of the bundle object

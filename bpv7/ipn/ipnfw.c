@@ -1347,6 +1347,7 @@ int	main(int argc, char *argv[])
 
 		bundle.priority = bundle.classOfService;
 		bundle.ordinal = bundle.ancillaryData.ordinal;
+		bundle.qosFlags = bundle.ancillaryData.flags;
 		if (ipn_lookupOvrd(bundle.ancillaryData.dataLabel,
 				bundle.id.source.ssp.ipn.nodeNbr,
 				bundle.destination.ssp.ipn.nodeNbr, &ovrdAddr))
@@ -1359,6 +1360,7 @@ int	main(int argc, char *argv[])
 
 				bundle.priority = ovrd.priority;
 				bundle.ordinal = ovrd.ordinal;
+				bundle.qosFlags |= ovrd.qosFlags;
 			}
 		}
 

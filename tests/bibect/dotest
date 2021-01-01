@@ -79,6 +79,17 @@ bpadmin amroc.bprc
 cd ../4.ipn.ltp
 bpadmin amroc.bprc
 
+cd ../1.ipn.ltp
+ionadmin ../global.ionrc
+cd ../2.ipn.ltp
+ionadmin ../global.ionrc
+cd ../3.ipn.ltp
+ionadmin ../global.ionrc
+cd ../4.ipn.ltp
+ionadmin ../global.ionrc
+
+sleep 2
+
 # Start link simulator
 
 cd ../2.ipn.ltp
@@ -105,45 +116,45 @@ cd ../1.ipn.ltp
 echo -e "\n\n***Sending twenty bundles from node 1 to node 4.***"
 sleep ${TIMETODISPLAYTEXT}
 
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4a"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4a"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4b"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4b"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4c"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4c"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4d"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4d"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4e"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4e"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4f"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4f"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4g"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4g"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4h"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4h"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4i"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4i"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4j"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4j"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4k"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4k"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4l"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4l"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4m"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4m"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4n"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4n"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4o"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4o"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4p"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4p"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4q"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4q"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4r"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4r"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4s"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4s"
 sleep 1
-bptrace ipn:1.1 ipn:4.1 dtn:none 3600 1.1 "test_trace4t"
+bptrace ipn:1.1 ipn:4.1 dtn:none 3600 0.1.0.0.0.13 "test_trace4t"
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -156,15 +167,19 @@ echo ""
 echo "Stopping ION..."
 cd ../1.ipn.ltp
 bpstats
+bplist
 ./ionstop &
 cd ../2.ipn.ltp
 bpstats
+bplist
 ./ionstop &
 cd ../3.ipn.ltp
 bpstats
+bplist
 ./ionstop &
 cd ../4.ipn.ltp
 bpstats
+bplist
 ./ionstop &
 
 cd ..

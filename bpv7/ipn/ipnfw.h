@@ -70,6 +70,7 @@ typedef struct
 	/*	priority = -1 indicates "no priority override"		*/
 	unsigned char	priority;		/*	CoS.		*/
 	unsigned char	ordinal;		/*	For priority 2.	*/
+	unsigned char	qosFlags;
 } IpnOverride;
 
 typedef struct
@@ -91,7 +92,8 @@ extern int		ipn_setOvrd(unsigned int dataLabel,
 			/*	priority = -2 indicates
 			 		"no change from current value"	*/
 				unsigned char priority,
-				unsigned char ordinal);
+				unsigned char ordinal,
+				unsigned char qosFlags);
 
 extern int		ipn_lookupOvrd(unsigned int dataLabel,
 				uvast destNodeNbr,

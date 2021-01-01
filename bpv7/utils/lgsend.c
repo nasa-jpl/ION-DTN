@@ -160,7 +160,7 @@ int	main(int argc, char **argv)
 	else
 	{
 		if (bp_send(sap, destEid, NULL, 86400, BP_EXPEDITED_PRIORITY,
-				SourceCustodyRequired, 0, 0, NULL, bundleZco,
+				NoCustodyRequested, 0, 0, NULL, bundleZco,
 				&newBundle) < 1)
 		{
 			putErrmsg("lgsend: can't send bundle.", NULL);

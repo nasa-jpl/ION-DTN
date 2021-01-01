@@ -249,9 +249,10 @@ int	ipn_removePlan(uvast nodeNbr)
 static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
 			uvast sourceNodeNbr, Object *nextOvrd)
 {
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-		OBJ_POINTER(IpnOverride, ovrd);
+	Sdr		sdr = getIonsdr();
+	Object		elt;
+	Object		ovrdAddr;
+	IpnOverride	ovrd;
 
 	/*	This function locates the IpnOverride for the
 	 *	specified data label, destination node number, and
@@ -263,35 +264,36 @@ static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	for (elt = sdr_list_first(sdr, (_ipnConstants())->overrides); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
-		GET_OBJ_POINTER(sdr, IpnOverride, ovrd,
-				sdr_list_data(sdr, elt));
-		if (ovrd->dataLabel < dataLabel)
+		ovrdAddr = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &ovrd, ovrdAddr, sizeof(IpnOverride));
+		if (ovrd.dataLabel < dataLabel)
 		{
 			continue;
 		}
 
-		if (ovrd->dataLabel > dataLabel)
-		{
-			if (nextOvrd) *nextOvrd = elt;
-			break;		/*	Same as end of list.	*/
-		}
-		if (ovrd->destNodeNbr < destNodeNbr)
-		{
-			continue;
-		}
-
-		if (ovrd->destNodeNbr > destNodeNbr)
+		if (ovrd.dataLabel > dataLabel)
 		{
 			if (nextOvrd) *nextOvrd = elt;
 			break;		/*	Same as end of list.	*/
 		}
 
-		if (ovrd->sourceNodeNbr < sourceNodeNbr)
+		if (ovrd.destNodeNbr < destNodeNbr)
 		{
 			continue;
 		}
 
-		if (ovrd->sourceNodeNbr > sourceNodeNbr)
+		if (ovrd.destNodeNbr > destNodeNbr)
+		{
+			if (nextOvrd) *nextOvrd = elt;
+			break;		/*	Same as end of list.	*/
+		}
+
+		if (ovrd.sourceNodeNbr < sourceNodeNbr)
+		{
+			continue;
+		}
+
+		if (ovrd.sourceNodeNbr > sourceNodeNbr)
 		{
 			if (nextOvrd) *nextOvrd = elt;
 			break;		/*	Same as end of list.	*/
@@ -307,10 +309,11 @@ static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
 
 int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 		uvast sourceNodeNbr, uvast neighbor, unsigned char priority,
-		unsigned char ordinal)
+		unsigned char ordinal, unsigned char qosFlags)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
+	Object		nextElt;
 	IpnOverride	ovrd;
 	Object		addr;
 
@@ -339,7 +342,8 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	if (locateOvrd(dataLabel, destNodeNbr, sourceNodeNbr, &elt) == 0)
+	elt = locateOvrd(dataLabel, destNodeNbr, sourceNodeNbr, &nextElt);
+	if (elt == 0)
 	{
 		/*	Override doesn't exist, so add it.		*/
 
@@ -350,25 +354,32 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 		ovrd.neighbor = (uvast) -1;
 		ovrd.priority = (unsigned char) -1;
 		addr = sdr_malloc(sdr, sizeof(IpnOverride));
-		if (addr)
+		if (addr == 0)
 		{
-			if (elt)
-			{
-				elt = sdr_list_insert_before(sdr, elt, addr);
-			}
-			else
-			{
-				elt = sdr_list_insert_last(sdr,
+			putErrmsg("Can't add new ipn override.", NULL);
+			return -1;
+		}
+
+		sdr_write(sdr, addr, (char *) &ovrd, sizeof(IpnOverride));
+		if (nextElt)
+		{
+			elt = sdr_list_insert_before(sdr, nextElt, addr);
+		}
+		else
+		{
+			elt = sdr_list_insert_last(sdr,
 					(_ipnConstants())->overrides, addr);
-			}
+		}
+
+		if (elt == 0)
+		{
+			putErrmsg("Can't add new ipn override.", NULL);
+			return -1;
 		}
 	}
-	else
-	{
-		addr = (Object) sdr_list_data(sdr, elt);
-		sdr_stage(sdr, (char *) &ovrd, addr, sizeof(IpnOverride));
-	}
 
+	addr = (Object) sdr_list_data(sdr, elt);
+	sdr_stage(sdr, (char *) &ovrd, addr, sizeof(IpnOverride));
 	if (neighbor != (uvast) -2)
 	{
 		ovrd.neighbor = neighbor;
@@ -378,23 +389,21 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	{
 		ovrd.priority = priority;
 		ovrd.ordinal = ordinal;
+		ovrd.qosFlags = qosFlags;
 	}
 
-	if (addr && elt)
+	if (ovrd.neighbor == (uvast) -1
+	&& ovrd.priority == (unsigned char) -1)
 	{
-		if (ovrd.neighbor == (uvast) -1
-		&& ovrd.priority == (unsigned char) -1)
-		{
-			/*	Override is moot, so delete it.		*/
+		/*	Override is moot, so delete it.		*/
 
-			sdr_list_delete(sdr, elt, NULL, NULL);
-			sdr_free(sdr, addr);
-		}
-		else
-		{
-			sdr_write(sdr, addr, (char *) &ovrd,
-					sizeof(IpnOverride));
-		}
+		sdr_list_delete(sdr, elt, NULL, NULL);
+		sdr_free(sdr, addr);
+	}
+	else
+	{
+		sdr_write(sdr, addr, (char *) &ovrd,
+				sizeof(IpnOverride));
 	}
 
 	if (sdr_end_xn(sdr) < 0)
