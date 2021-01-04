@@ -120,10 +120,11 @@ extern int	cbor_decode_integer(	uvast *value,
 extern int	cbor_decode_integer_destructive(uvast *value,
 					int class,
 					unsigned char **cursor,
-					unsigned int *bytesBuffered);
+					unsigned int *bytesBuffered,
+					uvast mask);
 			/*	Same as cbor_decode_integer except
-			 *	that the value is changed to zero
-			 *	in the buffer.				*/
+			 *	that the value in the buffer is
+			 *	ANDed with the mask value.		*/
 
 extern int	cbor_decode_byte_string(unsigned char *value,
 					uvast *size,
