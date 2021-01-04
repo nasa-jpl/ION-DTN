@@ -412,7 +412,8 @@ int	main(int argc, char *argv[])
 	vast			bundleZcoLength;
 	Object			bpduZco;
 	BpAncillaryData		ancillaryData;
-	int			protocolClassReq;
+	int			ctRequested;
+	int			bpduFlags;
 	unsigned char		*cursor;
 	uvast			uvtemp;
 	DtnTime			deadline;
@@ -563,10 +564,18 @@ int	main(int argc, char *argv[])
 			continue;	/*	Get next bundle.	*/
 		}
 
-		protocolClassReq = ancillaryData.flags & BP_PROTOCOL_ANY;
+		/*	The encapsulating bundle inherits forwarding
+		 *	preferences from the encapsulated bundle,
+		 *	except the BIBE and CT requests themselves.
+		 *	Other ancillary data items are take from the
+		 *	bcla as configured by bibeadmin.		*/
+
+		ctRequested = ancillaryData.flags & BP_CT_REQUESTED;
+		bpduFlags = ancillaryData.flags &
+				(BP_MINIMUM_LATENCY | BP_PROTOCOL_ANY);
 		memcpy((char *) &ancillaryData, (char *) &bcla.ancillaryData,
 				sizeof(BpAncillaryData));
-		ancillaryData.flags |= (BP_RELIABLE | BP_BEST_EFFORT);
+		ancillaryData.flags = bpduFlags;
 
 		/*	The BPDU (an administrative record whose
 		 *	content is a BPDU message, comprising a header
@@ -610,7 +619,7 @@ int	main(int argc, char *argv[])
 		/*	First two elements of content array are xmit
 		 *	count and deadline.				*/
 
-		if (protocolClassReq & BP_RELIABLE)
+		if (ctRequested)
 		{
 			bcla.count += 1;
 			uvtemp = bcla.count;
@@ -671,7 +680,7 @@ int	main(int argc, char *argv[])
 
 		default:
 			CHKZERO(sdr_begin_xn(sdr));
-			if (protocolClassReq & BP_RELIABLE)
+			if (ctRequested)
 			{
 				/*	Must record bundle's xmitId &
 				 *	deadline to enable custodial

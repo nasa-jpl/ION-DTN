@@ -67,18 +67,21 @@ static void	printUsage()
 	PUTS("\ta\tAdd");
 	PUTS("\t   a plan <node nbr> <duct expression> [<xmit rate>]");
 	PUTS("\t   a exit <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   a rtovrd <data label> <dest node> <source node> <neighbor>");
-	PUTS("\t\tRouting override: <neighbor> is a node number.");
+	PUTS("\t   a rtovrd <data label> <dest node#> <src node#> <neighbor \
+node#>");
 	PUTS("\t\tFor all destinations or all sources use node number 0.");
-	PUTS("\t   a cosovrd <data label> <dest node> <source node> <p#> <o#>");
+	PUTS("\t   a cosovrd <data label> <dest node> <src node> <p#> <o#> \
+[<QoS flags>]");
 	PUTS("\t\tClass of service override: <p#> is overriding CoS");
 	PUTS("\t\t\tand <o#> is overriding ordinal");
 	PUTS("\t\tFor all destinations or all sources use node number 0.");
 	PUTS("\tc\tChange");
 	PUTS("\t   c plan <node nbr> <xmit rate>");
 	PUTS("\t   c exit <first node nbr> <last node nbr> <endpoint ID>");
-	PUTS("\t   c rtovrd <data label> <dest node> <source node> <neighbor>");
-	PUTS("\t   c cosovrd <data label> <dest node> <source node> <p#> <o#>");
+	PUTS("\t   c rtovrd <data label> <dest node#> <src node#> <neighbor \
+node#>");
+	PUTS("\t   c cosovrd <data label> <dest node> <src node> <p#> <o#> \
+[<QoS flags>]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} plan <node nbr>");
@@ -101,6 +104,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 	uvast		destNodeNbr;
 	uvast		sourceNodeNbr;
 	uvast		neighbor;
+	int		flags;
 	unsigned char	priority;
 	unsigned char	ordinal;
 
@@ -168,16 +172,31 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		neighbor = strtouvast(tokens[5]);
 		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				neighbor, (unsigned char) -2, 0);
+				neighbor, (unsigned char) -2, 0, 0);
 		return;
 	}
 
 	if (strcmp(tokens[1], "cosovrd") == 0)
 	{
-		if (tokenCount != 7)
+		if (tokenCount == 8)
 		{
-			SYNTAX_ERROR;
-			return;
+			flags = atoi(tokens[7]);
+
+			/*	Limit QoS flag augmentations.		*/
+
+			flags &= (BP_BIBE_REQUESTED | BP_CT_REQUESTED);
+		}
+		else
+		{
+			if (tokenCount == 7)
+			{
+				flags = 0;
+			}
+			else
+			{
+				SYNTAX_ERROR;
+				return;
+			}
 		}
 
 		destNodeNbr = strtouvast(tokens[3]);
@@ -195,7 +214,7 @@ static void	executeAdd(int tokenCount, char **tokens)
 		priority = atoi(tokens[5]);
 		ordinal = atoi(tokens[6]);
 		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				(unsigned char) -2, priority, ordinal);
+				(uvast) -2, priority, ordinal, flags);
 		return;
 	}
 
@@ -208,6 +227,7 @@ static void	executeChange(int tokenCount, char **tokens)
 	uvast		destNodeNbr;
 	uvast		sourceNodeNbr;
 	uvast		neighbor;
+	int		flags;
 	unsigned char	priority;
 	unsigned char	ordinal;
 
@@ -266,16 +286,31 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		neighbor = strtouvast(tokens[5]);
 		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				neighbor, (unsigned char) -2, 0);
+				neighbor, (unsigned char) -2, 0, 0);
 		return;
 	}
 
 	if (strcmp(tokens[1], "cosovrd") == 0)
 	{
-		if (tokenCount != 7)
+		if (tokenCount == 8)
 		{
-			SYNTAX_ERROR;
-			return;
+			flags = atoi(tokens[7]);
+
+			/*	Limit QoS flag augmentations.		*/
+
+			flags &= (BP_BIBE_REQUESTED | BP_CT_REQUESTED);
+		}
+		else
+		{
+			if (tokenCount == 7)
+			{
+				flags = 0;
+			}
+			else
+			{
+				SYNTAX_ERROR;
+				return;
+			}
 		}
 
 		destNodeNbr = strtouvast(tokens[3]);
@@ -293,7 +328,7 @@ static void	executeChange(int tokenCount, char **tokens)
 		priority = atoi(tokens[5]);
 		ordinal = atoi(tokens[6]);
 		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				(unsigned char) -2, priority, ordinal);
+				(uvast) -2, priority, ordinal, flags);
 		return;
 	}
 
@@ -359,7 +394,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				neighbor, priority, 0);
+				neighbor, priority, 0, 0);
 		return;
 	}
 

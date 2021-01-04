@@ -328,12 +328,13 @@ typedef struct
 	unsigned int	totalAduLength;
 		/*	fragment offset is in the id field.		*/
 
-	/*	Stuff in QOS (nee ECOS) & Metadata extension blocks.	*/
+	/*	Stuff in QOS (nee ECOS) extension block.		*/
 
-	BpAncillaryData	ancillaryData;
 	unsigned char	classOfService;	/*	From QoS block if any.	*/
+	BpAncillaryData	ancillaryData;	/*	Incl. ordinal, flags.	*/
 	unsigned char	priority;	/*	Possibly an override.	*/
 	unsigned char	ordinal;	/*	Possibly an override.	*/
+	unsigned char	qosFlags;	/*	Possibly an override.	*/
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
@@ -695,8 +696,6 @@ typedef struct
 typedef struct
 {
 	char		name[MAX_CL_PROTOCOL_NAME_LEN + 1];
-	int		payloadBytesPerFrame;
-	int		overheadPerFrame;
 	int		protocolClass;	/*	Contributes to QOS.	*/
 } ClProtocol;
 
@@ -1437,8 +1436,7 @@ extern void		lookupPlan(char *eid, VPlan **vplan);
 extern void	        removeBundleFromQueue(Bundle *bundle, BpPlan *plan);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
-extern int		addProtocol(char *name, int payloadBytesPerFrame,
-				int overheadPerFrame, int protocolClass);
+extern int		addProtocol(char *name, int protocolClass);
 extern int		removeProtocol(char *name);
 extern int		bpStartProtocol(char *name);
 extern void		bpStopProtocol(char *name);

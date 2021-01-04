@@ -289,37 +289,46 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 	Object	outductElt;
 	Object	outductObj;
 
+	/*	A bundle for which bundle-in-bundle encapsulation is
+	 *	requested will always be directed to the BIBE outduct
+	 *	for the neighboring node's egress plan.  (If none
+	 *	exists, the bundle will not be forwarded.)  Otherwise 
+	*	a mission-specific implementation of this function
+	 *	can select among multiple possible outducts to the
+	 *	indicated neighboring node based on characteristics
+	 *	of the bundle or other criteria.  By default, the
+	 *	first outduct whose transmission class matches the
+	 *	required class is selected.				*/
+
+	for (ductElt = sdr_list_first(sdr, plan->ducts); ductElt;
+			ductElt = sdr_list_next(sdr, ductElt))
+	{
+		outductElt = sdr_list_data(sdr, ductElt);
+		outductObj = sdr_list_data(sdr, outductElt);
+		sdr_read(sdr, (char *) outduct, outductObj, sizeof(Outduct));
+		sdr_read(sdr, (char *) protocol, outduct->protocol,
+				sizeof(ClProtocol));
+		if (bundle->qosFlags & BP_BIBE_REQUESTED)
+		{
+			if (strcmp(protocol->name, "bibe") == 0)
+			{
+				return 1;
+			}
+
+			continue;
+		}
+
 #if defined(MULTIDUCTS)
 #include "selectcla.c"
 #else
-	/*	A mission-specific implementation of this function
-	 *	can select among multiple possible outducts to the
-	 *	indicated neighboring node based on characteristics
-	 *	of the bundle or other criteria.  By default there
-	 *	is only a single assigned outduct per plan.  (Well,
-	 *	possibly two in the event that a TCPCL connection
-	 *	is received from a node identified by the same node
-	 *	ID as was provided in a managed outduct assertion,
-	 *	but in that case the two are equivalent and it is
-	 *	still valid to use the first.)				*/
-
-	ductElt = sdr_list_first(sdr, plan->ducts);
-	if (ductElt == 0)
-	{
-		return 0;	/*	No outducts.			*/
-	}
-
-	outductElt = sdr_list_data(sdr, ductElt);
-	outductObj = sdr_list_data(sdr, outductElt);
-	sdr_read(sdr, (char *) outduct, outductObj, sizeof(Outduct));
-	sdr_read(sdr, (char *) protocol, outduct->protocol, sizeof(ClProtocol));
-	if ((protocol->protocolClass & classReqd))
-	{
-		return 1;	/*	Duct is usable.			*/
-	}
-
-	return 0;		/*	Ducts is not usable.		*/
+		if ((protocol->protocolClass & classReqd))
+		{
+			return 1;	/*	Duct is usable.		*/
+		}
 #endif
+	}
+
+	return 0;		/*	No ducts are usable.		*/
 }
 
 static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
@@ -333,7 +342,7 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 	PsmAddress	vductElt;
 
 	*vduct = NULL;			/*	Default.		*/
-	protClassReqd = bundle->ancillaryData.flags & BP_PROTOCOL_ANY;
+	protClassReqd = bundle->qosFlags & BP_PROTOCOL_ANY;
 	if (protClassReqd & BP_RELIABLE_STREAMING)
 	{
 		/*	BSSP is required, no other protocol will do.
