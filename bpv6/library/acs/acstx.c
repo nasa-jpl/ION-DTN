@@ -708,8 +708,9 @@ int updateMinimumCustodyId(unsigned int minimumCustodyId)
 
 int updateAcsBundleLifetime(unsigned int timeToLive)
 {
+	acsConstants->timeToLive = timeToLive;
 	CHKERR(sdr_begin_xn(acsSdr));
-	sdr_poke(acsSdr, acsConstants->timeToLive, timeToLive);
+	sdr_write(acsSdr, acsdbObject, (char *) acsConstants, sizeof (AcsDB));
 	if (sdr_end_xn(acsSdr) < 0)
 	{
 		ACSLOG_ERROR("Couldn't update ACS bundle lifetime to %u",

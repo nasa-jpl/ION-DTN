@@ -201,12 +201,14 @@ extern int		createAdu(Profile *profile, Object outAduObj,
 extern int		sendAdu(BpSAP sap);
 extern void		deleteAdu(Sdr sdr, Object aduElt);
 extern int		resendAdu(Sdr sdr, Object aduElt, time_t currentTime);
-extern int		addProfile(unsigned int profileID, unsigned int maxRtx,
-				unsigned int lifespan,
+extern int		addProfile(unsigned int profileID,
+				unsigned int maxRtx,
 				unsigned int aggrSizeLimit,
 				unsigned int aggrTimeLimit,
-				char *svcClass, char *flags,
-				char* reportToEid);
+				unsigned int lifespan,
+				char *svcClass, 
+				char* reportToEid,
+				char *flags);
 extern int		removeProfile(unsigned int profileID);
 extern Object		getDtpcDbObject();
 extern DtpcDB		*getDtpcConstants();

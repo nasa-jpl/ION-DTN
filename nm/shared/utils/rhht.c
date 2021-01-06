@@ -438,10 +438,7 @@ int rhht_insert(rhht_t *ht, void *key, void *value, rh_idx_t *idx)
 
 		if((iter == 0) && (idx != NULL))
 		{
-			if(idx != NULL)
-			{
-				*idx = actual_idx;
-			}
+			*idx = actual_idx;
 		}
 
 		/*

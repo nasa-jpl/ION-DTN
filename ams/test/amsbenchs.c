@@ -61,6 +61,7 @@ int	main(int argc, char **argv)
 	if (ams_register("", NULL, "amsdemo", "test", "", "benchs", &me) < 0)
 	{
 		putErrmsg("amsbenchs can't register.", NULL);
+		free(buffer);
 		return -1;
 	}
 
@@ -70,6 +71,7 @@ int	main(int argc, char **argv)
 	{
 		ams_unregister(me);
 		putErrmsg("amsbenchs can't set event manager.", NULL);
+		free(buffer);
 		return -1;
 	}
 
@@ -78,6 +80,7 @@ int	main(int argc, char **argv)
 	{
 		ams_unregister(me);
 		writeMemo("[?] amsbenchs: subject 'bench' is unknown.");
+		free(buffer);
 		return -1;
 	}
 
@@ -100,5 +103,6 @@ int	main(int argc, char **argv)
 	isignal(SIGINT, handleQuit);
 	snooze(3600);
 	ams_unregister(me);
+	free(buffer);
 	return 0;
 }

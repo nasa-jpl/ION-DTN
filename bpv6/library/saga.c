@@ -89,6 +89,9 @@ static int	insertIntoPredictionBase(Lyst pb, Object sagaElt)
 	vast		duration;
 	LystElt		pbElt;
 	PbContact	*contact;
+
+	sdr_read(sdr, (char *) &encounter, sdr_list_data(sdr, sagaElt),
+			sizeof(Encounter));
 #ifdef SAGA_DEBUG
 char	buf1[64];
 char	buf2[64];
@@ -99,9 +102,6 @@ printf("Inserting contact into prediction base, from "
 UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ", start %s, stop %s.\n",
 encounter->fromNode, encounter->toNode, buf1, buf2);
 #endif
-
-	sdr_read(sdr, (char *) &encounter, sdr_list_data(sdr, sagaElt),
-			sizeof(Encounter));
 	duration = encounter.toTime - encounter.fromTime;
 	if (duration <= 0 || encounter.xmitRate == 0)
 	{
