@@ -1,0 +1,26 @@
+# Instructions:
+# ADD CONTACT: a contact <start time> <end time> <sender node> <receiver node> <transmit rate (bytes/s)>
+# ADD RANGE: a range <start time> <end time> <sender node> <receiver node> <one-way-light-time (s)>
+# Note on ADD RANGE: if sender node is lower than receiver node the range will be considered bidirectional.
+
+a range +0 +36000 141 201 1
+a range +0 +36000 141 202 1
+a range +0 +36000 143 202 1
+a range +0 +36000 143 201 1
+a range +0 +36000 201 231 1
+a range +0 +36000 202 231 1
+
+a contact +1 +36000 141 201 125000
+a contact +1 +36000 141 202 125000
+a contact +60 +71 143 201 4000
+a contact +80 +91 143 201 4000
+a contact +60 +71 143 202 4000
+a contact +1 +36000 201 141 125000
+a contact +60 +71 201 143 4000
+a contact +80 +91 201 143 4000
+a contact +1 +36000 201 231 125000
+a contact +1 +36000 202 141 125000
+a contact +60 +71 202 143 4000
+a contact +1 +36000 202 231 125000
+a contact +1 +36000 231 201 125000
+a contact +1 +36000 231 202 125000
