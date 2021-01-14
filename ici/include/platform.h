@@ -566,6 +566,8 @@ typedef void	(*FUNCPTR)(int, int, int, int, int, int, int, int, int, int);
 
 #ifdef __SVR4			/****	All Sys 5 Rev 4 UNIX systems ****/
 
+#include <sys/param.h>		/****	...to get MAXPATHLEN         ****/
+
 #define FIFO_READ_MODE		(O_RDWR)
 #define FIFO_WRITE_MODE		(O_WRONLY)
 

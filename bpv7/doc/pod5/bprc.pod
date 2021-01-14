@@ -407,7 +407,7 @@ plan's transmission rate.
 
 =item B<d plan> I<endpoint_name>
 
-The B<delete plan> command.  This command deletes the outduct identified
+The B<delete plan> command.  This command deletes the plan identified
 by I<endpoint_name>.  The command will fail if any bundles are currently
 pending transmission per this plan.
 
