@@ -710,6 +710,7 @@ int updateAcsBundleLifetime(unsigned int timeToLive)
 {
 	acsConstants->timeToLive = timeToLive;
 	CHKERR(sdr_begin_xn(acsSdr));
+	sdr_stage(acsSdr, NULL, acsdbObject, 0);
 	sdr_write(acsSdr, acsdbObject, (char *) acsConstants, sizeof (AcsDB));
 	if (sdr_end_xn(acsSdr) < 0)
 	{
