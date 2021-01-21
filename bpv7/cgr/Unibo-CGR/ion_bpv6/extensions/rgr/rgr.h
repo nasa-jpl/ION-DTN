@@ -37,7 +37,7 @@
  *
  * \hideinitializer
  */
-#define	RGREB	1
+#define	RGREB	0
 #endif
 
 #define	EXTENSION_TYPE_RGR	22

@@ -43,7 +43,7 @@
  *
  * \hideinitializer
  */
-#define	CGRREB	1
+#define	CGRREB	0
 #endif
 
 #define	EXTENSION_TYPE_CGRR	23

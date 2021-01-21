@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Unibo-CGR: Unibo-CGR/ion_bpv6/interface/interface_cgr_ion.c File Reference</title>
+<title>Unibo-CGR: ion_bpv6/interface/interface_cgr_ion.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -61,7 +61,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_fe352c89d8f37282a0b367f2314b9b1e.html">Unibo-CGR</a></li><li class="navelem"><a class="el" href="dir_a5963ca25a5be905c030408399750dac.html">ion_bpv6</a></li><li class="navelem"><a class="el" href="dir_58752cde3ffde357324b4289a0c0d8f8.html">interface</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_24065510ea3b8fafd460c563fcd3029b.html">ion_bpv6</a></li><li class="navelem"><a class="el" href="dir_69a13ca16f6795736db3ebd6f4075cb5.html">interface</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -87,6 +87,9 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
+<tr class="memitem:adf1be5ccbb7a2522b4f3a64043c72880"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ion__bpv6_2interface_2interface__cgr__ion_8c.html#adf1be5ccbb7a2522b4f3a64043c72880">absolute</a>(a)&#160;&#160;&#160;(((a) &lt; 0) ? (-(a)) : (a))</td></tr>
+<tr class="memdesc:adf1be5ccbb7a2522b4f3a64043c72880"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the absolute value of "a".  <a href="ion__bpv6_2interface_2interface__cgr__ion_8c.html#adf1be5ccbb7a2522b4f3a64043c72880">More...</a><br /></td></tr>
+<tr class="separator:adf1be5ccbb7a2522b4f3a64043c72880"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f4d6eec0ec8f658b9dddf478c2ae244"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ion__bpv6_2interface_2interface__cgr__ion_8c.html#a2f4d6eec0ec8f658b9dddf478c2ae244">GET_MTV_FROM_SDR</a>&#160;&#160;&#160;1</td></tr>
 <tr class="memdesc:a2f4d6eec0ec8f658b9dddf478c2ae244"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set to 1 if you want to get the MTVs from ION's contact MTVs stored into SDR. Otherwise set to 0 (they will be computed as xmitRate*(toTime - fromTime)).  <a href="ion__bpv6_2interface_2interface__cgr__ion_8c.html#a2f4d6eec0ec8f658b9dddf478c2ae244">More...</a><br /></td></tr>
 <tr class="separator:a2f4d6eec0ec8f658b9dddf478c2ae244"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -214,6 +217,32 @@ Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Lorenzo Persampieri, <a href="#" onclick="location.href='mai'+'lto:'+'lor'+'en'+'zo.'+'pe'+'rsa'+'mp'+'ier'+'i@'+'stu'+'di'+'o.u'+'ni'+'bo.'+'it'; return false;">loren<span style="display: none;">.nosp@m.</span>zo.p<span style="display: none;">.nosp@m.</span>ersam<span style="display: none;">.nosp@m.</span>pier<span style="display: none;">.nosp@m.</span>i@stu<span style="display: none;">.nosp@m.</span>dio.<span style="display: none;">.nosp@m.</span>unibo<span style="display: none;">.nosp@m.</span>.it</a></dd></dl>
 <dl class="section user"><dt>Supervisor</dt><dd>Carlo Caini, <a href="#" onclick="location.href='mai'+'lto:'+'car'+'lo'+'.ca'+'in'+'i@u'+'ni'+'bo.'+'it'; return false;">carlo<span style="display: none;">.nosp@m.</span>.cai<span style="display: none;">.nosp@m.</span>ni@un<span style="display: none;">.nosp@m.</span>ibo.<span style="display: none;">.nosp@m.</span>it</a> </dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="adf1be5ccbb7a2522b4f3a64043c72880"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adf1be5ccbb7a2522b4f3a64043c72880">&#9670;&nbsp;</a></span>absolute</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define absolute</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">a</td><td>)</td>
+          <td>&#160;&#160;&#160;(((a) &lt; 0) ? (-(a)) : (a))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the absolute value of "a". </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a</td><td>The real number for which we want to know the absolute value </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="aa7208ab44e1473a1b3184441374416cb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa7208ab44e1473a1b3184441374416cb">&#9670;&nbsp;</a></span>DEBUG_ION_INTERFACE</h2>
 

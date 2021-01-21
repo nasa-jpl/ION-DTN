@@ -1284,7 +1284,19 @@ int getCGRRoute(CgrRoute * in_route, CGRRoute * out_route) {
 
 }
 
-/*
+/******************************************************************************
+ *
+ * \par Function Name:
+ * 		cgrr_getUsedEvc
+ *
+ * \brief This function, in success case, returns the previous EVC associated to the
+ *        last route inserted into CGRR by local node's CGR.
+ *
+ * \par Date Written:
+ * 		09/12/20
+ *
+ * \return int
+ *
  * \retval  2  We cannot read the data.
  * \retval  1  The bundle is a new fragment, previous information in CGRRObject about
  *             used MTV are not more helpful. I suggests to recompute the EVC starting from
@@ -1292,7 +1304,17 @@ int getCGRRoute(CgrRoute * in_route, CGRRoute * out_route) {
  * \retval  0  Ok, the bundle has the same information stored into CGRRObject.
  *             size now contains the EVC previously stored.
  * \retval  -1 Some error occurred.
- */
+ *
+ * \par Notes:
+ *      This function help you to refill contact's MTV (of the discarded route)
+ *      when a bundle is reforwarded, i.e. when the forfeit time is expired.
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY | AUTHOR          |  DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  09/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 int cgrr_getUsedEvc(Bundle *bundle, ExtensionBlock *cgrrExtBlk, uvast *size)
 {
 	Sdr sdr = getIonsdr();
@@ -1350,10 +1372,31 @@ int cgrr_getUsedEvc(Bundle *bundle, ExtensionBlock *cgrrExtBlk, uvast *size)
 
 }
 
-/**
+/******************************************************************************
+ *
+ * \par Function Name:
+ * 		cgrr_setUsedEvc
+ *
+ * \brief This function, in success case, stores into CGRR the EVC passed as argument.
+ *
+ * \par Date Written:
+ * 		09/12/20
+ *
+ * \return int
+ *
  * \retval  0  Success case
  * \retval -1  Some error occurred
- */
+ *
+ * \par Notes:
+ *      This function help you to refill contact's MTV (of the discarded route)
+ *      when a bundle is reforwarded, i.e. when the forfeit time is expired.
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY | AUTHOR          |  DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  09/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 int cgrr_setUsedEvc(Bundle *bundle, ExtensionBlock *cgrrExtBlk, uvast evc)
 {
 	Sdr sdr = getIonsdr();

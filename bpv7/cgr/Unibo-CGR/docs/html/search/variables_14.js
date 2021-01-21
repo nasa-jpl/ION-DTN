@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['xmitrate_1289',['xmitRate',['../struct_contact.html#a0c682d4a49c53fd2babb12b2c3bd4b05',1,'Contact']]]
+  ['warranty_1384',['WARRANTY',['../unibo-cgr_2_r_e_a_d_m_e_8txt.html#a24709b1f345ef20abd0dcf59eff96acf',1,'README.txt']]]
 ];

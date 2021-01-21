@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Unibo-CGR: Unibo-CGR/core/contact_plan/contacts/contacts.c File Reference</title>
+<title>Unibo-CGR: core/contact_plan/contacts/contacts.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -61,7 +61,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_fe352c89d8f37282a0b367f2314b9b1e.html">Unibo-CGR</a></li><li class="navelem"><a class="el" href="dir_13be95d27304a1e31a4a57140e9a51bb.html">core</a></li><li class="navelem"><a class="el" href="dir_5c3d380ea94f30724a37a3a50fe87a5c.html">contact_plan</a></li><li class="navelem"><a class="el" href="dir_abcf1c80897c93e07679bc3e4b769af8.html">contacts</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_4270bfced15e0e73154b13468c7c9ad9.html">core</a></li><li class="navelem"><a class="el" href="dir_d2206bd7570d82613dac675162a0270c.html">contact_plan</a></li><li class="navelem"><a class="el" href="dir_024ffc6ea8252c58c3ba2a15bf1df1e9.html">contacts</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -88,6 +88,9 @@ Macros</h2></td></tr>
 <tr class="memitem:a86ff848efdf0eab2496efd1dc14c4a71"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a86ff848efdf0eab2496efd1dc14c4a71">ADD_AND_REVISE_CONTACT</a></td></tr>
 <tr class="memdesc:a86ff848efdf0eab2496efd1dc14c4a71"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: set to 1 if you want to permits that the contact's xmit rate and confidence can be changed when you are trying to insert into the contact graph a contact that already exists.  <a href="contacts_8c.html#a86ff848efdf0eab2496efd1dc14c4a71">More...</a><br /></td></tr>
 <tr class="separator:a86ff848efdf0eab2496efd1dc14c4a71"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adf1be5ccbb7a2522b4f3a64043c72880"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#adf1be5ccbb7a2522b4f3a64043c72880">absolute</a>(a)&#160;&#160;&#160;(((a) &lt; 0) ? (-(a)) : (a))</td></tr>
+<tr class="memdesc:adf1be5ccbb7a2522b4f3a64043c72880"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the absolute value of "a".  <a href="contacts_8c.html#adf1be5ccbb7a2522b4f3a64043c72880">More...</a><br /></td></tr>
+<tr class="separator:adf1be5ccbb7a2522b4f3a64043c72880"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -124,6 +127,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a56230660fbe5772b149cdf65a0d9c5b8"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a56230660fbe5772b149cdf65a0d9c5b8">revise_xmit_rate</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned long int xmitRate, int copyMTV, double mtv[])</td></tr>
 <tr class="memdesc:a56230660fbe5772b149cdf65a0d9c5b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the contact's transmit rate (and MTVs)  <a href="contacts_8c.html#a56230660fbe5772b149cdf65a0d9c5b8">More...</a><br /></td></tr>
 <tr class="separator:a56230660fbe5772b149cdf65a0d9c5b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a474dcb5605134dc3c298a842e923504f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a474dcb5605134dc3c298a842e923504f">get_contact_with_time_tolerance</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance)</td></tr>
+<tr class="memdesc:a474dcb5605134dc3c298a842e923504f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search a contact into contact graph. The contact has to match with the id {fromNode, toNode, fromTime}.  <a href="contacts_8c.html#a474dcb5605134dc3c298a842e923504f">More...</a><br /></td></tr>
+<tr class="separator:a474dcb5605134dc3c298a842e923504f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a32ddc80a31b0c468ddcf6e2670b80e7e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a32ddc80a31b0c468ddcf6e2670b80e7e">refill_mtv</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance, unsigned int refillSize, int priority)</td></tr>
+<tr class="memdesc:a32ddc80a31b0c468ddcf6e2670b80e7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Refill contact's MTV of some size passed as argument.  <a href="contacts_8c.html#a32ddc80a31b0c468ddcf6e2670b80e7e">More...</a><br /></td></tr>
+<tr class="separator:a32ddc80a31b0c468ddcf6e2670b80e7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af056dcad86c70fc9e769c3f65fc6f86e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#af056dcad86c70fc9e769c3f65fc6f86e">reset_ContactsGraph</a> ()</td></tr>
 <tr class="memdesc:af056dcad86c70fc9e769c3f65fc6f86e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete any contact that belongs to the graph, but not the contacts graph structure.  <a href="contacts_8c.html#af056dcad86c70fc9e769c3f65fc6f86e">More...</a><br /></td></tr>
 <tr class="separator:af056dcad86c70fc9e769c3f65fc6f86e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -186,6 +195,32 @@ Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Lorenzo Persampieri, <a href="#" onclick="location.href='mai'+'lto:'+'lor'+'en'+'zo.'+'pe'+'rsa'+'mp'+'ier'+'i@'+'stu'+'di'+'o.u'+'ni'+'bo.'+'it'; return false;">loren<span style="display: none;">.nosp@m.</span>zo.p<span style="display: none;">.nosp@m.</span>ersam<span style="display: none;">.nosp@m.</span>pier<span style="display: none;">.nosp@m.</span>i@stu<span style="display: none;">.nosp@m.</span>dio.<span style="display: none;">.nosp@m.</span>unibo<span style="display: none;">.nosp@m.</span>.it</a></dd></dl>
 <dl class="section user"><dt>Supervisor</dt><dd>Carlo Caini, <a href="#" onclick="location.href='mai'+'lto:'+'car'+'lo'+'.ca'+'in'+'i@u'+'ni'+'bo.'+'it'; return false;">carlo<span style="display: none;">.nosp@m.</span>.cai<span style="display: none;">.nosp@m.</span>ni@un<span style="display: none;">.nosp@m.</span>ibo.<span style="display: none;">.nosp@m.</span>it</a> </dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="adf1be5ccbb7a2522b4f3a64043c72880"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adf1be5ccbb7a2522b4f3a64043c72880">&#9670;&nbsp;</a></span>absolute</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define absolute</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">a</td><td>)</td>
+          <td>&#160;&#160;&#160;(((a) &lt; 0) ? (-(a)) : (a))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the absolute value of "a". </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">a</td><td>The real number for which we want to know the absolute value </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a86ff848efdf0eab2496efd1dc14c4a71"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a86ff848efdf0eab2496efd1dc14c4a71">&#9670;&nbsp;</a></span>ADD_AND_REVISE_CONTACT</h2>
 
@@ -865,6 +900,75 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a474dcb5605134dc3c298a842e923504f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a474dcb5605134dc3c298a842e923504f">&#9670;&nbsp;</a></span>get_contact_with_time_tolerance()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="struct_contact.html">Contact</a>* get_contact_with_time_tolerance </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long&#160;</td>
+          <td class="paramname"><em>fromNode</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned long long&#160;</td>
+          <td class="paramname"><em>toNode</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">time_t&#160;</td>
+          <td class="paramname"><em>fromTime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int&#160;</td>
+          <td class="paramname"><em>tolerance</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Search a contact into contact graph. The contact has to match with the id {fromNode, toNode, fromTime}. </p>
+<dl class="section user"><dt>Function Name:</dt><dd>get_contact_with_time_tolerance</dd></dl>
+<p>contact-&gt;fromTime can be included in fromTime - tolerance &lt;= contact-&gt;fromTime &lt;= fromTime + tolerance</p>
+<dl class="section user"><dt>Date Written:</dt><dd>23/04/20</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Contact*</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">Contact*</td><td>The contact found </td></tr>
+    <tr><td class="paramname">NULL</td><td><a class="el" href="struct_contact.html">Contact</a> not found</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fromNode</td><td>The sender node of the contact </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">toNode</td><td>The receiver node of the contact </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">fromTime</td><td>The start time of the contact </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">tolerance</td><td>Time tolerance</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">23/04/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
+</table>
+
+</div>
+</div>
 <a id="ae93ade997eca8f1718d8dd85bdc353df"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae93ade997eca8f1718d8dd85bdc353df">&#9670;&nbsp;</a></span>get_first_contact()</h2>
 
@@ -1248,6 +1352,90 @@ Functions</h2></td></tr>
 <th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">13/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
+</table>
+
+</div>
+</div>
+<a id="a32ddc80a31b0c468ddcf6e2670b80e7e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a32ddc80a31b0c468ddcf6e2670b80e7e">&#9670;&nbsp;</a></span>refill_mtv()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int refill_mtv </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long long&#160;</td>
+          <td class="paramname"><em>fromNode</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned long long&#160;</td>
+          <td class="paramname"><em>toNode</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">time_t&#160;</td>
+          <td class="paramname"><em>fromTime</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int&#160;</td>
+          <td class="paramname"><em>tolerance</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">unsigned int&#160;</td>
+          <td class="paramname"><em>refillSize</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>priority</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Refill contact's MTV of some size passed as argument. </p>
+<dl class="section user"><dt>Function Name:</dt><dd>refill_mtv</dd></dl>
+<p>contact-&gt;fromTime can be included in fromTime - tolerance &lt;= contact-&gt;fromTime &lt;= fromTime + tolerance</p>
+<dl class="section user"><dt>Date Written:</dt><dd>11/12/20</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td><a class="el" href="struct_contact.html">Contact</a> MTVs updated </td></tr>
+    <tr><td class="paramname">-1</td><td>Arguments error </td></tr>
+    <tr><td class="paramname">-2</td><td><a class="el" href="struct_contact.html">Contact</a> not found</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fromNode</td><td>The sender node of the contact </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">toNode</td><td>The receiver node of the contact </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">fromTime</td><td>The start time of the contact </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">tolerance</td><td>Time tolerance </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">refillSize</td><td>The size to add into MTV </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">priority</td><td>The upper-bound priority. The refillSize will be added into all MTV that refers to (all) less or equal priority.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">11/12/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
 </table>
 
 </div>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['wise_5fnode_1436',['WISE_NODE',['../config_8h.html#a8ebf09c9ea9b2bac802a437738a676d3',1,'config.h']]]
+  ['verbose_5fdebug_5fprintf_1550',['verbose_debug_printf',['../common_defines_8h.html#acd5efa977bf31ae02db4c55e7af5656b',1,'commonDefines.h']]]
 ];

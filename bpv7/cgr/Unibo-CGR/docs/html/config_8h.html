@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Unibo-CGR: Unibo-CGR/core/config.h File Reference</title>
+<title>Unibo-CGR: core/config.h File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -61,7 +61,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_fe352c89d8f37282a0b367f2314b9b1e.html">Unibo-CGR</a></li><li class="navelem"><a class="el" href="dir_13be95d27304a1e31a4a57140e9a51bb.html">core</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_4270bfced15e0e73154b13468c7c9ad9.html">core</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -91,7 +91,7 @@ Macros</h2></td></tr>
 <tr class="memdesc:ad3239d1571a739239954ffe70c8ec67c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dynamic memory deallocation (use this as free()).  <a href="config_8h.html#ad3239d1571a739239954ffe70c8ec67c">More...</a><br /></td></tr>
 <tr class="separator:ad3239d1571a739239954ffe70c8ec67c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a159ca84d25a5487d8e81e4438725df19"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#a159ca84d25a5487d8e81e4438725df19">LOG</a></td></tr>
-<tr class="memdesc:a159ca84d25a5487d8e81e4438725df19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: Set to 1 if you want to print various log files, otherwise set to 0.  <a href="config_8h.html#a159ca84d25a5487d8e81e4438725df19">More...</a><br /></td></tr>
+<tr class="memdesc:a159ca84d25a5487d8e81e4438725df19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: Set to 1 if you want to print various log files, otherwise set to 0. These files will be created in the ./cgr_log directory.  <a href="config_8h.html#a159ca84d25a5487d8e81e4438725df19">More...</a><br /></td></tr>
 <tr class="separator:a159ca84d25a5487d8e81e4438725df19"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ade1ae872bad02fa08830c374b124f3b3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#ade1ae872bad02fa08830c374b124f3b3">DEBUG_CGR</a></td></tr>
 <tr class="memdesc:ade1ae872bad02fa08830c374b124f3b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: Set to 1 if you want some utility functions for debugging, 0 otherwhise.  <a href="config_8h.html#ade1ae872bad02fa08830c374b124f3b3">More...</a><br /></td></tr>
@@ -99,6 +99,17 @@ Macros</h2></td></tr>
 <tr class="memitem:a50d3ed92b58ef9cbd7578d39df31a942"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#a50d3ed92b58ef9cbd7578d39df31a942">CGR_DEBUG_FLUSH</a></td></tr>
 <tr class="memdesc:a50d3ed92b58ef9cbd7578d39df31a942"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: Set to 1 if you want to flush all debug print and log when you are in a debugging session, set to 0 otherwise.  <a href="config_8h.html#a50d3ed92b58ef9cbd7578d39df31a942">More...</a><br /></td></tr>
 <tr class="separator:a50d3ed92b58ef9cbd7578d39df31a942"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae4d91e33258a527b8b9a83afc96a86d6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#ae4d91e33258a527b8b9a83afc96a86d6">COMPUTE_TOTAL_CORE_TIME</a></td></tr>
+<tr class="memdesc:ae4d91e33258a527b8b9a83afc96a86d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: Set to 1 if you want to know how much time requires Unibo-CGR's core routing algorithm. O otherwise.  <a href="config_8h.html#ae4d91e33258a527b8b9a83afc96a86d6">More...</a><br /></td></tr>
+<tr class="separator:ae4d91e33258a527b8b9a83afc96a86d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab2191ac9e0986ace6fa51da9dbf6e42a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#ab2191ac9e0986ace6fa51da9dbf6e42a">COMPUTE_PHASES_TIME</a></td></tr>
+<tr class="memdesc:ab2191ac9e0986ace6fa51da9dbf6e42a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: Set to 1 if you want to know how much time requires each Unibo-CGR's phase. O otherwise.  <a href="config_8h.html#ab2191ac9e0986ace6fa51da9dbf6e42a">More...</a><br /></td></tr>
+<tr class="separator:ab2191ac9e0986ace6fa51da9dbf6e42a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a468e09cc30d64e3030bb4fe5689bd2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#a1a468e09cc30d64e3030bb4fe5689bd2">COMPUTE_TOTAL_INTERFACE_TIME</a></td></tr>
+<tr class="memdesc:a1a468e09cc30d64e3030bb4fe5689bd2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Exactly like COMPUTE_TOTAL_CORE_TIME, but with this macro you will consider also the interface's overhead.  <a href="config_8h.html#a1a468e09cc30d64e3030bb4fe5689bd2">More...</a><br /></td></tr>
+<tr class="separator:a1a468e09cc30d64e3030bb4fe5689bd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ace3ee8a432b4e2588c41189e1d685c55"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#ace3ee8a432b4e2588c41189e1d685c55">TIME_ANALYSIS_ENABLED</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:ace3ee8a432b4e2588c41189e1d685c55"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0d42302fd711b7fc5690655b5fc12753"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="config_8h.html#a0d42302fd711b7fc5690655b5fc12753">UNIBO_CGR_SUGGESTED_SETTINGS</a></td></tr>
 <tr class="memdesc:a0d42302fd711b7fc5690655b5fc12753"><td class="mdescLeft">&#160;</td><td class="mdescRight">Anti-loop mechanism (proactive and reactive), one-route-per-neighbor and per-hop-queue-delay enabled. Boolean (1 enable, 0 disable).  <a href="config_8h.html#a0d42302fd711b7fc5690655b5fc12753">More...</a><br /></td></tr>
 <tr class="separator:a0d42302fd711b7fc5690655b5fc12753"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -279,6 +290,54 @@ Macros</h2></td></tr>
 
 </div>
 </div>
+<a id="ab2191ac9e0986ace6fa51da9dbf6e42a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab2191ac9e0986ace6fa51da9dbf6e42a">&#9670;&nbsp;</a></span>COMPUTE_PHASES_TIME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define COMPUTE_PHASES_TIME</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Boolean: Set to 1 if you want to know how much time requires each Unibo-CGR's phase. O otherwise. </p>
+
+</div>
+</div>
+<a id="ae4d91e33258a527b8b9a83afc96a86d6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae4d91e33258a527b8b9a83afc96a86d6">&#9670;&nbsp;</a></span>COMPUTE_TOTAL_CORE_TIME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define COMPUTE_TOTAL_CORE_TIME</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Boolean: Set to 1 if you want to know how much time requires Unibo-CGR's core routing algorithm. O otherwise. </p>
+
+</div>
+</div>
+<a id="a1a468e09cc30d64e3030bb4fe5689bd2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1a468e09cc30d64e3030bb4fe5689bd2">&#9670;&nbsp;</a></span>COMPUTE_TOTAL_INTERFACE_TIME</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define COMPUTE_TOTAL_INTERFACE_TIME</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Exactly like COMPUTE_TOTAL_CORE_TIME, but with this macro you will consider also the interface's overhead. </p>
+
+</div>
+</div>
 <a id="ade1ae872bad02fa08830c374b124f3b3"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ade1ae872bad02fa08830c374b124f3b3">&#9670;&nbsp;</a></span>DEBUG_CGR</h2>
 
@@ -307,7 +366,7 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Boolean: Set to 1 if you want to print various log files, otherwise set to 0. </p>
+<p>Boolean: Set to 1 if you want to print various log files, otherwise set to 0. These files will be created in the ./cgr_log directory. </p>
 
 </div>
 </div>
@@ -501,6 +560,20 @@ Macros</h2></td></tr>
 <li>This extension is required for the purpose of anti-loop experimental enhancement. </li>
 </ul>
 </dd></dl>
+
+</div>
+</div>
+<a id="ace3ee8a432b4e2588c41189e1d685c55"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace3ee8a432b4e2588c41189e1d685c55">&#9670;&nbsp;</a></span>TIME_ANALYSIS_ENABLED</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define TIME_ANALYSIS_ENABLED&#160;&#160;&#160;0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>

@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['rangefound_1320',['RangeFound',['../phase__one_8c.html#aaff0c1d6e8cebd44f71354aac88dd76da584c7b286cb016af5c651d6dc174cc29',1,'phase_one.c']]],
-  ['rangenotfound_1321',['RangeNotFound',['../phase__one_8c.html#aaff0c1d6e8cebd44f71354aac88dd76da401045cfc64d3dd65b1255173dd9505e',1,'phase_one.c']]],
-  ['rangenotsearched_1322',['RangeNotSearched',['../phase__one_8c.html#aaff0c1d6e8cebd44f71354aac88dd76dad632eab75cc6d61d114179a8eb9c842f',1,'phase_one.c']]],
-  ['registration_1323',['Registration',['../contacts_8h.html#adda549bc4be76c304b79e10ab5829416a8182bc284ebd858cb40f5c638bcc474b',1,'contacts.h']]]
+  ['phaseone_1419',['phaseOne',['../time_8h.html#a2d18cc11727c29d3b923e5c639627f5baed4c7925f1db365c040e84a046c0ee07',1,'time.h']]],
+  ['phasethree_1420',['phaseThree',['../time_8h.html#a2d18cc11727c29d3b923e5c639627f5ba9928ea6ca047c4dac225d8b092c305b3',1,'time.h']]],
+  ['phasetwo_1421',['phaseTwo',['../time_8h.html#a2d18cc11727c29d3b923e5c639627f5bab828b740a1500e328ba54560a9fae641',1,'time.h']]]
 ];

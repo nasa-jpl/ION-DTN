@@ -100,18 +100,6 @@
 #define DEBUG_ION_INTERFACE 0
 #endif
 
-#ifndef STORE_ROUTES_IN_ION_SELECTED_ROUTES
-/**
- * \brief Boolean value, set to 1 if you want to store the best routes in ION's selected routes.
- *        Set to 0 otherwise.
- *
- * \details Actually this is unneeded for ipnfw.
- *
- * \hideinitializer
- */
-#define STORE_ROUTES_IN_ION_SELECTED_ROUTES 0
-#endif
-
 #define NOMINAL_PRIMARY_BLKSIZE	29 // from ION 4.0.0: bpv7/library/libbpP.c
 
 typedef struct {
@@ -144,7 +132,10 @@ typedef struct {
 	 *        to these neighbors.
 	 */
 	List excludedNeighbors; /* sent to Unibo-CGR */
-
+	/**
+	 * \brief Reference to all CgrRoute object created.
+	 */
+	Lyst routes;
 } CurrentCallSAP;
 
 
@@ -186,6 +177,17 @@ static CurrentCallSAP *get_current_call_sap(CurrentCallSAP *newSap) {
 	return &sap;
 }
 
+static void destroyRoute(LystElt elt, void *arg)
+{
+	PsmPartition ionwm = getIonwm();
+	CgrRoute *route = lyst_data(elt);
+
+	if (route)
+	{
+		sm_list_destroy(ionwm, route->hops, NULL, NULL);
+		MRELEASE(route);
+	}
+}
 
 /******************************************************************************
  *
@@ -206,15 +208,19 @@ static CurrentCallSAP *get_current_call_sap(CurrentCallSAP *newSap) {
  *  -------- | --------------- | -----------------------------------------------
  *  02/07/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-static void destroy_current_call_sap() {
+static void destroy_current_call_sap()
+{
 
 	CurrentCallSAP *sap = get_current_call_sap(NULL);
 
 	bundle_destroy(sap->uniboCgrBundle);
 	free_list(sap->excludedNeighbors);
+	lyst_delete_set(sap->routes, destroyRoute, NULL);
+	lyst_destroy(sap->routes);
 	sap->ionBundle = NULL;
 	sap->uniboCgrBundle = NULL;
 	sap->excludedNeighbors = NULL;
+	sap->routes = NULL;
 
 	return;
 }
@@ -246,14 +252,19 @@ static void destroy_current_call_sap() {
 static int initialize_current_call_sap() {
 	int result = 1;
 	CurrentCallSAP *sap = get_current_call_sap(NULL);
+	int ionMemIdx;
+
 	sap->ionBundle = NULL; // init, no bundle
 	sap->uniboCgrBundle = bundle_create(); //init Unibo-CGR's bundle
 	sap->excludedNeighbors = list_create(NULL, NULL, NULL, MDEPOSIT_wrapper);
+	ionMemIdx = getIonMemoryMgr();
+	sap->routes = lyst_create_using(ionMemIdx);
 
-	if (sap->uniboCgrBundle == NULL || sap->excludedNeighbors == NULL) {
+	if (sap->routes == NULL || sap->uniboCgrBundle == NULL || sap->excludedNeighbors == NULL) {
 		result = -2;
 		bundle_destroy(sap->uniboCgrBundle);
 		free_list(sap->excludedNeighbors);
+		lyst_destroy(sap->routes);
 	}
 
 	return result;
@@ -866,6 +877,40 @@ static int get_rgr_ext_block(Bundle *bundle, GeoRoute *resultBlk)
 
 #if (WISE_NODE)
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      update_mtv_before_reforwarding
+ *
+ * \brief  This function has effect only if this bundle has to be reforwarded for some reason.
+ *
+ * \details We refill the contacts' MTVs of the previous route computed for this bundle.
+ *          CGRR Ext. Block is required.
+ *
+ *
+ * \par Date Written:
+ *      11/12/20
+ *
+ * \return int
+ *
+ * \retval  0  Success case: MTV updated
+ * \retval -1  Some error occurred
+ *
+ * \param[in]   *bundle        The bundle to forward
+ * \param[in]   *cgrrExtBlk    The ExtensionBlock type of CGRR
+ * \param[in]   *resultBlk     The CGRRouteBlock extracted from the CGRR Extension Block.
+ * \param[in]   reference_time The reference time used to convert POSIX time in differential time from it.
+ *
+ * \warning bundle    doesn't have to be NULL
+ * \warning cgrrExtBlk doesn't have to be NULL
+ * \warning cgrrBlk   doesn't have to be NULL
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  11/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 static int refill_mtv_into_ion(uvast fromNode, uvast toNode, time_t fromTime, unsigned int tolerance, uvast refillSize, int priority, time_t reference_time)
 {
 	Sdr sdr = getIonsdr();
@@ -1590,6 +1635,7 @@ static int convert_scalar_from_cgr_to_ion(CgrScalar *cgr_scalar, Scalar *ion_sca
 	return result;
 }
 
+
 /******************************************************************************
  *
  * \par Function Name:
@@ -1625,8 +1671,6 @@ static int convert_scalar_from_cgr_to_ion(CgrScalar *cgr_scalar, Scalar *ion_sca
  *                1.    All the contacts will be searched in the ION's contacts graph, and
  *                      then the contact found will be added in the list.
  *                2.    The ION's list mantains the same order of the CGR's list.
- *                3.    To the ION's contact this function adds the citations to the
- *                      hop of the list where is the contact.
  *
  * \par Revision History:
  *
@@ -1663,28 +1707,6 @@ static int convert_hops_list_from_cgr_to_ion(time_t reference_time, PsmPartition
 					else
 					{
 						result++;
-
-						if (IonTreeContact->citations == 0)
-						{
-							IonTreeContact->citations = sm_list_create(ionwm);
-							if (IonTreeContact->citations == 0)
-							{
-								result = -2;
-							}
-						}
-
-						if (result != -2)
-						{
-							if (sm_list_insert_last(ionwm, IonTreeContact->citations, citation)
-									== 0)
-							{
-								result = -2;
-							}
-							else
-							{
-								result++;
-							}
-						}
 					}
 				}
 				else
@@ -1705,111 +1727,6 @@ static int convert_hops_list_from_cgr_to_ion(time_t reference_time, PsmPartition
 
 	return result;
 }
-
-#if (STORE_ROUTES_IN_ION_SELECTED_ROUTES)
-/******************************************************************************
- *
- * \par Function Name:
- *      search_route_in_ion_selected_routes
- *
- * \brief   Search a route in the selectedRoutes of the ION's routing object of the terminus node.
- *          The route must have an equal hops list.
- *
- *
- * \par Date Written:
- *      19/02/20
- *
- * \return int
- *
- * \retval   0  Route found
- * \retval  -1  Route not found
- *
- * \param[in]    ionwm          The partition of the ION's contacts graph
- * \param[in]    *route         The CGR's route that we want to search in ION
- * \param[in]    *rtgObj        The routing object where we search the route
- * \param[out]   **IonRoute     The route found (only if result == 0)
- * \param[in]    reference_time The reference time used to convert POSIX time in differential time from it.
- *
- *
- * \par Revision History:
- *
- *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
- *  -------- | --------------- | -----------------------------------------------
- *  19/02/20 | L. Persampieri  |  Initial Implementation and documentation.
- *****************************************************************************/
-static int search_route_in_ion_selected_routes(PsmPartition ionwm, Route *route,
-		CgrRtgObject *rtgObj, CgrRoute **IonRoute, time_t reference_time)
-{
-	int result = -1, found, stop;
-	PsmAddress selElt, hopEltSelected, addr;
-	ListElt *hopEltCgr;
-	CgrRoute *selectedRoute;
-	IonCXref *contactSelected;
-	Contact *contactCgr;
-
-	if (route != NULL && rtgObj != NULL)
-	{
-		found = 0;
-		for (selElt = sm_list_first(ionwm, rtgObj->selectedRoutes); selElt && !found; selElt =
-				sm_list_next(ionwm, selElt))
-		{
-			selectedRoute = psp(ionwm, sm_list_data(ionwm, selElt));
-			if (selectedRoute != NULL)
-			{
-				if (route->neighbor == selectedRoute->toNodeNbr)
-				{
-					if (route->hops->length == sm_list_length(ionwm, selectedRoute->hops))
-					{
-						hopEltSelected = sm_list_first(ionwm, selectedRoute->hops);
-						stop = 0;
-						for (hopEltCgr = route->hops->first; hopEltCgr != NULL && !stop; hopEltCgr =
-								hopEltCgr->next)
-						{
-							contactCgr = (Contact*) hopEltCgr->data;
-							addr = sm_list_data(ionwm, hopEltSelected);
-							if (addr != 0)
-							{
-								contactSelected = (IonCXref*) psp(ionwm, addr);
-
-								if (contactCgr != NULL && contactSelected != NULL)
-								{
-									if (contactCgr->fromNode != contactSelected->fromNode
-											|| contactCgr->toNode != contactSelected->toNode
-											|| ((contactCgr->fromTime + reference_time)
-													!= contactSelected->fromTime))
-									{
-										stop = 1;
-									}
-								}
-								else
-								{
-									stop = 1;
-								}
-
-								hopEltSelected = sm_list_next(ionwm, hopEltSelected);
-							}
-							else
-							{
-								stop = 1;
-							}
-						}
-
-						if (!stop)
-						{
-							found = 1;
-							*IonRoute = psp(ionwm, sm_list_data(ionwm, selElt));
-							result = 0;
-						}
-
-					}
-				}
-			}
-		}
-	}
-
-	return result;
-}
-#endif
 
 /******************************************************************************
  *
@@ -1847,109 +1764,91 @@ static int convert_routes_from_cgr_to_ion(time_t reference_time, PsmPartition io
 		long unsigned int evc, List cgrRoutes, Lyst IonRoutes)
 {
 	ListElt *elt;
-	PsmAddress addr, hops;
+	PsmAddress hops;
 	CgrRoute *IonRoute = NULL;
 	Route *current;
 	int tmp;
-#if (STORE_ROUTES_IN_ION_SELECTED_ROUTES)
-	CgrRtgObject *rtgObj = (CgrRtgObject*) psp(ionwm, terminusNode->routingObject);
-	PsmAddress ref;
-#endif
+	CurrentCallSAP *currSap = get_current_call_sap(NULL);
+	CgrRoute *newRoute;
+	LystElt nextRouteElt;
 
 	int result = 0;
+
+	nextRouteElt = lyst_first(currSap->routes);
 
 	for (elt = cgrRoutes->first; elt != NULL && result >= 0; elt = elt->next)
 	{
 		if (elt->data != NULL)
 		{
 			current = (Route*) elt->data;
-#if (STORE_ROUTES_IN_ION_SELECTED_ROUTES)
-			// TODO currently it is only a cost that doesn't introduce benefits...
-			// TODO consider to remove this search into ION's selectedRoutes...
-			if (search_route_in_ion_selected_routes(ionwm, current, rtgObj, &IonRoute, reference_time) == 0)
+
+			if (nextRouteElt == NULL)
 			{
-				//update values for the forwarding of the current bundle
-				IonRoute->arrivalTime = current->arrivalTime +reference_time;
+				newRoute = MTAKE(sizeof(CgrRoute));
+
+				if(newRoute == NULL)
+				{
+					return -2;
+				}
+
+				memset((char*) newRoute, 0, sizeof(CgrRoute));
+
+				newRoute->hops = sm_list_create(ionwm);
+				nextRouteElt = lyst_insert_last(currSap->routes, newRoute);
+
+				if (nextRouteElt == NULL || newRoute->hops == 0)
+				{
+					return -2;
+				}
+
+			}
+			IonRoute = lyst_data(nextRouteElt);
+			hops = IonRoute->hops;
+			nextRouteElt = lyst_next(nextRouteElt);
+
+			if (IonRoute != NULL && hops != 0)
+			{
+				sm_list_clear(ionwm, hops, NULL, NULL);
+				IonRoute->toNodeNbr = current->neighbor;
+				IonRoute->fromTime = current->fromTime + reference_time;
+				IonRoute->toTime = current->toTime + reference_time;
+				IonRoute->arrivalConfidence = current->arrivalConfidence;
+				IonRoute->arrivalTime = current->arrivalTime + reference_time;
 				IonRoute->maxVolumeAvbl = current->routeVolumeLimit;
 				IonRoute->bundleECCC = evc;
-				IonRoute->eto = current->eto +reference_time;
-				IonRoute->pbat = current->pbat +reference_time;
-				convert_scalar_from_cgr_to_ion(&(current->committed), &(IonRoute->protected));
-				convert_scalar_from_cgr_to_ion(&(current->overbooked), &(IonRoute->overbooked));
+				IonRoute->eto = current->eto + reference_time;
+				IonRoute->pbat = current->pbat + reference_time;
+				convert_scalar_from_cgr_to_ion(&(current->committed),
+						&(IonRoute->protected));
+				convert_scalar_from_cgr_to_ion(&(current->overbooked),
+						&(IonRoute->overbooked));
 
-				printDebugIonRoute(ionwm, IonRoute);
-				if (lyst_insert_last(IonRoutes, (void *) IonRoute) == NULL)
+				tmp = convert_hops_list_from_cgr_to_ion(reference_time, ionwm,
+						ionvdb, current->hops, hops);
+				if (tmp >= 0)
+				{
+					IonRoute->hops = hops;
+					printDebugIonRoute(ionwm, IonRoute);
+					if (lyst_insert_last(IonRoutes, (void*) IonRoute) == NULL)
+					{
+						result = -2;
+					}
+				}
+				else if (tmp == -3)
+				{
+					writeLog(
+							"(Interface) Skipped route to neighbor %llu, conversion failed.",
+							current->neighbor);
+				}
+				else
 				{
 					result = -2;
 				}
 			}
 			else
 			{
-#endif
-				addr = psm_zalloc(ionwm, sizeof(CgrRoute));
-				hops = sm_list_create(ionwm);
-
-				if (addr != 0 && hops != 0)
-				{
-#if (STORE_ROUTES_IN_ION_SELECTED_ROUTES)
-					// TODO currently it is only a cost that doesn't introduce benefits...
-					// TODO consider to remove this insertion into ION's selectedRoutes
-					ref = sm_list_insert_last(ionwm, rtgObj->selectedRoutes, addr);
-					IonRoute->referenceElt = ref;
-					if (ref != 0)
-					{
-#endif
-						IonRoute = (CgrRoute*) psp(ionwm, addr);
-						memset((char*) IonRoute, 0, sizeof(CgrRoute));
-						IonRoute->toNodeNbr = current->neighbor;
-						IonRoute->fromTime = current->fromTime + reference_time;
-						IonRoute->toTime = current->toTime + reference_time;
-						IonRoute->arrivalConfidence = current->arrivalConfidence;
-						IonRoute->arrivalTime = current->arrivalTime + reference_time;
-						IonRoute->maxVolumeAvbl = current->routeVolumeLimit;
-						IonRoute->bundleECCC = evc;
-						IonRoute->eto = current->eto + reference_time;
-						IonRoute->pbat = current->pbat + reference_time;
-						convert_scalar_from_cgr_to_ion(&(current->committed),
-								&(IonRoute->protected));
-						convert_scalar_from_cgr_to_ion(&(current->overbooked),
-								&(IonRoute->overbooked));
-
-						tmp = convert_hops_list_from_cgr_to_ion(reference_time, ionwm, ionvdb, current->hops, hops);
-						if (tmp >= 0)
-						{
-							IonRoute->hops = hops;
-							printDebugIonRoute(ionwm, IonRoute);
-							if (lyst_insert_last(IonRoutes, (void*) IonRoute) == NULL)
-							{
-								result = -2;
-							}
-						}
-						else if (tmp == -3)
-						{
-							writeLog("(Interface) Skipped route to neighbor %llu, conversion failed.", current->neighbor);
-							removeRoute(ionwm, addr);
-						}
-						else
-						{
-							result = -2;
-							removeRoute(ionwm, addr);
-						}
-#if (STORE_ROUTES_IN_ION_SELECTED_ROUTES)
-					}
-					else
-					{
-						result = -2;
-					}
-#endif
-				}
-				else
-				{
-					result = -2;
-				}
-#if (STORE_ROUTES_IN_ION_SELECTED_ROUTES)
+				result = -2;
 			}
-#endif
 		}
 		else
 		{

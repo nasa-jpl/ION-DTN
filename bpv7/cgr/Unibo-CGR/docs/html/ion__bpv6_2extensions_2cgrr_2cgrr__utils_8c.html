@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Unibo-CGR: Unibo-CGR/ion_bpv6/extensions/cgrr/cgrr_utils.c File Reference</title>
+<title>Unibo-CGR: ion_bpv6/extensions/cgrr/cgrr_utils.c File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -61,7 +61,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_fe352c89d8f37282a0b367f2314b9b1e.html">Unibo-CGR</a></li><li class="navelem"><a class="el" href="dir_a5963ca25a5be905c030408399750dac.html">ion_bpv6</a></li><li class="navelem"><a class="el" href="dir_15d5a4f55451844bca7e33a903636241.html">extensions</a></li><li class="navelem"><a class="el" href="dir_de06300d67dc1f1d10c2ba884beefbf0.html">cgrr</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_24065510ea3b8fafd460c563fcd3029b.html">ion_bpv6</a></li><li class="navelem"><a class="el" href="dir_2aea47e73474349ee763a382c61492d7.html">extensions</a></li><li class="navelem"><a class="el" href="dir_ae027303796140585f694ad22ff8acbc.html">cgrr</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -109,6 +109,12 @@ Functions</h2></td></tr>
 <tr class="separator:a212511334be01f2b21c72ee7c76b1593"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac09a3cddbab54a99391613ce7c1c5cc6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ion__bpv6_2extensions_2cgrr_2cgrr__utils_8c.html#ac09a3cddbab54a99391613ce7c1c5cc6">getCGRRoute</a> (CgrRoute *in_route, <a class="el" href="struct_c_g_r_route.html">CGRRoute</a> *out_route)</td></tr>
 <tr class="separator:ac09a3cddbab54a99391613ce7c1c5cc6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a3087bcdaa9be6be7049b8f97fe5e55"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ion__bpv6_2extensions_2cgrr_2cgrr__utils_8c.html#a6a3087bcdaa9be6be7049b8f97fe5e55">cgrr_getUsedEvc</a> (Bundle *bundle, ExtensionBlock *cgrrExtBlk, uvast *size)</td></tr>
+<tr class="memdesc:a6a3087bcdaa9be6be7049b8f97fe5e55"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function, in success case, returns the previous EVC associated to the last route inserted into CGRR by local node's CGR.  <a href="ion__bpv6_2extensions_2cgrr_2cgrr__utils_8c.html#a6a3087bcdaa9be6be7049b8f97fe5e55">More...</a><br /></td></tr>
+<tr class="separator:a6a3087bcdaa9be6be7049b8f97fe5e55"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a401b9fba63ab22d354ff488de55d1806"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ion__bpv6_2extensions_2cgrr_2cgrr__utils_8c.html#a401b9fba63ab22d354ff488de55d1806">cgrr_setUsedEvc</a> (Bundle *bundle, ExtensionBlock *cgrrExtBlk, uvast evc)</td></tr>
+<tr class="memdesc:a401b9fba63ab22d354ff488de55d1806"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function, in success case, stores into CGRR the EVC passed as argument.  <a href="ion__bpv6_2extensions_2cgrr_2cgrr__utils_8c.html#a401b9fba63ab22d354ff488de55d1806">More...</a><br /></td></tr>
+<tr class="separator:a401b9fba63ab22d354ff488de55d1806"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides utility functions necessary for a full implementation of CGR Route Extension Block. </p>
@@ -395,6 +401,62 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a6a3087bcdaa9be6be7049b8f97fe5e55"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6a3087bcdaa9be6be7049b8f97fe5e55">&#9670;&nbsp;</a></span>cgrr_getUsedEvc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int cgrr_getUsedEvc </td>
+          <td>(</td>
+          <td class="paramtype">Bundle *&#160;</td>
+          <td class="paramname"><em>bundle</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ExtensionBlock *&#160;</td>
+          <td class="paramname"><em>cgrrExtBlk</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uvast *&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This function, in success case, returns the previous EVC associated to the last route inserted into CGRR by local node's CGR. </p>
+<dl class="section user"><dt>Function Name:</dt><dd>cgrr_getUsedEvc</dd></dl>
+<dl class="section user"><dt>Date Written:</dt><dd>09/12/20</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">2</td><td>We cannot read the data. </td></tr>
+    <tr><td class="paramname">1</td><td>The bundle is a new fragment, previous information in <a class="el" href="struct_c_g_r_r_object.html">CGRRObject</a> about used MTV are not more helpful. I suggests to recompute the EVC starting from fragment's payload. Size now contains payload (in bytes). </td></tr>
+    <tr><td class="paramname">0</td><td>Ok, the bundle has the same information stored into <a class="el" href="struct_c_g_r_r_object.html">CGRRObject</a>. size now contains the EVC previously stored. </td></tr>
+    <tr><td class="paramname">-1</td><td>Some error occurred.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section user"><dt>Notes:</dt><dd>This function help you to refill contact's MTV (of the discarded route) when a bundle is reforwarded, i.e. when the forfeit time is expired.</dd></dl>
+<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">09/12/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
+</table>
+
+</div>
+</div>
 <a id="a871193aca761695afb52e6a596019eb9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a871193aca761695afb52e6a596019eb9">&#9670;&nbsp;</a></span>cgrr_serializeCGRR()</h2>
 
@@ -449,6 +511,60 @@ Functions</h2></td></tr>
 <td class="markdownTableBodyNone">23/10/18   </td><td class="markdownTableBodyNone">L. Mazzuca   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
 </table>
 <p>Serialize the CGRRB into the allocated buffer *</p>
+
+</div>
+</div>
+<a id="a401b9fba63ab22d354ff488de55d1806"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a401b9fba63ab22d354ff488de55d1806">&#9670;&nbsp;</a></span>cgrr_setUsedEvc()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int cgrr_setUsedEvc </td>
+          <td>(</td>
+          <td class="paramtype">Bundle *&#160;</td>
+          <td class="paramname"><em>bundle</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ExtensionBlock *&#160;</td>
+          <td class="paramname"><em>cgrrExtBlk</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uvast&#160;</td>
+          <td class="paramname"><em>evc</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This function, in success case, stores into CGRR the EVC passed as argument. </p>
+<dl class="section user"><dt>Function Name:</dt><dd>cgrr_setUsedEvc</dd></dl>
+<dl class="section user"><dt>Date Written:</dt><dd>09/12/20</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>Success case </td></tr>
+    <tr><td class="paramname">-1</td><td>Some error occurred</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section user"><dt>Notes:</dt><dd>This function help you to refill contact's MTV (of the discarded route) when a bundle is reforwarded, i.e. when the forfeit time is expired.</dd></dl>
+<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">09/12/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
+</table>
 
 </div>
 </div>

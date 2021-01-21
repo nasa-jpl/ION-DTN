@@ -1,3 +1,38 @@
+/** \file time.c
+ *
+ *  \brief   This file contains the implementation the functions
+ *           to perform a Unibo-CGR computational load analysis
+ *
+ *
+ ** \copyright Copyright (c) 2020, Alma Mater Studiorum, University of Bologna, All rights reserved.
+ **
+ ** \par License
+ **
+ **    This file is part of Unibo-CGR.                                            <br>
+ **                                                                               <br>
+ **    Unibo-CGR is free software: you can redistribute it and/or modify
+ **    it under the terms of the GNU General Public License as published by
+ **    the Free Software Foundation, either version 3 of the License, or
+ **    (at your option) any later version.                                        <br>
+ **    Unibo-CGR is distributed in the hope that it will be useful,
+ **    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ **    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ **    GNU General Public License for more details.                               <br>
+ **                                                                               <br>
+ **    You should have received a copy of the GNU General Public License
+ **    along with Unibo-CGR.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  \author Lorenzo Persampieri, lorenzo.persampieri@studio.unibo.it
+ *
+ *  \par Supervisor
+ *       Carlo Caini, carlo.caini@unibo.it
+ *
+ *  \par Acknowledgements
+ *       Thanks to Federico Marchetti for providing me with
+ *       a draft of this code.
+ */
+
+
 #include "time.h"
 
 #if (TIME_ANALYSIS_ENABLED)
@@ -26,17 +61,6 @@ typedef struct
 	int fd;
 } TimeFile;
 
-static TimeFile * get_time_file()
-{
-	static TimeFile timeFile;
-
-	return &timeFile;
-}
-
-#if (COMPUTE_PHASES_TIME)
-
-/******************** PHASES TIME SECTION ********************/
-
 typedef struct
 {
 	TimeRecorded phase_time;
@@ -49,6 +73,39 @@ typedef struct
 	PhaseTimeLogger phase_time_logger[3];
 } PhasesTime;
 
+static TimeFile * get_time_file()
+{
+	static TimeFile timeFile;
+
+	return &timeFile;
+}
+
+#if (COMPUTE_PHASES_TIME)
+
+/******************** PHASES TIME SECTION ********************/
+
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      get_phases_time
+ *
+ * \brief  Get the PhasesTime struct.
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return PhasesTime*
+ *
+ * \retval PhasesTime*  The reference to PhasesTime struct.
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 static PhasesTime *get_phases_time()
 {
 	static PhasesTime phasesTime;
@@ -56,6 +113,28 @@ static PhasesTime *get_phases_time()
 	return &phasesTime;
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      record_phases_start_time
+ *
+ * \brief  Save the begin time of the CGR's phases passed as argument.
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ * \param[in]  phase  The CGR's phase
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void record_phases_start_time(UniboCgrPhase phase)
 {
 	PhasesTime *phasesTime = get_phases_time();
@@ -92,6 +171,28 @@ void record_phases_start_time(UniboCgrPhase phase)
 	return;
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      record_phases_stop_time
+ *
+ * \brief  Save the end time of the CGR's phases passed as argument.
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ * \param[in]  phase  The CGR's phase
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void record_phases_stop_time(UniboCgrPhase phase)
 {
 	PhasesTime *phasesTime;
@@ -169,6 +270,28 @@ typedef struct
 
 /******************** TOTAL CORE TIME SECTION ********************/
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      get_total_core_time
+ *
+ * \brief  Get the TotalTime struct (for core).
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return TotalTime*
+ *
+ * \retval TotalTime*  The reference to TotalTime struct.
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 static TotalTime *get_total_core_time()
 {
 	static TotalTime totalTime;
@@ -176,6 +299,26 @@ static TotalTime *get_total_core_time()
 	return &totalTime;
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      record_total_core_start_time
+ *
+ * \brief  Save the begin time of the Unibo-CGR's core (1 bundle routing).
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void record_total_core_start_time()
 {
 	TotalTime *totalTime = get_total_core_time();
@@ -185,6 +328,26 @@ void record_total_core_start_time()
 	return;
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      record_total_core_stop_time
+ *
+ * \brief  Save the end time of the Unibo-CGR's core (1 bundle routing).
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void record_total_core_stop_time()
 {
 	TotalTime *totalTime;
@@ -215,6 +378,28 @@ void record_total_core_stop_time()
 
 /******************** TOTAL INTERFACE TIME SECTION ********************/
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      get_total_interface_time
+ *
+ * \brief  Get the TotalTime struct (for interface).
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return TotalTime*
+ *
+ * \retval TotalTime*  The reference to TotalTime struct.
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 static TotalTime *get_total_interface_time()
 {
 	static TotalTime totalTime;
@@ -222,6 +407,26 @@ static TotalTime *get_total_interface_time()
 	return &totalTime;
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      record_total_interface_start_time
+ *
+ * \brief  Save the begin time of the Unibo-CGR's interface (1 bundle routing).
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void record_total_interface_start_time()
 {
 	TotalTime *totalTime = get_total_interface_time();
@@ -231,6 +436,26 @@ void record_total_interface_start_time()
 	return;
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      record_total_interface_stop_time
+ *
+ * \brief  Save the end time of the Unibo-CGR's interface (1 bundle routing).
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void record_total_interface_stop_time()
 {
 	TotalTime *totalTime;
@@ -259,12 +484,35 @@ void record_total_interface_stop_time()
 
 #endif
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      print_time_results
+ *
+ * \brief  Print on file total_<local_node_number>.csv the recorded times.
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ * \param[in]  currentTime  The Unibo-CGR's internal current time
+ * \param[in]  callNumber   The progressive Unibo-CGR's core call number
+ * \param[in]  *id          The bundle's ID
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void print_time_results(time_t currentTime, unsigned int callNumber, CgrBundleID *id)
 {
 	TimeFile *timeFile = get_time_file();
 #if (COMPUTE_PHASES_TIME)
 	PhasesTime *phasesTime = get_phases_time();
-	int i;
 #endif
 #if (COMPUTE_TOTAL_CORE_TIME)
 	TotalTime *totalCoreTime = get_total_core_time();
@@ -273,7 +521,8 @@ void print_time_results(time_t currentTime, unsigned int callNumber, CgrBundleID
 	TotalTime *totalInterfaceTime = get_total_interface_time();
 #endif
 	char row[256];
-	char phasesString[220];
+	PhasesTime copiedPhasesTime;
+	int i;
 	unsigned long long totalCore = 0;
 	unsigned long long totalInterface = 0;
 	int written;
@@ -295,26 +544,31 @@ void print_time_results(time_t currentTime, unsigned int callNumber, CgrBundleID
 #endif
 
 #if (COMPUTE_PHASES_TIME)
-	sprintf(phasesString, "%llu,%u,%llu,%u,%llu,%u",
-			phasesTime->phase_time_logger[0].timer,
-			phasesTime->phase_time_logger[0].call_counter,
-			phasesTime->phase_time_logger[1].timer,
-			phasesTime->phase_time_logger[1].call_counter,
-			phasesTime->phase_time_logger[2].timer,
-			phasesTime->phase_time_logger[2].call_counter);
-
 	for(i = 0; i < 3; i++)
 	{
+		copiedPhasesTime.phase_time_logger[i].timer = phasesTime->phase_time_logger[i].timer;
+		copiedPhasesTime.phase_time_logger[i].call_counter = phasesTime->phase_time_logger[i].call_counter;
+
 		phasesTime->phase_time_logger[i].timer = 0;
 		phasesTime->phase_time_logger[i].call_counter = 0;
 	}
 #else
-	strcpy(phasesString, "0,0,0,0,0,0");
+	for(i = 0; i < 3; i++)
+	{
+		copiedPhasesTime.phase_time_logger[i].timer = 0;
+		copiedPhasesTime.phase_time_logger[i].call_counter = 0;
+	}
 #endif
 
-	written = sprintf(row, "%llu,%ld,%u,%llu,%u,%u,%u,%u,%llu,%llu,%s\n", get_local_node(), (long int) currentTime, callNumber,
+	written = sprintf(row, "%llu,%ld,%u,%llu,%u,%u,%u,%u,%llu,%llu,%llu,%u,%llu,%u,%llu,%u\n", get_local_node(), (long int) currentTime, callNumber,
 			id->source_node, id->creation_timestamp, id->sequence_number, id->fragment_length,
-			id->fragment_offset, totalInterface, totalCore, phasesString);
+			id->fragment_offset, totalInterface, totalCore,
+			copiedPhasesTime.phase_time_logger[0].timer,
+			copiedPhasesTime.phase_time_logger[0].call_counter,
+			copiedPhasesTime.phase_time_logger[1].timer,
+			copiedPhasesTime.phase_time_logger[1].call_counter,
+			copiedPhasesTime.phase_time_logger[2].timer,
+			copiedPhasesTime.phase_time_logger[2].call_counter);
 
 	if(written > 0 && timeFile->configured && timeFile->fd >= 0)
 	{
@@ -325,6 +579,26 @@ void print_time_results(time_t currentTime, unsigned int callNumber, CgrBundleID
 	}
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      initialize_time_analysis
+ *
+ * \brief  Initialize files and data for the computational load analysis.
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void initialize_time_analysis()
 {
 	TimeFile *timeFile = get_time_file();
@@ -353,6 +627,26 @@ void initialize_time_analysis()
 	}
 }
 
+/******************************************************************************
+ *
+ * \par Function Name:
+ *      destroy_time_analysis
+ *
+ * \brief  Close files and clear data.
+ *
+ *
+ * \par Date Written:
+ *      20/12/20
+ *
+ * \return void
+ *
+ *
+ * \par Revision History:
+ *
+ *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
+ *  -------- | --------------- | -----------------------------------------------
+ *  20/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *****************************************************************************/
 void destroy_time_analysis()
 {
 	TimeFile *timeFile = get_time_file();

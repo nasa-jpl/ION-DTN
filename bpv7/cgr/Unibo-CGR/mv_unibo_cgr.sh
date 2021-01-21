@@ -114,6 +114,8 @@ function mv_unibo_cgr_to_ion() {
 	rm -rf "$ION_BPV6/cgr/Unibo-CGR/ion_bpv7"
 	rm -rf "$ION_BPV6/cgr/Unibo-CGR/dtn2"
 	rm -f "$ION_BPV6/cgr/Unibo-CGR/mv_unibo_cgr.sh"
+	rm -f "$ION_BPV6/cgr/Unibo-CGR/.gitlab-ci.yml"
+	rm -rf "$ION_BPV6/cgr/Unibo-CGR/docs/.doxygen"
 #	rm -rf "$ION_BPV6/cgr/Unibo-CGR/ion_bpv6/aux_files"
 #	rm -rf "$ION_BPV6/cgr/Unibo-CGR/ion_bpv6/extensions"
 
@@ -137,6 +139,8 @@ function mv_unibo_cgr_to_ion() {
 	rm -rf "$ION_BPV7/cgr/Unibo-CGR/ion_bpv6"
 	rm -rf "$ION_BPV7/cgr/Unibo-CGR/dtn2"
 	rm -f "$ION_BPV7/cgr/Unibo-CGR/mv_unibo_cgr.sh"
+	rm -f "$ION_BPV7/cgr/Unibo-CGR/.gitlab-ci.yml"
+	rm -rf "$ION_BPV7/cgr/Unibo-CGR/docs/.doxygen"
 #	rm -rf "$ION_BPV7/cgr/Unibo-CGR/ion_bpv7/aux_files"
 #	rm -rf "$ION_BPV7/cgr/Unibo-CGR/ion_bpv7/extensions"
 
@@ -194,6 +198,8 @@ function mv_unibo_cgr_to_dtn2() {
 	rm -rf "$DTN2_ROUTING/Unibo-CGR/ion_bpv6"
 	rm -rf "$DTN2_ROUTING/Unibo-CGR/ion_bpv7"
 	rm -f "$DTN2_ROUTING/Unibo-CGR/mv_unibo_cgr.sh"
+	rm -f "$DTN2_ROUTING/Unibo-CGR/.gitlab-ci.yml"
+	rm -rf "$DTN2_ROUTING/Unibo-CGR/docs/.doxygen"
 #	rm -rf "$DTN2_ROUTING/Unibo-CGR/dtn2/aux_files"
 
 	echo "Updating Unibo-CGR's config.h file for DTN2..."
