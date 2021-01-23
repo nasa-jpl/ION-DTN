@@ -31,15 +31,6 @@
 #ifndef SOURCES_INTERFACE_CGR_ION_H_
 #define SOURCES_INTERFACE_CGR_ION_H_
 
-#ifndef UNIBO_CGR
-/**
- * \brief Enable (1) or disable (0) Unibo-CGR as dynamic routing algorithm.
- *
- * \hideinitializer
- */
-#define UNIBO_CGR 1
-#endif
-
 #if UNIBO_CGR
 
 

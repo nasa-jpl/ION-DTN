@@ -32,15 +32,6 @@
 
 #include "rgr_utils.h"
 
-#ifndef	RGREB
-/**
- * \brief Enable (1) or disable (0) RGR Extension Block.
- *
- * \hideinitializer
- */
-#define	RGREB	0
-#endif
-
 #define	EXTENSION_TYPE_RGR	22 //Unused define in BPv7
 
 extern int	rgr_offer(ExtensionBlock *, Bundle *);

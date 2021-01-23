@@ -1,0 +1,136 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# January 18, 2021
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./1.bench.stcp/bench.bprc \
+./1.bench.stcp/bench.ionconfig \
+./1.bench.stcp/bench.ionrc \
+./1.bench.stcp/bench.ionsecrc \
+./1.bench.stcp/bench.ipnrc \
+./2.bench.stcp/bench.bprc \
+./2.bench.stcp/bench.ionconfig \
+./2.bench.stcp/bench.ionrc \
+./2.bench.stcp/bench.ionsecrc \
+./2.bench.stcp/bench.ipnrc \
+./3.bench.stcp/bench.bprc \
+./3.bench.stcp/bench.ionconfig \
+./3.bench.stcp/bench.ionrc \
+./3.bench.stcp/bench.ionsecrc \
+./3.bench.stcp/bench.ipnrc \
+./4.bench.stcp/bench.bprc \
+./4.bench.stcp/bench.ionconfig \
+./4.bench.stcp/bench.ionrc \
+./4.bench.stcp/bench.ionsecrc \
+./4.bench.stcp/bench.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: produce simple throughput benchmark results for performance
+	of contact graph routing (SABR) operations.  The test is
+	performed using the simplified TCP convergence-layer protocol
+	between nodes residing on the same computer.  The nodes are in
+	a diamond topology, with source node 1 sending to destination
+	node 4 via relay nodes 2 and 3 that are not mutually visible."
+
+echo
+echo "CONFIG: 4 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 1.bench.stcp
+./ionstart
+cd ../2.bench.stcp
+./ionstart
+cd ../3.bench.stcp
+./ionstart
+cd ../4.bench.stcp
+./ionstart
+
+sleep 3
+echo ""
+echo "Sending 13,000 bundles of 1000 bytes each."
+cd ../4.bench.stcp
+bpcounter ipn:4.1 13000 &
+BPCOUNTER_PID=$!
+sleep 1
+
+cd ../1.bench.stcp
+bpdriver 13000 ipn:1.1 ipn:4.1 -1000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "...transmission finished."
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 300 ]
+	then
+		#infinite loop protection
+		echo "...5 minutes passed; giving up."
+		RUNNING=0
+		RETVAL=1
+	fi
+done
+
+if [ $RETVAL -eq 1 ]
+then
+	echo "Test did not complete."
+fi
+
+cd ../1.bench.stcp
+bpstats
+cd ../2.bench.stcp
+bpstats
+cd ../3.bench.stcp
+bpstats
+cd ../4.bench.stcp
+bpstats
+sleep 1
+
+echo "Stopping ION..."
+cd ../1.bench.stcp
+./ionstop &
+cd ../2.bench.stcp
+./ionstop &
+cd ../3.bench.stcp
+./ionstop &
+cd ../4.bench.stcp
+./ionstop &
+sleep 8
+killm
+echo "...benchmarking terminated."
+exit $RETVAL

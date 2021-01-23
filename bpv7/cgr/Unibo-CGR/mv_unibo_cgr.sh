@@ -75,6 +75,67 @@ function update_config_file() {
 	sed -i '/^[[:space:]]*#ifndef[[:space:]]\+'"$MACRO"'[[:space:]]*$/,/^[[:space:]]*#endif[[:space:]]*$/s/^[[:space:]]*#define[[:space:]]\+'"$MACRO"'[[:space:]]\+.*$/#define '"$MACRO $VALUE"'/' "$PATH_TO_CONFIG_FILE"
 }
 
+function update_configure_ac_ion() {
+	CONF_AC="$1/configure.ac"
+	
+	if ! test -f "$CONF_AC" ; then # check regular file
+		return 1
+	elif ! test -r "$CONF_AC" ; then # check read permission
+		return 1
+	fi
+
+# first, check if the configure.ac file was previously modified by this script
+
+	if egrep -q -i 'Unibo[-_]?CGR' "$CONF_AC" ; then
+		# Unibo-CGR match, case insensitive, with or without dash or underscore
+		# OK, nothing to do
+		return 0
+	fi
+	
+	if ! test -w "$CONF_AC" ; then # check write permission
+		return 1
+	fi
+	
+# store the following lines into "TO_ADD" variable...
+TO_ADD='
+#
+# allow the user running configure to build Unibo-CGR
+#
+AC_ARG_ENABLE(
+    unibo-cgr,
+    [AC_HELP_STRING([--enable-unibo-cgr], [force build of Unibo-CGR])],
+    [UNIBO_CGR=true
+    AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])],
+    [])
+AM_CONDITIONAL(UNIBO_CGR, test x$UNIBO_CGR = xtrue)'
+	
+	tmp_file="$(mktemp)" #create aux file
+
+	if ! test -f "$tmp_file" ; then # check regular file
+		return 1
+	elif ! test -w "$tmp_file" ; then # check write permission
+		return 1
+	elif ! test -r "$tmp_file" ; then # check read permission
+		return 1
+	fi
+	
+	DONE="false"
+
+	while read line ; do
+		echo "$line" >> "$tmp_file"
+		if test "$DONE" != "true" && echo "$line" | grep -q '##Process user flags' ; then
+			# add here Unibo-CGR configure option
+			echo "$TO_ADD" >> "$tmp_file"
+			echo "" >> "$tmp_file"
+			DONE="true"
+		fi
+	done < "$CONF_AC"
+	
+	cat "$tmp_file" > "$CONF_AC"
+	rm -f "$tmp_file"
+	
+}
+
 function mv_unibo_cgr_to_ion() {
 
 	UNIBO_CGR="$1"
@@ -88,9 +149,9 @@ function mv_unibo_cgr_to_ion() {
 	EXT_BPV6="$UNIBO_CGR/ion_bpv6/extensions"
 	CONFIG_FILE_BPV6="$ION_BPV6/cgr/Unibo-CGR/core/config.h"
 
-	echo
+	echo ""
 	echo "Moving Unibo-CGR into ION..."
-	echo
+	echo ""
 
 	echo "Moving Unibo-CGR into bpv6..."
 	rm -rf "$ION_BPV6/cgr/Unibo-CGR"
@@ -144,13 +205,17 @@ function mv_unibo_cgr_to_ion() {
 #	rm -rf "$ION_BPV7/cgr/Unibo-CGR/ion_bpv7/aux_files"
 #	rm -rf "$ION_BPV7/cgr/Unibo-CGR/ion_bpv7/extensions"
 
-
-
 	echo "Updating Unibo-CGR's config.h file for ION..."
 	update_config_file "$CONFIG_FILE_BPV6" CGR_BUILD_FOR_ION 1
 	update_config_file "$CONFIG_FILE_BPV7" CGR_BUILD_FOR_ION 1
+	
+	echo ""
+	echo "Updating configure.ac..."
+	if ! update_configure_ac_ion "$ION" ; then
+		echo "ERROR: Cannot update configure.ac." 1>&2
+	fi
 
-	echo
+	echo ""
 
 	AUTORECONF=""
 	LIBTOOLIZE=""
@@ -170,10 +235,15 @@ function mv_unibo_cgr_to_ion() {
 	if test "$AUTORECONF" != "missing" -a "$LIBTOOLIZE" != "missing"
 	then
 		echo "Updating the configure script..."
-		cd "$ION" && autoreconf -fi && echo -e "\nNow you can compile and install in the usual way with configure/make/make install\n"
+		cd "$ION" && autoreconf -fi && echo -e "\nNow you can compile and install in the usual way with configure/make/make install\n" \
+		&& echo "configure sintax from ION's root directory:" \
+		&& echo "./configure --enable-unibo-cgr CPPFLAGS='-DRGREB=1 -DCGRREB=1'" \
+		&& echo "If you don't want RGR or CGRR just don't specify them in CPPFLAGS."
 	else
 		echo -e "\nPlease install missing packages and launch autoreconf -fi in $ION to update the configure script.\n" 1>&2
 	fi
+	
+	echo ""
 }
 
 function mv_unibo_cgr_to_dtn2() {
@@ -183,7 +253,7 @@ function mv_unibo_cgr_to_dtn2() {
 	DTN2_ROUTING="$DTN2/servlib/routing"
 	CONFIG_FILE="$DTN2_ROUTING/Unibo-CGR/core/config.h"
 
-	echo
+	echo ""
 	echo "Moving Unibo-CGR into DTN2..."
 	rm -rf "$DTN2_ROUTING/Unibo-CGR"
 	cp -rpf "$UNIBO_CGR" "$DTN2_ROUTING/Unibo-CGR"
