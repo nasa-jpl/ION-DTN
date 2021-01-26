@@ -125,6 +125,11 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_sendBundleION(JNIEnv *env,
     // Ensure that there is actual payload to send
     if (payloadLength == 0)
     {
+        free(destEID);
+
+        (*env)->ReleaseStringUTFChars(env, dest_eid_, dest_EID);
+        (*env)->ReleaseByteArrayElements(env, payload_, (jbyte*)payload, 0);
+
         return -1;
     }
 
@@ -458,6 +463,7 @@ Java_gov_nasa_jpl_iondtn_backend_ReceiverRunnable_waitForBundle(JNIEnv *env,
     {
         putErrmsg("Can't handle delivery.",
                   NULL);
+	free(content);
         return NULL;
     }
 
@@ -535,6 +541,8 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_openEndpointION(JNIEnv *env,
     if (src_eid == NULL)
     {
         // empty EID, no initialization possible
+	free(data);
+	free(eidm);
         return 0;
     }
 
@@ -542,6 +550,7 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_openEndpointION(JNIEnv *env,
     if (bp_open(eidm, &data->sap) < 0)
     {
         putErrmsg("Can't open own endpoint.", eidm);
+	free(eidm);
         return 0;
     }
 

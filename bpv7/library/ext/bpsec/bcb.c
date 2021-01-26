@@ -95,7 +95,8 @@ Object	bcbStoreOverflow(uint32_t suite, uint8_t *context,
 		writeOffset = 0;
 		if ((cipherBuffer = sdr_malloc(sdr, length * 2)) == 0)
 		{
-			/*	Something happens here?			*/
+			putErrmsg("No cipherBuffer.", NULL);
+			return 0;
 		}
 
 		if (cipherOverflow > 0)
