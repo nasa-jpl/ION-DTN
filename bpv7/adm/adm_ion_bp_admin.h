@@ -247,38 +247,8 @@
  * +---------------------+--------------------------------------+-------+
  * |protocol_add         |Establish access to the named converge|       |
  * |                     |nce layer protocol at the local node. |       |
- * |                     |The payloadBytesPerFrame and overheadB|       |
- * |                     |ytesPerFrame arguments are used in cal|       |
- * |                     |culating the estimated transmission ca|       |
- * |                     |pacity consumption of each bundle, to |       |
- * |                     |aid in route computation and congestin|       |
- * |                     |g forecasting. The optional nominalDat|       |
- * |                     |aRate argument overrides the hard code|       |
- * |                     |d default continuous data rate for the|       |
- * |                     | indicated protocol for purposes of ra|       |
- * |                     |te control. For all promiscuous protot|       |
- * |                     |ocols-that is, protocols whose outduct|       |
- * |                     |s are not specifically dedicated to tr|       |
- * |                     |ansmission to a single identified conv|       |
- * |                     |ergence-layer protocol endpoint- the p|       |
- * |                     |rotocol's applicable nominal continuou|       |
- * |                     |s data rate is the data rate that is a|       |
- * |                     |lways used for rate control over links|       |
- * |                     | served by that protocol; data rates a|       |
- * |                     |re not extracted from contact graph in|       |
- * |                     |formation. This is because only the in|       |
- * |                     |duct and outduct throttles for non-pro|       |
- * |                     |miscuous protocols (LTP, TCP) can be d|       |
- * |                     |ynamically adjusted in response to cha|       |
- * |                     |nges in data rate between the local no|       |
- * |                     |de and its neighbors, as enacted per t|       |
- * |                     |he contact plan. Even for an outduct o|       |
- * |                     |f a non-promiscuous protocol the nomin|       |
- * |                     |al data rate may be the authority for |       |
- * |                     |rate control, in the event that the co|       |
- * |                     |ntact plan lacks identified contacts w|       |
- * |                     |ith the node to which the outduct is m|       |
- * |                     |apped.                                |       |
+ * |                     |The optional protocolClass argument in|       |
+ * |                     |dicates the protocol's reliability.   |       |
  * +---------------------+--------------------------------------+-------+
  * |protocol_del         |Delete the convergence layer protocol |       |
  * |                     |identified by protocolName. The contro|       |

@@ -262,12 +262,9 @@ void dtn_ion_bpadmin_init_ctrl()
 
 	id = adm_build_ari(AMP_TYPE_CTRL, 1, g_dtn_ion_bpadmin_idx[ADM_CTRL_IDX], DTN_ION_BPADMIN_CTRL_PROTOCOL_ADD);
 	adm_add_ctrldef_ari(id, 4, NULL);
-	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_BPADMIN, "protocol_add", "Establish access to the named convergence layer protocol at the local node. The payloadBytesPerFrame and overheadBytesPerFrame arguments are used in calculating the estimated transmission capacity consumption of each bundle, to aid in route computation and congesting forecasting. The optional nominalDataRate argument overrides the hard coded default continuous data rate for the indicated protocol for purposes of rate control. For all promiscuous prototocols-that is, protocols whose outducts are not specifically dedicated to transmission to a single identified convergence-layer protocol endpoint- the protocol's applicable nominal continuous data rate is the data rate that is always used for rate control over links served by that protocol; data rates are not extracted from contact graph information. This is because only the induct and outduct throttles for non-promiscuous protocols (LTP, TCP) can be dynamically adjusted in response to changes in data rate between the local node and its neighbors, as enacted per the contact plan. Even for an outduct of a non-promiscuous protocol the nominal data rate may be the authority for rate control, in the event that the contact plan lacks identified contacts with the node to which the outduct is mapped.");
-
+	meta = meta_add_ctrl(id, ADM_ENUM_DTN_ION_BPADMIN, "protocol_add", "Establish access to the named convergence layer protocol at the local node. The optional protocolClass argument indicates the reliability of the protocol, in the event that the protocol is not one for which protocol class is already hard-coded in ION.");
 	meta_add_parm(meta, "protocol_name", AMP_TYPE_STR);
-	meta_add_parm(meta, "payload_bytes_per_frame", AMP_TYPE_UINT);
-	meta_add_parm(meta, "overhead_bytes_per_frame", AMP_TYPE_UINT);
-	meta_add_parm(meta, "nominal_data_rate", AMP_TYPE_UINT);
+	meta_add_parm(meta, "protocol_class", AMP_TYPE_UINT);
 
 	/* PROTOCOL_DEL */
 
