@@ -15,8 +15,8 @@ all:
 	gmake -C bssp install
 	gmake -C $(BPv) $@
 	gmake -C $(BPv) install
-#	gmake -C tc $@
-#	gmake -C tc install
+	gmake -C tc $@
+	gmake -C tc install
 	gmake -C nm $@
 	gmake -C nm install
 	gmake -C ams $@
