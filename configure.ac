@@ -204,6 +204,17 @@ AC_ARG_ENABLE(
     [])
 
 #
+# allow the user running configure to enable UniBo CGR
+#
+AC_ARG_ENABLE(
+    unibo-cgr,
+    [AC_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
+    [UNIBO_CGR=yes
+     echo "Building ION with UniBo CGR code"],
+    [UNIBO_CGR=no])
+AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
+
+#
 # allow the user running configure to disable manpage creation
 #
 AC_ARG_ENABLE(
