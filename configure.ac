@@ -209,8 +209,12 @@ AC_ARG_ENABLE(
 AC_ARG_ENABLE(
     unibo-cgr,
     [AC_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
-    [UNIBO_CGR=yes
-     echo "Building ION with UniBo CGR code"],
+    [if test "$BUILD_BPv7" == "true" ; then
+	UNIBO_CGR=yes
+	echo "Building ION with UniBo CGR code"
+     else
+	echo "UniBo CGR is not available with BP version 6"
+     fi],
     [UNIBO_CGR=no])
 AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
 
