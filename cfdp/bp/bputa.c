@@ -137,6 +137,7 @@ int	bputa(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char **argv)
 {
 #endif
+	const char	*ionversion;
 	char		ownEid[64];
 	BpSAP		txSap;
 	RxThreadParms	parms;
@@ -160,6 +161,7 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
+	ionversion = getIonVersionNbr();
 	isprintf(ownEid, sizeof ownEid, "ipn:" UVAST_FIELDSPEC ".%u",
 			getOwnNodeNbr(), CFDP_SEND_SVC_NBR);
 	if (bp_open_source(ownEid, &txSap, 1) < 0)
@@ -183,7 +185,8 @@ int	main(int argc, char **argv)
 
 	parms.mainThread = pthread_self();
 	parms.running = 1;
-	if (pthread_begin(&rxThread, NULL, receivePdus, &parms, "bputa_receiver"))
+	if (pthread_begin(&rxThread, NULL, receivePdus, &parms,
+			"bputa_receiver"))
 	{
 		bp_close(txSap);
 		putSysErrmsg("bputa can't create receiver thread", NULL);
@@ -213,6 +216,14 @@ terminating.");
 		{
 			memcpy((char *) &utParms, (char *) &fduBuffer.utParms,
 					sizeof(BpUtParms));
+
+			/*	ION versions 4.x are for BPv7, which
+			 *	does not include custody transfer.	*/
+
+			if (*ionversion != '3')
+			{
+				utParms.custodySwitch = NoCustodyRequested;
+			}
 		}
 		else
 		{

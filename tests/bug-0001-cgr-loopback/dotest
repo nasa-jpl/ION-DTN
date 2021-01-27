@@ -89,7 +89,7 @@ echo "Starting bpsink on ipn:2.2..."
 bpsink ipn:2.2 &> bpsink.out &
 sleep 5
 echo "bptrace from 2.1 to 2.2"
-bptrace ipn:2.1 ipn:2.2 ipn:2.0 60 1.0 "TEST ME" "rcv,fwd,dlv" &> bptrace.out &
+bptrace ipn:2.1 ipn:2.2 ipn:2.0 60 0.0 "TEST ME" "rcv,fwd,dlv" &> bptrace.out &
 sleep 5
 grep "[s].* status*" ion.log > statusReports.txt
 
