@@ -58,7 +58,7 @@ fi
 echo
 echo "Send data to node 2 with bpdriver..."
 cd ../1.ipn.tcp/
-bpdriver -100 ipn:1.1 ipn:2.1 -100 t120
+bpdriver 100 ipn:1.1 ipn:2.1 -100 t120
 
 echo
 echo "Give tcpclo time to try to send data..."
