@@ -149,7 +149,7 @@ cd ../2.ipn.ltp
 echo "Sending bptrace to with dtn:none reports..."
 # Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
 # it should be delivered.
-bptrace ipn:2.1 ipn:5.1 dtn:none 5 1.1 "Hope this doesn't crash ION" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:5.1 dtn:none 5 0.1 "Hope this doesn't crash ION" rcv,ct,fwd,dlv,del
 
 sleep 3
 
