@@ -44,11 +44,19 @@ else
     ITERATIONGOAL=$2
 fi
 
+OS=$1
+
 # Guess what ION will say if a bundle containing $1 is received.
 predictreceived () {
-    echo "ION event: Payload delivered."
-    echo "	payload length is ${#1}."
-    echo "	'${1}'"
+	if [[ $OS == "windows" ]]; then
+		echo -e "ION event: Payload delivered.\r"
+		echo -e "	payload length is ${#1}.\r"
+		echo -e "	'${1}'\r"
+	else
+		echo "ION event: Payload delivered."
+		echo "	payload length is ${#1}."
+		echo "	'${1}'"
+	fi
 }
 
 # Try 10 times to see if the bundle has been received.
