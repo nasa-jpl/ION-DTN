@@ -173,6 +173,7 @@ int	main(int argc, char **argv)
 	{
 		puts("Usage: bsscounter <number of bundles to receive> <BSS \
 database name> <path for BSS database files> <own endpoint ID>");
+		fflush(stdout);
 		return 1;
 	}
 #endif
@@ -206,6 +207,7 @@ database name> <path for BSS database files> <own endpoint ID>");
 		{
 		case -1:
 			puts("bss test failed.");
+			fflush(stdout);
 			result = 1;		/*	Failed.		*/
 			break;
 
@@ -218,6 +220,7 @@ database name> <path for BSS database files> <own endpoint ID>");
 			fprintf(stderr, "Received %d frames in total.\n",
 					limit);
 			puts("bss test succeeded.");
+			fflush(stdout);
 			result = 0;		/*	Succeeded.	*/
 			break;			/*	Out of switch.	*/
 		}
