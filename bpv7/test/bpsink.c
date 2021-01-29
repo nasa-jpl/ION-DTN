@@ -105,6 +105,7 @@ int	main(int argc, char **argv)
 		}
 
 		PUTMEMO("ION event", deliveryTypes[dlv.result - 1]);
+		fflush(NULL);
 		if (dlv.result == BpReceptionInterrupted)
 		{
 			continue;

@@ -14,11 +14,13 @@
 static void	reportError(void *userData, AmsEvent *event)
 {
 	PUTS("AMS event loop crashed.");
+	fflush(stdout);
 }
 
 static void	handleQuit(int signum)
 {
 	PUTS("Terminating amsbenchs.");
+	fflush(stdout);
 }
 
 #if defined (ION_LWT)
@@ -42,6 +44,7 @@ int	main(int argc, char **argv)
 	if (count < 1 || size < sizeof(int) || size > 65535)
 	{
 		PUTS("Usage: amsbenchs <# of msgs to send> <msg length>");
+		fflush(stdout);
 		return 0;
 	}
 
@@ -100,6 +103,7 @@ int	main(int argc, char **argv)
 
 	writeErrmsgMemos();
 	PUTS("Message publication ended; press ^C when test is done.");
+	fflush(stdout);
 	isignal(SIGINT, handleQuit);
 	snooze(3600);
 	ams_unregister(me);

@@ -39,6 +39,7 @@ static void	handleQuit(int signum)
 
 	isignal(SIGINT, handleQuit);
 	PUTS("BP reception interrupted.");
+	fflush(stdout);
 	state = _bptestState(NULL);
 	bp_interrupt(state->sap);
 	state->running = 0;
@@ -75,6 +76,7 @@ int	main(int argc, char **argv)
 	if (ownEid == NULL)
 	{
 		PUTS("Usage: bpsink <own endpoint ID>");
+		fflush(stdout);
 		return 0;
 	}
 
@@ -103,6 +105,7 @@ int	main(int argc, char **argv)
 		}
 
 		PUTMEMO("ION event", deliveryTypes[dlv.result - 1]);
+		fflush(stdout);
 		if (dlv.result == BpReceptionInterrupted)
 		{
 			continue;
@@ -122,6 +125,7 @@ int	main(int argc, char **argv)
 			isprintf(line, sizeof line, "\tpayload length is %d.",
 					contentLength);
 			PUTS(line);
+			fflush(stdout);
 			if (contentLength < sizeof content)
 			{
 				zco_start_receiving(dlv.adu, &reader);
@@ -139,6 +143,7 @@ int	main(int argc, char **argv)
 				content[contentLength] = '\0';
 				isprintf(line, sizeof line, "\t'%s'", content);
 				PUTS(line);
+				fflush(stdout);
 			}
 		}
 
@@ -148,6 +153,7 @@ int	main(int argc, char **argv)
 	bp_close(state.sap);
 	writeErrmsgMemos();
 	PUTS("Stopping bpsink.");
+	fflush(stdout);
 	bp_detach();
 	return 0;
 }
