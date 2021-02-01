@@ -1386,55 +1386,36 @@ in file and transaction reversibility", sdr->pathName);
 	if (sdr->configFlags & SDR_IN_DRAM)
 	{
 		dssm = NULL;
-		switch (sm_ShmAttach(sdr->dsKey, sdr->dsSize, &dssm, &dssmId))
+		if (sm_ShmAttach(sdr->dsKey, sdr->dsSize, &dssm, &dssmId) < 0)
 		{
-		case -1:	/*	Error.				*/
 			if (dsfile != -1) close(dsfile);
 			if (logfile != -1) close(logfile);
 			if (logsm) sm_ShmDetach(logsm);
 			putErrmsg("Can't attach to dataspace memory.", NULL);
 			destroySdr(sdr);	/*	Releases lock.	*/
 			return -1;
+		}
 
-		case 0:		/*	Reattaching to existing SDR.	*/
-			if (dsfile != -1)	/*	Also in file.	*/
-			{
-				/*	File is authoritative.		*/
+		if (dsfile == -1)	/*	No backup in file.	*/
+		{
+			/*	Just initialize the dataspace.		*/
 
-				if (restageDsFromFile(sdr, dsfile, dssm) < 0)
-				{
-					sm_ShmDetach(dssm);
-					if (dsfile != -1) close(dsfile);
-					if (logfile != -1) close(logfile);
-					if (logsm) sm_ShmDetach(logsm);
-					putErrmsg("Can't load ds from file.",
-							NULL);
-					destroySdr(sdr);
-					return -1;
-				}
-			}
+			initSdrMap((SdrMap *) dssm, sdr);
+		}
+		else			/*	Heap is also in file.	*/
+		{
+			/*	File is authoritative.			*/
 
-			/*	Back transaction out if not yet done.	*/
-
-			if (reverseTransaction(sdr, logfile, logsm, -1, dssm)
-					< 0)
+			if (restageDsFromFile(sdr, dsfile, dssm) < 0)
 			{
 				sm_ShmDetach(dssm);
 				if (dsfile != -1) close(dsfile);
 				if (logfile != -1) close(logfile);
 				if (logsm) sm_ShmDetach(logsm);
-				putErrmsg("Can't reverse log entries.", NULL);
-				destroySdr(sdr);/*	Releases lock.	*/
+				putErrmsg("Can't load ds from file.", NULL);
+				destroySdr(sdr);
 				return -1;
 			}
-
-			break;
-
-		default:	/*	Newly allocated partition.	*/
-
-			/*	Just initialize the dataspace.		*/
-
-			initSdrMap((SdrMap *) dssm, sdr);
 		}
 	}
 

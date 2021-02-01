@@ -642,6 +642,8 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 	sm_WmParms	ionwmParms;
 	char		*ionvdbName = _ionvdbName();
 	ZcoCallback	notify = ionProvideZcoSpace;
+	PsmPartition	ionwm;
+	IonVdb		*ionvdb;
 
 	CHKERR(parms);
 	CHKERR(ownNodeNbr);
@@ -763,29 +765,37 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 
 	default:		/*	Found DB in the SDR.		*/
 		sdr_exit_xn(ionsdr);
-		writeMemo("[?] Attempting duplicate node initialization.");
-		return -1;
 	}
 
 	oK(_iondbObject(&iondbObject));
 	oK(_ionConstants());
 
-	/*	Open ION shared-memory partition.			*/
+	/*	Open ION shared-memory partition as needed.		*/
 
-	ionwmParms.wmKey = parms->wmKey;
-	ionwmParms.wmSize = parms->wmSize;
-	ionwmParms.wmAddress = parms->wmAddress;
-	ionwmParms.wmName = ION_SM_NAME;
-	if (_ionwm(&ionwmParms) == NULL)
+	ionwm = _ionwm(NULL);
+	if (ionwm == NULL)
 	{
-		putErrmsg("ION memory configuration failed.", NULL);
-		return -1;
+		ionwmParms.wmKey = parms->wmKey;
+		ionwmParms.wmSize = parms->wmSize;
+		ionwmParms.wmAddress = parms->wmAddress;
+		ionwmParms.wmName = ION_SM_NAME;
+		if (_ionwm(&ionwmParms) == NULL)
+		{
+			putErrmsg("ION memory configuration failed.", NULL);
+			return -1;
+		}
 	}
 
-	if (_ionvdb(&ionvdbName) == NULL)
+	/*	Initialize ION volatile database as needed.		*/
+
+	ionvdb = _ionvdb(NULL);
+	if (ionvdb == NULL)
 	{
-		putErrmsg("ION can't initialize vdb.", NULL);
-		return -1;
+		if (_ionvdb(&ionvdbName) == NULL)
+		{
+			putErrmsg("ION can't initialize vdb.", NULL);
+			return -1;
+		}
 	}
 
 	zco_register_callback(notify);
