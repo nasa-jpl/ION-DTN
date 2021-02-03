@@ -371,6 +371,7 @@ iciinclude = \
 	ici/include/platform.h \
 	ici/include/platform_sm.h \
 	ici/include/psm.h \
+	ici/include/radix.h \
 	ici/include/rfx.h \
 	ici/include/sdr.h \
 	ici/include/sdrhash.h \
@@ -386,6 +387,7 @@ iciinclude = \
 
 icinoinst = \
 	ici/library/lystP.h \
+	ici/library/radixP.h \
 	ici/sdr/sdrP.h \
 	ici/test/file2sdr.h
 
@@ -504,6 +506,7 @@ libici_la_SOURCES =	\
 	ici/library/platform.c \
 	ici/library/platform_sm.c \
 	ici/library/psm.c \
+	ici/library/radix.c \
 	ici/library/rfx.c \
 	ici/library/smlist.c \
 	ici/library/smrbt.c \
@@ -1907,7 +1910,15 @@ bpextra = \
 	bpv7/library/ext/bpsec/bib.h \
 	bpv7/library/ext/bpsec/bpsec_instr.h \
 	bpv7/library/ext/bpsec/bpsec_util.h \
+	bpv7/library/ext/bpsec/bpsec_policy.h \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.h \
+	bpv7/library/ext/bpsec/bpsec_policy_event.h \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.h \
 	bpv7/library/ext/bpsec/profiles.h \
+	bpv7/library/ext/bpsec/bpsec_policy.c \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
+	bpv7/library/ext/bpsec/bpsec_policy_event.c \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
 	bpv7/library/ext/ecos/ecos.h \
 	bpv7/library/ext/ecos/ecos.c \
 	bpv7/library/ext/hcb/hcb.h \
@@ -2020,6 +2031,10 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/bpsec/bib.c \
 	bpv7/library/ext/bpsec/bpsec_instr.c \
 	bpv7/library/ext/bpsec/bpsec_util.c \
+	bpv7/library/ext/bpsec/bpsec_policy.c \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
+	bpv7/library/ext/bpsec/bpsec_policy_event.c \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
 	bpv7/library/ext/bpsec/profiles.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
@@ -2060,6 +2075,10 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/bpsec/bib.c \
 	bpv7/library/ext/bpsec/bpsec_instr.c \
 	bpv7/library/ext/bpsec/bpsec_util.c \
+	bpv7/library/ext/bpsec/bpsec_policy.c \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
+	bpv7/library/ext/bpsec/bpsec_policy_event.c \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
 	bpv7/library/ext/bpsec/profiles.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
@@ -3356,7 +3375,9 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/issue-334-cfdp-transaction-id/dotest \
 	tests/nm-unit/dotest \
 	tests/nm-unit/utils/vector/dotest \
-	tests/nm-unit/utils/rhht/dotest
+	tests/nm-unit/utils/rhht/dotest \
+	tests/nm-unit/utils/radix_pt/dotest \
+	tests/nm-unit/utils/radix_ut/dotest 	 	
 #	tests/nm-unit/primitives/ari/dotest
 
 if BUILD_BPv6
@@ -3378,6 +3399,14 @@ tests_nm_unit_utils_vector_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS
 tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(nm_shared_src)
 tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
 tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+
+tests_nm_unit_utils_radix_pt_dotest_SOURCES = tests/nm-unit/utils/radix_pt.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	 
+tests_nm_unit_utils_radix_pt_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
+tests_nm_unit_utils_radix_pt_dotest_CFLAGS = -O0 -g  $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+
+tests_nm_unit_utils_radix_ut_dotest_SOURCES = tests/nm-unit/utils/radix_ut.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	
+tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
+tests_nm_unit_utils_radix_ut_dotest_CFLAGS = -O0 -g  $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
 
 #tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
 #tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)

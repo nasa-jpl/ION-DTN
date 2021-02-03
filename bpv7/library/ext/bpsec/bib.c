@@ -58,6 +58,8 @@
 #include "bpsec_util.h"
 #include "bib.h"
 #include "bpsec_instr.h"
+#include "bpsec_policy.h"
+#include "bpsec_policy_rule.h"
 #include "bei.h"
 
 #if (BIB_DEBUGGING == 1)
@@ -94,6 +96,7 @@ extern char		gMsg[];		/*	Debug message buffer.	*/
  *  --------  ------------   ---------------------------------------------
  *  11/05/15  E. Birrane     Initial Implementation [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
+ *  07/19/18  S. Burleigh    Abandon bundle if can't attach BIB
  *****************************************************************************/
 
 int	bibDefaultCompute(Object dataObj, uint32_t chunkSize, uint32_t suite,
@@ -130,6 +133,7 @@ size %d.", chunkSize);
 length.", NULL);
 		MRELEASE(dataBuffer);
 		BIB_DEBUG_PROC("- bibDefaultCompute--> ERROR", NULL);
+
 		return ERROR;
 	}
 
@@ -141,6 +145,7 @@ length.", NULL);
 		BIB_DEBUG_ERR("x bibDefaultCompute - Can't start txn.", NULL);
 		MRELEASE(dataBuffer);
 		BIB_DEBUG_PROC("- bibDefaultCompute--> ERROR", NULL);
+
 		return ERROR;
 	}
 
@@ -168,8 +173,8 @@ length.", NULL);
 but expected %d.", bytesRetrieved, chunkSize);
 			sdr_exit_xn(sdr);
 			MRELEASE(dataBuffer);
-
 			BIB_DEBUG_PROC("- bibDefaultCompute--> ERROR", NULL);
+
 			return ERROR;
 		}
 
@@ -183,6 +188,7 @@ but expected %d.", bytesRetrieved, chunkSize);
 
 	sdr_exit_xn(sdr);
 	MRELEASE(dataBuffer);
+
 	return 1;
 }
 
@@ -440,6 +446,7 @@ static Object	bibFindOutboundTarget(Bundle *bundle, int blockNumber)
 		for (elt2 = sdr_list_first(sdr, asb.targets); elt2;
 				elt2 = sdr_list_next(sdr, elt2))
 		{
+
 			targetObj = sdr_list_data(sdr, elt2);
 			sdr_read(sdr, (char *) &target, targetObj,
 					sizeof(BpsecOutboundTarget));
@@ -579,6 +586,8 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 		BIB_DEBUG_ERR("x bibDefaultSign - Can't get context.", NULL);
 		MRELEASE(key.value);
 		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
+
+		/* TODO: Handle sop_misconf_at_src event */
 		return ERROR;
 	}
 
@@ -586,8 +595,11 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 	{
 		BIB_DEBUG_ERR("x bibDefaultSign - Can't start context.", NULL);
 		csi_ctx_free(suite, context);
+
 		MRELEASE(key.value);
 		BIB_DEBUG_PROC("- bibDefaultSign--> NULL", NULL);
+
+		/* TODO: Handle sop_misconf_at_src event */
 		return ERROR;
 	}
 
@@ -599,6 +611,8 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 		csi_ctx_free(suite, context);
 		MRELEASE(key.value);
 		BIB_DEBUG_PROC("- bibDefaultSign--> ERROR", NULL);
+
+		/* TODO: Handle sop_misconf_at_src event */
 		return ERROR;
 	}
 
@@ -609,6 +623,8 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 		csi_ctx_free(suite, context);
 		MRELEASE(key.value);
 		BIB_DEBUG_PROC("- bibDefaultSign--> ERROR", NULL);
+
+		/* TODO: Handle sop_misconf_at_src event */
 		return ERROR;
 	}
 
@@ -622,6 +638,8 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 		bundle->corrupt = 1;
 		scratchExtensionBlock(blk);
 		BIB_DEBUG_PROC("- bibDefaultSign --> %d", -1);
+
+		/* TODO: Handle sop_misconf_at_src event */
 		return ERROR;
 	}
 
@@ -754,6 +772,9 @@ int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			BIB_DEBUG_ERR("x bibAttach: Can't canonicalize.", NULL);
 			result = -1;
 			bundle->corrupt = 1;
+			/* Handle sop_misconf_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+					bibBlk, bibAsb, target.targetBlockNumber);
 			scratchExtensionBlock(bibBlk);
 			BIB_DEBUG_PROC("- bibAttach --> %d", result);
 			return result;
@@ -775,9 +796,18 @@ int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 					NULL);
 			result = -1;
 			bundle->corrupt = 1;
+			/* Handle sop_misconf_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+					bibBlk, bibAsb, target.targetBlockNumber);
 			scratchExtensionBlock(bibBlk);
 			BIB_DEBUG_PROC("- bibAttach --> %d", result);
 			return result;
+		}
+		else
+		{
+			/* Handle sop_added_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_added_at_src,
+					bibBlk, bibAsb, target.targetBlockNumber);
 		}
 	}
 
@@ -854,6 +884,74 @@ static int	bibAttachAll(Bundle *bundle)
 	}
 
 	return 0;
+}
+
+int bib_applyPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned char blkNum)
+{
+	Sdr			        sdr = getIonsdr();
+	BibProfile		    *prof;
+	char			    keyBuffer[32];
+	int			        keyBuflen = sizeof keyBuffer;
+	Object			    bibObj;
+	ExtensionBlock		bibBlk;
+	BpsecOutboundBlock	asb;
+
+	prof = get_bib_prof_by_number(polRule->filter.scid);
+	if (prof == NULL)
+	{
+		/*	This is an error in the rule; profile
+		 *	may have been deleted after rule was
+		 *	added.					*/
+
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				&bibBlk, &asb, blkNum);
+		return -1;
+	}
+
+	if ((polRule->sc_cfgs.parms.keyinfo.length > 0)
+	&& sec_get_key(polRule->sc_cfgs.parms.keyinfo.value, &keyBuflen, keyBuffer) == 0)
+	{
+		/*	Again, an error in the rule; key may
+		 *	have been deleted after rule was added.	*/
+
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				&bibBlk, &asb, blkNum);
+		return -1;
+	}
+
+	/*	Need to enforce this rule on all applicable
+	 *	blocks.  First find the newly sourced BIB
+	 *	that applies the rule's mandated profile and
+	 *	(if noted) key.					*/
+
+	bibObj = bibFindNew(bundle, prof->profNbr, polRule->sc_cfgs.parms.keyinfo.value);
+	if (bibObj)
+	{
+		sdr_read(sdr, (char *) &bibBlk, bibObj,
+				sizeof(ExtensionBlock));
+		sdr_read(sdr, (char *) &asb, bibBlk.object,
+				bibBlk.size);
+	}
+
+	/*	(If this BIB doesn't exist, it will be created
+	 *	as soon as its first target is identified.)
+	 *
+	 *	Now apply rule to the block identified by its block
+	 *	number in the function call.  */
+	if (bibAddTarget(sdr, bundle, &bibObj, &bibBlk, &asb,
+			prof, polRule->sc_cfgs.parms.keyinfo.value, blkNum) < 0)
+	{
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				&bibBlk, &asb, blkNum);
+		return -1;
+	}
+	else
+	{
+		return 1;
+	}
 }
 
 int	bpsec_sign(Bundle *bundle)
@@ -945,6 +1043,9 @@ int	bpsec_sign(Bundle *bundle)
 			if (bibAddTarget(sdr, bundle, &bibObj, &bibBlk, &asb,
 					prof, rule.keyName, 0) < 0)
 			{
+				/* Handle sop_misconf_at_src event */
+				bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+						&bibBlk, &asb, 0);
 				return -1;
 			}
 
@@ -956,6 +1057,9 @@ int	bpsec_sign(Bundle *bundle)
 			if (bibAddTarget(sdr, bundle, &bibObj, &bibBlk, &asb,
 					prof, rule.keyName, 1) < 0)
 			{
+				/* Handle sop_misconf_at_src event */
+				bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+						&bibBlk, &asb, 1);
 				return -1;
 			}
 
@@ -978,11 +1082,42 @@ int	bpsec_sign(Bundle *bundle)
 			if (bibAddTarget(sdr, bundle, &bibObj, &bibBlk, &asb,
 					prof, rule.keyName, block.number) < 0)
 			{
+				/* Handle sop_misconf_at_src event */
+				bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+						&bibBlk, &asb, block.number);
 				return -1;
 			}
 		}
 	}
 
+	/**** Apply all applicable security policy rules ****/
+
+	BpSecPolRule *polRule = NULL;
+
+	/* If there is a rule for the primary block */
+	if (bslpol_rule_get_best_match_at_src(bundle, polRule, PrimaryBlk))
+	{
+		bib_applyPolRule(bundle, polRule, 0);
+	}
+
+	/* If there is a rule for the payload block */
+	if (bslpol_rule_get_best_match_at_src(bundle, polRule, PayloadBlk))
+	{
+		bib_applyPolRule(bundle, polRule, 1);
+	}
+
+	/* Iterate over extension blocks as potential targets of the security op */
+	for (elt2 = sdr_list_first(sdr, bundle->extensions); elt2;
+			elt2 = sdr_list_next(sdr, elt2))
+	{
+		blockObj = sdr_list_data(sdr, elt2);
+		sdr_read(sdr, (char *) &block, blockObj, sizeof(ExtensionBlock));
+
+		if (bslpol_rule_get_best_match_at_src(bundle, polRule, block.type))
+		{
+			bib_applyPolRule(bundle, polRule, block.number);
+		}
+	}
 
 	/*	Now attach all new BIBs, signing all targets.		*/
 
@@ -1287,6 +1422,10 @@ int	bpsec_verify(AcqWorkArea *work)
 				if (fromEid == NULL)
 				{
 					ADD_BIB_RX_FAIL(NULL, 1, 0);
+					/* Handle sop_misconf_at_verifier event */
+					bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+						 sop_misconf_at_verifier, bibElt, targetElt,
+						 target->targetBlockNumber);
 					return -1;
 				}
 			}
@@ -1296,6 +1435,10 @@ int	bpsec_verify(AcqWorkArea *work)
 				if (fromEid == NULL)
 				{
 					ADD_BIB_RX_FAIL(NULL, 1, 0);
+					/* Handle sop_misconf_at_acceptor event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_misconf_at_acceptor, bibElt, targetElt,
+						 target->targetBlockNumber);
 					return -1;
 				}
 			}
@@ -1306,6 +1449,10 @@ int	bpsec_verify(AcqWorkArea *work)
 			{
 				ADD_BIB_RX_FAIL(fromEid, 1, 0);
 				MRELEASE(fromEid);
+				/* Handle sop_misconf_at_acceptor event */
+				bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+					 sop_misconf_at_acceptor, bibElt, targetElt,
+					 target->targetBlockNumber);
 				return -1;
 			}
 
@@ -1324,6 +1471,10 @@ int	bpsec_verify(AcqWorkArea *work)
 			case -1:
 				bundle->corrupt = 1;
 				ADD_BIB_RX_FAIL(fromEid, 1, length);
+				/* Handle sop_misconf_at_acceptor event */
+				bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+					 sop_misconf_at_acceptor, bibElt, targetElt,
+					 target->targetBlockNumber);
 				continue;
 
 			case 0:
@@ -1337,11 +1488,19 @@ int	bpsec_verify(AcqWorkArea *work)
 				case PrimaryBlk:
 					work->authentic = 0;
 					ADD_BIB_RX_FAIL(fromEid, 1, length);
+					/* Handle sop_misconf_at_acceptor event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_misconf_at_acceptor, bibElt, targetElt,
+						 target->targetBlockNumber);
 					break;
 
 				case PayloadBlk:
 					bundle->altered = 1;
 					ADD_BIB_RX_FAIL(fromEid, 1, length);
+					/* Handle sop_misconf_at_acceptor event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_misconf_at_acceptor, bibElt, targetElt,
+						 target->targetBlockNumber);
 					break;
 
 				default:
@@ -1365,14 +1524,52 @@ int	bpsec_verify(AcqWorkArea *work)
 			{
 				BIB_DEBUG(2, "BIB check passed.", NULL);
 				ADD_BIB_RX_PASS(fromEid, 1, length);
+				/* Handle sop_verified event */
+				bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+					 sop_verified, bibElt, targetElt,
+					 target->targetBlockNumber);
 				discardTarget(targetElt, bibElt);
 			}
 			else
 			{
 				ADD_BIB_FWD(fromEid, 1, length);
+				/* Handle sop_processed event */
+				bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+					 sop_processed, bibElt, targetElt,
+					 target->targetBlockNumber);
 			}
 		}
 	}
+
+	/**** Apply all applicable security policy rules ****/
+
+	/* BpSecPolRule *polRule = NULL;
+
+	If there is a rule for the primary block
+	if (bslpol_rule_get_best_match_at_receiver(bundle, polRule, PrimaryBlk))
+	{
+		bib_applyPolRule(bundle, polRule, 0);
+	}
+
+	If there is a rule for the payload block
+	if (bslpol_rule_get_best_match_at_receiver(bundle, polRule, PayloadBlk))
+	{
+		bib_applyPolRule(bundle, polRule, 1);
+	}
+	*/
+
+	/* Iterate over extension blocks as potential targets of the security op
+	for (elt2 = sdr_list_first(sdr, bundle->extensions); elt2;
+			elt2 = sdr_list_next(sdr, elt2))
+	{
+		blockObj = sdr_list_data(sdr, elt2);
+		sdr_read(sdr, (char *) &block, blockObj, sizeof(ExtensionBlock));
+
+		if (bslpol_rule_get_best_match_at_src(bundle, polRule, block.type))
+		{
+			bib_applyPolRule(bundle, polRule, block.number);
+		}
+	}*/
 
 	bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
 	return 0;

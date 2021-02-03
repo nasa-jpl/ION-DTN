@@ -1,556 +1,669 @@
-#!/bin/bash
-#
-# Based off earlier test by Scott Burleigh
-# April 12, 2010
-#
-# Adapted to BSP, Ryan Brown
-# August 2011
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use v5.10;
 
-TIMETODISPLAYTEXT=2
-TIMETOWAITFORTESTFINISH=5
-echo "Cleaning up old ION..."
-rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
-killm
-sleep 1
+=head1 SYNOPSIS
 
-echo "Starting ION..."
-export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
+Based on original test;
+- by Scott Burleigh, April 12, 2010
+- Adapted to BSP by Ryan Brown, August 2011
+- Converted to Perl with extended test options by David Edell, January 2019
 
-PASS=1
+To run all tests, simply execute this script.  
 
-# Start nodes.
-cd 2.ipn.ltp
-ionadmin amroc.ionrc
-cd ../3.ipn.ltp
-ionadmin amroc.ionrc
-cd ../4.ipn.ltp
-ionadmin amroc.ionrc
+To list tests, specify "--list"
 
-cd ../2.ipn.ltp
-ionadmin ../global.ionrc
-cd ../3.ipn.ltp
-ionadmin ../global.ionrc
-cd ../4.ipn.ltp
-ionadmin ../global.ionrc
+To run a specific test case, specify "--test NUM"
 
-cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc
-cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc
-cd ../4.ipn.ltp
-ionsecadmin amroc.ionsecrc
+See the script source for additional configuration parameters and details on defined test configurations.
 
-cd ../2.ipn.ltp
-ltpadmin amroc.ltprc
-cd ../3.ipn.ltp
-ltpadmin amroc.ltprc
-cd ../4.ipn.ltp
-ltpadmin amroc.ltprc
+=cut
 
-cd ../2.ipn.ltp
-bpadmin amroc.bprc
-cd ../3.ipn.ltp
-bpadmin amroc.bprc
-cd ../4.ipn.ltp
-bpadmin amroc.bprc
+# TODO: Option to bypass startup & shtudown sequences
 
-cd ..
+use Term::ANSIColor qw(:constants);
+local $Term::ANSIColor::AUTORESET = 1;
 
-rm -f 3.ipn.ltp/3_receive_file.txt
-rm -f 3.ipn.ltp/3_results.txt
-touch 3.ipn.ltp/3_receive_file.txt
-touch 3.ipn.ltp/3_results.txt
+use Cwd;
+use Getopt::Long;
+use File::Compare; # for validating file-based tests
+use Pod::Usage;
 
-echo -e "\n\n***2 node Tests***"
-echo "------------------"
-echo "Starting bpsink on node 3..."
-cd 3.ipn.ltp
+my $time_display_text = 2;
+my $time_wait_finish  = 5;
+my $exit_on_fail = 0;
+my $run_single_test;
+my ($help, $man);
+my $keyfile1 = "key1.hmk";
+my $keyfile2;
+my $profile = 'BIB-X25-CRC16'; # Profile to use for tests with a Bib Profile active
+my $verbose = 0;
+my $test_prompt = 0;
+my $list_tests = 0;
+my $summary_log = ""; # Log for summmarizing failures and warnings
 
-bpsink ipn:3.1 >> 3_results.txt &
-cd ..
+Getopt::Long::GetOptions(
+    "help"            => \$help,
+    "man"             => \$man,
+    "display_time=i"  => \$time_display_text,
+    "wait_time=i"     => \$time_wait_finish,
+    "abort!"          => \$exit_on_fail,
+    "test=i"          => \$run_single_test,
+    "profile=s"       => \$profile,
+    "keyFile=s"       => \$keyfile1,
+    "keyFileRx=s"     => \$keyfile2,
+    "verbose!"        => \$verbose,
+    "prompt|break!"         => \$test_prompt,
+    "list!"            => \$list_tests,
+    );
+pod2usage(1) if $help;
+pod2usage(-exitval => 0, -verbose => 2) if $man;
 
-sleep 1
-# Determine BP version (6/7) for correct bpsecadmin rule syntax
-BPV=`bpversion`
 
-#############
-# Test 1 ....
+my $cwd = getcwd();
+$ENV{'ION_NODE_LIST_DIR'} = $cwd;
 
-cd 2.ipn.ltp
-echo -e "\n\n\n*****TEST 1*****"
-echo "Sending Bundle (no BIB rule) to ipn:3.1, should be delivered..."
-sleep ${TIMETODISPLAYTEXT}
-# Send first bundle from node 2 to node 5 requesting all status reports.
-# Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
-# it should be delivered.
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 3600 0.1 "test_trace" rcv,ct,fwd,dlv,del
+# Test Configuration
+# TODO: Option for skipping tests in cfg
+# TODO: Flags cleanup; keyFile required (specify filename not keyname), rename 'forceTxError' flags to "nodeXFlags"
+my @tests = (
+    # 0-1: Base Cases: sending a bundle with and without BIB rules present
+    ["Send Bundle without BIB rules", \&full_test],
 
-sleep ${TIMETOWAITFORTESTFINISH}
+    ["Send Bundle with valid BIB rules", \&full_test, 
+     {
+	 profile => $profile, 
+	 keyFile => $keyfile1,
+     }],
+    
+    # 2-3: Test Error Handling/detection concerning keys
+    ["Send Bundle with invalid key file", \&base_test, 
+     {
+	 profile => $profile, 
+	 keyFile => "undef",
+	 expectSetupFailure => 1,
+     }],
+    
+    ["Send Bundle with invalid key name", \&base_test, 
+     {
+	 profile => $profile, 
+	 keyName => "invalid",
+	 expectSetupFailure => 1,
+     }],
 
-cd ..
+    # Test 4: Error handling/detection with an invalid cipher suite name
+    ["Send Bundle with invalid cipher suite name", \&base_test, 
+     { 
+	 profile => 'INVALID-CS-NAME', 
+	 keyFile => $keyfile1,
+	 expectSetupFailure => 1,
+     }],
 
-grep "test_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+    # Test 5: Transmit a bundle with a BIB and Ignore Integrity Verification Flag enabled
+    # confirm that the flag does not introduce errors in a valid test case
+    ["Send Bundle with BIB rules & bypass active", \&base_test, 
+     {
+	 profile => $profile, keyFile => $keyfile1,
+	 rxNodeFlags => 1,
+	 txNodeFlags => 1,
+	 comment => "This confirms that bypass flag doesn't introduce errors in a valid test case"
+     }],
+    
+    # Test 6: Transmit a bundle with a corrupted CRC and IIVF ability disabled
+    ["Send Bundle with BIB rules, send corrupted crc & expect failure", \&base_test, 
+     {
+	 profile => 'BIB-TEST-FAIL', 
+	 keyFile => $keyfile1, 
+	 expectFailure => 1,
+	 comment => "This test will fail if ENABLE_CSTYPE_TEST_FAIL was not defined for this build",
+     }],
+    
+    # Test 7: Transmit a bundle with a corrupted CRC and IIVF ability enabled
+    ["Send Bundle with BIB rules, send corrupted crc, verify bypass active", \&base_test, 
+     {
+	 profile => 'BIB-TEST-FAIL', 
+	 keyFile => $keyfile1, 
+	 rxNodeFlags => 1,
+	 txNodeFlags => 1,
+	 comment => "This test will fail if ENABLE_CSTYPE_TEST_FAIL was not defined for this build",
+     }],
 
-echo `pwd`
-rm -f expected.txt
-touch expected.txt
+    # Test 8: confirm inter-test cleanup is working
+    ["Repeat original test to confirm that inter-test cleanup is working", \&base_test],
 
-echo "'test_trace'" >> expected.txt
+    # Test 9: Applicable only for key-based suites
+    ["Send signed bundle where nodes use different keys", \&base_test,
+     {
+         disabled => "Original test3, Not valid for CRC or NULL Suites where key is ignored",
+         profile => $profile, 
+         keyFile => $keyfile1, keyFileRx => $keyfile2, 
+         expectFailure => 1
+     }],
+    
+    # Test 10: Transmission of a bundle with a BIB on the ~1MB payload
+    ["Send ~1MB file with BIB and validate", \&full_test,
+     {
+	 profile => $profile, 
+	 keyFile => $keyfile1, 
+	 size=> 20
+     }],
+    
+    # Test 11: Bundle with BIB transmitted via waypoint node
+    ["Send file with BIB via 3rd node and validate", \&full_test,
+     {
+         profileTx => $profile, profileRx => $profile, profileHop => undef,
+         keyFile => $keyfile1, size=> 20,
+	 txNode => 2, hopNode => 3, rxNode => 4,
+         }
+    ],
 
-if ! diff -w expected.txt 3.ipn.ltp/3_receive_file.txt
-then
-	echo "FAIL (test 1)"
-	PASS=0
-else
-	echo "SUCCESS (test 1)"
-fi
+    # Test 12: Transmission of a bundle between two nodes with different BIB rules (different cipher suites)
+     ["Send with BIB between two nodes using different profiles", \&full_test,
+     {
+         profileRx => 'BIB-TEST-FAIL', 
+	 profileTx => $profile, 
+	 keyFile => $keyfile1,
+         comment => "TX with configured profile ($profile)  but Rx profile BIB_TEST_FAIL. ",
+         expectFailure => 1,
+     }],
+    
+    # Test 13: Send a bundle with a BIB rule only on Tx node. Rx node does not require the BIB
+    # added to the bundle at Tx node
+    ["Send with BIB between two nodes with CRC on sender only", \&full_test,
+     {
+         profileTx => $profile, 
+	 profileRx => undef, 
+	 keyFile => $keyfile1,
+     }],
+    
+    # Test 14: Send a bundle with a BIB rule only on Rx node. Rx node expects a BIB but the
+    # bundle does not supply one. Failure is anticipated.
+    ["Send with BIB between two nodes with CRC on receiver only", \&full_test,
+     {
+         profileTx => undef, profileRx => $profile, keyFile => $keyfile1,
+         expectFailure => 1,
+         comment => "We expect this scenario to fail given correct BIB validation."
+     }],
+    
+    # Test 15: Transmit a bundle with a BIB on the 16k payload via a waypoint node
+    # verify integrity at the hop and at receiving node
+    ["Send 16k file with BIB via 3rd node and validate; CRCs for all", \&full_test,
+     {
+          profile => $profile,
+          keyFile => $keyfile1, size=> 16*1024,
+          txNode => 2, hopNode => 3, rxNode => 4,
+     }],
+    
+    # Test 16: Transmit a bundle with BIB rules at the transmitting and waypoint nodes only. No signature
+    # is expected to be generated or validated
+     ["Transmit via 3rd node with BIB for TX and intermediary only", \&full_test,
+      {
+          profile => $profile,
+          keyFile => $keyfile1, size=> 16*1024,
+          txNode => 2, hopNode => 3, rxNode => 4,
+          bibTo => 3,
+          "comment" => "Expect success with no signature generated or validated",
+      }],
 
-#########
-# Test 2...
+    # Test 17: Test tranmission of anonnymous bundles - disabled for ION-3.7.0-pace
+    ["Send Bundle with valid BIB rules using anon bundle [bpsource instead of bptrace]", \&full_test, 
+     {
+         profile => $profile, 
+         keyFile => $keyfile1,
+         sendAnon => 1,
+	 disabled => "This test has been disabled due to assumption A.22: ION-3.7.0-pace will not support annonymous bundles"
+     }],
 
-echo -e "\n\n\n\n\n*****TEST 2*****"
-echo -e "Deliver payload with BIB (should receive)"
-sleep ${TIMETODISPLAYTEXT}
+    # Test 18: Transmit bundle with BIB rule only at waypoint node
+    ["Tx with hop and rules of: 2(), 3(3->4), 4()", \&full_test,
+     {
+	 keyFile => $keyfile1, size=> 16*1024,
+	 txNode => 2, hopNode => 3, rxNode => 4,
+	 "comment" => "Expect success with no signature generated or validated",
+	 "profileHop" => $profile,
+	 bibFrom => 3
+     },],
+    
+    # Test 19: Transmit bundle with BIB rule at waypoint node which requires a BIB not in the bundle
+    ["Tx with hop and rules of: 2(), 3(2->4), 4()", \&full_test,
+     {
+	 keyFile => $keyfile1, size=> 16*1024,
+	 txNode => 2, hopNode => 3, rxNode => 4,
+	 "profileHop" => $profile,
+	 expectFailure => 1,
+     },],
+    );
 
-cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
 
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
+if ($list_tests) {
+    say "Available Test Cases are";
+    for (my $i = 0; $i < @tests; $i++) {
+        my $tst = $tests[$i];
+        say "$i: @$tst[0]";
+        if (defined(@$tst[2])) {
+            say YELLOW "\t Comment: @$tst[2]->{comment}" if defined(@$tst[2]->{comment});
+            say RED "\t Disabled: @$tst[2]->{disabled}" if defined(@$tst[2]->{disabled});
+        }
+    }
+    exit;
+}
 
-cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-else
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
+# Internal counters (we're not using test libs to avoid requiring non-standard dependencies)
+my $tests_run = 0;
+my $tests_failed = 0;
+my $tests_skipped = 0;
+my $tests_passed = 0;
+my %fileno; # List of file numbers for managing multiple file-rcv tests
 
-cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-fi
+# Cleanup any prior tests
+cleanup();
 
-cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test2_trace" rcv,ct,fwd,dlv,del
-cd ..
 
-sleep ${TIMETOWAITFORTESTFINISH}
+# Initial Startup of ION Nodes
+start_node(2);
+start_node(3);
+start_node(4);
 
-grep "test2_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+# And Node 3 receivers
+chdir("3.ipn.ltp");
+system("bpsink ipn:3.1 > 3_results.txt &");
+system("bprecvfile ipn:3.2 &");
+chdir("..");
+sleep(1); # Wait for ION to finish startup
 
-echo `pwd`
-rm -f expected.txt
-touch expected.txt
-echo "'test2_trace'" >> expected.txt
-sleep 1
+# And node 4 receivers (for 3-node tests)
+chdir("4.ipn.ltp");
+system("bpsink ipn:4.1 > 4_results.txt &");
+system("bprecvfile ipn:4.2 &");
+chdir("..");
+sleep(1); # Wait for ION to finish startup
 
-if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
-then
-	echo "FAIL (test2)"
-	PASS=0
-else 
-	echo "SUCCESS (test2)"
-fi
+    
+# Run tests
+if (defined($run_single_test)) {
+    die ("Invalid test number ($run_single_test)") unless defined($tests[$run_single_test]);
+    
+    say BOLD "Running singular Test $run_single_test:";
+    run_test($run_single_test);
+    
+} else {
+    for (my $i = 0; $i<@tests; $i++) {
+        # Call Referenced function, passing in any arguments defined in test case
+        run_test($i);
 
-#############
-# Test 3 ....
+        last if ($tests_failed > 0 && $exit_on_fail);
 
-echo -e "\n\n\n\n\n*****TEST 3*****"
-echo -e "Send signed bundle to ipn:3.1 where nodes 2 and 3 use different"
-echo -e "keys.  s/ rejected, but because we are using NULL_SUITES the"
-echo -e "computed signatures for the two BIBs are the same regardless of"
-echo -e "the key that is used.  So we skip this test."
+    }
+}
 
-#sleep ${TIMETODISPLAYTEXT}
-#
-#cd 2.ipn.ltp
-#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#a key key2 key2.hmk 
-#ENDOFIONSECADMINCOMMANDS
 
-#if [ $BPV == "bpv6" ] ; then
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
-#ENDOFBPSECADMINCOMMANDS
-#
-#cd ../3.ipn.ltp
-#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#a key key1 key1.hmk
-#ENDOFIONSECADMINCOMMANDS
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-#ENDOFBPSECADMINCOMMANDS
-#else
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
-#ENDOFBPSECADMINCOMMANDS
-#
-#cd ../3.ipn.ltp
-#ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-#a key key1 key1.hmk
-#ENDOFIONSECADMINCOMMANDS
-#bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-#x
-#a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-#ENDOFBPSECADMINCOMMANDS
-#fi
-#
-#cd ../2.ipn.ltp
-#bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
-#cd ..
-#
-#sleep ${TIMETOWAITFORTESTFINISH}
-#
-#grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
-#
-#
-#echo `pwd`
-#rm -f expected.txt
-#touch expected.txt
-#echo "'test3_trace'" >> expected.txt
-#sleep 1
-#
-#if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
-#then
-#	echo "SUCCESS (test3)" #"FAIL (test2)"
-#else 
-#	echo "FAIL (test3)" #"SUCCESS (test2)"
-#	PASS=0
-#fi
+# Cleanup
+stop_node(2);
+stop_node(3);
+stop_node(4);
+sleep(7); # Give nodes time to shutdown
+system("killm"); # And cleanup anything that failed to exit gracefully
 
-#############
-# Test 4 ....
+# Show results
+say BOLD "Test sequence completed. ".scalar(@tests)." test configurations defined.";
+say $summary_log;
+if ($tests_failed > 0) {
+    say RED "$tests_failed test(s) failed of $tests_run executed.";
+} else {
+    say GREEN "$tests_run test(s) passed. No failures detected.";
+}
+say YELLOW "$tests_skipped test(s) skipped." if $tests_skipped > 0;
 
-echo -e "\n\n\n\n\n*****TEST 4*****"
-echo -e "Clear security rules, deliver payload without BIB again (should deliver)"
-sleep ${TIMETODISPLAYTEXT}
+exit $tests_failed;  # 0 == success, any other return code is a failure
 
-cd 2.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+sub cleanup
+{
+    say BOLD "Cleaning up prior tests . . . ";
+    unlink glob "*/ion.log";
+    unlink glob "*/*_results.txt";
+    unlink glob "*/*_receive_file.txt";
+    unlink 'ion_nodes';
+    system('killm');
+    sleep(1); # TODO: Is this necessary?
+}
+
+sub start_node
+{
+    my $node = shift;
+    say BOLD "Starting node $node";
+
+    chdir "$node.ipn.ltp" || die "Can't enter config dir for node $node: $!";
+    system("ionadmin amroc.ionrc");
+    system("ionadmin global.ionrc");
+    system("ionsecadmin amroc.ionsecrc");
+    system("ltpadmin amroc.ltprc");
+    system("bpadmin amroc.bprc");
+    chdir "..";
+}
+sub stop_node
+{
+    my $node = shift;
+    say BOLD "Stopping node $node";
+    chdir("$node.ipn.ltp");
+    system("./ionstop &");
+    chdir("..");
+}
+
+sub run_test
+{
+    my $idx = shift;
+    my $test = $tests[$idx] || die "Test $idx does not exist";
+    say BOLD "Running test $idx: @$test[0]";
+
+    if ($test_prompt) {
+        say "Press any key to proceed";
+        my $tmp = <STDIN>;
+    } elsif ($time_display_text > 0) {
+        sleep($time_display_text);
+    }
+
+    # Check if subtest is disabled
+    if (defined(@$test[2]) && defined(@$test[2]->{disabled})) {
+        say BOLD YELLOW "Skipped disabled test: @$test[2]->{disabled}";
+        $tests_skipped++;
+        return 0;
+    }
+    
+    $tests_run++;
+    
+    my $result = &{@$test[1]}($idx, @$test[2]);
+    if ($result == 1) {
+        $tests_passed++;
+        say BOLD GREEN "Test Successful";
+    } elsif ($result < 0) {
+        say BOLD RED "Test Failed";
+        $summary_log .= "$idx: Failed\n";
+        $tests_failed++;
+    } elsif ($result == 0) {
+        say BOLD YELLOW "Test Skipped";
+        $tests_skipped++;
+    } else {
+        say RED "Warning: Test returned unrecognized status of $result";
+        $summary_log .= "$idx: Returned unrecognized status of $result\n";
+    }
+    return $result;
+}
+
+# DEPRECATED: Use full_test instead (this is a subset of it)
+sub base_test
+{
+    my $idx = shift; # Test Number
+    my $opts = shift;
+    my $rtv = 0;
+    my $profile = $opts->{'profile'};
+    my $key = $opts->{'keyFile'};
+    my $keyRx = $opts->{'keyRxFile'} || $key;
+    my $rx_flags = $opts->{'rxNodeFlags'};
+    my $tx_flags = $opts->{'txNodeFlags'};
+    my $keyname = $opts->{'keyName'} || 'key1';
+    my $keynameRx = $opts->{'keyName'} || $keyname;
+    
+    my $str = "test${idx}_trace";
+
+    # Setup Nodes
+    # If expectSetupFailure, we invert return value on setup failure
+    my $setupRtv = (defined($opts->{'expectSetupFailure'})) ? 1 : -1;
+    
+    base_test_cleanup(2);
+    base_test_cleanup(3);
+    base_test_setup(2, $profile, $key, $tx_flags, $keyname) || return $setupRtv;
+    base_test_setup(3, $profile, $keyRx, $rx_flags, $keynameRx) || return $setupRtv;
+  
+    
+    if (defined($opts->{'expectSetupFailure'})) {
+        say RED "Test Setup unexpectedly succeeded";
+        return -1;
+    }
+    
+    
+    chdir("2.ipn.ltp");
+    system("bptrace ipn:2.1 ipn:3.1 ipn:2.0 3600 1.1 \"$str\" rcv,ct,fwd,dlv,del");
+    chdir("..");
+    sleep($time_wait_finish);
+
+    # Verify results & return
+    my $grep = `grep "$str" 3.ipn.ltp/3_results.txt`;
+    if ($? != 0) {
+        $rtv = -1;
+        say BLUE "Payload NOT received";
+    } else {
+        say BLUE "Payload received";
+        $rtv = 1;
+    }
+    $rtv = -$rtv if $opts->{'expectFailure'};
+
+    base_test_cleanup(2, $keyname) if defined($profile);
+    base_test_cleanup(3, $keynameRx) if defined($profile);
+
+    
+    if ($rtv < 0) {
+        say RED "Test $idx failed.";
+        return -1;
+    } else {
+        return 1;
+    }
+}
+sub base_test_setup
+{
+    my $node = shift;
+    my $profile = shift;
+    my $keyfile = shift;
+    my $flag = shift || 0;
+    my $keyname = shift || "key1";
+    my $keyFrom = shift || 2;
+    my $keyTo   = shift || 3;
+    my $rtv = 1;
+
+    chdir("$node.ipn.ltp");
+    if (defined($profile)) {
+
+        # Key is only applicable if profile is defined
+        if (defined($keyfile)) {
+            $rtv = run_admin_cmd($node,
+                                 "ionsecadmin",
+                                 "a key $keyname $keyfile"
+                ) if $rtv == 1;
+        }        
+
+        $rtv = run_admin_cmd($node, 
+                      "bpsecadmin",
+                      "a bspbibrule ipn:$keyFrom.* ipn:$keyTo.* 1 '$profile' $keyname $flag"
+            ) if $rtv == 1;
+    }
+
+    chdir("..");
+    return $rtv;
+}
+sub base_test_cleanup
+{
+    my $node = shift;
+    my $key = shift;
+    
+    chdir("$node.ipn.ltp");
+    say CYAN "($node-cleanup) bpsecadmin << x";
+    my $result = `bpsecadmin <<EOF
 x
-ENDOFBPSECADMINCOMMANDS
+EOF`;
+    say $result;
+    say YELLOW "Warning: Rule cleanup for node $node failed" if index($result, "Error: Command failed") != -1;
 
-cd ../3.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-ENDOFBPSECADMINCOMMANDS
+    if (defined($key)) {
+        say CYAN "($node-cleanup) ionsecadmin << d key $key";
+        my $result = `ionsecadmin <<EOF
+d key $key
+EOF`;
+        say $result if $verbose;
+        say YELLOW "Warning: Key cleanup for node $node failed" if index($result, "Error: Command failed") != -1;
+    }
+    
+    chdir("..");
+}
+sub run_admin_cmd
+{
+    my $node = shift; # Used for verbose output only
+    my $app = shift;
+    my $cmd = shift;
 
-cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test4_trace" rcv,ct,fwd,dlv,del
-cd ..
+    print CYAN "($node) $app << $cmd ";
+    
+    my $result = `$app <<EOF
+$cmd
+EOF`;
+    say $result if $verbose;
 
-sleep ${TIMETOWAITFORTESTFINISH}
-
-grep "test4_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
-
-echo `pwd`
-rm -f expected.txt
-touch expected.txt
-echo "'test4_trace'" >> expected.txt
-sleep 1
-
-if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
-then
-	echo "FAIL (test4)" #"FAIL (test2)"
-	PASS=0
-else
-	echo "SUCCESS (test4)"
-fi
-
-#############
-# Test 5 ....
-#
-# This test consists of passing a huge file protected by bib.
-# In this case we will use a script to generate a ~4MB file.
-
-echo -e "\n\n\n\n\n*****TEST 5*****"
-echo -e "Add same key, deliver BIG payload with BIB (should deliver)"
-sleep ${TIMETODISPLAYTEXT}
-
-cd 2.ipn.ltp
-
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-else
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-a bibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-fi
-
-bprecvfile ipn:3.2 &
-
-cd ../2.ipn.ltp
-
-# Create a ~4 MB file
-# 2^22 = ~ 4MB.  Do _NOT_ run this script with a large number
-perl file_make.pl 10
- 
-# Send the 4 MB file
-bpsendfile ipn:2.1 ipn:3.2 hugefile.big
-
-sleep ${TIMETOWAITFORTESTFINISH}
-
-cd ..
-
-PROGRAMTEST="stat"
-RESULTS=`which ${PROGRAMTEST}`
-WHICHRETURN=$?
-echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
-WHICHFAILMESSAGE=$?
-# which could return the proper fail condition, or the results could be
-# empty, or you're on solaris and your results will be "no stat in $PATH".
-if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
-	echo "${PROGRAMTEST} is not present in this system; using ls"
-# ls -l on solaris (and other platforms) puts the byte size in the 5th column
-# of output and we use sed to eliminate long strings of whitespace since cut
-# is fragile and interprets each instance of space as a delimiter
-# IF ls changes its column order, this will break, but it is only a fallback.
-	RECV_SIZE=`ls -1l 3.ipn.ltp/testfile1 | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
-	SEND_SIZE=`ls -1l 2.ipn.ltp/hugefile.big | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
-else
-	RECV_SIZE=`stat -c %s 3.ipn.ltp/testfile1`
-	SEND_SIZE=`stat -c %s 2.ipn.ltp/hugefile.big`
-fi
-
-echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
-if [ $RECV_SIZE = $SEND_SIZE ] 
-then
-	echo "SUCCESS (test5)" 
-else
-	echo "FAIL (test5)"
-	PASS=0
-fi
-
-rm -f 2.ipn.ltp/hugefile.big
-rm -f 3.ipn.ltp/testfile1
-
-##############################
-# Test 6
-# Send first bundle from node 2 to 4 via node 3 requesting all status reports.
-# Bundle is sent to endpoint ipn:4.1, on which bpsink is listening, so
-# it should be delivered.
-
-rm -f 4.ipn.ltp/4_receive_file.txt
-rm -f 4.ipn.ltp/4_results.txt
-touch 4.ipn.ltp/4_receive_file.txt
-touch 4.ipn.ltp/4_results.txt
-
-echo -e "\n\n***3 node Tests***"
-echo "------------------"
-echo "Starting bpsink on node 4..."
-cd 4.ipn.ltp
-bpsink ipn:4.1 >> 4_results.txt &
-cd ..
-
-sleep 1
-
-echo -e "\n\n\n*****TEST 6*****"
-echo "Sending Bundle with BIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have bib key.\nIt should still be forwarded and delivered..."
-sleep ${TIMETODISPLAYTEXT}
-
-cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-ENDOFBPSECADMINCOMMANDS
-
-cd ../4.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-else
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-ENDOFBPSECADMINCOMMANDS
-
-cd ../4.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-fi
-
-cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:4.1 ipn:2.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
-
-sleep ${TIMETOWAITFORTESTFINISH}
-
-cd ..
-
-grep "test_trace6" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
-
-echo `pwd`
-rm -f expected.txt
-touch expected.txt
-
-echo "'test_trace6'" >> expected.txt
-
-if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
-then
-        echo "FAIL (test 6)"
-        PASS=0
-else
-        echo "SUCCESS (test 6)"
-fi
-
-#############
-# Test 7
-# Same as test 6, but with an
-# anonymous bundle (no source id!)
-
-echo -e "\n\n\n*****TEST 7*****"
-echo -e "Sending ANONYMOUS Bundle with BIBs from ipn:2.1 through ipn:3.1 to ipn:4.1.\nIt should be authenticated at node 4."
-sleep ${TIMETODISPLAYTEXT}
-
-cd 2.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-
-if [ $BPV == "bpv6" ] ; then
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-ENDOFBPSECADMINCOMMANDS
-
-cd ../4.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-else
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-
-cd ../3.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk 
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-ENDOFBPSECADMINCOMMANDS
-
-cd ../4.ipn.ltp
-ionsecadmin<<ENDOFIONSECADMINCOMMANDS
-a key key1 key1.hmk
-ENDOFIONSECADMINCOMMANDS
-bpsecadmin<<ENDOFBPSECADMINCOMMANDS
-x
-a bibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
-ENDOFBPSECADMINCOMMANDS
-fi
-
-cd ../2.ipn.ltp
-bpsource ipn:4.1 "test_trace7"
-
-sleep ${TIMETOWAITFORTESTFINISH}
-
-cd ..
-
-grep "test_trace7" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
-
-echo `pwd`
-rm -f expected.txt
-touch expected.txt
-
-echo "'test_trace7'" >> expected.txt
-
-if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
-then   
-        echo "FAIL (test 7)"
-        PASS=0
-else   
-        echo "SUCCESS (test 7)"
-fi
-
-############################################################
-#   END OF TESTS                ........
+    if ($result =~ /Command failed/) {
+        say RED "FAILED";
+        return 0;
+    } else {
+        say GREEN "SUCCESS";
+        return 1;
+    }        
+}
 
 
-# Shut down ION processes.
-echo "Stopping ION..."
-cd 2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../4.ipn.ltp
-./ionstop &
+# Standard Test function, supporting variosu options
+#   If not specified, Node 2 is Tx and Node4 is Rx, with Hop not configured.    
+sub full_test {
+    my $idx = shift; # Test Number
+    my $opts = shift;
+    my $rtv = 0;
+    my $profileTx = $opts->{'profileTx'} || $opts->{'profile'};
+    my $profileRx = $opts->{'profileRx'} || $opts->{'profile'};
+    my $profileHop = $opts->{'profileHop'} || $opts->{'profile'};
+    
+    my $keyTx = $opts->{'keyTxFile'} || $opts->{'keyFile'};
+    my $keyRx = $opts->{'keyRxFile'} || $keyTx;
+    my $keyHop = $opts->{'keyHopFile'} || $keyTx;
 
-cd ..
+    my $txNode = $opts->{'txNode'} || 2;    
+    my $rxNode = $opts->{'rxNode'} || 3;
+    my $hopNode = $opts->{'hopNode'};
+    
+    my $rx_flags = $opts->{'rxNodeFlags'};
+    my $tx_flags = $opts->{'txNodeFlags'};
+    my $hop_flags = $opts->{'hopNodeFlags'};
+    
+    my $keynameTx = $opts->{'keyNameTx'} || 'key1';
+    my $keynameRx = $opts->{'keyNameRx'} || $keynameTx;
+    my $keynameHop = $opts->{'keyNameHop'} || $keynameTx;
 
-# Give all three nodes time to shut down, then clean up.
-sleep 7
-killm
-echo "Status reports test completed."
+    my $ruleFrom = $opts->{'bibFrom'} || $txNode;
+    my $ruleTo   = $opts->{'bibTo'} || $rxNode;
 
-if [ $PASS -eq 1 ]
-then
-	exit 0
-else
-	exit 1
-fi
+    # Setup Nodes
+    # If expectSetupFailure, we invert return value on setup failure
+    my $setupRtv = (defined($opts->{'expectSetupFailure'})) ? 1 : -1;
+    
+    base_test_cleanup($rxNode);
+    base_test_cleanup($txNode);
+    base_test_setup($rxNode, $profileRx, $keyTx, $tx_flags, $keynameTx, $ruleFrom, $ruleTo) || return $setupRtv;
+    base_test_setup($txNode, $profileTx, $keyRx, $rx_flags, $keynameRx, $ruleFrom, $ruleTo) || return $setupRtv;
+
+    # Hop node (optional intermediary node to be configured)
+    if ($hopNode) {
+        base_test_cleanup($hopNode);        
+        base_test_setup($hopNode, $profileHop, $keyHop, $hop_flags, $keynameHop, $ruleFrom, $ruleTo) || return $setupRtv;
+    }
+
+    
+    if (defined($opts->{'expectSetupFailure'})) {
+        say RED "Test Setup unexpectedly succeeded";
+        return -1;
+    }
+    
+    
+
+    # Generate Data to Transmit
+    if (defined($opts->{'size'})) {
+        # File based Transmission
+
+        # Send the file
+        chdir("$txNode.ipn.ltp");
+        create_test_file($opts->{'size'});
+        system("bpsendfile ipn:$txNode.1 ipn:$rxNode.2 hugefile.big");
+        chdir("..");
+        
+        sleep($time_wait_finish);
+
+        # Verify
+        my $fileno = $fileno{$rxNode} || 1;
+        my $fn = "$rxNode.ipn.ltp/testfile$fileno";
+        if (-e $fn) {
+            # Ensure future tests look at the correct file
+            $fileno{$rxNode} = $fileno+1;
+
+            # And compare the results
+            if (compare($fn, "$txNode.ipn.ltp/hugefile.big") != 0) {
+                say RED "File received but NOT equal";
+                $rtv = -1;
+
+                # Note: We do not delete the file on failure to facilitate manual inspection
+            } else {
+                say GREEN "File received";
+                $rtv = 1;
+                
+                # Unlink file to avoid confusion on future tests
+                unlink($fn);
+            }
+            
+        } else {
+            say RED("File NOT received"), " ($fn)";
+            $rtv = -1;
+        }
+    } else { # String-based Transmission
+        my $str = "test${idx}_trace";
+
+        chdir("$txNode.ipn.ltp");
+        if ($opts->{'sendAnon'}) {
+            say CYAN "($txNode) bpsource ipn:$rxNode.1 $str";
+            system("bpsource ipn:$rxNode.1 \"$str\"");
+        } else {
+            my $cmd = "bptrace ipn:$txNode.1 ipn:$rxNode.1 ipn:$txNode.0 3600 1.1 \"$str\" rcv,ct,fwd,dlv,del";
+            say CYAN "($txNode) $cmd";
+            system($cmd);
+        }
+        chdir("..");
+        sleep($time_wait_finish);
+        
+        # Verify results & return
+        my $grep = `grep "$str" $rxNode.ipn.ltp/${rxNode}_results.txt`;
+        if ($? != 0) {
+            $rtv = -1;
+            say RED "Payload NOT received";
+        } else {
+            say GREEN "Payload received";
+            $rtv = 1;
+        }
+    }
+
+
+    
+    $rtv = -$rtv if $opts->{'expectFailure'};
+
+    base_test_cleanup($txNode, $keynameTx) if defined($profile);
+    base_test_cleanup($hopNode, $keynameHop) if (defined($profile) && defined($hopNode));
+    base_test_cleanup($rxNode, $keynameRx) if defined($profile);
+
+    
+    if ($rtv < 0) {
+        say RED "Test $idx failed.";
+        return -1;
+    } else {
+        return 1;
+    }
+
+}
+
+sub create_test_file
+{
+    my $size = shift;
+    my $name = shift || "hugefile.big";
+    
+    system("head -c $size < /dev/urandom > $name") == 0 or die "File Generation failed: $?";
+}    

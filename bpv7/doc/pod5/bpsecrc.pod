@@ -7,8 +7,8 @@ bpsecrc - BP security policy management commands file
 BP security policy management commands are passed to B<bpsecadmin> either
 in a file of text lines or interactively at B<bpsecadmin>'s command prompt
 (:).  Commands are interpreted line-by line, with exactly one command per
-line.  The formats and effects of the BP security policy management commands
-are described below.
+line.  JSON commands may span multiple lines. The formats and effects of the 
+BP security policy management commands are described below.
 
 A parameter identifed as an I<eid_expr> is an "endpoint ID expression."  For
 all commands, whenever the last character of an endpoint ID expression is
@@ -156,6 +156,106 @@ both block type and security destination are omitted, security destination
 defaults to B<~> signifying "all BSP security destinations".  If all three
 command-line parameters are omitted, then security source defaults to B<~>
 signifying "all BPSec security sources".
+
+=item B<a> I<{ B<event_set> : { B<name> : event set name, 
+B<desc> : (opt) description } }>
+
+The B<add event_set> command. This command will add a named security operation
+event set to the system.
+
+=item B<i> I<{ B<event_set> : { B<name> : event set name } }>
+
+The B<info event_set> command for event sets displays the information the system maintains 
+for a named event set. The security operation events and configured, optional 
+processing actions associated with the event set are shown.
+
+=item B<d> I<{ B<event_set> : { B<name> : event set name } }>
+
+The B<delete event_set> command deletes a named event set from the system. 
+A named event set cannot be deleted if it is referenced by a security policy 
+rule. All security policy rules associated with the named event set must be deleted 
+before the event set itself may be deleted.
+
+=item B<l> I<{B<type> : B<event_set>}>
+
+The B<list event_set> command lists the names of all event sets defined in the 
+system.
+
+=item B<a> I<{ B<event> : { >
+	I<B<es_ref> : event set name,>
+	I<B<event_id> : security operation event ID>
+	I<B<actions> : [ opt. processing action, ... , opt. processing action ],>
+	I<B<action_parms> : [ { B<id>: parm ID, B<value>: parm value }, ... , { B<id>: parm ID, B<value>: parm value } ] } }>
+
+The B<add event> command adds security operation event and associated optional 
+processing action(s) to an event set. Multiple processing actions can be specified 
+for a single security operation event.
+
+=item B<d> I< { B<event> : { >
+        I<B<es_ref> : event set name,>
+	I<B<event_id> : security operation event ID>
+	I<B<actions> : [ opt. processing action, ... , opt. processing action ] } }>
+
+The B<delete event> command is used to delete optional processing actions from a
+named event set. To remove specific processing actions, include both the security 
+operation event and optional processing actions to be removed in the command. 
+To remove all processing actions for a security operation event, exclude the 
+optional processing action field. 
+
+=item 	B<a> I<{ B<policyrule> : {>
+	I<B<desc> : description,>
+	I<B<filter> :>
+	I<{>
+	I<B<rule_id> : Security policy rule id,
+	B<role> : Security policy role,
+	B<src> : Bundle source,
+	B<dest> : Bundle destination
+	B<sec_src> : Security source
+	B<tgt> : Security target block type,
+	B<scid> : Security context ID, },>
+	I<B<spec> : {
+	B<svc> : Security service,
+	B<scid> : Security context ID,
+	B<sc_parms> : [ { B<id>: SC parm ID, B<value>: SC parm value }, 
+	... , { B<id>: SC parm ID, B<value>: SC parm value } ], },
+	B<es_ref> : Event set name } } >
+	
+The B<add policyrule> command adds a policy rule to the system, describing a 
+required security operation and the security policy role of the BPA applying 
+the policy statement. The above command adds a policy rule referencing a 
+named event set to the system.
+	
+=item B<d> I<{ B<policyrule> : { B<rule_id> : Security policy rule ID } }>
+
+The B<delete policyrule> command deletes the policy rule identified by its
+rule ID.
+
+=item B<i> I<{B<policyrule> : {
+	B<filter> : {
+	B<rule_id> : Security policy rule id               
+	B<role> : Security policy role,
+	B<src> : Bundle source,
+	B<dest> : Bundle destination,
+	B<ssrc> : Security source,
+	B<tgt> : Security target block type,
+	B<scid>: Security context ID } } }>
+	
+The B<info policyrule> command displays the information for all policy rules
+matching the filter criteria provided. A user may provide a rule ID in place
+of the B<filter> field in this command to display the information stored for
+a single rule.	
+
+=item B<f> I<{B<policyrule> : { B<type> : B<all | best>, B<src> : Bundle source,
+	B<dest> : Bundle destination, B<ssrc> : Security source, B<scid> : Security context ID, B<role> : Security policy role } }>
+	
+The B<find policyrule> command finds all policy rules matching the provided criteria 
+when type B<all> is selected, and finds the single policy rule that is determined to be 
+the best match when type B<best> is selected. 
+
+=item B<l> I<{B<type> : B<policyrule>}>
+
+The B<list policyrule> command lists all policy rules currently 
+defined in the system.
 
 =item B<h>
 

@@ -58,6 +58,8 @@
 #include "bpsec_util.h"
 #include "bcb.h"
 #include "bpsec_instr.h"
+#include "bpsec_policy.h"
+#include "bpsec_policy_rule.h"
 
 extern int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			BpsecOutboundBlock *bibAsb);
@@ -185,12 +187,14 @@ int32_t	bcbUpdatePayloadInPlace(uint32_t suite, sci_inbound_parms parms,
 	/* Step 1: Allocate read buffers. */
 	if ((plaintext[0].value = MTAKE(chunkSize)) == NULL)
 	{
+		// TODO: handle sop_misconfigured event
 		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.", chunkSize);
 		return -1;
 	}
 
 	if ((plaintext[1].value = MTAKE(chunkSize)) == NULL)
 	{
+		// TODO: handle sop_misconfigured event
 		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.", chunkSize);
 		MRELEASE(plaintext[0].value);
 		return -1;
@@ -320,7 +324,6 @@ Failed call to zco_revise.", NULL);
 						- readOffset, (char*)
 						plaintext[cur_idx].value);
 			}
-
 			readOffset += plaintext[cur_idx].length;
 			cur_idx = 1 - cur_idx;
 		}
@@ -423,7 +426,7 @@ not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, cipherBufLen, memmax);
 				NULL);
 		sdr_free(sdr, cipherBuffer);
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
-
+		//TODO: handle sop_misconfigured event
 		return -1;
 	}
 
@@ -587,6 +590,7 @@ context", NULL);
 	/* Step 2: Walk through payload writing ciphertext. */
  	while (bytesRemaining > 0)
 	{
+
  		/* Step 3.1: Prep for this encrypting iteration. */
  		memset(plaintext.value, 0, chunkSize);
  		if (bytesRemaining < chunkSize)
@@ -702,7 +706,7 @@ context.", NULL);
  *                           implementation (NASA: NNX14CS58P)]
  *  02/27/16  E. Birrane     Added ciphersuite parms [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
- *
+ *  07/20/18  S. Burleigh    Abandon bundle if can't attach BCB
  *****************************************************************************/
 
 static int	bcbDefaultCompute(Object *dataObj, uint32_t chunkSize,
@@ -958,6 +962,7 @@ int	bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	BCB_DEBUG_INFO("i bcbAcquire: Deserialize result %d", result);
 
 	BCB_DEBUG_PROC("- bcbAcquire -> %d", result);
+
 
 	return result;
 }
@@ -1646,9 +1651,18 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 				       NULL);
 			result = -1;
 			bundle->corrupt = 1;
+			/* Handle sop_misconf_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+						bcbBlk, bcbAsb, target.targetBlockNumber);
 			scratchExtensionBlock(bcbBlk);
 			BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 			return result;
+		}
+		else
+		{
+			/* Handle sop_added_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_added_at_src,
+					bcbBlk, bcbAsb, target.targetBlockNumber);
 		}
 	}
 
@@ -1668,6 +1682,9 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 bcbBlk->dataLength = %d", bcbBlk->dataLength);
 		result = -1;
 		bundle->corrupt = 1;
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+					bcbBlk, bcbAsb, target.targetBlockNumber);
 		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 		return result;
@@ -1725,6 +1742,75 @@ static int	bcbAttachAll(Bundle *bundle, size_t xmitRate)
 	}
 
 	return 0;
+}
+
+
+int bcb_applyPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned char blkNum)
+{
+	Sdr			        sdr = getIonsdr();
+	BcbProfile		    *prof;
+	char			    keyBuffer[32];
+	int			        keyBuflen = sizeof keyBuffer;
+	Object			    bcbObj;
+	ExtensionBlock		bcbBlk;
+	BpsecOutboundBlock	asb;
+
+	prof = get_bcb_prof_by_number(polRule->filter.scid);
+	if (prof == NULL)
+	{
+		/*	This is an error in the rule; profile
+		 *	may have been deleted after rule was
+		 *	added.					*/
+
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				&bcbBlk, &asb, blkNum);
+		return -1;
+	}
+
+	if ((polRule->sc_cfgs.parms.keyinfo.length > 0)
+	&& sec_get_key(polRule->sc_cfgs.parms.keyinfo.value, &keyBuflen, keyBuffer) == 0)
+	{
+		/*	Again, an error in the rule; key may
+		 *	have been deleted after rule was added.	*/
+
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				&bcbBlk, &asb, blkNum);
+		return -1;
+	}
+
+	/*	Need to enforce this rule on all applicable
+	 *	blocks.  First find the newly sourced BCB
+	 *	that applies the rule's mandated profile and
+	 *	(if noted) key.					*/
+
+	bcbObj = bcbFindNew(bundle, prof->profNbr, polRule->sc_cfgs.parms.keyinfo.value);
+	if (bcbObj)
+	{
+		sdr_read(sdr, (char *) &bcbBlk, bcbObj,
+				sizeof(ExtensionBlock));
+		sdr_read(sdr, (char *) &asb, bcbBlk.object,
+				bcbBlk.size);
+	}
+
+	/*	(If this BCB doesn't exist, it will be created
+	 *	as soon as its first target is identified.)
+	 *
+	 *	Now apply rule to the block identified by its block
+	 *	number in the function call.  */
+	if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
+			prof, polRule->sc_cfgs.parms.keyinfo.value, blkNum) < 0)
+	{
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				&bcbBlk, &asb, blkNum);
+		return -1;
+	}
+	else
+	{
+		return 1;
+	}
 }
 
 int	bpsec_encrypt(Bundle *bundle)
@@ -1828,6 +1914,9 @@ int	bpsec_encrypt(Bundle *bundle)
 			if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
 					prof, rule.keyName, 1) < 0)
 			{
+				/* Handle sop_misconf_at_src event */
+				bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+						&bcbBlk, &asb, 1);
 				return -1;
 			}
 
@@ -1850,8 +1939,34 @@ int	bpsec_encrypt(Bundle *bundle)
 			if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
 					prof, rule.keyName, block.number) < 0)
 			{
+				/* Handle sop_misconf_at_src event */
+				bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+						&bcbBlk, &asb, block.number);
 				return -1;
 			}
+		}
+	}
+
+	/**** Apply all applicable security policy rules ****/
+
+	BpSecPolRule *polRule = NULL;
+
+	/* If there is a rule for the payload block */
+	if (bslpol_rule_get_best_match_at_src(bundle, polRule, PayloadBlk))
+	{
+		bcb_applyPolRule(bundle, polRule, 1);
+	}
+
+	/* Iterate over extension blocks as potential targets of the security op */
+	for (elt2 = sdr_list_first(sdr, bundle->extensions); elt2;
+			elt2 = sdr_list_next(sdr, elt2))
+	{
+		blockObj = sdr_list_data(sdr, elt2);
+		sdr_read(sdr, (char *) &block, blockObj, sizeof(ExtensionBlock));
+
+		if (bslpol_rule_get_best_match_at_src(bundle, polRule, block.type))
+		{
+			bcb_applyPolRule(bundle, polRule, block.number);
 		}
 	}
 
@@ -2147,6 +2262,10 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				if (fromEid == NULL)
 				{
 					ADD_BCB_RX_FAIL(NULL, 1, 0);
+					/* Handle sop_misconf_at_verifier event */
+					bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+						 sop_misconf_at_verifier, bcbElt, targetElt,
+						 target->targetBlockNumber);
 					return -1;
 				}
 			}
@@ -2156,6 +2275,10 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				if (fromEid == NULL)
 				{
 					ADD_BCB_RX_FAIL(NULL, 1, 0);
+					/* Handle sop_misconf_at_acceptor event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_misconf_at_acceptor, bcbElt, targetElt,
+						 target->targetBlockNumber);
 					return -1;
 				}
 			}
@@ -2173,10 +2296,19 @@ int	bpsec_decrypt(AcqWorkArea *work)
 			case 0:	/*	Malformed block.		*/
 				work->malformed = 1;
 
+				/* Handle sop_corrupt_at_acceptor event */
+				bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+					 sop_corrupt_at_acceptor, bcbElt, targetElt,
+					 target->targetBlockNumber);
+
 				/*	Intentional fall-through.	*/
 			case -1:
 				MRELEASE(fromEid);
 				ADD_BCB_RX_FAIL(fromEid, 1, 0);
+				/* Handle sop_misconf_at_acceptor event */
+				bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+					 sop_misconf_at_acceptor, bcbElt, targetElt,
+					 target->targetBlockNumber);
 				continue;
 
 			default:
@@ -2198,6 +2330,10 @@ int	bpsec_decrypt(AcqWorkArea *work)
 					BCB_DEBUG(2, "BCB target decrypted.",
 							NULL);
 					ADD_BCB_RX_PASS(fromEid, 1, 0);
+					/* Handle sop_processed event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_processed, bcbElt, targetElt,
+						 target->targetBlockNumber);
 					discardTarget(targetElt, bcbElt);
 				}
 				else
@@ -2278,6 +2414,10 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				{
 					BCB_DEBUG(2, "BIB decrypted.", NULL);
 					ADD_BCB_RX_PASS(fromEid, 1, 0);
+					/* Handle sop_processed event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_processed, bcbElt, targetElt,
+						 target->targetBlockNumber);
 					discardTarget(targetElt, bcbElt);
 				}
 				else
