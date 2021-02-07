@@ -7,3 +7,6 @@ sleep 1
 ionsecadmin	bench.ionsecrc
 sleep 1
 bpadmin		bench.bprc
+sleep 1
+sdrwatch ion4 5 24 > sdrwatch.log &
+psmwatch 66436 5000000 ionwm 5 24 > psmwatch.log &

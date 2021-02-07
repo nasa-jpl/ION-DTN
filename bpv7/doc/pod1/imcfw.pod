@@ -20,8 +20,8 @@ outbound bundle is appended to the queue matching the bundle's designated
 priority.
 
 Proximate destination computation is determined by multicast group membership
-as resulting from nodes' registration in multicast endpoints, governed by
-multicast tree structure as configured by imcadmin(1).
+as resulting from nodes' registration in multicast endpoints (accomplished
+simply by adding the appropriate endpoint as discussed in bprc(5).
 
 B<imcfw> is spawned automatically by B<bpadmin> in response to the
 's' (START) command that starts operation of Bundle Protocol on the local
@@ -98,4 +98,4 @@ Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 
-bpadmin(1), imcadmin(1), bprc(5), imcrc(5)
+bpadmin(1), bprc(5)
