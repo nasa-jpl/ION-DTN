@@ -217,7 +217,7 @@ optional processing action field.
 	B<svc> : Security service,
 	B<scid> : Security context ID,
 	B<sc_parms> : [ { B<id>: SC parm ID, B<value>: SC parm value }, 
-	... , { B<id>: SC parm ID, B<value>: SC parm value } ], },
+	... , { B<id>: SC parm ID, B<value>: SC parm value } ] },
 	B<es_ref> : Event set name } } >
 	
 The B<add policyrule> command adds a policy rule to the system, describing a 
@@ -230,20 +230,10 @@ named event set to the system.
 The B<delete policyrule> command deletes the policy rule identified by its
 rule ID.
 
-=item B<i> I<{B<policyrule> : {
-	B<filter> : {
-	B<rule_id> : Security policy rule id               
-	B<role> : Security policy role,
-	B<src> : Bundle source,
-	B<dest> : Bundle destination,
-	B<ssrc> : Security source,
-	B<tgt> : Security target block type,
-	B<scid>: Security context ID } } }>
+=item B<i> I<{B<policyrule> : Security policy rule id }>
 	
-The B<info policyrule> command displays the information for all policy rules
-matching the filter criteria provided. A user may provide a rule ID in place
-of the B<filter> field in this command to display the information stored for
-a single rule.	
+The B<info policyrule> command displays the information for the
+policy rule matching the provided ID.
 
 =item B<f> I<{B<policyrule> : { B<type> : B<all | best>, B<src> : Bundle source,
 	B<dest> : Bundle destination, B<ssrc> : Security source, B<scid> : Security context ID, B<role> : Security policy role } }>

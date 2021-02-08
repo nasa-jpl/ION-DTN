@@ -96,18 +96,18 @@ typedef int (*radix_insert_fn)(PsmPartition partition, PsmAddress *node_data, Ps
  * +--------------------------------------------------------------------------+
  */
 
+//radix_insert_fn ins, radix_del_fn del,
+PsmAddress radix_create(PsmPartition partition);
 
-PsmAddress radix_create(radix_insert_fn ins, radix_del_fn del, PsmPartition partition);
+void radix_destroy(PsmPartition partition, PsmAddress radixAddr, radix_del_fn del_fn);
 
-void radix_destroy(PsmPartition partition, PsmAddress tree);
-
-PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key);
+PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key, int wildcard);
 
 void  radix_foreach(PsmPartition partition, PsmAddress radixAddr, radix_foreach_fn foreach_fn, void *tag);
 
 void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key, int flags, radix_match_fn match_fn, void *tag);
 
-int  radix_insert(PsmPartition partition, PsmAddress tree, char *key, PsmAddress data);
+int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmAddress data, radix_insert_fn ins_fn, radix_del_fn del_fn);
 
 int  radix_prettyprint(PsmPartition partition, PsmAddress tree, char *buffer, int buf_size);
 

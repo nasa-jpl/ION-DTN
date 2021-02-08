@@ -230,7 +230,7 @@ typedef struct
 typedef struct
 {
 	char *bsrc;
-	uint16_t bsrc_len;
+	uint16_t bsrc_len;  /**< Length of string WITHOUT NULL terminator. */
 
 	char *bdest;
 	uint16_t bdest_len;
@@ -270,18 +270,20 @@ void        bslpol_filter_score(PsmPartition partition, BpSecFilter *filter);
 
 
 /* General Rule Processing Functions */
-PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, uint8_t flags, BpSecFilter filter, Lyst sec_parms, PsmAddress events);
+BpSecPolRule* bslpol_rule_applies(Bundle *bundle, BpBlockType tgtType, int bpaRole);
+PsmAddress    bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, uint8_t flags, BpSecFilter filter, Lyst sec_parms, PsmAddress events);
 void          bslpol_rule_delete(PsmPartition partition, PsmAddress ruleAddr);
 PsmAddress    bslpol_rule_get_addr(PsmPartition partition, int user_id);
 Lyst          bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag criteria);
 BpSecPolRule* bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSearchTag criteria);
 BpSecPolRule* bslpol_rule_get_ptr(PsmPartition partition, int user_id);
-int           bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr);
+BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType tgtType);
+BpSecPolRule* bslpol_get_receiver_rule(Bundle *bundle, unsigned char tgtNum, int scid);
+int           bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember);
 int           bslpol_rule_matches(PsmPartition partition, BpSecPolRule *rulePtr, BpSecPolRuleSearchTag *tag);
 int           bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr);
 int           bslpol_rule_remove_by_id(PsmPartition partition, int user_id);
-int           bslpol_rule_get_best_match_at_src(Bundle *bundle, BpSecPolRule
-		        *polRule, BpBlockType tgtType);
+
 
 /* Rule Persistence Functions. */
 int     bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr);
@@ -299,12 +301,11 @@ int bslpol_search_tag_best(PsmPartition partition, BpSecPolRuleSearchBestTag *ta
 
 int  bslpol_cb_rule_compare_idx(PsmPartition partition, PsmAddress eltData, void *insertData);
 int  bslpol_cb_rule_compare_score(PsmPartition partition, PsmAddress eltData, void *dataBuffer);
-
 int  bslpol_cb_rulelyst_compare_score(BpSecPolRule *r1, BpSecPolRule *r2);
-void bslpol_cb_rulelyst_delete(PsmPartition partition, PsmAddress eltAddr, void *tag);
-
 int  bslpol_cb_ruleradix_insert(PsmPartition partition, PsmAddress *entryAddr, PsmAddress itemAddr);
 int  bslpol_cb_ruleradix_remove(PsmPartition partition, PsmAddress entryAddr, void *tag);
-int bslpol_cb_ruleradix_search_best(PsmPartition partition, PsmAddress entryAddr, BpSecPolRuleSearchBestTag *tag);
+int  bslpol_cb_ruleradix_search_best(PsmPartition partition, PsmAddress entryAddr, BpSecPolRuleSearchBestTag *tag);
+
+void bslpol_cb_smlist_delete(PsmPartition partition, PsmAddress eltAddr, void *tag);
 
 #endif /* BPSEC_POLICY_RULE_H_ */

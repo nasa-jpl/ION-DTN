@@ -42,7 +42,7 @@
 #define BSLACT_REPORT_REASON_CODE             (0x20) /*	0010 0000 */
 #define BSLACT_OVERRIDE_TARGET_BPCF           (0x40) /*	0100 0000 */
 #define BSLACT_OVERRIDE_SOP_BPCF              (0x80) /*	1000 0000 */
-#define BSL_ACT_NOT_IMPLEMENTED               (0xFF) /* 0000 0000 */
+#define BSLACT_NOT_IMPLEMENTED                (0xFF) /* 0000 0000 */
 
 /*  Masks for optional processing actions at each SOP event */
 #define BSLEVT_SRC_FOR_SOP_MASK               (0x00) /* 0000 0000 */
@@ -112,11 +112,10 @@ int          bslevt_add(PsmPartition wm, char *esName, BpSecEventId eventId,
 int			 bslevt_create(PsmPartition wm, BpSecEventId eventId, uint8_t actions,
 						BpSecEvtActionParms *actionParms, PsmAddress *addr);
 int          bslevt_delete(PsmPartition wm, char *esName, BpSecEventId eventId);
-int          bslevt_change_actions(char *esName, BpSecEventId eventId, uint8_t actions);
-int          bslevt_validate_actions(BpSecEventId eventId, uint8_t *actions);
 BpSecEventId bslevt_get_id(char *name);
 char*        bslevt_get_name(BpSecEventId eventId);
 Address      bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left);
 Address      bslevt_sdr_restore(BpSecEvent *event, char *cursor, int *bytes_left);
+int          bslevt_validate_actions(BpSecEventId eventId, uint8_t *actions);
 
 #endif /* BPSEC_POLICY_EVENT_H_ */

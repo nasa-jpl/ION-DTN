@@ -31,6 +31,7 @@
 #include "saga.h"
 #include "bpsec_instr.h"
 #include "bpsec_util.h"
+#include "bpsec_policy.h"
 #include "bib.h"
 #include "bcb.h"
 
@@ -1493,6 +1494,7 @@ int	bpInit()
 	}
 	else
 	{
+		bsl_all_init(getIonwm());
 		bpsec_instr_init();
 		writeMemo("[i] Bundle security is enabled.");
 	}

@@ -150,8 +150,8 @@ struct RadixTree_s
     sm_SemId lock;          /**> Mutex - locks on write. */
     
     /* User Data Handling */
-    radix_del_fn     del_fn;    /**> Optional user-data delete function. */
-    radix_insert_fn  ins_fn;    /**> Optional user-defined insert function */
+    //radix_del_fn     del_fn;    /**> Optional user-data delete function. */
+    //radix_insert_fn  ins_fn;    /**> Optional user-defined insert function */
 };
 
 
@@ -164,7 +164,7 @@ struct RadixTree_s
 
 PsmAddress radixP_create_node(PsmPartition partition, char *key, int keyLen, PsmAddress data);
 
-int radixP_del_leafnode(PsmPartition partition, PsmAddress nodeAddr, RadixTree *tree);
+int radixP_del_leafnode(PsmPartition partition, PsmAddress nodeAddr, RadixTree *tree, radix_del_fn del_fn);
 
 void radixP_fix_depth(PsmPartition partition, RadixNode *nodePtr);
 
@@ -182,10 +182,10 @@ int radixP_insert_node(PsmPartition partition, RadixTree *tree, PsmAddress paren
 
 int        radixP_node_is_leaf(PsmPartition partition, RadixNode *node);
 
-int        radixP_node_matches_key(char *node_key, char *key, int *idx);
+int        radixP_node_matches_key(char *node_key, char *key, int *idx, int wildcard);
 
 PsmAddress radixP_remove_child(PsmPartition partition, RadixNode *node, int order);
 
-int radixP_split_insert_node(PsmPartition partition, RadixTree *radixPtr, PsmAddress splitNodeAddr, PsmAddress newChildAddr, int offset);
+int radixP_split_insert_node(PsmPartition partition, RadixTree *radixPtr, PsmAddress splitNodeAddr, PsmAddress newChildAddr, int offset, radix_del_fn del_fn);
 
 #endif

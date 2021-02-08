@@ -1,18 +1,30 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2021 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: bpsec_policy.c
  **
- ** Description:
+ ** Description: This file contains general utilities for initializing the
+ **              BPSec policy engine and applying policy actions to blocks.
  **
  ** Notes:
- **
+ **  BPSec policy is implemented as a distributed set of utilities that
+ **  coordinate information through ION shared memory and the ION SDR. As
+ **  such, initialization routines need to be made idempotent. This is
+ **  done by checking to see if a prior initialization was completed before
+ **  running any initialization routine.
  **
  ** Assumptions:
  **
  ** Modification History:
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
- **                           Initial implementation
+ **  01/22/21  S. Heiner &    Initial implementation
+ **            E. Birrane
  **
  *****************************************************************************/
 
@@ -31,10 +43,9 @@
 /******************************************************************************
  * @brief Initializes all parts of the BPSec Policy Engine.
  *
+ * @param[in,out] partition - The shared memory partition
+ *
  * @note
- *   - TODO: Check all return codes.
- *   - TODO: Check to see if we need to allocate storage structs in shared
- *           memory...
  *
  * @retval  1 - Success
  * @retval  0 - Failure
@@ -43,57 +54,80 @@
 
 int bsl_all_init(PsmPartition partition)
 {
+	int success = 0;
 	CHKERR(partition);
 
-	bsl_vdb_init(partition);
-	bsl_sdr_bootstrap(partition);
+	if(bsl_vdb_init(partition))
+	{
+		success = bsl_sdr_bootstrap(partition);
+	}
 
-	return 1;
+	return success;
 }
 
 
-/*
- * Build the BSL Policy SDR DB and Initialize it.
- */
-int bsl_sdr_bootstrap(PsmPartition wm)
+
+/******************************************************************************
+ * @briefReads Helper function to read a value from a buffer
+ *
+ * BPSec policy serialize/deserialize routines use an iterator pattern to
+ * read chunks of data from a buffer. This function helps deserialize routines
+ * by reading a fixed length value from a serialized string.
+ *
+ * @param[out] value      - The item holding the extracted value.
+ * @param[in]  cursor     - A pointer into a serialized buffer holding the value
+ * @param[in]  length     - Byte length of value being read.
+ * @param[out] bytes_left - The number of bytes remaining in the buffer pointed
+ *                          to by the cursor.
+ *
+ * @note
+ * The value is copied out of the serialized buffer into the value.
+ * \par
+ * The caller is expected to have pre-allocated the value and ensure it is of
+ * the size indicated by "length"
+ *
+ * @retval  >0 - The number of bytes to advance the cursor address
+ * @retval   0 - Failure
+ *****************************************************************************/
+
+Address bsl_bufread(void *value, char *cursor, int length, int *bytes_left)
 {
-	Sdr ionsdr = getIonsdr();
-	SecDB *secdb = getSecConstants();
-	SecVdb *secvdb = getSecVdb();
-	Object sdrElt = 0;
-	BpSecPolicyDbEntry entry;
-
-	CHKERR(secdb);
-	CHKERR(secvdb);
-
-	if(sm_rbt_length(wm, getSecVdb()->bpsecEventSet) == 0)
-	{
-		CHKERR(sdr_begin_xn(ionsdr));
-		for(sdrElt = sdr_list_first(ionsdr, secdb->bpSecEventSets);
-			sdrElt;
-			sdrElt = sdr_list_next(ionsdr, sdrElt))
-		{
-			sdr_read(ionsdr, (char *) &entry, sdr_list_data(ionsdr, sdrElt), sizeof(BpSecPolicyDbEntry));
-			bsles_sdr_restore(wm, entry);
-		}
-		sdr_exit_xn(ionsdr);
-	}
+	CHKZERO(*bytes_left >= length);
+	memcpy(value, cursor, length);
+	*bytes_left -= length;
+	return length;
+}
 
 
-	if(sm_list_length(wm, getSecVdb()->bpsecPolicyRules) == 0)
-	{
-		CHKERR(sdr_begin_xn(ionsdr));
-		for(sdrElt = sdr_list_first(ionsdr, secdb->bpSecPolicyRules);
-			sdrElt;
-			sdrElt = sdr_list_next(ionsdr, sdrElt))
-		{
-			sdr_read(ionsdr, (char *) &entry, sdr_list_data(ionsdr, sdrElt), sizeof(BpSecPolicyDbEntry));
-			bslpol_sdr_rule_restore(wm, entry);
-		}
-		sdr_exit_xn(ionsdr);
-	}
 
-	return 0;
+/******************************************************************************
+ * @briefReads Helper function to write a value into a buffer
+ *
+ * BPSec policy serialize/deserialize routines use an iterator pattern to
+ * write chunks of data into a buffer. This function helps serialize routines
+ * by writing a fixed length value into a serialized string.
+ *
+ * @param[out]    cursor     - A pointer into a serialized buffer being updated
+ * @param[in]     value      - The value being written into the buffer @ cursor.
+ * @param[in]     length     - Byte length of value being written.
+ * @param[in,out] bytes_left - The number of bytes remaining in the buffer
+ *                             pointed to by the cursor.
+ *
+ * @note
+ * The caller is expected to have pre-allocated the buffer pointed into by
+ * cursor.
+ *
+ * @retval  >0 - The number of bytes to advance the cursor address
+ * @retval   0 - Failure
+ *****************************************************************************/
+
+Address bsl_bufwrite(char *cursor, void *value, int length, int *bytes_left)
+{
+	CHKZERO(*bytes_left >= length);
+
+	memcpy(cursor, value, length);
+	*bytes_left -= length;
+	return length;
 }
 
 
@@ -102,7 +136,7 @@ int bsl_sdr_bootstrap(PsmPartition wm)
  * @brief Generates a pointer into the EID Dictionary for a given EID.
  *
  * @param[in,out] partition - The shared memory partition
- * @param[in]     eid - The EID whose dictionary reference is being queried.
+ * @param[in]     eid       - The EID whose dictionary reference is being queried.
  *
  * @note
  * If the EID does not exist in the dictionary then a new entry will be created
@@ -126,7 +160,7 @@ PsmAddress bsl_ed_get_ref(PsmPartition partition, char *eid)
 	CHKZERO(eid);
 
 	/* Step 1: See if we have this EID in the dictionary. */
-	userDataAddr = radix_find(partition, getSecVdb()->bpsecEidDictionary, eid);
+	userDataAddr = radix_find(partition, getSecVdb()->bpsecEidDictionary, eid, 0);
 
 	/* Step 2: If we have no ref, make a ref. */
 	if(userDataAddr == 0)
@@ -135,13 +169,14 @@ PsmAddress bsl_ed_get_ref(PsmPartition partition, char *eid)
 		int len = istrlen(eid, MAX_EID_LEN);
 		char *dataPtr = NULL;
 
-		userDataAddr = psm_zalloc(partition, len + 1);
+		userDataAddr = psm_zalloc(partition, len+1);
 		CHKZERO(userDataAddr);
 		dataPtr = (char *) psp(partition, userDataAddr);
-		istrcpy(dataPtr, eid, len);
+		memset(dataPtr, 0, len+1);
+		istrcpy(dataPtr, eid, len+1);
 
 		/* Step 2.2: Insert it into the EID dictionary. */
-		if(radix_insert(partition, getSecVdb()->bpsecEidDictionary, eid, userDataAddr) != 1)
+		if(radix_insert(partition, getSecVdb()->bpsecEidDictionary, eid, userDataAddr, NULL, bsl_cb_ed_delete) != 1)
 		{
 			psm_free(partition, userDataAddr);
 			userDataAddr = 0;
@@ -153,112 +188,212 @@ PsmAddress bsl_ed_get_ref(PsmPartition partition, char *eid)
 }
 
 
+
+/******************************************************************************
+ * @briefReads BPSec objects from the SDR and builds them in shared memory
+ *
+ * @param[in,out] wm - The shared memory partition
+ *
+ * @note
+ * This SDR bootstrapping must always be done once to avoid duplicate entries
+ * being placed in shared memory. The way this is serialized is to see if
+ * there are currently any objects in shared memory. If any such object exists,
+ * then SDR bootstrapping must not occur because the system had already come
+ * up previously.
+ *
+ * @retval  1 - Success
+ * @retval  0 - Failure
+ * @retval -1 - System error
+ *****************************************************************************/
+
+int bsl_sdr_bootstrap(PsmPartition wm)
+{
+	Sdr ionsdr = getIonsdr();
+	SecDB *secdb = getSecConstants();
+	SecVdb *secvdb = getSecVdb();
+	Object sdrElt = 0;
+	BpSecPolicyDbEntry entry;
+
+	CHKERR(secdb);
+	CHKERR(secvdb);
+
+	/* If we don't have any bpsec eventsets, see if any exist in the SDR. */
+	if(sm_rbt_length(wm, getSecVdb()->bpsecEventSet) == 0)
+	{
+		CHKERR(sdr_begin_xn(ionsdr));
+		for(sdrElt = sdr_list_first(ionsdr, secdb->bpSecEventSets);
+			sdrElt;
+			sdrElt = sdr_list_next(ionsdr, sdrElt))
+		{
+			sdr_read(ionsdr, (char *) &entry, sdr_list_data(ionsdr, sdrElt), sizeof(BpSecPolicyDbEntry));
+			bsles_sdr_restore(wm, entry);
+		}
+		sdr_exit_xn(ionsdr);
+	}
+
+	/* If we don't have any bpsec policyrules, see if any exist in the SDR. */
+	if(sm_list_length(wm, getSecVdb()->bpsecPolicyRules) == 0)
+	{
+		CHKERR(sdr_begin_xn(ionsdr));
+		for(sdrElt = sdr_list_first(ionsdr, secdb->bpSecPolicyRules);
+			sdrElt;
+			sdrElt = sdr_list_next(ionsdr, sdrElt))
+		{
+			sdr_read(ionsdr, (char *) &entry, sdr_list_data(ionsdr, sdrElt), sizeof(BpSecPolicyDbEntry));
+			bslpol_sdr_rule_restore(wm, entry);
+		}
+		sdr_exit_xn(ionsdr);
+	}
+
+	return 1;
+}
+
+
+
+/******************************************************************************
+ * @briefReads Helper function to insert a bpsec object into the SDR.
+ *
+ * The SDR entry object is a (Length,Value-Address) tuple. Inserting an
+ * entry into the SDR involves placing the value into the SDR and then
+ * writing the length and address of that value into the list of bpsec
+ * policy objects.
+ *
+ * @param[in,out] ionsdr - The SDR (BPSec objects exist in the ION SDR).
+ * @param[in]     buffer - The serialized bpsec object
+ * @param[in]     entry  - The entry for the bpsec object
+ * @param[in]     list   - Which SDR list to hold the entry
+ *
+ * @note
+
+ * @retval  1 - Success
+ * @retval  0 - Failure
+ * @retval -1 - System error
+ *****************************************************************************/
+
 int bsl_sdr_insert(Sdr ionsdr, char *buffer, BpSecPolicyDbEntry entry, Object list)
 {
 	Object itemObj = 0;
 
 	CHKERR(sdr_begin_xn(ionsdr));
 
+	/* Step 1 - Allocate space for a bpsec entry in the SDR. */
 	if((itemObj = sdr_malloc(ionsdr, sizeof(BpSecPolicyDbEntry))) == 0)
 	{
 		sdr_cancel_xn(ionsdr);
-		MRELEASE(buffer);
 		putErrmsg("Cannot persist policy entry.", NULL);
 		return -1;
 	}
 
+	/* Step 2 - Allocate space for the serialized entry. */
 	if((entry.entryObj = sdr_malloc(ionsdr, entry.size)) == 0)
 	{
+		sdr_free(ionsdr, itemObj);
 		sdr_cancel_xn(ionsdr);
-		MRELEASE(buffer);
 		putErrmsg("Cannot persist serialized item.", NULL);
 		return -1;
 	}
 
+	/*
+	 * Step 3 - Write it all to the SDR.
+	 *          - Write the serialized entry value to the SDR.
+	 *          - Write the entry information to the SDR
+	 *          - Store the entry information location in the SDR list.
+	 */
 	sdr_write(ionsdr, entry.entryObj, buffer, entry.size);
 	sdr_write(ionsdr, itemObj, (char *) &entry, sizeof(BpSecPolicyDbEntry));
 	sdr_list_insert_last(ionsdr, list, itemObj);
 
 	sdr_end_xn(ionsdr);
 
-	MRELEASE(buffer);
-
-	return 0;
-}
-
-Address bsl_sdr_bufread(void *value, char *cursor, int length, int *bytes_left)
-{
-	CHKZERO(*bytes_left >= length);
-	memcpy(value, cursor, length);
-	*bytes_left -= length;
-	return length;
-}
-
-Address bsl_sdr_bufwrite(char *cursor, void *value, int length, int *bytes_left)
-{
-	CHKZERO(*bytes_left >= length);
-
-	memcpy(cursor, value, length);
-	*bytes_left -= length;
-	return length;
+	return 1;
 }
 
 
 
+/******************************************************************************
+ * @briefReads Initialize shared memory structures to hold BPSec policy objects
+ *
+ * @param[in,out] wm - The shared memory partition
+ *
+ * @retval  1 - Success
+ * @retval  0 - Failure
+ * @retval -1 - System error
+ *****************************************************************************/
 
 int bsl_vdb_init(PsmPartition partition)
 {
 	SecVdb *secvdb = getSecVdb();
+
+	/*
+	 * Step 1: Make sure we have't already initialized the BPSec VDB. If we have
+	 *         any secvdb Bpsec structure initialized, then we can presume that this
+	 *         call to initialize the VDB has been called either by this calling thread
+	 *         or by some other utility.
+	 */
 	if(secvdb->bpsecPolicyRules != 0)
 	{
 		return 1;
 	}
 
-	/* Step 1 - Create data structures used to store policy information */
+	/* Step 2 - Create data structures used to store policy information */
 
-	/* Step 1.1: Make the sm_list that stores policy rules. */
+	/* Step 2.1: Policy rules are stored in a shared memory linked list. */
 
 	secvdb->bpsecPolicyRules = sm_list_create(partition);
 
-	/* Step 1.2: Make radix trees to look up rules by various EIDs. */
-	secvdb->bpsecRuleIdxBySrc  = radix_create((radix_insert_fn)bslpol_cb_ruleradix_insert, NULL, partition);
-	secvdb->bpsecRuleIdxByDest = radix_create((radix_insert_fn)bslpol_cb_ruleradix_insert, NULL, partition);
-	secvdb->bpsecRuleIdxBySSrc = radix_create((radix_insert_fn)bslpol_cb_ruleradix_insert, NULL, partition);
+	/* Step 2.2: Policy rules are indexed by EID for fast lookups. */
+	secvdb->bpsecRuleIdxBySrc  = radix_create(partition);
+	secvdb->bpsecRuleIdxByDest = radix_create(partition);
+	secvdb->bpsecRuleIdxBySSrc = radix_create(partition);
 
-	/* Step 1.3: Make radix tree to store EID dictionary. */
+	/* Step 2.3: An EID dictionary is used to reduce the size impact of EIDs. */
+	secvdb->bpsecEidDictionary = radix_create(partition);
 
-	secvdb->bpsecEidDictionary = radix_create(NULL, bsl_cb_ed_delete, partition);
-
-	/* Step 1.4: Make red-black tree to store named eventsets. */
+	/* Step 2.4: Make red-black tree to store named eventsets. */
 	secvdb->bpsecEventSet = sm_rbt_create(partition);
 
 	return 1;
 }
 
+
+
 /******************************************************************************
  * @brief Cleans up the BPSec Policy Engine resources.
  *
  * @note
- *   - TODO: Check all return codes.
- *   - TODO: Check to see if we need to allocate storage structs in shared
- *           memory...
+ * TODO: This is not currently called as there is not a single place where
+ *       ION does a graceful shutdown. Stopping the ION node will clear shared
+ *       memory and the ION memory pool, so this teardown may be unnecessary.
  *****************************************************************************/
 
 void bsl_vdb_teardown(PsmPartition partition)
 {
 	SecVdb *secvdb = getSecVdb();
 
-	radix_destroy(partition, secvdb->bpsecRuleIdxBySrc);
-	radix_destroy(partition, secvdb->bpsecRuleIdxByDest);
-	radix_destroy(partition, secvdb->bpsecRuleIdxBySSrc);
+	radix_destroy(partition, secvdb->bpsecRuleIdxBySrc, NULL);
+	radix_destroy(partition, secvdb->bpsecRuleIdxByDest, NULL);
+	radix_destroy(partition, secvdb->bpsecRuleIdxBySSrc, NULL);
 
-	sm_list_destroy(partition, secvdb->bpsecPolicyRules, bslpol_cb_rulelyst_delete, NULL);
+	sm_list_destroy(partition, secvdb->bpsecPolicyRules, bslpol_cb_smlist_delete, NULL);
 
-	radix_destroy(partition, secvdb->bpsecEidDictionary);
+	radix_destroy(partition, secvdb->bpsecEidDictionary, bsl_cb_ed_delete);
 	//TODO: Delete RBT?
 }
 
 
+
+/******************************************************************************
+ * @brief Callback to free EID dictionary reference on deletion
+ *
+ * @param[in,out] wm        - The shared memory partition
+ * @param[in,out] user_data - The EID stored in shared memory.
+ *
+ * @note
+ *  The EID dictionary stores EIDs as a key->value pair where key is a partial
+ *  key in a RADIX tree and value is the full EID. When a node in the dictionary
+ *  is removed, the key is cleaned up automatically and this function is called
+ *  to delete the value (full EID).
+ *****************************************************************************/
 
 void bsl_cb_ed_delete(PsmPartition partition, PsmAddress user_data)
 {
@@ -268,9 +403,186 @@ void bsl_cb_ed_delete(PsmPartition partition, PsmAddress user_data)
 }
 
 
+
+
+/*
+ * +--------------------------------------------------------------------------+
+ * |	      	     OPTIONAL PROCESSING ACTION UTILITIES  	     			  +
+ * +--------------------------------------------------------------------------+
+ */
+
 /******************************************************************************
  *
- * \par Function Name: bslpol_remove_sop_at_sender
+ * \par Function Name: bsl_discardInboundTarget
+ *
+ * \par Purpose: This function discards the security target of the inbound
+ *               security block provided.
+ *
+ * \param[in]  targetElt  Security target to be discarded.
+ * \param[in]  sopElt     Security block to discard the target from.
+ *
+ * \Note This function has been adapted from S. Burleigh's discardTarget
+ *        functions in bib.c and bcb.c
+ *****************************************************************************/
+void bsl_discardIboundTarget(LystElt targetElt, LystElt sopElt)
+{
+	BpsecInboundTarget	*target;
+	AcqExtBlock		*sop;
+	BpsecInboundBlock	*asb;
+
+	target = (BpsecInboundTarget *) lyst_data(targetElt);
+	bpsec_releaseInboundTlvs(target->results);
+	MRELEASE(target);
+	lyst_delete(targetElt);
+	sop = (AcqExtBlock *) lyst_data(sopElt);
+	asb = (BpsecInboundBlock *) (sop->object);
+	if (lyst_length(asb->targets) == 0)
+	{
+		deleteAcqExtBlock(sopElt);
+	}
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: bsl_findOutboundBpsecBlock
+ *
+ * \par Purpose: This function returns the security block of indicated type
+ *               that targets the provided block (identified by block number)
+ *               if such a security block exists.
+ *
+ * \param[in]  bundle     Current, working bundle.
+ * \param[in]  tgtBlkNum  Block number of the security target block.
+ * \param[in]  sopType    Block type of the security block to find.
+ *
+ * \Note This function has been adapted from S. Burleigh's
+ *        findOutboundTarget functions in bib.c and bcb.c
+ *****************************************************************************/
+Object bsl_findOutboundBpsecBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType)
+{
+	/* Step 0: Sanity checks. */
+	CHKERR(bundle);
+	CHKERR(tgtBlkNum);
+	CHKERR(sopType);
+
+	Sdr				    sdr = getIonsdr();
+	Object			    elt;
+	Object			    blockObj;
+	ExtensionBlock		block;
+	BpsecOutboundBlock	asb;
+	Object			    elt2;
+	Object			    targetObj;
+	BpsecOutboundTarget	target;
+
+	/*
+	 * Step 1: Check each extension block in the bundle, looking for a
+	 * bpsec block whose type (BIB or BCB) matches the provided sopType.
+	 */
+	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		blockObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &block, blockObj,
+				sizeof(ExtensionBlock));
+		if (block.type != sopType)
+		{
+			continue;
+		}
+
+		sdr_read(sdr, (char *) &asb, block.object,
+				sizeof(BpsecOutboundBlock));
+
+		/*
+		 * Step 2: Check the targets of the bpsec block, looking for a
+		 * match to the tgtBlkNum provided.
+		 */
+		for (elt2 = sdr_list_first(sdr, asb.targets); elt2;
+				elt2 = sdr_list_next(sdr, elt2))
+		{
+			targetObj = sdr_list_data(sdr, elt2);
+			sdr_read(sdr, (char *) &target, targetObj,
+					sizeof(BpsecOutboundTarget));
+			if (target.targetBlockNumber == tgtBlkNum)
+			{
+				return elt; /* bpsec block with target found */
+			}
+		}
+	}
+
+	return 0;	/* bpsec block with specified target not found */
+}
+
+/******************************************************************************
+ *
+ * \par Function Name: bsl_findOutboundTarget
+ *
+ * \par Purpose: This function returns the target block of a security block
+ *               of the indicated type, if such a block exists.
+ *
+ * \param[in]  bundle     Current, working bundle.
+ * \param[in]  tgtBlkNum  Block number of the security target block.
+ * \param[in]  sopType    Block type of the security block to find.
+ *
+ * \Note This function has been adapted from S. Burleigh's
+ *        findOutboundTarget functions in bib.c and bcb.c
+ *****************************************************************************/
+Object bsl_findOutboundTarget(Bundle *bundle, int tgtBlkNum, BpBlockType sopType)
+{
+	/* Step 0: Sanity checks. */
+	CHKERR(bundle);
+	CHKERR(tgtBlkNum);
+	CHKERR(sopType);
+
+	Sdr			        sdr = getIonsdr();
+	Object			    elt;
+	Object			    blockObj;
+	ExtensionBlock		block;
+	BpsecOutboundBlock	asb;
+	Object			    elt2;
+	Object			    targetObj;
+	BpsecOutboundTarget	target;
+
+	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
+			elt = sdr_list_next(sdr, elt))
+	{
+		blockObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &block, blockObj,
+				sizeof(ExtensionBlock));
+		if (block.type != sopType)
+		{
+			continue;	/*	Not a BPSec block.	*/
+		}
+
+		/*	This is a BPSec block.  See if the indicated
+		 *	non-BPSec block is one of its targets.		*/
+
+		sdr_read(sdr, (char *) &asb, block.object,
+				sizeof(BpsecOutboundBlock));
+		for (elt2 = sdr_list_first(sdr, asb.targets); elt2;
+				elt2 = sdr_list_next(sdr, elt2))
+		{
+
+			targetObj = sdr_list_data(sdr, elt2);
+			sdr_read(sdr, (char *) &target, targetObj,
+					sizeof(BpsecOutboundTarget));
+			if (target.targetBlockNumber == tgtBlkNum)
+			{
+				return elt2; /* Target block found */
+			}
+		}
+	}
+
+	return 0;	/*	No such target.				*/
+}
+
+/*
+ * +--------------------------------------------------------------------------+
+ * |	      	     OPTIONAL PROCESSING ACTION CALLBACKS  	     			  +
+ * +--------------------------------------------------------------------------+
+ */
+
+/******************************************************************************
+ *
+ * \par Function Name: bsl_remove_sop_at_sender
  *
  * \par Purpose: This function removes the described security operation from
  *               a given bundle. The security operation is identified by the
@@ -289,6 +601,7 @@ void bsl_remove_sop_at_sender(Bundle *bundle, ExtensionBlock *sopBlk)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
+	CHKVOID(sopBlk);
 
 	/* Step 1: Find security block representing the security operation */
 	Object sop = getExtensionBlock(bundle, sopBlk->number);
@@ -302,7 +615,7 @@ void bsl_remove_sop_at_sender(Bundle *bundle, ExtensionBlock *sopBlk)
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_remove_sop_at_receiver
+ * \par Function Name: bsl_remove_sop_at_receiver
  *
  * \par Purpose: This function removes the described security operation from
  *               a given bundle. The security operation is identified by the
@@ -335,74 +648,16 @@ void bsl_remove_sop_at_receiver(AcqWorkArea *wk, LystElt sopElt)
 	}
 }
 
-/* NOTE: Adapted from bib/bcb.c */
-static void	bsl_discardTarget(LystElt targetElt, LystElt sopElt)
-{
-	BpsecInboundTarget	*target;
-	AcqExtBlock		*sop;
-	BpsecInboundBlock	*asb;
-
-	target = (BpsecInboundTarget *) lyst_data(targetElt);
-	bpsec_releaseInboundTlvs(target->results);
-	MRELEASE(target);
-	lyst_delete(targetElt);
-	sop = (AcqExtBlock *) lyst_data(sopElt);
-	asb = (BpsecInboundBlock *) (sop->object);
-	if (lyst_length(asb->targets) == 0)
-	{
-		deleteAcqExtBlock(sopElt);
-	}
-}
-
-/* NOTE: Adapted from bib/bcb.c */
-static Object bsl_findOutboundTarget(Bundle *bundle, int blockNumber, BpBlockType sopType)
-{
-	Sdr			sdr = getIonsdr();
-	Object			elt;
-	Object			blockObj;
-	ExtensionBlock		block;
-	BpsecOutboundBlock	asb;
-	Object			elt2;
-	Object			targetObj;
-	BpsecOutboundTarget	target;
-
-	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		blockObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &block, blockObj,
-				sizeof(ExtensionBlock));
-		if (block.type != sopType)
-		{
-			continue;
-		}
-
-		sdr_read(sdr, (char *) &asb, block.object,
-				sizeof(BpsecOutboundBlock));
-		for (elt2 = sdr_list_first(sdr, asb.targets); elt2;
-				elt2 = sdr_list_next(sdr, elt2))
-		{
-			targetObj = sdr_list_data(sdr, elt2);
-			sdr_read(sdr, (char *) &target, targetObj,
-					sizeof(BpsecOutboundTarget));
-			if (target.targetBlockNumber == blockNumber)
-			{
-				return elt2;
-			}
-		}
-	}
-
-	return 0;	/*	No such target.				*/
-}
 /******************************************************************************
  *
- * \par Function Name: bslpol_remove_sop_target_at_sender
+ * \par Function Name: bsl_remove_sop_target_at_sender
  *
  * \par Purpose: This function removes the security target of the security
  *               block provided.
  *
  * \param[in]  bundle       Current, working bundle.
  * \param[in]  sopBlk       Security block representing the security operation.
+ * \param[in]  asb          Abstract Security Block (outbound).
  * \param[in]  tgtNum       Block number of the security target block.
  *
  * \TODO Handle primary block and payload block as targets. Function currently
@@ -414,25 +669,45 @@ static Object bsl_findOutboundTarget(Bundle *bundle, int blockNumber, BpBlockTyp
  *  01/29/21   S. Heiner      Initial Implementation
  *****************************************************************************/
 void bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
-		unsigned char tgtNum)
+		BpsecOutboundBlock *asb, unsigned char tgtNum)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
 	CHKVOID(tgtNum);
+	CHKVOID(asb);
+
+	Sdr sdr = getIonsdr();
 
 	/* Step 1: Search for the security target block */
 	Object tgt = bsl_findOutboundTarget(bundle, tgtNum, sopBlk->type);
 
 	if (tgt)
 	{
-		/* Step 2: Remove the target block from the bundle */
-		deleteExtensionBlock(tgt, &(bundle->extensionsLength));
+		/* Step 2: Remove the target block from the security block */
+		sdr_list_delete(sdr, tgt, NULL, NULL);
+
+		/* Step 3: Remove the target block from the bundle */
+
+		/*
+		 * Step 3.1: If target is the primary or payload block, we must
+		 * abandon the bundle (cannot exist without one of these blocks).
+		 */
+		if (tgtNum == 0 || tgtNum == 1)
+		{
+			bundle->corrupt = 1;
+		}
+
+		/* Step 3.2: If target is an extension block, remove from the bundle */
+		else
+		{
+			deleteExtensionBlock(tgt, &(bundle->extensionsLength));
+		}
 	}
 }
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_remove_sop_target_at_receiver
+ * \par Function Name: bsl_remove_sop_target_at_receiver
  *
  * \par Purpose: This function removes the security target of the security
  *               block provided.
@@ -453,29 +728,29 @@ void bsl_remove_sop_target_at_receiver(LystElt tgtElt, LystElt sopElt)
 	CHKVOID(sopElt);
 
 	/* Step 1: Discard target block */
-	bsl_discardTarget(tgtElt, sopElt);
+	bsl_discardIboundTarget(tgtElt, sopElt);
 }
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_remove_all_target_sops_at_sender
+ * \par Function Name: bsl_remove_all_target_sops_at_sender
  *
  * \par Purpose: This function removes all security operations targeting a
  *               specified block.
  *
  * \param[in]  bundle       Current, working bundle.
- * \param[in]  tgtNum       Block number of the security operation's target.
+ * \param[in]  tgtBlkNum       Block number of the security operation's target.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/29/21   S. Heiner      Initial Implementation
  *****************************************************************************/
-void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
+void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtBlkNum)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
-	CHKVOID(tgtNum);
+	CHKVOID(tgtBlkNum);
 
 	Sdr	sdr = getIonsdr();
 	Object	elt;
@@ -486,7 +761,7 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
 	ExtensionBlock tgt;
 	OBJ_POINTER(ExtensionBlock, blk);
 
-	Object tgtObj = getExtensionBlock(bundle, tgtNum);
+	Object tgtObj = getExtensionBlock(bundle, tgtBlkNum);
 	sdr_read(sdr, (char *) &tgt, tgtObj, sizeof(ExtensionBlock));
 
 	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
@@ -511,7 +786,7 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_remove_all_target_sops_at_receiver
+ * \par Function Name: bsl_remove_all_target_sops_at_receiver
  *
  * \par Purpose: This function removes all security operations targeting a
  *               specified block.
@@ -572,27 +847,30 @@ void bsl_remove_all_target_sops_at_receiver(AcqWorkArea *wk, LystElt sopElt,
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_do_not_forward_at_sender
+ * \par Function Name: bsl_do_not_forward_at_sender
  *
- * \par Purpose: This function ends bundle transmission at the current node.
+ * \par Purpose: This function results in the end of bundle transmission at
+ *               the current node by marking the current bundle as corrupt,
+ *               which will result in the bundle being abandoned.
  *
  * \param[in]  bundle     Current, working bundle.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
- *
+ * 02/03/21   S. Heiner      Initial Implementation
  *****************************************************************************/
 void bsl_do_not_forward_at_sender(Bundle *bundle)
 {
 	CHKVOID(bundle);
 
-	//TODO: Suspend without raw bundle? bp_suspend(bundle);
+	/* Abandon bundle */
+	bundle->corrupt = 1;
 }
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_do_not_forward_at_receiver
+ * \par Function Name: bsl_do_not_forward_at_receiver
  *
  * \par Purpose: This function ends bundle transmission at the current node.
  *
@@ -612,7 +890,7 @@ void bsl_do_not_forward_at_receiver(AcqWorkArea *wk)
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_request_storage
+ * \par Function Name: bsl_request_storage
  *
  * \par Purpose: This function will store the bundle in its current state at
  *               time of calling.
@@ -627,14 +905,14 @@ void bsl_do_not_forward_at_receiver(AcqWorkArea *wk)
  *  --------  ------------   ---------------------------------------------
  *
  *****************************************************************************/
-void bslpol_request_storage(Bundle *bundle)
+void bsl_request_storage(Bundle *bundle)
 {
 	CHKVOID(bundle);
 }
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_report_reason_code_at_sender
+ * \par Function Name: bsl_report_reason_code_at_sender
  *
  * \par Purpose: This function will send a bundle status report with the
  *               provided reason code.
@@ -670,7 +948,7 @@ void bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason)
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_report_reason_code_at_receiver
+ * \par Function Name: bsl_report_reason_code_at_receiver
  *
  * \par Purpose: This function will send a bundle status report with the
  *               provided reason code.
@@ -701,7 +979,7 @@ void bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason)
 }
 /******************************************************************************
  *
- * \par Function Name: bslpol_override_target_bpcf
+ * \par Function Name: bsl_override_target_bpcf
  *
  * \par Purpose: This function will override the block processing control
  *               flags of a security target block.
@@ -716,14 +994,14 @@ void bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason)
  *  --------  ------------   ---------------------------------------------
  *
  *****************************************************************************/
-void bslpol_override_target_bpcf(Bundle *bundle)
+void bsl_override_target_bpcf(Bundle *bundle)
 {
 	CHKVOID(bundle);
 }
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_override_sop_bpcf
+ * \par Function Name: bsl_override_sop_bpcf
  *
  * \par Purpose: This function will override the block processing control
  *               flags of a security block.
@@ -738,14 +1016,20 @@ void bslpol_override_target_bpcf(Bundle *bundle)
  *  --------  ------------   ---------------------------------------------
  *
  *****************************************************************************/
-void bslpol_override_sop_bpcf(Bundle *bundle)
+void bsl_override_sop_bpcf(Bundle *bundle)
 {
 	CHKVOID(bundle);
 }
 
+/*
+ * +--------------------------------------------------------------------------+
+ * |	      	     SECURITY OPERATION EVENT HANDLING  	     			  +
+ * +--------------------------------------------------------------------------+
+ */
+
 /******************************************************************************
  *
- * \par Function Name: bslpol_handle_sender_sop_event
+ * \par Function Name: bsl_handle_sender_sop_event
  *
  * \par Purpose: This function is to be called each time a security operation
  *               event occurence is identified by a BPA taking on the role
@@ -761,12 +1045,8 @@ void bslpol_override_sop_bpcf(Bundle *bundle)
  * \param[in]  sopEvent      The security operation event to respond to.
  * \param[in]  sop           Security block representing the security operation.
  * \param[in]  asb           Abstract security block for the security operation.
- * \param[in]  tgtType       Block type of the security operation's target.
+ * \param[in]  tgtNum        Block number of the security operation's target.
  *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/29/21   S. Heiner      Initial Implementation
  *****************************************************************************/
 int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 		ExtensionBlock *sop, BpsecOutboundBlock *asb, unsigned char tgtNum)
@@ -774,15 +1054,13 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 	/* Step 0: Sanity checks */
 	CHKERR(bundle);
 	CHKERR(sopEvent >= 0);
-	CHKERR(sop);
-	CHKERR(tgtNum);
 
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));
 	PsmPartition wm = getIonwm();
 
 	/* Step 1: Populate the policy rule search tag */
-	if (tgtNum == 0)
+	if (tgtNum == PrimaryBlk)
 	{
 		tag.type = PrimaryBlk;
 	}
@@ -846,7 +1124,7 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 
 					if (curEventPtr->action_mask & BSLACT_REMOVE_SOP_TARGET)
 					{
-						bsl_remove_sop_target_at_sender(bundle, sop, tgtNum);
+						bsl_remove_sop_target_at_sender(bundle, sop, asb, tgtNum);
 					}
 
 					if (curEventPtr->action_mask & BSLACT_REMOVE_ALL_TARGET_SOPS)
@@ -889,7 +1167,7 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 
 /******************************************************************************
  *
- * \par Function Name: bslpol_handle_receiver_sop_event
+ * \par Function Name: bsl_handle_receiver_sop_event
  *
  * \par Purpose: This function is to be called each time a security operation
  *               event occurence is identified by a BPA taking on the role
@@ -907,12 +1185,8 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
  * \param[in]  sop       The security block representing the security operation
  *                       in the current bundle.
  * \param[in]  tgt       The security target block.
- * \param[in]  tgtType   The block type of the securtity target block.
+ * \param[in]  tgtNum    The block number of the security target block.
  *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/29/21   S. Heiner      Initial Implementation
  *****************************************************************************/
 int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 		BpSecEventId sopEvent, LystElt sop, LystElt tgt, unsigned char tgtNum)
@@ -921,7 +1195,6 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 	CHKERR(wk);
 	CHKERR((role == BPRF_VER_ROLE) || (role == BPRF_ACC_ROLE));
 	CHKERR(sopEvent >= 0);
-	CHKERR(sop);
 
 	Bundle *bundle = &(wk->bundle);
 	PsmPartition wm = getIonwm();

@@ -33,6 +33,7 @@
  * +--------------------------------------------------------------------------+
  */
 
+// MUST stay less than 1 byte or else serialization rules need to change.
 #define MAX_EVENT_SET_NAME_LEN			(12)
 
 

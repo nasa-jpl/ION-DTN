@@ -1,13 +1,24 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2021 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: bpsec_policy_rule.c
  **
- ** Description:
+ ** Description: This file implements processing specific to BPSec policy rules.
+ **              Policy rules are used by the policy engine to associate
+ **              security events with security actions.
  **
  ** Notes:
+ **  Rules live in shared memory as they must be accessed in the context of the
+ **  BPA, network management, and the utility files that use these functions.
  **
- **  TODO: Document searching occurs in the context of the calling process so
- **        we work with local pointers whenever possible.
+ **  Certain functions in this toolkit will collect and report on rules in the
+ **  context of local memory (such as with a Lyst) in cases where read-only,
+ **  local access is needed.
  **
  ** Assumptions:
  **
@@ -132,7 +143,14 @@ BpSecFilter bslpol_filter_build(PsmPartition partition, char *bsrc, char *bdest,
 /******************************************************************************
  * @brief Calculate the specificity score of a filter.
  *
- * @param[in,out] filter - The filter being scored.
+ * Filter scores are used to "sort" the applicability of a rule to a given
+ * security block.  Filters with higher scores are considered to be more
+ * specific.  This function applies a score to a filter. Once calculated,
+ * a filter score does not need to be re-calculated unless the filter is
+ * changed.
+ *
+ * @param[in]  partition - The shared memory partition.
+ * @param[out] filter    - The filter being scored.
  *
  * @note
  *****************************************************************************/
@@ -187,6 +205,7 @@ void  bslpol_filter_score(PsmPartition partition, BpSecFilter *filter)
  * @brief Creates a policy rule from components.
  *
  * @param[in,out] partition - The shared memory partition
+ * @param[in] desc          - The rule description
  * @param[in] id            - The "user" ID of the rule.
  * @param[in] flags         - Special processing flags for the rule.
  * @param[in] filter        - The rule filter.
@@ -219,7 +238,7 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 	CHKZERO(ruleAddr = psm_zalloc(partition, sizeof(BpSecPolRule)));
 	rulePtr = (BpSecPolRule*) psp(partition, ruleAddr);
 
-	memset(rulePtr->desc, 0, BPSEC_RULE_DESCR_LEN+1);
+	memset(rulePtr->desc, 0, BPSEC_RULE_DESCR_LEN);
 	if(desc)
 	{
 		istrcpy(rulePtr->desc, desc, BPSEC_RULE_DESCR_LEN);
@@ -241,7 +260,7 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
  * @brief Releases resources associated with a rule.
  *
  * @param[in,out] partition - The shared memory partition
- * @param[in,out] ruleAddr  - The rule being deleted.
+ * @param[in]     ruleAddr  - The rule being deleted.
  *
  * @note
  * Deleting a rule is NOT the same as removing it from its data structures. It
@@ -257,15 +276,22 @@ void bslpol_rule_delete(PsmPartition partition, PsmAddress ruleAddr)
 
 	/* Step 0: Sanity checks. */
 	CHKVOID(partition);
-	CHKVOID(ruleAddr);
 
-	rulePtr = (BpSecPolRule*) psp(partition, ruleAddr);
+	/*
+	 * Step 1: We grab the rule pointer to reset memory as well as
+	 *         to clean up an anonymous eventset if one is associated
+	 *         with the rule.
+	 */
+	if((rulePtr = (BpSecPolRule*) psp(partition, ruleAddr)) == NULL)
+	{
+		return;
+	}
 
-	/* Step 1: Remove the rule from the SDR. */
+	/* Step 2: Remove the rule from the SDR. */
 	bslpol_sdr_rule_forget(partition, ruleAddr);
 
 	/*
-	 * Step 2: If the rule has an anonymous event set, then the rule must
+	 * Step 3: If the rule has an anonymous event set, then the rule must
 	 *         clean that up as part of releasing resources. Otherwise, the
 	 *         delete function MUST NOT remove the event set as other rules
 	 *         could be referencing a shared eventset.
@@ -275,7 +301,7 @@ void bslpol_rule_delete(PsmPartition partition, PsmAddress ruleAddr)
 		bsles_destroy(partition, rulePtr->eventSet, psp(partition, rulePtr->eventSet));
 	}
 
-	/* Step 3: Release memory associated with the rule. */
+	/* Step 4: Release memory associated with the rule. */
 	memset(rulePtr, 0, sizeof(BpSecPolRule));
 	psm_free(partition, ruleAddr);
 }
@@ -315,7 +341,7 @@ PsmAddress bslpol_rule_get_addr(PsmPartition partition, int user_id)
 		rulePtr = (BpSecPolRule *) psp(partition, ruleAddr);
 
 		/* Step 1.1: If we see a user_id match, return the rule. */
-		if(rulePtr->user_id == user_id)
+		if((rulePtr) && (rulePtr->user_id == user_id))
 		{
 			return ruleAddr;
 		}
@@ -326,6 +352,7 @@ PsmAddress bslpol_rule_get_addr(PsmPartition partition, int user_id)
 }
 
 
+
 /******************************************************************************
  * @brief Returns a list of every rule known by the policy engine that would
  *        match the set of provided criteria.
@@ -334,12 +361,7 @@ PsmAddress bslpol_rule_get_addr(PsmPartition partition, int user_id)
  *  match a given set of information for a theoretical extension block.
  *
  * @param[in] partition - The shared memory partition
- * @param[in] bsrc      - Theoretical bundle source (or NULL)
- * @param[in] bdest     - Theoretical bundle destination (or NULL)
- * @param[in] ssrc      - Theoretical security source (or NULL)
- * @param[in] type      - Theoretical type of the extension block  (or < 0)
- * @param[in] role      - Theoretical role of the BPA when evaluating rules (or 0)
- * @param[in] sc_id     - Theoretical security context ID (or 0)
+ * @param[in] tag       - A search tag populated with rule-matching criteria.
  *
  * @note
  * The returned list elements MUST NOT be altered/freed by the calling function.
@@ -362,9 +384,7 @@ Lyst bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag tag
 	PsmAddress ruleAddr = 0;
 	BpSecPolRule *rulePtr = NULL;
 
-	/* Step 1: Populate the search tag. */
-
-	/* Step 2: Check every rule that we have. */
+	/* Step 1: Check every rule that we have. */
 	for(eltAddr = sm_list_first(partition, getSecVdb()->bpsecPolicyRules);
 		eltAddr;
 		eltAddr = sm_list_next(partition, eltAddr))
@@ -392,17 +412,13 @@ Lyst bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag tag
 }
 
 
+
 /******************************************************************************
  * @brief Returns the policy rule that is the "best match' for a given
  *        extension block.
  *
  * @param[in] partition - The shared memory partition.
- * @param[in] bsrc      - The bundle source of the bundle holding the block.
- * @param[in] bdest     - The bundle destination of the bundle holding the block.
- * @param[in] ssrc      - The optional security source of a security operation on the block.
- * @param[in] type      - The type of the extension block.
- * @param[in] role      - The role of the BPA when evaluating rules.
- * @param[in] scid      - The security context ID used when verifying/accepting security.
+ * @param[in] tag       - A search tag populated with rule-matching criteria.
  *
  * @note
  * The returned rule MUST NOT be altered/freed by the calling function.
@@ -440,8 +456,6 @@ BpSecPolRule *bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSea
 
 
 
-
-
 /******************************************************************************
  * @brief Returns the policy rule pointer associated with a unique user id.
  *
@@ -466,11 +480,14 @@ BpSecPolRule *bslpol_rule_get_ptr(PsmPartition partition, int user_id)
 	return psp(partition, ruleAddr);
 }
 
+
+
 /******************************************************************************
  * @brief Inserts a rule into the BPSec Policy Engine.
  *
  * @param[in,out] partition - The shared memory partition
  * @param[in]     ruleAddr  - The rule being inserted
+ * @param[in]     remember  - Whether to persist the rule in the SDR
  *
  * @note
  * TODO Check Returns.
@@ -482,52 +499,80 @@ BpSecPolRule *bslpol_rule_get_ptr(PsmPartition partition, int user_id)
  * @retval -1 - System Error.
  *****************************************************************************/
 
-int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr)
+int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember)
 {
-	int success = 1;
 	BpSecPolRule *rulePtr = NULL;
+	BpSecEventSet *esPtr = NULL;
 	char *curEID = NULL;
 
 	/* Step 0: Sanity Checks. */
 	CHKZERO(partition);
-	CHKZERO(ruleAddr);
 
-	rulePtr = (BpSecPolRule *) psp(partition, ruleAddr);
+	if((rulePtr = (BpSecPolRule *) psp(partition, ruleAddr)) == NULL)
+	{
+		return 0;
+	}
 
-	/* Step 1: insert the rule in the "prime" storage lyst. */
+	/* Step 1: insert the rule into the shared memory list of rules. */
 	sm_list_insert(partition, getSecVdb()->bpsecPolicyRules, ruleAddr, bslpol_cb_rule_compare_idx, rulePtr);
 
-	/* Step 2: Based on the rule's filters, add it into various indexers. */
+	/*
+	 * Step 2: Track that another rule is using the given event set.
+	 *         TODO: When anonymous event sets are supported, this needs to
+	 *               be changed to only supporting named event sets.
+	 */
+	if((esPtr = (BpSecEventSet*) psp(partition, rulePtr->eventSet)) != NULL)
+	{
+		esPtr->ruleCount++;
+	}
+
+	/* Step 3: Based on the rule's filters, add it into various indexers. */
 	if(BPSEC_RULE_BSRC_IDX(rulePtr))
 	{
 		curEID = (char *) psp(partition, rulePtr->filter.bundle_src);
-		success = radix_insert(partition, getSecVdb()->bpsecRuleIdxBySrc, curEID, ruleAddr);
+		if(radix_insert(partition, getSecVdb()->bpsecRuleIdxBySrc, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
+		{
+			bslpol_rule_remove(partition, ruleAddr);
+			return 0;
+		}
 	}
 
 	if(BPSEC_RULE_BDST_IDX(rulePtr))
 	{
 		curEID = (char *) psp(partition, rulePtr->filter.bundle_dest);
-		success = radix_insert(partition, getSecVdb()->bpsecRuleIdxByDest, curEID, ruleAddr);
+		if(radix_insert(partition, getSecVdb()->bpsecRuleIdxByDest, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
+		{
+			bslpol_rule_remove(partition, ruleAddr);
+			return 0;
+		}
 	}
 
 	if(BPSEC_RULE_SSRC_IDX(rulePtr))
 	{
 		curEID = (char *) psp(partition, rulePtr->filter.sec_src);
-		success = radix_insert(partition, getSecVdb()->bpsecRuleIdxBySSrc, curEID, ruleAddr);
+		if(radix_insert(partition, getSecVdb()->bpsecRuleIdxBySSrc, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
+		{
+			bslpol_rule_remove(partition, ruleAddr);
+			return 0;
+		}
 	}
 
-	/* Step 3: Persist the rule to the SDR. */
-	bslpol_sdr_rule_persist(partition, ruleAddr);
+	/* Step 4: Persist the rule to the SDR. */
+	if(remember)
+	{
+		bslpol_sdr_rule_persist(partition, ruleAddr);
+	}
 
-	return success;
+	return 1;
 }
+
 
 
 /******************************************************************************
  * @brief Determines if a rule matches a given set of search criteria
  *
  * @param[in] partition - The shared memory partition
- * @param[in] rulePtr      - The rule being evaluated
+ * @param[in] rulePtr   - The rule being evaluated
  * @param[in] tag       - Search criteria representing information associated with
  *                        an extension block
  *
@@ -557,9 +602,12 @@ int bslpol_rule_matches(PsmPartition partition, BpSecPolRule *rulePtr, BpSecPolR
 		return 0;
 	}
 
-	if((BPSEC_RULE_SCID_IDX(rulePtr)) && (tag->scid != rulePtr->filter.scid))
+	if(tag->role != BPRF_SRC_ROLE)
 	{
-		return 0;
+		if((BPSEC_RULE_SCID_IDX(rulePtr)) && (tag->scid != rulePtr->filter.scid))
+		{
+			return 0;
+		}
 	}
 
 	/*
@@ -608,6 +656,9 @@ int bslpol_rule_matches(PsmPartition partition, BpSecPolRule *rulePtr, BpSecPolR
  * @note
  * Upon removal, the rule is deleted and MUST NOT be referenced by the
  * calling function.
+ * \par
+ * Removing a rule will alter the index of every rule before this one in the
+ * shared list.
  *
  * @retval 1  - Success
  * @retval 0  - Error
@@ -618,6 +669,7 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 {
 	PsmAddress eltAddr;
 	BpSecPolRule *rulePtr = NULL;
+	BpSecEventSet *esPtr = NULL;
 	char *curEID = NULL;
 
 	PsmAddress curRuleAddr = 0;
@@ -625,35 +677,44 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 
 	/* Step 0: Sanity Check */
 	CHKZERO(partition);
-	CHKZERO(ruleAddr);
+
+	/* Cannot delete a rule that doesn't exist. */
+	if(ruleAddr == 0)
+	{
+		return 0;
+	}
 
 	rulePtr = (BpSecPolRule *) psp(partition, ruleAddr);
-
-	void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key, int flags, radix_match_fn match_fn, void *tag);
 
 	/* Step 1: Remove rule references from every string index. */
 	if(BPSEC_RULE_BSRC_IDX(rulePtr))
 	{
-		curEID = (char *) psp(partition, rulePtr->filter.bundle_src);
-		radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxBySrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+		if((curEID = (char *) psp(partition, rulePtr->filter.bundle_src)) != NULL)
+		{
+			radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxBySrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+		}
 	}
 
 	if(BPSEC_RULE_BDST_IDX(rulePtr))
 	{
-		curEID = (char *) psp(partition, rulePtr->filter.bundle_dest);
-		radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxByDest, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+		if((curEID = (char *) psp(partition, rulePtr->filter.bundle_dest)) != NULL)
+		{
+			radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxByDest, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+		}
 	}
 
 	if(BPSEC_RULE_SSRC_IDX(rulePtr))
 	{
-		curEID = (char *) psp(partition, rulePtr->filter.sec_src);
-		radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxBySSrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+		if((curEID = (char *) psp(partition, rulePtr->filter.sec_src)) != NULL)
+		{
+			radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxBySSrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+		}
 	}
 
 	/*
-	 * Step 2: Removing a rule from the lyst involves 2 steps:
+	 * Step 2: Removing a rule from shared memory involves 2 steps:
 	 *         1. Reduce the IDX of every rule whose IDX is > the IDX being removed.
-	 *            This is easy because the lyst is sorted by IDX. So every rule
+	 *            This is easy because the rule list is sorted by IDX. So every rule
 	 *            prior to the one being deleted needs its IDX value decremented.
 	 *            If you had rule IDX's: 3  2  1 and removed the rule with IDX 2
 	 *            You would process:   3(decrement) 2 (delete) 1 (unchanged)
@@ -661,6 +722,7 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 	 *
 	 *         2. Remove the rule from the lyst.
 	 */
+
 	for(eltAddr = sm_list_first(partition, getSecVdb()->bpsecPolicyRules);
 		eltAddr;
 		eltAddr = sm_list_next(partition, eltAddr))
@@ -674,7 +736,16 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 		}
 		else
 		{
-			sm_list_delete(partition, eltAddr, bslpol_cb_rulelyst_delete, NULL);
+			if((esPtr = (BpSecEventSet*) psp(partition, rulePtr->eventSet)) != NULL)
+			{
+				esPtr->ruleCount--;
+			}
+
+			/*
+			 * The delete callback referenced here will also delete the rule
+			 * and clear the shared memory associated with the rule.
+			 */
+			sm_list_delete(partition, eltAddr, bslpol_cb_smlist_delete, NULL);
 			break;
 		}
 	}
@@ -705,14 +776,31 @@ int bslpol_rule_remove_by_id(PsmPartition partition, int user_id)
 	return bslpol_rule_remove(partition, bslpol_rule_get_addr(partition, user_id));
 }
 
-int bslpol_rule_get_best_match_at_src(Bundle *bundle, BpSecPolRule *polRule,
-		BpBlockType tgtType)
+
+
+/******************************************************************************
+ * @brief Determines if a policy rule exists for a block in a bundle if BPA
+ *  role is Security Source.
+ *
+ * This function populates a BpSecPolRuleSearchTag and finds the bpsec policy
+ * rule that is the best match for the block identified by its block type
+ * (tgtType) and role of the BPA (security source).
+ *
+ * @param[in]     bundle   Current bundle.
+ * @param[in]     tgtType  Block type of target of policy rule
+ *
+ * @retval !NULL - The policy rule to be applied to his bundle.
+ * @retval NULL  - No rule is available for this bundle.
+ *****************************************************************************/
+BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType tgtType)
 {
 	PsmPartition wm = getIonwm();
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));
 
 	/* Step 1: Populate the policy rule search tag */
+	tag.role = BPRF_SRC_ROLE;
+	tag.type = tgtType;
 
 	readEid(&bundle->id.source, &(tag.bsrc));
 	tag.bsrc_len = strlen(tag.bsrc);
@@ -720,33 +808,40 @@ int bslpol_rule_get_best_match_at_src(Bundle *bundle, BpSecPolRule *polRule,
 	readEid(&bundle->destination, &(tag.bdest));
 	tag.bdest_len = strlen(tag.bdest);
 
-	tag.role = BPRF_SRC_ROLE;
-	tag.type = tgtType;
-
 	/* Step 2: Retrieve the rule for the current security operation */
-	polRule = bslpol_rule_get_best_match(wm, tag);
+	BpSecPolRule *polRule = bslpol_rule_get_best_match(wm, tag);
 
 	MRELEASE(tag.bsrc);
 	MRELEASE(tag.bdest);
 
-	if (polRule != NULL)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	return polRule;
 }
 
-int bslpol_rule_get_best_match_at_receiver(Bundle *bundle, BpSecPolRule *polRule,
-		BpBlockType tgtType)
+/******************************************************************************
+ * @brief Determines if a policy rule exists for a block in a bundle if BPA
+ *  role is Security Verifier or Acceptor.
+ *
+ * This function populates a BpSecPolRuleSearchTag and finds the bpsec policy
+ * rule that is the best match for the block identified by its block number
+ * (tgtNum), security context ID for the security block (scid), and role of
+ * the BPA (security verifier or acceptor).
+ *
+ * @param[in]     bundle   Current bundle.
+ * @param[in]     tgtNum   Block number of target of policy rule
+ * @param[in]     scid     Security context ID of security block
+ *
+ * @retval !NULL - The policy rule to be applied to his bundle.
+ * @retval NULL  - No rule is available for this bundle.
+ *****************************************************************************/
+BpSecPolRule* bslpol_get_receiver_rule(Bundle *bundle, unsigned char tgtNum, int scid)
 {
 	PsmPartition wm = getIonwm();
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));
 
 	/* Step 1: Populate the policy rule search tag */
+	tag.role = BPRF_VER_ROLE | BPRF_ACC_ROLE;
+	tag.scid = scid;
 
 	readEid(&bundle->id.source, &(tag.bsrc));
 	tag.bsrc_len = strlen(tag.bsrc);
@@ -754,24 +849,46 @@ int bslpol_rule_get_best_match_at_receiver(Bundle *bundle, BpSecPolRule *polRule
 	readEid(&bundle->destination, &(tag.bdest));
 	tag.bdest_len = strlen(tag.bdest);
 
-	tag.role = BPRF_SRC_ROLE;
-	tag.type = tgtType;
+	if (tgtNum == 0)
+	{
+		tag.type = PrimaryBlk;
+	}
+	else if (tgtNum == 1)
+	{
+		tag.type = PayloadBlk;
+	}
+	else
+	{
+		ExtensionBlock tgt;
+		Sdr	sdr = getIonsdr();
+		Object tgtObj = getExtensionBlock(bundle, tgtNum);
+		sdr_read(sdr, (char *) &tgt, tgtObj,sizeof(ExtensionBlock));
+		tag.type = tgt.type;
+	}
 
 	/* Step 2: Retrieve the rule for the current security operation */
-	polRule = bslpol_rule_get_best_match(wm, tag);
+	BpSecPolRule *polRule = bslpol_rule_get_best_match(wm, tag);
 
 	MRELEASE(tag.bsrc);
 	MRELEASE(tag.bdest);
 
-	if (polRule != NULL)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	return polRule;
 }
+
+/******************************************************************************
+ * @brief Remove a rule from the SDR.
+ *
+ * @param[in]     wm       - The shared memory partition
+ * @param[in|out] ruleAddr - The address of the rule being forgotten
+ *
+ * @notes
+ * TODO: If the rule has an anonymous event set, that needs to be forgotten too
+ *       currently anonymous event sets are not supported.
+ *
+ * @retval  1 - The rule was found in the SDR and removed.
+ * @retval  0 - The rule was not found in the SDR.
+ * @retval -1 - Error.
+ *****************************************************************************/
 
 int bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr)
 {
@@ -781,9 +898,9 @@ int bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr)
 	BpSecPolRule *rulePtr = NULL;
 	Object sdrElt = 0;
 	Object dataElt = 0;
-	uint16_t user_id;
+	uint16_t user_id = 0;
+	int success = 0;
 
-	CHKERR(ruleAddr);
 	rulePtr = (BpSecPolRule*) psp(wm, ruleAddr);
 	CHKERR(rulePtr);
 
@@ -793,38 +910,48 @@ int bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr)
 		sdrElt;
 		sdrElt = sdr_list_next(ionsdr, sdrElt))
 	{
-		dataElt = sdr_list_data(ionsdr, sdrElt);
-		sdr_read(ionsdr, (char *) &entry, dataElt, sizeof(BpSecPolicyDbEntry));
-		sdr_read(ionsdr, (char *) &user_id, entry.entryObj, sizeof(user_id));
-		if(user_id == rulePtr->user_id)
+		if((dataElt = sdr_list_data(ionsdr, sdrElt)) != 0)
 		{
-			if(rulePtr->eventSet != 0)
+			sdr_read(ionsdr, (char *) &entry, dataElt, sizeof(BpSecPolicyDbEntry));
+			sdr_read(ionsdr, (char *) &user_id, entry.entryObj, sizeof(user_id));
+			if(user_id == rulePtr->user_id)
 			{
-				BpSecEventSet *esPtr = psp(wm, rulePtr->eventSet);
-				if(esPtr)
-				{
-					bsles_sdr_forget(wm, esPtr->name);
-				}
+				sdr_free(ionsdr, entry.entryObj);
+				sdr_free(ionsdr, dataElt);
+				sdr_list_delete(ionsdr, sdrElt, NULL, NULL);
+				success = 1;
+				break;
 			}
-			sdr_free(ionsdr, entry.entryObj);
-			sdr_free(ionsdr, dataElt);
-			sdr_list_delete(ionsdr, sdrElt, NULL, NULL);
-			break;
 		}
 	}
 
 	if (sdr_end_xn(ionsdr) < 0)
 	{
 		putErrmsg("Can't remove key.", NULL);
-		return -1;
+		success = -1;
 	}
 
-	return 0;
+	return success;
 }
 
-/*
- * Faster to build in buffer and write to SDR once.
- */
+
+
+/******************************************************************************
+ * @brief Writes a serialized version of the rule into the SDR.
+ *
+ * @param[in] wm       - The shared memory partition
+ * @param[in] ruleAddr - The address of the rule being persisted
+ *
+ * @notes
+ * TODO: If the rule has an anonymous event set, that needs to be persisted too
+ *       currently anonymous event sets are not supported.
+ * TODO: Only serialize present security parameters, not all parms.
+ *
+ * @retval  1 - The rule was written to the SDR
+ * @retval  0 - The rule was not written to the SDR.
+ * @retval -1 - Error.
+ *****************************************************************************/
+
 int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 {
 	Sdr ionsdr = getIonsdr();
@@ -834,14 +961,20 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 	char *cursor = NULL;
 	int bytes_left = 0;
 	uint8_t len = 0;
+	int success = 0;
 
 	CHKERR(wm);
 	rule = (BpSecPolRule *) psp(wm, ruleAddr);
 	CHKERR(rule);
 
+	/*
+	 * Step 1: Figure out the size of the serializes rule and allocate
+	 *         a buffer to hold the serialzied rule. Serializing the rule
+	 *         in memory first allows us to have a single large write into
+	 *         the SDR which locks the SDR for a shorter period of time
+	 *         and is a little bit faster.
+	 */
 	entry.size = bslpol_sdr_rule_size(wm, ruleAddr);
-
-
 	if((buffer = MTAKE(entry.size)) == NULL)
 	{
 		sdr_cancel_xn(ionsdr);
@@ -849,66 +982,96 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 		return -1;
 	}
 
+	/*
+	 * Step 2: Setup a cursor and buffer limits. The cursor will advance
+	 *         through the buffer adding rule items.
+	 */
 	cursor = buffer;
 	bytes_left = entry.size;
 
+
+	/*
+	 * Step 3: Serialize the rule user_id. This MUST be the first thing that
+	 *         is serialized for the rule. This allows us to peek at the first
+	 *         ID of a serialized rule when trying to forget the rule to see
+	 *         if the rules is a match without reading the entire thing from
+	 *         the SDR.
+	 */
+	cursor += bsl_bufwrite(cursor, &(rule->user_id), sizeof(rule->user_id), &bytes_left);
+
+
+	/*
+	 * Step 4: Write all other rule components based on what is/is not turned on
+	 *         in the rule.
+	 */
 	if((len = strlen(rule->desc)) > 0)
 	{
 		len++; /* Note length is 1 more to include NULL terminator. */
-		cursor += bsl_sdr_bufwrite(cursor, &len, 1, &bytes_left);
-		cursor += bsl_sdr_bufwrite(cursor, &(rule->desc), len, &bytes_left);
+		cursor += bsl_bufwrite(cursor, &len, 1, &bytes_left);
+		cursor += bsl_bufwrite(cursor, &(rule->desc), len, &bytes_left);
 	}
 	else
 	{
-		cursor += bsl_sdr_bufwrite(cursor, &len, 1, &bytes_left);
+		cursor += bsl_bufwrite(cursor, &len, 1, &bytes_left);
 	}
 
-	cursor += bsl_sdr_bufwrite(cursor, &(rule->user_id), sizeof(rule->user_id), &bytes_left);
-	cursor += bsl_sdr_bufwrite(cursor, &(rule->flags), sizeof(rule->flags), &bytes_left);
-	cursor += bsl_sdr_bufwrite(cursor, &(rule->filter.flags), sizeof(rule->filter.flags), &bytes_left);
-	cursor += bsl_sdr_bufwrite(cursor, &(rule->filter.score), sizeof(rule->filter.score), &bytes_left);
+	cursor += bsl_bufwrite(cursor, &(rule->flags), sizeof(rule->flags), &bytes_left);
+	cursor += bsl_bufwrite(cursor, &(rule->filter.flags), sizeof(rule->filter.flags), &bytes_left);
+	cursor += bsl_bufwrite(cursor, &(rule->filter.score), sizeof(rule->filter.score), &bytes_left);
 
 	if(BPSEC_RULE_BSRC_IDX(rule))
 	{
-		cursor += bsl_sdr_bufwrite(cursor, &(rule->filter.bsrc_len), sizeof(rule->filter.bsrc_len), &bytes_left);
-		cursor += bsl_sdr_bufwrite(cursor, psp(wm, rule->filter.bundle_src), rule->filter.bsrc_len, &bytes_left);
+		cursor += bsl_bufwrite(cursor, &(rule->filter.bsrc_len), sizeof(rule->filter.bsrc_len), &bytes_left);
+		cursor += bsl_bufwrite(cursor, psp(wm, rule->filter.bundle_src), rule->filter.bsrc_len+1, &bytes_left);
 	}
 
 	if(BPSEC_RULE_BDST_IDX(rule))
 	{
-		cursor += bsl_sdr_bufwrite(cursor, &(rule->filter.bdest_len), sizeof(rule->filter.bdest_len), &bytes_left);
-		cursor += bsl_sdr_bufwrite(cursor, psp(wm, rule->filter.bundle_dest), rule->filter.bdest_len, &bytes_left);
+		cursor += bsl_bufwrite(cursor, &(rule->filter.bdest_len), sizeof(rule->filter.bdest_len), &bytes_left);
+		cursor += bsl_bufwrite(cursor, psp(wm, rule->filter.bundle_dest), rule->filter.bdest_len+1, &bytes_left);
 	}
 
 	if(BPSEC_RULE_SSRC_IDX(rule))
 	{
-		cursor += bsl_sdr_bufwrite(cursor, &(rule->filter.ssrc_len), sizeof(rule->filter.ssrc_len), &bytes_left);
-		cursor += bsl_sdr_bufwrite(cursor, psp(wm, rule->filter.sec_src), rule->filter.ssrc_len, &bytes_left);
+		cursor += bsl_bufwrite(cursor, &(rule->filter.ssrc_len), sizeof(rule->filter.ssrc_len), &bytes_left);
+		cursor += bsl_bufwrite(cursor, psp(wm, rule->filter.sec_src), rule->filter.ssrc_len+1, &bytes_left);
 	}
 
 	if(BPSEC_RULE_BTYP_IDX(rule))
 	{
-		cursor += bsl_sdr_bufwrite(cursor, &(rule->filter.blk_type), sizeof(rule->filter.blk_type), &bytes_left);
+		cursor += bsl_bufwrite(cursor, &(rule->filter.blk_type), sizeof(rule->filter.blk_type), &bytes_left);
 	}
 
 	if(BPSEC_RULE_SCID_IDX(rule))
 	{
-		cursor += bsl_sdr_bufwrite(cursor, &(rule->filter.scid), sizeof(rule->filter.scid), &bytes_left);
+		cursor += bsl_bufwrite(cursor, &(rule->filter.scid), sizeof(rule->filter.scid), &bytes_left);
 	}
 
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.aad, &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.icv, &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.intsig, &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.iv, &bytes_left);
+	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.aad,     &bytes_left);
+	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.icv,     &bytes_left);
+	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.intsig,  &bytes_left);
+	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.iv,      &bytes_left);
 	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.keyinfo, &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.salt, &bytes_left);
+	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.salt,    &bytes_left);
 
-	if(BPSEC_RULE_ANON_ES(rule))
+	BpSecEventSet *esPtr = (BpSecEventSet *) psp(wm, rule->eventSet);
+
+	if(esPtr == NULL)
 	{
-		BpSecEventSet *eventSetPtr = psp(wm, rule->eventSet);
-		cursor += bsles_sdr_serialize_buffer(wm, eventSetPtr, cursor, &bytes_left);
+		len = 0;
+		cursor += bsl_bufwrite(cursor, &len, 1, &bytes_left);
+	}
+	else
+	{
+		len = strlen(esPtr->name) + 1;
+		cursor += bsl_bufwrite(cursor, &len, 1, &bytes_left);
+		cursor += bsl_bufwrite(cursor, &(esPtr->name), len, &bytes_left);
 	}
 
+	/*
+	 * Step 5: If the cursor position is exactly the entry length away from the start of
+	 *         the buffer, then everything was (probably) serialized as expected.
+	 */
 	if(cursor != (buffer + entry.size))
 	{
 		putErrmsg("Error persisting rule.", NULL);
@@ -916,9 +1079,34 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 		return -1;
 	}
 
-	return bsl_sdr_insert(ionsdr, buffer, entry, getSecConstants()->bpSecPolicyRules);
+	/* Step 6: Persist, cleanup, and return. */
+	success = bsl_sdr_insert(ionsdr, buffer, entry, getSecConstants()->bpSecPolicyRules);
+	MRELEASE(buffer);
+
+	return success;
 }
 
+
+
+/******************************************************************************
+ * @brief Reads a serialized version of a rule from the SDR.
+ *
+ * @param[in] wm    - The shared memory partition
+ * @param[in] entry - The entry pointing to the rule to restore in the SDR.
+ *
+ * @notes
+ * TODO: If the rule has an anonymous event set, that needs to be restored too
+ *       currently anonymous event sets are not supported.
+ * TODO: Only restore present security parameters, not all parms.
+ * TODO: Revisit how the rule index (idx) is recalculated. This may not preserve
+ *       indexes correctly. The index is only used to sort the rule list and to
+ *       be a tie-breaker when selecting the "best" rule amongst rules with the
+ *       same filter score.
+ *
+ * @retval  1 - The rule was found in the SDR and restored.
+ * @retval  0 - The rule was not found in the SDR.
+ * @retval -1 - Error.
+ *****************************************************************************/
 
 int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 {
@@ -935,81 +1123,90 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 	cursor = buffer = MTAKE(entry.size);
 	CHKERR(buffer);
 
+
+	/*
+	 * Step 1: Inhale the serialied object from the SDR. Reading the rule as a
+	 *         single SDR read and then processing in in memory saves time by
+	 *         locking the SDR for less time and not going through the overhead
+	 *         of SDR ops.
+	 */
 	sdr_read(ionsdr, buffer, entry.entryObj, entry.size);
+
+	/* Step 2: Allocate and zero out a rule object to hold the new information. */
 
 	if((ruleAddr = psm_zalloc(wm, sizeof(BpSecPolRule))) == 0)
 	{
 		MRELEASE(buffer);
 		return -1;
 	}
-
 	rulePtr = (BpSecPolRule*) psp(wm, ruleAddr);
 	memset(rulePtr, 0, sizeof(BpSecPolRule));
 
+	/* Step 3: Read rule items from the buffer directly into the rule object. */
+	cursor += bsl_bufread(&(rulePtr->user_id), cursor, sizeof(rulePtr->user_id), &bytes_left);
 
-	cursor += bsl_sdr_bufread(&len, cursor, 1, &bytes_left);
+	cursor += bsl_bufread(&len, cursor, 1, &bytes_left);
 	if(len > 0)
 	{
-		cursor += bsl_sdr_bufread(&(rulePtr->desc), cursor, len+1, &bytes_left);
+		cursor += bsl_bufread(&(rulePtr->desc), cursor, len, &bytes_left);
 	}
 
 	rulePtr->idx = sm_list_length(wm, getSecVdb()->bpsecPolicyRules);
 
-	cursor += bsl_sdr_bufread(&(rulePtr->flags), cursor, sizeof(rulePtr->flags), &bytes_left);
-	cursor += bsl_sdr_bufread(&(rulePtr->flags), cursor, sizeof(rulePtr->flags), &bytes_left);
-	cursor += bsl_sdr_bufread(&(rulePtr->filter.flags), cursor, sizeof(rulePtr->filter.flags), &bytes_left);
-	cursor += bsl_sdr_bufread(&(rulePtr->filter.score), cursor, sizeof(rulePtr->filter.score), &bytes_left);
+	cursor += bsl_bufread(&(rulePtr->flags), cursor, sizeof(rulePtr->flags), &bytes_left);
+	cursor += bsl_bufread(&(rulePtr->filter.flags), cursor, sizeof(rulePtr->filter.flags), &bytes_left);
+	cursor += bsl_bufread(&(rulePtr->filter.score), cursor, sizeof(rulePtr->filter.score), &bytes_left);
 
 	if(BPSEC_RULE_BSRC_IDX(rulePtr))
 	{
-		cursor += bsl_sdr_bufread(&(rulePtr->filter.bsrc_len), cursor, sizeof(rulePtr->filter.bsrc_len), &bytes_left);
-		if((curEid = MTAKE(rulePtr->filter.bsrc_len)) == NULL)
+		cursor += bsl_bufread(&(rulePtr->filter.bsrc_len), cursor, sizeof(rulePtr->filter.bsrc_len), &bytes_left);
+		if((curEid = MTAKE(rulePtr->filter.bsrc_len+1)) == NULL)
 		{
 			MRELEASE(buffer);
 			psm_free(wm, ruleAddr);
 			return -1;
 		}
-		cursor += bsl_sdr_bufread(curEid, cursor, rulePtr->filter.bsrc_len, &bytes_left);
+		cursor += bsl_bufread(curEid, cursor, rulePtr->filter.bsrc_len+1, &bytes_left);
 		rulePtr->filter.bundle_src = bsl_ed_get_ref(wm, curEid);
 		MRELEASE(curEid);
 	}
 
 	if(BPSEC_RULE_BDST_IDX(rulePtr))
 	{
-		cursor += bsl_sdr_bufread(&(rulePtr->filter.bdest_len), cursor, sizeof(rulePtr->filter.bdest_len), &bytes_left);
-		if((curEid = MTAKE(rulePtr->filter.bdest_len)) == NULL)
+		cursor += bsl_bufread(&(rulePtr->filter.bdest_len), cursor, sizeof(rulePtr->filter.bdest_len), &bytes_left);
+		if((curEid = MTAKE(rulePtr->filter.bdest_len+1)) == NULL)
 		{
 			MRELEASE(buffer);
 			psm_free(wm, ruleAddr);
 			return -1;
 		}
-		cursor += bsl_sdr_bufread(curEid, cursor, rulePtr->filter.bdest_len, &bytes_left);
+		cursor += bsl_bufread(curEid, cursor, rulePtr->filter.bdest_len+1, &bytes_left);
 		rulePtr->filter.bundle_dest = bsl_ed_get_ref(wm, curEid);
 		MRELEASE(curEid);
 	}
 
 	if(BPSEC_RULE_SSRC_IDX(rulePtr))
 	{
-		cursor += bsl_sdr_bufread(&(rulePtr->filter.ssrc_len), cursor, sizeof(rulePtr->filter.ssrc_len), &bytes_left);
-		if((curEid = MTAKE(rulePtr->filter.ssrc_len)) == NULL)
+		cursor += bsl_bufread(&(rulePtr->filter.ssrc_len), cursor, sizeof(rulePtr->filter.ssrc_len), &bytes_left);
+		if((curEid = MTAKE(rulePtr->filter.ssrc_len+1)) == NULL)
 		{
 			MRELEASE(buffer);
 			psm_free(wm, ruleAddr);
 			return -1;
 		}
-		cursor += bsl_sdr_bufread(curEid, cursor, rulePtr->filter.ssrc_len, &bytes_left);
+		cursor += bsl_bufread(curEid, cursor, rulePtr->filter.ssrc_len+1, &bytes_left);
 		rulePtr->filter.sec_src = bsl_ed_get_ref(wm, curEid);
 		MRELEASE(curEid);
 	}
 
 	if(BPSEC_RULE_BTYP_IDX(rulePtr))
 	{
-		cursor += bsl_sdr_bufread(&(rulePtr->filter.blk_type), cursor, sizeof(rulePtr->filter.blk_type), &bytes_left);
+		cursor += bsl_bufread(&(rulePtr->filter.blk_type), cursor, sizeof(rulePtr->filter.blk_type), &bytes_left);
 	}
 
 	if(BPSEC_RULE_SCID_IDX(rulePtr))
 	{
-		cursor += bsl_sdr_bufread(&(rulePtr->filter.scid), cursor, sizeof(rulePtr->filter.scid), &bytes_left);
+		cursor += bsl_bufread(&(rulePtr->filter.scid), cursor, sizeof(rulePtr->filter.scid), &bytes_left);
 	}
 
 	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.aad),     cursor, &bytes_left);
@@ -1019,10 +1216,21 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.keyinfo), cursor, &bytes_left);
 	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.salt),    cursor, &bytes_left);
 
-	if(BPSEC_RULE_ANON_ES(rulePtr))
+	cursor += bsl_bufread(&len, cursor, 1, &bytes_left);
+	if(len > 0)
 	{
-		cursor += bsles_sdr_deserialize(wm, &(rulePtr->eventSet), cursor, &bytes_left);
+		char tmp[MAX_EVENT_SET_NAME_LEN];
+		cursor += bsl_bufread(tmp, cursor, len, &bytes_left);
+		if((rulePtr->eventSet = bsles_get_addr(wm, tmp)) == 0)
+		{
+			writeMemoNote("[w] - Unable to get event set for rule",tmp);
+		}
 	}
+
+	/*
+	 * Step 4: If the cursor position is exactly the entry length away from the start of
+	 *         the buffer, then everything was (probably) serialized as expected.
+	 */
 
 	if(cursor != (buffer + entry.size))
 	{
@@ -1031,10 +1239,33 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 		return -1;
 	}
 
-	MRELEASE(buffer);
+	/* Step 5: Cleanup, save the rule, and return. */
 
-	return bslpol_rule_insert(wm, ruleAddr);
+	MRELEASE(buffer);
+	return bslpol_rule_insert(wm, ruleAddr, 0);
 }
+
+
+
+/******************************************************************************
+ * @brief Calculate the expected serialized size of a rule object.
+ *
+ * @param[in] wm       - The shared memory partition
+ * @param[in] ruleAddr - The address of the rule being sized.
+ *
+ * @notes
+ * TODO: If the rule has an anonymous event set, that needs to be restored too
+ *       currently anonymous event sets are not supported.
+ * TODO: Only restore present security parameters, not all parms.
+ * TODO: Revisit how the rule index (idx) is recalculated. This may not preserve
+ *       indexes correctly. The index is only used to sort the rule list and to
+ *       be a tie-breaker when selecting the "best" rule amongst rules with the
+ *       same filter score.
+ *
+ * @retval  >0 - The expected size of the rule
+ * @retval   0 - The rule could not be sized
+ * @retval  -1 - Error.
+ *****************************************************************************/
 
 int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
 {
@@ -1052,17 +1283,17 @@ int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
 
 	if(BPSEC_RULE_BSRC_IDX(rulePtr))
 	{
-		size += sizeof(rulePtr->filter.bsrc_len) + rulePtr->filter.bsrc_len;
+		size += sizeof(rulePtr->filter.bsrc_len) + rulePtr->filter.bsrc_len+1;
 	}
 
 	if(BPSEC_RULE_BDST_IDX(rulePtr))
 	{
-		size += sizeof(rulePtr->filter.bdest_len) + rulePtr->filter.bdest_len;
+		size += sizeof(rulePtr->filter.bdest_len) + rulePtr->filter.bdest_len+1;
 	}
 
 	if(BPSEC_RULE_SSRC_IDX(rulePtr))
 	{
-		size += sizeof(rulePtr->filter.ssrc_len) + rulePtr->filter.ssrc_len;
+		size += sizeof(rulePtr->filter.ssrc_len) + rulePtr->filter.ssrc_len+1;
 	}
 
 	if(BPSEC_RULE_BTYP_IDX(rulePtr))
@@ -1087,11 +1318,31 @@ int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
 	size += rulePtr->sc_cfgs.parms.iv.length      + sizeof(uvast) + sizeof(uint32_t);
 	size += rulePtr->sc_cfgs.parms.keyinfo.length + sizeof(uvast) + sizeof(uint32_t);
 	size += rulePtr->sc_cfgs.parms.salt.length    + sizeof(uvast) + sizeof(uint32_t);
-	size += BPSEC_RULE_ANON_ES(rulePtr) ? bsles_sdr_size(wm, rulePtr->eventSet) : 0;
+
+	size += 1; // Event set name.
+
+	BpSecEventSet *esPtr = (BpSecEventSet *) psp(wm, rulePtr->eventSet);
+	if(esPtr)
+	{
+		size += strlen(esPtr->name)+1;
+	}
 
 	return size;
 }
 
+
+
+/******************************************************************************
+ * @brief Serialize a security context parameter into a buffer.
+ *
+ * @param[in,out] cursor     - The cursor into the buffer being updated.
+ * @param[in]     param      - The parameter being serialized.
+ * @param[in,out] bytes_left - Space remaining in buffer.
+ *
+ * @notes
+ *
+ * @retval  The number of bytes written into the buffer beyond the cursor.
+ *****************************************************************************/
 
 Address bslpol_sdr_scparm_persist(char *cursor, sci_inbound_tlv parm, int *bytes_left)
 {
@@ -1100,12 +1351,25 @@ Address bslpol_sdr_scparm_persist(char *cursor, sci_inbound_tlv parm, int *bytes
 	CHKZERO(cursor);
 	CHKZERO(bytes_left);
 
-	total = bsl_sdr_bufwrite(cursor, &(parm.id), sizeof(parm.id), bytes_left);
-	total += bsl_sdr_bufwrite(cursor + total, &(parm.length), sizeof(parm.length), bytes_left);
-	total += bsl_sdr_bufwrite(cursor + total, parm.value, parm.length, bytes_left);
+	total = bsl_bufwrite(cursor, &(parm.id), sizeof(parm.id), bytes_left);
+	total += bsl_bufwrite(cursor + total, &(parm.length), sizeof(parm.length), bytes_left);
+	total += bsl_bufwrite(cursor + total, parm.value, parm.length, bytes_left);
 
 	return total;
 }
+
+
+
+/******************************************************************************
+ * @brief Deserialize a security context parameter from a buffer
+ *
+ * @param[out]    parm       - The deserialized parameter.
+ * @param[in]     cursor     - The cursor into the buffer being read from.
+ * @param[in,out] bytes_left - Space remaining in buffer.
+ *
+ * @notes
+ * @retval  The number of bytes read from the buffer beyond the cursor.
+ *****************************************************************************/
 
 Address bslpol_sdr_scparm_restore(sci_inbound_tlv *parm, char *cursor, int *bytes_left)
 {
@@ -1115,17 +1379,12 @@ Address bslpol_sdr_scparm_restore(sci_inbound_tlv *parm, char *cursor, int *byte
 	CHKZERO(cursor);
 	CHKZERO(bytes_left);
 
-	total = bsl_sdr_bufread(&(parm->id), cursor, sizeof(parm->id), bytes_left);
-	total += bsl_sdr_bufread(&(parm->length), cursor + total, sizeof(parm->length), bytes_left);
-	total += bsl_sdr_bufread(&(parm->value), cursor + total, parm->length, bytes_left);
+	total = bsl_bufread(&(parm->id), cursor, sizeof(parm->id), bytes_left);
+	total += bsl_bufread(&(parm->length), cursor + total, sizeof(parm->length), bytes_left);
+	total += bsl_bufread(&(parm->value), cursor + total, parm->length, bytes_left);
 
 	return total;
-
 }
-
-
-
-
 
 
 
@@ -1133,7 +1392,7 @@ Address bslpol_sdr_scparm_restore(sci_inbound_tlv *parm, char *cursor, int *byte
  * @brief Determines whether a rule is a better match than the current best
  *        matched rule for an extension block.
  *
- * @param[in] partition - The shared memory partition
+ * @param[in]     partition - The shared memory partition
  * @param[in,out] tag  - The search tag holding information about the extension
  *                       block and the best rule matched so far.
  * @param[in]     rule - The current rule, from a list of possible rules, that
@@ -1155,8 +1414,8 @@ int bslpol_search_tag_best(PsmPartition partition, BpSecPolRuleSearchBestTag *ta
 {
 	BpSecPolRule *rulePtr = NULL;
 
-	CHKZERO(ruleAddr);
 	rulePtr = (BpSecPolRule *) psp(partition, ruleAddr);
+	CHKZERO(rulePtr);
 
 	/* Step 1: If this rule has no chance of beating best rule so far, we're done. */
 	if(tag->best_rule)
@@ -1200,7 +1459,23 @@ int bslpol_search_tag_best(PsmPartition partition, BpSecPolRuleSearchBestTag *ta
 
 
 
-
+/******************************************************************************
+ * @brief Compare function for shorting the master shared memory list of rules
+ *
+ *  This function is used by the master shared memory list of policy rules to
+ *  determine where to insert a new rule. This lisy is sorted by the rule
+ *  index.
+ *
+ * @param[in] partition  - The shared memory partition
+ * @param[in] eltData    - The current list entry
+ * @param[in] insertData - The data being inserted into the list.
+ *
+ * @note
+ *
+ * @retval >0  - The current list entry has a higher index than the new rule.
+ * @retval  0  - The rules have the same index. This should not happen.
+ * @retval <0  - The new rule has an index lower than the list entry.
+ *****************************************************************************/
 
 int bslpol_cb_rule_compare_idx(PsmPartition partition, PsmAddress eltData, void *insertData)
 {
@@ -1209,6 +1484,7 @@ int bslpol_cb_rule_compare_idx(PsmPartition partition, PsmAddress eltData, void 
 
 	return r1->idx - r2->idx;
 }
+
 
 
 /******************************************************************************
@@ -1242,9 +1518,40 @@ int bslpol_cb_rule_compare_score(PsmPartition partition, PsmAddress eltData, voi
 }
 
 
+
+/******************************************************************************
+ * @brief compares the scores of 2 rules.
+ *
+ *  This callback is used to sort a lyst of rules by their filter score.
+ *
+ *  Sorts descending by score and descending by index.
+ *  using the notation (Score,Idx) then the following rules:
+ *
+ *  (1,1), (3,4), (3,2), (3,5), (2,2) would be sorted as follows:
+ *
+ *  (3,5), (3,4), (3,2), (2,2), (1,1)
+ *
+ *
+ * @param[in] r1 - The first rule being compared.
+ * @param[in] r2 - The second rule being compared.
+ *
+ * @note
+ * The comparison is based on rule scores first and, if rule scores are the
+ * same, then rule IDX values are compared instead.
+ *
+ * @retval <0 - r1  <  r2
+ * @retval  0 - r1  == r2
+ * @retval >0 - r1  >  r2
+ *****************************************************************************/
+
 int bslpol_cb_rulelyst_compare_score(BpSecPolRule *r1, BpSecPolRule *r2)
 {
 	int result = 0;
+
+	if((r1 == NULL) || (r2 == NULL))
+	{
+		return 0;
+	}
 
 	if((result = r1->filter.score - r2->filter.score) == 0)
 	{
@@ -1255,25 +1562,27 @@ int bslpol_cb_rulelyst_compare_score(BpSecPolRule *r1, BpSecPolRule *r2)
 }
 
 
-void bslpol_cb_rulelyst_delete(PsmPartition partition, PsmAddress eltAddr, void *tag)
-{
 
-	bslpol_rule_delete(partition, sm_list_data(partition, eltAddr));
-}
-
-
-
-// TODO: Check return values.
-/*
- * Sorts descending by score and descending by index.
- * using the notation (Score,Idx) then the following rules:
- * (1,1), (3,4), (3,2), (3,5), (2,2) would be sorted as follows:
+/******************************************************************************
+ * @brief Inserts a rule into a radix tree node
  *
- * (3,5), (3,4), (3,2), (2,2), (1,1)
+ * A radix tree normally associated a key->value.  For rules, the key for a
+ * particular radix tree is the EID being indexed by that tree, and the value
+ * is a SET of all rules which match that EID.
  *
- * This compare function
+ * Therefore, to insert a rule into an indexing radix tree is to insert the
+ * rule into the SET of rules at that node.
  *
- */
+ * The set of rules held at a radix node is a shared memory list of the addresses
+ * of those rules.
+ *
+ * @param[in]     partition - The shared memory partition.
+ * @param[in,out] entryAddr - The address of the SET of rules for the node.
+ * @param[in]     itemAddr  - The address of the rule being added.
+ *
+ * @retval   1 - The rule was added
+ * @retval  -1 - There was an error.
+ *****************************************************************************/
 
 int bslpol_cb_ruleradix_insert(PsmPartition partition, PsmAddress *entryAddr, PsmAddress itemAddr)
 {
@@ -1283,22 +1592,31 @@ int bslpol_cb_ruleradix_insert(PsmPartition partition, PsmAddress *entryAddr, Ps
 	CHKZERO(entryAddr);
 	CHKZERO(itemAddr);
 
+	/*
+	 * If there is no list at this node, then this is the first rule being added
+	 * at this node. Make a list.
+	 */
 	if(*entryAddr == 0)
 	{
 		*entryAddr = psm_zalloc(partition, sizeof(BpSecPolRuleEntry));
 		CHKZERO(*entryAddr);
-	}
 
-	entryPtr = (BpSecPolRuleEntry*) psp(partition, *entryAddr);
-
-	if(entryPtr->rules == 0)
-	{
+		entryPtr = (BpSecPolRuleEntry*) psp(partition, *entryAddr);
+		memset(entryPtr,0,sizeof(BpSecPolRuleEntry));
 		entryPtr->rules = sm_list_create(partition);
-		CHKZERO(entryPtr->rules);
 	}
+	else
+	{
+		entryPtr = (BpSecPolRuleEntry*) psp(partition, *entryAddr);
+	}
+
+	/* Make sure we have the rules list and a good rule to add. */
+	CHKERR(entryPtr->rules);
 
 	rulePtr = psp(partition, itemAddr);
+	CHKERR(rulePtr);
 
+	/* Insert the rule into the rule list. */
 	sm_list_insert(partition, entryPtr->rules, itemAddr, bslpol_cb_rule_compare_score, rulePtr);
 
 	return 1;
@@ -1306,14 +1624,41 @@ int bslpol_cb_ruleradix_insert(PsmPartition partition, PsmAddress *entryAddr, Ps
 
 
 
+/******************************************************************************
+ * @brief Removes a rule from a radix tree node
+ *
+ * A radix tree normally associated a key->value.  For rules, the key for a
+ * particular radix tree is the EID being indexed by that tree, and the value
+ * is a SET of all rules which match that EID.
+ *
+ * Therefore, to remove a rule from an indexing radix tree is to remove the
+ * rule from the SET of rules at that node.
+ *
+ * The set of rules held at a radix node is a shared memory list of the addresses
+ * of those rules.
+ *
+ * @param[in]     partition - The shared memory partition.
+ * @param[in,out] entryAddr - The address of the SET of rules for the node.
+ * @param[in]     tag       - The address of the rule being removed.
+ *
+ * @retval   2 - Rule was deleted and no need to keep searching
+ * @retval   1 - The was no rule to remove
+ * @retval   0 - There was no rule set to review
+ * @retval  -1 - There was an error.
+ *****************************************************************************/
+
 int bslpol_cb_ruleradix_remove(PsmPartition partition, PsmAddress entryAddr, void *tag)
 {
 	PsmAddress *ruleAddr = (PsmAddress*) tag;
 	BpSecPolRuleEntry *entryPtr = NULL;
 	PsmAddress eltAddr = 0;
 
-	CHKZERO(partition);
-	CHKZERO(entryAddr);
+	if(entryAddr == 0)
+	{
+		return 0;
+	}
+
+	CHKERR(partition);
 	CHKZERO(ruleAddr);
 
 	entryPtr = (BpSecPolRuleEntry*) psp(partition, entryAddr);
@@ -1323,9 +1668,23 @@ int bslpol_cb_ruleradix_remove(PsmPartition partition, PsmAddress entryAddr, voi
 		eltAddr = sm_list_next(partition, eltAddr))
 	{
 
+		/*
+		 * The rule can be matched directly by its address because the
+		 * radix tree stores rule by their shared memory address.
+		 */
 		if(sm_list_data(partition, eltAddr) == *ruleAddr)
 		{
+			/*
+			 * Remove the address from the list of rules at this node. The
+			 * address itself is not deleted because an indexing radix
+			 * tree only holds addresses to rules that live elsewhere.
+			 */
 			sm_list_delete(partition, eltAddr, NULL, NULL);
+
+			/*
+			 * Since we have removed the rule, there is no reason to keep
+			 * traversing the radix tree
+			 */
 			return RADIX_STOP_FOREACH;
 		}
 	}
@@ -1334,26 +1693,62 @@ int bslpol_cb_ruleradix_remove(PsmPartition partition, PsmAddress entryAddr, voi
 
 
 
-/*
- * Search the data for a better rule...
- */
+/******************************************************************************
+ * @brief Searches the rules at a radix tree node for a better match
+ *
+ * This function searches all of the rules associated with this node in the
+ * radix tree to determine whether any rule at the local node is a better
+ * match for some criteria than a rule that was passed-in.
+ *
+ * @param[in]     partition - The shared memory partition.
+ * @param[in,out] entryAddr - The address of the SET of rules for the node.
+ * @param[in]     tag       - Search critiera and best rule so far
+ *
+ * @notes
+ * Even if we find a better rule match at this node, we must keep searching
+ * the radix tree across the subtree rooted at the EID common root of filter
+ * criteria.  For example, if we are searching for rules that might best
+ * match ipn:12.2 and we have radix tree nodes associated with
+ *
+ *   ipn:~, ipn:1~, ipn:12~, etc...
+ *
+ * we would need to look through each of them as we find the best rule match.
+ *
+ * @retval   1 - A better rule was found at this node.
+ * @retval   0 - There was no rule to search
+ * @retval  -1 - There was an error.
+ *****************************************************************************/
+
 int bslpol_cb_ruleradix_search_best(PsmPartition partition, PsmAddress entryAddr, BpSecPolRuleSearchBestTag *tag)
 {
 	PsmAddress eltAddr = 0;
 	BpSecPolRuleEntry *entryPtr = NULL;
 	PsmAddress ruleAddr = 0;
 
-	CHKZERO(entryAddr);
+	/*
+	 * If there is no entry data, the current node is a split node. While some split nodes also
+	 * have entry data, only split nodes have zero entry data.
+	 */
+	if(entryAddr == 0)
+	{
+		return 0;
+	}
 	CHKZERO(tag);
 
 	entryPtr = (BpSecPolRuleEntry *) psp(partition, entryAddr);
 
+	/* Look through each node in the list. */
 	for(eltAddr = sm_list_first(partition, entryPtr->rules);
 		eltAddr;
 		eltAddr = sm_list_next(partition, eltAddr))
 	{
 		ruleAddr = sm_list_data(partition,eltAddr);
 
+		/*
+		 * Since these rules by score and index, if we find a better
+		 * rule, it will be the first one encountered. There is no
+		 * longer a reason to search the list.
+		 */
 		if(bslpol_search_tag_best(partition, tag, ruleAddr) == 1)
 		{
 			return 1;
@@ -1361,3 +1756,24 @@ int bslpol_cb_ruleradix_search_best(PsmPartition partition, PsmAddress entryAddr
 	}
 	return 0;
 }
+
+
+
+/******************************************************************************
+ * @brief Removes a rule from the master shared memory list of rules.
+ *
+ *  This callback is used to auto-delete a rule from the master shared memory
+ *  list of rules.
+ *
+ * @param[in] partition - The shared memory partition
+ * @param[in] tag       - Ignored
+ *
+ * @note
+ *****************************************************************************/
+
+void bslpol_cb_smlist_delete(PsmPartition partition, PsmAddress eltAddr, void *tag)
+{
+
+	bslpol_rule_delete(partition, sm_list_data(partition, eltAddr));
+}
+

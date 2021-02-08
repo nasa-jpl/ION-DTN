@@ -7,16 +7,20 @@
 	Author: Scott Burleigh, Jet Propulsion Laboratory
 	Modifications: TCSASSEMBLER, TopCoder
 
+TODO: Update JSON parser to use hierarchical parsers per JSON object.
+TODO: Implement support for anonymous event sets in policyrules.
+
 	Modification History:
-	Date       Who     What
-	9-24-13    TC      Added atouc helper function to convert char* to
-			   unsigned char
-	6-27-19	    SB	   Extracted from ionsecadmin.
-	1-25-21    S. Heiner  Added initial BPSec Policy Rule Commands
+	Date       Who        What
+	9-24-13    TC          Added atouc helper function to convert char* to
+			               unsigned char
+	6-27-19	   SB	       Extracted from ionsecadmin.
+	1-25-21    S. Heiner,  Added initial BPSec Policy Rule Commands and
+	           E. Birrane  JSON parsing
+
+
 */
 
-
-// TODO: Sub-parse objects - instantiate parsers per object to have end-of-object limits.
 
 /*****************************************************************************
  *                              FILE INCLUSIONS                              *
@@ -38,6 +42,10 @@
 #define MAX_JSMN_TOKENS (128)
 #define MAX_RULE_ID		(255)
 
+#define USER_TEXT_LEN   (1024)
+#define SEC_ROLE_LEN    (15)
+#define NUM_STR_LEN     (5)
+#define GEN_PARM_LEN    (32)
 
 #define SEARCH_ALL 1
 #define SEARCH_BEST 2
@@ -63,10 +71,10 @@ BpSecMap gActionMap[] = {
 	{"remove_sop_target",      BSLACT_REMOVE_SOP_TARGET},
 	{"remove_all_target_sops", BSLACT_REMOVE_ALL_TARGET_SOPS},
 	{"do_not_forward",         BSLACT_DO_NOT_FORWARD},
-	{"request_storage",        BSL_ACT_NOT_IMPLEMENTED}, //BSLACT_REQUEST_STORAGE},
+	{"request_storage",        BSLACT_NOT_IMPLEMENTED}, //BSLACT_REQUEST_STORAGE},
 	{"report_reason_code",     BSLACT_REPORT_REASON_CODE},
-	{"override_target_bpcf",   BSL_ACT_NOT_IMPLEMENTED}, //BSLACT_OVERRIDE_TARGET_BPCF},
-	{"override_sop_bpcf",      BSL_ACT_NOT_IMPLEMENTED}, //BSLACT_OVERRIDE_SOP_BPCF},
+	{"override_target_bpcf",   BSLACT_NOT_IMPLEMENTED}, //BSLACT_OVERRIDE_TARGET_BPCF},
+	{"override_sop_bpcf",      BSLACT_NOT_IMPLEMENTED}, //BSLACT_OVERRIDE_SOP_BPCF},
 	{NULL,0}
 };
 
@@ -87,7 +95,7 @@ BpSecMap gScParmMap[] = {
  *****************************************************************************/
 
 PsmPartition gWm;
-
+char gUserText[USER_TEXT_LEN];
 
 typedef struct
 {
@@ -166,64 +174,104 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 
-	PUTS("Criteria fields for policyrule commands:");
-	PUTS("\tFilter Criteria");
-	PUTS("\t\t [role = <security policy role>, src = <source eid expression>, \
-dest = <destination eid expression>, tgt = <target block type>, req_scid = \
-<security context name>]");
-	PUTS("\tSpecification Criteria");
-	PUTS("\t\t [svc = <security service>, scid = <security context name>, \
-sc_parms= <security context parameters>]");
-	PUTS("\tEvent Criteria");
-	PUTS("\t\t [event_set = <event set name> | event = <security operation \
-event>, actions = <optional processing actions>, action_parms = <processing \
-action parameters>]");
-
-
-	PUTS("\ta\tAdd");
+	PUTS("\n\ta\tAdd");
 	PUTS("\t\tEvery eid expression must be a node identification \
 expression, i.e., a partial eid expression ending in '*' or '~'.");
 	PUTS("\t   a bibrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   a bcbrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
-	PUTS("\t   a eventset <event set name>");
-	PUTS("\t   a event event_set=<event set name> event=<security \
-operation event> actions=<optional processing actions> action_parms={ '' | \
-<processing action parameters>}");
-	PUTS("\t   a policyrule [filter criteria] [specification criteria] \
-[event criteria]");
 
-	PUTS("\tc\tChange");
+	PUTS("\n\t   JSON Add Commands (Experimental)");
+	PUTS("\t   --------------------------------");
+	PUTS("\t   a { \"event\" :");
+	PUTS("\t       {");
+	PUTS("\t          \"es_ref\" : \"<event set name>\"");
+	PUTS("\t          \"event_id\" : \"<event name>\"");
+	PUTS("\t          \"actions\" : [{\"id\":\"<action>\", <parms if applicable>},...]");
+	PUTS("\t       }");
+	PUTS("\t     }");
+	PUTS("\t   a { \"event_set\" : ");
+	PUTS("\t       {");
+	PUTS("\t          \"desc\" : \"<description>\" (optional)");
+	PUTS("\t          \"name\" : \"<event set name>\"");
+	PUTS("\t       }");
+    PUTS("\t     }");
+	PUTS("\t   a { \"policyrule\" :");
+	PUTS("\t       {");
+	PUTS("\t          \"desc\" : \"<description>\" (optional)");
+	PUTS("\t          \"es_ref\" : \"<event set name>\"");
+	PUTS("\t          \"filter\" : ");
+	PUTS("\t          {");
+	PUTS("\t             \"rule_id\" : \"<rule id>\", (optional)");
+	PUTS("\t             \"role\"    : \"<security role>\", ");
+	PUTS("\t             \"src\"     : \"<source eid expression>\",        \\");
+	PUTS("\t             \"dest\"    : \"<destination eid expression>\",    ) (1 of src/dest/ssrc required)");
+	PUTS("\t             \"ssrc\"    : \"<security source eid expression>\"/");
+	PUTS("\t          }");
+	PUTS("\t          \"spec\" :");
+	PUTS("\t          {");
+	PUTS("\t             \"svc\"      : \"<security service>\"");
+	PUTS("\t             \"sc_parms\" : [{\"id\":\"<parm1_id>\",\"value\":\"<parm1_value\"},...]");
+	PUTS("\t          }");
+	PUTS("\t       }");
+	PUTS("\t     }");
+
+	PUTS("\n\tc\tChange");
 	PUTS("\t   c bibrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   c bcbrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
-	PUTS("\t   c policyrule rule_id [filter criteria] [specification criteria]\
-[event criteria]");
 
-	PUTS("\td\tDelete");
+	PUTS("\n\td\tDelete");
 	PUTS("\t   d bibrule <source eid expression> <destination eid \
 	expression> <block type number>");
 	PUTS("\t   d bcbrule <source eid expression> <destination eid \
 	expression> <block type number>");
-	PUTS("\t   d eventset <event set name>");
-	PUTS("\t   d event event_set=<event set name> event=<security operation \
-event> actions={ '' | <optional processing actions> ");
-	PUTS("\t   d policyrule rule_id");
 
-	PUTS("\ti\tInfo");
+	PUTS("\n\t   JSON Delete Commands (Experimental)");
+	PUTS("\t   -----------------------------------");
+	PUTS("\t   d { \"event\" :");
+	PUTS("\t       {");
+	PUTS("\t          \"es_ref\"   : \"<event set name>\",");
+	PUTS("\t          \"event_id\" : \"<event name>\",");
+	PUTS("\t       }");
+	PUTS("\t     }");
+	PUTS("\t   d { \"event_set\" : {\"name\" : \"<event set name>\"}}");
+	PUTS("\t   d { \"policyrule\" : {\"rule_id\" : \"<rule id>\"}}");
+
+	PUTS("\n\tf\tFind");
+	PUTS("\t   JSON Find Commands (Experimental)");
+	PUTS("\t   ---------------------------------");
+	PUTS("\t   f { \"policyrule\" : ");
+	PUTS("\t       {");
+	PUTS("\t          \"type\" : \"all\" | \"best\",");
+	PUTS("\t          \"src\"  : \"<source eid expression>\",        \\");
+	PUTS("\t          \"dest\" : \"<destination eid expression>\",    ) (1 of src/dest/ssrc required)");
+	PUTS("\t          \"ssrc\" : \"<security source eid expression>\"/");
+	PUTS("\t          \"scid\" : <security context id> (optional)");
+	PUTS("\t          \"role\" : \"<security role>\" (optional)");
+	PUTS("\t       }");
+	PUTS("\t     }");
+
+	PUTS("\n\ti\tInfo");
 	PUTS("\t   i bibrule <source eid expression> <destination eid \
 expression> <block type number>");
 	PUTS("\t   i bcbrule <source eid expression> <destination eid \
 expression> <block type number>");
-	PUTS("\t   i eventset <event set name>");
-	PUTS("\t   i policyrule [filter criteria]");
 
-	PUTS("\tl\tList");
+	PUTS("\n\t   JSON Info Commands (Experimental)");
+	PUTS("\t   ---------------------------------");
+	PUTS("\t   i { \"event_set\" : {\"name\" : \"<event set name>\"}}");
+	PUTS("\t   i { \"policyrule\" : <rule id>");
+
+	PUTS("\n\tl\tList");
 	PUTS("\t   l bibrule");
 	PUTS("\t   l bcbrule");
-	PUTS("\t   l eventset");
+
+	PUTS("\n\t   JSON List Commands (Experimental)");
+	PUTS("\t   ---------------------------------");
+	PUTS("\t   l {\"type\" : \"eventset\" | \"policyrule\"");
 
 	PUTS("\tx\tClear BSP security rules.");
 	PUTS("\t   x <security source eid> <security destination eid> \
@@ -274,108 +322,46 @@ static void init()
 	}
 }
 
-/******************************************************************************
- *
- * \par Function Name: jsonStrEqual
- *
- * \par Purpose: This function compares a jsmn token with a given string and
- * 				 determines if their contents are equivalent.
- *
- * \retval int -1  - Error.
- *              0  - JSON token contents are NOT equal to the provided string
- *             >0  - JSON token contents are equal to the provided string
- *
- * \param[in]  json		JSON string token was extracted from
- * \param[in]  tok      jsmn token to examine
- * \param[in]  str		String to compare jsmn token contents to
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/22/20   S. Heiner      Initial Implementation
- *****************************************************************************/
-static int jsonStrEqual(const char *json, jsmntok_t *tok, const char *str)
-{
-  return (((tok->type == JSMN_STRING) && ((int)strlen(str) == tok->end - tok->start))
-		  && (strncmp(json + tok->start, str, tok->end - tok->start) == 0));
-}
 
 /******************************************************************************
+ * @brief Find the index of a named value from a set of JSON tokens.
  *
- * \par Function Name: jsonStrCpy
+ * @param[in]  job   - Parsed JSON tokens.
+ * @param[in]  start - Start of the token range to search for the value index.
+ * @param[in]  end   - End of the token range to search for the value index.
+ * @param[in]  key   - The name of the value to search for.
+ * @param[in]  type  - The expected type of the value
  *
- * \par Purpose: This function copies a string from a line of JSON to the
- * 				 destination (str) provided by the user.
+ * @note
+ * An "end" token range of 0 means to search all tokens.
+ * \par
+ * The expected type of the value (JSMN_PRIMITIVE, JSM_STRING, etc...) The
+ * JSMN_PRIMITIVE type is used for for integers and characters.
+ * \par
+ * The index of the found value is always 1 + the index of its key. Since the
+ * end parameter is the last token to search for the key, the idx value can
+ * be end + 1.
+ * \par
+ * The found value is copied out of the JSON token and into the supplied value.
  *
- * \retval int -1  - Error.
- *              0  - The JSON string was not copied.
- *             >0  - The JSON string was successfully copied to the destination
- *
- * \param[in]      tok      jsmn token to copy the string from
- * \param[in]      maxLen	The maximum length of the destination string
- * \param[in]      json		JSON string token was extracted from
- * \param[in|out]  str		String to copy jsmn token contents to
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
+ * @retval >0 - The index of the found value.
+ * @retval 0 - The value was not found
  *****************************************************************************/
-static int jsonStrCpy(jsmntok_t *tok, int maxLen, char *json, char *str)
+static int jsonGetTypedIdx(jsonObject job, int start, int end, char *key, int type)
 {
-	if(tok->type == JSMN_STRING)
+	int i = 0;
+	int key_len = 0;
+	int token_len = 0;
+
+	/* We need a key to search for. */
+	if(key == NULL)
 	{
-		int len = MIN(tok->end - tok->start, maxLen);
-		memset(str,0,maxLen);
-		return ((len > 0) && (strncpy(str, json + tok->start, len)));
+		return -1;
 	}
-	else
-	{
-		return 0;
-	}
-}
 
-/******************************************************************************
- *
- * \par Function Name: jsonPrimitiveCpy
- *
- * \par Purpose: This function copies a primitive valuE from a line of JSON to
- *               the destination (str) provided by the user.
- *
- * \retval int -1  - Error.
- *              0  - The JSON primitive was not copied.
- *             >0  - The JSON primitive was successfully copied to the
- *                   destination
- *
- * \param[in]      tok      jsmn token to copy the primitive from
- * \param[in]      maxLen	The maximum length of the destination string
- * \param[in]      json		JSON string token was extracted from
- * \param[in|out]  str		String to copy jsmn token contents to
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
- *****************************************************************************/
-static int jsonPrimitiveCpy(jsmntok_t *tok, int maxLen, char *json, char *str)
-{
-	if(tok->type == JSMN_PRIMITIVE)
-	{
-		int len = MIN(tok->end - tok->start, maxLen);
+	key_len = strlen(key);
 
-		return (strncpy(str, json + tok->start, len)) ? 1 : 0;
-	}
-	return -1;
-}
-
-// Get index of item directly after key, IFF it is of correct type.
-// END is the last index we will look for the KEY. Value can be end+1.
-int json_get_typed_idx(jsonObject job, int start, int end, char *key, int type)
-{
-	int i;
-
-	CHKZERO(key);
-
+	/* Calculate end of token search. */
 	if(end <= 0)
 	{
 		end = job.tokenCount - 1;
@@ -383,9 +369,18 @@ int json_get_typed_idx(jsonObject job, int start, int end, char *key, int type)
 
 	for (i = start; i <= end; i++)
 	{
-		if(jsonStrEqual(job.line, &(job.tokens[i]), key))
+		/* If the current token matches the given key... */
+		token_len = job.tokens[i].end - job.tokens[i].start;
+
+		/* If we found the key... */
+		if( (job.tokens[i].type == JSMN_STRING) &&
+			(key_len == token_len) &&
+			(strncmp(job.line + job.tokens[i].start, key, token_len) == 0))
 		{
+			/* The index after the key must be the value. */
 			i++;
+
+			/* The index is a match if the value is the expected type. */
 			return (job.tokens[i].type == type) ? i : 0;
 		}
 	}
@@ -393,56 +388,96 @@ int json_get_typed_idx(jsonObject job, int start, int end, char *key, int type)
 	return 0;
 }
 
-// returned index is the index of the VALUE for the key, which is 1 plus the index of the key.
-// So, idx can be end+1.
-int json_get_primitive_value(jsonObject job, int start, int end, char *key, int max, char *value, int *idx)
-{
-	int i = 0;
 
-	i = json_get_typed_idx(job, start, end, key, JSMN_PRIMITIVE);
 
-	if(i > 0)
-	{
-		if(idx != NULL)
-		{
-			*idx = i;
-		}
-		return jsonPrimitiveCpy(&(job.tokens[i]), max, job.line, value);
-	}
-
-	return 0;
-}
-
-// value associated with NAME   starting at index i.
-/*
- * Retrieves value of key item IFF the value is of the given type.
+/******************************************************************************
+ * @brief Extracts a named value of a given type from a set of JSON tokens.
  *
- */
+ * @param[in]  job   - The parsed JSON tokens.
+ * @param[in]  start - The start of the token range to search for the key.
+ * @param[in]  end   - The end of the token range to search for the key.
+ * @param[in]  type  - The type of the value
+ * @param[in]  key   - The name of the value to search for.
+ * @param[in]  max   - The length of the value field holding the found result.
+ * @param[out] value - The user-supplied field to hold the found result.
+ * @param[out] idx   - The optional token index of the value.
+ *
+ * @note
+ * An "end" token range of 0 means to search all tokens.
+ * \par
+ * The expected type of the value (JSMN_PRIMITIVE, JSM_STRING, etc...) The
+ * JSMN_PRIMITIVE type is used for for integers and characters.
+ * \par
+ * The index of the found value is always 1 + the index of its key. Since the
+ * end parameter is the last token to search for the key, the idx value can
+ * be end + 1.
+ * \par
+ * The found value is copied out of the JSON token and into the supplied value.
+ *
+ * @retval 1 - The value was found in the JSON token range.
+ * @retval 0 - The value was not found
+ *****************************************************************************/
 
-int json_get_str_value(jsonObject job, int start, int end, char *key, int max, char *value, int *idx)
+static int jsonGetTypedValue(jsonObject job, int start, int end, int type, char *key, int max, char *value, int *idx)
 {
-	int i = 0;
 	int result = 0;
+	int i = 0;
 
-	result = i = json_get_typed_idx(job, start, end, key, JSMN_STRING);
+	/* Retrieve the index of the token holding the value. */
+	i = jsonGetTypedIdx(job, start, end, key, type);
 
 	if(i > 0)
 	{
+		/* Calculate the length of the found value. */
+		int len = MIN(job.tokens[i].end - job.tokens[i].start, max);
+
+		/* Clear the value field. */
+		memset(value,0,max);
+
+		/* Copy JSON segment into the value. */
+		if(istrcpy(value, job.line+job.tokens[i].start, len+1) == NULL)
+		{
+			result = -1;
+		}
+
+		/* Store value token index if needed. */
 		if(idx != NULL)
 		{
 			*idx = i;
 		}
-		result = jsonStrCpy(&(job.tokens[i]), max, job.line, value);
+
+		/* Note success. */
+		result = 1;
 	}
 
 	return result;
 }
 
-char *json_get_new_str_value(jsonObject job, int start, int end, char *key, int max, int *idx)
+
+
+/******************************************************************************
+ * @brief Returns deep copy of a value from a JSON string.
+ *
+ * @param[in]  job   - The parsed JSON tokens.
+ * @param[in]  start - The start of the token range to search for the key.
+ * @param[in]  end   - The end of the token range to search for the key.
+ * @param[in]  type  - The type of the value
+ * @param[in]  key   - The name of the value to search for.
+ * @param[in]  max   - The length of the value field holding the found result.
+ * @param[out] idx   - The optional token index of the value.
+ *
+ * @note
+ * The returned char * MUST be released by the caller.
+ *
+ * @retval !NULL - The value that was found in the JSON token range.
+ * @retval NULL  - The value was not found
+ *****************************************************************************/
+
+static char *jsonAllocStrValue(jsonObject job, int start, int end, char *key, int max, int *idx)
 {
 	char *tmp = (char*) MTAKE(max+1);
 
-	if(json_get_str_value(job, start, end, key, max, tmp, idx) <= 0)
+	if(jsonGetTypedValue(job, start, end, JSMN_STRING, key, max, tmp, idx) <= 0)
 	{
 		MRELEASE(tmp);
 		tmp = NULL;
@@ -451,7 +486,23 @@ char *json_get_new_str_value(jsonObject job, int start, int end, char *key, int 
 	return tmp;
 }
 
-int getMappedValue(BpSecMap map[], char *key)
+
+/******************************************************************************
+ * @brief Returns a value from a key-map memory set
+ *
+ * @param[in]  map   - The specific map being queried
+ * @param[in]  key   - The key being queried
+ *
+ * @note
+ * This function serves as an associative array lookup for common mappings of
+ * JSON string values to enumerated values.
+ * \par
+ * Keys in this array are static strings.  Values are integers.
+ *
+ * @retval !0 - The value
+ * @retval 0  - The value was not found.
+ *****************************************************************************/
+static int getMappedValue(BpSecMap map[], char *key)
 {
 	int idx = 0;
 
@@ -468,33 +519,21 @@ int getMappedValue(BpSecMap map[], char *key)
 }
 
 
+
 /******************************************************************************
+ * @brief Retrieves the event_id from a JSON string.
  *
- * \par Function Name: processEvent
+ * @param[in]  job   - The parsed JSON tokens.
+ * @param[out] event - The retrieved event enumeration
  *
- * \par Purpose: Validate a provided event. This function checks that
- * 				 an event name token is:
- * 				 1) Present
- * 				 2) Within the imposed length guidelines
- * 				 3) Labeled with 'event_id'
- * 				 4) A supported security operation event
- * 				 If the provided event is valid, the function returns that
- * 				 event name.
+ * @note
+ * The expected JSON pair is "event_id" : "<event name>"
  *
- * \retval int -1  - Error.
- *              0  - Event name is invalid
- *             >0  - Event name is valid, BpSecEventId is populated
- *
- * \param[in]  tokenCount  Number of tokens returned by the jsmn parser.
- * \param[in]  tokens      A pointer to all tokens found by the jsmn parser.
- * \param[in]  line        The command provided by the user.
- * \param[in|out]  event   The valid event ID.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/17/20   S. Heiner      Initial Implementation
+ * @retval 1  - The event was found and validated.
+ * @retval 0  - The event was not found or was invalid.
+ * @retval -1 - Error extracting the event.
  *****************************************************************************/
+
 static int getEventId(jsonObject job, BpSecEventId *event)
 {
 	char eventName[MAX_EVENT_LEN+1];
@@ -502,14 +541,16 @@ static int getEventId(jsonObject job, BpSecEventId *event)
 
 	CHKERR(event);
 
-	if(json_get_str_value(job, 1, 0, "event_id", MAX_EVENT_LEN, eventName, NULL) > 0)
+	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "event_id", MAX_EVENT_LEN, eventName, NULL) > 0)
 	{
 		/* Check that provided event is supported */
 		*event = bslevt_get_id(eventName);
 
 		if(*event == unsupported)
 		{
-			writeMemo("[?] Event is unsupported");
+			isprintf(gUserText, USER_TEXT_LEN, "[?] event %s is not supported.", eventName);
+			printText(gUserText);
+
 			result = 0;
 		}
 	}
@@ -522,35 +563,35 @@ static int getEventId(jsonObject job, BpSecEventId *event)
 	return result;
 }
 
+
+
 /******************************************************************************
+ * @brief Sets an action bit in a bitmask associated with a named action
  *
- * \par Function Name: setAction
+ * @param[in]  action     - The name of the action being added to the mask
+ * @param[out] actionMask - The updated action mask.
  *
- * \par Purpose: Given an optional processing action, this function sets the
- * 				 appropriate bit in the provided action mask to indicate that
- * 				 the action has been enabled.
+ * @note
+ * An action must be both defined AND map to a supported, implemented enumeration
  *
- * \retval - int 1 - Provided action is supported and bit in actionMask set.
- * 				 0 - An actionMask bit was not set.
- *
- * \param[in]        action - The optional processing action to enable.
- * \parm[in|out] actionMask - Currently configured optional processing actions.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/17/20   S. Heiner      Initial Implementation
+ * @retval !0 - The action enumeration OR'd into the mask
+ * @retval 0  - The action was not added to the mask
  *****************************************************************************/
-// Returns action value...
+
 static int setAction(char *action, uint8_t *actionMask)
 {
   int value = 0;
 
+  /* Find the action value in the map of action values. */
   if((value = getMappedValue(gActionMap, action)) > 0)
   {
-	  if(value == BSL_ACT_NOT_IMPLEMENTED)
+	  /* If the action was found but is not implemented...*/
+	  if(value == BSLACT_NOT_IMPLEMENTED)
 	  {
-		  writeMemoNote("[i] Action currently not supported", action);
+		isprintf(gUserText, USER_TEXT_LEN, "[i] Action %s currently not supported", action);
+		printText(gUserText);
+
+		value = 0;
 	  }
 	  else
 	  {
@@ -559,91 +600,108 @@ static int setAction(char *action, uint8_t *actionMask)
   }
   else
   {
-	  writeMemoNote("[?] Unknown action", action);
+	  isprintf(gUserText, USER_TEXT_LEN, "[?] Unknown action %s", action);
+	  printText(gUserText);
   }
 
   return value;
 }
 
+
+
 /******************************************************************************
+ * @brief Retrieves a set of actions and parameters from a JSON object.
  *
- * \par Function Name: processActions
+ * @param[in]  job        - The parsed JSON tokens.
+ * @param[out] actionMask - The mask of enabled actions
+ * @param[out] parms      - Parameters associated with actions (if any)
  *
- * \par Purpose: This function processes user-provided action(s). The actions
- *               are first validated. Then, each valid action's bit is set in
- *               the actionMask provided. All actions must be valid, meaning
- *               that each action provided corresponds to a supported action,
- *               in order for this function to return success.
+ * JSON structure
+ * "actions" : { [ {"id":"action name", (opt parms)}, ...]}
  *
- * \retval int -1 Error
- * 				0 Action(s) unsuccessfully processed - action(s) invalid.
- * 				1 Action(s) successfully processed - action(s) valid.
+ * @note
+ * The parms field is expected to have been allocated by the calling function.
  *
- * \param[in]  tokenCount  Number of tokens returned by the jsmn parser.
- * \param[in]  tokens      A pointer to all tokens found by the jsmn parser.
- * \param[in]  line        The command provided by the user.
- * \param[in|out]  event   The valid event name.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/17/20   S. Heiner      Initial Implementation
+ * @retval  1 - Action(s) successfully processed - action(s) valid.
+ * @retval  0 - Action(s) unsuccessfully processed - action(s) invalid.
+ * @retval -1 - Error.
  *****************************************************************************/
-// Presumes parms has been allocated...
+
 static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *parms)
 {
-	int i = 0;
 	int start = 0;
 	int actionLen = 0;
-	char actionStr[MAX_ACTION_LEN+1];
+	char actionStr[MAX_ACTION_LEN];
 	int parmIdx = 0;
 	char parmStr[64+1];
 	int numParm = 0;
 	int curAct = 0;
 
-	/* Get the index of the start of the actions array. */
-	start = json_get_typed_idx(job, 1, 0, "actions", JSMN_ARRAY);
+	/*
+	 * Get the index of the start of the actions array. All key-value searches
+	 * will be from this token onward.
+	 */
+	start = jsonGetTypedIdx(job, 1, 0, "actions", JSMN_ARRAY);
 
 	if(start <= 0)
 	{
-		writeMemo("[?] Error while parsing action(s)");
+		isprintf(gUserText, USER_TEXT_LEN, "[?] Cannot find actions array object", NULL);
+		printText(gUserText);
+
 		return -1;
 	}
 
-	memset(parmStr,0,sizeof(parmStr));
-
-	while (i < job.tokenCount)
+	/* Walk through tokens, looking for actions to add. */
+	while (start < job.tokenCount)
 	{
-		/* Grab the next action in the array. */
-		if((actionLen = json_get_str_value(job, start, 0, "id", MAX_ACTION_LEN, actionStr, &start)) <= 0)
+		/*
+		 * All valid actions start with "id". If there are no more valid actions, we are done.
+		 */
+		if((actionLen = jsonGetTypedValue(job, start, 0, JSMN_STRING, "id", MAX_ACTION_LEN, actionStr, &start)) <= 0)
 		{
-			return 0;
+			break;
 		}
+
+		/* Convert action name to an enumeration and update the action mask. */
 		curAct = setAction(actionStr, actionMask);
+
+		/* Process the action based on its enumeration. */
 		switch(curAct)
 		{
+			/* If this is a report action, reas in the reason code to report. */
 			case BSLACT_REPORT_REASON_CODE:
-				if(json_get_primitive_value(job, start, start+1, "reason_code", 64, parmStr, &start) > 0)
+				if(jsonGetTypedValue(job, start, start+1, JSMN_PRIMITIVE, "reason_code", 64, parmStr, &start) > 0)
 				{
 				   parms[parmIdx++].asReason.reasonCode = atoi(parmStr);
 				}
+				else
+				{
+					isprintf(gUserText, USER_TEXT_LEN, "[x] No reason code supplied for action %d", curAct);
+					printText(gUserText);
+
+					return -1;
+				}
 				break;
+
+			/* If this is an override action, get the mask/value for the override. */
 			case BSLACT_OVERRIDE_TARGET_BPCF:
 			case BSLACT_OVERRIDE_SOP_BPCF:
 				numParm = 0;
-				if(json_get_primitive_value(job, start, start+3, "mask", 64, parmStr, NULL) > 0)
+				if(jsonGetTypedValue(job, start, start+3, JSMN_PRIMITIVE, "mask", 64, parmStr, NULL) > 0)
 				{
-				   parms[parmIdx].asOverride.mask = (uint64_t) atol(parmStr);
+				   parms[parmIdx].asOverride.mask = (uint64_t) strtol(parmStr, NULL, 16);
 				   numParm++;
 				}
-				if(json_get_primitive_value(job, start, start+3, "new_value", 64, parmStr, NULL) > 0)
+				if(jsonGetTypedValue(job, start, start+3, JSMN_PRIMITIVE, "new_value", 64, parmStr, NULL) > 0)
 				{
-				   parms[parmIdx].asOverride.val = (uint64_t) atol(parmStr);
+				   parms[parmIdx].asOverride.val = (uint64_t) strtol(parmStr, NULL, 16);
 				   numParm++;
 				}
 				if(numParm != 2)
 				{
-					writeMemo("[?] Incorrect number of action parms");
+					isprintf(gUserText, USER_TEXT_LEN, "[x] Incorrect parms for override action", NULL);
+					printText(gUserText);
+
 					parms[parmIdx].asOverride.val = parms[parmIdx].asOverride.mask = 0;
 					return -1;
 				}
@@ -652,13 +710,18 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 					parmIdx++;
 				}
 				break;
+			/* if the action is unknown, stop processing. The JSON is malformed. */
 			case 0:
-				writeMemo("[?] Unknown action");
+				isprintf(gUserText, USER_TEXT_LEN, "[?] Unknown action %s", actionStr);
+				printText(gUserText);
+
 				return 0;
 				break;
-			case BSL_ACT_NOT_IMPLEMENTED:
-				writeMemoNote("[?] Action not implemented",actionStr);
-				return 0;
+
+			/* If the action is not implemented, skip and process other actions. */
+			case BSLACT_NOT_IMPLEMENTED:
+				isprintf(gUserText, USER_TEXT_LEN, "[?] Action %s not implemented", actionStr);
+				printText(gUserText);
 				break;
 			default:
 				break;
@@ -668,64 +731,64 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 }
 
 
+
 /******************************************************************************
+ * @brief Retrieves the criteria associated with a policyrule filter.
  *
- * \par Function Name: getFilterCriteria
+ * @param[in]   job   - The parsed JSON tokens.
+ * @param[out]  bsrc  - Bundle source.
+ * @param[out]  bdest - Bundle destination.
+ * @param[out]  ssrc  - Security source.
+ * @param[out]  type  - Security target block type.
+ * @param[out]  role  - Security role.
+ * @param[out]  sc_id - Security context ID.
  *
- * \par Purpose: This function processes user-provided filter criteria and
- * 				 populates the given parameters with their values.
+ * @note
+ * All out parms are expected to have been pre-allocated by the calling function.
+ * \par
+ * All EID values are expected to be of MAX_EID_LEN length and memset to 0.
+ * \par
+ * role and sc_id remain 0 if their are not set in the JSON.
+ * \par
+ * type is set to -1 if its value is not set in the JSON
  *
- * \retval int -1 Error
- * 				0 Filter criteria parsed unsuccessfully
- * 				1 Filter criteria parsed successfully - parameters populated
- *
- * \param[in]  tokenCount  Number of tokens returned by the jsmn parser.
- * \param[in]  tokens      A pointer to all tokens found by the jsmn parser.
- * \param[in]  line        The command provided by the user.
- * \param[in|out]  bsrc    Bundle source.
- * \param[in|out]  bdest   Bundle destination.
- * \param[in|out]  ssrc    Security source.
- * \param[in|out]  type    Security target block type.
- * \param[in|out]  role    Security role.
- * \param[in|out]  sc_id   Security context ID.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/05/21   S. Heiner      Initial Implementation
+ * @retval  1 - Filter criteria parsed successfully - parameters populated
+ * @retval  0 - Filter criteria parsed unsuccessfully
+ * @retval -1 - Error.
  *****************************************************************************/
+
 static int getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc, int *type, int *role, int *sc_id)
 {
 	int result = 0;
 
-	char num_str[4];
-	char role_str[13];
+	char num_str[NUM_STR_LEN];
+	char role_str[SEC_ROLE_LEN];
 
 	*role = 0;
 	*type = -1;
 	*sc_id = 0;
 
-	if(json_get_str_value(job, 1, 0, "src", MAX_EID_LEN, bsrc, NULL) < 0)
+	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "src", MAX_EID_LEN, bsrc, NULL) < 0)
 	{
-		writeMemo("[?] Malformed bundle source provided");
+		printText("[?] Malformed bundle source provided");
 		return 0;
 	}
 
-	if(json_get_str_value(job, 1, 0, "dest", MAX_EID_LEN, bdest, NULL) < 0)
+	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "dest", MAX_EID_LEN, bdest, NULL) < 0)
 	{
-		writeMemo("[?] Malformed bundle destination provided");
+		printText("[?] Malformed bundle destination provided");
 		return 0;
 	}
 
-	if(json_get_str_value(job, 1, 0, "sec_src", MAX_EID_LEN, ssrc, NULL) < 0)
+	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "sec_src", MAX_EID_LEN, ssrc, NULL) < 0)
 	{
-		writeMemo("[?] Malformed security source provided");
+		printText("[?] Malformed security source provided");
 		return 0;
 	}
 
-	if((result = json_get_primitive_value(job, 1, 0, "tgt", 3, num_str, NULL)) < 0)
+	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "tgt", NUM_STR_LEN, num_str, NULL)) < 0)
 	{
-		writeMemo("[?] Malformed target block type provided");
+		printText("[?] Malformed target block type provided");
 		return 0;
 	}
 	else if (result > 0)
@@ -733,15 +796,19 @@ static int getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc
 		*type = atoi(num_str);
 	}
 
-	// Result can be string or primitive.
-	if((result = json_get_primitive_value(job, 1, 0, "role", 13, role_str, NULL)) <= 0)
+	/*
+	 * Role can be either a primitive character "v" or a string "verifier". Check for
+	 * primitive first and if not found, try and read it as a string.
+	 */
+	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "role", SEC_ROLE_LEN, role_str, NULL)) <= 0)
 	{
-		result = json_get_str_value(job, 1, 0, "role", 13, role_str, NULL);
+		result = jsonGetTypedValue(job, 1, 0, JSMN_STRING, "role", SEC_ROLE_LEN, role_str, NULL);
 	}
 
+	/* A result of 0 means the role was not found in the JSON, which is OK. */
 	if(result < 0)
 	{
-		writeMemo("[?] Malformed security role provided");
+		printText("[?] Malformed security role provided");
 		return 0;
 	}
 	else if (result > 0)
@@ -749,9 +816,10 @@ static int getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc
 		*role = getMappedValue(gRoleMap, role_str);
 	}
 
-	if((result = json_get_primitive_value(job, 1, 0, "sc_id", 3, num_str, NULL)) < 0)
+	/* A result of 0 means the sc_id was not found in the JSON, which is OK. */
+	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "sc_id", NUM_STR_LEN, num_str, NULL)) < 0)
 	{
-		writeMemo("[?] Malformed security context identifier provided");
+		printText("[?] Malformed security context identifier provided");
 		return 0;
 	}
 	else if (result > 0)
@@ -760,32 +828,33 @@ static int getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc
 	}
 
 
+	if((*role == BPRF_SRC_ROLE) && (*sc_id == 0))
+	{
+		printText("[x] Security sources MUST specify a security context identifer.");
+		return 0;
+	}
+
 	return 1;
 }
 
+
+
 /******************************************************************************
+ * @brief Populates a policyrule filter object from a JSON string.
  *
- * \par Function Name: parseFilter
+ * @param[in]   job    - The parsed JSON tokens.
+ * @param[out]  filter - The filter to populate.
  *
- * \par Purpose: This function processes user-provided filter contents and
- * 				 populates a pointer to BPsecFilter. A filter MUST contain at
- * 				 least one EID to be considered valid.
+ * @note
+ * A filter MUST contain at least one EID to be considered valid.
+ * \par
+ * The filter is expected to have been allocated by the calling function
  *
- * \retval int -1 Error
- * 				0 Filter contents invalid
- * 				1 Filter contents valid - BpSecFilter populated
- *
- * \param[in]  tokenCount  Number of tokens returned by the jsmn parser.
- * \param[in]  tokens      A pointer to all tokens found by the jsmn parser.
- * \param[in]  line        The command provided by the user.
- * \param[in|out]  filter  Pointer to BPsecFilter to be populated if filter
- * 						   contents are valid.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/28/20   S. Heiner      Initial Implementation
+ * @retval  1 - Filter contents valid - BpSecFilter populated
+ * @retval  0 - Filter contents invalid
+ * @retval -1 - Error.
  *****************************************************************************/
+
 static int parseFilter(jsonObject job, BpSecFilter *filter)
 {
 	int type = -1;
@@ -812,14 +881,24 @@ static int parseFilter(jsonObject job, BpSecFilter *filter)
 
 		else
 		{
-			writeMemo("[?] Filter information invalid");
+			printText("[?] Filter information invalid");
 			return 0;
 		}
 	}
 
-	writeMemo("[?] Malformed filter criteria");
+	printText("[?] Malformed filter criteria");
 	return 0;
 }
+
+
+
+/******************************************************************************
+ * @brief Convenience function for deleting elements of a security context lyst
+ *
+ * @param[in] elt - Lyst element
+ * @param[in] arg - callback tag - unused
+ *
+ *****************************************************************************/
 
 static void sc_parm_del(LystElt elt, void *arg)
 {
@@ -830,58 +909,59 @@ static void sc_parm_del(LystElt elt, void *arg)
 	}
 }
 
+
+
 /******************************************************************************
+ * @brief Retrieve a set of security context parameters from a JSON object
  *
- * \par Function Name: getSecCtxtParms
+ * @param[in]   job    - The parsed JSON tokens.
  *
- * \par Purpose: This function processes the security context parameters
- *               provided by a user when creating a security policy rule.
- *               A Lyst of security context parameters, type sci_inbound_tlv,
- *               is created and returned if all parameters are formatted and
- *               parsed successfully.
+ * @note
+ * Currently, this is a lyst of sci_inbound_tlv structures.
+ * \par
+ * The created Lyst has a delete callback to help with lyst cleanup later
+ * \par
+ * TODO: Read parameters into a generic structure
  *
- * \retval int -1 Error
- * 				0 Security context parameter(s) malformed.
- * 				1 Security context parameter(s) successfully processed.
- *
- * \param[in]  tokenCount      Number of tokens returned by the jsmn parser.
- * \param[in]  tokens          Pointer to all tokens found by the jsmn parser.
- * \param[in]  line            The command provided by the user.
- * \param[in|out] parms        Lyst of each sci_inbound_tlv parsed from JSON.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/04/21   S. Heiner      Initial Implementation
+ * @retval  !NULL - Lyst of extracted security parameters
+ * @retval  NULL  - Error extracting security parameters
  *****************************************************************************/
+
 static Lyst getSecCtxtParms(jsonObject job)
 {
 	int i = 0;
 	int start = 0;
-	char curId[32+1];
-	char curVal[32+1];
+	char curId[GEN_PARM_LEN];
+	char curVal[GEN_PARM_LEN];
 	sci_inbound_tlv *curParm = NULL;
 	Lyst parms = NULL;
 
-	if((start = json_get_typed_idx(job, 1, 0, "sc_parms", JSMN_ARRAY)) <= 0)
+	/* It is not an error to not have security context parms. */
+	if((start = jsonGetTypedIdx(job, 1, 0, "sc_parms", JSMN_ARRAY)) <= 0)
 	{
 		return NULL;
 	}
 
+	/* Create a Lyst to hold the parms we did find. */
 	parms = lyst_create();
 	CHKNULL(parms);
 	lyst_delete_set(parms,sc_parm_del,NULL);
 
+	/* Start processing parms at the start of the sc_parms JSON object. */
 	i = start;
 	while(i > 0)
 	{
-		// Get the next SC Parm id.
-		if(json_get_str_value(job, i, 0, "id", 32, curId, &i) <= 0)
+		/*
+		 * Get the next parm id. If we can't we will assume there are no more
+		 * parms to be had.
+		 */
+		if(jsonGetTypedValue(job, i, 0, JSMN_STRING, "id", GEN_PARM_LEN, curId, &i) <= 0)
 		{
 			i = 0;
 		}
 		else
 		{
+			/* Allocate and initialize a structure to hold the current parm. */
 			curParm = (sci_inbound_tlv*) MTAKE(sizeof(sci_inbound_tlv));
 			CHKNULL(curParm);
 			memset(curParm, 0, sizeof(sci_inbound_tlv));
@@ -890,8 +970,11 @@ static Lyst getSecCtxtParms(jsonObject job)
 			curParm->id = getMappedValue(gScParmMap, curId);
 
 			/* Read the parm value into a tmp variable. */
-			if((curParm->length = json_get_str_value(job, i, 0, "value", 32, curVal, &i)) < 0)
+			if((curParm->length = jsonGetTypedValue(job, i, 0, JSMN_STRING, "value", GEN_PARM_LEN, curVal, &i)) < 0)
 			{
+				isprintf(gUserText, USER_TEXT_LEN, "[x] Cannot parse sc_parm %s", curId);
+				printText(gUserText);
+
 				MRELEASE(curParm);
 				lyst_destroy(parms);
 				return NULL;
@@ -900,6 +983,9 @@ static Lyst getSecCtxtParms(jsonObject job)
 			/* Allocate space for variable in the sc parm and copy it in. */
 			if((curParm->value = MTAKE(curParm->length + 1)) == NULL)
 			{
+				isprintf(gUserText, USER_TEXT_LEN, "[x] Cannot allocate %d bytes for parm value", curParm->length+1);
+				printText(gUserText);
+
 				MRELEASE(curParm);
 				lyst_destroy(parms);
 				return NULL;
@@ -917,71 +1003,71 @@ static Lyst getSecCtxtParms(jsonObject job)
 
 
 /******************************************************************************
+ * @brief Extract a policyrule ID from a JSON object
  *
- * \par Function Name: getRuleId
+ * @param[in]  job    - The parsed JSON tokens.
+ * @param[out] ruleId - The extracted rule ID.
  *
- * \par Purpose: This function extracts a user-provided rule ID from a JSON
- *               command.
+ * @note
+ * It is assumed that the caller allocated the ruleId being populated
  *
- * \retval int -1 Error
- * 				0 Rule ID invalid
- * 				1 Rule ID valid - pointer updated.
- *
- * \param[in]  tokenCount  Number of tokens returned by the jsmn parser.
- * \param[in]  tokens      A pointer to all tokens found by the jsmn parser.
- * \param[in]  line        The command provided by the user.
- * \param[in|out]  ruleID  The rule ID
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/05/21   S. Heiner      Initial Implementation
+ * @retval -1 - Error
+ * @retval  0 - Rule ID invalid
+ * @retval  1 - Rule ID valid
  *****************************************************************************/
+
 static int getRuleId(jsonObject job, uint16_t *ruleId)
 {
 	int idLen = 0;
-	char id[RULE_ID_LEN+1];
+	char id[RULE_ID_LEN];
 	memset(id, '\0', sizeof(id));
 
-	if((idLen = json_get_str_value(job, 1, 0, "rule_id", RULE_ID_LEN, id, NULL)) <= 0)
+	*ruleId = 0;
+
+	if((idLen = jsonGetTypedValue(job, 1, 0, JSMN_STRING, "rule_id", RULE_ID_LEN, id, NULL)) <= 0)
 	{
-		return 0;
+		if((idLen = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "rule_id", RULE_ID_LEN, id, NULL)) <= 0)
+		{
+		  return 0;
+		}
 	}
 
 	*ruleId= atoi(id);
 	return 1;
 }
 
+
+
 /******************************************************************************
+ * @brief Generate an identifier for a policyrule
  *
- * \par Function Name: getNewRuleId
+ * @param[in]  job    - The parsed JSON tokens.
+ * @param[out] ruleId - The extracted rule ID.
  *
- * \par Purpose: This function processes a user-provided rule ID. If the rule
- * 				 ID is formatted correctly and is not already assigned to an
- * 				 existing rule, the ruleID pointer is updated by
- * 				 the function.
+ * @note
+ * If present in the JSON tokens, the rule_id will be taken from there, if
+ * the rule_id is not already defined in the system. Otherwise, a new
+ * rule_id will be generated.
  *
- * \retval int -1 Error
- * 				0 Rule ID invalid
- * 				1 Rule ID valid - pointer updated.
- *
- * \param[in]  tokenCount  Number of tokens returned by the jsmn parser.
- * \param[in]  tokens      A pointer to all tokens found by the jsmn parser.
- * \param[in]  line        The command provided by the user.
- * \param[in|out]  ruleID  The valid rule ID
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/28/20   S. Heiner      Initial Implementation
+ * @retval -1 - Error
+ * @retval  0 - Rule ID invalid
+ * @retval  1 - Rule ID valid
  *****************************************************************************/
+
 static int getNewRuleId(jsonObject job, uint16_t *ruleId)
 {
+	CHKZERO(ruleId);
 
-	/* If a rule ID has not been provided by the user, generate one */
-	if(!getRuleId(job, ruleId))
+	/* Extract the ruleID from the JSON tokens. */
+	getRuleId(job, ruleId);
+
+	/*
+	 * If the rule was not in the JSON objects then try and find the first
+	 * available rule identifier.
+	 */
+	if(*ruleId <= 0)
 	{
-		int i;
+		int i = 0;
 		for(i = 1; i < MAX_RULE_ID; i++)
 		{
 			/*
@@ -995,29 +1081,27 @@ static int getNewRuleId(jsonObject job, uint16_t *ruleId)
 			}
 		}
 
-		writeMemo("[?] No available rule IDs - max number of policy "
-				"rules have been defined");
+		isprintf(gUserText, USER_TEXT_LEN, "[x] No available rule IDs. Max # of %s reached.", MAX_RULE_ID-1);
+		printText(gUserText);
+
 		return 0;
 	}
 
 	/* Otherwise, check if user rule ID is already in use */
-	else
+	else if (bslpol_rule_get_ptr(gWm, *ruleId) != NULL)
 	{
-		if (bslpol_rule_get_ptr(gWm, *ruleId) == NULL)
-		{
-			return 1;
-		}
+		isprintf(gUserText, USER_TEXT_LEN, "[x] Rule %d already defined.", *ruleId);
+		printText(gUserText);
 
-		else
-		{
-			writeMemo("[?] Rule ID already in use");
-			return 0;
-		}
+		return 0;
 	}
 
-	return -1;
+	return 1;
 }
 
+
+
+#if 0
 /******************************************************************************
  *
  * \par Function Name: createAnonEventset
@@ -1044,6 +1128,11 @@ PsmAddress createAnonEventset(jsonObject job)
 	writeMemo("[?] Anonymous event sets unsupported.");
 	return 0;
 }
+
+#endif
+
+
+
 
 static void	executeAdd(int tokenCount, char **tokens)
 {
@@ -1102,22 +1191,15 @@ static void	executeAdd(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+
+
 /******************************************************************************
+ * @brief Process the adding of BPSec policy objects provided a JSON object
  *
- * \par Function Name: executeAddJson
+ * @param[in]  job    - The parsed JSON tokens.
  *
- * \par Purpose: This function executes the add command provided by the user if
- * 				 JSON is present.
- *
- * \param[in]  tokenCount  The number of parsed jsmn tokens.
- * \param[in]  tokens      jsmn token(s).
- * \param[in]  line        'Add' command using JSON syntax.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
  *****************************************************************************/
+
 static void	executeAddJson(jsonObject job)
 {
 	int start = 0;
@@ -1131,19 +1213,20 @@ static void	executeAddJson(jsonObject job)
 		return;
 	}
 
-	if((start = json_get_typed_idx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
+	if((start = jsonGetTypedIdx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
 	{
-		if(json_get_str_value(job, start, 0, "name", MAX_EVENT_SET_NAME_LEN, name, NULL))
+		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "name", MAX_EVENT_SET_NAME_LEN, name, NULL))
 		{
 			if(bsles_add(gWm, name) < 0)
 			{
-				writeMemoNote("[?] Error adding eventset: ", name);
+				isprintf(gUserText, USER_TEXT_LEN, "[x] Error adding eventset %s ", name);
+				printText(gUserText);
 			}
 		}
 	}
-	else if((start = json_get_typed_idx(job, 1, 0, "event", JSMN_OBJECT)) > 0)
+	else if((start = jsonGetTypedIdx(job, 1, 0, "event", JSMN_OBJECT)) > 0)
 	{
-		if(json_get_str_value(job, start, 0, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL))
+		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL))
 		{
 			if(bsles_get_ptr(gWm, name))
 			{
@@ -1155,20 +1238,32 @@ static void	executeAddJson(jsonObject job)
 
 				if(getEventId(job, &eventId) < 0)
 				{
-					writeMemoNote("[?] Malformed EventId for: ", name);
+					isprintf(gUserText, USER_TEXT_LEN, "[x] Malformed EventId for %s.", name);
+					printText(gUserText);
 				}
 				else if(getActions(job, &actionMask, actionParms) < 0)
 				{
-					writeMemoNote("[?] Malformed actions for: ", name);
+					isprintf(gUserText, USER_TEXT_LEN, "[x] Malformed actions for %s.", name);
+					printText(gUserText);
 				}
 				else if(bslevt_add(gWm, name, eventId, actionMask, actionParms) <= 0)
 				{
-					writeMemoNote("[?] Cannot add event for: ", name);
+					isprintf(gUserText, USER_TEXT_LEN, "[x] Error adding event %d to %s.", eventId, name);
+					printText(gUserText);
 				}
 			}
+			else
+			{
+				isprintf(gUserText, USER_TEXT_LEN, "[x] Eventset %s not found.", name);
+				printText(gUserText);
+			}
+		}
+		else
+		{
+			printText("[x] No es_ref in call to add event.");
 		}
 	}
-	else if((start = json_get_typed_idx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
+	else if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
 	{
 		BpSecFilter filter;
 		Lyst sci_parms = NULL;
@@ -1178,27 +1273,27 @@ static void	executeAddJson(jsonObject job)
 
 		if (!parseFilter(job, &filter))
 		{
-			writeMemo("[?] Filter criteria could not be processed");
+			printText("[x] Filter criteria could not be processed");
 		}
 		else if (!getNewRuleId(job, &id))
 		{
-			writeMemo("[?] Rule ID could not be processed");
+			printText("[x] Rule ID could not be processed");
 		}
-		else if(json_get_str_value(job, start, 0, "desc", BPSEC_RULE_DESCR_LEN, desc, NULL) < 0)
+		else if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "desc", BPSEC_RULE_DESCR_LEN, desc, NULL) < 0)
 		{
-			writeMemo("[x] Error reading optional rule description.");
+			printText("[x] Error reading optional rule description.");
 		}
-		else if(json_get_str_value(job, start, 0, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL) <= 0)
+		else if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL) <= 0)
 		{
-			writeMemo("[?] Missing Event set reference.");
+			printText("[x] Missing Event set reference.");
 		}
 		else if((esAddr = bsles_get_addr(gWm, name)) == 0)
 		{
-			writeMemo("[?] Undefined Event set.");
+			printText("[x] Undefined Event set.");
 		}
 		else if((sci_parms = getSecCtxtParms(job)) == NULL)
 		{
-			writeMemo("[?] Security context parameters could not be processed");
+			printText("[x] Security context parameters could not be processed");
 		}
 		else
 		{
@@ -1206,12 +1301,15 @@ static void	executeAddJson(jsonObject job)
 
 			if((ruleAddr = bslpol_rule_create(gWm, desc, id, 0, filter, sci_parms, esAddr)) == 0)
 			{
-				writeMemo("[?] Could not create rule");
+				isprintf(gUserText, USER_TEXT_LEN, "[x] Could not create rule %d.", id);
+				printText(gUserText);
 			}
 
-			if(bslpol_rule_insert(gWm, ruleAddr) <= 0)
+			/* bslpol_rule_insert will free the rule if it cannot be added. */
+			if(bslpol_rule_insert(gWm, ruleAddr, 1) <= 0)
 			{
-				writeMemo("[?] Could not insert rule");
+				isprintf(gUserText, USER_TEXT_LEN, "[x] Could not insert rule %d.", id);
+				printText(gUserText);
 			}
 
 			lyst_destroy(sci_parms);
@@ -1280,6 +1378,8 @@ static void	executeChange(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+
+#if 0
 /******************************************************************************
  *
  * \par Function Name: executeChangeJson
@@ -1298,7 +1398,7 @@ static void	executeChange(int tokenCount, char **tokens)
  *****************************************************************************/
 static void	executeChangeJson(jsonObject job)
 {
-#if 0
+
 	int start = 0;
 
 	if (job.tokenCount < 2)
@@ -1307,7 +1407,7 @@ static void	executeChangeJson(jsonObject job)
 		return;
 	}
 
-	if((start = json_get_typed_idx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
+	if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
 	{
 		BpSecFilter filter;
 		Lyst sci_parms = NULL;
@@ -1352,9 +1452,13 @@ static void	executeChangeJson(jsonObject job)
 			}
 		}
 	}
-#endif
+
 	SYNTAX_ERROR;
 }
+
+#endif
+
+
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
@@ -1388,22 +1492,15 @@ static void	executeDelete(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+
+
 /******************************************************************************
+ * @brief Process the removal of BPSec policy objects provided a JSON object
  *
- * \par Function Name: executeDeleteJson
+ * @param[in]  job    - The parsed JSON tokens.
  *
- * \par Purpose: This function executes the delete command provided by the
- *               user if JSON is present.
- *
- * \param[in]  tokenCount  The number of parsed jsmn tokens.
- * \param[in]  tokens      jsmn token(s).
- * \param[in]  line        'Delete' command using JSON syntax.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
  *****************************************************************************/
+
 static void	executeDeleteJson(jsonObject job)
 {
 	int start = 0;
@@ -1416,35 +1513,40 @@ static void	executeDeleteJson(jsonObject job)
 		return;
 	}
 
-	if((start = json_get_typed_idx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
+	if((start = jsonGetTypedIdx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
 	{
-		if(json_get_str_value(job, start, 0, "name", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
+		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "name", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
 		{
 			bsles_delete(gWm, name);
 		}
 		else
 		{
-			writeMemo("[?] Missing event set name.");
+			printText("[?] Missing event set name.");
 		}
 		return;
 	}
-	else if((start = json_get_typed_idx(job, 1, 0, "event", JSMN_OBJECT)) > 0)
+	else if((start = jsonGetTypedIdx(job, 1, 0, "event", JSMN_OBJECT)) > 0)
 	{
-		if(json_get_str_value(job, start, 0, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
+		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
 		{
 			BpSecEventId eventId = 0;
 			if(getEventId(job, &eventId) > 0)
 			{
 				bslevt_delete(gWm, name, eventId);
 			}
+			else
+			{
+				isprintf(gUserText, USER_TEXT_LEN, "[x] Error removing event %d from %s.", eventId, name);
+				printText(gUserText);
+			}
 		}
 		else
 		{
-			writeMemo("[?] Missing event set name.");
+			printText("[?] Missing event set name.");
 		}
 		return;
 	}
-	else if((start = json_get_typed_idx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
+	else if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
 	{
 		uint16_t id = 0;
 		if(getRuleId(job, &id) > 0)
@@ -1453,7 +1555,7 @@ static void	executeDeleteJson(jsonObject job)
 		}
 		else
 		{
-			writeMemo("[?] Missing rule id.");
+			printText("[?] Missing rule id.");
 		}
 		return;
 	}
@@ -1494,12 +1596,21 @@ type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
         printText(buf);
 }
 
+
+/******************************************************************************
+ * @brief Prints an event object
+ *
+ * @param[in]   event - The event to be printed.
+ *
+ * @note
+ *****************************************************************************/
+
 static void printEvent(BpSecEvent *event)
 {
 	int idx = 0;
 	int parmIdx = 0;
 
-	char buf[512];
+	char buf[2048];
 	char tmp[128];
 	memset(buf, '\0', sizeof buf);
 
@@ -1528,7 +1639,7 @@ static void printEvent(BpSecEvent *event)
 					strcat(buf,tmp);
 					parmIdx++;
 					break;
-				case BSL_ACT_NOT_IMPLEMENTED:
+				case BSLACT_NOT_IMPLEMENTED:
 					break;
 				default:
 					isprintf(tmp, sizeof(tmp), "  %s\n", gActionMap[idx].key);
@@ -1541,6 +1652,16 @@ static void printEvent(BpSecEvent *event)
 	printText(buf);
 }
 
+
+
+/******************************************************************************
+ * @brief Prints an eventset name
+ *
+ * @param[in]   edPtr - The eventset whose name is to be printed.
+ *
+ * @note
+ *****************************************************************************/
+
 static void printEventsetName(BpSecEventSet *esPtr)
 {
 	char buf[MAX_EVENT_SET_NAME_LEN + 500]; //Max 255 named event sets
@@ -1552,9 +1673,19 @@ static void printEventsetName(BpSecEventSet *esPtr)
 	printText(buf);
 }
 
+
+
+/******************************************************************************
+ * @brief Prints an eventset
+ *
+ * @param[in]   esPtr - The eventset to be printed.
+ *
+ * @note
+ *****************************************************************************/
+
 static void printEventset(BpSecEventSet *esPtr)
 {
-	PsmAddress elt;
+	PsmAddress elt = 0;
 
 	printEventsetName(esPtr);
 
@@ -1565,6 +1696,17 @@ static void printEventset(BpSecEventSet *esPtr)
 		printEvent(event);
 	}
 }
+
+
+
+/******************************************************************************
+ * @brief Prints a policyrule.
+ *
+ * @param[in] rulePtr - The policyrule to be printed.
+ * @param[in] verbose - Whether to print the full rule (1) or not (0)
+ *
+ * @note
+ *****************************************************************************/
 
 static void printRule(BpSecPolRule *rulePtr, int verbose)
 {
@@ -1583,7 +1725,7 @@ static void printRule(BpSecPolRule *rulePtr, int verbose)
 	isprintf(tmp, sizeof(tmp), "\nRule #%u - ", rulePtr->user_id);
 	strcat(buf,tmp);
 
-	isprintf(tmp, sizeof(tmp), "%s", (strlen(rulePtr->desc) > 0) ? rulePtr->desc : "No Description");
+	isprintf(tmp, sizeof(tmp), "%s (Score: %d)", (strlen(rulePtr->desc) > 0) ? rulePtr->desc : "No Description", rulePtr->filter.score);
 	strcat(buf,tmp);
 
 	if(verbose == 0)
@@ -1625,25 +1767,25 @@ static void printRule(BpSecPolRule *rulePtr, int verbose)
 
 	if(rulePtr->filter.bdest_len > 0)
 	{
-		isprintf(tmp, sizeof(tmp), "BDest \"%s\"", (char *) psp(gWm, rulePtr->filter.bundle_dest));
+		isprintf(tmp, sizeof(tmp), " BDest \"%s\"", (char *) psp(gWm, rulePtr->filter.bundle_dest));
 		strcat(buf,tmp);
 	}
 
 	if(rulePtr->filter.ssrc_len > 0)
 	{
-		isprintf(tmp, sizeof(tmp), "Ssrc \"%s\"", (char *) psp(gWm, rulePtr->filter.sec_src));
+		isprintf(tmp, sizeof(tmp), " Ssrc \"%s\"", (char *) psp(gWm, rulePtr->filter.sec_src));
 		strcat(buf,tmp);
 	}
 
 	if(BPSEC_RULE_BTYP_IDX(rulePtr))
 	{
-		isprintf(tmp, sizeof(tmp), "Type %i", rulePtr->filter.blk_type);
+		isprintf(tmp, sizeof(tmp), " Type %i", rulePtr->filter.blk_type);
 		strcat(buf,tmp);
 	}
 
 	if(BPSEC_RULE_SCID_IDX(rulePtr))
 	{
-		isprintf(tmp, sizeof(tmp), "ScID %i", rulePtr->filter.scid);
+		isprintf(tmp, sizeof(tmp), " ScID %i", rulePtr->filter.scid);
 		strcat(buf,tmp);
 	}
 	strcat(buf,"\n\n");
@@ -1651,11 +1793,23 @@ static void printRule(BpSecPolRule *rulePtr, int verbose)
 	printText(buf);
 }
 
+
+
+/******************************************************************************
+ * @brief Prints a Lyst of policyrules
+ *
+ * @param[in] rules   - The policyrules to be printed.
+ * @param[in] verbose - Whether to print the full rule (1) or not (0)
+ *
+ * @note
+ *****************************************************************************/
+
 static void printRuleList(Lyst rules, int verbose)
 {
 	LystElt elt;
 
-	if(rules == NULL)
+	/* lyst_length does a NULL check. */
+	if(lyst_length(rules) <= 0)
 	{
 		printText("No Rules.\n");
 		return;
@@ -1669,19 +1823,38 @@ static void printRuleList(Lyst rules, int verbose)
 }
 
 
+
+/******************************************************************************
+ * @brief Retrieves policyrule search criteria from JSON object
+ *
+ * @param[in]  job   - The parsed JSON tokens.
+ * @param[in]  start - Starting search token index
+ * @param[out] type  - Whether to retrieve ALL matches or the single BEST match
+ * @param[out] tag   - The populates search criteria (search tag)
+ *
+ * @note
+ * TODO: This is very close to getting a policyrule filter. Can we share a
+ *       utility function?
+ *
+ * @retval -1 - Error
+ * @retval  0 - Rule ID invalid
+ * @retval  1 - Rule ID valid
+ *****************************************************************************/
+
 static int getFindCriteria(jsonObject job, int start, int *type, BpSecPolRuleSearchTag *tag)
 {
-	char tmp_str[32+1];
+	char tmp_str[GEN_PARM_LEN];
 	int result = 0;
 
 	CHKZERO(tag);
 
-	if(json_get_str_value(job, 1, 0, "type", 32, tmp_str, NULL) <= 0)
+	/* Search the JSON object for the search type and process it. */
+	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "type", GEN_PARM_LEN, tmp_str, NULL) <= 0)
 	{
-		printText("Search type missing.");
-		writeMemo("[?] Search type missing.");
+		printText("[x] Search type missing.");
 		return 0;
 	}
+
 	if(strcmp(tmp_str,"all") == 0)
 	{
 		*type = SEARCH_ALL;
@@ -1692,36 +1865,48 @@ static int getFindCriteria(jsonObject job, int start, int *type, BpSecPolRuleSea
 	}
 	else
 	{
-		printText("Unknown search type.");
-		writeMemo("[?] Unknown search type.");
+		isprintf(gUserText, USER_TEXT_LEN, "[x] unknown search type %s.", tmp_str);
+		printText(gUserText);
+
 		return 0;
 	}
 
-	tag->bsrc = json_get_new_str_value(job, start, 0, "src", MAX_EID_LEN, NULL);
+	/* Search the JSON object for various EIDs. */
+	tag->bsrc = jsonAllocStrValue(job, start, 0, "src", MAX_EID_LEN, NULL);
 	tag->bsrc_len = (tag->bsrc) ? istrlen(tag->bsrc, MAX_EID_LEN) : 0;
 
-	tag->bdest = json_get_new_str_value(job, start, 0, "dest", MAX_EID_LEN, NULL);
+	tag->bdest = jsonAllocStrValue(job, start, 0, "dest", MAX_EID_LEN, NULL);
 	tag->bdest_len = (tag->bdest) ? istrlen(tag->bdest, MAX_EID_LEN) : 0;
 
-	tag->ssrc = json_get_new_str_value(job, start, 0, "ssrc", MAX_EID_LEN, NULL);
+	tag->ssrc = jsonAllocStrValue(job, start, 0, "ssrc", MAX_EID_LEN, NULL);
 	tag->ssrc_len = (tag->ssrc) ? istrlen(tag->ssrc, MAX_EID_LEN) : 0;
 
-	result = json_get_primitive_value(job, 1, 0, "tgt", 32, tmp_str, NULL);
+	/* Search for block type. A value of -1 indicates missing. */
+	result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "tgt", GEN_PARM_LEN, tmp_str, NULL);
 	tag->type = (result > 0) ? atoi(tmp_str) : -1;
 
 	// Role can be string or primitive.
-	if((result = json_get_primitive_value(job, 1, 0, "role", 32, tmp_str, NULL)) <= 0)
+	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "role", GEN_PARM_LEN, tmp_str, NULL)) <= 0)
 	{
-		result = json_get_str_value(job, 1, 0, "role", 32, tmp_str, NULL);
+		result = jsonGetTypedValue(job, 1, 0, JSMN_STRING, "role", GEN_PARM_LEN, tmp_str, NULL);
 	}
-
 	tag->role = (result > 0) ? getMappedValue(gRoleMap, tmp_str) : 0;
 
-	result = json_get_primitive_value(job, 1, 0, "sc_id", 3, tmp_str, NULL);
+	result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "sc_id", GEN_PARM_LEN, tmp_str, NULL);
 	tag->scid = (result > 0) ? atoi(tmp_str) : 0;
 
 	return 1;
 }
+
+
+
+/******************************************************************************
+ * @brief Processes a find command given a JSON parm object
+ *
+ * @param[in]  job   - The parsed JSON tokens.
+ *
+ * @note
+ *****************************************************************************/
 
 static void	executeFindJson(jsonObject job)
 {
@@ -1735,7 +1920,7 @@ static void	executeFindJson(jsonObject job)
 		return;
 	}
 
-	if((start = json_get_typed_idx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
+	if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
 	{
 		int type = 0;
 		Lyst rules = NULL;
@@ -1745,6 +1930,7 @@ static void	executeFindJson(jsonObject job)
 
 		if(getFindCriteria(job, start, &type, &tag) <= 0)
 		{
+			printText("[x] Unable to find policyrule find criteria.");
 			return;
 		}
 
@@ -1760,7 +1946,7 @@ static void	executeFindJson(jsonObject job)
 				printRule(bslpol_rule_get_best_match(gWm, tag), 1);
 				break;
 			default:
-				printText("Unknown type.");
+				printText("[i] Unknown search type.");
 				break;
 		}
 
@@ -1837,26 +2023,20 @@ static void	executeInfo(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+
+
 /******************************************************************************
+ * @brief Processes a information command given a JSON parm object
  *
- * \par Function Name: executeInfoJson
+ * @param[in]  job   - The parsed JSON tokens.
  *
- * \par Purpose: This function executes the information command provided by
- *               the user if JSON is present.
- *
- * \param[in]  tokenCount  The number of parsed jsmn tokens.
- * \param[in]  tokens      jsmn token(s).
- * \param[in]  line        'Info' command using JSON syntax.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
+ * @note
  *****************************************************************************/
+
 static void	executeInfoJson(jsonObject job)
 {
 	int start = 0;
-	char name[MAX_EVENT_SET_NAME_LEN+1];
+	char name[MAX_EVENT_SET_NAME_LEN];
 	memset(name, '\0', sizeof(name));
 
 	if (job.tokenCount < 2)
@@ -1865,9 +2045,9 @@ static void	executeInfoJson(jsonObject job)
 		return;
 	}
 
-	if((start = json_get_typed_idx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
+	if((start = jsonGetTypedIdx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
 	{
-		if(json_get_str_value(job, start, 0, "name", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
+		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "name", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
 		{
 			BpSecEventSet *esPtr = bsles_get_ptr(gWm, name);
 			if(esPtr)
@@ -1876,16 +2056,17 @@ static void	executeInfoJson(jsonObject job)
 			}
 			else
 			{
-				writeMemoNote("[?] Unknown event set:", name);
+				isprintf(gUserText, USER_TEXT_LEN, "[?] Unknown event set %s", name);
+				printText(gUserText);
 			}
 		}
 		else
 		{
-			writeMemo("[?] Missing event set name.");
+			printText("[?] Missing event set name.");
 		}
 		return;
 	}
-	else if(json_get_primitive_value(job, 1, 0, "policyrule", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
+	else if(jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "policyrule", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
 	{
 		printRule(bslpol_rule_get_ptr(gWm, atoi(name)), 1);
 		return;
@@ -1946,22 +2127,16 @@ static void	executeList(int tokenCount, char **tokens)
 	SYNTAX_ERROR;
 }
 
+
+
 /******************************************************************************
+ * @brief Processes a list command given a JSON parm object
  *
- * \par Function Name: executeListJson
+ * @param[in]  job   - The parsed JSON tokens.
  *
- * \par Purpose: This function executes the list command provided by the user
- * 				 if JSON is present.
- *
- * \param[in]  tokenCount  The number of parsed jsmn tokens.
- * \param[in]  tokens      jsmn token(s).
- * \param[in]  line        'List' command using JSON syntax.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
+ * @note
  *****************************************************************************/
+
 static void	executeListJson(jsonObject job)
 {
 	char name[MAX_EVENT_SET_NAME_LEN];
@@ -1974,7 +2149,7 @@ static void	executeListJson(jsonObject job)
 	}
 
 
-	if(json_get_str_value(job, 1, 0, "type", MAX_EVENT_SET_NAME_LEN, name, NULL) < 0)
+	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "type", MAX_EVENT_SET_NAME_LEN, name, NULL) < 0)
 	{
 		printText("Malformed Request.");
 	}
@@ -2041,22 +2216,20 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
+
+
 /******************************************************************************
+ * @brief Counts the number of times character c appears in a line.
  *
- * \par Function Name: setOpenCounter
+ * @param[in]  line    - A line of JSON text.
+ * @param[in]  c       - A character to count.
+ * @param[out] counter - The number of times the c appears in the line.
  *
- * \par Purpose: This is a helper function for parsing JSON commands. The
- * 				 function determines the number of open braces ('{') in
- * 				 the line of JSON passed in.
- *
- * \param[in]      line         The line of JSON to be parsed for brackets.
- * \param[in|out]  openCounter  The count of open brackets to be updated.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
+ * @note
+ * This is a helper function for parsing JSON objects. The character being
+ * counted is usually object delimiters '{' or '}'.
  *****************************************************************************/
+
 void setCounter(char *line, char c, int *counter)
 {
 	char *cursor = strchr(line, c);
@@ -2069,28 +2242,25 @@ void setCounter(char *line, char c, int *counter)
 }
 
 
+
 /******************************************************************************
+ * @brief Extracts a command entered by the user to the bpsecadmin utility
+ *        which uses JSON.
  *
- * \par Function Name: getJson
+ * @param[in]     line    - Line of JSON from which a command is extracted.
+ * @param[in|out] jsonStr - The concatenated json command.
+ * @param[in]     cmdFile - File from which line was extracted.
+ * @param[in]     len     - Length of line.
  *
- * \par Purpose: This function extracts a command entered by the user to the
- * 				 bpsecadmin utility which uses JSON.
+ * @note
+ * This is a helper function for parsing JSON objects. The character being
+ * counted is usually object delimiters '{' or '}'.
  *
- * \retval int -1 Error
- * 				0 Command could not be retrieved.
- * 				1 JSON command successfully retrieved.
- *
- * \param[in]      line         The line of JSON from which a command is
- *                              extracted.
- * \param[in|out]  jsonStr      The concatenated json command.
- * \param[in]      cmdFile      File from which line was extracted.
- * \param[in]      len          Length of line.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
+ * @retval -1 - Error
+ * @retval	0 - Command could not be retrieved.
+ * @retval	1 - JSON command successfully retrieved.
  *****************************************************************************/
+
 int getJson(char *line, char *jsonStr, int cmdFile, int len)
 {
 	int openCounter = 0;
@@ -2130,36 +2300,34 @@ int getJson(char *line, char *jsonStr, int cmdFile, int len)
 	}
 
 	/* Brace mismatch encountered */
-	writeMemo("[?] Invalid JSON syntax detected");
+	printText("[?] Invalid JSON syntax detected");
 	return 0;
 }
 
+
+
 /******************************************************************************
+ * @brief Process and execute a JSON command
  *
- * \par Function Name: processJson
+ * @param[in] line       - The JSON command to be executed.
+ * @param[in] cmd        - (Optional) The single character command ('a',
+ *                         'c', etc.) corresponding to the action the command
+ *                         specifies in 'line'.
+ * @param[in] cmdPresent - This value is set to true if the cmd field is
+ *                         populated. The JSON command in 'line' does NOT
+ *                         contain the command value if the cmdPresent
+ *                         flag is set - instead, the value is found in the cmd
+ *                         parameter.
  *
- * \par Purpose: This function processes and executes a JSON command provided
- *               by the user to the bpsecadmin utility.
+ * @note
+ * This is a helper function for parsing JSON objects. The character being
+ * counted is usually object delimiters '{' or '}'.
  *
- * \retval int -1 Error
- * 				0 Command could not be successfully executed
- * 				1 JCommand successfully executed.
- *
- * \param[in]    line       The JSON command to be executed.
- * \param[in]    cmd        (Optional) The single character command ('a',
- * 						    'c', etc.) corresponding to the action the command
- * 						    specifies in 'line'.
- * \param[in]    cmdPresent This value is set to true if the cmd field is
- * 							populated. The JSON command in 'line' does NOT
- * 							contain the command value if the cmdPresent
- * 							flag is set - instead, the value is found in the cmd
- * 							parameter.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
+ * @retval -1 - Error
+ * @retval	0 - Command could not be successfully executed
+ * @retval	1 - Command successfully executed.
  *****************************************************************************/
+
 int processJson(char *line, char cmd, int cmdPresent)
 {
 	char 		*cursor;
@@ -2211,14 +2379,14 @@ int processJson(char *line, char cmd, int cmdPresent)
 					executeAddJson(job);
 				}
 				return 0;
-
+#if 0
 			case 'c':
 				if (secAttach() == 0)
 				{
 					executeChangeJson(job);
 				}
 				return 0;
-
+#endif
 			case 'd':
 				if (secAttach() == 0)
 				{

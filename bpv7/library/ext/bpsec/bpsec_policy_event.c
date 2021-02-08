@@ -1,8 +1,18 @@
+/******************************************************************************
+ **                           COPYRIGHT NOTICE
+ **      (c) 2021 The Johns Hopkins University Applied Physics Laboratory
+ **                         All rights reserved.
+ ******************************************************************************/
+
 /*****************************************************************************
  **
  ** File Name: bpsec_policy_event.c
  **
- ** Description:
+ ** Description: BPSec policy events associate events of a security block
+ **              lifecycle with predefined actions to be taken by a
+ **              node in response to those events.
+ **
+ **              Events exist in the context of an event set.
  **
  ** Notes:
  **
@@ -10,10 +20,10 @@
  ** Assumptions:
  **
  ** Modification History:
- **  MM/DD/YY  AUTHOR         DESCRIPTION
- **  --------  ------------   ---------------------------------------------
- **                           Initial implementation
- **
+ **  MM/DD/YYYY  AUTHOR         DESCRIPTION
+ **  ----------  ------------   ---------------------------------------------
+ **  01/08/2021  E. Birrane &   Initial implementation
+ **              S. Heiner
  *****************************************************************************/
 
 /*****************************************************************************
@@ -54,79 +64,36 @@ static struct {char *key; int value;} gEventNameMap[] = {
 
 
 
-int bslevt_create(PsmPartition wm, BpSecEventId eventId, uint8_t actions,
-	BpSecEvtActionParms *actionParms, PsmAddress *addr)
-{
-	/* Step 1: Allocate the new event */
-	BpSecEvent *eventPtr = NULL;
-
-	bslevt_validate_actions(eventId, &actions);
-	if(actions == 0)
-	{
-		return 0;
-	}
-
-	*addr = psm_zalloc(wm, sizeof(BpSecEvent));
-
-	if(*addr)
-	{
-		eventPtr = (BpSecEvent *) psp(wm, *addr);
-		memset(eventPtr, 0, sizeof(BpSecEvent));
-
-		/* Step 2: Populate the new event */
-
-		eventPtr->id = eventId;
-		eventPtr->action_mask = actions;
-		if(actionParms)
-		{
-			memcpy(&(eventPtr->action_parms), actionParms, BSLACT_MAX_PARM * sizeof(BpSecEvtActionParms));
-		}
-
-		return 1;
-	}
-
-	return 0;
-}
-
-
 /******************************************************************************
+ * @brief Add an event to an event set.
  *
- * \par Function Name: bslevt_add
+ * @param[in]  wm			 PsmPartition ION working memory.
+ * @param[in]  esName  		 Name of the event set to associate event with.
+ * @param[in]  evenId    	 Security operation event ID.
+ * @param[in]  actionMask 	 Processing action(s) to enable for the event.
+ * @param[in]  actionParms   Optional parameters associated with actions
  *
- * \par Purpose: Create an event and associate it with an existing event set.
+ * @note
+ * Validation of the event set name parameter performed by the
+ * findEventSet function.
  *
- * \retval int -1  - Error.
- *              0  - Event not created.
- *             >0  - Event successfully created.
- *
- * \param[in]  wm			 PsmPartition ION working memory.
- * \param[in]  esName  		 Name of the event set to associate event with.
- * \param[in]  evenId    	 Security operation event ID.
- * \param[in]  actionMask 	 Processing action(s) to enable for the event.
- * \param[in]  actionParms   Optional parameters associated witrh actions
- *
- * \par Notes:
- *	    1. Validation of the event set name parameter performed by the
- *	    findEventSet function.
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/08/21  Sarah Heiner   Initial Implementation
- *  01/20/21  E. Birrane     Cleanup. Take in action parameters
+ * @retval -1  - Error.
+ * @retval  0  - Event not added.
+ * @retval >0  - Event successfully added.
  *****************************************************************************/
+
 int bslevt_add(PsmPartition wm, char *esName, BpSecEventId eventId, uint8_t actionMask, BpSecEvtActionParms *actionParms)
 {
+	BpSecEventSet *esPtr = NULL;
+
+	/* Sanity checks */
 	CHKERR(wm);
 	CHKERR(esName);
-	CHKERR(eventId);
 
-	if(actionMask == 0)
+	if((eventId == unsupported) || (actionMask == 0))
 	{
 		return 0;
 	}
-
-	BpSecEventSet *esPtr = NULL;
 
 	/* Step 1: Find the eventset to associate new event with */
 	if ((esPtr = bsles_get_ptr(wm, esName)) == NULL)
@@ -164,30 +131,91 @@ int bslevt_add(PsmPartition wm, char *esName, BpSecEventId eventId, uint8_t acti
 }
 
 
+
 /******************************************************************************
+ * @brief Create an event object that can be added to an event set
  *
- * \par Function Name: bslevt_delete
+ * @param[in]  wm            PsmPartition ION working memory.
+ * @param[in]  eventId       Security operation event ID.
+ * @param[in]  actions       Processing action(s) to enable for the event.
+ * @param[in]  actionParms   Optional parameters associated with actions
+ * @param[out] addr          Address of the created event object
  *
- * \par Purpose: Delete an existing event from the ION Security Database and
- * 				 remove it from its associated event set.
+ * @note
+ * An event can be invalid if it is configured for actions that are disallowed
+ * for that event.
+ * \par
+ * There are only 3 actions defined with parameters. It is less space and less
+ * processing to have an array of 3 parameters. This function assumes that the
+ * passed-in parms is a static-sized array of the maximum number of parameters
  *
- * \retval int -1  - Error.
- *              0  - Event not deleted.
- *             >0  - Event deleted successfully.
  *
-  \TODO: revise comment
+ * @retval -1  - Error.
+ * @retval  0  - Event not created.
+ * @retval >0  - Event successfully created.
  *****************************************************************************/
+
+int bslevt_create(PsmPartition wm, BpSecEventId eventId, uint8_t actions,
+	              BpSecEvtActionParms *actionParms, PsmAddress *addr)
+{
+	uint8_t pre_actions = actions;
+
+	/*
+	 * Step 1: Validate the actions for the event. This will remove from the
+	 *         action mask any actions that are not appropriate for this
+	 *         event. If that occurs, then the event should be discarded as
+	 *         it will not have the desired behavior expected by the caller.
+	 */
+	bslevt_validate_actions(eventId, &actions);
+	if((actions == 0) || (pre_actions != actions))
+	{
+		writeMemoNote("[x] At least one action not allowed for eventId", bslevt_get_name(eventId));
+		return 0;
+	}
+
+
+	/* Step 2: Allocate and populate the new event */
+	*addr = psm_zalloc(wm, sizeof(BpSecEvent));
+
+	if(*addr)
+	{
+		BpSecEvent *eventPtr = (BpSecEvent *) psp(wm, *addr);
+		memset(eventPtr, 0, sizeof(BpSecEvent));
+
+		eventPtr->id = eventId;
+		eventPtr->action_mask = actions;
+		if(actionParms)
+		{
+			memcpy(&(eventPtr->action_parms), actionParms, BSLACT_MAX_PARM * sizeof(BpSecEvtActionParms));
+		}
+
+		return 1;
+	}
+
+	return 0;
+}
+
+
+
+/******************************************************************************
+ * @brief Remove an event from an event set
+ *
+ * @param[in]  wm        PsmPartition ION working memory.
+ * @param[in]  esName    Name of the event set losing the event.
+ * @param[in]  eventId   Event to remove from the event set.
+ *
+ * @note
+ *
+ *
+ * @retval -1  - Error.
+ * @retval  0  - Event not deleted.
+ * @retval >0  - Event successfully deleted.
+ *****************************************************************************/
+
 int bslevt_delete(PsmPartition wm, char *esName, BpSecEventId eventId)
 {
-	/*
-	 * check if event is set
-	 * clear any associated parms
-	 * free event
-	 * set event to NULL
-	 */
-
-	/* Step 1: Find the eventset to remove the event from */
 	BpSecEventSet *esPtr = bsles_get_ptr(wm, esName);
+
 	if (esPtr == NULL)
 	{
 		writeMemoNote("[?] Eventset not found", esName);
@@ -217,36 +245,127 @@ int bslevt_delete(PsmPartition wm, char *esName, BpSecEventId eventId)
 	return -1;
 }
 
-//TODO
-int bslevt_change_actions(char *esName, BpSecEventId eventId, uint8_t actions)
+
+
+/******************************************************************************
+ * @brief Convert an event set string name into its enumerated identifier
+ *
+ * @param[in]  name - The name of the event
+ *
+ * @retval The enumerated event ID, or the special value for unsupported.
+ *****************************************************************************/
+
+BpSecEventId bslevt_get_id(char *name)
 {
-	return -1;
+	int i = 0;
+
+	if(name)
+	{
+		/* Walk the string->id mapping of event names to event IDs. */
+		while(gEventNameMap[i].key != NULL)
+		{
+			if(strcmp(gEventNameMap[i].key, name) == 0)
+			{
+				return gEventNameMap[i].value;
+			}
+			i++;
+		}
+	}
+
+	return unsupported;
 }
+
+
+
+
+/******************************************************************************
+ * @brief Convert an enumerated event identifier to an event set string name
+ *
+ * @param[in] eventId - The enumerated event ID
+ *
+ * @notes
+ * This function returns a constant char*.  This MUST NOT be freed by the
+ * calling function.
+ *
+ * @retval !NULL the name of the event
+ *****************************************************************************/
+
+char *bslevt_get_name(BpSecEventId eventId)
+{
+	int i = 0;
+
+	while(gEventNameMap[i].key != NULL)
+	{
+		if(gEventNameMap[i].value == eventId)
+		{
+			return gEventNameMap[i].key;
+		}
+		i++;
+	}
+
+	return "unsupported";
+
+}
+
+
+
+/******************************************************************************
+ * @brief Serialize an event into a provided memory buffer
+ *
+ * @param[in,out] cursor     - The memory buffer holding serialized components.
+ * @param[in]     event      - The event object being serialized.
+ * @param[out]    bytes_left - The number of bytes left in the buffer.
+ *
+ * @notes
+ * This is currently a simple copy of the structure.
+ *
+ * @retval The number of bytes written into the serialized buffer.
+ *****************************************************************************/
+
+Address bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left)
+{
+	return bsl_bufwrite(cursor, event, sizeof(BpSecEvent), bytes_left);
+}
+
+
+
+/******************************************************************************
+ * @brief Deserialize an event from a provided memory buffer
+ *
+ * @param[out]    event      - The event object.
+ * @param[in,out] cursor     - The memory buffer holding serialized components.
+ * @param[out]    bytes_left - The number of bytes left in the buffer.
+ *
+ * @notes
+ * This is currently a simple copy of the structure.
+ *
+ * @retval The number of bytes read from the serialized buffer.
+ *****************************************************************************/
+
+Address bslevt_sdr_restore(BpSecEvent *event, char *cursor, int *bytes_left)
+{
+	return bsl_bufread(event, cursor, sizeof(BpSecEvent), bytes_left);
+}
+
+
 
 /******************************************************************************
  *
- * \par Function Name: bsl_event_validate_actions
+ * @brief Scrub action mask of actions not valid for a given event.
  *
- * \par Purpose: When provided with a security operation event and configured
- * 				 actions for that event, this function ensures that only
- * 				 approved actions are configured for the event. This function
- * 				 modifies the provided action mask by disabling unapproved
- * 				 actions.
+ * When provided with a security operation event and configured actions for
+ * that event, this function ensures that only approved actions are
+ * configured for the event. This function modifies the provided action mask
+ * by disabling unapproved actions.
  *
- * \retval int -1  - Error.
- *              0  - Action mask could not be processed.
- *             >0  - Action mask successfully processed/validated.
+ * @param[in]      eventId - Event for which actions are configured
+ * @param[in|out]  actions - Configured action mask for the event
  *
- * \param[in]      event   - Security operation event for which actions are
- *                           configured
- * \param[in|out]  actions - Configured actions for the event
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- * 01/08/21   Sarah Heiner   Initial Implementation
- * 01/20/21   E. Birrane     Cleanup.
+ * @retval  -1  - Error.
+ * @retval   0  - Action mask could not be processed.
+ * @retval  >0  - Action mask successfully processed/validated.
  *****************************************************************************/
+
 int bslevt_validate_actions(BpSecEventId eventId, uint8_t *actions)
 {
 	CHKZERO(actions);
@@ -271,79 +390,3 @@ int bslevt_validate_actions(BpSecEventId eventId, uint8_t *actions)
 
 	return 1;
 }
-
-
-
-
-
-/******************************************************************************
- *
- * \par Function Name: bslevt_get_id
- *
- * \par Purpose: Given a string representing the name of a security operation
- * 				 event, this function returns the event for which actions
- * 				 can be configured. This function is used to validate user
- * 				 input to ensure that only valid security operation events are
- *
- * \retval BpSecEventId
- *
- * \param[in]   name - User-provided security operation event name
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/11/21   Sarah Heiner   Initial Implementation
- *  01/19/21   E. Birrane     Cleanup. Migrated to lookup map.
- *****************************************************************************/
-BpSecEventId bslevt_get_id(char *name)
-{
-	int i = 0;
-
-	CHKZERO(name);
-
-	while(gEventNameMap[i].key != NULL)
-	{
-		if(strcmp(gEventNameMap[i].key, name) == 0)
-		{
-			return gEventNameMap[i].value;
-		}
-		i++;
-	}
-
-	return unsupported;
-}
-
-// this is a const char.
-char *bslevt_get_name(BpSecEventId eventId)
-{
-	int i = 0;
-
-	while(gEventNameMap[i].key != NULL)
-	{
-		if(gEventNameMap[i].value == eventId)
-		{
-			return gEventNameMap[i].key;
-		}
-		i++;
-	}
-
-	return "unsupported";
-
-}
-
-// Made a function in case striping a structure isn't portable...
-Address bslevt_sdr_persist(char *cursor, BpSecEvent *event, int *bytes_left)
-{
-	return bsl_sdr_bufwrite(cursor, event, sizeof(BpSecEvent), bytes_left);
-}
-
-// Made a function in case striping a structure isn't portable...
-
-Address bslevt_sdr_restore(BpSecEvent *event, char *cursor, int *bytes_left)
-{
-	return bsl_sdr_bufread(event, cursor, sizeof(BpSecEvent), bytes_left);
-}
-
-
-
-

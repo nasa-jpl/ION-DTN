@@ -82,7 +82,7 @@ PsmAddress radix_alloc(PsmPartition partition, int size)
  * @retval  0 - Failure
  * @retval  !0 - The shared memory address of the created radix tree
  *****************************************************************************/
-PsmAddress radix_create(radix_insert_fn ins, radix_del_fn del, PsmPartition partition)
+PsmAddress radix_create(PsmPartition partition)
 {
 	sm_SemId	lock;
 	PsmAddress	radixAddr;
@@ -106,8 +106,8 @@ PsmAddress radix_create(radix_insert_fn ins, radix_del_fn del, PsmPartition part
 	/* Step 3: Initialize the tree in shared memory. */
 	radixPtr = (RadixTree *) psp(partition, radixAddr);
 	radixPtr->lock = lock;
-	radixPtr->del_fn = del;
-	radixPtr->ins_fn = ins;
+//	radixPtr->del_fn = del;
+//	radixPtr->ins_fn = ins;
 
 	/* Step 4: Return the shared memory address of the tree. */
 	return radixAddr;
@@ -119,13 +119,14 @@ PsmAddress radix_create(radix_insert_fn ins, radix_del_fn del, PsmPartition part
  * @brief Releases shared memory associated with a radix tree.
  *
  * @param[in|out] partition - The shared memory partition holding the tree.
- * @param[in]     radixAddr      - The shared memory address of the tree.
+ * @param[in]     radixAddr - The shared memory address of the tree.
+ * @param[in]     del_fn    - user-defined delete function.
  *
  * @note
  * The caller MUST NOT attempt to use the tree after this function is called.
  *****************************************************************************/
 
-void radix_destroy(PsmPartition partition, PsmAddress radixAddr)
+void radix_destroy(PsmPartition partition, PsmAddress radixAddr, radix_del_fn del_fn)
 {
 	RadixTree *radixPtr = NULL;
 	PsmAddress nodeAddr = 0;
@@ -165,7 +166,7 @@ void radix_destroy(PsmPartition partition, PsmAddress radixAddr)
 		if(radixP_node_is_leaf(partition, nodePtr))
 		{
 			parentAddr = nodePtr->parent;
-			radixP_del_leafnode(partition, nodeAddr, radixPtr);
+			radixP_del_leafnode(partition, nodeAddr, radixPtr, del_fn);
 			nodeAddr = parentAddr;
 		}
 		/* Step 3.2 - If this is not a leaf node, push into a child. */
@@ -200,14 +201,15 @@ void radix_destroy(PsmPartition partition, PsmAddress radixAddr)
  * @retval !0 - Address of the list holding exact matches for this key.
  *****************************************************************************/
 
-PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key)
+PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key, int wildcard)
 {
 	RadixTree *radixPtr = NULL;
 	char *nodeKeyPtr = NULL;
 	int offset = 0;
 	int delta = 0;
 	int len = 0;
-	int idx;
+	int idx = 0;
+	int match = 0;
 	PsmAddress nodeAddr = 0;
 	PsmAddress tmpAddr = 0;
 
@@ -250,7 +252,9 @@ PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key)
 		 *           or partial match, "node" matches the substring of
 		 *           key[offset] to key[idx].
 		 */
-		switch(radixP_node_matches_key(nodeKeyPtr, &(key[offset]), &idx))
+		match = radixP_node_matches_key(nodeKeyPtr, &(key[offset]), &idx, wildcard);
+
+		switch(match)
 		{
 			/*
 			 * Step 4.1.1: If we full match, store user data for this node and
@@ -304,7 +308,7 @@ PsmAddress radix_find(PsmPartition partition, PsmAddress radixAddr, char *key)
 				 *               either.  A subset match is not considered
 				 *               a partial match.
 				 */
-				nodeAddr = radixP_get_next_node(partition, nodeAddr, 0, &delta); //EJB
+				nodeAddr = radixP_get_next_node(partition, nodeAddr, 0, &delta);
 				offset -= delta;
 				break;
 
@@ -476,7 +480,7 @@ void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key
 		 *           or partial match, "node" matches the substring of
 		 *           key[offset] to key[idx].
 		 */
-		switch(radixP_node_matches_key(nodeKeyPtr, &(key[offset]), &idx))
+		switch(radixP_node_matches_key(nodeKeyPtr, &(key[offset]), &idx, 1))
 		{
 			/* Step 4.1.1 - If this is a full match...*/
 			case RADIX_MATCH_WILDCARD:
@@ -593,6 +597,8 @@ void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key
  * @param[out]    radixAddr - The tree being updated
  * @param[in]     key       - The key being matched to items in the tree
  * @param[in]     data      - The types of matches the user is interested in
+ * @param[in]     ins_fn    - User-specified insert function.
+ * @param[in]     del_fn    - User-specified delete function.
  *
  * @note
  * A user may not insert an item with NO user data.
@@ -602,7 +608,7 @@ void radix_foreach_match(PsmPartition partition, PsmAddress radixAddr, char *key
  * @retval -1 - System error
  *****************************************************************************/
 
-int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmAddress data)
+int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmAddress data, radix_insert_fn ins_fn, radix_del_fn del_fn)
 {
 	RadixTree *radixPtr = NULL;
 
@@ -664,10 +670,10 @@ int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmA
 		 */
 		case RADIX_MATCH_PARTIAL:
 		case RADIX_MATCH_NONE:
-			if(radixPtr->ins_fn != NULL)
+			if(ins_fn != NULL)
 			{
 				PsmAddress insert_data = 0;
-				if (radixPtr->ins_fn(partition, &insert_data, data) == 0)
+				if (ins_fn(partition, &insert_data, data) == 0)
 				{
 					radix_unlock(radixPtr);
 					return 0;
@@ -707,10 +713,10 @@ int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmA
 		 *           user data.
 		 */
 		case RADIX_MATCH_FULL:
-			if(radixPtr->ins_fn != NULL)
+			if(ins_fn != NULL)
 			{
 				PsmAddress insert_data = termPtr->user_data;
-				if (radixPtr->ins_fn(partition, &insert_data, data) == 0)
+				if (ins_fn(partition, &insert_data, data) == 0)
 				{
 					radix_unlock(radixPtr);
 					return 0;
@@ -751,10 +757,10 @@ int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmA
 		 */
 		case RADIX_MATCH_SUBSET:
 		case RADIX_MATCH_WILDCARD:
-			if(radixPtr->ins_fn != NULL)
+			if(ins_fn != NULL)
 			{
 				PsmAddress insert_data = 0;
-				if (radixPtr->ins_fn(partition, &insert_data, data) == 0)
+				if (ins_fn(partition, &insert_data, data) == 0)
 				{
 					radix_unlock(radixPtr);
 					return 0;
@@ -766,7 +772,7 @@ int   radix_insert(PsmPartition partition, PsmAddress radixAddr, char *key, PsmA
 			nodeAddr = radixP_create_node(partition, &(key[key_idx]), strlen(&(key[key_idx])), data);
 
 			/* Step 5.3.2: Split insert noting the split-point of the key. */
-			result = radixP_split_insert_node(partition, radixPtr, termAddr, nodeAddr, node_idx);
+			result = radixP_split_insert_node(partition, radixPtr, termAddr, nodeAddr, node_idx, del_fn);
 
 			break;
 	}
@@ -925,6 +931,7 @@ PsmAddress radixP_create_node(PsmPartition partition, char *key, int keyLen, Psm
  * @param[in,out] partition - The shared memory partition
  * @param[in]     nodeAddr  - Shared memory address of the node being deleted.
  * @param[in,out] tree      - Radix tree pointer.
+ * @param[in]     del_fn    - User-supplied delete function.
  *
  * @note
  * Failure of the user data delete function is not considered here.
@@ -933,7 +940,7 @@ PsmAddress radixP_create_node(PsmPartition partition, char *key, int keyLen, Psm
  * @retval  1 - Success
  *****************************************************************************/
 
-int radixP_del_leafnode(PsmPartition partition, PsmAddress nodeAddr, RadixTree *tree)
+int radixP_del_leafnode(PsmPartition partition, PsmAddress nodeAddr, RadixTree *tree, radix_del_fn del_fn)
 {
 	RadixNode *nodePtr = psp(partition, nodeAddr);
 
@@ -941,9 +948,9 @@ int radixP_del_leafnode(PsmPartition partition, PsmAddress nodeAddr, RadixTree *
 	CHKZERO(radixP_node_is_leaf(partition, nodePtr));
 
 	/* Step 2: Clean up the node user data. */
-	if(tree->del_fn)
+	if(del_fn)
 	{
-		tree->del_fn(partition, nodePtr->user_data);
+		del_fn(partition, nodePtr->user_data);
 	}
 	nodePtr->user_data = 0;
 
@@ -1260,7 +1267,7 @@ PsmAddress radixP_get_term_node(PsmPartition partition, RadixTree *radixPtr, cha
 		nodeKeyPtr = (char *) psp(partition, nodePtr->key);
 
 		/* Step 2.1: Determine how the current node matches the key. */
-		switch((*type = radixP_node_matches_key(nodeKeyPtr, &(key[*key_idx]), node_idx)))
+		switch((*type = radixP_node_matches_key(nodeKeyPtr, &(key[*key_idx]), node_idx, 0)))
 		{
 			/*
 			 * Step 2.1.1: If we are a full match, a wildcard match, or are a
@@ -1528,7 +1535,7 @@ int radixP_node_is_leaf(PsmPartition partition, RadixNode *node)
  * @retval -1 Error
  *****************************************************************************/
 
-int radixP_node_matches_key(char *node_key, char *key, int *idx)
+int radixP_node_matches_key(char *node_key, char *key, int *idx, int wildcard)
 {
 	int key_len = 0;
 	int i = 0;
@@ -1549,12 +1556,16 @@ int radixP_node_matches_key(char *node_key, char *key, int *idx)
 		 *           on the same position of both keys, this is an exact
 		 *           match instead.
 		 */
-		if((node_key[i] == RADIX_PREFIX_WILDCARD) &&
-		   (key[i] != RADIX_PREFIX_WILDCARD))
+		if(wildcard)
 		{
-			/* Step 2.1.1: The key index is just before the wildcard. */
-			*idx = i-1;
-			return RADIX_MATCH_WILDCARD;
+//			if(((node_key[i] == RADIX_PREFIX_WILDCARD) && (key[i] != RADIX_PREFIX_WILDCARD)) ||
+//((key[i] == RADIX_PREFIX_WILDCARD) && (node_key[i] != RADIX_PREFIX_WILDCARD)))
+		  if((node_key[i] == RADIX_PREFIX_WILDCARD) && (key[i] != RADIX_PREFIX_WILDCARD))
+			{
+				/* Step 2.1.1: The key index is just before the wildcard. */
+				*idx = i-1;
+				return RADIX_MATCH_WILDCARD;
+			}
 		}
 		/*
 		 * Step 2.2: If the keys differ, we either have a subset match or
@@ -1568,7 +1579,7 @@ int radixP_node_matches_key(char *node_key, char *key, int *idx)
 		 *           If the mismatch happens on the first character, we
 		 *           matched nothing and this is a no match.
 		 */
-		else if(key[i] != node_key[i])
+		if(key[i] != node_key[i])
 		{
 			/* Step 2.2.1: The key index is this current index. */
 			*idx = i;
@@ -1679,6 +1690,7 @@ PsmAddress radixP_remove_child(PsmPartition partition, RadixNode *node, int orde
  * @param[in,out] splitNodeAddr - node being split
  * @param[in]     newChildAddr  - The new child to add.
  * @param[in]     offset        - The index where we split he key of the split-node.
+ * @param[in]     del_fn        - User-supplied delete function
  *
  * @note
  * If the new_child is NULL, we are just splitting the split_node.
@@ -1688,7 +1700,7 @@ PsmAddress radixP_remove_child(PsmPartition partition, RadixNode *node, int orde
  * @retval -1 - System error
  *****************************************************************************/
 
-int radixP_split_insert_node(PsmPartition partition, RadixTree *radixPtr, PsmAddress splitNodeAddr, PsmAddress newChildAddr, int offset)
+int radixP_split_insert_node(PsmPartition partition, RadixTree *radixPtr, PsmAddress splitNodeAddr, PsmAddress newChildAddr, int offset, radix_del_fn del_fn)
 {
 	PsmAddress splitParentAddr = 0;
 	RadixNode *splitParentPtr = NULL;
@@ -1771,7 +1783,7 @@ int radixP_split_insert_node(PsmPartition partition, RadixTree *radixPtr, PsmAdd
 			splitParentPtr = (RadixNode*) psp(partition, splitParentAddr);
 			splitParentPtr->user_data = newChildPtr->user_data;
 
-			radixP_del_leafnode(partition, newChildAddr, radixPtr);
+			radixP_del_leafnode(partition, newChildAddr, radixPtr, del_fn);
 //			psm_free(partition, newChildAddr);
 		}
 		else
