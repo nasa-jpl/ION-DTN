@@ -213,7 +213,8 @@ AC_ARG_ENABLE(
 	UNIBO_CGR=yes
 	echo "Building ION with UniBo CGR code"
      else
-	echo "UniBo CGR is not available with BP version 6"
+	echo "ERROR: UniBo CGR is not available with BP version 6"
+	exit 1
      fi],
     [UNIBO_CGR=no])
 AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
@@ -363,6 +364,7 @@ if test "x$enable_sysctl_check" = xyes; then
 
     if ! ${ac_confdir}/sysctl_script.sh; then
         echo "Reconfigure with --disable-sysctl-check to bypass this check."
+	echo "Update sysctl configuration by running ./install_macos_sysctl.sh"
         exit 1
     fi
 fi

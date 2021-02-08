@@ -438,6 +438,8 @@ cd ../2.bench.stcp
 cd ../3.bench.stcp
 ./ionstop &
 sleep 8
+cd ..
+./cleanup
 killm
 echo "...benchmarking terminated."
 exit $RETVAL
