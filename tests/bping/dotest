@@ -3,9 +3,22 @@
 # Tests that bping produces expected output and behaves well.
 #
 # documentation boilerplate
-CONFIGFILES=" \
-${CONFIGSROOT}/loopback-udp/loopback.rc \
-"
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	echo "Found acsadmin"
+	ACS="found"
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-udp/loopback-acs.rc \
+	"
+else
+	echo "acsadmin not found"
+	ACS="missing"
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-udp/loopback.rc \
+	"
+fi
+
 
 echo "########################################"
 echo
@@ -34,7 +47,6 @@ echo "OUTPUT: Bping and bpecho are used to ensure that bping can send and
 echo
 echo "########################################"
 
-
 FAIL=0
 # set timeouts based on OS type
 if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
@@ -55,8 +67,14 @@ rm -f ion.log bpingoutput1 bpingoutput2 bpingoutput3 bpingoutput4
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-udp"
-echo "ionstart -I ${CONFIGDIR}/loopback.rc"
-"ionstart" -I "${CONFIGDIR}/loopback.rc"
+if [ $ACS == "found" ] ; then
+	echo "ionstart -I ${CONFIGDIR}/loopback-acs.rc"
+	"ionstart" -I "${CONFIGDIR}/loopback-acs.rc"
+else
+	echo "ionstart -I ${CONFIGDIR}/loopback.rc"
+	"ionstart" -I "${CONFIGDIR}/loopback.rc"
+fi
+
 
 echo "Start a bpecho."
 bpecho ipn:1.1 & BPECHOPID=$!
