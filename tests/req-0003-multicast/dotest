@@ -27,22 +27,43 @@
 # 10.	Node 3 sends a 320-byte file by multicast to group 19.  Nodes
 #	1, 2, and 4 receive copies.
 
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+fi
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start all nodes and build multicast spanning tree.
 cd 1.ipn.ltp
-./ionstart >& node1.stdout
+if [ $ACS == "found" ] ; then
+	./ionstart-acs >& node1.stdout &
+else
+	./ionstart >& node1.stdout &
+fi
 sleep 1
 cd ../2.ipn.ltp
-./ionstart >& node2.stdout
+if [ $ACS == "found" ] ; then
+	./ionstart-acs >& node2.stdout &
+else
+	./ionstart >& node2.stdout &
+fi
 sleep 1
 cd ../3.ipn.ltp
-./ionstart >& node3.stdout
+if [ $ACS == "found" ] ; then
+	./ionstart-acs >& node3.stdout &
+else
+	./ionstart >& node3.stdout &
+fi
 sleep 1
 cd ../4.ipn.ltp
-./ionstart >& node4.stdout
+if [ $ACS == "found" ] ; then
+	./ionstart-acs >& node4.stdout &
+else
+	./ionstart >& node4.stdout &
+fi
 sleep 1
 
 # Now build multicast distribution tree.

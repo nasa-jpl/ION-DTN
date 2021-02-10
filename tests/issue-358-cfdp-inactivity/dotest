@@ -14,6 +14,13 @@ CONFIGFILES=" \
 ./ipn.cfdp.bp.tcp/host1.ionsecrc \
 "
 
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./ipn.cfdp.bp.tcp/host1.acsrc"
+fi
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -40,7 +47,11 @@ echo "Starting ION..."
 
 # Start nodes
 cd ipn.cfdp.bp.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -c "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -69,7 +80,7 @@ bpcp ../data 1:test &
 BPCP_PID=$!
 
 #End CLO
-sleep 5
+sleep 6
 echo
 echo "Killing bpcp..."
 kill -2 $BPCP_PID >/dev/null 2>&1
@@ -103,6 +114,5 @@ fi
 sleep 10 
 #End ION
 echo "Killing ION..."
-./ionstop
 killm
 exit $RETVAL

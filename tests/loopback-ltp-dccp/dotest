@@ -35,9 +35,13 @@ IONRECEIVEFILE=./ionreceivefile.txt
 
 echo "Performing a simple loopback test of the DCCP Link Service Daemons for LTP"
 echo "Starting ION..."
-CONFIGDIR="."
-ionstart  -I ${CONFIGDIR}/loopback-dccp.rc
-
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ionstart  -I ./loopback-dccp-acs.rc
+else
+	ionstart  -I ./loopback-dccp.rc
+fi
 
 # create the test message in a sent file
 # the exclamation point signals the bundle sender to quit

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Samuel Jero <sj323707@ohio.edu>
 # LTP Loopback test with transaction reversibility turned on
 # based on loopbacktest.sh by David Young
@@ -15,6 +15,14 @@ CONFIGFILES=" \
 ./configs/loopback.bprc \
 ./configs/loopback.ipnrc"
 
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./configs/loopback.acsrc"
+else
+	ACS="not found"
+fi
 
 echo "########################################"
 echo
@@ -41,7 +49,11 @@ echo "########################################"
 
 echo "Starting ION..."
 cd ./configs
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 sleep 10
 
 # create the test message in a sent file
@@ -82,7 +94,7 @@ echo "Comparing ${IONSENDFILE} to ${IONRECEIVEFILE}..."
 grep "${IONMESSAGE}" "${IONRECEIVEFILE}"  >/dev/null 2>/dev/null
 RETVAL=${?}
 
-if test "${RETVAL}" -ne 0 ; then
+if [ "${RETVAL}" -ne 0 ] ; then
 	echo "Files do not match. FAILURE!"
 else
 	echo "Files match. SUCESS!"
