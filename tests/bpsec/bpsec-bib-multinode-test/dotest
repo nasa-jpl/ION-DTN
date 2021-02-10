@@ -8,6 +8,13 @@
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=5
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+fi
+
 echo "Cleaning up old ION..."
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
 killm
@@ -26,6 +33,15 @@ cd ../3.ipn.ltp
 ionadmin amroc.ionrc
 cd ../4.ipn.ltp
 ionadmin amroc.ionrc
+
+if [ $ACS == "found" ] ; then
+	cd 2.ipn.ltp
+	acsadmin amroc.acsrc
+	cd ../3.ipn.ltp
+	acsadmin amroc.acsrc
+	cd ../4.ipn.ltp
+	acsadmin amroc.acsrc
+fi
 
 cd ../2.ipn.ltp
 ionadmin ../global.ionrc

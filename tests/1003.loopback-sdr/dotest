@@ -11,6 +11,14 @@ ${CONFIGSROOT}/loopback-ltp/loopback.bprc \
 ${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
 ${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
 "
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ${CONFIGSROOT}/loopback-ltp/loopback.acsrc"
+fi
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -101,11 +109,16 @@ ITERATION=1
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
-echo "ionstart -i ${CONFIGDIR}/loopback.ionrc -l ${CONFIGDIR}/loopback.ltprc -b ${CONFIGDIR}/loopback.bprc -p ${CONFIGDIR}/loopback.ipnrc -s ${CONFIGDIR}/loopback.ionsecrc"
 
-echo "Running ionstart..."
-"ionstart" -i "${CONFIGDIR}/loopback.ionrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
-echo "...finished ionstart script"
+if [ $ACS == "found" ] ; then
+	echo "Running ionstart..."
+	"ionstart" -i "${CONFIGDIR}/loopback.ionrc"  -a "${CONFIGDIR}/loopback.acsrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
+	echo "...finished ionstart script"
+else
+	echo "Running ionstart..."
+	"ionstart" -i "${CONFIGDIR}/loopback.ionrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
+	echo "...finished ionstart script"
+fi
 
 sleep 3
 

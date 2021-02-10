@@ -5,9 +5,21 @@
 # Written by Sebastian Kuzminsky, based on loopbacktest.sh by David Young
 #
 # documentation boilerplate
-CONFIGFILES=" \
-${CONFIGSROOT}/loopback-ltp/loopback.rc \
-"
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-ltp/loopback-acs.rc \
+	"
+else
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-ltp/loopback.rc \
+	"
+fi
+
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -38,7 +50,11 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=3
 
 echo "Starting ION..."
-ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
+if [ $ACS == "found" ] ; then
+	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback-acs.rc
+else
+	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
+fi
 
 #The sample config adds contacts we don't care about
 deleteallvolumes

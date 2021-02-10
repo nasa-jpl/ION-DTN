@@ -12,12 +12,31 @@ CONFIGFILES=" \
 ./1.ipn.cfdp.bp.tcp/host1.cfdprc \
 ./1.ipn.cfdp.bp.tcp/host1.bprc \
 ./1.ipn.cfdp.bp.tcp/host1.ionsecrc \
+"
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.cfdp.bp.tcp/host1.acsrc \
+	"
+fi
+
+CONFIGFILES=$CONFIGFILES"
 ./3.ipn.cfdp.bp.tcp/host3.ipnrc \
 ./3.ipn.cfdp.bp.tcp/host3.bprc \
 ./3.ipn.cfdp.bp.tcp/host3.ionsecrc \
 ./3.ipn.cfdp.bp.tcp/host3.ionrc \
 ./3.ipn.cfdp.bp.tcp/host3.cfdprc \
 ./3.ipn.cfdp.bp.tcp/host3.ionconfig \
+"
+
+if [ $ACS == "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./2.ipn.cfdp.bp.tcp/host2.acsrc \
+	"
+fi
+
+CONFIGFILES=$CONFIGFILES"
 ./2.ipn.cfdp.bp.tcp/host2.ionrc \
 ./2.ipn.cfdp.bp.tcp/host2.ionsecrc \
 ./2.ipn.cfdp.bp.tcp/host2.ionconfig \
@@ -25,6 +44,11 @@ CONFIGFILES=" \
 ./2.ipn.cfdp.bp.tcp/host2.bprc \
 ./2.ipn.cfdp.bp.tcp/host2.cfdprc \
 "
+
+if [ $ACS == "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./3.ipn.cfdp.bp.tcp/host3.acsrc \
+	"
+fi
 
 echo "########################################"
 echo
@@ -52,7 +76,11 @@ rm -rf ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.cfdp.bp.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -c "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -63,7 +91,11 @@ else
 	exit 1
 fi
 cd ../2.ipn.cfdp.bp.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -c "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -74,7 +106,11 @@ else
 	exit 1
 fi
 cd ../3.ipn.cfdp.bp.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -c "p 30" -b "p 30"
 
 if [ $? -eq 3 ]

@@ -4,9 +4,19 @@
 #
 
 # documentation boilerplate
-CONFIGFILES=" \
-./config/host1.rc \
-"
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=" \
+	./config/host1-acs.rc \
+	"
+else
+	CONFIGFILES=" \
+	./config/host1.rc \
+	"
+fi
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -44,8 +54,11 @@ rm -f ion.log bpchatoutput bpchatinfifo
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="config"
-echo "ionstart -I ${CONFIGDIR}/host1.rc"
-"ionstart" -I "${CONFIGDIR}/host1.rc"
+if [ $ACS == "found" ] ; then
+	"ionstart" -I "${CONFIGDIR}/host1-acs.rc"
+else
+	"ionstart" -I "${CONFIGDIR}/host1.rc"
+fi
 
 echo "Start a bpecho."
 bpecho ipn:1.1 & BPECHOPID=$!

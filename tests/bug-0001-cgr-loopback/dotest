@@ -12,6 +12,16 @@ CONFIGFILES=" \
 ./3.ipn.ltp/amroc.ionrc \
 ./3.ipn.ltp/amroc.ionsecrc \
 ./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
+fi
+
+CONFIGFILES=$CONFIGFILES"
 ./2.ipn.ltp/amroc.bprc \
 ./2.ipn.ltp/amroc.ltprc \
 ./2.ipn.ltp/amroc.ionconfig \
@@ -20,6 +30,10 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
 "
+
+if [ $ACS == "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
+fi
 
 echo "########################################"
 echo
@@ -52,7 +66,11 @@ RETVAL=0
 
 # Start nodes.
 cd 3.ipn.ltp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]
@@ -64,7 +82,11 @@ else
 fi
 
 cd ../2.ipn.ltp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
 if [ $? -eq 3 ]

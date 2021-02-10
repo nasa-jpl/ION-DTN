@@ -11,6 +11,14 @@ CONFIGFILES=" \
 ./amroc.ionsecrc \
 ./amroc.ipnrc \
 "
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./amroc.acsrc"
+fi
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -46,7 +54,11 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start node 9, with asymmetric range to node 5.
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 
 echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 10.

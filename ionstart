@@ -213,6 +213,12 @@ if [[ ! -z "${IONRC}" ]] ; then
 	ionadmin "${IONRC}"
 fi
 
+if [[ ! -z "${ACSRC}" ]] ; then
+        echo
+        echo "Now running acsadmin using ${ACSRC}"
+        acsadmin "${ACSRC}"
+fi
+
 if [[ ! -z "${IONSECRC}" ]]; then
 	echo
 	echo "Now running ionsecadmin using ${IONSECRC}"
@@ -259,12 +265,6 @@ if [[ ! -z "${DTN2RC}" ]] ; then
 	echo
 	echo "Now running dtn2admin using ${DTN2RC}"
 	dtn2admin ${DTN2NODE} "${DTN2RC}"
-fi
-
-if [[ ! -z "${ACSRC}" ]] ; then
-        echo
-        echo "Now running acsadmin using ${ACSRC}"
-        acsadmin "${ACSRC}"
 fi
 
 if [[ ! -z "${IMCRC}" ]] ; then
