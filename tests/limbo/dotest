@@ -122,13 +122,13 @@ sleep 30
 cd ../3.ipn.tcp
 echo "Starting bprecvfile..."
 bprecvfile ipn:3.1 &
-sleep 1
+sleep 2
 
 # Send one file from node 2.
 cd ../2.ipn.tcp
 echo "Sending first file from node 2 to node 3..."
 bpsendfile ipn:2.1 ipn:3.1 testfilex
-sleep 2
+sleep 3
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
@@ -148,12 +148,12 @@ echo ""
 cd ../2.ipn.tcp
 echo "Blocking transmission to node 3."
 bpadmin block.bprc
-sleep 2
+sleep 3
 
 # Send second file from node 2.
 echo "Sending second file from node 2 to node 3, should go into limbo (j)..."
 bpsendfile ipn:2.1 ipn:3.1 testfiley
-sleep 2
+sleep 3
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
@@ -173,7 +173,7 @@ echo ""
 cd ../2.ipn.tcp
 echo "Unblocking transmission to node 3; bundle should flow out of limbo (k)..."
 bpadmin unblock.bprc
-sleep 2
+sleep 3
 
 # Verify that the second file has now arrived.
 cd ../3.ipn.tcp
@@ -193,7 +193,7 @@ echo ""
 cd ../2.ipn.tcp
 echo "Sending third file from node 2 to node 3 to test unblocked plan..."
 bpsendfile ipn:2.1 ipn:3.1 testfilez
-sleep 2
+sleep 3
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
@@ -221,7 +221,7 @@ sleep 30
 cd ../2.ipn.tcp
 echo "Sending fourth file from node 2 to node 3 (should simply be enqueued)..."
 bpsendfile ipn:2.1 ipn:3.1 testfiley
-sleep 2
+sleep 3
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
@@ -242,10 +242,10 @@ echo "Restoring STCP connectivity to node 3 to test CLM resume..."
 cd ../3.ipn.tcp
 rm testfile*
 ionadmin restart
-sleep 2
+sleep 3
 echo "Restarting bprecvfile..."
 bprecvfile ipn:3.1 &
-sleep 2
+sleep 3
 echo "Restarting BP agent..."
 bpadmin restart
 echo "Sleeping 30 sec to give keepalive thread time to detect open socket..."
@@ -270,7 +270,7 @@ echo ""
 cd ../2.ipn.tcp
 echo "Sending fifth file from node 2 to node 3 to test restored connectivity..."
 bpsendfile ipn:2.1 ipn:3.1 testfilez
-sleep 2
+sleep 3
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
@@ -290,7 +290,7 @@ echo ""
 echo "Getting stats from node 2..."
 cd ../2.ipn.tcp
 bpstats 
-sleep 1
+sleep 2
 START_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $START_COUNT fwd bundles"
 
@@ -299,7 +299,7 @@ echo " -> $START_COUNT fwd bundles"
 cd ../5.ipn.tcp
 echo "Sending sixth file from node 5 via node 2 to node 3 to verify 5 prefers that plan..."
 bpsendfile ipn:5.1 ipn:3.1 testfile5a
-sleep 2
+sleep 8
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
@@ -318,7 +318,7 @@ echo ""
 echo "Getting stats from node 2 to verify it increased..."
 cd ../2.ipn.tcp
 bpstats 
-sleep 1
+sleep 2
 END_COUNT=`getStatsCounter 'fwd' '+' ion.log`
 echo " -> $END_COUNT fwd bundles"
 
@@ -337,7 +337,7 @@ echo ""
 echo "Blocking node 5's egress to node 2, to force use of node-3 plan instead."
 cd ../5.ipn.tcp
 bpadmin block.bprc
-sleep 2
+sleep 3
 
 echo ""
 echo "Sending seventh file twice from node 5 to node 3 (wants to go through node 2, but because egress to node 2 is blocked the bundle must be sent to node 3 directly)."

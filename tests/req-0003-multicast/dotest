@@ -32,6 +32,7 @@ which acsadmin
 if [ $? -eq 0 ] ; then
 	ACS="found"
 fi
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -43,28 +44,29 @@ if [ $ACS == "found" ] ; then
 else
 	./ionstart >& node1.stdout &
 fi
-sleep 1
+sleep 2
 cd ../2.ipn.ltp
 if [ $ACS == "found" ] ; then
 	./ionstart-acs >& node2.stdout &
 else
 	./ionstart >& node2.stdout &
 fi
-sleep 1
+sleep 2
 cd ../3.ipn.ltp
 if [ $ACS == "found" ] ; then
 	./ionstart-acs >& node3.stdout &
 else
 	./ionstart >& node3.stdout &
 fi
-sleep 1
+sleep 2
 cd ../4.ipn.ltp
 if [ $ACS == "found" ] ; then
 	./ionstart-acs >& node4.stdout &
 else
 	./ionstart >& node4.stdout &
 fi
-sleep 1
+#give nodes enough time to start
+sleep 8
 
 # Now build multicast distribution tree.
 cd ../1.ipn.ltp
@@ -75,7 +77,7 @@ cd ../3.ipn.ltp
 ./imcstart >& node3.stdout &
 cd ../4.ipn.ltp
 ./imcstart >& node4.stdout &
-sleep 2
+sleep 3
 
 echo "Starting bprecvfile, both unicast and multicast, on all nodes..."
 cd ../1.ipn.ltp
@@ -91,30 +93,30 @@ cd ../4.ipn.ltp
 bprecvfile ipn:4.1 &
 bprecvfile imc:19.0 &
 
-sleep 2
+sleep 4
 cd ../1.ipn.ltp
 echo "Sending 150-byte file from ipn:1.2 to ipn:3.1 (unicast)...."
 bpsendfile ipn:1.2 ipn:3.1 file150
 cd ../3.ipn.ltp
-sleep 2
+sleep 4
 mv testfile1 testfile01
 
-sleep 1
+sleep 2
 cd ../1.ipn.ltp
 echo "Sending 100-byte file from ipn:1.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:1.2 imc:19.0 file100
 
-sleep 1
+sleep 2
 cd ../2.ipn.ltp
 echo "Sending 200-byte file from ipn:2.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:2.2 imc:19.0 file200
 
-sleep 1
+sleep 2
 cd ../4.ipn.ltp
 echo "Sending 400-byte file from ipn:4.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:4.2 imc:19.0 file400
 
-sleep 1
+sleep 2
 cd ../2.ipn.ltp
 echo "Node 2 unregisters from imc:19.0."
 bpadmin unregister.bprc
@@ -122,24 +124,24 @@ mv testfile1 testfile01
 mv testfile2 testfile02
 mv testfile3 testfile03
 
-sleep 1
+sleep 2
 cd ../3.ipn.ltp
 echo "Sending 300-byte file from ipn:3.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:3.2 imc:19.0 file300
 
-sleep 1
+sleep 2
 cd ../2.ipn.ltp
 imcadmin remove4.imcrc
 cd ../4.ipn.ltp
 imcadmin remove2.imcrc
 echo "Node 4 is removed from the multicast tree."
 
-sleep 1
+sleep 2
 cd ../3.ipn.ltp
 echo "Sending 310-byte file from ipn:3.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:3.2 imc:19.0 file310
 
-sleep 1
+sleep 2
 cd ../2.ipn.ltp
 bpadmin reregister.bprc
 echo "Node 2 re-registers in imc:19.0."
@@ -149,13 +151,13 @@ cd ../4.ipn.ltp
 imcadmin add2.imcrc
 echo "Node 4 is restored to the multicast tree."
 
-sleep 1
+sleep 2
 cd ../3.ipn.ltp
 echo "Sending 320-byte file from ipn:3.2 to imc:19.0 (multicast)...."
 bpsendfile ipn:3.2 imc:19.0 file320
 
 # Verify that the correct files were received at all nodes.
-sleep 3
+sleep 10
 RETVAL=0
 
 # Verify at node 1
