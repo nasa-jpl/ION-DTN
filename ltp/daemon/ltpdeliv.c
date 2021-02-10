@@ -37,29 +37,29 @@ int	ltpdeliv(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char *argv[])
 {
 #endif
-	Sdr		sdr;
-	LtpDB		*db;
-	LtpVdb		*vdb;
-	ReqAttendant	attendant;
-	char		*buffer;
-	Object		elt;
-	Object		delivObj;
-	Deliverable	deliv;
-	LtpVclient	*client;
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
-	VImportSession	*vsession;
-	Object		sessionObj;
-	ImportSession	sessionBuf;
-	vast		heapSpaceNeeded = 0;
-	vast		fileSpaceNeeded = 0;
-	Object		currentElt;
-	unsigned int	clientSvcId;
-	uvast		sourceEngineId;
-	unsigned int	sessionNbr;
-	ReqTicket	ticket;
-	Object		svcDataObject;
-	Object		extentObj;
+	Sdr			sdr;
+	LtpDB			*db;
+	LtpVdb			*vdb;
+	ReqAttendant		attendant;
+	char			*buffer;
+	Object			elt;
+	Object			delivObj;
+	LtpDeliverable		deliv;
+	LtpVclient		*client;
+	LtpVspan		*vspan;
+	PsmAddress		vspanElt;
+	LtpVImportSession	*vsession;
+	Object			sessionObj;
+	LtpImportSession	sessionBuf;
+	vast			heapSpaceNeeded = 0;
+	vast			fileSpaceNeeded = 0;
+	Object			currentElt;
+	unsigned int		clientSvcId;
+	uvast			sourceEngineId;
+	unsigned int		sessionNbr;
+	ReqTicket		ticket;
+	Object			svcDataObject;
+	Object			extentObj;
 
 	if (ltpInit(0) < 0)
 	{
@@ -104,7 +104,8 @@ int	main(int argc, char *argv[])
 		/*	Got a deliverable, still in transaction.	*/
 
 		delivObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &deliv, delivObj, sizeof(Deliverable));
+		sdr_read(sdr, (char *) &deliv, delivObj,
+				sizeof(LtpDeliverable));
 		client = vdb->clients + deliv.clientSvcId;
 		findSpan(deliv.sourceEngineId, &vspan, &vspanElt);
 		if (vspanElt == 0)	/*	Discard deliverable.	*/
@@ -136,7 +137,7 @@ int	main(int argc, char *argv[])
 		}
 
 		sdr_read(sdr, (char *) &sessionBuf, sessionObj,
-				sizeof(ImportSession));
+				sizeof(LtpImportSession));
 
 		/*	Delivery ZCO will have up to two extents,
 		 *	one for each of the session's two possible
@@ -217,7 +218,8 @@ int	main(int argc, char *argv[])
 		}
 
 		delivObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &deliv, delivObj, sizeof(Deliverable));
+		sdr_read(sdr, (char *) &deliv, delivObj,
+				sizeof(LtpDeliverable));
 		if (deliv.clientSvcId != clientSvcId
 		|| deliv.sourceEngineId != sourceEngineId
 		|| deliv.sessionNbr != sessionNbr)
@@ -237,7 +239,7 @@ int	main(int argc, char *argv[])
 		}
 
 		sdr_stage(sdr, (char *) &sessionBuf, sessionObj,
-				sizeof(ImportSession));
+				sizeof(LtpImportSession));
 		svcDataObject = zco_create(sdr, 0, 0, 0, 0, ZcoInbound);
 		switch (svcDataObject)
 		{
@@ -327,7 +329,7 @@ int	main(int argc, char *argv[])
 		{
 			sessionBuf.delivered = 1;
 			sdr_write(sdr, sessionObj, (char *) &sessionBuf,
-					sizeof(ImportSession));
+					sizeof(LtpImportSession));
 		}
 
 		/*	Pass the new service data ZCO to the client
