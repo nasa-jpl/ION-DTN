@@ -86,6 +86,7 @@ BibProfile	*get_bib_prof_by_number(int profNbr)
 	int		i;
 
 	CHKNULL(profNbr > 0);
+
 	for (i = 0; i < profCount; i++, prof++)
 	{
 		if (prof->profNbr == profNbr)

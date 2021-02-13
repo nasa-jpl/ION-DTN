@@ -42,6 +42,13 @@ int	qos_serialize(ExtensionBlock *blk, Bundle *bundle)
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
+
+int  qos_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
+{
+    return qos_serialize(blk, bundle);
+}
+
+
 int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	Bundle		*bundle = &wk->bundle;

@@ -424,16 +424,19 @@ void bsl_cb_ed_delete(PsmPartition partition, PsmAddress user_data)
  * \Note This function has been adapted from S. Burleigh's discardTarget
  *        functions in bib.c and bcb.c
  *****************************************************************************/
-void bsl_discardIboundTarget(LystElt targetElt, LystElt sopElt)
+void bsl_discardInboundTarget(LystElt targetElt, LystElt sopElt)
 {
-	BpsecInboundTarget	*target;
-	AcqExtBlock		*sop;
-	BpsecInboundBlock	*asb;
+	BpsecInboundTarget *target;
+	AcqExtBlock        *sop;
+	BpsecInboundBlock  *asb;
 
 	target = (BpsecInboundTarget *) lyst_data(targetElt);
 	bpsec_releaseInboundTlvs(target->results);
 	MRELEASE(target);
 	lyst_delete(targetElt);
+
+	/* TODO: Remove the target from the SOP before checking target length? */
+
 	sop = (AcqExtBlock *) lyst_data(sopElt);
 	asb = (BpsecInboundBlock *) (sop->object);
 	if (lyst_length(asb->targets) == 0)
@@ -601,7 +604,12 @@ void bsl_remove_sop_at_sender(Bundle *bundle, ExtensionBlock *sopBlk)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
-	CHKVOID(sopBlk);
+
+	if (sopBlk == NULL)
+	{
+		writeMemo("[i] Cannot remove security block. No security block provided.");
+		return;
+	}
 
 	/* Step 1: Find security block representing the security operation */
 	Object sop = getExtensionBlock(bundle, sopBlk->number);
@@ -610,6 +618,11 @@ void bsl_remove_sop_at_sender(Bundle *bundle, ExtensionBlock *sopBlk)
 	{
 		/* Step 2: If found, remove the security block from the bundle */
 		deleteExtensionBlock(sop, &(bundle->extensionsLength));
+		return;
+	}
+	else
+	{
+		writeMemo("[i] Cannot remove security block. No security block found.");
 	}
 }
 
@@ -633,7 +646,12 @@ void bsl_remove_sop_at_receiver(AcqWorkArea *wk, LystElt sopElt)
 {
 	/* Step 0: Sanity checks */
 	CHKVOID(wk);
-	CHKVOID(sopElt);
+
+	if (sopElt == NULL)
+	{
+		writeMemo("[i] Cannot remove security block. No security block provided.");
+		return;
+	}
 
 	AcqExtBlock *secBlk = (AcqExtBlock *) lyst_data(sopElt);
 	Bundle *bundle = &(wk->bundle);
@@ -645,6 +663,11 @@ void bsl_remove_sop_at_receiver(AcqWorkArea *wk, LystElt sopElt)
 	{
 		/* Step 2: If found, remove the security block from the bundle */
 		deleteExtensionBlock(sop, &(bundle->extensionsLength));
+		return;
+	}
+	else
+	{
+		writeMemo("[i] Cannot remove security block. No security block found.");
 	}
 }
 
@@ -674,7 +697,18 @@ void bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
 	CHKVOID(tgtNum);
-	CHKVOID(asb);
+
+	if (sopBlk == NULL)
+	{
+		writeMemo("[i] Cannot remove security target. No security block provided.");
+		return;
+	}
+	if (asb == NULL)
+	{
+		writeMemo("[i] Cannot remove security target. Abstract security "
+				"block not provided.");
+		return;
+	}
 
 	Sdr sdr = getIonsdr();
 
@@ -692,16 +726,22 @@ void bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
 		 * Step 3.1: If target is the primary or payload block, we must
 		 * abandon the bundle (cannot exist without one of these blocks).
 		 */
-		if (tgtNum == 0 || tgtNum == 1)
+		if (tgtNum == PrimaryBlk || tgtNum == PayloadBlk)
 		{
 			bundle->corrupt = 1;
+			return;
 		}
 
 		/* Step 3.2: If target is an extension block, remove from the bundle */
 		else
 		{
 			deleteExtensionBlock(tgt, &(bundle->extensionsLength));
+			return;
 		}
+	}
+	else
+	{
+		writeMemo("[i] Cannot remove security target. No security target found.");
 	}
 }
 
@@ -724,11 +764,20 @@ void bsl_remove_sop_target_at_sender(Bundle *bundle, ExtensionBlock *sopBlk,
 void bsl_remove_sop_target_at_receiver(LystElt tgtElt, LystElt sopElt)
 {
 	/* Step 0: Sanity checks. */
-	CHKVOID(tgtElt);
-	CHKVOID(sopElt);
+	if (sopElt == NULL)
+	{
+		writeMemo("[i] Cannot remove security target. No security block provided.");
+		return;
+	}
+	if (tgtElt == NULL)
+	{
+		writeMemo("[i] Cannot remove security target. Security target not provided.");
+		return;
+	}
 
 	/* Step 1: Discard target block */
-	bsl_discardIboundTarget(tgtElt, sopElt);
+	bsl_discardInboundTarget(tgtElt, sopElt);
+	return;
 }
 
 /******************************************************************************
@@ -739,45 +788,52 @@ void bsl_remove_sop_target_at_receiver(LystElt tgtElt, LystElt sopElt)
  *               specified block.
  *
  * \param[in]  bundle       Current, working bundle.
- * \param[in]  tgtBlkNum       Block number of the security operation's target.
+ * \param[in]  tgtNum       Block number of the security operation's target.
  *
  * Modification History:
  *  MM/DD/YY  AUTHOR         DESCRIPTION
  *  --------  ------------   ---------------------------------------------
  *  01/29/21   S. Heiner      Initial Implementation
  *****************************************************************************/
-void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtBlkNum)
+void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtNum)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(bundle);
-	CHKVOID(tgtBlkNum);
+	CHKVOID(tgtNum);
 
-	Sdr	sdr = getIonsdr();
-	Object	elt;
-	Object	addr;
-	Object tgtTypeElt;
-	BpBlockType blkTgtType;
+	Sdr	               sdr = getIonsdr();
+	Object	           sopElt;
+	Object	           sopAddr;
+	Object             tgtElt;
+	unsigned char      sopTgtNum;
 	BpsecOutboundBlock	asb;
-	ExtensionBlock tgt;
-	OBJ_POINTER(ExtensionBlock, blk);
+	OBJ_POINTER(ExtensionBlock, sopBlk);
 
-	Object tgtObj = getExtensionBlock(bundle, tgtBlkNum);
-	sdr_read(sdr, (char *) &tgt, tgtObj, sizeof(ExtensionBlock));
-
-	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
-			elt = sdr_list_next(sdr, elt))
+	/* Find all security blocks in the bundle */
+	for (sopElt = sdr_list_first(sdr, bundle->extensions); sopElt;
+			sopElt = sdr_list_next(sdr, sopElt))
 	{
-		addr = sdr_list_data(sdr, elt);
-		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
-		if (blk->type == BlockIntegrityBlk || (blk->type == BlockConfidentialityBlk))
+		sopAddr = sdr_list_data(sdr, sopElt);
+		GET_OBJ_POINTER(sdr, ExtensionBlock, sopBlk, sopAddr);
+
+		/* When a security block is found */
+		if (sopBlk->type == BlockIntegrityBlk || (sopBlk->type == BlockConfidentialityBlk))
 		{
-			sdr_read(sdr, (char *) &asb, blk->object, sizeof(BpsecOutboundBlock));
-			for (tgtTypeElt = sdr_list_first(sdr, asb.targets); tgtTypeElt; tgtTypeElt = sdr_list_next(sdr, tgtTypeElt))
+			sdr_read(sdr, (char *) &asb, sopBlk->object, sizeof(BpsecOutboundBlock));
+
+			/* If that security block has a target whose block number is the same
+			 * as the input target number, the security operation must be removed.
+			 * This function removes up to two security operations: bib-integrity and
+			 * bcb-confidentiality.
+			 * TODO: Remove bcb-confidentiality before bib-integrity. */
+			for (tgtElt = sdr_list_first(sdr, asb.targets); tgtElt;
+					tgtElt = sdr_list_next(sdr, tgtElt))
 			{
-				blkTgtType = (BpBlockType) sdr_list_data(sdr, tgtTypeElt);
-				if (blkTgtType == tgt.type)
+				sopTgtNum = (unsigned char) sdr_list_data(sdr, tgtElt);
+				if (sopTgtNum == tgtNum)
 				{
-					bsl_remove_sop_at_sender(bundle, blk);
+					bsl_remove_sop_at_sender(bundle, sopBlk);
+					return;
 				}
 			}
 		}
@@ -792,7 +848,6 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtBlkNu
  *               specified block.
  *
  * \param[in]  wk         Work area holding bundle information.
- * \param[in]  sopElt     Security block representing the security operation.
  * \param[in]  tgtNum     Block number of the security target block.
  *
  * \note When target multiplicity is complete, the bslpol_remove_sop_target
@@ -805,40 +860,39 @@ void bsl_remove_all_target_sops_at_sender(Bundle *bundle, unsigned char tgtBlkNu
  *  --------  ------------   ---------------------------------------------
  *  01/29/21   S. Heiner      Initial Implementation
  *****************************************************************************/
-void bsl_remove_all_target_sops_at_receiver(AcqWorkArea *wk, LystElt sopElt,
-		unsigned char tgtNum)
+void bsl_remove_all_target_sops_at_receiver(AcqWorkArea *wk, unsigned char tgtNum)
 {
 	/* Step 0: Sanity checks. */
 	CHKVOID(wk);
-	CHKVOID(sopElt);
 	CHKVOID(tgtNum);
 
-	Sdr	sdr = getIonsdr();
-	AcqExtBlock *sopBlk = (AcqExtBlock *) lyst_data(sopElt);
-	BpsecInboundBlock *asb = (BpsecInboundBlock *) (sopBlk->object);
-	AcqExtBlock	*block;
-	LystElt blkTypeElt;
-	LystElt elt;
-	BpBlockType blkTgtType;
-	ExtensionBlock tgt;
+	AcqExtBlock	       *extBlock;
+	LystElt            tgtElt;
+	LystElt            sopElt;
+	BpsecInboundTarget *sopTgt;
 
-	Object tgtObj = getExtensionBlock(&wk->bundle, tgtNum);
-	sdr_read(sdr, (char *) &tgt, tgtObj, sizeof(ExtensionBlock));
-
-
-	for (elt = lyst_first(wk->extBlocks); elt; elt = lyst_next(elt))
+	/* Find all security blocks in the bundle */
+	for (sopElt = lyst_first(wk->extBlocks); sopElt; sopElt = lyst_next(sopElt))
 	{
-		block = (AcqExtBlock *) lyst_data(elt);
+		extBlock = (AcqExtBlock *) lyst_data(sopElt);
 
-		if ((block->type == BlockIntegrityBlk) || (block->type == BlockConfidentialityBlk))
+		/* When a security block is found */
+		if ((extBlock->type == BlockIntegrityBlk) || (extBlock->type == BlockConfidentialityBlk))
 		{
-			for (blkTypeElt = lyst_first(asb->targets); blkTypeElt; blkTypeElt = lyst_next(blkTypeElt))
+			BpsecInboundBlock *asb = (BpsecInboundBlock *) (extBlock->object);
+
+			for (tgtElt = lyst_first(asb->targets); tgtElt; tgtElt = lyst_next(tgtElt))
 			{
-				blkTgtType = (BpBlockType) lyst_data(blkTypeElt);
-				if (blkTgtType == tgt.type)
+				sopTgt = (BpsecInboundTarget *) lyst_data(tgtElt);
+				if (sopTgt->targetBlockNumber == tgtNum)
 				{
-					/* Remove the security block */
-					bsl_remove_sop_at_receiver(wk, elt);
+					/* If that security block has a target whose block number is the same
+					 * as the input target number, the security operation must be removed.
+					 * This function removes up to two security operations: bib-integrity and
+					 * bcb-confidentiality.
+					 * TODO: Remove bcb-confidentiality before bib-integrity. */
+					bsl_remove_sop_at_receiver(wk, sopElt);
+					return;
 				}
 			}
 		}
@@ -1032,7 +1086,7 @@ void bsl_override_sop_bpcf(Bundle *bundle)
  * \par Function Name: bsl_handle_sender_sop_event
  *
  * \par Purpose: This function is to be called each time a security operation
- *               event occurence is identified by a BPA taking on the role
+ *               event occurrence is identified by a BPA taking on the role
  *               of Security Source. Bundle characteristics and identifying
  *               information from the security operation itself are used to
  *               determine the security policy rule which is applicable.
@@ -1040,6 +1094,8 @@ void bsl_override_sop_bpcf(Bundle *bundle)
  *               determines if any optional processing events have been
  *               configured for the current security operation event and
  *               executes them.
+ *
+ *TODO note return values
  *
  * \param[in]  bundle        Current, working bundle.
  * \param[in]  sopEvent      The security operation event to respond to.
@@ -1054,6 +1110,7 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 	/* Step 0: Sanity checks */
 	CHKERR(bundle);
 	CHKERR(sopEvent >= 0);
+	CHKERR(tgtNum);
 
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));
@@ -1077,23 +1134,47 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 		tag.type = tgt.type;
 	}
 
-	tag.scid = asb->contextId;
+	if (asb != NULL)
+	{
+		tag.scid = asb->contextId;
 
-	readEid(&asb->securitySource, &(tag.ssrc));
-	tag.ssrc_len = strlen(tag.ssrc);
+		if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
+		{
+			readEid(&asb->securitySource, &(tag.ssrc));
+			if (tag.ssrc != NULL)
+			{
+				tag.ssrc_len = strlen(tag.ssrc);
+			}
+		}
+	}
 
 	readEid(&bundle->id.source, &(tag.bsrc));
-	tag.bsrc_len = strlen(tag.bsrc);
+	if (tag.bsrc != NULL)
+	{
+		tag.bsrc_len = strlen(tag.bsrc);
+	}
 
 	readEid(&bundle->destination, &(tag.bdest));
-	tag.bdest_len = strlen(tag.bdest);
+	if (tag.bdest != NULL)
+	{
+		tag.bdest_len = strlen(tag.bdest);
+	}
 
 	/* Step 2: Retrieve the rule for the current security operation */
 	BpSecPolRule *rule = bslpol_rule_get_best_match(wm, tag);
 
-	MRELEASE(tag.bsrc);
-	MRELEASE(tag.bdest);
-	MRELEASE(tag.ssrc);
+	if (tag.ssrc_len > 0)
+	{
+		MRELEASE(tag.ssrc);
+	}
+	if (tag.bsrc_len > 0)
+	{
+		MRELEASE(tag.bsrc);
+	}
+	if (tag.bdest_len > 0)
+	{
+		MRELEASE(tag.bdest);
+	}
 
 	/* Step 3: Apply the rule to the bundle */
 	if (rule != NULL)
@@ -1103,44 +1184,47 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 		BpSecEventSet *esPtr = (BpSecEventSet *) psp(wm, esAddr);
 
 		/* Step 2.2: Check if policy is configured for the current SOP event */
-		if(esPtr->mask & sopEvent)
+		if(esPtr != NULL)
 		{
-			PsmAddress elt;
-			PsmAddress curEventAddr = 0;
-			BpSecEvent *curEventPtr = NULL;
-
-			/* Step 2.3: Find the event with actions to be executed */
-			for(elt = sm_list_first(wm, esPtr->events); elt; elt = sm_list_next(wm, elt))
+			if(esPtr->mask & sopEvent)
 			{
-				curEventAddr = sm_list_data(wm, elt);
-				curEventPtr = (BpSecEvent *) psp(wm, curEventAddr);
-				if(curEventPtr->id == sopEvent)
+				PsmAddress elt;
+				PsmAddress curEventAddr = 0;
+				BpSecEvent *curEventPtr = NULL;
+
+				/* Step 2.3: Find the event with actions to be executed */
+				for(elt = sm_list_first(wm, esPtr->events); elt; elt = sm_list_next(wm, elt))
 				{
-					/* Step 2.4: Execute the optional processing actions */
-					if (curEventPtr->action_mask & BSLACT_REMOVE_SOP)
+					curEventAddr = sm_list_data(wm, elt);
+					curEventPtr = (BpSecEvent *) psp(wm, curEventAddr);
+					if(curEventPtr->id == sopEvent)
 					{
-						bsl_remove_sop_at_sender(bundle, sop);
-					}
+						/* Step 2.4: Execute the optional processing action(s) */
+						if (curEventPtr->action_mask & BSLACT_REMOVE_SOP)
+						{
+							bsl_remove_sop_at_sender(bundle, sop);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_REMOVE_SOP_TARGET)
-					{
-						bsl_remove_sop_target_at_sender(bundle, sop, asb, tgtNum);
-					}
+						if (curEventPtr->action_mask & BSLACT_REMOVE_SOP_TARGET)
+						{
+							bsl_remove_sop_target_at_sender(bundle, sop, asb, tgtNum);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_REMOVE_ALL_TARGET_SOPS)
-					{
-						bsl_remove_all_target_sops_at_sender(bundle, tgtNum);
-					}
+						if (curEventPtr->action_mask & BSLACT_REMOVE_ALL_TARGET_SOPS)
+						{
+							bsl_remove_all_target_sops_at_sender(bundle, tgtNum);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_DO_NOT_FORWARD)
-					{
-						bsl_do_not_forward_at_sender(bundle);
-					}
+						if (curEventPtr->action_mask & BSLACT_DO_NOT_FORWARD)
+						{
+							bsl_do_not_forward_at_sender(bundle);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_REPORT_REASON_CODE)
-					{
-						bsl_report_reason_code_at_sender(bundle,
-								curEventPtr->action_parms[0].asReason.reasonCode);
+						if (curEventPtr->action_mask & BSLACT_REPORT_REASON_CODE)
+						{
+							bsl_report_reason_code_at_sender(bundle,
+									curEventPtr->action_parms[0].asReason.reasonCode);
+						}
 					}
 				}
 			}
@@ -1170,7 +1254,7 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
  * \par Function Name: bsl_handle_receiver_sop_event
  *
  * \par Purpose: This function is to be called each time a security operation
- *               event occurence is identified by a BPA taking on the role
+ *               event occurrence is identified by a BPA taking on the role
  *               of Security Verifier or Security Acceptor. Bundle
  *               characteristics and identifying information from the security
  *               operation itself are used to determine the security policy rule
@@ -1199,9 +1283,6 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 	Bundle *bundle = &(wk->bundle);
 	PsmPartition wm = getIonwm();
 
-	AcqExtBlock *secBlk = (AcqExtBlock *) lyst_data(sop);
-	BpsecInboundBlock *asb = (BpsecInboundBlock *) (secBlk->object);
-
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));
 
@@ -1223,23 +1304,53 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 		tag.type = tgt.type;
 	}
 
-	tag.scid = asb->contextId;
+	if (sop != NULL)
+	{
+		AcqExtBlock *secBlk = (AcqExtBlock *) lyst_data(sop);
+		BpsecInboundBlock *asb = (BpsecInboundBlock *) (secBlk->object);
 
-	readEid(&asb->securitySource, &(tag.ssrc));
-	tag.ssrc_len = strlen(tag.ssrc);
+		if (asb != NULL)
+		{
+			tag.scid = asb->contextId;
+
+			if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
+			{
+				readEid(&asb->securitySource, &(tag.ssrc));
+				if (tag.ssrc != NULL)
+				{
+					tag.ssrc_len = strlen(tag.ssrc);
+				}
+			}
+		}
+	}
 
 	readEid(&bundle->id.source, &(tag.bsrc));
-	tag.bsrc_len = strlen(tag.bsrc);
+	if (tag.bsrc != NULL)
+	{
+		tag.bsrc_len = strlen(tag.bsrc);
+	}
 
 	readEid(&bundle->destination, &(tag.bdest));
-	tag.bdest_len = strlen(tag.bdest);
+	if (tag.bdest != NULL)
+	{
+		tag.bdest_len = strlen(tag.bdest);
+	}
 
 	/* Step 2: Retrieve the rule for the current security operation */
 	BpSecPolRule *rule = bslpol_rule_get_best_match(wm, tag);
 
-	MRELEASE(tag.bsrc);
-	MRELEASE(tag.bdest);
-	MRELEASE(tag.ssrc);
+	if (tag.ssrc_len > 0)
+	{
+		MRELEASE(tag.ssrc);
+	}
+	if (tag.bsrc_len > 0)
+	{
+		MRELEASE(tag.bsrc);
+	}
+	if (tag.bdest_len > 0)
+	{
+		MRELEASE(tag.bdest);
+	}
 
 	/* Step 3: Apply the rule to the bundle */
 	if (rule != NULL)
@@ -1249,43 +1360,46 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 		BpSecEventSet *esPtr = (BpSecEventSet *) psp(wm, esAddr);
 
 		/* Step 2.2: Check if policy is configured for the current SOP event */
-		if(esPtr->mask & sopEvent)
+		if(esPtr != NULL)
 		{
-			PsmAddress elt;
-			PsmAddress curEventAddr = 0;
-			BpSecEvent *curEventPtr = NULL;
-
-			/* Step 2.3: Find the event with actions to be executed */
-			for(elt = sm_list_first(wm, esPtr->events); elt; elt = sm_list_next(wm, elt))
+			if(esPtr->mask & sopEvent)
 			{
-				curEventAddr = sm_list_data(wm, elt);
-				curEventPtr = (BpSecEvent *) psp(wm, curEventAddr);
-				if(curEventPtr->id == sopEvent)
+				PsmAddress elt;
+				PsmAddress curEventAddr = 0;
+				BpSecEvent *curEventPtr = NULL;
+
+				/* Step 2.3: Find the event with actions to be executed */
+				for(elt = sm_list_first(wm, esPtr->events); elt; elt = sm_list_next(wm, elt))
 				{
-					/* Step 2.4: Execute the optional processing actions */
-					if (curEventPtr->action_mask & BSLACT_REMOVE_SOP)
+					curEventAddr = sm_list_data(wm, elt);
+					curEventPtr = (BpSecEvent *) psp(wm, curEventAddr);
+					if(curEventPtr->id == sopEvent)
 					{
-						bsl_remove_sop_at_receiver(wk, sop);
-					}
+						/* Step 2.4: Execute the optional processing actions */
+						if (curEventPtr->action_mask & BSLACT_REMOVE_SOP)
+						{
+							bsl_remove_sop_at_receiver(wk, sop);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_REMOVE_SOP_TARGET)
-					{
-						bsl_remove_sop_target_at_receiver(tgt, sop);
-					}
+						if (curEventPtr->action_mask & BSLACT_REMOVE_SOP_TARGET)
+						{
+							bsl_remove_sop_target_at_receiver(tgt, sop);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_REMOVE_ALL_TARGET_SOPS)
-					{
-						bsl_remove_all_target_sops_at_receiver(wk, sop, tgtNum);
-					}
+						if (curEventPtr->action_mask & BSLACT_REMOVE_ALL_TARGET_SOPS)
+						{
+							bsl_remove_all_target_sops_at_receiver(wk, tgtNum);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_DO_NOT_FORWARD)
-					{
-						bsl_do_not_forward_at_receiver(wk);
-					}
+						if (curEventPtr->action_mask & BSLACT_DO_NOT_FORWARD)
+						{
+							bsl_do_not_forward_at_receiver(wk);
+						}
 
-					if (curEventPtr->action_mask & BSLACT_REPORT_REASON_CODE)
-					{
-						bsl_report_reason_code_at_receiver(wk, curEventPtr->action_parms[0].asReason.reasonCode);
+						if (curEventPtr->action_mask & BSLACT_REPORT_REASON_CODE)
+						{
+							bsl_report_reason_code_at_receiver(wk, curEventPtr->action_parms[0].asReason.reasonCode);
+						}
 					}
 				}
 			}

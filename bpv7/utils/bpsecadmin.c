@@ -79,7 +79,7 @@ BpSecMap gActionMap[] = {
 };
 
 BpSecMap gScParmMap[] = {
-	{"key_file", CSI_PARM_KEYINFO},
+	{"key_name", CSI_PARM_KEYINFO},
 	{"iv",       CSI_PARM_IV},
 	{"salt",     CSI_PARM_SALT},
 	{"icv",      CSI_PARM_ICV},
@@ -182,41 +182,6 @@ expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   a bcbrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
 
-	PUTS("\n\t   JSON Add Commands (Experimental)");
-	PUTS("\t   --------------------------------");
-	PUTS("\t   a { \"event\" :");
-	PUTS("\t       {");
-	PUTS("\t          \"es_ref\" : \"<event set name>\"");
-	PUTS("\t          \"event_id\" : \"<event name>\"");
-	PUTS("\t          \"actions\" : [{\"id\":\"<action>\", <parms if applicable>},...]");
-	PUTS("\t       }");
-	PUTS("\t     }");
-	PUTS("\t   a { \"event_set\" : ");
-	PUTS("\t       {");
-	PUTS("\t          \"desc\" : \"<description>\" (optional)");
-	PUTS("\t          \"name\" : \"<event set name>\"");
-	PUTS("\t       }");
-    PUTS("\t     }");
-	PUTS("\t   a { \"policyrule\" :");
-	PUTS("\t       {");
-	PUTS("\t          \"desc\" : \"<description>\" (optional)");
-	PUTS("\t          \"es_ref\" : \"<event set name>\"");
-	PUTS("\t          \"filter\" : ");
-	PUTS("\t          {");
-	PUTS("\t             \"rule_id\" : \"<rule id>\", (optional)");
-	PUTS("\t             \"role\"    : \"<security role>\", ");
-	PUTS("\t             \"src\"     : \"<source eid expression>\",        \\");
-	PUTS("\t             \"dest\"    : \"<destination eid expression>\",    ) (1 of src/dest/ssrc required)");
-	PUTS("\t             \"ssrc\"    : \"<security source eid expression>\"/");
-	PUTS("\t          }");
-	PUTS("\t          \"spec\" :");
-	PUTS("\t          {");
-	PUTS("\t             \"svc\"      : \"<security service>\"");
-	PUTS("\t             \"sc_parms\" : [{\"id\":\"<parm1_id>\",\"value\":\"<parm1_value\"},...]");
-	PUTS("\t          }");
-	PUTS("\t       }");
-	PUTS("\t     }");
-
 	PUTS("\n\tc\tChange");
 	PUTS("\t   c bibrule <source eid expression> <destination eid \
 expression> <block type number> { '' | <ciphersuite name> <key name> }");
@@ -229,49 +194,16 @@ expression> <block type number> { '' | <ciphersuite name> <key name> }");
 	PUTS("\t   d bcbrule <source eid expression> <destination eid \
 	expression> <block type number>");
 
-	PUTS("\n\t   JSON Delete Commands (Experimental)");
-	PUTS("\t   -----------------------------------");
-	PUTS("\t   d { \"event\" :");
-	PUTS("\t       {");
-	PUTS("\t          \"es_ref\"   : \"<event set name>\",");
-	PUTS("\t          \"event_id\" : \"<event name>\",");
-	PUTS("\t       }");
-	PUTS("\t     }");
-	PUTS("\t   d { \"event_set\" : {\"name\" : \"<event set name>\"}}");
-	PUTS("\t   d { \"policyrule\" : {\"rule_id\" : \"<rule id>\"}}");
-
-	PUTS("\n\tf\tFind");
-	PUTS("\t   JSON Find Commands (Experimental)");
-	PUTS("\t   ---------------------------------");
-	PUTS("\t   f { \"policyrule\" : ");
-	PUTS("\t       {");
-	PUTS("\t          \"type\" : \"all\" | \"best\",");
-	PUTS("\t          \"src\"  : \"<source eid expression>\",        \\");
-	PUTS("\t          \"dest\" : \"<destination eid expression>\",    ) (1 of src/dest/ssrc required)");
-	PUTS("\t          \"ssrc\" : \"<security source eid expression>\"/");
-	PUTS("\t          \"scid\" : <security context id> (optional)");
-	PUTS("\t          \"role\" : \"<security role>\" (optional)");
-	PUTS("\t       }");
-	PUTS("\t     }");
-
 	PUTS("\n\ti\tInfo");
 	PUTS("\t   i bibrule <source eid expression> <destination eid \
 expression> <block type number>");
 	PUTS("\t   i bcbrule <source eid expression> <destination eid \
 expression> <block type number>");
 
-	PUTS("\n\t   JSON Info Commands (Experimental)");
-	PUTS("\t   ---------------------------------");
-	PUTS("\t   i { \"event_set\" : {\"name\" : \"<event set name>\"}}");
-	PUTS("\t   i { \"policyrule\" : <rule id>");
-
 	PUTS("\n\tl\tList");
 	PUTS("\t   l bibrule");
 	PUTS("\t   l bcbrule");
 
-	PUTS("\n\t   JSON List Commands (Experimental)");
-	PUTS("\t   ---------------------------------");
-	PUTS("\t   l {\"type\" : \"eventset\" | \"policyrule\"");
 
 	PUTS("\tx\tClear BSP security rules.");
 	PUTS("\t   x <security source eid> <security destination eid> \
@@ -280,6 +212,101 @@ expression> <block type number>");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
+
+
+    PUTS("\n\n\tJSON Commands (Experimental)");
+    PUTS("\t--------------------------------");
+    PUTS("\tJSON keys wrapped in ?'s are optional in a command.");
+    PUTS("\tIf included, the key should be represented without the ?'s.");
+    PUTS("\n\t   ADD");
+    PUTS("\t   a { \"event\" :");
+    PUTS("\t       {");
+    PUTS("\t          \"es_ref\" : \"<event set name>\",");
+    PUTS("\t          \"event_id\" : \"<event name>\",");
+    PUTS("\t          \"actions\" : [{\"id\":\"<action>\", <parms if applicable>},...]");
+    PUTS("\t       }");
+    PUTS("\t     }");
+    PUTS("\t   a { \"event_set\" : {\"?desc?\" : \"<desc>\", \"name\" : \"<event set name>\"}}");
+    PUTS("\t   a { \"policyrule\" :");
+    PUTS("\t       {");
+    PUTS("\t          \"?desc?\" : \"<description>\",");
+    PUTS("\t          \"es_ref\" : \"<event set name>\",");
+    PUTS("\t          \"filter\" : ");
+    PUTS("\t          {");
+    PUTS("\t             \"?rule_id?\" : \"<rule id>\",");
+    PUTS("\t             \"role\"      : \"<security role>\", ");
+    PUTS("\t             \"src\"       : \"<source eid expression>\",        \\");
+    PUTS("\t             \"dest\"      : \"<destination eid expression>\",    ) (1 of src/dest/ssrc required)");
+    PUTS("\t             \"ssrc\"      : \"<security source eid expression>\"/");
+    PUTS("\t          },");
+    PUTS("\t          \"spec\" :");
+    PUTS("\t          {");
+    PUTS("\t             \"svc\"      : \"<security service>\"");
+    PUTS("\t             \"sc_parms\" : [{\"id\":\"<parm1_id>\",\"value\":\"<parm1_value\"},...]");
+    PUTS("\t          }");
+    PUTS("\t       }");
+    PUTS("\t     }");
+
+    PUTS("\n\t   DELETE");
+    PUTS("\t   d { \"event\" : {\"es_ref\" : \"<event set name>\", \"event_id\" : \"<event name>\"}}");
+    PUTS("\t   d { \"event_set\" : {\"name\" : \"<event set name>\"}}");
+    PUTS("\t   d { \"policyrule\" : {\"rule_id\" : \"<rule id>\"}}");
+
+    PUTS("\n\t   FIND");
+    PUTS("\t   f { \"policyrule\" : ");
+    PUTS("\t       {");
+    PUTS("\t          \"type\" : \"all\" | \"best\",");
+    PUTS("\t          \"src\"  : \"<source eid expression>\",         \\");
+    PUTS("\t          \"dest\" : \"<destination eid expression>\",     ) (1 of src/dest/ssrc required)");
+    PUTS("\t          \"ssrc\" : \"<security source eid expression>\"./");
+    PUTS("\t          \"?scid?\" : <security context id>,");
+    PUTS("\t          \"?role?\" : \"<security role>\"");
+    PUTS("\t       }");
+    PUTS("\t     }");
+
+    PUTS("\n\t   INFO");
+    PUTS("\t   i { \"event_set\" : {\"name\" : \"<event set name>\"}}");
+    PUTS("\t   i { \"policyrule\" : <rule id>");
+
+    PUTS("\n\t   LIST");
+    PUTS("\t   l {\"type\" : \"eventset\" | \"policyrule\"}");
+
+
+}
+
+static int attach(int state)
+{
+
+    if (secAttach() != 0)
+    {
+        printText("Failed to attach to security database.");
+        return 0;
+    }
+
+    SecVdb *vdb = getSecVdb();
+    if (vdb == NULL)
+    {
+        printText("Failed to retrieve security database.");
+        return 0;
+    }
+
+
+    if((gWm = getIonwm()) == NULL)
+    {
+        printText("ION is not running.");
+        return 0;
+    }
+
+    if(state == 1)
+    {
+        if (bsl_all_init(gWm) < 1)
+        {
+            printText("Failed to initialize BPSec policy");
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 /******************************************************************************
@@ -296,30 +323,17 @@ expression> <block type number>");
  *  --------  ------------   ---------------------------------------------
  *  01/22/21   S. Heiner      Initial Implementation
  *****************************************************************************/
-static void init()
+static int init()
 {
+
+    /* This will call ionAttach */
 	if (secInitialize() < 0)
 	{
 		printText("Can't initialize the ION security system.");
+		return 0;
 	}
 
-	if (secAttach() != 0)
-	{
-		printText("Failed to attach to security database.");
-	}
-
-	SecVdb *vdb = getSecVdb();
-	if (vdb == NULL)
-	{
-		printText("Failed to retrieve security database.");
-	}
-
-	gWm = getIonwm();
-
-	if (bsl_all_init(gWm) < 1)
-	{
-		printText("Failed to initialize BPSec policy");
-	}
+	return attach(1);
 }
 
 
@@ -630,7 +644,6 @@ static int setAction(char *action, uint8_t *actionMask)
 static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *parms)
 {
 	int start = 0;
-	int actionLen = 0;
 	char actionStr[MAX_ACTION_LEN];
 	int parmIdx = 0;
 	char parmStr[64+1];
@@ -657,7 +670,7 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 		/*
 		 * All valid actions start with "id". If there are no more valid actions, we are done.
 		 */
-		if((actionLen = jsonGetTypedValue(job, start, 0, JSMN_STRING, "id", MAX_ACTION_LEN, actionStr, &start)) <= 0)
+		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "id", MAX_ACTION_LEN, actionStr, &start) <= 0)
 		{
 			break;
 		}
@@ -892,24 +905,6 @@ static int parseFilter(jsonObject job, BpSecFilter *filter)
 
 
 
-/******************************************************************************
- * @brief Convenience function for deleting elements of a security context lyst
- *
- * @param[in] elt - Lyst element
- * @param[in] arg - callback tag - unused
- *
- *****************************************************************************/
-
-static void sc_parm_del(LystElt elt, void *arg)
-{
-	void *data = lyst_data(elt);
-	if(data)
-	{
-		MRELEASE(data);
-	}
-}
-
-
 
 /******************************************************************************
  * @brief Retrieve a set of security context parameters from a JSON object
@@ -927,25 +922,25 @@ static void sc_parm_del(LystElt elt, void *arg)
  * @retval  NULL  - Error extracting security parameters
  *****************************************************************************/
 
-static Lyst getSecCtxtParms(jsonObject job)
+static PsmAddress getSecCtxtParms(jsonObject job)
 {
 	int i = 0;
 	int start = 0;
 	char curId[GEN_PARM_LEN];
 	char curVal[GEN_PARM_LEN];
-	sci_inbound_tlv *curParm = NULL;
-	Lyst parms = NULL;
+	PsmAddress result = 0;
+	PsmAddress newParm = 0;
+	PsmPartition partition = getIonwm();
 
 	/* It is not an error to not have security context parms. */
 	if((start = jsonGetTypedIdx(job, 1, 0, "sc_parms", JSMN_ARRAY)) <= 0)
 	{
-		return NULL;
+		return 0;
 	}
 
-	/* Create a Lyst to hold the parms we did find. */
-	parms = lyst_create();
-	CHKNULL(parms);
-	lyst_delete_set(parms,sc_parm_del,NULL);
+	/* Create a shared memory list to hold the parms we did find. */
+	result = sm_list_create(partition);
+	CHKZERO(result);
 
 	/* Start processing parms at the start of the sc_parms JSON object. */
 	i = start;
@@ -961,43 +956,33 @@ static Lyst getSecCtxtParms(jsonObject job)
 		}
 		else
 		{
-			/* Allocate and initialize a structure to hold the current parm. */
-			curParm = (sci_inbound_tlv*) MTAKE(sizeof(sci_inbound_tlv));
-			CHKNULL(curParm);
-			memset(curParm, 0, sizeof(sci_inbound_tlv));
-
 			/* Init the parm Id */
-			curParm->id = getMappedValue(gScParmMap, curId);
+			int type = getMappedValue(gScParmMap, curId);
 
 			/* Read the parm value into a tmp variable. */
-			if((curParm->length = jsonGetTypedValue(job, i, 0, JSMN_STRING, "value", GEN_PARM_LEN, curVal, &i)) < 0)
+			if(jsonGetTypedValue(job, i, 0, JSMN_STRING, "value", GEN_PARM_LEN, curVal, &i) < 0)
 			{
 				isprintf(gUserText, USER_TEXT_LEN, "[x] Cannot parse sc_parm %s", curId);
 				printText(gUserText);
 
-				MRELEASE(curParm);
-				lyst_destroy(parms);
-				return NULL;
+				bslpol_scparms_destroy(partition, result);
+				return 0;
 			}
 
-			/* Allocate space for variable in the sc parm and copy it in. */
-			if((curParm->value = MTAKE(curParm->length + 1)) == NULL)
+			if((newParm = bslpol_scparm_create(partition, type, strlen(curVal), curVal)) <= 0)
 			{
-				isprintf(gUserText, USER_TEXT_LEN, "[x] Cannot allocate %d bytes for parm value", curParm->length+1);
-				printText(gUserText);
+                isprintf(gUserText, USER_TEXT_LEN, "[x] Cannot create parameter %s", curVal);
+                printText(gUserText);
 
-				MRELEASE(curParm);
-				lyst_destroy(parms);
-				return NULL;
+                bslpol_scparms_destroy(partition, result);
+                return 0;
 			}
-			memset(curParm->value, 0, curParm->length+1);
-			memcpy(curParm->value, curVal, curParm->length);
 
-			lyst_insert(parms, curParm);
+			sm_list_insert_last(partition, result, newParm);
 		}
 	}
 
-	return parms;
+	return result;
 }
 
 
@@ -1018,15 +1003,14 @@ static Lyst getSecCtxtParms(jsonObject job)
 
 static int getRuleId(jsonObject job, uint16_t *ruleId)
 {
-	int idLen = 0;
 	char id[RULE_ID_LEN];
 	memset(id, '\0', sizeof(id));
 
 	*ruleId = 0;
 
-	if((idLen = jsonGetTypedValue(job, 1, 0, JSMN_STRING, "rule_id", RULE_ID_LEN, id, NULL)) <= 0)
+	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "rule_id", RULE_ID_LEN, id, NULL) <= 0)
 	{
-		if((idLen = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "rule_id", RULE_ID_LEN, id, NULL)) <= 0)
+		if(jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "rule_id", RULE_ID_LEN, id, NULL) <= 0)
 		{
 		  return 0;
 		}
@@ -1266,7 +1250,7 @@ static void	executeAddJson(jsonObject job)
 	else if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
 	{
 		BpSecFilter filter;
-		Lyst sci_parms = NULL;
+		PsmAddress sci_parms = 0;
 		uint16_t id = 0;
 		PsmAddress esAddr = 0;
 		char desc[BPSEC_RULE_DESCR_LEN+1];
@@ -1291,7 +1275,7 @@ static void	executeAddJson(jsonObject job)
 		{
 			printText("[x] Undefined Event set.");
 		}
-		else if((sci_parms = getSecCtxtParms(job)) == NULL)
+		else if((sci_parms = getSecCtxtParms(job)) == 0)
 		{
 			printText("[x] Security context parameters could not be processed");
 		}
@@ -1311,8 +1295,6 @@ static void	executeAddJson(jsonObject job)
 				isprintf(gUserText, USER_TEXT_LEN, "[x] Could not insert rule %d.", id);
 				printText(gUserText);
 			}
-
-			lyst_destroy(sci_parms);
 		}
 	}
 	else
@@ -2363,53 +2345,58 @@ int processJson(char *line, char cmd, int cmdPresent)
 			case 0:			/*	Empty line.		*/
 			case '#':		/*	Comment.		*/
 				return 0;
-
 			case '?':
 			case 'h':
 				printUsage();
 				return 0;
+			case '1':
+			    if(init() < 0)
+			    {
+			        return -1;
+			    }
+			    return 0;
 			case 'v':
 				isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
 				printText(buffer);
 				return 0;
 
 			case 'a':
-				if (secAttach() == 0)
+				if (attach(0) == 1)
 				{
 					executeAddJson(job);
 				}
 				return 0;
 #if 0
 			case 'c':
-				if (secAttach() == 0)
+				if (attach(0) == 1)
 				{
 					executeChangeJson(job);
 				}
 				return 0;
 #endif
 			case 'd':
-				if (secAttach() == 0)
+				if (attach(0) == 1)
 				{
 					executeDeleteJson(job);
 				}
 				return 0;
 
 			case 'f':
-				if (secAttach() == 0)
+				if (attach(0) == 1)
 				{
 					executeFindJson(job);
 				}
 				return 0;
 
 			case 'i':
-				if (secAttach() == 0)
+				if (attach(0) == 1)
 				{
 					executeInfoJson(job);
 				}
 				return 0;
 
 			case 'l':
-				if (secAttach() == 0)
+				if (attach(0) == 1)
 				{
 					executeListJson(job);
 				}
@@ -2493,8 +2480,15 @@ int	processLine(char *line, int lineLength, char *jsonStr, int cmdFile)
 			printText(buffer);
 			return 0;
 
+        case '1':
+            if(init() < 0)
+            {
+                return -1;
+            }
+            return 0;
+
 		case 'a':
-			if (secAttach() == 0)
+			if (attach(0) == 1)
 			{
 				executeAdd(tokenCount, tokens);
 			}
@@ -2502,7 +2496,7 @@ int	processLine(char *line, int lineLength, char *jsonStr, int cmdFile)
 			return 0;
 
 		case 'c':
-			if (secAttach() == 0)
+			if (attach(0) == 1)
 			{
 				executeChange(tokenCount, tokens);
 			}
@@ -2510,7 +2504,7 @@ int	processLine(char *line, int lineLength, char *jsonStr, int cmdFile)
 			return 0;
 
 		case 'd':
-			if (secAttach() == 0)
+			if (attach(0) == 1)
 			{
 				executeDelete(tokenCount, tokens);
 			}
@@ -2518,7 +2512,7 @@ int	processLine(char *line, int lineLength, char *jsonStr, int cmdFile)
 			return 0;
 
 		case 'i':
-			if (secAttach() == 0)
+			if (attach(0) == 1)
 			{
 				executeInfo(tokenCount, tokens);
 			}
@@ -2526,7 +2520,7 @@ int	processLine(char *line, int lineLength, char *jsonStr, int cmdFile)
 			return 0;
 
 		case 'l':
-			if (secAttach() == 0)
+			if (attach(0) == 1)
 			{
 				executeList(tokenCount, tokens);
 			}
@@ -2534,7 +2528,7 @@ int	processLine(char *line, int lineLength, char *jsonStr, int cmdFile)
 			return 0;
 
 		case 'x':
-			if (secAttach() == 0)
+			if (attach(0) == 1)
 			{
 			   	if (tokenCount > 4)
 				{
@@ -2600,7 +2594,12 @@ int	main(int argc, char **argv)
 #else
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
-		init();
+
+        if(init() <= 0)
+        {
+            return -1;
+        }
+
 		while (1)
 		{
 			printf(": ");

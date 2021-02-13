@@ -69,7 +69,7 @@
 #endif
 
 #ifndef BIB_DEBUGGING
-#define BIB_DEBUGGING 0  /** Whether to enable (1) or disable (0) debugging */
+#define BIB_DEBUGGING 1  /** Whether to enable (1) or disable (0) debugging */
 #endif
 
 #define BIB_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
@@ -77,7 +77,7 @@
 #define BIB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BIB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BIB_DEBUG_LVL   BIB_DEBUG_LVL_ERR
+#define BIB_DEBUG_LVL   BIB_DEBUG_LVL_PROC
 
 #define GMSG_BUFLEN     256
 #if (BIB_DEBUGGING == 1)

@@ -27,6 +27,7 @@
 #include "bpsec_policy.h"
 #include "bpsec_policy_eventset.h"
 #include "csi.h"
+#include "profiles.h"
 
 /*
  * +--------------------------------------------------------------------------+
@@ -152,8 +153,10 @@ typedef struct
 
 typedef struct
 {
-	sci_inbound_parms parms;
-} BpSecCtxCfg;
+	uint16_t id;
+	uint16_t length;
+	PsmAddress addr;
+} BpSecCtxParm;
 
 
 
@@ -184,7 +187,7 @@ typedef struct
 	uint16_t    user_id;  /**< Unique User-supplied rule ID.            */
 	uint8_t     flags;    /**< Administrative information for the rule. */
 	BpSecFilter filter;   /**< Filter structure for matching to blocks. */
-	BpSecCtxCfg sc_cfgs;  /**< Asserted security context configurations.*/
+	PsmAddress  sc_parms; /**< SmList of BpSecCtxParm.                  */
 	PsmAddress  eventSet; /**< Actionable events (BpSecPolEventSet *)   */
 } BpSecPolRule;
 
@@ -271,27 +274,35 @@ void        bslpol_filter_score(PsmPartition partition, BpSecFilter *filter);
 
 /* General Rule Processing Functions */
 BpSecPolRule* bslpol_rule_applies(Bundle *bundle, BpBlockType tgtType, int bpaRole);
-PsmAddress    bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, uint8_t flags, BpSecFilter filter, Lyst sec_parms, PsmAddress events);
+PsmAddress    bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, uint8_t flags, BpSecFilter filter, PsmAddress sec_parms, PsmAddress events);
 void          bslpol_rule_delete(PsmPartition partition, PsmAddress ruleAddr);
 PsmAddress    bslpol_rule_get_addr(PsmPartition partition, int user_id);
 Lyst          bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag criteria);
 BpSecPolRule* bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSearchTag criteria);
 BpSecPolRule* bslpol_rule_get_ptr(PsmPartition partition, int user_id);
-BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType tgtType);
+BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType sopType, BpBlockType tgtType);
 BpSecPolRule* bslpol_get_receiver_rule(Bundle *bundle, unsigned char tgtNum, int scid);
 int           bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember);
 int           bslpol_rule_matches(PsmPartition partition, BpSecPolRule *rulePtr, BpSecPolRuleSearchTag *tag);
 int           bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr);
 int           bslpol_rule_remove_by_id(PsmPartition partition, int user_id);
 
+/* Security context parameter functions. */
+PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, void *value);
+PsmAddress bslpol_scparm_find(PsmPartition partition, PsmAddress parms, int type);
+
+void       bslpol_scparms_destroy(PsmPartition partition, PsmAddress addr);
+Address    bslpol_scparms_persist(PsmPartition partition, char *cursor, PsmAddress parms, int *bytes_left);
+Address    bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *cursor, int *bytes_left);
+int        bslpol_scparms_size(PsmPartition partition, PsmAddress parms);
 
 /* Rule Persistence Functions. */
 int     bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr);
 int     bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr);
 int     bslpol_sdr_rule_restore(PsmPartition vm, BpSecPolicyDbEntry entry);
 int     bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr);
-Address bslpol_sdr_scparm_persist(char *cursor, sci_inbound_tlv parm, int *bytes_left);
-Address bslpol_sdr_scparm_restore(sci_inbound_tlv *parm, char *cursor, int *bytes_left);
+
+
 
 
 /* Rule Searching Functions */

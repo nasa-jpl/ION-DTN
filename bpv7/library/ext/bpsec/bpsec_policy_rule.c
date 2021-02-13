@@ -209,7 +209,7 @@ void  bslpol_filter_score(PsmPartition partition, BpSecFilter *filter)
  * @param[in] id            - The "user" ID of the rule.
  * @param[in] flags         - Special processing flags for the rule.
  * @param[in] filter        - The rule filter.
- * @param[in] sec_parms     - The security context for the rule.
+ * @param[in] sec_parms     - The smlist of security context parameters (or 0);
  * @param[in] events        - The event set for the rule.
  *
  * @note
@@ -221,16 +221,13 @@ void  bslpol_filter_score(PsmPartition partition, BpSecFilter *filter)
  * If the eventset is *not* a reference into the eventset database, then the
  * flags passed in to this function MUST indicate that the eventset is an
  * anonymous event set associated only with this rule.
- * \par
- * The passed-in sec_parms MUST be destroyed by the calling function. These
- * parms are deep-copied into the security context.
  *
  * @retval !0 - The created rule.
  * @retval 0 - Error.
  *****************************************************************************/
 
 PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, uint8_t flags,
-		                      BpSecFilter filter, Lyst sec_parms, PsmAddress events)
+		                      BpSecFilter filter, PsmAddress sec_parms, PsmAddress events)
 {
 	PsmAddress ruleAddr = 0;
 	BpSecPolRule *rulePtr = NULL;
@@ -248,7 +245,7 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 	rulePtr->flags = flags;
 	rulePtr->filter = filter;
 	rulePtr->eventSet = events;
-	rulePtr->sc_cfgs.parms = sci_build_parms(sec_parms);
+	rulePtr->sc_parms = sec_parms;
 
 	/* Step 2: Return the new rule. */
 	return ruleAddr;
@@ -787,12 +784,14 @@ int bslpol_rule_remove_by_id(PsmPartition partition, int user_id)
  * (tgtType) and role of the BPA (security source).
  *
  * @param[in]     bundle   Current bundle.
- * @param[in]     tgtType  Block type of target of policy rule
+ * @param[in]     sopType  Block type of security operation to search for.
+ * @param[in]     tgtType  Block type of target of policy rule.
  *
  * @retval !NULL - The policy rule to be applied to his bundle.
  * @retval NULL  - No rule is available for this bundle.
  *****************************************************************************/
-BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType tgtType)
+BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType sopType,
+		BpBlockType tgtType)
 {
 	PsmPartition wm = getIonwm();
 	BpSecPolRuleSearchTag tag;
@@ -810,6 +809,34 @@ BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType tgtType)
 
 	/* Step 2: Retrieve the rule for the current security operation */
 	BpSecPolRule *polRule = bslpol_rule_get_best_match(wm, tag);
+
+	/*
+	 * Step 3: Using the scid, determine if the policy rule matches the
+	 * offered security operation type.
+	 */
+	if (polRule != NULL)
+	{
+		if (sopType == BlockIntegrityBlk)
+		{
+			BibProfile *bibProf = get_bib_prof_by_number(polRule->filter.scid);
+			if (bibProf == NULL)
+			{
+				polRule = NULL;
+			}
+		}
+		else if (sopType == BlockConfidentialityBlk)
+		{
+			BcbProfile *bcbProf = get_bcb_prof_by_number(polRule->filter.scid);
+			if (bcbProf == NULL)
+			{
+				polRule = NULL;
+			}
+		}
+		else /* Security operation type is not currently supported */
+		{
+			polRule = NULL;
+		}
+	}
 
 	MRELEASE(tag.bsrc);
 	MRELEASE(tag.bdest);
@@ -833,7 +860,8 @@ BpSecPolRule* bslpol_get_sender_rule(Bundle *bundle, BpBlockType tgtType)
  * @retval !NULL - The policy rule to be applied to his bundle.
  * @retval NULL  - No rule is available for this bundle.
  *****************************************************************************/
-BpSecPolRule* bslpol_get_receiver_rule(Bundle *bundle, unsigned char tgtNum, int scid)
+BpSecPolRule* bslpol_get_receiver_rule(Bundle *bundle, unsigned char tgtNum,
+		int scid)
 {
 	PsmPartition wm = getIonwm();
 	BpSecPolRuleSearchTag tag;
@@ -874,6 +902,212 @@ BpSecPolRule* bslpol_get_receiver_rule(Bundle *bundle, unsigned char tgtNum, int
 
 	return polRule;
 }
+
+
+
+PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, void *value)
+{
+	PsmAddress result = psm_zalloc(partition, sizeof(BpSecCtxParm));
+	BpSecCtxParm *parm = psp(partition, result);
+
+	if(parm)
+	{
+		parm->id = type;
+		parm->length = length;
+		if(length <= 0)
+		{
+			parm->addr = 0;
+		}
+		else if((parm->addr = psm_zalloc(partition, length)) <= 0)
+		{
+			psm_free(partition, result);
+			result = 0;
+		}
+		else
+		{
+			void *valPtr = psp(partition, parm->addr);
+			memcpy(valPtr, value, length);
+		}
+	}
+
+	return result;
+}
+
+
+
+
+PsmAddress bslpol_scparm_find(PsmPartition partition, PsmAddress parms, int type)
+{
+  PsmAddress result = 0;
+  PsmAddress elt = 0;
+  BpSecCtxParm *parm = NULL;
+
+  for(elt = sm_list_first(partition, parms); elt; elt = sm_list_next(partition, elt))
+  {
+      result = sm_list_data(partition, elt);
+      if((parm = psp(partition, result)) != NULL)
+      {
+          if(parm->id == type)
+          {
+              return result;
+          }
+      }
+  }
+
+  return 0;
+}
+
+
+
+
+void bslpol_scparms_destroy(PsmPartition partition, PsmAddress addr)
+{
+    BpSecCtxParm *parm = psp(partition, addr);
+
+    if(parm)
+    {
+        void *valPtr = psp(partition, parm->addr);
+        memset(valPtr, 0, parm->length);
+        psm_free(partition, parm->addr);
+
+        memset(parm,0,sizeof(BpSecCtxParm));
+        psm_free(partition, addr);
+    }
+}
+
+/******************************************************************************
+ * @brief Serialize a security context parameter into a buffer.
+ *
+ * @param[in,out] cursor     - The cursor into the buffer being updated.
+ * @param[in]     param      - The parameter being serialized.
+ * @param[in,out] bytes_left - Space remaining in buffer.
+ *
+ * @notes
+ *
+ * @retval  The number of bytes written into the buffer beyond the cursor.
+ *****************************************************************************/
+
+Address bslpol_scparms_persist(PsmPartition partition, char *buffer, PsmAddress parms, int *bytes_left)
+{
+
+	char *cursor = buffer;
+	PsmAddress elt = 0;
+	uint16_t num_items = 0;
+	BpSecCtxParm *sc_parm = NULL;
+	void *valPtr = NULL;
+
+	CHKZERO(cursor);
+	CHKZERO(bytes_left);
+
+	num_items = sm_list_length(partition, parms);
+	cursor += bsl_bufwrite(cursor, &num_items, sizeof(num_items), bytes_left);
+
+	for(elt = sm_list_first(partition, parms); elt; elt = sm_list_next(partition, elt))
+	{
+		if((sc_parm = psp(partition, sm_list_data(partition, elt))) != NULL)
+		{
+			cursor += bsl_bufwrite(cursor, &(sc_parm->id), sizeof(sc_parm->id), bytes_left);
+
+			if((valPtr = psp(partition, sc_parm->addr)) != NULL)
+			{
+				cursor += bsl_bufwrite(cursor, &(sc_parm->length), sizeof(sc_parm->length), bytes_left);
+				cursor += bsl_bufwrite(cursor, valPtr, sc_parm->length, bytes_left);
+			}
+			else
+			{
+				sc_parm->length = 0;
+				cursor += bsl_bufwrite(cursor, &(sc_parm->length), sizeof(sc_parm->length), bytes_left);
+			}
+		}
+	}
+
+	return cursor - buffer;
+}
+
+
+
+/******************************************************************************
+ * @brief Deserialize a security context parameter from a buffer
+ *
+ * @param[out]    parm       - The deserialized parameter.
+ * @param[in]     cursor     - The cursor into the buffer being read from.
+ * @param[in,out] bytes_left - Space remaining in buffer.
+ *
+ * @notes
+ * @retval  The number of bytes read from the buffer beyond the cursor.
+ *****************************************************************************/
+
+Address bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *buffer, int *bytes_left)
+{
+	char *cursor = buffer;
+	PsmAddress newParm = 0;
+	uint16_t num_items = 0;
+	int i = 0;
+
+	CHKZERO(cursor);
+	CHKZERO(bytes_left);
+	CHKZERO(parms);
+
+	*parms = sm_list_create(partition);
+	CHKZERO(*parms);
+
+	cursor += bsl_bufread(&(num_items), cursor, sizeof(num_items), bytes_left);
+
+	for(i = 0; i < num_items; i++)
+	{
+		int type = 0;
+		int length = 0;
+		void *valPtr = NULL;
+
+		cursor += bsl_bufread(&(type), cursor, sizeof(type), bytes_left);
+		cursor += bsl_bufread(&(length), cursor, sizeof(length), bytes_left);
+		if(length > 0)
+		{
+			if((valPtr = MTAKE(length)) != NULL)
+			{
+			   cursor += bsl_bufread(&(valPtr), cursor, length, bytes_left);
+			}
+		}
+
+		if((newParm = bslpol_scparm_create(partition, type, length, valPtr)) != 0)
+		{
+			sm_list_insert_last(partition, *parms, newParm);
+		}
+
+		if(valPtr)
+		{
+		   MRELEASE(valPtr);
+		   valPtr = NULL;
+		}
+	}
+
+	return cursor - buffer;
+}
+
+
+int bslpol_scparms_size(PsmPartition partition, PsmAddress parms)
+{
+    int size = 0;
+    PsmAddress elt = 0;
+    BpSecCtxParm *parm = NULL;
+
+    size += sizeof(uint16_t); // @ items in the list.
+
+    for(elt = sm_list_first(partition, parms); elt; elt = sm_list_next(partition, elt))
+    {
+        if((parm = psp(partition, sm_list_data(partition, elt))) != NULL)
+        {
+            size += sizeof(parm->id);
+            size += sizeof(parm->length);
+            size += parm->length;
+        }
+    }
+
+    return size;
+}
+
+
+
 
 /******************************************************************************
  * @brief Remove a rule from the SDR.
@@ -1047,12 +1281,7 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 		cursor += bsl_bufwrite(cursor, &(rule->filter.scid), sizeof(rule->filter.scid), &bytes_left);
 	}
 
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.aad,     &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.icv,     &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.intsig,  &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.iv,      &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.keyinfo, &bytes_left);
-	cursor += bslpol_sdr_scparm_persist(cursor, rule->sc_cfgs.parms.salt,    &bytes_left);
+	cursor += bslpol_scparms_persist(wm, cursor, rule->sc_parms, &bytes_left);
 
 	BpSecEventSet *esPtr = (BpSecEventSet *) psp(wm, rule->eventSet);
 
@@ -1209,12 +1438,7 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 		cursor += bsl_bufread(&(rulePtr->filter.scid), cursor, sizeof(rulePtr->filter.scid), &bytes_left);
 	}
 
-	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.aad),     cursor, &bytes_left);
-	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.icv),     cursor, &bytes_left);
-	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.intsig),  cursor, &bytes_left);
-	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.iv),      cursor, &bytes_left);
-	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.keyinfo), cursor, &bytes_left);
-	cursor += bslpol_sdr_scparm_restore(&(rulePtr->sc_cfgs.parms.salt),    cursor, &bytes_left);
+	cursor += bslpol_scparms_restore(wm, &(rulePtr->sc_parms), cursor, &bytes_left);
 
 	cursor += bsl_bufread(&len, cursor, 1, &bytes_left);
 	if(len > 0)
@@ -1312,12 +1536,7 @@ int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
 		size += strlen(rulePtr->desc) + 1; /* The NULL-terminated rule description. */
 	}
 
-	size += rulePtr->sc_cfgs.parms.aad.length     + sizeof(uvast) + sizeof(uint32_t);
-	size += rulePtr->sc_cfgs.parms.icv.length     + sizeof(uvast) + sizeof(uint32_t);
-	size += rulePtr->sc_cfgs.parms.intsig.length  + sizeof(uvast) + sizeof(uint32_t);
-	size += rulePtr->sc_cfgs.parms.iv.length      + sizeof(uvast) + sizeof(uint32_t);
-	size += rulePtr->sc_cfgs.parms.keyinfo.length + sizeof(uvast) + sizeof(uint32_t);
-	size += rulePtr->sc_cfgs.parms.salt.length    + sizeof(uvast) + sizeof(uint32_t);
+	size += bslpol_scparms_size(wm, rulePtr->sc_parms);
 
 	size += 1; // Event set name.
 
@@ -1331,60 +1550,6 @@ int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
 }
 
 
-
-/******************************************************************************
- * @brief Serialize a security context parameter into a buffer.
- *
- * @param[in,out] cursor     - The cursor into the buffer being updated.
- * @param[in]     param      - The parameter being serialized.
- * @param[in,out] bytes_left - Space remaining in buffer.
- *
- * @notes
- *
- * @retval  The number of bytes written into the buffer beyond the cursor.
- *****************************************************************************/
-
-Address bslpol_sdr_scparm_persist(char *cursor, sci_inbound_tlv parm, int *bytes_left)
-{
-	Address total = 0;
-
-	CHKZERO(cursor);
-	CHKZERO(bytes_left);
-
-	total = bsl_bufwrite(cursor, &(parm.id), sizeof(parm.id), bytes_left);
-	total += bsl_bufwrite(cursor + total, &(parm.length), sizeof(parm.length), bytes_left);
-	total += bsl_bufwrite(cursor + total, parm.value, parm.length, bytes_left);
-
-	return total;
-}
-
-
-
-/******************************************************************************
- * @brief Deserialize a security context parameter from a buffer
- *
- * @param[out]    parm       - The deserialized parameter.
- * @param[in]     cursor     - The cursor into the buffer being read from.
- * @param[in,out] bytes_left - Space remaining in buffer.
- *
- * @notes
- * @retval  The number of bytes read from the buffer beyond the cursor.
- *****************************************************************************/
-
-Address bslpol_sdr_scparm_restore(sci_inbound_tlv *parm, char *cursor, int *bytes_left)
-{
-	Address total = 0;
-
-	CHKZERO(parm);
-	CHKZERO(cursor);
-	CHKZERO(bytes_left);
-
-	total = bsl_bufread(&(parm->id), cursor, sizeof(parm->id), bytes_left);
-	total += bsl_bufread(&(parm->length), cursor + total, sizeof(parm->length), bytes_left);
-	total += bsl_bufread(&(parm->value), cursor + total, parm->length, bytes_left);
-
-	return total;
-}
 
 
 

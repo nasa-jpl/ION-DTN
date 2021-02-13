@@ -144,8 +144,7 @@ void       bsl_report_reason_code_at_sender(Bundle *bundle, BpSrReason reason);
 /* Receiver Optional Processing Action Callbacks */
 void       bsl_remove_sop_at_receiver(AcqWorkArea *wk, LystElt sopElt);
 void       bsl_remove_sop_target_at_receiver(LystElt tgtElt, LystElt sopElt);
-void       bsl_remove_all_target_sops_at_receiver(AcqWorkArea *wk, LystElt sopElt,
-		     unsigned char tgtBlkNum);
+void       bsl_remove_all_target_sops_at_receiver(AcqWorkArea *wk, unsigned char tgtBlkNum);
 void       bsl_do_not_forward_at_receiver(AcqWorkArea *wk);
 void       bsl_report_reason_code_at_receiver(AcqWorkArea *wk, BpSrReason reason);
 

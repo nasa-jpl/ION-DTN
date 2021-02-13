@@ -10168,7 +10168,6 @@ static int	catenateBundle(Bundle *bundle)
 			reportToEid, reportToEidLength);
 
 	/*	Done with primary block, now insert extension blocks.	*/
-
 	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
