@@ -715,10 +715,10 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.regions[0].regionNbr = -1;	/*	None.	*/
+		iondbBuf.regions[0].regionNbr = 0;	/*	None.	*/
 		iondbBuf.regions[0].members = sdr_list_create(ionsdr);
 		iondbBuf.regions[0].contacts = sdr_list_create(ionsdr);
-		iondbBuf.regions[1].regionNbr = -1;	/*	None.	*/
+		iondbBuf.regions[1].regionNbr = 0;	/*	None.	*/
 		iondbBuf.regions[1].members = sdr_list_create(ionsdr);
 		iondbBuf.regions[1].contacts = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
@@ -1148,14 +1148,14 @@ void	ionTerminate()
 
 /*	Functions for managing region membership.			*/
 
-int	ionPickRegion(vast regionNbr)
+int	ionPickRegion(uvast regionNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj;
 	IonDB	iondb;
 	int	i;
 
-	if (regionNbr < 0)
+	if (regionNbr == 0)
 	{
 		return 2;	/*	Null region membership.		*/
 	}
@@ -1269,7 +1269,7 @@ static void	leaveRegion(IonRegion *region)
 
 	/*	Reinitialize.						*/
 
-	region->regionNbr = -1;
+	region->regionNbr = 0;
 }
 
 static void	ionNoteNonMember(int regionIdx, uvast nodeNbr)
@@ -1297,8 +1297,8 @@ static void	ionNoteNonMember(int regionIdx, uvast nodeNbr)
 	}
 }
 
-void	ionNoteMember(int regionIdx, uvast nodeNbr, vast homeRegionNbr,
-		vast outerRegionNbr)
+void	ionNoteMember(int regionIdx, uvast nodeNbr, uvast homeRegionNbr,
+		uvast outerRegionNbr)
 {
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj = getIonDbObject();
@@ -1357,7 +1357,7 @@ void	ionNoteMember(int regionIdx, uvast nodeNbr, vast homeRegionNbr,
 	}
 }
 
-int	ionManageRegion(int idx, vast regionNbr)
+int	ionManageRegion(int idx, uvast regionNbr)
 {
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
@@ -1371,7 +1371,7 @@ int	ionManageRegion(int idx, vast regionNbr)
 	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	region = &(iondb.regions[idx]);
-	if (regionNbr < 0)		/*	Removal from region.	*/
+	if (regionNbr == 0)		/*	Removal from region.	*/
 	{
 		if (idx == 0)	/*	Trying to leave home region.	*/
 		{
@@ -1399,7 +1399,7 @@ int	ionManageRegion(int idx, vast regionNbr)
 		return 0;
 	}
 
-	if (region->regionNbr != -1)	/*	Region already defined.	*/
+	if (region->regionNbr != 0)	/*	Region already defined.	*/
 	{
 		/*	Must leave old region first.			*/
 
@@ -1425,13 +1425,13 @@ int	ionManageRegion(int idx, vast regionNbr)
 	return sdr_end_xn(sdr);
 }
 
-int	ionManagePassageway(uvast nodeNbr, vast homeRegionNbr,
-		vast outerRegionNbr)
+int	ionManagePassageway(uvast nodeNbr, uvast homeRegionNbr,
+		uvast outerRegionNbr)
 {
 	Sdr	sdr = getIonsdr();
 	int	regionIdx;
 
-	if (homeRegionNbr == -1)	/*	Forget this node.	*/
+	if (homeRegionNbr == 0)		/*	Forget this node.	*/
 	{
 		CHKERR(sdr_begin_xn(sdr));
 		ionNoteNonMember(0, nodeNbr);
@@ -1439,7 +1439,7 @@ int	ionManagePassageway(uvast nodeNbr, vast homeRegionNbr,
 		return sdr_end_xn(sdr);
 	}
 
-	if (outerRegionNbr == -1)	/*	No longer a passageway.	*/
+	if (outerRegionNbr == 0)	/*	No longer a passageway.	*/
 	{
 		regionIdx = ionPickRegion(outerRegionNbr);
 		if (regionIdx >= 0 && regionIdx <= 1)

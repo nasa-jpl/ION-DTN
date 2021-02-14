@@ -26,7 +26,7 @@ static time_t	_referenceTime(time_t *newValue)
 	return refTime;
 }
 
-static vast	_regionIdx(int *newValue)
+static int	_regionIdx(int *newValue)
 {
 	static int	regionIdx = -1;
 
@@ -157,8 +157,8 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m home <home region nbr>");
 	PUTS("\t   m outer <outer region nbr>");
 	PUTS("\t   m passageway <node number> <home region nbr> <outer region nbr>");
-	PUTS("\t\tSetting outer region nbr to -1 makes node a non-passageway.");
-	PUTS("\t\tSetting home region nbr to -1 removes the passageway.");
+	PUTS("\t\tSetting outer region nbr to 0 makes node a non-passageway.");
+	PUTS("\t\tSetting home region nbr to 0 removes the passageway.");
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
 	PUTS("\ts\tStart");
@@ -195,9 +195,9 @@ static int	initializeNode(int tokenCount, char **tokens)
 		return 1;
 	}
 
-	/*	Default home region is 0.				*/
+	/*	Default home region is 1, the "universe" region.	*/
 
-	if (ionManageRegion(0, 0) < 0)
+	if (ionManageRegion(0, 1) < 0)
 	{
 		putErrmsg("ionadmin can't initialize home region.", NULL);
 		return 1;
@@ -991,7 +991,7 @@ static void	manageRegion(int tokenCount, char **tokens, int i)
 	Object	iondbObj;
 	IonDB	iondb;
 	char	buffer[128];
-	vast	regionNbr;
+	uvast	regionNbr;
 
 	if (tokenCount == 2)
 	{
@@ -999,7 +999,7 @@ static void	manageRegion(int tokenCount, char **tokens, int i)
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 		isprintf(buffer, sizeof buffer, "home region is "
-VAST_FIELDSPEC ", outer region is " VAST_FIELDSPEC ".",
+UVAST_FIELDSPEC ", outer region is " UVAST_FIELDSPEC ".",
 				iondb.regions[0].regionNbr,
 				iondb.regions[1].regionNbr);
 		printText(buffer);
@@ -1014,21 +1014,15 @@ VAST_FIELDSPEC ", outer region is " VAST_FIELDSPEC ".",
 
 	/*	Manage node's own region membership.			*/
 
-	regionNbr = strtovast(tokens[2]);
-	if (regionNbr < -1)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
+	regionNbr = strtouvast(tokens[2]);
 	oK(ionManageRegion(i, regionNbr));
 }
 
 static void	managePassageway(int tokenCount, char **tokens)
 {
 	uvast	nodeNbr;
-	vast	homeRegionNbr;
-	vast	outerRegionNbr;
+	uvast	homeRegionNbr;
+	uvast	outerRegionNbr;
 
 	if (tokenCount != 5)
 	{
@@ -1037,8 +1031,8 @@ static void	managePassageway(int tokenCount, char **tokens)
 	}
 
 	nodeNbr	 = strtouvast(tokens[2]);
-	homeRegionNbr = strtovast(tokens[3]);
-	outerRegionNbr = strtovast(tokens[4]);
+	homeRegionNbr = strtouvast(tokens[3]);
+	outerRegionNbr = strtouvast(tokens[4]);
 	oK(ionManagePassageway(nodeNbr, homeRegionNbr, outerRegionNbr));
 }
 
@@ -1218,7 +1212,7 @@ static int	processLine(char *line, int lineLength, int *rc)
 	time_t		currentTime;
 	struct timeval	done_time;
 	struct timeval	cur_time;
-	vast		regionNbr;
+	uvast		regionNbr;
 	int		regionIdx;
 	int		max = 0;
 	int		count = 0;
@@ -1372,7 +1366,7 @@ no time.");
 				}
 				else
 				{
-					regionNbr = strtovast(tokens[1]);
+					regionNbr = strtouvast(tokens[1]);
 					regionIdx = ionPickRegion(regionNbr);
 					if (regionIdx > 1)
 					{

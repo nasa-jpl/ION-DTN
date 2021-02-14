@@ -724,7 +724,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
 	IonDB		iondb;
-	vast		regionNbr;
+	uvast		regionNbr;
 	int		regionIdx;
 	uvast		groupNbr;
 	Object		groupAddr;

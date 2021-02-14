@@ -185,8 +185,8 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	uvast		nodeNbr;
 	Object		iondbObj;
 	IonDB		iondb;
-	vast		sourceRegion;
-	vast		destinationRegion;
+	int		sourceRegion;
+	int		destinationRegion;
 
 	switch (parsePetition(&petition, cursor, unparsedBytes))
 	{
@@ -388,7 +388,7 @@ fflush(stdout);
 
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	if (iondb.regions[1].regionNbr != -1)
+	if (iondb.regions[1].regionNbr != 0)
 	{
 		/*	Node is a passageway from its home region to
 		 *	the immediate encompassing region.		*/

@@ -719,7 +719,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 {
 	Sdr		sdr = getIonsdr();
 	uvast		uvtemp;
-	vast		regionNbr;
+	uvast		regionNbr;
 	int		regionIdx;
 	int		majorType;
 	int		additionalInfo;

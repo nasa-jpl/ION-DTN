@@ -215,13 +215,13 @@ typedef struct
 typedef struct
 {
 	uvast		nodeNbr;
-	vast		homeRegionNbr;
-	vast		outerRegionNbr;
+	uvast		homeRegionNbr;
+	uvast		outerRegionNbr;
 } RegionMember;
 
 typedef struct
 {
-	vast		regionNbr;
+	uvast		regionNbr;
 	Object		members;	/*	SDR list: RegionMember	*/
 	Object		contacts;	/*	SDR list: IonContact	*/
 } IonRegion;
@@ -450,18 +450,18 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
-extern int		ionPickRegion(vast regionNbr);
+extern int		ionPickRegion(uvast regionNbr);
 extern int		ionRegionOf(uvast nodeA,
 					uvast nodeB);
 extern void		ionNoteMember(int regionIdx,
 					uvast nodeNbr,
-					vast homeRegionNbr,
-					vast outerRegionNbr);
+					uvast homeRegionNbr,
+					uvast outerRegionNbr);
 extern int		ionManageRegion(int i,
-					vast regionNbr);
+					uvast regionNbr);
 extern int		ionManagePassageway(uvast nodeNbr,
-					vast homeRegionNbr,
-					vast outerRegionNbr);
+					uvast homeRegionNbr,
+					uvast outerRegionNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

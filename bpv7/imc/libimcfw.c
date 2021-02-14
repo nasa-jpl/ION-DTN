@@ -241,8 +241,8 @@ int	imcHandleBriefing(BpDelivery *dlv, unsigned char *cursor,
 	uvast		nodeNbr;
 	Object		iondbObj;
 	IonDB		iondb;
-	vast		sourceRegion;
-	vast		destinationRegion;
+	int		sourceRegion;
+	int		destinationRegion;
 	ImcPetition	petition;
 
 //puts("Handling briefing.");
@@ -334,7 +334,7 @@ fflush(stdout);
 
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		if (iondb.regions[1].regionNbr != -1)
+		if (iondb.regions[1].regionNbr != 0)
 		{
 		/*	Node is a passageway from its home region to
 		 *	the immediate encompassing region.		*/
@@ -378,7 +378,7 @@ fflush(stdout);
 	return 0;
 }
 
-static int	xmitPetition(vast toRegion, unsigned char *buffer, int length)
+static int	xmitPetition(uvast toRegion, unsigned char *buffer, int length)
 {
 	Sdr		sdr = getIonsdr();
 	char		sourceEid[32];
@@ -392,7 +392,7 @@ static int	xmitPetition(vast toRegion, unsigned char *buffer, int length)
 	BpAncillaryData	ancillary = { 0, 0, 255 };
 
 	isprintf(sourceEid, sizeof sourceEid,
-			"ipn:" UVAST_FIELDSPEC "." VAST_FIELDSPEC,
+			"ipn:" UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
 			getOwnNodeNbr(), toRegion);
 	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
 			&vschemeElt));
@@ -462,7 +462,7 @@ static int	xmitPetition(vast toRegion, unsigned char *buffer, int length)
 	}
 }
 
-int	imcSendPetition(ImcPetition *petition, vast toRegion)
+int	imcSendPetition(ImcPetition *petition, uvast toRegion)
 {
 	unsigned char	buffer[32];
 	unsigned char	*cursor;
