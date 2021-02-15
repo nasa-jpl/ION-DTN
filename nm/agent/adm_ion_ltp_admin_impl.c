@@ -589,8 +589,8 @@ tnv_t *dtn_ion_ltpadmin_ctrl_watch_set(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 			case 's': vdb->watching |= WATCH_s; break;
 			case 't': vdb->watching |= WATCH_t; break;
 			case '@': vdb->watching |= WATCH_nak; break;
-			case '{': vdb->watching |= WATCH_CS; break;
-			case '}': vdb->watching |= WATCH_handleCS;  break;
+			case '{': vdb->watching |= WATCH_CLS; break;
+			case '}': vdb->watching |= WATCH_handleCLS;  break;
 			case '[': vdb->watching |= WATCH_CR; break;
 			case ']': vdb->watching |= WATCH_handleCR; break;
 			case '=': vdb->watching |= WATCH_resendCP;   break;
