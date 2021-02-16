@@ -1700,28 +1700,28 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 
 int	bpsec_verify(AcqWorkArea *work)
 {
-	Sdr			        sdr = getIonsdr();
-	Bundle			    *bundle = &(work->bundle);
-	Object			    rules;
-	Object			    elt;
+	Sdr			sdr = getIonsdr();
+	Bundle			*bundle = &(work->bundle);
+	Object			rules;
+	Object			elt;
 	Object		    	ruleObj;
 	BPsecBibRule		rule;
 	BibProfile	    	*prof;
 	char		     	keyBuffer[32];
-	int			        keyBuflen = sizeof keyBuffer;
+	int			keyBuflen = sizeof keyBuffer;
 	LystElt		    	elt2;
-	AcqExtBlock		    *block;
-	AcqExtBlock		    *bib;
+	AcqExtBlock		*block;
+	AcqExtBlock		*bib;
 	BpsecInboundBlock	*asb;
-	char			    *fromEid;	/*	Instrumentation.*/
-	LystElt			    targetElt;
-	LystElt			    bibElt;
+	char			*fromEid = NULL;  /*	Instrumentation.*/
+	LystElt			targetElt;
+	LystElt			bibElt;
 	BpsecInboundTarget	*target;
-	Object			    targetZco;
-	int			        result;
-	uvast			    length = 0;
-	LystElt             tgt;
-	int                 policyRuleHandled = 0;
+	Object			targetZco;
+	int			result;
+	uvast			length = 0;
+	LystElt             	tgt;
+	int                 	policyRuleHandled = 0;
 
     /**** Apply all applicable security policy rules ****/
 
