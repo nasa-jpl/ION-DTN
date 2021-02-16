@@ -122,11 +122,11 @@ relative times (+ss) are computed.");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
 <xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
-	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
-<OWLT, i.e., range in light seconds>");
 	PUTS("\t\tTime format is either +ss or yyyy/mm/dd-hh:mm:ss,");
 	PUTS("\t\texcept time '0' indicates a hypothetical contact");
 	PUTS("\t\tand time '-1' indicates a 'registration' contact.");
+	PUTS("\t   a range <from time> <until time> <from node#> <to node#> \
+<OWLT, i.e., range in light seconds>");
 	PUTS("\tc\tChange");
 	PUTS("\t   c contact <from time> <from node#> <to node#> <xmit rate \
 in bytes per second> [confidence in occurrence]");

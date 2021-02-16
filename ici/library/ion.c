@@ -759,7 +759,9 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 			return -1;
 		}
 
-		/*	Set initial home region.			*/
+		/*	NOTE: Initial home region is set by the
+		 *	initializeNode function of the ionadmin
+		 *	utility, which calls ionManageRegion.		*/
 
 		break;
 
