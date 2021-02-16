@@ -2484,11 +2484,8 @@ libtcc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
 libtcc_la_LIBADD = libici.la libbp.la
 
 libzfec_la_SOURCES = ici/zfec-1.4.24/zfec/fec.c
-if SOLARIS
 libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS) -Drestrict=
-else
-libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-endif # end SOLARIS
+
 
 # --- DTKA Executables --- #
 
