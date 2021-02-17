@@ -3406,7 +3406,7 @@ tests_nm_unit_utils_radix_pt_dotest_CFLAGS = -O0 -g  $(TESTUNITYCFLAGS) -DUSE_MA
 
 tests_nm_unit_utils_radix_ut_dotest_SOURCES = tests/nm-unit/utils/radix_ut.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	
 tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
-tests_nm_unit_utils_radix_ut_dotest_CFLAGS = -O0 -g  $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+tests_nm_unit_utils_radix_ut_dotest_CFLAGS = -O0 -g  $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
 
 #tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
 #tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
