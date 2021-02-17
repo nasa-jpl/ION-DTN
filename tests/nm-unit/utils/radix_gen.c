@@ -173,7 +173,7 @@ void radixpt_radix_populate(PsmPartition partition, PsmAddress radixAddr)
 		char *tmp = radixpt_gen_make_addr();
 
 		dataAddr = makeDataFromString(partition, tmp);
-		if(radix_insert(partition, radixAddr, tmp, dataAddr) != 1)
+		if(radix_insert(partition, radixAddr, tmp, dataAddr, NULL, radixpt_user_del) != 1)
 		{
 			if(gConfig.verbose)
 			{
@@ -215,7 +215,7 @@ void radixpt_radix_runtest()
 	PsmAddress radixAddr = 0;
 
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	radixpt_radix_populate(wm, radixAddr);
 
@@ -228,7 +228,7 @@ void radixpt_radix_runtest()
 
 	radixpt_radix_query(wm, radixAddr);
 
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 }
 
 

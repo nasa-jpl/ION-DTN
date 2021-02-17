@@ -22,7 +22,7 @@ void radix_basic(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	for(i = 0; i < 10; i++)
 	{
@@ -30,7 +30,7 @@ void radix_basic(void)
 		{
 			memset(key,0,20);
 			sprintf(key,"ipn:%d.%d", i,j);
-			TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key)));
+			TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 		}
 
 
@@ -52,7 +52,7 @@ void radix_basic(void)
 		}
 	}
 
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_EQUAL_INT(100, gStats.matches);
 }
@@ -67,13 +67,13 @@ void radix_wildcard1(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	for(i = 0; i < 10; i++)
 	{
 		memset(key,0,20);
 		sprintf(key,"ipn:%d.~", i);
-		TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key)));
+		TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 	}
 
 	if(gConfig.verbose)
@@ -92,7 +92,7 @@ void radix_wildcard1(void)
 		}
 	}
 
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_EQUAL_INT(100, gStats.matches);
 }
@@ -107,12 +107,12 @@ void radix_wildcard2(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	memset(key,0,20);
 	sprintf(key,"ipn:~");
 	char *tmp = strdup(key);
-	TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key)));
+	TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 
 	if(gConfig.verbose)
 	{
@@ -130,7 +130,7 @@ void radix_wildcard2(void)
 		}
 	}
 
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_EQUAL_INT(100, gStats.matches);
 }
@@ -146,13 +146,13 @@ void shallow(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	for(i = 0; i < 1000; i++)
 	{
 		memset(key,0,20);
 		sprintf(key,"ipn:1.%d", i);
-		TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key)));
+		TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 	}
 
 	if(gConfig.verbose)
@@ -171,7 +171,7 @@ void shallow(void)
 
 	RadixTree *radixPtr = psp(wm, radixAddr);
 	int nodes = radixPtr->stats.nodes;
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 
 	TEST_ASSERT_EQUAL_INT(1000, gStats.matches);
@@ -192,7 +192,7 @@ void deep(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	keyAddr = radix_alloc(wm, max_len);
 	key = psp(wm, keyAddr);
@@ -205,7 +205,7 @@ void deep(void)
 		{
 			key[6+j] = '1';
 		}
-		TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key)));
+		TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 	}
 
 	if(gConfig.verbose)
@@ -229,7 +229,7 @@ void deep(void)
 	psm_free(wm, keyAddr);
 	RadixTree *radixPtr = psp(wm, radixAddr);
 	int nodes = radixPtr->stats.nodes;
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_EQUAL_INT(num, gStats.matches);
 	TEST_ASSERT_EQUAL_INT(num, nodes);
@@ -250,7 +250,7 @@ void big_keys(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	keyAddr = radix_alloc(wm, max_len);
 	key = psp(wm, keyAddr);
@@ -263,7 +263,7 @@ void big_keys(void)
 		{
 			sprintf(key,"ipn:%d.%d", i, j);
 			key[max_len-1] = '\0';
-			TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key)));
+			TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 		}
 	}
 
@@ -288,7 +288,7 @@ void big_keys(void)
 	psm_free(wm, keyAddr);
 //	RadixTree *radixPtr = psp(wm, radixAddr);
 //	int nodes = radixPtr->stats.nodes;
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_EQUAL_INT(num*num, gStats.matches);
 }
@@ -304,7 +304,7 @@ void radix_large(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	for(i = 0; i < 1000; i++)
 	{
@@ -313,11 +313,11 @@ void radix_large(void)
 			memset(key,0,25);
 			sprintf(key,"ipn:%d.%d", i,j);
 
-			result = radix_insert(wm, radixAddr, key, makeDataFromString(wm, key));
+			result = radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del);
 
 			if(result != 1)
 			{
-				radix_destroy(wm, radixAddr);
+				radix_destroy(wm, radixAddr, radixpt_user_del);
 				TEST_ASSERT_EQUAL_INT(1,result);
 				return;
 			}
@@ -327,7 +327,7 @@ void radix_large(void)
 	RadixTree *radixPtr = psp(wm, radixAddr);
 	int nodes = radixPtr->stats.nodes;
 
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_GREATER_THAN(1000000, nodes);
 }
@@ -342,13 +342,13 @@ void radix_query(void)
 	radixpt_gen_initconfig();
 	memset(&gStats, 0, sizeof(RadixTestStats));
 
-	radixAddr = radix_create(NULL, radixpt_user_del, wm);
+	radixAddr = radix_create(wm);
 
 	srand(gConfig.seed1);
 	for(i = 0; i < 1000; i++)
 	{
 		char *tmp = radixpt_gen_make_addr();
-		radix_insert(wm, radixAddr, tmp, makeDataFromString(wm, tmp));
+		radix_insert(wm, radixAddr, tmp, makeDataFromString(wm, tmp), NULL, radixpt_user_del);
 		free(tmp);
 	}
 
@@ -364,7 +364,7 @@ void radix_query(void)
 	RadixTree *radixPtr = psp(wm, radixAddr);
 	int nodes = radixPtr->stats.nodes;
 
-	radix_destroy(wm, radixAddr);
+	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_GREATER_THAN(1000, nodes);
 	TEST_ASSERT_GREATER_THAN(90000, gStats.matches); // TODO figure out this number...?

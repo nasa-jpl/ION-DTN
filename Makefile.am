@@ -3402,7 +3402,7 @@ tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) 
 
 tests_nm_unit_utils_radix_pt_dotest_SOURCES = tests/nm-unit/utils/radix_pt.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	 
 tests_nm_unit_utils_radix_pt_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
-tests_nm_unit_utils_radix_pt_dotest_CFLAGS = -O0 -g  $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+tests_nm_unit_utils_radix_pt_dotest_CFLAGS = -O0 -g  $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
 
 tests_nm_unit_utils_radix_ut_dotest_SOURCES = tests/nm-unit/utils/radix_ut.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	
 tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
