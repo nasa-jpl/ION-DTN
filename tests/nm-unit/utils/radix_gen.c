@@ -168,7 +168,8 @@ void radixpt_radix_populate(PsmPartition partition, PsmAddress radixAddr)
 	PsmAddress dataAddr = 0;
 
 	srand(gConfig.seed1);
-	for(int i = 0; i < gConfig.inserts; i++)
+	int i = 0;
+	for(i = 0; i < gConfig.inserts; i++)
 	{
 		char *tmp = radixpt_gen_make_addr();
 
@@ -198,8 +199,8 @@ void radixpt_radix_populate(PsmPartition partition, PsmAddress radixAddr)
 void radixpt_radix_query(PsmPartition partition, PsmAddress radixAddr)
 {
 	srand(gConfig.seed2);
-
-	for(int i = 0; i < gConfig.queries; i++)
+	int i = 0;
+	for(i = 0; i < gConfig.queries; i++)
 	{
 		char *tmp = radixpt_gen_make_addr();
 		radixpt_radix_search(partition, radixAddr, tmp);

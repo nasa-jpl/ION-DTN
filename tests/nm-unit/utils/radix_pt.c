@@ -44,7 +44,8 @@ Lyst radixpt_lyst_populate()
 	Lyst eids = lyst_create();
 
 	srand(gConfig.seed1);
-	for(int i = 0; i < gConfig.inserts; i++)
+	int i = 0;
+	for(i = 0; i < gConfig.inserts; i++)
 	{
 		char *tmp = radixpt_gen_make_addr();
 
@@ -81,7 +82,8 @@ void radixpt_lyst_query(Lyst eids)
 	CHKVOID(eids);
 
 	srand(gConfig.seed2);
-	for(int i = 0; i < gConfig.queries; i++)
+	int i = 0;
+	for(i = 0; i < gConfig.queries; i++)
 	{
 		char *tmp = radixpt_gen_make_addr();
 		int len = strlen(tmp);
@@ -151,7 +153,8 @@ void radixpt_rbt_populate(PsmAddress rbt)
 	PsmAddress succ;
 
 	srand(gConfig.seed1);
-	for(int i = 0; i < gConfig.inserts; i++)
+	int i = 0;
+	for(i = 0; i < gConfig.inserts; i++)
 	{
 		char *tmp = radixpt_gen_make_addr();
 
@@ -202,8 +205,8 @@ void radixpt_rbt_query(PsmAddress rbt)
 
 
 	srand(gConfig.seed2);
-
-	for(int i = 0; i < gConfig.queries; i++)
+	int i = 0;
+	for(i = 0; i < gConfig.queries; i++)
 	{
 		char *tmp = radixpt_gen_make_addr();
 
