@@ -109,7 +109,7 @@ static ExtensionDef	extensionDefs[] =
 				{0,
 				0,
 				0,
-				0,
+				meb_processOnDequeue,
 				0},
 				0,
 				0,

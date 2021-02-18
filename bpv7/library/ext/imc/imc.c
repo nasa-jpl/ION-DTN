@@ -18,8 +18,10 @@ int	imc_offer(ExtensionBlock *blk, Bundle *bundle)
 	/*	Block must be offered as a placeholder to enable
 	 *	later extension block processing.			*/
 
+	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
+	blk->length = 0;
+	blk->size = 1;		/*	Just to keep block alive.	*/
 	blk->object = 0;
-	blk->size = 1;	/*	Bogus object size, to avert deletion.	*/
 	return 0;
 }
 

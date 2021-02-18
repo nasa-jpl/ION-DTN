@@ -33,8 +33,8 @@
 
 #include "bpsec.h"
 #include "bpsec_util.h"
-#include "ici/library/radixP.h"
-#include "ici/include/smrbt.h"
+#include "radixP.h"
+#include "smrbt.h"
 #include "csi.h"
 
 /*****************************************************************************

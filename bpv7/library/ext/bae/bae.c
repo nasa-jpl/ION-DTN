@@ -17,7 +17,11 @@ int	bae_offer(ExtensionBlock *blk, Bundle *bundle)
 {
 	bundle->age = 0;
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	return bae_serialize(blk, bundle);
+	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
+	blk->length = 3;	/*	Just to keep block alive.	*/
+	blk->size = 0;
+	blk->object = 0;
+	return 0;
 }
 
 int	bae_serialize(ExtensionBlock *blk, Bundle *bundle)
@@ -30,19 +34,13 @@ int	bae_serialize(ExtensionBlock *blk, Bundle *bundle)
 	uvtemp = bundle->age;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 	blk->dataLength = cursor - dataBuffer;
-	blk->size = 0;
-	blk->object = 0;
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
 int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
 	struct timeval	currentTime;
-	unsigned char	dataBuffer[32];
-	unsigned char	*cursor;
-	uvast		uvtemp;
 
-	cursor = dataBuffer;
 	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
 	{
 		bundle->age = 1000000 * ((getCtime() - EPOCH_2000_SEC)
@@ -63,10 +61,7 @@ int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 				+ (1000000 * currentTime.tv_sec);
 	}
 
-	uvtemp = bundle->age;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-	blk->dataLength = cursor - dataBuffer;
-	return serializeExtBlk(blk, (char *) dataBuffer);
+	return bae_serialize(blk, bundle);
 }
 
 int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)

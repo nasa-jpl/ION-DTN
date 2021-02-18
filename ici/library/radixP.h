@@ -42,7 +42,7 @@
 
 #include "stdint.h"
 #include "ion.h"
-#include "ici/include/radix.h"
+#include "radix.h"
 
 /*
  * +--------------------------------------------------------------------------+

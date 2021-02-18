@@ -61,7 +61,7 @@
 #include "platform_sm.h"
 #include "psm.h"
 
-#include "ici/library/radixP.h"
+#include "radixP.h"
 
 PsmAddress radix_alloc(PsmPartition partition, int size)
 {

@@ -15,7 +15,16 @@
 
 int	meb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
-	return meb_serialize(blk, bundle);
+	if (bundle->ancillaryData.metadataType == 0)
+	{
+		return 0;	/*	MEB block is unnecessary.	*/
+	}
+
+	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
+	blk->length = 0;
+	blk->size = 1;		 /*	Just to keep block alive.	*/
+	blk->object = 0;
+	return 0;
 }
 
 int	meb_serialize(ExtensionBlock *blk, Bundle *bundle)
@@ -23,11 +32,6 @@ int	meb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	unsigned char	dataBuffer[11 + BP_MAX_METADATA_LEN];
 	unsigned char	*cursor;
 	uvast		uvtemp;
-
-	if (bundle->ancillaryData.metadataType == 0)
-	{
-		return 0;	/*	MEB block is unnecessary.	*/
-	}
 
 	if (bundle->ancillaryData.metadataLen > BP_MAX_METADATA_LEN)
 	{
@@ -43,8 +47,6 @@ int	meb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	oK(cbor_encode_byte_string(bundle->ancillaryData.metadata,
 			uvtemp, &cursor));
 	blk->dataLength = cursor - dataBuffer;
-	blk->size = 0;
-	blk->object = 0;
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
@@ -80,7 +82,7 @@ int	meb_processOnEnqueue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 int	meb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
-	return 0;
+	return meb_serialize(blk, bundle);
 }
 
 int	meb_parse(AcqExtBlock *blk, AcqWorkArea *wk)

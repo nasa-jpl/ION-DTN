@@ -22,7 +22,11 @@ int	hcb_offer(ExtensionBlock *blk, Bundle *bundle)
 	bundle->hopCount = 0;
 	bundle->hopLimit = ION_HOP_LIMIT;
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	return hcb_serialize(blk, bundle);
+	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
+	blk->length = 3;	/*	Just to keep block alive.	*/
+	blk->size = 0;
+	blk->object = 0;
+	return 0;
 }
 
 int	hcb_serialize(ExtensionBlock *blk, Bundle *bundle)
@@ -39,17 +43,11 @@ int	hcb_serialize(ExtensionBlock *blk, Bundle *bundle)
 	uvtemp = bundle->hopCount;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 	blk->dataLength = cursor - dataBuffer;
-	blk->size = 0;
-	blk->object = 0;
 	return serializeExtBlk(blk, (char *) dataBuffer);
 }
 
 int	hcb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
-	unsigned char	dataBuffer[24];
-	unsigned char	*cursor;
-	uvast		uvtemp;
-
 	bundle->hopCount += 1;
 	if (bundle->hopCount > bundle->hopLimit)
 	{
@@ -57,17 +55,7 @@ int	hcb_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 		return 0;
 	}
 
-	cursor = dataBuffer;
-	uvtemp = 2;
-	oK(cbor_encode_array_open(uvtemp, &cursor));
-	uvtemp = bundle->hopLimit;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-	uvtemp = bundle->hopCount;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-	blk->dataLength = cursor - dataBuffer;
-	blk->size = 0;
-	blk->object = 0;
-	return serializeExtBlk(blk, (char *) dataBuffer);
+	return hcb_serialize(blk, bundle);
 }
 
 int	hcb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
