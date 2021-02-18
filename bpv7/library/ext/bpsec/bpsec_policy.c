@@ -154,13 +154,15 @@ Address bsl_bufwrite(char *cursor, void *value, int length, int *bytes_left)
 PsmAddress bsl_ed_get_ref(PsmPartition partition, char *eid)
 {
 	PsmAddress userDataAddr = 0;
+	SecVdb *secvdb = getSecVdb();
 
 	/* Step 0: Sanity Checks. */
 	CHKZERO(partition);
 	CHKZERO(eid);
+	CHKZERO(secvdb);
 
 	/* Step 1: See if we have this EID in the dictionary. */
-	userDataAddr = radix_find(partition, getSecVdb()->bpsecEidDictionary, eid, 0);
+	userDataAddr = radix_find(partition, secvdb->bpsecEidDictionary, eid, 0);
 
 	/* Step 2: If we have no ref, make a ref. */
 	if(userDataAddr == 0)
@@ -176,7 +178,7 @@ PsmAddress bsl_ed_get_ref(PsmPartition partition, char *eid)
 		istrcpy(dataPtr, eid, len+1);
 
 		/* Step 2.2: Insert it into the EID dictionary. */
-		if(radix_insert(partition, getSecVdb()->bpsecEidDictionary, eid, userDataAddr, NULL, bsl_cb_ed_delete) != 1)
+		if(radix_insert(partition, secvdb->bpsecEidDictionary, eid, userDataAddr, NULL, bsl_cb_ed_delete) != 1)
 		{
 			psm_free(partition, userDataAddr);
 			userDataAddr = 0;
@@ -218,7 +220,7 @@ int bsl_sdr_bootstrap(PsmPartition wm)
 	CHKERR(secvdb);
 
 	/* If we don't have any bpsec eventsets, see if any exist in the SDR. */
-	if(sm_rbt_length(wm, getSecVdb()->bpsecEventSet) == 0)
+	if(sm_rbt_length(wm, secvdb->bpsecEventSet) == 0)
 	{
 		CHKERR(sdr_begin_xn(ionsdr));
 		for(sdrElt = sdr_list_first(ionsdr, secdb->bpSecEventSets);
@@ -232,7 +234,7 @@ int bsl_sdr_bootstrap(PsmPartition wm)
 	}
 
 	/* If we don't have any bpsec policyrules, see if any exist in the SDR. */
-	if(sm_list_length(wm, getSecVdb()->bpsecPolicyRules) == 0)
+	if(sm_list_length(wm, secvdb->bpsecPolicyRules) == 0)
 	{
 		CHKERR(sdr_begin_xn(ionsdr));
 		for(sdrElt = sdr_list_first(ionsdr, secdb->bpSecPolicyRules);
@@ -330,6 +332,9 @@ int bsl_vdb_init(PsmPartition partition)
 	 *         call to initialize the VDB has been called either by this calling thread
 	 *         or by some other utility.
 	 */
+
+	CHKERR(secvdb);
+
 	if(secvdb->bpsecPolicyRules != 0)
 	{
 		return 1;
@@ -369,6 +374,8 @@ int bsl_vdb_init(PsmPartition partition)
 void bsl_vdb_teardown(PsmPartition partition)
 {
 	SecVdb *secvdb = getSecVdb();
+
+	CHKVOID(secvdb);
 
 	radix_destroy(partition, secvdb->bpsecRuleIdxBySrc, NULL);
 	radix_destroy(partition, secvdb->bpsecRuleIdxByDest, NULL);

@@ -231,7 +231,9 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 {
 	PsmAddress ruleAddr = 0;
 	BpSecPolRule *rulePtr = NULL;
+	SecVdb	*secvdb = getSecVdb();
 
+	CHKZERO(secvdb);
 	CHKZERO(ruleAddr = psm_zalloc(partition, sizeof(BpSecPolRule)));
 	rulePtr = (BpSecPolRule*) psp(partition, ruleAddr);
 
@@ -240,7 +242,7 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 	{
 		istrcpy(rulePtr->desc, desc, BPSEC_RULE_DESCR_LEN);
 	}
-	rulePtr->idx = sm_list_length(partition, getSecVdb()->bpsecPolicyRules);
+	rulePtr->idx = sm_list_length(partition, secvdb->bpsecPolicyRules);
 	rulePtr->user_id = id;
 	rulePtr->flags = flags;
 	rulePtr->filter = filter;
@@ -328,9 +330,12 @@ PsmAddress bslpol_rule_get_addr(PsmPartition partition, int user_id)
 	PsmAddress eltAddr = 0;
 	PsmAddress ruleAddr = 0;
 	BpSecPolRule *rulePtr = NULL;
+	SecVdb	*secvdb = getSecVdb();
+
+	CHKZERO(secvdb);
 
 	/* Step 1: Walk through the list... */
-	for(eltAddr = sm_list_first(partition, getSecVdb()->bpsecPolicyRules);
+	for(eltAddr = sm_list_first(partition, secvdb->bpsecPolicyRules);
 		eltAddr;
 		eltAddr = sm_list_next(partition, eltAddr))
 	{
@@ -380,9 +385,12 @@ Lyst bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag tag
 	PsmAddress eltAddr = 0;
 	PsmAddress ruleAddr = 0;
 	BpSecPolRule *rulePtr = NULL;
+	SecVdb	*secvdb = getSecVdb();
+
+	CHKNULL(secvdb);
 
 	/* Step 1: Check every rule that we have. */
-	for(eltAddr = sm_list_first(partition, getSecVdb()->bpsecPolicyRules);
+	for(eltAddr = sm_list_first(partition, secvdb->bpsecPolicyRules);
 		eltAddr;
 		eltAddr = sm_list_next(partition, eltAddr))
 	{
@@ -432,6 +440,9 @@ BpSecPolRule *bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSea
 	BpSecPolRuleSearchBestTag tag;
 	char default_key[2] = "~";
 	char *search_key = NULL;
+	SecVdb	*secvdb = getSecVdb();
+
+	CHKNULL(secvdb);
 
 	/* Step 1: Populate the search tag. */
 	tag.search = criteria;
@@ -439,13 +450,13 @@ BpSecPolRule *bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSea
 
 	/* Step 2: Walk through each index... */
 	search_key = (criteria.bsrc) ? criteria.bsrc : default_key;
-	radix_foreach_match(partition,  getSecVdb()->bpsecRuleIdxBySrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	radix_foreach_match(partition,  secvdb->bpsecRuleIdxBySrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
 
 	search_key = (criteria.bdest) ? criteria.bdest : default_key;
-	radix_foreach_match(partition,  getSecVdb()->bpsecRuleIdxByDest, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	radix_foreach_match(partition,  secvdb->bpsecRuleIdxByDest, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
 
 	search_key = (criteria.ssrc) ? criteria.ssrc : default_key;
-	radix_foreach_match(partition,  getSecVdb()->bpsecRuleIdxBySSrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
+	radix_foreach_match(partition,  secvdb->bpsecRuleIdxBySSrc, search_key,  RADIX_MATCH_FULL, (radix_match_fn)bslpol_cb_ruleradix_search_best, &tag);
 
 	/* Step 3: Return the "best" rule for this circumstance. */
 	return tag.best_rule;
@@ -501,9 +512,11 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
 	BpSecPolRule *rulePtr = NULL;
 	BpSecEventSet *esPtr = NULL;
 	char *curEID = NULL;
+	SecVdb	*secvdb = getSecVdb();
 
 	/* Step 0: Sanity Checks. */
 	CHKZERO(partition);
+	CHKZERO(secvdb);
 
 	if((rulePtr = (BpSecPolRule *) psp(partition, ruleAddr)) == NULL)
 	{
@@ -511,7 +524,7 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
 	}
 
 	/* Step 1: insert the rule into the shared memory list of rules. */
-	sm_list_insert(partition, getSecVdb()->bpsecPolicyRules, ruleAddr, bslpol_cb_rule_compare_idx, rulePtr);
+	sm_list_insert(partition, secvdb->bpsecPolicyRules, ruleAddr, bslpol_cb_rule_compare_idx, rulePtr);
 
 	/*
 	 * Step 2: Track that another rule is using the given event set.
@@ -527,7 +540,7 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
 	if(BPSEC_RULE_BSRC_IDX(rulePtr))
 	{
 		curEID = (char *) psp(partition, rulePtr->filter.bundle_src);
-		if(radix_insert(partition, getSecVdb()->bpsecRuleIdxBySrc, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
+		if(radix_insert(partition, secvdb->bpsecRuleIdxBySrc, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
 		{
 			bslpol_rule_remove(partition, ruleAddr);
 			return 0;
@@ -537,7 +550,7 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
 	if(BPSEC_RULE_BDST_IDX(rulePtr))
 	{
 		curEID = (char *) psp(partition, rulePtr->filter.bundle_dest);
-		if(radix_insert(partition, getSecVdb()->bpsecRuleIdxByDest, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
+		if(radix_insert(partition, secvdb->bpsecRuleIdxByDest, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
 		{
 			bslpol_rule_remove(partition, ruleAddr);
 			return 0;
@@ -547,7 +560,7 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
 	if(BPSEC_RULE_SSRC_IDX(rulePtr))
 	{
 		curEID = (char *) psp(partition, rulePtr->filter.sec_src);
-		if(radix_insert(partition, getSecVdb()->bpsecRuleIdxBySSrc, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
+		if(radix_insert(partition, secvdb->bpsecRuleIdxBySSrc, curEID, ruleAddr,(radix_insert_fn)bslpol_cb_ruleradix_insert, NULL) < 0)
 		{
 			bslpol_rule_remove(partition, ruleAddr);
 			return 0;
@@ -668,12 +681,14 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 	BpSecPolRule *rulePtr = NULL;
 	BpSecEventSet *esPtr = NULL;
 	char *curEID = NULL;
+	SecVdb	*secvdb = getSecVdb();
 
 	PsmAddress curRuleAddr = 0;
 	BpSecPolRule *curRulePtr = NULL;
 
 	/* Step 0: Sanity Check */
 	CHKZERO(partition);
+	CHKZERO(secvdb);
 
 	/* Cannot delete a rule that doesn't exist. */
 	if(ruleAddr == 0)
@@ -688,7 +703,7 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 	{
 		if((curEID = (char *) psp(partition, rulePtr->filter.bundle_src)) != NULL)
 		{
-			radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxBySrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+			radix_foreach_match(partition, secvdb->bpsecRuleIdxBySrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
 		}
 	}
 
@@ -696,7 +711,7 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 	{
 		if((curEID = (char *) psp(partition, rulePtr->filter.bundle_dest)) != NULL)
 		{
-			radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxByDest, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+			radix_foreach_match(partition, secvdb->bpsecRuleIdxByDest, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
 		}
 	}
 
@@ -704,7 +719,7 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 	{
 		if((curEID = (char *) psp(partition, rulePtr->filter.sec_src)) != NULL)
 		{
-			radix_foreach_match(partition, getSecVdb()->bpsecRuleIdxBySSrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
+			radix_foreach_match(partition, secvdb->bpsecRuleIdxBySSrc, curEID, 1, (radix_match_fn)bslpol_cb_ruleradix_remove, &ruleAddr);
 		}
 	}
 
@@ -720,7 +735,7 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 	 *         2. Remove the rule from the lyst.
 	 */
 
-	for(eltAddr = sm_list_first(partition, getSecVdb()->bpsecPolicyRules);
+	for(eltAddr = sm_list_first(partition, secvdb->bpsecPolicyRules);
 		eltAddr;
 		eltAddr = sm_list_next(partition, eltAddr))
 	{
@@ -1135,6 +1150,7 @@ int bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr)
 	uint16_t user_id = 0;
 	int success = 0;
 
+	CHKERR(secdb);
 	rulePtr = (BpSecPolRule*) psp(wm, ruleAddr);
 	CHKERR(rulePtr);
 
@@ -1196,8 +1212,10 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 	int bytes_left = 0;
 	uint8_t len = 0;
 	int success = 0;
+	SecDB *secdb = getSecConstants();
 
 	CHKERR(wm);
+	CHKERR(secdb);
 	rule = (BpSecPolRule *) psp(wm, ruleAddr);
 	CHKERR(rule);
 
@@ -1309,7 +1327,7 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 	}
 
 	/* Step 6: Persist, cleanup, and return. */
-	success = bsl_sdr_insert(ionsdr, buffer, entry, getSecConstants()->bpSecPolicyRules);
+	success = bsl_sdr_insert(ionsdr, buffer, entry, secdb->bpSecPolicyRules);
 	MRELEASE(buffer);
 
 	return success;
@@ -1347,10 +1365,12 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 	Sdr ionsdr = getIonsdr();
 	int bytes_left = 0;
 	uint8_t len = 0;
+	SecVdb	*secvdb = getSecVdb();
 
 	bytes_left = entry.size;
 	cursor = buffer = MTAKE(entry.size);
 	CHKERR(buffer);
+	CHKERR(secvdb);
 
 
 	/*
@@ -1380,7 +1400,7 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 		cursor += bsl_bufread(&(rulePtr->desc), cursor, len, &bytes_left);
 	}
 
-	rulePtr->idx = sm_list_length(wm, getSecVdb()->bpsecPolicyRules);
+	rulePtr->idx = sm_list_length(wm, secvdb->bpsecPolicyRules);
 
 	cursor += bsl_bufread(&(rulePtr->flags), cursor, sizeof(rulePtr->flags), &bytes_left);
 	cursor += bsl_bufread(&(rulePtr->filter.flags), cursor, sizeof(rulePtr->filter.flags), &bytes_left);

@@ -55,8 +55,10 @@
 int bsles_add(PsmPartition wm, char *name)
 {
 	PsmAddress addr = 0;
+	SecVdb	*secvdb = getSecVdb();
 
 	CHKERR(name);
+	CHKERR(secvdb);
 
 	/* Verify that event set name is unique */
 	if(bsles_get_ptr(wm, name) != NULL)
@@ -68,7 +70,7 @@ int bsles_add(PsmPartition wm, char *name)
 	/* Create and persist the event set. */
 	if(bsles_create(wm, name, 0, &addr))
 	{
-		sm_rbt_insert(wm, getSecVdb()->bpsecEventSet, addr, bsles_cb_rbt_key_comp, name);
+		sm_rbt_insert(wm, secvdb->bpsecEventSet, addr, bsles_cb_rbt_key_comp, name);
 		bsles_sdr_persist(wm, addr);
 		return 1;
 	}
@@ -258,9 +260,11 @@ int bsles_delete(PsmPartition wm, char *name)
 {
 	BpSecEventSet *esPtr = NULL;
 	PsmAddress esAddr = 0;
+	SecVdb	*secvdb = getSecVdb();
 
 	CHKERR(wm);
 	CHKERR(name);
+	CHKERR(secvdb);
 
 	/* Verify that eventset is currently defined */
 	if ((esAddr = bsles_get_addr(wm, name)) == 0)
@@ -278,7 +282,7 @@ int bsles_delete(PsmPartition wm, char *name)
 	}
 
 	/* Remove the event set from the RBT. */
-	sm_rbt_delete(wm, getSecVdb()->bpsecEventSet, bsles_cb_rbt_key_comp, (void*) esPtr, NULL, NULL);
+	sm_rbt_delete(wm, secvdb->bpsecEventSet, bsles_cb_rbt_key_comp, (void*) esPtr, NULL, NULL);
 
 	/* Delete the event set from the SDR. */
 	if(bsles_sdr_forget(wm, esPtr->name) <= 0)
@@ -332,10 +336,12 @@ int bsles_destroy(PsmPartition wm, PsmAddress esAddr, BpSecEventSet *esPtr)
 PsmAddress bsles_get_addr(PsmPartition wm, char *name)
 {
 	PsmAddress nodeAddr = 0;
+	SecVdb	*secvdb = getSecVdb();
 
 	CHKZERO(name);
+	CHKZERO(secvdb);
 
-	nodeAddr = sm_rbt_search(wm, getSecVdb()->bpsecEventSet, bsles_cb_rbt_key_comp, name, NULL);
+	nodeAddr = sm_rbt_search(wm, secvdb->bpsecEventSet, bsles_cb_rbt_key_comp, name, NULL);
 
 	return (nodeAddr) ? sm_rbt_data(wm, nodeAddr) : 0;
 }
@@ -357,10 +363,12 @@ Lyst bsles_get_all(PsmPartition wm)
 	PsmAddress elt = 0;
 	PsmAddress esAddr = 0;
 	BpSecEventSet *esPtr = NULL;
+	SecVdb	*secvdb = getSecVdb();
 
 	CHKNULL(eventsets);
+	CHKNULL(secvdb);
 
-	for (elt = sm_rbt_first(wm, getSecVdb()->bpsecEventSet);
+	for (elt = sm_rbt_first(wm, secvdb->bpsecEventSet);
 		 elt;
 		 elt = sm_rbt_next(wm, elt))
 	{
@@ -575,6 +583,7 @@ int bsles_sdr_forget(PsmPartition wm, char *name)
 	int success = 0;
 
 	CHKERR(name);
+	CHKERR(secdb);
 
 	CHKERR(sdr_begin_xn(ionsdr));
 
@@ -625,8 +634,10 @@ int bsles_sdr_persist(PsmPartition wm, PsmAddress eventSetAddr)
 	BpSecEventSet *eventSetPtr = NULL;
 	char *buffer = NULL;
 	int bytes_left = 0;
+	SecDB *secdb = getSecConstants();
 
 	CHKERR(wm);
+	CHKERR(secdb);
 	eventSetPtr = (BpSecEventSet *) psp(wm, eventSetAddr);
 	CHKERR(eventSetPtr);
 
@@ -646,7 +657,7 @@ int bsles_sdr_persist(PsmPartition wm, PsmAddress eventSetAddr)
 		return -1;
 	}
 
-	int result = bsl_sdr_insert(ionsdr, buffer, entry, getSecConstants()->bpSecEventSets);
+	int result = bsl_sdr_insert(ionsdr, buffer, entry, secdb->bpSecEventSets);
 	MRELEASE(buffer);
 
 	return result;
@@ -673,7 +684,9 @@ int bsles_sdr_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 	Sdr ionsdr = getIonsdr();
 	int bytes_left = 0;
 	BpSecEventSet *esPtr = NULL;
+	SecVdb	*secvdb = getSecVdb();
 
+	CHKERR(secvdb);
 	bytes_left = entry.size;
 	cursor = buffer = MTAKE(entry.size);
 	CHKERR(buffer);
@@ -700,7 +713,7 @@ int bsles_sdr_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 	esPtr = (BpSecEventSet*) psp(wm, eventSetAddr);
 	CHKERR(esPtr);
 
-	return sm_rbt_insert(wm, getSecVdb()->bpsecEventSet, eventSetAddr, bsles_cb_rbt_key_comp, esPtr->name);
+	return sm_rbt_insert(wm, secvdb->bpsecEventSet, eventSetAddr, bsles_cb_rbt_key_comp, esPtr->name);
 }
 
 
