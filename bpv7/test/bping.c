@@ -152,14 +152,6 @@ static void *receiveResponses(void *x)
 			pthread_exit(NULL);
 		}
 
-		/* ReceptionInterrupted means this process received a signal but not
-		 * a bundle.  Try receiving again... */
-		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0) {
-			if(verbosity) fprintf(stderr, "Reception interrupted.\n");
-			bp_release_delivery(&dlv, 1);
-			continue;
-		}
-
 		if (dlv.result == BpEndpointStopped)
 		{
 			if(verbosity) fprintf(stderr, "Endpoint stopped.\n");
@@ -168,7 +160,18 @@ static void *receiveResponses(void *x)
 			continue;
 		}
 
-		/* Buffer the response so we can bp_release_delivery before parsing. */
+		/* ReceptionInterrupted means this process received a signal
+		 * but not a bundle.  Try receiving again...		*/
+		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0)
+		{
+			if(verbosity) fprintf(stderr,
+					"Reception interrupted.\n");
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		/* Buffer the response so we can bp_release_delivery
+		 * before parsing. 					*/
 		if(pthread_mutex_lock(&sdrmutex) != 0)
 		{
 			putErrmsg("Couldn't take sdr mutex in receiveResponses.", NULL);
