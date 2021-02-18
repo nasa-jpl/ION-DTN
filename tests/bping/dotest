@@ -38,7 +38,7 @@ echo "########################################"
 FAIL=0
 # set timeouts based on OS type
 if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
-	TIMETOWAIT1=3
+	TIMETOWAIT1=4
 	TIMETOWAIT2=15
 else
 	TIMETOWAIT1=4
@@ -60,6 +60,7 @@ echo "ionstart -I ${CONFIGDIR}/loopback.rc"
 
 echo "Start a bpecho."
 bpecho ipn:1.1 & BPECHOPID=$!
+sleep $TIMETOWAIT1
 
 echo ""
 echo "Verify that bping can ping bpecho loopback..."
