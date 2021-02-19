@@ -1176,7 +1176,10 @@ static Object	bcbFindOutboundTarget(Bundle *bundle, int blockNumber)
 					sizeof(BpsecOutboundTarget));
 			if (target.targetBlockNumber == blockNumber)
 			{
-				return elt2;
+				/*	Return the BCB of which
+				 *	the cited block is a target.	*/
+
+				return elt;
 			}
 		}
 	}
@@ -1224,28 +1227,28 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 			ExtensionBlock *bcbBlk, BpsecOutboundBlock *asb,
 			BcbProfile *prof, char *keyName, int targetBlockNumber)
 {
-	Object			    bibElt;
-	Object			    bibObj;
+	Object			bibElt;
+	Object			bibObj;
 	ExtensionBlock		bib;
 	BpsecOutboundBlock	bibAsb;
 	ExtensionBlock		clone;
 	BpsecOutboundBlock	cloneAsb;
-	Object			    targetElt;
-	Object			    targetObj = 0;
+	Object			targetElt;
+	Object			targetObj = 0;
 	BpsecOutboundTarget	target;
 	unsigned char		*serializedAsb;
-	Object			    cloneObj;
+	Object			cloneObj;
 
-	/*	If the block is already signed by a BIB, then that
+	/*	If target block is already signed by a BIB, then that
 	 *	BIB must also be encrypted.  Prepare for that.		*/
 
 	bibElt = bibFindOutboundTarget(bundle, targetBlockNumber);
 
-	/*	Is the block already encrypted?				*/
+	/*	Is the target block already encrypted?			*/
 
 	if (bcbFindOutboundTarget(bundle, targetBlockNumber) != 0)
 	{
-		/*	Block is already encrypted by a BCB.		*/
+		/*	Target block is already encrypted by a BCB.	*/
 
 		return 0;	/*	Nothing to do.			*/
 	}
@@ -1339,9 +1342,6 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 	 *	block we're adding as a BCB target) and add it as
 	 *	an additional target of the new BCB.			*/
 
-	sdr_free(sdr, target.results);
-	target.results = sdr_list_create(sdr);
-	CHKERR(target.results);
 	cloneAsb.targets = sdr_list_create(sdr);
 	CHKERR(cloneAsb.targets);
 	sdr_list_insert_last(sdr, cloneAsb.targets, targetObj);
@@ -1481,7 +1481,7 @@ blocks is not yet implemented.", target->targetBlockNumber);
 		MRELEASE(sessionKey.value);
 		MRELEASE(encryptedSessionKey.value);
 		sci_cipherparms_free(parms);
-		return ERROR;
+		return 1;
 	}
 
 	/*	Free the plaintext keys post-encryption.		*/
@@ -1571,7 +1571,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	int			        result = 0;
 	BcbProfile		    *prof = NULL;
 	char			    *fromEid;	/*	Instrumentation.*/
-	char			    *toEid;		/*	For whatever.	*/
+	char			    *toEid;	/*	For whatever.	*/
 	Object			    elt;
 	Object			    targetObj;
 	BpsecOutboundTarget	target;
@@ -1653,7 +1653,7 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			bundle->corrupt = 1;
 			/* Handle sop_misconf_at_src event */
 			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
-						bcbBlk, bcbAsb, target.targetBlockNumber);
+				bcbBlk, bcbAsb, target.targetBlockNumber);
 			scratchExtensionBlock(bcbBlk);
 			BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 			return result;
@@ -1684,7 +1684,7 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
 		bundle->corrupt = 1;
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
-					bcbBlk, bcbAsb, target.targetBlockNumber);
+				bcbBlk, bcbAsb, target.targetBlockNumber);
 		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 		return result;
@@ -2270,7 +2270,7 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 
 		/* Handle sop_missing event */
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
-				sop_missing_at_acceptor, bcbElt, targetElt, tgtNum);
+			sop_missing_at_acceptor, bcbElt, targetElt, tgtNum);
 		return -1;
 	}
 

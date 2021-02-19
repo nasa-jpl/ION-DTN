@@ -1680,10 +1680,11 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	cursor = serializedTargets;
 	oK(cbor_encode_array_open(targetsCount, &cursor));
 
-	/*	Results is an array of result structures, each of
-		which is a block number paired with an array of
-		security results -- each of which is an array
-		comprising result type ID and result text.
+	/*	Results is an array of result structures, each
+	 	of which is a block number paired with a "result
+		set", i.e., an array of security results -- each
+	       	of which is an array comprising result type ID
+		and result text.
 
 		We can't open the top-level results array yet
 		because we don't know how many bytes of buffer
@@ -1708,7 +1709,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 			as we go.
 
 			They will ultimately be serialized inside
-			a per-target array of results.			*/
+			a result set -- a per-target array of results.	*/
 
 		serializedResultsLen += 9;	/*	Array open.	*/
 
@@ -1778,29 +1779,27 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 
 			stv->length = (cursor2 - stv->text) + tv->length;;
 			serializedResultsLen += stv->length;
-
-			/*	Append the Lyst of serialized TVs for
-				this target block number to the Lyst
-				of results lists (one per target)	*/
-
-			if (lyst_insert_last(serializedResults, serializedTlvs)
-					== NULL)
-			{
-				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tgt",
-						NULL);
-				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
-				releaseAsbBuffers(serializedTargets,
-						serializedSource,
-						serializedParms,
-						serializedParmsBuffer,
-						serializedTlvs,
-						serializedResults,
-					       	serializedResultsBuffer);
-				return NULL;
-			}
-
-			serializedTlvs = NULL;
 		}
+
+		/*	Append the Lyst of serialized TVs for this
+		 *	target block number to the Lyst of results
+		 *	lists (one per target).				*/
+
+		if (lyst_insert_last(serializedResults, serializedTlvs) == NULL)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tgt", NULL);
+			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+			releaseAsbBuffers(serializedTargets,
+					serializedSource,
+					serializedParms,
+					serializedParmsBuffer,
+					serializedTlvs,
+					serializedResults,
+				       	serializedResultsBuffer);
+			return NULL;
+		}
+
+		serializedTlvs = NULL;
 	}
 
 	/*	The buffer of serialized targets is now ready to go.

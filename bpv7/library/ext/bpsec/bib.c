@@ -455,7 +455,11 @@ Object	bibFindOutboundTarget(Bundle *bundle, int blockNumber)
 					sizeof(BpsecOutboundTarget));
 			if (target.targetBlockNumber == blockNumber)
 			{
-				return elt2;
+				/*	Return the BPSec block of
+				 *	which the cited block is
+				 *	a target.			*/
+
+				return elt;
 			}
 		}
 	}
