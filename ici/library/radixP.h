@@ -56,18 +56,6 @@
 /**> The number of child nodes to add when growing a node's children. */
 #define RADIX_CHILD_INCR (5)
 
-
-
-/**> Wildcard for prefix matching. */
-#define RADIX_PREFIX_WILDCARD '~'
-
-#define RADIX_MATCH_NONE     (1)
-#define RADIX_MATCH_PARTIAL  (2)
-#define RADIX_MATCH_FULL     (3)
-#define RADIX_MATCH_SUBSET   (4)
-#define RADIX_MATCH_WILDCARD (5)
-
-
 /*
  * +--------------------------------------------------------------------------+
  * |							  	MACROS  								  +

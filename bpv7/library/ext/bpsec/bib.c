@@ -1702,6 +1702,172 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 	}
 }
 
+static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
+			unsigned char blockNbr, BpBlockType blockType,
+			AcqExtBlock *extBlock, BibProfile *prof)
+{
+	Sdr			sdr = getIonsdr();
+	Bundle			*bundle = &(work->bundle);
+	LystElt			targetElt;
+	LystElt			bibElt;
+	BpsecInboundTarget	*target;
+	AcqExtBlock		*bib;
+	BpsecInboundBlock	*asb;
+	char			*fromEid = NULL;  /*	Instrumentation.*/
+	uvast			length = 0;
+	Object			targetZco;
+	int			result;
+
+	targetElt = bibFindInboundTarget(work, blockNbr, &bibElt);
+	if (targetElt == NULL)
+	{
+		/*	This block is not a target of any BIB;
+		 *	the block is not signed.  A security policy
+		 *	violation.					*/
+
+		if (blockType == PrimaryBlk)
+		{
+			work->authentic = 0;
+		}
+		else	/*	Assume compromised.			*/
+		{
+			bundle->altered = 1;
+		}
+
+		return 0;
+	}
+
+	/*	Block has a signature, must verify it.			*/
+
+	target = (BpsecInboundTarget *) lyst_data(targetElt);
+	bib = (AcqExtBlock *) lyst_data(bibElt);
+	asb = (BpsecInboundBlock *) (bib->object);
+	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
+	{
+		/*	Waypoint source.				*/
+
+		readEid(&(asb->securitySource), &fromEid);
+		if (fromEid == NULL)
+		{
+			ADD_BIB_RX_FAIL(NULL, 1, 0);
+			/* Handle sop_misconf_at_verifier event */
+			bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+				 sop_misconf_at_verifier, bibElt, targetElt,
+				 target->targetBlockNumber);
+			return -1;
+		}
+	}
+	else	/*	Bundle origin source.				*/
+	{
+		readEid(&(bundle->id.source), &fromEid);
+		if (fromEid == NULL)
+		{
+			ADD_BIB_RX_FAIL(NULL, 1, 0);
+			/* Handle sop_misconf_at_acceptor event */
+			bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+				 sop_misconf_at_acceptor, bibElt, targetElt,
+				 target->targetBlockNumber);
+			return -1;
+		}
+	}
+
+	length = bpsec_canonicalizeIn(work, blockNbr, &targetZco);
+	if (length < 1)
+	{
+		ADD_BIB_RX_FAIL(fromEid, 1, 0);
+		MRELEASE(fromEid);
+		/* Handle sop_misconf_at_acceptor event */
+		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+			 sop_misconf_at_acceptor, bibElt, targetElt,
+			 target->targetBlockNumber);
+		return -1;
+	}
+
+	result = (prof->verify == NULL)
+			? bibDefaultVerify(prof->suiteId, work, NULL,
+					asb, target, targetZco, fromEid)
+			: prof->verify(prof->suiteId, work, extBlock,
+					asb, target, targetZco, fromEid);
+	zco_destroy(sdr, targetZco);
+	BIB_DEBUG_INFO("i bpsec_verify: Verify result was %d", result);
+	switch (result)
+	{
+	case -1:
+		bundle->corrupt = 1;
+		ADD_BIB_RX_FAIL(fromEid, 1, length);
+		MRELEASE(fromEid);
+		/* Handle sop_corrupt_at_acceptor event */
+		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+			 sop_corrupt_at_acceptor, bibElt, targetElt,
+			 target->targetBlockNumber);
+		return 0;
+
+	case 0:
+	case 4:		/*	Digests do not match.			*/
+		if (work->authentic == 1)
+		{
+			MRELEASE(fromEid);
+			return 0;
+		}
+
+		switch (blockType)
+		{
+		case PrimaryBlk:
+			work->authentic = 0;
+			ADD_BIB_RX_FAIL(fromEid, 1, length);
+			/* Handle sop_corrupt_at_acceptor event */
+			bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+				 sop_corrupt_at_acceptor, bibElt, targetElt,
+				 target->targetBlockNumber);
+			break;
+
+		case PayloadBlk:
+			bundle->altered = 1;
+			ADD_BIB_RX_FAIL(fromEid, 1, length);
+			/* Handle sop_misconf_at_acceptor event */
+			bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+				 sop_corrupt_at_acceptor, bibElt, targetElt,
+				 target->targetBlockNumber);
+			break;
+
+		default:	/*	Unverified extension block.	*/
+			discardTargetBlock(extBlock, targetElt, bibElt);
+		}
+
+		MRELEASE(fromEid);
+		return 0;
+
+	default:	/*	Return code 1: verified.		*/
+		if (work->authentic == -1 && blockType == PrimaryBlk)
+		{
+			work->authentic = 1;
+		}
+	}
+
+	/*	Target signature verified.				*/
+
+	if (bpsec_destinationIsLocal(&(work->bundle)))
+	{
+		ADD_BIB_RX_PASS(fromEid, 1, length);
+		/* Handle sop_processed event */
+		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+			 sop_processed, bibElt, targetElt,
+			 target->targetBlockNumber);
+		discardTarget(targetElt, bibElt);
+	}
+	else
+	{
+		ADD_BIB_FWD(fromEid, 1, length);
+		/* Handle sop_verified event */
+		bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+			 sop_verified, bibElt, targetElt,
+			 target->targetBlockNumber);
+	}
+
+	MRELEASE(fromEid);
+	return 0;
+}
+
 int	bpsec_verify(AcqWorkArea *work)
 {
 	Sdr			sdr = getIonsdr();
@@ -1715,272 +1881,151 @@ int	bpsec_verify(AcqWorkArea *work)
 	int			keyBuflen = sizeof keyBuffer;
 	LystElt		    	elt2;
 	AcqExtBlock		*block;
-	AcqExtBlock		*bib;
 	BpsecInboundBlock	*asb;
-	char			*fromEid = NULL;  /*	Instrumentation.*/
-	LystElt			targetElt;
-	LystElt			bibElt;
-	BpsecInboundTarget	*target;
-	Object			targetZco;
-	int			result;
-	uvast			length = 0;
 	LystElt             	tgt;
+	BpsecInboundTarget	*target;
 	int                 	policyRuleHandled = 0;
 
-    /**** Apply all applicable security policy rules ****/
+	/****	Apply all applicable security policy rules	     ****/
 
-    BpSecPolRule *polRule = NULL;
+	BpSecPolRule *polRule = NULL;
 
-    /* For each BIB in the bundle */
-    for (elt2 = lyst_first(work->extBlocks); elt2; elt2 = lyst_next(elt2))
-    {
-        block = (AcqExtBlock *) lyst_data(elt2);
-        if (block->type == BlockIntegrityBlk)
-        {
-           asb = (BpsecInboundBlock *) (block->object);
+	/*	First check all BIBS that are present in the bundle.	*/
 
-            /* Check each target block for applicable rule */
-            for (tgt = lyst_first(asb->targets); tgt; tgt = lyst_next(tgt))
-            {
-                target = (BpsecInboundTarget *) lyst_data(tgt);
-                polRule = bslpol_get_receiver_rule(bundle,
-                		target->targetBlockNumber, asb->contextId);
-
-                if (polRule != NULL)
-                {
-                	policyRuleHandled = 1;
-                	if (bibApplyReceiverPolRule(work, polRule,
-                			target->targetBlockNumber) < 0)
-                	{
-                		BIB_DEBUG(2, "i bpsec_verify: failure occurred in "
-                				"bibApplyReceiverPolRule.", NULL);
-                		return -1;
-                	}
-                	polRule = NULL;
-                }
-            }
-        }
-    }
-
-    /* We use either policy rules or bibRules, not both. */
-    if(policyRuleHandled)
-    {
-        bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
-        return 0;
-    }
-
-	rules = sec_get_bpsecBibRuleList();
-	if (rules == 0)
+	for (elt2 = lyst_first(work->extBlocks); elt2; elt2 = lyst_next(elt2))
 	{
-		bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
-	}
-
-	if (rules > 0)
-	{
-		/*	Apply all applicable BIB rules.				*/
-
-		for (elt = sdr_list_first(sdr, rules); elt;
-				elt = sdr_list_next(sdr, elt))
+		block = (AcqExtBlock *) lyst_data(elt2);
+		if (block->type == BlockIntegrityBlk)
 		{
-			ruleObj = sdr_list_data(sdr, elt);
-			sdr_read(sdr, (char *) &rule, ruleObj, sizeof(BPsecBibRule));
-			if (rule.blockType == BlockIntegrityBlk
-			|| rule.blockType == BlockConfidentialityBlk)
+			asb = (BpsecInboundBlock *) (block->object);
+
+			/* Check each target block for applicable rule */
+			for (tgt = lyst_first(asb->targets); tgt;
+					tgt = lyst_next(tgt))
 			{
-				/*	This is an error in the rule.  No
-				 *	target of a BIB can be a BCB or
-				 *	another BIB.				*/
-
-				continue;
-			}
-
-			if (!bpsec_BibRuleApplies(bundle, &rule))
-			{
-				continue;
-			}
-
-			prof = get_bib_prof_by_name(rule.profileName);
-			if (prof == NULL)
-			{
-				/*	This is an error in the rule; profile
-				 *	may have been deleted after rule was
-				 *	added.					*/
-
-				continue;
-			}
-
-			if (strlen(rule.keyName) > 0
-			&& sec_get_key(rule.keyName, &keyBuflen, keyBuffer) == 0)
-			{
-				/*	Again, an error in the rule; key may
-				 *	have been deleted after rule was added.	*/
-
-				continue;
-			}
-
-			/* EJB: Are primary and payload blocks in the wk->extBlocks area? */
-			for (elt2 = lyst_first(work->extBlocks); elt2;
-					elt2 = lyst_next(elt2))
-			{
-				block = (AcqExtBlock *) lyst_data(elt2);
-				if (block->type != rule.blockType)
+				target = (BpsecInboundTarget *) lyst_data(tgt);
+				polRule = bslpol_get_receiver_rule(bundle,
+						target->targetBlockNumber,
+						asb->contextId);
+				if (polRule != NULL)
 				{
-					continue;	/*	Doesn't apply.	*/
-				}
-
-				/*	This rule would apply to this block.	*/
-
-				targetElt = bibFindInboundTarget(work, block->number,
-						&bibElt);
-				if (targetElt == NULL)
-				{
-					/*	No BIB; block is not signed.
-					 *	A security policy violation.	*/
-
-					if (block->type == PrimaryBlk)
+					policyRuleHandled = 1;
+					if (bibApplyReceiverPolRule(work,
+						polRule, target->
+						targetBlockNumber) < 0)
 					{
-						work->authentic = 0;
-					}
-					else	/*	Assume compromised.	*/
-					{
-						bundle->altered = 1;
-					}
-
-					continue;
-				}
-
-				/*	Block's signature needs to be verified.	*/
-
-				target = (BpsecInboundTarget *) lyst_data(targetElt);
-				bib = (AcqExtBlock *) lyst_data(bibElt);
-				asb = (BpsecInboundBlock *) (bib->object);
-				if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
-				{
-					/*	Waypoint source.		*/
-
-					readEid(&(asb->securitySource), &fromEid);
-					if (fromEid == NULL)
-					{
-						ADD_BIB_RX_FAIL(NULL, 1, 0);
-						/* Handle sop_misconf_at_verifier event */
-						bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
-							 sop_misconf_at_verifier, bibElt, targetElt,
-							 target->targetBlockNumber);
+						BIB_DEBUG(2, "i bpsec_verify: \
+failure occurred in bibApplyReceiverPolRule.", NULL);
 						return -1;
 					}
-				}
-				else	/*	Bundle source.			*/
-				{
-					readEid(&(bundle->id.source), &fromEid);
-					if (fromEid == NULL)
-					{
-						ADD_BIB_RX_FAIL(NULL, 1, 0);
-						/* Handle sop_misconf_at_acceptor event */
-						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
-							 sop_misconf_at_acceptor, bibElt, targetElt,
-							 target->targetBlockNumber);
-						return -1;
-					}
-				}
 
-				length = bpsec_canonicalizeIn(work, block->number,
-						&targetZco);
-				if (length < 1)
-				{
-					ADD_BIB_RX_FAIL(fromEid, 1, 0);
-					MRELEASE(fromEid);
-					/* Handle sop_misconf_at_acceptor event */
-					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
-						 sop_misconf_at_acceptor, bibElt, targetElt,
-						 target->targetBlockNumber);
-					return -1;
-				}
-
-				result = (prof->verify == NULL)
-					?  bibDefaultVerify(prof->suiteId, work, NULL,
-					asb, target, targetZco, fromEid)
-					: prof->verify(prof->suiteId, work, block,
-					asb, target, targetZco, fromEid);
-				zco_destroy(sdr, targetZco);
-
-				BIB_DEBUG_INFO("i bpsec_verify: Verify result was %d",
-						result);
-				switch (result)
-				{
-				case -1:
-					bundle->corrupt = 1;
-					ADD_BIB_RX_FAIL(fromEid, 1, length);
-					/* Handle sop_corrupt_at_acceptor event */
-					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
-						 sop_corrupt_at_acceptor, bibElt, targetElt,
-						 target->targetBlockNumber);
-					continue;
-
-				case 0:
-					if (work->authentic == 1)
-					{
-						continue;
-					}
-
-					switch (block->type)
-					{
-					case PrimaryBlk:
-						work->authentic = 0;
-						ADD_BIB_RX_FAIL(fromEid, 1, length);
-						/* Handle sop_corrupt_at_acceptor event */
-						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
-							 sop_corrupt_at_acceptor, bibElt, targetElt,
-							 target->targetBlockNumber);
-						break;
-
-					case PayloadBlk:
-						bundle->altered = 1;
-						ADD_BIB_RX_FAIL(fromEid, 1, length);
-						/* Handle sop_misconf_at_acceptor event */
-						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
-							 sop_corrupt_at_acceptor, bibElt, targetElt,
-							 target->targetBlockNumber);
-						break;
-
-					default:
-						discardTargetBlock(block, targetElt,
-								bibElt);
-					}
-
-					continue;
-
-				default:	/*	Verified.		*/
-					if (work->authentic == -1
-					&& block->type == PrimaryBlk)
-					{
-						work->authentic = 1;
-					}
-				}
-
-				/*	Target signature verified.		*/
-
-				if (bpsec_destinationIsLocal(&(work->bundle)))
-				{
-					ADD_BIB_RX_PASS(fromEid, 1, length);
-					/* Handle sop_processed event */
-					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
-						 sop_processed, bibElt, targetElt,
-						 target->targetBlockNumber);
-					discardTarget(targetElt, bibElt);
-				}
-				else
-				{
-					ADD_BIB_FWD(fromEid, 1, length);
-					/* Handle sop_verified event */
-					bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
-						 sop_verified, bibElt, targetElt,
-						 target->targetBlockNumber);
+					polRule = NULL;
 				}
 			}
 		}
 	}
 
-	MRELEASE(fromEid);
+	/*	Then check for BIBs that are required but not present.	*/
+
+	/*	We use either policy rules or bibRules, not both.	*/
+
+	if (policyRuleHandled)
+	{
+		bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
+		return 0;
+	}
+
+	/*	Check BIB rules.					*/
+
+	rules = sec_get_bpsecBibRuleList();
+	if (rules == 0)
+	{
+		bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
+		return 0;
+	}
+
+	/*	Apply all applicable BIB rules.				*/
+
+	for (elt = sdr_list_first(sdr, rules); elt; elt = sdr_list_next(sdr,
+			elt))
+	{
+		ruleObj = sdr_list_data(sdr, elt);
+		sdr_read(sdr, (char *) &rule, ruleObj, sizeof(BPsecBibRule));
+		if (rule.blockType == BlockIntegrityBlk
+		|| rule.blockType == BlockConfidentialityBlk)
+		{
+			/*	This is an error in the rule.  No
+			 *	target of a BIB can be a BCB or
+			 *	another BIB.				*/
+
+			continue;
+		}
+
+		if (!bpsec_BibRuleApplies(bundle, &rule))
+		{
+			continue;
+		}
+
+		prof = get_bib_prof_by_name(rule.profileName);
+		if (prof == NULL)
+		{
+			/*	This is an error in the rule; profile
+			 *	may have been deleted after rule was
+			 *	added.					*/
+
+			continue;
+		}
+
+		if (strlen(rule.keyName) > 0
+		&& sec_get_key(rule.keyName, &keyBuflen, keyBuffer) == 0)
+		{
+			/*	Again, an error in the rule; key may
+			 *	have been deleted after rule was added.	*/
+
+			continue;
+		}
+
+		if (rule.blockType == PrimaryBlk)
+		{
+			if (applyRule(work, &rule, 0, PrimaryBlk, NULL, prof)
+					< 0)
+			{
+				return -1;
+			}
+
+			continue;
+		}
+
+		if (rule.blockType == PayloadBlk)
+		{
+			if (applyRule(work, &rule, 1, PayloadBlk, NULL, prof)
+					< 0)
+			{
+				return -1;
+			}
+
+			continue;
+		}
+
+		for (elt2 = lyst_first(work->extBlocks); elt2;
+					elt2 = lyst_next(elt2))
+		{
+			block = (AcqExtBlock *) lyst_data(elt2);
+			if (block->type != rule.blockType)
+			{
+				continue;	/*	Doesn't apply.	*/
+			}
+
+			/*	This rule applies to this block.	*/
+
+			if (applyRule(work, &rule, block->number, block->type,
+						block, prof) < 0)
+			{
+				return -1;
+			}
+		}
+	}
+
 	bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
 	return 0;
 }

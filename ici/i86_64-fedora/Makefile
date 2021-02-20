@@ -94,7 +94,6 @@ clean:
 
 install:
 		cp ../include/*.h $(ROOT)/include
-		cp ../library/radixP.h $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 

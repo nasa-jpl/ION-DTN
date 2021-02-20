@@ -56,6 +56,15 @@
  * +--------------------------------------------------------------------------+
  */
 
+/**> Wildcard for prefix matching. */
+#define RADIX_PREFIX_WILDCARD '~'
+
+#define RADIX_MATCH_NONE     (1)
+#define RADIX_MATCH_PARTIAL  (2)
+#define RADIX_MATCH_FULL     (3)
+#define RADIX_MATCH_SUBSET   (4)
+#define RADIX_MATCH_WILDCARD (5)
+
 #define RADIX_FULL_MATCH 1
 #define RADIX_PARTIAL_MATCH 2
 
