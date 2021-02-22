@@ -1941,6 +1941,13 @@ int	main(int argc, char **argv)
 			bpStop();
 		}
 	}
+	else if (strcmp(cmdFileName, "!") == 0)	/*	Resume.		*/
+	{
+		if (attachToBp() == 0)
+		{
+			bpStart();
+		}
+	}
 	else					/*	Scripted.	*/
 	{
 		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);

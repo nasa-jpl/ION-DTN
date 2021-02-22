@@ -236,6 +236,7 @@ typedef struct
 {
 	uvast		ownEntityId;
 	CfdpNumber	ownEntityNbr;
+	char		utaCmd[256];
 	int		requestCounter;
 	unsigned int	transactionCounter;
 	unsigned int	maxTransactionNbr;
