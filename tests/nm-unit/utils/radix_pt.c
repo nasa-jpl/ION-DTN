@@ -353,4 +353,6 @@ int main(int argc, char *argv[])
 	radixpt_gen_printstats();
 
 	printf("Finishing\n");
+
+	return(0);
 }
