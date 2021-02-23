@@ -47,8 +47,8 @@ TODO: Implement support for anonymous event sets in policyrules.
 #define NUM_STR_LEN     (5)
 #define GEN_PARM_LEN    (32)
 
-#define SEARCH_ALL 1
-#define SEARCH_BEST 2
+#define BPSEC_SEARCH_ALL 1
+#define BPSEC_SEARCH_BEST 2
 
 typedef struct {char *key; int value;} BpSecMap;
 
@@ -1839,11 +1839,11 @@ static int getFindCriteria(jsonObject job, int start, int *type, BpSecPolRuleSea
 
 	if(strcmp(tmp_str,"all") == 0)
 	{
-		*type = SEARCH_ALL;
+		*type = BPSEC_SEARCH_ALL;
 	}
 	else if(strcmp(tmp_str,"best") == 0)
 	{
-		*type = SEARCH_BEST;
+		*type = BPSEC_SEARCH_BEST;
 	}
 	else
 	{
@@ -1918,13 +1918,13 @@ static void	executeFindJson(jsonObject job)
 
 		switch(type)
 		{
-			case SEARCH_ALL:
+			case BPSEC_SEARCH_ALL:
 				rules = bslpol_rule_get_all_match(gWm, tag);
 				printRuleList(rules, 1);
 				lyst_destroy(rules);
 				break;
 
-			case SEARCH_BEST:
+			case BPSEC_SEARCH_BEST:
 				printRule(bslpol_rule_get_best_match(gWm, tag), 1);
 				break;
 			default:
