@@ -40,6 +40,7 @@
 #define	EXTENSION_TYPE_CGRR	23 //Unused in BPv7
 
 extern int	cgrr_offer(ExtensionBlock *, Bundle *);
+extern int	cgrr_processOnDequeue(ExtensionBlock *, Bundle *, void *);
 extern void	cgrr_release(ExtensionBlock *);
 extern int	cgrr_record(ExtensionBlock *, AcqExtBlock *);
 extern int	cgrr_copy(ExtensionBlock *, ExtensionBlock *);

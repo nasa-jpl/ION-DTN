@@ -18,8 +18,11 @@ int	snw_offer(ExtensionBlock *blk, Bundle *bundle)
 	/*	Block must be offered as a placeholder to enable
 	 *	later extension block processing.			*/
 
+	blk->blkProcFlags = BLK_MUST_BE_COPIED;
+	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
+	blk->length = 0;
+	blk->size = 1;		/*	Just to keep block alive.	*/
 	blk->object = 0;
-	blk->size = 1;	/*	Bogus object size, to avert deletion.	*/
 	return 0;
 }
 
@@ -42,13 +45,9 @@ int	snw_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 
 	if (bundle->permits == 0)	/*	SNW block unnecessary.	*/
 	{
-		blk->size = 0;
 		return 0;
 	}
 
-	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	blk->size = 0;
-	blk->object = 0;
 	if (bundle->permits > 1)
 	{
 		permits = (bundle->permits >> 1) & 0x7f;

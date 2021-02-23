@@ -244,6 +244,8 @@ static SecVdb	*_secvdb(char **name)
 			psm_free(wm, vdbAddress);
 		}
 
+		vdb->bpsecPolicyRules = 0;
+
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}
 
@@ -284,6 +286,9 @@ int	secInitialize()
 		secdbBuf.rules[2] = sdr_list_create(ionsdr);
 		secdbBuf.rules[3] = sdr_list_create(ionsdr);
 		secdbBuf.rules[4] = sdr_list_create(ionsdr);
+		secdbBuf.bpSecPolicyRules = sdr_list_create(ionsdr);
+		secdbBuf.bpSecEventSets   = sdr_list_create(ionsdr);
+
 		secdbObject = sdr_malloc(ionsdr, sizeof(SecDB));
 		if (secdbObject == 0)
 		{

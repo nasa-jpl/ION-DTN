@@ -16,7 +16,11 @@
 int	qos_offer(ExtensionBlock *blk, Bundle *bundle)
 {
 	blk->blkProcFlags = BLK_MUST_BE_COPIED;
-	return qos_serialize(blk, bundle);
+	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
+	blk->length = 0;
+	blk->size = 1;		 /*	Just to keep block alive.	*/
+	blk->object = 0;
+	return 0;
 }
 
 int	qos_serialize(ExtensionBlock *blk, Bundle *bundle)
@@ -37,9 +41,12 @@ int	qos_serialize(ExtensionBlock *blk, Bundle *bundle)
 	uvtemp = bundle->ancillaryData.dataLabel;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 	blk->dataLength = cursor - dataBuffer;
-	blk->size = 0;
-	blk->object = 0;
 	return serializeExtBlk(blk, (char *) dataBuffer);
+}
+
+int  qos_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
+{
+    return qos_serialize(blk, bundle);
 }
 
 int	qos_parse(AcqExtBlock *blk, AcqWorkArea *wk)
