@@ -7,7 +7,7 @@ SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 
-OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.0.1
+OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.0.2
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../../$(BPv)/include/ -I../../$(BPv)/library/ -I../../ltp/include/ -I../../ltp/library/
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -21,6 +21,7 @@ LIBICIOBJS = \
 	memmgr.o \
 	lyst.o \
 	psm.o \
+	radix.o \
 	smlist.o \
 	smrbt.o \
 	sptrace.o \
@@ -48,6 +49,7 @@ PUBINCLS = \
 	$(INCL)/memmgr.h \
 	$(INCL)/lyst.h \
 	$(INCL)/psm.h \
+	$(INCL)/radix.h \
 	$(INCL)/smlist.h \
 	$(INCL)/smrbt.h \
 	$(INCL)/sptrace.h \
@@ -68,6 +70,7 @@ PUBINCLS = \
 
 ICIINCLS = \
 	$(SRC)/lystP.h \
+	$(SRC)/radixP.h \
 	$(SDR)/sdrP.h
 
 UTILITIES = sdrmend sdrwatch psmwatch ionadmin ionsecadmin ionlog ionwarn ionunlock ionxnowner

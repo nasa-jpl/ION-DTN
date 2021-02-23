@@ -54,7 +54,7 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o imc.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
+BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o imc.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
