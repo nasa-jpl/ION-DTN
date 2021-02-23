@@ -1544,8 +1544,6 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 	TcpclNeighbor	*neighbor = session->neighbor;
 	int		result;
 	uvast		dataLength;
-	size_t		receptionRate;
-	float		snoozeInterval;
 	uvast		bytesRemaining;
 	int		bytesToRead;
 	int		extentSize;
@@ -1577,17 +1575,6 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		{
 			return -1;
 		}
-	}
-
-	/*	Enforce rate control: snooze appropriate interval
-	 *	as dictated by contact plan reception rate.		*/
-
-	receptionRate = rtp->session->neighbor->receptionRate;
-	if (receptionRate > 0)
-	{
-		snoozeInterval = ((float) dataLength / (float) receptionRate)
-		       		* 1000000.0;
-		microsnooze((int) snoozeInterval);
 	}
 
 	/*	Now finish reading the data segment.			*/

@@ -26,7 +26,7 @@ recovered heap, and finally restarts the ION daemons.  Applications that
 receive termination indications from B<ionrestart> may choose to sleep for
 a few seconds and then automatically re-initialize their own operations.
 
-B<ionrestart> will attempt to restart all core all ION protocols including
+B<ionrestart> will attempt to restart all core ION protocols including
 LTP, BP, and CFDP, but any protocols which were not operating at the time
 of the transaction reversal are not restarted.  Also, protocols that
 B<ionrestart> has not yet been adapted to cleanly terminate and restart
