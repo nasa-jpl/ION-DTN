@@ -233,7 +233,7 @@ PsmAddress bslpol_rule_create(PsmPartition partition, char *desc, uint16_t id, u
 	BpSecPolRule *rulePtr = NULL;
 	SecVdb	*secvdb = getSecVdb();
 
-	CHKZERO(secvdb);
+	if (secvdb == NULL) return 0;
 	CHKZERO(ruleAddr = psm_zalloc(partition, sizeof(BpSecPolRule)));
 	rulePtr = (BpSecPolRule*) psp(partition, ruleAddr);
 
@@ -332,7 +332,7 @@ PsmAddress bslpol_rule_get_addr(PsmPartition partition, int user_id)
 	BpSecPolRule *rulePtr = NULL;
 	SecVdb	*secvdb = getSecVdb();
 
-	CHKZERO(secvdb);
+	if (secvdb == NULL) return 0;
 
 	/* Step 1: Walk through the list... */
 	for(eltAddr = sm_list_first(partition, secvdb->bpsecPolicyRules);
@@ -387,7 +387,7 @@ Lyst bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag tag
 	BpSecPolRule *rulePtr = NULL;
 	SecVdb	*secvdb = getSecVdb();
 
-	CHKNULL(secvdb);
+	if (secvdb == NULL) return NULL;
 
 	/* Step 1: Check every rule that we have. */
 	for(eltAddr = sm_list_first(partition, secvdb->bpsecPolicyRules);
@@ -419,7 +419,7 @@ Lyst bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag tag
 
 
 /******************************************************************************
- * @brief Returns the policy rule that is the "best match' for a given
+ * @brief Returns the policy rule that is the "best match" for a given
  *        extension block.
  *
  * @param[in] partition - The shared memory partition.
@@ -442,7 +442,7 @@ BpSecPolRule *bslpol_rule_get_best_match(PsmPartition partition, BpSecPolRuleSea
 	char *search_key = NULL;
 	SecVdb	*secvdb = getSecVdb();
 
-	CHKNULL(secvdb);
+	if (secvdb == NULL) return NULL;
 
 	/* Step 1: Populate the search tag. */
 	tag.search = criteria;
@@ -516,7 +516,7 @@ int bslpol_rule_insert(PsmPartition partition, PsmAddress ruleAddr, int remember
 
 	/* Step 0: Sanity Checks. */
 	CHKZERO(partition);
-	CHKZERO(secvdb);
+	if (secvdb == NULL) return 0;
 
 	if((rulePtr = (BpSecPolRule *) psp(partition, ruleAddr)) == NULL)
 	{
@@ -688,7 +688,7 @@ int bslpol_rule_remove(PsmPartition partition, PsmAddress ruleAddr)
 
 	/* Step 0: Sanity Check */
 	CHKZERO(partition);
-	CHKZERO(secvdb);
+	if (secvdb == NULL) return 0;
 
 	/* Cannot delete a rule that doesn't exist. */
 	if(ruleAddr == 0)
@@ -1150,7 +1150,7 @@ int bslpol_sdr_rule_forget(PsmPartition wm, PsmAddress ruleAddr)
 	uint16_t user_id = 0;
 	int success = 0;
 
-	CHKERR(secdb);
+	if (secdb == NULL) return -1;
 	rulePtr = (BpSecPolRule*) psp(wm, ruleAddr);
 	CHKERR(rulePtr);
 
@@ -1215,7 +1215,7 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 	SecDB *secdb = getSecConstants();
 
 	CHKERR(wm);
-	CHKERR(secdb);
+	if (secdb == NULL) return -1;
 	rule = (BpSecPolRule *) psp(wm, ruleAddr);
 	CHKERR(rule);
 
@@ -1370,8 +1370,7 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 	bytes_left = entry.size;
 	cursor = buffer = MTAKE(entry.size);
 	CHKERR(buffer);
-	CHKERR(secvdb);
-
+	if (secvdb == NULL) return -1;
 
 	/*
 	 * Step 1: Inhale the serialied object from the SDR. Reading the rule as a

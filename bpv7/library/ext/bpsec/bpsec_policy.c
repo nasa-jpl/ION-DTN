@@ -159,7 +159,7 @@ PsmAddress bsl_ed_get_ref(PsmPartition partition, char *eid)
 	/* Step 0: Sanity Checks. */
 	CHKZERO(partition);
 	CHKZERO(eid);
-	CHKZERO(secvdb);
+	if (secvdb == NULL) return 0;
 
 	/* Step 1: See if we have this EID in the dictionary. */
 	userDataAddr = radix_find(partition, secvdb->bpsecEidDictionary, eid, 0);
@@ -216,8 +216,8 @@ int bsl_sdr_bootstrap(PsmPartition wm)
 	Object sdrElt = 0;
 	BpSecPolicyDbEntry entry;
 
-	CHKERR(secdb);
-	CHKERR(secvdb);
+	if (secdb == NULL) return -1;
+	if (secvdb == NULL) return -1;
 
 	/* If we don't have any bpsec eventsets, see if any exist in the SDR. */
 	if(sm_rbt_length(wm, secvdb->bpsecEventSet) == 0)
@@ -333,7 +333,7 @@ int bsl_vdb_init(PsmPartition partition)
 	 *         or by some other utility.
 	 */
 
-	CHKERR(secvdb);
+	if (secvdb == NULL) return -1;
 
 	if(secvdb->bpsecPolicyRules != 0)
 	{
@@ -375,7 +375,7 @@ void bsl_vdb_teardown(PsmPartition partition)
 {
 	SecVdb *secvdb = getSecVdb();
 
-	CHKVOID(secvdb);
+	if (secvdb == NULL) return;
 
 	radix_destroy(partition, secvdb->bpsecRuleIdxBySrc, NULL);
 	radix_destroy(partition, secvdb->bpsecRuleIdxByDest, NULL);
