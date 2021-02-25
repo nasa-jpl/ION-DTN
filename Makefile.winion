@@ -1,10 +1,10 @@
-bpv7: export BPv = bpv7
-bpv7: all
-      gmake -C tc all
-      gmake -C tc install
-
 bpv6: export BPv = bpv6
 bpv6: all
+
+bpv7: export BPv = bpv7
+bpv7: all
+	gmake -C tc all
+	gmake -C tc install
 
 all:
 	gmake -C ici $@
