@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 3.7.2/4.0.1, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 3.7.3/4.0.2, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with

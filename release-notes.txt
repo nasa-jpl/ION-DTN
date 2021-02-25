@@ -1,6 +1,6 @@
-= Release Notes for ION 4.0.1 =
+= Release Notes for ION 4.0.2 =
 
-November 23, 2020
+February 25, 2020
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,46 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.0.2 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The main driver for this release is integration of the security policy
+procedures, which ensure that Bundle Protocol Security mechanisms are
+enacted appropriately for each bundle.  A detailed description of these
+procedures and the modifications to ION that they entailed is provided
+in a supplementary file of Release Notes.
+
+Additional features of the 4.0.2 release:
+
+-  A plug-in module for Contact Graph Routing, developed by the University
+	of Bologna, can now optionally be used instead of the original CGR
+	implementation in ION.  Unibo-CGR includes options for some addi-
+	tional features that can improve performance and guard against
+	routing	loops.
+
+-  Several errors in CRC computation, discovered during testing at the
+	European Space Agency, have been corrected.
+
+-  Several problems in the implementation of Bundle-in-Bundle Encapsulation,
+	discovered during Keith Scott's testing for DevKit upgrades, have
+	been addressed.  Prviously there was no way to configure ION for
+	BIBE transmission to a topologically adjacent node, but a
+	mechanism built on routing overrides has fixed that; see the
+	biberc(5) man page for details.  NOTE: in BPv7, custody transfer
+	is a feature of BIBE rather than BP, so it needs to be configured
+	in BIBE configuration.  You can still request custody transfer for
+	an individual bundle when you call bp_send but when you do that,
+	IF ANY NODE ON THE END-TO-END PATH TO THE DESTINATION IS NOT
+	CONFIGURED FOR BIBE FORWARDING THEN THE BUNDLE WILL BE DISCARDED
+	AS UNFORWARDABLE.  BE CAREFUL.
+ 
+-  A shortcut option for resuming the operation of a node that has been
+	"stopped" (all daemon tasks ave been terminated) but not destroyed
+	(node state has been preserved) has been added: just pass command
+	file name "!" to each of the core administration utilities (ionadmin,
+	ltpadmin, bpadmin, cfdpadmin).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.0.1 =
