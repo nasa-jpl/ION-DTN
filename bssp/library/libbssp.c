@@ -36,15 +36,15 @@ int	bssp_engine_is_started()
 int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 		Object clientServiceData, int inOrder, BsspSessionId *sessionId)
 {
-	BsspVdb		*vdb = getBsspVdb();
-	Sdr		sdr = getIonsdr();
-	BsspVspan	*vspan;
-	PsmAddress	vspanElt;
-	unsigned int	dataLength;
-	Object		spanObj;
-	BsspSpan	span;
-	ExportSession   session;
-	int		blockIssued;
+	BsspVdb			*vdb = getBsspVdb();
+	Sdr			sdr = getIonsdr();
+	BsspVspan		*vspan;
+	PsmAddress		vspanElt;
+	unsigned int		dataLength;
+	Object			spanObj;
+	BsspSpan		span;
+	BsspExportSession   session;
+	int			blockIssued;
 
 	CHKERR(clientSvcId <= MAX_BSSP_CLIENT_NBR);
 	CHKERR(clientServiceData);
@@ -109,8 +109,9 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	/*	Now append the outbound SDU to the block that is	*
 	 *	currently being available for this span and give 	*
 	 * 	the span's be/rl Semaphore.				*/
+
 	sdr_stage(sdr, (char *) &session, span.currentExportSessionObj,
-				sizeof(ExportSession));
+			sizeof(BsspExportSession));
 	session.svcDataObject = clientServiceData;
 	span.clientSvcIdOfBufferedBlock = clientSvcId;
 	span.lengthOfBufferedBlock += dataLength;
@@ -120,7 +121,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	session.totalLength = span.lengthOfBufferedBlock;
 
 	blockIssued = issueXmitBlock(sdr, &span, vspan, &session,
-				span.currentExportSessionObj, inOrder);
+			span.currentExportSessionObj, inOrder);
 	switch (blockIssued)
 	{
 	case -1:		/*	System error.		*/
@@ -144,7 +145,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	 *	database.					*/
 
 	sdr_write(sdr, span.currentExportSessionObj, (char *) &session,
-			sizeof(ExportSession));
+			sizeof(BsspExportSession));
 
 	/*	Reinitialize span's block buffer.		*/
 
@@ -253,8 +254,7 @@ int	bssp_get_notice(unsigned int clientSvcId, BsspNoticeType *type,
 	sdr_free(sdr, noticeAddr);
 
 	/*	Note that an ExportSessionCanceled notice may have
-	 *	associated data of zero.
-	 */
+	 *	associated data of zero.				*/
 
 	if (sdr_end_xn(sdr))
 	{

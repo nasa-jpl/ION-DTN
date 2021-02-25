@@ -58,11 +58,14 @@
 #include "bpsec_util.h"
 #include "bcb.h"
 #include "bpsec_instr.h"
+#include "bpsec_policy.h"
+#include "bpsec_policy_rule.h"
 
-extern int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
-			BpsecOutboundBlock *bibAsb);
+extern int	    bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
+			      BpsecOutboundBlock *bibAsb);
 extern LystElt	bibFindInboundTarget(AcqWorkArea *work, int blockNumber,
-			LystElt *bibElt);
+			      LystElt *bibElt);
+extern Object   bibFindOutboundTarget(Bundle *bundle, int blockNumber);
 
 #if (BCB_DEBUGGING == 1)
 extern char		gMsg[];		/*	Debug message buffer.	*/
@@ -95,7 +98,8 @@ Object	bcbStoreOverflow(uint32_t suite, uint8_t *context,
 		writeOffset = 0;
 		if ((cipherBuffer = sdr_malloc(sdr, length * 2)) == 0)
 		{
-			/*	Something happens here?			*/
+			putErrmsg("No cipherBuffer.", NULL);
+			return 0;
 		}
 
 		if (cipherOverflow > 0)
@@ -184,12 +188,14 @@ int32_t	bcbUpdatePayloadInPlace(uint32_t suite, sci_inbound_parms parms,
 	/* Step 1: Allocate read buffers. */
 	if ((plaintext[0].value = MTAKE(chunkSize)) == NULL)
 	{
+		// TODO: handle sop_misconfigured event
 		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.", chunkSize);
 		return -1;
 	}
 
 	if ((plaintext[1].value = MTAKE(chunkSize)) == NULL)
 	{
+		// TODO: handle sop_misconfigured event
 		BCB_DEBUG_ERR("x bcbUpdatePayloadInPlace - Can't allocate buffer of size %d.", chunkSize);
 		MRELEASE(plaintext[0].value);
 		return -1;
@@ -319,7 +325,6 @@ Failed call to zco_revise.", NULL);
 						- readOffset, (char*)
 						plaintext[cur_idx].value);
 			}
-
 			readOffset += plaintext[cur_idx].length;
 			cur_idx = 1 - cur_idx;
 		}
@@ -422,7 +427,7 @@ not fit. " UVAST_FIELDSPEC " > " UVAST_FIELDSPEC, cipherBufLen, memmax);
 				NULL);
 		sdr_free(sdr, cipherBuffer);
 		BCB_DEBUG_PROC("- bcbUpdatePayloadFromSdr--> -1", NULL);
-
+		//TODO: handle sop_misconfigured event
 		return -1;
 	}
 
@@ -586,6 +591,7 @@ context", NULL);
 	/* Step 2: Walk through payload writing ciphertext. */
  	while (bytesRemaining > 0)
 	{
+
  		/* Step 3.1: Prep for this encrypting iteration. */
  		memset(plaintext.value, 0, chunkSize);
  		if (bytesRemaining < chunkSize)
@@ -701,7 +707,7 @@ context.", NULL);
  *                           implementation (NASA: NNX14CS58P)]
  *  02/27/16  E. Birrane     Added ciphersuite parms [Secure DTN
  *                           implementation (NASA: NNX14CS58P)]
- *
+ *  07/20/18  S. Burleigh    Abandon bundle if can't attach BCB
  *****************************************************************************/
 
 static int	bcbDefaultCompute(Object *dataObj, uint32_t chunkSize,
@@ -747,7 +753,7 @@ static int	bcbDefaultCompute(Object *dataObj, uint32_t chunkSize,
 
 	zco_start_transmitting(*dataObj, &dataReader);
 
-	BCB_DEBUG_INFO("i bcbDefaultCompute: bundle size is %d",
+	BCB_DEBUG_INFO("i bcbDefaultCompute: target size is %d",
 			bytesRemaining);
 
 	/* Step 4 - Grab and initialize a crypto context. */
@@ -957,6 +963,7 @@ int	bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 	BCB_DEBUG_INFO("i bcbAcquire: Deserialize result %d", result);
 
 	BCB_DEBUG_PROC("- bcbAcquire -> %d", result);
+
 
 	return result;
 }
@@ -1169,7 +1176,10 @@ static Object	bcbFindOutboundTarget(Bundle *bundle, int blockNumber)
 					sizeof(BpsecOutboundTarget));
 			if (target.targetBlockNumber == blockNumber)
 			{
-				return elt2;
+				/*	Return the BCB of which
+				 *	the cited block is a target.	*/
+
+				return elt;
 			}
 		}
 	}
@@ -1179,7 +1189,7 @@ static Object	bcbFindOutboundTarget(Bundle *bundle, int blockNumber)
 
 static Object	bcbCreate(Bundle *bundle, BcbProfile *prof, char *keyName)
 {
-	Sdr			sdr = getIonsdr();
+	Sdr			        sdr = getIonsdr();
 	ExtensionBlock		blk;
 	BpsecOutboundBlock	asb;
 
@@ -1193,6 +1203,7 @@ static Object	bcbCreate(Bundle *bundle, BcbProfile *prof, char *keyName)
 	memcpy(asb.keyName, keyName, BPSEC_KEY_NAME_LEN);
 	asb.targets = sdr_list_create(sdr);
 	asb.parmsData = sdr_list_create(sdr);
+
 	if (asb.targets == 0 || asb.parmsData == 0)
 	{
 		BCB_DEBUG_ERR("x bcbCreate: Failed to initialize BCB ASB.",
@@ -1216,7 +1227,7 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 			ExtensionBlock *bcbBlk, BpsecOutboundBlock *asb,
 			BcbProfile *prof, char *keyName, int targetBlockNumber)
 {
-	Object			secBlockElt;
+	Object			bibElt;
 	Object			bibObj;
 	ExtensionBlock		bib;
 	BpsecOutboundBlock	bibAsb;
@@ -1228,16 +1239,16 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 	unsigned char		*serializedAsb;
 	Object			cloneObj;
 
-	/*	If the block is already signed by a BIB, then that
+	/*	If target block is already signed by a BIB, then that
 	 *	BIB must also be encrypted.  Prepare for that.		*/
 
-	secBlockElt = bcbFindOutboundTarget(bundle, targetBlockNumber);
+	bibElt = bibFindOutboundTarget(bundle, targetBlockNumber);
 
-	/*	Is the block already encrypted?				*/
+	/*	Is the target block already encrypted?			*/
 
 	if (bcbFindOutboundTarget(bundle, targetBlockNumber) != 0)
 	{
-		/*	Block is already encrypted by a BCB.		*/
+		/*	Target block is already encrypted by a BCB.	*/
 
 		return 0;	/*	Nothing to do.			*/
 	}
@@ -1264,7 +1275,7 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 
 	/*	Now determine what additional encryption is needed.	*/
 
-	if (secBlockElt == 0)
+	if (bibElt == 0)
 	{
 		return 0;	/*	Nothing more to do.		*/
 	}
@@ -1273,7 +1284,7 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 	 *	(If it were a BCB, we wouldn't have added the target
 	 *	block as a target of the new BCB.)			*/
 
-	bibObj = (Object) sdr_list_data(sdr, secBlockElt);
+	bibObj = (Object) sdr_list_data(sdr, bibElt);
 	sdr_read(sdr, (char *) &bib, bibObj, sizeof(ExtensionBlock));
 	sdr_read(sdr, (char *) &bibAsb, bib.object, bib.size);
 	if (sdr_list_length(sdr, bibAsb.targets) == 1)
@@ -1331,9 +1342,6 @@ static int	bcbAddTarget(Sdr sdr, Bundle *bundle, Object *bcbObj,
 	 *	block we're adding as a BCB target) and add it as
 	 *	an additional target of the new BCB.			*/
 
-	sdr_free(sdr, target.results);
-	target.results = sdr_list_create(sdr);
-	CHKERR(target.results);
 	cloneAsb.targets = sdr_list_create(sdr);
 	CHKERR(cloneAsb.targets);
 	sdr_list_insert_last(sdr, cloneAsb.targets, targetObj);
@@ -1362,7 +1370,7 @@ int	bcbDefaultEncrypt(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 		BpsecOutboundBlock *asb, BpsecOutboundTarget *target,
 		size_t xmitRate, uvast *length, char *toEid)
 {
-	Sdr			sdr = getIonsdr();
+	Sdr			        sdr = getIonsdr();
 	sci_inbound_tlv		sessionKey;
 	sci_inbound_tlv		encryptedSessionKey;
 	sci_inbound_tlv		longtermKey;
@@ -1473,7 +1481,7 @@ blocks is not yet implemented.", target->targetBlockNumber);
 		MRELEASE(sessionKey.value);
 		MRELEASE(encryptedSessionKey.value);
 		sci_cipherparms_free(parms);
-		return ERROR;
+		return 1;
 	}
 
 	/*	Free the plaintext keys post-encryption.		*/
@@ -1502,7 +1510,7 @@ space for ASB target's result.", NULL);
 	if (bpsec_write_parms(sdr, asb, &parms) < 0)
 	{
 		BCB_DEBUG_ERR("x bcbDefaultEncrypt: Can't allocate heap \
-space for ASN parms data.", NULL);
+space for ASB parms data.", NULL);
 		BCB_DEBUG_PROC("- bcbDefaultEncrypt --> %d", 0);
 		sci_cipherparms_free(parms);
 		return ERROR;
@@ -1559,16 +1567,16 @@ parameters.", NULL);
 static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			BpsecOutboundBlock *bcbAsb, size_t xmitRate)
 {
-	Sdr			sdr = getIonsdr();
-	int			result = 0;
-	BcbProfile		*prof = NULL;
-	char			*fromEid;	/*	Instrumentation.*/
-	char			*toEid;		/*	For whatever.	*/
-	Object			elt;
-	Object			targetObj;
+	Sdr			        sdr = getIonsdr();
+	int			        result = 0;
+	BcbProfile		    *prof = NULL;
+	char			    *fromEid;	/*	Instrumentation.*/
+	char			    *toEid;	/*	For whatever.	*/
+	Object			    elt;
+	Object			    targetObj;
 	BpsecOutboundTarget	target;
 	unsigned char		*serializedAsb = NULL;
-	uvast			length = 0;
+	uvast			    length = 0;
 
 	BCB_DEBUG_PROC("+ bcbAttach (0x%x, 0x%x, 0x%x)",
 			(unsigned long) bundle, (unsigned long) bcbBlk,
@@ -1578,17 +1586,15 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	CHKERR(bundle);
 	CHKERR(bcbBlk);
 	CHKERR(bcbAsb);
+
 	if (sdr_list_length(sdr, bcbAsb->targets) == 0)
 	{
-		BCB_DEBUG(2, "NOT attaching BCB: no targets.", NULL);
-
 		result = 0;
 		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- bcbAttach -> %d", result);
 		return result;
 	}
 
-	BCB_DEBUG(2, "Attaching BCB.", NULL);
 	if (bpsec_getOutboundSecuritySource(bundle, bcbAsb, &fromEid) < 0)
 	{
 		BCB_DEBUG_ERR("x bcbAttach: Can't get security source.", NULL);
@@ -1645,9 +1651,18 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 				       NULL);
 			result = -1;
 			bundle->corrupt = 1;
+			/* Handle sop_misconf_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				bcbBlk, bcbAsb, target.targetBlockNumber);
 			scratchExtensionBlock(bcbBlk);
 			BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 			return result;
+		}
+		else
+		{
+			/* Handle sop_added_at_src event */
+			bsl_handle_sender_sop_event(bundle, sop_added_at_src,
+					bcbBlk, bcbAsb, target.targetBlockNumber);
 		}
 	}
 
@@ -1667,6 +1682,9 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 bcbBlk->dataLength = %d", bcbBlk->dataLength);
 		result = -1;
 		bundle->corrupt = 1;
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				bcbBlk, bcbAsb, target.targetBlockNumber);
 		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 		return result;
@@ -1721,28 +1739,122 @@ static int	bcbAttachAll(Bundle *bundle, size_t xmitRate)
 		{
 			return -1;
 		}
+		sdr_write(sdr, block.object, (char *) &asb, sizeof(BpsecOutboundBlock));
+		sdr_write(sdr, blockObj, (char *) &block, sizeof(ExtensionBlock));
 	}
 
 	return 0;
 }
 
-int	bpsec_encrypt(Bundle *bundle)
+/******************************************************************************
+ * @brief This function will apply the provided policy rule (with a
+ *               security policy role of source) to the block identified by
+ *               its block number. The block is either added as a target of an
+ *               existing BCB, or a new BCB is created for that target block.
+ *
+ * @param[in]  bundle  -  Current, working bundle.
+ * @param[in]  polRule -  The policy rule describing the required security
+ *                        operation in the bundle to be added.
+ * @param[in]  tgtNum  -  Block number of the security target block.
+ *
+ * @retval <0 - An error occurred while applying the policy rule.
+ * @retval  1 - The policy rule was successfully applied to the bundle.
+ *****************************************************************************/
+int bcbApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
+		char tgtNum)
 {
-	Sdr			sdr = getIonsdr();
-	Object			rules;
-	Object			elt;
-	Object			ruleObj;
-	BPsecBcbRule		rule;
-	BcbProfile		*prof;
-	char			keyBuffer[32];
-	int			keyBuflen = sizeof keyBuffer;
-	Object			bcbObj;
+	/* Step 0: Sanity Checks */
+	CHKERR(bundle);
+	CHKERR(polRule);
+	CHKERR(tgtNum);
+
+	Sdr			        sdr = getIonsdr();
+	PsmPartition        wm = getIonwm();
+	BcbProfile		    *prof;
+	char			    keyBuffer[32];
+	int			        keyBuflen = sizeof keyBuffer;
+	Object			    bcbObj = 0;
 	ExtensionBlock		bcbBlk;
 	BpsecOutboundBlock	asb;
-	Object			elt2;
-	Object			blockObj;
+
+	/* Step 1: Retrieve the BCB profile using the security context ID provided
+	 * in the policy rule. */
+
+	prof = get_bcb_prof_by_number(polRule->filter.scid);
+
+	/* Step 1.1: If the BIB profile is not found, handle event. */
+	if (prof == NULL)
+	{
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				NULL, NULL, tgtNum);
+		return -1;
+	}
+
+	/* Step 2: Retrieve the key name from the policy rule. */
+
+	PsmAddress scAddr = bslpol_scparm_find(wm, polRule->sc_parms, CSI_PARM_KEYINFO);
+	BpSecCtxParm *scParm = (BpSecCtxParm *) psp(wm, scAddr);
+	char *keyName = (char *)  psp(wm, scParm->addr);
+
+	/* Step 2.1: If the key is not found, handle event. */
+	if ((scParm->length > 0) && sec_get_key(keyName, &keyBuflen, keyBuffer) == 0)
+	{
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				NULL, NULL, tgtNum);
+		return -1;
+	}
+
+	/* Step 3: Search any existing BCBs in the bundle. If a BCB is found that
+	 * uses the profile and key name retrieved in steps 1 and 2, add this target
+	 * block to the existing BCB. */
+
+	bcbObj = bcbFindNew(bundle, prof->profNbr, keyName);
+	if (bcbObj)
+	{
+		sdr_read(sdr, (char *) &bcbBlk, bcbObj,
+				sizeof(ExtensionBlock));
+		sdr_read(sdr, (char *) &asb, bcbBlk.object,
+				bcbBlk.size);
+	}
+
+	/*	Step 4: Add the target block to either the existing BCB found in step 3,
+	 *  or create a new BCB and add the block as its target. If bcbObj == 0, a
+	 *  new BCB will be created. */
+
+	if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
+			prof, keyName, tgtNum) < 0)
+	{
+		/* Handle sop_misconf_at_src event */
+		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+				&bcbBlk, &asb, tgtNum);
+		return -1;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+int	bpsec_encrypt(Bundle *bundle)
+{
+	Sdr			        sdr = getIonsdr();
+	Object		    	rules;
+	Object			    elt;
+	Object			    ruleObj;
+	BPsecBcbRule		rule;
+	BcbProfile		    *prof;
+	char			    keyBuffer[32];
+	int			        keyBuflen = sizeof keyBuffer;
+	Object			    bcbObj;
+	ExtensionBlock		bcbBlk;
+	BpsecOutboundBlock	asb;
+	Object			    elt2;
+	Object			    blockObj;
 	ExtensionBlock		block;
-	size_t			xmitRate = 125000;
+	size_t			    xmitRate = 125000;
+	int                 policyRuleHandled = 0;
 
 	/*	NOTE: need to reinstate a processOnDequeue method
 	 *	for BCB extension blocks: extracts xmitRate from
@@ -1751,101 +1863,158 @@ int	bpsec_encrypt(Bundle *bundle)
 	 *	could pass that value directly to bpsec_encrypt
 	 *	as an API parameter.					*/
 
-	rules = sec_get_bpsecBcbRuleList();
+	/**** Apply all applicable security policy rules ****/
 
-	/*	Apply all applicable BCB rules.				*/
+	BpSecPolRule *polPayloadRule = NULL;
+	BpSecPolRule *polExtRule = NULL;
 
-	for (elt = sdr_list_first(sdr, rules); elt;
-			elt = sdr_list_next(sdr, elt))
+	polPayloadRule = bslpol_get_sender_rule(bundle, BlockConfidentialityBlk, PayloadBlk);
+
+	/* If there is a policy rule for the payload block, apply it */
+	if (polPayloadRule != NULL)
 	{
-		ruleObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &rule, ruleObj, sizeof(BPsecBcbRule));
-		if (rule.blockType == PrimaryBlk
-		|| rule.blockType == BlockIntegrityBlk
-		|| rule.blockType == BlockConfidentialityBlk)
+		policyRuleHandled = 1;
+		if (bcbApplySenderPolRule(bundle, polPayloadRule, 1) < 0)
 		{
-			/*	This is an error in the rule.  No
-			 *	target of a BCB can be a Primary
-			 *	block or another BIB, and a BCB can
-			 *	target a BIB only implicitly (when
-			 *	targeting a block that is already
-			 *	the target of a BIB).			*/
-
-			continue;
+			BCB_DEBUG(2, "i bpsec_encrypt: failure occurred in "
+				"bcbApplySenderPolRule.", NULL);
 		}
+	}
 
-		if (!bpsec_BcbRuleApplies(bundle, &rule))
+	/* Iterate over extension blocks as potential targets of the security op */
+	for (elt2 = sdr_list_first(sdr, bundle->extensions); elt2;
+			elt2 = sdr_list_next(sdr, elt2))
+	{
+		blockObj = sdr_list_data(sdr, elt2);
+		sdr_read(sdr, (char *) &block, blockObj, sizeof(ExtensionBlock));
+
+		polExtRule = bslpol_get_sender_rule(bundle, BlockConfidentialityBlk, block.type);
+		if (polExtRule != NULL)
 		{
-			continue;
-		}
-
-		prof = get_bcb_prof_by_name(rule.profileName);
-		if (prof == NULL)
-		{
-			/*	This is an error in the rule; profile
-			 *	may have been deleted after rule was
-			 *	added.					*/
-
-			continue;
-		}
-
-		if (strlen(rule.keyName) > 0
-		&& sec_get_key(rule.keyName, &keyBuflen, keyBuffer) == 0)
-		{
-			/*	Again, an error in the rule; key may
-			 *	have been deleted after rule was added.	*/
-
-			continue;
-		}
-
-		/*	Need to enforce this rule on all applicable
-		 *	blocks.  First find the newly sourced BCB
-		 *	that applies the rule's mandated profile and
-		 *	(if noted) key.					*/
-
-		bcbObj = bcbFindNew(bundle, prof->profNbr, rule.keyName);
-		if (bcbObj)
-		{
-			sdr_read(sdr, (char *) &bcbBlk, bcbObj,
-					sizeof(ExtensionBlock));
-			sdr_read(sdr, (char *) &asb, bcbBlk.object,
-					bcbBlk.size);
-		}
-
-		/*	(If this BCB doesn't exist, it will be created
-		 *	as soon as its first target is identified.)
-		 *
-		 *	Now look for blocks to which this rule must
-		 *	be applied.					*/
-
-		if (rule.blockType == PayloadBlk)
-		{
-			if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
-					prof, rule.keyName, 1) < 0)
+			policyRuleHandled = 1;
+			if (bcbApplySenderPolRule(bundle, polExtRule, block.number) < 0)
 			{
-				return -1;
+				BCB_DEBUG(2, "i bpsec_encrypt: failure occurred in "
+					"bcbApplySenderPolRule.", NULL);
+			}
+			polExtRule = NULL;
+		}
+	}
+
+	/* We use either policy rules or bcbRules, not both. */
+	if(policyRuleHandled)
+	{
+		/*	Now attach all new BCBs, encrypting all targets.	*/
+		if (bcbAttachAll(bundle, xmitRate) < 0)
+		{
+			return -1;
+		}
+		return 0;
+	}
+
+	rules = sec_get_bpsecBcbRuleList();
+	if (rules > 0)
+	{
+		/*	Apply all applicable BCB rules.				*/
+
+		for (elt = sdr_list_first(sdr, rules); elt;
+				elt = sdr_list_next(sdr, elt))
+		{
+			ruleObj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &rule, ruleObj, sizeof(BPsecBcbRule));
+			if (rule.blockType == PrimaryBlk
+			|| rule.blockType == BlockIntegrityBlk
+			|| rule.blockType == BlockConfidentialityBlk)
+			{
+				/*	This is an error in the rule.  No
+				 *	target of a BCB can be a Primary
+				 *	block or another BIB, and a BCB can
+				 *	target a BIB only implicitly (when
+				 *	targeting a block that is already
+				 *	the target of a BIB).			*/
+
+				continue;
 			}
 
-			continue;
-		}
-
-		for (elt2 = sdr_list_first(sdr, bundle->extensions); elt2;
-				elt2 = sdr_list_next(sdr, elt2))
-		{
-			blockObj = sdr_list_data(sdr, elt2);
-			sdr_read(sdr, (char *) &block, blockObj,
-					sizeof(ExtensionBlock));
-			if (block.type != rule.blockType)
+			if (!bpsec_BcbRuleApplies(bundle, &rule))
 			{
-				continue;	/*	Doesn't apply.	*/
+				continue;
 			}
 
-			/*	This rule would apply to this block.	*/
-
-			if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
-					prof, rule.keyName, block.number) < 0)
+			prof = get_bcb_prof_by_name(rule.profileName);
+			if (prof == NULL)
 			{
-				return -1;
+				/*	This is an error in the rule; profile
+				 *	may have been deleted after rule was
+				 *	added.					*/
+
+				continue;
+			}
+
+			if (strlen(rule.keyName) > 0
+			&& sec_get_key(rule.keyName, &keyBuflen, keyBuffer) == 0)
+			{
+				/*	Again, an error in the rule; key may
+				 *	have been deleted after rule was added.	*/
+
+				continue;
+			}
+
+			/*	Need to enforce this rule on all applicable
+			 *	blocks.  First find the newly sourced BCB
+			 *	that applies the rule's mandated profile and
+			 *	(if noted) key.					*/
+
+			bcbObj = bcbFindNew(bundle, prof->profNbr, rule.keyName);
+			if (bcbObj)
+			{
+				sdr_read(sdr, (char *) &bcbBlk, bcbObj,
+						sizeof(ExtensionBlock));
+				sdr_read(sdr, (char *) &asb, bcbBlk.object,
+						bcbBlk.size);
+			}
+
+			/*	(If this BCB doesn't exist, it will be created
+			 *	as soon as its first target is identified.)
+			 *
+			 *	Now look for blocks to which this rule must
+			 *	be applied.					*/
+
+			if (rule.blockType == PayloadBlk)
+			{
+				if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
+						prof, rule.keyName, 1) < 0)
+				{
+					/* Handle sop_misconf_at_src event */
+					bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+							&bcbBlk, &asb, 1);
+					return -1;
+				}
+
+				continue;
+			}
+
+			for (elt2 = sdr_list_first(sdr, bundle->extensions); elt2;
+					elt2 = sdr_list_next(sdr, elt2))
+			{
+				blockObj = sdr_list_data(sdr, elt2);
+				sdr_read(sdr, (char *) &block, blockObj,
+						sizeof(ExtensionBlock));
+				if (block.type != rule.blockType)
+				{
+					continue;	/*	Doesn't apply.	*/
+				}
+
+				/*	This rule would apply to this block.	*/
+
+				if (bcbAddTarget(sdr, bundle, &bcbObj, &bcbBlk, &asb,
+						prof, rule.keyName, block.number) < 0)
+				{
+					/* Handle sop_misconf_at_src event */
+					bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
+							&bcbBlk, &asb, block.number);
+					return -1;
+				}
 			}
 		}
 	}
@@ -1918,6 +2087,22 @@ static LystElt	bcbFindInboundTarget(AcqWorkArea *work, int blockNumber,
 	return NULL;	/*	No such target.				*/
 }
 
+/******************************************************************************
+ * @brief This function will decrypt the target block of a BCB.
+ *
+ * @param[in]  suite   -  Security context identifier.
+ * @param[in]  wk      -  Contains the serialized bundle being verified.
+ * @param[in]  blk     -  The BCB extension block.
+ * @param[in]  asb     -  The abstract security block for the BCB.
+ * @param[in]  target  -  The security target block to decrypt.
+ * @param[in]  fromEid -  Block source EID (not used).
+ *
+ * @retval -2  - A misconfiguration occurred preventing successful decryption.
+ * @retval -1  - System Error.
+ * @retval  0  - Decryption unsuccessful - target block is corrupt.
+ * @retval  1  - Successful decryption.
+ *****************************************************************************/
+
 int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 		BpsecInboundBlock *asb, BpsecInboundTarget *target,
 		char *fromEid)
@@ -1931,7 +2116,7 @@ int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 			(unsigned long) wk, (unsigned long) blk);
 
 	/* Step 0 - Sanity Checks. */
-	CHKERR(wk && blk && asb && target);
+	CHKERR(wk && asb && target);
 
 	memset(&longtermKey, 0, sizeof(sci_inbound_tlv));
 	memset(&sessionKeyInfo, 0, sizeof(sci_inbound_tlv));
@@ -1954,7 +2139,7 @@ int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 		BCB_DEBUG_ERR("x bcbDefaultDecrypt: Can't get longterm key \
 for %s", asb->keyName);
 		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> 0", NULL);
-		return 0;
+		return -2;
 	}
 
 	/*
@@ -1977,7 +2162,7 @@ key", NULL);
 		MRELEASE(longtermKey.value);
 		MRELEASE(sessionKeyInfo.value);
 		BCB_DEBUG_PROC("- bcbDefaultDecrypt--> 0", NULL);
-		return 0;
+		return -2;
 	}
 
 	/* Step 3.4 - Release unnecessary key-related memory. */
@@ -2026,264 +2211,598 @@ blocks is not yet implemented.", target->targetBlockNumber);
 	return 1;
 }
 
-int	bpsec_decrypt(AcqWorkArea *work)
+/******************************************************************************
+ * @brief This function will apply the provided policy rule (with a
+ *               security policy role of either verifier of acceptor) to the
+ *               block identified by its block number. The BCB for the target
+ *               block is located and the target block contents are verified
+ *               or decrypted.
+ *
+ * @param[in]  wk      -  Work area holding bundle information.
+ * @param[in]  polRule -  The policy rule describing the required security
+ *                        operation in the bundle to be verified/processed.
+ * @param[in]  tgtNum  -  Block number of the security target block.
+ *
+ * @note The security verifier role has not yet been implemented for
+ *       bcb-confidentialtiy. That is, only security acceptor rules are
+ *       applied to the bundle by this function, as decryption has been
+ *       implemented but authentication of the target block data without
+ *       decryption (performed by a verifier) cannot be performed at this
+ *       time.
+ *
+ * @todo Update function to handle the security verifier role when
+ *       verification of a bcb-confidentiality operation has been implemented.
+ *
+ * @retval <0 - An error occurred while applying the policy rule.
+ * @retval  1 - The policy rule was successfully applied to the bundle.
+ *****************************************************************************/
+int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
+		char tgtNum)
 {
-	Sdr			sdr = getIonsdr();
-	Bundle			*bundle = &(work->bundle);
-	Object			rules;
-	Object			elt;
-	Object			ruleObj;
-	BPsecBcbRule		rule;
-	BcbProfile		*prof;
-	char			keyBuffer[32];
-	int			keyBuflen = sizeof keyBuffer;
-	LystElt			elt2;
-	AcqExtBlock		*blk;
+	/* Step 0: Sanity Checks */
+	CHKERR(wk);
+	CHKERR(polRule);
+	CHKERR(tgtNum);
+
+	Bundle			    *bundle = &(wk->bundle);
+	BcbProfile		    *prof;
+	char			    keyBuffer[32];
+	int			        keyBuflen = sizeof keyBuffer;
+	LystElt			    elt = 0;
+	AcqExtBlock		    *extTgtBlk = NULL;
 	BpsecInboundBlock	*asb;
-	char			*fromEid;	/*	Instrumentation.*/
-	LystElt			targetElt;
-	LystElt			bcbElt;
-	AcqExtBlock		*bcb;
-	LystElt			bibElt;
+	char			    *fromEid;	/*	Instrumentation.*/
+	LystElt			    targetElt;
+	LystElt			    bcbElt;
+	AcqExtBlock		    *bcb;
 	BpsecInboundTarget	*target;
 	unsigned int		oldLength;
-	int			result;
-	AcqExtBlock		*bib;
+	int			        result;
+	PsmPartition        wm = getIonwm();
+	int					decryptTgtNum = -1;
+
+	/* Get the BCB for the required target block */
+	targetElt = bcbFindInboundTarget(wk, tgtNum, &bcbElt);
+
+	if ((targetElt == NULL) || (bcbElt == NULL))
+	{
+		/*	Required BCB is not found */
+
+		/* Handle sop_missing event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+			sop_missing_at_acceptor, bcbElt, targetElt, tgtNum);
+		return -1;
+	}
+
+	target = (BpsecInboundTarget *) lyst_data(targetElt);
+	bcb = (AcqExtBlock *) lyst_data(bcbElt);
+	asb = (BpsecInboundBlock *) (bcb->object);
+
+	if(tgtNum == PrimaryBlk)
+	{
+		BCB_DEBUG(2, "i bcbApplyReceiverPolRule: Rule invalid. "
+				"BCB on Primary Block is not permitted.", NULL);
+		return -1;
+	}
+	else if(tgtNum == PayloadBlk)
+	{
+		decryptTgtNum = PayloadBlk;
+
+		/* Record the block length before decryption */
+		oldLength = (unsigned int) wk->bundle.payload.length;
+	}
+	else
+	{
+		/* Get target block */
+		for (elt = lyst_first(wk->extBlocks); elt; elt = lyst_next(elt))
+		{
+			extTgtBlk = (AcqExtBlock *) lyst_data(elt);
+			if (extTgtBlk->number == tgtNum)
+			{
+				decryptTgtNum = tgtNum;
+				/* Record the block length before decryption */
+				oldLength = extTgtBlk->length;
+				break;
+			}
+			else
+			{
+				extTgtBlk = NULL;
+			}
+		}
+	}
+
+	if (decryptTgtNum == -1)
+	{
+		/* Required BCB target is missing.
+		 * Violation of security policy. */
+
+		/* Handle sop_missing event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+			sop_missing_at_acceptor, bcbElt, targetElt, tgtNum);
+		return -1;
+	}
+
+	prof = get_bcb_prof_by_number(polRule->filter.scid);
+	if (prof == NULL)
+	{
+		/*	This is an error in the rule; profile
+		 *	may have been deleted after rule was
+		 *	added.					*/
+
+		/* Handle sop_misconf event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+				sop_misconf_at_acceptor, bcbElt, targetElt, tgtNum);
+		return -1;
+	}
+
+	PsmAddress scAddr = bslpol_scparm_find(wm, polRule->sc_parms, CSI_PARM_KEYINFO);
+	BpSecCtxParm *scParm = (BpSecCtxParm *) psp(wm, scAddr);
+	char *keyName = (char *)  psp(wm, scParm->addr);
+
+	if ((scParm->length > 0) && sec_get_key(keyName, &keyBuflen, keyBuffer) > 0)
+	{
+		memcpy(asb->keyName, keyName, BPSEC_KEY_NAME_LEN);
+	}
+	else
+	{
+		/*	Again, an error in the rule; key may
+		*	have been deleted after rule was added.	*/
+
+		/* Handle sop_misconf event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+			sop_misconf_at_acceptor, bcbElt, targetElt, tgtNum);
+		return -1;
+	}
+
+	/* Must decrypt target block */
+	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
+	{
+		/*	Waypoint source.		*/
+		readEid(&(asb->securitySource), &fromEid);
+	}
+	else
+	{
+		/*	Bundle source.			*/
+		readEid(&(bundle->id.source), &fromEid);
+	}
+
+	if (fromEid == NULL)
+	{
+		ADD_BCB_RX_FAIL(NULL, 1, 0);
+
+		/* Handle sop_misconf event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+			sop_misconf_at_acceptor, bcbElt, targetElt, tgtNum);
+		return -1;
+	}
+
+	result = (prof->decrypt == NULL)
+		?  bcbDefaultDecrypt(prof->suiteId, wk, bcb,
+		asb, target, fromEid)
+		: prof->decrypt(prof->suiteId, wk, bcb,
+		asb, target, fromEid);
+
+	BCB_DEBUG_INFO("i bcbApplyReceiverPolRule: Decrypt result was %d",
+			result);
+
+	switch (result)
+	{
+	case 0:	/* Corrupt target */
+		wk->malformed = 1;
+		ADD_BCB_RX_FAIL(fromEid, 1, 0);
+		/* Handle sop_corrupt_at_acceptor event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+			 sop_corrupt_at_acceptor, bcbElt, targetElt,
+			 target->targetBlockNumber);
+		MRELEASE(fromEid);
+		return -1;
+
+	case -1: /* System error indicates malformed block */
+		wk->malformed = 1;
+		ADD_BCB_RX_FAIL(fromEid, 1, 0);
+		/* Handle sop_corrupt_at_acceptor event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+			 sop_corrupt_at_acceptor, bcbElt, targetElt,
+			 target->targetBlockNumber);
+		MRELEASE(fromEid);
+		return -1;
+
+	case -2: /* Misconfiguration of BCB */
+		ADD_BCB_RX_FAIL(fromEid, 1, 0);
+		/* Handle sop_misconf_at_acceptor event */
+		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+			 sop_misconf_at_acceptor, bcbElt, targetElt,
+			 target->targetBlockNumber);
+		MRELEASE(fromEid);
+		return -1;
+
+	case 1: /* Success */
+		BCB_DEBUG(2, "i bcbApplyReceiverPolRule: Decryption of BCB "
+				"target block successful.", NULL);
+		break;
+
+	default:
+		break;
+	}
+
+	/*	Decryption completed.			*/
+
+	/* If target block was an extension block and it was
+	 * discarded during decryption */
+	if ((extTgtBlk != NULL) && (extTgtBlk->length == 0))
+	{
+		deleteAcqExtBlock(elt);
+		bundle->extensionsLength -= oldLength;
+		discardTarget(targetElt, bcbElt);
+	}
+
+	/* If target block was the payload block and it was
+	 * discarded during decryption */
+	else if ((decryptTgtNum == PayloadBlk) && (wk->bundle.payload.length == 0))
+	{
+		/* A bundle without a payload is malformed */
+		wk->malformed = 1;
+	}
+
+	/*	Target block successfully decrypted */
+	else
+	{
+		if (bpsec_destinationIsLocal(&(wk->bundle)))
+		{
+			ADD_BCB_RX_PASS(fromEid, 1, 0);
+			/* Handle sop_processed event */
+			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
+				 sop_processed, bcbElt, targetElt,
+				 target->targetBlockNumber);
+			discardTarget(targetElt, bcbElt);
+		}
+		else
+		{
+			ADD_BCB_FWD(fromEid, 1, 0);
+		}
+
+		/* If target block is an extension block and its length
+		 * has changed. */
+		if (extTgtBlk->length != oldLength)
+		{
+			bundle->extensionsLength -= oldLength;
+			bundle->extensionsLength += extTgtBlk->length;
+		}
+		/* If target block is the payload block and its length
+		 * has changed, this has been recorded during decryption */
+	}
+
+	MRELEASE(fromEid);
+	return 1;
+}
+
+int	bpsec_decrypt(AcqWorkArea *work)
+{
+	Sdr		        	sdr = getIonsdr();
+	Bundle		    	*bundle = &(work->bundle);
+	Object		    	rules;
+	Object		    	elt;
+	Object		    	ruleObj;
+	BPsecBcbRule		rule;
+	BcbProfile	    	*prof;
+	char		      	keyBuffer[32];
+	int			        keyBuflen = sizeof keyBuffer;
+	LystElt			    elt2;
+	AcqExtBlock		    *blk;
+	BpsecInboundBlock	*asb;
+	char			    *fromEid;	/*	Instrumentation.*/
+	LystElt			    targetElt;
+	LystElt			    bcbElt;
+	AcqExtBlock		    *bcb;
+	LystElt			    bibElt;
+	BpsecInboundTarget	*target;
+	unsigned int		oldLength;
+	int			        result;
+	AcqExtBlock	    	*bib;
+	LystElt             tgt;
+	int                 policyRuleHandled = 0;
+
+	/**** Apply all applicable security policy rules ****/
+
+	BpSecPolRule *polRule = NULL;
+
+	/* For each BCB in the bundle */
+	for (elt2 = lyst_first(work->extBlocks); elt2; elt2 = lyst_next(elt2))
+	{
+		blk = (AcqExtBlock *) lyst_data(elt2);
+		if (blk->type == BlockConfidentialityBlk)
+		{
+			asb = (BpsecInboundBlock *) (blk->object);
+
+			/* Check each target block for applicable rule */
+			for (tgt = lyst_first(asb->targets); tgt; tgt = lyst_next(tgt))
+			{
+				target = (BpsecInboundTarget *) lyst_data(tgt);
+				polRule = bslpol_get_receiver_rule(bundle,
+						target->targetBlockNumber, asb->contextId);
+
+				if (polRule != NULL)
+				{
+					policyRuleHandled = 1;
+					if (bcbApplyReceiverPolRule(work, polRule,
+							target->targetBlockNumber) < 0)
+					{
+						BCB_DEBUG(2, "i bpsec_decrypt: failure occurred in "
+								"bcbApplyReceiverPolRule.", NULL);
+						return -1;
+					}
+					polRule = NULL;
+				}
+			}
+		}
+	}
+
+	/* We use either policy rules or bcbRules, not both. */
+	if(policyRuleHandled)
+	{
+		return 0;
+	}
 
 	rules = sec_get_bpsecBcbRuleList();
-
-	/*	Apply all applicable BCB rules.				*/
-
-	for (elt = sdr_list_first(sdr, rules); elt;
-			elt = sdr_list_next(sdr, elt))
+	if (rules > 0)
 	{
-		ruleObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &rule, ruleObj, sizeof(BPsecBibRule));
-		if (rule.blockType == PrimaryBlk
-		|| rule.blockType == BlockIntegrityBlk
-		|| rule.blockType == BlockConfidentialityBlk)
+		/*	Apply all applicable BCB rules.				*/
+
+		for (elt = sdr_list_first(sdr, rules); elt;
+				elt = sdr_list_next(sdr, elt))
 		{
-			/*      This is an error in the rule.  No
-			 *      target of a BCB can be a Primary
-			 *      block or another BIB, and a BCB can
-			 *      target a BIB only implicitly (when
-			 *      targeting a block that is already
-			 *      the target of a BIB).                   */
-
-			continue;
-		}
-
-		if (!bpsec_BcbRuleApplies(bundle, &rule))
-		{
-			continue;
-		}
-
-		prof = get_bcb_prof_by_name(rule.profileName);
-		if (prof == NULL)
-		{
-			/*	This is an error in the rule; profile
-			 *	may have been deleted after rule was
-			 *	added.					*/
-
-			continue;
-		}
-
-		if (strlen(rule.keyName) > 0
-		&& sec_get_key(rule.keyName, &keyBuflen, keyBuffer) == 0)
-		{
-			/*	Again, an error in the rule; key may
-			 *	have been deleted after rule was added.	*/
-
-			continue;
-		}
-
-		for (elt2 = lyst_first(work->extBlocks); elt2;
-				elt2 = lyst_next(elt2))
-		{
-			blk = (AcqExtBlock *) lyst_data(elt2);
-			if (blk->type != rule.blockType)
+			ruleObj = sdr_list_data(sdr, elt);
+			sdr_read(sdr, (char *) &rule, ruleObj, sizeof(BPsecBibRule));
+			if (rule.blockType == PrimaryBlk
+			|| rule.blockType == BlockIntegrityBlk
+			|| rule.blockType == BlockConfidentialityBlk)
 			{
-				continue;	/*	Doesn't apply.	*/
-			}
-
-			/*	This rule would apply to this block.	*/
-
-			oldLength = blk->length;
-			targetElt = bcbFindInboundTarget(work, blk->number,
-					&bcbElt);
-			if (targetElt == NULL)
-			{
-				/*	Block is not encrypted.  No
-				 *	need to decrypt.		*/
+				/*      This is an error in the rule.  No
+				 *      target of a BCB can be a Primary
+				 *      block or another BIB, and a BCB can
+				 *      target a BIB only implicitly (when
+				 *      targeting a block that is already
+				 *      the target of a BIB).                   */
 
 				continue;
 			}
 
-			/*	Block needs to be decrypted.		*/
-
-			target = (BpsecInboundTarget *) lyst_data(targetElt);
-			bcb = (AcqExtBlock *) lyst_data(bcbElt);
-			asb = (BpsecInboundBlock *) (bcb->object);
-			if (strlen(rule.keyName) > 0)
+			if (!bpsec_BcbRuleApplies(bundle, &rule))
 			{
-				memcpy(asb->keyName, rule.keyName,
-						BPSEC_KEY_NAME_LEN);
-			}
-
-			if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
-			{
-				/*	Waypoint source.		*/
-
-				readEid(&(asb->securitySource), &fromEid);
-				if (fromEid == NULL)
-				{
-					ADD_BCB_RX_FAIL(NULL, 1, 0);
-					return -1;
-				}
-			}
-			else	/*	Bundle source.			*/
-			{
-				readEid(&(bundle->id.source), &fromEid);
-				if (fromEid == NULL)
-				{
-					ADD_BCB_RX_FAIL(NULL, 1, 0);
-					return -1;
-				}
-			}
-
-			result = (prof->decrypt == NULL)
-				?  bcbDefaultDecrypt(prof->suiteId, work, blk,
-				asb, target, fromEid)
-				: prof->decrypt(prof->suiteId, work, blk,
-				asb, target, fromEid);
-
-			BCB_DEBUG_INFO("i bpsec_decrypt: Decrypt result was %d",
-					result);
-			switch (result)
-			{
-			case 0:	/*	Malformed block.		*/
-				work->malformed = 1;
-
-				/*	Intentional fall-through.	*/
-			case -1:
-				MRELEASE(fromEid);
-				ADD_BCB_RX_FAIL(fromEid, 1, 0);
 				continue;
-
-			default:
-				break;
 			}
 
-			/*	Decryption completed.			*/
+			prof = get_bcb_prof_by_name(rule.profileName);
+			if (prof == NULL)
+			{
+				/*	This is an error in the rule; profile
+				 *	may have been deleted after rule was
+				 *	added.					*/
 
-			if (blk->length == 0)	/*	Discarded.	*/
-			{
-				deleteAcqExtBlock(elt2);
-				bundle->extensionsLength -= oldLength;
-				discardTarget(targetElt, bcbElt);
+				continue;
 			}
-			else	/*	Target decrypted.		*/
+
+			if (strlen(rule.keyName) > 0
+			&& sec_get_key(rule.keyName, &keyBuflen, keyBuffer) == 0)
 			{
-				if (bpsec_destinationIsLocal(&(work->bundle)))
+				/*	Again, an error in the rule; key may
+				 *	have been deleted after rule was added.	*/
+
+				continue;
+			}
+
+			for (elt2 = lyst_first(work->extBlocks); elt2;
+					elt2 = lyst_next(elt2))
+			{
+				blk = (AcqExtBlock *) lyst_data(elt2);
+				if (blk->type != rule.blockType)
 				{
-					BCB_DEBUG(2, "BCB target decrypted.",
-							NULL);
-					ADD_BCB_RX_PASS(fromEid, 1, 0);
+					continue;	/*	Doesn't apply.	*/
+				}
+
+				/*	This rule would apply to this block.	*/
+
+				oldLength = blk->length;
+				targetElt = bcbFindInboundTarget(work, blk->number,
+						&bcbElt);
+				if (targetElt == NULL)
+				{
+					/*	Block is not encrypted.  No
+					 *	need to decrypt.		*/
+
+					continue;
+				}
+
+				/*	Block needs to be decrypted.		*/
+
+				target = (BpsecInboundTarget *) lyst_data(targetElt);
+				bcb = (AcqExtBlock *) lyst_data(bcbElt);
+				asb = (BpsecInboundBlock *) (bcb->object);
+				if (strlen(rule.keyName) > 0)
+				{
+					memcpy(asb->keyName, rule.keyName,
+							BPSEC_KEY_NAME_LEN);
+				}
+
+				if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
+				{
+					/*	Waypoint source.		*/
+
+					readEid(&(asb->securitySource), &fromEid);
+					if (fromEid == NULL)
+					{
+						ADD_BCB_RX_FAIL(NULL, 1, 0);
+						/* Handle sop_misconf_at_verifier event */
+						bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+							 sop_misconf_at_verifier, bcbElt, targetElt,
+							 target->targetBlockNumber);
+						return -1;
+					}
+				}
+				else	/*	Bundle source.			*/
+				{
+					readEid(&(bundle->id.source), &fromEid);
+					if (fromEid == NULL)
+					{
+						ADD_BCB_RX_FAIL(NULL, 1, 0);
+						/* Handle sop_misconf_at_acceptor event */
+						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+							 sop_misconf_at_acceptor, bcbElt, targetElt,
+							 target->targetBlockNumber);
+						return -1;
+					}
+				}
+
+				result = (prof->decrypt == NULL)
+					?  bcbDefaultDecrypt(prof->suiteId, work, blk,
+					asb, target, fromEid)
+					: prof->decrypt(prof->suiteId, work, blk,
+					asb, target, fromEid);
+
+				BCB_DEBUG_INFO("i bpsec_decrypt: Decrypt result was %d",
+						result);
+				switch (result)
+				{
+				case 0:	/*	Malformed block.		*/
+					work->malformed = 1;
+
+					/* Handle sop_corrupt_at_acceptor event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_corrupt_at_acceptor, bcbElt, targetElt,
+						 target->targetBlockNumber);
+
+					/*	Intentional fall-through.	*/
+				case -1:
+					ADD_BCB_RX_FAIL(fromEid, 1, 0);
+					/* Handle sop_misconf_at_acceptor event */
+					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+						 sop_misconf_at_acceptor, bcbElt, targetElt,
+						 target->targetBlockNumber);
+					continue;
+
+				default:
+					break;
+				}
+
+				/*	Decryption completed.			*/
+
+				if (blk->length == 0)	/*	Discarded.	*/
+				{
+					deleteAcqExtBlock(elt2);
+					bundle->extensionsLength -= oldLength;
 					discardTarget(targetElt, bcbElt);
 				}
-				else
+				else	/*	Target decrypted.		*/
 				{
-					ADD_BCB_FWD(fromEid, 1, 0);
+					if (bpsec_destinationIsLocal(&(work->bundle)))
+					{
+						BCB_DEBUG(2, "BCB target decrypted.",
+								NULL);
+						ADD_BCB_RX_PASS(fromEid, 1, 0);
+						/* Handle sop_processed event */
+						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+							 sop_processed, bcbElt, targetElt,
+							 target->targetBlockNumber);
+						discardTarget(targetElt, bcbElt);
+					}
+					else
+					{
+						ADD_BCB_FWD(fromEid, 1, 0);
+					}
+
+					if (blk->length != oldLength)
+					{
+						bundle->extensionsLength -= oldLength;
+						bundle->extensionsLength += blk->length;
+					}
 				}
 
-				if (blk->length != oldLength)
+				/*	Is this block also signed by a BIB?	*/
+
+				targetElt = bibFindInboundTarget(work, blk->number,
+						&bibElt);
+				if (targetElt == NULL)
 				{
+					/*	Block not signed by a BIB.	*/
+
+					MRELEASE(fromEid);
+					continue;
+				}
+
+				/*	Block is signed by a BIB, so we must
+				 *	decrypt that BIB as well.		*/
+
+				bib = (AcqExtBlock *) lyst_data(bibElt);
+				oldLength = bib->length;
+				targetElt = bcbFindInboundTarget(work, bib->number,
+						&bcbElt);
+				if (targetElt == NULL)
+				{
+					/*	BIB is not encrypted, can't
+					 *	decrypt it.			*/
+
+					MRELEASE(fromEid);
+					continue;
+				}
+
+				/*	BIB must be decrypted.			*/
+
+				target = (BpsecInboundTarget *) lyst_data(targetElt);
+				result = (prof->decrypt == NULL)
+					?  bcbDefaultDecrypt(prof->suiteId, work, bib,
+					asb, target, fromEid)
+					: prof->decrypt(prof->suiteId, work, bib,
+					asb, target, fromEid);
+
+				BCB_DEBUG_INFO("i bpsec_decrypt: Decrypt result was %d",
+						result);
+				switch (result)
+				{
+				case 0:	/*	Malformed BIB.			*/
+					work->malformed = 1;
+
+					/*	Intentional fall-through.	*/
+				case -1:
+					MRELEASE(fromEid);
+					ADD_BCB_RX_FAIL(fromEid, 1, 0);
+					continue;
+
+				default:
+					break;
+				}
+
+				if (bib->length == 0)	/*	Discarded.	*/
+				{
+					deleteAcqExtBlock(bibElt);
 					bundle->extensionsLength -= oldLength;
-					bundle->extensionsLength += blk->length;
-				}
-			}
-
-			/*	Is this block also signed by a BIB?	*/
-
-			targetElt = bibFindInboundTarget(work, blk->number,
-					&bibElt);
-			if (targetElt == NULL)
-			{
-				/*	Block not signed by a BIB.	*/
-
-				MRELEASE(fromEid);
-				continue;
-			}
-
-			/*	Block is signed by a BIB, so we must
-			 *	decrypt that BIB as well.		*/
-
-			bib = (AcqExtBlock *) lyst_data(bibElt);
-			oldLength = bib->length;
-			targetElt = bcbFindInboundTarget(work, bib->number,
-					&bcbElt);
-			if (targetElt == NULL)
-			{
-				/*	BIB is not encrypted, can't
-				 *	decrypt it.			*/
-
-				MRELEASE(fromEid);
-				continue;
-			}
-
-			/*	BIB must be decrypted.			*/
-
-			target = (BpsecInboundTarget *) lyst_data(targetElt);
-			result = (prof->decrypt == NULL)
-				?  bcbDefaultDecrypt(prof->suiteId, work, bib,
-				asb, target, fromEid)
-				: prof->decrypt(prof->suiteId, work, bib,
-				asb, target, fromEid);
-
-			BCB_DEBUG_INFO("i bpsec_decrypt: Decrypt result was %d",
-					result);
-			switch (result)
-			{
-			case 0:	/*	Malformed BIB.			*/
-				work->malformed = 1;
-
-				/*	Intentional fall-through.	*/
-			case -1:
-				MRELEASE(fromEid);
-				ADD_BCB_RX_FAIL(fromEid, 1, 0);
-				continue;
-
-			default:
-				break;
-			}
-
-			if (bib->length == 0)	/*	Discarded.	*/
-			{
-				deleteAcqExtBlock(bibElt);
-				bundle->extensionsLength -= oldLength;
-				discardTarget(targetElt, bcbElt);
-			}
-			else	/*	Target decrypted.		*/
-			{
-				if (bpsec_destinationIsLocal(&(work->bundle)))
-				{
-					BCB_DEBUG(2, "BIB decrypted.", NULL);
-					ADD_BCB_RX_PASS(fromEid, 1, 0);
 					discardTarget(targetElt, bcbElt);
 				}
-				else
+				else	/*	Target decrypted.		*/
 				{
-					ADD_BCB_FWD(fromEid, 1, 0);
+					if (bpsec_destinationIsLocal(&(work->bundle)))
+					{
+						BCB_DEBUG(2, "BIB decrypted.", NULL);
+						ADD_BCB_RX_PASS(fromEid, 1, 0);
+						/* Handle sop_processed event */
+						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
+							 sop_processed, bcbElt, targetElt,
+							 target->targetBlockNumber);
+						discardTarget(targetElt, bcbElt);
+					}
+					else
+					{
+						ADD_BCB_FWD(fromEid, 1, 0);
+					}
+
+					if (bib->length != oldLength)
+					{
+						bundle->extensionsLength -= oldLength;
+						bundle->extensionsLength += bib->length;
+					}
 				}
 
-				if (bib->length != oldLength)
-				{
-					bundle->extensionsLength -= oldLength;
-					bundle->extensionsLength += bib->length;
-				}
+				MRELEASE(fromEid);
 			}
-
-			MRELEASE(fromEid);
 		}
 	}
 

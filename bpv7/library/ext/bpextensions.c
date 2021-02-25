@@ -18,6 +18,12 @@
 #include "hcb.h"
 #include "snw.h"
 #include "imc.h"
+#if RGREB
+#include "rgr.h"
+#endif
+#if CGRREB
+#include "cgrr.h"
+#endif
 #include "bib.h"
 #include "bcb.h"
 
@@ -85,7 +91,7 @@ static ExtensionDef	extensionDefs[] =
 				{0,
 				0,
 				0,
-				0,
+				qos_processOnDequeue,
 				0},
 				0,
 				0,
@@ -103,7 +109,7 @@ static ExtensionDef	extensionDefs[] =
 				{0,
 				0,
 				0,
-				0,
+				meb_processOnDequeue,
 				0},
 				0,
 				0,
@@ -187,15 +193,61 @@ static ExtensionDef	extensionDefs[] =
 				imc_record,
 				imc_clear
 		},
+#if RGREB
+		{ "rgr", RGRBlk,
+				rgr_offer,
+				0,
+				{rgr_processOnFwd,
+				 rgr_processOnAccept,
+				 rgr_processOnEnqueue,
+				 rgr_processOnDequeue,
+				 0},
+				 rgr_release,
+				 rgr_copy,
+				 rgr_acquire,
+				 0,
+				 0,
+				 rgr_parse,
+				 rgr_check,
+				 rgr_record,
+				 rgr_clear
+		},
+#endif
+#if CGRREB
+		{ "cgrr", CGRRBlk,
+				cgrr_offer,
+				0,
+				{0,
+				0,
+				0,
+				0,
+				0},
+				cgrr_release,
+				cgrr_copy,
+				cgrr_acquire,
+				0,
+				0,
+				0,
+				0,
+				cgrr_record,
+				cgrr_clear
+		},
+#endif
 		{ "unknown",-1,0,0,{0,0,0,0,0},0,0,0,0,0,0,0,0,0 }
 			};
 
 static ExtensionSpec		extensionSpecs[] =
 				{
-					{ PreviousNodeBlk, 0, 0 },
-					{ QualityOfServiceBlk, 0, 0 },
-					{ BundleAgeBlk, 0, 0 },
-					{ SnwPermitsBlk, 0, 0 },
-					{ ImcDestinationsBlk, 0, 0 },
-					{ UnknownBlk, 0, 0 }
+					{ PreviousNodeBlk, 0, NoCRC },
+					{ QualityOfServiceBlk, 0, NoCRC },
+					{ BundleAgeBlk, 0, NoCRC },
+					{ SnwPermitsBlk, 0, NoCRC },
+					{ ImcDestinationsBlk, 0, NoCRC },
+#if RGREB
+					{ RGRBlk, 0, NoCRC },
+#endif
+#if CGRREB
+					{ CGRRBlk, 0, NoCRC },
+#endif
+					{ UnknownBlk, 0, NoCRC }
 				};

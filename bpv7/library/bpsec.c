@@ -108,74 +108,52 @@ int	sec_activeKey(char *keyName)
  *		wildcard character ("~"). For example, the two EIDs compared
  *		can be "ipn:1.~" and "ipn~".
  *
- * \retval int -- 1 - The EIDs matched, counting wildcards.
- *		0 - The EIDs did not match.
+ * \retval int 1 - The EIDs matched, counting wildcards.
+ *			   0 - The EIDs did not match.
  *
- * \param[in]	firstEid	The first EID to compare. 
- *		firstEidLen	The length of the first EID string.
- *		secondEid	The second EID to compare.
- *		secondEidLen	The length of the second EID string.
+ * \param[in]	firstEid 	 - The first EID to compare.
+ *				firstEidLen	 - The length of the first EID string.
+ *				secondEid	 - The second EID to compare.
+ *				secondEidLen - The length of the second EID string.
  *
- * \par Notes:
+ * \par Notes: The wildcard character '~' is interpreted to function as *
+ * 			   (matching 0 or more) NOT + (matching 1 or more).
  *****************************************************************************/
 
 int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
 		int secondEidLen)
 {
-	int	result = 1;
-	int	firstPos = -1;
-	int	secondPos = -1;
+	int i;
 
-	CHKZERO(firstEid);
-	CHKZERO(firstEidLen > 0);
-	CHKZERO(secondEid);
-	CHKZERO(secondEidLen > 0);
-
-	/*
-	 * First, determine if (and the pos of) end-of-line wildcards.
-	 */
-	if (firstEid[firstEidLen - 1] == '~')
+	/* We do not match NULL strings. */
+	if((firstEid == NULL) || (secondEid == NULL))
 	{
-		firstPos = firstEidLen - 1;
+		return 0;
 	}
 
-	if (secondEid[secondEidLen - 1] == '~')
+	for (i = 0; i < MAX(firstEidLen, secondEidLen); i++)
 	{
-		secondPos = secondEidLen-1;
+		/* EID length mismatch */
+		if ((firstEidLen < i) || (secondEidLen < i))
+		{
+			return 0;
+		}
+
+		/* Perform wildcard matching */
+		else if ((firstEid[i] == '~') || (secondEid[i] == '~'))
+		{
+			return 1;
+		}
+
+		/* EIDs do not match */
+		else if (firstEid[i] != secondEid[i])
+		{
+			return 0;
+		}
 	}
 
-	/* If either or both EIDs are simply '~', this is a match. */
-	if ((firstPos == 0) || (secondPos == 0))
-	{
-		result = 0;
-	}
-
-	/* If one/the other/both EIDs have wildcards, do a compare
-	 * up to the shortest length. */
-	else if ((firstPos > 0) && (secondPos > 0))
-	{
-		result = strncmp(firstEid, secondEid, MIN(firstPos, secondPos));
-	}
-	else if (firstPos > 0)
-	{
-		result = strncmp(firstEid, secondEid, MIN(firstPos,
-				secondEidLen));
-	}
-	else if (secondPos > 0)
-	{
-		result = strncmp(firstEid, secondEid, MIN(firstEidLen,
-				secondPos));
-	}
-
-	/* If no wildcards are used, do a regular compare. */
-	else
-	{
-		result = strncmp(firstEid, secondEid, MIN(firstEidLen,
-				secondEidLen));
-	}
-
-	/* If we have no differences, the EIDs must match. */
-	return (result == 0);
+	/* EIDs are an exact match */
+	return 1;
 }
 
 /******************************************************************************

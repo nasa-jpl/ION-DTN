@@ -13,6 +13,16 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionrc \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
+"
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
+fi
+
+CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ltprc \
 ./3.ipn.ltp/amroc.bprc \
 ./3.ipn.ltp/amroc.ionconfig \
@@ -21,6 +31,10 @@ CONFIGFILES=" \
 ./3.ipn.ltp/amroc.ionsecrc \
 ./3.ipn.ltp/amroc.ipnrc \
 "
+
+if [ $ACS == "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
+fi
 
 echo "########################################"
 echo
@@ -66,10 +80,18 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start nodes.
-cd 2.ipn.ltp
-./ionstart >& node2.stdout
-cd ../3.ipn.ltp
-./ionstart >& node3.stdout
+if [ $ACS == "found" ] ; then
+	cd 2.ipn.ltp
+	./ionstart-acs >& node2.stdout
+	cd ../3.ipn.ltp
+	./ionstart-acs >& node3.stdout
+else
+	cd 2.ipn.ltp
+	./ionstart >& node2.stdout
+	cd ../3.ipn.ltp
+	./ionstart >& node3.stdout
+fi
+
 
 echo "Starting bpcounter on node 3..."
 sleep 1

@@ -14,11 +14,13 @@
 static void	reportError(void *userData, AmsEvent *event)
 {
 	PUTS("AMS event loop crashed.");
+	fflush(stdout);
 }
 
 static void	handleQuit(int signum)
 {
 	PUTS("Terminating amsbenchs.");
+	fflush(stdout);
 }
 
 #if defined (ION_LWT)
@@ -42,6 +44,7 @@ int	main(int argc, char **argv)
 	if (count < 1 || size < sizeof(int) || size > 65535)
 	{
 		PUTS("Usage: amsbenchs <# of msgs to send> <msg length>");
+		fflush(stdout);
 		return 0;
 	}
 
@@ -61,6 +64,7 @@ int	main(int argc, char **argv)
 	if (ams_register("", NULL, "amsdemo", "test", "", "benchs", &me) < 0)
 	{
 		putErrmsg("amsbenchs can't register.", NULL);
+		free(buffer);
 		return -1;
 	}
 
@@ -70,6 +74,7 @@ int	main(int argc, char **argv)
 	{
 		ams_unregister(me);
 		putErrmsg("amsbenchs can't set event manager.", NULL);
+		free(buffer);
 		return -1;
 	}
 
@@ -78,6 +83,7 @@ int	main(int argc, char **argv)
 	{
 		ams_unregister(me);
 		writeMemo("[?] amsbenchs: subject 'bench' is unknown.");
+		free(buffer);
 		return -1;
 	}
 
@@ -97,8 +103,10 @@ int	main(int argc, char **argv)
 
 	writeErrmsgMemos();
 	PUTS("Message publication ended; press ^C when test is done.");
+	fflush(stdout);
 	isignal(SIGINT, handleQuit);
 	snooze(3600);
 	ams_unregister(me);
+	free(buffer);
 	return 0;
 }

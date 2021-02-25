@@ -33,7 +33,7 @@
 extern void	ionDropVdb();
 extern void	ionRaiseVdb();
 
-static void	restartION(Sdr sdrv, char *utaCmd)
+static void	restartION(Sdr sdrv)
 {
 	int	i;
 	int	restart_bp = 1;
@@ -294,7 +294,7 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 #ifndef NASA_PROTECTED_FLIGHT_CODE
 	if (restart_cfdp)
 	{
-		cfdpStart(utaCmd);
+		cfdpStart(NULL);
 		for (i = 0; i < 5; i++)
 		{
 			if (!cfdp_entity_is_started())
@@ -322,11 +322,9 @@ static void	restartION(Sdr sdrv, char *utaCmd)
 int	ionrestart(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-	char		*utaCmd = a1 ? (char *) a1 : "bputa";
 #else
 int	main(int argc, char **argv)
 {
-	char		*utaCmd = argc > 1 ? argv[1] : "bputa";
 #endif
 	Sdr		sdrv;
 	sm_SemId	sdrSemaphore;
@@ -360,7 +358,7 @@ int	main(int argc, char **argv)
 
 	snooze(RESTART_GRACE_PERIOD);
      	sdrv->sdr->sdrSemaphore = sdrSemaphore;
-	restartION(sdrv, utaCmd);
+	restartION(sdrv);
 
 	/*	Close out the hijacked transaction.			*/
 

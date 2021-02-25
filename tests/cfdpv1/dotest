@@ -26,11 +26,22 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start nodes.
-cd 1.ipn.ltp
-./ionstart &
-sleep 1
-cd ../2.ipn.ltp
-./ionstart &
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	cd 1.ipn.ltp
+	./ionstart-acs &
+	sleep 1
+	cd ../2.ipn.ltp
+	./ionstart-acs &
+else
+	cd 1.ipn.ltp
+	./ionstart &
+	sleep 1
+	cd ../2.ipn.ltp
+	./ionstart &
+fi
+
 
 sleep 10
 echo "Starting cfdptest on each node..."

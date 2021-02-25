@@ -20,19 +20,19 @@ int	main(int argc, char *argv[])
 {
 	uvast	remoteEngineId = argc > 1 ? strtouvast(argv[1]) : 0;
 #endif
-	Sdr		sdr;
-	LtpVdb		*vdb;
-	LtpVspan	*vspan;
-	PsmAddress	vspanElt;
-	Object		spanObj;
-	LtpSpan		span;
-	int		returnCode = 0;
-	char		memo[64];
-	ExportSession	session;
-	Lyst		extents;
-	ExportExtent	*extent;
-	unsigned int	ckptSerialNbr;
-	int		result;
+	Sdr			sdr;
+	LtpVdb			*vdb;
+	LtpVspan		*vspan;
+	PsmAddress		vspanElt;
+	Object			spanObj;
+	LtpSpan			span;
+	int			returnCode = 0;
+	char			memo[64];
+	LtpExportSession	session;
+	Lyst			extents;
+	LtpExportExtent		*extent;
+	unsigned int		ckptSerialNbr;
+	int			result;
 
 	if (remoteEngineId == 0)
 	{
@@ -126,7 +126,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		 *	segSemaphore once per segment.			*/
 
 		sdr_stage(sdr, (char *) &session, span.currentExportSessionObj,
-				sizeof(ExportSession));
+				sizeof(LtpExportSession));
 		session.clientSvcId = span.clientSvcIdOfBufferedBlock;
 		encodeSdnv(&(session.clientSvcIdSdnv), session.clientSvcId);
 		session.totalLength = span.lengthOfBufferedBlock;
@@ -145,7 +145,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		session.maxCheckpoints = getMaxReports(session.redPartLength,
 				vspan, 0);
 		if ((extents = lyst_create_using(getIonMemoryMgr())) == NULL
-		|| (extent = (ExportExtent *) MTAKE(sizeof(ExportExtent)))
+		|| (extent = (LtpExportExtent *) MTAKE(sizeof(LtpExportExtent)))
 				== NULL
 		|| lyst_insert_last(extents, extent) == NULL)
 		{
@@ -200,7 +200,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 		 *	database.					*/
 
 		sdr_write(sdr, span.currentExportSessionObj, (char *) &session,
-				sizeof(ExportSession));
+				sizeof(LtpExportSession));
 
 		/*	Reinitialize span's block buffer.		*/
 

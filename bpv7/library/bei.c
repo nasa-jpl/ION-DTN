@@ -375,7 +375,7 @@ Object	getExtensionBlock(Bundle *bundle, unsigned char nbr)
 	Sdr	sdr = getIonsdr();
 	Object	elt;
 	Object	addr;
-		OBJ_POINTER(ExtensionBlock, blk);
+	OBJ_POINTER(ExtensionBlock, blk);
 
 	CHKZERO(bundle);
 	for (elt = sdr_list_first(sdr, bundle->extensions); elt;
@@ -384,6 +384,29 @@ Object	getExtensionBlock(Bundle *bundle, unsigned char nbr)
 		addr = sdr_list_data(sdr, elt);
 		GET_OBJ_POINTER(sdr, ExtensionBlock, blk, addr);
 		if (blk->number == nbr)
+		{
+			return elt;
+		}
+	}
+
+	return 0;
+}
+
+Object	findExtensionBlockByNumber(Bundle *bundle, BpBlockType type,
+		unsigned char blockNum)
+{
+	Sdr	bpSdr = getIonsdr();
+	Object	elt;
+	Object	addr;
+	OBJ_POINTER(ExtensionBlock, blk);
+
+	CHKZERO(bundle);
+	for (elt = sdr_list_first(bpSdr, bundle->extensions); elt;
+			elt = sdr_list_next(bpSdr, elt))
+	{
+		addr = sdr_list_data(bpSdr, elt);
+		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, addr);
+		if (blk->number == blockNum)
 		{
 			return elt;
 		}
@@ -580,6 +603,10 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 	unsigned char	*blkBuffer;
 	unsigned char	*cursor;
 	uvast		uvtemp;
+	unsigned char	*startOfCrc;
+	uvast		crcComputed;
+	uint16_t	crc16;
+	uint32_t	crc32;
 
 	CHKERR(blk);
 	switch(blk->crcType)
@@ -610,7 +637,7 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 	 *		2 for size of CBOR integer (block proc flags)
 	 *		1 for size of CBOR integer (CRC type)
 	 * 9 + dataLength for size of CBOR byte string (block-specific data)
-	 *        crcSize for size of CBOR integer (CRC)		*/
+	 *        crcSize for size of CBOR byte string (CRC)		*/
 
 	buflen = blk->dataLength + crcSize + 31;
 	blkBuffer = MTAKE(buflen);
@@ -639,7 +666,8 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 
 	if (blk->crcType != NoCRC)
 	{
-		uvtemp = 0;
+		startOfCrc = cursor + 1;
+		uvtemp = 0;	/*	CRC value is 0 for computation.	*/
 		if (blk->crcType == X25CRC16)
 		{
 			oK(cbor_encode_byte_string((unsigned char *) &uvtemp,
@@ -651,8 +679,20 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 					4, &cursor));
 		}
 
-		oK(computeBufferCrc(blk->crcType, blkBuffer, cursor - blkBuffer,
-				1, 0, NULL));
+		crcComputed = computeBufferCrc(blk->crcType, blkBuffer,
+				cursor - blkBuffer, 1, 0, NULL);
+		if (blk->crcType == X25CRC16)
+		{
+			crc16 = crcComputed;
+			crc16 = htons(crc16);
+			memcpy(startOfCrc, (char *) &crc16, 2);
+		}
+		else		/*	CRC32C.				*/
+		{
+			crc32 = crcComputed;
+			crc32 = htonl(crc32);
+			memcpy(startOfCrc, (char *) &crc32, 4);
+		}
 	}
 
 	/*	Then allocate enough SDR heap space to hold the

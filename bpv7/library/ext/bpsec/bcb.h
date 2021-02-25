@@ -73,7 +73,7 @@
 #endif
 
 #ifndef BCB_DEBUGGING
-#define BCB_DEBUGGING 0  /** Whether to enable (1) or disable (0) debugging */
+#define BCB_DEBUGGING 1  /** Whether to enable (1) or disable (0) debugging */
 #endif
 
 #define BCB_DEBUG_LVL_PROC 1 /** Function entry/exit and above debugging */
@@ -81,7 +81,7 @@
 #define BCB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BCB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BCB_DEBUG_LVL			 BCB_DEBUG_LVL_ERR
+#define BCB_DEBUG_LVL			 BCB_DEBUG_LVL_PROC
 
 #define GMSG_BUFLEN			256
 #if (BCB_DEBUGGING == 1)

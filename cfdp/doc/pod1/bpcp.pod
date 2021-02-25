@@ -34,7 +34,7 @@ Bundle lifetime in seconds. Default is 86400 seconds (1 day).
 
 =item B< -C> I<BP_custody>
 
-Acceptable values are ON/OFF,YES/NO,1/0. Default is ON.
+Acceptable values are ON/OFF,YES/NO,1/0. Default is OFF.
 
 =item B< -S> I<class_of_service>
 

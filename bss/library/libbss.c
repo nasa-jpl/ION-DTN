@@ -40,10 +40,12 @@ void	bssStop()
 	else
 	{
 		PUTS("No active thread detected");
+		fflush(stdout);
 		return;
 	}
 
 	PUTS("BSS receiving thread has been stopped");
+	fflush(stdout);
 }
 
 void	bssClose()
@@ -65,15 +67,18 @@ void	bssClose()
 	else
 	{
 		PUTS("No BSS database RONLY files are opened");
+		fflush(stdout);
 		return;
 	}
 
 	PUTS("BSS database RONLY files were successfully closed");
+	fflush(stdout);
 }
 
 void	bssExit()
 {
 	PUTS("BSS is exiting...");
+	fflush(stdout);
 	bssStop();
 	bssClose();
 }
@@ -110,6 +115,7 @@ int	bssOpen(char* bssName, char* path)
 	{
 		PUTS("An active playback session was detected.  If you \
 wish to initiate a new one, please first close the active playback session.");
+		fflush(stdout);
 		ionDetach();
 		return -2;
 	}
@@ -161,6 +167,7 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 	{
 		PUTS("Please terminate the already active real-time \
 session in order to initiate a new one.");
+		fflush(stdout);
 		ionDetach();
 		return -1;
 	}
@@ -209,6 +216,7 @@ int	bssRun(char* bssName, char* path, char* eid, char* buffer,
 	{
 		PUTS("A real-time and/or a playback session is/are already \
 active.  Please terminate them in order to initiate a new one.");
+		fflush(stdout);
 		return -1;
 	}
 
@@ -287,6 +295,7 @@ long	 bssSeek(bssNav *nav, time_t time, time_t *curTime,
 	if (position == -1)
 	{
 		PUTS("Cannot seek to the specified time. No match was found");
+		fflush(stdout);
 		oK(_lockMutex(0));
 		return -1;
 	}

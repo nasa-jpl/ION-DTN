@@ -117,14 +117,14 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
                      NmltpSpan    * results,
                      int          * success)
 {
-    Sdr             sdr = getIonsdr();
-    Object          sdrElt;
-    int             eltLoop;
-    Object          spanObj;
-    LtpSpan         span;
-    LtpSpanStats    stats;
-    Object          elt2;
-    ImportSession   isession;
+    Sdr            	sdr = getIonsdr();
+    Object         	sdrElt;
+    int            	eltLoop;
+    Object         	spanObj;
+    LtpSpan        	span;
+    LtpSpanStats   	stats;
+    Object         	elt2;
+    LtpImportSession	isession;
     
     CHKVOID(engineIdWanted > 0);
     CHKVOID(results);
@@ -158,7 +158,7 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
 	    results->currentInboundSegments  = 0;
 	    for (elt2 = sdr_list_first(sdr, span.importSessions); elt2; elt2 = sdr_list_next(sdr, elt2))
 	    {
-                sdr_read(sdr, (char *) & isession, sdr_list_data(sdr, elt2), sizeof(ImportSession));
+                sdr_read(sdr, (char *) & isession, sdr_list_data(sdr, elt2), sizeof(LtpImportSession));
 		results->currentInboundSegments += sdr_list_length(sdr, isession.redSegments);
 	    }
         

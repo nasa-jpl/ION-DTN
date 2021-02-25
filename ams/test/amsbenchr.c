@@ -121,6 +121,7 @@ in %f seconds.", msgs, bytes, seconds);
 	PUTS(buf);
 	isprintf(buf, sizeof buf, "%10.3f Mbps.", Mbps);
 	PUTS(buf);
+	fflush(stdout);
 	writeErrmsgMemos();
 	ams_unregister(me);
 	return 0;

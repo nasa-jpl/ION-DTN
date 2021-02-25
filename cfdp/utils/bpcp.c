@@ -737,7 +737,7 @@ void ion_cfdp_init()
 	/*Set Default BP parameters.*/
 	parms.utParms.lifespan = 86400;
 	parms.utParms.classOfService = BP_STD_PRIORITY;
-	parms.utParms.custodySwitch = SourceCustodyRequired;
+	parms.utParms.custodySwitch = NoCustodyRequested;
 
 	/*Setup fault handlers. Required to ensure recursive copy and file
 	 * listings work durably.*/

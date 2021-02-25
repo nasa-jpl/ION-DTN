@@ -9,4 +9,5 @@ a protocol stcp 1400 100
 a induct stcp 127.0.0.1:5004 stcpcli
 a outduct stcp 127.0.0.1:5003 stcpclo
 r 'ipnadmin bench.ipnrc'
+w 1
 s

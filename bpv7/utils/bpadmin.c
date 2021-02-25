@@ -74,8 +74,7 @@ static void	printUsage()
 	PUTS("\ta\tAdd");
 	PUTS("\t   a scheme <scheme name> '<forwarder cmd>' '<admin app cmd>'");
 	PUTS("\t   a endpoint <endpoint name> {q|x} ['<recv script>']");
-	PUTS("\t   a protocol <protocol name> <payload bytes per frame> \
-<overhead bytes per frame> [<protocol class>]");
+	PUTS("\t   a protocol <protocol name> [<protocol class>]");
 	PUTS("\t   a induct <protocol name> <duct name> '<CLI command>'");
 	PUTS("\t   a outduct <protocol name> <duct name> '<CLO command>' [max \
 payload length]");
@@ -355,19 +354,37 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "protocol") == 0)
 	{
-		if (tokenCount < 5 || tokenCount > 6)
+		if (tokenCount > 4)	/*	Deprecated format.	*/
 		{
-			SYNTAX_ERROR;
-			return;
+			if (tokenCount > 6)
+			{
+				SYNTAX_ERROR;
+				return;
+			}
+
+			/*	Ignore tokens 3 and 4.			*/
+
+			if (tokenCount == 6)
+			{
+				protocolClass = atol(tokens[5]);
+			}
+		}
+		else			/*	Current format.		*/
+		{
+			if (tokenCount < 3)
+			{
+				SYNTAX_ERROR;
+				return;
+			}
+
+			if (tokenCount == 4)
+			{
+				protocolClass = atol(tokens[3]);
+			}
 		}
 
-		if (tokenCount == 6)
-		{
-			protocolClass = atol(tokens[5]);
-		}
 
-		addProtocol(tokens[2], atoi(tokens[3]), atoi(tokens[4]),
-				protocolClass);
+		addProtocol(tokens[2], protocolClass);
 		return;
 	}
 
@@ -1923,6 +1940,13 @@ int	main(int argc, char **argv)
 		if (attachToBp() == 0)
 		{
 			bpStop();
+		}
+	}
+	else if (strcmp(cmdFileName, "!") == 0)	/*	Resume.		*/
+	{
+		if (attachToBp() == 0)
+		{
+			bpStart();
 		}
 	}
 	else					/*	Scripted.	*/

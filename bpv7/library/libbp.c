@@ -270,8 +270,7 @@ int	bp_parse_quality_of_service(const char *token,
 		/*	Intentional fall-through to next case.		*/
 
 	case 2:
-		if ((myPriority > 2)
-		||  (myCustodyRequested != 0 && myCustodyRequested != 1))
+		if (myPriority > 2 || myCustodyRequested > 1)
 		{
 			return 0;	/*	Invalid format.		*/
 		}

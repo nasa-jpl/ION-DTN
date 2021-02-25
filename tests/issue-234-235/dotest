@@ -90,7 +90,7 @@ cd ../1.ipn.tcp
 
 echo "Starting bpdriver on node 1..."
 sleep 1
-bpdriver -10000 ipn:1.1 ipn:3.1 -100 > $BPDRIVERFILE &
+bpdriver 10000 ipn:1.1 ipn:3.1 -100 > $BPDRIVERFILE &
 BPDRIVERPID=$!
 
 echo "Waiting..."

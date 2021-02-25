@@ -300,7 +300,7 @@ typedef struct
 	/*	Backward reference.					*/
 
 	Object		span;		/*	Reception span.		*/
-} ImportSession;
+} LtpImportSession;
 
 /*	The volatile import session object encapsulates the current
  *	volatile state of the corresponding ImportSession.  The main
@@ -314,7 +314,7 @@ typedef struct
 	unsigned int	sessionNbr;	/*	ID of ImportSession.	*/
 	Object		sessionElt;	/*	Ref. to ImportSession.	*/
 	PsmAddress	redSegmentsIdx;	/*	RBT of LtpSegmentRefs	*/
-} VImportSession;
+} LtpVImportSession;
 
 /*	A Deliverable is a work item for ltpinput.  It identifies an
  *	input session that is now complete and ready to be delivered
@@ -326,7 +326,7 @@ typedef struct
 	unsigned int	clientSvcId;
 	uvast		sourceEngineId;	/*	ID of remote engine.	*/
 	unsigned int	sessionNbr;
-} Deliverable;
+} LtpDeliverable;
 
 /*	An LtpCkpt is a reference to an export session redSegment that
  *	is a transmission checkpoint.  The list of LtpCheckpoints
@@ -371,13 +371,13 @@ typedef struct
 
 	Object		redSegments;	/*	SDR list of LtpXmitSegs	*/
 	Object		greenSegments;	/*	SDR list of LtpXmitSegs	*/
-} ExportSession;
+} LtpExportSession;
 
 typedef struct
 {
 	unsigned int	offset;
 	unsigned int	length;
-} ExportExtent;
+} LtpExportExtent;
 
 
 #if CLOSED_EXPORTS_ENABLED
@@ -387,7 +387,7 @@ typedef struct
 	unsigned int	sessionNbr;	/*	identifies session	*/
 	int		responseLimit;	/*	Defense against DOS.	*/
 	Object		timeout;	/*	timeline event list elt	*/
-} ClosedExport;
+} LtpClosedExport;
 #endif
 
 /* Timeline event structure */
@@ -418,7 +418,7 @@ typedef struct
 {
 	Object		segAddr;
 	unsigned int	sessionNbr;
-} XmitSegRef;
+} LtpXmitSegRef;
 
 /* Span structure characterizing the communication span between the
  * local engine and some remote engine.  Note that a single LTP span
@@ -666,8 +666,8 @@ typedef struct
 #define WATCH_s			(32)
 #define WATCH_t			(64)
 #define WATCH_nak		(128)
-#define WATCH_CS		(256)
-#define WATCH_handleCS		(512)
+#define WATCH_CLS		(256)
+#define WATCH_handleCLS		(512)
 #define WATCH_CR		(1024)
 #define WATCH_handleCR		(2048)
 #define WATCH_resendCP		(4096)
@@ -722,16 +722,16 @@ extern void		ltpStopSpan(uvast engineId);
 extern int		startExportSession(Sdr sdr, Object spanObj,
 				LtpVspan *vspan);
 extern int		issueSegments(Sdr sdr, LtpSpan *span, LtpVspan *vspan,
-				ExportSession *session, Object sessionObj,
+				LtpExportSession *session, Object sessionObj,
 				Lyst extents, unsigned int reportSerialNbr,
 				unsigned int checkpointSerialNbr);
 
 extern void		getImportSession(LtpVspan *vspan,
 				unsigned int sessionNbr,
-				VImportSession **vsessionPtr,
+				LtpVImportSession **vsessionPtr,
 				Object *sessionObj);
-extern void		clearImportSession(ImportSession *session);
-extern void		stopImportSession(ImportSession *session);
+extern void		clearImportSession(LtpImportSession *session);
+extern void		stopImportSession(LtpImportSession *session);
 extern void		removeImportSession(Object sessionObj);
 extern void		closeImportSession(Object sessionObj);
 

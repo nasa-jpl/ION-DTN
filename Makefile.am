@@ -371,6 +371,7 @@ iciinclude = \
 	ici/include/platform.h \
 	ici/include/platform_sm.h \
 	ici/include/psm.h \
+	ici/include/radix.h \
 	ici/include/rfx.h \
 	ici/include/sdr.h \
 	ici/include/sdrhash.h \
@@ -386,6 +387,7 @@ iciinclude = \
 
 icinoinst = \
 	ici/library/lystP.h \
+	ici/library/radixP.h \
 	ici/sdr/sdrP.h \
 	ici/test/file2sdr.h
 
@@ -504,6 +506,7 @@ libici_la_SOURCES =	\
 	ici/library/platform.c \
 	ici/library/platform_sm.c \
 	ici/library/psm.c \
+	ici/library/radix.c \
 	ici/library/rfx.c \
 	ici/library/smlist.c \
 	ici/library/smrbt.c \
@@ -871,7 +874,15 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
+if UNIBO_CGR
+### UNIBO CGR EXTENSIONS RGR AND CGRR ###
+
+bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/cteb -I$(BP_SRC_DIR)/library/ext/rgr -I$(BP_SRC_DIR)/library/ext/cgrr
+
+#########################################
+else
 bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/library/acs -I$(BP_SRC_DIR)/library/ext/ecos -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR)/library/ext/phn -I$(BP_SRC_DIR)/library/ext/sbsp/ciphersuites -I$(BP_SRC_DIR)/library/ext/cteb
+endif
 
 bpbin = \
 	bibeadmin \
@@ -1143,6 +1154,53 @@ $(top_builddir)/bpv6/doc/%.5: bpv6/doc/pod5/%.pod
 
 # -- Libraries --- #
 
+if UNIBO_CGR
+### UNIBO CGR EXTENSIONS RGR AND CGRR ###
+
+libbp_la_SOURCES = \
+	bpv6/bibe/bibe.c \
+	bpv6/dtn2/libdtn2fw.c \
+	bpv6/ipn/libipnfw.c \
+	bpv6/ipnd/ipnd.c \
+	bpv6/ipnd/beacon.c \
+	bpv6/ipnd/helper.c \
+	bpv6/ipnd/bpa.c \
+	bpv6/library/acs/acs.h \
+	bpv6/library/bei.c \
+	bpv6/library/bpsec.c \
+	bpv6/library/eureka.c \
+	bpv6/library/libbp.c \
+	bpv6/library/libbpP.c \
+	bpv6/library/libbpnm.c \
+	bpv6/library/saga.c \
+	bpv6/library/ext/bae/bae.c \
+	bpv6/library/ext/ecos/ecos.c \
+	bpv6/library/ext/meb/meb.c \
+	bpv6/library/ext/phn/phn.c \
+	bpv6/library/ext/sbsp/sbsp_instr.c \
+	bpv6/library/ext/sbsp/sbsp_bcb.c \
+	bpv6/library/ext/sbsp/sbsp_bib.c \
+	bpv6/library/ext/sbsp/sbsp_util.c \
+	bpv6/library/ext/sbsp/profiles.c \
+	bpv6/library/ext/snid/snid.c \
+	bpv6/library/ext/snw/snw.c \
+	bpv6/library/ext/cgrr/cgrr.h \
+	bpv6/library/ext/cgrr/cgrr.c \
+	bpv6/library/ext/cgrr/cgrr_utils.h \
+	bpv6/library/ext/cgrr/cgrr_utils.c \
+	bpv6/library/ext/cgrr/cgrr_help.h \
+	bpv6/library/ext/cgrr/cgrr_msr_utils.h \
+	bpv6/library/ext/cgrr/cgrr_msr_utils.c \
+	bpv6/library/ext/rgr/rgr.h \
+	bpv6/library/ext/rgr/rgr.c \
+	bpv6/library/ext/rgr/rgr_utils.h \
+	bpv6/library/ext/rgr/rgr_utils.c \
+	ici/libbloom-master/bloom.h \
+	ici/libbloom-master/bloom.c \
+	ici/libbloom-master/murmur2/MurmurHash2.c
+	
+#########################################
+else
 libbp_la_SOURCES = \
 	bpv6/bibe/bibe.c \
 	bpv6/dtn2/libdtn2fw.c \
@@ -1173,6 +1231,7 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
+endif
 
 if CRYPTO
 libici_la_SOURCES += \
@@ -1204,7 +1263,37 @@ libbp_la_SOURCES += \
 	$(NULL)
 endif # end ENABLE_IMC
 
+if UNIBO_CGR
+### UNIBO CGR CORE AND INTERFACE ###
+
+libcgr_la_SOURCES = \
+	bpv6/cgr/libcgr.c \
+	bpv6/cgr/Unibo-CGR/ion_bpv6/interface/interface_cgr_ion.c \
+	bpv6/cgr/Unibo-CGR/core/library/commonFunctions.c \
+	bpv6/cgr/Unibo-CGR/core/library/list/list.c \
+	bpv6/cgr/Unibo-CGR/core/library/log/log.c \
+	bpv6/cgr/Unibo-CGR/core/library_from_ion/rbt/rbt.c \
+	bpv6/cgr/Unibo-CGR/core/library_from_ion/scalar/scalar.c \
+	bpv6/cgr/Unibo-CGR/ion_bpv6/interface/utility_functions_from_ion/general_functions_ported_from_ion.c \
+	bpv6/cgr/Unibo-CGR/core/contact_plan/contacts/contacts.c \
+	bpv6/cgr/Unibo-CGR/core/contact_plan/ranges/ranges.c \
+	bpv6/cgr/Unibo-CGR/core/contact_plan/nodes/nodes.c \
+	bpv6/cgr/Unibo-CGR/core/contact_plan/contactPlan.c \
+	bpv6/cgr/Unibo-CGR/core/routes/routes.c \
+	bpv6/cgr/Unibo-CGR/core/cgr/phase_one.c \
+	bpv6/cgr/Unibo-CGR/core/cgr/phase_two.c \
+	bpv6/cgr/Unibo-CGR/core/cgr/phase_three.c \
+	bpv6/cgr/Unibo-CGR/core/cgr/cgr.c \
+	bpv6/cgr/Unibo-CGR/core/msr/msr.c \
+	bpv6/cgr/Unibo-CGR/core/msr/msr_utils.c \
+	bpv6/cgr/Unibo-CGR/core/bundles/bundles.c \
+	bpv6/cgr/Unibo-CGR/core/time_analysis/time.c
+
+####################################
+else
 libcgr_la_SOURCES = bpv6/cgr/libcgr.c
+endif
+
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LIBADD = libbp.la libici.la
 
@@ -1652,7 +1741,15 @@ bpPODM1 = pod2man -s 1 -c "BP executables"
 bpPODM3 = pod2man -s 3 -c "BP library functions"
 bpPODM5 = pod2man -s 5 -c "BP configuration files"
 
-bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq
+if UNIBO_CGR
+### UNIBO CGR EXTENSIONS RGR AND CGRR ###
+
+bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(BP_SRC_DIR)/library/ext/rgr -I$(BP_SRC_DIR)/library/ext/cgrr
+
+#########################################
+else
+bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq
+endif
 
 if ENABLE_IMC
 bpcflags += -I$(BP_SRC_DIR)/imc -I$(BP_SRC_DIR)/library/ext/imc
@@ -1813,7 +1910,15 @@ bpextra = \
 	bpv7/library/ext/bpsec/bib.h \
 	bpv7/library/ext/bpsec/bpsec_instr.h \
 	bpv7/library/ext/bpsec/bpsec_util.h \
+	bpv7/library/ext/bpsec/bpsec_policy.h \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.h \
+	bpv7/library/ext/bpsec/bpsec_policy_event.h \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.h \
 	bpv7/library/ext/bpsec/profiles.h \
+	bpv7/library/ext/bpsec/bpsec_policy.c \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
+	bpv7/library/ext/bpsec/bpsec_policy_event.c \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
 	bpv7/library/ext/ecos/ecos.h \
 	bpv7/library/ext/ecos/ecos.c \
 	bpv7/library/ext/hcb/hcb.h \
@@ -1908,6 +2013,9 @@ $(top_builddir)/bpv7/doc/%.5: bpv7/doc/pod5/%.pod
 
 # -- Libraries --- #
 
+if UNIBO_CGR
+### UNIBO CGR EXTENSIONS RGR AND CGRR ###
+
 libbp_la_SOURCES = \
 	bpv7/bibe/bibe.c \
 	bpv7/dtn2/libdtn2fw.c \
@@ -1923,6 +2031,54 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/bpsec/bib.c \
 	bpv7/library/ext/bpsec/bpsec_instr.c \
 	bpv7/library/ext/bpsec/bpsec_util.c \
+	bpv7/library/ext/bpsec/bpsec_policy.c \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
+	bpv7/library/ext/bpsec/bpsec_policy_event.c \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
+	bpv7/library/ext/bpsec/profiles.c \
+	bpv7/library/ext/hcb/hcb.c \
+	bpv7/library/ext/meb/meb.c \
+	bpv7/library/ext/pnb/pnb.c \
+	bpv7/library/ext/pnb/pnb.h \
+	bpv7/library/ext/snw/snw.c \
+	bpv7/ipn/libipnfw.c \
+	bpv7/saga/saga.c \
+	bpv7/library/ext/cgrr/cgrr.h \
+	bpv7/library/ext/cgrr/cgrr.c \
+	bpv7/library/ext/cgrr/cgrr_utils.h \
+	bpv7/library/ext/cgrr/cgrr_utils.c \
+	bpv7/library/ext/cgrr/cgrr_help.h \
+	bpv7/library/ext/cgrr/cgrr_msr_utils.h \
+	bpv7/library/ext/cgrr/cgrr_msr_utils.c \
+	bpv7/library/ext/rgr/rgr.h \
+	bpv7/library/ext/rgr/rgr.c \
+	bpv7/library/ext/rgr/rgr_utils.h \
+	bpv7/library/ext/rgr/rgr_utils.c \
+	ici/libbloom-master/bloom.h \
+	ici/libbloom-master/bloom.c \
+	ici/libbloom-master/murmur2/MurmurHash2.c
+	
+#########################################
+else
+libbp_la_SOURCES = \
+	bpv7/bibe/bibe.c \
+	bpv7/dtn2/libdtn2fw.c \
+	bpv7/library/libbp.c \
+	bpv7/library/libbpP.c \
+	bpv7/library/libbpnm.c \
+	bpv7/library/eureka.c \
+	bpv7/library/bei.c \
+	bpv7/library/bpsec.c \
+	bpv7/library/ext/bae/bae.c \
+	bpv7/library/ext/bpq/bpq.c \
+	bpv7/library/ext/bpsec/bcb.c \
+	bpv7/library/ext/bpsec/bib.c \
+	bpv7/library/ext/bpsec/bpsec_instr.c \
+	bpv7/library/ext/bpsec/bpsec_util.c \
+	bpv7/library/ext/bpsec/bpsec_policy.c \
+	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
+	bpv7/library/ext/bpsec/bpsec_policy_event.c \
+	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
 	bpv7/library/ext/bpsec/profiles.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
@@ -1934,6 +2090,7 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
+endif
 
 if CRYPTO
 libici_la_SOURCES+= \
@@ -1955,7 +2112,37 @@ libbp_la_SOURCES += \
 	bpv7/library/ext/imc/imc.c
 endif # end ENABLE_IMC
 
+if UNIBO_CGR
+### UNIBO CGR CORE AND INTERFACE ###
+
+libcgr_la_SOURCES = \
+	bpv7/cgr/libcgr.c \
+	bpv7/cgr/Unibo-CGR/ion_bpv7/interface/interface_cgr_ion.c \
+	bpv7/cgr/Unibo-CGR/core/library/commonFunctions.c \
+	bpv7/cgr/Unibo-CGR/core/library/list/list.c \
+	bpv7/cgr/Unibo-CGR/core/library/log/log.c \
+	bpv7/cgr/Unibo-CGR/core/library_from_ion/rbt/rbt.c \
+	bpv7/cgr/Unibo-CGR/core/library_from_ion/scalar/scalar.c \
+	bpv7/cgr/Unibo-CGR/ion_bpv7/interface/utility_functions_from_ion/general_functions_ported_from_ion.c \
+	bpv7/cgr/Unibo-CGR/core/contact_plan/contacts/contacts.c \
+	bpv7/cgr/Unibo-CGR/core/contact_plan/ranges/ranges.c \
+	bpv7/cgr/Unibo-CGR/core/contact_plan/nodes/nodes.c \
+	bpv7/cgr/Unibo-CGR/core/contact_plan/contactPlan.c \
+	bpv7/cgr/Unibo-CGR/core/routes/routes.c \
+	bpv7/cgr/Unibo-CGR/core/cgr/phase_one.c \
+	bpv7/cgr/Unibo-CGR/core/cgr/phase_two.c \
+	bpv7/cgr/Unibo-CGR/core/cgr/phase_three.c \
+	bpv7/cgr/Unibo-CGR/core/cgr/cgr.c \
+	bpv7/cgr/Unibo-CGR/core/msr/msr.c \
+	bpv7/cgr/Unibo-CGR/core/msr/msr_utils.c \
+	bpv7/cgr/Unibo-CGR/core/bundles/bundles.c \
+	bpv7/cgr/Unibo-CGR/core/time_analysis/time.c
+	
+####################################
+else
 libcgr_la_SOURCES = bpv7/cgr/libcgr.c
+endif
+
 libcgr_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libcgr_la_LIBADD = libbp.la libici.la
 
@@ -2316,11 +2503,8 @@ libtcc_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
 libtcc_la_LIBADD = libici.la libbp.la
 
 libzfec_la_SOURCES = ici/zfec-1.4.24/zfec/fec.c
-if SOLARIS
 libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS) -Drestrict=
-else
-libzfec_la_CFLAGS = $(tccflags) $(AM_CFLAGS)
-endif # end SOLARIS
+
 
 # --- DTKA Executables --- #
 
@@ -3188,7 +3372,9 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/issue-334-cfdp-transaction-id/dotest \
 	tests/nm-unit/dotest \
 	tests/nm-unit/utils/vector/dotest \
-	tests/nm-unit/utils/rhht/dotest
+	tests/nm-unit/utils/rhht/dotest \
+	tests/nm-unit/utils/radix_pt/dotest \
+	tests/nm-unit/utils/radix_ut/dotest 	 	
 #	tests/nm-unit/primitives/ari/dotest
 
 if BUILD_BPv6
@@ -3210,6 +3396,14 @@ tests_nm_unit_utils_vector_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS
 tests_nm_unit_utils_rhht_dotest_SOURCES = tests/nm-unit/utils/rhht.c $(nm_shared_src)
 tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
 tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
+
+tests_nm_unit_utils_radix_pt_dotest_SOURCES = tests/nm-unit/utils/radix_pt.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	 
+tests_nm_unit_utils_radix_pt_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
+tests_nm_unit_utils_radix_pt_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
+
+tests_nm_unit_utils_radix_ut_dotest_SOURCES = tests/nm-unit/utils/radix_ut.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	
+tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
+tests_nm_unit_utils_radix_ut_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
 
 #tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
 #tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
@@ -3370,4 +3564,3 @@ distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
 	$(PS2PDF) doc/ION-manpages.ps
 	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
 	rm ION-manpages.pdf
-

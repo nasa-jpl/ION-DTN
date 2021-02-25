@@ -13,7 +13,7 @@ int ramsgate(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 {
 	char	*application = (char *) a1;
 	char	*authority = (char *) a2;
-	long	lifetime = strtol((char *) a3, NULL, 86400);
+	long	lifetime = a3 ? strtol((char *) a3, NULL, 0) : 86400;
 #else
 int main(int argc, char **argv)
 {

@@ -67,13 +67,13 @@ BEGIN {
 	programs[3]   = "bpsecadmin"
 	programs[4]   = "ltpsecadmin"
 	programs[5]   = "ltpadmin"
-	programs[6]   = "bpadmin"
-	programs[7]   = "cfdpadmin"
-	programs[8]   = "ipnadmin"
-	programs[9]   = "bibeadmin"
-	programs[10]  = "dtn2admin"
-	programs[11]  = "dtpcadmin"
-	programs[12]  = "acsadmin"
+	programs[6]  = "acsadmin"
+	programs[7]   = "bpadmin"
+	programs[8]   = "cfdpadmin"
+	programs[9]   = "ipnadmin"
+	programs[10]   = "bibeadmin"
+	programs[11]  = "dtn2admin"
+	programs[12]  = "dtpcadmin"
 	programs[13]  = "imcadmin"
 	programs[14]  = "bssadmin"
 
@@ -83,6 +83,7 @@ BEGIN {
 	rcname["ionsecadmin"]  = ionsecrc
 	rcname["bpsecadmin"]   = bpsecrc
 	rcname["ltpsecadmin"]  = ltpsecrc
+	rcname["acsadmin"]     = acsrc
 	rcname["bpadmin"]      = bprc
 	rcname["cfdpadmin"]    = cfdprc
 	rcname["ipnadmin"]     = ipnrc
@@ -90,7 +91,6 @@ BEGIN {
 	rcname["dtn2admin"]    = dtn2rc
 	rcname["dtpcadmin"]    = dtpcrc
 	rcname["ltpadmin"]     = ltprc
-	rcname["acsadmin"]     = acsrc
 	rcname["imcadmin"]     = imcrc
 	rcname["bssadmin"]     = bssrc
 

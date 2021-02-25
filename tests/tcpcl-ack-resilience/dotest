@@ -5,6 +5,11 @@
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
+echo "Looking for acsadmin"
+if [ $? -eq 0 ] ; then
+	ACS="found"
+fi
+
 echo "Cleaning up old ION ..."
 rm ion_nodes 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/testfile1
 killm
@@ -26,7 +31,11 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -ne 2 ]; then
@@ -36,7 +45,11 @@ fi
 
 # Set up node 2
 cd ../2.ipn.tcp/
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -ne 2 ]; then

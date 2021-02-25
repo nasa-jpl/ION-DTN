@@ -35,6 +35,12 @@ CONFIGFILES=" \
 ./config.ionconfig \
 ./config.bprc \
 ./config.ipnrc"
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.tcp/config.acsrc"
+fi
 
 
 echo "########################################"
@@ -67,6 +73,9 @@ echo ""
 echo "Starting ION..."
 ionadmin config.ionrc
 sleep 1
+if [ $ACS == "found" ] ; then
+	acsadmin config.acsrc
+fi
 ionsecadmin config.ionsecrc
 sleep 1
 bpadmin config.bprc

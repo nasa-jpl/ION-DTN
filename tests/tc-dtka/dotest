@@ -98,11 +98,16 @@ cd ../8.ipn.ltp
 cd ../9.ipn.ltp
 ./ionstart >& node9.stdout &
 
-# Sleep 30 seconds to let all nodes finish initializing.
+# Sleep to let all nodes finish initializing.
 # Then create all initial keys and load them to each node.
 
-echo "Waiting 30 seconds for node startup..."
-sleep 30
+if [[ $1 == "linux" ]] ; then
+	echo "Waiting 30 seconds for node startup..."
+	sleep 30
+else
+	echo "Waiting 60 seconds for node startup..."
+	sleep 60
+fi
 
 echo "Finished starting DTKA, now loading initial keys to all nodes..."
 

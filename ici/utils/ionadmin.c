@@ -1544,6 +1544,13 @@ static int	runIonadmin(char *cmdFileName)
 			rfx_stop();
 		}
 	}
+	else if (strcmp(cmdFileName, "!") == 0) /*	Resume.		*/
+	{
+		if (ionAttach() == 0)
+		{
+			rfx_start();
+		}
+	}
 	else					/*	Scripted.	*/
 	{
 		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);

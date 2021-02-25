@@ -128,7 +128,7 @@ typedef struct
 	int		reasonCode;	/*	For cancellation.	*/
 	Object		svcDataObject;	/*	ZCO			*/
 	Object		block;		/* 	BsspXmitBlock 		*/	
-} ExportSession;
+} BsspExportSession;
 
 /* Timeline event structure */
 
@@ -269,7 +269,7 @@ typedef struct
 #define WATCH_h			(16)	/*	HandleAck			*/
 #define WATCH_s			(32)	/*	HandleInbound			*/
 #define WATCH_t			(64)	/*	DequeueRLOutboundBlock		*/
-#define WATCH_CS		(128)	/* 	cancel Session by Sender	*/
+#define WATCH_CBS		(128)	/* 	cancel Session by Sender	*/
 #define WATCH_resendBlk		(256)	/*	bssp resend xmitBlock "="	*/
 
 
@@ -284,7 +284,7 @@ typedef struct
 	BsspVclient	clients[BSSP_MAX_NBR_OF_CLIENTS];
 } BsspVdb;
 
-extern int		bsspInit();
+extern int		bsspInit(int estMaxExportSession);
 extern void		bsspDropVdb();
 extern void		bsspRaiseVdb();
 extern int		bsspStart();
@@ -317,7 +317,7 @@ extern int		startBsspExportSession(Sdr sdr, Object spanObj,
 				BsspVspan *vspan);
 
 extern int		issueXmitBlock(Sdr sdr, BsspSpan *span,
-				BsspVspan *vspan, ExportSession *session,
+				BsspVspan *vspan, BsspExportSession *session,
 				Object sessionObj, int inOrder);
 
 extern int		bsspAttachClient(unsigned int clientSvcId);

@@ -113,6 +113,18 @@ extern "C" {
 
 #define	MAX_TIME			((unsigned int) ((1U << 31) - 1))
 
+/*	The BLK_PROC_FLAG_MASK is the value of the Block Processing
+ *	Flags field obtained by setting every currently defined flag
+ *	to 1 (as of Rev. 30 of the Bundle Protocol specification).
+ *	It is used to set to zero every reserved or unassigned flag
+ *	bit in the Block Processing Flags value of a non-Primary
+ *	bundle block, to canonicalize the block for BPsec security
+ *	service purposes.  When additional Block Processing Flags
+ *	are defined, this MASK value will have to be revised to
+ *	include them.							*/
+
+#define	BLK_PROC_FLAGS_MASK		(475239)
+
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
  *	residing in a single SDR heap, in a DTN-based network.
@@ -252,7 +264,12 @@ typedef enum
 	SrNoTimelyContact,
 	SrBlockUnintelligible,
 	SrHopCountExceeded,
-	SrTrafficPared
+	SrTrafficPared,
+	SrMissingSecurityService,
+	SrUnknownSecurityService,
+	SrUnexpectedSecurityService,
+	SrFailedSecurityService,
+	SrConflictingSecurityServices
 } BpSrReason;
 
 typedef time_t		DtnTime;	/*	Epoch 2000.		*/
@@ -316,12 +333,13 @@ typedef struct
 	unsigned int	totalAduLength;
 		/*	fragment offset is in the id field.		*/
 
-	/*	Stuff in QOS (nee ECOS) & Metadata extension blocks.	*/
+	/*	Stuff in QOS (nee ECOS) extension block.		*/
 
-	BpAncillaryData	ancillaryData;
 	unsigned char	classOfService;	/*	From QoS block if any.	*/
+	BpAncillaryData	ancillaryData;	/*	Incl. ordinal, flags.	*/
 	unsigned char	priority;	/*	Possibly an override.	*/
 	unsigned char	ordinal;	/*	Possibly an override.	*/
+	unsigned char	qosFlags;	/*	Possibly an override.	*/
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
@@ -683,8 +701,6 @@ typedef struct
 typedef struct
 {
 	char		name[MAX_CL_PROTOCOL_NAME_LEN + 1];
-	int		payloadBytesPerFrame;
-	int		overheadPerFrame;
 	int		protocolClass;	/*	Contributes to QOS.	*/
 } ClProtocol;
 
@@ -873,7 +889,8 @@ typedef struct
 
 	Object		rawBundle;
 	Bundle		bundle;
-	int		headerLength;
+	int		headerLength;	/*	All pre-payload blocks.	*/
+	int		preambleLength;	/*	Adds payload's header.	*/
 	int		bundleLength;
 	int		authentic;	/*	Boolean.		*/
 	Lyst		extBlocks;	/*	(AcqExtBlock *)		*/
@@ -1359,6 +1376,7 @@ extern uvast		computeBufferCrc(BpCrcType crcType,
 				uvast *extractedCrc);
 
 extern int		computeZcoCrc(BpCrcType crcType,
+				int crcSize,
 				ZcoReader *reader,
 				int bytesToProcess,
 				uvast *computedCrc,
@@ -1423,8 +1441,7 @@ extern void		lookupPlan(char *eid, VPlan **vplan);
 extern void	        removeBundleFromQueue(Bundle *bundle, BpPlan *plan);
 
 extern void		fetchProtocol(char *name, ClProtocol *clp, Object *elt);
-extern int		addProtocol(char *name, int payloadBytesPerFrame,
-				int overheadPerFrame, int protocolClass);
+extern int		addProtocol(char *name, int protocolClass);
 extern int		removeProtocol(char *name);
 extern int		bpStartProtocol(char *name);
 extern void		bpStopProtocol(char *name);

@@ -8,6 +8,13 @@
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=5
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+fi
+
 echo "Cleaning up old ION..."
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
 killm
@@ -26,6 +33,15 @@ cd ../3.ipn.ltp
 ionadmin amroc.ionrc
 cd ../4.ipn.ltp
 ionadmin amroc.ionrc
+
+if [ $ACS == "found" ] ; then
+	cd 2.ipn.ltp
+	acsadmin amroc.acsrc
+	cd ../3.ipn.ltp
+	acsadmin amroc.acsrc
+	cd ../4.ipn.ltp
+	acsadmin amroc.acsrc
+fi
 
 cd ../2.ipn.ltp
 ionadmin ../global.ionrc
@@ -84,7 +100,7 @@ cd 2.ipn.ltp
 # Send first bundle from node 2 to node 5 requesting all status reports.
 # Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
 # it should be delivered.
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test_trace" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -145,7 +161,7 @@ ENDOFBPSECADMINCOMMANDS
 fi
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test2_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test2_trace" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
@@ -214,7 +230,7 @@ echo -e "the key that is used.  So we skip this test."
 #fi
 #
 #cd ../2.ipn.ltp
-#bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test3_trace" rcv,ct,fwd,dlv,del
+#bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
 #cd ..
 #
 #sleep ${TIMETOWAITFORTESTFINISH}
@@ -253,7 +269,7 @@ x
 ENDOFBPSECADMINCOMMANDS
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 1.1 "test4_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test4_trace" rcv,ct,fwd,dlv,del
 cd ..
 
 sleep ${TIMETOWAITFORTESTFINISH}
@@ -423,7 +439,7 @@ ENDOFBPSECADMINCOMMANDS
 fi
 
 cd ../2.ipn.ltp
-bptrace ipn:2.1 ipn:4.1 ipn:2.0 3600 1.1 "test_trace6" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:4.1 ipn:2.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
 
 sleep ${TIMETOWAITFORTESTFINISH}
 

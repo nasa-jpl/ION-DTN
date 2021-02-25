@@ -383,12 +383,10 @@ tbl_t *dtn_ion_bpadmin_tblt_protocols(ari_t *id)
 	{
 		GET_OBJ_POINTER(sdr, ClProtocol, clp, sdr_list_data(sdr, elt));
 
-		/* (STR) name, (UINT) payload_bpf, (UINT) overhead_bpf, (UINT) nominal_data_rate */
-		if((cur_row = tnvc_create(4)) != NULL)
+		/* (STR) name, (UINT) protocol_class */
+		if((cur_row = tnvc_create(2)) != NULL)
 		{
 			tnvc_insert(cur_row, tnv_from_str(clp->name));
-			tnvc_insert(cur_row, tnv_from_uint(clp->payloadBytesPerFrame));
-			tnvc_insert(cur_row, tnv_from_uint(clp->overheadPerFrame));
 			tnvc_insert(cur_row, tnv_from_uint(clp->protocolClass));
 
 			tbl_add_row(table, cur_row);
@@ -1111,19 +1109,8 @@ tnv_t *dtn_ion_bpadmin_ctrl_outduct_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 
 /*
- * Establish access to the named convergence layer protocol at the local node. The payloadBytesPerFrame
- *  and overheadBytesPerFrame arguments are used in calculating the estimated transmission capacity con
- * sumption of each bundle, to aid in route computation and congesting forecasting. The optional nomina
- * lDataRate argument overrides the hard coded default continuous data rate for the indicated protocol 
- * for purposes of rate control. For all promiscuous prototocols-that is, protocols whose outducts are 
- * not specifically dedicated to transmission to a single identified convergence-layer protocol endpoin
- * t- the protocol's applicable nominal continuous data rate is the data rate that is always used for r
- * ate control over links served by that protocol; data rates are not extracted from contact graph info
- * rmation. This is because only the induct and outduct throttles for non-promiscuous protocols (LTP, T
- * CP) can be dynamically adjusted in response to changes in data rate between the local node and its n
- * eighbors, as enacted per the contact plan. Even for an outduct of a non-promiscuous protocol the nom
- * inal data rate may be the authority for rate control, in the event that the contact plan lacks ident
- * ified contacts with the node to which the outduct is mapped.
+ * Establish access to the named convergence layer protocol at the local node.
+ * The optional protocolCLass indicates the reliability of the protocol.
  */
 tnv_t *dtn_ion_bpadmin_ctrl_protocol_add(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 {
@@ -1137,11 +1124,9 @@ tnv_t *dtn_ion_bpadmin_ctrl_protocol_add(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 	int success;
 	char *name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
-	int payloadPerFrame = adm_get_parm_uint(parms, 1, &success);
-	int ohdPerFrame = adm_get_parm_uint(parms, 2, &success);
-	int protocolClass = adm_get_parm_uint(parms, 3, &success);
+	int protocolClass = adm_get_parm_uint(parms, 1, &success);
 
-	if(addProtocol(name, payloadPerFrame, ohdPerFrame, protocolClass) > 0)
+	if(addProtocol(name, protocolClass) > 0)
 	{
 		*status = CTRL_SUCCESS;
 	}

@@ -1,0 +1,77 @@
+=head1 NAME
+
+imcadminep - administrative endpoint task for the IMC (multicast) scheme
+
+=head1 SYNOPSIS
+
+B<imcadminep>
+
+=head1 DESCRIPTION
+
+B<imcadminep> is a background "daemon" task that receives and processes
+administrative bundles (multicast group petitions) that are sent to the
+IMC-scheme administrative endpoint on the local ION node, if and only
+if such an endpoint was established by B<bpadmin>.  It is spawned
+automatically by B<bpadmin> in response to the 's' (START) command
+that starts operation of Bundle Protocol on the local ION node, and
+it is terminated by B<bpadmin> in response to an 'x' (STOP) command.
+B<imcadminep> can also be spawned and terminated in response to
+START and STOP commands that pertain specifically to the IMC scheme.
+
+B<imcadminep> responds to multicast group "join" and "leave" petitions
+by managing entries in the node's database of multicast groups and
+their members.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<imcadminep> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart B<imcadminep>.
+
+=item "1"
+
+B<imcadminep> was unable to attach to Bundle Protocol operations or was
+unable to load the IMC scheme database, probably because B<bpadmin> has
+not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item imcadminep can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item imcadminep can't load routing database.
+
+B<imcadmin> has not yet initialized the IMC scheme.
+
+=item imcadminep crashed.
+
+An unrecoverable database error was encountered.  B<imcadminep> terminates.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5)

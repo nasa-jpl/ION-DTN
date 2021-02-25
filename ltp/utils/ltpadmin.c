@@ -722,11 +722,11 @@ static void	switchWatch(int tokenCount, char **tokens)
 			break;
 
 		case '{':
-			vdb->watching |= WATCH_CS;
+			vdb->watching |= WATCH_CLS;
 			break;
 
 		case '}':
-			vdb->watching |= WATCH_handleCS;
+			vdb->watching |= WATCH_handleCLS;
 			break;
 
 		case '[':
@@ -1089,6 +1089,13 @@ int	main(int argc, char **argv)
 		if (attachToLtp() == 0)
 		{
 			ltpStop();
+		}
+	}
+	else if (strcmp(cmdFileName, "!") == 0)	/*	Resume.	*/
+	{
+		if (attachToLtp() == 0)
+		{
+			ltpStart(NULL);
 		}
 	}
 	else					/*	Scripted.	*/

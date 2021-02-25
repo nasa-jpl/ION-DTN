@@ -15,6 +15,13 @@ CONFIGFILES=" \
 ./1.ipn.bp.udp/config.bprc \
 ./1.ipn.bp.udp/config.ipnrc"
 
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.bp.udp/config.acsrc"
+fi
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -45,7 +52,12 @@ echo "Starting ion node..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 cd 1.ipn.bp.udp
-./ionstart
+
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 
 ../../../system_up -i "p 30" -b "p 30"
 

@@ -66,17 +66,25 @@ typedef struct
 
 typedef struct
 {
-	Object	publicKeys;		/*	SdrList PublicKey	*/
+	Object	publicKeys;			/*	SdrList PublicKey	*/
 	Object	ownPublicKeys;		/*	SdrList OwnPublicKey	*/
 	Object	privateKeys;		/*	SdrList PrivateKey	*/
 	time_t	nextRekeyTime;		/*	1970 epoch time.	*/
-	Object	keys;			/*	SdrList of SecKey	*/
-	Object	rules[5];		/*	SdrLists of sec rules	*/
+	Object	keys;				/*	SdrList of SecKey	*/
+	Object	rules[5];			/*	SdrLists of sec rules	*/
+	Object  bpSecPolicyRules;   /*  BPSec Policy Engine Database */
+	Object  bpSecEventSets;
 } SecDB;
 
 typedef struct
 {
 	PsmAddress	publicKeys;	/*	SM RB tree of PubKeyRef	*/
+	PsmAddress  bpsecPolicyRules;    /* sm_list of BpSecPolRule */
+	PsmAddress  bpsecRuleIdxBySrc;   /* Radix tree of BpSecPolRule */
+	PsmAddress  bpsecRuleIdxByDest;  /* Radix tree of BpSecPolRule */
+	PsmAddress  bpsecRuleIdxBySSrc;  /* Radix tree of BpSecPolRule */
+	PsmAddress  bpsecEidDictionary;  /* Radix tree of char[]       */
+	PsmAddress  bpsecEventSet;       /* SM RB tree of BpSecPolEventSet */
 } SecVdb;
 
 extern int	secInitialize();

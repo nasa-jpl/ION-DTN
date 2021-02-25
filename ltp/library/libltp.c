@@ -148,7 +148,7 @@ int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	unsigned int	dataLength;
 	Object		spanObj;
 	LtpSpan		span;
-			OBJ_POINTER(ExportSession, session);
+			OBJ_POINTER(LtpExportSession, session);
 
 	CHKERR(clientSvcId <= MAX_LTP_CLIENT_NBR);
 	CHKERR(clientServiceData);
@@ -248,7 +248,7 @@ int	ltp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	 *	any green data, notify ltpmeter that block segmentation
 	 *	can begin.						*/
 
-	GET_OBJ_POINTER(sdr, ExportSession, session,
+	GET_OBJ_POINTER(sdr, LtpExportSession, session,
 			span.currentExportSessionObj);
 	sdr_list_insert_last(sdr, session->svcDataObjects, clientServiceData);
 	span.clientSvcIdOfBufferedBlock = clientSvcId;

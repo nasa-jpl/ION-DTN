@@ -215,13 +215,10 @@ This command lists all local endpoints, regardless of scheme name.
 
 =over 4
 
-=item B<a protocol> I<protocol_name> I<payload_bytes_per_frame> I<overhead_bytes_per_frame> [I<protocol_class>]
+=item B<a protocol> I<protocol_name> [I<protocol_class>]
 
 The B<add protocol> command.  This command establishes access to the named
-convergence layer protocol at the local node.  The I<payload_bytes_per_frame>
-and I<overhead_bytes_per_frame> arguments are used in calculating the
-estimated transmission capacity consumption of each bundle, to aid in
-route computation and congestion forecasting.
+convergence layer protocol at the local node.
 
 The optional I<protocol_class> argument indicates the reliability of the
 protocol.  The value 1 indicates that the protocol natively supports bundle
@@ -232,6 +229,12 @@ loss and automatically retransmits data accordingly; an example is TCP.
 Protocol class need not be specified when I<protocol_name> is bssp, udp,
 tcp, stcp, brss, brsc, or ltp, as the protocol classes for these well-known
 protocols are hard-coded in ION.
+
+In earlier versions of ION this command took two additional arguments,
+I<payload_bytes_per_frame> and I<overhead_bytes_per_frame>.  These arguments
+are deprecated.  BP configuration files that include B<a protocol> commands
+in the old format will be processed correctly; the deprecated arguments
+will simply be ignored.
 
 =item B<d protocol> I<protocol_name>
 
@@ -404,7 +407,7 @@ plan's transmission rate.
 
 =item B<d plan> I<endpoint_name>
 
-The B<delete plan> command.  This command deletes the outduct identified
+The B<delete plan> command.  This command deletes the plan identified
 by I<endpoint_name>.  The command will fail if any bundles are currently
 pending transmission per this plan.
 

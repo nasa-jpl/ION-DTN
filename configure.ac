@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 3.7.2/4.0.1, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 3.7.3/4.0.2, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -204,6 +204,22 @@ AC_ARG_ENABLE(
     [])
 
 #
+# allow the user running configure to enable UniBo CGR
+#
+AC_ARG_ENABLE(
+    unibo-cgr,
+    [AC_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
+    [if test "$BUILD_BPv7" == "true" ; then
+	UNIBO_CGR=yes
+	echo "Building ION with UniBo CGR code"
+     else
+	echo "ERROR: UniBo CGR is not available with BP version 6"
+	exit 1
+     fi],
+    [UNIBO_CGR=no])
+AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
+
+#
 # allow the user running configure to disable manpage creation
 #
 AC_ARG_ENABLE(
@@ -348,6 +364,7 @@ if test "x$enable_sysctl_check" = xyes; then
 
     if ! ${ac_confdir}/sysctl_script.sh; then
         echo "Reconfigure with --disable-sysctl-check to bypass this check."
+	echo "Update sysctl configuration by running ./install_macos_sysctl.sh"
         exit 1
     fi
 fi

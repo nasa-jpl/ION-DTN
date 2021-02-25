@@ -386,7 +386,7 @@ static int	discoveryAcquired(char *socketSpec, char *discoveryEid,
 	fetchProtocol(claProtocol, &protocol, &elt);
 	if (elt == 0)		/*	Protocol not yet loaded.	*/
 	{
-		if (addProtocol(claProtocol, 1400, 100, 0) < 0)
+		if (addProtocol(claProtocol, 0) < 0)
 		{
 			putErrmsg("Can't add protocol for discovered contacts.",
 					NULL);

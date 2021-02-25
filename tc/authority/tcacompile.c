@@ -11,19 +11,19 @@
 									*/
 #include "tcaP.h"
 
-static long	_running(long *newValue)
+static saddr	_running(saddr *newValue)
 {
 	void	*value;
-	long	state;
+	saddr	state;
 	
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
-		state = (long) sm_TaskVar(&value);
+		state = (saddr) sm_TaskVar(&value);
 	}
 	else				/*	Just check.		*/
 	{
-		state = (long) sm_TaskVar(NULL);
+		state = (saddr) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -31,7 +31,7 @@ static long	_running(long *newValue)
 
 static void	shutDown()	/*	Commands tcacompile shutdown.	*/
 {
-	long	stop = 0;
+	saddr	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates tcacompile.		*/
 }
@@ -169,7 +169,7 @@ int	main(int argc, char *argv[])
 	Sdr	sdr;
 	Object	dbobj;
 	TcaDB	db;
-	long	state = 1;
+	saddr	state = 1;
 	char	cmdbuf[32];
 	time_t	currentTime;
 	int	interval;

@@ -13,6 +13,16 @@ CONFIGFILES=" \
 ./1.ipn.bssp/amroc.ionrc \
 ./1.ipn.bssp/amroc.ionsecrc \
 ./1.ipn.bssp/amroc.ipnrc \
+"
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.bssp/amroc.acsrc"
+fi
+
+CONFIGFILES=$CONFIGFILES"
 ./2.ipn.bssp/amroc.bprc \
 ./2.ipn.bssp/amroc.bssprc \
 ./2.ipn.bssp/amroc.ionconfig \
@@ -20,6 +30,10 @@ CONFIGFILES=" \
 ./2.ipn.bssp/amroc.ionsecrc \
 ./2.ipn.bssp/amroc.ipnrc
 "
+
+if [ $ACS == "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./2.ipn.bssp/amroc.acsrc"
+fi
 
 echo "########################################"
 echo
@@ -79,10 +93,17 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0 
 # Start nodes.
-cd 1.ipn.bssp
-./ionstart >& node1.stdout
-cd ../2.ipn.bssp
-./ionstart >& node2.stdout
+if [ $ACS == "found" ] ; then
+	cd 1.ipn.bssp
+	./ionstart-acs >& node1.stdout
+	cd ../2.ipn.bssp
+	./ionstart-acs >& node2.stdout
+else
+	cd 1.ipn.bssp
+	./ionstart >& node1.stdout
+	cd ../2.ipn.bssp
+	./ionstart >& node2.stdout
+fi
 
 cd ../1.ipn.bssp
 ../../../system_up -i "p 30" -b "p 30"

@@ -152,19 +152,21 @@ static void *receiveResponses(void *x)
 			pthread_exit(NULL);
 		}
 
-		/* ReceptionInterrupted means this process received a signal but not
-		 * a bundle.  Try receiving again... */
-		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0) {
-			if(verbosity) fprintf(stderr, "Reception interrupted.\n");
-			bp_release_delivery(&dlv, 1);
-			continue;
-		}
-
 		if (dlv.result == BpEndpointStopped)
 		{
 			if(verbosity) fprintf(stderr, "Endpoint stopped.\n");
 			bp_release_delivery(&dlv, 1);
 			shutdownnow = 1;
+			continue;
+		}
+
+		/*	ReceptionInterrupted means this process received 
+		 *	a signal but not a bundle.  Try receiving again... */
+		if(dlv.result == BpReceptionInterrupted || dlv.adu == 0)
+		{
+			if(verbosity) fprintf(stderr,
+					"Reception interrupted.\n");
+			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 

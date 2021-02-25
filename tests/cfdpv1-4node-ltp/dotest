@@ -22,17 +22,35 @@ rm -f ./ion_nodes
 RETVAL=0
 
 # Start nodes.
-cd 5.ipn.ltp
-./ionstart &
-sleep 1
-cd ../3.ipn.ltp
-./ionstart &
-sleep 1
-cd ../1.ipn.ltp
-./ionstart &
-sleep 1
-cd ../2.ipn.ltp
-./ionstart &
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	cd 5.ipn.ltp
+	./ionstart-acs &
+	sleep 1
+	cd ../3.ipn.ltp
+	./ionstart-acs &
+	sleep 1
+	cd ../1.ipn.ltp
+	./ionstart-acs &
+	sleep 1
+	cd ../2.ipn.ltp
+	./ionstart-acs &
+else
+	cd 5.ipn.ltp
+	./ionstart &
+	sleep 1
+	cd ../3.ipn.ltp
+	./ionstart &
+	sleep 1
+	cd ../1.ipn.ltp
+	./ionstart &
+	sleep 1
+	cd ../2.ipn.ltp
+	./ionstart &
+fi
+
 
 echo "Sleeping 10 sec.."
 sleep 10

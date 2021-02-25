@@ -44,19 +44,19 @@
 #define KEY_SIZE 1024
 #define EXPONENT 65537
 
-static long	_running(long *newValue)
+static saddr	_running(saddr *newValue)
 {
 	void	*value;
-	long	state;
+	saddr	state;
 	
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
-		state = (long) sm_TaskVar(&value);
+		state = (saddr) sm_TaskVar(&value);
 	}
 	else				/*	Just check.		*/
 	{
-		state = (long) sm_TaskVar(NULL);
+		state = (saddr) sm_TaskVar(NULL);
 	}
 
 	return state;
@@ -64,7 +64,7 @@ static long	_running(long *newValue)
 
 static void	shutDown()	/*	Commands dtka termination.	*/
 {
-	long	stop = 0;
+	saddr	stop = 0;
 
 	oK(_running(&stop));	/*	Terminates dtka.		*/
 }
@@ -297,7 +297,7 @@ static void	*generateKeys(void *parm)
 	time_t		currentTime;
 	char		ownEid[32];
 	BpSAP		sap;
-	long		state = 1;
+	saddr		state = 1;
 
 	/*	Main loop for DTKA key generation.			*/
 
@@ -514,7 +514,7 @@ int	dtka(int a1, int a2, int a3, int a4, int a5,
 int	main(int argc, char *argv[])
 {
 #endif
-	long		state = 1;
+	saddr		state = 1;
 	pthread_t	clockThread;
 	int		result;
 	char		*bulletinContent;

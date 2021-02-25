@@ -569,6 +569,13 @@ int	main(int argc, char *argv[])
 
 	sdr = getIonsdr();
 	bpConstants = getBpConstants();
+#ifdef ENABLE_BPACS
+	if (acsAttach() < 0)
+	{
+		putErrmsg("bpclock can't attach to ACS.", NULL);
+		return 1;
+	}
+#endif
 	isignal(SIGTERM, shutDown);
 
 	/*	Main loop: wait for event occurrence time, then

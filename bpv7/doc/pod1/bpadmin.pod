@@ -4,7 +4,7 @@ bpadmin - ION Bundle Protocol (BP) administration interface
 
 =head1 SYNOPSIS
 
-B<bpadmin> [ I<commands_filename> | . ]
+B<bpadmin> [ I<commands_filename> | . | ! ]
 
 =head1 DESCRIPTION
 
@@ -18,6 +18,9 @@ directly into standard input.  If I<commands_filename> is a period (.), the
 effect is the same as if a command file containing the single command 'x'
 were passed to B<bpadmin> -- that is, the ION node's I<bpclock> task, 
 forwarder tasks, and convergence layer adapter tasks are stopped.
+If I<commands_filename> is an exclamation point (!), that effect is
+reversed: the ION node's I<bpclock> task, forwarder tasks, and convergence
+layer adapter tasks are restarted.
 
 The format of commands for I<commands_filename> can be queried from B<bpadmin>
 with the 'h' or '?' commands at the prompt.  The commands are documented in

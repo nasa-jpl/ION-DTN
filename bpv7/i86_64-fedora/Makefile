@@ -18,9 +18,12 @@ DCCP = ../dccp
 BIBE = ../bibe
 IPND = ../ipnd
 SAGA = ../saga
+UNIBO_CGR = 0
+# UNIBO_CGR = 1
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC
+# OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC -DUNIBO_CGR -DUNIBO_CGR_ENH_WITHOUT_EXP_EXTENSIONS
 CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/bpq -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(API)/ext/imc -I$(BIBE) -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -45,9 +48,13 @@ BPINCLS = \
 BPLIBS = \
 	libbp.so
 
-BPPOBJS = libbpP.o bpsec.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o snw.o imc.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o bibe.o
+BPPOBJS = libbpP.o bibe.o bpsec.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o snw.o imc.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
+
+CGROBJS = libcgr.o
+# CGROBJS = libcgr.o interface_cgr_ion.o commonFunctions.o list.o log.o rbt.o scalar.o general_functions_ported_from_ion.o contacts.o ranges.o nodes.o contactPlan.o routes.o phase_one.o phase_two.o phase_three.o cgr.o msr.o msr_utils.o bundles.o time.o
+
 LBP = -lbp -limcfw -lipnfw -ldtn2fw
 
 RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion
@@ -320,8 +327,8 @@ libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
 		$(LD) -o libbp.so libbp.o $(BPPOBJS) libbpnm.o
 		cp libbp.so ./lib
 
-libcgr.so:	libcgr.o
-		$(LD) -o libcgr.so libcgr.o
+libcgr.so:	$(CGROBJS)
+		$(LD) -o libcgr.so $(CGROBJS)
 		cp libcgr.so ./lib
 
 libipnfw.so:	libipnfw.o
@@ -378,6 +385,56 @@ libudpcla.so:	libudpcla.o
 
 %.o:		$(CGR)/%.c
 		$(CC) -c $<
+
+ifdef UNIBO_CGR
+%.o:		$(CGR)/Unibo-CGR/ion_bpv7/interface/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/ion_bpv7/interface/utility_functions_from_ion/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/library/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/library/list/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/library/log/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/library_from_ion/rbt/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/library_from_ion/scalar/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/contact_plan/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/contact_plan/contacts/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/contact_plan/ranges/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/contact_plan/nodes/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/routes/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/cgr/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/msr/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/bundles/%.c
+		$(CC) -c $<
+
+%.o:		$(CGR)/Unibo-CGR/core/time_analysis/%.c
+		$(CC) -c $<
+endif
 
 %.o:		$(IPN)/%.c
 		$(CC) -c $<

@@ -373,7 +373,7 @@ int	cbor_decode_initial_byte(unsigned char **cursor,
 
 static int	decodeInteger(uvast *value, int class, int additionalInfo, 
 			unsigned char **cursor, unsigned int *bytesBuffered,
-			int destructive)
+			uvast mask)
 {
 	uvast		sum;
 	unsigned char	*cursor2;
@@ -383,14 +383,11 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 		if (class == CborAny || class == CborTiny)
 		{
 			*value = additionalInfo;
-			if (destructive)
-			{
-				/*	Erase value of small integer.	*/
 
-				cursor2 = *cursor;
-				cursor2--;	/*	Previous byte.	*/
-				*cursor2 = 0;	/*	Unsigned int 0.	*/
-			}
+			cursor2 = *cursor;
+			cursor2--;		/*	Previous byte.	*/
+			/*	Apply mask to 5-bit value.		*/
+			*cursor2 &= (0xe0 | (mask & 0x1f));
 
 			return 0;
 		}
@@ -411,11 +408,10 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			}
 
 			*value = **cursor;
-			if (destructive)
-			{
-				cursor2 = *cursor;
-				*cursor2 = 0;
-			}
+
+			cursor2 = *cursor;
+			/*	Apply mask to 8-bit value.		*/
+			*cursor2 &= (mask & 0xff);
 
 			*cursor += 1;
 			*bytesBuffered -= 1;
@@ -437,13 +433,12 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			sum = **cursor;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			if (destructive)
-			{
-				cursor2 = *cursor;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-			}
+
+			cursor2 = *cursor;
+			/*	Apply mask to 16-bit value.		*/
+			*cursor2 &= (mask & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 8) & 0xff);
 
 			*cursor += 1;
 			*value = sum;
@@ -470,17 +465,16 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			sum = (sum << 8) + **cursor;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			if (destructive)
-			{
-				cursor2 = *cursor;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-			}
+
+			cursor2 = *cursor;
+			/*	Apply mask to 32-bit value.		*/
+			*cursor2 &= (mask & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 8) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 16) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 24) & 0xff);
 
 			*cursor += 1;
 			*value = sum;
@@ -515,25 +509,24 @@ static int	decodeInteger(uvast *value, int class, int additionalInfo,
 			sum = (sum << 8) + **cursor;
 			*cursor += 1;
 			sum = (sum << 8) + **cursor;
-			if (destructive)
-			{
-				cursor2 = *cursor;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-				cursor2--;
-				*cursor2 = 0;
-			}
+
+			cursor2 = *cursor;
+			/*	Apply mask to 64-bit value.		*/
+			*cursor2 &= (mask & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 8) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 16) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 24) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 32) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 40) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 48) & 0xff);
+			cursor2--;
+			*cursor2 &= ((mask >> 56) & 0xff);
 
 			*cursor += 1;
 			*value = sum;
@@ -572,7 +565,7 @@ int	cbor_decode_integer(uvast *value, int class, unsigned char **cursor,
 	}
 
 	length = decodeInteger(value, class, additionalInfo, cursor,
-			bytesBuffered, 0);
+			bytesBuffered, (uvast) -1);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR integer decode failed.");
@@ -583,7 +576,7 @@ int	cbor_decode_integer(uvast *value, int class, unsigned char **cursor,
 }
 
 int	cbor_decode_integer_destructive(uvast *value, int class,
-		unsigned char **cursor, unsigned int *bytesBuffered)
+		unsigned char **cursor, unsigned int *bytesBuffered, uvast mask)
 {
 	int	majorType;
 	int	additionalInfo;
@@ -603,7 +596,7 @@ int	cbor_decode_integer_destructive(uvast *value, int class,
 	}
 
 	length = decodeInteger(value, class, additionalInfo, cursor,
-			bytesBuffered, 1);
+			bytesBuffered, mask);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR integer decode failed.");
@@ -642,7 +635,7 @@ int	cbor_decode_byte_string(unsigned char *value, uvast *size,
 	else
 	{
 		length = decodeInteger(&stringLength, CborAny, additionalInfo,
-				cursor, bytesBuffered, 0);
+				cursor, bytesBuffered, (uvast) -1);
 		if (length < 0)
 		{
 			writeMemo("[?] CBOR byte string decode failed.");
@@ -704,7 +697,7 @@ int	cbor_decode_text_string(char *value, uvast *size,
 	else
 	{
 		length = decodeInteger(&stringLength, CborAny, additionalInfo,
-				cursor, bytesBuffered, 0);
+				cursor, bytesBuffered, (uvast) -1);
 		if (length < 0)
 		{
 			writeMemo("[?] CBOR text string decode failed.");
@@ -779,7 +772,7 @@ int	cbor_decode_array_open(uvast *size, unsigned char **cursor,
 	/*	An array of definite length is expected.		*/
 
 	length = decodeInteger(&arrayLength, CborAny, additionalInfo, cursor,
-			bytesBuffered, 0);
+			bytesBuffered, (uvast) -1);
 	if (length < 0)
 	{
 		writeMemo("[?] CBOR array decode failed.");
@@ -809,7 +802,12 @@ int	cbor_decode_break(unsigned char **cursor, unsigned int *bytesBuffered)
 	int	additionalInfo;
 
 	CHKZERO(cursor && *cursor && bytesBuffered);
-	decodeFirstByte(cursor, bytesBuffered, &majorType, &additionalInfo);
+	if (decodeFirstByte(cursor, bytesBuffered, &majorType, &additionalInfo)
+			< 1)
+	{
+		return 0;
+	}
+
 	if (majorType != CborSimpleValue)
 	{
 		writeMemo("[?] CBOR error: not 'simple' value.");

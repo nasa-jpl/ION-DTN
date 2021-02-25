@@ -4,9 +4,21 @@
 #
 # Written by Sebastian Kuzminsky, based on loopbacktest.sh by David Young
 #
-CONFIGFILES=" \
-${CONFIGSROOT}/loopback-udp/loopback.rc \
-"
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	echo "Found acsadmin"
+	ACS="found"
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-udp/loopback-acs.rc \
+	"
+else
+	echo "acsadmin not found"
+	ACS="missing"
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-udp/loopback.rc \
+	"
+fi
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -37,7 +49,13 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=9
 
 echo "Starting ION..."
-ionstart -I ${CONFIGSROOT}/loopback-udp/loopback.rc
+if [ $ACS == "found" ] ; then
+	echo "ionstart -I ${CONFIGSROOT}/loopback-udp/loopback-acs.rc"
+	"ionstart" -I "${CONFIGSROOT}/loopback-udp/loopback-acs.rc"
+else
+	echo "ionstart -I ${CONFIGSROOT}/loopback-udp/loopback.rc"
+	"ionstart" -I "${CONFIGSROOT}/loopback-udp/loopback.rc"
+fi
 
 #The sample config has contacts we don't care about
 deleteallvolumes

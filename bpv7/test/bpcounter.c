@@ -40,6 +40,7 @@ static void	handleQuit(int signum)
 
 	isignal(SIGINT, handleQuit);
 	PUTS("BP reception interrupted.");
+	fflush(stdout);
 	state = _bptestState(NULL);
 	bp_interrupt(state->sap);
 	state->running = 0;
@@ -100,6 +101,7 @@ int	main(int argc, char **argv)
 	if (ownEid == NULL)
 	{
 		PUTS("Usage: bpcounter <own endpoint ID> [<max count>]");
+		fflush(stdout);
 		return 0;
 	}
 
@@ -187,6 +189,7 @@ int	main(int argc, char **argv)
 	pthread_join(printThread, NULL);
 	bp_close(state.sap);
 	PUTMEMO("Stopping bpcounter; bundles received", itoa(bundlesReceived));
+	fflush(stdout);
 	if (bundlesReceived > 0)
 	{
 		if (endTime.tv_usec < startTime.tv_usec)
@@ -201,6 +204,7 @@ int	main(int argc, char **argv)
 		PUTMEMO("Time (seconds)", textBuf);
 		isprintf(textBuf, sizeof textBuf, "%.0f", bytesReceived);
 		PUTMEMO("Total bytes", textBuf);
+		fflush(stdout);
 		if (interval > 0.0)
 		{
 			isprintf(textBuf, sizeof textBuf, "%.3f",
@@ -212,6 +216,8 @@ int	main(int argc, char **argv)
 		{
 			PUTS("Interval is too short to measure rate.");
 		}
+
+		fflush(stdout);
 	}
 
 	writeMemo("[i] bpcounter has ended.");

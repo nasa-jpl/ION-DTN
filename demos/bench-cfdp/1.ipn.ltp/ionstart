@@ -1,0 +1,18 @@
+# shell script to get node running
+#!/bin/bash
+ionadmin	node.ionrc
+sleep 1
+ionadmin	../global.ionrc
+sleep 1
+ionsecadmin	node.ionsecrc
+sleep 1
+owltsim		node.owltsim -v &
+sleep 1
+ltpadmin	node.ltprc
+sleep 1
+bpadmin		node.bprc
+sleep 1
+cfdpadmin	node.cfdprc
+sleep 1
+sdrwatch ion1 5 24 > sdrwatch.log &
+psmwatch 66136 1000000 ionwm 5 24 > psmwatch.log &

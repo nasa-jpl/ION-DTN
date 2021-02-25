@@ -1088,6 +1088,13 @@ int	main(int argc, char **argv)
 			cfdpStop();
 		}
 	}
+	else if (strcmp(cmdFileName, "!") == 0)	/*	Resume.		*/
+	{
+		if (cfdpAttach() == 0)
+		{
+			cfdpStart(NULL);
+		}
+	}
 	else					/*	Scripted.	*/
 	{
 		cmdFile = ifopen(cmdFileName, O_RDONLY, 0777);

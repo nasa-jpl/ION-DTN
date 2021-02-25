@@ -1395,7 +1395,8 @@ Object sbsp_bcbStoreOverflow(uint32_t suite,
 		writeOffset = 0;
 		if((cipherBuffer = sdr_malloc(bpSdr, length * 2)) == 0)
 		{
-
+			putErrmsg("No cipherBuffer", NULL);
+			return 0;
 		}
 
 		if(cipherOverflow > 0)

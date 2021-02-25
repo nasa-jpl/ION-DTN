@@ -102,6 +102,11 @@
 #	-	All nodes shut down.
 
 ./cleanup
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+fi
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
@@ -119,7 +124,11 @@ sleep 1
 echo "Starting all nodes..."
 
 cd 2.ipn.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -131,7 +140,11 @@ else
 fi
 
 cd ../3.ipn.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -143,7 +156,11 @@ else
 fi
 
 cd ../5.ipn.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -155,7 +172,11 @@ else
 fi
 
 cd ../6.ipn.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -169,7 +190,11 @@ fi
 bprecvfile ipn:6.1 &
 
 cd ../7.ipn.tcp
-./ionstart
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]

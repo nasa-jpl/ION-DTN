@@ -3172,7 +3172,7 @@ static int ui_form_field_validate(form_fields_t *field, char *value)
       // Iterate through chars in string and verify that each is numeric
       //   loop and call isdigit(in[i]) where fn provided by string.h
       for(j = 0, len = strlen(value); j < len; j++) {
-         if(isdigit(value[j] == 0) ) {
+         if(isdigit(value[j]) == 0) {
             printf("*ERROR: Not a Number - ");
             return -1;
          }

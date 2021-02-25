@@ -1467,15 +1467,9 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 			break;
 		}
 
-		candidateContacts++;
 		if (contact->toNode != nodeNbr)
 		{
 			continue;	/*	Wrong node.		*/
-		}
-
-		if (contact->confidence < 1.0)
-		{
-			continue;	/*	Not current contact.	*/
 		}
 
 		if (contact->toTime <= currentTime)
@@ -1483,6 +1477,12 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 			continue;	/*	Contact already ended.	*/
 		}
 
+		if (contact->confidence < 1.0)
+		{
+			continue;	/*	Not useful contact.	*/
+		}
+
+		candidateContacts++;
 		if (contact->fromTime > currentTime)
 		{
 			break;		/*	Not current contact.	*/
