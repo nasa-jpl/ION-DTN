@@ -4,7 +4,7 @@ cfdpadmin - ION's CCSDS File Delivery Protocol (CFDP) administration interface
 
 =head1 SYNOPSIS
 
-B<cfdpadmin> [ I<commands_filename> | . ]
+B<cfdpadmin> [ I<commands_filename> | . | ! ]
 
 =head1 DESCRIPTION
 
@@ -18,6 +18,9 @@ directly into standard input.  If I<commands_filename> is a period (.), the
 effect is the same as if a command file containing the single command 'x'
 were passed to B<cfdpadmin> -- that is, the ION node's I<cfdpclock> task 
 and UT layer service task (nominally I<bputa>) are stopped.
+If I<commands_filename> is an exclamation point (!), that effect is
+reversed: the ION node's I<cfdpclock> task and UT layer service task
+(nominally I<bputa>) are restarted.
 
 The format of commands for I<commands_filename> can be queried from B<cfdpadmin>
 with the 'h' or '?' commands at the prompt.  The commands are documented in

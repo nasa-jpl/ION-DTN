@@ -1,5 +1,7 @@
 bpv7: export BPv = bpv7
 bpv7: all
+	gmake -C tc all
+	gmake -C tc install
 
 bpv6: export BPv = bpv6
 bpv6: all
@@ -15,8 +17,6 @@ all:
 	gmake -C bssp install
 	gmake -C $(BPv) $@
 	gmake -C $(BPv) install
-	gmake -C tc $@
-	gmake -C tc install
 	gmake -C nm $@
 	gmake -C nm install
 	gmake -C ams $@

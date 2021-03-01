@@ -264,7 +264,12 @@ typedef enum
 	SrNoTimelyContact,
 	SrBlockUnintelligible,
 	SrHopCountExceeded,
-	SrTrafficPared
+	SrTrafficPared,
+	SrMissingSecurityService,
+	SrUnknownSecurityService,
+	SrUnexpectedSecurityService,
+	SrFailedSecurityService,
+	SrConflictingSecurityServices
 } BpSrReason;
 
 typedef time_t		DtnTime;	/*	Epoch 2000.		*/

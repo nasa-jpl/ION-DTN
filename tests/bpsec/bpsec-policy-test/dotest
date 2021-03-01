@@ -1,0 +1,202 @@
+#!/bin/bash
+#
+# Based off earlier test by Scott Burleigh
+# April 12, 2010
+#
+# Adapted to BSP, Ryan Brown
+# August 2011
+#
+# Adapted for BPSec Policy testing
+# January 2021
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=5
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log 
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+PASS=1
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+ionadmin ../global.ionrc
+ionsecadmin amroc.ionsecrc
+ltpadmin amroc.ltprc
+bpadmin amroc.bprc
+bpsecadmin amroc.bpsecrc
+
+
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+ionadmin ../global.ionrc
+ionsecadmin amroc.ionsecrc
+ltpadmin amroc.ltprc
+bpadmin amroc.bprc
+bpsecadmin amroc.bpsecrc
+
+cd ../4.ipn.ltp
+ionadmin amroc.ionrc
+ionadmin ../global.ionrc
+ionsecadmin amroc.ionsecrc
+ltpadmin amroc.ltprc
+bpadmin amroc.bprc
+bpsecadmin amroc.bpsecrc
+
+cd ..
+
+rm -f 3.ipn.ltp/3_receive_file.txt
+rm -f 3.ipn.ltp/3_results.txt
+touch 3.ipn.ltp/3_receive_file.txt
+touch 3.ipn.ltp/3_results.txt
+#
+#echo "Starting bpsink on node 3..."
+#cd 3.ipn.ltp
+#
+#bpsink ipn:3.1 >> 3_results.txt &
+#cd ..
+
+sleep 1
+# Determine BP version (6/7) for correct bpsecadmin rule syntax
+BPV=`bpversion`
+
+
+#########
+# Test 1
+
+echo -e "\n\n\n\n\n*****TEST 1*****"
+echo -e "Add a BIB at a security source ipn:2.1 and process at acceptor ipn:3.1\n"
+sleep ${TIMETODISPLAYTEXT}
+
+echo -e "\n\nNode 2.1 Configuration \n\n"
+cd 2.ipn.ltp
+
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+a key key1 key1.hmk 
+l key
+ENDOFIONSECADMINCOMMANDS
+
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "d_integrity", "desc":"default integrity event set"}}
+l {"type":"event_set"}
+#a {"event" : {"es_ref":"d_integrity", "event_id": "sop_misconfigured_at_source", "actions":[{ "id" : "remove_sop" }]}}
+a {"policyrule" : {"desc":"Integrity source rule", "filter" : {"rule_id" : "1", "role" : "s" , "src" : "ipn:2.1", "tgt" : 1}, "spec": {"svc" : "bib-integrity", "sc_id" : 2, "sc_parms" : [{"id":"key_name","value":"key1"}]}, "es_ref":"d_integrity"}}
+#i {"policyrule" : 1}
+#i {"event_set":{"name":"d_integrity"}}
+l {"type":"policyrule"}
+ENDOFBPSECADMINCOMMANDS
+
+echo -e "\n\nNode 3.1 Configuration \n\n"
+cd ../3.ipn.ltp
+
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+a key key1 key1.hmk 
+ENDOFIONSECADMINCOMMANDS
+
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "d_integrity", "desc":"default integrity event set"}}
+a {"policyrule" : {"desc":"Integrity acceptor rule", "filter" : {"rule_id" : "2", "role" : "a" , "src" : "ipn:2.1", "tgt" : 1}, "spec": {"svc" : "bib-integrity", "sc_id" : 2, "sc_parms" : [{"id":"key_name","value":"key1"}]}, "es_ref":"d_integrity"}}
+#i {"policyrule" : 2}
+#i {"event_set":{"name":"d_integrity"}}
+l {"type":"policyrule"}
+ENDOFBPSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+sleep 2
+##bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test1_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test1_trace"
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+echo -e "\n\nClear Node 2 Policy \n\n"
+
+cd 2.ipn.ltp
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : "1"}}
+d {"event_set" : {"name" : "d_integrity"}}
+ENDOFBPSECADMINCOMMANDS
+
+echo -e "\n\nClear Node 3 Policy"
+cd ../3.ipn.ltp
+
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : "2"}}
+d {"event_set" : {"name" : "d_integrity"}}
+ENDOFBPSECADMINCOMMANDS
+
+cd ..
+
+
+###############################################################
+# Test 2
+
+echo -e "\n\n\n\n\n*****TEST 2*****"
+echo -e "Add a BCB at a security source and process at acceptor \n"
+sleep ${TIMETODISPLAYTEXT}
+
+echo -e "\n\nNode 2.1 Configuration \n\n"
+cd 2.ipn.ltp
+
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+a key bcbkey bcbkey.hmk 
+l key
+ENDOFIONSECADMINCOMMANDS
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "d_bcb_conf", "desc":"default confidentiality event set"}}
+i {"event_set":{"name":"d_bcb_conf"}}
+a {"policyrule" : {"desc":"bcb src rule id 4", "filter" : {"rule_id" : "4", "role" : "s" , "src" : "ipn:2.1", "tgt" : 1}, "spec": {"svc" : "bcb-confidentiality", "sc_id" : 8, "sc_parms" : [{"id":"key_name","value":"bcbkey"}]}, "es_ref":"d_bcb_conf"}}
+i {"policyrule" : 4}
+l {"type":"policyrule"}
+ENDOFBPSECADMINCOMMANDS
+
+echo -e "\n\nNode 3.1 Configuration \n\n"
+cd ../3.ipn.ltp
+
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+a key bcbkey bcbkey.hmk 
+l key
+ENDOFIONSECADMINCOMMANDS
+
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "d_bcb_conf", "desc":"default confidentiality event set"}}
+a {"policyrule" : {"desc":"bcb acceptor rule id 5", "filter" : {"rule_id" : "5", "role" : "a" , "src" : "ipn:2.1", "tgt" : 1}, "spec": {"svc" : "bcb-confidentiality", "sc_id" : 8, "sc_parms" : [{"id":"key_name","value":"bcbkey"}]}, "es_ref":"d_bcb_conf"}}
+i {"policyrule" : 5}
+l {"type":"policyrule"}
+ENDOFBPSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+sleep 2
+##bptrace ipn:2.1 ipn:3.1 ipn:3.1 5 0.1 "test2_trace" rcv,ct,fwd,dlv,del
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test1_trace"
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+
+
+
+
+
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd 2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+cd ..
+
+# Give all three nodes time to shut down, then clean up.
+sleep 7
+killm
+echo "Status reports test completed."
+

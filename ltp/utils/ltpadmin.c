@@ -1091,6 +1091,13 @@ int	main(int argc, char **argv)
 			ltpStop();
 		}
 	}
+	else if (strcmp(cmdFileName, "!") == 0)	/*	Resume.	*/
+	{
+		if (attachToLtp() == 0)
+		{
+			ltpStart(NULL);
+		}
+	}
 	else					/*	Scripted.	*/
 	{
 		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);

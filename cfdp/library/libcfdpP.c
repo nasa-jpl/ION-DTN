@@ -594,8 +594,27 @@ int	_cfdpStart(char *utaCmd)
 {
 	Sdr	sdr = getIonsdr();
 	CfdpVdb	*cfdpvdb = _cfdpvdb(NULL);
+	Object	cfdpdbobj = getCfdpDbObject();
+	CfdpDB	cfdpdb;
 
-	if (utaCmd == NULL)
+	if (utaCmd)
+	{
+		CHKERR(sdr_begin_xn(sdr));
+		sdr_stage(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
+		istrcpy(cfdpdb.utaCmd, utaCmd, sizeof cfdpdb.utaCmd);
+		sdr_write(sdr, cfdpdbobj, (char *) &cfdpdb, sizeof(CfdpDB));
+		if (sdr_end_xn(sdr))
+		{
+			putErrmsg("Can't set UTA command.", NULL);
+			return -1;
+		}
+	}
+	else
+	{
+		sdr_read(sdr, (char *) &cfdpdb, cfdpdbobj, sizeof(CfdpDB));
+	}
+
+	if (cfdpdb.utaCmd[0] == 0)	/*	No UTA command.		*/
 	{
 		putErrmsg("CFDP can't start: no UTA command.", NULL);
 		return -1;

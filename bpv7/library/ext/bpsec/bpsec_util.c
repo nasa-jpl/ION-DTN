@@ -61,8 +61,9 @@
  **  01/14/11  B. Van Besien        Revised to use old security syntax. (JHU/APL)
  **  01/14/14  S. Burleigh          Revised for "streamlined" BSP.
  **  01/23/16  E. Birrane           Update to SBSP
- **  09/02/19  S. Burleigh          Rename everything for bpsec
  **                                 [Secure DTN implementation (NASA: NNX14CS58P)]
+ **  09/02/19  S. Burleigh          Rename everything for bpsec
+ **  10/20/20  S. Burleigh          Major update for BPv7
  *****************************************************************************/
 
 /*****************************************************************************
@@ -581,6 +582,7 @@ length %d.", itlv->length);
  *  --------  ------------  -----------------------------------------------
  *  02/27/16  E. Birrane    Initial Implementation [Secure DTN
  *                          implementation (NASA: NNX14CS58P)]
+ *  10/20/20  S. Burleigh   Update for BPv7 and BPsec.
  *****************************************************************************/
 
 int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
@@ -673,12 +675,13 @@ int	bpsec_write_parms(Sdr sdr, BpsecOutboundBlock *asb,
 
 int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr)
 {
-	Object			obj;
+	Object			    obj;
 	BpsecOutboundTarget	target;
 
 	CHKERR(sdr && asb);
 	target.targetBlockNumber = nbr;
 	target.results = sdr_list_create(sdr);
+
 	if (target.results == 0)
 	{
 		putErrmsg("Can't allocate results list.", NULL);
@@ -704,6 +707,15 @@ int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr)
 
 	return 0;
 }
+
+static void loseInboundAsb(BpsecInboundBlock *asb)
+{
+    eraseEid(&(asb->securitySource));
+    bpsec_releaseInboundTargets(asb->targets);
+    bpsec_releaseInboundTlvs(asb->parmsData);
+    MRELEASE(asb);
+}
+
 
 /******************************************************************************
  *
@@ -747,15 +759,9 @@ int	bpsec_insert_target(Sdr sdr, BpsecOutboundBlock *asb, uint8_t nbr)
  *  06/06/09  E. Birrane           Documentation Pass.
  *  06/20/09  E. Birrane           Cmts and code cleanup for initial release.
  *  07/26/11  E. Birrane           Added useCbhe and EID ref/deref
+ *  10/20/20  S. Burleigh          Rewrite for BPv7 and BPSec
  *****************************************************************************/
 
-static void	loseInboundAsb(BpsecInboundBlock *asb)
-{
-	eraseEid(&(asb->securitySource));
-	bpsec_releaseInboundTargets(asb->targets);
-	bpsec_releaseInboundTlvs(asb->parmsData);
-	MRELEASE(asb);
-}
 
 int	bpsec_deserializeASB(AcqExtBlock *blk, AcqWorkArea *wk)
 {
@@ -1431,6 +1437,7 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
  *                          initial release.
  *  03/14/16  E. Birrane    Reworked to use sci_inbound_tlv [Secure DTN
  *                          implementation (NASA: NNX14CS58P)]
+ *  10/20/20  S. Burleigh   Rewrite for BPv7 and BPSec
  *****************************************************************************/
 
 sci_inbound_tlv	bpsec_retrieveKey(char *keyName)
@@ -1576,6 +1583,7 @@ size %d", ReqBufLen);
  *  06/13/09  E. Birrane           Added debugging statements.
  *  06/15/09  E. Birrane           Comment updates for DINET-2 release.
  *  06/20/09  E. Birrane           Fixed Debug stmts, pre for initial release.
+ *  10/20/20  S. Burleigh          Rewrite for BPv7 and BPSec
  *****************************************************************************/
 
 typedef struct
@@ -1672,10 +1680,11 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	cursor = serializedTargets;
 	oK(cbor_encode_array_open(targetsCount, &cursor));
 
-	/*	Results is an array of result structures, each of
-		which is a block number paired with an array of
-		security results -- each of which is an array
-		comprising result type ID and result text.
+	/*	Results is an array of result structures, each
+	 	of which is a block number paired with a "result
+		set", i.e., an array of security results -- each
+	       	of which is an array comprising result type ID
+		and result text.
 
 		We can't open the top-level results array yet
 		because we don't know how many bytes of buffer
@@ -1700,7 +1709,7 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 			as we go.
 
 			They will ultimately be serialized inside
-			a per-target array of results.			*/
+			a result set -- a per-target array of results.	*/
 
 		serializedResultsLen += 9;	/*	Array open.	*/
 
@@ -1770,29 +1779,27 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 
 			stv->length = (cursor2 - stv->text) + tv->length;;
 			serializedResultsLen += stv->length;
-
-			/*	Append the Lyst of serialized TVs for
-				this target block number to the Lyst
-				of results lists (one per target)	*/
-
-			if (lyst_insert_last(serializedResults, serializedTlvs)
-					== NULL)
-			{
-				BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tgt",
-						NULL);
-				BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
-				releaseAsbBuffers(serializedTargets,
-						serializedSource,
-						serializedParms,
-						serializedParmsBuffer,
-						serializedTlvs,
-						serializedResults,
-					       	serializedResultsBuffer);
-				return NULL;
-			}
-
-			serializedTlvs = NULL;
 		}
+
+		/*	Append the Lyst of serialized TVs for this
+		 *	target block number to the Lyst of results
+		 *	lists (one per target).				*/
+
+		if (lyst_insert_last(serializedResults, serializedTlvs) == NULL)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_serializeASB no Tgt", NULL);
+			BPSEC_DEBUG_PROC("- bpsec_serializeASB", NULL);
+			releaseAsbBuffers(serializedTargets,
+					serializedSource,
+					serializedParms,
+					serializedParmsBuffer,
+					serializedTlvs,
+					serializedResults,
+				       	serializedResultsBuffer);
+			return NULL;
+		}
+
+		serializedTlvs = NULL;
 	}
 
 	/*	The buffer of serialized targets is now ready to go.
@@ -1863,6 +1870,11 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	serializedContextIdLen = cursor - serializedContextId;
 
 	/*	And security context flags.				*/
+
+	if (sdr_list_length(sdr, asb->parmsData) > 0)
+	{
+		asb->contextFlags |= BPSEC_ASB_PARM;
+	}
 
 	cursor = serializedContextFlags;
 	uvtemp = asb->contextFlags;
@@ -2450,7 +2462,8 @@ static int	canonicalizeAcqExtensionBlock(AcqWorkArea *work, uint8_t blkNbr,
 	sdr_write(sdr, bytesObj, (char *) (blk->bytes), blk->length);
 	zco = zco_create(sdr, ZcoSdrSource, bytesObj, 0, 0 - blk->length,
 			ZcoInbound);
-	switch (*zcoOut)
+
+	switch (zco)
 	{
 	case ((Object) ERROR):
 		sdr_free(sdr, bytesObj);

@@ -17,8 +17,8 @@ int	pnb_offer(ExtensionBlock *blk, Bundle *bundle)
 {
 	blk->blkProcFlags = BLK_REMOVE_IF_NG;
 	blk->dataLength = 0;	/*	Will know length at dequeue.	*/
-	blk->length = 3;	/*	Just to keep block alive.	*/
-	blk->size = 0;
+	blk->length = 0;
+	blk->size = 1;		 /*	Just to keep block alive.	*/
 	blk->object = 0;
 	return 0;
 }

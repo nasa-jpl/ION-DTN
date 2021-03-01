@@ -2366,13 +2366,16 @@ void	findToken(char **cursorPtr, char **token)
 		return;
 	}
 
-	/*	Token delimited by quotes is the complicated case.	*/
+	/*	Token delimited by quotes or braces {} is the complicated case.	*/
 
-	if (*cursor == '\'')	/*	Quote-delimited token.		*/
+	if ((*cursor == '\'') || (*cursor == '{'))	/*	Quote-delimited token. */
 	{
 		/*	Token is everything after this single quote,
 		 *	up to (but not including) the next non-escaped
 		 *	single quote.					*/
+
+		/*  Or, token is everything after this open brace '{',
+		 *  up to (but not including) the closing brace '}'.    */
 
 		cursor++;
 		while (*cursor != '\0')
@@ -2406,6 +2409,14 @@ void	findToken(char **cursorPtr, char **token)
 				cursor++;
 				*cursorPtr = cursor;
 				return;		/*	matched quote	*/
+			}
+
+			if (*cursor == '}')	/*	End of token.	*/
+			{
+				*cursor = '\0';
+				cursor++;
+				*cursorPtr = cursor;
+				return;		/*	closing brace found	*/
 			}
 
 			cursor++;

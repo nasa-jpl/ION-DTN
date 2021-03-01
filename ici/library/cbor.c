@@ -802,7 +802,12 @@ int	cbor_decode_break(unsigned char **cursor, unsigned int *bytesBuffered)
 	int	additionalInfo;
 
 	CHKZERO(cursor && *cursor && bytesBuffered);
-	decodeFirstByte(cursor, bytesBuffered, &majorType, &additionalInfo);
+	if (decodeFirstByte(cursor, bytesBuffered, &majorType, &additionalInfo)
+			< 1)
+	{
+		return 0;
+	}
+
 	if (majorType != CborSimpleValue)
 	{
 		writeMemo("[?] CBOR error: not 'simple' value.");

@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# ionresume
+# Scott Burleigh
+# Feb 23, 2021
+#
+# Resumes operation of an ion node that has been stopped.
+
+ION_OPEN_SOURCE=1
+
+echo "IONRESUME will now resume operations of a stopped ION node..."
+echo "ionadmin !"
+ionadmin !
+sleep 1
+echo "ltpadmin !"
+ltpadmin !
+sleep 1
+echo "bpadmin !"
+bpadmin !
+sleep 1
+if [ "$ION_OPEN_SOURCE" == "1" ]; then
+echo "cfdpadmin !"
+cfdpadmin !
+sleep 1
+fi
+echo "ION node operations resumed. Log file: ion.log"
