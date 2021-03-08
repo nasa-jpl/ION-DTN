@@ -715,12 +715,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
-		iondbBuf.regions[0].regionNbr = 0;	/*	None.	*/
-		iondbBuf.regions[0].members = sdr_list_create(ionsdr);
-		iondbBuf.regions[0].contacts = sdr_list_create(ionsdr);
-		iondbBuf.regions[1].regionNbr = 0;	/*	None.	*/
-		iondbBuf.regions[1].members = sdr_list_create(ionsdr);
-		iondbBuf.regions[1].contacts = sdr_list_create(ionsdr);
+		iondbBuf.cpmNotices = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
 		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/
@@ -758,10 +753,6 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 			putErrmsg("Can't create ION database.", NULL);
 			return -1;
 		}
-
-		/*	NOTE: Initial home region is set by the
-		 *	initializeNode function of the ionadmin
-		 *	utility, which calls ionManageRegion.		*/
 
 		break;
 
@@ -1099,7 +1090,7 @@ void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 	fromTime = getCtime();		/*	The current time.	*/
 	toTime = fromTime + 14400;	/*	Four hours later.	*/
 	if (rfx_insert_range(fromTime, toTime, fromNode, toNode, owlt,
-			&xaddr) < 0 || xaddr == 0)
+			&xaddr, 0) < 0 || xaddr == 0)
 	{
 		writeMemoNote("[?] ionProd: range insertion failed.",
 				utoa(owlt));
@@ -1109,7 +1100,7 @@ void	ionProd(uvast fromNode, uvast toNode, size_t xmitRate,
 	writeMemo("ionProd: range inserted.");
 	writeMemo(rfx_print_range(xaddr, textbuf));
 	if (rfx_insert_contact(0, fromTime, toTime, fromNode, toNode, xmitRate,
-			1.0, &xaddr) < 0 || xaddr == 0)
+			1.0, &xaddr, 0) < 0 || xaddr == 0)
 	{
 		writeMemoNote("[?] ionProd: contact insertion failed.",
 				utoa(xmitRate));
@@ -1227,7 +1218,7 @@ int	ionRegionOf(uvast nodeA, uvast nodeB)
 
 	return i;	/*	May be -1 meaning "No common region".	*/
 }
-
+#if 0
 static void	leaveRegion(IonRegion *region)
 {
 	Sdr		sdr = getIonsdr();
@@ -1273,6 +1264,7 @@ static void	leaveRegion(IonRegion *region)
 
 	region->regionNbr = 0;
 }
+#endif
 
 static void	ionNoteNonMember(int regionIdx, uvast nodeNbr)
 {
@@ -1358,7 +1350,7 @@ void	ionNoteMember(int regionIdx, uvast nodeNbr, uvast homeRegionNbr,
 		ionNoteNonMember(1 - regionIdx, nodeNbr);
 	}
 }
-
+#if 0
 int	ionManageRegion(int idx, uvast regionNbr)
 {
 	Sdr		sdr = getIonsdr();
@@ -1497,7 +1489,7 @@ int	ionManagePassageway(uvast nodeNbr, uvast homeRegionNbr,
 
 	return 0;
 }
-
+#endif
 /*	Utility functions.						*/
 
 const char	*getIonVersionNbr()

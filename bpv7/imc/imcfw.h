@@ -50,7 +50,7 @@ extern void		imcFindGroup(uvast groupNbr, Object *addr,
 extern int		imcHandleBriefing(BpDelivery *dlv,
 				unsigned char *cursor,
 				unsigned int unparsedBytes);
-extern int		imcSendPetition(ImcPetition *petition, vast toRegion);
+extern int		imcSendPetition(ImcPetition *petition, uvast toRegion);
 
 #ifdef __cplusplus
 }

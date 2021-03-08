@@ -26,16 +26,28 @@ static time_t	_referenceTime(time_t *newValue)
 	return refTime;
 }
 
-static int	_regionIdx(int *newValue)
+static uvast	_regionNbr(uvast *newValue)
 {
-	static int	regionIdx = -1;
+	static uvast	regionNbr = 1;
 
 	if (newValue)
 	{
-		regionIdx = *newValue;
+		regionNbr = *newValue;
 	}
 
-	return regionIdx;
+	return regionNbr;
+}
+
+static int	_announce(int *newValue)
+{
+	static int	announce = 0;
+
+	if (newValue)
+	{
+		announce = *newValue;
+	}
+
+	return announce;
 }
 
 static int	_forecastNeeded(int parm)
@@ -119,6 +131,9 @@ relative times (+ss) are computed.");
 	PUTS("\t   ^ <region number>");
 	PUTS("\t\tThe ^ command identifies the region to which subsequent \
 'add contact' operations pertain.");
+	PUTS("\t   ~ { 0 | 1 }");
+	PUTS("\t\tThe ~ command enables/disable announcement of contact and \
+range commands to the region.  Default is 0 (disable).");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
 <xmit rate in bytes per second> [confidence in occurrence; default is 1.0]");
@@ -154,11 +169,13 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
+#if 0
 	PUTS("\t   m home <home region nbr>");
 	PUTS("\t   m outer <outer region nbr>");
 	PUTS("\t   m passageway <node number> <home region nbr> <outer region nbr>");
 	PUTS("\t\tSetting outer region nbr to 0 makes node a non-passageway.");
 	PUTS("\t\tSetting home region nbr to 0 removes the passageway.");
+#endif
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
 	PUTS("\ts\tStart");
@@ -176,6 +193,7 @@ static int	initializeNode(int tokenCount, char **tokens)
 	char		*ownNodeNbrString = tokens[1];
 	char		*configFileName = tokens[2];
 	IonParms	parms;
+	PsmAddress	xaddr;
 
 	if (tokenCount < 2 || *ownNodeNbrString == '\0')
 	{
@@ -195,15 +213,13 @@ static int	initializeNode(int tokenCount, char **tokens)
 		return 1;
 	}
 
-	/*	Default home region is 1, the "universe" region.	*/
+	/*	Initially register the node in region 1, the
+	 *	universe.  Subsequent registration contacts will
+	 *	change the node's region membership.			*/
 
-	if (ionManageRegion(0, 1) < 0)
-	{
-		putErrmsg("ionadmin can't initialize home region.", NULL);
-		return 1;
-	}
-
-	return 0;
+	return rfx_insert_contact(_regionNbr(NULL), MAX_POSIX_TIME,
+			MAX_POSIX_TIME, getOwnNodeNbr(), getOwnNodeNbr(),
+			0, 1.0, &xaddr, _announce(NULL));
 }
 
 void	executeAdd(int tokenCount, char **tokens)
@@ -331,9 +347,13 @@ than start time and earlier than 19 January 2038.");
 			xmitRate = strtol(tokens[6], NULL, 0);
 		}
 
-		oK(rfx_insert_contact(_regionIdx(NULL), fromTime, toTime,
-			fromNodeNbr, toNodeNbr, xmitRate, confidence, &xaddr));
-		oK(_forecastNeeded(1));
+		if (rfx_insert_contact(_regionNbr(NULL), fromTime, toTime,
+				fromNodeNbr, toNodeNbr, xmitRate, confidence,
+				&xaddr, _announce(NULL)) == 0)
+		{
+			oK(_forecastNeeded(1));
+		}
+
 		return;
 	}
 
@@ -350,7 +370,7 @@ time and earlier than 19 January 2038.");
 
 		owlt = strtol(tokens[6], NULL, 0);
 		oK(rfx_insert_range(fromTime, toTime, fromNodeNbr,
-				toNodeNbr, owlt, &xaddr));
+				toNodeNbr, owlt, &xaddr, _announce(NULL)));
 		return;
 	}
 
@@ -405,7 +425,7 @@ void	executeChange(int tokenCount, char **tokens)
 	toNodeNbr = strtouvast(tokens[4]);
 	xmitRate = strtol(tokens[5], NULL, 0);
 	oK(rfx_revise_contact(fromTime, fromNodeNbr, toNodeNbr, xmitRate,
-			confidence));
+			confidence, _announce(NULL)));
 }
 
 void	executeDelete(int tokenCount, char **tokens)
@@ -455,14 +475,16 @@ void	executeDelete(int tokenCount, char **tokens)
 	toNodeNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		oK(rfx_remove_contact(scope, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_contact(scope, fromNodeNbr, toNodeNbr,
+				_announce(NULL)));
 		oK(_forecastNeeded(1));
 		return;
 	}
 
 	if (strcmp(tokens[1], "range") == 0)
 	{
-		oK(rfx_remove_range(scope, fromNodeNbr, toNodeNbr));
+		oK(rfx_remove_range(scope, fromNodeNbr, toNodeNbr,
+				_announce(NULL)));
 		return;
 	}
 
@@ -984,7 +1006,7 @@ current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 			occupancyCeiling, maxForecastOccupancy);
 	printText(buffer);
 }
-
+#if 0
 static void	manageRegion(int tokenCount, char **tokens, int i)
 {
 	Sdr	sdr;
@@ -1035,7 +1057,7 @@ static void	managePassageway(int tokenCount, char **tokens)
 	outerRegionNbr = strtouvast(tokens[4]);
 	oK(ionManagePassageway(nodeNbr, homeRegionNbr, outerRegionNbr));
 }
-
+#endif
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1113,7 +1135,7 @@ static void	executeManage(int tokenCount, char **tokens)
 		manageUsage(tokenCount, tokens);
 		return;
 	}
-
+#if 0
 	if (strcmp(tokens[1], "home") == 0)
 	{
 		manageRegion(tokenCount, tokens, 0);
@@ -1131,7 +1153,7 @@ static void	executeManage(int tokenCount, char **tokens)
 		managePassageway(tokenCount, tokens);
 		return;
 	}
-
+#endif
 	SYNTAX_ERROR;
 }
 
@@ -1181,6 +1203,34 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
+static void	switchAnnounce(int tokenCount, char **tokens)
+{
+	int	state;
+
+	if (tokenCount < 2)
+	{
+		printText("Announce on or off?");
+		return;
+	}
+
+	switch (*(tokens[1]))
+	{
+	case '0':
+		state = 0;
+		break;
+
+	case '1':
+		state = 1;
+		break;
+
+	default:
+		printText("Announce on or off?");
+		return;
+	}
+
+	oK(_announce(&state));
+}
+
 static int ion_is_up(int count, int max)
 {
 	while (count <= max && !rfx_system_is_started())
@@ -1213,7 +1263,6 @@ static int	processLine(char *line, int lineLength, int *rc)
 	struct timeval	done_time;
 	struct timeval	cur_time;
 	uvast		regionNbr;
-	int		regionIdx;
 	int		max = 0;
 	int		count = 0;
 
@@ -1367,19 +1416,22 @@ no time.");
 				else
 				{
 					regionNbr = strtouvast(tokens[1]);
-					regionIdx = ionPickRegion(regionNbr);
-					if (regionIdx > 1)
+					if (regionNbr == 0)
 					{
-						printText("Node does not \
-reside in this region.");
+						printText("Can't set region \
+number to zero.");
 					}
 					else
 					{
-						oK(_regionIdx(&regionIdx));
+						oK(_regionNbr(&regionNbr));
 					}
 				}
 			}
 
+			return 0;
+
+		case '~':
+			switchAnnounce(tokenCount, tokens);
 			return 0;
 
 		case 'a':
@@ -1488,7 +1540,6 @@ static int	runIonadmin(char *cmdFileName)
 {
 	int	rc = 0;
 	time_t	currentTime;
-	int	regionIdx = 0;			/*	Home region.	*/
 	int	cmdFile;
 	char	line[256];
 	int	len;
@@ -1496,7 +1547,6 @@ static int	runIonadmin(char *cmdFileName)
 	currentTime = getCtime();
 	
 	oK(_referenceTime(&currentTime));
-	oK(_regionIdx(&regionIdx));		/*	Home region.	*/
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER

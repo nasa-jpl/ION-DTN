@@ -196,7 +196,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	uvast		toNode;		/*	... BP nodeNbr.		*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	ContactType	type;		/*	For disambiguation.	*/
@@ -226,12 +226,44 @@ typedef struct
 	Object		contacts;	/*	SDR list: IonContact	*/
 } IonRegion;
 
+/*	CpmNotice objects are consumed by cpmd, which uses their
+ *	parameters to multicast contact plan (contact and range)
+ *	management commands to all nodes in the region.			*/
+
+typedef struct
+{
+	uvast		regionNbr;	/*	Home or outer.		*/
+
+	/*	We represent "range" notices by setting regionNbr
+	 *	to zero.						*/
+
+	time_t		fromTime;	/*	As from time(2).	*/
+	time_t		toTime;		/*	As from time(2).	*/
+
+	/*	We represent contact and range removal notices by
+	 *	setting toTime to zero.					*/
+
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP nodeNbr.		*/
+	size_t		magnitude;
+
+	/*	magnitude is xmit rate in bytes/sec for contact
+	 *	notices, owlt in seconds for range notices.		*/
+
+	float		confidence;	/*	Confidence in contact.	*/
+	uvast		otherRegionNbr;	/*	Outer or home.		*/
+
+	/*	otherRegionNbr is non-zero only for registration
+	 *	contact insertion notices, denoting passageways.	*/
+} CpmNotice;
+
 /*	The ION database is shared by BP, LTP, and RFX.			*/
 
 typedef struct
 {
 	uvast		ownNodeNbr;
 	IonRegion	regions[2];	/*	Home, outer.		*/
+	Object		cpmNotices;	/*	SDR list: CpmNotice	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
