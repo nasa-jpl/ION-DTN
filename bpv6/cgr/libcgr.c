@@ -608,8 +608,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 				work->arrivalTime = arrivalTime;
 				work->predecessor = current;
-				work->hopCount =
-					(getWorkArea(ionwm, current))->hopCount;
+				work->hopCount = currentWork->hopCount;
 				work->hopCount++;
 			}
 		}
