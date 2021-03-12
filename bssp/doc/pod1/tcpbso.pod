@@ -8,8 +8,8 @@ B<tcpbso> {I<remote_engine_hostname> | @}[:I<remote_port_nbr>] I<remote_engine_n
 
 =head1 DESCRIPTION
 
-B<tcpbso> is a background "daemon" task that extracts BSSP segments from the
-queue of segments bound for the indicated remote BSSP engine and uses a TCP
+B<tcpbso> is a background "daemon" task that extracts BSSP blocks from the
+queue of blocks bound for the indicated remote BSSP engine and uses a TCP
 socket to send them to the indicated TCP port on the indicated host.  If not
 specified, port number defaults to 4556.
 

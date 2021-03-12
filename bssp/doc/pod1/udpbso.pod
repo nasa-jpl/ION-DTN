@@ -8,8 +8,8 @@ B<udpbso> {I<remote_engine_hostname> | @}[:I<remote_port_nbr>] I<txbps> I<remote
 
 =head1 DESCRIPTION
 
-B<udpbso> is a background "daemon" task that extracts BSSP segments from the
-queue of segments bound for the indicated remote BSSP engine, encapsulates
+B<udpbso> is a background "daemon" task that extracts BSSP PDUs from the
+queue of PDUs bound for the indicated remote BSSP engine, encapsulates
 them in UDP datagrams, and sends those datagrams to the indicated UDP port
 on the indicated host.  If not specified, port number defaults to 6001.
 
@@ -79,9 +79,9 @@ Operating system error.  Check errtext, correct problem, and restart B<udpbso>.
 
 =item Segment is too big for UDP BSO.
 
-Configuration error: segments that are too large for UDP transmission (i.e.,
+Configuration error: PDUs that are too large for UDP transmission (i.e.,
 larger than 65535 bytes) are being enqueued for B<udpbso>.  Use B<bsspadmin>
-to change maximum segment size for this span.
+to change maximum block size for this span.
 
 =back
 
