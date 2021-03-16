@@ -121,7 +121,7 @@ static void	*retransmitBundles(void *parm)
 
 	Sdr			sdr = getIonsdr();
 	SignalThreadParms	*stp = (SignalThreadParms *) parm;
-	time_t			currentTime;
+	time_t			currentDtnTime;	/*	In seconds.	*/
 	Bcla			bcla;
 	Object			elt;
 	Object			nextElt;
@@ -134,7 +134,7 @@ static void	*retransmitBundles(void *parm)
 
 	while (stp->running)
 	{
-		getCurrentDtnTime(&currentTime);
+		currentDtnTime = getCtime() - EPOCH_2000_SEC;
 		sdr_read(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
 		oK(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, bcla.bpdus); elt; elt = nextElt)
@@ -142,7 +142,7 @@ static void	*retransmitBundles(void *parm)
 			nextElt = sdr_list_next(sdr, elt);
 			bpduObj = sdr_list_data(sdr, elt);
 			sdr_stage(sdr, (char *) &bpdu, bpduObj, sizeof(Bpdu));
-			if (bpdu.deadline > currentTime)
+			if (bpdu.deadline > currentDtnTime)
 			{
 				break;	/*	No more to retransmit.	*/
 			}
@@ -202,6 +202,7 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	int		msglen;
 	Object		msg;
 	Object		payloadZco;
+	uvast		ttl;	/*	In milliseconds.		*/
 
 	memset((char *) &ancillaryData, 0, sizeof(BpAncillaryData));
 	ancillaryData.flags = BP_RELIABLE | BP_BEST_EFFORT;
@@ -299,10 +300,13 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 		return -1;
 	}
 
+	/*	Note that ttl must be converted to milliseconds for
+	 *	BP processing.						*/
+
+	ttl = (bcla.fwdLatency + BIBE_SIGNAL_TIME_MARGIN) * 1000;
 	if (bpSend(&(stp->sap->endpointMetaEid), stp->peerEid, NULL,
-			bcla.fwdLatency + BIBE_SIGNAL_TIME_MARGIN,
-			bcla.classOfService, NoCustodyRequested, 0,
-			0, &ancillaryData, payloadZco, NULL,
+			ttl, bcla.classOfService, NoCustodyRequested,
+			0, 0, &ancillaryData, payloadZco, NULL,
 			BP_BIBE_SIGNAL) < 1)
 	{
 		putErrmsg("Can't send custody signal.", NULL);
@@ -320,7 +324,7 @@ static void	*sendSignals(void *parm)
 	SignalThreadParms	*stp = (SignalThreadParms *) parm;
 	Bcla			bcla;
 	int			i;
-	DtnTime			arrivalTime;
+	time_t			arrivalTime;
 
 	snooze(1);	/*	Let main thread become interruptible.	*/
 
@@ -347,7 +351,7 @@ static void	*sendSignals(void *parm)
 	_signalAttendant(&(stp->attendant));
 	while (stp->running)
 	{
-		getCurrentDtnTime(&arrivalTime);
+		arrivalTime = getCtime() - EPOCH_2000_SEC;
 		sdr_read(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
 		arrivalTime += (bcla.fwdLatency + BIBE_SIGNAL_TIME_MARGIN);
 		for (i = 0; i < CT_DISPOSITIONS; i++)
@@ -416,7 +420,7 @@ int	main(int argc, char *argv[])
 	int			bpduFlags;
 	unsigned char		*cursor;
 	uvast			uvtemp;
-	DtnTime			deadline;
+	time_t			deadline;
 	int			hdrlen;
 	Object			bpduObj;
 	Bpdu			bpdu;
@@ -467,7 +471,7 @@ int	main(int argc, char *argv[])
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_exit_xn(sdr);
-	ttl = bcla.fwdLatency + bcla.rtnLatency;
+	ttl = bcla.fwdLatency + bcla.rtnLatency;	/*	seconds	*/
 	if (bcla.lifespan > ttl)
 	{
 		ttl = bcla.lifespan;
@@ -624,7 +628,7 @@ int	main(int argc, char *argv[])
 			bcla.count += 1;
 			uvtemp = bcla.count;
 			oK(cbor_encode_integer(uvtemp, &cursor));
-			getCurrentDtnTime(&deadline);
+			deadline = getCtime() - EPOCH_2000_SEC;
 			deadline += (bcla.fwdLatency + bcla.rtnLatency + 2);
 			uvtemp = deadline;
 			oK(cbor_encode_integer(uvtemp, &cursor));
@@ -655,11 +659,15 @@ int	main(int argc, char *argv[])
 
 		/*	Send bundle whose payload is the ZCO
 		 *	comprising the admin record header, the BPDU
-		 *	message header, and the encapsulated bundle.	*/
+		 *	message header, and the encapsulated bundle.
+		 *
+		 *	Note that ttl must be converted from seconds
+		 *	to milliseconds for BP processing.		*/
 
-		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL, ttl,
-				bcla.classOfService, NoCustodyRequested, 0, 0,
-			       	&ancillaryData, bpduZco, NULL, BP_BIBE_PDU))
+		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL,
+				ttl * 10000, bcla.classOfService,
+				NoCustodyRequested, 0, 0, &ancillaryData,
+				bpduZco, NULL, BP_BIBE_PDU))
 		{
 		case -1:	/*	System error.			*/
 			putErrmsg("Can't send encapsulating bundle.", NULL);

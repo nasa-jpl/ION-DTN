@@ -27,9 +27,11 @@
 extern "C" {
 #endif
 
+#define	BP_VERSION		7
+
 typedef struct
 {
-	time_t			seconds;	/*	Epoch 2000.	*/
+	uvast			msec;	/*	Epoch 2000.		*/
 	unsigned int		count;
 } BpTimestamp;
 
@@ -81,17 +83,16 @@ typedef enum
 	PayloadBlk = 1,
 	PreviousNodeBlk = 6,
 	BundleAgeBlk = 7,
+	MetadataBlk = 8,
 	HopCountBlk = 10,
 	BlockIntegrityBlk = 11,
 	BlockConfidentialityBlk = 12,
-	ManifestBlk = 13,
-	MetadataBlk = 14,
-	DataLabelBlk = 15,
-	QualityOfServiceBlk = 19,
-	SnwPermitsBlk = 21,
-	ImcDestinationsBlk = 22,
-	RGRBlk = 23,
-	CGRRBlk = 24
+	DataLabelBlk = 192,
+	QualityOfServiceBlk = 193,
+	SnwPermitsBlk = 194,
+	ImcDestinationsBlk = 195,
+	RGRBlk = 196,
+	CGRRBlk = 197
 } BpBlockType;
 
 /*	ExtensionSpec provides the specification for producing an

@@ -84,11 +84,11 @@ static int	createBpSAP(Sdr sdr, char *eidString, BpSAP *bpsapPtr,
 		return -1;
 	}
 
-	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &vpointElt);
+	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &vpointElt);
 	if (vpointElt == 0)
 	{
-		putErrmsg("Endpoint not known.", metaEid.nss);
 		restoreEidString(&metaEid);
+		putErrmsg("Endpoint not known.", eidString);
 		return -1;
 	}
 
@@ -371,7 +371,10 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 		}
 	}
 
-	return bpSend(sourceMetaEid, destEid, reportToEid, lifespan,
+	/*	Note: lifespan must be converted from seconds to
+	 *	millisecnods for BP processing.				*/
+
+	return bpSend(sourceMetaEid, destEid, reportToEid, lifespan * 1000,
 			classOfService, custodySwitch, srrFlags, ackRequested,
 			ancillaryData, adu, bundleObj, 0);
 }
@@ -773,7 +776,7 @@ int	bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
 		return -1;
 	}
 
-	dlvBuffer->bundleCreationTime.seconds = bundle.id.creationTime.seconds;
+	dlvBuffer->bundleCreationTime.msec = bundle.id.creationTime.msec;
 	dlvBuffer->bundleCreationTime.count = bundle.id.creationTime.count;
 	dlvBuffer->timeToLive = bundle.timeToLive;
 	dlvBuffer->adminRecord = bundle.bundleProcFlags & BDL_IS_ADMIN;

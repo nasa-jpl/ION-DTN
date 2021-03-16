@@ -387,7 +387,7 @@ typedef struct
 	unsigned int	sessionNbr;	/*	identifies session	*/
 	int		responseLimit;	/*	Defense against DOS.	*/
 	Object		timeout;	/*	timeline event list elt	*/
-} LtpClosedExport;
+} ClosedExport;
 #endif
 
 /* Timeline event structure */

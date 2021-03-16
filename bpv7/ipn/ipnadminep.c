@@ -68,6 +68,38 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 			reasonString = "bad block";
 			break;
 
+		case SrHopCountExceeded:
+			reasonString = "hop limit exceeded";
+			break;
+
+		case SrTrafficPared:
+			reasonString = "bundle discarded";
+			break;
+
+		case SrBlockUnsupported:
+			reasonString = "block not supported";
+			break;
+
+		case SrMissingSecurityService:
+			reasonString = "missing security service";
+			break;
+
+		case SrUnknownSecurityService:
+			reasonString = "unknown security service";
+			break;
+
+		case SrUnexpectedSecurityService:
+			reasonString = "unexpected security service";
+			break;
+
+		case SrFailedSecurityService:
+			reasonString = "failed security service";
+			break;
+
+		case SrConflictingSecurityServices:
+			reasonString = "conflicting security services";
+			break;
+
 		default:
 			reasonString = "(unknown)";
 		}
@@ -91,10 +123,11 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 		}
 	}
 
-	isprintf(memobuf, sizeof memobuf, "[s] (%s)/%u:%u/%u status %d at \
-%lu on %s, '%s'.", sourceEid, rpt.creationTime.seconds,
-		rpt.creationTime.count, rpt.fragmentOffset, rpt.flags,
-		statusTime, dlv->bundleSourceEid, reasonString);
+	isprintf(memobuf, sizeof memobuf, "[s] (%s)/" UVAST_FIELDSPEC
+		":%u/%u status %d at " UVAST_FIELDSPEC " on %s, '%s'.",
+		sourceEid, rpt.creationTime.msec, rpt.creationTime.count,
+		rpt.fragmentOffset, rpt.flags, statusTime, dlv->bundleSourceEid,
+		reasonString);
 	writeMemo(memobuf);
 	MRELEASE(sourceEid);
 	eraseEid(&rpt.sourceEid);
