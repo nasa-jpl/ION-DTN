@@ -420,7 +420,7 @@ int	main(int argc, char *argv[])
 	int			bpduFlags;
 	unsigned char		*cursor;
 	uvast			uvtemp;
-	time_t			deadline;
+	time_t			deadline = 0;
 	int			hdrlen;
 	Object			bpduObj;
 	Bpdu			bpdu;
