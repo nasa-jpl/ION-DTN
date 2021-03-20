@@ -9019,6 +9019,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return -1;
 	}
 
+	getCurrentDtnTime(&bundle->arrivalTime);
 	computeExpirationTime(bundle);
 	if (setBundleTTL(bundle, bundleObj) < 0)
 	{
@@ -9041,7 +9042,6 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return -1;
 	}
 
-	getCurrentDtnTime(&bundle->arrivalTime);
 	noteBundleInserted(bundle);
 	bpInductTally(work->vduct, BP_INDUCT_RECEIVED, bundle->payload.length);
 	bpRecvTally(bundle->classOfService, bundle->payload.length);
