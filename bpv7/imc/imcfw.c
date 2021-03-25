@@ -527,7 +527,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 		nodeNbr = sdr_list_data(sdr, elt);
 //printf("Outbound destination is " UVAST_FIELDSPEC ".\n", nodeNbr);
 		regionIdx = ionRegionOf(nodeNbr, ownNodeNbr);
-		if (regionIdx < 0 || regionIdx > 1)
+		if (regionIdx < 0)
 		{
 			/*	Some other node will be forwarding
 			 *	the bundle to this destination node,
@@ -696,19 +696,25 @@ static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
 	return forwardImcBundle(bundle, bundleAddr);
 }
 
-static int	loadRegionMembers(Bundle *bundle, int regionIdx, IonDB *db)
+static int	loadRegionMembers(Bundle *bundle, uvast regionNbr, IonDB *db)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		memberAddr;
 	RegionMember	member;
 
-	for (elt = sdr_list_first(sdr, db->regions[regionIdx].members); elt;
+	for (elt = sdr_list_first(sdr, db->rolodex); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		memberAddr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &member, memberAddr,
 				sizeof(RegionMember));
+		if (member.homeRegionNbr != regionNbr
+		&& member.outerRegionNbr != regionNbr)
+		{
+			continue;
+		}
+
 		if (loadDestination(bundle, member.nodeNbr) < 0)
 		{
 			putErrmsg("Can't add region member.", NULL);
@@ -749,8 +755,10 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 			/*	Send to all members of both home
 			 *	region and (if any) outer region.	*/
 
-			if (loadRegionMembers(bundle, 0, &iondb) < 0
-			|| loadRegionMembers(bundle, 1, &iondb) < 0)
+			if (loadRegionMembers(bundle,
+					iondb.regions[0].regionNbr, &iondb) < 0
+			|| loadRegionMembers(bundle,
+					iondb.regions[1].regionNbr, &iondb) < 0)
 			{
 				putErrmsg("Can't add IMC region member.", NULL);
 				return -1;
@@ -763,13 +771,14 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 			 *	be propagated by the passageway.	*/
 
 			regionIdx = ionPickRegion(regionNbr);
-			if (regionIdx < 0 || regionIdx > 1)
+			if (regionIdx < 0)
 			{
 				putErrmsg("IMC system error.", NULL);
 				return -1;
 			}
 
-			if (loadRegionMembers(bundle, regionIdx, &iondb) < 0)
+			if (loadRegionMembers(bundle, 
+				iondb.regions[regionIdx].regionNbr, &iondb) < 0)
 			{
 				putErrmsg("Can't add IMC region member.", NULL);
 				return -1;

@@ -169,13 +169,6 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\t   m horizon { 0 | <end time for congestion forecasts> }");
 	PUTS("\t   m alarm '<congestion alarm script>'");
 	PUTS("\t   m usage");
-#if 0
-	PUTS("\t   m home <home region nbr>");
-	PUTS("\t   m outer <outer region nbr>");
-	PUTS("\t   m passageway <node number> <home region nbr> <outer region nbr>");
-	PUTS("\t\tSetting outer region nbr to 0 makes node a non-passageway.");
-	PUTS("\t\tSetting home region nbr to 0 removes the passageway.");
-#endif
 	PUTS("\tr\tRun a script or another program, such as an admin progrm");
 	PUTS("\t   r '<command>'");
 	PUTS("\ts\tStart");
@@ -213,9 +206,7 @@ static int	initializeNode(int tokenCount, char **tokens)
 		return 1;
 	}
 
-	/*	Initially register the node in region 1, the
-	 *	universe.  Subsequent registration contacts will
-	 *	change the node's region membership.			*/
+	/*	Initially register the node in the designated region.	*/
 
 	return rfx_insert_contact(_regionNbr(NULL), MAX_POSIX_TIME,
 			MAX_POSIX_TIME, getOwnNodeNbr(), getOwnNodeNbr(),
@@ -1006,58 +997,7 @@ current outbound file space %.2f MB, limit %.2f MB, max forecast %.2f MB",
 			occupancyCeiling, maxForecastOccupancy);
 	printText(buffer);
 }
-#if 0
-static void	manageRegion(int tokenCount, char **tokens, int i)
-{
-	Sdr	sdr;
-	Object	iondbObj;
-	IonDB	iondb;
-	char	buffer[128];
-	uvast	regionNbr;
 
-	if (tokenCount == 2)
-	{
-		sdr = getIonsdr();
-		iondbObj = getIonDbObject();
-		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		isprintf(buffer, sizeof buffer, "home region is "
-UVAST_FIELDSPEC ", outer region is " UVAST_FIELDSPEC ".",
-				iondb.regions[0].regionNbr,
-				iondb.regions[1].regionNbr);
-		printText(buffer);
-		return;
-	}
-
-	if (tokenCount != 3)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	/*	Manage node's own region membership.			*/
-
-	regionNbr = strtouvast(tokens[2]);
-	oK(ionManageRegion(i, regionNbr));
-}
-
-static void	managePassageway(int tokenCount, char **tokens)
-{
-	uvast	nodeNbr;
-	uvast	homeRegionNbr;
-	uvast	outerRegionNbr;
-
-	if (tokenCount != 5)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	nodeNbr	 = strtouvast(tokens[2]);
-	homeRegionNbr = strtouvast(tokens[3]);
-	outerRegionNbr = strtouvast(tokens[4]);
-	oK(ionManagePassageway(nodeNbr, homeRegionNbr, outerRegionNbr));
-}
-#endif
 static void	executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
@@ -1135,25 +1075,7 @@ static void	executeManage(int tokenCount, char **tokens)
 		manageUsage(tokenCount, tokens);
 		return;
 	}
-#if 0
-	if (strcmp(tokens[1], "home") == 0)
-	{
-		manageRegion(tokenCount, tokens, 0);
-		return;
-	}
 
-	if (strcmp(tokens[1], "outer") == 0)
-	{
-		manageRegion(tokenCount, tokens, 1);
-		return;
-	}
-
-	if (strcmp(tokens[1], "passageway") == 0)
-	{
-		managePassageway(tokenCount, tokens);
-		return;
-	}
-#endif
 	SYNTAX_ERROR;
 }
 

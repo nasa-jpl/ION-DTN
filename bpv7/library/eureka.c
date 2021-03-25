@@ -150,12 +150,15 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 			unsigned int xmitRate, unsigned int recvRate)
 {
 	Sdr		sdr = getIonsdr();
+	Object		iondbObj = getIonDbObject();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	time_t		fromTime = getCtime();
 	double		volume = xmitRate * (MAX_POSIX_TIME - fromTime);
 	int		regionIdx;
+	IonDB		iondb;
+	uvast		regionNbr;
 	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;
@@ -172,6 +175,8 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 		return 0;
 	}
 
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
+	regionNbr = iondb.regions[regionIdx].regionNbr;
 	neighbor = getNeighbor(ionvdb, discoveryNodeNbr);
 	CHKZERO(neighbor);
 
@@ -190,8 +195,8 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	}
 	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, 0, ownNodeNbr,
-				discoveryNodeNbr, 0, 0.0, &contactAddr) < 0
+		if (rfx_insert_contact(regionNbr, 0, 0, ownNodeNbr,
+				discoveryNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",
@@ -242,8 +247,8 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	}
 	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, 0, discoveryNodeNbr,
-				ownNodeNbr, 0, 0.0, &contactAddr) < 0
+		if (rfx_insert_contact(regionNbr, 0, 0, discoveryNodeNbr,
+				ownNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",

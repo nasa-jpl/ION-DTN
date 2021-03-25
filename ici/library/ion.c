@@ -1139,7 +1139,7 @@ void	ionTerminate()
 	oK(_ionvdb(&ionvdbName));
 }
 
-/*	Functions for managing region membership.			*/
+/*	Functions for interrogating region membership.			*/
 
 int	ionPickRegion(uvast regionNbr)
 {
@@ -1150,7 +1150,7 @@ int	ionPickRegion(uvast regionNbr)
 
 	if (regionNbr == 0)
 	{
-		return 2;	/*	Null region membership.		*/
+		return -1;	/*	Null region membership.		*/
 	}
 
 	iondbObj = getIonDbObject();
@@ -1160,14 +1160,14 @@ int	ionPickRegion(uvast regionNbr)
 	{
 		if (iondb.regions[i].regionNbr == regionNbr)
 		{
-			break;
+			return i;
 		}
 	}
 
-	return i;
+	return -1;
 }
 
-int	ionRegionOf(uvast nodeA, uvast nodeB)
+int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB)
 {
 	/*	This function determines the region in which nodeA
 	 *	and nodeB both reside; if nodeB is zero, it just
@@ -1175,321 +1175,85 @@ int	ionRegionOf(uvast nodeA, uvast nodeB)
 	 *	we find the node(s) in both regions, the home region
 	 *	is preferred.						*/
 
-	Sdr	sdr = getIonsdr();
-	Object	iondbObj;
-	IonDB	iondb;
-	int	regionMaskA = 0;
-	int	regionMaskB = (nodeB == 0 ? 3 : 0);
-	int	i;
-	Object	elt;
-	Object	addr;
-		OBJ_POINTER(RegionMember, member);
+	Sdr		sdr = getIonsdr();
+	Object		iondbObj;
+	IonDB		iondb;
+	uvast		localHomeRegion;
+	uvast		localOuterRegion;
+	RegionMember	nodeA;
+	RegionMember	nodeB;
+	Object		elt;
+	Object		addr;
+			OBJ_POINTER(RegionMember, member);
 
-	CHKERR(nodeA > 0);
+	CHKERR(nodeNbrA > 0);
+	memset((char *) &nodeA, 0, sizeof(RegionMember));
+	memset((char *) &nodeB, 0, sizeof(RegionMember));
 	iondbObj = getIonDbObject();
 	CHKERR(iondbObj);
+	localHomeRegion = iondb.regions[0].regionNbr;
+	localOuterRegion = iondb.regions[1].regionNbr;
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	for (i = 0; i < 2; i++)
+	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
+		       elt = sdr_list_next(sdr, elt))
 	{
-		for (elt = sdr_list_first(sdr, iondb.regions[i].members); elt;
-			       elt = sdr_list_next(sdr, elt))
+		addr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
+		if (member->nodeNbr == nodeNbrA)
 		{
-			addr = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, RegionMember, member, addr);
-			if (member->nodeNbr == nodeA)
-			{
-				regionMaskA |= (i + 1);
-			}
+			memcpy((char *) &nodeA, (char *) member,
+					sizeof(RegionMember));
+			continue;
+		}
 
-			if (member->nodeNbr == nodeB)
-			{
-				regionMaskB |= (i + 1);
-			}
+		if (member->nodeNbr == nodeNbrB)
+		{
+			memcpy((char *) &nodeB, (char *) member,
+					sizeof(RegionMember));
 		}
 	}
 
 	/*	Identify the common region.				*/
 
-	i = (regionMaskA & regionMaskB) - 1;
-	if (i == 2)	/*	Both; shouldn't happen.			*/
+	if (nodeA.homeRegionNbr == 0)	/*	Unknown node.		*/
 	{
-		i = 0;	/*	Choose the home region.			*/
+		return -1;	/*	No common region.		*/
 	}
 
-	return i;	/*	May be -1 meaning "No common region".	*/
-}
-#if 0
-static void	leaveRegion(IonRegion *region)
-{
-	Sdr		sdr = getIonsdr();
-	Object		elt;
-	Object		obj;
-	IonContact	contact;
+	/*	Do A and B both reside in the local node's home
+	 *	region?  Either one, or both, could be either native
+	 *	to that region or passageway(s) to sub-region(s).	*/
 
-	/*	Forget the node membership of the region.		*/
-
-	while (1)
+	if (nodeA.homeRegionNbr == localHomeRegion
+	|| nodeA.outerRegionNbr == localHomeRegion)
 	{
-		elt = sdr_list_first(sdr, region->members);
-		if (elt == 0)
+		if (nodeNbrB == 0
+		|| nodeB.homeRegionNbr == nodeA.homeRegionNbr
+		|| nodeB.outerRegionNbr == nodeA.homeRegionNbr)
 		{
-			break;
-		}
-
-		sdr_free(sdr, sdr_list_data(sdr, elt));
-		sdr_list_delete(sdr, elt, NULL, NULL);
-	}
-
-	/*	Forget the contact plan for the region.			*/
-
-	while (1)
-	{
-		elt = sdr_list_first(sdr, region->contacts);
-		if (elt == 0)
-		{
-			break;
-		}
-
-		obj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
-		oK(rfx_remove_contact(&contact.fromTime, contact.fromNode,
-				contact.toNode));
-
-		/*	rfx_remove_contact deletes the contact from
-		 *	both the volatile and non-volatile databases.
-		 *	No need to do further deletion here.		*/
-	}
-
-	/*	Reinitialize.						*/
-
-	region->regionNbr = 0;
-}
-#endif
-
-static void	ionNoteNonMember(int regionIdx, uvast nodeNbr)
-{
-	Sdr		sdr = getIonsdr();
-	Object		iondbObj = getIonDbObject();
-	IonDB		iondb;
-	Object		elt;
-	Object		memberObj;
-	RegionMember	member;
-
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].members); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		memberObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &member, memberObj,
-				sizeof(RegionMember));
-		if (member.nodeNbr == nodeNbr)
-		{
-			sdr_free(sdr, memberObj);
-			sdr_list_delete(sdr, elt, NULL, NULL);
-			return;
+			return 0;	/*	Found in home region.	*/
 		}
 	}
+
+	/*	Maybe A and B both reside only in the local node's
+	 *	outer region (i.e., are passageways to some region
+	 *	that is even more encompassing).			*/
+
+	if (nodeA.homeRegionNbr == localOuterRegion)
+	{
+		if (nodeNbrB == 0
+		|| nodeB.homeRegionNbr == nodeA.outerRegionNbr)
+		{
+			return 1;	/*	Found in outer region.	*/
+		}
+	}
+
+	/*	Neither node A nor (if non-zero) node B reside in
+	 *	either of the local node's regions.			*/
+
+	return -1;
 }
 
-void	ionNoteMember(int regionIdx, uvast nodeNbr, uvast homeRegionNbr,
-		uvast outerRegionNbr)
-{
-	Sdr		sdr = getIonsdr();
-	Object		iondbObj = getIonDbObject();
-	IonDB		iondb;
-	Object		elt;
-	Object		memberObj;
-	RegionMember	member;
-	uvast		otherRegionNbr;
-
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].members); elt;
-			elt = sdr_list_next(sdr, elt))
-	{
-		memberObj = sdr_list_data(sdr, elt);
-		sdr_read(sdr, (char *) &member, memberObj,
-				sizeof(RegionMember));
-		if (member.nodeNbr == nodeNbr)
-		{
-			break;
-		}
-	}
-
-	if (elt == 0)	/*	Not in membership list.			*/
-	{
-		member.nodeNbr = nodeNbr;
-		member.homeRegionNbr = homeRegionNbr;
-		member.outerRegionNbr = outerRegionNbr;
-		memberObj = sdr_malloc(sdr, sizeof(RegionMember));
-		if (memberObj)
-		{
-			sdr_write(sdr, memberObj, (char *) &member,
-					sizeof(RegionMember));
-			sdr_list_insert_last(sdr,
-					iondb.regions[regionIdx].members,
-					memberObj);
-		}
-	}
-	else		/*	A known member of this region.		*/
-	{
-		if (member.homeRegionNbr != homeRegionNbr
-		|| member.outerRegionNbr != outerRegionNbr)
-		{
-			member.homeRegionNbr = homeRegionNbr;
-			member.outerRegionNbr = outerRegionNbr;
-			sdr_write(sdr, memberObj, (char *) &member,
-					sizeof(RegionMember));
-		}
-	}
-
-	/*	Remove from other region if necessary.			*/
-
-	otherRegionNbr = iondb.regions[1 - regionIdx].regionNbr;
-	if (homeRegionNbr != otherRegionNbr && outerRegionNbr != otherRegionNbr)
-	{
-		ionNoteNonMember(1 - regionIdx, nodeNbr);
-	}
-}
-#if 0
-int	ionManageRegion(int idx, uvast regionNbr)
-{
-	Sdr		sdr = getIonsdr();
-	Object		iondbObj;
-	IonDB		iondb;
-	IonRegion	*region;
-	RegionMember	member;
-	Object		memberObj;
-
-	CHKERR(idx == 0 || idx == 1);
-	iondbObj = getIonDbObject();
-	CHKERR(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	region = &(iondb.regions[idx]);
-	if (regionNbr == 0)		/*	Removal from region.	*/
-	{
-		if (idx == 0)	/*	Trying to leave home region.	*/
-		{
-			sdr_exit_xn(sdr);
-			writeMemo("[?] Tried to leave network, not supported.");
-			return 0;
-		}
-
-		/*	Node is ceasing to be a passageway to its
-		 *	outer region.					*/
-
-		leaveRegion(region);
-		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-		return sdr_end_xn(sdr);
-	}
-
-	/*	Node is joining a new region.				*/
-
-	if (ionPickRegion(regionNbr) < 2)
-	{
-		/*	Node already resides in the indicated region.	*/
-
-		sdr_exit_xn(sdr);
-		writeMemo("[?] Tried to join a region the node is already in.");
-		return 0;
-	}
-
-	if (region->regionNbr != 0)	/*	Region already defined.	*/
-	{
-		/*	Must leave old region first.			*/
-
-		leaveRegion(region);
-	}
-
-	region->regionNbr = regionNbr;
-	sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-
-	/*	Node must be inserted into region's membership.		*/
-
-	member.nodeNbr = getOwnNodeNbr();
-	member.homeRegionNbr = iondb.regions[0].regionNbr;
-	member.outerRegionNbr = iondb.regions[1].regionNbr;
-	memberObj = sdr_malloc(sdr, sizeof(RegionMember));
-	if (memberObj)
-	{
-		sdr_write(sdr, memberObj, (char *) &member,
-				sizeof(RegionMember));
-		oK(sdr_list_insert_last(sdr, region->members, memberObj));
-	}
-
-	return sdr_end_xn(sdr);
-}
-
-int	ionManagePassageway(uvast nodeNbr, uvast homeRegionNbr,
-		uvast outerRegionNbr)
-{
-	Sdr	sdr = getIonsdr();
-	int	regionIdx;
-
-	if (homeRegionNbr == 0)		/*	Forget this node.	*/
-	{
-		CHKERR(sdr_begin_xn(sdr));
-		ionNoteNonMember(0, nodeNbr);
-		ionNoteNonMember(1, nodeNbr);
-		return sdr_end_xn(sdr);
-	}
-
-	if (outerRegionNbr == 0)	/*	No longer a passageway.	*/
-	{
-		regionIdx = ionPickRegion(outerRegionNbr);
-		if (regionIdx >= 0 && regionIdx <= 1)
-		{
-			/*	Node's former outer region is the
-			 *	indicated region (idx = home or outer)
-			 *	of the local node.			*/
-
-			CHKERR(sdr_begin_xn(sdr));
-			ionNoteNonMember(regionIdx, nodeNbr);
-			if (sdr_end_xn(sdr) < 0)
-			{
-				putErrmsg("Can't update passageway.", NULL);
-			}
-		}
-	}
-
-	/*	Insert node into the correct region(s) according
-	 *	to its stated new home and outer region numbers,
-	 *	removing it from other regions as necessary.		*/
-
-	regionIdx = ionPickRegion(homeRegionNbr);
-	if (regionIdx >= 0 && regionIdx <= 1)
-	{
-		/*	Passageway's home region is the
-		 *	indicated region (idx = home or outer)
-		 *	of the local node.			*/
-
-		CHKERR(sdr_begin_xn(sdr));
-		ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
-				outerRegionNbr);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't update passageway.", NULL);
-		}
-	}
-
-	regionIdx = ionPickRegion(outerRegionNbr);
-	if (regionIdx >= 0 && regionIdx <= 1)
-	{
-		/*	Passageway's outer region is the
-		 *	indicated region (idx = home or outer)
-		 *	of the local node.			*/
-
-		CHKERR(sdr_begin_xn(sdr));
-		ionNoteMember(regionIdx, nodeNbr, homeRegionNbr,
-				outerRegionNbr);
-		if (sdr_end_xn(sdr) < 0)
-		{
-			putErrmsg("Can't update passageway.", NULL);
-		}
-	}
-
-	return 0;
-}
-#endif
 /*	Utility functions.						*/
 
 const char	*getIonVersionNbr()

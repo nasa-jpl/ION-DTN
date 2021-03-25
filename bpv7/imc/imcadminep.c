@@ -394,7 +394,7 @@ fflush(stdout);
 		 *	the immediate encompassing region.		*/
 
 		sourceRegion = ionRegionOf(metaEid.elementNbr, ownNodeNbr);
-		if (sourceRegion < 0 || sourceRegion > 1)
+		if (sourceRegion < 0)
 		{
 			putErrmsg("IMC system error.", NULL);
 			sdr_cancel_xn(sdr);

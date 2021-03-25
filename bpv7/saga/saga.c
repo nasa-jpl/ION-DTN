@@ -60,7 +60,7 @@ static int	removePredictedContacts(int regionIdx)
 		/*	This is a predicted contact.		*/
 
 		if (rfx_remove_contact(&contact.fromTime,
-				contact.fromNode, contact.toNode) < 0)
+				contact.fromNode, contact.toNode, 0) < 0)
 		{
 			putErrmsg("Failure in rfx_remove_contact.",
 					NULL);
@@ -230,6 +230,8 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime,
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getBpDbObject();
 	BpDB		db;
+	Object		iondbObj = getIonDbObject();
+	IonDB		iondb;
 	uvast		fromNode;
 	uvast		toNode;
 	time_t		horizon;
@@ -414,13 +416,19 @@ printf("Gap confidence %f.\n", gapConfidence);
 printf("Net confidence %f.\n", netConfidence);
 #endif
 
-	/*	Insert predicted contact (aggregate).			*/
+	/*	Insert predicted contact (aggregate).  Note that we
+	 *	indicate to rfx_insert_contact that this is a Predicted
+	 *	contact by setting both From and To times to the
+	 *	horizon time.  The From time will be corrected to
+	 *	the current time by rfx_insert_contact.			*/
 
 	xmitRate = totalCapacity / (horizon - currentTime);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (xmitRate > 1)
 	{
-		if (rfx_insert_contact(regionIdx, horizon, horizon, fromNode,
-				toNode, xmitRate, netConfidence, &cxaddr) < 0
+		if (rfx_insert_contact(iondb.regions[regionIdx].regionNbr,
+				horizon, horizon, fromNode, toNode,
+				xmitRate, netConfidence, &cxaddr, 0) < 0
 		|| cxaddr == 0)
 		{
 			putErrmsg("Can't insert predicted contact.", NULL);

@@ -180,7 +180,6 @@ typedef struct
  *	are reset to zero.  New discovered contacts are never
  *	posted in any other way.					*/
 
-
 typedef enum
 {
 	CtRegistration = 1,
@@ -214,17 +213,16 @@ typedef struct
 
 typedef struct
 {
+	uvast		regionNbr;
+	Object		contacts;	/*	SDR list: IonContact	*/
+} IonRegion;
+
+typedef struct
+{
 	uvast		nodeNbr;
 	uvast		homeRegionNbr;
 	uvast		outerRegionNbr;
 } RegionMember;
-
-typedef struct
-{
-	uvast		regionNbr;
-	Object		members;	/*	SDR list: RegionMember	*/
-	Object		contacts;	/*	SDR list: IonContact	*/
-} IonRegion;
 
 /*	CpmNotice objects are consumed by cpmd, which uses their
  *	parameters to multicast contact plan (contact and range)
@@ -251,10 +249,6 @@ typedef struct
 	 *	notices, owlt in seconds for range notices.		*/
 
 	float		confidence;	/*	Confidence in contact.	*/
-	uvast		otherRegionNbr;	/*	Outer or home.		*/
-
-	/*	otherRegionNbr is non-zero only for registration
-	 *	contact insertion notices, denoting passageways.	*/
 } CpmNotice;
 
 /*	The ION database is shared by BP, LTP, and RFX.			*/
@@ -263,6 +257,7 @@ typedef struct
 {
 	uvast		ownNodeNbr;
 	IonRegion	regions[2];	/*	Home, outer.		*/
+	Object		rolodex;	/*	SDR list: RegionMember	*/
 	Object		cpmNotices;	/*	SDR list: CpmNotice	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
@@ -483,17 +478,8 @@ extern void		ionProd(	uvast fromNode,
 extern void		ionTerminate();
 
 extern int		ionPickRegion(uvast regionNbr);
-extern int		ionRegionOf(uvast nodeA,
-					uvast nodeB);
-extern void		ionNoteMember(int regionIdx,
-					uvast nodeNbr,
-					uvast homeRegionNbr,
-					uvast outerRegionNbr);
-extern int		ionManageRegion(int i,
-					uvast regionNbr);
-extern int		ionManagePassageway(uvast nodeNbr,
-					uvast homeRegionNbr,
-					uvast outerRegionNbr);
+extern int		ionRegionOf(uvast nodeNbrA,
+					uvast nodeNbrB);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

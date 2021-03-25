@@ -192,7 +192,6 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonDB		iondb;
-	int		i;
 	Object		elt;
 	Object		addr;
 			OBJ_POINTER(RegionMember, member);
@@ -206,34 +205,25 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
 
-	/*	For each region in which the local node resides, add
-	 *	to the viaPassageways list for this remote node one
-	 *	entry for every passageway residing in that region.	*/
+	/*	Add to the viaPassageways list for this remote node
+	 *	one entry for every passageway residing in either of
+	 *	the local node's regions.				*/
 
-	for (i = 0; i < 2; i++)
+	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		for (elt = sdr_list_first(sdr, iondb.regions[i].members); elt;
-					elt = sdr_list_next(sdr, elt))
+		addr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
+		if (member->outerRegionNbr != 0)
 		{
-			addr = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, RegionMember, member, addr);
-			if (member->nodeNbr == getOwnNodeNbr())
-			{
-				continue;	/*	Safety check.	*/
-			}
+			/*	Node is a passageway.		*/
 
-			if (member->outerRegionNbr != -1)
+			if (sdr_list_insert_last(sdr,
+					routingObj->viaPassageways,
+					member->nodeNbr) == 0)
 			{
-				/*	Node is a passageway.		*/
-
-				if (sdr_list_insert_last(sdr,
-						routingObj->viaPassageways,
-						member->nodeNbr) == 0)
-				{
-					putErrmsg("Can't note passageway.",
-							NULL);
-					return -1;
-				}
+				putErrmsg("Can't note passageway.", NULL);
+				return -1;
 			}
 		}
 	}
