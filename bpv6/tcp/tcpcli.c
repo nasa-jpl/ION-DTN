@@ -18,8 +18,6 @@
 #define	TCPCL_BUFSZ		(512 * 1024)
 #endif
 
-#define MIN_SNOOZE		1000
-
 #ifndef MAX_RESCAN_INTERVAL
 #define MAX_RESCAN_INTERVAL	(20)
 #endif
