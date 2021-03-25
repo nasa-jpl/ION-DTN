@@ -23,7 +23,11 @@
 extern "C" {
 #endif
 
+#ifdef ENABLE_HIGH_SPEED
 #define STCPCLA_BUFSZ		(64 * 1024)
+#else
+#define STCPCLA_BUFSZ		(512 * 1024)
+#endif
 #define BpStcpDefaultPortNbr	4456
 
 #ifndef STCP_KEEPALIVE_PERIOD

@@ -12,7 +12,13 @@
 #include "bpP.h"
 #include "llcv.h"
 
+#ifdef ENABLE_HIGH_SPEED
 #define	TCPCL_BUFSZ		(64 * 1024)
+#else
+#define	TCPCL_BUFSZ		(512 * 1024)
+#endif
+
+#define MIN_SNOOZE		1000
 
 #ifndef MAX_RESCAN_INTERVAL
 #define MAX_RESCAN_INTERVAL	(20)
@@ -1587,6 +1593,7 @@ static int	handleDataSegment(ReceiverThreadParms *rtp,
 		{
 			bytesToRead = TCPCL_BUFSZ;
 		}
+
  
 		extentSize = itcp_recv(&session->sock, rtp->buffer,
 				bytesToRead);
