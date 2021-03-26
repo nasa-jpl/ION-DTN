@@ -2393,6 +2393,14 @@ int	ionSpaceAwarded(ReqTicket ticket)
 	}
 
 	reqAddr = sm_list_data(ionwm, ticket);
+	if (reqAddr == 0)
+	{
+		/*	Allocated space not claimed promptly, ticket
+		 *	has already been shredded.			*/
+
+		return 0;	/*	ZCO space not provided.		*/
+	}
+
 	req = (Requisition *) psp(ionwm, reqAddr);
 	if (req->secondsUnclaimed < 0)
 	{

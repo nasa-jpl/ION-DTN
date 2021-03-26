@@ -569,6 +569,8 @@ int	main(int argc, char *argv[])
 
 					/*	Requisition expired.	*/
 
+					writeMemo("[?] ZCO space not claimed \
+in time, released to other applications.");
 					sm_SemEnd(req->semaphore);
 					ionShred(elt);
 					continue;
