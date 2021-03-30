@@ -307,8 +307,10 @@ int	main(int argc, char *argv[])
 {
 	char	*socketSpec = (argc > 1 ? argv[1] : NULL);
 #endif
-	
-	BsspVdb			*vdb;
+	Sdr			sdr;
+	char			rlBsiCmd[256];
+	BsspVseat		*vseat;
+	PsmAddress		vseatElt;
 	char			*hostName;
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
@@ -330,11 +332,21 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	vdb = getBsspVdb();
-	if (vdb->rlBsiPid != ERROR && vdb->rlBsiPid != sm_TaskIdSelf())
+	sdr = getIonsdr();
+	isprintf(rlBsiCmd, sizeof rlBsiCmd, "tcpbsi %s", socketSpec);
+	CHKERR(sdr_begin_xn(sdr));
+	findBsspSeat(NULL, rlBsiCmd, &vseat, &vseatElt);
+	sdr_exit_xn(sdr);
+	if (vseatElt == 0)
+	{
+		putErrmsg("Undefined RL-BSI", rlBsiCmd);
+		return 1;
+	}
+
+	if (vseat->rlBsiPid != ERROR && vseat->rlBsiPid != sm_TaskIdSelf())
 	{
 		putErrmsg("RL-BSI task is already started.",
-				itoa(vdb->rlBsiPid));
+				itoa(vseat->rlBsiPid));
 		return 1;
 	}
 

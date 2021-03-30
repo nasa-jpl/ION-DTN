@@ -420,10 +420,11 @@ typedef struct
 	unsigned int	sessionNbr;
 } LtpXmitSegRef;
 
-/* Span structure characterizing the communication span between the
+/* LtpSpan structure characterizing the communication span between the
  * local engine and some remote engine.  Note that a single LTP span
  * might be serviced by multiple communication links, e.g., simultaneous
- * S-band and Ka-band transmission. */
+ * S-band and Ka-band transmission; managing those parallel links
+ * will be the responsibility of the link service output daemon.	*/
 
 typedef struct
 {
@@ -465,6 +466,14 @@ typedef struct
 	Object		closedImports;	/*	SDR list: session nbr	*/
 	Object		deadImports;	/*	SDR list: ImportSession	*/
 } LtpSpan;
+
+/* LtpSeat structure characterizes one of the link-service-layer input
+ * daemons by which the engine can receive LTP segments.		*/
+
+typedef struct
+{
+	Object		lsiCmd;		/*	An SDR string.		*/
+} LtpSeat;
 
 /*	*	*	LTP statistics management	*	*	*/
 
@@ -590,6 +599,16 @@ typedef struct
 	sm_SemId	segSemaphore;	/*	For outbound segments.	*/
 } LtpVspan;
 
+/* The volatile seat object encapsulates the current volatile state
+ * of the corresponding LtpSeat. 					*/
+
+typedef struct
+{
+	Object		seatElt;	/*	Reference to LtpSeat.	*/
+	char		lsiCmd[256];
+	int		lsiPid;		/*	For stopping the LSi.	*/
+} LtpVseat;
+
 /* Client and notice structures */
 
 typedef struct
@@ -625,7 +644,6 @@ typedef struct
 	uvast		ownEngineId;
 	Sdnv		ownEngineIdSdnv;
 	unsigned int	maxBacklog;
-	char		lsiCmd[256];
 	Object		deliverables;	/*	SDR list: Deliverable	*/
 
 	/*	estMaxExportSessions is used to compute the number
@@ -646,6 +664,7 @@ typedef struct
 #endif
 	Object		deadExports;	/*	SDR list: ExportSession	*/
 	Object		spans;		/*	SDR list: LtpSpan	*/
+	Object		seats;		/*	SDR list: LtpSeat	*/
 	Object		timeline;	/*	SDR list: LtpEvent	*/
 	unsigned int	maxAcqInHeap;
 	unsigned long	heapBytesReserved;
@@ -676,12 +695,12 @@ typedef struct
 typedef struct
 {
 	uvast		ownEngineId;
-	int		lsiPid;		/*	For stopping the LSI.	*/
 	int		clockPid;	/*	For stopping ltpclock.	*/
 	int		delivPid;	/*	For stopping ltpdeliv.	*/
 	int		watching;	/*	Boolean activity watch.	*/
 	sm_SemId	deliverySemaphore;
 	PsmAddress	spans;		/*	SM list: LtpVspan*	*/
+	PsmAddress	seats;		/*	SM list: LtpVseat*	*/
 	LtpVclient	clients[LTP_MAX_NBR_OF_CLIENTS];
 } LtpVdb;
 
@@ -696,6 +715,11 @@ extern void		ltpDetach();
 extern Object		getLtpDbObject();
 extern LtpDB		*getLtpConstants();
 extern LtpVdb		*getLtpVdb();
+
+extern void		findSeat(char *lsiCmd, LtpVseat **vseat,
+				PsmAddress *vseatElt);
+extern int		addSeat(char *lsiCmd);
+extern int		removeSeat(char *lsiCmd);
 
 extern void		findSpan(uvast engineId, LtpVspan **vspan,
 				PsmAddress *vspanElt);
@@ -715,7 +739,6 @@ extern int		updateSpan(uvast engineId,
 				char *lsoCmd, unsigned int qTime, int purge);
 extern int		removeSpan(uvast engineId);
 extern void		checkReservationLimit();
-
 extern int		ltpStartSpan(uvast engineId);
 extern void		ltpStopSpan(uvast engineId);
 

@@ -612,6 +612,47 @@ static int	raiseSpan(Object spanElt, LtpVdb *ltpvdb)
 	return 0;
 }
 
+static int	raiseSeat(Object seatElt, LtpVdb *ltpvdb)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ltpwm = getIonwm();
+	Object		seatObj;
+	LtpSeat		seat;
+	char		lsiCmd[256];
+	LtpVseat	*vseat;
+	PsmAddress	vseatElt;
+	PsmAddress	addr;
+
+	seatObj = sdr_list_data(sdr, seatElt);
+	sdr_read(sdr, (char *) &seat, seatObj, sizeof(LtpSeat));
+	sdr_string_read(sdr, lsiCmd, seat.lsiCmd);
+	findSeat(lsiCmd, &vseat, &vseatElt);
+	if (vseatElt)	/*	Seat is already raised.			*/
+	{
+		return 0;
+	}
+
+	addr = psm_zalloc(ltpwm, sizeof(LtpVseat));
+	if (addr == 0)
+	{
+		return -1;
+	}
+
+	vseatElt = sm_list_insert_last(ltpwm, ltpvdb->seats, addr);
+	if (vseatElt == 0)
+	{
+		psm_free(ltpwm, addr);
+		return -1;
+	}
+
+	vseat = (LtpVseat *) psp(ltpwm, addr);
+	memset((char *) vseat, 0, sizeof(LtpVseat));
+	vseat->seatElt = seatElt;
+	istrcpy(vseat->lsiCmd, lsiCmd, sizeof vseat->lsiCmd);
+	vseat->lsiPid = ERROR;
+	return 0;
+}
+
 static void	deleteSegmentRef(PsmPartition ltpwm, PsmAddress nodeData,
 			void *arg)
 {
@@ -688,6 +729,16 @@ static void	dropSpan(LtpVspan *vspan, PsmAddress vspanElt)
 	psm_free(ltpwm, vspanAddr);
 }
 
+static void	dropSeat(LtpVseat *vseat, PsmAddress vseatElt)
+{
+	PsmPartition	ltpwm = getIonwm();
+	PsmAddress	vseatAddr;
+
+	vseatAddr = sm_list_data(ltpwm, vseatElt);
+	sm_list_delete(ltpwm, vseatElt, NULL, NULL);
+	psm_free(ltpwm, vseatAddr);
+}
+
 static void	startSpan(LtpVspan *vspan)
 {
 	Sdr	sdr = getIonsdr();
@@ -708,6 +759,14 @@ static void	startSpan(LtpVspan *vspan)
 	isprintf(lsoCmdString, sizeof lsoCmdString, "%s %s", cmd,
 			engineIdString);
 	vspan->lsoPid = pseudoshell(lsoCmdString);
+}
+
+static void	startSeat(LtpVseat *vseat)
+{
+	if (vseat->lsiPid == ERROR || sm_TaskExists(vseat->lsiPid) == 0)
+	{
+		vseat->lsiPid = pseudoshell(vseat->lsiCmd);
+	}
 }
 
 static void	stopSpan(LtpVspan *vspan)
@@ -733,6 +792,11 @@ static void	stopSpan(LtpVspan *vspan)
 	}
 }
 
+static void	stopSeat(LtpVseat *vseat)
+{
+	sm_TaskKill(vseat->lsiPid, SIGTERM);
+}
+
 static void	waitForSpan(LtpVspan *vspan)
 {
 	if (vspan->lsoPid != ERROR)
@@ -746,6 +810,17 @@ static void	waitForSpan(LtpVspan *vspan)
 	if (vspan->meterPid != ERROR)
 	{
 		while (sm_TaskExists(vspan->meterPid))
+		{
+			microsnooze(100000);
+		}
+	}
+}
+
+static void	waitForSeat(LtpVseat *vseat)
+{
+	if (vseat->lsiPid != ERROR)
+	{
+		while (sm_TaskExists(vseat->lsiPid))
 		{
 			microsnooze(100000);
 		}
@@ -813,11 +888,11 @@ static LtpVdb		*_ltpvdb(char **name)
 		vdb = (LtpVdb *) psp(wm, vdbAddress);
 		memset((char *) vdb, 0, sizeof(LtpVdb));
 		vdb->ownEngineId = db->ownEngineId;
-		vdb->lsiPid = ERROR;		/*	None yet.	*/
 		vdb->clockPid = ERROR;		/*	None yet.	*/
 		vdb->delivPid = ERROR;		/*	None yet.	*/
 		vdb->deliverySemaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
 		if ((vdb->spans = sm_list_create(wm)) == 0
+		|| (vdb->seats = sm_list_create(wm)) == 0
 		|| psm_catlg(wm, *name, vdbAddress) < 0)
 		{
 			sdr_exit_xn(sdr);
@@ -843,6 +918,19 @@ static LtpVdb		*_ltpvdb(char **name)
 			{
 				sdr_exit_xn(sdr);
 				putErrmsg("Can't raise all spans.", NULL);
+				return NULL;
+			}
+		}
+
+		/*	Raise all seats.				*/
+
+		for (sdrElt = sdr_list_first(sdr, db->seats);
+				sdrElt; sdrElt = sdr_list_next(sdr, sdrElt))
+		{
+			if (raiseSeat(sdrElt, vdb) < 0)
+			{
+				sdr_exit_xn(sdr);
+				putErrmsg("Can't raise all LSIs.", NULL);
 				return NULL;
 			}
 		}
@@ -929,6 +1017,7 @@ int	ltpInit(int estMaxExportSessions)
 #endif
 		ltpdbBuf.deadExports = sdr_list_create(sdr);
 		ltpdbBuf.spans = sdr_list_create(sdr);
+		ltpdbBuf.seats = sdr_list_create(sdr);
 		ltpdbBuf.timeline = sdr_list_create(sdr);
 		ltpdbBuf.maxAcqInHeap = 560;
 		sdr_write(sdr, ltpdbObject, (char *) &ltpdbBuf,
@@ -967,6 +1056,7 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	LtpVclient	*client;
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	LtpVseat	*vseat;
 
 	vdb = (LtpVdb *) psp(wm, vdbAddress);
 	for (i = 0, client = vdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
@@ -987,6 +1077,13 @@ static void	dropVdb(PsmPartition wm, PsmAddress vdbAddress)
 	}
 
 	sm_list_destroy(wm, vdb->spans, NULL, NULL);
+	while ((elt = sm_list_first(wm, vdb->seats)) != 0)
+	{
+		vseat = (LtpVseat *) psp(wm, sm_list_data(wm, elt));
+		dropSeat(vseat, elt);
+	}
+
+	sm_list_destroy(wm, vdb->seats, NULL, NULL);
 	if (vdb->deliverySemaphore != SM_SEM_NONE)
 	{
 		sm_SemEnd(vdb->deliverySemaphore);
@@ -1049,7 +1146,7 @@ LtpVdb	*getLtpVdb()
 	return _ltpvdb(NULL);
 }
 
-int	ltpStart(char *lsiCmd)
+int	ltpStart()
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ltpwm = getIonwm();
@@ -1058,37 +1155,8 @@ int	ltpStart(char *lsiCmd)
 	LtpDB		ltpdb;
 	PsmAddress	elt;
 
-	if (lsiCmd)
-	{
-		CHKERR(sdr_begin_xn(sdr));
-		sdr_stage(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
-		istrcpy(ltpdb.lsiCmd, lsiCmd, sizeof ltpdb.lsiCmd);
-		sdr_write(sdr, ltpdbobj, (char *) &ltpdb, sizeof(LtpDB));
-		if (sdr_end_xn(sdr))
-		{
-			putErrmsg("Can't set lsi command.", NULL);
-			return -1;
-		}
-	}
-	else
-	{
-		sdr_read(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
-	}
-
-	if (ltpdb.lsiCmd[0] == 0)	/*	No lsi command.		*/
-	{
-		putErrmsg("LTP can't start: no LSI command.", NULL);
-		return -1;
-	}
-
+	sdr_read(sdr, (char *) &ltpdb, ltpdbobj, sizeof(LtpDB));
 	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-
-	/*	Start input link service if necessary.			*/
-
-	if (ltpvdb->lsiPid == ERROR || sm_TaskExists(ltpvdb->lsiPid) == 0)
-	{
-		ltpvdb->lsiPid = pseudoshell(ltpdb.lsiCmd);
-	}
 
 	/*	Start the LTP events clock if necessary.		*/
 
@@ -1112,6 +1180,14 @@ int	ltpStart(char *lsiCmd)
 		startSpan((LtpVspan *) psp(ltpwm, sm_list_data(ltpwm, elt)));
 	}
 
+	/*	Start input link services as necessary.			*/
+
+	for (elt = sm_list_first(ltpwm, ltpvdb->seats); elt;
+			elt = sm_list_next(ltpwm, elt))
+	{
+		startSeat((LtpVseat *) psp(ltpwm, sm_list_data(ltpwm, elt)));
+	}
+
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 	return 0;
 }
@@ -1125,6 +1201,7 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 	LtpVclient	*client;
 	PsmAddress	elt;
 	LtpVspan	*vspan;
+	LtpVseat	*vseat;
 
 	/*	Tell all LTP processes to stop.				*/
 
@@ -1139,14 +1216,14 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		}
 	}
 
-	if (ltpvdb->lsiPid != ERROR)
-	{
-		sm_TaskKill(ltpvdb->lsiPid, SIGTERM);
-	}
-
 	if (ltpvdb->clockPid != ERROR)
 	{
 		sm_TaskKill(ltpvdb->clockPid, SIGTERM);
+	}
+
+	if (ltpvdb->delivPid != ERROR)
+	{
+		sm_TaskKill(ltpvdb->delivPid, SIGTERM);
 	}
 
 	for (elt = sm_list_first(ltpwm, ltpvdb->spans); elt;
@@ -1156,17 +1233,16 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		stopSpan(vspan);
 	}
 
+	for (elt = sm_list_first(ltpwm, ltpvdb->seats); elt;
+			elt = sm_list_next(ltpwm, elt))
+	{
+		vseat = (LtpVseat *) psp(ltpwm, sm_list_data(ltpwm, elt));
+		stopSeat(vseat);
+	}
+
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 
 	/*	Wait until all LTP processes have stopped.		*/
-
-	if (ltpvdb->lsiPid != ERROR)
-	{
-		while (sm_TaskExists(ltpvdb->lsiPid))
-		{
-			microsnooze(100000);
-		}
-	}
 
 	if (ltpvdb->clockPid != ERROR)
 	{
@@ -1191,10 +1267,16 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 		waitForSpan(vspan);
 	}
 
+	for (elt = sm_list_first(ltpwm, ltpvdb->seats); elt;
+			elt = sm_list_next(ltpwm, elt))
+	{
+		vseat = (LtpVseat *) psp(ltpwm, sm_list_data(ltpwm, elt));
+		waitForSeat(vseat);
+	}
+
 	/*	Now erase all the tasks and reset the semaphores.	*/
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	ltpvdb->lsiPid = ERROR;
 	ltpvdb->clockPid = ERROR;
 	ltpvdb->delivPid = ERROR;
 	for (i = 0, client = ltpvdb->clients; i < LTP_MAX_NBR_OF_CLIENTS;
@@ -1208,6 +1290,13 @@ void	ltpStop()		/*	Reverses ltpStart.		*/
 	{
 		vspan = (LtpVspan *) psp(ltpwm, sm_list_data(ltpwm, elt));
 		resetSpan(vspan);
+	}
+
+	for (elt = sm_list_first(ltpwm, ltpvdb->seats); elt;
+			elt = sm_list_next(ltpwm, elt))
+	{
+		vseat = (LtpVseat *) psp(ltpwm, sm_list_data(ltpwm, elt));
+		vseat->lsiPid = ERROR;
 	}
 
 	sdr_exit_xn(sdr);		/*	Unlock memory.		*/
@@ -1274,7 +1363,143 @@ void	ltpDetach()
 	return;
 }
 
-/*	*	*	LTP span mgt and access functions	*	*/
+/*	*	*	LTP seat (input) mgt and access functions	*/
+
+void	findSeat(char *lsiCmd, LtpVseat **vseat, PsmAddress *vseatElt)
+{
+	PsmPartition	ltpwm = getIonwm();
+	PsmAddress	elt;
+
+	CHKVOID(ionLocked());
+	CHKVOID(vseat);
+	CHKVOID(vseatElt);
+	CHKVOID(lsiCmd);
+	for (elt = sm_list_first(ltpwm, (_ltpvdb(NULL))->seats); elt;
+			elt = sm_list_next(ltpwm, elt))
+	{
+		*vseat = (LtpVseat *) psp(ltpwm, sm_list_data(ltpwm, elt));
+		if (strcmp((*vseat)->lsiCmd, lsiCmd) == 0)
+		{
+			break;
+		}
+	}
+
+	*vseatElt = elt;	/*	(Zero if vseat was not found.)	*/
+}
+
+int	addSeat(char *lsiCmd)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVseat	*vseat;
+	PsmAddress	vseatElt;
+	LtpSeat		seatBuf;
+	Object		addr;
+	Object		seatElt = 0;
+
+	if (lsiCmd == NULL || *lsiCmd == '\0')
+	{
+		writeMemoNote("[?] No LSI command, can't add LSI", lsiCmd);
+		return 0;
+	}
+
+	if (strlen(lsiCmd) > MAX_SDRSTRING)
+	{
+		writeMemoNote("[?] Link service input command string too long",
+				lsiCmd);
+		return 0;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));
+	findSeat(lsiCmd, &vseat, &vseatElt);
+	if (vseatElt)		/*	This is a known seat.		*/
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Duplicate LSI", lsiCmd);
+		return 0;
+	}
+
+	/*	All parameters validated, okay to add the seat.		*/
+
+	memset((char *) &seatBuf, 0, sizeof(LtpSeat));
+	seatBuf.lsiCmd = sdr_string_create(sdr, lsiCmd);
+	addr = sdr_malloc(sdr, sizeof(LtpSeat));
+	if (addr)
+	{
+		seatElt = sdr_list_insert_last(sdr, _ltpConstants()->seats,
+				addr);
+		sdr_write(sdr, addr, (char *) &seatBuf, sizeof(LtpSeat));
+	}
+
+	if (sdr_end_xn(sdr) < 0 || seatElt == 0)
+	{
+		putErrmsg("Can't add LSI.", lsiCmd);
+		return -1;
+	}
+
+	CHKERR(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	if (raiseSeat(seatElt, _ltpvdb(NULL)) < 0)
+	{
+		sdr_exit_xn(sdr);
+		putErrmsg("Can't raise LSI.", NULL);
+		return -1;
+	}
+
+	sdr_exit_xn(sdr);
+	return 1;
+}
+
+int	removeSeat(char *lsiCmd)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVseat	*vseat;
+	PsmAddress	vseatElt;
+	Object		seatElt;
+	Object		seatObj;
+			OBJ_POINTER(LtpSeat, seat);
+
+	/*	Must stop the seat before trying to remove it.		*/
+
+	CHKVOID(lsiCmd);
+	CHKERR(sdr_begin_xn(sdr));	/*	Lock memory.		*/
+	findSeat(lsiCmd, &vseat, &vseatElt);
+	if (vseatElt == 0)	/*	This is an unknown seat.	*/
+	{
+		sdr_exit_xn(sdr);
+		writeMemoNote("[?] Unknown LSI", lsiCmd);
+		return 0;
+	}
+
+	/*	All parameters validated.				*/
+
+	stopSeat(vseat);
+	sdr_exit_xn(sdr);
+	waitForSeat(vseat);
+
+	/*	Okay to remove this seat from the database.		*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	vseat->lsiPid = ERROR;
+	seatElt = vseat->seatElt;
+	seatObj = (Object) sdr_list_data(sdr, seatElt);
+	GET_OBJ_POINTER(sdr, LtpSeat, seat, seatObj);
+	dropSeat(vseat, vseatElt);
+	if (seat->lsiCmd)
+	{
+		sdr_free(sdr, seat->lsiCmd);
+	}
+
+	sdr_free(sdr, seatObj);
+	sdr_list_delete(sdr, seatElt, NULL, NULL);
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't remove LSI.", lsiCmd);
+		return -1;
+	}
+
+	return 1;
+}
+
+/*	*	*	LTP span (output) mgt and access functions	*/
 
 void	findSpan(uvast engineId, LtpVspan **vspan, PsmAddress *vspanElt)
 {

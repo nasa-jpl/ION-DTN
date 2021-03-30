@@ -57,14 +57,13 @@ typedef struct
 typedef enum
 {
 	BsspCancelByUser = 0,
-	//BsspClientSvcUnreachable,	//Note, I'm not sure if we actually need something like this
 	BsspRetransmitLimitExceeded,
 	BsspCancelByEngine
 } BsspCancelReasonCode;
 
 typedef struct
 {
-	BsspBlkTypeCode	blkTypeCode;
+	BsspBlkTypeCode		blkTypeCode;
 
 	/*	Fields used for multiple segment classes.		*/
 
@@ -146,10 +145,8 @@ typedef struct
 	BsspEventType	type;
 } BsspEvent;
 
-/* Span structure characterizing the communication span between the
- * local engine and some remote engine.  Note that a single BSSP span
- * might be serviced by multiple communication links, e.g., simultaneous
- * S-band and Ka-band transmission. */
+/* BsspSpan structure characterizing the communication span between the
+ * local engine and some remote engine.					*/
 
 typedef struct
 {
@@ -174,6 +171,14 @@ typedef struct
 						transmission		*/
 } BsspSpan;
 
+/* BsspSeat structure characterizing one of the link-service-layer
+ * input daemons by which the engine can receive BSSP blocks.		*/
+
+typedef struct
+{
+	Object		beBsiCmd;
+	Object		rlBsiCmd;
+} BsspSeat;
 
 /* The volatile span object encapsulates the current volatile state
  * of the corresponding BsspSpan. 					*/
@@ -212,6 +217,18 @@ typedef struct
 						outbound blocks.	*/
 } BsspVspan;
 
+/* The volatile span object encapsulates the current volatile state
+ * of the corresponding BsspSpan. 					*/
+
+typedef struct
+{
+	Object		seatElt;	/*	Reference to BsspSeat.	*/
+	char		beBsiCmd[256];
+	char		rlBsiCmd[256];
+	int		beBsiPid;
+	int		rlBsiPid;
+} BsspVseat;
+
 /* Client and notice structures */
 
 typedef struct
@@ -249,8 +266,8 @@ typedef struct
 	unsigned int	ownQtime;
 	unsigned int	sessionCount;
 	Object		exportSessionsHash;
-	
 	Object		spans;		/*	SDR list: BsspSpan	*/
+	Object		seats;		/*	SDR list: BsspSeat	*/
 	Object		timeline;	/*	SDR list: BsspEvent	*/
 			/*	A catalogue that logs all the pairs of
 			 *	node-service numbers and the latest
@@ -272,15 +289,13 @@ typedef struct
 #define WATCH_CBS		(128)	/* 	cancel Session by Sender	*/
 #define WATCH_resendBlk		(256)	/*	bssp resend xmitBlock "="	*/
 
-
 typedef struct
 {
 	uvast		ownEngineId;
-	int		beBsiPid;	/*	Stops best-effort BSI.	*/
-	int		rlBsiPid;	/*	Stops the reliable BSI.	*/
 	int		clockPid;	/*	For stopping bsspclock.	*/
 	int		watching;	/*	Boolean activity watch.	*/
 	PsmAddress	spans;		/*	SM list: BsspVspan*	*/
+	PsmAddress	seats;		/*	SM list: BsspVSeat*	*/
 	BsspVclient	clients[BSSP_MAX_NBR_OF_CLIENTS];
 } BsspVdb;
 
@@ -296,6 +311,12 @@ extern Object		getBsspDbObject();
 extern BsspDB		*getBsspConstants();
 extern BsspVdb		*getBsspVdb();
 
+extern void		findBsspSeat(char *beBsiCmd, char *rlBsiCmd,
+				BsspVseat **seat,
+				PsmAddress *vseatElt);
+extern int		addBsspSeat(char *beBsiCmd, char *rlBsiCmd); 
+extern int		removeBsspSeat(char *beBsiCmd, char *rlBsiCmd);
+
 extern void		findBsspSpan(uvast engineId, BsspVspan **vspan,
 				PsmAddress *vspanElt);
 extern int		addBsspSpan(uvast engineId, 
@@ -309,13 +330,11 @@ extern int		updateBsspSpan(uvast engineId,
 				char *bsoBECmd, char *bsoRLCmd, 
 				unsigned int qTime, int purge);
 extern int		removeBsspSpan(uvast engineId);
-
 extern int		bsspStartSpan(uvast engineId);
 extern void		bsspStopSpan(uvast engineId);
 
 extern int		startBsspExportSession(Sdr sdr, Object spanObj,
 				BsspVspan *vspan);
-
 extern int		issueXmitBlock(Sdr sdr, BsspSpan *span,
 				BsspVspan *vspan, BsspExportSession *session,
 				Object sessionObj, int inOrder);
