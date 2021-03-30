@@ -318,16 +318,16 @@ static void	printSpan(BsspVspan *vspan)
 	printText(buffer);
 
 	isprintf(buffer, sizeof buffer, "\tmax block size: %u  queuing \
-			latency: %u  purge: %d", span->maxBlockSize, 
-			span->remoteQtime, span->purge);
+latency: %u  purge: %d", span->maxBlockSize, span->remoteQtime, span->purge);
 	printText(buffer);
 
-	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %u  \
-			owltInbound: %u  remoteXmit: %u", vspan->owltOutbound, 
-			vspan->localXmitRate, vspan->owltInbound,
-			vspan->remoteXmitRate);
-	sdr_exit_xn(sdr);
+	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %u",
+			vspan->owltOutbound, vspan->localXmitRate);
 	printText(buffer);
+	isprintf(buffer, sizeof buffer, "\towltInbound: %u  remoteXmit: %u",
+			vspan->owltInbound, vspan->remoteXmitRate);
+	printText(buffer);
+	sdr_exit_xn(sdr);
 }
 
 static void	infoSeat(int tokenCount, char **tokens)
@@ -447,7 +447,7 @@ static void	listSpans(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, BsspDB, bsspdb, bsspdbObj);
-	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC,
+	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC ")",
 			bsspdb->ownEngineId);
 	printText(buffer);
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;

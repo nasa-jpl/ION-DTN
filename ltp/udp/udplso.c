@@ -322,9 +322,9 @@ compatibility, but it is ignored.");
 	memcpy((char *) &(peerInetName->sin_addr.s_addr),
 			(char *) &ipAddress, 4);
 
-	/*	Now create the socket that will be used for sending
-	 *	datagrams to the peer LTP engine and possibly for
-	 *	receiving datagrams from the peer LTP engine.		*/
+	/*	Now compute own socket address, used when the peer
+	 *	responds to the link service output socket rather
+	 *	than to the advertised link service inpud socket.	*/
 
 	ipAddress = INADDR_ANY;
 	portNbr = 0;	/*	Let O/S choose it.			*/
@@ -342,12 +342,21 @@ compatibility, but it is ignored.");
 	ownInetName->sin_port = portNbr;
 	memcpy((char *) &(ownInetName->sin_addr.s_addr),
 			(char *) &ipAddress, 4);
+
+	/*	Now create the socket that will be used for sending
+	 *	datagrams to the peer LTP engine and possibly for
+	 *	receiving datagrams from the peer LTP engine.		*/
+
 	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
 	{
 		putSysErrmsg("LSO can't open UDP socket", NULL);
 		return 1;
 	}
+
+	/*	Bind the socket to own socket address so that we
+	 *	can send a 1-byte datagram to that address to shut
+	 *	down the datagram handling thread.			*/
 
 	nameLength = sizeof(struct sockaddr);
 	if (reUseAddress(rtp.linkSocket)
