@@ -38,12 +38,14 @@ static int	removePredictedContacts(int regionIdx)
 {
 	Sdr		sdr = getIonsdr();
 	IonDB		iondb;
+	uvast		regionNbr;
 	Object		obj;
 	Object		elt;
 	Object		nextElt;
 	IonContact	contact;
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	regionNbr = iondb.regions[regionIdx].regionNbr;
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].contacts); elt;
 		       	elt = nextElt)
@@ -59,7 +61,7 @@ static int	removePredictedContacts(int regionIdx)
 
 		/*	This is a predicted contact.		*/
 
-		if (rfx_remove_contact(&contact.fromTime,
+		if (rfx_remove_contact(regionNbr, &contact.fromTime,
 				contact.fromNode, contact.toNode, 0) < 0)
 		{
 			putErrmsg("Failure in rfx_remove_contact.",

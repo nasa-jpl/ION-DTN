@@ -715,6 +715,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		memset((char *) &iondbBuf, 0, sizeof(IonDB));
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
+		iondbBuf.rolodex = sdr_list_create(ionsdr);
 		iondbBuf.cpmNotices = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
@@ -1239,7 +1240,8 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB)
 	 *	outer region (i.e., are passageways to some region
 	 *	that is even more encompassing).			*/
 
-	if (nodeA.homeRegionNbr == localOuterRegion)
+	if (nodeA.homeRegionNbr == localOuterRegion
+	|| nodeA.outerRegionNbr == localOuterRegion)
 	{
 		if (nodeNbrB == 0
 		|| nodeB.homeRegionNbr == nodeA.outerRegionNbr)

@@ -378,22 +378,22 @@ fflush(stdout);
 	return 0;
 }
 
-static int	xmitPetition(uvast toRegion, unsigned char *buffer, int length)
+int	imcSendDispatch(uvast toRegion, unsigned char *buffer, int length)
 {
 	Sdr		sdr = getIonsdr();
+	char		*destEid = "imc:0.0";
 	char		sourceEid[32];
 	MetaEid		sourceMetaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	Object		sourceData;
 	Object		payloadZco;
-	char		destEid[] = "imc:0.0";
 	unsigned int	ttl = 86400;
 	BpAncillaryData	ancillary = { 0, 0, 255 };
 
-	isprintf(sourceEid, sizeof sourceEid,
-			"ipn:" UVAST_FIELDSPEC "." UVAST_FIELDSPEC,
-			getOwnNodeNbr(), toRegion);
+	ancillary.imcRegionNbr = toRegion;
+	isprintf(sourceEid, sizeof sourceEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
 	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
 			&vschemeElt));
 	CHKERR(sdr_begin_xn(sdr));
@@ -417,7 +417,7 @@ static int	xmitPetition(uvast toRegion, unsigned char *buffer, int length)
 	if (sdr_end_xn(sdr) < 0
 	|| payloadZco == (Object) ERROR || payloadZco == 0)
 	{
-		putErrmsg("Can't create IMC petition.", NULL);
+		putErrmsg("Can't create IMC dispatch payload.", NULL);
 		return -1;
 	}
 
@@ -438,22 +438,22 @@ static int	xmitPetition(uvast toRegion, unsigned char *buffer, int length)
 	 *	handleXmitFailure function, causing the bundle
 	 *	to be reforwarded.  Reforwarding a transmitted
 	 *	IMC bundle looks - to imcfw - exactly like
-	 *	relaying a receives IMC bundle except that the
+	 *	relaying a received IMC bundle except that the
 	 *	local node is not present in the imc extension
 	 *	block's array of destinations, and therefore
 	 *	need not be removed.					*/
 
-//puts("Transmitting petition.");
+//puts("Transmitting dispatch.");
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
 			&ancillary, payloadZco, NULL, 0))
 	{
 	case -1:
-		putErrmsg("Can't send IMC petition.", NULL);
+		putErrmsg("Can't send IMC dispatch.", NULL);
 		return -1;
 
 	case 0:
-		putErrmsg("IMC petition not sent.", NULL);
+		putErrmsg("IMC dispatch not sent.", NULL);
 
 		/*	Intentional fall-through to next case.	*/
 
@@ -464,7 +464,7 @@ static int	xmitPetition(uvast toRegion, unsigned char *buffer, int length)
 
 int	imcSendPetition(ImcPetition *petition, uvast toRegion)
 {
-	unsigned char	buffer[32];
+	unsigned char	buffer[64];
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		petitionLength;
@@ -473,33 +473,38 @@ int	imcSendPetition(ImcPetition *petition, uvast toRegion)
 //printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->groupNbr);
 	if (imcInit() < 0)
 	{
-		putErrmsg("Can't initialize IMC database.", NULL);
+		putErrmsg("Can't attach to IMC database.", NULL);
 		return -1;
 	}
 
-	/*	Create buffer for serializing petition message.		*/
+	/*	Use buffer to serialize petition message.		*/
 
 	cursor = buffer;
 
-	/*	Petition message is an array of 2 items.		*/
+	/*	Dispatch message is an array of 3 items.		*/
 
-	uvtemp = 2;
+	uvtemp = 3;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
 
-	/*	First item of array (petition) is the group number.	*/
+	/*	First item of array (dispatch) is the dispatch type.	*/
+
+	uvtemp = ImcDispatch;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	Second item of array (petition) is the group number.	*/
 
 	uvtemp = petition->groupNbr;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	Second item of array is the membership switch.		*/
+	/*	Third item of array is the membership switch.		*/
 
 	uvtemp = petition->isMember;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	Now multicast the transmission.				*/
+	/*	Now multicast the petition.				*/
 
 	petitionLength = cursor - buffer;
-	if (xmitPetition(toRegion, buffer, petitionLength) < 0)
+	if (imcSendDispatch(toRegion, buffer, petitionLength) < 0)
 	{
 		result = -1;
 	}

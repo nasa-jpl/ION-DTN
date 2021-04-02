@@ -10,36 +10,233 @@
 									*/
 #include "imcfw.h"
 
-static int	parsePetition(ImcPetition *petition, unsigned char *cursor,
+static int	handleCpmNotice(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
-	uvast	arrayLength;
-	uvast	uvtemp;
+	uvast		uvtemp;
+	uvast		regionNbr;
+	time_t		fromTime;
+	time_t		toTime;
+	uvast		fromNode;
+	uvast		toNode;
+	size_t		magnitude;
+	float		confidence;
+	int		result;
+	PsmAddress	xaddr;
+	int		revisingContact = 0;
 
-	/*	Start parsing of petition.				*/
-
-	arrayLength = 2;
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+			&unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IMC petition array.");
+		writeMemo("[?] Can't decode CPM notice region nbr.");
 		return 0;
 	}
 
+	regionNbr = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IMC petition group number.");
+		writeMemo("[?] Can't decode CPM notice From time.");
 		return 0;
 	}
 
-	petition->groupNbr = uvtemp;
+	fromTime = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IMC petition membership switch.");
+		writeMemo("[?] Can't decode CPM notice To time.");
 		return 0;
 	}
 
-	petition->isMember = (uvtemp != 0);
-	return 1;
+	toTime = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice From node.");
+		return 0;
+	}
+
+	fromNode = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice From node.");
+		return 0;
+	}
+
+	toNode = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice magnitude.");
+		return 0;
+	}
+
+	magnitude = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice confidence.");
+		return 0;
+	}
+
+	if (uvtemp == 400)	/*	Revision, confidence unchanged.	*/
+	{
+		confidence = -1.0;
+		revisingContact = 1;
+	}
+	else			/*	Contact revision if >= 200.	*/
+	{
+		confidence = (float) (uvtemp / 100); 
+		if (confidence >= 2.0)
+		{
+			confidence -= 2.0;
+			revisingContact = 1;
+		}
+	}
+
+	/*	Now act on the received contact plan mgt notice.	*/
+
+	if (regionNbr == 0)		/*	This is a Range notice.	*/
+	{
+		if (toTime == 0)	/*	Delete Range.		*/
+		{
+			result = rfx_remove_range(&fromTime, fromNode, toNode,
+					0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed removing range", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error removing range",
+						itoa(result));
+				return 0;
+			}
+		}
+		else			/*	Add Range.		*/
+		{
+			result = rfx_insert_range(fromTime, toTime, fromNode,
+					toNode, magnitude, &xaddr, 0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed inserting range", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error inserting range",
+						itoa(result));
+				return 0;
+			}
+		}
+	}
+
+	/*	This is a Contact notice.				*/
+
+	if (fromTime == (time_t) -1)	/*	Registration contact.	*/
+	{
+		if (toTime == 0)	/*	Unregister node.	*/
+		{
+			result = rfx_remove_contact(regionNbr, &fromTime,
+					fromNode, toNode, 0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed unregistering node", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error unregistering node",
+						itoa(result));
+				return 0;
+			}
+		}
+		else			/*	Register node.		*/
+		{
+			result = rfx_insert_contact(regionNbr, fromTime,
+					toTime, fromNode, toNode, magnitude,
+					confidence, &xaddr, 0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed registering node", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error registering node",
+						itoa(result));
+				return 0;
+			}
+		}
+	}
+
+	/*	Notice pertains to a scheduled contact.			*/
+
+	if (toTime == 0)		/*	Delete contact.		*/
+	{
+		result = rfx_remove_contact(regionNbr, &fromTime,
+				fromNode, toNode, 0);
+		switch(result)
+		{
+		case -1:
+			putErrmsg("Failed removing contact", NULL);
+			return -1;
+
+		case 0:
+			return 0;
+
+		default:
+			writeMemoNote("[?] Error removing contact",
+					itoa(result));
+			return 0;
+		}
+	}
+
+	if (revisingContact)
+	{
+		result = rfx_revise_contact(regionNbr, fromTime,
+				fromNode, toNode, magnitude, confidence, 0);
+		switch(result)
+		{
+		case -1:
+			putErrmsg("Failed revising contact", NULL);
+			return -1;
+
+		case 0:
+			return 0;
+
+		default:
+			writeMemoNote("[?] Error revising contact",
+					itoa(result));
+			return 0;
+		}
+	}
+
+	/*	Adding a scheduled contact.			*/
+
+	result = rfx_insert_contact(regionNbr, fromTime, toTime, fromNode,
+			toNode, magnitude, confidence, &xaddr, 0);
+	switch(result)
+	{
+	case -1:
+		putErrmsg("Failed inserting contact", NULL);
+		return -1;
+
+	case 0:
+		return 0;
+
+	default:
+		writeMemoNote("[?] Error inserting contact", itoa(result));
+		return 0;
+	}
 }
 
 static int	briefNewNode(uvast nodeNbr)
@@ -174,6 +371,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 {
 	Sdr		sdr = getIonsdr();
 	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		uvtemp;
 	ImcPetition	petition;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -188,20 +386,20 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	int		sourceRegion;
 	int		destinationRegion;
 
-	switch (parsePetition(&petition, cursor, unparsedBytes))
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-	case -1:
-		putErrmsg("Parsing of IMC petition failed.", NULL);
-		return -1;
-
-	case 0:
-		writeMemo("[?] IMC petition discarded.");
+		writeMemo("[?] Can't decode IMC petition group number.");
 		return 0;
-
-	default:
-		break;
 	}
 
+	petition.groupNbr = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC petition membership switch.");
+		return 0;
+	}
+
+	petition.isMember = (uvtemp != 0);
 	if (parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme,
 			&vschemeElt) == 0 || vscheme->codeNumber != ipn)
 	{
@@ -444,7 +642,7 @@ fflush(stdout);
 	return 0;
 }
 
-static BpSAP	_petitionSap(BpSAP *newSap)
+static BpSAP	_dispatchSap(BpSAP *newSap)
 {
 	void	*value;
 	BpSAP	sap;
@@ -465,22 +663,25 @@ static BpSAP	_petitionSap(BpSAP *newSap)
 static void	shutDownAdminApp(int signum)
 {
 	isignal(SIGTERM, shutDownAdminApp);
-	sm_SemEnd((_petitionSap(NULL))->recvSemaphore);
+	sm_SemEnd((_dispatchSap(NULL))->recvSemaphore);
 }
 
-static int	handlePetitions()
+static int	handleDispatches()
 {
 	Sdr		sdr = getIonsdr();
 	char		receptionEid[] = "imc:0.0";
 	int		running = 1;
 	BpSAP		sap;
 	BpDelivery	dlv;
+	unsigned int	buflen;
+	unsigned char	buffer[256];
 	ZcoReader	reader;
 	vast		bytesToParse;
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
-	unsigned int	buflen;
-	unsigned char	buffer[32];
+	uvast		arrayLength;
+	uvast		uvtemp;
+	ImcDispatchType	dispatchType;
 
 	if (bp_open(receptionEid, &sap) < 0)
 	{
@@ -488,13 +689,13 @@ static int	handlePetitions()
 		return 1;
 	}
 
-	oK(_petitionSap(&sap));
+	oK(_dispatchSap(&sap));
 	isignal(SIGTERM, shutDownAdminApp);
 	while (running && !(sm_SemEnded(sap->recvSemaphore)))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("IMC petition reception failed.", NULL);
+			putErrmsg("IMC dispatch reception failed.", NULL);
 			running = 0;
 			continue;
 		}
@@ -510,16 +711,17 @@ static int	handlePetitions()
 			/*	Intentional fall-through to default.	*/
 
 		default:
+			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		/*	Now handle the petition.			*/
+		/*	Start processing the dispatch.			*/
 
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
 		if (buflen > sizeof buffer)
 		{
-			putErrmsg("Can't acquire petition.", itoa(buflen));
+			putErrmsg("Can't acquire dispatch.", itoa(buflen));
 			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			continue;
@@ -530,7 +732,7 @@ static int	handlePetitions()
 				(char *) buffer);
 		if (bytesToParse < 0)
 		{
-			putErrmsg("Can't receive petition.", NULL);
+			putErrmsg("Can't receive dispatch.", NULL);
 			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			running = 0;
@@ -538,12 +740,61 @@ static int	handlePetitions()
 		}
 
 		oK(sdr_end_xn(sdr));
+
+		/*	Start parsing of dispatch.			*/
+
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
-		if (handlePetition(&dlv, cursor, unparsedBytes) < 0)
+		arrayLength = 0;
+		if (cbor_decode_array_open(&arrayLength, &cursor,
+				&unparsedBytes) < 1)
 		{
-			putErrmsg("Multicast petition handler failed.", NULL);
-			running = 0;
+			writeMemo("[?] Can't decode IMC dispatch array.");
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		if (arrayLength < 1)
+		{
+			writeMemoNote("[?] Bad IMC dispatch array length",
+					itoa(arrayLength));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		/*	Decode dispatch type.				*/
+
+		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode IMC dispatch type.");
+			return 0;
+		}
+
+		dispatchType = uvtemp;
+		switch (dispatchType)
+		{
+		case CpmDispatch:
+			if (handleCpmNotice(&dlv, cursor, unparsedBytes) < 0)
+			{
+				putErrmsg("Can't process CPM notice.", NULL);
+				running = 0;
+			}
+
+			break;
+
+		case ImcDispatch:
+			if (handlePetition(&dlv, cursor, unparsedBytes) < 0)
+			{
+				putErrmsg("Can't process IMC petition.", NULL);
+				running = 0;
+			}
+
+			break;
+
+		default:
+			writeMemo("[?] Can't process IMC dispatch.");
+			break;
 		}
 
 		bp_release_delivery(&dlv, 1);
@@ -580,7 +831,7 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] imcadminep is running.");
-	if (handlePetitions() < 0)
+	if (handleDispatches() < 0)
 	{
 		putErrmsg("imcadminep crashed.", NULL);
 	}

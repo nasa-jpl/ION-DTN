@@ -141,6 +141,19 @@ typedef struct
 
 	ExtensionSpec	*extensions;	/*	Add'l ext. blocks req'd.*/
 	int		extensionsCt;	/*	Count of extensions.	*/
+
+	/*	The number identifying the region(s) within which an
+	 *	IMC "dispatch" bundle is to be propagated is carried
+	 *	here in BpAncillaryData.  This value is provided only
+	 *	at the time the bundle is originally sourced.  It
+	 *	affects the construction of the bundle; the value is
+	 *	not carried in the bundle itself.  We are, again,
+	 *	just using the AncillaryData structure as a convenient
+	 *	way to add this feature to the API without requiring
+	 *	modification of applications built for earlier
+	 *	versions of ION.					*/
+
+	uvast		imcRegionNbr;
 } BpAncillaryData;
 
 /*	Quality-of-service flags.					*/

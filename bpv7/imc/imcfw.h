@@ -7,7 +7,7 @@
 	Modification History:
 	Date      Who   What
 
-	Copyright (c) 2012, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
@@ -19,6 +19,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum
+{
+	ImcDispatch = 1,
+	CpmDispatch = 2
+} ImcDispatchType;
 
 typedef struct
 {
@@ -50,6 +56,16 @@ extern void		imcFindGroup(uvast groupNbr, Object *addr,
 extern int		imcHandleBriefing(BpDelivery *dlv,
 				unsigned char *cursor,
 				unsigned int unparsedBytes);
+
+/*	"Dispatches" are bundles that are privately multicast to every
+ *	member of the indicated region other than the sender.
+ *
+ *	"Petitions" are dispatches that convey information about
+ *	multicast group membership.					*/
+
+extern int		imcSendDispatch(uvast toRegion, unsigned char *buffer,
+				int length);
+
 extern int		imcSendPetition(ImcPetition *petition, uvast toRegion);
 
 #ifdef __cplusplus

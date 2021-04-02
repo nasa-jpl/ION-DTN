@@ -135,6 +135,18 @@ int	rfx_order_contacts(PsmPartition partition, PsmAddress nodeData,
 
 	contact = (IonCXref *) psp(partition, nodeData);
 	argContact = (IonCXref *) dataBuffer;
+	if (contact->regionNbr < argContact->regionNbr)
+	{
+		return -1;
+	}
+
+	if (contact->regionNbr > argContact->regionNbr)
+	{
+		return 1;
+	}
+
+	/*	Matching region.					*/
+
 	if (contact->fromNode < argContact->fromNode)
 	{
 		return -1;
@@ -553,8 +565,8 @@ static void	postCpmNotice(uvast regionNbr, time_t fromTime, time_t toTime,
 	 *		If toTime is 0
 	 *			Delete contact (per fromTime and node nbrs)
 	 *		Else (not a deletion)
-	 *			If contact (fromTime and node nbrs) exists
-	 *				Change its xmitRate and confidence
+	 *			If confidence is >= 2.0
+	 *				Revise contact
 	 *			Else
 	 *				Add this contact
 	 *
@@ -1006,6 +1018,7 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 		obj = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &contact, obj, sizeof(IonContact));
 		memset((char *) &arg, 0, sizeof(IonCXref));
+		arg.regionNbr = regionNbr;
 		arg.fromNode = contact.fromNode;
 		arg.toNode = contact.toNode;
 		arg.fromTime = contact.fromTime;
@@ -1206,7 +1219,7 @@ static void	registerInRegion(uvast regionNbr, uvast nodeNbr, IonDB *iondb,
 
 		if (regionNbr < member.homeRegionNbr)
 		{
-			/*	Registering in new outer-region.	*/
+			/*	Registering in new outer region.	*/
 
 			if (regionNbr == member.outerRegionNbr)
 			{
@@ -1424,7 +1437,6 @@ must be later than From time.");
 		}
 	}
 
-	regionIdx = ionPickRegion(regionNbr);
 	CHKERR(sdr_begin_xn(sdr));
 	iondbObj = getIonDbObject();
 	CHKERR(iondbObj);
@@ -1467,10 +1479,11 @@ UVAST_FIELDSPEC " is already registered in region " UVAST_FIELDSPEC ".",
 
 		/*	Add the registration contact.			*/
 
+		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
+		regionIdx = ionPickRegion(regionNbr);
 		insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime,
 				fromNode, toNode, xmitRate, confidence,
 				contactType, cxaddr);
-		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
 		return sdr_end_xn(sdr);
 	}
 
@@ -1489,6 +1502,7 @@ UVAST_FIELDSPEC " is already registered in region " UVAST_FIELDSPEC ".",
 
 	*cxaddr = 0;	/*	Default.				*/
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
@@ -1556,7 +1570,8 @@ hypothetical contact, as that contact is now discovered.");
 				case CtHypothetical:
 					/*	Replace this one.	*/
 
-					if (rfx_remove_contact(&cxref->fromTime,
+					if (rfx_remove_contact(cxref->regionNbr,
+							&cxref->fromTime,
 							cxref->fromNode,
 							cxref->toNode, 0) < 0)
 					{
@@ -1611,8 +1626,9 @@ hypothetical contact, as that contact is now discovered.");
 			 *	predicted contact.  The predicted
 			 *	contact is overridden.			*/
 
-			if (rfx_remove_contact(&cxref->fromTime,
-					cxref->fromNode, cxref->toNode, 0) < 0)
+			if (rfx_remove_contact(cxref->regionNbr,
+					&cxref->fromTime, cxref->fromNode,
+					cxref->toNode, 0) < 0)
 			{
 				sdr_cancel_xn(sdr);
 				return -1;
@@ -1654,6 +1670,7 @@ hypothetical contact, as that contact is now discovered.");
 	/*	Contact doesn't conflict with any other contact in
 	 *	the database; okay to add.				*/
 
+	regionIdx = ionPickRegion(regionNbr);
 	insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime, fromNode,
 			toNode, xmitRate, confidence, contactType, cxaddr);
 	if (contactType == CtScheduled)
@@ -1688,8 +1705,8 @@ confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromNode,
 	return buffer;
 }
 
-int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
-		size_t xmitRate, float confidence, int announce)
+int	rfx_revise_contact(uvast regionNbr, time_t fromTime, uvast fromNode,
+		uvast toNode, size_t xmitRate, float confidence, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -1703,10 +1720,10 @@ int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
 	Object		obj;
 	IonContact	contact;
 	IonNeighbor	*neighbor;
-	uvast		regionNbr;
 
 	CHKERR(confidence <= 1.0);
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 	arg.fromTime = fromTime;
@@ -1779,11 +1796,18 @@ int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
 
 	if (announce)
 	{
-		regionNbr = (uvast) sdr_list_user_data(sdr, sdr_list_list(sdr,
-				cxref->contactElt));
-		postCpmNotice(regionNbr, cxref->fromTime, cxref->toTime,
-				cxref->fromNode, cxref->toNode, cxref->xmitRate,
-				cxref->confidence);
+		if (confidence < 0.0)	/*	No change.		*/
+		{
+			postCpmNotice(regionNbr, cxref->fromTime, cxref->toTime,
+				cxref->fromNode, cxref->toNode,
+				cxref->xmitRate, 4.0);
+		}
+		else	/*	Encode confidence to indicate revision.	*/
+		{
+			postCpmNotice(regionNbr, cxref->fromTime, cxref->toTime,
+				cxref->fromNode, cxref->toNode,
+				cxref->xmitRate, cxref->confidence + 2.0);
+		}
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -1795,9 +1819,9 @@ int	rfx_revise_contact(time_t fromTime, uvast fromNode, uvast toNode,
 	return 0;
 }
 
-static void	removeAllContacts(uvast fromNode, uvast toNode, int announce)
+static void	removeAllContacts(uvast regionNbr, uvast fromNode,
+			uvast toNode, int announce)
 {
-	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
 	IonCXref	arg;
@@ -1805,9 +1829,10 @@ static void	removeAllContacts(uvast fromNode, uvast toNode, int announce)
 	PsmAddress	nextElt;
 	PsmAddress	cxaddr;
 	IonCXref	*cxref;
-	uvast		regionNbr = 0;
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
+	arg.fromNode = regionNbr;
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 
@@ -1829,12 +1854,6 @@ static void	removeAllContacts(uvast fromNode, uvast toNode, int announce)
 		}
 
 		nextElt = sm_rbt_next(ionwm, cxelt); 
-		if (regionNbr == 0)
-		{
-			regionNbr = (uvast) sdr_list_user_data(sdr,
-					sdr_list_list(sdr, cxref->contactElt));
-		}
-
 		if (announce)
 		{
 			postCpmNotice(regionNbr, cxref->fromTime, 0,
@@ -1852,6 +1871,7 @@ static void	removeAllContacts(uvast fromNode, uvast toNode, int announce)
 
 		cxaddr = sm_rbt_data(ionwm, nextElt);
 		cxref = (IonCXref *) psp(ionwm, cxaddr);
+		arg.regionNbr = regionNbr;
 		arg.fromNode = cxref->fromNode;
 		arg.toNode = cxref->toNode;
 		arg.fromTime = cxref->fromTime;
@@ -1929,6 +1949,7 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 		|| contact.toNode == fromNode)
 		{
 			memset((char *) &arg, 0, sizeof(IonCXref));
+			arg.regionNbr = regionNbr;
 			arg.fromNode = contact.fromNode;
 			arg.toNode = contact.toNode;
 			arg.fromTime = contact.fromTime;
@@ -2001,10 +2022,9 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 	}
 }
 
-static void	removeOneContact(time_t fromTime, uvast fromNode, uvast toNode,
-			int announce)
+static void	removeOneContact(uvast regionNbr, time_t fromTime,
+			uvast fromNode, uvast toNode, int announce)
 {
-	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
 	IonCXref	arg;
@@ -2012,9 +2032,9 @@ static void	removeOneContact(time_t fromTime, uvast fromNode, uvast toNode,
 	PsmAddress	nextElt;
 	PsmAddress	cxaddr;
 	IonCXref	*cxref;
-	uvast		regionNbr;
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = fromNode;
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 	arg.fromTime = fromTime;
@@ -2030,8 +2050,6 @@ static void	removeOneContact(time_t fromTime, uvast fromNode, uvast toNode,
 
 	cxaddr = sm_rbt_data(ionwm, cxelt);
 	cxref = (IonCXref *) psp(ionwm, cxaddr);
-	regionNbr = (uvast) sdr_list_user_data(sdr, sdr_list_list(sdr,
-			cxref->contactElt));
 	if (cxref->type == CtRegistration)
 	{
 		/*	Deleting a registration contact removes
@@ -2052,8 +2070,8 @@ static void	removeOneContact(time_t fromTime, uvast fromNode, uvast toNode,
 	}
 }
 
-int	rfx_remove_contact(time_t *fromTime, uvast fromNode, uvast toNode,
-		int announce)
+int	rfx_remove_contact(uvast regionNbr, time_t *fromTime, uvast fromNode,
+		uvast toNode, int announce)
 {
 	Sdr	sdr = getIonsdr();
 
@@ -2065,11 +2083,12 @@ int	rfx_remove_contact(time_t *fromTime, uvast fromNode, uvast toNode,
 	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
-		removeOneContact(*fromTime, fromNode, toNode, announce);
+		removeOneContact(regionNbr, *fromTime, fromNode, toNode,
+				announce);
 	}
 	else		/*	Wild-card deletion, start at time zero.	*/
 	{
-		removeAllContacts(fromNode, toNode, announce);
+		removeAllContacts(regionNbr, fromNode, toNode, announce);
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -2083,6 +2102,10 @@ int	rfx_remove_contact(time_t *fromTime, uvast fromNode, uvast toNode,
 
 void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 {
+	Sdr		sdr = getIonsdr();
+	int		regionIdx;
+	IonDB		iondb;
+	uvast		regionNbr;
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	time_t		currentTime = getCtime();
@@ -2091,7 +2114,18 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 	IonCXref	*contact;
 	int		candidateContacts = 0;
 
+	*secRemaining = 0;		/*	Default.		*/
+	*xmitRate = ((size_t) -1);	/*	Default.		*/
+	regionIdx = ionRegionOf(getOwnNodeNbr(), nodeNbr);
+	if (regionIdx < 0)	/*	Node not in known contact plan.	*/
+	{
+		return;
+	}
+
+	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	regionNbr = iondb.regions[regionIdx].regionNbr;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = getOwnNodeNbr();
 	for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
 			&arg, &elt)); elt; elt = sm_rbt_next(ionwm, elt))
@@ -2132,12 +2166,7 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 
 	/*	No current contact.					*/
 
-	*secRemaining = 0;
-	if (candidateContacts == 0)	/*	Contact plan n/a.	*/
-	{
-		*xmitRate = ((size_t) -1);
-	}
-	else
+	if (candidateContacts)
 	{
 		*xmitRate = 0;		/*	No transmission now.	*/
 	}
@@ -3009,6 +3038,11 @@ int	rfx_start()
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	for (i = 0; i < 2; i++)
 	{
+		if (iondb.regions[i].contacts == 0)
+		{
+			continue;
+		}
+
 		for (elt = sdr_list_first(sdr, iondb.regions[i].contacts); elt;
 				elt = sdr_list_next(sdr, elt))
 		{

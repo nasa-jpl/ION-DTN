@@ -78,7 +78,8 @@ extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern int		rfx_revise_contact(time_t fromTime,
+extern int		rfx_revise_contact(uvast regionNbr,
+				time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
 				size_t xmitRate,
@@ -91,7 +92,8 @@ extern int		rfx_revise_contact(time_t fromTime,
 				system error, an indicative value
 				greater than 0 on any user error.	*/
 
-extern int		rfx_remove_contact(time_t *fromTime,
+extern int		rfx_remove_contact(uvast regionNbr,
+				time_t *fromTime,
 				uvast fromNode,
 				uvast toNode,
 				int announce);
@@ -110,7 +112,7 @@ extern int		rfx_insert_range(time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
 				unsigned int owlt,
-				PsmAddress *cxaddr,
+				PsmAddress *rxaddr,
 				int announce);
 			/*	Creates a new IonRange object,
 				inserts that object into the ranges

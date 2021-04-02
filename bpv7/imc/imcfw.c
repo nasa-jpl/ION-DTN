@@ -709,16 +709,14 @@ static int	loadRegionMembers(Bundle *bundle, uvast regionNbr, IonDB *db)
 		memberAddr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &member, memberAddr,
 				sizeof(RegionMember));
-		if (member.homeRegionNbr != regionNbr
-		&& member.outerRegionNbr != regionNbr)
+		if (member.homeRegionNbr == regionNbr
+		|| member.outerRegionNbr == regionNbr)
 		{
-			continue;
-		}
-
-		if (loadDestination(bundle, member.nodeNbr) < 0)
-		{
-			putErrmsg("Can't add region member.", NULL);
-			return -1;
+			if (loadDestination(bundle, member.nodeNbr) < 0)
+			{
+				putErrmsg("Can't add region member.", NULL);
+				return -1;
+			}
 		}
 	}
 
@@ -745,12 +743,13 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	 *	region membership (for a petition) or from group
 	 *	membership (for an application multicast message).	*/
 
-	if (groupNbr == 0)	/*	Petition.			*/
+	if (groupNbr == 0)	/*	Broadcast to region members.	*/
 	{
+
+		regionNbr = bundle->ancillaryData.imcRegionNbr;
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		regionNbr = bundle->destination.ssp.imc.serviceNbr;
-		if (regionNbr == 0)	/*	Native origination.	*/
+		if (regionNbr == 0)	/*	Fwd in both regions.	*/
 		{
 			/*	Send to all members of both home
 			 *	region and (if any) outer region.	*/
@@ -764,11 +763,10 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 				return -1;
 			}
 		}
-		else			/*	Propagation.		*/
+		else			/*	Fwd within this region.	*/
 		{
 			/*	Send only to all members of the
-			 *	region into which the message must
-			 *	be propagated by the passageway.	*/
+			 *	specified region.			*/
 
 			regionIdx = ionPickRegion(regionNbr);
 			if (regionIdx < 0)
@@ -785,7 +783,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 			}
 		}
 	}
-	else			/*	Application multicast message.	*/
+	else			/*	Multicast to group members.	*/
 	{
 		imcFindGroup(groupNbr, &groupAddr, &groupElt);
 		if (groupElt == 0)
@@ -798,7 +796,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 			return 0;
 		}
 
-		/*	Must multicast bundle to this group.		*/
+		/*	Multicast bundle to all members of this group.	*/
 
 		sdr_read(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 		for (elt = sdr_list_first(sdr, group.members); elt;

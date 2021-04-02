@@ -415,8 +415,8 @@ void	executeChange(int tokenCount, char **tokens)
 	fromNodeNbr = strtouvast(tokens[3]);
 	toNodeNbr = strtouvast(tokens[4]);
 	xmitRate = strtol(tokens[5], NULL, 0);
-	oK(rfx_revise_contact(fromTime, fromNodeNbr, toNodeNbr, xmitRate,
-			confidence, _announce(NULL)));
+	oK(rfx_revise_contact(_regionNbr(NULL), fromTime, fromNodeNbr,
+			toNodeNbr, xmitRate, confidence, _announce(NULL)));
 }
 
 void	executeDelete(int tokenCount, char **tokens)
@@ -466,8 +466,8 @@ void	executeDelete(int tokenCount, char **tokens)
 	toNodeNbr = strtouvast(tokens[4]);
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		oK(rfx_remove_contact(scope, fromNodeNbr, toNodeNbr,
-				_announce(NULL)));
+		oK(rfx_remove_contact(_regionNbr(NULL), scope, fromNodeNbr,
+				toNodeNbr, _announce(NULL)));
 		oK(_forecastNeeded(1));
 		return;
 	}

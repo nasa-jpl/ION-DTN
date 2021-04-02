@@ -306,7 +306,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	from timeline including the one that invoked
 		 *	this function.					*/
 
-		return rfx_remove_contact(&(cxref->fromTime),
+		return rfx_remove_contact(cxref->regionNbr, &(cxref->fromTime),
 				cxref->fromNode, cxref->toNode, 0);
 
 	case IonAlarmTimeout:

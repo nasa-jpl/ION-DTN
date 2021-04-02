@@ -368,6 +368,7 @@ typedef struct
 
 typedef struct
 {
+	uvast		regionNbr;	/*	LTP engineID, a.k.a.	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
