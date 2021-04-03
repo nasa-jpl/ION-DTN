@@ -10,235 +10,6 @@
 									*/
 #include "imcfw.h"
 
-static int	handleCpmNotice(BpDelivery *dlv, unsigned char *cursor,
-			unsigned int unparsedBytes)
-{
-	uvast		uvtemp;
-	uvast		regionNbr;
-	time_t		fromTime;
-	time_t		toTime;
-	uvast		fromNode;
-	uvast		toNode;
-	size_t		magnitude;
-	float		confidence;
-	int		result;
-	PsmAddress	xaddr;
-	int		revisingContact = 0;
-
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-			&unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode CPM notice region nbr.");
-		return 0;
-	}
-
-	regionNbr = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode CPM notice From time.");
-		return 0;
-	}
-
-	fromTime = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode CPM notice To time.");
-		return 0;
-	}
-
-	toTime = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode CPM notice From node.");
-		return 0;
-	}
-
-	fromNode = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode CPM notice From node.");
-		return 0;
-	}
-
-	toNode = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode CPM notice magnitude.");
-		return 0;
-	}
-
-	magnitude = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode CPM notice confidence.");
-		return 0;
-	}
-
-	if (uvtemp == 400)	/*	Revision, confidence unchanged.	*/
-	{
-		confidence = -1.0;
-		revisingContact = 1;
-	}
-	else			/*	Contact revision if >= 200.	*/
-	{
-		confidence = (float) (uvtemp / 100); 
-		if (confidence >= 2.0)
-		{
-			confidence -= 2.0;
-			revisingContact = 1;
-		}
-	}
-
-	/*	Now act on the received contact plan mgt notice.	*/
-
-	if (regionNbr == 0)		/*	This is a Range notice.	*/
-	{
-		if (toTime == 0)	/*	Delete Range.		*/
-		{
-			result = rfx_remove_range(&fromTime, fromNode, toNode,
-					0);
-			switch(result)
-			{
-			case -1:
-				putErrmsg("Failed removing range", NULL);
-				return -1;
-
-			case 0:
-				return 0;
-
-			default:
-				writeMemoNote("[?] Error removing range",
-						itoa(result));
-				return 0;
-			}
-		}
-		else			/*	Add Range.		*/
-		{
-			result = rfx_insert_range(fromTime, toTime, fromNode,
-					toNode, magnitude, &xaddr, 0);
-			switch(result)
-			{
-			case -1:
-				putErrmsg("Failed inserting range", NULL);
-				return -1;
-
-			case 0:
-				return 0;
-
-			default:
-				writeMemoNote("[?] Error inserting range",
-						itoa(result));
-				return 0;
-			}
-		}
-	}
-
-	/*	This is a Contact notice.				*/
-
-	if (fromTime == (time_t) -1)	/*	Registration contact.	*/
-	{
-		if (toTime == 0)	/*	Unregister node.	*/
-		{
-			result = rfx_remove_contact(regionNbr, &fromTime,
-					fromNode, toNode, 0);
-			switch(result)
-			{
-			case -1:
-				putErrmsg("Failed unregistering node", NULL);
-				return -1;
-
-			case 0:
-				return 0;
-
-			default:
-				writeMemoNote("[?] Error unregistering node",
-						itoa(result));
-				return 0;
-			}
-		}
-		else			/*	Register node.		*/
-		{
-			result = rfx_insert_contact(regionNbr, fromTime,
-					toTime, fromNode, toNode, magnitude,
-					confidence, &xaddr, 0);
-			switch(result)
-			{
-			case -1:
-				putErrmsg("Failed registering node", NULL);
-				return -1;
-
-			case 0:
-				return 0;
-
-			default:
-				writeMemoNote("[?] Error registering node",
-						itoa(result));
-				return 0;
-			}
-		}
-	}
-
-	/*	Notice pertains to a scheduled contact.			*/
-
-	if (toTime == 0)		/*	Delete contact.		*/
-	{
-		result = rfx_remove_contact(regionNbr, &fromTime,
-				fromNode, toNode, 0);
-		switch(result)
-		{
-		case -1:
-			putErrmsg("Failed removing contact", NULL);
-			return -1;
-
-		case 0:
-			return 0;
-
-		default:
-			writeMemoNote("[?] Error removing contact",
-					itoa(result));
-			return 0;
-		}
-	}
-
-	if (revisingContact)
-	{
-		result = rfx_revise_contact(regionNbr, fromTime,
-				fromNode, toNode, magnitude, confidence, 0);
-		switch(result)
-		{
-		case -1:
-			putErrmsg("Failed revising contact", NULL);
-			return -1;
-
-		case 0:
-			return 0;
-
-		default:
-			writeMemoNote("[?] Error revising contact",
-					itoa(result));
-			return 0;
-		}
-	}
-
-	/*	Adding a scheduled contact.			*/
-
-	result = rfx_insert_contact(regionNbr, fromTime, toTime, fromNode,
-			toNode, magnitude, confidence, &xaddr, 0);
-	switch(result)
-	{
-	case -1:
-		putErrmsg("Failed inserting contact", NULL);
-		return -1;
-
-	case 0:
-		return 0;
-
-	default:
-		writeMemoNote("[?] Error inserting contact", itoa(result));
-		return 0;
-	}
-}
-
 static int	briefNewNode(uvast nodeNbr)
 {
 	Sdr		sdr = getIonsdr();
@@ -383,8 +154,10 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	uvast		nodeNbr;
 	Object		iondbObj;
 	IonDB		iondb;
-	int		sourceRegion;
-	int		destinationRegion;
+	int		sourceRegionIdx;
+	uvast		destinationRegionNbr;
+
+	/*	Finish parsing the petition.				*/
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
@@ -400,6 +173,9 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	}
 
 	petition.isMember = (uvtemp != 0);
+
+	/*	Determine the node that sent the petition.		*/
+
 	if (parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme,
 			&vschemeElt) == 0 || vscheme->codeNumber != ipn)
 	{
@@ -410,7 +186,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 		return 0;
 	}
 
-	/*	First get the multicast group.				*/
+	/*	Now get the multicast group.				*/
 
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at node "
@@ -582,31 +358,32 @@ fflush(stdout);
 		}
 	}
 
-	/*	If node is a passageway, propagate as necessary.	*/
+	/*	If node is a passageway, propagate petition as needed.	*/
 
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (iondb.regions[1].regionNbr != 0)
 	{
-		/*	Node is a passageway from its home region to
-		 *	the immediate encompassing region.		*/
+		/*	Node is a passageway between its home region
+		 *	and the immediate encompassing region.		*/
 
-		sourceRegion = ionRegionOf(metaEid.elementNbr, ownNodeNbr);
-		if (sourceRegion < 0)
+		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownNodeNbr);
+		if (sourceRegionIdx < 0)
 		{
 			putErrmsg("IMC system error.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
-		destinationRegion = 0 - sourceRegion;
+		destinationRegionNbr =
+				iondb.regions[0 - sourceRegionIdx].regionNbr;
 		if (petition.isMember == 1)		/*	Join	*/
 		{
-			group.count[sourceRegion] += 1;
-			if (group.count[sourceRegion] == 1)
+			group.count[sourceRegionIdx] += 1;
+			if (group.count[sourceRegionIdx] == 1)
 			{
 				if (imcSendPetition(&petition,
-						destinationRegion) < 0)
+						destinationRegionNbr) < 0)
 				{
 					putErrmsg("Join propagation failed.",
 							NULL);
@@ -617,11 +394,11 @@ fflush(stdout);
 		}
 		else					/*	Leave	*/
 		{
-			group.count[sourceRegion] -= 1;
-			if (group.count[sourceRegion] == 0)
+			group.count[sourceRegionIdx] -= 1;
+			if (group.count[sourceRegionIdx] == 0)
 			{
 				if (imcSendPetition(&petition,
-						destinationRegion) < 0)
+						destinationRegionNbr) < 0)
 				{
 					putErrmsg("Leave propagation failed.",
 							NULL);
@@ -642,7 +419,7 @@ fflush(stdout);
 	return 0;
 }
 
-static BpSAP	_dispatchSap(BpSAP *newSap)
+static BpSAP	_petitionSap(BpSAP *newSap)
 {
 	void	*value;
 	BpSAP	sap;
@@ -663,10 +440,10 @@ static BpSAP	_dispatchSap(BpSAP *newSap)
 static void	shutDownAdminApp(int signum)
 {
 	isignal(SIGTERM, shutDownAdminApp);
-	sm_SemEnd((_dispatchSap(NULL))->recvSemaphore);
+	sm_SemEnd((_petitionSap(NULL))->recvSemaphore);
 }
 
-static int	handleDispatches()
+static int	handlePetitions()
 {
 	Sdr		sdr = getIonsdr();
 	char		receptionEid[] = "imc:0.0";
@@ -680,8 +457,6 @@ static int	handleDispatches()
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
 	uvast		arrayLength;
-	uvast		uvtemp;
-	ImcDispatchType	dispatchType;
 
 	if (bp_open(receptionEid, &sap) < 0)
 	{
@@ -689,13 +464,13 @@ static int	handleDispatches()
 		return 1;
 	}
 
-	oK(_dispatchSap(&sap));
+	oK(_petitionSap(&sap));
 	isignal(SIGTERM, shutDownAdminApp);
 	while (running && !(sm_SemEnded(sap->recvSemaphore)))
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("IMC dispatch reception failed.", NULL);
+			putErrmsg("IMC petition reception failed.", NULL);
 			running = 0;
 			continue;
 		}
@@ -715,13 +490,13 @@ static int	handleDispatches()
 			continue;
 		}
 
-		/*	Start processing the dispatch.			*/
+		/*	Process the petition.				*/
 
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
 		if (buflen > sizeof buffer)
 		{
-			putErrmsg("Can't acquire dispatch.", itoa(buflen));
+			putErrmsg("Can't acquire petition.", itoa(buflen));
 			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			continue;
@@ -732,7 +507,7 @@ static int	handleDispatches()
 				(char *) buffer);
 		if (bytesToParse < 0)
 		{
-			putErrmsg("Can't receive dispatch.", NULL);
+			putErrmsg("Can't receive petition.", NULL);
 			oK(sdr_end_xn(sdr));
 			bp_release_delivery(&dlv, 1);
 			running = 0;
@@ -741,7 +516,7 @@ static int	handleDispatches()
 
 		oK(sdr_end_xn(sdr));
 
-		/*	Start parsing of dispatch.			*/
+		/*	Start parsing of petition.			*/
 
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
@@ -749,52 +524,23 @@ static int	handleDispatches()
 		if (cbor_decode_array_open(&arrayLength, &cursor,
 				&unparsedBytes) < 1)
 		{
-			writeMemo("[?] Can't decode IMC dispatch array.");
+			writeMemo("[?] Can't decode IMC petition array.");
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		if (arrayLength < 1)
+		if (arrayLength != 2)
 		{
-			writeMemoNote("[?] Bad IMC dispatch array length",
+			writeMemoNote("[?] Bad IMC petition array length",
 					itoa(arrayLength));
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		/*	Decode dispatch type.				*/
-
-		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
-				&unparsedBytes) < 1)
+		if (handlePetition(&dlv, cursor, unparsedBytes) < 0)
 		{
-			writeMemo("[?] Can't decode IMC dispatch type.");
-			return 0;
-		}
-
-		dispatchType = uvtemp;
-		switch (dispatchType)
-		{
-		case CpmDispatch:
-			if (handleCpmNotice(&dlv, cursor, unparsedBytes) < 0)
-			{
-				putErrmsg("Can't process CPM notice.", NULL);
-				running = 0;
-			}
-
-			break;
-
-		case ImcDispatch:
-			if (handlePetition(&dlv, cursor, unparsedBytes) < 0)
-			{
-				putErrmsg("Can't process IMC petition.", NULL);
-				running = 0;
-			}
-
-			break;
-
-		default:
-			writeMemo("[?] Can't process IMC dispatch.");
-			break;
+			putErrmsg("Can't process IMC petition.", NULL);
+			running = 0;
 		}
 
 		bp_release_delivery(&dlv, 1);
@@ -831,7 +577,7 @@ int	main(int argc, char *argv[])
 	}
 
 	writeMemo("[i] imcadminep is running.");
-	if (handleDispatches() < 0)
+	if (handlePetitions() < 0)
 	{
 		putErrmsg("imcadminep crashed.", NULL);
 	}

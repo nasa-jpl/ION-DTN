@@ -20,12 +20,6 @@
 extern "C" {
 #endif
 
-typedef enum
-{
-	ImcDispatch = 1,
-	CpmDispatch = 2
-} ImcDispatchType;
-
 typedef struct
 {
 	uvast		groupNbr;
@@ -57,14 +51,14 @@ extern int		imcHandleBriefing(BpDelivery *dlv,
 				unsigned char *cursor,
 				unsigned int unparsedBytes);
 
-/*	"Dispatches" are bundles that are privately multicast to every
- *	member of the indicated region other than the sender.
+/*	"Dispatches" are bundles that are privately multicast to all
+ *	(and only) members of the indicated region(s).
  *
  *	"Petitions" are dispatches that convey information about
  *	multicast group membership.					*/
 
-extern int		imcSendDispatch(uvast toRegion, unsigned char *buffer,
-				int length);
+extern int		imcSendDispatch(char *destEid, uvast toRegion,
+				unsigned char *buffer, int length);
 
 extern int		imcSendPetition(ImcPetition *petition, uvast toRegion);
 

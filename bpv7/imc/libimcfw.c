@@ -18,6 +18,8 @@
 
 #define	IMC_DBNAME	"imcRoute"
 
+static	char	imcEid[] = "imc:0.0";
+
 /*	*	*	Globals used for IMC scheme service.	*	*/
 
 static Object	_imcdbObject(Object *newDbObj)
@@ -378,10 +380,10 @@ fflush(stdout);
 	return 0;
 }
 
-int	imcSendDispatch(uvast toRegion, unsigned char *buffer, int length)
+int	imcSendDispatch(char *destEid, uvast toRegion, unsigned char *buffer,
+		int length)
 {
 	Sdr		sdr = getIonsdr();
-	char		*destEid = "imc:0.0";
 	char		sourceEid[32];
 	MetaEid		sourceMetaEid;
 	VScheme		*vscheme;
@@ -481,22 +483,17 @@ int	imcSendPetition(ImcPetition *petition, uvast toRegion)
 
 	cursor = buffer;
 
-	/*	Dispatch message is an array of 3 items.		*/
+	/*	Dispatch message is an array of 2 items.		*/
 
-	uvtemp = 3;
+	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
 
-	/*	First item of array (dispatch) is the dispatch type.	*/
-
-	uvtemp = ImcDispatch;
-	oK(cbor_encode_integer(uvtemp, &cursor));
-
-	/*	Second item of array (petition) is the group number.	*/
+	/*	First item of array (petition) is the group number.	*/
 
 	uvtemp = petition->groupNbr;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	Third item of array is the membership switch.		*/
+	/*	Second item of array is the membership switch.		*/
 
 	uvtemp = petition->isMember;
 	oK(cbor_encode_integer(uvtemp, &cursor));
@@ -504,7 +501,7 @@ int	imcSendPetition(ImcPetition *petition, uvast toRegion)
 	/*	Now multicast the petition.				*/
 
 	petitionLength = cursor - buffer;
-	if (imcSendDispatch(toRegion, buffer, petitionLength) < 0)
+	if (imcSendDispatch(imcEid, toRegion, buffer, petitionLength) < 0)
 	{
 		result = -1;
 	}

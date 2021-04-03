@@ -112,8 +112,8 @@ static void	*handleDatagrams(void *parm)
 		sm_TaskYield();
 	}
 
-	writeErrmsgMemos();
 	writeMemo("[i] udpbso receiver thread has ended.");
+	writeErrmsgMemos();
 
 	/*	Free resources.						*/
 
@@ -337,7 +337,8 @@ compatibility, but it is ignored.");
 	/*	Start the echo handler thread.				*/
 
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp, "udpbso_receiver"))
+	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp,
+				"udpbso_receiver"))
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("udpbsi can't create receiver thread", NULL);

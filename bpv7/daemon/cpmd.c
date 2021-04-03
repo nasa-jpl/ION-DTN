@@ -10,6 +10,8 @@
 									*/
 #include "imcfw.h"
 
+static char	cpmEid[] = "imc:0.1";
+
 static uaddr	_running(uaddr *newValue)
 {
 	void	*value;
@@ -28,12 +30,348 @@ static uaddr	_running(uaddr *newValue)
 	return state;
 }
 
-static void	shutDown(int signum)	/*	Stops cpmd.		*/
+static void	shutDown(int signum)
 {
 	uaddr	stop = 0;
 
+	isignal(SIGTERM, SIG_IGN);
 	oK(_running(&stop));	/*	Terminates cpmd.		*/
 }
+
+/*	*	*	Handler thread functions	*	*	*/
+
+static int	handleCpmNotice(BpDelivery *dlv, unsigned char *cursor,
+			unsigned int unparsedBytes)
+{
+	uvast		uvtemp;
+	uvast		regionNbr;
+	time_t		fromTime;
+	time_t		toTime;
+	uvast		fromNode;
+	uvast		toNode;
+	size_t		magnitude;
+	float		confidence;
+	int		result;
+	PsmAddress	xaddr;
+	int		revisingContact = 0;
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+			&unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice region nbr.");
+		return 0;
+	}
+
+	regionNbr = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice From time.");
+		return 0;
+	}
+
+	fromTime = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice To time.");
+		return 0;
+	}
+
+	toTime = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice From node.");
+		return 0;
+	}
+
+	fromNode = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice From node.");
+		return 0;
+	}
+
+	toNode = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice magnitude.");
+		return 0;
+	}
+
+	magnitude = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode CPM notice confidence.");
+		return 0;
+	}
+
+	if (uvtemp == 400)	/*	Revision, confidence unchanged.	*/
+	{
+		confidence = -1.0;
+		revisingContact = 1;
+	}
+	else			/*	Contact revision if >= 200.	*/
+	{
+		confidence = (float) (uvtemp / 100); 
+		if (confidence >= 2.0)
+		{
+			confidence -= 2.0;
+			revisingContact = 1;
+		}
+	}
+
+	/*	Now act on the received contact plan mgt notice.	*/
+
+	if (regionNbr == 0)		/*	This is a Range notice.	*/
+	{
+		if (toTime == 0)	/*	Delete Range.		*/
+		{
+			result = rfx_remove_range(&fromTime, fromNode, toNode,
+					0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed removing range", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error removing range",
+						itoa(result));
+				return 0;
+			}
+		}
+		else			/*	Add Range.		*/
+		{
+			result = rfx_insert_range(fromTime, toTime, fromNode,
+					toNode, magnitude, &xaddr, 0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed inserting range", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error inserting range",
+						itoa(result));
+				return 0;
+			}
+		}
+	}
+
+	/*	This is a Contact notice.				*/
+
+	if (fromTime == (time_t) -1)	/*	Registration contact.	*/
+	{
+		if (toTime == 0)	/*	Unregister node.	*/
+		{
+			result = rfx_remove_contact(regionNbr, &fromTime,
+					fromNode, toNode, 0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed unregistering node", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error unregistering node",
+						itoa(result));
+				return 0;
+			}
+		}
+		else			/*	Register node.		*/
+		{
+			result = rfx_insert_contact(regionNbr, fromTime,
+					toTime, fromNode, toNode, magnitude,
+					confidence, &xaddr, 0);
+			switch(result)
+			{
+			case -1:
+				putErrmsg("Failed registering node", NULL);
+				return -1;
+
+			case 0:
+				return 0;
+
+			default:
+				writeMemoNote("[?] Error registering node",
+						itoa(result));
+				return 0;
+			}
+		}
+	}
+
+	/*	Notice pertains to a scheduled contact.			*/
+
+	if (revisingContact)
+	{
+		result = rfx_revise_contact(regionNbr, fromTime,
+				fromNode, toNode, magnitude, confidence, 0);
+		switch(result)
+		{
+		case -1:
+			putErrmsg("Failed revising contact", NULL);
+			return -1;
+
+		case 0:
+			return 0;
+
+		default:
+			writeMemoNote("[?] Error revising contact",
+					itoa(result));
+			return 0;
+		}
+	}
+
+	if (toTime == 0)		/*	Delete contact.		*/
+	{
+		result = rfx_remove_contact(regionNbr, &fromTime,
+				fromNode, toNode, 0);
+		switch(result)
+		{
+		case -1:
+			putErrmsg("Failed removing contact", NULL);
+			return -1;
+
+		case 0:
+			return 0;
+
+		default:
+			writeMemoNote("[?] Error removing contact",
+					itoa(result));
+			return 0;
+		}
+	}
+
+	/*	Adding a scheduled contact.			*/
+
+	result = rfx_insert_contact(regionNbr, fromTime, toTime, fromNode,
+			toNode, magnitude, confidence, &xaddr, 0);
+	switch(result)
+	{
+	case -1:
+		putErrmsg("Failed inserting contact", NULL);
+		return -1;
+
+	case 0:
+		return 0;
+
+	default:
+		writeMemoNote("[?] Error inserting contact", itoa(result));
+		return 0;
+	}
+}
+
+static void	*handleNotices(void *parm)
+{
+	Sdr		sdr = getIonsdr();
+	uaddr		stop = 0;
+	BpSAP		sap;
+	BpDelivery	dlv;
+	unsigned int	buflen;
+	unsigned char	buffer[256];
+	ZcoReader	reader;
+	vast		bytesToParse;
+	unsigned char	*cursor;
+	unsigned int	unparsedBytes;
+	uvast		arrayLength;
+
+	sap = (BpSAP) parm;
+	while (_running(NULL) && !(sm_SemEnded(sap->recvSemaphore)))
+	{
+		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
+		{
+			putErrmsg("CPM notice reception failed.", NULL);
+			_running(&stop);
+			continue;
+		}
+
+		switch (dlv.result)
+		{
+		case BpPayloadPresent:
+			break;
+
+		case BpEndpointStopped:
+			_running(&stop);
+
+			/*	Intentional fall-through to default.	*/
+
+		default:
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		/*	Process the notice.				*/
+
+		CHKVOID(sdr_begin_xn(sdr));
+		buflen = zco_source_data_length(sdr, dlv.adu);
+		if (buflen > sizeof buffer)
+		{
+			putErrmsg("Can't acquire notice.", itoa(buflen));
+			oK(sdr_end_xn(sdr));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		zco_start_receiving(dlv.adu, &reader);
+		bytesToParse = zco_receive_source(sdr, &reader, buflen,
+				(char *) buffer);
+		oK(sdr_end_xn(sdr));
+		if (bytesToParse < 0)
+		{
+			putErrmsg("Can't receive notice.", NULL);
+			_running(&stop);
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		/*	Start parsing of notice.			*/
+
+		cursor = buffer;
+		unparsedBytes = bytesToParse;
+		arrayLength = 0;
+		if (cbor_decode_array_open(&arrayLength, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode CPM notice array.");
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		if (arrayLength != 7)
+		{
+			writeMemoNote("[?] Bad CPM notice array length",
+					itoa(arrayLength));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		if (handleCpmNotice(&dlv, cursor, unparsedBytes) < 0)
+		{
+			putErrmsg("Can't process CPM notice.", NULL);
+			_running(&stop);
+		}
+
+		bp_release_delivery(&dlv, 1);
+
+		/*	Make sure other tasks have a chance to run.	*/
+
+		sm_TaskYield();
+	}
+
+	writeMemo("[i] cpmd handler thread ended.");
+	writeErrmsgMemos();
+	return NULL;
+}
+
+/*	*	*	Main thread functions.	*	*	*	*/
 
 #if defined (ION_LWT)
 int	cpmd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
@@ -47,6 +385,8 @@ int	main(int argc, char *argv[])
 	Object		iondbObj;
 	IonDB		iondb;
 	uaddr		start = 1;
+	BpSAP		sap;
+	pthread_t	handlerThread;
 	Object		elt;
 	Object		addr;
 	CpmNotice	notice;
@@ -55,10 +395,16 @@ int	main(int argc, char *argv[])
 	uvast		uvtemp;
 	int		noticeLength;
 
+	if (bpAttach() < 0)
+	{
+		putErrmsg("cpmd can't attach to BP.", NULL);
+		return 1;
+	}
+
 	if (imcInit() < 0)
 	{
 		putErrmsg("cpmd can't attach to IMC database.", NULL);
-		return -1;
+		return 1;
 	}
 
 	sdr = getIonsdr();
@@ -67,11 +413,26 @@ int	main(int argc, char *argv[])
 	CHKERR(iondbObj);
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	isignal(SIGTERM, shutDown);
+	oK(_running(&start));
+
+	/*	Start the CPM notice handler thread.			*/
+
+	if (bp_open(cpmEid, &sap) < 0)
+	{
+		putErrmsg("Can't open cpmd endpoint.", cpmEid);
+		return 1;
+	}
+
+	if (pthread_begin(&handlerThread, NULL, handleNotices, sap,
+			"cpmd_handler"))
+	{
+		putSysErrmsg("cpmd can't create notice handler thread.", NULL);
+		return 1;
+	}
 
 	/*	Main loop: snooze 1 second, then drain queue of pending
 	 *	contact plana management notices.			*/
 
-	oK(_running(&start));
 	writeMemo("[i] cpmd is running.");
 	while (_running(NULL))
 	{
@@ -103,17 +464,12 @@ int	main(int argc, char *argv[])
 
 			cursor = buffer;
 
-			/*	Notice is an array of 8 items.		*/
+			/*	Notice is an array of 7 items.		*/
 
-			uvtemp = 8;
+			uvtemp = 7;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 
-			/*	Second item of array is dispatch type.	*/
-
-			uvtemp = CpmDispatch;
-			oK(cbor_encode_integer(uvtemp, &cursor));
-
-			/*	Next is region number.			*/
+			/*	First item of array is region number.	*/
 
 			uvtemp = notice.regionNbr;
 			oK(cbor_encode_integer(uvtemp, &cursor));
@@ -154,7 +510,7 @@ int	main(int argc, char *argv[])
 			/*	Now multicast the notice.		*/
 
 			noticeLength = cursor - buffer;
-			if (imcSendDispatch(notice.regionNbr, buffer,
+			if (imcSendDispatch(cpmEid, notice.regionNbr, buffer,
 					noticeLength) < 0)
 			{
 				putErrmsg("Failed sending CPM notice.", NULL);
@@ -168,6 +524,14 @@ int	main(int argc, char *argv[])
 			break;
 		}
 	}
+
+	/*	Terminate handler thread.				*/
+
+	sm_SemEnd(sap->recvSemaphore);
+	pthread_join(handlerThread, NULL);
+	bp_close(sap);
+
+	/*	Wrap up.						*/
 
 	writeErrmsgMemos();
 	writeMemo("[i] cpmd has ended.");
