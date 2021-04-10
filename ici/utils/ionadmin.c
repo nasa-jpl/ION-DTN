@@ -130,9 +130,9 @@ static void	printUsage()
 relative times (+ss) are computed.");
 	PUTS("\t   ^ <region number>");
 	PUTS("\t\tThe ^ command identifies the region to which subsequent \
-'add contact' operations pertain.");
-	PUTS("\t   ~ { 0 | 1 }");
-	PUTS("\t\tThe ~ command enables/disable announcement of contact and \
+contact operations pertain.");
+	PUTS("\t   ! { 0 | 1 }");
+	PUTS("\t\tThe ! command enables/disable announcement of contact and \
 range commands to the region.  Default is 0 (disable).");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a contact <from time> <until time> <from node#> <to node#> \
@@ -155,7 +155,12 @@ in bytes per second> [confidence in occurrence]");
 	PUTS("\tl\tList");
 	PUTS("\t   l contact");
 	PUTS("\t   l range");
-	PUTS("\tm\tManage ION database: clock, space occupancy");
+	PUTS("\tb\tBrief");
+	PUTS("\t   b contact");
+	PUTS("\t   b range");
+	PUTS("\t\tThe Brief command generates a file of ionrc 'a' commands to");
+	PUTS("\t\tadd all ranges or add all contacts in the selected region.");
+	PUTS("\tm\tManage ION database: clock, space occupancy, etc.");
 	PUTS("\t   m utcdelta <local time minus correct UTC, in seconds>");
 	PUTS("\t   m clockerr <new known maximum clock error, in seconds>");
 	PUTS("\t   m clocksync [ { 0 | 1 } ]");
@@ -270,33 +275,33 @@ void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "contact") == 0)
 	{
-		if (strncmp(tokens[2], "0", 1) == 0)
+		if (strncmp(tokens[2], "0", 2) == 0)
 		{
 			fromTime = 0;
 		}
-		else if (strncmp(tokens[2], "-1", 1) == 0)
+		else if (strncmp(tokens[2], "-1", 3) == 0)
 		{
-			fromTime = (time_t) -1;
+			fromTime = MAX_POSIX_TIME;
 		}
 		else
 		{
 			fromTime = readTimestampUTC(tokens[2], refTime);
 		}
 
-		if (strncmp(tokens[3], "0", 1) == 0)
+		if (strncmp(tokens[3], "0", 2) == 0)
 		{
 			toTime = 0;
 		}
-		else if (strncmp(tokens[3], "-1", 1) == 0)
+		else if (strncmp(tokens[3], "-1", 3) == 0)
 		{
-			toTime = (time_t) -1;
+			toTime = MAX_POSIX_TIME;
 		}
 		else
 		{
 			toTime = readTimestampUTC(tokens[3], refTime);
 		}
 
-		if (fromTime == (time_t) -1)
+		if (fromTime == MAX_POSIX_TIME)
 		{
 			/*	Must be a registration contact.		*/
 
@@ -619,6 +624,29 @@ static void	executeList(int tokenCount, char **tokens)
 		}
 
 		sdr_exit_xn(sdr);
+		return;
+	}
+
+	SYNTAX_ERROR;
+}
+
+static void	executeBrief(int tokenCount, char **tokens)
+{
+	if (tokenCount < 2)
+	{
+		printText("Brief what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "contact") == 0)
+	{
+		rfx_brief_contacts(_regionNbr(NULL));
+		return;
+	}
+
+	if (strcmp(tokens[1], "range") == 0)
+	{
+		rfx_brief_ranges();
 		return;
 	}
 
@@ -1329,30 +1357,26 @@ no time.");
 			return 0;
 
 		case '^':
-			if (ionAttach() == 0)
+			if (tokenCount != 2)
 			{
-				if (tokenCount != 2)
+				SYNTAX_ERROR;
+			}
+			else
+			{
+				regionNbr = strtouvast(tokens[1]);
+				if (regionNbr == 0)
 				{
-					SYNTAX_ERROR;
+					printText("Region nbr can't be zero.");
 				}
 				else
 				{
-					regionNbr = strtouvast(tokens[1]);
-					if (regionNbr == 0)
-					{
-						printText("Can't set region \
-number to zero.");
-					}
-					else
-					{
-						oK(_regionNbr(&regionNbr));
-					}
+					oK(_regionNbr(&regionNbr));
 				}
 			}
 
 			return 0;
 
-		case '~':
+		case '!':
 			switchAnnounce(tokenCount, tokens);
 			return 0;
 
@@ -1392,6 +1416,14 @@ number to zero.");
 			if (ionAttach() == 0)
 			{
 				executeList(tokenCount, tokens);
+			}
+
+			return 0;
+
+		case 'b':
+			if (ionAttach() == 0)
+			{
+				executeBrief(tokenCount, tokens);
 			}
 
 			return 0;

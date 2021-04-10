@@ -6463,6 +6463,10 @@ when asking for status reports.");
 			userExtensions = ancillaryData->extensions;
 			userExtensionsCt = ancillaryData->extensionsCt;
 		}
+
+		/*	Also note imcRegionNbr (usually zero).		*/
+
+		bundle.ancillaryData.imcRegionNbr = ancillaryData->imcRegionNbr;
 	}
 
 	if (custodySwitch != NoCustodyRequested)

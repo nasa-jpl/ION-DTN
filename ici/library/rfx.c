@@ -795,6 +795,7 @@ static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
 			ContactType contactType, PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
+	uvast		regionNbr = iondb->regions[regionIdx].regionNbr;
 	IonContact	contact;
 	double		volume;
 	Object		obj;
@@ -827,6 +828,7 @@ static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
 	}
 
 	memset((char *) &newCx, 0, sizeof(IonCXref));
+	newCx.regionNbr = regionNbr;
 	newCx.fromTime = fromTime;
 	newCx.toTime = toTime;
 	newCx.fromNode = fromNode;
@@ -1391,7 +1393,6 @@ between 0.0 and 1.0.");
 	if (fromTime == MAX_POSIX_TIME)	/*	Registration.		*/
 	{
 		CHKZERO(fromNode == toNode);
-		fromTime = MAX_POSIX_TIME;
 		toTime = MAX_POSIX_TIME;
 		xmitRate = 0;
 		confidence = 1.0;
@@ -1401,7 +1402,6 @@ between 0.0 and 1.0.");
 	{
 		CHKZERO(fromNode != toNode);
 		CHKZERO(fromNode == ownNodeNbr || toNode == ownNodeNbr);
-		fromTime = 0;
 		toTime = MAX_POSIX_TIME;
 		xmitRate = 0;
 		confidence = 0.0;
@@ -1418,7 +1418,7 @@ between 0.0 and 1.0.");
 		if (fromTime == toTime)	/*	Predicted.		*/
 		{
 			CHKZERO(fromNode != ownNodeNbr && toNode != ownNodeNbr);
-			fromTime = getCtime();	/*	Now.	*/
+			fromTime = getCtime();	/*	Now.		*/
 			contactType = CtPredicted;
 		}
 		else			/*	Scheduled.		*/
@@ -2034,7 +2034,7 @@ static void	removeOneContact(uvast regionNbr, time_t fromTime,
 	IonCXref	*cxref;
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
-	arg.regionNbr = fromNode;
+	arg.regionNbr = regionNbr;
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 	arg.fromTime = fromTime;
@@ -2098,6 +2098,120 @@ int	rfx_remove_contact(uvast regionNbr, time_t *fromTime, uvast fromNode,
 	}
 
 	return 0;
+}
+
+void	rfx_brief_contacts(uvast regionNbr)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
+	char		fileName[64];
+	int		briefingFile;
+	PsmAddress	elt;
+	PsmAddress	addr;
+	IonCXref	*contact;
+	char		fromTimeBuffer[TIMESTAMPBUFSZ];
+	char		toTimeBuffer[TIMESTAMPBUFSZ];
+	char		buffer[256];
+	int		textLen;
+
+	isprintf(fileName, sizeof fileName,
+			"contacts." UVAST_FIELDSPEC ".ionrc", regionNbr);
+	briefingFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
+	if (briefingFile == -1)
+	{
+		putSysErrmsg("Can't create briefing file", fileName);
+		return;
+	}
+
+	isprintf(buffer, sizeof buffer, "^ " UVAST_FIELDSPEC "\n", regionNbr);
+       	textLen = strlen(buffer);
+	if (write(briefingFile, buffer, textLen) < 0)
+	{
+		close(briefingFile);
+		putSysErrmsg("Can't write '^' command to briefing file",					fileName);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+
+	/*	First list all registration contacts.			*/
+
+	for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
+			elt = sm_rbt_next(ionwm, elt))
+	{
+		addr = sm_rbt_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, addr);
+		if (contact->type != CtRegistration)
+		{
+			continue;
+		}
+
+		if (contact->regionNbr < regionNbr)
+		{
+			continue;
+		}
+
+		if (contact->regionNbr > regionNbr)
+		{
+			break;
+		}
+
+		writeTimestampUTC(contact->fromTime, fromTimeBuffer);
+		writeTimestampUTC(contact->toTime, toTimeBuffer);
+		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
+				contact->fromNode, contact->toNode,
+				contact->xmitRate, contact->confidence);
+       		textLen = strlen(buffer);
+		if (write(briefingFile, buffer, textLen) < 0)
+		{
+			putSysErrmsg("Can't write briefing command", fileName);
+			break;
+		}
+	}
+
+	/*	Then all non-registration contacts.			*/
+
+	for (elt = sm_rbt_first(ionwm, vdb->contactIndex); elt;
+			elt = sm_rbt_next(ionwm, elt))
+	{
+		addr = sm_rbt_data(ionwm, elt);
+		contact = (IonCXref *) psp(ionwm, addr);
+		if (contact->type == CtRegistration)
+		{
+			continue;
+		}
+
+		if (contact->regionNbr < regionNbr)
+		{
+			continue;
+		}
+
+		if (contact->regionNbr > regionNbr)
+		{
+			break;
+		}
+
+		writeTimestampUTC(contact->fromTime, fromTimeBuffer);
+		writeTimestampUTC(contact->toTime, toTimeBuffer);
+		isprintf(buffer, sizeof buffer, "a contact %20s %20s "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
+				contact->fromNode, contact->toNode,
+				contact->xmitRate, contact->confidence);
+       		textLen = strlen(buffer);
+		if (write(briefingFile, buffer, textLen) < 0)
+		{
+			putSysErrmsg("Can't write briefing command", fileName);
+			break;
+		}
+	}
+
+	/*	Done.							*/
+
+	sdr_exit_xn(sdr);
+	close(briefingFile);
+	return;
 }
 
 void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
@@ -2807,6 +2921,52 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 	return 0;
 }
 
+void	rfx_brief_ranges()
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
+	int		briefingFile;
+	PsmAddress	elt;
+	PsmAddress	addr;
+	IonRXref	*range;
+	char		fromTimeBuffer[TIMESTAMPBUFSZ];
+	char		toTimeBuffer[TIMESTAMPBUFSZ];
+	char		buffer[256];
+	int		textLen;
+
+	briefingFile = iopen("ranges.ionrc", O_WRONLY | O_CREAT, 0666);
+	if (briefingFile == -1)
+	{
+		putSysErrmsg("Can't create ranges.ionrc file", NULL);
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	for (elt = sm_rbt_first(ionwm, vdb->rangeIndex); elt;
+			elt = sm_rbt_next(ionwm, elt))
+	{
+		addr = sm_rbt_data(ionwm, elt);
+		range = (IonRXref *) psp(ionwm, addr);
+		writeTimestampUTC(range->fromTime, fromTimeBuffer);
+		writeTimestampUTC(range->toTime, toTimeBuffer);
+		isprintf(buffer, sizeof buffer, "a range %20s %20s "
+UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %u\n", fromTimeBuffer, toTimeBuffer,
+				range->fromNode, range->toNode, range->owlt);
+       		textLen = strlen(buffer);
+		if (write(briefingFile, buffer, textLen) < 0)
+		{
+			putSysErrmsg("Can't write to ranges.ionrc file",
+				       NULL);
+			break;
+		}
+	}
+
+	sdr_exit_xn(sdr);
+	close(briefingFile);
+	return;
+}
+
 /*	*	RFX alarm management functions	*	*	*	*/
 
 extern PsmAddress	rfx_insert_alarm(unsigned int term, unsigned int cycles)
@@ -2961,7 +3121,7 @@ static int	loadRange(Object elt)
 	return 0;
 }
 
-static int	loadContact(Object elt)
+static int	loadContact(Object elt, uvast regionNbr)
 {
 	Sdr		sdr = getIonsdr();
 	Object		obj;
@@ -2974,6 +3134,7 @@ static int	loadContact(Object elt)
 	/*	Load contact index entry.				*/
 
 	memset((char *) &cxref, 0, sizeof(IonCXref));
+	cxref.regionNbr = regionNbr;
 	cxref.fromNode = contact.fromNode;
 	cxref.toNode = contact.toNode;
 	cxref.fromTime = contact.fromTime;
@@ -2999,6 +3160,7 @@ int	rfx_start()
 	Object		iondbObj;
 	IonDB		iondb;
 	int		i;
+	uvast		regionNbr;
 	Object		elt;
 
 	iondbObj = getIonDbObject();
@@ -3043,10 +3205,11 @@ int	rfx_start()
 			continue;
 		}
 
+		regionNbr = iondb.regions[i].regionNbr;
 		for (elt = sdr_list_first(sdr, iondb.regions[i].contacts); elt;
 				elt = sdr_list_next(sdr, elt))
 		{
-			if (loadContact(elt) < 0)
+			if (loadContact(elt, regionNbr) < 0)
 			{
 				putErrmsg("Can't load contact.", NULL);
 				sdr_exit_xn(sdr);

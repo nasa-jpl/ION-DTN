@@ -1192,9 +1192,9 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB)
 	memset((char *) &nodeB, 0, sizeof(RegionMember));
 	iondbObj = getIonDbObject();
 	CHKERR(iondbObj);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	localHomeRegion = iondb.regions[0].regionNbr;
 	localOuterRegion = iondb.regions[1].regionNbr;
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
 		       elt = sdr_list_next(sdr, elt))
 	{

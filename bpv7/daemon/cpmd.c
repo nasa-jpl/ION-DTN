@@ -459,6 +459,8 @@ int	main(int argc, char *argv[])
 			addr = sdr_list_data(sdr, elt);
 			sdr_read(sdr, (char *) &notice, addr,
 					sizeof(CpmNotice));
+			sdr_free(sdr, addr);
+			sdr_list_delete(sdr, elt, NULL, NULL);
 
 			/*	Use buffer to serialize CPM notice.	*/
 

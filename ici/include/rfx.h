@@ -78,6 +78,13 @@ extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
+extern void		rfx_brief_contacts(uvast regionNbr);
+			/*	Writes a file of commands that will
+			 *	recreate the current list of IonContact
+			 *	objects in the node's ION database, for
+			 *	the indicated region.  The file's name
+			 *	will be 'contacts.REGIONNBR.ionrc'.	*/
+
 extern int		rfx_revise_contact(uvast regionNbr,
 				time_t fromTime,
 				uvast fromNode,
@@ -135,6 +142,12 @@ extern char		*rfx_print_range(PsmAddress range, char *buffer);
 				Returns zero on success, -1 on any
 				system error, an indicative value
 				greater than 0 on any user error.	*/
+
+extern void		rfx_brief_ranges();
+			/*	Writes a file of commands that will
+			 *	recreate the current list of IonRange
+			 *	objects in the node's ION database.
+			 *	The file's name will be 'ranges.ionrc'.	*/
 
 extern int		rfx_remove_range(time_t *fromTime,
 				uvast fromNode,
