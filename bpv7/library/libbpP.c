@@ -1274,7 +1274,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->updateStats = db->updateStats;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
-		vdb->cpmdPid = ERROR;
+		vdb->cpsdPid = ERROR;
 		vdb->transitSemaphore = SM_SEM_NONE;
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
@@ -1617,9 +1617,9 @@ int	bpStart()
 
 	/*	Start the contact plan manager if necessary.		*/
 
-	if (bpvdb->cpmdPid == ERROR || sm_TaskExists(bpvdb->cpmdPid) == 0)
+	if (bpvdb->cpsdPid == ERROR || sm_TaskExists(bpvdb->cpsdPid) == 0)
 	{
-		bpvdb->cpmdPid = pseudoshell("cpmd");
+		bpvdb->cpsdPid = pseudoshell("cpsd");
 	}
 
 	/*	Start the bundle transit daemon if necessary.		*/
@@ -1724,9 +1724,9 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
-	if (bpvdb->cpmdPid != ERROR)
+	if (bpvdb->cpsdPid != ERROR)
 	{
-		sm_TaskKill(bpvdb->cpmdPid, SIGTERM);
+		sm_TaskKill(bpvdb->cpsdPid, SIGTERM);
 	}
 
 	sm_SemEnd(bpvdb->transitSemaphore);
@@ -1778,9 +1778,9 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		}
 	}
 
-	if (bpvdb->cpmdPid != ERROR)
+	if (bpvdb->cpsdPid != ERROR)
 	{
-		while (sm_TaskExists(bpvdb->cpmdPid))
+		while (sm_TaskExists(bpvdb->cpsdPid))
 		{
 			microsnooze(100000);
 		}
@@ -1798,7 +1798,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	CHKVOID(sdr_begin_xn(sdr));
 	bpvdb->clockPid = ERROR;
-	bpvdb->cpmdPid = ERROR;
+	bpvdb->cpsdPid = ERROR;
 	bpvdb->transitPid = ERROR;
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))

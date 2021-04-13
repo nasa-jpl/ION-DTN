@@ -534,6 +534,7 @@ static void	executeInfo(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "contact") == 0)
 	{
 		memset((char *) &arg1, 0, sizeof(IonCXref));
+		oK(ionRegionOf(fromNode, toNode, &arg1.regionNbr));
 		arg1.fromNode = fromNode;
 		arg1.toNode = toNode;
 		arg1.fromTime = fromTime;

@@ -1,5 +1,5 @@
 /*
-	cpmd.c:	contact plan management daemon for ION.
+	cpsd.c:	contact plan synchronization daemon for ION.
 
 	Author: Scott Burleigh, JPL
 
@@ -10,7 +10,7 @@
 									*/
 #include "imcfw.h"
 
-static char	cpmEid[] = "imc:0.1";
+static char	cpsEid[] = "imc:0.1";
 
 static uaddr	_running(uaddr *newValue)
 {
@@ -35,12 +35,12 @@ static void	shutDown(int signum)
 	uaddr	stop = 0;
 
 	isignal(SIGTERM, SIG_IGN);
-	oK(_running(&stop));	/*	Terminates cpmd.		*/
+	oK(_running(&stop));	/*	Terminates cpsd.		*/
 }
 
 /*	*	*	Handler thread functions	*	*	*/
 
-static int	handleCpmNotice(BpDelivery *dlv, unsigned char *cursor,
+static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	uvast		uvtemp;
@@ -58,49 +58,49 @@ static int	handleCpmNotice(BpDelivery *dlv, unsigned char *cursor,
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 			&unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode CPM notice region nbr.");
+		writeMemo("[?] Can't decode CPS notice region nbr.");
 		return 0;
 	}
 
 	regionNbr = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode CPM notice From time.");
+		writeMemo("[?] Can't decode CPS notice From time.");
 		return 0;
 	}
 
 	fromTime = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode CPM notice To time.");
+		writeMemo("[?] Can't decode CPS notice To time.");
 		return 0;
 	}
 
 	toTime = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode CPM notice From node.");
+		writeMemo("[?] Can't decode CPS notice From node.");
 		return 0;
 	}
 
 	fromNode = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode CPM notice From node.");
+		writeMemo("[?] Can't decode CPS notice From node.");
 		return 0;
 	}
 
 	toNode = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode CPM notice magnitude.");
+		writeMemo("[?] Can't decode CPS notice magnitude.");
 		return 0;
 	}
 
 	magnitude = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode CPM notice confidence.");
+		writeMemo("[?] Can't decode CPS notice confidence.");
 		return 0;
 	}
 
@@ -288,7 +288,7 @@ static void	*handleNotices(void *parm)
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("CPM notice reception failed.", NULL);
+			putErrmsg("CPS notice reception failed.", NULL);
 			_running(&stop);
 			continue;
 		}
@@ -340,22 +340,22 @@ static void	*handleNotices(void *parm)
 		if (cbor_decode_array_open(&arrayLength, &cursor,
 				&unparsedBytes) < 1)
 		{
-			writeMemo("[?] Can't decode CPM notice array.");
+			writeMemo("[?] Can't decode CPS notice array.");
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
 		if (arrayLength != 7)
 		{
-			writeMemoNote("[?] Bad CPM notice array length",
+			writeMemoNote("[?] Bad CPS notice array length",
 					itoa(arrayLength));
 			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		if (handleCpmNotice(&dlv, cursor, unparsedBytes) < 0)
+		if (handleCpsNotice(&dlv, cursor, unparsedBytes) < 0)
 		{
-			putErrmsg("Can't process CPM notice.", NULL);
+			putErrmsg("Can't process CPS notice.", NULL);
 			_running(&stop);
 		}
 
@@ -366,7 +366,7 @@ static void	*handleNotices(void *parm)
 		sm_TaskYield();
 	}
 
-	writeMemo("[i] cpmd handler thread ended.");
+	writeMemo("[i] cpsd handler thread ended.");
 	writeErrmsgMemos();
 	return NULL;
 }
@@ -374,7 +374,7 @@ static void	*handleNotices(void *parm)
 /*	*	*	Main thread functions.	*	*	*	*/
 
 #if defined (ION_LWT)
-int	cpmd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int	cpsd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
@@ -389,7 +389,7 @@ int	main(int argc, char *argv[])
 	pthread_t	handlerThread;
 	Object		elt;
 	Object		addr;
-	CpmNotice	notice;
+	CpsNotice	notice;
 	unsigned char	buffer[128];
 	unsigned char	*cursor;
 	uvast		uvtemp;
@@ -397,13 +397,13 @@ int	main(int argc, char *argv[])
 
 	if (bpAttach() < 0)
 	{
-		putErrmsg("cpmd can't attach to BP.", NULL);
+		putErrmsg("cpsd can't attach to BP.", NULL);
 		return 1;
 	}
 
 	if (imcInit() < 0)
 	{
-		putErrmsg("cpmd can't attach to IMC database.", NULL);
+		putErrmsg("cpsd can't attach to IMC database.", NULL);
 		return 1;
 	}
 
@@ -415,42 +415,42 @@ int	main(int argc, char *argv[])
 	isignal(SIGTERM, shutDown);
 	oK(_running(&start));
 
-	/*	Start the CPM notice handler thread.			*/
+	/*	Start the CPS notice handler thread.			*/
 
-	if (bp_open(cpmEid, &sap) < 0)
+	if (bp_open(cpsEid, &sap) < 0)
 	{
-		putErrmsg("Can't open cpmd endpoint.", cpmEid);
+		putErrmsg("Can't open cpsd endpoint.", cpsEid);
 		return 1;
 	}
 
 	if (pthread_begin(&handlerThread, NULL, handleNotices, sap,
-			"cpmd_handler"))
+			"cpsd_handler"))
 	{
-		putSysErrmsg("cpmd can't create notice handler thread.", NULL);
+		putSysErrmsg("cpsd can't create notice handler thread.", NULL);
 		return 1;
 	}
 
 	/*	Main loop: snooze 1 second, then drain queue of pending
-	 *	contact plana management notices.			*/
+	 *	contact plan synchronization notices.			*/
 
-	writeMemo("[i] cpmd is running.");
+	writeMemo("[i] cpsd is running.");
 	while (_running(NULL))
 	{
 		/*	Sleep for 1 second, then multicast all pending
-		 *	CPM notices to propagate changes in contact
+		 *	CPS notices to propagate changes in contact
 		 *	plans.						*/
 
 		snooze(1);
 		if (!sdr_begin_xn(sdr))
 		{
-			putErrmsg("cpmd failed to begin new transaction.",
+			putErrmsg("cpsd failed to begin new transaction.",
 					NULL);
 			break;
 		}
 
 		while (1)
 		{
-			elt = sdr_list_first(sdr, iondb.cpmNotices);
+			elt = sdr_list_first(sdr, iondb.cpsNotices);
 			if (elt == 0)
 			{
 				break;	/*	No more to send.	*/
@@ -458,11 +458,11 @@ int	main(int argc, char *argv[])
 
 			addr = sdr_list_data(sdr, elt);
 			sdr_read(sdr, (char *) &notice, addr,
-					sizeof(CpmNotice));
+					sizeof(CpsNotice));
 			sdr_free(sdr, addr);
 			sdr_list_delete(sdr, elt, NULL, NULL);
 
-			/*	Use buffer to serialize CPM notice.	*/
+			/*	Use buffer to serialize CPS notice.	*/
 
 			cursor = buffer;
 
@@ -512,10 +512,10 @@ int	main(int argc, char *argv[])
 			/*	Now multicast the notice.		*/
 
 			noticeLength = cursor - buffer;
-			if (imcSendDispatch(cpmEid, notice.regionNbr, buffer,
+			if (imcSendDispatch(cpsEid, notice.regionNbr, buffer,
 					noticeLength) < 0)
 			{
-				putErrmsg("Failed sending CPM notice.", NULL);
+				putErrmsg("Failed sending CPS notice.", NULL);
 				break;
 			}
 		}
@@ -536,7 +536,7 @@ int	main(int argc, char *argv[])
 	/*	Wrap up.						*/
 
 	writeErrmsgMemos();
-	writeMemo("[i] cpmd has ended.");
+	writeMemo("[i] cpsd has ended.");
 	ionDetach();
 	return 0;
 }

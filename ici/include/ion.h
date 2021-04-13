@@ -224,7 +224,7 @@ typedef struct
 	uvast		outerRegionNbr;
 } RegionMember;
 
-/*	CpmNotice objects are consumed by cpmd, which uses their
+/*	CpsNotice objects are consumed by cpsd, which uses their
  *	parameters to multicast contact plan (contact and range)
  *	management commands to all nodes in the region.			*/
 
@@ -249,7 +249,7 @@ typedef struct
 	 *	notices, owlt in seconds for range notices.		*/
 
 	float		confidence;	/*	Confidence in contact.	*/
-} CpmNotice;
+} CpsNotice;
 
 /*	The ION database is shared by BP, LTP, and RFX.			*/
 
@@ -258,7 +258,7 @@ typedef struct
 	uvast		ownNodeNbr;
 	IonRegion	regions[2];	/*	Home, outer.		*/
 	Object		rolodex;	/*	SDR list: RegionMember	*/
-	Object		cpmNotices;	/*	SDR list: CpmNotice	*/
+	Object		cpsNotices;	/*	SDR list: CpsNotice	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
@@ -480,7 +480,8 @@ extern void		ionTerminate();
 
 extern int		ionPickRegion(uvast regionNbr);
 extern int		ionRegionOf(uvast nodeNbrA,
-					uvast nodeNbrB);
+					uvast nodeNbrB,
+					uvast *regionNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

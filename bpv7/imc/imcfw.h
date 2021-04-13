@@ -16,6 +16,10 @@
 
 #include "bpP.h"
 
+#ifndef IMCDEBUG
+#define	IMCDEBUG	0
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -716,7 +716,7 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		memcpy(iondbBuf.workingDirectoryName, wdname, 256);
 		iondbBuf.ownNodeNbr = ownNodeNbr;
 		iondbBuf.rolodex = sdr_list_create(ionsdr);
-		iondbBuf.cpmNotices = sdr_list_create(ionsdr);
+		iondbBuf.cpsNotices = sdr_list_create(ionsdr);
 		iondbBuf.ranges = sdr_list_create(ionsdr);
 		iondbBuf.productionRate = -1;	/*	Unknown.	*/
 		iondbBuf.consumptionRate = -1;	/*	Unknown.	*/
@@ -1168,7 +1168,7 @@ int	ionPickRegion(uvast regionNbr)
 	return -1;
 }
 
-int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB)
+int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uvast *regionNbr)
 {
 	/*	This function determines the region in which nodeA
 	 *	and nodeB both reside; if nodeB is zero, it just
@@ -1188,6 +1188,8 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB)
 			OBJ_POINTER(RegionMember, member);
 
 	CHKERR(nodeNbrA > 0);
+	CHKERR(regionNbr);
+	*regionNbr = 0;		/*	Default.			*/
 	memset((char *) &nodeA, 0, sizeof(RegionMember));
 	memset((char *) &nodeB, 0, sizeof(RegionMember));
 	iondbObj = getIonDbObject();
@@ -1229,9 +1231,10 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB)
 	|| nodeA.outerRegionNbr == localHomeRegion)
 	{
 		if (nodeNbrB == 0
-		|| nodeB.homeRegionNbr == nodeA.homeRegionNbr
-		|| nodeB.outerRegionNbr == nodeA.homeRegionNbr)
+		|| nodeB.homeRegionNbr == localHomeRegion
+		|| nodeB.outerRegionNbr == localHomeRegion)
 		{
+			*regionNbr = localHomeRegion;
 			return 0;	/*	Found in home region.	*/
 		}
 	}
@@ -1244,8 +1247,9 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB)
 	|| nodeA.outerRegionNbr == localOuterRegion)
 	{
 		if (nodeNbrB == 0
-		|| nodeB.homeRegionNbr == nodeA.outerRegionNbr)
+		|| nodeB.homeRegionNbr == localOuterRegion)
 		{
+			*regionNbr = localOuterRegion;
 			return 1;	/*	Found in outer region.	*/
 		}
 	}

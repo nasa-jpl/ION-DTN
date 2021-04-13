@@ -126,7 +126,9 @@ static int	briefNewNode(uvast nodeNbr)
 		return 0;
 	}
 
-//puts("Sending briefing.");
+#if IMCDEBUG
+puts("Sending briefing.");
+#endif
 	if (bpSend(&sourceMetaEid, destEid, NULL, 60, BP_STD_PRIORITY,
 			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
 			BP_MULTICAST_BRIEFING) <= 0)
@@ -155,6 +157,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	Object		iondbObj;
 	IonDB		iondb;
 	int		sourceRegionIdx;
+	uvast		sourceRegionNbr;
 	uvast		destinationRegionNbr;
 
 	/*	Finish parsing the petition.				*/
@@ -190,15 +193,19 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at node "
-UVAST_FIELDSPEC ".\n", petition->isMember, metaEid.elementNbr, ownNodeNbr);
+UVAST_FIELDSPEC ".\n", petition.isMember, metaEid.elementNbr, ownNodeNbr);
 fflush(stdout);
 #endif
 	oK(sdr_begin_xn(sdr));
 	imcFindGroup(petition.groupNbr, &groupAddr, &groupElt);
-//printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.groupNbr);
+#if IMCDEBUG
+printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.groupNbr);
+#endif
 	if (groupElt == 0)	/*	System failure.			*/
 	{
-//puts("Group not found.");
+#if IMCDEBUG
+puts("Group not found.");
+#endif
 		if (petition.isMember)	/*	(Else nothing to do.)	*/
 		{
 			writeMemoNote("Can't handle IMC Join petition",
@@ -218,7 +225,9 @@ fflush(stdout);
 
 	/*	The multicast group is known, though possibly empty.	*/
 
-//printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
+#if IMCDEBUG
+printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
+#endif
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 	if (petition.isMember)	/*	Source node joining the group.	*/
 	{
@@ -275,7 +284,9 @@ fflush(stdout);
 
 		if (petition.groupNbr == 0 && metaEid.elementNbr != ownNodeNbr)
 		{
-//printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+#if IMCDEBUG
+printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+#endif
 			/*	This node is subscribing to the IMC
 			 *	petitions group, i.e., it is a node
 			 *	that is newly announcing itself to
@@ -331,7 +342,7 @@ fflush(stdout);
 
 		/*	Must delete this member of the group, if found.	*/
 #if IMCDEBUG
-printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
+printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
 fflush(stdout);
 #endif
 		if (elt)	/*	Source node is a member.	*/
@@ -367,7 +378,8 @@ fflush(stdout);
 		/*	Node is a passageway between its home region
 		 *	and the immediate encompassing region.		*/
 
-		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownNodeNbr);
+		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownNodeNbr,
+				&sourceRegionNbr);
 		if (sourceRegionIdx < 0)
 		{
 			putErrmsg("IMC system error.", NULL);

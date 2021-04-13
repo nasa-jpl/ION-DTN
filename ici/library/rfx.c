@@ -539,14 +539,14 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 
 /*	*	RFX contact list management functions	*	*	*/
 
-static void	postCpmNotice(uvast regionNbr, time_t fromTime, time_t toTime,
+static void	postCpsNotice(uvast regionNbr, time_t fromTime, time_t toTime,
 			uvast fromNode, uvast toNode, size_t xmitRate,
 			float confidence)
 {
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
 	IonDB		iondb;
-	CpmNotice	notice;
+	CpsNotice	notice;
 	Object		noticeObj;
 
 	/*	If regionNbr is 0
@@ -587,11 +587,11 @@ static void	postCpmNotice(uvast regionNbr, time_t fromTime, time_t toTime,
 	notice.toNode = toNode;
 	notice.magnitude = xmitRate;
 	notice.confidence = confidence;
-	noticeObj = sdr_malloc(sdr, sizeof(CpmNotice));
+	noticeObj = sdr_malloc(sdr, sizeof(CpsNotice));
 	if (noticeObj)
 	{
-		sdr_write(sdr, noticeObj, (char *) &notice, sizeof(CpmNotice));
-		oK(sdr_list_insert_last(sdr, iondb.cpmNotices, noticeObj));
+		sdr_write(sdr, noticeObj, (char *) &notice, sizeof(CpsNotice));
+		oK(sdr_list_insert_last(sdr, iondb.cpsNotices, noticeObj));
 	}
 }
 
@@ -1145,7 +1145,7 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 
 	if (announce)
 	{
-		postCpmNotice(regionNbr, MAX_POSIX_TIME, 0, contact.fromNode,
+		postCpsNotice(regionNbr, MAX_POSIX_TIME, 0, contact.fromNode,
 				0, 0, 0.0);
 	}
 }
@@ -1473,7 +1473,7 @@ UVAST_FIELDSPEC " is already registered in region " UVAST_FIELDSPEC ".",
 
 		if (announce)
 		{
-			postCpmNotice(regionNbr, MAX_POSIX_TIME, MAX_POSIX_TIME,
+			postCpsNotice(regionNbr, MAX_POSIX_TIME, MAX_POSIX_TIME,
 					fromNode, fromNode, 0, 1.0);
 		}
 
@@ -1679,7 +1679,7 @@ hypothetical contact, as that contact is now discovered.");
 
 		if (announce)
 		{
-			postCpmNotice(regionNbr, fromTime, toTime, fromNode,
+			postCpsNotice(regionNbr, fromTime, toTime, fromNode,
 					toNode, xmitRate, confidence);
 		}
 	}
@@ -1798,13 +1798,13 @@ int	rfx_revise_contact(uvast regionNbr, time_t fromTime, uvast fromNode,
 	{
 		if (confidence < 0.0)	/*	No change.		*/
 		{
-			postCpmNotice(regionNbr, cxref->fromTime, cxref->toTime,
+			postCpsNotice(regionNbr, cxref->fromTime, cxref->toTime,
 				cxref->fromNode, cxref->toNode,
 				cxref->xmitRate, 4.0);
 		}
 		else	/*	Encode confidence to indicate revision.	*/
 		{
-			postCpmNotice(regionNbr, cxref->fromTime, cxref->toTime,
+			postCpsNotice(regionNbr, cxref->fromTime, cxref->toTime,
 				cxref->fromNode, cxref->toNode,
 				cxref->xmitRate, cxref->confidence + 2.0);
 		}
@@ -1856,7 +1856,7 @@ static void	removeAllContacts(uvast regionNbr, uvast fromNode,
 		nextElt = sm_rbt_next(ionwm, cxelt); 
 		if (announce)
 		{
-			postCpmNotice(regionNbr, cxref->fromTime, 0,
+			postCpsNotice(regionNbr, cxref->fromTime, 0,
 				cxref->fromNode, cxref->toNode, 0, 0.0);
 		}
 
@@ -2062,7 +2062,7 @@ static void	removeOneContact(uvast regionNbr, time_t fromTime,
 	{
 		if (announce)
 		{
-			postCpmNotice(regionNbr, cxref->fromTime, 0,
+			postCpsNotice(regionNbr, cxref->fromTime, 0,
 				cxref->fromNode, cxref->toNode, 0, 0.0);
 		}
 
@@ -2216,9 +2216,7 @@ UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 
 void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 {
-	Sdr		sdr = getIonsdr();
 	int		regionIdx;
-	IonDB		iondb;
 	uvast		regionNbr;
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
@@ -2230,14 +2228,12 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 
 	*secRemaining = 0;		/*	Default.		*/
 	*xmitRate = ((size_t) -1);	/*	Default.		*/
-	regionIdx = ionRegionOf(getOwnNodeNbr(), nodeNbr);
+	regionIdx = ionRegionOf(getOwnNodeNbr(), nodeNbr, &regionNbr);
 	if (regionIdx < 0)	/*	Node not in known contact plan.	*/
 	{
 		return;
 	}
 
-	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
-	regionNbr = iondb.regions[regionIdx].regionNbr;
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
 	arg.fromNode = getOwnNodeNbr();
@@ -2648,7 +2644,7 @@ asserted", rangeIdString);
 			{
 				if (announce)
 				{
-					postCpmNotice(0, fromTime, toTime,
+					postCpsNotice(0, fromTime, toTime,
 						fromNode, toNode, owlt, 1.0);
 				}
 			}
@@ -2803,7 +2799,7 @@ static void	removeAllRanges(uvast fromNode, uvast toNode, IonRXref *arg,
 		nextElt = sm_rbt_next(ionwm, rxelt); 
 		if (announce)
 		{
-			postCpmNotice(0, rxref->fromTime, 0, fromNode, toNode,
+			postCpsNotice(0, rxref->fromTime, 0, fromNode, toNode,
 					0, 0.0);
 		}
 
@@ -2856,7 +2852,7 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 			rxaddr = sm_rbt_data(ionwm, rxelt);
 			if (announce)
 			{
-				postCpmNotice(0, *fromTime, 0, fromNode, toNode,
+				postCpsNotice(0, *fromTime, 0, fromNode, toNode,
 						0, 0.0);
 			}
 
@@ -2900,7 +2896,7 @@ int	rfx_remove_range(time_t *fromTime, uvast fromNode, uvast toNode,
 			rxaddr = sm_rbt_data(ionwm, rxelt);
 			if (announce)
 			{
-				postCpmNotice(0, *fromTime, 0, fromNode,
+				postCpsNotice(0, *fromTime, 0, fromNode,
 						toNode, 0, 0.0);
 			}
 

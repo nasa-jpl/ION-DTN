@@ -103,6 +103,7 @@ static void	toggleScheduledContacts(uvast fromNode, uvast toNode,
 	}
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(fromNode, toNode, &arg.regionNbr));
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 	for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -150,14 +151,12 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 			unsigned int xmitRate, unsigned int recvRate)
 {
 	Sdr		sdr = getIonsdr();
-	Object		iondbObj = getIonDbObject();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	time_t		fromTime = getCtime();
 	double		volume = xmitRate * (MAX_POSIX_TIME - fromTime);
 	int		regionIdx;
-	IonDB		iondb;
 	uvast		regionNbr;
 	IonNeighbor	*neighbor;
 	IonCXref	arg;
@@ -167,7 +166,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	Object		contactObj;
 	IonContact	contact;
 
-	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
+	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr, &regionNbr);
 	if (regionIdx < 0)
 	{
 		writeMemoNote("[?] Can't add contact for node; region unknown",
@@ -175,8 +174,6 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 		return 0;
 	}
 
-	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	regionNbr = iondb.regions[regionIdx].regionNbr;
 	neighbor = getNeighbor(ionvdb, discoveryNodeNbr);
 	CHKZERO(neighbor);
 
@@ -184,6 +181,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = discoveryNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -236,6 +234,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = discoveryNodeNbr;
 	arg.toNode = ownNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -503,6 +502,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	IonVdb		*ionvdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		regionIdx;
+	uvast		regionNbr;
 	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;
@@ -521,7 +521,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	 *	node has got the lower node number.			*/
 
 	currentTime = getCtime();
-	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
+	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr, &regionNbr);
 	if (regionIdx < 0)
 	{
 		writeMemoNote("[?] Can't lose contact to node; region unknown.",
@@ -536,6 +536,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = discoveryNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -590,6 +591,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = discoveryNodeNbr;
 	arg.toNode = ownNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,

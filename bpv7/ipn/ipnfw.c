@@ -1102,6 +1102,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	IonNode		*node;
+	uvast		regionNbr;
 	PsmAddress	nextNode;
 #if CGR_DEBUG == 1
 	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
@@ -1164,7 +1165,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		}
 	}
 
-	if (ionRegionOf(nodeNbr, 0) < 0)
+	if (ionRegionOf(nodeNbr, 0, &regionNbr) < 0)
 	{
 		/*	Destination node is not in any region that
 		 *	the local node is in.  Send via passageway(s).	*/

@@ -12,10 +12,6 @@
 
 #include "imcfw.h"
 
-#ifndef IMCDEBUG
-#define	IMCDEBUG	0
-#endif
-
 #define	IMC_DBNAME	"imcRoute"
 
 static	char	imcEid[] = "imc:0.0";
@@ -244,10 +240,13 @@ int	imcHandleBriefing(BpDelivery *dlv, unsigned char *cursor,
 	Object		iondbObj;
 	IonDB		iondb;
 	int		sourceRegion;
+	uvast		sourceRegionNbr;
 	int		destinationRegion;
 	ImcPetition	petition;
 
-//puts("Handling briefing.");
+#if IMCDEBUG
+puts("Handling briefing.");
+#endif
 	if (imcInit() < 0)
 	{
 		putErrmsg("Can't initialize IMC database.", NULL);
@@ -342,7 +341,7 @@ fflush(stdout);
 		 *	the immediate encompassing region.		*/
 
 			sourceRegion = ionRegionOf(metaEid.elementNbr,
-					getOwnNodeNbr());
+					getOwnNodeNbr(), &sourceRegionNbr);
 			if (sourceRegion < 0)
 			{
 				putErrmsg("IMC system error.", NULL);
@@ -445,7 +444,9 @@ int	imcSendDispatch(char *destEid, uvast toRegion, unsigned char *buffer,
 	 *	block's array of destinations, and therefore
 	 *	need not be removed.					*/
 
-//puts("Transmitting dispatch.");
+#if IMCDEBUG
+puts("Transmitting dispatch.");
+#endif
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
 			&ancillary, payloadZco, NULL, 0))
@@ -472,7 +473,9 @@ int	imcSendPetition(ImcPetition *petition, uvast toRegion)
 	int		petitionLength;
 	int		result = 0;
 
-//printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->groupNbr);
+#if IMCDEBUG
+printf("Sending petition for group " UVAST_FIELDSPEC ".\n", petition->groupNbr);
+#endif
 	if (imcInit() < 0)
 	{
 		putErrmsg("Can't attach to IMC database.", NULL);
