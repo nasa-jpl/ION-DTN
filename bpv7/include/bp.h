@@ -31,7 +31,7 @@ extern "C" {
 
 typedef struct
 {
-	uvast			msec;	/*	Epoch 2000.		*/
+	uvast			msec;	/*	Since Epoch 2000.	*/
 	unsigned int		count;
 } BpTimestamp;
 

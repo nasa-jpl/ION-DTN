@@ -5441,28 +5441,30 @@ static void	computeExpirationTime(Bundle *bundle)
 {
 	uvast	timeRemaining;
 
-	/*	Note: bundle creation time, arrival time, and
-	 *	expiration time are all DTN times in milliseconds,
-	 *	each of which is a ctime (Unix epoch time) minus
-	 *	EPOCH_2000_SEC, multiplied by 1000.
+	/*	Note: bundle creation time and arrival time are
+	 *	DTN times in milliseconds.  Each is computed by
+	 *	taking current ctime (Unix epoch time), subtracting
+	 *	EPOCH_2000_SEC, and multiplying the result by 1000.
 	 *
-	 *	timeToLive is likewise expressed in milliseconds.
+	 *	timeToLive and bundle age are likewise expressed in
+	 *	milliseconds.
 	 *
-	 *	The events in the BP timeline are tagged by ctime
-	 *	in seconds, e.g., (bundle expiration time / 1000)
-	 *	+ EPOCH_2000_SEC.					*/
+	 *	But the events in the BP timeline are tagged by
+	 *	bundle expiration time, which is simply ctime.		*/
 
 	if (ionClockIsSynchronized() && bundle->id.creationTime.msec > 0)
 	{
-		bundle->expirationTime = bundle->id.creationTime.msec
-				+ bundle->timeToLive;
+		bundle->expirationTime = ((bundle->id.creationTime.msec
+				+ bundle->timeToLive) / 1000) + EPOCH_2000_SEC;
 	}
-	else
+	else	/*	No accurate local clock reference.		*/
 	{
 		/*	Expiration time must be computed as the
-			current time plus the difference between
-			the bundle's time to live and the bundle's
-			current age.
+			sum of the bundle's arrival time and its
+			remaining time to live (i.e., its original
+			time to live minus its current age), divided
+			by 1000 to convert from msec to seconds,
+			plus EPOCH_2000_SEC.
 
 			If the bundle's current age exceeds its time
 			to live then the bundle's expiration time has
@@ -5470,7 +5472,7 @@ static void	computeExpirationTime(Bundle *bundle)
 
 		if (bundle->age > bundle->timeToLive)
 		{
-			getCurrentDtnTime(&(bundle->expirationTime));
+			bundle->expirationTime = getCtime();
 			return;
 		}
 
@@ -5480,10 +5482,11 @@ static void	computeExpirationTime(Bundle *bundle)
 		timeRemaining = bundle->timeToLive - bundle->age;
 
 		/*	Add remaining lifetime to bundle's arrival
-		 *	time (a DtnTime) to get expiration time (a
-		 *	DtnTime, in milliseconds).			*/
+		 *	time to get expiration DTN time, then divide
+		 *	by 1000 and add EPOCH_2000_SEC.			*/
 
-		bundle->expirationTime = bundle->arrivalTime + timeRemaining;
+		bundle->expirationTime = ((bundle->arrivalTime + timeRemaining)
+				/ 1000) + EPOCH_2000_SEC;
 	}
 }
 
@@ -5496,7 +5499,7 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 	 *	milliseconds, so divide by 1000 and add offset.		*/
 
 	event.type = expiredTTL;
-	event.time = (bundle->expirationTime / 1000) + EPOCH_2000_SEC;
+	event.time = bundle->expirationTime;
 	event.ref = bundleObj;
 	bundle->timelineElt = insertBpTimelineEvent(&event);
 	if (bundle->timelineElt == 0)

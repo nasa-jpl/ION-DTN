@@ -1244,7 +1244,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	 *	materialize, we place the bundle in limbo and hope
 	 *	for the best.						*/
 
-	if (cgr_prospect(nodeNbr, bundle->expirationTime + EPOCH_2000_SEC) > 0)
+	if (cgr_prospect(nodeNbr, bundle->expirationTime) > 0)
 	{
 		if (enqueueToLimbo(bundle, bundleObj) < 0)
 		{

@@ -121,7 +121,7 @@ static void	*retransmitBundles(void *parm)
 
 	Sdr			sdr = getIonsdr();
 	SignalThreadParms	*stp = (SignalThreadParms *) parm;
-	time_t			currentDtnTime;	/*	In seconds.	*/
+	time_t			currentTime;	/*	In seconds.	*/
 	Bcla			bcla;
 	Object			elt;
 	Object			nextElt;
@@ -134,7 +134,7 @@ static void	*retransmitBundles(void *parm)
 
 	while (stp->running)
 	{
-		currentDtnTime = getCtime() - EPOCH_2000_SEC;
+		currentTime = getCtime();
 		sdr_read(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
 		oK(sdr_begin_xn(sdr));
 		for (elt = sdr_list_first(sdr, bcla.bpdus); elt; elt = nextElt)
@@ -142,7 +142,7 @@ static void	*retransmitBundles(void *parm)
 			nextElt = sdr_list_next(sdr, elt);
 			bpduObj = sdr_list_data(sdr, elt);
 			sdr_stage(sdr, (char *) &bpdu, bpduObj, sizeof(Bpdu));
-			if (bpdu.deadline > currentDtnTime)
+			if (bpdu.deadline > currentTime)
 			{
 				break;	/*	No more to retransmit.	*/
 			}
@@ -351,7 +351,7 @@ static void	*sendSignals(void *parm)
 	_signalAttendant(&(stp->attendant));
 	while (stp->running)
 	{
-		arrivalTime = getCtime() - EPOCH_2000_SEC;
+		arrivalTime = getCtime();
 		sdr_read(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
 		arrivalTime += (bcla.fwdLatency + BIBE_SIGNAL_TIME_MARGIN);
 		for (i = 0; i < CT_DISPOSITIONS; i++)
@@ -628,7 +628,7 @@ int	main(int argc, char *argv[])
 			bcla.count += 1;
 			uvtemp = bcla.count;
 			oK(cbor_encode_integer(uvtemp, &cursor));
-			deadline = getCtime() - EPOCH_2000_SEC;
+			deadline = getCtime();
 			deadline += (bcla.fwdLatency + bcla.rtnLatency + 2);
 			uvtemp = deadline;
 			oK(cbor_encode_integer(uvtemp, &cursor));

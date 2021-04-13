@@ -35,14 +35,14 @@ typedef struct
 
 typedef struct
 {
-	time_t		deadline;	/*	Epoch 2000 seconds.	*/
+	time_t		deadline;	/*	Ctime.			*/
 	Object		sequences;	/*	sdrlist of CtSequence.	*/
 } CtSignal;	/*	Parameters of pending outbound CT signal.	*/
 
 typedef struct
 {
 	unsigned int	xmitId;		/*	Within CT sequence.	*/
-	time_t		deadline;	/*	Epoch 2000 seconds.	*/
+	time_t		deadline;	/*	Ctime.			*/
 	Object		bundleZco;	/*	Encapsulated bundle.	*/
 } Bpdu;
 

@@ -285,10 +285,10 @@ typedef struct
 	unsigned char	isFragment;	/*	Boolean.		*/
 	unsigned char	flags;
 	BpSrReason	reasonCode;
-	DtnTime		receiptTime;
-	DtnTime		forwardTime;
-	DtnTime		deliveryTime;
-	DtnTime		deletionTime;
+	DtnTime		receiptTime;	/*	msec since EPOCH_2000.	*/
+	DtnTime		forwardTime;	/*	msec since EPOCH_2000.	*/
+	DtnTime		deliveryTime;	/*	msec since EPOCH_2000.	*/
+	DtnTime		deletionTime;	/*	msec since EPOCH_2000.	*/
 } BpStatusRpt;
 
 /*	The convergence-layer adapter uses the ClDossier structure to
@@ -330,7 +330,7 @@ typedef struct
 	EndpointId	destination;	/*	...of bundle's ADU.	*/
 		/*	source of bundle's ADU is in the id field.	*/
 	EndpointId	reportTo;
-	DtnTime		expirationTime;	/*	Time tag in millisec.	*/
+	time_t		expirationTime;	/*	ctime in seconds.	*/
 		/*	creation time is in the id field.		*/
 	unsigned int	totalAduLength;
 		/*	fragment offset is in the id field.		*/
@@ -346,7 +346,7 @@ typedef struct
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
 	uvast		age;		/*	In milliseconds.	*/
-	DtnTime		arrivalTime;
+	DtnTime		arrivalTime;	/*	msec since EPOCH_2000.	*/
 
 	/*	Stuff in (or for) the Hop Count extension block.	*/
 
