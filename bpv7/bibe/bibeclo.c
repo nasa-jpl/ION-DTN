@@ -665,7 +665,7 @@ int	main(int argc, char *argv[])
 		 *	to milliseconds for BP processing.		*/
 
 		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL,
-				ttl * 10000, bcla.classOfService,
+				ttl * 1000, bcla.classOfService,
 				NoCustodyRequested, 0, 0, &ancillaryData,
 				bpduZco, NULL, BP_BIBE_PDU))
 		{

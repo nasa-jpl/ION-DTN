@@ -1907,6 +1907,9 @@ void	noteBundleRemoved(Bundle *bundle)
 void	getCurrentDtnTime(DtnTime *dt)
 {
 	struct timeval	tv;
+	uvast		tv_sec_epoch2000;
+	uvast		tv_sec_epoch2000_msec;
+	uvast		tv_usec_msec;
 
 	CHKVOID(dt);
 	if (gettimeofday(&tv, NULL) < 0)
@@ -1918,7 +1921,10 @@ void	getCurrentDtnTime(DtnTime *dt)
 
 	/*	EPOCH_2000_SEC is 30 years of seconds.			*/
 
-	*dt = ((tv.tv_sec - EPOCH_2000_SEC) * 1000) + (tv.tv_usec / 1000);
+	tv_sec_epoch2000 = tv.tv_sec - EPOCH_2000_SEC;
+	tv_sec_epoch2000_msec = tv_sec_epoch2000 * 1000;
+	tv_usec_msec = tv.tv_usec / 1000;
+	*dt = tv_sec_epoch2000_msec + tv_usec_msec;
 }
 
 Throttle	*applicableThrottle(VPlan *vplan)
@@ -5439,6 +5445,8 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 
 static void	computeExpirationTime(Bundle *bundle)
 {
+	uvast	expirationTimeMsec;
+	uvast	expirationTimeSec;
 	uvast	timeRemaining;
 
 	/*	Note: bundle creation time and arrival time are
@@ -5454,8 +5462,10 @@ static void	computeExpirationTime(Bundle *bundle)
 
 	if (ionClockIsSynchronized() && bundle->id.creationTime.msec > 0)
 	{
-		bundle->expirationTime = ((bundle->id.creationTime.msec
-				+ bundle->timeToLive) / 1000) + EPOCH_2000_SEC;
+		expirationTimeMsec = bundle->id.creationTime.msec
+				+ bundle->timeToLive;
+		expirationTimeSec = expirationTimeMsec / 1000;
+		bundle->expirationTime = expirationTimeSec + EPOCH_2000_SEC;
 	}
 	else	/*	No accurate local clock reference.		*/
 	{
@@ -5485,8 +5495,9 @@ static void	computeExpirationTime(Bundle *bundle)
 		 *	time to get expiration DTN time, then divide
 		 *	by 1000 and add EPOCH_2000_SEC.			*/
 
-		bundle->expirationTime = ((bundle->arrivalTime + timeRemaining)
-				/ 1000) + EPOCH_2000_SEC;
+		expirationTimeMsec = bundle->arrivalTime + timeRemaining;
+		expirationTimeSec = expirationTimeMsec / 1000;
+		bundle->expirationTime = expirationTimeSec + EPOCH_2000_SEC;
 	}
 }
 
