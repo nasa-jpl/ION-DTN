@@ -16,7 +16,7 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 	BpStatusRpt	rpt;
 	char		*sourceEid;
 	char		memobuf[1024];
-	unsigned int	statusTime = 0;
+	uvast		statusTime = 0;
 	char		*reasonString;
 
 	if (parseStatusRpt(&rpt, cursor, unparsedBytes) < 1)
