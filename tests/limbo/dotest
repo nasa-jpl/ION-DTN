@@ -29,7 +29,7 @@
 #
 # This test first sends a file over a STCP outduct, then uses bpadmin
 # to block the plan for that node and tries to send a second file; the
-# second file goes into limbo and is released from limbo when we thenk
+# second file goes into limbo and is released from limbo when we then
 # use bpadmin to unblock the plan.
 #
 # Then we test automatic STCP outduct management.  We again send a file,
