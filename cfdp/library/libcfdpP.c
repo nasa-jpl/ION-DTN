@@ -234,6 +234,51 @@ static void	addToModularChecksum(unsigned char octet, vast *offset,
 	(*offset)++;
 }
 
+#ifdef ENABLE_HIGH_SPEED
+void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
+		unsigned int *checksum, CfdpCksumType ckType)
+{
+	unsigned char *octet;
+	int bytesToWrite;
+	
+	CHKVOID(checksum);
+	switch (ckType)
+	{
+	case ModularChecksum:
+		CHKVOID(offset);
+		octet = data;
+		bytesToWrite = dLen;
+		while (bytesToWrite > 0)
+		{
+			addToModularChecksum(*octet, offset, checksum);
+			octet++;
+			bytesToWrite--;
+		}
+		break;
+
+	case CRC32CChecksum:
+		*checksum = ion_CRC32_1EDC6F41_C_slice((char *) data,
+				dLen, *checksum);
+		break;
+	
+	case CRC32Checksum:
+		*checksum = ion_CRC32_04C11DB7_slice((char *) data,
+				dLen, *checksum);
+		break;
+
+	case NullChecksum:
+		*checksum = 0;
+		break;
+
+	default:			/*	Unsupported checksum	*/
+		break;
+	}
+
+	return;
+}
+#endif
+
+#ifndef ENABLE_HIGH_SPEED
 void	addToChecksum(unsigned char octet, vast *offset,
 		unsigned int *checksum, CfdpCksumType ckType)
 {
@@ -259,6 +304,7 @@ void	addToChecksum(unsigned char octet, vast *offset,
 
 	return;
 }
+#endif
 
 int	getReqNbr()
 {
@@ -3742,6 +3788,13 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 	}
 
 	fdu->bytesReceived += bytesToWrite;
+
+#ifdef ENABLE_HIGH_SPEED
+	addDataToChecksum(*cursor, bytesToWrite, segmentOffset,
+			&fdu->computedChecksum, fdu->ckType);
+	(*cursor) += bytesToWrite;
+	(*bytesRemaining) -= bytesToWrite;
+#else
 	while (bytesToWrite > 0)
 	{
 		addToChecksum(**cursor, segmentOffset, &fdu->computedChecksum,
@@ -3750,7 +3803,7 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 		(*bytesRemaining)--;
 		bytesToWrite--;
 	}
-
+#endif
 	return 0;
 }
 
