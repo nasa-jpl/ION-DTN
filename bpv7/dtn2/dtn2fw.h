@@ -21,16 +21,16 @@
 extern "C" {
 #endif
 
-extern int		dtn2_init();
+extern int	dtn2_init();
 
-extern void		dtn2_findPlan(char *eid, Object *planAddr, Object *elt);
+extern void	dtn2_findPlan(char *nodeName, Object *planAddr, Object *elt);
 
-extern int		dtn2_addPlan(char *eid, unsigned int nominalRate);
-extern int		dtn2_addPlanDuct(char *eid, char *ductExpression);
-extern int		dtn2_setPlanViaEid(char *eid, char *viaEid);
-extern int		dtn2_updatePlan(char *eid, unsigned int nominalRate);
-extern int		dtn2_removePlanDuct(char *eid);
-extern int		dtn2_removePlan(char *eid);
+extern int	dtn2_addPlan(char *nodeName, unsigned int nominalRate);
+extern int	dtn2_addPlanDuct(char *nodeName, char *ductExpression);
+extern int	dtn2_setPlanViaEid(char *nodeName, char *viaEid);
+extern int	dtn2_updatePlan(char *nodeName, unsigned int nominalRate);
+extern int	dtn2_removePlanDuct(char *nodeName, char *ductExpression);
+extern int	dtn2_removePlan(char *nodeName);
 
 #ifdef __cplusplus
 }

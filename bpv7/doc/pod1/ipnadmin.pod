@@ -9,11 +9,12 @@ B<ipnadmin> [ I<commands_filename> ]
 =head1 DESCRIPTION
 
 B<ipnadmin> configures the local ION node's routing of bundles to endpoints
-whose IDs conform to the I<ipn> endpoint ID scheme.  I<ipn> is a CBHE-conformant
-scheme; that is, every endpoint ID in the I<ipn> scheme is a string of the
-form "ipn:I<node_number>.I<service_number>" where I<node_number> is
-a CBHE "node number" and I<service_number> identifies a specific application
-processing point.
+whose IDs conform to the I<ipn> endpoint ID scheme.  Every endpoint ID in the
+I<ipn> scheme is a string of the form "ipn:I<node_number>.I<service_number>"
+where I<node_number> is a CBHE "node number" and I<service_number> identifies
+a specific application processing point.  When I<service_number> is zero,
+the endpoint ID constitutes a node ID.  All endpoint IDs formed in the
+I<ipn> scheme identify singleton endpoints.
 
 B<ipnadmin> operates in response to IPN scheme configuration commands found
 in the file I<commands_filename>, if provided; if not, B<ipnadmin> prints

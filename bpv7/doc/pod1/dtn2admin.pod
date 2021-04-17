@@ -9,14 +9,15 @@ B<dtn2admin> [ I<commands_filename> ]
 =head1 DESCRIPTION
 
 B<dtn2admin> configures the local ION node's routing of bundles to endpoints
-whose IDs conform to the I<dtn> endpoint ID scheme.  I<dtn> is a
-non-CBHE-conformant scheme.  The structure of I<dtn> endpoint IDs remains
-somewhat in flux at the time of this writing, but endpoint IDs in the I<dtn>
-scheme historically have been strings of the form
-"dtn://I<node_name>[/I<demux_token>]", where I<node_name>
-normally identifies a computer somewhere on the network and I<demux_token>
-normally identifies a specific application processing point.  Although
-the I<dtn> endpoint ID scheme imposes more transmission overhead than the
+whose IDs conform to the I<dtn> endpoint ID scheme.  Endpoint IDs in the
+I<dtn> scheme are strings of the form "dtn://I<node_name>/[[~]I<demux_token>]",
+where I<node_name> identifies a BP node (often this is the DNS name of the
+computer on which the node resides) and I<demux_token> normally identifies a
+specific application processing point.  When and only when the terminating
+demux string (everything after the final '/') does NOT begin with '~', the
+endpoint ID identifies a singleton endpoint; when the terminating demux
+string is omitted, the endpoint ID constitutes a node ID.  Although the
+I<dtn> endpoint ID scheme imposes more transmission overhead than the
 I<ipn> scheme, ION provides support for I<dtn> endpoint IDs to enable
 interoperation with other implementations of Bundle Protocol.
 

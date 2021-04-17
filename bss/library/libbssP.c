@@ -18,6 +18,15 @@
 #define BSSLIBDEBUG	0
 #endif
 
+static time_t	bpSeconds(BpTimestamp ts)
+{
+#if (BP_VERSION == 6)
+	return ts.seconds;
+#else
+	return (time_t) (ts.msec / 1000);
+#endif
+}
+
 int	_running(int *newValue)
 {
 	static int    running = -1;
@@ -355,7 +364,7 @@ static int	insertLstIntrmd(int fileD, lstEntry *curEntry,
 	}
 #if BSSLIBDEBUG
 printf("Adding an intermediate entry into the list for %lu second\n", 
-	time.seconds);
+		bpSeconds(time));
 printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: %ld\n", 
 	newEntryOffset, lstEntryOffset, curEntry->next);
 printf("UPDATE NEXT // offset: %ld - previous offset: %ld - next offset: %ld\n", 
@@ -410,7 +419,7 @@ static long	addDataRecord(int fileD, off_t datOffset, BpTimestamp time,
 #if BSSLIBDEBUG
 printf("New data record added to the database\n");
 printf("-------------------------------------\n");
-printf("creation time: %lu - length: %ld\n", time.seconds, payloadLength);
+printf("creation time: %lu - length: %ld\n", bpSeconds(time), payloadLength);
 #endif
 	return 0;		
 }
@@ -480,7 +489,7 @@ printf("ADD // new Entry Offset: %ld - previous offset: -1 - next offset: -1\n",
 		}
 #if BSSLIBDEBUG
 printf("Same as end of list. Adding an entry at the end of the list for %lu \
-second\n", time.seconds);
+second\n", bpSeconds(time));
 printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n", 
 lstEntryOffset, curEntry.prev, newEntryOffset);
 printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n", newEntryOffset, lstEntryOffset);
@@ -532,7 +541,7 @@ printf("ADD // new Entry Offset: %ld - previous offset: %ld - next offset: -1\n"
 	}
 #if BSSLIBDEBUG
 printf("Adding an entry at the beginning of the list for %lu second\n", 
-	time.seconds);
+	bpSeconds(time));
 printf("UPDATE // offset: %ld - previous offset: %ld - next offset: %ld\n", 
 	lstEntryOffset, newEntryOffset,  curEntry.next);
 printf("ADD // Entry Offset: %ld - previous offset: -1 - next offset: %ld\n", 
@@ -580,6 +589,7 @@ static long	getEntryPosition(int tblFile, BpTimestamp time, long entry)
 {
 	tblIndex	*index = _tblIndex(NULL);
 	tblHeader	*hdr = &(index->header);
+	time_t		seconds = bpSeconds(time);
 	tblRow		*row;
 	long		elapsed;
 	long		relativeTime;
@@ -611,7 +621,7 @@ printf("(BEFORE) Creation time of the newest frame stored in *.tbl file: %lu\n",
 
 	if (hdr->oldestTime == 0)
 	{
-		hdr->oldestTime = time.seconds;
+		hdr->oldestTime = seconds;
 		if (writeTblFile(tblFile, 0, (char *) index, sizeof(tblHeader))
 				< 0)
 		{
@@ -621,7 +631,7 @@ printf("(BEFORE) Creation time of the newest frame stored in *.tbl file: %lu\n",
 
 	if (hdr->newestTime == 0)
 	{
-		hdr->newestTime = time.seconds;
+		hdr->newestTime = seconds;
 		if (writeTblFile(tblFile, 0, (char *) index, sizeof(tblHeader))
 				< 0)
 		{
@@ -631,7 +641,7 @@ printf("(BEFORE) Creation time of the newest frame stored in *.tbl file: %lu\n",
 
 	/*	Determine correct .tbl row for this bundle.		*/
 
-	if (time.seconds < hdr->oldestTime)
+	if (seconds < hdr->oldestTime)
 	{
 		/* Bundle is too old. A dataRecord will be inserted to
 		 * *.dat file but it will not be trackable by *.tbl or
@@ -645,11 +655,11 @@ printf("(before calculation) position value: %ld - NewestRowIndex value %ld\n",
 position, hdr->newestRowIndex);
 #endif
 
-	if (time.seconds <= hdr->newestTime)	/*	Data from past.	*/
+	if (seconds <= hdr->newestTime)	/*	Data from past.	*/
 	{
 		/*	No change to either oldest or newest time.	*/
 
-		relativeTime = time.seconds - hdr->oldestTime;
+		relativeTime = seconds - hdr->oldestTime;
 		position = hdr->oldestRowIndex + relativeTime;
 		if (position >= WINDOW)
 		{
@@ -658,7 +668,7 @@ position, hdr->newestRowIndex);
 	}
 	else	/*	Time has advanced.				*/
 	{
-		elapsed = time.seconds - hdr->newestTime;
+		elapsed = seconds - hdr->newestTime;
 		if (elapsed >= WINDOW)
 		{
 			/*	The time advance is too large to be
@@ -669,9 +679,9 @@ position, hdr->newestRowIndex);
 			initializeTblIndex(tblFile, index);
 			position = 0;
 			newestRow = 0;
-			newestTime = time.seconds;
+			newestTime = seconds;
 			oldestRow = 0;
-			oldestTime = time.seconds;
+			oldestTime = seconds;
 		}
 		else	/*	Time advance fits within index.		*/
 		{
@@ -734,7 +744,7 @@ printf("Row (%lu) was erased\n", position);
 			}
 
 			newestRow = position;
-			newestTime = time.seconds;
+			newestTime = seconds;
 		}
 	}
 
@@ -816,6 +826,8 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 			int tblFile, BpTimestamp *lastDis, char *buffer, 
 			long bufLength, RTBHandler display)
 {
+	time_t		bundleSeconds = bpSeconds(dlv->bundleCreationTime);
+	time_t		displaySeconds = bpSeconds(*lastDis);
 	ZcoReader       reader;
 	long		contentLength;
 	char		error[3] = "-1";
@@ -943,21 +955,23 @@ printf("from this point on, the execution of the provided display function begin
 		 *	frame has a creation time greater than the last
 		 *	displayed frame.  				*/ 
 
-		if (dlv->bundleCreationTime.seconds > lastDis->seconds)
+		if (bundleSeconds > displaySeconds)
 		{
-			res = display(dlv->bundleCreationTime.seconds, 
+			res = display(bundleSeconds,
 				dlv->bundleCreationTime.count, buffer, 
 				contentLength);
 			*lastDis = dlv->bundleCreationTime;
+			displaySeconds = bpSeconds(*lastDis);
 		}
-		else if (dlv->bundleCreationTime.seconds == lastDis->seconds)
+		else if (bundleSeconds == displaySeconds)
 		{
 			if (dlv->bundleCreationTime.count > lastDis->count)
 			{
-				res = display(dlv->bundleCreationTime.seconds,
+				res = display(bundleSeconds,
 					dlv->bundleCreationTime.count, buffer, 
 					contentLength);
 				*lastDis = dlv->bundleCreationTime;
+				displaySeconds = bpSeconds(*lastDis);
 			}
 		}
 	}
@@ -981,9 +995,7 @@ void	*recvBundles(void *args)
 	/*	Initialize the variable that holds the time of the 
 	 *	last displayed frame from receiving thread.		*/	
 
-	lastDis.seconds = 0;
-	lastDis.count = 0;
-
+	memset((char *) &lastDis, 0, sizeof lastDis);
    	db = (bss_thread_data *) args;
 
 	if (bp_attach() < 0)
@@ -1066,6 +1078,8 @@ static int	checkDb(int dat, int lst, int tbl)
 	tblHeader	*hdr = &(index->header);
 	char*		payload;
 	int		result;
+	time_t		entrySeconds;
+	time_t		dataSeconds;
 
 	if (_lockMutex(1) == -1)
 	{
@@ -1102,8 +1116,10 @@ static int	checkDb(int dat, int lst, int tbl)
 			return -1;	/*	Unresolved error.	*/
 		}
 
-		if ((hdr->oldestTime != entry.crtnTime.seconds)
-		|| (entry.crtnTime.seconds != data.crtnTime.seconds)
+		entrySeconds = bpSeconds(entry.crtnTime);
+		dataSeconds = bpSeconds(data.crtnTime);
+		if ((hdr->oldestTime != entrySeconds)
+		|| (entrySeconds != dataSeconds)
 		|| (entry.crtnTime.count != data.crtnTime.count))
 		{
 			/*	Database corruption detected.		*/

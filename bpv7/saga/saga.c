@@ -704,7 +704,10 @@ int	saga_send(uvast destinationNodeNbr, int regionIdx)
 		return -1;
 	}
 
-	if (bpSend(&ownMetaEid, destEid, NULL, 60, BP_STD_PRIORITY,
+	/*	Note: time-to-live must be in milliseconds for BP
+	 *	processing.  Hard-coded time-to-live is 1 minute.	*/
+
+	if (bpSend(&ownMetaEid, destEid, NULL, 60000, BP_STD_PRIORITY,
 			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
 			BP_SAGA_MESSAGE) <= 0)
 	{

@@ -1686,7 +1686,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 				+ radiationLatency.units);
 	}
 
-	if (acqTime > (bundle->expirationTime + EPOCH_2000_SEC))
+	if (acqTime > bundle->expirationTime)
 	{
 		/*	Bundle will never arrive: it will expire
 		 *	before arrival.					*/
@@ -2355,7 +2355,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	CgrRtgObject	*routingObj;
 	int		potential;
 
-	deadline = bundle->expirationTime + EPOCH_2000_SEC;
+	deadline = bundle->expirationTime;
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
 	CHKERR(routingObj);
 	if (routingObj->selectedRoutes == 0)
@@ -2488,7 +2488,7 @@ int	cgr_preview_forward(uvast terminusNodeNbr, Bundle *bundle,
 
 #endif
 
-int	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
+int	cgr_prospect(uvast terminusNodeNbr, time_t deadline)
 {
 	PsmPartition	wm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();

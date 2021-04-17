@@ -275,7 +275,7 @@ extern float		cgr_get_dlv_confidence(Bundle *bundle, CgrRoute *route);
 extern int		cgr_preview_forward(uvast terminusNodeNbr,
 				Bundle *bundle, time_t atTime, CgrSAP sap,
 				CgrTrace *trace);
-extern int		cgr_prospect(uvast terminusNode, unsigned int deadline);
+extern int		cgr_prospect(uvast terminusNode, time_t deadline);
 extern const char	*cgr_tracepoint_text(CgrTraceType traceType);
 extern const char	*cgr_reason_text(CgrReason reason);
 extern void		cgr_stop();

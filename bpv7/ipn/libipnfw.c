@@ -215,6 +215,7 @@ int	ipn_removePlanDuct(uvast nodeNbr, char *ductExpression)
 	VOutduct	*vduct;
 	PsmAddress	vductElt;
 
+	CHKERR(ductExpression);
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
 	cursor = strchr(ductExpression, '/');
 	if (cursor == NULL)

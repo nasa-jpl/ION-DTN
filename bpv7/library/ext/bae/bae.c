@@ -39,26 +39,16 @@ int	bae_serialize(ExtensionBlock *blk, Bundle *bundle)
 
 int	bae_processOnDequeue(ExtensionBlock *blk, Bundle *bundle, void *ctxt)
 {
-	struct timeval	currentTime;
+	DtnTime	currentDtnTime;	/*	milliseconds past EPOCH 2000.	*/
 
-	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
+	getCurrentDtnTime(&currentDtnTime);
+	if (ionClockIsSynchronized() && bundle->id.creationTime.msec > 0)
 	{
-		bundle->age = 1000000 * ((getCtime() - EPOCH_2000_SEC)
-				- bundle->id.creationTime.seconds);
+		bundle->age = currentDtnTime - bundle->id.creationTime.msec;
 	}
 	else
 	{
-		getCurrentTime(&currentTime);
-		if (currentTime.tv_usec < bundle->arrivalTime.tv_usec)
-		{
-			currentTime.tv_usec += 1000000;
-			currentTime.tv_sec -= 1;
-		}
-
-		currentTime.tv_sec -= bundle->arrivalTime.tv_sec;
-		currentTime.tv_usec -= bundle->arrivalTime.tv_usec;
-		bundle->age += currentTime.tv_usec
-				+ (1000000 * currentTime.tv_sec);
+		bundle->age += (currentDtnTime - bundle->arrivalTime);
 	}
 
 	return bae_serialize(blk, bundle);
@@ -89,13 +79,13 @@ int	bae_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		writeMemo("[?] Can't decode bundle age.");
 	}
 
+	bundle->age = uvtemp;
 	if (unparsedBytes != 0)
 	{
 		writeMemo("[?] Excess bytes at end of Bundle Age block.");
 		return 0;		/*	Malformed.		*/
 	}
 
-	getCurrentTime(&(bundle->arrivalTime));
 	return 1;
 }
 

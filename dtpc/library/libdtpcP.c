@@ -1855,12 +1855,20 @@ static int	handleNextExpected(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 
 static time_t	getPlaceholderDeletionTime(BpDelivery *dlv)
 {
+	time_t	seconds;
+	time_t	ttl;
 	time_t	currentTime;
 	time_t	deletionTime;
 
+#if (BP_VERSION == 6)
+	seconds = dlv->bundleCreationTime.seconds;
+	ttl = dlv->timeToLive;
+#else
+	seconds = (time_t) (dlv->bundleCreationTime.msec / 1000);
+	ttl = dlv->timeToLive / 1000;
+#endif
 	currentTime = getCtime();
-	deletionTime = (dlv->bundleCreationTime.seconds + EPOCH_2000_SEC
-			+ dlv->timeToLive) - 1;
+	deletionTime = (seconds + EPOCH_2000_SEC + ttl) - 1;
 	if (deletionTime < currentTime)
 	{
 		deletionTime = currentTime;
@@ -2883,6 +2891,7 @@ int	sendAck(BpSAP sap, unsigned int profileID, Scalar seqNum,
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	Profile		*profile;
 	time_t		currentTime;
+	time_t		seconds;
 	int		lifetime;
 	int		priority = 0;
 	char		dstEid[64];
@@ -2908,9 +2917,13 @@ send ACK.");
 		/*	No profile found - Estimate lifetime.		*/
 
 		currentTime = getCtime();
-		lifetime = currentTime - (dlv->bundleCreationTime.seconds +
-			 	EPOCH_2000_SEC) + 10; 	/* Add 10 seconds
-							 * for safety.	*/							
+#if (BP_VERSION == 6)
+		seconds = dlv->bundleCreationTime.seconds;
+#else
+		seconds = (time_t) (dlv->bundleCreationTime.msec / 1000);
+#endif
+		lifetime = currentTime - (seconds + EPOCH_2000_SEC) + 10;
+			/*	Add 10 seconds for safety.		*/							
 	}
 	else
 	{

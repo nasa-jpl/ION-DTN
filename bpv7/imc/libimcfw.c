@@ -388,7 +388,7 @@ static int	xmitPetition(vast toRegion, unsigned char *buffer, int length)
 	Object		sourceData;
 	Object		payloadZco;
 	char		destEid[] = "imc:0.0";
-	unsigned int	ttl = 86400;
+	unsigned int	ttl = 86400;	/*	Seconds; 1 day.		*/
 	BpAncillaryData	ancillary = { 0, 0, 255 };
 
 	isprintf(sourceEid, sizeof sourceEid,
@@ -444,7 +444,11 @@ static int	xmitPetition(vast toRegion, unsigned char *buffer, int length)
 	 *	need not be removed.					*/
 
 //puts("Transmitting petition.");
-	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
+
+	/*	Note that ttl must be converted from seconds to
+	 *	milliseconds for BP processing.				*/
+
+	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl * 1000,
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
 			&ancillary, payloadZco, NULL, 0))
 	{

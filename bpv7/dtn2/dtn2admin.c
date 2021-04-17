@@ -67,13 +67,13 @@ static void	printUsage()
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a plan <node ID> <directive> [xmit rate]");
+	PUTS("\t   a plan <node name> <directive> [xmit rate]");
 	PUTS("\tc\tChange");
-	PUTS("\t   c plan <node ID> [<directive>] [xmit rate]");
+	PUTS("\t   c plan <node name> [f <endpoint ID>] [xmit rate]");
 	PUTS("\td\tDelete");
-	PUTS("\t   d plan <node ID>");
+	PUTS("\t   d plan <node name>");
 	PUTS("\ti\tInfo");
-	PUTS("\t   i plan <node ID>");
+	PUTS("\t   i plan <node name>");
 	PUTS("\tl\tList");
 	PUTS("\t   l plan");
 	PUTS("\t#\tComment");
@@ -240,12 +240,6 @@ static void	executeChange(int tokenCount, char **tokens)
 		if (rateChanged)
 		{
 			dtn2_updatePlan(tokens[2], nominalRate);
-		}
-
-		if (ductExpression)
-		{
-			dtn2_removePlanDuct(tokens[2]);
-			dtn2_addPlanDuct(tokens[2], ductExpression);
 		}
 
 		if (viaEid)

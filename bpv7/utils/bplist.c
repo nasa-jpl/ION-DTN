@@ -235,9 +235,8 @@ static void	printBundle(Object bundleObj)
 	}
 
 	isprintf(buf, sizeof buf,
-		"Creation sec   %10lu   count %10lu   frag offset %10lu",
-			bundle->id.creationTime.seconds,
-			bundle->id.creationTime.count,
+			"Creation msec   " UVAST_FIELDSPEC "   count %10lu   \
+frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 			bundle->id.fragmentOffset);
 	PUTS(buf);
 	isprintf(buf, sizeof buf,

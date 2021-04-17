@@ -104,7 +104,6 @@ int	hcb_parse(AcqExtBlock *blk, AcqWorkArea *wk)
 		return 0;		/*	Malformed.		*/
 	}
 
-	getCurrentTime(&(bundle->arrivalTime));
 	return 1;
 }
 
