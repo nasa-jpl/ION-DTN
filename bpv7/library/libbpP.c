@@ -1274,6 +1274,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->updateStats = db->updateStats;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
+		vdb->cpsdPid = ERROR;
 		vdb->transitSemaphore = SM_SEM_NONE;
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
@@ -1614,6 +1615,13 @@ int	bpStart()
 		bpvdb->clockPid = pseudoshell(cmdString);
 	}
 
+	/*	Start the contact plan manager if necessary.		*/
+
+	if (bpvdb->cpsdPid == ERROR || sm_TaskExists(bpvdb->cpsdPid) == 0)
+	{
+		bpvdb->cpsdPid = pseudoshell("cpsd");
+	}
+
 	/*	Start the bundle transit daemon if necessary.		*/
 
 	if (bpvdb->transitPid == ERROR || sm_TaskExists(bpvdb->transitPid) == 0)
@@ -1716,6 +1724,11 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
+	if (bpvdb->cpsdPid != ERROR)
+	{
+		sm_TaskKill(bpvdb->cpsdPid, SIGTERM);
+	}
+
 	sm_SemEnd(bpvdb->transitSemaphore);
 	if (bpvdb->transitPid != ERROR)
 	{
@@ -1765,6 +1778,14 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		}
 	}
 
+	if (bpvdb->cpsdPid != ERROR)
+	{
+		while (sm_TaskExists(bpvdb->cpsdPid))
+		{
+			microsnooze(100000);
+		}
+	}
+
 	if (bpvdb->transitPid != ERROR)
 	{
 		while (sm_TaskExists(bpvdb->transitPid))
@@ -1777,6 +1798,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	CHKVOID(sdr_begin_xn(sdr));
 	bpvdb->clockPid = ERROR;
+	bpvdb->cpsdPid = ERROR;
 	bpvdb->transitPid = ERROR;
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
@@ -3538,6 +3560,11 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
 	petition.groupNbr = metaEid.elementNbr;
+	if (petition.groupNbr == 0)	/*	Pan-regional dispatch.	*/
+	{
+		return 0;
+	}
+
 	petition.isMember = 1;
 	result = imcSendPetition(&petition, 0);
 	restoreEidString(&metaEid);
@@ -6440,6 +6467,10 @@ when asking for status reports.");
 			userExtensions = ancillaryData->extensions;
 			userExtensionsCt = ancillaryData->extensionsCt;
 		}
+
+		/*	Also note imcRegionNbr (usually zero).		*/
+
+		bundle.ancillaryData.imcRegionNbr = ancillaryData->imcRegionNbr;
 	}
 
 	if (custodySwitch != NoCustodyRequested)

@@ -867,6 +867,7 @@ typedef struct
 	int		updateStats;	/*	Boolean.		*/
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping bpclock.	*/
+	int		cpsdPid;	/*	For stopping cpsd.	*/
 	int		transitPid;	/*	For stopping bptransit.	*/
 	sm_SemId	transitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/

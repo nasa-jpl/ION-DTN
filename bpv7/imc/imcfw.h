@@ -7,7 +7,7 @@
 	Modification History:
 	Date      Who   What
 
-	Copyright (c) 2012, California Institute of Technology.
+	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
  									*/
@@ -15,6 +15,10 @@
 #define _IMCFW_H_
 
 #include "bpP.h"
+
+#ifndef IMCDEBUG
+#define	IMCDEBUG	0
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,7 +54,17 @@ extern void		imcFindGroup(uvast groupNbr, Object *addr,
 extern int		imcHandleBriefing(BpDelivery *dlv,
 				unsigned char *cursor,
 				unsigned int unparsedBytes);
-extern int		imcSendPetition(ImcPetition *petition, vast toRegion);
+
+/*	"Dispatches" are bundles that are privately multicast to all
+ *	(and only) members of the indicated region(s).
+ *
+ *	"Petitions" are dispatches that convey information about
+ *	multicast group membership.					*/
+
+extern int		imcSendDispatch(char *destEid, uvast toRegion,
+				unsigned char *buffer, int length);
+
+extern int		imcSendPetition(ImcPetition *petition, uvast toRegion);
 
 #ifdef __cplusplus
 }

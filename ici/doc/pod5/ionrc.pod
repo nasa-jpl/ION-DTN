@@ -88,8 +88,8 @@ i.e., an offset beyond the current reference time.
 
 =item B<^> I<region_number>
 
-The B<region> command.  This is used to identify the region to which
-all ensuing "add contact" operations (until this execution of ionadmin
+The B<region> command.  This is used to select the region to which
+all ensuing "contact" operations (until this execution of ionadmin
 terminates, or until the next B<region> command is processed) pertain.
 A B<region> is an arbitarily managed set of nodes that customarily are able
 to use contact graph routing to compute forwarding routes among themselves,
@@ -98,6 +98,17 @@ one-to-one correspondence between regions and contact plans, so in
 effect the B<region> command is used to switch between contact plans.
 Regions are notionally quite small sets (on the order of 16-32 nodes)
 because contact graph routing is computationally intensive.
+
+Information regarding up to two (2) regions may be managed at any single node.
+
+By default, region number 1 (the "universal" region) is selected.
+
+=item B<!> [0 | 1]
+
+"Announce" control.  Setting the announce flag to 1 causes contact plan
+updates (contact add/change/delete, range add/delete) to be multicast to
+all other nodes in the region in addition to being processed at the local
+node.  Setting the announce flag to 0 disables this behavior.
 
 =item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<confidence>]
 
@@ -115,8 +126,8 @@ The period of time between the start and stop times of a contact is termed
 the contact's "interval".  The intervals of scheduled contacts are not
 allowed to overlap.
 
-Three different types of contact can be intermixed within an .ionrc file that
-defines a contact plan.
+Commands pertaining to three different types of contact can be intermixed
+within an .ionrc file that defines a contact plan.
 
 =over 4
 
@@ -135,8 +146,8 @@ confidence value is set to 1.0.
 =item 2  Hypothetical
 
 When I<stop_time> is "0", the contact is "hypothetical".  A hypothetical
-contact is an anticipated opportunity for the local node to transmit data,
-or received data from, some potentially neighboring node in the same
+contact is an anticipated opportunity for the local node to transmit data
+to, or receive data from, some potentially neighboring node in the same
 region.  The nature of that contact is completely unknown; if and when
 the contact occurs, the hypothetical contact will be transformed into
 a "discovered" contact for the duration of the opportunity, after which
@@ -161,14 +172,15 @@ be greater than zero.
 The B<change contact> command.  This command changes the data transmission
 rate and possibly our level of confidence in the scheduled period of data
 transmission from I<source_node> to I<dest_node> starting at I<start_time>.
+Registration and hypothetical contacts cannot be changed.
 
 =item B<d contact> I<start_time> I<source_node> I<dest_node>
 
-The B<delete contact> command.  This command deletes the scheduled
-period of data transmission from I<source_node> to I<dest_node> starting
-at I<start_time>.  To delete all contacts between some pair of nodes,
-use '*' as I<start_time>.  To delete a registration contact, use "-1"
-as I<start_time>.  To delete a hypothetical contact, use "0" as I<start_time>.
+The B<delete contact> command.  This command deletes the contact from
+I<source_node> to I<dest_node> starting at I<start_time>.  To delete
+all scheduled contacts between some pair of nodes, use '*' as I<start_time>.
+To delete a registration contact, use "-1" as I<start_time>.  To delete
+a hypothetical contact, use "0" as I<start_time>.
 
 =item B<i contact> I<start_time> I<source_node> I<dest_node>
 
@@ -178,7 +190,14 @@ that starts at I<start_time>.
 
 =item B<l contact>
 
-This command lists all scheduled periods of data transmission.
+This command lists all contacts in the contact plan for the selected region.
+
+=item B<b contact>
+
+The B<brief contacts> command.  This command writes a file of commands
+that will recreate the current list of contacts, for the selected region,
+in the node's ION database.  The name of the file will be
+"contacts.I<region_number>.ionrc".
 
 =item B<a range> I<start_time> I<stop_time> I<one_node> I<the_other_node> I<distance>
 
@@ -233,6 +252,12 @@ that starts at I<start_time>.
 =item B<l range>
 
 This command lists all predicted periods of constant distance.
+
+=item B<b range>
+
+The B<brief ranges> command.  This command writes a file of commands that
+will recreate the current list of ranges in the node's ION database.  The
+file's name will be "ranges.ionrc".
 
 =item B<m utcdelta> I<local_time_sec_after_UTC>
 

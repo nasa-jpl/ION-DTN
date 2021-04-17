@@ -104,7 +104,7 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	this function.					*/
 
 		return rfx_remove_range(&(rxref->fromTime),
-				rxref->fromNode, rxref->toNode);
+				rxref->fromNode, rxref->toNode, 0);
 
 	case IonStopXmit:
 		cxref = (IonCXref *) psp(ionwm, event->ref);
@@ -306,8 +306,8 @@ static int	dispatchEvent(IonVdb *vdb, IonEvent *event, int *forecastNeeded)
 		 *	from timeline including the one that invoked
 		 *	this function.					*/
 
-		return rfx_remove_contact(&(cxref->fromTime),
-				cxref->fromNode, cxref->toNode);
+		return rfx_remove_contact(cxref->regionNbr, &(cxref->fromTime),
+				cxref->fromNode, cxref->toNode, 0);
 
 	case IonAlarmTimeout:
 		alarmAddr = event->ref;

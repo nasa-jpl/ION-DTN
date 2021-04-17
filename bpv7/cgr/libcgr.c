@@ -337,7 +337,6 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 		{
 			/*	Range unknown at contact start time.	*/
 
-			break;
 		}
 
 		/*	Found applicable range.				*/
@@ -459,6 +458,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	current = rootContact;
 	currentWork = rootWork;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(current->toNode, terminusNode->nodeNbr, &arg.regionNbr));
 
 	/*	Perform this outer loop until either the best
 	 *	route to the end vertex has been identified or else
@@ -492,6 +492,11 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		{
 			contactAddr = sm_rbt_data(ionwm, elt);
 			contact = (IonCXref *) psp(ionwm, contactAddr);
+			if (contact->type == CtRegistration)
+			{
+				continue;	/*	No bearing.	*/
+			}
+
 			if (contact->toTime <= currentTime)
 			{
 				/*	Contact is ended, is about to
@@ -1376,6 +1381,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	loadScalar(&allotment, 0);
 	loadScalar(&volume, 0);
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(ownNodeNbr, route->toNodeNbr, &arg.regionNbr));
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = route->toNodeNbr;
 	for (oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,

@@ -60,10 +60,9 @@ static int	removePredictedContacts(int regionIdx)
 		/*	This is a predicted contact.		*/
 
 		if (rfx_remove_contact(&contact.fromTime,
-				contact.fromNode, contact.toNode) < 0)
+				contact.fromNode, contact.toNode, 0) < 0)
 		{
-			putErrmsg("Failure in rfx_remove_contact.",
-					NULL);
+			putErrmsg("Failure in rfx_remove_contact.", NULL);
 			break;
 		}
 	}
@@ -420,7 +419,7 @@ printf("Net confidence %f.\n", netConfidence);
 	if (xmitRate > 1)
 	{
 		if (rfx_insert_contact(regionIdx, horizon, horizon, fromNode,
-				toNode, xmitRate, netConfidence, &cxaddr) < 0
+			toNode, xmitRate, netConfidence, &cxaddr, 0) < 0
 		|| cxaddr == 0)
 		{
 			putErrmsg("Can't insert predicted contact.", NULL);

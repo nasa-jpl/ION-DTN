@@ -190,7 +190,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	else		/*	Must insert hypothetical contact.	*/
 	{
 		if (rfx_insert_contact(regionIdx, 0, 0, ownNodeNbr,
-				discoveryNodeNbr, 0, 0.0, &contactAddr) < 0
+				discoveryNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",
@@ -242,7 +242,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	else		/*	Must insert hypothetical contact.	*/
 	{
 		if (rfx_insert_contact(regionIdx, 0, 0, discoveryNodeNbr,
-				ownNodeNbr, 0, 0.0, &contactAddr) < 0
+				ownNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",

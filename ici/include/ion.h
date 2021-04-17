@@ -180,7 +180,6 @@ typedef struct
  *	are reset to zero.  New discovered contacts are never
  *	posted in any other way.					*/
 
-
 typedef enum
 {
 	CtRegistration = 1,
@@ -196,7 +195,7 @@ typedef struct
 	time_t		fromTime;	/*	As from time(2).	*/
 	time_t		toTime;		/*	As from time(2).	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
-	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
+	uvast		toNode;		/*	... BP nodeNbr.		*/
 	size_t		xmitRate;	/*	In bytes per second.	*/
 	float		confidence;	/*	Confidence in contact.	*/
 	ContactType	type;		/*	For disambiguation.	*/
@@ -214,17 +213,43 @@ typedef struct
 
 typedef struct
 {
-	uvast		nodeNbr;
-	vast		homeRegionNbr;
-	vast		outerRegionNbr;
-} RegionMember;
+	uvast		regionNbr;
+	Object		contacts;	/*	SDR list: IonContact	*/
+} IonRegion;
 
 typedef struct
 {
-	vast		regionNbr;
-	Object		members;	/*	SDR list: RegionMember	*/
-	Object		contacts;	/*	SDR list: IonContact	*/
-} IonRegion;
+	uvast		nodeNbr;
+	uvast		homeRegionNbr;
+	uvast		outerRegionNbr;
+} RegionMember;
+
+/*	CpsNotice objects are consumed by cpsd, which uses their
+ *	parameters to multicast contact plan (contact and range)
+ *	management commands to all nodes in the region.			*/
+
+typedef struct
+{
+	uvast		regionNbr;	/*	Home or outer.		*/
+
+	/*	We represent "range" notices by setting regionNbr
+	 *	to zero.						*/
+
+	time_t		fromTime;	/*	As from time(2).	*/
+	time_t		toTime;		/*	As from time(2).	*/
+
+	/*	We represent contact and range removal notices by
+	 *	setting toTime to zero.					*/
+
+	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
+	uvast		toNode;		/*	... BP nodeNbr.		*/
+	size_t		magnitude;
+
+	/*	magnitude is xmit rate in bytes/sec for contact
+	 *	notices, owlt in seconds for range notices.		*/
+
+	float		confidence;	/*	Confidence in contact.	*/
+} CpsNotice;
 
 /*	The ION database is shared by BP, LTP, and RFX.			*/
 
@@ -232,6 +257,8 @@ typedef struct
 {
 	uvast		ownNodeNbr;
 	IonRegion	regions[2];	/*	Home, outer.		*/
+	Object		rolodex;	/*	SDR list: RegionMember	*/
+	Object		cpsNotices;	/*	SDR list: CpsNotice	*/
 	Object		ranges;		/*	SDR list: IonRange	*/
 	size_t		productionRate;	/*	Bundles sent by apps.	*/
 	size_t		consumptionRate;/*	Bundles rec'd by apps.	*/
@@ -341,6 +368,7 @@ typedef struct
 
 typedef struct
 {
+	uvast		regionNbr;	/*	ID of network region	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
@@ -450,18 +478,10 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
-extern int		ionPickRegion(vast regionNbr);
-extern int		ionRegionOf(uvast nodeA,
-					uvast nodeB);
-extern void		ionNoteMember(int regionIdx,
-					uvast nodeNbr,
-					vast homeRegionNbr,
-					vast outerRegionNbr);
-extern int		ionManageRegion(int i,
-					vast regionNbr);
-extern int		ionManagePassageway(uvast nodeNbr,
-					vast homeRegionNbr,
-					vast outerRegionNbr);
+extern int		ionPickRegion(uvast regionNbr);
+extern int		ionRegionOf(uvast nodeNbrA,
+					uvast nodeNbrB,
+					uvast *regionNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

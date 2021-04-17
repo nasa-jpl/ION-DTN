@@ -302,7 +302,9 @@ static uvast 	getBestEntryNode(Bundle *bundle, IonNode *terminusNode,
 	{
 		route = (CgrRoute *) lyst_data_set(elt, NULL);
 		lyst_destroy(bestRoutes);
-//printf("Computed best route to " UVAST_FIELDSPEC " begins with transmission to " UVAST_FIELDSPEC ".\n", terminusNode->nodeNbr, route->toNodeNbr);
+#if IMCDEBUG
+printf("Computed best route to " UVAST_FIELDSPEC " begins with transmission to " UVAST_FIELDSPEC ".\n", terminusNode->nodeNbr, route->toNodeNbr);
+#endif
 		return route->toNodeNbr;
 	}
 
@@ -449,14 +451,18 @@ static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 	PsmAddress	vplanElt;
 
 	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", nodeNbr);
-//printf("Preparing to send to neighbor '%s'.\n", eid);
+#if IMCDEBUG
+printf("Preparing to send to neighbor '%s'.\n", eid);
+#endif
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)
 	{
 		return 0;
 	}
 
-//puts("Sending to neighbor.");
+#if IMCDEBUG
+puts("Sending to neighbor.");
+#endif
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
 		putErrmsg("Can't enqueue bundle.", NULL);
@@ -486,7 +492,9 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, uvast nodeNbr)
 	/*	No plan for conveying bundle to this neighbor, so
 	 *	must give up on forwarding it.				*/
 
-//printf("enqueueBundle to node" UVAST_FIELDSPEC ".\n", nodeNbr);
+#if IMCDEBUG
+printf("enqueueBundle to node" UVAST_FIELDSPEC ".\n", nodeNbr);
+#endif
 	return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 }
 
@@ -499,6 +507,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 	Object		elt;
 	uvast		nodeNbr;
 	int		regionIdx;
+	uvast		regionNbr;
 	uvast		viaNode = 0;
 	LystElt		elt2;
 	ImcGang		*gang;
@@ -525,16 +534,19 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 			elt = sdr_list_next(sdr, elt))
 	{
 		nodeNbr = sdr_list_data(sdr, elt);
-//printf("Outbound destination is " UVAST_FIELDSPEC ".\n", nodeNbr);
-		regionIdx = ionRegionOf(nodeNbr, ownNodeNbr);
-		if (regionIdx < 0 || regionIdx > 1)
+#if IMCDEBUG
+printf("Outbound destination is " UVAST_FIELDSPEC ".\n", nodeNbr);
+#endif
+		regionIdx = ionRegionOf(nodeNbr, ownNodeNbr, &regionNbr);
+		if (regionIdx < 0)
 		{
 			/*	Some other node will be forwarding
 			 *	the bundle to this destination node,
 			 *	or else it's impossble to forward
 			 *	the bundle to this destination node.	*/
-
-//puts("No common region.");
+#if IMCDEBUG
+puts("No common region.");
+#endif
 			continue;
 		}
 
@@ -543,8 +555,9 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 		{
 			/*	No way to get the bundle to this
 			 *	destination.				*/
-
-//puts("No via node.");
+#if IMCDEBUG
+puts("No via node.");
+#endif
 			continue;
 		}
 
@@ -587,7 +600,9 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 				elt3 = lyst_next(elt3))
 		{
 			nodeNbr = (uaddr) lyst_data(elt3);
-//printf("Loading destination " UVAST_FIELDSPEC ".\n", nodeNbr);
+#if IMCDEBUG
+printf("Loading destination " UVAST_FIELDSPEC ".\n", nodeNbr);
+#endif
 			if (loadDestination(&newBundle, nodeNbr) < 0)
 			{
 				putErrmsg("Failed loading destination.", NULL);
@@ -597,8 +612,9 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 		}
 
 		/*	Finally, enqueue the new bundle for xmit.	*/
-
-//printf("Gang bundle sent to " UVAST_FIELDSPEC " has %lu members.\n", gang->entryNode, lyst_length(gang->members));
+#if IMCDEBUG
+printf("Gang bundle sent to " UVAST_FIELDSPEC " has %lu members.\n", gang->entryNode, lyst_length(gang->members));
+#endif
 		if (enqueueBundle(&newBundle, newBundleObj, gang->entryNode)
 				< 0)
 		{
@@ -633,7 +649,9 @@ static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
 	if (destinationsCount < 1)
 	{
 		writeMemo("[?] IMC block has no destinations.");
-//puts("no destinations");
+#if IMCDEBUG
+puts("no destinations");
+#endif
 		oK(bpAbandon(bundleAddr, bundle, BP_REASON_NO_ROUTE));
 		return 0;
 	}
@@ -696,23 +714,27 @@ static int	relayImcBundle(Bundle *bundle, Object bundleAddr,
 	return forwardImcBundle(bundle, bundleAddr);
 }
 
-static int	loadRegionMembers(Bundle *bundle, int regionIdx, IonDB *db)
+static int	loadRegionMembers(Bundle *bundle, uvast regionNbr, IonDB *db)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
 	Object		memberAddr;
 	RegionMember	member;
 
-	for (elt = sdr_list_first(sdr, db->regions[regionIdx].members); elt;
+	for (elt = sdr_list_first(sdr, db->rolodex); elt;
 			elt = sdr_list_next(sdr, elt))
 	{
 		memberAddr = sdr_list_data(sdr, elt);
 		sdr_read(sdr, (char *) &member, memberAddr,
 				sizeof(RegionMember));
-		if (loadDestination(bundle, member.nodeNbr) < 0)
+		if (member.homeRegionNbr == regionNbr
+		|| member.outerRegionNbr == regionNbr)
 		{
-			putErrmsg("Can't add region member.", NULL);
-			return -1;
+			if (loadDestination(bundle, member.nodeNbr) < 0)
+			{
+				putErrmsg("Can't add region member.", NULL);
+				return -1;
+			}
 		}
 	}
 
@@ -724,7 +746,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
 	IonDB		iondb;
-	vast		regionNbr;
+	uvast		regionNbr;
 	int		regionIdx;
 	uvast		groupNbr;
 	Object		groupAddr;
@@ -739,57 +761,61 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	 *	region membership (for a petition) or from group
 	 *	membership (for an application multicast message).	*/
 
-	if (groupNbr == 0)	/*	Petition.			*/
+	if (groupNbr == 0)	/*	Broadcast to region members.	*/
 	{
+
+		regionNbr = bundle->ancillaryData.imcRegionNbr;
 		iondbObj = getIonDbObject();
 		sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-		regionNbr = bundle->destination.ssp.imc.serviceNbr;
-		if (regionNbr == 0)	/*	Native origination.	*/
+		if (regionNbr == 0)	/*	Fwd in both regions.	*/
 		{
 			/*	Send to all members of both home
 			 *	region and (if any) outer region.	*/
 
-			if (loadRegionMembers(bundle, 0, &iondb) < 0
-			|| loadRegionMembers(bundle, 1, &iondb) < 0)
+			if (loadRegionMembers(bundle,
+					iondb.regions[0].regionNbr, &iondb) < 0
+			|| loadRegionMembers(bundle,
+					iondb.regions[1].regionNbr, &iondb) < 0)
 			{
 				putErrmsg("Can't add IMC region member.", NULL);
 				return -1;
 			}
 		}
-		else			/*	Propagation.		*/
+		else			/*	Fwd within this region.	*/
 		{
 			/*	Send only to all members of the
-			 *	region into which the message must
-			 *	be propagated by the passageway.	*/
+			 *	specified region.			*/
 
 			regionIdx = ionPickRegion(regionNbr);
-			if (regionIdx < 0 || regionIdx > 1)
+			if (regionIdx < 0)
 			{
 				putErrmsg("IMC system error.", NULL);
 				return -1;
 			}
 
-			if (loadRegionMembers(bundle, regionIdx, &iondb) < 0)
+			if (loadRegionMembers(bundle, 
+				iondb.regions[regionIdx].regionNbr, &iondb) < 0)
 			{
 				putErrmsg("Can't add IMC region member.", NULL);
 				return -1;
 			}
 		}
 	}
-	else			/*	Application multicast message.	*/
+	else			/*	Multicast to group members.	*/
 	{
 		imcFindGroup(groupNbr, &groupAddr, &groupElt);
 		if (groupElt == 0)
 		{
 			/*	Nobody subscribes to bundles destined
 			 *	for this group.				*/
-
-//puts("no such group");
+#if IMCDEBUG
+puts("no such group");
+#endif
 			oK(bpAbandon(bundleAddr, bundle, BP_REASON_NO_ROUTE));
 			return 0;
 		}
 
-		/*	Must multicast bundle to this group.		*/
+		/*	Multicast bundle to all members of this group.	*/
 
 		sdr_read(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 		for (elt = sdr_list_first(sdr, group.members); elt;
@@ -926,7 +952,9 @@ int	main(int argc, char *argv[])
 		if (imcblkElt == 0)
 		{
 			writeMemo("[?] IMC extension block is missing.");
-//puts("IMC extension block missing");
+#if IMCDEBUG
+puts("IMC extension block missing");
+#endif
 			oK(bpAbandon(bundleAddr, &bundle, BP_REASON_NO_ROUTE));
 			continue;
 		}
@@ -955,8 +983,9 @@ int	main(int argc, char *argv[])
 					/*	Received from unknown
 					 *	node, can't safely
 					 *	relay the bundle.	*/
-
-//puts("received from unknown node");
+#if IMCDEBUG
+puts("received from unknown node");
+#endif
 					oK(bpAbandon(bundleAddr, &bundle,
 						BP_REASON_NO_ROUTE));
 				}

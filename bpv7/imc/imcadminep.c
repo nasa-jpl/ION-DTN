@@ -10,38 +10,6 @@
 									*/
 #include "imcfw.h"
 
-static int	parsePetition(ImcPetition *petition, unsigned char *cursor,
-			unsigned int unparsedBytes)
-{
-	uvast	arrayLength;
-	uvast	uvtemp;
-
-	/*	Start parsing of petition.				*/
-
-	arrayLength = 2;
-	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode IMC petition array.");
-		return 0;
-	}
-
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode IMC petition group number.");
-		return 0;
-	}
-
-	petition->groupNbr = uvtemp;
-	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
-	{
-		writeMemo("[?] Can't decode IMC petition membership switch.");
-		return 0;
-	}
-
-	petition->isMember = (uvtemp != 0);
-	return 1;
-}
-
 static int	briefNewNode(uvast nodeNbr)
 {
 	Sdr		sdr = getIonsdr();
@@ -158,12 +126,19 @@ static int	briefNewNode(uvast nodeNbr)
 		return 0;
 	}
 
+<<<<<<< working copy
 //puts("Sending briefing.");
 
 	/*	Note that ttl must be expressed in milliseconds for
 	 *	BP processing.  The hard-coded TTL here is 1 minute.	*/
 
 	if (bpSend(&sourceMetaEid, destEid, NULL, 60000, BP_STD_PRIORITY,
+=======
+#if IMCDEBUG
+puts("Sending briefing.");
+#endif
+	if (bpSend(&sourceMetaEid, destEid, NULL, 60, BP_STD_PRIORITY,
+>>>>>>> merge rev
 			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
 			BP_MULTICAST_BRIEFING) <= 0)
 	{
@@ -178,6 +153,7 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 {
 	Sdr		sdr = getIonsdr();
 	uvast		ownNodeNbr = getOwnNodeNbr();
+	uvast		uvtemp;
 	ImcPetition	petition;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -189,22 +165,28 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	uvast		nodeNbr;
 	Object		iondbObj;
 	IonDB		iondb;
-	vast		sourceRegion;
-	vast		destinationRegion;
+	int		sourceRegionIdx;
+	uvast		sourceRegionNbr;
+	uvast		destinationRegionNbr;
 
-	switch (parsePetition(&petition, cursor, unparsedBytes))
+	/*	Finish parsing the petition.				*/
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-	case -1:
-		putErrmsg("Parsing of IMC petition failed.", NULL);
-		return -1;
-
-	case 0:
-		writeMemo("[?] IMC petition discarded.");
+		writeMemo("[?] Can't decode IMC petition group number.");
 		return 0;
-
-	default:
-		break;
 	}
+
+	petition.groupNbr = uvtemp;
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC petition membership switch.");
+		return 0;
+	}
+
+	petition.isMember = (uvtemp != 0);
+
+	/*	Determine the node that sent the petition.		*/
 
 	if (parseEidString(dlv->bundleSourceEid, &metaEid, &vscheme,
 			&vschemeElt) == 0 || vscheme->codeNumber != ipn)
@@ -216,19 +198,23 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 		return 0;
 	}
 
-	/*	First get the multicast group.				*/
+	/*	Now get the multicast group.				*/
 
 #if IMCDEBUG
 printf("Handling type-%d petition from " UVAST_FIELDSPEC " at node "
-UVAST_FIELDSPEC ".\n", petition->isMember, metaEid.elementNbr, ownNodeNbr);
+UVAST_FIELDSPEC ".\n", petition.isMember, metaEid.elementNbr, ownNodeNbr);
 fflush(stdout);
 #endif
 	oK(sdr_begin_xn(sdr));
 	imcFindGroup(petition.groupNbr, &groupAddr, &groupElt);
-//printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.groupNbr);
+#if IMCDEBUG
+printf("Seeking multicast group for group number " UVAST_FIELDSPEC ".\n", petition.groupNbr);
+#endif
 	if (groupElt == 0)	/*	System failure.			*/
 	{
-//puts("Group not found.");
+#if IMCDEBUG
+puts("Group not found.");
+#endif
 		if (petition.isMember)	/*	(Else nothing to do.)	*/
 		{
 			writeMemoNote("Can't handle IMC Join petition",
@@ -248,7 +234,9 @@ fflush(stdout);
 
 	/*	The multicast group is known, though possibly empty.	*/
 
-//printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
+#if IMCDEBUG
+printf("Adding node " UVAST_FIELDSPEC " to this group.\n", metaEid.elementNbr);
+#endif
 	sdr_stage(sdr, (char *) &group, groupAddr, sizeof(ImcGroup));
 	if (petition.isMember)	/*	Source node joining the group.	*/
 	{
@@ -305,7 +293,9 @@ fflush(stdout);
 
 		if (petition.groupNbr == 0 && metaEid.elementNbr != ownNodeNbr)
 		{
-//printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+#if IMCDEBUG
+printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+#endif
 			/*	This node is subscribing to the IMC
 			 *	petitions group, i.e., it is a node
 			 *	that is newly announcing itself to
@@ -361,7 +351,7 @@ fflush(stdout);
 
 		/*	Must delete this member of the group, if found.	*/
 #if IMCDEBUG
-printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.nodeNbr);
+printf("Deleting member " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
 fflush(stdout);
 #endif
 		if (elt)	/*	Source node is a member.	*/
@@ -388,31 +378,33 @@ fflush(stdout);
 		}
 	}
 
-	/*	If node is a passageway, propagate as necessary.	*/
+	/*	If node is a passageway, propagate petition as needed.	*/
 
 	iondbObj = getIonDbObject();
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-	if (iondb.regions[1].regionNbr != -1)
+	if (iondb.regions[1].regionNbr != 0)
 	{
-		/*	Node is a passageway from its home region to
-		 *	the immediate encompassing region.		*/
+		/*	Node is a passageway between its home region
+		 *	and the immediate encompassing region.		*/
 
-		sourceRegion = ionRegionOf(metaEid.elementNbr, ownNodeNbr);
-		if (sourceRegion < 0 || sourceRegion > 1)
+		sourceRegionIdx = ionRegionOf(metaEid.elementNbr, ownNodeNbr,
+				&sourceRegionNbr);
+		if (sourceRegionIdx < 0)
 		{
 			putErrmsg("IMC system error.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
 
-		destinationRegion = 0 - sourceRegion;
+		destinationRegionNbr =
+				iondb.regions[0 - sourceRegionIdx].regionNbr;
 		if (petition.isMember == 1)		/*	Join	*/
 		{
-			group.count[sourceRegion] += 1;
-			if (group.count[sourceRegion] == 1)
+			group.count[sourceRegionIdx] += 1;
+			if (group.count[sourceRegionIdx] == 1)
 			{
 				if (imcSendPetition(&petition,
-						destinationRegion) < 0)
+						destinationRegionNbr) < 0)
 				{
 					putErrmsg("Join propagation failed.",
 							NULL);
@@ -423,11 +415,11 @@ fflush(stdout);
 		}
 		else					/*	Leave	*/
 		{
-			group.count[sourceRegion] -= 1;
-			if (group.count[sourceRegion] == 0)
+			group.count[sourceRegionIdx] -= 1;
+			if (group.count[sourceRegionIdx] == 0)
 			{
 				if (imcSendPetition(&petition,
-						destinationRegion) < 0)
+						destinationRegionNbr) < 0)
 				{
 					putErrmsg("Leave propagation failed.",
 							NULL);
@@ -479,12 +471,13 @@ static int	handlePetitions()
 	int		running = 1;
 	BpSAP		sap;
 	BpDelivery	dlv;
+	unsigned int	buflen;
+	unsigned char	buffer[256];
 	ZcoReader	reader;
 	vast		bytesToParse;
 	unsigned char	*cursor;
 	unsigned int	unparsedBytes;
-	unsigned int	buflen;
-	unsigned char	buffer[32];
+	uvast		arrayLength;
 
 	if (bp_open(receptionEid, &sap) < 0)
 	{
@@ -514,10 +507,11 @@ static int	handlePetitions()
 			/*	Intentional fall-through to default.	*/
 
 		default:
+			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
-		/*	Now handle the petition.			*/
+		/*	Process the petition.				*/
 
 		CHKERR(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
@@ -542,11 +536,31 @@ static int	handlePetitions()
 		}
 
 		oK(sdr_end_xn(sdr));
+
+		/*	Start parsing of petition.			*/
+
 		cursor = buffer;
 		unparsedBytes = bytesToParse;
+		arrayLength = 0;
+		if (cbor_decode_array_open(&arrayLength, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode IMC petition array.");
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
+		if (arrayLength != 2)
+		{
+			writeMemoNote("[?] Bad IMC petition array length",
+					itoa(arrayLength));
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+
 		if (handlePetition(&dlv, cursor, unparsedBytes) < 0)
 		{
-			putErrmsg("Multicast petition handler failed.", NULL);
+			putErrmsg("Can't process IMC petition.", NULL);
 			running = 0;
 		}
 

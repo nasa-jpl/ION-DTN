@@ -103,6 +103,7 @@ static void	toggleScheduledContacts(uvast fromNode, uvast toNode,
 	}
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(fromNode, toNode, &arg.regionNbr));
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 	for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -156,6 +157,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	time_t		fromTime = getCtime();
 	double		volume = xmitRate * (MAX_POSIX_TIME - fromTime);
 	int		regionIdx;
+	uvast		regionNbr;
 	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;
@@ -164,7 +166,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	Object		contactObj;
 	IonContact	contact;
 
-	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
+	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr, &regionNbr);
 	if (regionIdx < 0)
 	{
 		writeMemoNote("[?] Can't add contact for node; region unknown",
@@ -179,6 +181,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = discoveryNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -190,8 +193,8 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	}
 	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, 0, ownNodeNbr,
-				discoveryNodeNbr, 0, 0.0, &contactAddr) < 0
+		if (rfx_insert_contact(regionNbr, 0, 0, ownNodeNbr,
+				discoveryNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",
@@ -231,6 +234,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = discoveryNodeNbr;
 	arg.toNode = ownNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -242,8 +246,8 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	}
 	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, 0, discoveryNodeNbr,
-				ownNodeNbr, 0, 0.0, &contactAddr) < 0
+		if (rfx_insert_contact(regionNbr, 0, 0, discoveryNodeNbr,
+				ownNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
 			putErrmsg("Can't add hypothetical contact.",
@@ -498,6 +502,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	IonVdb		*ionvdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		regionIdx;
+	uvast		regionNbr;
 	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;
@@ -516,7 +521,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	 *	node has got the lower node number.			*/
 
 	currentTime = getCtime();
-	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr);
+	regionIdx = ionRegionOf(discoveryNodeNbr, ownNodeNbr, &regionNbr);
 	if (regionIdx < 0)
 	{
 		writeMemoNote("[?] Can't lose contact to node; region unknown.",
@@ -531,6 +536,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = discoveryNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
@@ -585,6 +591,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 
 	cxref = NULL;
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = regionNbr;
 	arg.fromNode = discoveryNodeNbr;
 	arg.toNode = ownNodeNbr;
 	oK(sm_rbt_search(ionwm, ionvdb->contactIndex, rfx_order_contacts,
