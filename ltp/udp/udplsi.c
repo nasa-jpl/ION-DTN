@@ -28,7 +28,10 @@ int	main(int argc, char *argv[])
 {
 	char	*endpointSpec = (argc > 1 ? argv[1] : NULL);
 #endif
-	LtpVdb			*vdb;
+	Sdr			sdr;
+	char			lsiCmd[256];
+	LtpVseat		*vseat;
+	PsmAddress		vseatElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = INADDR_ANY;
 	struct sockaddr		ownSockName;
@@ -49,10 +52,20 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	vdb = getLtpVdb();
-	if (vdb->lsiPid != ERROR && vdb->lsiPid != sm_TaskIdSelf())
+	sdr = getIonsdr();
+	isprintf(lsiCmd, sizeof lsiCmd, "udplsi %s", endpointSpec);
+	CHKERR(sdr_begin_xn(sdr));
+	findSeat(lsiCmd, &vseat, &vseatElt);
+	sdr_exit_xn(sdr);
+	if (vseatElt == 0)
 	{
-		putErrmsg("LSI task is already started.", itoa(vdb->lsiPid));
+		putErrmsg("Undefined LSI", lsiCmd);
+		return 1;
+	}
+
+	if (vseat->lsiPid != ERROR && vseat->lsiPid != sm_TaskIdSelf())
+	{
+		putErrmsg("LSI task is already started.", itoa(vseat->lsiPid));
 		return 1;
 	}
 

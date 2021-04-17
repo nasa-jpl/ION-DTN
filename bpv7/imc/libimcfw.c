@@ -389,12 +389,7 @@ int	imcSendDispatch(char *destEid, uvast toRegion, unsigned char *buffer,
 	PsmAddress	vschemeElt;
 	Object		sourceData;
 	Object		payloadZco;
-<<<<<<< working copy
-	char		destEid[] = "imc:0.0";
 	unsigned int	ttl = 86400;	/*	Seconds; 1 day.		*/
-=======
-	unsigned int	ttl = 86400;
->>>>>>> merge rev
 	BpAncillaryData	ancillary = { 0, 0, 255 };
 
 	ancillary.imcRegionNbr = toRegion;
@@ -449,19 +444,14 @@ int	imcSendDispatch(char *destEid, uvast toRegion, unsigned char *buffer,
 	 *	block's array of destinations, and therefore
 	 *	need not be removed.					*/
 
-<<<<<<< working copy
-//puts("Transmitting petition.");
+#if IMCDEBUG
+puts("Transmitting dispatch.");
+#endif
 
 	/*	Note that ttl must be converted from seconds to
 	 *	milliseconds for BP processing.				*/
 
 	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl * 1000,
-=======
-#if IMCDEBUG
-puts("Transmitting dispatch.");
-#endif
-	switch (bpSend(&sourceMetaEid, destEid, NULL, ttl,
->>>>>>> merge rev
 			BP_EXPEDITED_PRIORITY, NoCustodyRequested, 0, 0,
 			&ancillary, payloadZco, NULL, 0))
 	{

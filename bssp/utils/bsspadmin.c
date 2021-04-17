@@ -74,14 +74,14 @@ size> '<BE-BSO command>' '<RL-BSO command>' [queuing latency, in seconds]");
 	PUTS("\t\tIf queuing latency is negative, the absolute value of this \
 number is used as the actual queuing latency and session purging is enabled.  \
 See man(5) for bssprc.");
-	PUTS("\tc\tChange");
-	PUTS("\t   c span <engine ID#> <max export sessions> <max-block-size> \
-'<BE-BSO command>' '<RL-BSO command>' [queuing latency, in seconds]");
+	PUTS("\t   a seat '<BE-BSI command>' '<RL-BSI command>'");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} span <engine ID#>");
+	PUTS("\t   {d|i} seat '<BE-BSI command>' '<RL-BSI command>'");
 	PUTS("\tl\tList");
 	PUTS("\t   l span");
+	PUTS("\t   l seat");
 	PUTS("\tm\tManage");
 	PUTS("\t   m ownqtime <own queuing latency, in seconds>");
 	PUTS("\ts\tStart");
@@ -102,22 +102,19 @@ static void	initializeBssp(int tokenCount, char **tokens)
 {
 	unsigned int	estMaxNbrOfSessions;
 	
-	if (tokenCount == 3)
-	{
-		tokenCount = 2;
-	}
-
 	if (tokenCount != 2)
 	{
 		SYNTAX_ERROR;
 		return;
 	}
+
 	estMaxNbrOfSessions = strtol(tokens[1], NULL, 0);
 	if (ionAttach() < 0)
 	{
 		putErrmsg("bssppadmin can't attach to ION.", NULL);
 		return;
 	}
+
 	if (bsspInit(estMaxNbrOfSessions) < 0)
 	{
 		putErrmsg("bssppadmin can't initialize BSSP.", NULL);
@@ -140,40 +137,52 @@ static void	executeAdd(int tokenCount, char **tokens)
 	uvast	engineId;
 	int	qTime = 1;			/*	Default.	*/
 	int	purge = 0;			/*	Default.	*/
+
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
 		return;
 	}
 
+	if (strcmp(tokens[1], "seat") == 0)
+	{
+		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		oK(addBsspSeat(tokens[2], tokens[3]));
+		return;
+	}
+
 	if (strcmp(tokens[1], "span") == 0)
 	{
-
 		switch (tokenCount)
+		{
+		case 8:
+			qTime = strtol(tokens[7], NULL, 0);
+			if (qTime < 0)
 			{
-			case 8:
-				qTime = strtol(tokens[7], NULL, 0);
-				if (qTime < 0)
-				{
-					purge = 1;
-					qTime = 0 - qTime;
-				}
-
-			/*	Intentional fall-through to next case.	*/
-
-			case 7:
-				break;
-
-			default:
-				SYNTAX_ERROR;
-				return;
+				purge = 1;
+				qTime = 0 - qTime;
 			}
 
-			engineId = strtouvast(tokens[2]);
-			oK(addBsspSpan(engineId, strtol(tokens[3], NULL, 0),
-				strtol(tokens[4], NULL, 0), tokens[5],
-				tokens[6], (unsigned int) qTime, purge));
+		/*	Intentional fall-through to next case.	*/
+
+		case 7:
+			break;
+
+		default:
+			SYNTAX_ERROR;
 			return;
+		}
+
+		engineId = strtouvast(tokens[2]);
+		oK(addBsspSpan(engineId, strtol(tokens[3], NULL, 0),
+			strtol(tokens[4], NULL, 0), tokens[5],
+			tokens[6], (unsigned int) qTime, purge));
+		return;
 	}
 
 	SYNTAX_ERROR;
@@ -187,7 +196,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (tokenCount < 2)
 	{
-		printText("Add what?");
+		printText("Change what?");
 		return;
 	}
 
@@ -195,30 +204,30 @@ static void	executeChange(int tokenCount, char **tokens)
 	{
 
 		switch (tokenCount)
+		{
+		case 8:
+			qTime = strtol(tokens[7], NULL, 0);
+			if (qTime < 0)
 			{
-			case 8:
-				qTime = strtol(tokens[7], NULL, 0);
-				if (qTime < 0)
-				{
-					purge = 1;
-					qTime = 0 - qTime;
-				}
-
-			/*	Intentional fall-through to next case.	*/
-
-			case 7:
-				break;
-
-			default:
-				SYNTAX_ERROR;
-				return;
+				purge = 1;
+				qTime = 0 - qTime;
 			}
 
-			engineId = strtouvast(tokens[2]);
-			oK(updateBsspSpan(engineId, strtol(tokens[3], NULL, 0),
-				strtol(tokens[4], NULL, 0), tokens[5], 
-				tokens[6], (unsigned int) qTime, purge));
+		/*	Intentional fall-through to next case.	*/
+
+		case 7:
+			break;
+
+		default:
+			SYNTAX_ERROR;
 			return;
+		}
+
+		engineId = strtouvast(tokens[2]);
+		oK(updateBsspSpan(engineId, strtol(tokens[3], NULL, 0),
+			strtol(tokens[4], NULL, 0), tokens[5], 
+			tokens[6], (unsigned int) qTime, purge));
+		return;
 	}
 
 	SYNTAX_ERROR;
@@ -234,9 +243,21 @@ static void	executeDelete(int tokenCount, char **tokens)
 		return;
 	}
 
-	if (strcmp(tokens[1], "span") == 0)
+	if (strcmp(tokens[1], "seat") == 0)
 	{
 		if (tokenCount != 4)
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		oK(removeBsspSeat(tokens[2], tokens[3]));
+		return;
+	}
+
+	if (strcmp(tokens[1], "span") == 0)
+	{
+		if (tokenCount != 3)
 		{
 			SYNTAX_ERROR;
 			return;
@@ -248,6 +269,26 @@ static void	executeDelete(int tokenCount, char **tokens)
 	}
 
 	SYNTAX_ERROR;
+}
+
+static void	printSeat(BsspVseat *vseat)
+{
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(BsspSeat, seat);
+	char	beCmd[SDRSTRING_BUFSZ];
+	char	rlCmd[SDRSTRING_BUFSZ];
+	char	buffer[512];
+
+	CHKVOID(sdr_begin_xn(sdr));
+	GET_OBJ_POINTER(sdr, BsspSeat, seat,
+			sdr_list_data(sdr, vseat->seatElt));
+	sdr_string_read(sdr, beCmd, seat->beBsiCmd);
+	sdr_string_read(sdr, rlCmd, seat->rlBsiCmd);
+	isprintf(buffer, sizeof buffer,
+                        "BE '%.128s' pid: %d   RL '%.128s' pid: %d",
+                        beCmd, vseat->beBsiPid, rlCmd, vseat->rlBsiPid);
+        sdr_exit_xn(sdr);
+        printText(buffer);
 }
 
 static void	printSpan(BsspVspan *vspan)
@@ -277,16 +318,40 @@ static void	printSpan(BsspVspan *vspan)
 	printText(buffer);
 
 	isprintf(buffer, sizeof buffer, "\tmax block size: %u  queuing \
-			latency: %u  purge: %d", span->maxBlockSize, 
-			span->remoteQtime, span->purge);
+latency: %u  purge: %d", span->maxBlockSize, span->remoteQtime, span->purge);
 	printText(buffer);
 
-	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %u  \
-			owltInbound: %u  remoteXmit: %u", vspan->owltOutbound, 
-			vspan->localXmitRate, vspan->owltInbound,
-			vspan->remoteXmitRate);
-	sdr_exit_xn(sdr);
+	isprintf(buffer, sizeof buffer, "\towltOutbound: %u  localXmit: %u",
+			vspan->owltOutbound, vspan->localXmitRate);
 	printText(buffer);
+	isprintf(buffer, sizeof buffer, "\towltInbound: %u  remoteXmit: %u",
+			vspan->owltInbound, vspan->remoteXmitRate);
+	printText(buffer);
+	sdr_exit_xn(sdr);
+}
+
+static void	infoSeat(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	BsspVseat	*vseat;
+	PsmAddress	vseatElt;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	findBsspSeat(tokens[2], tokens[3], &vseat, &vseatElt);
+	sdr_exit_xn(sdr);
+	if (vseatElt == 0)
+	{
+		printText("Unknown seat.");
+		return;
+	}
+
+	printSeat(vseat);
 }
 
 static void	infoSpan(int tokenCount, char **tokens)
@@ -323,6 +388,12 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "seat") == 0)
+	{
+		infoSeat(tokenCount, tokens);
+		return;
+	}
+
 	if (strcmp(tokens[1], "span") == 0)
 	{
 		infoSpan(tokenCount, tokens);
@@ -330,6 +401,31 @@ static void	executeInfo(int tokenCount, char **tokens)
 	}
 
 	SYNTAX_ERROR;
+}
+
+static void	listSeats(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	BsspVdb		*vdb = getBsspVdb();
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	BsspVseat	*vseat;
+
+	if (tokenCount != 2)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	for (elt = sm_list_first(ionwm, vdb->seats); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vseat = (BsspVseat *) psp(ionwm, sm_list_data(ionwm, elt));
+		printSeat(vseat);
+	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listSpans(int tokenCount, char **tokens)
@@ -351,11 +447,8 @@ static void	listSpans(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, BsspDB, bsspdb, bsspdbObj);
-	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC "  BE-BSI \
-pid: %d)", bsspdb->ownEngineId, vdb->beBsiPid);
-	printText(buffer);
-	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC "  RL-BSI \
-pid: %d)", bsspdb->ownEngineId, vdb->rlBsiPid);
+	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC ")",
+			bsspdb->ownEngineId);
 	printText(buffer);
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))
@@ -372,6 +465,12 @@ static void	executeList(int tokenCount, char **tokens)
 	if (tokenCount < 2)
 	{
 		printText("List what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "seat") == 0)
+	{
+		listSeats(tokenCount, tokens);
 		return;
 	}
 
@@ -612,19 +711,17 @@ static int	processLine(char *line, int lineLength, int *rc)
 		case 's':
 			if (attachToBssp() == 0)
 			{
-				if (tokenCount < 3)
+				if (tokenCount > 1)
 				{
-					printText("Can't start BSSP: no \
-best-effort or reliable BSI command.");
+					oK(addBsspSeat(tokens[1], tokens[2]));
 				}
-				else
+
+				if (bsspStart() < 0)
 				{
-					if (bsspStart(tokens[1], tokens[2]) < 0)
-					{
-						putErrmsg("Can't start BSSP.",
-								NULL);
-					}
+					putErrmsg("Can't start BSSP.", NULL);
+					return 0;
 				}
+
 				/* Wait for bssp to start up */
 				getCurrentTime(&done_time);
 				done_time.tv_sec += STARTUP_TIMEOUT;
@@ -642,7 +739,6 @@ best-effort or reliable BSI command.");
 						break;
 					}
 				}
-
 			}
 
 			return 0;

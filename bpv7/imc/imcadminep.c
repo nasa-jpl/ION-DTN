@@ -126,19 +126,13 @@ static int	briefNewNode(uvast nodeNbr)
 		return 0;
 	}
 
-<<<<<<< working copy
-//puts("Sending briefing.");
-
+#if IMCDEBUG
+puts("Sending briefing.");
+#endif
 	/*	Note that ttl must be expressed in milliseconds for
 	 *	BP processing.  The hard-coded TTL here is 1 minute.	*/
 
 	if (bpSend(&sourceMetaEid, destEid, NULL, 60000, BP_STD_PRIORITY,
-=======
-#if IMCDEBUG
-puts("Sending briefing.");
-#endif
-	if (bpSend(&sourceMetaEid, destEid, NULL, 60, BP_STD_PRIORITY,
->>>>>>> merge rev
 			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
 			BP_MULTICAST_BRIEFING) <= 0)
 	{

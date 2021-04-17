@@ -321,7 +321,8 @@ int bindDCCPsock(int* sock, struct sockaddr* socketName)
 		putSysErrmsg("DCCPLSI can't initialize socket.", "listen()");
 		return -1;
 	}
-return 0;
+
+	return 0;
 }
 
 #if defined (ION_LWT)
@@ -334,7 +335,10 @@ int	main(int argc, char *argv[])
 {
 	char	*endpointSpec = (argc > 1 ? argv[1] : NULL);
 #endif
-	LtpVdb			*vdb;
+	Sdr			sdr;
+	char			lsiCmd[256];
+	LtpVseat		*vseat;
+	PsmAddress		vseatElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
 	struct sockaddr		socketName;
@@ -345,20 +349,32 @@ int	main(int argc, char *argv[])
 	/*	Note that ltpadmin must be run before the first
 	 *	invocation of dccplsi, to initialize the LTP database
 	 *	(as necessary) and dynamic database.			*/
+
 	if (ltpInit(0) < 0)
 	{
 		putErrmsg("dccplsi can't initialize LTP.", NULL);
 		return 1;
 	}
 
-	vdb = getLtpVdb();
-	if (vdb->lsiPid != ERROR && vdb->lsiPid != sm_TaskIdSelf())
+	sdr = getIonsdr();
+	isprintf(lsiCmd, sizeof lsiCmd, "dccplsi %s", endpointSpec);
+	CHKERR(sdr_begin_xn(sdr));
+	findSeat(lsiCmd, &vseat, &vseatElt);
+	sdr_exit_xn(sdr);
+	if (vseatElt == 0)
 	{
-		putErrmsg("DCCPLSI task is already started.", itoa(vdb->lsiPid));
+		putErrmsg("Undefined LSI", lsiCmd);
+		return 1;
+	}
+
+	if (vseat->lsiPid != ERROR && vseat->lsiPid != sm_TaskIdSelf())
+	{
+		putErrmsg("LSI task is already started.", itoa(vseat->lsiPid));
 		return 1;
 	}
 
 	/*	All command-line arguments are now validated.		*/
+
 	if (parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
 	{
 		putErrmsg("Can't get IP/port for host.", endpointSpec);
