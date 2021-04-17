@@ -74,8 +74,8 @@ so only the link-service-specific portion of the command should be provided
 in the I<LSO_command> string itself.
 
 I<queuing_latency> is the estimated number of seconds that we expect to lapse
-between reception of a segment at this node and transmission of an
-acknowledging segment, due to processing delay in the node.  (See the
+between reception of a block at this node and transmission of an
+acknowledging PDU, due to processing delay in the node.  (See the
 'm ownqtime' command below.)  The default value is 1.
 
 If I<queuing latency> a negative number, the absolute value of this number
@@ -96,9 +96,8 @@ configuration parameters to the values provided as arguments.
 =item B<d span> I<peer_engine_nbr>
 
 The B<delete span> command.  This command deletes the span identified
-by I<peer_engine_nbr>.  The command will fail if any outbound segments
-for this span are pending transmission or any inbound blocks from the
-peer engine are incomplete.
+by I<peer_engine_nbr>.  The command will fail if any outbound PDUs
+for this span are pending transmission.
 
 =item B<i span> I<peer_engine_nbr>
 

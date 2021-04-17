@@ -997,7 +997,7 @@ int	addBsspSpan(uvast engineId, unsigned int maxExportSessions,
 
 	if (maxBlockSize < 508)
 	{
-		writeMemoNote("[i] Note max segment size is less than 508",
+		writeMemoNote("[i] Note max block size is less than 508",
 				utoa(maxBlockSize));
 	}
 
@@ -1103,8 +1103,8 @@ string too long.", bsoRLCmd);
 	{
 		if (maxBlockSize < 508)
 		{
-			writeMemoNote("[i] Note max segment size is less than \
-508", utoa(maxBlockSize));
+			writeMemoNote("[i] Note max block size less than 508",
+					utoa(maxBlockSize));
 		}
 	}
 
@@ -1766,7 +1766,7 @@ int	bsspDequeueBEOutboundBlock(BsspVspan *vspan, char **buf)
 		sdr_exit_xn(bsspSdr);
 
 		/*	Wait until bssp_send has announced an outbound
-		 *	block by giving span's beSemaphore.		*/
+		 *	PDU by giving span's beSemaphore.		*/
 
 		if (sm_SemTake(vspan->beSemaphore) < 0)
 		{
@@ -1790,7 +1790,7 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 		elt = sdr_list_first(bsspSdr, spanBuf.beBlocks);
 	}
 
-	/*	Got next outbound block.  Remove it from the queue
+	/*	Got next outbound PDU.  Remove it from the queue
 	 *	for this span.						*/
 
 	blkAddr = sdr_list_data(bsspSdr, elt);
@@ -1798,7 +1798,7 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 	sdr_list_delete(bsspSdr, elt, NULL, NULL);
 	block.queueListElt = 0;
 
-	/*	Copy blocks's content into buffer.			*/
+	/*	Copy PDU's content into buffer.				*/
 
 	blockLength = block.ohdLength;
 	if (block.pduClass == BsspData)
@@ -1817,13 +1817,13 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 		}
 	}
 
-	/*	Now serialize the block overhead and prepend that
-	 *	overhead to the content of the segment (if any).
+	/*	Now serialize the PDU overhead and prepend that
+	 *	overhead to the content of the PDU (if any).
 	 *
-	 *	If sending data, the block must be retained (it may
+	 *	If sending data, the PDU must be retained (it may
 	 *	need to be re-sent using the reliable transport
 	 *	service), so xmit session is still needed.  If
-	 *	sending an ACK, the block is no longer needed and
+	 *	sending an ACK, the PDU is no longer needed and
 	 *	the recv session is closed elsewhere.  So no
 	 *	session closure at this point.				*/
 
@@ -1831,9 +1831,9 @@ UVAST_FIELDSPEC " is stopped.", vspan->engineId);
 	{
 		serializeDataPDU(&block, *buf);
 
-		/*	Need to retain the block in case it needs
+		/*	Need to retain the PDU in case it needs
 		 *	to be re-sent using the reliable transport
-		 *	service.  So must rewrite block to record
+		 *	service.  So must rewrite PDU to record
 		 *	change: queueListElt is now 0.			*/
 
 		sdr_write(bsspSdr, blkAddr, (char *) &block,
@@ -1863,7 +1863,7 @@ currentTime += 5;	/*	s/b += RTT from contact plan.	*/
 	{
 		serializeAck(&block, *buf);
 
-		/*	Block will never be re-sent, so it can be
+		/*	PDU will never be re-sent, so it can be
 		 *	deleted now.					*/
 
 		sdr_free(bsspSdr, blkAddr);
@@ -1871,8 +1871,7 @@ currentTime += 5;	/*	s/b += RTT from contact plan.	*/
 
 	if (sdr_end_xn(bsspSdr))
 	{
-		putErrmsg("Can't get best effort outbound block for span.",
-				NULL);
+		putErrmsg("Can't get best effort outbound PDU for span.", NULL);
 		return -1;
 	}
 
@@ -1916,7 +1915,7 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 		sdr_exit_xn(bsspSdr);
 
 		/*	Wait until bssp_send has announced an outbound
-		 *	segment by giving span's segSemaphore.		*/
+		 *	block by giving span's segSemaphore.		*/
 
 		if (sm_SemTake(vspan->rlSemaphore) < 0)
 		{
@@ -1940,7 +1939,7 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 		elt = sdr_list_first(bsspSdr, spanBuf.rlBlocks);
 	}
 
-	/*	Got next outbound segment.  Remove it from the queue
+	/*	Got next outbound block.  Remove it from the queue
 	 *	for this span.						*/
 
 	blkAddr = sdr_list_data(bsspSdr, elt);
@@ -1951,7 +1950,7 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 	/*	Copy blocks's content into buffer.			*/
 
 	blockLength = block.ohdLength;
-	if (block.pduClass == BsspData)
+	if (block.pduClass == BsspData)	/*	Should always be true.	*/
 	{
 		blockLength += block.pdu.length;
 
@@ -1967,7 +1966,7 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 		}
 	}
 
-	/*	Now serialize the segment overhead and prepend that
+	/*	Now serialize the block overhead and prepend that
 	 *	overhead to the content of the block.			*/
 
 	serializeDataPDU(&block, *buf);
@@ -2002,7 +2001,7 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 	return blockLength;
 }
 
-/*	*	Control segment construction functions		*	*/
+/*	*	Control PDU construction functions		*	*/
 
 static void	signalBeBso(unsigned int engineId)
 {
@@ -2421,7 +2420,7 @@ char		buf[256];
 		return -1;
 	}
 
-	/*	Compute length of segment's known overhead.		*/
+	/*	Compute length of block's known overhead.		*/
 
 	block.ohdLength = 1 + (_bsspConstants())->ownEngineIdSdnv.length
 			+ session->sessionNbrSdnv.length + 1;
@@ -2442,7 +2441,7 @@ char		buf[256];
 		return -1;
 	}
 
-	/*	Now have enough information to finish the segment.	*/
+	/*	Now have enough information to finish the block.	*/
 
 	session->block = blockObj;
 
@@ -2658,7 +2657,7 @@ int	bsspHandleInboundBlock(char *buf, int length)
 	cursor++;
 	bytesRemaining--;
 
-	/*	Handle segment according to its segment type code.	*/
+	/*	Handle PDU according to its PDU type code.		*/
 
 	if ((_bsspvdb(NULL))->watching & WATCH_s)
 	{

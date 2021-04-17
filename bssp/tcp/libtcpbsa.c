@@ -79,6 +79,7 @@ int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 
 		writeMemo("[?] Lost connection to TCP BSI.");
 		closesocket(*blockSocket);
+		*blockSocket = -1;
 		return 0;
 	}
 
@@ -102,6 +103,8 @@ int	sendBlockByTCP(struct sockaddr *socketName, int *blockSocket,
 		 *	anomaly, note incomplete transmission.		*/
 
 		writeMemo("[?] Lost connection to TCP BSI.");
+		closesocket(*blockSocket);
+		*blockSocket = -1;
 		return 0;
 	}
 

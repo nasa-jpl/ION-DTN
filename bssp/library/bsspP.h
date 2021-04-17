@@ -66,9 +66,9 @@ typedef struct
 {
 	BsspBlkTypeCode	blkTypeCode;
 
-	/*	Fields used for multiple segment classes.		*/
+	/*	Fields used for multiple block types.			*/
 
-	BsspTimer		timer;	/*	Checkpoint or report.	*/
+	BsspTimer		timer;		/*	Block or ack.	*/
 
 	/*	Fields for data blocks.					*/
 
@@ -76,7 +76,7 @@ typedef struct
 	unsigned int		length;
 	Object			svcData;/*	Session svcDataObjects.	*/
 
-	/*	Fields for management blocks.				*/
+	/*	Fields for acknowledgment blocks.			*/
 
 	BsspCancelReasonCode	reasonCode;
 } BsspPdu;

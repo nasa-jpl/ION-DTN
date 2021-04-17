@@ -389,11 +389,11 @@ compatibility, but it is ignored.");
 		}
 
 		/*	Rate control calculation is based on treating
-		 *	elapsed time as a currency, the price you
-		 *	pay (by microsnooze) for sending a segment
-		 *	of a given size.  All cost figures are
-		 *	expressed in microseconds except the computed
-		 *	totalCostSecs of the segment.			*/
+		 *	elapsed time as a currency, the price you pay
+		 *	(by microsnooze) for sending a block of a given
+		 *	size.  All cost figures are expressed in
+		 *	microseconds except the computed totalCostSecs
+		 *	of the block.					*/
 
 		totalPaid = getUsecTimestamp() - startTimestamp;
 

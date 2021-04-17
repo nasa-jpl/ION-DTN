@@ -10,7 +10,7 @@ B<tcpbsi> {I<local_hostname> | @}[:I<local_port_nbr>]
 
 B<tcpbsi> is a background "daemon" task that receives TCP stream data via a
 TCP socket bound to I<local_hostname> and I<local_port_nbr>, extracts BSSP
-segments from that stream, and passes them to the local BSSP engine.
+blocks from that stream, and passes them to the local BSSP engine.
 Host name "@" signifies that the host name returned by hostname(1) is to
 be used as the socket's host name.  If not specified, port number defaults
 to 4556.
