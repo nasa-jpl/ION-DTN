@@ -310,7 +310,7 @@ static void	*handleNotices(void *parm)
 
 		/*	Process the notice.				*/
 
-		CHKVOID(sdr_begin_xn(sdr));
+		CHKNULL(sdr_begin_xn(sdr));
 		buflen = zco_source_data_length(sdr, dlv.adu);
 		if (buflen > sizeof buffer)
 		{
