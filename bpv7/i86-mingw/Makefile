@@ -59,7 +59,7 @@ BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o imc.o saga.o snw.o pnb.o hcb.o 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = bibeadmin bibeclo bpadmin bpsecadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadminep imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = bibeadmin bibeclo bpadmin bpsecadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch cpsd dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadminep imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the standard test relies on mkfifo which is not implemented for mingw
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -99,6 +99,10 @@ bptransit:	bptransit.o $(BPLIBS)
 bpclm:		bpclm.o $(BPLIBS)
 		$(CC) -o bpclm bpclm.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpclm ./bin
+
+cpsd:	cpsd.o $(BPLIBS)
+		$(CC) -o cpsd cpsd.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp cpsd ./bin
 
 #	-	-	Utility executables	-	-	-	-
 

@@ -52,6 +52,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bssrecv lt-bssrecv \
 	bssStreamingApp lt-bssStreamingApp \
 	cgrfetch lt-cgrfetch \
+	cpsd lt-cpsd \
 	dccpcli lt-dccpcli \
 	dccpclo lt-dccpclo \
 	dccplsi lt-dccplsi \
