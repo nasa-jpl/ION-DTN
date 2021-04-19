@@ -1459,7 +1459,7 @@ int	removeSeat(char *lsiCmd)
 
 	/*	Must stop the seat before trying to remove it.		*/
 
-	CHKVOID(lsiCmd);
+	CHKERR(lsiCmd);
 	CHKERR(sdr_begin_xn(sdr));	/*	Lock memory.		*/
 	findSeat(lsiCmd, &vseat, &vseatElt);
 	if (vseatElt == 0)	/*	This is an unknown seat.	*/
