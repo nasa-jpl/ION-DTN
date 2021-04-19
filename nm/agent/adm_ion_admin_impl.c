@@ -944,7 +944,6 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	time_t      toTime = 0;
 	uvast       fromNodeNbr = 0;
 	uvast       toNodeNbr = 0;
-	int         regionIdx;
 	uvast       regionNbr;
 	PsmAddress  xaddr;
 	uvast    	xmitRate;
@@ -973,7 +972,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 		toNodeNbr = adm_get_parm_uvast(parms, 3, &success);
 	}
 
-	regionIdx = ionRegionOf(fromNodeNbr, toNodeNbr, &regionNbr);
+	oK(ionRegionOf(fromNodeNbr, toNodeNbr, &regionNbr));
 	if(success)
 	{
 		xmitRate = adm_get_parm_uvast(parms, 4, &success);
