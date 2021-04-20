@@ -381,6 +381,10 @@ int	cpsd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char *argv[])
 {
 #endif
+	ClProtocol	protocol;
+	Object		protocolElt;
+	VInduct		*vduct;
+	PsmAddress	vductElt;
 	Sdr		sdr;
 	Object		iondbObj;
 	IonDB		iondb;
@@ -401,14 +405,31 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	sdr = getIonsdr();
+	CHKERR(sdr);
+	CHKERR(sdr_begin_xn(sdr));
+	fetchProtocol("imc", &protocol, &protocolElt);
+	if (protocolElt == 0)
+	{
+		sdr_exit_xn(sdr);
+		writeMemo("[i] Not configured for multicast; cpsd stopping.");
+		return 1;
+	}
+
+	findInduct("imc", "0.1", &vduct, &vductElt);
+	sdr_exit_xn(sdr);
+	if (vductElt == 0)
+	{
+		writeMemo("[i] Not configured for CP sync; cpsd stopping.");
+		return 1;
+	}
+
 	if (imcInit() < 0)
 	{
 		putErrmsg("cpsd can't attach to IMC database.", NULL);
 		return 1;
 	}
 
-	sdr = getIonsdr();
-	CHKERR(sdr);
 	iondbObj = getIonDbObject();
 	CHKERR(iondbObj);
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
