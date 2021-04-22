@@ -1334,6 +1334,57 @@ static void	registerSelf(uvast regionNbr, IonDB *iondb, Object iondbObj,
 	registerInRegion(regionNbr, getOwnNodeNbr(), iondb, iondbObj, announce);
 }
 
+static void	handleRegistrationContact(uvast regionNbr, uvast nodeNbr,
+			IonDB *iondb, Object iondbObj, PsmAddress *cxaddr,
+			int announce)
+{
+	Sdr		sdr = getIonsdr();
+	PsmPartition	ionwm = getIonwm();
+	IonVdb		*vdb = getIonVdb();
+	IonCXref	arg;
+	PsmAddress	cxelt;
+	PsmAddress	nextElt;
+	int		regionIdx;
+
+	arg.regionNbr = regionNbr;
+	arg.fromNode = nodeNbr;
+	arg.toNode = nodeNbr;
+	arg.fromTime = MAX_POSIX_TIME;
+	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
+			&arg, &nextElt);
+	if (cxelt)	/*	Node already registered in region.	*/
+	{
+		return;
+	}
+
+       	if (nodeNbr == getOwnNodeNbr())
+	{
+		/*	Registering self in a region.			*/
+
+		registerSelf(regionNbr, iondb, iondbObj, announce);
+	}
+	else	/*	Registering some other node.			*/
+	{
+		registerInRegion(regionNbr, nodeNbr, iondb, iondbObj, announce);
+	}
+
+	/*	Post node registration announcement.			*/
+
+	if (announce)
+	{
+		postCpsNotice(regionNbr, MAX_POSIX_TIME, MAX_POSIX_TIME,
+				nodeNbr, nodeNbr, 0, 1.0);
+	}
+
+	/*	Add the registration contact.				*/
+
+	sdr_write(sdr, iondbObj, (char *) iondb, sizeof(IonDB));
+	regionIdx = ionPickRegion(regionNbr);
+	insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
+			MAX_POSIX_TIME, nodeNbr, nodeNbr, 0, 1.0,
+			CtRegistration, cxaddr);
+}
+
 int	rfx_insert_contact(uvast regionNbr, time_t fromTime, time_t toTime,
 		uvast fromNode, uvast toNode, size_t xmitRate, float confidence,
 		PsmAddress *cxaddr, int announce)
@@ -1345,7 +1396,6 @@ int	rfx_insert_contact(uvast regionNbr, time_t fromTime, time_t toTime,
 	ContactType	contactType;
 	Object		iondbObj;
 	IonDB		iondb;
-	char		msgbuf[256];
 	int		regionIdx;
 	IonCXref	arg;
 	PsmAddress	cxelt;
@@ -1437,59 +1487,32 @@ must be later than From time.");
 		}
 	}
 
-	CHKERR(sdr_begin_xn(sdr));
 	iondbObj = getIonDbObject();
 	CHKERR(iondbObj);
+	CHKERR(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 
 	/*	Insert registration contact, if applicable.		*/
 
 	if (contactType == CtRegistration)
 	{
-	       	if (fromNode == getOwnNodeNbr())
-		{
-			/*	Registering self in a region.		*/
-
-			if (regionNbr == iondb.regions[0].regionNbr
-			|| regionNbr == iondb.regions[1].regionNbr)
-			{
-				isprintf(msgbuf, sizeof msgbuf, "[?] Node "
-UVAST_FIELDSPEC " is already registered in region " UVAST_FIELDSPEC ".",
-					fromNode, regionNbr);
-				writeMemo(msgbuf);
-				sdr_exit_xn(sdr);
-				return 7;	/*	Do not insert.	*/
-			}
-
-			registerSelf(regionNbr, &iondb, iondbObj, announce);
-		}
-		else	/*	Registering some other node.		*/
-		{
-			registerInRegion(regionNbr, fromNode, &iondb, iondbObj,
-					announce);
-		}
-
-		/*	Post node registration announcement.		*/
-
-		if (announce)
-		{
-			postCpsNotice(regionNbr, MAX_POSIX_TIME, MAX_POSIX_TIME,
-					fromNode, fromNode, 0, 1.0);
-		}
-
-		/*	Add the registration contact.			*/
-
-		sdr_write(sdr, iondbObj, (char *) &iondb, sizeof(IonDB));
-		regionIdx = ionPickRegion(regionNbr);
-		insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime,
-				fromNode, toNode, xmitRate, confidence,
-				contactType, cxaddr);
+		handleRegistrationContact(regionNbr, fromNode, &iondb, iondbObj,
+				cxaddr, announce);
 		return sdr_end_xn(sdr);
 	}
 
 	/*	New contact is either Hypothetical or Scheduled or
 	 *	Predicted.  Must occur within one of this node's
 	 *	regions in order to be utilized.			*/
+
+	if (contactType != CtScheduled)
+	{
+		/*	Effects of adding Hypothetical and Predicted
+		 *	contacts are private, not to be synchronized
+		 *	with the rest of the region.			*/
+
+		announce = 0;
+	}
 
 	if (regionNbr != iondb.regions[0].regionNbr
 	&& regionNbr != iondb.regions[1].regionNbr)
@@ -1668,20 +1691,24 @@ hypothetical contact, as that contact is now discovered.");
 	}
 
 	/*	Contact doesn't conflict with any other contact in
-	 *	the database; okay to add.				*/
+	 *	the database; okay to add.
+	 *
+	 *	By virtue of this contact, the nodes involved are
+	 *	automatically members of the indicated region even
+	 *	if no registration contacts were previously posted.	*/
 
+	registerInRegion(regionNbr, fromNode, &iondb, iondbObj, announce);
+	registerInRegion(regionNbr, toNode, &iondb, iondbObj, announce);
 	regionIdx = ionPickRegion(regionNbr);
 	insertContact(regionIdx, &iondb, iondbObj, fromTime, toTime, fromNode,
 			toNode, xmitRate, confidence, contactType, cxaddr);
-	if (contactType == CtScheduled)
-	{
-		/*	Notify other nodes in the region if necessary.	*/
 
-		if (announce)
-		{
-			postCpsNotice(regionNbr, fromTime, toTime, fromNode,
-					toNode, xmitRate, confidence);
-		}
+	/*	Notify other nodes in the region if necessary.		*/
+
+	if (announce)
+	{
+		postCpsNotice(regionNbr, fromTime, toTime, fromNode, toNode,
+				xmitRate, confidence);
 	}
 
 	return sdr_end_xn(sdr);
@@ -1832,7 +1859,6 @@ static void	removeAllContacts(uvast regionNbr, uvast fromNode,
 
 	memset((char *) &arg, 0, sizeof(IonCXref));
 	arg.regionNbr = regionNbr;
-	arg.fromNode = regionNbr;
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 

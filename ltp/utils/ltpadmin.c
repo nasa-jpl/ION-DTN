@@ -150,8 +150,43 @@ static int	attachToLtp()
 	return 0;
 }
 
+static void	composeLsiCmd(int tokenCount, char **tokens, char *lsiCmd)
+{
+	switch (tokenCount)
+	{
+	case 4:
+		isprintf(lsiCmd, 256, "%s %s", tokens[2], tokens[3]);
+		break;
+
+	case 3:
+		istrcpy(lsiCmd, tokens[2], 256);
+		break;
+
+	default:
+		*lsiCmd = '\0';
+	}
+}
+
+static void	patchLsiCmd(int tokenCount, char **tokens, char *lsiCmd)
+{
+	switch (tokenCount)
+	{
+	case 3:
+		isprintf(lsiCmd, 256, "%s %s", tokens[1], tokens[2]);
+		break;
+
+	case 2:
+		istrcpy(lsiCmd, tokens[1], 256);
+		break;
+
+	default:
+		*lsiCmd = '\0';
+	}
+}
+
 static void	executeAdd(int tokenCount, char **tokens)
 {
+	char	lsiCmd[256];
 	uvast	engineId;
 	int	qTime = 1;			/*	Default.	*/
 	int	purge = 0;			/*	Default.	*/
@@ -164,13 +199,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "seat") == 0)
 	{
-		if (tokenCount != 3)
+		composeLsiCmd(tokenCount, tokens, lsiCmd);
+		if (lsiCmd[0] == '\0')
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(addSeat(tokens[2]));
+		oK(addSeat(lsiCmd));
 		return;
 	}
 
@@ -300,6 +336,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	char	lsiCmd[256];
 	uvast	engineId;
 
 	if (tokenCount < 2)
@@ -310,13 +347,14 @@ static void	executeDelete(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "seat") == 0)
 	{
-		if (tokenCount != 3)
+		composeLsiCmd(tokenCount, tokens, lsiCmd);
+		if (lsiCmd[0] == '\0')
 		{
 			SYNTAX_ERROR;
 			return;
 		}
 
-		oK(removeSeat(tokens[2]));
+		oK(removeSeat(lsiCmd));
 		return;
 	}
 
@@ -387,17 +425,19 @@ owltInbound: %u  remoteXmit: %u", vspan->owltOutbound, vspan->localXmitRate,
 static void	infoSeat(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
+	char		lsiCmd[256];
 	LtpVseat	*vseat;
 	PsmAddress	vseatElt;
 
-	if (tokenCount != 3)
+	composeLsiCmd(tokenCount, tokens, lsiCmd);
+	if (lsiCmd[0] == '\0')
 	{
 		SYNTAX_ERROR;
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
-	findSeat(tokens[2], &vseat, &vseatElt);
+	findSeat(lsiCmd, &vseat, &vseatElt);
 	sdr_exit_xn(sdr);
 	if (vseatElt == 0)
 	{
@@ -912,6 +952,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 	char		*cursor;
 	int		i;
 	char		*tokens[12];
+	char		lsiCmd[256];
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
@@ -984,7 +1025,8 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 			{
 				if (tokenCount > 1)
 				{
-					oK(addSeat(tokens[1]));
+					patchLsiCmd(tokenCount, tokens, lsiCmd);
+					oK(addSeat(lsiCmd));
 				}
 
 				if (ltpStart() < 0)

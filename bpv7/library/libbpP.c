@@ -6227,11 +6227,19 @@ when asking for status reports.");
 	bundleProcFlags |= BDL_STATUS_TIME_REQ;
 	if (sourceMetaEid == NULL)
 	{
-		/*	An anonymous bundle has no unique keys,
-		 *	therefore can't be reassembled from fragments,
-		 *	therefore can't be fragmented.			*/
+		/*	An anonymous bundle has no unique key,
+		 *	therefore can't be reassembled from
+		 *	fragments, therefore can't be fragmented.	*/
 
 		bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
+	}
+
+	if (ancillaryData)
+	{
+		if (ancillaryData->doNotFragment)
+		{
+			bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
+		}
 	}
 
 	if (ackRequested)

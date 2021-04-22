@@ -128,33 +128,31 @@ typedef struct
 	unsigned char	metadataLen;
 	unsigned char	metadata[BP_MAX_METADATA_LEN];
 
-	/*	Optional array of additional extension blocks (beyond
-	 *	the baseline, which is established at compile time)
-	 *	that are to be inserted into this bundle.
-	 *
-	 *	Provided only at the time the bundle is originally
-	 *	sourced.  This array affects the construction of
-	 *	the bundle; the array is not carried in the bundle
-	 *	itself.  We are just using the AncillaryData structure
-	 *	as a convenient way to add this feature to the API
-	 *	without requiring modification of applications built
-	 *	for earlier versions of ION.				*/
+	/*	The following elements of BpAncillaryData are provided
+	 *	only at the time the bundle is originally sourced.
+	 *	These values affect the construction of the bundle;
+	 *	they are NOT carried in the bundle itself.  We are
+	 *	just using the AncillaryData structure as a convenient
+	 *	way to add these features to the API without requiring
+	 *	modification of applications built for earlier versions
+	 *	of ION.							*/
+
+	/*	An optional array of additional extension blocks
+	 *	(beyond the baseline, which is established at compile
+	 *	time) that are to be inserted into this bundle.		*/
 
 	ExtensionSpec	*extensions;	/*	Add'l ext. blocks req'd.*/
 	int		extensionsCt;	/*	Count of extensions.	*/
 
 	/*	The number identifying the region(s) within which an
-	 *	IMC "dispatch" bundle is to be propagated is carried
-	 *	here in BpAncillaryData.  This value is provided only
-	 *	at the time the bundle is originally sourced.  It
-	 *	affects the construction of the bundle; the value is
-	 *	not carried in the bundle itself.  We are, again,
-	 *	just using the AncillaryData structure as a convenient
-	 *	way to add this feature to the API without requiring
-	 *	modification of applications built for earlier
-	 *	versions of ION.					*/
+	 *	IMC "dispatch" bundle is to be propagated.		*/
 
 	uvast		imcRegionNbr;
+
+	/*	A user-asserted "do not fragment" switch, which may
+	 *	be useful for network performance analysis purposes.	*/
+
+	unsigned char	doNotFragment;
 } BpAncillaryData;
 
 /*	Quality-of-service flags.					*/

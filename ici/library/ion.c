@@ -1206,7 +1206,6 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uvast *regionNbr)
 		{
 			memcpy((char *) &nodeA, (char *) member,
 					sizeof(RegionMember));
-			continue;
 		}
 
 		if (member->nodeNbr == nodeNbrB)
