@@ -381,10 +381,10 @@ int	cpsd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char *argv[])
 {
 #endif
-	ClProtocol	protocol;
-	Object		protocolElt;
-	VInduct		*vduct;
-	PsmAddress	vductElt;
+	MetaEid		meid;
+	VScheme		*vscheme;
+	PsmAddress	velt;
+	VEndpoint	*vpoint;
 	Sdr		sdr;
 	Object		iondbObj;
 	IonDB		iondb;
@@ -398,7 +398,6 @@ int	main(int argc, char *argv[])
 	unsigned char	*cursor;
 	uvast		uvtemp;
 	int		noticeLength;
-
 	if (bpAttach() < 0)
 	{
 		putErrmsg("cpsd can't attach to BP.", NULL);
@@ -407,18 +406,17 @@ int	main(int argc, char *argv[])
 
 	sdr = getIonsdr();
 	CHKERR(sdr);
-	CHKERR(sdr_begin_xn(sdr));
-	fetchProtocol("imc", &protocol, &protocolElt);
-	if (protocolElt == 0)
+	findScheme("imc", &vscheme, &velt);
+	if (velt == 0)
 	{
-		sdr_exit_xn(sdr);
 		writeMemo("[i] Not configured for multicast; cpsd stopping.");
 		return 1;
 	}
 
-	findInduct("imc", "0.1", &vduct, &vductElt);
-	sdr_exit_xn(sdr);
-	if (vductElt == 0)
+	oK(parseEidString(cpsEid, &meid, &vscheme, &velt));
+	findEndpoint("imc", &meid, vscheme, &vpoint, &velt);
+	restoreEidString(&meid);
+	if (velt == 0)
 	{
 		writeMemo("[i] Not configured for CP sync; cpsd stopping.");
 		return 1;

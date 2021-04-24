@@ -133,6 +133,8 @@ if [ $COUNT -ne 1 ]
 then
 	echo "Error: node 4 did not get file150."
 	RETVAL=1
+else
+	echo "SUCCESS"
 fi
 
 # Shut down ION processes.

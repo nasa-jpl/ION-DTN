@@ -61,7 +61,8 @@ echo "l range" > /tmp/245-cmdfile
 numr=`ionadmin < /tmp/245-cmdfile | grep "From" | wc -l`
 rm -f /tmp/245-cmdfile
 
-numadded=$((numc+numr))
+numadded=$((numc+numr-1))
+# Must omit registration contact from numadded count.
 
 
 # perform the wildcard deletions
@@ -79,7 +80,8 @@ echo "l range" > /tmp/245-cmdfile
 numr=`ionadmin < /tmp/245-cmdfile | grep "From" | wc -l`
 rm -f /tmp/245-cmdfile
 
-numleft=$((numc+numr))
+numleft=$((numc+numr-1))
+# Must omit registration contact from numleft count.
 
 numdeleted=$((numadded-numleft))
 
@@ -94,7 +96,7 @@ if [ $numadded -eq 13 ]; then
         RETVAL=1
     fi
 else
-    echo "Oh Noes!  contact/range did not load"
+	echo "Oh Noes!  contact/range did not load; ${numadded} added"
     RETVAL=1
 fi
 
