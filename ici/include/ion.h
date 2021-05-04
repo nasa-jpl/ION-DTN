@@ -157,9 +157,13 @@ typedef struct
  *	nodes, but a route that commences with a hypothetical
  *	(rather than discovered) contact cannot be selected
  *	for the forwarding of data, as its confidence value
- *	is zero.  Hypothetical contacts are always posted
- *	either automatically by ipnd or equivalent, as
- *	discussed below, or via ionadmin or equivalent.
+ *	is zero.  Such contacts essentially provide a mechanism
+ *	by which node managers can instruct the bundle protocol
+ *	agent to place some currently non-routable bundles into
+ *	Limbo that would otherwise simply be abandoned.
+ *	Hypothetical contacts are always posted either
+ *	automatically by ipnd or equivalent, as discussed
+ *	below, or via ionadmin or equivalent.
  *
  *	(6)  A "discovered" contact is an opportunity to transmit
  *	data BETWEEN THE LOCAL NODE AND SOME OTHER NODE (THAT
@@ -170,10 +174,10 @@ typedef struct
  *	hypothetical contact (which is automatically created
  *	if not pre-existing) to be updated with confidence
  *	set to 1.0 and data rate set to the discovered data rate
- *	and (as noted above) temporarily suppresses from routing
- *	consideration all scheduled contacts for the same From
- *	and To nodes.  When the discovered contact ends, any
- *	suppressed scheduled contacts are restored to consideration
+ *	and (as noted above) temporarily suppresses all data
+ *	rate changes asserted by all scheduled contacts for the
+ *	same From and To nodes.  When the discovered contact ends,
+ *	any suppressed scheduled contacts are restored to efficacy
  *	(i.e., their types are changed back to Scheduled) and the
  *	discovered contact reverts: its contact type is changed
  *	back to Hypoothencial and its data rate and confidence
@@ -213,15 +217,15 @@ typedef struct
 
 typedef struct
 {
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	Object		contacts;	/*	SDR list: IonContact	*/
 } IonRegion;
 
 typedef struct
 {
 	uvast		nodeNbr;
-	uvast		homeRegionNbr;
-	uvast		outerRegionNbr;
+	uint32_t	homeRegionNbr;
+	uint32_t	outerRegionNbr;
 } RegionMember;
 
 /*	CpsNotice objects are consumed by cpsd, which uses their
@@ -230,7 +234,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		regionNbr;	/*	Home or outer.		*/
+	uint32_t	regionNbr;	/*	Home or outer.		*/
 
 	/*	We represent "range" notices by setting regionNbr
 	 *	to zero.						*/
@@ -368,7 +372,7 @@ typedef struct
 
 typedef struct
 {
-	uvast		regionNbr;	/*	ID of network region	*/
+	uint32_t	regionNbr;	/*	ID of network region	*/
 	uvast		fromNode;	/*	LTP engineID, a.k.a.	*/
 	uvast		toNode;		/*	... BP CBHE nodeNbr.	*/
 	time_t		fromTime;	/*	As from time(2).	*/
@@ -478,10 +482,10 @@ extern void		ionProd(	uvast fromNode,
 					unsigned int owlt);
 extern void		ionTerminate();
 
-extern int		ionPickRegion(uvast regionNbr);
+extern int		ionPickRegion(uint32_t regionNbr);
 extern int		ionRegionOf(uvast nodeNbrA,
 					uvast nodeNbrB,
-					uvast *regionNbr);
+					uint32_t *regionNbr);
 
 extern int		ionStartAttendant(ReqAttendant *attendant);
 extern void		ionPauseAttendant(ReqAttendant *attendant);

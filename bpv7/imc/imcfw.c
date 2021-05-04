@@ -507,7 +507,7 @@ static int	forwardImcBundle(Bundle *bundle, Object bundleAddr)
 	Object		elt;
 	uvast		nodeNbr;
 	int		regionIdx;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	uvast		viaNode = 0;
 	LystElt		elt2;
 	ImcGang		*gang;
@@ -714,7 +714,7 @@ puts("no destinations");
 	return forwardImcBundle(bundle, bundleAddr);
 }
 
-static int	loadRegionMembers(Bundle *bundle, uvast regionNbr, IonDB *db)
+static int	loadRegionMembers(Bundle *bundle, uint32_t regionNbr, IonDB *db)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -746,7 +746,7 @@ static int	originateImcBundle(Bundle *bundle, Object bundleAddr)
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
 	IonDB		iondb;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	int		regionIdx;
 	uvast		groupNbr;
 	Object		groupAddr;

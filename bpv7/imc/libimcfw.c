@@ -240,7 +240,7 @@ int	imcHandleBriefing(BpDelivery *dlv, unsigned char *cursor,
 	Object		iondbObj;
 	IonDB		iondb;
 	int		sourceRegion;
-	uvast		sourceRegionNbr;
+	uint32_t	sourceRegionNbr;
 	int		destinationRegion;
 	ImcPetition	petition;
 
@@ -379,7 +379,7 @@ fflush(stdout);
 	return 0;
 }
 
-int	imcSendDispatch(char *destEid, uvast toRegion, unsigned char *buffer,
+int	imcSendDispatch(char *destEid, uint32_t toRegion, unsigned char *buffer,
 		int length)
 {
 	Sdr		sdr = getIonsdr();
@@ -469,7 +469,7 @@ puts("Transmitting dispatch.");
 	}
 }
 
-int	imcSendPetition(ImcPetition *petition, uvast toRegion)
+int	imcSendPetition(ImcPetition *petition, uint32_t toRegion)
 {
 	unsigned char	buffer[64];
 	unsigned char	*cursor;

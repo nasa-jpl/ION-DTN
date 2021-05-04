@@ -160,8 +160,8 @@ static int	handlePetition(BpDelivery *dlv, unsigned char *cursor,
 	Object		iondbObj;
 	IonDB		iondb;
 	int		sourceRegionIdx;
-	uvast		sourceRegionNbr;
-	uvast		destinationRegionNbr;
+	uint32_t	sourceRegionNbr;
+	uint32_t	destinationRegionNbr;
 
 	/*	Finish parsing the petition.				*/
 

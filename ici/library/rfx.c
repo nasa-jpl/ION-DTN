@@ -539,9 +539,9 @@ PsmAddress	postProbeEvent(IonNode *node, Embargo *embargo)
 
 /*	*	RFX contact list management functions	*	*	*/
 
-static void	postCpsNotice(uvast regionNbr, time_t fromTime, time_t toTime,
-			uvast fromNode, uvast toNode, size_t xmitRate,
-			float confidence)
+static void	postCpsNotice(uint32_t regionNbr, time_t fromTime,
+			time_t toTime, uvast fromNode, uvast toNode,
+			size_t xmitRate, float confidence)
 {
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
@@ -795,7 +795,7 @@ static void	insertContact(int regionIdx, IonDB *iondb, Object iondbObj,
 			ContactType contactType, PsmAddress *cxaddr)
 {
 	Sdr		sdr = getIonsdr();
-	uvast		regionNbr = iondb->regions[regionIdx].regionNbr;
+	uint32_t	regionNbr = iondb->regions[regionIdx].regionNbr;
 	IonContact	contact;
 	double		volume;
 	Object		obj;
@@ -999,7 +999,7 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
-	uvast		regionNbr = iondb->regions[regionIdx].regionNbr;
+	uint32_t	regionNbr = iondb->regions[regionIdx].regionNbr;
 	Object		elt;
 	Object		nextElt;
 	Object		obj;
@@ -1150,11 +1150,11 @@ static void	vacateRegion(IonDB *iondb, Object iondbObj, int regionIdx,
 	}
 }
 
-static void	purgePassageways(uvast regionNbr, IonDB *iondb, Object iondbObj,
-			int announce)
+static void	purgePassageways(uint32_t regionNbr, IonDB *iondb,
+			Object iondbObj, int announce)
 {
 	Sdr		sdr = getIonsdr();
-	uvast		homeRegionNbr;
+	uint32_t	homeRegionNbr;
 	Object		elt;
 	Object		memberObj;
 	RegionMember	member;
@@ -1189,8 +1189,8 @@ static void	purgePassageways(uvast regionNbr, IonDB *iondb, Object iondbObj,
 	}
 }
 
-static void	registerInRegion(uvast regionNbr, uvast nodeNbr, IonDB *iondb,
-			Object iondbObj, int announce)
+static void	registerInRegion(uint32_t regionNbr, uvast nodeNbr,
+			IonDB *iondb, Object iondbObj, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	Object		elt;
@@ -1284,10 +1284,10 @@ static void	registerInRegion(uvast regionNbr, uvast nodeNbr, IonDB *iondb,
 	}
 }
 
-static void	registerSelf(uvast regionNbr, IonDB *iondb, Object iondbObj,
+static void	registerSelf(uint32_t regionNbr, IonDB *iondb, Object iondbObj,
 			int announce)
 {
-	Sdr		sdr = getIonsdr();
+	Sdr	sdr = getIonsdr();
 
 	/*	Must unregister from current outer region, if any.	*/
 
@@ -1334,7 +1334,7 @@ static void	registerSelf(uvast regionNbr, IonDB *iondb, Object iondbObj,
 	registerInRegion(regionNbr, getOwnNodeNbr(), iondb, iondbObj, announce);
 }
 
-static void	handleRegistrationContact(uvast regionNbr, uvast nodeNbr,
+static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 			IonDB *iondb, Object iondbObj, PsmAddress *cxaddr,
 			int announce)
 {
@@ -1385,7 +1385,7 @@ static void	handleRegistrationContact(uvast regionNbr, uvast nodeNbr,
 			CtRegistration, cxaddr);
 }
 
-int	rfx_insert_contact(uvast regionNbr, time_t fromTime, time_t toTime,
+int	rfx_insert_contact(uint32_t regionNbr, time_t fromTime, time_t toTime,
 		uvast fromNode, uvast toNode, size_t xmitRate, float confidence,
 		PsmAddress *cxaddr, int announce)
 {
@@ -1732,7 +1732,7 @@ confidence %f.", fromTimeBuffer, toTimeBuffer, contact->fromNode,
 	return buffer;
 }
 
-int	rfx_revise_contact(uvast regionNbr, time_t fromTime, uvast fromNode,
+int	rfx_revise_contact(uint32_t regionNbr, time_t fromTime, uvast fromNode,
 		uvast toNode, size_t xmitRate, float confidence, int announce)
 {
 	Sdr		sdr = getIonsdr();
@@ -1846,7 +1846,7 @@ int	rfx_revise_contact(uvast regionNbr, time_t fromTime, uvast fromNode,
 	return 0;
 }
 
-static void	removeAllContacts(uvast regionNbr, uvast fromNode,
+static void	removeAllContacts(uint32_t regionNbr, uvast fromNode,
 			uvast toNode, int announce)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -1907,7 +1907,7 @@ static void	removeAllContacts(uvast regionNbr, uvast fromNode,
 }
 
 static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
-			uvast regionNbr, int announce)
+			uint32_t regionNbr, int announce)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -2048,7 +2048,7 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 	}
 }
 
-static void	removeOneContact(uvast regionNbr, time_t fromTime,
+static void	removeOneContact(uint32_t regionNbr, time_t fromTime,
 			uvast fromNode, uvast toNode, int announce)
 {
 	PsmPartition	ionwm = getIonwm();
@@ -2096,7 +2096,7 @@ static void	removeOneContact(uvast regionNbr, time_t fromTime,
 	}
 }
 
-int	rfx_remove_contact(uvast regionNbr, time_t *fromTime, uvast fromNode,
+int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromNode,
 		uvast toNode, int announce)
 {
 	Sdr	sdr = getIonsdr();
@@ -2126,7 +2126,7 @@ int	rfx_remove_contact(uvast regionNbr, time_t *fromTime, uvast fromNode,
 	return 0;
 }
 
-void	rfx_brief_contacts(uvast regionNbr)
+void	rfx_brief_contacts(uint32_t regionNbr)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -2141,8 +2141,7 @@ void	rfx_brief_contacts(uvast regionNbr)
 	char		buffer[256];
 	int		textLen;
 
-	isprintf(fileName, sizeof fileName,
-			"contacts." UVAST_FIELDSPEC ".ionrc", regionNbr);
+	isprintf(fileName, sizeof fileName, "contacts.%lu.ionrc", regionNbr);
 	briefingFile = iopen(fileName, O_WRONLY | O_CREAT, 0666);
 	if (briefingFile == -1)
 	{
@@ -2150,7 +2149,7 @@ void	rfx_brief_contacts(uvast regionNbr)
 		return;
 	}
 
-	isprintf(buffer, sizeof buffer, "^ " UVAST_FIELDSPEC "\n", regionNbr);
+	isprintf(buffer, sizeof buffer, "^ %lu\n", regionNbr);
        	textLen = strlen(buffer);
 	if (write(briefingFile, buffer, textLen) < 0)
 	{
@@ -2243,7 +2242,7 @@ UVAST_FIELDSPEC " " UVAST_FIELDSPEC " %lu %f\n", fromTimeBuffer, toTimeBuffer,
 void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 {
 	int		regionIdx;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();
 	time_t		currentTime = getCtime();
@@ -3143,7 +3142,7 @@ static int	loadRange(Object elt)
 	return 0;
 }
 
-static int	loadContact(Object elt, uvast regionNbr)
+static int	loadContact(Object elt, uint32_t regionNbr)
 {
 	Sdr		sdr = getIonsdr();
 	Object		obj;
@@ -3182,7 +3181,7 @@ int	rfx_start()
 	Object		iondbObj;
 	IonDB		iondb;
 	int		i;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	Object		elt;
 
 	iondbObj = getIonDbObject();

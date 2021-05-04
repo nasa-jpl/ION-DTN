@@ -50,6 +50,7 @@ static void	printCgrTraceLine(void *data, unsigned int lineNbr,
 	}
 
 	putchar('\n');
+	fflush(stdout);
 	va_end(args);
 }
 #endif
@@ -200,7 +201,6 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
 	IonDB		iondb;
-	int		i;
 	Object		elt;
 	Object		addr;
 			OBJ_POINTER(RegionMember, member);
@@ -218,30 +218,21 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 	 *	to the viaPassageways list for this remote node one
 	 *	entry for every passageway residing in that region.	*/
 
-	for (i = 0; i < 2; i++)
+	for (elt = sdr_list_first(sdr, iondb.rolodex); elt;
+			elt = sdr_list_next(sdr, elt))
 	{
-		for (elt = sdr_list_first(sdr, iondb.regions[i].members); elt;
-					elt = sdr_list_next(sdr, elt))
+		addr = sdr_list_data(sdr, elt);
+		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
+		if (member->outerRegionNbr != 0)
 		{
-			addr = sdr_list_data(sdr, elt);
-			GET_OBJ_POINTER(sdr, RegionMember, member, addr);
-			if (member->nodeNbr == getOwnNodeNbr())
-			{
-				continue;	/*	Safety check.	*/
-			}
+			/*	Node is a passageway.			*/
 
-			if (member->outerRegionNbr != -1)
+			if (sdr_list_insert_last(sdr,
+					routingObj->viaPassageways,
+					member->nodeNbr) == 0)
 			{
-				/*	Node is a passageway.		*/
-
-				if (sdr_list_insert_last(sdr,
-						routingObj->viaPassageways,
-						member->nodeNbr) == 0)
-				{
-					putErrmsg("Can't note passageway.",
-							NULL);
-					return -1;
-				}
+				putErrmsg("Can't note passageway.", NULL);
+				return -1;
 			}
 		}
 	}
@@ -1185,6 +1176,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	IonNode		*node;
+	uint32_t	regionNbr;
 	PsmAddress	nextNode;
 #if CGR_DEBUG == 1
 	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
@@ -1247,7 +1239,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		}
 	}
 
-	if (ionRegionOf(nodeNbr, 0) < 0)
+	if (ionRegionOf(nodeNbr, 0, &regionNbr) < 0)
 	{
 		/*	Destination node is not in any region that
 		 *	the local node is in.  Send via passageway(s).	*/
@@ -1368,7 +1360,6 @@ int	main(int argc, char *argv[])
 	}
 
 	cgr_start();
-	sdr = getIonsdr();
 	findScheme("ipn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
@@ -1376,6 +1367,7 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
+	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &scheme, sdr_list_data(sdr,
 			vscheme->schemeElt), sizeof(Scheme));

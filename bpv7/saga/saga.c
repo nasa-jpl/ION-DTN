@@ -38,7 +38,7 @@ static int	removePredictedContacts(int regionIdx)
 {
 	Sdr		sdr = getIonsdr();
 	IonDB		iondb;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	Object		obj;
 	Object		elt;
 	Object		nextElt;
@@ -64,8 +64,7 @@ static int	removePredictedContacts(int regionIdx)
 		if (rfx_remove_contact(regionNbr, &contact.fromTime,
 				contact.fromNode, contact.toNode, 0) < 0)
 		{
-			putErrmsg("Failure in rfx_remove_contact.",
-					NULL);
+			putErrmsg("Failure in rfx_remove_contact.", NULL);
 			break;
 		}
 	}
@@ -732,7 +731,7 @@ int	saga_receive(BpDelivery *dlv, unsigned char *cursor,
 {
 	Sdr		sdr = getIonsdr();
 	uvast		uvtemp;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	int		regionIdx;
 	int		majorType;
 	int		additionalInfo;

@@ -44,7 +44,7 @@ static int	handleCpsNotice(BpDelivery *dlv, unsigned char *cursor,
 			unsigned int unparsedBytes)
 {
 	uvast		uvtemp;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	time_t		fromTime;
 	time_t		toTime;
 	uvast		fromNode;

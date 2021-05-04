@@ -434,7 +434,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	IonCXref	*current;
 	CgrContactNote	*currentWork;
 	IonCXref	arg;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;

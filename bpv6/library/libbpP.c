@@ -12473,7 +12473,7 @@ static int	handleEncapsulatedBundle(BpDelivery *dlv)
 static int	handleSagaMessage(Lyst encounters)
 {
 	Sdr		sdr = getIonsdr();
-	vast		regionNbr;
+	uint32_t	regionNbr;
 	int		regionIdx;
 	LystElt		elt;
 	Encounter	*encounter;

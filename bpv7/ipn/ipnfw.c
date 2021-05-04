@@ -216,7 +216,7 @@ static int	initializeHIRR(CgrRtgObject *routingObj)
 		GET_OBJ_POINTER(sdr, RegionMember, member, addr);
 		if (member->outerRegionNbr != 0)
 		{
-			/*	Node is a passageway.		*/
+			/*	Node is a passageway.			*/
 
 			if (sdr_list_insert_last(sdr,
 					routingObj->viaPassageways,
@@ -1102,7 +1102,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
 	IonNode		*node;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	PsmAddress	nextNode;
 #if CGR_DEBUG == 1
 	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };

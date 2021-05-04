@@ -61,10 +61,11 @@ extern int		imcHandleBriefing(BpDelivery *dlv,
  *	"Petitions" are dispatches that convey information about
  *	multicast group membership.					*/
 
-extern int		imcSendDispatch(char *destEid, uvast toRegion,
+extern int		imcSendDispatch(char *destEid, uint32_t toRegion,
 				unsigned char *buffer, int length);
 
-extern int		imcSendPetition(ImcPetition *petition, uvast toRegion);
+extern int		imcSendPetition(ImcPetition *petition,
+				uint32_t toRegion);
 
 #ifdef __cplusplus
 }

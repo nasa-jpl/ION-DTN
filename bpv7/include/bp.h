@@ -147,7 +147,7 @@ typedef struct
 	/*	The number identifying the region(s) within which an
 	 *	IMC "dispatch" bundle is to be propagated.		*/
 
-	uvast		imcRegionNbr;
+	uint32_t	imcRegionNbr;
 
 	/*	A user-asserted "do not fragment" switch, which may
 	 *	be useful for network performance analysis purposes.	*/

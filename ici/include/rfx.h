@@ -37,7 +37,7 @@ extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 
 /*	*	Functions for inserting and removing contact notes.	*/
 
-extern int		rfx_insert_contact(uvast regionNbr,
+extern int		rfx_insert_contact(uint32_t regionNbr,
 				time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
@@ -78,14 +78,14 @@ extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern void		rfx_brief_contacts(uvast regionNbr);
+extern void		rfx_brief_contacts(uint32_t regionNbr);
 			/*	Writes a file of commands that will
 			 *	recreate the current list of IonContact
 			 *	objects in the node's ION database, for
 			 *	the indicated region.  The file's name
 			 *	will be 'contacts.REGIONNBR.ionrc'.	*/
 
-extern int		rfx_revise_contact(uvast regionNbr,
+extern int		rfx_revise_contact(uint32_t regionNbr,
 				time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
@@ -99,7 +99,7 @@ extern int		rfx_revise_contact(uvast regionNbr,
 				system error, an indicative value
 				greater than 0 on any user error.	*/
 
-extern int		rfx_remove_contact(uvast regionNbr,
+extern int		rfx_remove_contact(uint32_t regionNbr,
 				time_t *fromTime,
 				uvast fromNode,
 				uvast toNode,

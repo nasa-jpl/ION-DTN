@@ -157,7 +157,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	time_t		fromTime = getCtime();
 	double		volume = xmitRate * (MAX_POSIX_TIME - fromTime);
 	int		regionIdx;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;
@@ -502,7 +502,7 @@ static int	noteContactLost(uvast discoveryNodeNbr, time_t startTime)
 	IonVdb		*ionvdb = getIonVdb();
 	uvast		ownNodeNbr = getOwnNodeNbr();
 	int		regionIdx;
-	uvast		regionNbr;
+	uint32_t	regionNbr;
 	IonNeighbor	*neighbor;
 	IonCXref	arg;
 	PsmAddress	elt;

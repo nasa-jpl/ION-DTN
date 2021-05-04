@@ -426,6 +426,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	IonCXref	*current;
 	CgrContactNote	*currentWork;
 	IonCXref	arg;
+	uint32_t	regionNbr;
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
@@ -449,7 +450,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	TRACE(CgrBeginRoute);
 	current = rootContact;
 	currentWork = rootWork;
-	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(current->toNode, terminusNode->nodeNbr, &regionNbr));
 
 	/*	Perform this outer loop until either the best
 	 *	route to the end vertex has been identified or else
@@ -476,6 +477,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	be transmitted during that contact.		*/
 
 		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
+		memset((char *) &arg, 0, sizeof(IonCXref));
+		arg.regionNbr = regionNbr;
 		arg.fromNode = current->toNode;
 		for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex,
 				rfx_order_contacts, &arg, &elt));
@@ -1369,6 +1372,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	loadScalar(&allotment, 0);
 	loadScalar(&volume, 0);
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(ownNodeNbr, route->toNodeNbr, &arg.regionNbr));
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = route->toNodeNbr;
 	for (oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,

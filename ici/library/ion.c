@@ -1142,7 +1142,7 @@ void	ionTerminate()
 
 /*	Functions for interrogating region membership.			*/
 
-int	ionPickRegion(uvast regionNbr)
+int	ionPickRegion(uint32_t regionNbr)
 {
 	Sdr	sdr = getIonsdr();
 	Object	iondbObj;
@@ -1168,7 +1168,7 @@ int	ionPickRegion(uvast regionNbr)
 	return -1;
 }
 
-int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uvast *regionNbr)
+int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uint32_t *regionNbr)
 {
 	/*	This function determines the region in which nodeA
 	 *	and nodeB both reside; if nodeB is zero, it just
@@ -1179,8 +1179,8 @@ int	ionRegionOf(uvast nodeNbrA, uvast nodeNbrB, uvast *regionNbr)
 	Sdr		sdr = getIonsdr();
 	Object		iondbObj;
 	IonDB		iondb;
-	uvast		localHomeRegion;
-	uvast		localOuterRegion;
+	uint32_t	localHomeRegion;
+	uint32_t	localOuterRegion;
 	RegionMember	nodeA;
 	RegionMember	nodeB;
 	Object		elt;
