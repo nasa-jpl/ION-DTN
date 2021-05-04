@@ -944,7 +944,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	time_t      toTime = 0;
 	uvast       fromNodeNbr = 0;
 	uvast       toNodeNbr = 0;
-	uvast       regionNbr;
+	uint32_t       regionNbr;
 	PsmAddress  xaddr;
 	uvast    	xmitRate;
 	uvast       confidence;
@@ -1021,7 +1021,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 	uvast   fromNodeNbr = 0;
 	uvast   toNodeNbr = 0;
 	int 	success = 0;
-	uvast	regionNbr;
+	uint32_t	regionNbr;
 
 	timestamp = adm_get_parm_uint(parms, 0, &success);
 
