@@ -148,9 +148,9 @@ esac
 #
 AC_ARG_ENABLE(
     acs,
-    [AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals])],
-    [ENABLE_BPACS=no],
-    [ENABLE_BPACS=yes])
+    [AC_HELP_STRING([--enable-acs], [enable Aggregate Custody Signals])],
+    [ENABLE_BPACS=yes],
+    [ENABLE_BPACS=no])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 
 
@@ -167,7 +167,8 @@ AC_ARG_ENABLE(
      BP_DIR="bpv6"
      AC_SUBST([BP_DIR])
      case "${ENABLE_BPACS}" in
-		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
+		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS"
+			 echo "Building ION with ACS";;
 		no)  ENABLE_BPACS=no;;
      esac
      echo "Building ION with BP version 6"],

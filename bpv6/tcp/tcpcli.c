@@ -13,9 +13,9 @@
 #include "llcv.h"
 
 #ifdef ENABLE_HIGH_SPEED
-#define	TCPCL_BUFSZ		(64 * 1024)
-#else
 #define	TCPCL_BUFSZ		(512 * 1024)
+#else
+#define	TCPCL_BUFSZ		(64 * 1024)
 #endif
 
 #ifndef MAX_RESCAN_INTERVAL
