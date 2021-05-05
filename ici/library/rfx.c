@@ -643,29 +643,35 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 
 	iondbObj = getIonDbObject();
 	sdr_read(getIonsdr(), (char *) &iondb, iondbObj, sizeof(IonDB));
-	if (cxref->fromNode == getOwnNodeNbr())
+	if (cxref->type == CtScheduled)
 	{
-		/*	Be a little slow to start transmission, and
-		 *	a little quick to stop, to ensure that
-		 *	segments arrive only when neighbor is
-		 *	expecting them.					*/
+		if (cxref->fromNode == getOwnNodeNbr())
+		{
+			/*	Be a little slow to start transmission,
+			 *	and a little quick to stop, to ensure
+			 *	that segments arrive only when neighbor
+			 *	is expecting them.			*/
 
-		cxref->startXmit = cxref->fromTime + iondb.maxClockError;
-		cxref->stopXmit = cxref->toTime - iondb.maxClockError;
-	}
+			cxref->startXmit = cxref->fromTime
+					+ iondb.maxClockError;
+			cxref->stopXmit = cxref->toTime - iondb.maxClockError;
+		}
 
-	if (cxref->toNode == getOwnNodeNbr())
-	{
-		/*	Be a little slow to resume timers, and a
-		 *	little quick to suspend them, to minimize the
-		 *	chance of premature timeout.			*/
+		if (cxref->toNode == getOwnNodeNbr())
+		{
+			/*	Be a little slow to resume timers,
+			 *	and a little quick to suspend them,
+			 *	to minimize the chance of premature
+			 *	timeout.				*/
 
-		cxref->startFire = cxref->fromTime + iondb.maxClockError;
-		cxref->stopFire = cxref->toTime - iondb.maxClockError;
-	}
-	else	/*	Not a transmission to the local node.		*/
-	{
-		cxref->purgeTime = cxref->toTime;
+			cxref->startFire = cxref->fromTime
+			      	 	+ iondb.maxClockError;
+			cxref->stopFire = cxref->toTime - iondb.maxClockError;
+		}
+		else	/*	Not a transmission to the local node.	*/
+		{
+			cxref->purgeTime = cxref->toTime;
+		}
 	}
 
 	memcpy((char *) psp(ionwm, cxaddr), (char *) cxref, sizeof(IonCXref));
@@ -2106,6 +2112,8 @@ int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromNode,
 	 *	where it is interpreted as "all contacts between
 	 *	these two nodes".					*/
 
+	CHKERR(regionNbr > 0);
+	CHKERR(fromTime);
 	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
