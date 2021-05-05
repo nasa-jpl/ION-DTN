@@ -1144,15 +1144,18 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 	if (asb != NULL)
 	{
 		tag.scid = asb->contextId;
-
+#if 0
 		if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 		{
-			readEid(&asb->securitySource, &(tag.ssrc));
-			if (tag.ssrc != NULL)
-			{
-				tag.ssrc_len = strlen(tag.ssrc);
-			}
+#endif
+		readEid(&asb->securitySource, &(tag.ssrc));
+		if (tag.ssrc != NULL)
+		{
+			tag.ssrc_len = strlen(tag.ssrc);
 		}
+#if 0
+		}
+#endif
 	}
 
 	readEid(&bundle->id.source, &(tag.bsrc));
@@ -1319,15 +1322,18 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 		if (asb != NULL)
 		{
 			tag.scid = asb->contextId;
-
+#if 0
 			if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 			{
-				readEid(&asb->securitySource, &(tag.ssrc));
-				if (tag.ssrc != NULL)
-				{
-					tag.ssrc_len = strlen(tag.ssrc);
-				}
+#endif
+			readEid(&asb->securitySource, &(tag.ssrc));
+			if (tag.ssrc != NULL)
+			{
+				tag.ssrc_len = strlen(tag.ssrc);
 			}
+#if 0
+			}
+#endif
 		}
 	}
 
