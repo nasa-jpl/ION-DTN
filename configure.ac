@@ -308,6 +308,19 @@ fi
 AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
 
 #
+# Allow the user to configure for debugging with gdb
+#
+AC_ARG_WITH([debugging],
+[AS_HELP_STRING([--with-debugging], [Remove compiler optimizations])],
+[debugging=yes;],
+[])
+if test "x$debugging" = "xyes" ; then
+	echo "Setting compiler optimization level to -O0"
+	CFLAGS="$CFLAGS -g -O0"
+fi
+AM_CONDITIONAL([ENABLE_DEBUGGING], [test "x$debugging" = "xyes"])
+
+#
 # Dynamically choose whether or not to build against expat libraries.
 # Expat is needed by AMS if XML configuration files are used.
 # Default is not to build against libexpat.
