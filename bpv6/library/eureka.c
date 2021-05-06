@@ -192,7 +192,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	}
 	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, 0, ownNodeNbr,
+		if (rfx_insert_contact(regionNbr, 0, 0, ownNodeNbr,
 				discoveryNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
@@ -245,7 +245,7 @@ static int	noteContactAcquired(uvast discoveryNodeNbr,
 	}
 	else		/*	Must insert hypothetical contact.	*/
 	{
-		if (rfx_insert_contact(regionIdx, 0, 0, discoveryNodeNbr,
+		if (rfx_insert_contact(regionNbr, 0, 0, discoveryNodeNbr,
 				ownNodeNbr, 0, 0.0, &contactAddr, 0) < 0
 		|| contactAddr == 0)
 		{
