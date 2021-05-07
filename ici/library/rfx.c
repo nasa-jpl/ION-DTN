@@ -2113,7 +2113,6 @@ int	rfx_remove_contact(uint32_t regionNbr, time_t *fromTime, uvast fromNode,
 	 *	these two nodes".					*/
 
 	CHKERR(regionNbr > 0);
-	CHKERR(fromTime);
 	CHKERR(sdr_begin_xn(sdr));
 	if (fromTime)		/*	Not a wild-card deletion.	*/
 	{
