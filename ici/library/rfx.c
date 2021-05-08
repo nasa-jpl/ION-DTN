@@ -1363,6 +1363,8 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 		return;
 	}
 
+	regionIdx = ionPickRegion(regionNbr);
+	CHKVOID(!(regionIdx < 0));
        	if (nodeNbr == getOwnNodeNbr())
 	{
 		/*	Registering self in a region.			*/
@@ -1385,7 +1387,6 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 	/*	Add the registration contact.				*/
 
 	sdr_write(sdr, iondbObj, (char *) iondb, sizeof(IonDB));
-	regionIdx = ionPickRegion(regionNbr);
 	insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
 			MAX_POSIX_TIME, nodeNbr, nodeNbr, 0, 1.0,
 			CtRegistration, cxaddr);
@@ -1966,7 +1967,7 @@ static void	unregisterFromRegion(uvast fromNode, IonCXref *cxref,
 	 *	for this node.						*/
 
 	regionIdx = ionPickRegion(regionNbr);
-	if (regionIdx > 1)
+	if (regionIdx < 0 || regionIdx > 1)
 	{
 		return;
 	}
@@ -2161,11 +2162,17 @@ void	rfx_brief_contacts(uint32_t regionNbr)
 	if (write(briefingFile, buffer, textLen) < 0)
 	{
 		close(briefingFile);
-		putSysErrmsg("Can't write '^' command to briefing file",					fileName);
+		putSysErrmsg("Can't write '^' command to briefing file",
+				fileName);
 		return;
 	}
 
-	CHKVOID(sdr_begin_xn(sdr));
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		close(briefingFile);
+		putErrmsg("Can't start transaction", NULL);
+		return;
+	}
 
 	/*	First list all registration contacts.			*/
 
@@ -2970,7 +2977,13 @@ void	rfx_brief_ranges()
 		return;
 	}
 
-	CHKVOID(sdr_begin_xn(sdr));
+	if (sdr_begin_xn(sdr) < 0)
+	{
+		close(briefingFile);
+		putErrmsg("Can't start transaction", NULL);
+		return;
+	}
+
 	for (elt = sm_rbt_first(ionwm, vdb->rangeIndex); elt;
 			elt = sm_rbt_next(ionwm, elt))
 	{

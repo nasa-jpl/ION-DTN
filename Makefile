@@ -1,4 +1,4 @@
-BP = bpv6
+BP = bpv7
 
 all:	with$(BP)
 

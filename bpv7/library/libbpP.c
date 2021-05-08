@@ -5366,17 +5366,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 			continue;
 		}
 
-		if (fragment->id.source.schemeCodeNbr == ipn)
-		{
-			if (fragment->id.source.ssp.ipn.nodeNbr !=
-					bundle->id.source.ssp.ipn.nodeNbr
-			|| fragment->id.source.ssp.ipn.serviceNbr !=
-					bundle->id.source.ssp.ipn.serviceNbr)
-			{
-				continue;
-			}
-		}
-		else	/*	Source EID scheme must be dtn.		*/
+		if (fragment->id.source.schemeCodeNbr == dtn)
 		{
 			readEid(&(fragment->id.source), &fragmentEid);
 			if (fragmentEid == NULL)
@@ -5392,6 +5382,16 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 			if (result != 0)
 			{
 				continue;	/*	No match.	*/
+			}
+		}
+		else	/*	Source EID scheme must be ipn.		*/
+		{
+			if (fragment->id.source.ssp.ipn.nodeNbr !=
+					bundle->id.source.ssp.ipn.nodeNbr
+			|| fragment->id.source.ssp.ipn.serviceNbr !=
+					bundle->id.source.ssp.ipn.serviceNbr)
+			{
+				continue;
 			}
 		}
 
