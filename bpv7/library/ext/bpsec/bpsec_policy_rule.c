@@ -1227,7 +1227,6 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 	 *         and is a little bit faster.
 	 */
 	entry.size = bslpol_sdr_rule_size(wm, ruleAddr);
-	CHKERR(entry.size > 0);
 	if((buffer = MTAKE(entry.size)) == NULL)
 	{
 		sdr_cancel_xn(ionsdr);
