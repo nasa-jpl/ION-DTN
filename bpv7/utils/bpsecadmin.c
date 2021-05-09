@@ -451,7 +451,10 @@ static int jsonGetTypedValue(jsonObject job, int start, int end, int type, char 
 		/* Copy JSON segment into the value. */
 		if(istrcpy(value, job.line+job.tokens[i].start, len+1) == NULL)
 		{
-			result = -1;
+#if 0
+			result = -1;	/*	0 later overwrites -1.	*/
+#endif
+			return -1;
 		}
 
 		/* Store value token index if needed. */

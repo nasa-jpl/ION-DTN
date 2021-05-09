@@ -1307,11 +1307,11 @@ int bsl_handle_receiver_sop_event(AcqWorkArea *wk, int role,
 	}
 	else
 	{
-		ExtensionBlock tgt;
+		ExtensionBlock tgt2;
 		Sdr	sdr = getIonsdr();
 		Object tgtObj = getExtensionBlock(bundle, tgtNum);
-		sdr_read(sdr, (char *) &tgt, tgtObj,sizeof(ExtensionBlock));
-		tag.type = tgt.type;
+		sdr_read(sdr, (char *) &tgt2, tgtObj,sizeof(ExtensionBlock));
+		tag.type = tgt2.type;
 	}
 
 	if (sop != NULL)
