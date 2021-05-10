@@ -20,9 +20,9 @@ BIBE = ../bibe
 IPND = ../ipnd
 ICI = ../../ici
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP -DENABLE_BPACS
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP
 # -Werror
-# -DENABLE_BPACS
+# -DENABLE_BPACS : removed as a default in 3.7.3
 CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(API)/ext/snw -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 
 #acsadmin on mingw
