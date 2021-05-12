@@ -1363,8 +1363,6 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 		return;
 	}
 
-	regionIdx = ionPickRegion(regionNbr);
-	CHKVOID(!(regionIdx < 0));
        	if (nodeNbr == getOwnNodeNbr())
 	{
 		/*	Registering self in a region.			*/
@@ -1387,6 +1385,8 @@ static void	handleRegistrationContact(uint32_t regionNbr, uvast nodeNbr,
 	/*	Add the registration contact.				*/
 
 	sdr_write(sdr, iondbObj, (char *) iondb, sizeof(IonDB));
+	regionIdx = ionPickRegion(regionNbr);
+	CHKVOID(regionIdx == 0 || regionIdx == 1);
 	insertContact(regionIdx, iondb, iondbObj, MAX_POSIX_TIME,
 			MAX_POSIX_TIME, nodeNbr, nodeNbr, 0, 1.0,
 			CtRegistration, cxaddr);
