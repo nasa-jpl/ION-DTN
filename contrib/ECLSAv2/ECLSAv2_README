@@ -1,0 +1,60 @@
+General remarks on the ECLSA v2 package (a plug-in for ION)
+
+Project supervisor: Carlo Caini (carlo.caini@unibo.it)
+Main Author: Nicola Alessi (nicola.alessi@studio.unibo.it)
+Author of the Memory manager and of the interface for Unibo-LTP: Andrea Bisacchi 
+(andrea.bisacchi5@studio.unibo.it)
+Author of the OpenFEC Adapter: Marco Raminella (marco.raminella@studio.unibo.it)
+Author of the HSLTP extension: Azzurra Ciliberti (azzurra.ciliberti@studio.unibo.it)
+
+The software contained in this directory consists of the components necessary
+to build a fully functional ECLSA (Error Correcting Lin Service Adapter, a
+link server adapter mainly intended to be used under the Licklider Transmission
+Protocol (LTP), in ION (Interplanetary Overlay Network), the DTN package
+written by NASA-JPL.  https://sourceforge.net/projects/ion-dtn/
+
+ECLSAv2 is inspired by (it is not a compliant implementation of) what is
+described in the informative document CCSDS 131.5-O-1 Orange Book, Sept. 2014
+ERASURE CORRECTING CODES FOR USE IN NEAR-EARTH AND DEEP-SPACE COMMUNICATIONS.
+
+A comprehensive description of ECLSAv2 and of the HSLTP extension can be found in:
+
+[1] N. Alessi, C. Caini, T. de Cola and M. Raminella, "Packet Layer Erasure Coding in 
+Interplanetary Links: The LTP Erasure Coding Link Service Adapter,"
+in IEEE Transactions on Aerospace and Electronic Systems, vol. 56, no. 1, 
+pp. 403-414, Feb. 2020, 
+DOI: 10.1109/TAES.2019.2916271.
+
+[2] N. Alessi, C. Caini, A. Ciliberti and T. de Cola, "HSLTP: An LTP Variant for 
+High-Speed Links and Memory Constrained Nodes," in IEEE Transactions on Aerospace and
+Electronic Systems, vol. 56, no. 4, pp. 2922-2933, Aug. 2020, 
+DOI: 10.1109/TAES.2019.2958190.
+
+
+
+Note that the components have been written by different entities, and released
+under different licenses.  In particular:
+
+1.	contrib/ECLSAv2/ec/eclsa
+
+The software included in this directory is the core of ECLSAv2 (ECLSA version
+2), the copyright is of the University of Bologna 2016, and it is released as
+free software under GPL v2 and later versions. ECLSAv2 core can be interfaced
+with different codecs, using different FECs, developed by other entities (see
+below).
+
+2.	contrib/ECLSAv2/ec/libec
+
+The software included in this directory contains the FEC codec developed by
+DLR (German Aerospace Center). The copyright is of DLR and it is NOT released
+as free software. See details in the libec directory.
+
+3.	contrib/ECLSAv2/ec/openFEC
+
+The software included in this directory contains the FEC codec developed by
+the OpenFEC project (core contributors from the French institutions INRIA and
+ISAE. It is free software consisting of different parts governed by several
+licenses. See http://openfec.org/accueil.html
+
+For further information and license details, see documentation inside the
+cited directories.

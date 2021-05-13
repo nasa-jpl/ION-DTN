@@ -1,0 +1,62 @@
+ECLSAv2 description
+
+ECLSAv2 is an experimental link service adapter for LTP jointly studied by DLR (Tomaso de Cola) and University of Bologna (Carlo Caini) and developed by Unibo (main author, 
+Nicola Alessi, coauthors Andrea Bisacchi, Marco Raminella, Azzurra Ciliberti). 
+It is based on the use of packet layer FEC to recover lost LTP segments from redundancy packets, whenever possible.
+The use of FEC instead of ARQ is particularly advantageous whenever the loss probability is high and the RTT is long, such as on interplanetary links (see CCSDS 131.5-O-1, 
+"Erasure Correcting Codes for use in near-earth and deep-space communications", Orange book, Nov.2014). 
+More information on ECLSA is provided in the attached excerpt of Marco Raminella's thesis and in [1].
+While ECLSA has been designed to be transparent to LTP (but timer settings), the ECLSA package contains also an experimental mode that when selected actually implements a 
+new variant of LTP, HSLTP (High Speed LTP), designed and developed at Unibo (code authors Nicola Alessi and Azzurra Ciliberti), which significantly modifies the standard 
+LTP behavior [2].
+
+[1] N. Alessi, C. Caini, T. de Cola and M. Raminella, "Packet Layer Erasure Coding in Interplanetary Links: The LTP Erasure Coding Link Service Adapter," 
+in IEEE Transactions on Aerospace and Electronic Systems, vol. 56, no. 1, pp. 403-414, Feb. 2020, doi: 10.1109/TAES.2019.2916271. 
+[2] N. Alessi, C. Caini, A. Ciliberti and T. de Cola, "HSLTP: An LTP Variant for High-Speed Links and Memory Constrained Nodes," in IEEE Transactions on Aerospace 
+and Electronic Systems, vol. 56, no. 4, pp. 2922-2933, Aug. 2020, DOI: 10.1109/TAES.2019.2958190.
+
+
+ECLSAv2 in ION
+
+All ECLSAv2 files are contained in /contrib/ECLSAv2. In particular, the ECLSA files are in /contrib/ECLSAv2/ec/eclsa; while the OpenFEC codecs used by eclsa are in 
+/contrib/ECLSAv2/ec/openfec. In /conrib/ECLSAv2 there are also a few ancillary files, including ECLSA documentation and the files necessary to build ECLSA.
+
+Compiling ECLSAv2
+
+NOTE: This new version of ECLSA must be compiled after ION, in an indpoendent way.
+
+To compile ECLSAv2, after having compiled and installed ION:
+  1. Install the following packages, if not present: cmake, autotools-dev, automake
+  2. From the ECLSAv2 directory, run ./configure  by specifying the wanted FEC code, the upper and lower protcol interfaces and the ION path
+  3. then compile and install as usual, entering: make; sudo make install; sudo ldconfig
+
+The typical configure command to be entered is the following:
+./configure --with-codecOpenFEC --with-upperProtLTP --with-lowerProtUDP  --with-ion-path=<insert the absolute path to ION>
+
+The first flag tells eclsa to use the OpenFEC codes (the only codes provided with ECLSAv2 in ION); the second to use LTP in ION as upper protcol; the thord UDP as 
+lower protcol; last, the path to ION.
+
+Add --enable-bpv7 to compile for BPv7 instead of BPv6
+Add --enable-debug to compile for debugging
+
+Other flags (developers only):
+  --with-upperProtUniboLTP Use Unibo-LTP as upper protocol in eclsa (it requires the use of Unibo-LTP, not included here, instead of ION LTP). 
+			   Alternmative to --with-upperProtLTP
+  --with-codecDummyDEC     Use DummyDEC as codec in eclsa (provided as a template). Alternmative to --with-codecOpenFEC
+  --with-codecLibecDLR     Use LibecDLR as codec in eclsa (it requires DLR code, not included here). Alternmative to --with-codecOpenFEC
+
+Running and stopping ECLSAv2
+
+See the .rc example configuration files in /contrib/ECLSAv2/ioneclsa_conf_files.tar.gz
+To stop ECLSA when running, killm is not enough (killm alone does not stop all elements of ECLSA and you will receive a long series of errors on the screen if you do that). Run the kill_eclsa.sh script that is provided in the ioneclsa_conf_files.tar.gz
+otherwise enter:
+ps a | grep ecls | grep -v grep | sed 's/^ *//g'| cut -f1 -d' '| while read line; do kill -9 $line; done; killm;
+or simply
+killall eclsi; killall eclso
+before closing ION.
+
+Known issues
+
+Because eclsi and udplsi use the same port number as default, they can not be launched concurrently. Override the default port if you want to use them at the same time.
+
+For further information: carlo.caini@unibo.it
