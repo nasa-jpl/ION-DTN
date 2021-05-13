@@ -1,9 +1,8 @@
 var searchData=
 [
-  ['data_1264',['data',['../structnode_elt.html#a735984d41155bc1032e09bece8f8d66d',1,'nodeElt::data()'],['../structrbt_node.html#a735984d41155bc1032e09bece8f8d66d',1,'rbtNode::data()']]],
-  ['delete_5fdata_5felt_1265',['delete_data_elt',['../structlist.html#ada3e7cf6780353cd4844ec3253c3fd76',1,'list']]],
-  ['delete_5fuserdata_1266',['delete_userData',['../structlist.html#a159a6360a2166e512c0a7f54c65dffcf',1,'list']]],
-  ['deletefn_1267',['deleteFn',['../structrbt.html#a9181cdb2ec94a14c321805122b76678b',1,'rbt']]],
-  ['destinationnode_1268',['destinationNode',['../struct_unibo_cgr_current_call_s_a_p.html#a829b66646dc6e9e524319948469125bf',1,'UniboCgrCurrentCallSAP']]],
-  ['dlvconfidence_1269',['dlvConfidence',['../struct_cgr_bundle.html#a172bfd87a716cb37bd05da5516e09fe1',1,'CgrBundle']]]
+  ['end_1145',['end',['../unibo-cgr_2_r_e_a_d_m_e_8txt.html#a02f61c9dddce3a9c6586ac587640e9a5',1,'README.txt']]],
+  ['eto_1146',['eto',['../structcgr_route.html#a57335947bb4902d7aab6e0a95978e6bd',1,'cgrRoute']]],
+  ['evc_1147',['evc',['../struct_cgr_bundle.html#a57d06d34c0c33cee9f285ec90899b789',1,'CgrBundle::evc()'],['../struct_c_g_r_r_object.html#ae3cf4ec5c22a2b3a3f19cb594b8f567d',1,'CGRRObject::evc()']]],
+  ['excludedneighbors_1148',['excludedNeighbors',['../struct_phase_one_s_a_p.html#ac166cd469ad1aa61963b9b9c28372dc9',1,'PhaseOneSAP::excludedNeighbors()'],['../interface__unibocgr__dtn2_8cc.html#ac166cd469ad1aa61963b9b9c28372dc9',1,'excludedNeighbors():&#160;interface_unibocgr_dtn2.cc']]],
+  ['expiration_5ftime_1149',['expiration_time',['../struct_cgr_bundle.html#aa08ea821b223c17b23c30b03cb22de96',1,'CgrBundle']]]
 ];

@@ -939,37 +939,7 @@ static int executeCGR(CgrBundle *bundle, Node *terminusNode, List excludedNeighb
 	List subsetComputedRoutes = NULL;
 	RtgObject *rtgObj = terminusNode->routingObject;
 
-	reset_cgr();
-
-	if (!(ALREADY_COMPUTED(rtgObj))) //If it's the first time that I compute routes for this destination
-	{
-		if(NEIGHBORS_DISCOVERED(rtgObj))
-		{
-			missingNeighbors = rtgObj->citations->length;
-		}
-		else
-		{
-			missingNeighbors = get_local_node_neighbors_count();
-		}
-#if (MAX_DIJKSTRA_ROUTES > 0)
-		if(!IS_CRITICAL(bundle) && missingNeighbors > MAX_DIJKSTRA_ROUTES)
-		{
-			missingNeighbors = MAX_DIJKSTRA_ROUTES;
-		}
-#endif
-		if(missingNeighbors > 0)
-		{
-			result = computeRoutes(terminusNode, NULL, missingNeighbors); //phase one
-			stop = (result <= 0) ? 1 : 0;
-		}
-		else
-		{
-			stop = 1;
-		}
-	}
-
-	if((NEIGHBORS_DISCOVERED(rtgObj) && rtgObj->citations->length == 0)
-			|| get_local_node_neighbors_count() == 0)
+	if(get_local_node_neighbors_count() == 0)
 	{
 		// 0 neighbors to reach destination...
 		stop = 1;
@@ -985,7 +955,7 @@ static int executeCGR(CgrBundle *bundle, Node *terminusNode, List excludedNeighb
 		}
 		if (!stop)
 		{
-			result = computeRoutes(terminusNode, subsetComputedRoutes, missingNeighbors); //phase one
+			result = computeRoutes(bundle->regionNbr, terminusNode, subsetComputedRoutes, missingNeighbors); //phase one
 
 			stop = (result <= 0) ? 1 : 0;
 		}
@@ -1073,6 +1043,7 @@ int getBestRoutes(time_t time, CgrBundle *bundle, List excludedNeighbors, List *
 		*bestRoutes = NULL;
 		debug_printf("Call n.: %u", sap.count_bundles);
 		writeLog("Destination node: %llu.", bundle->terminus_node);
+        writeLog("Region number: %lu.", bundle->regionNbr);
 		if (check_bundle(bundle) != 0)
 		{
 			writeLog("Bundle bad formed.");
@@ -1092,6 +1063,8 @@ int getBestRoutes(time_t time, CgrBundle *bundle, List excludedNeighbors, List *
 		{
 
 			result = 0;
+
+            reset_cgr();
 
 			cpSap = get_contact_plan_sap(NULL);
 

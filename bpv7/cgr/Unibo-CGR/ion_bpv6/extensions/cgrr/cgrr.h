@@ -37,15 +37,6 @@
 
 #include "cgrr_utils.h"
 
-#ifndef	CGRREB
-/**
- * \brief Enable (1) or disable (0) CGRR Extension Block.
- *
- * \hideinitializer
- */
-#define	CGRREB	0
-#endif
-
 #define	EXTENSION_TYPE_CGRR	23
 
 extern int	cgrr_offer(ExtensionBlock *, Bundle *);

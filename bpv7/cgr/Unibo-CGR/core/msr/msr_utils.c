@@ -174,7 +174,7 @@ static int build_msr_route(time_t current_time, CGRRoute* cgrrRoute, CgrBundle *
 
 		for (i = localNodePosition; i < cgrrRoute->hopCount && !stop; i++)
 		{
-			contact = get_contact_with_time_tolerance(cgrrRoute->hopList[i].fromNode,
+			contact = get_contact_with_time_tolerance(bundle->regionNbr, cgrrRoute->hopList[i].fromNode,
 					cgrrRoute->hopList[i].toNode,
 					cgrrRoute->hopList[i].fromTime, MSR_TIME_TOLERANCE);
 

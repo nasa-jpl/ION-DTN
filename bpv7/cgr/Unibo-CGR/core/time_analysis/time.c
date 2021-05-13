@@ -560,15 +560,16 @@ void print_time_results(time_t currentTime, unsigned int callNumber, CgrBundleID
 	}
 #endif
 
-	written = sprintf(row, "%llu,%ld,%u,%llu,%u,%u,%u,%u,%llu,%llu,%llu,%u,%llu,%u,%llu,%u\n", get_local_node(), (long int) currentTime, callNumber,
-			id->source_node, id->creation_timestamp, id->sequence_number, id->fragment_length,
-			id->fragment_offset, totalInterface, totalCore,
-			copiedPhasesTime.phase_time_logger[0].timer,
-			copiedPhasesTime.phase_time_logger[0].call_counter,
-			copiedPhasesTime.phase_time_logger[1].timer,
-			copiedPhasesTime.phase_time_logger[1].call_counter,
-			copiedPhasesTime.phase_time_logger[2].timer,
-			copiedPhasesTime.phase_time_logger[2].call_counter);
+	written = sprintf(row, "%llu,%ld,%u,%llu,%llu,%u,%u,%u,%llu,%llu,%llu,%u,%llu,%u,%llu,%u\n",
+                   get_local_node(), (long int) currentTime, callNumber,
+                   id->source_node, id->creation_timestamp, id->sequence_number, id->fragment_length,
+                   id->fragment_offset, totalInterface, totalCore,
+                   copiedPhasesTime.phase_time_logger[0].timer,
+                   copiedPhasesTime.phase_time_logger[0].call_counter,
+                   copiedPhasesTime.phase_time_logger[1].timer,
+                   copiedPhasesTime.phase_time_logger[1].call_counter,
+                   copiedPhasesTime.phase_time_logger[2].timer,
+                   copiedPhasesTime.phase_time_logger[2].call_counter);
 
 	if(written > 0 && timeFile->configured && timeFile->fd >= 0)
 	{

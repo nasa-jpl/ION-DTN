@@ -85,10 +85,11 @@ struct node
 
 /**************** NODE & ROUTING OBJECT FLAGS MACROS ****************/
 
-#define COMPUTED        (1) /* (00000001) */
-#define NO_ROUTES       (2) /* (00000010) */
+// #define COMPUTED        (1) /* (00000001) */
+// #define NO_ROUTES       (2) /* (00000010) */
 #define NEIGHBORS       (4) /* (00000100) */
 
+/*
 #define SET_COMPUTED(rtgObj) (((rtgObj)->flags) |= COMPUTED)
 #define UNSET_COMPUTED(rtgObj) (((rtgObj)->flags) &= ~COMPUTED)
 #define ALREADY_COMPUTED(rtgObj) (((rtgObj)->flags) & COMPUTED)
@@ -96,7 +97,7 @@ struct node
 #define SET_ROUTES_NOT_FOUND(rtgObj) (((rtgObj)->flags) |= NO_ROUTES)
 #define UNSET_ROUTES_NOT_FOUND(rtgObj) (((rtgObj)->flags) &= ~NO_ROUTES)
 #define ROUTES_NOT_FOUND(rtgObj) (((rtgObj)->flags) & NO_ROUTES)
-
+*/
 #define SET_NEIGHBORS_DISCOVERED(rtgObj) (((rtgObj)->flags) |= NEIGHBORS)
 #define UNSET_NEIGHBORS_DISCOVERED(rtgObj) (((rtgObj)->flags) &= ~NEIGHBORS)
 #define NEIGHBORS_DISCOVERED(rtgObj) (((rtgObj)->flags) & NEIGHBORS)

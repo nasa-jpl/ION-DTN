@@ -637,14 +637,14 @@ void printCurrentState()
 		len = strlen(sap->log_dir);
 		sap->log_dir[len] = '\0';
 		strcat(sap->log_dir, "contacts.txt");
-		if ((file_contacts = fopen(sap->log_dir, "a")) < 0)
+		if ((file_contacts = fopen(sap->log_dir, "a")) == NULL)
 		{
 			perror("Error contacts graph's file cannot be opened");
 			return;
 		}
 		sap->log_dir[len] = '\0';
 		strcat(sap->log_dir, "ranges.txt");
-		if ((file_ranges = fopen(sap->log_dir, "a")) < 0)
+		if ((file_ranges = fopen(sap->log_dir, "a")) == NULL)
 		{
 			perror("Error contacts graph's file cannot be opened");
 			fclose(file_contacts);

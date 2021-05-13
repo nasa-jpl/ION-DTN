@@ -833,6 +833,10 @@ Range* get_range(unsigned long long fromNode, unsigned long long toNode, time_t 
 			if (elt->data != NULL)
 			{
 				result = (Range*) elt->data;
+
+				if (node != NULL) {
+				    *node = elt;
+				}
 			}
 		}
 	}

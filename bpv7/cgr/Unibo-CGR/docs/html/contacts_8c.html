@@ -88,7 +88,7 @@ Macros</h2></td></tr>
 <tr class="memitem:a86ff848efdf0eab2496efd1dc14c4a71"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a86ff848efdf0eab2496efd1dc14c4a71">ADD_AND_REVISE_CONTACT</a></td></tr>
 <tr class="memdesc:a86ff848efdf0eab2496efd1dc14c4a71"><td class="mdescLeft">&#160;</td><td class="mdescRight">Boolean: set to 1 if you want to permits that the contact's xmit rate and confidence can be changed when you are trying to insert into the contact graph a contact that already exists.  <a href="contacts_8c.html#a86ff848efdf0eab2496efd1dc14c4a71">More...</a><br /></td></tr>
 <tr class="separator:a86ff848efdf0eab2496efd1dc14c4a71"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adf1be5ccbb7a2522b4f3a64043c72880"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#adf1be5ccbb7a2522b4f3a64043c72880">absolute</a>(a)&#160;&#160;&#160;(((a) &lt; 0) ? (-(a)) : (a))</td></tr>
+<tr class="memitem:adf1be5ccbb7a2522b4f3a64043c72880"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#adf1be5ccbb7a2522b4f3a64043c72880">absolute</a>(a)</td></tr>
 <tr class="memdesc:adf1be5ccbb7a2522b4f3a64043c72880"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the absolute value of "a".  <a href="contacts_8c.html#adf1be5ccbb7a2522b4f3a64043c72880">More...</a><br /></td></tr>
 <tr class="separator:adf1be5ccbb7a2522b4f3a64043c72880"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -118,21 +118,21 @@ Functions</h2></td></tr>
 <tr class="memitem:ae0e15c710e345859af5ad39def3e1793"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ae0e15c710e345859af5ad39def3e1793">compare_contacts</a> (void *first, void *second)</td></tr>
 <tr class="memdesc:ae0e15c710e345859af5ad39def3e1793"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compare two contacts.  <a href="contacts_8c.html#ae0e15c710e345859af5ad39def3e1793">More...</a><br /></td></tr>
 <tr class="separator:ae0e15c710e345859af5ad39def3e1793"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad1f031be496c9dbaf93d4c06181d9b07"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ad1f031be496c9dbaf93d4c06181d9b07">revise_confidence</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence)</td></tr>
-<tr class="memdesc:ad1f031be496c9dbaf93d4c06181d9b07"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the contact's confidence.  <a href="contacts_8c.html#ad1f031be496c9dbaf93d4c06181d9b07">More...</a><br /></td></tr>
-<tr class="separator:ad1f031be496c9dbaf93d4c06181d9b07"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6677695cadebd5fac5cb86ed638dbbae"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a6677695cadebd5fac5cb86ed638dbbae">revise_contact</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence, unsigned long int xmitRate, int copyMTV, double mtv[])</td></tr>
-<tr class="memdesc:a6677695cadebd5fac5cb86ed638dbbae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the contact's confidence and transmit rate (and MTVs)  <a href="contacts_8c.html#a6677695cadebd5fac5cb86ed638dbbae">More...</a><br /></td></tr>
-<tr class="separator:a6677695cadebd5fac5cb86ed638dbbae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a56230660fbe5772b149cdf65a0d9c5b8"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a56230660fbe5772b149cdf65a0d9c5b8">revise_xmit_rate</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned long int xmitRate, int copyMTV, double mtv[])</td></tr>
-<tr class="memdesc:a56230660fbe5772b149cdf65a0d9c5b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the contact's transmit rate (and MTVs)  <a href="contacts_8c.html#a56230660fbe5772b149cdf65a0d9c5b8">More...</a><br /></td></tr>
-<tr class="separator:a56230660fbe5772b149cdf65a0d9c5b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a474dcb5605134dc3c298a842e923504f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a474dcb5605134dc3c298a842e923504f">get_contact_with_time_tolerance</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance)</td></tr>
-<tr class="memdesc:a474dcb5605134dc3c298a842e923504f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search a contact into contact graph. The contact has to match with the id {fromNode, toNode, fromTime}.  <a href="contacts_8c.html#a474dcb5605134dc3c298a842e923504f">More...</a><br /></td></tr>
-<tr class="separator:a474dcb5605134dc3c298a842e923504f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a32ddc80a31b0c468ddcf6e2670b80e7e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a32ddc80a31b0c468ddcf6e2670b80e7e">refill_mtv</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance, unsigned int refillSize, int priority)</td></tr>
-<tr class="memdesc:a32ddc80a31b0c468ddcf6e2670b80e7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Refill contact's MTV of some size passed as argument.  <a href="contacts_8c.html#a32ddc80a31b0c468ddcf6e2670b80e7e">More...</a><br /></td></tr>
-<tr class="separator:a32ddc80a31b0c468ddcf6e2670b80e7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2fa53cab00b443982304c1df6d1989d8"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a2fa53cab00b443982304c1df6d1989d8">revise_confidence</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence)</td></tr>
+<tr class="memdesc:a2fa53cab00b443982304c1df6d1989d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the contact's confidence.  <a href="contacts_8c.html#a2fa53cab00b443982304c1df6d1989d8">More...</a><br /></td></tr>
+<tr class="separator:a2fa53cab00b443982304c1df6d1989d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae63c2fed915bd12087e71b402fcf10bc"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ae63c2fed915bd12087e71b402fcf10bc">revise_contact</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence, unsigned long int xmitRate, int copyMTV, double mtv[])</td></tr>
+<tr class="memdesc:ae63c2fed915bd12087e71b402fcf10bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the contact's confidence and transmit rate (and MTVs)  <a href="contacts_8c.html#ae63c2fed915bd12087e71b402fcf10bc">More...</a><br /></td></tr>
+<tr class="separator:ae63c2fed915bd12087e71b402fcf10bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac73eed28891c7f26fba038a5742dda0e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ac73eed28891c7f26fba038a5742dda0e">revise_xmit_rate</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned long int xmitRate, int copyMTV, double mtv[])</td></tr>
+<tr class="memdesc:ac73eed28891c7f26fba038a5742dda0e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the contact's transmit rate (and MTVs)  <a href="contacts_8c.html#ac73eed28891c7f26fba038a5742dda0e">More...</a><br /></td></tr>
+<tr class="separator:ac73eed28891c7f26fba038a5742dda0e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aca5ef362d35785bf32b59fefb2c0b31b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#aca5ef362d35785bf32b59fefb2c0b31b">get_contact_with_time_tolerance</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance)</td></tr>
+<tr class="memdesc:aca5ef362d35785bf32b59fefb2c0b31b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search a contact into contact graph. The contact has to match with the id {fromNode, toNode, fromTime}.  <a href="contacts_8c.html#aca5ef362d35785bf32b59fefb2c0b31b">More...</a><br /></td></tr>
+<tr class="separator:aca5ef362d35785bf32b59fefb2c0b31b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab760f1cb03cda7cdea559b2e34e67632"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ab760f1cb03cda7cdea559b2e34e67632">refill_mtv</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance, unsigned int refillSize, int priority)</td></tr>
+<tr class="memdesc:ab760f1cb03cda7cdea559b2e34e67632"><td class="mdescLeft">&#160;</td><td class="mdescRight">Refill contact's MTV of some size passed as argument.  <a href="contacts_8c.html#ab760f1cb03cda7cdea559b2e34e67632">More...</a><br /></td></tr>
+<tr class="separator:ab760f1cb03cda7cdea559b2e34e67632"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af056dcad86c70fc9e769c3f65fc6f86e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#af056dcad86c70fc9e769c3f65fc6f86e">reset_ContactsGraph</a> ()</td></tr>
 <tr class="memdesc:af056dcad86c70fc9e769c3f65fc6f86e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete any contact that belongs to the graph, but not the contacts graph structure.  <a href="contacts_8c.html#af056dcad86c70fc9e769c3f65fc6f86e">More...</a><br /></td></tr>
 <tr class="separator:af056dcad86c70fc9e769c3f65fc6f86e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -142,45 +142,41 @@ Functions</h2></td></tr>
 <tr class="memitem:a9aa5bb7cfc64d3bdd25ea61831a66672"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a9aa5bb7cfc64d3bdd25ea61831a66672">free_contact</a> (void *data)</td></tr>
 <tr class="memdesc:a9aa5bb7cfc64d3bdd25ea61831a66672"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete the contact pointed by data.  <a href="contacts_8c.html#a9aa5bb7cfc64d3bdd25ea61831a66672">More...</a><br /></td></tr>
 <tr class="separator:a9aa5bb7cfc64d3bdd25ea61831a66672"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a93a15ec4630f1b56c8d9393520ac8ce6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a93a15ec4630f1b56c8d9393520ac8ce6">create_contact</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, time_t toTime, long unsigned int xmitRate, float confidence, <a class="el" href="contacts_8h.html#adda549bc4be76c304b79e10ab5829416">CtType</a> type)</td></tr>
-<tr class="memdesc:a93a15ec4630f1b56c8d9393520ac8ce6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate memory for a new contact.  <a href="contacts_8c.html#a93a15ec4630f1b56c8d9393520ac8ce6">More...</a><br /></td></tr>
-<tr class="separator:a93a15ec4630f1b56c8d9393520ac8ce6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1fa56525e39fcc5175b17dd92f4127f9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a1fa56525e39fcc5175b17dd92f4127f9">add_contact_to_graph</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[])</td></tr>
-<tr class="memdesc:a1fa56525e39fcc5175b17dd92f4127f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate memory for a contact, set the fields of the contacts to the passed arguments and add the contact to the contacts graph.  <a href="contacts_8c.html#a1fa56525e39fcc5175b17dd92f4127f9">More...</a><br /></td></tr>
-<tr class="separator:a1fa56525e39fcc5175b17dd92f4127f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a07ce495af732565f038b43159ebf3a51"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a07ce495af732565f038b43159ebf3a51">removeAllContacts</a> (unsigned long long fromNode, unsigned long long toNode)</td></tr>
-<tr class="memdesc:a07ce495af732565f038b43159ebf3a51"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove all contacts between fromNode and toNode from the contacts graph.  <a href="contacts_8c.html#a07ce495af732565f038b43159ebf3a51">More...</a><br /></td></tr>
-<tr class="separator:a07ce495af732565f038b43159ebf3a51"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5884d55fe9a8152888d76901f219e08e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a5884d55fe9a8152888d76901f219e08e">create_contact</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, time_t toTime, long unsigned int xmitRate, float confidence, <a class="el" href="contacts_8h.html#adda549bc4be76c304b79e10ab5829416">CtType</a> type)</td></tr>
+<tr class="memdesc:a5884d55fe9a8152888d76901f219e08e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate memory for a new contact.  <a href="contacts_8c.html#a5884d55fe9a8152888d76901f219e08e">More...</a><br /></td></tr>
+<tr class="separator:a5884d55fe9a8152888d76901f219e08e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac8b77131b75b07acfa67d128bf22ec5b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ac8b77131b75b07acfa67d128bf22ec5b">add_contact_to_graph</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[])</td></tr>
+<tr class="memdesc:ac8b77131b75b07acfa67d128bf22ec5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate memory for a contact, set the fields of the contacts to the passed arguments and add the contact to the contacts graph.  <a href="contacts_8c.html#ac8b77131b75b07acfa67d128bf22ec5b">More...</a><br /></td></tr>
+<tr class="separator:ac8b77131b75b07acfa67d128bf22ec5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2bfc21591148498fe258a2531d559a14"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a2bfc21591148498fe258a2531d559a14">removeAllContacts</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode)</td></tr>
+<tr class="memdesc:a2bfc21591148498fe258a2531d559a14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove all contacts between fromNode and toNode from the contacts graph.  <a href="contacts_8c.html#a2bfc21591148498fe258a2531d559a14">More...</a><br /></td></tr>
+<tr class="separator:a2bfc21591148498fe258a2531d559a14"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a441efd0ede98023f35eea260958e5c81"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a441efd0ede98023f35eea260958e5c81">remove_contact_elt_from_graph</a> (<a class="el" href="struct_contact.html">Contact</a> *elt)</td></tr>
 <tr class="memdesc:a441efd0ede98023f35eea260958e5c81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove the contact that is equal to elt, compared with the compare_contacts function.  <a href="contacts_8c.html#a441efd0ede98023f35eea260958e5c81">More...</a><br /></td></tr>
 <tr class="separator:a441efd0ede98023f35eea260958e5c81"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4b01ca4fd5004518392e230ec96b7560"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a4b01ca4fd5004518392e230ec96b7560">remove_contact_from_graph</a> (time_t *fromTime, unsigned long long fromNode, unsigned long long toNode)</td></tr>
-<tr class="memdesc:a4b01ca4fd5004518392e230ec96b7560"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove the contact that has the same {fromNode, toNode, *fromTime} fields.  <a href="contacts_8c.html#a4b01ca4fd5004518392e230ec96b7560">More...</a><br /></td></tr>
-<tr class="separator:a4b01ca4fd5004518392e230ec96b7560"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac76dce57732dbac4616d49b67c57233f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ac76dce57732dbac4616d49b67c57233f">get_contact</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, <a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
-<tr class="memdesc:ac76dce57732dbac4616d49b67c57233f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the contact that matches with the {fromNode, toNode, fromTime}.  <a href="contacts_8c.html#ac76dce57732dbac4616d49b67c57233f">More...</a><br /></td></tr>
-<tr class="separator:ac76dce57732dbac4616d49b67c57233f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ba2f15826df74667e6ec5e619994cd1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a7ba2f15826df74667e6ec5e619994cd1">remove_contact_from_graph</a> (unsigned long regionNbr, time_t *fromTime, unsigned long long fromNode, unsigned long long toNode)</td></tr>
+<tr class="memdesc:a7ba2f15826df74667e6ec5e619994cd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove the contact that has the same {fromNode, toNode, *fromTime} fields.  <a href="contacts_8c.html#a7ba2f15826df74667e6ec5e619994cd1">More...</a><br /></td></tr>
+<tr class="separator:a7ba2f15826df74667e6ec5e619994cd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5f34c988a136cdb5d55bd09fd3cb6b78"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a5f34c988a136cdb5d55bd09fd3cb6b78">get_contact</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, <a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
+<tr class="memdesc:a5f34c988a136cdb5d55bd09fd3cb6b78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the contact that matches with the {fromNode, toNode, fromTime}.  <a href="contacts_8c.html#a5f34c988a136cdb5d55bd09fd3cb6b78">More...</a><br /></td></tr>
+<tr class="separator:a5f34c988a136cdb5d55bd09fd3cb6b78"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae93ade997eca8f1718d8dd85bdc353df"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ae93ade997eca8f1718d8dd85bdc353df">get_first_contact</a> (<a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
 <tr class="memdesc:ae93ade997eca8f1718d8dd85bdc353df"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the first contact of the contacts graph.  <a href="contacts_8c.html#ae93ade997eca8f1718d8dd85bdc353df">More...</a><br /></td></tr>
 <tr class="separator:ae93ade997eca8f1718d8dd85bdc353df"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4a250c0f8312796945714b5b4d7cc947"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a4a250c0f8312796945714b5b4d7cc947">get_first_contact_from_node</a> (unsigned long long fromNode, <a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
-<tr class="memdesc:a4a250c0f8312796945714b5b4d7cc947"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the first contact of the graph that has contact-&gt;fromNode == fromNode.  <a href="contacts_8c.html#a4a250c0f8312796945714b5b4d7cc947">More...</a><br /></td></tr>
-<tr class="separator:a4a250c0f8312796945714b5b4d7cc947"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a369cae6ef8d814ca98729f89c4e20eff"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a369cae6ef8d814ca98729f89c4e20eff">get_first_contact_from_node_to_node</a> (unsigned long long fromNode, unsigned long long toNode, <a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
-<tr class="memdesc:a369cae6ef8d814ca98729f89c4e20eff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the first contact of the graph that has (contact-&gt;fromNode == fromNode) &amp;&amp; (contact-&gt;toNode == toNode)  <a href="contacts_8c.html#a369cae6ef8d814ca98729f89c4e20eff">More...</a><br /></td></tr>
-<tr class="separator:a369cae6ef8d814ca98729f89c4e20eff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6dbbe19cea83e6e6c02dd559b78fe78d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a6dbbe19cea83e6e6c02dd559b78fe78d">get_first_contact_from_node</a> (unsigned long regionNbr, unsigned long long fromNode, <a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
+<tr class="memdesc:a6dbbe19cea83e6e6c02dd559b78fe78d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the first contact of the graph that has contact-&gt;fromNode == fromNode.  <a href="contacts_8c.html#a6dbbe19cea83e6e6c02dd559b78fe78d">More...</a><br /></td></tr>
+<tr class="separator:a6dbbe19cea83e6e6c02dd559b78fe78d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad055bab4dcac6f38ae042a21e6b6f26d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#ad055bab4dcac6f38ae042a21e6b6f26d">get_first_contact_from_node_to_node</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, <a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
+<tr class="memdesc:ad055bab4dcac6f38ae042a21e6b6f26d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the first contact of the graph that has (contact-&gt;fromNode == fromNode) &amp;&amp; (contact-&gt;toNode == toNode)  <a href="contacts_8c.html#ad055bab4dcac6f38ae042a21e6b6f26d">More...</a><br /></td></tr>
+<tr class="separator:ad055bab4dcac6f38ae042a21e6b6f26d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa13e95b3e8a4747295ce128bb0ae52b7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#aa13e95b3e8a4747295ce128bb0ae52b7">get_next_contact</a> (<a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
 <tr class="memdesc:aa13e95b3e8a4747295ce128bb0ae52b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the next contact referring to the current contact pointed by the argument "node".  <a href="contacts_8c.html#aa13e95b3e8a4747295ce128bb0ae52b7">More...</a><br /></td></tr>
 <tr class="separator:aa13e95b3e8a4747295ce128bb0ae52b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6b908d74164cb4d548b3883411e72b6e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="struct_contact.html">Contact</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a6b908d74164cb4d548b3883411e72b6e">get_prev_contact</a> (<a class="el" href="rbt__type_8h.html#a3d7e7a436ed347e089ac9e09a5d5fe34">RbtNode</a> **<a class="el" href="structnode.html">node</a>)</td></tr>
 <tr class="memdesc:a6b908d74164cb4d548b3883411e72b6e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the previous contact referring to the current contact pointed by the argument "node".  <a href="contacts_8c.html#a6b908d74164cb4d548b3883411e72b6e">More...</a><br /></td></tr>
 <tr class="separator:a6b908d74164cb4d548b3883411e72b6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5d3496cd4bc4298f6f5bfd50da02a445"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a5d3496cd4bc4298f6f5bfd50da02a445">printContact</a> (FILE *file, void *data)</td></tr>
-<tr class="memdesc:a5d3496cd4bc4298f6f5bfd50da02a445"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the contact pointed by data to a buffer and at the end to_add points to that buffer.  <a href="contacts_8c.html#a5d3496cd4bc4298f6f5bfd50da02a445">More...</a><br /></td></tr>
-<tr class="separator:a5d3496cd4bc4298f6f5bfd50da02a445"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa749be594fa49bc80203064125c907cd"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#aa749be594fa49bc80203064125c907cd">printContactsGraph</a> (FILE *file, time_t currentTime)</td></tr>
-<tr class="memdesc:aa749be594fa49bc80203064125c907cd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the contacts graph.  <a href="contacts_8c.html#aa749be594fa49bc80203064125c907cd">More...</a><br /></td></tr>
-<tr class="separator:aa749be594fa49bc80203064125c907cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3594f3521d416c45551940ae0432c144"><td class="memItemLeft" align="right" valign="top"><a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contacts_8c.html#a3594f3521d416c45551940ae0432c144">get_known_regions</a> ()</td></tr>
+<tr class="separator:a3594f3521d416c45551940ae0432c144"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides the implementation of the functions to manage the contact graph. </p>
@@ -206,7 +202,7 @@ Functions</h2></td></tr>
           <td>(</td>
           <td class="paramtype">&#160;</td>
           <td class="paramname">a</td><td>)</td>
-          <td>&#160;&#160;&#160;(((a) &lt; 0) ? (-(a)) : (a))</td>
+          <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -244,8 +240,8 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a1fa56525e39fcc5175b17dd92f4127f9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1fa56525e39fcc5175b17dd92f4127f9">&#9670;&nbsp;</a></span>add_contact_to_graph()</h2>
+<a id="ac8b77131b75b07acfa67d128bf22ec5b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac8b77131b75b07acfa67d128bf22ec5b">&#9670;&nbsp;</a></span>add_contact_to_graph()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -253,6 +249,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int add_contact_to_graph </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -403,8 +405,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a93a15ec4630f1b56c8d9393520ac8ce6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a93a15ec4630f1b56c8d9393520ac8ce6">&#9670;&nbsp;</a></span>create_contact()</h2>
+<a id="a5884d55fe9a8152888d76901f219e08e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5884d55fe9a8152888d76901f219e08e">&#9670;&nbsp;</a></span>create_contact()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -412,6 +414,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="struct_contact.html">Contact</a>* create_contact </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -778,8 +786,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ac76dce57732dbac4616d49b67c57233f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac76dce57732dbac4616d49b67c57233f">&#9670;&nbsp;</a></span>get_contact()</h2>
+<a id="a5f34c988a136cdb5d55bd09fd3cb6b78"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5f34c988a136cdb5d55bd09fd3cb6b78">&#9670;&nbsp;</a></span>get_contact()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -787,6 +795,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="struct_contact.html">Contact</a>* get_contact </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -900,8 +914,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a474dcb5605134dc3c298a842e923504f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a474dcb5605134dc3c298a842e923504f">&#9670;&nbsp;</a></span>get_contact_with_time_tolerance()</h2>
+<a id="aca5ef362d35785bf32b59fefb2c0b31b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aca5ef362d35785bf32b59fefb2c0b31b">&#9670;&nbsp;</a></span>get_contact_with_time_tolerance()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -909,6 +923,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="struct_contact.html">Contact</a>* get_contact_with_time_tolerance </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -1016,8 +1036,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a4a250c0f8312796945714b5b4d7cc947"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4a250c0f8312796945714b5b4d7cc947">&#9670;&nbsp;</a></span>get_first_contact_from_node()</h2>
+<a id="a6dbbe19cea83e6e6c02dd559b78fe78d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6dbbe19cea83e6e6c02dd559b78fe78d">&#9670;&nbsp;</a></span>get_first_contact_from_node()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1025,6 +1045,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="struct_contact.html">Contact</a>* get_first_contact_from_node </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -1074,8 +1100,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a369cae6ef8d814ca98729f89c4e20eff"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a369cae6ef8d814ca98729f89c4e20eff">&#9670;&nbsp;</a></span>get_first_contact_from_node_to_node()</h2>
+<a id="ad055bab4dcac6f38ae042a21e6b6f26d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad055bab4dcac6f38ae042a21e6b6f26d">&#9670;&nbsp;</a></span>get_first_contact_from_node_to_node()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1083,6 +1109,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname"><a class="el" href="struct_contact.html">Contact</a>* get_first_contact_from_node_to_node </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -1136,6 +1168,23 @@ Functions</h2></td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">13/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
 </table>
+
+</div>
+</div>
+<a id="a3594f3521d416c45551940ae0432c144"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3594f3521d416c45551940ae0432c144">&#9670;&nbsp;</a></span>get_known_regions()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> get_known_regions </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -1236,128 +1285,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a5d3496cd4bc4298f6f5bfd50da02a445"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d3496cd4bc4298f6f5bfd50da02a445">&#9670;&nbsp;</a></span>printContact()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static int printContact </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>data</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Print the contact pointed by data to a buffer and at the end to_add points to that buffer. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>printContact</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>13/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">0</td><td>Success case </td></tr>
-    <tr><td class="paramname">-1</td><td>Some errors occurred</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">*file</td><td>The file where we want to print the contact's fields </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">*data</td><td>The pointer to the contact</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Notes:</dt><dd><ol type="1">
-<li>This function assumes that "to_add" is not NULL.</li>
-</ol>
-</dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">13/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="aa749be594fa49bc80203064125c907cd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa749be594fa49bc80203064125c907cd">&#9670;&nbsp;</a></span>printContactsGraph()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int printContactsGraph </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">time_t&#160;</td>
-          <td class="paramname"><em>currentTime</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Print the contacts graph. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>printContactsGraph</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>13/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">1</td><td>Success case, contacts graph printed </td></tr>
-    <tr><td class="paramname">0</td><td>The file is NULL</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want to print the contacts graph </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">currentTime</td><td>The time to print together at the contacts graph to keep trace of the modification's history</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">13/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="a32ddc80a31b0c468ddcf6e2670b80e7e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a32ddc80a31b0c468ddcf6e2670b80e7e">&#9670;&nbsp;</a></span>refill_mtv()</h2>
+<a id="ab760f1cb03cda7cdea559b2e34e67632"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab760f1cb03cda7cdea559b2e34e67632">&#9670;&nbsp;</a></span>refill_mtv()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1365,6 +1294,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int refill_mtv </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -1480,8 +1415,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a4b01ca4fd5004518392e230ec96b7560"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4b01ca4fd5004518392e230ec96b7560">&#9670;&nbsp;</a></span>remove_contact_from_graph()</h2>
+<a id="a7ba2f15826df74667e6ec5e619994cd1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7ba2f15826df74667e6ec5e619994cd1">&#9670;&nbsp;</a></span>remove_contact_from_graph()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1489,6 +1424,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">void remove_contact_from_graph </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">time_t *&#160;</td>
           <td class="paramname"><em>fromTime</em>, </td>
         </tr>
@@ -1538,8 +1479,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a07ce495af732565f038b43159ebf3a51"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a07ce495af732565f038b43159ebf3a51">&#9670;&nbsp;</a></span>removeAllContacts()</h2>
+<a id="a2bfc21591148498fe258a2531d559a14"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2bfc21591148498fe258a2531d559a14">&#9670;&nbsp;</a></span>removeAllContacts()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1550,6 +1491,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">static void removeAllContacts </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -1671,8 +1618,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ad1f031be496c9dbaf93d4c06181d9b07"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad1f031be496c9dbaf93d4c06181d9b07">&#9670;&nbsp;</a></span>revise_confidence()</h2>
+<a id="a2fa53cab00b443982304c1df6d1989d8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2fa53cab00b443982304c1df6d1989d8">&#9670;&nbsp;</a></span>revise_confidence()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1680,6 +1627,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int revise_confidence </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -1740,8 +1693,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a6677695cadebd5fac5cb86ed638dbbae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6677695cadebd5fac5cb86ed638dbbae">&#9670;&nbsp;</a></span>revise_contact()</h2>
+<a id="ae63c2fed915bd12087e71b402fcf10bc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae63c2fed915bd12087e71b402fcf10bc">&#9670;&nbsp;</a></span>revise_contact()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1749,6 +1702,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int revise_contact </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -1830,8 +1789,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a56230660fbe5772b149cdf65a0d9c5b8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a56230660fbe5772b149cdf65a0d9c5b8">&#9670;&nbsp;</a></span>revise_xmit_rate()</h2>
+<a id="ac73eed28891c7f26fba038a5742dda0e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac73eed28891c7f26fba038a5742dda0e">&#9670;&nbsp;</a></span>revise_xmit_rate()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1839,6 +1798,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int revise_xmit_rate </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>

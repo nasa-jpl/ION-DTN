@@ -45,7 +45,7 @@ typedef enum
 typedef struct
 {
 	unsigned long long source_node;
-	unsigned int creation_timestamp;
+	unsigned long long creation_timestamp;
 	unsigned int sequence_number;
 	unsigned int fragment_length;
 	unsigned int fragment_offset;
@@ -63,6 +63,10 @@ typedef struct
 	 * \details Previous hop.
 	 */
 	unsigned long long sender_node;
+	/**
+	 * \brief Region in which the destination resides.
+	 */
+	unsigned long regionNbr;
 	/**
 	 * \brief Ipn node number of the destination node for the bundle.
 	 */
@@ -162,7 +166,7 @@ extern int initialize_bundle(int backward_propagation, int critical, float dlvCo
  * \hideinitializer
  */
 #define print_log_bundle_id(source, timestamp, seq_number, fragm_length, fragm_offset) \
-	writeLog("Bundle ID { source: %llu, creation timestamp (DTN time): %u, sequence number: %u, fragm. length: %u, fragm. offset: %u }.", \
+	writeLog("Bundle ID { source: %llu, creation timestamp (msec): %llu, sequence number: %u, fragm. length: %u, fragm. offset: %u }.", \
 (source), (timestamp), (seq_number), (fragm_length), (fragm_offset))
 
 extern void print_bundle(FILE *file_call, CgrBundle *bundle, List excludedNodes,

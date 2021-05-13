@@ -317,11 +317,17 @@ int compare_contacts(void *first, void *second)
 	{
 		a = (Contact*) first;
 		b = (Contact*) second;
-		if (a->fromNode < b->fromNode)
+
+		if (a->regionNbr < b->regionNbr) {
+		    result = -1;
+		}
+		else if (a->regionNbr > b->regionNbr) {
+		    result = 1;
+		}
+		else if (a->fromNode < b->fromNode)
 		{
 			result = -1;
 		}
-
 		else if (a->fromNode > b->fromNode)
 		{
 			result = 1;
@@ -380,7 +386,7 @@ int compare_contacts(void *first, void *second)
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-int revise_confidence(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence)
+int revise_confidence(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence)
 {
 	int result = -2;
 	Contact *contact = NULL;
@@ -388,7 +394,7 @@ int revise_confidence(unsigned long long fromNode, unsigned long long toNode, ti
 	if (fromNode != 0 && toNode != 0 && fromTime >= 0 && newConfidence >= 0.0
 			&& newConfidence <= 1.0)
 	{
-		contact = get_contact(fromNode, toNode, fromTime, NULL);
+		contact = get_contact(regionNbr, fromNode, toNode, fromTime, NULL);
 		result = -1;
 		if(contact != NULL)
 		{
@@ -434,7 +440,7 @@ int revise_confidence(unsigned long long fromNode, unsigned long long toNode, ti
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-int revise_contact(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence, unsigned long int xmitRate, int copyMTV, double mtv[])
+int revise_contact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence, unsigned long int xmitRate, int copyMTV, double mtv[])
 {
 	int result = -2;
 	Contact *contact = NULL;
@@ -443,7 +449,7 @@ int revise_contact(unsigned long long fromNode, unsigned long long toNode, time_
 	if (fromNode != 0 && toNode != 0 && fromTime >= 0 && newConfidence >= 0.0
 			&& newConfidence <= 1.0)
 	{
-		contact = get_contact(fromNode, toNode, fromTime, NULL);
+		contact = get_contact(regionNbr, fromNode, toNode, fromTime, NULL);
 		result = -1;
 		if(contact != NULL)
 		{
@@ -508,7 +514,7 @@ int revise_contact(unsigned long long fromNode, unsigned long long toNode, time_
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-int revise_xmit_rate(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned long int xmitRate, int copyMTV, double mtv[])
+int revise_xmit_rate(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned long int xmitRate, int copyMTV, double mtv[])
 {
 	int result = -2;
 	Contact *contact = NULL;
@@ -516,7 +522,7 @@ int revise_xmit_rate(unsigned long long fromNode, unsigned long long toNode, tim
 
 	if (fromNode != 0 && toNode != 0 && fromTime >= 0)
 	{
-		contact = get_contact(fromNode, toNode, fromTime, NULL);
+		contact = get_contact(regionNbr, fromNode, toNode, fromTime, NULL);
 		result = -1;
 		if(contact != NULL)
 		{
@@ -578,7 +584,7 @@ int revise_xmit_rate(unsigned long long fromNode, unsigned long long toNode, tim
  *  -------- | --------------- |  -----------------------------------------------
  *  23/04/20 | L. Persampieri  |   Initial Implementation and documentation.
  *****************************************************************************/
-Contact * get_contact_with_time_tolerance(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance)
+Contact * get_contact_with_time_tolerance(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance)
 {
 	Contact *result = NULL;
 	Contact *current;
@@ -586,10 +592,10 @@ Contact * get_contact_with_time_tolerance(unsigned long long fromNode, unsigned 
 	int stop = 0;
 	time_t difference;
 
-	for(current = get_first_contact_from_node_to_node(fromNode, toNode, &node);
+	for(current = get_first_contact_from_node_to_node(regionNbr, fromNode, toNode, &node);
 			current != NULL && !stop; current = get_next_contact(&node))
 	{
-		if(current->fromNode == fromNode && current->toNode == toNode)
+		if(current->regionNbr == regionNbr && current->fromNode == fromNode && current->toNode == toNode)
 		{
 			// difference in absolute value
 			difference = absolute(current->fromTime - fromTime);
@@ -648,7 +654,7 @@ Contact * get_contact_with_time_tolerance(unsigned long long fromNode, unsigned 
  *  -------- | --------------- |  -----------------------------------------------
  *  11/12/20 | L. Persampieri  |   Initial Implementation and documentation.
  *****************************************************************************/
-int refill_mtv(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance, unsigned int refillSize, int priority)
+int refill_mtv(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance, unsigned int refillSize, int priority)
 {
 	Contact *contact;
 	int result = 0, i;
@@ -664,7 +670,7 @@ int refill_mtv(unsigned long long fromNode, unsigned long long toNode, time_t fr
 	}
 	else
 	{
-		contact = get_contact_with_time_tolerance(fromNode, toNode, fromTime, tolerance);
+		contact = get_contact_with_time_tolerance(regionNbr, fromNode, toNode, fromTime, tolerance);
 
 		if (contact == NULL)
 		{
@@ -708,12 +714,13 @@ int refill_mtv(unsigned long long fromNode, unsigned long long toNode, time_t fr
 static void erase_contact(Contact *contact)
 {
 	contact->citations = NULL;
-	contact->confidence = 0.0;
+	contact->confidence = 0.0f;
+	contact->regionNbr = 0;
 	contact->fromNode = 0;
 	contact->toNode = 0;
 	contact->fromTime = 0;
 	contact->toTime = 0;
-	contact->type = Registration;
+	contact->type = TypeRegistration;
 	contact->xmitRate = 0;
 	contact->mtv[0] = 0.0;
 	contact->mtv[1] = 0.0;
@@ -979,7 +986,7 @@ void free_contact(void *data)
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-Contact* create_contact(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
+Contact* create_contact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
 		time_t toTime, long unsigned int xmitRate, float confidence, CtType type)
 {
 	Contact *contact = NULL;
@@ -989,6 +996,7 @@ Contact* create_contact(unsigned long long fromNode, unsigned long long toNode, 
 
 	if (contact != NULL)
 	{
+	    contact->regionNbr = regionNbr;
 		contact->fromNode = fromNode;
 		contact->toNode = toNode;
 		contact->fromTime = fromTime;
@@ -1066,7 +1074,7 @@ Contact* create_contact(unsigned long long fromNode, unsigned long long toNode, 
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-int add_contact_to_graph(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
+int add_contact_to_graph(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
 		time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[])
 {
 	int result = -1;
@@ -1085,48 +1093,14 @@ int add_contact_to_graph(unsigned long long fromNode, unsigned long long toNode,
 	{
 		sap = get_contact_graph_sap(NULL);
 
-		if (fromTime == (time_t) -1) /*Type : Registration	*/
-		{
-			if (fromNode == toNode)
-			{
-				fromTime = MAX_POSIX_TIME;
-				toTime = MAX_POSIX_TIME;
-				xmitRate = 0;
-				confidence = 1.0;
-				contactType = Registration;
-
-				contact = get_contact(fromNode, toNode, fromTime, NULL);
-
-				if (contact == NULL)
-				{
-					contact = create_contact(fromNode, toNode, fromTime, toTime, xmitRate,
-							confidence, contactType);
-					elt = rbt_insert(sap->contacts, contact);
-
-					result = (elt != NULL ? 1 : -2);
-
-					if (result == -2)
-					{
-						free_contact(contact);
-					}
-				}
-			}
-			else
-			{
-				result = 0;
-			}
-
-		}
-		else
-		{
-			result = -1;
+		result = -1;
 			if (fromTime >= 0) /*Type: Scheduled	*/
 			{
-				temp = get_first_contact_from_node_to_node(fromNode, toNode, &elt);
+				temp = get_first_contact_from_node_to_node(regionNbr, fromNode, toNode, &elt);
 				overlapped = 0;
 				while (temp != NULL)
 				{
-					if (temp->fromNode == fromNode && temp->toNode == toNode)
+					if (temp->regionNbr == regionNbr && temp->fromNode == fromNode && temp->toNode == toNode)
 					{
 						if(fromTime == temp->fromTime && toTime == temp->toTime)
 						{
@@ -1192,8 +1166,8 @@ int add_contact_to_graph(unsigned long long fromNode, unsigned long long toNode,
 
 				if (overlapped == 0)
 				{
-					contactType = Scheduled;
-					contact = create_contact(fromNode, toNode, fromTime, toTime, xmitRate, confidence,
+					contactType = TypeScheduled;
+					contact = create_contact(regionNbr, fromNode, toNode, fromTime, toTime, xmitRate, confidence,
 							contactType);
 
 					if(copyMTV != 0)
@@ -1215,8 +1189,7 @@ int add_contact_to_graph(unsigned long long fromNode, unsigned long long toNode,
 						sap->timeContactToRemove = toTime;
 					}
 				}
-			} //end if contact scheduled
-		}
+			}
 	}
 
 	return result;
@@ -1247,13 +1220,13 @@ int add_contact_to_graph(unsigned long long fromNode, unsigned long long toNode,
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-static void removeAllContacts(unsigned long long fromNode, unsigned long long toNode)
+static void removeAllContacts(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode)
 {
 	Contact *current;
 	RbtNode *node;
 	ContactGraphSAP *sap = get_contact_graph_sap(NULL);
 
-	current = get_first_contact_from_node_to_node(fromNode, toNode, &node);
+	current = get_first_contact_from_node_to_node(regionNbr, fromNode, toNode, &node);
 
 	while (current != NULL)
 	{
@@ -1270,7 +1243,7 @@ static void removeAllContacts(unsigned long long fromNode, unsigned long long to
 
 		if (current != NULL)
 		{
-			if (current->fromNode != fromNode || current->toNode != toNode)
+			if (current->regionNbr != regionNbr || current->fromNode != fromNode || current->toNode != toNode)
 			{
 				current = NULL;
 			}
@@ -1349,7 +1322,7 @@ void remove_contact_elt_from_graph(Contact *elt)
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-void remove_contact_from_graph(time_t *fromTime, unsigned long long fromNode,
+void remove_contact_from_graph(unsigned long regionNbr, time_t *fromTime, unsigned long long fromNode,
 		unsigned long long toNode)
 {
 	Contact arg;
@@ -1372,6 +1345,7 @@ void remove_contact_from_graph(time_t *fromTime, unsigned long long fromNode,
 
 		if (ok)
 		{
+		    arg.regionNbr = regionNbr;
 			arg.fromNode = fromNode;
 			arg.toNode = toNode;
 			rbt_delete(sap->contacts, &arg);
@@ -1379,7 +1353,7 @@ void remove_contact_from_graph(time_t *fromTime, unsigned long long fromNode,
 	}
 	else
 	{
-		removeAllContacts(fromNode, toNode);
+		removeAllContacts(regionNbr, fromNode, toNode);
 	}
 
 	return;
@@ -1422,7 +1396,7 @@ void remove_contact_from_graph(time_t *fromTime, unsigned long long fromNode,
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-Contact* get_contact(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
+Contact* get_contact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
 		RbtNode **node)
 {
 	Contact arg, *result;
@@ -1433,6 +1407,7 @@ Contact* get_contact(unsigned long long fromNode, unsigned long long toNode, tim
 	if (fromNode != 0 && toNode != 0 && fromTime >= 0)
 	{
 		erase_contact(&arg);
+		arg.regionNbr = regionNbr;
 		arg.fromNode = fromNode;
 		arg.toNode = toNode;
 		arg.fromTime = fromTime;
@@ -1532,7 +1507,7 @@ Contact* get_first_contact(RbtNode **node)
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-Contact* get_first_contact_from_node(unsigned long long fromNode, RbtNode **node)
+Contact* get_first_contact_from_node(unsigned long regionNbr, unsigned long long fromNode, RbtNode **node)
 {
 	Contact arg;
 	Contact *result = NULL;
@@ -1540,6 +1515,7 @@ Contact* get_first_contact_from_node(unsigned long long fromNode, RbtNode **node
 	ContactGraphSAP *sap = get_contact_graph_sap(NULL);
 
 	erase_contact(&arg);
+	arg.regionNbr = regionNbr;
 	arg.fromNode = fromNode;
 	arg.fromTime = -1;
 	rbt_search(sap->contacts, &arg, &currentContact);
@@ -1548,7 +1524,7 @@ Contact* get_first_contact_from_node(unsigned long long fromNode, RbtNode **node
 	{
 		result = (Contact*) currentContact->data;
 
-		if (result->fromNode != fromNode)
+		if (result->regionNbr != regionNbr || result->fromNode != fromNode)
 		{
 			result = NULL;
 		}
@@ -1593,7 +1569,7 @@ Contact* get_first_contact_from_node(unsigned long long fromNode, RbtNode **node
  *  -------- | --------------- | -----------------------------------------------
  *  13/01/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-Contact* get_first_contact_from_node_to_node(unsigned long long fromNode, unsigned long long toNode,
+Contact* get_first_contact_from_node_to_node(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode,
 		RbtNode **node)
 {
 	Contact arg;
@@ -1602,6 +1578,7 @@ Contact* get_first_contact_from_node_to_node(unsigned long long fromNode, unsign
 	ContactGraphSAP *sap = get_contact_graph_sap(NULL);
 
 	erase_contact(&arg);
+	arg.regionNbr = regionNbr;
 	arg.fromNode = fromNode;
 	arg.toNode = toNode;
 	arg.fromTime = -1;
@@ -1611,7 +1588,7 @@ Contact* get_first_contact_from_node_to_node(unsigned long long fromNode, unsign
 	{
 		result = (Contact*) currentContact->data;
 
-		if (result->fromNode != fromNode || result->toNode != toNode)
+		if (result->regionNbr != regionNbr || result->fromNode != fromNode || result->toNode != toNode)
 		{
 			result = NULL;
 		}
@@ -1730,6 +1707,45 @@ Contact* get_prev_contact(RbtNode **node)
 	return result;
 }
 
+List get_known_regions() {
+
+    RbtNode *node;
+
+    Contact * contact = get_first_contact(&node);
+    Contact * prevContact = contact;
+
+    List result = list_create(NULL, NULL, NULL, MDEPOSIT_wrapper);
+
+    if (result == NULL) {
+        return NULL;
+    }
+
+    while (contact != NULL) {
+
+        if ( (prevContact->regionNbr != contact->regionNbr)
+                || (result->length == 0) ) {
+
+            unsigned long *region = malloc(sizeof(unsigned long));
+            if (region == NULL) {
+                free_list(result);
+                return NULL;
+            }
+
+            *region = contact->regionNbr;
+            if ( list_insert_last(result, region) == NULL) {
+                free_list(result);
+                return NULL;
+            }
+        }
+
+        prevContact = contact;
+        contact = get_next_contact(&node);
+    }
+
+    return result;
+
+}
+
 #if (LOG == 1)
 
 /******************************************************************************
@@ -1769,7 +1785,7 @@ static int printContact(FILE *file, void *data)
 	{
 		result = 0;
 		contact = (Contact*) data;
-		fprintf(file, "%-15llu %-15llu %-15ld %-15ld %-15lu %-15.2f ", contact->fromNode,
+		fprintf(file, "%-15lu %-15llu %-15llu %-15ld %-15ld %-15lu %-15.2f ", contact->regionNbr, contact->fromNode,
 				contact->toNode, (long int) contact->fromTime, (long int) contact->toTime,
 				contact->xmitRate, contact->confidence);
 		if (contact->citations != NULL)
@@ -1825,20 +1841,20 @@ int printContactsGraph(FILE *file, time_t currentTime)
 		result = 1;
 
 		fprintf(file,
-				"\n--------------------------------------------- CONTACTS GRAPH ---------------------------------------------\n");
-		fprintf(file, "Time: %ld\n%-15s %-15s %-15s %-15s %-15s %-15s %s\n", (long int) currentTime,
-				"FromNode", "ToNode", "FromTime", "ToTime", "XmitRate", "Confidence", "Citations");
+				"\n----------------------------------------------------- CONTACTS GRAPH -----------------------------------------------------\n");
+		fprintf(file, "Time: %ld\n%-15s %-15s %-15s %-15s %-15s %-15s %-15s %s\n", (long int) currentTime,
+				"Region", "FromNode", "ToNode", "FromTime", "ToTime", "XmitRate", "Confidence", "Citations");
 		result = printTreeInOrder(sap->contacts, file, printContact);
 
 		if (result == 1)
 		{
 			fprintf(file,
-					"\n----------------------------------------------------------------------------------------------------------\n");
+					"\n--------------------------------------------------------------------------------------------------------------------------\n");
 		}
 		else
 		{
 			fprintf(file,
-					"\n------------------------------------------- CONTACTS GRAPH ERROR --------------------------------------------\n");
+					"\n-------------------------------------------------- CONTACTS GRAPH ERROR --------------------------------------------------\n");
 		}
 	}
 	else

@@ -11,6 +11,27 @@ Makefile.am:       ./
 
 The Unibo-CGR's root directory must be inserted under ./bpv6/cgr/ (next to libcgr.c).
 
-After having copyed the auxiliary files and the unibo-CGR directory, you can compile (and install) with this sequence of commands: 
-autoreconf -fi && ./configure --enable-bpv6 && make && make install
+Add the following lines to ION's configure.ac files (under ##Processing user flags section):
+#
+# allow the user running configure to build Unibo-CGR
+#
+AC_ARG_ENABLE(
+    unibo-cgr,
+    [AC_HELP_STRING([--enable-unibo-cgr], [force build of Unibo-CGR])],
+    [UNIBO_CGR=true
+    AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])],
+    [])
+AM_CONDITIONAL(UNIBO_CGR, test x$UNIBO_CGR = xtrue)'
+
+
+After having copied the auxiliary files and the Unibo-CGR directory, you can compile (and install) with this sequence of commands: 
+autoreconf -fi && ./configure [see notes below] && make && make install
 Note that "autoreconf -fi" is necessary only the first time.
+
+Note on configure:
+Launch the configure script with the following sintax (from ION's root directory):  
+Only Unibo-CGR: ./configure --enable-unibo-cgr
+Unibo-CGR + RGR Ext. Block: ./configure --enable-unibo-cgr CPPFLAGS='-DRGREB=1'
+Unibo-CGR + CGRR Ext. Block: ./configure --enable-unibo-cgr CPPFLAGS='-DCGRREB=1'
+Unibo-CGR + RGR and CGRR Ext. Block: ./configure --enable-unibo-cgr CPPFLAGS='-DRGREB=1 -DCGRREB=1'
+Unibo-CGR disabled: ./configure

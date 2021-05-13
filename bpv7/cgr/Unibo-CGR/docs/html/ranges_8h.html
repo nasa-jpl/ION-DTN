@@ -89,6 +89,8 @@ Macros</h2></td></tr>
 <tr class="memitem:ae838f663b6185c56baaf1cde50490e9d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ranges_8h.html#ae838f663b6185c56baaf1cde50490e9d">REVISABLE_RANGE</a>&#160;&#160;&#160;1</td></tr>
 <tr class="memdesc:ae838f663b6185c56baaf1cde50490e9d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set to 1 if you want to permits that range's owlt can be changed. Set to 0 otherwise.  <a href="ranges_8h.html#ae838f663b6185c56baaf1cde50490e9d">More...</a><br /></td></tr>
 <tr class="separator:ae838f663b6185c56baaf1cde50490e9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4455acafd5ac40d90a2641f47d54d363"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ranges_8h.html#a4455acafd5ac40d90a2641f47d54d363">printRangesGraph</a>(file,  current_time)&#160;&#160;&#160;do {  } while(0)</td></tr>
+<tr class="separator:a4455acafd5ac40d90a2641f47d54d363"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -142,9 +144,6 @@ Functions</h2></td></tr>
 <tr class="memitem:a3d40d005913a79521d504d732a8c7211"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ranges_8h.html#a3d40d005913a79521d504d732a8c7211">revise_owlt</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int owlt)</td></tr>
 <tr class="memdesc:a3d40d005913a79521d504d732a8c7211"><td class="mdescLeft">&#160;</td><td class="mdescRight">Revise the range's OWLT.  <a href="ranges_8h.html#a3d40d005913a79521d504d732a8c7211">More...</a><br /></td></tr>
 <tr class="separator:a3d40d005913a79521d504d732a8c7211"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5fa652e7c72b39adacfcc71739aa810"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ranges_8h.html#ac5fa652e7c72b39adacfcc71739aa810">printRangesGraph</a> (FILE *file, time_t currentTime)</td></tr>
-<tr class="memdesc:ac5fa652e7c72b39adacfcc71739aa810"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the ranges graph.  <a href="ranges_8h.html#ac5fa652e7c72b39adacfcc71739aa810">More...</a><br /></td></tr>
-<tr class="separator:ac5fa652e7c72b39adacfcc71739aa810"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides the definition of the <a class="el" href="struct_range.html">Range</a> type, with all the declarations of the functions to manage the range tree. </p>
@@ -159,6 +158,34 @@ Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Lorenzo Persampieri, <a href="#" onclick="location.href='mai'+'lto:'+'lor'+'en'+'zo.'+'pe'+'rsa'+'mp'+'ier'+'i@'+'stu'+'di'+'o.u'+'ni'+'bo.'+'it'; return false;">loren<span style="display: none;">.nosp@m.</span>zo.p<span style="display: none;">.nosp@m.</span>ersam<span style="display: none;">.nosp@m.</span>pier<span style="display: none;">.nosp@m.</span>i@stu<span style="display: none;">.nosp@m.</span>dio.<span style="display: none;">.nosp@m.</span>unibo<span style="display: none;">.nosp@m.</span>.it</a></dd></dl>
 <dl class="section user"><dt>Supervisor</dt><dd>Carlo Caini, <a href="#" onclick="location.href='mai'+'lto:'+'car'+'lo'+'.ca'+'in'+'i@u'+'ni'+'bo.'+'it'; return false;">carlo<span style="display: none;">.nosp@m.</span>.cai<span style="display: none;">.nosp@m.</span>ni@un<span style="display: none;">.nosp@m.</span>ibo.<span style="display: none;">.nosp@m.</span>it</a> </dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a4455acafd5ac40d90a2641f47d54d363"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4455acafd5ac40d90a2641f47d54d363">&#9670;&nbsp;</a></span>printRangesGraph</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define printRangesGraph</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">file, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">current_time&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td>&#160;&#160;&#160;do {  } while(0)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ae838f663b6185c56baaf1cde50490e9d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae838f663b6185c56baaf1cde50490e9d">&#9670;&nbsp;</a></span>REVISABLE_RANGE</h2>
 
@@ -818,60 +845,6 @@ Functions</h2></td></tr>
 <li>You must check that the return value of this function is not NULL.</li>
 </ol>
 </dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">19/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="ac5fa652e7c72b39adacfcc71739aa810"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5fa652e7c72b39adacfcc71739aa810">&#9670;&nbsp;</a></span>printRangesGraph()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int printRangesGraph </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">time_t&#160;</td>
-          <td class="paramname"><em>currentTime</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Print the ranges graph. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>printRangesGraph</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>19/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">1</td><td>Success case, ranges graph printed </td></tr>
-    <tr><td class="paramname">0</td><td>The file is NULL</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want to print the ranges graph </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">currentTime</td><td>The time to print together at the ranges graph to keep trace of the modification's history</td></tr>
-  </table>
-  </dd>
-</dl>
 <dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
 <table class="markdownTable">
 <tr class="markdownTableHead">

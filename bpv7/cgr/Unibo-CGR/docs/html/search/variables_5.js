@@ -1,15 +1,8 @@
 var searchData=
 [
-  ['failedneighbors_1275',['failedNeighbors',['../struct_cgr_bundle.html#ad8f31cc19602db8a27a71dfb307133d0',1,'CgrBundle']]],
-  ['file_5fcall_1276',['file_call',['../struct_unibo_cgr_current_call_s_a_p.html#ac06a27dbe34ae53d9fd4867d5db12379',1,'UniboCgrCurrentCallSAP']]],
-  ['file_5flog_1277',['file_log',['../struct_log_s_a_p.html#a354b1aef5d194c5803231d97e4fdb20f',1,'LogSAP']]],
-  ['first_1278',['first',['../structlist.html#a575ad184c1bd3b6026a0705e3d4bccc3',1,'list']]],
-  ['firstcontact_1279',['firstContact',['../struct_dijkstra_queue.html#a40c7d9e07104d8217636fedefad062bc',1,'DijkstraQueue']]],
-  ['flags_1280',['flags',['../struct_cgr_bundle.html#a78ac89a4a0f57ffa7c2ecf31749aa390',1,'CgrBundle::flags()'],['../struct_rtg_object.html#a78ac89a4a0f57ffa7c2ecf31749aa390',1,'RtgObject::flags()'],['../struct_neighbor.html#a78ac89a4a0f57ffa7c2ecf31749aa390',1,'Neighbor::flags()']]],
-  ['fragment_5flength_1281',['fragment_length',['../struct_cgr_bundle_i_d.html#a5afba2487b8ca90b5cda2809ceaf48dc',1,'CgrBundleID']]],
-  ['fragment_5foffset_1282',['fragment_offset',['../struct_cgr_bundle_i_d.html#a8bd400837ecb5cf0d15573fe349c5fef',1,'CgrBundleID']]],
-  ['fragmlength_1283',['fragmLength',['../struct_c_g_r_r_object.html#a803be459d0fefbecfee46bb84d42a8a6',1,'CGRRObject']]],
-  ['fragmoffset_1284',['fragmOffset',['../struct_c_g_r_r_object.html#a518da5c7bd9c430626729ff2a63f2a39',1,'CGRRObject']]],
-  ['fromnode_1285',['fromNode',['../struct_contact.html#ae63dc1a985afaabeb0fecfd4f3f43f91',1,'Contact::fromNode()'],['../struct_range.html#ae63dc1a985afaabeb0fecfd4f3f43f91',1,'Range::fromNode()'],['../struct_c_g_r_r_hop.html#aa25cf8e601426db8b0238d0ef2198bb1',1,'CGRRHop::fromNode()'],['../struct_c_g_r_r_hop.html#aa25cf8e601426db8b0238d0ef2198bb1',1,'CGRRHop::fromNode()']]],
-  ['fromtime_1286',['fromTime',['../struct_contact.html#a5df65b3fd5a5e10c02b99607833d46ab',1,'Contact::fromTime()'],['../struct_range.html#a5df65b3fd5a5e10c02b99607833d46ab',1,'Range::fromTime()'],['../structcgr_route.html#a5df65b3fd5a5e10c02b99607833d46ab',1,'cgrRoute::fromTime()'],['../struct_c_g_r_r_hop.html#a5df65b3fd5a5e10c02b99607833d46ab',1,'CGRRHop::fromTime()']]]
+  ['georoute_1161',['geoRoute',['../struct_cgr_bundle.html#a45e183c931ace4be3e23ccdaacf92135',1,'CgrBundle']]],
+  ['gigs_1162',['gigs',['../struct_cgr_scalar.html#a7730f15a249a20ff102b2b33818b0b8f',1,'CgrScalar']]],
+  ['graphcleaned_1163',['graphCleaned',['../struct_phase_one_s_a_p.html#a8a7d63033df89de9f6fd71b06034688d',1,'PhaseOneSAP']]],
+  ['graphroot_1164',['graphRoot',['../struct_phase_one_s_a_p.html#ac7afeebab644f9e757b99d5caf437be3',1,'PhaseOneSAP']]],
+  ['graphrootwork_1165',['graphRootWork',['../struct_phase_one_s_a_p.html#a37e9b1dc6e510aafdf6abc5097e902f6',1,'PhaseOneSAP']]]
 ];

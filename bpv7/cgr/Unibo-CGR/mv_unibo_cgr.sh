@@ -2,7 +2,7 @@
 
 ## mv_unibo_cgr.sh
 #
-#  Utility script to add Unibo-CGR into ION/DTN2.
+#  Utility script to add Unibo-CGR into ION/DTNME.
 #  Launch this script without arguments to get help.
 #
 #
@@ -31,8 +31,8 @@
 set -euo pipefail
 
 function help_fun() {
-	echo "Usage: $0 <ion | dtn2> </path/to/Unibo-CGR/> </path/to/ION/ | /path/to/DTN2/>" 1>&2
-	echo "This script includes Unibo-CGR in either ION or DTN2." 1>&2
+	echo "Usage: $0 <ion | dtnme> </path/to/Unibo-CGR/> </path/to/ION/ | /path/to/DTNME/>" 1>&2
+	echo "This script includes Unibo-CGR in either ION or DTNME." 1>&2
 	echo "Launch this script with the three parameters explicited in the Usage string." 1>&2
 }
 
@@ -46,7 +46,7 @@ BP_IMPL_NAME="$1"
 UNIBO_CGR_DIR="$2"
 BP_IMPL_DIR="$3"
 
-if test "$BP_IMPL_NAME" != "ion" -a "$BP_IMPL_NAME" != "dtn2"
+if test "$BP_IMPL_NAME" != "ion" -a "$BP_IMPL_NAME" != "dtnme"
 then
 	help_fun
 	exit 1
@@ -73,67 +73,6 @@ function update_config_file() {
 
 #   change macro values inside #ifndef/#endif block (with regex)
 	sed -i '/^[[:space:]]*#ifndef[[:space:]]\+'"$MACRO"'[[:space:]]*$/,/^[[:space:]]*#endif[[:space:]]*$/s/^[[:space:]]*#define[[:space:]]\+'"$MACRO"'[[:space:]]\+.*$/#define '"$MACRO $VALUE"'/' "$PATH_TO_CONFIG_FILE"
-}
-
-function update_configure_ac_ion() {
-	CONF_AC="$1/configure.ac"
-	
-	if ! test -f "$CONF_AC" ; then # check regular file
-		return 1
-	elif ! test -r "$CONF_AC" ; then # check read permission
-		return 1
-	fi
-
-# first, check if the configure.ac file was previously modified by this script
-
-	if egrep -q -i 'Unibo[-_]?CGR' "$CONF_AC" ; then
-		# Unibo-CGR match, case insensitive, with or without dash or underscore
-		# OK, nothing to do
-		return 0
-	fi
-	
-	if ! test -w "$CONF_AC" ; then # check write permission
-		return 1
-	fi
-	
-# store the following lines into "TO_ADD" variable...
-TO_ADD='
-#
-# allow the user running configure to build Unibo-CGR
-#
-AC_ARG_ENABLE(
-    unibo-cgr,
-    [AC_HELP_STRING([--enable-unibo-cgr], [force build of Unibo-CGR])],
-    [UNIBO_CGR=true
-    AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])],
-    [])
-AM_CONDITIONAL(UNIBO_CGR, test x$UNIBO_CGR = xtrue)'
-	
-	tmp_file="$(mktemp)" #create aux file
-
-	if ! test -f "$tmp_file" ; then # check regular file
-		return 1
-	elif ! test -w "$tmp_file" ; then # check write permission
-		return 1
-	elif ! test -r "$tmp_file" ; then # check read permission
-		return 1
-	fi
-	
-	DONE="false"
-
-	while read line ; do
-		echo "$line" >> "$tmp_file"
-		if test "$DONE" != "true" && echo "$line" | grep -q '##Process user flags' ; then
-			# add here Unibo-CGR configure option
-			echo "$TO_ADD" >> "$tmp_file"
-			echo "" >> "$tmp_file"
-			DONE="true"
-		fi
-	done < "$CONF_AC"
-	
-	cat "$tmp_file" > "$CONF_AC"
-	rm -f "$tmp_file"
-	
 }
 
 function mv_unibo_cgr_to_ion() {
@@ -163,7 +102,8 @@ function mv_unibo_cgr_to_ion() {
 	cp -pf "$AUX_BPV6/cgrfetch.c"     "$ION_BPV6/utils/"
 	cp -pf "$AUX_BPV6/ipnfw.c"        "$ION_BPV6/ipn/"
 	cp -pf "$AUX_BPV6/libcgr.c"       "$ION_BPV6/cgr/"
-	cp -pf "$AUX_BPV6/Makefile.am"    "$ION/"
+#	cp -pf "$AUX_BPV6/Makefile.am"    "$ION/"
+  cp -pf "$AUX_BPV6/configure.ac"   "$ION/"
 
 	echo "Moving extensions for bpv6..."
 	rm -rf "$ION_BPV6/library/ext/cgrr"
@@ -173,7 +113,7 @@ function mv_unibo_cgr_to_ion() {
 
 	echo "Removing unnecessary files from Unibo-CGR for bpv6..."
 	rm -rf "$ION_BPV6/cgr/Unibo-CGR/ion_bpv7"
-	rm -rf "$ION_BPV6/cgr/Unibo-CGR/dtn2"
+	rm -rf "$ION_BPV6/cgr/Unibo-CGR/dtnme"
 	rm -f "$ION_BPV6/cgr/Unibo-CGR/mv_unibo_cgr.sh"
 	rm -f "$ION_BPV6/cgr/Unibo-CGR/.gitlab-ci.yml"
 	rm -rf "$ION_BPV6/cgr/Unibo-CGR/docs/.doxygen"
@@ -184,11 +124,11 @@ function mv_unibo_cgr_to_ion() {
 	rm -rf "$ION_BPV7/cgr/Unibo-CGR"
 	cp -rpf "$UNIBO_CGR" "$ION_BPV7/cgr/Unibo-CGR"
 
-	echo "Moving auxiliary files for bpv7..."
-	cp -pf "$AUX_BPV7/bp.h"           "$ION_BPV7/include/"
-	cp -pf "$AUX_BPV7/bpextensions.c" "$ION_BPV7/library/ext/"
-	cp -pf "$AUX_BPV7/libcgr.c"       "$ION_BPV7/cgr/"
-	cp -pf "$AUX_BPV7/Makefile.am"    "$ION/"
+#	echo "Moving auxiliary files for bpv7..."
+#	cp -pf "$AUX_BPV7/bp.h"           "$ION_BPV7/include/"
+#	cp -pf "$AUX_BPV7/bpextensions.c" "$ION_BPV7/library/ext/"
+#	cp -pf "$AUX_BPV7/libcgr.c"       "$ION_BPV7/cgr/"
+#	cp -pf "$AUX_BPV7/Makefile.am"    "$ION/"
 
 	echo "Moving extensions for bpv7..."
 	rm -rf "$ION_BPV7/library/ext/cgrr"
@@ -198,7 +138,7 @@ function mv_unibo_cgr_to_ion() {
 
 	echo "Removing unnecessary files from Unibo-CGR for bpv7..."
 	rm -rf "$ION_BPV7/cgr/Unibo-CGR/ion_bpv6"
-	rm -rf "$ION_BPV7/cgr/Unibo-CGR/dtn2"
+	rm -rf "$ION_BPV7/cgr/Unibo-CGR/dtnme"
 	rm -f "$ION_BPV7/cgr/Unibo-CGR/mv_unibo_cgr.sh"
 	rm -f "$ION_BPV7/cgr/Unibo-CGR/.gitlab-ci.yml"
 	rm -rf "$ION_BPV7/cgr/Unibo-CGR/docs/.doxygen"
@@ -208,12 +148,6 @@ function mv_unibo_cgr_to_ion() {
 	echo "Updating Unibo-CGR's config.h file for ION..."
 	update_config_file "$CONFIG_FILE_BPV6" CGR_BUILD_FOR_ION 1
 	update_config_file "$CONFIG_FILE_BPV7" CGR_BUILD_FOR_ION 1
-	
-	echo ""
-	echo "Updating configure.ac..."
-	if ! update_configure_ac_ion "$ION" ; then
-		echo "ERROR: Cannot update configure.ac." 1>&2
-	fi
 
 	echo ""
 
@@ -237,7 +171,7 @@ function mv_unibo_cgr_to_ion() {
 		echo "Updating the configure script..."
 		cd "$ION" && autoreconf -fi && echo -e "\nNow you can compile and install in the usual way with configure/make/make install\n" \
 		&& echo "configure sintax from ION's root directory:" \
-		&& echo "./configure --enable-unibo-cgr CPPFLAGS='-DRGREB=1 -DCGRREB=1'" \
+		&& echo "./configure --enable-unibo-cgr CPPFLAGS='-DRGR=1 -DRGREB=1 -DCGRR=1 -DCGRREB=1'" \
 		&& echo "If you don't want RGR or CGRR just don't specify them in CPPFLAGS."
 	else
 		echo -e "\nPlease install missing packages and launch autoreconf -fi in $ION to update the configure script.\n" 1>&2
@@ -246,33 +180,33 @@ function mv_unibo_cgr_to_ion() {
 	echo ""
 }
 
-function mv_unibo_cgr_to_dtn2() {
+function mv_unibo_cgr_to_dtnme() {
 
 	UNIBO_CGR="$1"
-	DTN2="$2"
-	DTN2_ROUTING="$DTN2/servlib/routing"
-	CONFIG_FILE="$DTN2_ROUTING/Unibo-CGR/core/config.h"
+	DTNME="$2"
+	DTNME_ROUTING="$DTNME/servlib/routing"
+	CONFIG_FILE="$DTNME_ROUTING/Unibo-CGR/core/config.h"
 
 	echo ""
-	echo "Moving Unibo-CGR into DTN2..."
-	rm -rf "$DTN2_ROUTING/Unibo-CGR"
-	cp -rpf "$UNIBO_CGR" "$DTN2_ROUTING/Unibo-CGR"
+	echo "Moving Unibo-CGR into DTNME..."
+	rm -rf "$DTNME_ROUTING/Unibo-CGR"
+	cp -rpf "$UNIBO_CGR" "$DTNME_ROUTING/Unibo-CGR"
 
-	echo "Moving auxiliary files into DTN2..."
-	cp -pf "$UNIBO_CGR/dtn2/aux_files/BundleRouter.cc"         "$DTN2_ROUTING/"
-	cp -pf "$UNIBO_CGR/dtn2/aux_files/UniboCGRBundleRouter.cc" "$DTN2_ROUTING/"
-	cp -pf "$UNIBO_CGR/dtn2/aux_files/UniboCGRBundleRouter.h"  "$DTN2_ROUTING/"
-	cp -pf "$UNIBO_CGR/dtn2/aux_files/Makefile"                "$DTN2/servlib/"
+	echo "Moving auxiliary files into DTNME..."
+	cp -pf "$UNIBO_CGR/dtnme/aux_files/BundleRouter.cc"         "$DTNME_ROUTING/"
+	cp -pf "$UNIBO_CGR/dtnme/aux_files/UniboCGRBundleRouter.cc" "$DTNME_ROUTING/"
+	cp -pf "$UNIBO_CGR/dtnme/aux_files/UniboCGRBundleRouter.h"  "$DTNME_ROUTING/"
+	cp -pf "$UNIBO_CGR/dtnme/aux_files/Makefile"                "$DTNME/servlib/"
 
-	echo "Removing unnecessary files from Unibo-CGR for DTN2..."
-	rm -rf "$DTN2_ROUTING/Unibo-CGR/ion_bpv6"
-	rm -rf "$DTN2_ROUTING/Unibo-CGR/ion_bpv7"
-	rm -f "$DTN2_ROUTING/Unibo-CGR/mv_unibo_cgr.sh"
-	rm -f "$DTN2_ROUTING/Unibo-CGR/.gitlab-ci.yml"
-	rm -rf "$DTN2_ROUTING/Unibo-CGR/docs/.doxygen"
-#	rm -rf "$DTN2_ROUTING/Unibo-CGR/dtn2/aux_files"
+	echo "Removing unnecessary files from Unibo-CGR for DTNME..."
+	rm -rf "$DTNME_ROUTING/Unibo-CGR/ion_bpv6"
+	rm -rf "$DTNME_ROUTING/Unibo-CGR/ion_bpv7"
+	rm -f "$DTNME_ROUTING/Unibo-CGR/mv_unibo_cgr.sh"
+	rm -f "$DTNME_ROUTING/Unibo-CGR/.gitlab-ci.yml"
+	rm -rf "$DTNME_ROUTING/Unibo-CGR/docs/.doxygen"
+#	rm -rf "$DTNME_ROUTING/Unibo-CGR/dtnme/aux_files"
 
-	echo "Updating Unibo-CGR's config.h file for DTN2..."
+	echo "Updating Unibo-CGR's config.h file for DTNME..."
 	update_config_file "$CONFIG_FILE" CGR_BUILD_FOR_ION 0
 	update_config_file "$CONFIG_FILE" CGR_AVOID_LOOP 0
 	update_config_file "$CONFIG_FILE" MSR 0
@@ -288,9 +222,9 @@ function mv_unibo_cgr_to_dtn2() {
 if test "$BP_IMPL_NAME" = "ion"
 then
 	mv_unibo_cgr_to_ion "$UNIBO_CGR_DIR" "$BP_IMPL_DIR"
-elif test "$BP_IMPL_NAME" = "dtn2"
+elif test "$BP_IMPL_NAME" = "dtnme"
 then
-	mv_unibo_cgr_to_dtn2 "$UNIBO_CGR_DIR" "$BP_IMPL_DIR"
+	mv_unibo_cgr_to_dtnme "$UNIBO_CGR_DIR" "$BP_IMPL_DIR"
 else
 	help_fun
 	exit 1

@@ -943,7 +943,7 @@ RECURSIVE              = YES
 EXCLUDE                = ./docs \
                          ./ion_bpv6/aux_files \
                          ./ion_bpv7/aux_files \
-                         ./dtn2/aux_files
+                         ./dtnme/aux_files
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded

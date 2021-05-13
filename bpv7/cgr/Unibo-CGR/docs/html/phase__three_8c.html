@@ -92,12 +92,6 @@ Functions</h2></td></tr>
 <tr class="memitem:a142fe349b424e48b66f5892091b797d6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__three_8c.html#a142fe349b424e48b66f5892091b797d6">chooseBestRoutes</a> (<a class="el" href="struct_cgr_bundle.html">CgrBundle</a> *bundle, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> candidateRoutes)</td></tr>
 <tr class="memdesc:a142fe349b424e48b66f5892091b797d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the best routes. At the end in candidateRoutes will remain only the best routes choosed (subset).  <a href="phase__three_8c.html#a142fe349b424e48b66f5892091b797d6">More...</a><br /></td></tr>
 <tr class="separator:a142fe349b424e48b66f5892091b797d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a25e8362c51f30cdd8b4942358ad51f41"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__three_8c.html#a25e8362c51f30cdd8b4942358ad51f41">print_phase_three_route</a> (FILE *file, <a class="el" href="routes_8h.html#a88b8c323d6cd602bd979ae688ad48006">Route</a> *route)</td></tr>
-<tr class="memdesc:a25e8362c51f30cdd8b4942358ad51f41"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the route in the "call" file in phase three format.  <a href="phase__three_8c.html#a25e8362c51f30cdd8b4942358ad51f41">More...</a><br /></td></tr>
-<tr class="separator:a25e8362c51f30cdd8b4942358ad51f41"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7bdfd238dbce294d2780f8afc3e85766"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__three_8c.html#a7bdfd238dbce294d2780f8afc3e85766">print_phase_three_routes</a> (FILE *file, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> bestRoutes)</td></tr>
-<tr class="memdesc:a7bdfd238dbce294d2780f8afc3e85766"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the routes in the file in phase three format.  <a href="phase__three_8c.html#a7bdfd238dbce294d2780f8afc3e85766">More...</a><br /></td></tr>
-<tr class="separator:a7bdfd238dbce294d2780f8afc3e85766"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides the implementation of the CGR's phase three: the choose of the best routes from the candidate routes list (phase two's output). </p>
@@ -318,119 +312,6 @@ second doesn't have to be NULL.</dd></dl>
   </dd>
 </dl>
 <dl class="section warning"><dt>Warning</dt><dd>candidateRoutes doesn't have to be NULL.</dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">13/02/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="a25e8362c51f30cdd8b4942358ad51f41"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a25e8362c51f30cdd8b4942358ad51f41">&#9670;&nbsp;</a></span>print_phase_three_route()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static int print_phase_three_route </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="routes_8h.html#a88b8c323d6cd602bd979ae688ad48006">Route</a> *&#160;</td>
-          <td class="paramname"><em>route</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Print the route in the "call" file in phase three format. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>print_phase_three_route</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>13/02/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">0</td><td>Success case </td></tr>
-    <tr><td class="paramname">-1</td><td>Arguments error</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want to print the route </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">*route</td><td>The Route that we want to print.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Notes:</dt><dd><ol type="1">
-<li>For phase three best routes we print only the number of the route and the neighbor.</li>
-</ol>
-</dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">13/02/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="a7bdfd238dbce294d2780f8afc3e85766"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7bdfd238dbce294d2780f8afc3e85766">&#9670;&nbsp;</a></span>print_phase_three_routes()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void print_phase_three_routes </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a>&#160;</td>
-          <td class="paramname"><em>bestRoutes</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Print the routes in the file in phase three format. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>print_phase_three_routes</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>13/02/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>void</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want to print the routes </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">bestRoutes</td><td>The routes that we want to print</td></tr>
-  </table>
-  </dd>
-</dl>
 <dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
 <table class="markdownTable">
 <tr class="markdownTableHead">

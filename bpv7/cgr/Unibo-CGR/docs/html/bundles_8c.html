@@ -107,9 +107,6 @@ Functions</h2></td></tr>
 <tr class="memitem:aedca7d28bbf50ad503b35828c0d327c5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bundles_8c.html#aedca7d28bbf50ad503b35828c0d327c5">initialize_bundle</a> (int backward_propagation, int critical, float dlvConfidence, time_t expiration_time, <a class="el" href="bundles_8h.html#a315655b1bb5848c063491adffde62b15">Priority</a> priority, unsigned int ordinal, int probe, int fragmentable, long unsigned int size, unsigned long long sender_node, unsigned long long terminus_node, <a class="el" href="struct_cgr_bundle.html">CgrBundle</a> *bundle)</td></tr>
 <tr class="memdesc:aedca7d28bbf50ad503b35828c0d327c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize the bundle's fields and check the validity.  <a href="bundles_8c.html#aedca7d28bbf50ad503b35828c0d327c5">More...</a><br /></td></tr>
 <tr class="separator:aedca7d28bbf50ad503b35828c0d327c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a550fd7cba28fd27503d2093260413503"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bundles_8c.html#a550fd7cba28fd27503d2093260413503">print_bundle</a> (FILE *file_call, <a class="el" href="struct_cgr_bundle.html">CgrBundle</a> *bundle, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> excludedNodes, time_t currentTime)</td></tr>
-<tr class="memdesc:a550fd7cba28fd27503d2093260413503"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the bundle's fields.  <a href="bundles_8c.html#a550fd7cba28fd27503d2093260413503">More...</a><br /></td></tr>
-<tr class="separator:a550fd7cba28fd27503d2093260413503"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides the implementation of some functions to manage the <a class="el" href="struct_cgr_bundle.html">CgrBundle</a>'s type and other utility functions. </p>
@@ -468,67 +465,6 @@ Functions</h2></td></tr>
 <th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">31/03/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="a550fd7cba28fd27503d2093260413503"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a550fd7cba28fd27503d2093260413503">&#9670;&nbsp;</a></span>print_bundle()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void print_bundle </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file_call</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="struct_cgr_bundle.html">CgrBundle</a> *&#160;</td>
-          <td class="paramname"><em>bundle</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a>&#160;</td>
-          <td class="paramname"><em>excludedNodes</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">time_t&#160;</td>
-          <td class="paramname"><em>currentTime</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Print the bundle's fields. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>print_bundle</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>15/02/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>void</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file_call</td><td>The file where we want to print the bundle's fields </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">bundle</td><td>The bundle to print </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">excludedNodes</td><td>The excluded nodes for the forwarding of the bundle </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">currentTime</td><td>The internal time of Unibo-CGR</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">15/02/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
 </table>
 
 </div>

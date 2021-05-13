@@ -98,12 +98,12 @@ Functions</h2></td></tr>
 <tr class="memitem:af74674ddb7d751408aa01fa7fa4d4de4"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contact_plan_8h.html#af74674ddb7d751408aa01fa7fa4d4de4">removeExpired</a> (time_t time)</td></tr>
 <tr class="memdesc:af74674ddb7d751408aa01fa7fa4d4de4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove the expired contacts ,ranges (toTime field less than time) and neighbors to whom whe haven't other contacts.  <a href="contact_plan_8h.html#af74674ddb7d751408aa01fa7fa4d4de4">More...</a><br /></td></tr>
 <tr class="separator:af74674ddb7d751408aa01fa7fa4d4de4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3172e206171e677cc090a1f79e465ade"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contact_plan_8h.html#a3172e206171e677cc090a1f79e465ade">addContact</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[])</td></tr>
-<tr class="memdesc:a3172e206171e677cc090a1f79e465ade"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a contact to the contacts graph.  <a href="contact_plan_8h.html#a3172e206171e677cc090a1f79e465ade">More...</a><br /></td></tr>
-<tr class="separator:a3172e206171e677cc090a1f79e465ade"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa7867a12b70c8162de15c8e93c7c6924"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contact_plan_8h.html#aa7867a12b70c8162de15c8e93c7c6924">removeContact</a> (unsigned long long fromNode, unsigned long long toNode, time_t *fromTime)</td></tr>
-<tr class="memdesc:aa7867a12b70c8162de15c8e93c7c6924"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove a contact from the contacts graph.  <a href="contact_plan_8h.html#aa7867a12b70c8162de15c8e93c7c6924">More...</a><br /></td></tr>
-<tr class="separator:aa7867a12b70c8162de15c8e93c7c6924"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b6de6785ec8fa8747c6910939d2376e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contact_plan_8h.html#a9b6de6785ec8fa8747c6910939d2376e">addContact</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[])</td></tr>
+<tr class="memdesc:a9b6de6785ec8fa8747c6910939d2376e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a contact to the contacts graph.  <a href="contact_plan_8h.html#a9b6de6785ec8fa8747c6910939d2376e">More...</a><br /></td></tr>
+<tr class="separator:a9b6de6785ec8fa8747c6910939d2376e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3431b0ed644960c4d364780beb7da0cf"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contact_plan_8h.html#a3431b0ed644960c4d364780beb7da0cf">removeContact</a> (unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t *fromTime)</td></tr>
+<tr class="memdesc:a3431b0ed644960c4d364780beb7da0cf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove a contact from the contacts graph.  <a href="contact_plan_8h.html#a3431b0ed644960c4d364780beb7da0cf">More...</a><br /></td></tr>
+<tr class="separator:a3431b0ed644960c4d364780beb7da0cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac57ef0f6267c59ee8a54fa4bab842a39"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="contact_plan_8h.html#ac57ef0f6267c59ee8a54fa4bab842a39">addRange</a> (unsigned long long fromNode, unsigned long long toNode, time_t fromTime, time_t toTime, unsigned int owlt)</td></tr>
 <tr class="memdesc:ac57ef0f6267c59ee8a54fa4bab842a39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add a range to the ranges graph.  <a href="contact_plan_8h.html#ac57ef0f6267c59ee8a54fa4bab842a39">More...</a><br /></td></tr>
 <tr class="separator:ac57ef0f6267c59ee8a54fa4bab842a39"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -130,8 +130,8 @@ Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Lorenzo Persampieri, <a href="#" onclick="location.href='mai'+'lto:'+'lor'+'en'+'zo.'+'pe'+'rsa'+'mp'+'ier'+'i@'+'stu'+'di'+'o.u'+'ni'+'bo.'+'it'; return false;">loren<span style="display: none;">.nosp@m.</span>zo.p<span style="display: none;">.nosp@m.</span>ersam<span style="display: none;">.nosp@m.</span>pier<span style="display: none;">.nosp@m.</span>i@stu<span style="display: none;">.nosp@m.</span>dio.<span style="display: none;">.nosp@m.</span>unibo<span style="display: none;">.nosp@m.</span>.it</a></dd></dl>
 <dl class="section user"><dt>Supervisor</dt><dd>Carlo Caini, <a href="#" onclick="location.href='mai'+'lto:'+'car'+'lo'+'.ca'+'in'+'i@u'+'ni'+'bo.'+'it'; return false;">carlo<span style="display: none;">.nosp@m.</span>.cai<span style="display: none;">.nosp@m.</span>ni@un<span style="display: none;">.nosp@m.</span>ibo.<span style="display: none;">.nosp@m.</span>it</a> </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
-<a id="a3172e206171e677cc090a1f79e465ade"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3172e206171e677cc090a1f79e465ade">&#9670;&nbsp;</a></span>addContact()</h2>
+<a id="a9b6de6785ec8fa8747c6910939d2376e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b6de6785ec8fa8747c6910939d2376e">&#9670;&nbsp;</a></span>addContact()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -139,6 +139,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int addContact </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>
@@ -419,8 +425,8 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="aa7867a12b70c8162de15c8e93c7c6924"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa7867a12b70c8162de15c8e93c7c6924">&#9670;&nbsp;</a></span>removeContact()</h2>
+<a id="a3431b0ed644960c4d364780beb7da0cf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3431b0ed644960c4d364780beb7da0cf">&#9670;&nbsp;</a></span>removeContact()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -428,6 +434,12 @@ Functions</h2></td></tr>
         <tr>
           <td class="memname">int removeContact </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype">unsigned long long&#160;</td>
           <td class="paramname"><em>fromNode</em>, </td>
         </tr>

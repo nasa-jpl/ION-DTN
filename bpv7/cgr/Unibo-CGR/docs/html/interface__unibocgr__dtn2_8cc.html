@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Unibo-CGR: dtn2/interface/interface_unibocgr_dtn2.cc File Reference</title>
+<title>Unibo-CGR: dtnme/interface/interface_unibocgr_dtn2.cc File Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -61,7 +61,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><a class="el" href="dir_538a73b2d8a80930c96e83c0335aae4d.html">dtn2</a></li><li class="navelem"><a class="el" href="dir_a18dd60b3fdeeaa270f7acd7bbd0d061.html">interface</a></li>  </ul>
+<li class="navelem"><a class="el" href="dir_021e5a4096b7ec40ae6833e09fc9a5a7.html">dtnme</a></li><li class="navelem"><a class="el" href="dir_fc4771826181b7f5d623f32b47534be3.html">interface</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -103,9 +103,6 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a6c439aee29e167032264003159750ab1"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interface__unibocgr__dtn2_8cc.html#a6c439aee29e167032264003159750ab1">get_rgr_ext_block</a> (dtn::Bundle *bundle, <a class="el" href="struct_geo_route.html">GeoRoute</a> *resultBlk)</td></tr>
-<tr class="memdesc:a6c439aee29e167032264003159750ab1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the <a class="el" href="struct_geo_route.html">GeoRoute</a> stored into RGR Extension Block.  <a href="interface__unibocgr__dtn2_8cc.html#a6c439aee29e167032264003159750ab1">More...</a><br /></td></tr>
-<tr class="separator:a6c439aee29e167032264003159750ab1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a96406857d9fc71ec0b2e34e542504a51"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interface__unibocgr__dtn2_8cc.html#a96406857d9fc71ec0b2e34e542504a51">convert_bundle_from_dtn2_to_cgr</a> (time_t current_time, dtn::Bundle *Dtn2Bundle, <a class="el" href="struct_cgr_bundle.html">CgrBundle</a> *<a class="el" href="struct_cgr_bundle.html">CgrBundle</a>)</td></tr>
 <tr class="memdesc:a96406857d9fc71ec0b2e34e542504a51"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert the characteristics of the bundle from DTN2 to this CGR's implementation and initialize all the bundle fields used by the Unibo CGR.  <a href="interface__unibocgr__dtn2_8cc.html#a96406857d9fc71ec0b2e34e542504a51">More...</a><br /></td></tr>
 <tr class="separator:a96406857d9fc71ec0b2e34e542504a51"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -161,6 +158,9 @@ Variables</h2></td></tr>
 <tr class="memitem:a71db01d7df3a95cdae18488d61705b64"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="struct_cgr_bundle.html">CgrBundle</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interface__unibocgr__dtn2_8cc.html#a71db01d7df3a95cdae18488d61705b64">cgrBundle</a> = NULL</td></tr>
 <tr class="memdesc:a71db01d7df3a95cdae18488d61705b64"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="struct_cgr_bundle.html">CgrBundle</a> used during the current call.  <a href="interface__unibocgr__dtn2_8cc.html#a71db01d7df3a95cdae18488d61705b64">More...</a><br /></td></tr>
 <tr class="separator:a71db01d7df3a95cdae18488d61705b64"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba03187ef1bb33f965f9014cd28a634a"><td class="memItemLeft" align="right" valign="top">static const unsigned long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interface__unibocgr__dtn2_8cc.html#aba03187ef1bb33f965f9014cd28a634a">defaultRegionNbr</a> = 1</td></tr>
+<tr class="memdesc:aba03187ef1bb33f965f9014cd28a634a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default region number.  <a href="interface__unibocgr__dtn2_8cc.html#aba03187ef1bb33f965f9014cd28a634a">More...</a><br /></td></tr>
+<tr class="separator:aba03187ef1bb33f965f9014cd28a634a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides the implementation of the functions that make UniboCGR's implementation compatible with DTN2. </p>
@@ -727,72 +727,6 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a6c439aee29e167032264003159750ab1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6c439aee29e167032264003159750ab1">&#9670;&nbsp;</a></span>get_rgr_ext_block()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static int get_rgr_ext_block </td>
-          <td>(</td>
-          <td class="paramtype">dtn::Bundle *&#160;</td>
-          <td class="paramname"><em>bundle</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="struct_geo_route.html">GeoRoute</a> *&#160;</td>
-          <td class="paramname"><em>resultBlk</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Get the <a class="el" href="struct_geo_route.html">GeoRoute</a> stored into RGR Extension Block. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>get_rgr_ext_block</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd></dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">0</td><td>Success case: <a class="el" href="struct_geo_route.html">GeoRoute</a> found </td></tr>
-    <tr><td class="paramname">-1</td><td><a class="el" href="struct_geo_route.html">GeoRoute</a> not found </td></tr>
-    <tr><td class="paramname">-2</td><td>System error</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">*bundle</td><td>The DTN2 bundle that contains the RGR Extension Block </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">*resultBlk</td><td>The <a class="el" href="struct_geo_route.html">GeoRoute</a> extracted from the RGR Extension Block, only in success case. The resultBLk must be allocated by the caller.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section warning"><dt>Warning</dt><dd>bundle doesn't have to be NULL </dd>
-<dd>
-resultBlk doesn't have to be NULL</dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">16/09/20   </td><td class="markdownTableBodyNone">G. Gori   </td><td class="markdownTableBodyNone">Definition and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
 <a id="ade2a88d1505954706ad90497b4ce17bd"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ade2a88d1505954706ad90497b4ce17bd">&#9670;&nbsp;</a></span>initialize_contact_graph_routing()</h2>
 
@@ -996,6 +930,30 @@ resultBlk doesn't have to be NULL</dd></dl>
 </div><div class="memdoc">
 
 <p><a class="el" href="struct_cgr_bundle.html">CgrBundle</a> used during the current call. </p>
+
+</div>
+</div>
+<a id="aba03187ef1bb33f965f9014cd28a634a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba03187ef1bb33f965f9014cd28a634a">&#9670;&nbsp;</a></span>defaultRegionNbr</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">const unsigned long defaultRegionNbr = 1</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Default region number. </p>
 
 </div>
 </div>

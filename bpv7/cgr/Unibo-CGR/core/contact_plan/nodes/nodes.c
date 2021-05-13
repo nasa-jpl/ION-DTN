@@ -1039,16 +1039,14 @@ static int insert_citation_to_neighbor(RtgObject *rtgObj, unsigned long long nei
 			result = 0;
 			elt_neighbor = list_insert_last(neighbor->citations, rtgObj);
 			elt_destination = list_insert_last(rtgObj->citations, neighbor);
-			if(elt_neighbor == NULL && elt_destination != NULL)
+			if(elt_neighbor == NULL)
 			{
-				elt_destination->data = NULL;
 				list_remove_elt(elt_destination);
 				result = -2;
 				verbose_debug_printf("MWITHDRAW error");
 			}
-			else if(elt_neighbor != NULL && elt_destination == NULL)
+			if(elt_destination == NULL)
 			{
-				elt_neighbor->data = NULL;
 				list_remove_elt(elt_neighbor);
 				result = -2;
 				verbose_debug_printf("MWITHDRAW error");
@@ -1279,9 +1277,18 @@ static int add_neighbor(unsigned long long node_number, time_t to_time)
 
 	if(node_number <= 0 || to_time < 0 || sap->local_node_neighbors == NULL)
 	{
-		result = -3;
+		return -3;
 	}
-	else if(get_neighbor(node_number) == NULL)
+
+	neighbor = get_neighbor(node_number);
+	if (neighbor != NULL) {
+	    if (neighbor->toTime < to_time) {
+	        neighbor->toTime = to_time;
+	    }
+
+	    result = 0;
+	}
+	else
 	{
 		//if neighbor not found
 		neighbor = create_neighbor(node_number, to_time);
@@ -1306,10 +1313,7 @@ static int add_neighbor(unsigned long long node_number, time_t to_time)
 			verbose_debug_printf("Can't create neighbor %llu (toTime: %ld)", node_number, (long int) to_time);
 		}
 	}
-	else
-	{
-		verbose_debug_printf("Neighbor %llu already exists.", node_number);
-	}
+
 	return result;
 }
 
@@ -1480,39 +1484,72 @@ int build_local_node_neighbors_list(unsigned long long localNode)
 		sap->local_node_neighbors = list_create(NULL, NULL, NULL, free_neighbor);
 		if(sap->local_node_neighbors != NULL)
 		{
-			for(contact = get_first_contact_from_node(localNode, &node); contact != NULL && !stop; contact = get_next_contact(&node))
-			{
-				if(prevContact != NULL)
-				{
-					if(contact->fromNode != localNode || contact->toNode != prevContact->toNode)
-					{
-						if(contact->fromNode != localNode)
-						{
-							// Found all neighbors.
-							stop = 1;
-						}
 
-						if(add_neighbor(prevContact->toNode, prevContact->toTime) == -2)
-						{
-							// MWITHDRAW error
-							stop = 1;
-							result = -2;
+		    List regions = get_known_regions();
 
-						}
-					}
-				}
+		    if (regions == NULL) {
+		        result = -2;
+                verbose_debug_printf("MWITHDRAW error.");
+                return result;
+		    }
 
-				prevContact = contact;
-			}
+		    ListElt * elt;
 
-			if(!stop && prevContact != NULL && prevContact->fromNode == localNode)
-			{
-				//Last contact in the graph
-				if(add_neighbor(prevContact->toNode, prevContact->toTime) == -2)
-				{
-					result = -2;
-				}
-			}
+		    for ( elt = list_get_first_elt(regions) ; elt != NULL ; elt = list_get_next_elt(elt))
+		    {
+		        unsigned long * currentRegion =  elt->data;
+
+		        if ( currentRegion == NULL) {
+		            continue;
+		        }
+
+		        prevContact = NULL;
+		        stop = 0;
+
+                for(contact = get_first_contact_from_node(*currentRegion, localNode, &node); contact != NULL && !stop; contact = get_next_contact(&node))
+                {
+                    if(prevContact != NULL)
+                    {
+                        if(contact->regionNbr != *currentRegion || contact->fromNode != localNode || contact->toNode != prevContact->toNode)
+                        {
+                            if(contact->regionNbr != *currentRegion || contact->fromNode != localNode)
+                            {
+                                // Found all neighbors in this region.
+                                stop = 1;
+                            }
+
+                            if(add_neighbor(prevContact->toNode, prevContact->toTime) == -2)
+                            {
+                                // MWITHDRAW error
+                                stop = 1;
+                                result = -2;
+                                verbose_debug_printf("MWITHDRAW error.");
+
+                            }
+                        }
+                    }
+
+                    prevContact = contact;
+                }
+
+                if(!stop && prevContact != NULL && prevContact->fromNode == localNode)
+                {
+                    //Last contact in the graph
+                    if(add_neighbor(prevContact->toNode, prevContact->toTime) == -2)
+                    {
+                        verbose_debug_printf("MWITHDRAW error.");
+                        result = -2;
+                    }
+                }
+
+                if (result == -2) { /* unrecoverable error */
+                    free_list(regions);
+                    return result;
+                }
+
+		    }
+
+            free_list(regions);
 
 			debug_printf("Found %lu neighbors.", sap->local_node_neighbors->length);
 		}

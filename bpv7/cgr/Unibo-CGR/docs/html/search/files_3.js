@@ -1,7 +1,5 @@
 var searchData=
 [
-  ['interface_5fcgr_5fion_2ec_821',['interface_cgr_ion.c',['../ion__bpv6_2interface_2interface__cgr__ion_8c.html',1,'(Global Namespace)'],['../ion__bpv7_2interface_2interface__cgr__ion_8c.html',1,'(Global Namespace)']]],
-  ['interface_5fcgr_5fion_2eh_822',['interface_cgr_ion.h',['../ion__bpv6_2interface_2interface__cgr__ion_8h.html',1,'(Global Namespace)'],['../ion__bpv7_2interface_2interface__cgr__ion_8h.html',1,'(Global Namespace)']]],
-  ['interface_5funibocgr_5fdtn2_2ecc_823',['interface_unibocgr_dtn2.cc',['../interface__unibocgr__dtn2_8cc.html',1,'']]],
-  ['interface_5funibocgr_5fdtn2_2eh_824',['interface_unibocgr_dtn2.h',['../interface__unibocgr__dtn2_8h.html',1,'']]]
+  ['general_5ffunctions_5fported_5ffrom_5fion_2ec_754',['general_functions_ported_from_ion.c',['../ion__bpv6_2interface_2utility__functions__from__ion_2general__functions__ported__from__ion_8c.html',1,'(Global Namespace)'],['../ion__bpv7_2interface_2utility__functions__from__ion_2general__functions__ported__from__ion_8c.html',1,'(Global Namespace)']]],
+  ['general_5ffunctions_5fported_5ffrom_5fion_2eh_755',['general_functions_ported_from_ion.h',['../ion__bpv6_2interface_2utility__functions__from__ion_2general__functions__ported__from__ion_8h.html',1,'(Global Namespace)'],['../ion__bpv7_2interface_2utility__functions__from__ion_2general__functions__ported__from__ion_8h.html',1,'(Global Namespace)']]]
 ];

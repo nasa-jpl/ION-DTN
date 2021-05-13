@@ -1,8 +1,5 @@
 var searchData=
 [
-  ['range_793',['Range',['../struct_range.html',1,'']]],
-  ['rangegraphsap_794',['RangeGraphSAP',['../struct_range_graph_s_a_p.html',1,'']]],
-  ['rbt_795',['rbt',['../structrbt.html',1,'']]],
-  ['rbtnode_796',['rbtNode',['../structrbt_node.html',1,'']]],
-  ['rtgobject_797',['RtgObject',['../struct_rtg_object.html',1,'']]]
+  ['unibocgrcurrentcallsap_732',['UniboCgrCurrentCallSAP',['../struct_unibo_cgr_current_call_s_a_p.html',1,'']]],
+  ['unibocgrsap_733',['UniboCgrSAP',['../struct_unibo_cgr_s_a_p.html',1,'']]]
 ];

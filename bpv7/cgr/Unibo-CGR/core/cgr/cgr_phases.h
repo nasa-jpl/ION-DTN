@@ -168,7 +168,7 @@ extern "C"
 extern int initialize_phase_one(unsigned long long localNode);
 extern void reset_phase_one();
 extern void destroy_phase_one();
-extern int computeRoutes(Node *terminusNode, List subsetComputedRoutes, long unsigned int missingNeighbors);
+extern int computeRoutes(unsigned long regionNbr, Node *terminusNode, List subsetComputedRoutes, long unsigned int missingNeighbors);
 /*********************************************************************/
 
 /***************************** PHASE TWO *****************************/

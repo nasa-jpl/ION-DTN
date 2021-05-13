@@ -248,7 +248,7 @@ void removeExpired(time_t time)
  *  -------- | ---------------|  -----------------------------------------------
  *  23/01/20 | L. Persampieri |   Initial Implementation and documentation.
  *****************************************************************************/
-int addContact(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
+int addContact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
 		time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[])
 {
 	int result = 0;
@@ -256,7 +256,7 @@ int addContact(unsigned long long fromNode, unsigned long long toNode, time_t fr
 
 	if (sap.initialized)
 	{
-		result = add_contact_to_graph(fromNode, toNode, fromTime, toTime, xmitRate, confidence, copyMTV, mtv);
+		result = add_contact_to_graph(regionNbr, fromNode, toNode, fromTime, toTime, xmitRate, confidence, copyMTV, mtv);
 	}
 
 	return result;
@@ -292,14 +292,14 @@ int addContact(unsigned long long fromNode, unsigned long long toNode, time_t fr
  *  -------- | ---------------|  -----------------------------------------------
  *  23/01/20 | L. Persampieri |   Initial Implementation and documentation.
  *****************************************************************************/
-int removeContact(unsigned long long fromNode, unsigned long long toNode, time_t *fromTime)
+int removeContact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t *fromTime)
 {
 	int result = 0;
 	ContactPlanSAP sap = get_contact_plan_sap(NULL);
 
 	if (sap.initialized)
 	{
-		remove_contact_from_graph(fromTime, fromNode, toNode);
+		remove_contact_from_graph(regionNbr, fromTime, fromNode, toNode);
 		result = 1;
 	}
 
