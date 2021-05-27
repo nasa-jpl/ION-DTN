@@ -599,6 +599,7 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb 		*vdb = getIonVdb();
+	IonCXref	arg;
 	IonNode		*node;
 	PsmAddress	nextElt;
 	PsmAddress	cxaddr;
@@ -609,7 +610,22 @@ static PsmAddress	insertCXref(IonCXref *cxref)
 	IonEvent	*event;
 	time_t		currentTime = getCtime();
 
-	/*	Load the affected nodes.				*/
+	/*	If the CXref already exists, just return its address.	*/
+
+	memset((char *) &arg, 0, sizeof(IonCXref));
+	arg.regionNbr = cxref->regionNbr;
+	arg.fromNode = cxref->fromNode;
+	arg.toNode = cxref->toNode;
+	arg.fromTime = cxref->fromTime;
+	cxelt = sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
+			&arg, &nextElt);
+	if (cxelt)
+	{
+		cxaddr = sm_rbt_data(ionwm, cxelt);
+		return cxaddr;
+	}
+
+	/*	New CXref, so load the affected nodes.			*/
 
 	node = findNode(vdb, cxref->toNode, &nextElt);
 	if (node == NULL)
@@ -2323,13 +2339,13 @@ void	rfx_contact_state(uvast nodeNbr, size_t *secRemaining, size_t *xmitRate)
 
 /*	*	RFX range list management functions	*	*	*/
 
-static int	insertRXref(IonRXref *rxref)
+static PsmAddress	insertRXref(IonRXref *rxref)
 {
 	PsmPartition	ionwm = getIonwm();
 	IonVdb		*vdb = getIonVdb();
+	IonRXref	arg;
 	IonNode		*node;
 	PsmAddress	nextElt;
-	IonRXref	arg;
 	PsmAddress	rxaddr;
 	PsmAddress	rxelt;
 	PsmAddress	addr;
@@ -2338,7 +2354,21 @@ static int	insertRXref(IonRXref *rxref)
 	IonRXref	*rxref2;
 	time_t		currentTime = getCtime();
 
-	/*	Load the affected nodes.				*/
+	/*	If the RXref already exists, just return its address.	*/
+
+	memset((char *) &arg, 0, sizeof(IonRXref));
+	arg.fromNode = rxref->fromNode;
+	arg.toNode = rxref->toNode;
+	arg.fromTime = rxref->fromTime;
+	rxelt = sm_rbt_search(ionwm, vdb->rangeIndex, rfx_order_ranges, &arg,
+			&nextElt);
+	if (rxelt)
+	{
+		rxaddr = sm_rbt_data(ionwm, rxelt);
+		return rxaddr;
+	}
+
+	/*	New RXref, so load the affected nodes.			*/
 
 	node = findNode(vdb, rxref->toNode, &nextElt);
 	if (node == NULL)
@@ -3154,7 +3184,7 @@ static int	loadRange(Object elt)
 	rxref.toTime = range.toTime;
 	rxref.owlt = range.owlt;
 	rxref.rangeElt = elt;
-	if (insertRXref(&rxref) < 0)
+	if (insertRXref(&rxref) == 0)
 	{
 		return -1;
 	}
