@@ -57,13 +57,15 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
+BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
+# Uncomment line 62 to build with ACS
+#BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
 RUNTIMES = bibeadmin bibeclo bpadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsecadmin bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo stcpcli stcpclo tcpcli tcpclo udpcli udpclo
-# Uncomment line 67 to build acsadmin and acslist
+# Uncomment line 69 to build acsadmin and acslist
 #RUNTIMES += acsadmin acslist
 
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
@@ -448,11 +450,12 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(BIBE)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/acs/%.c
-		$(CC) -c $<
+# Uncomment lines 454 - 458 to build ACS
+#%.o:		$(API)/acs/%.c
+#		$(CC) -c $<
 
-%.o:		$(API)/ext/cteb/%.c
-		$(CC) -c $<
+#%.o:		$(API)/ext/cteb/%.c
+#		$(CC) -c $<
 
 %.o:		$(IPND)/%.c
 		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<
