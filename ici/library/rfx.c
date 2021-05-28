@@ -3225,7 +3225,6 @@ static int	loadContact(Object elt, uint32_t regionNbr)
 
 int	rfx_start()
 {
-	PsmPartition	ionwm = getIonwm();
 	Sdr		sdr = getIonsdr();
 	IonVdb		*vdb = getIonVdb();
 	Object		iondbObj;
@@ -3237,15 +3236,6 @@ int	rfx_start()
 	iondbObj = getIonDbObject();
 	CHKERR(sdr_begin_xn(sdr));	/*	To lock memory.		*/
 	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
-
-	/*	Destroy and re-create volatile contact and range
-	 *	databases.  This prevents contact/range duplication
-	 *	as a result of adds before starting ION.		*/
-
-	sm_rbt_destroy(ionwm, vdb->contactIndex, rfx_erase_data, NULL);
-	sm_rbt_destroy(ionwm, vdb->rangeIndex, rfx_erase_data, NULL);
-	vdb->contactIndex = sm_rbt_create(ionwm);
-	vdb->rangeIndex = sm_rbt_create(ionwm);
 
 	/*	Load range index for all asserted ranges.  In so
 	 *	doing, load the nodes for which ranges are known
@@ -3344,14 +3334,4 @@ void	rfx_stop()
 
 		vdb->clockPid = ERROR;
 	}
-
-	/*	Wipe out all red-black trees involved in routing,
-	 *	for reconstruction on restart.				*/
-
-	sm_rbt_destroy(ionwm, vdb->contactIndex, rfx_erase_data, NULL);
-	sm_rbt_destroy(ionwm, vdb->rangeIndex, rfx_erase_data, NULL);
-	sm_rbt_destroy(ionwm, vdb->timeline, rfx_erase_data, NULL);
-	vdb->contactIndex = sm_rbt_create(ionwm);
-	vdb->rangeIndex = sm_rbt_create(ionwm);
-	vdb->timeline = sm_rbt_create(ionwm);
 }
