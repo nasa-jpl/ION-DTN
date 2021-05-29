@@ -1,6 +1,6 @@
-= Release Notes for ION 4.0.2 =
+= Release Notes for ION 4.1.0 =
 
-February 25, 2020
+May 29, 2021
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,55 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.0 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ION 4.1.0 is the first release in which the BPv7 implementation is
+conformant to the BPv7 protocol specification that will shortly be
+published by IETF as a standards-track RFC.
+
+The accompanying BPsec implementation is similarly conformant to
+the BPSec specification that will also soon be a standard-track RFC.
+NOTE, though, that the TCP convergence-layer protocol implementation
+in ION 4.1.0 still conforms to the original TCPCL specification (RFC
+7242), NOT to the upcoming TCPCL standards-track FC; that upgrade
+will be supported in a future release.
+
+Another key change in this release is that Aggregate Custody Signaling
+is no longer enabled by default.  (Due to some new features in ACS
+configuration, when ACS is enabled the bpv6 bpclock daemon will no
+longer run successfully unless the ACS database is initialized.
+Since not all ION bpv6 users currently initialize ACS in node startup,
+disabling ACS by default seems to be the best way forward.)  If you
+DO want ACS for your bpv6 environment, include the "enableACS" switch
+when you generate the Makefile, e.g.:
+
+	./configure --enableACS
+
+Additionally, three new features are included in ION version 4.1.0
+(along with various bug fixes).
+
+First, an option is provided that will enable ION to run at much higher
+speeds over those portions of a bundle's end-to-end path that are
+supported by TCP/IP at the convergence layer.  To enable this option,
+include the "ENABLE_HIGH_SPEED" switch when compiling the bpv7 module.
+
+Also, it is now possible for ION's LTP implementation to utilize multiple
+different underlying link service protocols on input as well as on
+output.  The latter have always been configured by means of the "LSO
+command" associated with the "span" for LTP segment transmission to a
+remote LTP engine.  The former may now be configured by means of "LSI
+commands" associated with multiple LTP segment reception "seats" at
+the local LTP engine.  See the ltprc(5) man page for more information.
+
+Finally, a mechanism has been introduced that will automatically
+synchronize a contact plan among all nodes that are cited in the
+contacts listed in that contact plan.  This synchronization requires
+that the nodes be configured for bundle multicast; it is controlled
+by means of the new "!" command as processed by ionadmin.  See the
+cpsync test case (in ion-open-source/tests) for an example.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.0.2 =
