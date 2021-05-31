@@ -69,11 +69,20 @@ typedef struct cgrContactNote ContactNote;
 
 typedef enum
 {
-	Registration = 1, Scheduled,
+	TypeRegistration = 1,
+	TypeScheduled,
+	TypeSuppressed,
+	TypePredicted,
+	TypeHypothetical,
+	TypeDiscovered
 } CtType;
 
 typedef struct
 {
+    /**
+     * \brief Common region of both sender and receiver
+     */
+     unsigned long regionNbr;
 	/**
 	 * \brief Sender node (ipn node number)
 	 */
@@ -184,7 +193,7 @@ extern "C"
 #endif
 
 extern int compare_contacts(void *first, void *second);
-extern Contact* create_contact(unsigned long long fromNode, unsigned long long toNode,
+extern Contact* create_contact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode,
 		time_t fromTime, time_t toTime, long unsigned int xmitRate, float confidence, CtType type);
 extern void free_contact(void*);
 
@@ -193,34 +202,36 @@ extern void destroy_ContactsGraph();
 extern void reset_ContactsGraph();
 
 extern void removeExpiredContacts(time_t time);
-extern void remove_contact_from_graph(time_t *fromTime, unsigned long long fromNode,
+extern void remove_contact_from_graph(unsigned long regionNbr, time_t *fromTime, unsigned long long fromNode,
 		unsigned long long toNode);
 extern void remove_contact_elt_from_graph(Contact *elt);
-int add_contact_to_graph(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
+int add_contact_to_graph(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
 		time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[]);
 extern void discardAllRoutesFromContactsGraph();
 
-extern Contact* get_contact(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
+extern Contact* get_contact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
 		RbtNode **node);
 extern Contact* get_first_contact(RbtNode **node);
-extern Contact* get_first_contact_from_node(unsigned long long fromNodeNbr, RbtNode **node);
-extern Contact* get_first_contact_from_node_to_node(unsigned long long fromNodeNbr,
+extern Contact* get_first_contact_from_node(unsigned long regionNbr, unsigned long long fromNodeNbr, RbtNode **node);
+extern Contact* get_first_contact_from_node_to_node(unsigned long regionNbr, unsigned long long fromNodeNbr,
 		unsigned long long toNodeNbr, RbtNode **node);
 extern Contact* get_next_contact(RbtNode **node);
 extern Contact* get_prev_contact(RbtNode **node);
-extern Contact * get_contact_with_time_tolerance(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance);
+extern Contact * get_contact_with_time_tolerance(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance);
 
 #if REVISABLE_CONFIDENCE
-extern int revise_confidence(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence);
+extern int revise_confidence(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence);
 #endif
 #if REVISABLE_XMIT_RATE
-extern int revise_xmit_rate(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned long int xmitRate, int copyMTV, double mtv[]);
+extern int revise_xmit_rate(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned long int xmitRate, int copyMTV, double mtv[]);
 #endif
 #if REVISABLE_CONTACT
-extern int revise_contact(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence, unsigned long int xmitRate, int copyMTV, double mtv[]);
+extern int revise_contact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, float newConfidence, unsigned long int xmitRate, int copyMTV, double mtv[]);
 #endif
 
-extern int refill_mtv(unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance, unsigned int refillSize, int priority);
+extern int refill_mtv(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime, unsigned int tolerance, unsigned int refillSize, int priority);
+
+extern List get_known_regions();
 
 #if (LOG == 1)
 extern int printContactsGraph(FILE *file, time_t currentTime);

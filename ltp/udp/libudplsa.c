@@ -136,7 +136,7 @@ void	*udplsa_handle_datagrams(void *parm)
 	}
 
 	/*	Can now start receiving bundles.  On failure, take
-	 *	down the LSI.						*/
+	 *	down the link service input thread.			*/
 
 	while (rtp->running)
 	{	
@@ -145,13 +145,15 @@ void	*udplsa_handle_datagrams(void *parm)
 				0, (struct sockaddr *) &fromAddr, &fromSize);
 		switch (segmentLength)
 		{
+		case 0:	/*	Interrupted system call.		*/
+			continue;
+
 		case -1:
 			putSysErrmsg("Can't acquire segment", NULL);
 			ionKillMainThread(procName);
 
 			/*	Intentional fall-through to next case.	*/
 
-		case 0:
 		case 1:				/*	Normal stop.	*/
 			rtp->running = 0;
 			continue;

@@ -37,14 +37,15 @@ extern void	rfx_erase_data(PsmPartition partition, PsmAddress nodeData,
 
 /*	*	Functions for inserting and removing contact notes.	*/
 
-extern int		rfx_insert_contact(int regionIdx,
+extern int		rfx_insert_contact(uint32_t regionNbr,
 				time_t fromTime,
 				time_t toTime,
 				uvast fromNode,
 				uvast toNode,
 				size_t xmitRate,
 				float confidence,
-				PsmAddress *cxaddr);
+				PsmAddress *cxaddr,
+				int announce);
 			/*	Creates a new IonContact object,
 				inserts that object into the contacts
 				list of the applicable region in the
@@ -57,6 +58,16 @@ extern int		rfx_insert_contact(int regionIdx,
 				The new IonCXref object address is zero
 				if the contact was rejected.
 
+				If "announce" is 0, the contact is
+				only inserted privately to the local
+				node's own list of contacts.  If it
+				is non-zero, the parameters of the
+				contact are multicast to all members
+				of the indicated region so that the
+				contact may be inserted into all of
+				those nodes' lists of contacts as
+				well.
+
 				Returns zero on success, -1 on any
 				system error, an indicative value
 				greater than 0 on any user error.	*/
@@ -67,11 +78,20 @@ extern char		*rfx_print_contact(PsmAddress contact, char *buffer);
 				of length no less than RFX_NOTE_LEN.
 				Returns buffer, or NULL on any error.	*/
 
-extern int		rfx_revise_contact(time_t fromTime,
+extern void		rfx_brief_contacts(uint32_t regionNbr);
+			/*	Writes a file of commands that will
+			 *	recreate the current list of IonContact
+			 *	objects in the node's ION database, for
+			 *	the indicated region.  The file's name
+			 *	will be 'contacts.REGIONNBR.ionrc'.	*/
+
+extern int		rfx_revise_contact(uint32_t regionNbr,
+				time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
 				size_t xmitRate,
-				float confidence);
+				float confidence,
+				int announce);
 			/*	Revises the xmitRate of and possibly
 			 *	our confidence in an existing contact.
 
@@ -79,9 +99,11 @@ extern int		rfx_revise_contact(time_t fromTime,
 				system error, an indicative value
 				greater than 0 on any user error.	*/
 
-extern int		rfx_remove_contact(time_t *fromTime,
+extern int		rfx_remove_contact(uint32_t regionNbr,
+				time_t *fromTime,
 				uvast fromNode,
-				uvast toNode);
+				uvast toNode,
+				int announce);
 			/*	Removes the indicated IonContact
 				object from the time-ordered contacts
 				list in the ION database.
@@ -97,7 +119,8 @@ extern int		rfx_insert_range(time_t fromTime,
 				uvast fromNode,
 				uvast toNode,
 				unsigned int owlt,
-				PsmAddress *cxaddr);
+				PsmAddress *rxaddr,
+				int announce);
 			/*	Creates a new IonRange object,
 				inserts that object into the ranges
 				list in the ION database, and notes
@@ -120,9 +143,16 @@ extern char		*rfx_print_range(PsmAddress range, char *buffer);
 				system error, an indicative value
 				greater than 0 on any user error.	*/
 
+extern void		rfx_brief_ranges();
+			/*	Writes a file of commands that will
+			 *	recreate the current list of IonRange
+			 *	objects in the node's ION database.
+			 *	The file's name will be 'ranges.ionrc'.	*/
+
 extern int		rfx_remove_range(time_t *fromTime,
 				uvast fromNode,
-				uvast toNode);
+				uvast toNode,
+				int announce);
 			/*	Removes the indicated IonRange
 				object from the time-ordered ranges
 				list in the ION database.

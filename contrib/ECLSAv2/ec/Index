@@ -1,0 +1,11 @@
+This directory contains 3 subdirectoeis
+1) eclsa, the core of ECLSA, developoed at University of Bologna
+2) openfec containing the Openfec code ready to be compiled (already patched and with ab additional Makefile)
+3) libec ready to contain the DLR codes alternative to Openfec (not included here as they are not released as free code)
+
+It also contains two files to rebuild from scratch the content of the Openfec directory, as a backup
+1) a patch to fix a  bug in Openfec on 32 bit architectures
+2) A script to:
+a) download the Openfec code from original repositories" 
+b) patch the original code to fix a bug on 32 bit architectures"
+c) to write a Makefile to be used to automatically compile/install Openfec when eclsa is compiled/installed"

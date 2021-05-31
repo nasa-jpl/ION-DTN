@@ -67,7 +67,6 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#define-members">Macros</a> &#124;
-<a href="#typedef-members">Typedefs</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">rbt.h File Reference</div>  </div>
@@ -87,11 +86,6 @@ Macros</h2></td></tr>
 <tr class="separator:a216b31acf73ab31c4f2efcfbffb00975"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab38899b339e987e2574928789def1287"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbt_8h.html#ab38899b339e987e2574928789def1287">rbt_next</a>(<a class="el" href="structnode.html">node</a>)&#160;&#160;&#160;<a class="el" href="rbt_8h.html#afe8ab6006d2a4362a3a85353380e46d2">rbt_traverse</a>(<a class="el" href="structnode.html">node</a>, 1)</td></tr>
 <tr class="separator:ab38899b339e987e2574928789def1287"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
-Typedefs</h2></td></tr>
-<tr class="memitem:a23677e33a7d3f490489913d112508c1e"><td class="memItemLeft" align="right" valign="top">typedef int(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbt_8h.html#a23677e33a7d3f490489913d112508c1e">print_tree_node</a>) (FILE *, void *)</td></tr>
-<tr class="separator:a23677e33a7d3f490489913d112508c1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -137,9 +131,6 @@ Functions</h2></td></tr>
 <tr class="memitem:a0a638663916a22f85238fc6b6a7fafa5"><td class="memItemLeft" align="right" valign="top">unsigned long int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbt_8h.html#a0a638663916a22f85238fc6b6a7fafa5">rbt_length</a> (<a class="el" href="rbt__type_8h.html#a5997ef12e674365b89587cd592f30dfb">Rbt</a> *<a class="el" href="structrbt.html">rbt</a>)</td></tr>
 <tr class="memdesc:a0a638663916a22f85238fc6b6a7fafa5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of the nodes belonging to the rbt.  <a href="rbt_8h.html#a0a638663916a22f85238fc6b6a7fafa5">More...</a><br /></td></tr>
 <tr class="separator:a0a638663916a22f85238fc6b6a7fafa5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a831e570f6a20192b70d8254da61de831"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="rbt_8h.html#a831e570f6a20192b70d8254da61de831">printTreeInOrder</a> (<a class="el" href="rbt__type_8h.html#a5997ef12e674365b89587cd592f30dfb">Rbt</a> *<a class="el" href="structrbt.html">rbt</a>, FILE *file, <a class="el" href="rbt_8h.html#a23677e33a7d3f490489913d112508c1e">print_tree_node</a> print_function)</td></tr>
-<tr class="memdesc:a831e570f6a20192b70d8254da61de831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the tree from the first element to the last element.  <a href="rbt_8h.html#a831e570f6a20192b70d8254da61de831">More...</a><br /></td></tr>
-<tr class="separator:a831e570f6a20192b70d8254da61de831"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>In this file there are the declarations of the functions implemented in "rbt.c". </p>
@@ -197,83 +188,7 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<h2 class="groupheader">Typedef Documentation</h2>
-<a id="a23677e33a7d3f490489913d112508c1e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a23677e33a7d3f490489913d112508c1e">&#9670;&nbsp;</a></span>print_tree_node</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef int(* print_tree_node) (FILE *, void *)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a831e570f6a20192b70d8254da61de831"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a831e570f6a20192b70d8254da61de831">&#9670;&nbsp;</a></span>printTreeInOrder()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int printTreeInOrder </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="rbt__type_8h.html#a5997ef12e674365b89587cd592f30dfb">Rbt</a> *&#160;</td>
-          <td class="paramname"><em>rbt</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="rbt_8h.html#a23677e33a7d3f490489913d112508c1e">print_tree_node</a>&#160;</td>
-          <td class="paramname"><em>print_function</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Print the tree from the first element to the last element. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>printTreeInOrder</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>05/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">1</td><td>Success (tree printed) </td></tr>
-    <tr><td class="paramname">0</td><td>Error in some parameter (rbt NULL, file NULL, print_function NULL)</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">*rbt</td><td>The tree that we want to print </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want the tree will be printed </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">print_function</td><td>The function to print the data of an RbtNode</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">05/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
 <a id="a73fc504f72b58382d21f751e1d8fcaed"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a73fc504f72b58382d21f751e1d8fcaed">&#9670;&nbsp;</a></span>rbt_clear()</h2>
 

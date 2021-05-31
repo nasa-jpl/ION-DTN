@@ -22,7 +22,7 @@ a scheme dtn 'dtn2fw' 'dtn2adminep'
 #	immediately and silently discarding them (use 'x' instead of 'q' to
 #	discard).
 
-a endpoint dtn://host1.dtn x
+a endpoint dtn://host1.dtn/ x
 a endpoint dtn://host1.dtn/a q
 a endpoint dtn://host1.dtn/b q
 

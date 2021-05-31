@@ -26,9 +26,9 @@ in the RFX database by B<rfxclock>:
 If the rate of transmission to a neighbor was zero but is now non-zero, then
 transmission to that neighbor resumes.  The applicable "buffer empty"
 semaphore is given (enabling start of a new transmission session) and
-the best-efforts and/or reliable "segments ready" semaphores are given if the
-corresponding outbound segment queues are non-empty (enabling transmission of
-segments by the link service output task).
+the best-efforts and/or reliable "PDUs ready" semaphores are given if the
+corresponding outbound PDU queues are non-empty (enabling transmission of
+PDUs by the link service output task).
 
 If the rate of transmission to a neighbor was non-zero but is now zero, then
 transmission to that neighbor is suspended -- i.e., the semaphores triggering
@@ -46,7 +46,7 @@ transmission to that neighbor are resumed.
 
 =back
 
-Then B<bsspclock> enqueues for reliable transmission all segments for which
+Then B<bsspclock> enqueues for reliable transmission all blocks for which
 the best-efforts transmission acknowledgment timeout interval has now expired
 but no acknowledgment has yet been received.
 

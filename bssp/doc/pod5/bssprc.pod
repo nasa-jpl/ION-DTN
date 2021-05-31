@@ -74,8 +74,8 @@ so only the link-service-specific portion of the command should be provided
 in the I<LSO_command> string itself.
 
 I<queuing_latency> is the estimated number of seconds that we expect to lapse
-between reception of a segment at this node and transmission of an
-acknowledging segment, due to processing delay in the node.  (See the
+between reception of a block at this node and transmission of an
+acknowledging PDU, due to processing delay in the node.  (See the
 'm ownqtime' command below.)  The default value is 1.
 
 If I<queuing latency> a negative number, the absolute value of this number
@@ -88,6 +88,12 @@ bundles in each session's block, to avoid having to wait for the restart
 of transmission on this span before those bundles can be successfully
 transmitted.
 
+=item B<a seat> 'I<BE-BSO_command>' 'I<RL-BSO_command>'
+
+The B<add seat> command.  This command declares that the local BSSP engine
+can receive BSSP PDUs via the link service input daemons that begin
+running when 'I<BE-BSO_command>' and 'I<RL-BSO_command>' are executed.
+
 =item B<c span> I<peer_engine_nbr> I<max_nbr_of_sessions> I<max_block_size> 'I<BE-BSO_command>' 'I<RL-BSO_command> [I<queuing_latency>]
 
 The B<change span> command.  This command sets the indicated span's 
@@ -96,25 +102,42 @@ configuration parameters to the values provided as arguments.
 =item B<d span> I<peer_engine_nbr>
 
 The B<delete span> command.  This command deletes the span identified
-by I<peer_engine_nbr>.  The command will fail if any outbound segments
-for this span are pending transmission or any inbound blocks from the
-peer engine are incomplete.
+by I<peer_engine_nbr>.  The command will fail if any outbound blocks
+for this span are pending transmission.
+
+=item B<d seat> 'I<BE-BSO_command>' 'I<RL-BSO_command>'
+
+The B<delete span> command.  This command deletes the seat identified
+by 'I<BE-BSO_command>' and 'I<RL-BSO_command>'.
 
 =item B<i span> I<peer_engine_nbr>
 
 This command will print information (all configuration parameters)
 about the span identified by I<peer_engine_nbr>.
 
+=item B<i seat> 'I<BE-BSO_command>' 'I<RL-BSO_command>'
+
+This command will print all information (i.e., process ID numbers)
+about the seat identified by 'I<BE-BSO_command>' and 'I<RL-BSO_command>'.
+
 =item B<l span>
 
 This command lists all declared BSSP data interchange spans.
 
-=item B<s> 'I<BE-BSI_command>' 'I<RL-BSI_command>'
+=item B<l seat>
+
+This command lists all declared BSSP data acquisition seats.
+
+=item B<s> ['I<BE-BSI_command>' 'I<RL-BSI_command>']
 
 The B<start> command.  This command starts reliable and best-efforts link
 service output tasks for all BSSP spans (to remote engines) from the local
 BSSP engine, and it starts the reliable and best-efforts link service input
-tasks for the local engine.
+tasks for the local engine.  'I<BE-BSI_command>' and 'I<RL-BSI_command>'
+are deprecated but are supported for backward compatibility; if provided,
+the effect is the same as entering the command 
+"a seat 'I<BE-BSO_command>' 'I<RL-BSO_command>'" prior to starting all
+daemon tasks.
 
 =item B<m ownqtime> I<own_queuing_latency>
 

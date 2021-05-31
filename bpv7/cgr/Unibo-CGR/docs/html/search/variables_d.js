@@ -1,8 +1,9 @@
 var searchData=
 [
-  ['ordinal_1332',['ordinal',['../struct_cgr_bundle.html#aa5e6317db00a692853d6f3e9fc28f888',1,'CgrBundle']]],
-  ['originalroute_1333',['originalRoute',['../struct_c_g_r_route_block.html#ab28a15d4a074b5ef1ef7e25d55a7e9d2',1,'CGRRouteBlock']]],
-  ['overbooked_1334',['overbooked',['../structcgr_route.html#a2d66a038a714a0e54b6ad857c159d355',1,'cgrRoute']]],
-  ['owlt_1335',['owlt',['../structcgr_contact_note.html#a9e1f77a9efbfacb830d1fbcc1d9026b2',1,'cgrContactNote::owlt()'],['../struct_range.html#a9e1f77a9efbfacb830d1fbcc1d9026b2',1,'Range::owlt()']]],
-  ['owltsum_1336',['owltSum',['../structcgr_contact_note.html#ae77b491ab37c4cb6004f47bd585491fb',1,'cgrContactNote::owltSum()'],['../structcgr_route.html#ae77b491ab37c4cb6004f47bd585491fb',1,'cgrRoute::owltSum()']]]
+  ['parent_1205',['parent',['../structrbt_node.html#a4d9355be8ccc84b85b8603132ddd0871',1,'rbtNode']]],
+  ['pbat_1206',['pbat',['../structcgr_route.html#a8fcaad0eb7dc5329536954278eda9a0d',1,'cgrRoute']]],
+  ['predecessor_1207',['predecessor',['../structcgr_contact_note.html#a203f5aa7348aa7261dbe1f4eefb370e0',1,'cgrContactNote']]],
+  ['present_1208',['present',['../unibo-cgr_2_r_e_a_d_m_e_8txt.html#ae5f253f177cbbacd55549f30b88b59a6',1,'README.txt']]],
+  ['prev_1209',['prev',['../structnode_elt.html#a04b4df064e68a5fb4f2614bb66981c1d',1,'nodeElt']]],
+  ['priority_5flevel_1210',['priority_level',['../struct_cgr_bundle.html#add7cb61db63788acca541fcaa8d4af00',1,'CgrBundle']]]
 ];

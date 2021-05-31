@@ -223,6 +223,7 @@ static SecVdb	*_secvdb(char **name)
 		}
 
 		vdb = (SecVdb *) psp(wm, vdbAddress);
+		vdb->bpsecPolicyRules = 0;
 		vdb->publicKeys = sm_rbt_create(wm);
 		if (vdb->publicKeys == 0)
 		{
@@ -243,8 +244,6 @@ static SecVdb	*_secvdb(char **name)
 			oK(psm_uncatlg(wm, *name));
 			psm_free(wm, vdbAddress);
 		}
-
-		vdb->bpsecPolicyRules = 0;
 
 		sdr_exit_xn(sdr);	/*	Unlock memory.		*/
 	}

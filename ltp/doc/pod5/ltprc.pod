@@ -48,23 +48,23 @@ each "span" of potential LTP data exchange between the local LTP and
 neighboring engines are non-trivial to determine.  See the ION LTP
 configuration spreadsheet and accompanying documentation for details.
 
-=item B<a span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_limit> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
+=item B<a span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_threshold> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
 
 The B<add span> command.  This command declares that a I<span> of potential
 LTP data interchange exists between the local LTP engine and the indicated
 (neighboring) LTP engine.
 
-The I<max_segment_size> and I<aggregation_size_limit>
+The I<max_segment_size> and I<aggregation_size_threshold>
 are expressed as numbers of bytes of data.  I<max_segment_size>
 limits the size of each of the segments into which each outbound data
 I<block> will be divided; typically this limit will be the maximum number
 of bytes that can be encapsulated within a single transmission frame of the
 underlying I<link service>.
 
-I<aggregation_size_limit> limits the number of LTP service data units
+I<aggregation_size_threshold> limits the number of LTP service data units
 (e.g., bundles) that can be aggregated into a single block: when
 the sum of the sizes of all service data units aggregated into a block
-exceeds this limit, aggregation into this block must cease and the block
+exceeds this threshold, aggregation into this block must cease and the block
 must be segmented and transmitted.  
 
 I<aggregation_time_limit> alternatively limits the number of seconds that
@@ -106,7 +106,13 @@ bundles in each session's block, to avoid having to wait for the restart
 of transmission on this span before those bundles can be successfully
 transmitted.
 
-=item B<c span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_limit> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
+=item B<a seat> 'I<LSI_command>' 
+
+The B<add seat> command.  This command declares that the local LTP engine
+can receive LTP segments via the link service input daemon that begins
+running when I<'LSI_command'> is executed.
+
+=item B<c span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_threshold> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
 
 The B<change span> command.  This command sets the indicated span's 
 configuration parameters to the values provided as arguments.
@@ -118,20 +124,36 @@ by I<peer_engine_nbr>.  The command will fail if any outbound segments
 for this span are pending transmission or any inbound blocks from the
 peer engine are incomplete.
 
+=item B<d seat> 'I<LSI_command>'
+
+The B<delete seat> command.  This command deletes the seat identified
+by 'I<LSI_command>'.  
+
 =item B<i span> I<peer_engine_nbr>
 
 This command will print information (all configuration parameters)
 about the span identified by I<peer_engine_nbr>.
 
+=item B<i seat> 'I<LSI_command>'
+
+This command will print all information (i.e., process ID number) about
+the seat identified by 'I<LSI_command>'.  
+
 =item B<l span>
 
 This command lists all declared LTP data interchange spans.
 
-=item B<s> 'I<LSI command>'
+=item B<l seat>
 
-The B<start> command.  This command starts link service output tasks for
-all LTP spans (to remote engines) from the local LTP engine, and it starts
-the link service input task for the local engine.
+This command lists all declared LTP data acquisition seats.
+
+=item B<s> ['I<LSI_command>']
+
+The B<start> command.  This command starts link service input tasks for
+all LTP seats and output tasks for all LTP spans (to remote engines) from
+the local LTP engine.  'I<LSI_command>' is deprecated but is supported for
+backward compatibility; if provided, the effect is the same as entering
+the command "a seat 'I<LSI_command>'" prior to starting all daemon tasks.
 
 =item B<m heapmax> I<max_database_heap_per_block>
 
@@ -257,8 +279,8 @@ engine (ION node) numbered 19.  There can be at most 20 concurrent sessions
 of export activity to this node.  Conversely, node 19 can
 have at most 5 concurrent sessions of export activity to the local node.
 Maximum segment size for this span is set to 1024 bytes, aggregation size
-limit is 32768 bytes, aggregation time limit is 2 seconds, and the link service
-output task that is initiated when LTP is started on the local ION node
+threshold is 32768 bytes, aggregation time limit is 2 seconds, and the link
+service output task that is initiated when LTP is started on the local ION node
 will execute the I<udplso> program as indicated.
 
 =item m screening n

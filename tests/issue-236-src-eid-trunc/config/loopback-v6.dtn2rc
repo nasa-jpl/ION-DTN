@@ -1,0 +1,14 @@
+# dtn2rc configuration file for the src-eid truncation test.
+#	Essentially, this is the DTN scheme's routing table.
+#	Command: % dtn2admin loopback.dtn2rc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, Oct 2008
+
+# Add an egress plan.
+#	Bundles to be transmitted to host1 (that is, yourself).
+#	This element is named 'host1.'
+#	The plan is to queue for transmission (x) on protocol 'stcp' using
+#	the outduct identified by IP address 127.0.0.1
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan dtn://host1.dtn* x stcp/127.0.0.1:4556

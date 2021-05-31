@@ -51,6 +51,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "bssrecv.exe", "lt-bssrecv.exe", \
 "bssStreamingApp.exe", "lt-bssStreamingApp.exe", \
 "cgrfetch.exe", "lt-cgrfetch.exe", \
+"cpsd.exe", "lt-cpsd.exe", \
 "dgr2file.exe", "lt-dgr2file.exe", \
 "dgrcli.exe", "lt-dgrcli.exe", \
 "dgrclo.exe", "lt-dgrclo.exe", \

@@ -26,8 +26,6 @@
 extern "C" {
 #endif
 
-#define	BP_VERSION			7
-
 #define	BpUdpDefaultPortNbr		4556
 #define	BpTcpDefaultPortNbr		4556
 
@@ -211,6 +209,9 @@ typedef struct
 	char		*colon;
 	char		*nss;
 	int		nssLength;
+	char		*nodeName;
+	char		*delimiter;
+	char		*demux;
 	uvast		elementNbr;	/*	Node nbr or group nbr.	*/
 	unsigned int	serviceNbr;
 	char		nullEndpoint;	/*	Boolean.		*/
@@ -265,6 +266,7 @@ typedef enum
 	SrBlockUnintelligible,
 	SrHopCountExceeded,
 	SrTrafficPared,
+	SrBlockUnsupported,
 	SrMissingSecurityService,
 	SrUnknownSecurityService,
 	SrUnexpectedSecurityService,
@@ -272,7 +274,7 @@ typedef enum
 	SrConflictingSecurityServices
 } BpSrReason;
 
-typedef time_t		DtnTime;	/*	Epoch 2000.		*/
+typedef uvast		DtnTime;	/*	Epoch 2000 millisec.	*/
 
 typedef struct
 {
@@ -283,10 +285,10 @@ typedef struct
 	unsigned char	isFragment;	/*	Boolean.		*/
 	unsigned char	flags;
 	BpSrReason	reasonCode;
-	DtnTime		receiptTime;
-	DtnTime		forwardTime;
-	DtnTime		deliveryTime;
-	DtnTime		deletionTime;
+	DtnTime		receiptTime;	/*	msec since EPOCH_2000.	*/
+	DtnTime		forwardTime;	/*	msec since EPOCH_2000.	*/
+	DtnTime		deliveryTime;	/*	msec since EPOCH_2000.	*/
+	DtnTime		deletionTime;	/*	msec since EPOCH_2000.	*/
 } BpStatusRpt;
 
 /*	The convergence-layer adapter uses the ClDossier structure to
@@ -324,11 +326,11 @@ typedef struct
 	/*	Stuff in Primary block.					*/
 
 	unsigned int	bundleProcFlags;/*	Incl. SR requests.	*/
-	unsigned int	timeToLive;	/*	In seconds.		*/
+	uvast		timeToLive;	/*	In milliseconds.	*/
 	EndpointId	destination;	/*	...of bundle's ADU.	*/
 		/*	source of bundle's ADU is in the id field.	*/
 	EndpointId	reportTo;
-	unsigned int	expirationTime;	/*	Time tag in seconds.	*/
+	time_t		expirationTime;	/*	ctime in seconds.	*/
 		/*	creation time is in the id field.		*/
 	unsigned int	totalAduLength;
 		/*	fragment offset is in the id field.		*/
@@ -343,8 +345,8 @@ typedef struct
 
 	/*	Stuff in (or for) the Bundle Age extension block.	*/
 
-	unsigned int	age;		/*	In microseconds.	*/
-	struct timeval	arrivalTime;
+	uvast		age;		/*	In milliseconds.	*/
+	DtnTime		arrivalTime;	/*	msec since EPOCH_2000.	*/
 
 	/*	Stuff in (or for) the Hop Count extension block.	*/
 
@@ -764,7 +766,7 @@ typedef struct
 
 	/*	For computation of BpTimestamp values.			*/
 
-	time_t		creationTimeSec;/*	Epoch 2000.		*/
+	uvast		creationTimeRef;/*	Epoch 2000 millisec.	*/
 	unsigned int	bundleCounter;	/*	For value of count.	*/
 	unsigned int	maxBundleCount;	/*	Limits value of count.	*/
 
@@ -803,7 +805,13 @@ typedef struct
 #define BP_REASON_BLK_MALFORMED	8
 #define BP_REASON_TOO_MANY_HOPS	9
 #define BP_REASON_TRAFFIC_PARED	10
-#define BP_REASON_STATS		11
+#define BP_REASON_BLK_UNSUPPORT	11
+#define BP_REASON_SECOP_MISSING	12
+#define BP_REASON_SECOP_UNKNOWN	13
+#define BP_REASON_SECOP_UNEXPEC	14
+#define BP_REASON_SECOP_FAILED	15
+#define BP_REASON_SECOP_CLASHED	16
+#define BP_REASON_STATS		17
 
 #define	BP_DB_QUEUED_FOR_FWD	0
 #define	BP_DB_FWD_OKAY		1
@@ -859,6 +867,7 @@ typedef struct
 	int		updateStats;	/*	Boolean.		*/
 	int		bundleCounter;
 	int		clockPid;	/*	For stopping bpclock.	*/
+	int		cpsdPid;	/*	For stopping cpsd.	*/
 	int		transitPid;	/*	For stopping bptransit.	*/
 	sm_SemId	transitSemaphore;
 	int		watching;	/*	Activity watch switch.	*/
@@ -919,7 +928,7 @@ typedef struct
 extern int		bpSend(		MetaEid *sourceMetaEid,
 					char *destEid,
 					char *reportToEid,
-					int lifespan,
+					uvast lifespan,
 					int priority,
 					BpCustodySwitch custodySwitch,
 					unsigned char srrFlags,
@@ -1396,7 +1405,7 @@ extern int		removeScheme(char *name);
 extern int		bpStartScheme(char *name);
 extern void		bpStopScheme(char *name);
 
-extern void		findEndpoint(char *schemeName, char *nss,
+extern void		findEndpoint(char *schemeName, MetaEid *meid,
 				VScheme *vscheme, VEndpoint **vpoint,
 				PsmAddress *elt);
 /*	Note that adding an endpoint is also called "registering".	*/

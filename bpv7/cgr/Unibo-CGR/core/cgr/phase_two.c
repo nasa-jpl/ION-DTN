@@ -75,7 +75,6 @@ typedef struct {
 	 *        Resetted to 0 at each call to CGR.
 	 */
 	long unsigned int last_max_neighbors_number;
-
 } PhaseTwoSAP;
 
 typedef enum {
@@ -399,7 +398,7 @@ int reached_neighbors_limit(long unsigned int neighborsFound, long unsigned int 
  *  -------- | --------------- | -----------------------------------------------
  *  06/02/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-static int computeResidualBacklog(time_t current_time, unsigned long long localNode, Route *route, CgrScalar *allotment, CgrScalar *volume,
+static int computeResidualBacklog(unsigned long regionNbr, time_t current_time, unsigned long long localNode, Route *route, CgrScalar *allotment, CgrScalar *volume,
 		CgrScalar *residualBacklog)
 {
 	int result = -1;
@@ -413,7 +412,7 @@ static int computeResidualBacklog(time_t current_time, unsigned long long localN
 	loadCgrScalar(volume, 0);
 	loadCgrScalar(&applicableBacklogRelief, 0);
 
-	for (contact = get_first_contact_from_node_to_node(localNode, neighbor, &rbt_node);
+	for (contact = get_first_contact_from_node_to_node(regionNbr, localNode, neighbor, &rbt_node);
 			contact != NULL; contact = get_next_contact(&rbt_node))
 	{
 		if (contact->fromNode != localNode || contact->toNode != neighbor
@@ -850,7 +849,7 @@ static int computePBAT(time_t current_time, unsigned long long localNode, Route 
 		copyCgrScalar(&(route->committed), &totalBacklog);
 		copyCgrScalar(&residualBacklog, &applicableBacklog);
 
-		if (computeResidualBacklog(current_time, localNode, route, &allotment, &volume, &residualBacklog) < 0)
+		if (computeResidualBacklog(bundle->regionNbr, current_time, localNode, route, &allotment, &volume, &residualBacklog) < 0)
 		{
 			result = -3;
 		}
@@ -1658,16 +1657,9 @@ int getCandidateRoutes(Node *terminusNode, CgrBundle *bundle, List excludedNeigh
 			&& subsetComputedRoutes != NULL && missingNeighbors != NULL
 			&& candidateRoutes != NULL)
 	{
-		if(NEIGHBORS_DISCOVERED(terminusNode->routingObject))
-		{
-			// Get the max number of neighbors that could have a computed route to destination
-			*missingNeighbors = terminusNode->routingObject->citations->length;
-		}
-		else
-		{
-			// Get the neighbors count (all neighbors)
-			*missingNeighbors = get_local_node_neighbors_count();
-		}
+
+	    // Get the neighbors count (all neighbors)
+	    *missingNeighbors = get_local_node_neighbors_count();
 
 		max_neighbors_number = *missingNeighbors;
 

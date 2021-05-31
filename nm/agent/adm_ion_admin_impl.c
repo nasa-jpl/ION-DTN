@@ -944,7 +944,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	time_t      toTime = 0;
 	uvast       fromNodeNbr = 0;
 	uvast       toNodeNbr = 0;
-	int         regionIdx;
+	uint32_t       regionNbr;
 	PsmAddress  xaddr;
 	uvast    	xmitRate;
 	uvast       confidence;
@@ -972,7 +972,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 		toNodeNbr = adm_get_parm_uvast(parms, 3, &success);
 	}
 
-	regionIdx = ionRegionOf(fromNodeNbr, toNodeNbr);
+	oK(ionRegionOf(fromNodeNbr, toNodeNbr, &regionNbr));
 	if(success)
 	{
 		xmitRate = adm_get_parm_uvast(parms, 4, &success);
@@ -985,8 +985,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		if(rfx_insert_contact(regionIdx, fromTime, toTime, fromNodeNbr,
-				toNodeNbr, xmitRate, confidence, &xaddr) == 0)
+		if(rfx_insert_contact(regionNbr, fromTime, toTime, fromNodeNbr,
+			toNodeNbr, xmitRate, confidence, &xaddr, 0) == 0)
 		{
 			*status = CTRL_SUCCESS;
 		}
@@ -1021,6 +1021,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 	uvast   fromNodeNbr = 0;
 	uvast   toNodeNbr = 0;
 	int 	success = 0;
+	uint32_t	regionNbr;
 
 	timestamp = adm_get_parm_uint(parms, 0, &success);
 
@@ -1042,7 +1043,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 		{
 			return NULL;
 		}
-		if(rfx_remove_contact(&timestamp, fromNodeNbr, toNodeNbr) == 0)
+
+		oK(ionRegionOf(fromNodeNbr, toNodeNbr, &regionNbr));
+		if(rfx_remove_contact(regionNbr, &timestamp, fromNodeNbr,
+				toNodeNbr, 0) == 0)
 		{
 			// TODO _forecastNeeded(1);
 			*status = CTRL_SUCCESS;
@@ -1187,7 +1191,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 	    return NULL;
 	  }
 	  
-	  if(rfx_insert_range(start, stop, from_node, to_node, distance, &xaddr) >= 0 && xaddr != 0)
+	  if (rfx_insert_range(start, stop, from_node, to_node, distance,
+			&xaddr, 0) >= 0 && xaddr != 0)
 	  {
 	    *status = CTRL_SUCCESS;
 	  }
@@ -1235,7 +1240,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 
 	if(success)
 	{
-	  if(rfx_remove_range(&start, from_node, to_node) >= 0)
+	  if(rfx_remove_range(&start, from_node, to_node, 0) >= 0)
 	  {
 	    *status = CTRL_SUCCESS;
 	  }

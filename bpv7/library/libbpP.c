@@ -558,7 +558,7 @@ static int	raiseScheme(Object schemeElt, BpVdb *bpvdb)
 		getNameOfHost(hostNameBuf, MAXHOSTNAMELEN);
 #endif
 		isprintf(vscheme->adminEid, sizeof vscheme->adminEid,
-				"%.15s://%.60s.dtn", vscheme->name,
+				"%.15s://%.60s/", vscheme->name,
 				hostNameBuf);
 	}
 
@@ -644,7 +644,7 @@ static void	startScheme(VScheme *vscheme)
 
 		/*	Make sure admin endpoint exists.	*/
 
-		findEndpoint(vscheme->name, metaEid.nss, vscheme, &vpoint,
+		findEndpoint(vscheme->name, &metaEid, vscheme, &vpoint,
 				&vpointElt);
 		restoreEidString(&metaEid);
 		if (vpointElt == 0)
@@ -1274,6 +1274,7 @@ static BpVdb	*_bpvdb(char **name)
 		vdb->updateStats = db->updateStats;
 		vdb->bundleCounter = 0;
 		vdb->clockPid = ERROR;
+		vdb->cpsdPid = ERROR;
 		vdb->transitSemaphore = SM_SEM_NONE;
 		vdb->transitPid = ERROR;
 		vdb->watching = db->watching;
@@ -1614,6 +1615,13 @@ int	bpStart()
 		bpvdb->clockPid = pseudoshell(cmdString);
 	}
 
+	/*	Start the contact plan manager if necessary.		*/
+
+	if (bpvdb->cpsdPid == ERROR || sm_TaskExists(bpvdb->cpsdPid) == 0)
+	{
+		bpvdb->cpsdPid = pseudoshell("cpsd");
+	}
+
 	/*	Start the bundle transit daemon if necessary.		*/
 
 	if (bpvdb->transitPid == ERROR || sm_TaskExists(bpvdb->transitPid) == 0)
@@ -1716,6 +1724,11 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		sm_TaskKill(bpvdb->clockPid, SIGTERM);
 	}
 
+	if (bpvdb->cpsdPid != ERROR)
+	{
+		sm_TaskKill(bpvdb->cpsdPid, SIGTERM);
+	}
+
 	sm_SemEnd(bpvdb->transitSemaphore);
 	if (bpvdb->transitPid != ERROR)
 	{
@@ -1765,6 +1778,14 @@ void	bpStop()		/*	Reverses bpStart.		*/
 		}
 	}
 
+	if (bpvdb->cpsdPid != ERROR)
+	{
+		while (sm_TaskExists(bpvdb->cpsdPid))
+		{
+			microsnooze(100000);
+		}
+	}
+
 	if (bpvdb->transitPid != ERROR)
 	{
 		while (sm_TaskExists(bpvdb->transitPid))
@@ -1777,6 +1798,7 @@ void	bpStop()		/*	Reverses bpStart.		*/
 
 	CHKVOID(sdr_begin_xn(sdr));
 	bpvdb->clockPid = ERROR;
+	bpvdb->cpsdPid = ERROR;
 	bpvdb->transitPid = ERROR;
 	for (elt = sm_list_first(bpwm, bpvdb->schemes); elt;
 			elt = sm_list_next(bpwm, elt))
@@ -1906,8 +1928,25 @@ void	noteBundleRemoved(Bundle *bundle)
 
 void	getCurrentDtnTime(DtnTime *dt)
 {
+	struct timeval	tv;
+	uvast		tv_sec_epoch2000;
+	uvast		tv_sec_epoch2000_msec;
+	uvast		tv_usec_msec;
+
 	CHKVOID(dt);
-	*dt = getCtime() - EPOCH_2000_SEC;		/*	30 yrs	*/
+	if (gettimeofday(&tv, NULL) < 0)
+	{
+		putSysErrmsg("Can't get current DTN time", NULL);
+		*dt = 0;
+		return;
+	}
+
+	/*	EPOCH_2000_SEC is 30 years of seconds.			*/
+
+	tv_sec_epoch2000 = tv.tv_sec - EPOCH_2000_SEC;
+	tv_sec_epoch2000_msec = tv_sec_epoch2000 * 1000;
+	tv_usec_msec = tv.tv_usec / 1000;
+	*dt = tv_sec_epoch2000_msec + tv_usec_msec;
 }
 
 Throttle	*applicableThrottle(VPlan *vplan)
@@ -2065,6 +2104,7 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	 *	the EID string was successfully parsed.			*/
 
 	CHKZERO(eidString && metaEid && vscheme && vschemeElt);
+	memset((char *) metaEid, 0, sizeof(MetaEid));
 
 	/*	Handle special case of null endpoint ID.		*/
 
@@ -2084,7 +2124,6 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 
 	/*	EID string does not identify the null endpoint.		*/
 
-	metaEid->nullEndpoint = 0;
 	metaEid->colon = strchr(eidString, ':');
 	if (metaEid->colon == NULL)
 	{
@@ -2112,8 +2151,22 @@ int	parseEidString(char *eidString, MetaEid *metaEid, VScheme **vscheme,
 	switch (metaEid->schemeCodeNbr)
 	{
 	case dtn:
-		metaEid->elementNbr = 0;
-		metaEid->serviceNbr = 0;
+		if (metaEid->nssLength < 3
+		|| *(metaEid->nss) != '/'
+		|| *(metaEid->nss + 1) != '/')
+		{
+			*(metaEid->colon) = ':';
+			writeMemoNote("[?] Malformed URI", eidString);
+			return 0;
+		}
+
+		metaEid->nodeName = metaEid->nss + 2;
+		metaEid->delimiter = strchr(metaEid->nodeName, '/');
+		if (metaEid->delimiter)
+		{
+			metaEid->demux = metaEid->delimiter + 1;
+		}
+
 		return 1;
 
 	case ipn:
@@ -3012,12 +3065,13 @@ incomplete bundle.", NULL);
 /*	*	*	BP database mgt and access functions	*	*/
 
 static int	constructBundleHashKey(char *buffer, char *sourceEid,
-			unsigned int seconds, unsigned int count,
-			unsigned int offset, unsigned int length)
+			uvast msec, unsigned int count, unsigned int offset,
+			unsigned int length)
 {
 	memset(buffer, 0, BUNDLES_HASH_KEY_BUFLEN);
-	isprintf(buffer, BUNDLES_HASH_KEY_BUFLEN, "%s:%u:%u:%u:%u",
-			sourceEid, seconds, count, offset, length);
+	isprintf(buffer, BUNDLES_HASH_KEY_BUFLEN,
+			"%s:" UVAST_FIELDSPEC ":%u:%u:%u", sourceEid, msec,
+			count, offset, length);
 	return strlen(buffer);
 }
 
@@ -3034,7 +3088,7 @@ int	findBundle(char *sourceEid, BpTimestamp *creationTime,
 	CHKERR(sourceEid && creationTime && bundleAddr);
 	*bundleAddr = 0;	/*	Default: not found.		*/
 	CHKERR(ionLocked());
-	if (constructBundleHashKey(key, sourceEid, creationTime->seconds,
+	if (constructBundleHashKey(key, sourceEid, creationTime->msec,
 			creationTime->count, fragmentOffset, fragmentLength)
 			> BUNDLES_HASH_KEY_LEN)
 	{
@@ -3458,13 +3512,13 @@ void	bpStopScheme(char *name)
 	sdr_exit_xn(sdr);	/*	Unlock memory.			*/
 }
 
-void	findEndpoint(char *schemeName, char *nss, VScheme *vscheme,
+void	findEndpoint(char *schemeName, MetaEid *meid, VScheme *vscheme,
 		VEndpoint **vpoint, PsmAddress *vpointElt)
 {
 	PsmPartition	bpwm = getIonwm();
 	PsmAddress	elt;
 
-	CHKVOID(vpoint && vpointElt);
+	CHKVOID(meid && meid->nss && vpoint && vpointElt);
 	if (vscheme == NULL)
 	{
 		CHKVOID(schemeName);
@@ -3476,12 +3530,11 @@ void	findEndpoint(char *schemeName, char *nss, VScheme *vscheme,
 		}
 	}
 
-	CHKVOID(nss);
 	for (elt = sm_list_first(bpwm, vscheme->endpoints); elt;
 			elt = sm_list_next(bpwm, elt))
 	{
 		*vpoint = (VEndpoint *) psp(bpwm, sm_list_data(bpwm, elt));
-		if (strcmp((*vpoint)->nss, nss) == 0)
+		if (strcmp((*vpoint)->nss, meid->nss) == 0)
 		{
 			break;
 		}
@@ -3507,6 +3560,11 @@ static int	addEndpoint_IMC(VScheme *vscheme, char *eid)
 
 	CHKERR(parseEidString(eid, &metaEid, &vscheme, &elt));
 	petition.groupNbr = metaEid.elementNbr;
+	if (petition.groupNbr == 0)	/*	Pan-regional dispatch.	*/
+	{
+		return 0;
+	}
+
 	petition.isMember = 1;
 	result = imcSendPetition(&petition, 0);
 	restoreEidString(&metaEid);
@@ -3543,7 +3601,7 @@ int	addEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
+	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
 	if (elt != 0)	/*	This is a known endpoint.	*/
 	{
 		sdr_exit_xn(sdr);
@@ -3631,7 +3689,7 @@ int	updateEndpoint(char *eid, BpRecvRule recvRule, char *script)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
+	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
 	restoreEidString(&metaEid);
 	if (elt == 0)		/*	This is an unknown endpoint.	*/
 	{
@@ -3710,7 +3768,7 @@ int	removeEndpoint(char *eid)
 	}
 
 	CHKERR(sdr_begin_xn(sdr));
-	findEndpoint(NULL, metaEid.nss, vscheme, &vpoint, &elt);
+	findEndpoint(NULL, &metaEid, vscheme, &vpoint, &elt);
 	restoreEidString(&metaEid);
 	if (elt == 0)			/*	Not found.		*/
 	{
@@ -5308,17 +5366,7 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 			continue;
 		}
 
-		if (fragment->id.source.schemeCodeNbr == ipn)
-		{
-			if (fragment->id.source.ssp.ipn.nodeNbr !=
-					bundle->id.source.ssp.ipn.nodeNbr
-			|| fragment->id.source.ssp.ipn.serviceNbr !=
-					bundle->id.source.ssp.ipn.serviceNbr)
-			{
-				continue;
-			}
-		}
-		else	/*	Source EID scheme must be dtn.		*/
+		if (fragment->id.source.schemeCodeNbr == dtn)
 		{
 			readEid(&(fragment->id.source), &fragmentEid);
 			if (fragmentEid == NULL)
@@ -5336,11 +5384,21 @@ static int	findIncomplete(Bundle *bundle, VEndpoint *vpoint,
 				continue;	/*	No match.	*/
 			}
 		}
+		else	/*	Source EID scheme must be ipn.		*/
+		{
+			if (fragment->id.source.ssp.ipn.nodeNbr !=
+					bundle->id.source.ssp.ipn.nodeNbr
+			|| fragment->id.source.ssp.ipn.serviceNbr !=
+					bundle->id.source.ssp.ipn.serviceNbr)
+			{
+				continue;
+			}
+		}
 
 		/*	Compare creation times.				*/
 
-		if (fragment->id.creationTime.seconds ==
-				bundle->id.creationTime.seconds
+		if (fragment->id.creationTime.msec ==
+				bundle->id.creationTime.msec
 		&& fragment->id.creationTime.count ==
 				bundle->id.creationTime.count)
 		{
@@ -5414,88 +5472,59 @@ Object	insertBpTimelineEvent(BpEvent *newEvent)
 
 static void	computeExpirationTime(Bundle *bundle)
 {
-	unsigned int	secConsumed;
-	unsigned int	usecConsumed;
-	struct timeval	timeRemaining;
-	struct timeval	expirationTime;
+	uvast	expirationTimeMsec;
+	uvast	expirationTimeSec;
+	uvast	timeRemaining;
 
-	/*	Note: bundle creation time and expiration time are
-		DTN times, which are ctimes less EPOCH_2000_SEC.
+	/*	Note: bundle creation time and arrival time are
+	 *	DTN times in milliseconds.  Each is computed by
+	 *	taking current ctime (Unix epoch time), subtracting
+	 *	EPOCH_2000_SEC, and multiplying the result by 1000.
+	 *
+	 *	timeToLive and bundle age are likewise expressed in
+	 *	milliseconds.
+	 *
+	 *	But the events in the BP timeline are tagged by
+	 *	bundle expiration time, which is simply ctime.		*/
 
-		Bundle arrival time is simply a ctime (Unix epoch time).
-
-		The events in the BP timeline are tagged by ctime.	*/
-
-	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
+	if (ionClockIsSynchronized() && bundle->id.creationTime.msec > 0)
 	{
-		bundle->expirationTime = bundle->id.creationTime.seconds
+		expirationTimeMsec = bundle->id.creationTime.msec
 				+ bundle->timeToLive;
+		expirationTimeSec = expirationTimeMsec / 1000;
+		bundle->expirationTime = expirationTimeSec + EPOCH_2000_SEC;
 	}
-	else
+	else	/*	No accurate local clock reference.		*/
 	{
 		/*	Expiration time must be computed as the
-			current time plus the difference between
-			the bundle's time to live and the bundle's
-			current age.
+			sum of the bundle's arrival time and its
+			remaining time to live (i.e., its original
+			time to live minus its current age), divided
+			by 1000 to convert from msec to seconds,
+			plus EPOCH_2000_SEC.
 
-			(If the bundle's current age exceeds its time
+			If the bundle's current age exceeds its time
 			to live then the bundle's expiration time has
-			already been reached: it is the current time.)
+			already been reached: it is the current time.	*/
 
-			So initialize expiration time to the current
-			DTN time (ctime less the Epoch 2000 offset).	*/
-
-		bundle->expirationTime = getCtime() - EPOCH_2000_SEC;
-
-		/*	Compute remaining lifetime for bundle, by
-			subtracting bundle age from the bundle's TTL.	*/
-
-		timeRemaining.tv_sec = bundle->timeToLive;
-		timeRemaining.tv_usec = 0;
-		secConsumed = bundle->age / 1000000;
-		if (timeRemaining.tv_sec < secConsumed)
+		if (bundle->age > bundle->timeToLive)
 		{
+			bundle->expirationTime = getCtime();
 			return;
 		}
 
-		timeRemaining.tv_sec -= secConsumed;
-		usecConsumed = bundle->age % 1000000;
-		if (timeRemaining.tv_usec < usecConsumed)
-		{
-			if (timeRemaining.tv_sec == 0)
-			{
-				return;
-			}
+		/*	Else compute remaining lifetime for bundle,
+		 *	by subtracting bundle age from bundle's TTL.	*/
 
-			timeRemaining.tv_sec -= 1;
-			timeRemaining.tv_usec += 1000000;
-		}
-
-		timeRemaining.tv_usec -= usecConsumed;
+		timeRemaining = bundle->timeToLive - bundle->age;
 
 		/*	Add remaining lifetime to bundle's arrival
-		 *	time (in ctime) to get expiration time in
-		 *	ctime, then subtract EPOCH_2000_SEC to convert 
-		 *	to DTN time.				.	*/
+		 *	time to get expiration DTN time, then divide
+		 *	by 1000 and add EPOCH_2000_SEC.			*/
 
-		expirationTime.tv_sec = bundle->arrivalTime.tv_sec
-				+ timeRemaining.tv_sec;
-		expirationTime.tv_usec = bundle->arrivalTime.tv_usec
-				+ timeRemaining.tv_usec;
-		if (expirationTime.tv_usec > 1000000)
-		{
-			expirationTime.tv_sec += 1;
-			expirationTime.tv_usec -= 1000000;
-		}
-
-		/*	Round expiration time to the nearest second.	*/
-
-		if (expirationTime.tv_usec >= 500000)
-		{
-			expirationTime.tv_sec += 1;
-		}
-
-		bundle->expirationTime = expirationTime.tv_sec - EPOCH_2000_SEC;
+		expirationTimeMsec = bundle->arrivalTime + timeRemaining;
+		expirationTimeSec = expirationTimeMsec / 1000;
+		bundle->expirationTime = expirationTimeSec + EPOCH_2000_SEC;
 	}
 }
 
@@ -5503,11 +5532,12 @@ static int	setBundleTTL(Bundle *bundle, Object bundleObj)
 {
 	BpEvent	event;
 
-	/*	Schedule purge of this bundle on expiration of its
-	 *	time-to-live.  Bundle expiration time is event time.	*/
+	/*	Schedule purge of this bundle on expiration of
+	 *	its time-to-live.  Bundle expiration time is in
+	 *	milliseconds, so divide by 1000 and add offset.		*/
 
 	event.type = expiredTTL;
-	event.time = bundle->expirationTime + EPOCH_2000_SEC;
+	event.time = bundle->expirationTime;
 	event.ref = bundleObj;
 	bundle->timelineElt = insertBpTimelineEvent(&event);
 	if (bundle->timelineElt == 0)
@@ -5542,7 +5572,7 @@ static int	catalogueBundle(Bundle *bundle, Object bundleObj)
 	}
 
 	if (constructBundleHashKey(bundleKey, sourceEid,
-			bundle->id.creationTime.seconds,
+			bundle->id.creationTime.msec,
 			bundle->id.creationTime.count,
 			bundle->id.fragmentOffset,
 			bundle->totalAduLength == 0 ? 0 :
@@ -5979,7 +6009,8 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 static int	loadEids(Bundle *bundle, MetaEid *destMetaEid,
 			MetaEid *sourceMetaEid, MetaEid *reportToMetaEid)
 {
-	static MetaEid	nullMetaEid = {"dtn", 3, dtn, NULL, "none", 4, 0, 0, 1};
+	static MetaEid	nullMetaEid =
+		{"dtn", 3, dtn, NULL, "none", 4, NULL, NULL, NULL, 0, 0, 1};
 
 	if (writeEid(&(bundle->destination), destMetaEid) < 0)
 	{
@@ -6054,7 +6085,7 @@ static int	insertExtensions(Bundle *bundle, ExtensionSpec *extensions,
 }
 
 int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
-		char *reportToEidString, int lifespan, int classOfService,
+		char *reportToEidString, uvast lifespan, int classOfService,
 		BpCustodySwitch custodySwitch, unsigned char srrFlagsByte,
 		int ackRequested, BpAncillaryData *ancillaryData, Object adu,
 		Object *bundleObj, int adminRecordType)
@@ -6088,7 +6119,7 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 	ExtensionSpec	*extensions;
 	int		extensionsCt;
 
-	if (lifespan <= 0)
+	if (lifespan == 0)
 	{
 		writeMemoNote("[?] Invalid lifespan", itoa(lifespan));
 		return 0;
@@ -6196,11 +6227,19 @@ when asking for status reports.");
 	bundleProcFlags |= BDL_STATUS_TIME_REQ;
 	if (sourceMetaEid == NULL)
 	{
-		/*	An anonymous bundle has no unique keys,
-		 *	therefore can't be reassembled from fragments,
-		 *	therefore can't be fragmented.			*/
+		/*	An anonymous bundle has no unique key,
+		 *	therefore can't be reassembled from
+		 *	fragments, therefore can't be fragmented.	*/
 
 		bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
+	}
+
+	if (ancillaryData)
+	{
+		if (ancillaryData->doNotFragment)
+		{
+			bundleProcFlags |= BDL_DOES_NOT_FRAGMENT;
+		}
 	}
 
 	if (ackRequested)
@@ -6242,7 +6281,7 @@ when asking for status reports.");
 		 *
 		 *	For network management statistics....		*/
 
-		findEndpoint(sourceMetaEid->schemeName, sourceMetaEid->nss,
+		findEndpoint(sourceMetaEid->schemeName, sourceMetaEid,
 				NULL, &vpoint, &vpointElt);
 	}
 
@@ -6332,20 +6371,20 @@ when asking for status reports.");
 	if (ionClockIsSynchronized())
 	{
 		getCurrentDtnTime(&currentDtnTime);
-		if (bpdb.creationTimeSec == 0)	/*	First bundle.	*/
+		if (bpdb.creationTimeRef == 0)	/*	First bundle.	*/
 		{
-			bpdb.creationTimeSec = currentDtnTime;
+			bpdb.creationTimeRef = currentDtnTime;
 		}
 	}
 	else
 	{
 		/*	If no synchronized clock, then creationTime
-		 *	seconds is always zero.				*/
+		 *	milliseconds is always zero.			*/
 	       
 		currentDtnTime = 0;
 	}
 
-	bundle.id.creationTime.seconds = currentDtnTime;
+	bundle.id.creationTime.msec = currentDtnTime;
 
 	/*	In either case, a non-volatile bundle counter is
 	 *	incremented monotonically, resetting to zero only
@@ -6359,12 +6398,12 @@ when asking for status reports.");
 	{
 		if (ionClockIsSynchronized())
 		{
-			if (currentDtnTime > bpdb.creationTimeSec)
+			if (currentDtnTime > bpdb.creationTimeRef)
 			{
 				/*	Safe to roll the counter over.	*/
 
 				bpdb.bundleCounter = 0;
-				bpdb.creationTimeSec = currentDtnTime;
+				bpdb.creationTimeRef = currentDtnTime;
 			}
 		}
 		else	/*	No synchronized clock, just counter.	*/
@@ -6380,8 +6419,8 @@ when asking for status reports.");
 
 	/*	Load other bundle properties.				*/
 
-	getCurrentTime(&bundle.arrivalTime);
-	bundle.timeToLive = lifespan;
+	getCurrentDtnTime(&bundle.arrivalTime);
+	bundle.timeToLive = lifespan;	/*	In milliseconds.	*/
 	computeExpirationTime(&bundle);
 	bundle.destinations = sdr_list_create(sdr);
 	bundle.extensions = sdr_list_create(sdr);
@@ -6436,6 +6475,10 @@ when asking for status reports.");
 			userExtensions = ancillaryData->extensions;
 			userExtensionsCt = ancillaryData->extensionsCt;
 		}
+
+		/*	Also note imcRegionNbr (usually zero).		*/
+
+		bundle.ancillaryData.imcRegionNbr = ancillaryData->imcRegionNbr;
 	}
 
 	if (custodySwitch != NoCustodyRequested)
@@ -7767,8 +7810,11 @@ uvast	computeBufferCrc(BpCrcType crcType, unsigned char *buffer,
 
 		memset(buffer + (bytesToProcess - bytesToMask), 0, 4);
 	}
-
+#ifdef ENABLE_HIGH_SPEED
+	crc32 = ion_CRC32_1EDC6F41_C_slice((char *) buffer, bytesToProcess, crc32);
+#else
 	crc32 = ion_CRC32_1EDC6F41_C((char *) buffer, bytesToProcess, crc32);
+#endif
 	if (bytesToMask > 0)
 	{
 		insertedCrc32 = htonl(crc32);
@@ -8022,11 +8068,11 @@ requests prohibited for anonymous bundle.");
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't acquire bundle creation time.");
+		writeMemo("[?] Can't acquire bundle creation time (msec).");
 		return 0;
 	}
 
-	bundle->id.creationTime.seconds = uvtemp;
+	bundle->id.creationTime.msec = uvtemp;
 
 	/*	Acquire creation timestamp count.			*/
 
@@ -8051,12 +8097,12 @@ requests prohibited for anonymous bundle.");
 
 	/*	Initialize bundle age.					*/
 
-	if (ionClockIsSynchronized() && bundle->id.creationTime.seconds > 0)
+	if (ionClockIsSynchronized() && bundle->id.creationTime.msec > 0)
 	{
 		/*	Default bundle age, pending override by BAE.	*/
 
-		getCurrentDtnTime(&currentDtnTime);
-		bundle->age = currentDtnTime - bundle->id.creationTime.seconds;
+		getCurrentDtnTime(&currentDtnTime);	/*	msec	*/
+		bundle->age = currentDtnTime - bundle->id.creationTime.msec;
 	}
 	else
 	{
@@ -8347,7 +8393,7 @@ undefined block.");
 			/*	RFC BPbis 5.6 Step 4	*/
 
 			bundle->statusRpt.flags |= BP_RECEIVED_RPT;
-			bundle->statusRpt.reasonCode = SrBlockUnintelligible;
+			bundle->statusRpt.reasonCode = SrBlockUnsupported;
 			if (bundle->bundleProcFlags & BDL_STATUS_TIME_REQ)
 			{
 				getCurrentDtnTime
@@ -9029,6 +9075,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		return -1;
 	}
 
+	getCurrentDtnTime(&bundle->arrivalTime);
 	computeExpirationTime(bundle);
 	if (setBundleTTL(bundle, bundleObj) < 0)
 	{
@@ -9461,7 +9508,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
-	uvtemp = bundle->id.creationTime.seconds;
+	uvtemp = bundle->id.creationTime.msec;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 	uvtemp = bundle->id.creationTime.count;
 	oK(cbor_encode_integer(uvtemp, &cursor));
@@ -9512,7 +9559,7 @@ int	sendStatusRpt(Bundle *bundle)
 	int		priority = bundle->priority;
 	BpAncillaryData	ecos = { 0, 0, bundle->ancillaryData.ordinal };
 	Object		payloadZco = 0;
-	unsigned int	ttl;	/*	Original bundle's TTL.		*/
+	uvast		ttl;	/*	Original bundle's TTL.		*/
 	char		*reportToEid;
 	int		result;
 
@@ -9525,7 +9572,7 @@ int	sendStatusRpt(Bundle *bundle)
 	}
 
 	ttl = bundle->timeToLive;
-	if (ttl < 1) ttl = 1;
+	if (ttl < 1) ttl = 1000;	/*	Default is 1 second.	*/
 	readEid(&bundle->reportTo, &reportToEid);
 	if (reportToEid == NULL)
 	{
@@ -9719,11 +9766,11 @@ int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't acquire bundle creation time.");
+		writeMemo("[?] Can't acquire bundle creation time (msec).");
 		return 0;
 	}
 
-	rpt->creationTime.seconds = uvtemp;
+	rpt->creationTime.msec = uvtemp;
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
 		writeMemo("[?] Can't acquire bundle creation count.");
@@ -9889,9 +9936,9 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 	uvtemp = 2;
 	oK(cbor_encode_array_open(uvtemp, cursor));
 
-	/*	Creation time seconds.					*/
+	/*	Creation time milliseconds.				*/
 
-	uvtemp = bundle->id.creationTime.seconds;
+	uvtemp = bundle->id.creationTime.msec;
 	oK(cbor_encode_integer(uvtemp, cursor));
 
 	/*	Creation time count.					*/
@@ -11303,14 +11350,14 @@ static int	decodeHeader(Sdr sdr, ZcoReader *reader, unsigned char *buffer,
 		return -1;
 	}
 
-	/*	Get creation timestamp seconds.				*/
+	/*	Get creation timestamp milliseconds.			*/
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 0)
 	{
 		return -1;
 	}
 
-	image->id.creationTime.seconds = uvtemp;
+	image->id.creationTime.msec = uvtemp;
 
 	/*	Get creation timestamp count.				*/
 

@@ -98,8 +98,8 @@ Enumerations</h2></td></tr>
 <a class="el" href="phase__one_8c.html#aaff0c1d6e8cebd44f71354aac88dd76da584c7b286cb016af5c651d6dc174cc29">RangeFound</a> = 1
  }</td></tr>
 <tr class="separator:aaff0c1d6e8cebd44f71354aac88dd76d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acc0929b8e337ea79122018cf8fdd5688"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688">SuppressedFlag</a> { <a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688a386ff5d447525d9b71efa7ac3fbca3ee">NotSuppressed</a> = 0, 
-<a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688a59f22324aa759ae6c8b5aed6aaf8ea65">Suppressed</a> = 1, 
+<tr class="memitem:acc0929b8e337ea79122018cf8fdd5688"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688">SuppressedFlag</a> { <a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688ae82fe3b3d11ccec70c9093c3f6eab544">DijkstraNotSuppressed</a> = 0, 
+<a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688a04b645b716b27ef63734d3dac3ea7743">DijkstraSuppressed</a> = 1, 
 <a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688a0ee95903784e623340aaba4211adde99">SuppressedFromNodeForYenLoop</a> = 2, 
 <a class="el" href="phase__one_8c.html#acc0929b8e337ea79122018cf8fdd5688aa431375fc03f24264ab1ca18de0c922e">SuppressedToNodeForYenLoop</a> = 3
  }</td></tr>
@@ -191,15 +191,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a7a103a1172543b4d75c0ce59763d0d09"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__one_8c.html#a7a103a1172543b4d75c0ce59763d0d09">computeOtherRoutes</a> (<a class="el" href="nodes_8h.html#ac09cf950484bd9550d14d602b0e5e7fb">Node</a> *terminusNode, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> subsetComputedRoutes, long unsigned int missingNeighbors)</td></tr>
 <tr class="memdesc:a7a103a1172543b4d75c0ce59763d0d09"><td class="mdescLeft">&#160;</td><td class="mdescRight">For each route in Yen's "list A" we run the Yen's algorithm to compute other routes. Only one time per neighbor.  <a href="phase__one_8c.html#a7a103a1172543b4d75c0ce59763d0d09">More...</a><br /></td></tr>
 <tr class="separator:a7a103a1172543b4d75c0ce59763d0d09"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a94a0e01bdd80170ae99101d054cc034f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__one_8c.html#a94a0e01bdd80170ae99101d054cc034f">computeRoutes</a> (<a class="el" href="nodes_8h.html#ac09cf950484bd9550d14d602b0e5e7fb">Node</a> *terminusNode, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> subsetComputedRoutes, long unsigned int missingNeighbors)</td></tr>
-<tr class="memdesc:a94a0e01bdd80170ae99101d054cc034f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Phase one entry point: get the computed routes list.  <a href="phase__one_8c.html#a94a0e01bdd80170ae99101d054cc034f">More...</a><br /></td></tr>
-<tr class="separator:a94a0e01bdd80170ae99101d054cc034f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a318d67c8a0a688b252083356bbbf0c77"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__one_8c.html#a318d67c8a0a688b252083356bbbf0c77">print_phase_one_route</a> (FILE *file, <a class="el" href="routes_8h.html#a88b8c323d6cd602bd979ae688ad48006">Route</a> *route, unsigned int num)</td></tr>
-<tr class="memdesc:a318d67c8a0a688b252083356bbbf0c77"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the route in the "call" file in phase one format.  <a href="phase__one_8c.html#a318d67c8a0a688b252083356bbbf0c77">More...</a><br /></td></tr>
-<tr class="separator:a318d67c8a0a688b252083356bbbf0c77"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5e10905c92c340f5786bf555792960af"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__one_8c.html#a5e10905c92c340f5786bf555792960af">print_phase_one_routes</a> (FILE *file, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> computedRoutes)</td></tr>
-<tr class="memdesc:a5e10905c92c340f5786bf555792960af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the routes in the file in phase one format.  <a href="phase__one_8c.html#a5e10905c92c340f5786bf555792960af">More...</a><br /></td></tr>
-<tr class="separator:a5e10905c92c340f5786bf555792960af"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afbaf21dfc3d892dafacb8befb1898328"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="phase__one_8c.html#afbaf21dfc3d892dafacb8befb1898328">computeRoutes</a> (unsigned long regionNbr, <a class="el" href="nodes_8h.html#ac09cf950484bd9550d14d602b0e5e7fb">Node</a> *terminusNode, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> subsetComputedRoutes, long unsigned int missingNeighbors)</td></tr>
+<tr class="memdesc:afbaf21dfc3d892dafacb8befb1898328"><td class="mdescLeft">&#160;</td><td class="mdescRight">Phase one entry point: get the computed routes list.  <a href="phase__one_8c.html#afbaf21dfc3d892dafacb8befb1898328">More...</a><br /></td></tr>
+<tr class="separator:afbaf21dfc3d892dafacb8befb1898328"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides the implementation of the CGR's phase one: in this phase we compute the routes that can be used to reach an ipn node. </p>
@@ -264,8 +258,8 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="acc0929b8e337ea79122018cf8fdd5688a386ff5d447525d9b71efa7ac3fbca3ee"></a>NotSuppressed&#160;</td><td class="fielddoc"></td></tr>
-<tr><td class="fieldname"><a id="acc0929b8e337ea79122018cf8fdd5688a59f22324aa759ae6c8b5aed6aaf8ea65"></a>Suppressed&#160;</td><td class="fielddoc"></td></tr>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="acc0929b8e337ea79122018cf8fdd5688ae82fe3b3d11ccec70c9093c3f6eab544"></a>DijkstraNotSuppressed&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="acc0929b8e337ea79122018cf8fdd5688a04b645b716b27ef63734d3dac3ea7743"></a>DijkstraSuppressed&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="acc0929b8e337ea79122018cf8fdd5688a0ee95903784e623340aaba4211adde99"></a>SuppressedFromNodeForYenLoop&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="acc0929b8e337ea79122018cf8fdd5688aa431375fc03f24264ab1ca18de0c922e"></a>SuppressedToNodeForYenLoop&#160;</td><td class="fielddoc"></td></tr>
 </table>
@@ -961,8 +955,8 @@ resultRoute doesn't have to be NULL.</dd></dl>
 
 </div>
 </div>
-<a id="a94a0e01bdd80170ae99101d054cc034f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a94a0e01bdd80170ae99101d054cc034f">&#9670;&nbsp;</a></span>computeRoutes()</h2>
+<a id="afbaf21dfc3d892dafacb8befb1898328"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afbaf21dfc3d892dafacb8befb1898328">&#9670;&nbsp;</a></span>computeRoutes()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -970,6 +964,12 @@ resultRoute doesn't have to be NULL.</dd></dl>
         <tr>
           <td class="memname">int computeRoutes </td>
           <td>(</td>
+          <td class="paramtype">unsigned long&#160;</td>
+          <td class="paramname"><em>regionNbr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
           <td class="paramtype"><a class="el" href="nodes_8h.html#ac09cf950484bd9550d14d602b0e5e7fb">Node</a> *&#160;</td>
           <td class="paramname"><em>terminusNode</em>, </td>
         </tr>
@@ -1767,119 +1767,6 @@ resultRoute doesn't have to be NULL.</dd></dl>
 </li>
 </ol>
 </dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">30/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="a318d67c8a0a688b252083356bbbf0c77"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a318d67c8a0a688b252083356bbbf0c77">&#9670;&nbsp;</a></span>print_phase_one_route()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static void print_phase_one_route </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="routes_8h.html#a88b8c323d6cd602bd979ae688ad48006">Route</a> *&#160;</td>
-          <td class="paramname"><em>route</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">unsigned int&#160;</td>
-          <td class="paramname"><em>num</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Print the route in the "call" file in phase one format. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>print_phase_one_route</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>30/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>void</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want to print the route </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">*route</td><td>The Route that we want to print. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">num</td><td>The number of the route in the list</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Notes:</dt><dd><ol type="1">
-<li>For phase one computed routes we print only the values computed during that phase.</li>
-</ol>
-</dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">30/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="a5e10905c92c340f5786bf555792960af"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5e10905c92c340f5786bf555792960af">&#9670;&nbsp;</a></span>print_phase_one_routes()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void print_phase_one_routes </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a>&#160;</td>
-          <td class="paramname"><em>computedRoutes</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Print the routes in the file in phase one format. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>print_phase_one_routes</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>30/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>void</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want to print the routes </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">computedRoutes</td><td>The routes that we want to print</td></tr>
-  </table>
-  </dd>
-</dl>
 <dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
 <table class="markdownTable">
 <tr class="markdownTableHead">

@@ -102,28 +102,28 @@ $(function() {
 <div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
 <div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="preprocessor">#if (DEBUG_CGR == 1)</span></div>
 <div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160; </div>
-<div class="line"><a name="l00076"></a><span class="lineno"><a class="line" href="common_defines_8h.html#acd5efa977bf31ae02db4c55e7af5656b">   76</a></span>&#160;<span class="preprocessor">#define verbose_debug_printf(f_, ...) do { \</span></div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;<span class="preprocessor">#define verbose_debug_printf(f_, ...) do { \</span></div>
 <div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="preprocessor">    fprintf(stdout, &quot;At line %d of %s, %s(): &quot;</span>, __LINE__, __FILE__, __FUNCTION__); \</div>
 <div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    fprintf(stdout, (f_), ##__VA_ARGS__); \</div>
 <div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    fputc(&#39;\n&#39;, stdout); \</div>
 <div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    debug_fflush(stdout); \</div>
 <div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;} while(0)</div>
 <div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
-<div class="line"><a name="l00091"></a><span class="lineno"><a class="line" href="common_defines_8h.html#a724d3ed7ca587609e4d421b60ae79297">   91</a></span>&#160;<span class="preprocessor">#define flush_verbose_debug_printf(f_, ...) do { \</span></div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="preprocessor">#define flush_verbose_debug_printf(f_, ...) do { \</span></div>
 <div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="preprocessor">    fprintf(stdout, &quot;At line %d of %s, %s(): &quot;</span>, __LINE__, __FILE__, __FUNCTION__); \</div>
 <div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;    fprintf(stdout, (f_), ##__VA_ARGS__); \</div>
 <div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    fputc(&#39;\n&#39;, stdout); \</div>
 <div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;    fflush(stdout); \</div>
 <div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;} while(0)</div>
 <div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160; </div>
-<div class="line"><a name="l00106"></a><span class="lineno"><a class="line" href="common_defines_8h.html#a52ab2c6edab8acf09be0f64a42f79524">  106</a></span>&#160;<span class="preprocessor">#define flush_debug_printf(f_, ...) do { \</span></div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160;<span class="preprocessor">#define flush_debug_printf(f_, ...) do { \</span></div>
 <div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;<span class="preprocessor">    fprintf(stdout, &quot;%s(): &quot;</span>, __FUNCTION__); \</div>
 <div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;    fprintf(stdout, (f_), ##__VA_ARGS__); \</div>
 <div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;    fputc(&#39;\n&#39;, stdout); \</div>
 <div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;    fflush(stdout); \</div>
 <div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;} while(0)</div>
 <div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160; </div>
-<div class="line"><a name="l00121"></a><span class="lineno"><a class="line" href="common_defines_8h.html#a2a3553c2f0c4f1e54563050954e7f56c">  121</a></span>&#160;<span class="preprocessor">#define debug_printf(f_, ...) do { \</span></div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;<span class="preprocessor">#define debug_printf(f_, ...) do { \</span></div>
 <div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;<span class="preprocessor">    fprintf(stdout, &quot;%s(): &quot;</span>, __FUNCTION__); \</div>
 <div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160;    fprintf(stdout, (f_), ##__VA_ARGS__); \</div>
 <div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;    fputc(&#39;\n&#39;, stdout); \</div>
@@ -132,10 +132,10 @@ $(function() {
 <div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160; </div>
 <div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;<span class="preprocessor">#else</span></div>
 <div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;    <span class="comment">// empty define</span></div>
-<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;<span class="preprocessor">#define debug_printf(f_, ...) do { } while(0)</span></div>
-<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="preprocessor">#define verbose_debug_printf(f_, ...) do { } while(0)</span></div>
-<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;<span class="preprocessor">#define flush_debug_printf(f_, ...) do {  } while(0)</span></div>
-<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;<span class="preprocessor">#define flush_verbose_debug_printf(f_, ...) do {  } while(0)</span></div>
+<div class="line"><a name="l00130"></a><span class="lineno"><a class="line" href="common_defines_8h.html#a2a3553c2f0c4f1e54563050954e7f56c">  130</a></span>&#160;<span class="preprocessor">#define debug_printf(f_, ...) do { } while(0)</span></div>
+<div class="line"><a name="l00131"></a><span class="lineno"><a class="line" href="common_defines_8h.html#acd5efa977bf31ae02db4c55e7af5656b">  131</a></span>&#160;<span class="preprocessor">#define verbose_debug_printf(f_, ...) do { } while(0)</span></div>
+<div class="line"><a name="l00132"></a><span class="lineno"><a class="line" href="common_defines_8h.html#a52ab2c6edab8acf09be0f64a42f79524">  132</a></span>&#160;<span class="preprocessor">#define flush_debug_printf(f_, ...) do {  } while(0)</span></div>
+<div class="line"><a name="l00133"></a><span class="lineno"><a class="line" href="common_defines_8h.html#a724d3ed7ca587609e4d421b60ae79297">  133</a></span>&#160;<span class="preprocessor">#define flush_verbose_debug_printf(f_, ...) do {  } while(0)</span></div>
 <div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160; </div>
 <div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;<span class="preprocessor">#include &quot;<a class="code" href="log_8h.html">log/log.h</a>&quot;</span></div>

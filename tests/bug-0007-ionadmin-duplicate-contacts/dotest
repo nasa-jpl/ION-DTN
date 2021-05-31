@@ -31,6 +31,8 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
+export ION_NODE_LIST_DIR=$PWD
+rm ion_nodes
 ./cleanup
 
 #Start ION
@@ -38,9 +40,9 @@ echo "Starting ion node..."
 ionadmin ./config.ionrc > tmp.txt
 
 #Count how many contacts ION thinks it has (the last command in config.ionrc lists
-#the contacts). There should only be 1 contact.
+#the contacts). There should only be 1 contact, plus the registration contact.
 RESULTS=`cat tmp.txt | grep "the xmit rate from node" | wc -l`
-if [ -e "tmp.txt" ] && [ $RESULTS -eq 1 ]; then
+if [ -e "tmp.txt" ] && [ $RESULTS -eq 2 ]; then
 	echo "The Contact was not duplicated! SUCCESS!"
 	echo ""
 	rm tmp.txt

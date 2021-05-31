@@ -74,9 +74,9 @@ extern int initialize_contact_plan();
 
 extern void removeExpired(time_t time);
 
-extern int addContact(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
+extern int addContact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode, time_t fromTime,
 		time_t toTime, long unsigned int xmitRate, float confidence, int copyMTV, double mtv[]);
-extern int removeContact(unsigned long long fromNode, unsigned long long toNode,
+extern int removeContact(unsigned long regionNbr, unsigned long long fromNode, unsigned long long toNode,
 		time_t *fromTime);
 
 extern int addRange(unsigned long long fromNode, unsigned long long toNode, time_t fromTime,

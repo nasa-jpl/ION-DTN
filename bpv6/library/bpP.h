@@ -26,8 +26,6 @@
 extern "C" {
 #endif
 
-#define	BP_VERSION			6
-
 #define	BpUdpDefaultPortNbr		4556
 #define	BpTcpDefaultPortNbr		4556
 

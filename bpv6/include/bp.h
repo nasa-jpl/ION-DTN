@@ -27,6 +27,8 @@
 extern "C" {
 #endif
 
+#define	BP_VERSION		6
+
 typedef struct
 {
 	time_t			seconds;	/*	Epoch 2000.	*/

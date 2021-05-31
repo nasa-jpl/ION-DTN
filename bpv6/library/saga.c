@@ -38,12 +38,14 @@ static int	removePredictedContacts(int regionIdx)
 {
 	Sdr		sdr = getIonsdr();
 	IonDB		iondb;
+	uint32_t	regionNbr;
 	Object		obj;
 	Object		elt;
 	Object		nextElt;
 	IonContact	contact;
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
+	regionNbr = iondb.regions[regionIdx].regionNbr;
 	CHKERR(sdr_begin_xn(sdr));
 	for (elt = sdr_list_first(sdr, iondb.regions[regionIdx].contacts); elt;
 		       	elt = nextElt)
@@ -59,11 +61,10 @@ static int	removePredictedContacts(int regionIdx)
 
 		/*	This is a predicted contact.		*/
 
-		if (rfx_remove_contact(&contact.fromTime,
-				contact.fromNode, contact.toNode) < 0)
+		if (rfx_remove_contact(regionNbr, &contact.fromTime,
+				contact.fromNode, contact.toNode, 0) < 0)
 		{
-			putErrmsg("Failure in rfx_remove_contact.",
-					NULL);
+			putErrmsg("Failure in rfx_remove_contact.", NULL);
 			break;
 		}
 	}
@@ -230,6 +231,8 @@ static int	processSequence(LystElt start, LystElt end, time_t currentTime,
 	Sdr		sdr = getIonsdr();
 	Object		dbobj = getBpDbObject();
 	BpDB		db;
+	Object		iondbObj = getIonDbObject();
+	IonDB		iondb;
 	uvast		fromNode;
 	uvast		toNode;
 	time_t		horizon;
@@ -417,10 +420,12 @@ printf("Net confidence %f.\n", netConfidence);
 	/*	Insert predicted contact (aggregate).			*/
 
 	xmitRate = totalCapacity / (horizon - currentTime);
+	sdr_read(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	if (xmitRate > 1)
 	{
-		if (rfx_insert_contact(regionIdx, horizon, horizon, fromNode,
-				toNode, xmitRate, netConfidence, &cxaddr) < 0
+		if (rfx_insert_contact(iondb.regions[regionIdx].regionNbr,
+				horizon, horizon, fromNode, toNode,
+				xmitRate, netConfidence, &cxaddr, 0) < 0
 		|| cxaddr == 0)
 		{
 			putErrmsg("Can't insert predicted contact.", NULL);

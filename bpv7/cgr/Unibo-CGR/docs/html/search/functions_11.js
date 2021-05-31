@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['writelog_1232',['writeLog',['../log_8c.html#a4a910c2b977b8cfa71448e92c5ee8d46',1,'writeLog(const char *format,...):&#160;log.c'],['../log_8h.html#a4a910c2b977b8cfa71448e92c5ee8d46',1,'writeLog(const char *format,...):&#160;log.c']]],
-  ['writelogflush_1233',['writeLogFlush',['../log_8c.html#a1b4d7ae59e0559c19c6a73873a4b508c',1,'writeLogFlush(const char *format,...):&#160;log.c'],['../log_8h.html#a1b4d7ae59e0559c19c6a73873a4b508c',1,'writeLogFlush(const char *format,...):&#160;log.c']]]
+  ['zco_5fincrease_5fheap_5foccupancy_1108',['zco_increase_heap_occupancy',['../ion__bpv6_2extensions_2cgrr_2cgrr__utils_8c.html#a532b5ef28786796b87e75d289d1786d6',1,'zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct):&#160;cgrr_utils.c'],['../ion__bpv7_2extensions_2cgrr_2cgrr__utils_8c.html#a532b5ef28786796b87e75d289d1786d6',1,'zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct):&#160;cgrr_utils.c']]],
+  ['zco_5freduce_5fheap_5foccupancy_1109',['zco_reduce_heap_occupancy',['../ion__bpv6_2extensions_2cgrr_2cgrr__utils_8c.html#a8f95ee7174f0dd2c633405edbf4feac1',1,'zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct):&#160;cgrr_utils.c'],['../ion__bpv7_2extensions_2cgrr_2cgrr__utils_8c.html#a8f95ee7174f0dd2c633405edbf4feac1',1,'zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct):&#160;cgrr_utils.c']]]
 ];

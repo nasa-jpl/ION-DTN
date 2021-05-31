@@ -1533,17 +1533,20 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 	}
 
 	/*	Block's signature needs to be verified.	*/
+#if 0
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
 	    /*  Waypoint source.        */
+#endif
         readEid(&(asb->securitySource), &fromEid);
+#if 0
 	}
 	else
 	{
 	    /*  Bundle source.          */
 	    readEid(&(bundle->id.source), &fromEid);
 	}
-
+#endif
 	if (fromEid == NULL)
 	{
 	    ADD_BIB_RX_FAIL(NULL, 1, 0);
@@ -1742,20 +1745,24 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 	target = (BpsecInboundTarget *) lyst_data(targetElt);
 	bib = (AcqExtBlock *) lyst_data(bibElt);
 	asb = (BpsecInboundBlock *) (bib->object);
+#if 0
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
 		/*	Waypoint source.				*/
+#endif
+	readEid(&(asb->securitySource), &fromEid);
+	if (fromEid == NULL)
+	{
+		ADD_BIB_RX_FAIL(NULL, 1, 0);
 
-		readEid(&(asb->securitySource), &fromEid);
-		if (fromEid == NULL)
-		{
-			ADD_BIB_RX_FAIL(NULL, 1, 0);
-			/* Handle sop_misconf_at_verifier event */
-			bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
-				 sop_misconf_at_verifier, bibElt, targetElt,
-				 target->targetBlockNumber);
-			return -1;
-		}
+		/*	Handle sop_misconf_at_verifier event		*/
+
+		bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+			 sop_misconf_at_verifier, bibElt, targetElt,
+			 target->targetBlockNumber);
+		return -1;
+	}
+#if 0
 	}
 	else	/*	Bundle origin source.				*/
 	{
@@ -1770,7 +1777,7 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 			return -1;
 		}
 	}
-
+#endif
 	length = bpsec_canonicalizeIn(work, blockNbr, &targetZco);
 	if (length < 1)
 	{

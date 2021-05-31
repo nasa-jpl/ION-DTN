@@ -29,8 +29,8 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 		return -1;
 	}
 
-	isprintf(memobuf, sizeof memobuf, "[s] bundle (%s), %u:%u, %u \
-status is %d", sourceEid, rpt.creationTime.seconds,
+	isprintf(memobuf, sizeof memobuf, "[s] bundle (%s), " UVAST_FIELDSPEC
+		":%u, %u status is %d", sourceEid, rpt.creationTime.msec,
 		rpt.creationTime.count, rpt.fragmentOffset, rpt.reasonCode);
 	writeMemo(memobuf);
 	MRELEASE(sourceEid);

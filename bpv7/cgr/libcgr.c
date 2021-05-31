@@ -337,7 +337,6 @@ static int	getApplicableRange(IonCXref *contact, unsigned int *owlt)
 		{
 			/*	Range unknown at contact start time.	*/
 
-			break;
 		}
 
 		/*	Found applicable range.				*/
@@ -435,6 +434,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	IonCXref	*current;
 	CgrContactNote	*currentWork;
 	IonCXref	arg;
+	uint32_t	regionNbr;
 	PsmAddress	elt;
 	PsmAddress	contactAddr;
 	IonCXref	*contact;
@@ -458,7 +458,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 	TRACE(CgrBeginRoute);
 	current = rootContact;
 	currentWork = rootWork;
-	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(current->toNode, terminusNode->nodeNbr, &regionNbr));
 
 	/*	Perform this outer loop until either the best
 	 *	route to the end vertex has been identified or else
@@ -485,6 +485,8 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		 *	be transmitted during that contact.		*/
 
 		TRACE(CgrConsiderRoot, current->fromNode, current->toNode);
+		memset((char *) &arg, 0, sizeof(IonCXref));
+		arg.regionNbr = regionNbr;
 		arg.fromNode = current->toNode;
 		for (oK(sm_rbt_search(ionwm, ionvdb->contactIndex,
 				rfx_order_contacts, &arg, &elt));
@@ -492,6 +494,11 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 		{
 			contactAddr = sm_rbt_data(ionwm, elt);
 			contact = (IonCXref *) psp(ionwm, contactAddr);
+			if (contact->type == CtRegistration)
+			{
+				continue;	/*	No bearing.	*/
+			}
+
 			if (contact->toTime <= currentTime)
 			{
 				/*	Contact is ended, is about to
@@ -617,8 +624,7 @@ static int	computeDistanceToTerminus(IonCXref *rootContact,
 
 				work->arrivalTime = arrivalTime;
 				work->predecessor = current;
-				work->hopCount =
-					(getWorkArea(ionwm, current))->hopCount;
+				work->hopCount = currentWork->hopCount;
 				work->hopCount++;
 			}
 		}
@@ -1377,6 +1383,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 	loadScalar(&allotment, 0);
 	loadScalar(&volume, 0);
 	memset((char *) &arg, 0, sizeof(IonCXref));
+	oK(ionRegionOf(ownNodeNbr, route->toNodeNbr, &arg.regionNbr));
 	arg.fromNode = ownNodeNbr;
 	arg.toNode = route->toNodeNbr;
 	for (oK(sm_rbt_search(ionwm, vdb->contactIndex, rfx_order_contacts,
@@ -1687,7 +1694,7 @@ static time_t	computePBAT(CgrRoute *route, Bundle *bundle,
 				+ radiationLatency.units);
 	}
 
-	if (acqTime > (bundle->expirationTime + EPOCH_2000_SEC))
+	if (acqTime > bundle->expirationTime)
 	{
 		/*	Bundle will never arrive: it will expire
 		 *	before arrival.					*/
@@ -2356,7 +2363,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle,
 	CgrRtgObject	*routingObj;
 	int		potential;
 
-	deadline = bundle->expirationTime + EPOCH_2000_SEC;
+	deadline = bundle->expirationTime;
 	routingObj = (CgrRtgObject *) psp(ionwm, terminusNode->routingObject);
 	CHKERR(routingObj);
 	if (routingObj->selectedRoutes == 0)
@@ -2489,7 +2496,7 @@ int	cgr_preview_forward(uvast terminusNodeNbr, Bundle *bundle,
 
 #endif
 
-int	cgr_prospect(uvast terminusNodeNbr, unsigned int deadline)
+int	cgr_prospect(uvast terminusNodeNbr, time_t deadline)
 {
 	PsmPartition	wm = getIonwm();
 	IonVdb		*ionvdb = getIonVdb();

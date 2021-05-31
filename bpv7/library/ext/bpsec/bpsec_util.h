@@ -146,7 +146,6 @@ extern char	gMsg[GMSG_BUFLEN];
  * SEC_SRC:	Block contains a security source EID.
  * PARM:	Block contains context parameters.
  */
-#define BPSEC_ASB_SEC_SRC	0x02
 #define BPSEC_ASB_PARM		0x01
 
 /**

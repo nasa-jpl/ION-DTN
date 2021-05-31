@@ -70,20 +70,23 @@ static void	printUsage()
 	PUTS("\t   1 <est. max number of sessions>");
 	PUTS("\ta\tAdd");
 	PUTS("\t   a span <engine ID#> <max export sessions> \
-<max import sessions> <max segment size> <aggregation size limit> \
+<max import sessions> <max segment size> <aggregation size threshold> \
 <aggregation time limit> '<LSO command>' [queuing latency, in seconds]");
 	PUTS("\t\tIf queuing latency is negative, the absolute value of this \
 number is used as the actual queuing latency and session purging is enabled.  \
 See man(5) for ltprc.");
+	PUTS("\t   a seat '<LSI command>'");
 	PUTS("\tc\tChange");
 	PUTS("\t   c span <engine ID#> <max export sessions> \
-<max import sessions> <max segment size> <aggregation size limit> \
+<max import sessions> <max segment size> <aggregation size threshold> \
 <aggregation time limit> '<LSO command>' [queuing latency, in seconds]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} span <engine ID#>");
+	PUTS("\t   {d|i} seat '<LSI command>'");
 	PUTS("\tl\tList");
 	PUTS("\t   l span");
+	PUTS("\t   l seat");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single inbound block>");
 	PUTS("\t   m screening {y | on | n | off}");
@@ -91,7 +94,7 @@ See man(5) for ltprc.");
 	PUTS("\t   m maxber <max expected bit error rate; default is .000001>");
 	PUTS("\t   m maxbacklog <max block delivery backlog; default is 10>");
 	PUTS("\ts\tStart");
-	PUTS("\t   s '<LSI command>'");
+	PUTS("\t   s ['<LSI command>']");
 	PUTS("\tx\tStop");
 	PUTS("\t   x");
 	PUTS("\tw\tWatch LTP activity");
@@ -147,8 +150,43 @@ static int	attachToLtp()
 	return 0;
 }
 
+static void	composeLsiCmd(int tokenCount, char **tokens, char *lsiCmd)
+{
+	switch (tokenCount)
+	{
+	case 4:
+		isprintf(lsiCmd, 256, "%s %s", tokens[2], tokens[3]);
+		break;
+
+	case 3:
+		istrcpy(lsiCmd, tokens[2], 256);
+		break;
+
+	default:
+		*lsiCmd = '\0';
+	}
+}
+
+static void	patchLsiCmd(int tokenCount, char **tokens, char *lsiCmd)
+{
+	switch (tokenCount)
+	{
+	case 3:
+		isprintf(lsiCmd, 256, "%s %s", tokens[1], tokens[2]);
+		break;
+
+	case 2:
+		istrcpy(lsiCmd, tokens[1], 256);
+		break;
+
+	default:
+		*lsiCmd = '\0';
+	}
+}
+
 static void	executeAdd(int tokenCount, char **tokens)
 {
+	char	lsiCmd[256];
 	uvast	engineId;
 	int	qTime = 1;			/*	Default.	*/
 	int	purge = 0;			/*	Default.	*/
@@ -156,6 +194,19 @@ static void	executeAdd(int tokenCount, char **tokens)
 	if (tokenCount < 2)
 	{
 		printText("Add what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "seat") == 0)
+	{
+		composeLsiCmd(tokenCount, tokens, lsiCmd);
+		if (lsiCmd[0] == '\0')
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		oK(addSeat(lsiCmd));
 		return;
 	}
 
@@ -285,11 +336,25 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	char	lsiCmd[256];
 	uvast	engineId;
 
 	if (tokenCount < 2)
 	{
 		printText("Delete what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "seat") == 0)
+	{
+		composeLsiCmd(tokenCount, tokens, lsiCmd);
+		if (lsiCmd[0] == '\0')
+		{
+			SYNTAX_ERROR;
+			return;
+		}
+
+		oK(removeSeat(lsiCmd));
 		return;
 	}
 
@@ -302,11 +367,26 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		engineId = strtouvast(tokens[2]);
-		removeSpan(engineId);
+		oK(removeSpan(engineId));
 		return;
 	}
 
 	SYNTAX_ERROR;
+}
+
+static void	printSeat(LtpVseat *vseat)
+{
+	Sdr	sdr = getIonsdr();
+		OBJ_POINTER(LtpSeat, seat);
+	char	cmd[SDRSTRING_BUFSZ];
+	char	buffer[256];
+
+	CHKVOID(sdr_begin_xn(sdr));
+	GET_OBJ_POINTER(sdr, LtpSeat, seat, sdr_list_data(sdr, vseat->seatElt));
+	sdr_string_read(sdr, cmd, seat->lsiCmd);
+	isprintf(buffer, sizeof buffer, "'%.128s' pid: %d", cmd, vseat->lsiPid);
+	sdr_exit_xn(sdr);
+	printText(buffer);
 }
 
 static void	printSpan(LtpVspan *vspan)
@@ -320,7 +400,7 @@ static void	printSpan(LtpVspan *vspan)
 	GET_OBJ_POINTER(sdr, LtpSpan, span, sdr_list_data(sdr, vspan->spanElt));
 	sdr_string_read(sdr, cmd, span->lsoCmd);
 	isprintf(buffer, sizeof buffer,
-			UVAST_FIELDSPEC "  pid: %d  cmd: %.128s",
+			UVAST_FIELDSPEC "  pid: %d  cmd: '%.128s'",
 			vspan->engineId, vspan->lsoPid, cmd);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "\tmax export sessions: %u",
@@ -329,7 +409,7 @@ static void	printSpan(LtpVspan *vspan)
 	isprintf(buffer, sizeof buffer, "\tmax import sessions: %u",
 			span->maxImportSessions);
 	printText(buffer);
-	isprintf(buffer, sizeof buffer, "\taggregation size limit: %u  \
+	isprintf(buffer, sizeof buffer, "\taggregation size threshold: %u  \
 aggregation time limit: %u", span->aggrSizeLimit, span->aggrTimeLimit);
 	printText(buffer);
 	isprintf(buffer, sizeof buffer, "\tmax segment size: %u  queuing \
@@ -340,6 +420,32 @@ owltInbound: %u  remoteXmit: %u", vspan->owltOutbound, vspan->localXmitRate,
 			vspan->owltInbound, vspan->remoteXmitRate);
 	sdr_exit_xn(sdr);
 	printText(buffer);
+}
+
+static void	infoSeat(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	char		lsiCmd[256];
+	LtpVseat	*vseat;
+	PsmAddress	vseatElt;
+
+	composeLsiCmd(tokenCount, tokens, lsiCmd);
+	if (lsiCmd[0] == '\0')
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	findSeat(lsiCmd, &vseat, &vseatElt);
+	sdr_exit_xn(sdr);
+	if (vseatElt == 0)
+	{
+		printText("Unknown seat.");
+		return;
+	}
+
+	printSeat(vseat);
 }
 
 static void	infoSpan(int tokenCount, char **tokens)
@@ -376,6 +482,12 @@ static void	executeInfo(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "seat") == 0)
+	{
+		infoSeat(tokenCount, tokens);
+		return;
+	}
+
 	if (strcmp(tokens[1], "span") == 0)
 	{
 		infoSpan(tokenCount, tokens);
@@ -383,6 +495,31 @@ static void	executeInfo(int tokenCount, char **tokens)
 	}
 
 	SYNTAX_ERROR;
+}
+
+static void	listSeats(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	LtpVdb		*vdb = getLtpVdb();
+	PsmPartition	ionwm = getIonwm();
+	PsmAddress	elt;
+	LtpVseat	*vseat;
+
+	if (tokenCount != 2)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	for (elt = sm_list_first(ionwm, vdb->seats); elt;
+			elt = sm_list_next(ionwm, elt))
+	{
+		vseat = (LtpVseat *) psp(ionwm, sm_list_data(ionwm, elt));
+		printSeat(vseat);
+	}
+
+	sdr_exit_xn(sdr);
 }
 
 static void	listSpans(int tokenCount, char **tokens)
@@ -405,7 +542,7 @@ static void	listSpans(int tokenCount, char **tokens)
 	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, ltpdbObj);
 	isprintf(buffer, sizeof buffer,"(Engine " UVAST_FIELDSPEC "  Queuing \
-latency: %u  LSI pid: %d)", ltpdb->ownEngineId, ltpdb->ownQtime, vdb->lsiPid);
+latency: %u)", ltpdb->ownEngineId, ltpdb->ownQtime);
 	printText(buffer);
 	for (elt = sm_list_first(ionwm, vdb->spans); elt;
 			elt = sm_list_next(ionwm, elt))
@@ -422,6 +559,12 @@ static void	executeList(int tokenCount, char **tokens)
 	if (tokenCount < 2)
 	{
 		printText("List what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "seat") == 0)
+	{
+		listSeats(tokenCount, tokens);
 		return;
 	}
 
@@ -809,6 +952,7 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 	char		*cursor;
 	int		i;
 	char		*tokens[12];
+	char		lsiCmd[256];
 	char		buffer[80];
 	struct timeval	done_time;
 	struct timeval	cur_time;
@@ -879,20 +1023,16 @@ static int	processLine(char *line, int lineLength, int *checkNeeded,
 		case 's':
 			if (attachToLtp() == 0)
 			{
-				if (tokenCount < 2)
+				if (tokenCount > 1)
 				{
-					printText("Can't start LTP: no LSI \
-command.");
-					return 0;
+					patchLsiCmd(tokenCount, tokens, lsiCmd);
+					oK(addSeat(lsiCmd));
 				}
-				else
+
+				if (ltpStart() < 0)
 				{
-					if (ltpStart(tokens[1]) < 0)
-					{
-						putErrmsg("Can't start LTP.",
-								NULL);
-						return 0;
-					}
+					putErrmsg("Can't start LTP.", NULL);
+					return 0;
 				}
 
 				/* Wait for ltp to start up */
@@ -912,7 +1052,6 @@ up, abandoned.");
 						break;
 					}
 				}
-
 			}
 
 			return 0;

@@ -111,15 +111,15 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 
 		/*	Found matching stream.				*/
 
-		if (bundle->id.creationTime.seconds
-				> stream->lastBundle.seconds
-		|| (bundle->id.creationTime.seconds
-				== stream->lastBundle.seconds
+		if (bundle->id.creationTime.msec
+				> stream->lastBundle.msec
+		|| (bundle->id.creationTime.msec
+				== stream->lastBundle.msec
 			&& bundle->id.creationTime.count
 				> stream->lastBundle.count))
 		{
-			stream->lastBundle.seconds =
-					bundle->id.creationTime.seconds;
+			stream->lastBundle.msec =
+					bundle->id.creationTime.msec;
 			stream->lastBundle.count =
 					bundle->id.creationTime.count;
 			return 1;
@@ -155,7 +155,7 @@ static int	isInOrder(Lyst streams, Bundle *bundle)
 	stream->dest.ssp.ipn.nodeNbr = bundle->destination.ssp.ipn.nodeNbr;
 	stream->dest.ssp.ipn.serviceNbr
 			= bundle->destination.ssp.ipn.serviceNbr;
-	stream->lastBundle.seconds = bundle->id.creationTime.seconds;
+	stream->lastBundle.msec = bundle->id.creationTime.msec;
 	stream->lastBundle.count = bundle->id.creationTime.count;
 	return 1;
 }

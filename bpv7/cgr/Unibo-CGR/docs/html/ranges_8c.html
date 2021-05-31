@@ -154,12 +154,6 @@ Functions</h2></td></tr>
 <tr class="memitem:a90c14506cf9b87f36da0b0b2de166611"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ranges_8c.html#a90c14506cf9b87f36da0b0b2de166611">get_applicable_range</a> (unsigned long long fromNode, unsigned long long toNode, time_t targetTime, unsigned int *owltResult)</td></tr>
 <tr class="memdesc:a90c14506cf9b87f36da0b0b2de166611"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the owlt from the sender node to the receiver node at the time "targetTime".  <a href="ranges_8c.html#a90c14506cf9b87f36da0b0b2de166611">More...</a><br /></td></tr>
 <tr class="separator:a90c14506cf9b87f36da0b0b2de166611"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac141b14643f5290aad9d9822ed1fd35c"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ranges_8c.html#ac141b14643f5290aad9d9822ed1fd35c">printRange</a> (FILE *file, void *data)</td></tr>
-<tr class="memdesc:ac141b14643f5290aad9d9822ed1fd35c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the range pointed by data to a buffer and at the end to_Add points to that buffer.  <a href="ranges_8c.html#ac141b14643f5290aad9d9822ed1fd35c">More...</a><br /></td></tr>
-<tr class="separator:ac141b14643f5290aad9d9822ed1fd35c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5fa652e7c72b39adacfcc71739aa810"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ranges_8c.html#ac5fa652e7c72b39adacfcc71739aa810">printRangesGraph</a> (FILE *file, time_t currentTime)</td></tr>
-<tr class="memdesc:ac5fa652e7c72b39adacfcc71739aa810"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the ranges graph.  <a href="ranges_8c.html#ac5fa652e7c72b39adacfcc71739aa810">More...</a><br /></td></tr>
-<tr class="separator:ac5fa652e7c72b39adacfcc71739aa810"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file provides the implementation of the functions to manage the range tree. </p>
@@ -1022,126 +1016,6 @@ Functions</h2></td></tr>
 <th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">02/07/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="ac141b14643f5290aad9d9822ed1fd35c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac141b14643f5290aad9d9822ed1fd35c">&#9670;&nbsp;</a></span>printRange()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static int printRange </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">void *&#160;</td>
-          <td class="paramname"><em>data</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Print the range pointed by data to a buffer and at the end to_Add points to that buffer. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>printRange</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>19/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">&gt;= 0</td><td>The number of characters printed to the buffer </td></tr>
-    <tr><td class="paramname">-1</td><td>Some errors occurred</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[out]</td><td class="paramname">*file</td><td>The file where we print the range </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">*data</td><td>The pointer to the range</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Notes:</dt><dd><ol type="1">
-<li>This function assumes that "to_add" is not NULL.</li>
-</ol>
-</dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">19/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="ac5fa652e7c72b39adacfcc71739aa810"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5fa652e7c72b39adacfcc71739aa810">&#9670;&nbsp;</a></span>printRangesGraph()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">int printRangesGraph </td>
-          <td>(</td>
-          <td class="paramtype">FILE *&#160;</td>
-          <td class="paramname"><em>file</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">time_t&#160;</td>
-          <td class="paramname"><em>currentTime</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Print the ranges graph. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>printRangesGraph</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>19/01/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>int</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">1</td><td>Success case, ranges graph printed </td></tr>
-    <tr><td class="paramname">0</td><td>The file is NULL</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>The file where we want to print the ranges graph </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">currentTime</td><td>The time to print together at the ranges graph to keep trace of the modification's history</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">19/01/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
 </table>
 
 </div>

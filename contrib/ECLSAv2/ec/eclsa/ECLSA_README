@@ -1,0 +1,19 @@
++-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+ECLSAv2:
+Copyright University of Bologna 2016
+All rights reserved.
++-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+This directory (contrib/ec/eclsa) contains the core of the ECLSAv2 package
+
+Project supervisor: Carlo Caini (carlo.caini@unibo.it)
+Main Author: Nicola Alessi (nicola.alessi@.unibo.it)
+Author of the Memory manager and of the interface for Unibo-LTP: Andrea Bisacchi 
+Author of the OpenFEC Adapter: Marco Raminella
+Author of the HSLTP extension: Azzurra Ciliberti
+
+The software contained in this directory (contrib/ec/eclsa) is released under the GPLv2 and later versions
+license.
+Please Refer to GPLv2_Licence for licence details.
+
+

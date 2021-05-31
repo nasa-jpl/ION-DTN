@@ -1,0 +1,45 @@
+# bprc configuration file for the src-eid truncation test.
+#	Command: % bpadmin loopback.bprc
+#	This command should be run AFTER ionadmin and 
+#	BEFORE dtnadmin.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+#	The scheme's name is 'dtn'.
+#	This scheme's forwarding engine is handled by the program 'dtn2fw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'dtn2adminep.'
+a scheme dtn 'dtn2fw' 'dtn2adminep'
+
+# Add endpoints.
+#	Establish three dtn endpoints on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+
+a endpoint dtn://host1.dtn x
+a endpoint dtn://host1.dtn/a q
+a endpoint dtn://host1.dtn/b q
+
+# Add a protocol. 
+#	Add the protocol named stcp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
+a protocol stcp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the stcp protocol.
+#	The induct itself is implemented by the 'stcpcli' command.
+a induct stcp 127.0.0.1:4556 stcpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the stcp protocol.
+#	The outduct itself is implemented by the 'stcpclo' command.
+a outduct stcp 127.0.0.1:4556 stcpclo
+w 1
+s

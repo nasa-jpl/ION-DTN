@@ -1,5 +1,5 @@
 var searchData=
 [
-  [' de cola_768',[' De Cola',['../unibo-cgr_2_r_e_a_d_m_e_8txt.html#ab9ca133d60de94bd8a3a39821c361b0f',1,'README.txt']]],
-  [' persampieri_769',[' Persampieri',['../unibo-cgr_2_r_e_a_d_m_e_8txt.html#a0ebf71d37f85ecd169d13832fe60f0fa',1,'README.txt']]]
+  [' de cola_705',[' De Cola',['../unibo-cgr_2_r_e_a_d_m_e_8txt.html#ad8d212033447b7d93b7acda1f6562040',1,'README.txt']]],
+  [' persampieri_706',[' Persampieri',['../unibo-cgr_2_r_e_a_d_m_e_8txt.html#adc38aa5873903884cebc4ba8899e772c',1,'README.txt']]]
 ];

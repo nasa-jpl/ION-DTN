@@ -546,6 +546,7 @@ void reset_bundle(CgrBundle *bundle)
 	bundle->sender_node = 0;
 	bundle->size = 0;
 	bundle->terminus_node = 0;
+	bundle->regionNbr = 0;
 	CLEAR_FLAGS(bundle->flags);
 	memset(&(bundle->id), 0, sizeof(CgrBundleID));
 	free_list_elts(bundle->geoRoute);

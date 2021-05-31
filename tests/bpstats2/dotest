@@ -95,7 +95,7 @@ diff_output_except_statstime ()
 }
     
 # Poke bpsend with a bundle.
-bptrace ipn:1.1 ipn:1.2 dtn:none 60 1.0 "test bundle please send stats" ""
+bptrace ipn:1.1 ipn:1.2 dtn:none 60 0.0 "test bundle please send stats" ""
 sleep 5
 
 # Start a bpstats2

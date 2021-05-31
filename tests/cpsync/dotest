@@ -1,0 +1,156 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 12, 2021
+#
+# Tests contact plan synchronization.  Initially four nodes are in
+# a tree topology 2<->1<->3<->4.  The initial contact plan expires
+# after 20 seconds; before this happens, additional contacts are
+# posted at node 1 and automatically propagated to the other nodes.
+# While contact is paused, nodes 2 and 4 join multicast group 19 and
+# spawn bprecvfile tasks that listen on that group EID.  After contact
+# resumes node 1 multicasts a small file to group 19.
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start all nodes with initial contact plans.
+cd 1.ipn.ltp
+./ionstart >& node1.stdout
+sleep 1
+cd ../2.ipn.ltp
+./ionstart >& node2.stdout
+sleep 1
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+sleep 1
+cd ../4.ipn.ltp
+./ionstart >& node4.stdout
+sleep 1
+cd ../1.ipn.ltp
+ionadmin ../global.ionrc
+cd ../2.ipn.ltp
+ionadmin ../global.ionrc
+cd ../3.ipn.ltp
+ionadmin ../global.ionrc
+cd ../4.ipn.ltp
+ionadmin ../global.ionrc
+sleep 1
+echo "Contacts at node 1..."
+cd ../1.ipn.ltp
+ionadmin list.ionrc
+sleep 1
+echo "Contacts at node 2..."
+cd ../2.ipn.ltp
+ionadmin list.ionrc
+sleep 1
+echo "Contacts at node 3..."
+cd ../3.ipn.ltp
+ionadmin list.ionrc
+sleep 1
+echo "Contacts at node 4..."
+cd ../4.ipn.ltp
+ionadmin list.ionrc
+
+# Now submit global contact plan updates at node 1 only.
+sleep 2
+echo "Submitting contact plan updates at node 1..."
+cd ../1.ipn.ltp
+ionadmin contacts.ionrc
+
+# Wait for initial contacts to end.
+echo "Waiting 15 seconds..."
+sleep 15
+
+# Print updated lists of contacts, prepare to receive file.
+echo "Contacts at node 1..."
+cd ../1.ipn.ltp
+ionadmin list.ionrc
+sleep 1
+echo "Contacts at node 2..."
+cd ../2.ipn.ltp
+ionadmin list.ionrc
+sleep 1
+echo "Contacts at node 3..."
+cd ../3.ipn.ltp
+ionadmin list.ionrc
+sleep 1
+echo "Contacts at node 4..."
+cd ../4.ipn.ltp
+ionadmin list.ionrc
+sleep 1
+echo "Joining multicast group 19 at node 2 and starting bprecvfile..."
+cd ../2.ipn.ltp
+bpadmin join.bprc
+bprecvfile imc:19.0 1 &
+echo "Joining multicast group 19 at node 4 and starting bprecvfile..."
+cd ../4.ipn.ltp
+bpadmin join.bprc
+bprecvfile imc:19.0 1 &
+
+# Wait 25 seconds for new contacts to start, then list again and send file.
+echo "Waiting 25 seconds for new contacts to start..."
+sleep 25
+echo "Contacts at node 1..."
+cd ../1.ipn.ltp
+ionadmin list.ionrc
+echo "Contacts at node 2..."
+cd ../2.ipn.ltp
+ionadmin list.ionrc
+echo "Contacts at node 3..."
+cd ../3.ipn.ltp
+ionadmin list.ionrc
+echo "Contacts at node 4..."
+cd ../4.ipn.ltp
+ionadmin list.ionrc
+echo "Sending file to multicast group 19..."
+cd ../1.ipn.ltp
+bpsendfile ipn:1.1 imc:19.0 file150
+
+# Wait 12 seconds.  Node 2 should have received the file.
+echo "Waiting 12 seconds for file to arrive at node 2..."
+sleep 12
+cd ../2.ipn.ltp
+
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 2 did not get file150."
+	RETVAL=1
+fi
+
+# Wait 10 seconds.  Node 4 should have received the file.
+echo "Waiting 10 seconds for file to arrive at node 4..."
+sleep 10
+cd ../4.ipn.ltp
+
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 4 did not get file150."
+	RETVAL=1
+else
+	echo "SUCCESS"
+fi
+
+# Shut down ION processes.
+sleep 5
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Contact plan sync test completed."
+exit $RETVAL

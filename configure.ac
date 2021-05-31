@@ -4,7 +4,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 3.7.3/4.0.2, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 3.7.4/4.1.0, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -148,9 +148,9 @@ esac
 #
 AC_ARG_ENABLE(
     acs,
-    [AC_HELP_STRING([--disable-acs], [disable Aggregate Custody Signals])],
-    [ENABLE_BPACS=no],
-    [ENABLE_BPACS=yes])
+    [AC_HELP_STRING([--enable-acs], [enable Aggregate Custody Signals])],
+    [ENABLE_BPACS=yes],
+    [ENABLE_BPACS=no])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 
 
@@ -167,7 +167,8 @@ AC_ARG_ENABLE(
      BP_DIR="bpv6"
      AC_SUBST([BP_DIR])
      case "${ENABLE_BPACS}" in
-		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS";;
+		yes) AM_CFLAGS="$AM_CFLAGS -DENABLE_BPACS"
+			 echo "Building ION with ACS";;
 		no)  ENABLE_BPACS=no;;
      esac
      echo "Building ION with BP version 6"],
@@ -195,6 +196,17 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 
 #
+# allow the user running configure to enable high-speed ION 
+#
+AC_ARG_ENABLE(
+    high-speed,
+    [AC_HELP_STRING([--enable-high-speed], [Enable high-speed ION, increases memory usage.])],
+    [AM_CFLAGS="$AM_CFLAGS -DENABLE_HIGH_SPEED"
+     ENABLE_HIGH_SPEED=yes],
+    [])
+AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
+
+#
 # Try to enable DCCP support
 #
 AC_ARG_ENABLE(
@@ -211,12 +223,15 @@ AC_ARG_ENABLE(
     [AC_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
     [if test "$BUILD_BPv7" == "true" ; then
 	UNIBO_CGR=yes
+	AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])
 	echo "Building ION with UniBo CGR code"
      else
 	echo "ERROR: UniBo CGR is not available with BP version 6"
+	AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])
 	exit 1
      fi],
-    [UNIBO_CGR=no])
+    [UNIBO_CGR=no
+	AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])])
 AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
 
 #
@@ -295,6 +310,19 @@ else
 	echo "Instrument code for gcov coverage analysis... no"
 fi
 AM_CONDITIONAL([ENABLE_GCOV], [test "x$gcov" = "xyes"])
+
+#
+# Allow the user to configure for debugging with gdb
+#
+AC_ARG_WITH([debugging],
+[AS_HELP_STRING([--with-debugging], [Remove compiler optimizations])],
+[debugging=yes;],
+[])
+if test "x$debugging" = "xyes" ; then
+	echo "Setting compiler optimization level to -O0"
+	CFLAGS="$CFLAGS -g -O0"
+fi
+AM_CONDITIONAL([ENABLE_DEBUGGING], [test "x$debugging" = "xyes"])
 
 #
 # Dynamically choose whether or not to build against expat libraries.

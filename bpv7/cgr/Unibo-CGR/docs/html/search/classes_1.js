@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['dijkstraqueue_782',['DijkstraQueue',['../struct_dijkstra_queue.html',1,'']]]
+  ['dijkstraqueue_718',['DijkstraQueue',['../struct_dijkstra_queue.html',1,'']]]
 ];

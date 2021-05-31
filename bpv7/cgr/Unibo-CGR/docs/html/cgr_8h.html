@@ -87,11 +87,9 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a51cfcbf482b44dd4f8eaad0a7edf7adb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8h.html#a51cfcbf482b44dd4f8eaad0a7edf7adb">start_call_log</a>(time,  count_bundles)</td></tr>
-<tr class="memdesc:a51cfcbf482b44dd4f8eaad0a7edf7adb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the time for the log of the current call and print the call number in the main log file.  <a href="cgr_8h.html#a51cfcbf482b44dd4f8eaad0a7edf7adb">More...</a><br /></td></tr>
+<tr class="memitem:a51cfcbf482b44dd4f8eaad0a7edf7adb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8h.html#a51cfcbf482b44dd4f8eaad0a7edf7adb">start_call_log</a>(time,  count_bundles)&#160;&#160;&#160;do {  } while(0)</td></tr>
 <tr class="separator:a51cfcbf482b44dd4f8eaad0a7edf7adb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a044c2cddfecd2d7e1306b977e298f6e6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8h.html#a044c2cddfecd2d7e1306b977e298f6e6">end_call_log</a>()&#160;&#160;&#160;<a class="el" href="log_8h.html#a4a910c2b977b8cfa71448e92c5ee8d46">writeLog</a>(&quot;###############################&quot;)</td></tr>
-<tr class="memdesc:a044c2cddfecd2d7e1306b977e298f6e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the sequence of characters that identify the end of the call.  <a href="cgr_8h.html#a044c2cddfecd2d7e1306b977e298f6e6">More...</a><br /></td></tr>
+<tr class="memitem:a044c2cddfecd2d7e1306b977e298f6e6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8h.html#a044c2cddfecd2d7e1306b977e298f6e6">end_call_log</a>()&#160;&#160;&#160;do {  } while(0)</td></tr>
 <tr class="separator:a044c2cddfecd2d7e1306b977e298f6e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
@@ -146,12 +144,10 @@ Functions</h2></td></tr>
           <td class="memname">#define end_call_log</td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
-          <td>&#160;&#160;&#160;<a class="el" href="log_8h.html#a4a910c2b977b8cfa71448e92c5ee8d46">writeLog</a>(&quot;###############################&quot;)</td>
+          <td>&#160;&#160;&#160;do {  } while(0)</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Print the sequence of characters that identify the end of the call. </p>
 
 </div>
 </div>
@@ -176,16 +172,10 @@ Functions</h2></td></tr>
         <tr>
           <td></td>
           <td>)</td>
-          <td></td><td></td>
+          <td></td><td>&#160;&#160;&#160;do {  } while(0)</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">        <span class="keywordflow">do</span> { \</div>
-<div class="line">        setLogTime(time); \</div>
-<div class="line">        writeLog(<span class="stringliteral">&quot;###### CGR: call n. %u ######&quot;</span>, count_bundles); \</div>
-<div class="line">} <span class="keywordflow">while</span>(0)</div>
-</div><!-- fragment -->
-<p>Set the time for the log of the current call and print the call number in the main log file. </p>
 
 </div>
 </div>

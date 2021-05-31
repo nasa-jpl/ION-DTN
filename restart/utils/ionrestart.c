@@ -245,7 +245,7 @@ static void	restartION(Sdr sdrv)
 
 	if (restart_ltp)
 	{
-		ltpStart(NULL);
+		ltpStart();
 		for (i = 0; i < 5; i++)
 		{
 			if (!ltp_engine_is_started())

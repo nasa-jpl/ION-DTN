@@ -41,9 +41,11 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
-echo "Starting ION..."
-
+export ION_NODE_LIST_DIR=$PWD
+rm ion_nodes
 ./cleanup
+
+echo "Starting ION..."
 
 # Start nodes
 cd ipn.cfdp.bp.tcp

@@ -63,8 +63,8 @@
 
 #if(CGRR)
 #include "cgrr.h"
-#include "../../../../library/ext/cgrr/cgrr_msr_utils.h"
-#include "../../../../library/ext/cgrr/cgrr_help.h"
+#include "cgrr_msr_utils.h"
+#include "cgrr_help.h"
 #endif
 #if (RGR)
 #include "rgr.h"
@@ -188,6 +188,7 @@ static void destroyRoute(LystElt elt, void *arg)
 		MRELEASE(route);
 	}
 }
+
 
 /******************************************************************************
  *
@@ -439,17 +440,18 @@ static void printDebugIonRoute(PsmPartition ionwm, CgrRoute *route)
  *  -------- | --------------- | -----------------------------------------------
  *  19/02/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-static int convert_CtRegistration_from_ion_to_cgr(IonCXref *IonContact, Contact *CgrContact)
+int convert_CtRegistration_from_ion_to_cgr(IonCXref *IonContact, Contact *CgrContact)
 {
 	int result = -1;
 
 	if (IonContact != NULL && CgrContact != NULL)
 	{
+        CgrContact->regionNbr = IonContact->regionNbr;
 		CgrContact->fromNode = IonContact->fromNode;
 		CgrContact->toNode = IonContact->toNode;
 		CgrContact->fromTime = MAX_POSIX_TIME;
 		CgrContact->toTime = MAX_POSIX_TIME;
-		CgrContact->type = Registration;
+		CgrContact->type = TypeRegistration;
 		CgrContact->xmitRate = 0;
 		CgrContact->confidence = 1.0F;
 
@@ -492,11 +494,12 @@ static int convert_CtScheduled_from_ion_to_cgr(IonCXref *IonContact, Contact *Cg
 
 	if (IonContact != NULL && CgrContact != NULL)
 	{
+	    CgrContact->regionNbr = IonContact->regionNbr;
 		CgrContact->fromNode = IonContact->fromNode;
 		CgrContact->toNode = IonContact->toNode;
 		CgrContact->fromTime = IonContact->fromTime - reference_time;
 		CgrContact->toTime = IonContact->toTime - reference_time;
-		CgrContact->type = Scheduled;
+		CgrContact->type = TypeScheduled;
 		CgrContact->xmitRate = IonContact->xmitRate;
 		CgrContact->confidence = IonContact->confidence;
 		// TODO Consider to add MTVs
@@ -533,12 +536,13 @@ static int convert_CtScheduled_from_ion_to_cgr(IonCXref *IonContact, Contact *Cg
  *  -------- | --------------- | -----------------------------------------------
  *  19/02/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-static int convert_CtRegistration_from_cgr_to_ion(Contact *CgrContact, IonCXref *IonContact)
+int convert_CtRegistration_from_cgr_to_ion(Contact *CgrContact, IonCXref *IonContact)
 {
 	int result = -1;
 
 	if (IonContact != NULL && CgrContact != NULL)
 	{
+        IonContact->regionNbr = CgrContact->regionNbr;
 		IonContact->fromNode = CgrContact->fromNode;
 		IonContact->toNode = CgrContact->toNode;
 		IonContact->fromTime = MAX_POSIX_TIME;
@@ -585,6 +589,7 @@ static int convert_CtScheduled_from_cgr_to_ion(Contact *CgrContact, IonCXref *Io
 
 	if (IonContact != NULL && CgrContact != NULL)
 	{
+        IonContact->regionNbr = CgrContact->regionNbr;
 		IonContact->fromNode = CgrContact->fromNode;
 		IonContact->toNode = CgrContact->toNode;
 		IonContact->fromTime = CgrContact->fromTime + reference_time;
@@ -621,7 +626,7 @@ static int convert_CtScheduled_from_cgr_to_ion(Contact *CgrContact, IonCXref *Io
  * \param[in]   reference_time The reference time used to convert POSIX time in differential time from it.
  *
  * \par	Notes:
- *             1.  Only Registration and Scheduled contacts are allowed.
+ *             1.  Only Scheduled contacts are allowed.
  *
  * \par Revision History:
  *
@@ -634,13 +639,7 @@ static int convert_contact_from_ion_to_cgr(IonCXref *IonContact, Contact *CgrCon
 	int result = -1;
 	if (IonContact != NULL && CgrContact != NULL)
 	{
-		// TODO consider other types of contacts,
-		// TODO but SABR talks about only scheduled contacts
-		if (IonContact->type == CtRegistration)
-		{
-			result = convert_CtRegistration_from_ion_to_cgr(IonContact, CgrContact);
-		}
-		else if (IonContact->type == CtScheduled)
+	    if (IonContact->type == CtScheduled)
 		{
 			result = convert_CtScheduled_from_ion_to_cgr(IonContact, CgrContact, reference_time);
 		}
@@ -685,13 +684,7 @@ static int convert_contact_from_cgr_to_ion(Contact *CgrContact, IonCXref *IonCon
 	int result = -1;
 	if (IonContact != NULL && CgrContact != NULL)
 	{
-		// TODO consider other types of contacts,
-		// TODO but SABR talks about only scheduled contacts
-		if (CgrContact->type == Registration)
-		{
-			result = convert_CtRegistration_from_cgr_to_ion(CgrContact, IonContact);
-		}
-		else if (CgrContact->type == Scheduled)
+	    if (CgrContact->type == TypeScheduled)
 		{
 			result = convert_CtScheduled_from_cgr_to_ion(CgrContact, IonContact, reference_time);
 		}
@@ -880,38 +873,36 @@ static int get_rgr_ext_block(Bundle *bundle, GeoRoute *resultBlk)
 /******************************************************************************
  *
  * \par Function Name:
- *      update_mtv_before_reforwarding
+ *      refill_mtv_into_ion
  *
- * \brief  This function has effect only if this bundle has to be reforwarded for some reason.
- *
- * \details We refill the contacts' MTVs of the previous route computed for this bundle.
- *          CGRR Ext. Block is required.
- *
+ * \brief Refill contact's MTV of some size passed as argument.
  *
  * \par Date Written:
- *      11/12/20
+ * 		11/12/20
  *
  * \return int
  *
- * \retval  0  Success case: MTV updated
- * \retval -1  Some error occurred
+ * \retval  0   Contact MTVs updated
+ * \retval -1   Arguments error
+ * \retval -2   Contact not found
  *
- * \param[in]   *bundle        The bundle to forward
- * \param[in]   *cgrrExtBlk    The ExtensionBlock type of CGRR
- * \param[in]   *resultBlk     The CGRRouteBlock extracted from the CGRR Extension Block.
- * \param[in]   reference_time The reference time used to convert POSIX time in differential time from it.
- *
- * \warning bundle    doesn't have to be NULL
- * \warning cgrrExtBlk doesn't have to be NULL
- * \warning cgrrBlk   doesn't have to be NULL
+ * \param[in]   regionNbr      Contact plan region
+ * \param[in]      fromNode       The sender node of the contact
+ * \param[in]      toNode         The receiver node of the contact
+ * \param[in]      fromTime       The start time of the contact
+ * \param[in]      tolerance      Time tolerance
+ * \param[in]      refillSize     The size to add into MTV
+ * \param[in]      priority       The upper-bound priority. The refillSize will be added
+ *                                into all MTV that refers to (all) less or equal priority.
+ * \param[in]      reference_time ION's start time
  *
  * \par Revision History:
  *
- *  DD/MM/YY |  AUTHOR         |   DESCRIPTION
- *  -------- | --------------- | -----------------------------------------------
- *  11/12/20 | L. Persampieri  |  Initial Implementation and documentation.
+ *  DD/MM/YY | AUTHOR          |   DESCRIPTION
+ *  -------- | --------------- |  -----------------------------------------------
+ *  11/12/20 | L. Persampieri  |   Initial Implementation and documentation.
  *****************************************************************************/
-static int refill_mtv_into_ion(uvast fromNode, uvast toNode, time_t fromTime, unsigned int tolerance, uvast refillSize, int priority, time_t reference_time)
+static int refill_mtv_into_ion(uint32_t regionNbr, uvast fromNode, uvast toNode, time_t fromTime, unsigned int tolerance, uvast refillSize, int priority, time_t reference_time)
 {
 	Sdr sdr = getIonsdr();
 	IonVdb *ionvdb = getIonVdb();
@@ -937,6 +928,7 @@ static int refill_mtv_into_ion(uvast fromNode, uvast toNode, time_t fromTime, un
 	else
 	{
 		memset(&arg, 0, sizeof(arg));
+		arg.regionNbr = regionNbr;
 		arg.fromNode = fromNode;
 		arg.toNode = toNode;
 		stop = 0;
@@ -948,7 +940,7 @@ static int refill_mtv_into_ion(uvast fromNode, uvast toNode, time_t fromTime, un
 			contactAddr = sm_rbt_data(ionwm, elt);
 			contact = (IonCXref *) psp(ionwm, contactAddr);
 
-			if(contact != NULL)
+			if(contact != NULL && contact->regionNbr == regionNbr && contact->fromNode == fromNode && contact->toNode == toNode)
 			{
 				startTime = contact->fromTime - reference_time;
 				// difference in absolute value
@@ -1019,6 +1011,7 @@ static int refill_mtv_into_ion(uvast fromNode, uvast toNode, time_t fromTime, un
  * \param[in]   *cgrrExtBlk    The ExtensionBlock type of CGRR
  * \param[in]   *resultBlk     The CGRRouteBlock extracted from the CGRR Extension Block.
  * \param[in]   reference_time The reference time used to convert POSIX time in differential time from it.
+ * \param[in]   regionNbr      Contact plan region
  *
  * \warning bundle    doesn't have to be NULL
  * \warning cgrrExtBlk doesn't have to be NULL
@@ -1030,7 +1023,7 @@ static int refill_mtv_into_ion(uvast fromNode, uvast toNode, time_t fromTime, un
  *  -------- | --------------- | -----------------------------------------------
  *  11/12/20 | L. Persampieri  |  Initial Implementation and documentation.
  *****************************************************************************/
-static int update_mtv_before_reforwarding(Bundle *bundle, ExtensionBlock *cgrrExtBlk, CGRRouteBlock *cgrrBlk, time_t reference_time)
+static int update_mtv_before_reforwarding(Bundle *bundle, ExtensionBlock *cgrrExtBlk, CGRRouteBlock *cgrrBlk, time_t reference_time, uint32_t regionNbr)
 {
 	int result = -1;
 	uvast size;
@@ -1090,13 +1083,13 @@ static int update_mtv_before_reforwarding(Bundle *bundle, ExtensionBlock *cgrrEx
 					currentHop = &(lastRoute->hopList[i]);
 
 					// refill MTV into Unibo-CGR's contact graph
-					refill_mtv((unsigned long long) currentHop->fromNode,
+					refill_mtv((unsigned long) regionNbr, (unsigned long long) currentHop->fromNode,
 							(unsigned long long) currentHop->toNode,
 							currentHop->fromTime, timeTolerance, (unsigned int) size,
 							priority);
 
 					// refill MTV into ION's contact graph
-					refill_mtv_into_ion(currentHop->fromNode, currentHop->toNode,
+					refill_mtv_into_ion(regionNbr, currentHop->fromNode, currentHop->toNode,
 							currentHop->fromTime, timeTolerance, size,
 							priority, reference_time);
 				}
@@ -1453,6 +1446,9 @@ static int convert_bundle_from_ion_to_cgr(unsigned long long toNode, time_t curr
 
 	if (IonBundle != NULL && CgrBundle != NULL)
 	{
+        uint32_t regionNbr = 0;
+        oK(ionRegionOf(getOwnNodeNbr(), (uvast) toNode, &regionNbr));
+        CgrBundle->regionNbr = (unsigned long) regionNbr;
 
 		CgrBundle->terminus_node = toNode;
 
@@ -1463,7 +1459,7 @@ static int convert_bundle_from_ion_to_cgr(unsigned long long toNode, time_t curr
 		if(result == 0)
 		{
 #if (WISE_NODE)
-			update_mtv_before_reforwarding(IonBundle, &cgrrExtBlk, cgrrBlk, reference_time);
+			update_mtv_before_reforwarding(IonBundle, &cgrrExtBlk, cgrrBlk, reference_time, regionNbr);
 #endif
 #if (MSR)
 			result = set_msr_route(current_time, cgrrBlk, CgrBundle);
@@ -1634,7 +1630,6 @@ static int convert_scalar_from_cgr_to_ion(CgrScalar *cgr_scalar, Scalar *ion_sca
 
 	return result;
 }
-
 
 /******************************************************************************
  *
@@ -1979,10 +1974,6 @@ static int add_contact(IonCXref *ContactInION, time_t reference_time)
 
 	if (result == 0)
 	{
-		if (CgrContact.type == Registration)
-		{
-			CgrContact.fromTime = -1;
-		}
 
 #if (GET_MTV_FROM_SDR)
 		// TODO CONSIDER TO MOVE MTVs INTO CONVERT CONTACT FUNCTION
@@ -1995,7 +1986,7 @@ static int add_contact(IonCXref *ContactInION, time_t reference_time)
 
 		// Try to add contact
 		// Use the MTV passed as argument
-		result = addContact(CgrContact.fromNode, CgrContact.toNode, CgrContact.fromTime,
+		result = addContact(CgrContact.regionNbr, CgrContact.fromNode, CgrContact.toNode, CgrContact.fromTime,
 				CgrContact.toTime, CgrContact.xmitRate, CgrContact.confidence, COPY_MTV, mtv);
 
 		if(result >= 1)
@@ -2011,7 +2002,7 @@ static int add_contact(IonCXref *ContactInION, time_t reference_time)
 
 		// Try to add contact
 		// Compute MTV as [xmitRate * (toTime - fromTime)]
-		result = addContact(CgrContact.fromNode, CgrContact.toNode, CgrContact.fromTime,
+		result = addContact(CgrContact.regionNbr, CgrContact.fromNode, CgrContact.toNode, CgrContact.fromTime,
 				CgrContact.toTime, CgrContact.xmitRate, CgrContact.confidence, DO_NOT_COPY_MTV, mtv);
 		if(result >= 1)
 		{
@@ -2535,7 +2526,7 @@ int	cgr_identify_best_routes(IonNode *terminusNode, Bundle *bundle, Lyst exclude
 	List		cgrRoutes = NULL;
 	CurrentCallSAP *currentCallSap;
 	InterfaceUniboCgrSAP *int_ucgr_sap = sap;
-#if(LOG || TIME_ANALYSIS_ENABLED)
+#if (LOG || TIME_ANALYSIS_ENABLED)
 	UniboCgrSAP uniboCgrSAP = get_unibo_cgr_sap(NULL);
 #endif
 #if TIME_ANALYSIS_ENABLED

@@ -882,28 +882,30 @@ ASB target", NULL);
 	BPSEC_DEBUG_INFO("i bpsec_deserializeASB: context %ld, flags %ld, \
 length %d", asb->contextId, asb->contextFlags, blk->dataLength);
 
-	/*	Next, possibly, is security source.			*/
-
+	/*	Next is security source.				*/
+#if 0
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		switch (acquireEid(&(asb->securitySource), &cursor,
-					&unparsedBytes))
-		{
-		case -1:
-			BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for \
-security source EID", NULL);
-			loseInboundAsb(asb);
-			return -1;
+#endif
+	switch (acquireEid(&(asb->securitySource), &cursor, &unparsedBytes))
+	{
+	case -1:
+		BPSEC_DEBUG_ERR("x bpsec_deserializeASB: No space for security \
+source EID", NULL);
+		loseInboundAsb(asb);
+		return -1;
 
-		case 0:
-			writeMemo("[?] Can't decode bpsec block security src");
-			loseInboundAsb(asb);
-			return 0;
+	case 0:
+		writeMemo("[?] Can't decode bpsec block security src");
+		loseInboundAsb(asb);
+		return 0;
 
-		default:
-			break;
-		}
+	default:
+		break;
 	}
+#if 0
+	}
+#endif
 
 	/*	Then, possibly, context parameters.			*/
 
@@ -1329,13 +1331,16 @@ int	bpsec_getOutboundSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb,
 	CHKERR(fromEid);
 
 	*fromEid = NULL;	/*	Default.			*/
+#if 0
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		readEid(&(asb->securitySource), fromEid);
-		if (fromEid == NULL)
-		{
-			return -1;
-		}
+#endif
+	readEid(&(asb->securitySource), fromEid);
+	if (fromEid == NULL)
+	{
+		return -1;
+	}
+#if 0
 	}
 	else
 	{
@@ -1345,7 +1350,7 @@ int	bpsec_getOutboundSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb,
 			return -1;
 		}
 	}
-
+#endif
 	return 0;
 }
 
@@ -1388,7 +1393,7 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 	CHKVOID(eidString);
 	adminEid = bpsec_getLocalAdminEid(eidString);
 	MRELEASE(eidString);
-
+#if 0
 	/*	If security source is the bundle's source, nothing to
 	 *	do.							*/
 
@@ -1400,7 +1405,7 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 	{
 		return;	/*	No need for block security source.	*/
 	}
-
+#endif
 	/*	Now note that this admin EID is the block's security
 	 *	source.							*/
 
@@ -1408,7 +1413,9 @@ void	bpsec_insertSecuritySource(Bundle *bundle, BpsecOutboundBlock *asb)
 	result = writeEid(&(asb->securitySource), &metaEid);
 	restoreEidString(&metaEid);
        	CHKVOID(result == 0);
+#if 0
 	asb->contextFlags &= BPSEC_ASB_SEC_SRC;
+#endif
 }
 
 /******************************************************************************
@@ -1882,13 +1889,16 @@ unsigned char	*bpsec_serializeASB(uint32_t *length, BpsecOutboundBlock *asb)
 	serializedContextFlagsLen = cursor - serializedContextFlags;
 
 	/*	Slightly more challenging: security source.		*/
-
+#if 0
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
-		itemsCount += 1;
-		serializedSourceLen = serializeEid(&asb->securitySource,
-				serializedSource);
+#endif
+	itemsCount += 1;
+	serializedSourceLen = serializeEid(&asb->securitySource,
+			serializedSource);
+#if 0
 	}
+#endif
 
 	/*	Then security context parameters.			*/
 

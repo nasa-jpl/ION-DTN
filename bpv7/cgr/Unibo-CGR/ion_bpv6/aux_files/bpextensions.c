@@ -19,8 +19,12 @@
 #include "meb.h"
 #include "bae.h"
 #include "snw.h"
+#if CGRREB
 #include "cgrr.h"
+#endif
+#if RGREB
 #include "rgr.h"
+#endif
 #if defined(ORIGINAL_BSP)
 #include "extbspbab.h"
 #include "extbsppcb.h"

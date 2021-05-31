@@ -22,6 +22,7 @@ LIBICIOBJS = \
 	psm.o \
 	smlist.o \
 	smrbt.o \
+	radix.o \
 	sptrace.o \
 	ion.o \
 	rfx.o \
@@ -49,6 +50,7 @@ PUBINCLS = \
 	$(INCL)/psm.h \
 	$(INCL)/smlist.h \
 	$(INCL)/smrbt.h \
+	$(INCL)/radix.h \
 	$(INCL)/sptrace.h \
 	$(INCL)/ion.h \
 	$(INCL)/rfx.h \
@@ -68,6 +70,7 @@ PUBINCLS = \
 	$(INCL)/sdr.h
 
 ICIINCLS = \
+	$(SRC)/radixP.h \
 	$(SRC)/lystP.h \
 	$(SDR)/sdrP.h
 

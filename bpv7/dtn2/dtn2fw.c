@@ -46,6 +46,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 	MetaEid		metaEid;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	char		nodeId[SDRSTRING_BUFSZ];
 	VPlan		*vplan;
 	BpPlan		plan;
 
@@ -70,11 +71,17 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj)
 		return -1;
 	}
 
+	if (metaEid.delimiter)
+	{
+		*(metaEid.delimiter) = '\0';	/*	End node name.	*/
+	}
+
+	isprintf(nodeId, sizeof nodeId, "dtn://%s/", metaEid.nodeName);
 	restoreEidString(&metaEid);
-	lookupPlan(eid, &vplan);
+	lookupPlan(nodeId, &vplan);
 	if (vplan == NULL)
 	{
-		writeMemoNote("[?] Can't find egress plan for EID", eid);
+		writeMemoNote("[?] Can't find egress plan for node", nodeId);
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
@@ -146,7 +153,7 @@ int	main(int argc, char *argv[])
 	findScheme("dtn", &vscheme, &vschemeElt);
 	if (vschemeElt == 0)
 	{
-		putErrmsg("Scheme name for dtn2 is unknown.", "dtn");
+		putErrmsg("Scheme name for dtn2fw is unknown.", "dtn");
 		return 1;
 	}
 

@@ -351,7 +351,10 @@ extern int		checkFile(char *);
 extern int		ckTypeOkay(unsigned int ckType);
 extern void		addToChecksum(unsigned char octet, vast *offset,
 				unsigned int *checksum, CfdpCksumType ckType);
-
+#ifdef ENABLE_HIGH_SPEED
+extern void		addDataToChecksum(unsigned char *data, int dLen, vast *offset,
+				unsigned int *checksum, CfdpCksumType ckType);
+#endif
 extern int		getReqNbr();	/*	Returns next req nbr.	*/
 
 extern MetadataList	createMetadataList(Object log);

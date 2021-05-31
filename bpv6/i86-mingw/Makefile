@@ -20,13 +20,14 @@ BIBE = ../bibe
 IPND = ../ipnd
 ICI = ../../ici
 
-OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP -DENABLE_BPACS
+OPT = -g -Wall -Dmingw -DENABLE_IMC -DSBSP
 # -Werror
-# -DENABLE_BPACS
+# -DENABLE_BPACS : removed as a default in 3.7.3
 CC = gcc $(OPT) -I$(IPN) -I$(IMC) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/phn -I$(API)/ext/ecos -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/sbsp -I$(API)/ext/snw -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 
-#acsadmin on mingw
-CC += -I$(API)/acs -I$(ICI)/include -I$(API)/ext/cteb
+# Uncomment line 29 to build ACS
+#CC += -I$(API)/acs -I$(ICI)/include -I$(API)/ext/cteb
+
 # -I$(API)/ext/snid
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
@@ -56,12 +57,17 @@ BPINCLS = \
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
+BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o saga.o snw.o phn.o ecos.o meb.o bae.o sbsp_util.o sbsp_instr.o profiles.o sbsp_bib.o sbsp_bcb.o
+# Uncomment line 62 to build with ACS
+#BPPOBJS += acstx.o acsrx.o acsserialize.o acsappend.o acsid.o cteb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = acsadmin acslist beacon bibeadmin bibeclo bpadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsecadmin bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo node stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = bibeadmin bibeclo bpadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsecadmin bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadmin imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+# Uncomment line 69 to build acsadmin and acslist
+#RUNTIMES += acsadmin acslist
+
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the standard test relies on mkfifo which is not implemented for mingw
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
@@ -298,14 +304,6 @@ ipnd:		$(IPNDOBJS) $(BPLIBS)
 		$(CC) -o ipnd $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
 		cp ipnd ./bin
 
-beacon:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o beacon $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
-		cp beacon ./bin
-		
-node:		$(IPNDOBJS) $(BPLIBS)
-		$(CC) -o node $(IPNDOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lici -lbloom -lpthread -lbp -lws2_32 -lm
-		cp node ./bin
-
 #	-	-	Test executables	-	-	-	-
 
 bpsource:	bpsource.o libbp.dll $(BPLIBS)
@@ -452,13 +450,12 @@ libudpcla.dll:	libudpcla.o
 %.o:		$(BIBE)/%.c
 		$(CC) -c $<
 
-%.o:		$(API)/acs/%.c
-		$(CC) -c $<
+# Uncomment lines 454 - 458 to build ACS
+#%.o:		$(API)/acs/%.c
+#		$(CC) -c $<
 
-%.o:		$(API)/ext/cteb/%.c
-		$(CC) -c $<
+#%.o:		$(API)/ext/cteb/%.c
+#		$(CC) -c $<
 
 %.o:		$(IPND)/%.c
 		$(CC) -I$(IPND) -I$(ICI)\libbloom-master -c $<
-
-

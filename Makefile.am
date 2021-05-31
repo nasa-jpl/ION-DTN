@@ -1783,6 +1783,7 @@ bpbin = \
 	bsspcli \
 	bsspclo \
 	cgrfetch \
+	cpsd \
 	dgrcli \
 	dgrclo \
 	dtn2admin \
@@ -2401,6 +2402,10 @@ bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 bptransit_SOURCES = bpv7/daemon/bptransit.c
 bptransit_LDADD = libici.la $(bplib)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+cpsd_SOURCES = bpv7/daemon/cpsd.c
+cpsd_LDADD = libici.la $(bplib)
+cpsd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ############################
 #

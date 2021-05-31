@@ -2355,16 +2355,20 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 	}
 
 	/* Must decrypt target block */
+#if 0
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 	{
 		/*	Waypoint source.		*/
-		readEid(&(asb->securitySource), &fromEid);
+#endif
+	readEid(&(asb->securitySource), &fromEid);
+#if 0
 	}
 	else
 	{
 		/*	Bundle source.			*/
 		readEid(&(bundle->id.source), &fromEid);
 	}
+#endif
 
 	if (fromEid == NULL)
 	{
@@ -2624,20 +2628,27 @@ int	bpsec_decrypt(AcqWorkArea *work)
 							BPSEC_KEY_NAME_LEN);
 				}
 
+#if 0
 				if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
 				{
-					/*	Waypoint source.		*/
+					/*	Waypoint source.	*/
+#endif
+				readEid(&(asb->securitySource), &fromEid);
+				if (fromEid == NULL)
+				{
+					ADD_BCB_RX_FAIL(NULL, 1, 0);
 
-					readEid(&(asb->securitySource), &fromEid);
-					if (fromEid == NULL)
-					{
-						ADD_BCB_RX_FAIL(NULL, 1, 0);
-						/* Handle sop_misconf_at_verifier event */
-						bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
-							 sop_misconf_at_verifier, bcbElt, targetElt,
-							 target->targetBlockNumber);
-						return -1;
-					}
+					/*	Handle sop_misconf_at_verifier
+					 *	event			*/
+
+					bsl_handle_receiver_sop_event(work,
+						BPRF_VER_ROLE,
+						 sop_misconf_at_verifier,
+						 bcbElt, targetElt,
+						 target->targetBlockNumber);
+					return -1;
+				}
+#if 0
 				}
 				else	/*	Bundle source.			*/
 				{
@@ -2652,6 +2663,7 @@ int	bpsec_decrypt(AcqWorkArea *work)
 						return -1;
 					}
 				}
+#endif
 
 				result = (prof->decrypt == NULL)
 					?  bcbDefaultDecrypt(prof->suiteId, work, blk,

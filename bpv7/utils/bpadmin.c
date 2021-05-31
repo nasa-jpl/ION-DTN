@@ -778,7 +778,9 @@ static void	printEndpoint(VEndpoint *vpoint)
 static void	infoEndpoint(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
-	char		*delimiter;
+	MetaEid		metaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
 	VEndpoint	*vpoint;
 	PsmAddress	elt;
 
@@ -788,19 +790,15 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 		return;
 	}
 
-	delimiter = strchr(tokens[2], ':');
-	if (delimiter)
+	if (parseEidString(tokens[2], &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		*delimiter = '\0';
-	}
-	else
-	{
-		SYNTAX_ERROR;
+		restoreEidString(&metaEid);
+		printText("Endpoint ID unintelligible.");
 		return;
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	findEndpoint(tokens[2], delimiter + 1, NULL, &vpoint, &elt);
+	findEndpoint(tokens[2], &metaEid, NULL, &vpoint, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown endpoint.");
@@ -810,8 +808,8 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 		printEndpoint(vpoint);
 	}
 
-	*delimiter  = ':';
 	sdr_exit_xn(sdr);
+	restoreEidString(&metaEid);
 }
 
 static void	printProtocol(ClProtocol *protocol)

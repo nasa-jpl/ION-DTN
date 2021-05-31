@@ -91,6 +91,12 @@ Data Fields</h2></td></tr>
 <tr class="memitem:a37e9b1dc6e510aafdf6abc5097e902f6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="contacts_8h.html#a29092d53d94de0665aa7bff870369d33">ContactNote</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_phase_one_s_a_p.html#a37e9b1dc6e510aafdf6abc5097e902f6">graphRootWork</a></td></tr>
 <tr class="memdesc:a37e9b1dc6e510aafdf6abc5097e902f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">The dijkstra's note for the contacts graph's root.  <a href="struct_phase_one_s_a_p.html#a37e9b1dc6e510aafdf6abc5097e902f6">More...</a><br /></td></tr>
 <tr class="separator:a37e9b1dc6e510aafdf6abc5097e902f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4363b54b4171f9b99cc169d349c307db"><td class="memItemLeft" align="right" valign="top">unsigned long long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_phase_one_s_a_p.html#a4363b54b4171f9b99cc169d349c307db">destination</a></td></tr>
+<tr class="memdesc:a4363b54b4171f9b99cc169d349c307db"><td class="mdescLeft">&#160;</td><td class="mdescRight">The destination of the current bundle.  <a href="struct_phase_one_s_a_p.html#a4363b54b4171f9b99cc169d349c307db">More...</a><br /></td></tr>
+<tr class="separator:a4363b54b4171f9b99cc169d349c307db"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a49ba268be8da826aa7c2f1933da9b5fe"><td class="memItemLeft" align="right" valign="top">unsigned long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_phase_one_s_a_p.html#a49ba268be8da826aa7c2f1933da9b5fe">regionNbr</a></td></tr>
+<tr class="memdesc:a49ba268be8da826aa7c2f1933da9b5fe"><td class="mdescLeft">&#160;</td><td class="mdescRight">The region in which resides the bundle's destination.  <a href="struct_phase_one_s_a_p.html#a49ba268be8da826aa7c2f1933da9b5fe">More...</a><br /></td></tr>
+<tr class="separator:a49ba268be8da826aa7c2f1933da9b5fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Used to keep in one place all the data used by phase one. </p>
@@ -109,6 +115,22 @@ Data Fields</h2></td></tr>
 
 <p>A trick to exclude only one time the "neighbors" for each CGR's call. </p>
 <p>1 if we already excluded all the neighbors for this call, 0 otherwise. </p>
+
+</div>
+</div>
+<a id="a4363b54b4171f9b99cc169d349c307db"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4363b54b4171f9b99cc169d349c307db">&#9670;&nbsp;</a></span>destination</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned long long destination</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The destination of the current bundle. </p>
 
 </div>
 </div>
@@ -191,6 +213,22 @@ Data Fields</h2></td></tr>
 
 <p>A trick to update only one time the cost values for the route in Yen's "list B" (knownRoutes) for each CGR's call. </p>
 <p>1 if we already updated the cost values for this call, 0 otherwise. </p>
+
+</div>
+</div>
+<a id="a49ba268be8da826aa7c2f1933da9b5fe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a49ba268be8da826aa7c2f1933da9b5fe">&#9670;&nbsp;</a></span>regionNbr</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">unsigned long regionNbr</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The region in which resides the bundle's destination. </p>
 
 </div>
 </div>

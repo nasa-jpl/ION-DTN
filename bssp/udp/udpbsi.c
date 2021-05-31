@@ -103,7 +103,10 @@ int	main(int argc, char *argv[])
 {
 	char	*endpointSpec = (argc > 1 ? argv[1] : NULL);
 #endif
-	BsspVdb			*vdb;
+	Sdr			sdr;
+	char			beBsiCmd[256];
+	BsspVseat		*vseat;
+	PsmAddress		vseatElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = INADDR_ANY;
 	struct sockaddr		socketName;
@@ -124,11 +127,21 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	vdb = getBsspVdb();
-	if (vdb->beBsiPid != ERROR && vdb->beBsiPid != sm_TaskIdSelf())
+	sdr = getIonsdr();
+	isprintf(beBsiCmd, sizeof beBsiCmd, "udpbsi %s", endpointSpec);
+	CHKERR(sdr_begin_xn(sdr));
+	findBsspSeat(beBsiCmd, NULL, &vseat, &vseatElt);
+	sdr_exit_xn(sdr);
+	if (vseatElt == 0)
+	{
+		putErrmsg("Undefined BE-BSI", beBsiCmd);
+		return 1;
+	}
+
+	if (vseat->beBsiPid != ERROR && vseat->beBsiPid != sm_TaskIdSelf())
 	{
 		putErrmsg("BE-BSI task is already started.",
-				itoa(vdb->beBsiPid));
+				itoa(vseat->beBsiPid));
 		return 1;
 	}
 
@@ -143,10 +156,12 @@ int	main(int argc, char *argv[])
 			return -1;
 		}
 	}
+
 	if (portNbr == 0)
 	{
 		portNbr = BsspUdpDefaultPortNbr;
 	}
+
 	portNbr = htons(portNbr);
 	ipAddress = htonl(ipAddress);
 

@@ -67,6 +67,7 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Data Structures</a> &#124;
+<a href="#define-members">Macros</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">cgr.c File Reference</div>  </div>
@@ -82,14 +83,15 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used to keep in one place the data used by Unibo-CGR during a call.  <a href="struct_unibo_cgr_current_call_s_a_p.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:a7170757c5ff8212a3c0d70da61593743"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#a7170757c5ff8212a3c0d70da61593743">print_result_cgr</a>(result,  bestRoutes)&#160;&#160;&#160;do { } while(0)</td></tr>
+<tr class="separator:a7170757c5ff8212a3c0d70da61593743"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0b1140042e3669c5a67cd69fb2b1f4fa"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#a0b1140042e3669c5a67cd69fb2b1f4fa">print_cgr_settings</a>()&#160;&#160;&#160;do { } while(0)</td></tr>
+<tr class="separator:a0b1140042e3669c5a67cd69fb2b1f4fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:aee2deb1412d558dde1f1590d0667fc64"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#aee2deb1412d558dde1f1590d0667fc64">print_result_cgr</a> (int result, <a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a> bestRoutes)</td></tr>
-<tr class="memdesc:aee2deb1412d558dde1f1590d0667fc64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print some logs for the CGR's output.  <a href="cgr_8c.html#aee2deb1412d558dde1f1590d0667fc64">More...</a><br /></td></tr>
-<tr class="separator:aee2deb1412d558dde1f1590d0667fc64"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae32f51443d12a49d482db390443c99bc"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#ae32f51443d12a49d482db390443c99bc">print_cgr_settings</a> ()</td></tr>
-<tr class="memdesc:ae32f51443d12a49d482db390443c99bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the most important settings of the CGR.  <a href="cgr_8c.html#ae32f51443d12a49d482db390443c99bc">More...</a><br /></td></tr>
-<tr class="separator:ae32f51443d12a49d482db390443c99bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7f1d4b9449a26f33f3d961416f528040"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="struct_unibo_cgr_current_call_s_a_p.html">UniboCgrCurrentCallSAP</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#a7f1d4b9449a26f33f3d961416f528040">get_current_call_sap</a> (<a class="el" href="struct_unibo_cgr_current_call_s_a_p.html">UniboCgrCurrentCallSAP</a> *newSap)</td></tr>
 <tr class="memdesc:a7f1d4b9449a26f33f3d961416f528040"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a reference to <a class="el" href="struct_unibo_cgr_current_call_s_a_p.html" title="Used to keep in one place the data used by Unibo-CGR during a call.">UniboCgrCurrentCallSAP</a> where Unibo-CGR keep some values used during the current call.  <a href="cgr_8c.html#a7f1d4b9449a26f33f3d961416f528040">More...</a><br /></td></tr>
 <tr class="separator:a7f1d4b9449a26f33f3d961416f528040"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -105,9 +107,6 @@ Functions</h2></td></tr>
 <tr class="memitem:a75ee498f3883deff13e20f57efd10500"><td class="memItemLeft" align="right" valign="top">long unsigned int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#a75ee498f3883deff13e20f57efd10500">get_computed_routes_number</a> (unsigned long long destination)</td></tr>
 <tr class="memdesc:a75ee498f3883deff13e20f57efd10500"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of computed routes (phase one) by Unibo-CGR to a specific destination.  <a href="cgr_8c.html#a75ee498f3883deff13e20f57efd10500">More...</a><br /></td></tr>
 <tr class="separator:a75ee498f3883deff13e20f57efd10500"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8a17e1119dd252d0b546de600ddba978"><td class="memItemLeft" align="right" valign="top">static FILE *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#a8a17e1119dd252d0b546de600ddba978">get_file_call</a> ()</td></tr>
-<tr class="memdesc:a8a17e1119dd252d0b546de600ddba978"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the pointer to the FILE used to print the detailed log of the current call.  <a href="cgr_8c.html#a8a17e1119dd252d0b546de600ddba978">More...</a><br /></td></tr>
-<tr class="separator:a8a17e1119dd252d0b546de600ddba978"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff61097d80d3e025780a067917fd5b27"><td class="memItemLeft" align="right" valign="top"><a class="el" href="cgr_8h.html#a1ccdd9edb53f3c147eae3af8c57c5146">RoutingAlgorithm</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="cgr_8c.html#aff61097d80d3e025780a067917fd5b27">get_last_call_routing_algorithm</a> ()</td></tr>
 <tr class="memdesc:aff61097d80d3e025780a067917fd5b27"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the routing algorithm used for the previous call.  <a href="cgr_8c.html#aff61097d80d3e025780a067917fd5b27">More...</a><br /></td></tr>
 <tr class="separator:aff61097d80d3e025780a067917fd5b27"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -155,7 +154,53 @@ Functions</h2></td></tr>
  You should have received a copy of the GNU General Public License along with Unibo-CGR. If not, see <a href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>.</p>
 <dl class="section author"><dt>Author</dt><dd>Lorenzo Persampieri, <a href="#" onclick="location.href='mai'+'lto:'+'lor'+'en'+'zo.'+'pe'+'rsa'+'mp'+'ier'+'i@'+'stu'+'di'+'o.u'+'ni'+'bo.'+'it'; return false;">loren<span style="display: none;">.nosp@m.</span>zo.p<span style="display: none;">.nosp@m.</span>ersam<span style="display: none;">.nosp@m.</span>pier<span style="display: none;">.nosp@m.</span>i@stu<span style="display: none;">.nosp@m.</span>dio.<span style="display: none;">.nosp@m.</span>unibo<span style="display: none;">.nosp@m.</span>.it</a></dd></dl>
 <dl class="section user"><dt>Supervisor</dt><dd>Carlo Caini, <a href="#" onclick="location.href='mai'+'lto:'+'car'+'lo'+'.ca'+'in'+'i@u'+'ni'+'bo.'+'it'; return false;">carlo<span style="display: none;">.nosp@m.</span>.cai<span style="display: none;">.nosp@m.</span>ni@un<span style="display: none;">.nosp@m.</span>ibo.<span style="display: none;">.nosp@m.</span>it</a> </dd></dl>
-</div><h2 class="groupheader">Function Documentation</h2>
+</div><h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a0b1140042e3669c5a67cd69fb2b1f4fa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0b1140042e3669c5a67cd69fb2b1f4fa">&#9670;&nbsp;</a></span>print_cgr_settings</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define print_cgr_settings</td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td>&#160;&#160;&#160;do { } while(0)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7170757c5ff8212a3c0d70da61593743"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7170757c5ff8212a3c0d70da61593743">&#9670;&nbsp;</a></span>print_result_cgr</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define print_result_cgr</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">result, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">bestRoutes&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td>&#160;&#160;&#160;do { } while(0)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
 <a id="a702e1f13f35a4f48f0c6d2bb95d2a4db"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a702e1f13f35a4f48f0c6d2bb95d2a4db">&#9670;&nbsp;</a></span>clear_rtg_object()</h2>
 
@@ -545,50 +590,6 @@ excludedNeighbor doesn't have to be NULL</dd></dl>
 
 </div>
 </div>
-<a id="a8a17e1119dd252d0b546de600ddba978"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8a17e1119dd252d0b546de600ddba978">&#9670;&nbsp;</a></span>get_file_call()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static FILE* get_file_call </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Get the pointer to the FILE used to print the detailed log of the current call. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>get_file_call</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>02/07/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>FILE*</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">FILE*</td><td>A reference to the FILE used to print the detailed logs during the current call. </td></tr>
-    <tr><td class="paramname">NULL</td><td>FILE not yet opened.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">02/07/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
 <a id="aff61097d80d3e025780a067917fd5b27"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aff61097d80d3e025780a067917fd5b27">&#9670;&nbsp;</a></span>get_last_call_routing_algorithm()</h2>
 
@@ -937,98 +938,6 @@ excludedNeighbor doesn't have to be NULL</dd></dl>
 <th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone">30/04/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="ae32f51443d12a49d482db390443c99bc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae32f51443d12a49d482db390443c99bc">&#9670;&nbsp;</a></span>print_cgr_settings()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static void print_cgr_settings </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Print the most important settings of the CGR. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>print_cgr_settings</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>15/02/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>void</dd></dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">02/04/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
-</table>
-
-</div>
-</div>
-<a id="aee2deb1412d558dde1f1590d0667fc64"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aee2deb1412d558dde1f1590d0667fc64">&#9670;&nbsp;</a></span>print_result_cgr()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static void print_result_cgr </td>
-          <td>(</td>
-          <td class="paramtype">int&#160;</td>
-          <td class="paramname"><em>result</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="list__type_8h.html#a2f83d70457d96c5f0328f29529375850">List</a>&#160;</td>
-          <td class="paramname"><em>bestRoutes</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Print some logs for the CGR's output. </p>
-<dl class="section user"><dt>Function Name:</dt><dd>print_result_cgr</dd></dl>
-<dl class="section user"><dt>Date Written:</dt><dd>15/02/20</dd></dl>
-<dl class="section return"><dt>Returns</dt><dd>void</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">result</td><td>The getBestRoutes function result </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">bestRoutes</td><td>The list of best routes</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section user"><dt>Revision History:</dt><dd></dd></dl>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">DD/MM/YY   </th><th class="markdownTableHeadNone">AUTHOR   </th><th class="markdownTableHeadNone">DESCRIPTION    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">15/02/20   </td><td class="markdownTableBodyNone">L. Persampieri   </td><td class="markdownTableBodyNone">Initial Implementation and documentation.    </td></tr>
 </table>
 
 </div>

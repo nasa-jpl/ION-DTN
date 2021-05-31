@@ -91,24 +91,8 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a8217374b794766012beee3fe46a98a76"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#a8217374b794766012beee3fe46a98a76">COMPUTED</a>&#160;&#160;&#160;(1) /* (00000001) */</td></tr>
-<tr class="separator:a8217374b794766012beee3fe46a98a76"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8fcbe89d70840eb0a9eec0766e55db72"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#a8fcbe89d70840eb0a9eec0766e55db72">NO_ROUTES</a>&#160;&#160;&#160;(2) /* (00000010) */</td></tr>
-<tr class="separator:a8fcbe89d70840eb0a9eec0766e55db72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac8fc341b5fbf1d2b115dfb1e75e4b804"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#ac8fc341b5fbf1d2b115dfb1e75e4b804">NEIGHBORS</a>&#160;&#160;&#160;(4) /* (00000100) */</td></tr>
 <tr class="separator:ac8fc341b5fbf1d2b115dfb1e75e4b804"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5c2895d81f54db99ab807c21c88157eb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#a5c2895d81f54db99ab807c21c88157eb">SET_COMPUTED</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) |= <a class="el" href="nodes_8h.html#a8217374b794766012beee3fe46a98a76">COMPUTED</a>)</td></tr>
-<tr class="separator:a5c2895d81f54db99ab807c21c88157eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a691b3690d332a4c80ef8125a0d0f9981"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#a691b3690d332a4c80ef8125a0d0f9981">UNSET_COMPUTED</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp;= ~<a class="el" href="nodes_8h.html#a8217374b794766012beee3fe46a98a76">COMPUTED</a>)</td></tr>
-<tr class="separator:a691b3690d332a4c80ef8125a0d0f9981"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae1cafce717bf95e5701029d1e68eb806"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#ae1cafce717bf95e5701029d1e68eb806">ALREADY_COMPUTED</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp; <a class="el" href="nodes_8h.html#a8217374b794766012beee3fe46a98a76">COMPUTED</a>)</td></tr>
-<tr class="separator:ae1cafce717bf95e5701029d1e68eb806"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abbc340d86c9b8bc451385ab4b9bbd21a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#abbc340d86c9b8bc451385ab4b9bbd21a">SET_ROUTES_NOT_FOUND</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) |= <a class="el" href="nodes_8h.html#a8fcbe89d70840eb0a9eec0766e55db72">NO_ROUTES</a>)</td></tr>
-<tr class="separator:abbc340d86c9b8bc451385ab4b9bbd21a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab5b75811767f51a76674ed4f489a3a50"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#ab5b75811767f51a76674ed4f489a3a50">UNSET_ROUTES_NOT_FOUND</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp;= ~<a class="el" href="nodes_8h.html#a8fcbe89d70840eb0a9eec0766e55db72">NO_ROUTES</a>)</td></tr>
-<tr class="separator:ab5b75811767f51a76674ed4f489a3a50"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7671498bf3e5d0414ce17b41b1d863c6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#a7671498bf3e5d0414ce17b41b1d863c6">ROUTES_NOT_FOUND</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp; <a class="el" href="nodes_8h.html#a8fcbe89d70840eb0a9eec0766e55db72">NO_ROUTES</a>)</td></tr>
-<tr class="separator:a7671498bf3e5d0414ce17b41b1d863c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a265b677895290fd15f02cf886ff093c9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#a265b677895290fd15f02cf886ff093c9">SET_NEIGHBORS_DISCOVERED</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) |= <a class="el" href="nodes_8h.html#ac8fc341b5fbf1d2b115dfb1e75e4b804">NEIGHBORS</a>)</td></tr>
 <tr class="separator:a265b677895290fd15f02cf886ff093c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a13275388dc8916b0fd9fb8ab5fe66305"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="nodes_8h.html#a13275388dc8916b0fd9fb8ab5fe66305">UNSET_NEIGHBORS_DISCOVERED</a>(rtgObj)&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp;= ~<a class="el" href="nodes_8h.html#ac8fc341b5fbf1d2b115dfb1e75e4b804">NEIGHBORS</a>)</td></tr>
@@ -198,24 +182,6 @@ Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Lorenzo Persampieri, <a href="#" onclick="location.href='mai'+'lto:'+'lor'+'en'+'zo.'+'pe'+'rsa'+'mp'+'ier'+'i@'+'stu'+'di'+'o.u'+'ni'+'bo.'+'it'; return false;">loren<span style="display: none;">.nosp@m.</span>zo.p<span style="display: none;">.nosp@m.</span>ersam<span style="display: none;">.nosp@m.</span>pier<span style="display: none;">.nosp@m.</span>i@stu<span style="display: none;">.nosp@m.</span>dio.<span style="display: none;">.nosp@m.</span>unibo<span style="display: none;">.nosp@m.</span>.it</a></dd></dl>
 <dl class="section user"><dt>Supervisor</dt><dd>Carlo Caini, <a href="#" onclick="location.href='mai'+'lto:'+'car'+'lo'+'.ca'+'in'+'i@u'+'ni'+'bo.'+'it'; return false;">carlo<span style="display: none;">.nosp@m.</span>.cai<span style="display: none;">.nosp@m.</span>ni@un<span style="display: none;">.nosp@m.</span>ibo.<span style="display: none;">.nosp@m.</span>it</a> </dd></dl>
 </div><h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="ae1cafce717bf95e5701029d1e68eb806"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae1cafce717bf95e5701029d1e68eb806">&#9670;&nbsp;</a></span>ALREADY_COMPUTED</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define ALREADY_COMPUTED</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">rtgObj</td><td>)</td>
-          <td>&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp; <a class="el" href="nodes_8h.html#a8217374b794766012beee3fe46a98a76">COMPUTED</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="ac11f6f521f5b6e6252f1ec263d179e34"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac11f6f521f5b6e6252f1ec263d179e34">&#9670;&nbsp;</a></span>CANDIDATE_ROUTES</h2>
 
@@ -242,20 +208,6 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname">neighbor</td><td>)</td>
           <td>&#160;&#160;&#160;(((neighbor)-&gt;flags) &amp; <a class="el" href="nodes_8h.html#ac11f6f521f5b6e6252f1ec263d179e34">CANDIDATE_ROUTES</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a8217374b794766012beee3fe46a98a76"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8217374b794766012beee3fe46a98a76">&#9670;&nbsp;</a></span>COMPUTED</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define COMPUTED&#160;&#160;&#160;(1) /* (00000001) */</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -294,20 +246,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a8fcbe89d70840eb0a9eec0766e55db72"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8fcbe89d70840eb0a9eec0766e55db72">&#9670;&nbsp;</a></span>NO_ROUTES</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define NO_ROUTES&#160;&#160;&#160;(2) /* (00000010) */</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="afe451ad3b023b84ad05a3c3dc47e2d22"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afe451ad3b023b84ad05a3c3dc47e2d22">&#9670;&nbsp;</a></span>ROUTES_IN_SUBSET</h2>
 
@@ -326,24 +264,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a7671498bf3e5d0414ce17b41b1d863c6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7671498bf3e5d0414ce17b41b1d863c6">&#9670;&nbsp;</a></span>ROUTES_NOT_FOUND</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define ROUTES_NOT_FOUND</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">rtgObj</td><td>)</td>
-          <td>&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp; <a class="el" href="nodes_8h.html#a8fcbe89d70840eb0a9eec0766e55db72">NO_ROUTES</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a04bfb5aafebb106bcd7a05747b3a4ac7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a04bfb5aafebb106bcd7a05747b3a4ac7">&#9670;&nbsp;</a></span>SET_CANDIDATE_ROUTES_FOUND</h2>
 
@@ -356,24 +276,6 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname">neighbor</td><td>)</td>
           <td>&#160;&#160;&#160;(((neighbor)-&gt;flags) |= <a class="el" href="nodes_8h.html#ac11f6f521f5b6e6252f1ec263d179e34">CANDIDATE_ROUTES</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a5c2895d81f54db99ab807c21c88157eb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5c2895d81f54db99ab807c21c88157eb">&#9670;&nbsp;</a></span>SET_COMPUTED</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define SET_COMPUTED</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">rtgObj</td><td>)</td>
-          <td>&#160;&#160;&#160;(((rtgObj)-&gt;flags) |= <a class="el" href="nodes_8h.html#a8217374b794766012beee3fe46a98a76">COMPUTED</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -416,24 +318,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="abbc340d86c9b8bc451385ab4b9bbd21a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abbc340d86c9b8bc451385ab4b9bbd21a">&#9670;&nbsp;</a></span>SET_ROUTES_NOT_FOUND</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define SET_ROUTES_NOT_FOUND</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">rtgObj</td><td>)</td>
-          <td>&#160;&#160;&#160;(((rtgObj)-&gt;flags) |= <a class="el" href="nodes_8h.html#a8fcbe89d70840eb0a9eec0766e55db72">NO_ROUTES</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a3d6838042d2e1359463643ba43131773"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3d6838042d2e1359463643ba43131773">&#9670;&nbsp;</a></span>SUBSET_ROUTES</h2>
 
@@ -460,24 +344,6 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname">neighbor</td><td>)</td>
           <td>&#160;&#160;&#160;(((neighbor)-&gt;flags) &amp;= ~<a class="el" href="nodes_8h.html#ac11f6f521f5b6e6252f1ec263d179e34">CANDIDATE_ROUTES</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a691b3690d332a4c80ef8125a0d0f9981"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a691b3690d332a4c80ef8125a0d0f9981">&#9670;&nbsp;</a></span>UNSET_COMPUTED</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define UNSET_COMPUTED</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">rtgObj</td><td>)</td>
-          <td>&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp;= ~<a class="el" href="nodes_8h.html#a8217374b794766012beee3fe46a98a76">COMPUTED</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -514,24 +380,6 @@ Functions</h2></td></tr>
           <td class="paramtype">&#160;</td>
           <td class="paramname">neighbor</td><td>)</td>
           <td>&#160;&#160;&#160;(((neighbor)-&gt;flags) &amp;= ~<a class="el" href="nodes_8h.html#a3d6838042d2e1359463643ba43131773">SUBSET_ROUTES</a>)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ab5b75811767f51a76674ed4f489a3a50"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab5b75811767f51a76674ed4f489a3a50">&#9670;&nbsp;</a></span>UNSET_ROUTES_NOT_FOUND</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define UNSET_ROUTES_NOT_FOUND</td>
-          <td>(</td>
-          <td class="paramtype">&#160;</td>
-          <td class="paramname">rtgObj</td><td>)</td>
-          <td>&#160;&#160;&#160;(((rtgObj)-&gt;flags) &amp;= ~<a class="el" href="nodes_8h.html#a8fcbe89d70840eb0a9eec0766e55db72">NO_ROUTES</a>)</td>
         </tr>
       </table>
 </div><div class="memdoc">

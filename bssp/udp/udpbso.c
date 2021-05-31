@@ -68,6 +68,10 @@ static void	*handleDatagrams(void *parm)
 	struct sockaddr_in	fromAddr;
 	socklen_t		fromSize;
 
+	snooze(1);	/*	Let main thread become interruptible.	*/
+
+	/*	Initialize buffer.					*/
+
 	buffer = MTAKE(UDPBSA_BUFSZ);
 	if (buffer == NULL)
 	{
@@ -112,8 +116,8 @@ static void	*handleDatagrams(void *parm)
 		sm_TaskYield();
 	}
 
-	writeErrmsgMemos();
 	writeMemo("[i] udpbso receiver thread has ended.");
+	writeErrmsgMemos();
 
 	/*	Free resources.						*/
 
@@ -192,8 +196,6 @@ int	main(int argc, char *argv[])
 	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		ownSockName;
 	struct sockaddr_in	*ownInetName;
-	struct sockaddr		bindSockName;
-	struct sockaddr_in	*bindInetName;
 	struct sockaddr		peerSockName;
 	struct sockaddr_in	*peerInetName;
 	socklen_t		nameLength;
@@ -278,9 +280,9 @@ compatibility, but it is ignored.");
 		portNbr = BsspUdpDefaultPortNbr;
 	}
 
-	getNameOfHost(ownHostName, sizeof ownHostName);
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
+		getNameOfHost(ownHostName, sizeof ownHostName);
 		ipAddress = getInternetAddress(ownHostName);
 	}
 
@@ -298,16 +300,25 @@ compatibility, but it is ignored.");
 	 *	than to the advertised link service input socket.	*/
 
 	ipAddress = htonl(INADDR_ANY);
-	memset((char *) &bindSockName, 0, sizeof bindSockName);
-	bindInetName = (struct sockaddr_in *) &bindSockName;
-	bindInetName->sin_family = AF_INET;
-	bindInetName->sin_port = 0;	/*	Let O/S select it.	*/
-	memcpy((char *) &(bindInetName->sin_addr.s_addr),
+	portNbr = 0;	/*	Let O/S choose it.			*/
+
+	/*	This socket needs to be bound to the local socket
+	 *	address (just as in udpbsi), so that the udpbso
+	 *	main thread can send a -1-byte datagramto that
+	 *	socket to shut down the datagram handling thread.	*/
+
+	portNbr = htons(portNbr);
+	ipAddress = htonl(ipAddress);
+	memset((char *) &ownSockName, 0, sizeof ownSockName);
+	ownInetName = (struct sockaddr_in *) &ownSockName;
+	ownInetName->sin_family = AF_INET;
+	ownInetName->sin_port = portNbr;
+	memcpy((char *) &(ownInetName->sin_addr.s_addr),
 			(char *) &ipAddress, 4);
 
 	/*	Now create the socket that will be used for sending
-	 *	datagrams to the peer BSSP engine and receiving
-	 *	datagrams from the peer BSSP engine.			*/
+	 *	datagrams to the peer BSSP engine and possibly for
+	 *	receiving datagrams from the peer BSSP engine.		*/
 
 	rtp.linkSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (rtp.linkSocket < 0)
@@ -321,8 +332,9 @@ compatibility, but it is ignored.");
 	 *	the datagram handling thread.				*/
 
 	nameLength = sizeof(struct sockaddr);
-	if (bind(rtp.linkSocket, &bindSockName, nameLength) < 0
-	|| getsockname(rtp.linkSocket, &bindSockName, &nameLength) < 0)
+	if (reUseAddress(rtp.linkSocket)
+	|| bind(rtp.linkSocket, &ownSockName, nameLength) < 0
+	|| getsockname(rtp.linkSocket, &ownSockName, &nameLength) < 0)
 	{
 		closesocket(rtp.linkSocket);
 		putSysErrmsg("BE-BSO can't bind UDP socket", NULL);
@@ -337,10 +349,11 @@ compatibility, but it is ignored.");
 	/*	Start the echo handler thread.				*/
 
 	rtp.running = 1;
-	if (pthread_begin(&receiverThread, NULL, handleDatagrams, &rtp, "udpbso_receiver"))
+	if (pthread_begin(&receiverThread, NULL, handleDatagrams,
+			&rtp, "udpbso_receiver"))
 	{
 		closesocket(rtp.linkSocket);
-		putSysErrmsg("udpbsi can't create receiver thread", NULL);
+		putSysErrmsg("udpbso can't create receiver thread", NULL);
 		return 1;
 	}
 
@@ -389,11 +402,11 @@ compatibility, but it is ignored.");
 		}
 
 		/*	Rate control calculation is based on treating
-		 *	elapsed time as a currency, the price you
-		 *	pay (by microsnooze) for sending a segment
-		 *	of a given size.  All cost figures are
-		 *	expressed in microseconds except the computed
-		 *	totalCostSecs of the segment.			*/
+		 *	elapsed time as a currency, the price you pay
+		 *	(by microsnooze) for sending a block of a given
+		 *	size.  All cost figures are expressed in
+		 *	microseconds except the computed totalCostSecs
+		 *	of the block.					*/
 
 		totalPaid = getUsecTimestamp() - startTimestamp;
 
@@ -445,17 +458,9 @@ compatibility, but it is ignored.");
 		sm_TaskYield();
 	}
 
-	/*	Create one-use socket for the closing quit byte.	*/
+	/*	Time to shut down.					*/
 
-	portNbr = bindInetName->sin_port;	/*	From binding.	*/
-	ipAddress = getInternetAddress(ownHostName);
-	ipAddress = htonl(ipAddress);
-	memset((char *) &ownSockName, 0, sizeof ownSockName);
-	ownInetName = (struct sockaddr_in *) &ownSockName;
-	ownInetName->sin_family = AF_INET;
-	ownInetName->sin_port = portNbr;
-	memcpy((char *) &(ownInetName->sin_addr.s_addr),
-			(char *) &ipAddress, 4);
+	rtp.running = 0;
 
 	/*	Wake up the receiver thread by opening a single-use
 	 *	transmission socket and sending a 1-byte datagram
