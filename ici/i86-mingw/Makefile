@@ -8,9 +8,9 @@ CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 
 ifeq ($(BPv),bpv7)
-OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.0.2
+OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.1.0
 else
-OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-3.7.3
+OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-3.7.4
 endif
 CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../../$(BPv)/include/ -I../../$(BPv)/library/ -I../../ltp/include/ -I../../ltp/library/
 LDFLAGS = -fPIC -shared

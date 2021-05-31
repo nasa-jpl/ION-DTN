@@ -1,6 +1,6 @@
 = Release Notes for ION 4.1.0 =
 
-May 29, 2021
+May 31, 2021
 
 %%%%%%%%%%%
 = GENERAL =
@@ -77,7 +77,7 @@ The accompanying BPsec implementation is similarly conformant to
 the BPSec specification that will also soon be a standard-track RFC.
 NOTE, though, that the TCP convergence-layer protocol implementation
 in ION 4.1.0 still conforms to the original TCPCL specification (RFC
-7242), NOT to the upcoming TCPCL standards-track FC; that upgrade
+7242), NOT to the upcoming TCPCL standards-track RFC; that upgrade
 will be supported in a future release.
 
 Another key change in this release is that Aggregate Custody Signaling
@@ -86,10 +86,10 @@ configuration, when ACS is enabled the bpv6 bpclock daemon will no
 longer run successfully unless the ACS database is initialized.
 Since not all ION bpv6 users currently initialize ACS in node startup,
 disabling ACS by default seems to be the best way forward.)  If you
-DO want ACS for your bpv6 environment, include the "enableACS" switch
+DO want ACS for your bpv6 environment, include the "enable-acs" switch
 when you generate the Makefile, e.g.:
 
-	./configure --enableACS
+	./configure --enable-acs
 
 Additionally, three new features are included in ION version 4.1.0
 (along with various bug fixes).
@@ -97,7 +97,7 @@ Additionally, three new features are included in ION version 4.1.0
 First, an option is provided that will enable ION to run at much higher
 speeds over those portions of a bundle's end-to-end path that are
 supported by TCP/IP at the convergence layer.  To enable this option,
-include the "ENABLE_HIGH_SPEED" switch when compiling the bpv7 module.
+include the "--enable-high-speed" switch when generating the bpv7 Makefile.
 
 Also, it is now possible for ION's LTP implementation to utilize multiple
 different underlying link service protocols on input as well as on
