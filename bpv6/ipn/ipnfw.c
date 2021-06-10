@@ -149,6 +149,13 @@ static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
 
 	sdr_read(sdr, (char *) &plan, sdr_list_data(sdr, vplan->planElt),
 			sizeof(BpPlan));
+	if (plan.viaEid)	/*	Potential loop.			*/
+	{
+		writeMemoNote("[?] Routing override to this neighbor selects \
+an egress plan that redirects to another EID; potential forwarding loop", eid);
+		return 0;
+	}
+
 	if (plan.blocked)	/*	Maybe later.			*/
 	{
 		if (enqueueToLimbo(bundle, bundleObj) < 0)
