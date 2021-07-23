@@ -1337,7 +1337,7 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module,
 	 *	subject, if any.					*/
 
 #if AMSDEBUG
-printf("subjects list length is %u.\n", lyst_length(module->subjects));
+printf("subjects list length is %zu.\n", lyst_length(module->subjects));
 #endif
 	if (nextSubj) *nextSubj = NULL;	/*	Default.		*/
 	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
