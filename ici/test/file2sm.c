@@ -102,8 +102,6 @@ static int	run_file2sm(char *fileName)
 						* 1000000) + (endTime.tv_usec -
 						startTime.tv_usec);
 				
-				//JG if the testfile is too small, usec could be nearly zero. When debugging you don't see this because you are slow.
-				//JG added usec == 0 condition check; original code only the section in "else"
 				if (usec == 0)
 				{
 					PUTMEMO("Testfile is probably too small. Number of lines processed within 1 microsecond",
