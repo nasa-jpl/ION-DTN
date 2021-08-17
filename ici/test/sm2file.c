@@ -20,7 +20,7 @@ int	sm2file(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char **argv)
 #endif
 {
-	char		*wmspace;
+	char		*wmspace = NULL;
 	uaddr		wmid;
 	PsmPartition	wm = NULL;
 	PsmMgtOutcome	outcome;
@@ -38,13 +38,13 @@ int	main(int argc, char **argv)
 		return 0;
 	}
 
-	if (sm_ShmAttach(0x1108, 10000000, &wmspace, &wmid) < 0)
+	if (sm_ShmAttach(0x1108, 100000000, &wmspace, &wmid) < 0)
 	{
 		PERROR("can't attach to shared memory");
 		return 0;
 	}
 	
-	if (psm_manage(wmspace, 10000000, "file2sm", &wm, &outcome) < 0
+	if (psm_manage(wmspace, 100000000, "file2sm", &wm, &outcome) < 0
 	|| outcome == Refused)
 	{
 		PUTS("can't manage shared memory");
@@ -73,7 +73,7 @@ int	main(int argc, char **argv)
 
 	PUTMEMO("Working on cycle", utoa(cycleNbr));
 	isprintf(fileName, sizeof fileName, "file_copy_%d", cycleNbr);
-	outputFile = iopen(fileName, O_WRONLY | O_APPEND, 0666);
+	outputFile = iopen(fileName, O_WRONLY | O_APPEND | O_CREAT, 0666);
 	if (outputFile < 0)
 	{
 		PERROR("can't open output file");
@@ -102,7 +102,7 @@ int	main(int argc, char **argv)
 			PUTMEMO("Working on cycle", utoa(cycleNbr));
 			isprintf(fileName, sizeof fileName, "file_copy_%d",
 					cycleNbr);
-			outputFile = iopen(fileName, O_WRONLY | O_APPEND, 0666);
+			outputFile = iopen(fileName, O_WRONLY | O_APPEND | O_CREAT, 0666);
 			if (outputFile < 0)
 			{
 				PERROR("Can't open output file");

@@ -15,7 +15,7 @@
 
 static int	run_file2sm(char *fileName)
 {
-	char		*wmspace;
+	char		*wmspace = NULL;
 	uaddr		wmid;
 	PsmPartition	wm = NULL;
 	PsmMgtOutcome	outcome;
@@ -39,13 +39,13 @@ static int	run_file2sm(char *fileName)
 		return 0;
 	}
 
-	if (sm_ShmAttach(0x1108, 10000000, &wmspace, &wmid) < 0)
+	if (sm_ShmAttach(0x1108, 100000000, &wmspace, &wmid) < 0)
 	{
 		PERROR("Can't attach to shared memory");
 		return 0;
 	}
 
-	if (psm_manage(wmspace, 10000000, "file2sm", &wm, &outcome) < 0
+	if (psm_manage(wmspace, 100000000, "file2sm", &wm, &outcome) < 0
 	|| outcome == Refused)
 	{
 		PUTS("Can't manage shared memory.");
@@ -101,9 +101,23 @@ static int	run_file2sm(char *fileName)
 				usec = ((endTime.tv_sec - startTime.tv_sec)
 						* 1000000) + (endTime.tv_usec -
 						startTime.tv_usec);
-				rate = (linesProcessed * 1000) / (usec / 1000);
-				PUTMEMO("Lines per second processed",
+				
+				//JG if the testfile is too small, usec could be nearly zero. When debugging you don't see this because you are slow.
+				//JG added usec == 0 condition check; original code only the section in "else"
+				if (usec == 0)
+				{
+					PUTMEMO("Testfile is probably too small. Number of lines processed within 1 microsecond",
+						utoa(linesProcessed));
+				}
+				else
+				{
+					rate = (float) (linesProcessed * 1000) / (float) (usec / 1000);
+					PUTMEMO("Lines processed",
+						utoa(linesProcessed));
+					PUTMEMO("Lines per second processed",
 						utoa(rate));
+				}
+
 				lineLen = strlen(eofLine) + 1;
 				lineAddress = psm_zalloc(wm, lineLen);
 				if (lineAddress == 0)
