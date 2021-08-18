@@ -171,28 +171,38 @@ else
     killcmd="killall"
 fi
 
+if [[ "$(uname -m)" == "x86_64" ]]; then
+    PROCESS_LIMIT=64
+else
+    PROCESS_LIMIT=32
+fi
 
 echo "Sending TERM to ${KILLPROCESSLIST}..."
-for THECOMMAND in ${KILLPROCESSLIST}; do
-    $killcmd "${THECOMMAND}" &> /dev/null
-done
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd 2> /dev/null
 
 sleep 2
 
 echo "Sending KILL to the processes..."
-for THECOMMAND in ${KILLPROCESSLIST}; do
-    $killcmd -KILL "${THECOMMAND}" &> /dev/null
-done
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd -KILL 2> /dev/null
 
 sleep 2
 
 echo "Checking if all processes ended..."
-for THECOMMAND in ${KILLPROCESSLIST}; do
-	NOT_KILLED=`ps -e | egrep '[^-a-zA-Z]'"${THECOMMAND}"'[^-a-zA-Z]' | grep -v grep | wc -l`
-	if [ "$NOT_KILLED" -gt 0 ]; then
-		echo "Unknown error: process '${THECOMMAND}' not killed...try rebooting?"
-	fi
-done
+# Creates a long regex search pattern that matches any process name
+# Search pattern looks like:
+#   ([^-a-zA-Z]bping$)|([^-a-zA-Z]bpecho$)|...
+PATTERN_PREFIX='([^-a-zA-Z]'
+PATTERN_POSTFIX='$)'
+PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | sed 's/\s*$//' | sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
+NOT_KILLED="$(ps -e | grep -E "${PATTERN}" | grep -v grep)"
+
+if [[ "$(echo -n "${NOT_KILLED}" | wc -l)" -gt 0  ]]; then
+    echo "${NOT_KILLED}"
+    PROCESSES="$(echo "${NOT_KILLED}" | awk '{print $NF}')"
+    while read -r PROCESS; do
+        echo "Unknown error: process '${PROCESS}' not killed...try rebooting?"
+    done <<< "${PROCESSES}"
+fi
 
 echo "Deleting shared memory to remove SDR..."
 
