@@ -183,7 +183,7 @@ int	main(int argc, char **argv)
 	if (ownEid == NULL || destEid == NULL || fileName == NULL)
 	{
 		PUTS("Usage: bpsendfile <own endpoint ID> <destination \
-endpoint ID> <file name> [<time to live (seconds)> [<class of service>]]");
+endpoint ID> <file name> [<class of service> [<time to live (seconds)>]]");
 		PUTS("\tclass of service: " BP_PARSE_QUALITY_OF_SERVICE_USAGE);
 		return 0;
 	}
