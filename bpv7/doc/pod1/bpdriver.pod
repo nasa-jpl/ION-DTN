@@ -4,7 +4,7 @@ bpdriver - Bundle Protocol transmission test program
 
 =head1 SYNOPSIS
 
-B<bpdriver> I<nbrOfCycles> I<ownEndpointId> I<destinationEndpointId> [I<length>] [tI<TTL>]
+B<bpdriver> I<nbrOfCycles> I<ownEndpointId> I<destinationEndpointId> [I<length>] [tI<TTL>] [iI<Injection Rate>]
 
 =head1 DESCRIPTION
 
@@ -31,6 +31,12 @@ this purpose, the counterpart application task should be B<bpcounter>.
 If the effective value of I<length> is 1, the sizes of the transmitted
 service data units will be randomly selected multiples of 1024 in the
 range 1024 to 62464.
+
+I<Injection Rate> specifies in bits-per-second the equivalent, average 
+rate at which bpdriver will send bundles into the network. A negative 
+or 0 rate value will turn off injection rate control. By default, 
+bpdriver will inject bundle as fast as it can be handled by ION unless
+a positive value for I<injection rate> is provided.
 
 B<bpdriver> normally runs with custody transfer disabled.  To request
 custody transfer for all bundles sent by B<bpdriver>, specify I<nbrOfCycles>

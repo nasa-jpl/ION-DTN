@@ -19,6 +19,17 @@
 
 //static char	dlvmarks[] = "?.*!";
 
+
+int running = 1;		/* initialize bpdriver state */
+
+static unsigned long	getUsecTimestamp()
+{
+	struct timeval	tv;
+
+	getCurrentTime(&tv);
+	return ((tv.tv_sec * 1000000) + tv.tv_usec);
+}
+
 static BpSAP	_bpsap(BpSAP *newSap)
 {
 	void	*value;
@@ -51,18 +62,19 @@ static ReqAttendant	*_attendant(ReqAttendant *newAttendant)
 
 static void	handleQuit(int signum)
 {
-	isignal(SIGINT, handleQuit);
+	//isignal(SIGINT, handleQuit);
+	printf("Catched Ctrl-C!!!\n");
+    running = 0;
 	bp_interrupt(_bpsap(NULL));
 	ionPauseAttendant(_attendant(NULL));
 }
 
 static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
-			int aduLength, int streaming, int ttl)
+			int aduLength, int streaming, int ttl, int injectRate)
 {
 	static char	buffer[DEFAULT_ADU_LENGTH] = "test...";
 	BpSAP		sap;
 	Sdr		sdr;
-	int		running = 1;
 	BpCustodySwitch	custodySwitch;
 	int		cycles;
 	int		aduFile;
@@ -80,12 +92,17 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	struct timeval	endTime;
 	double		interval;
 	char		textBuf[256];
+	unsigned long		startTimestamp; /* cycle start time in usec */
+	unsigned long		endTimestamp; 	/* cycle end time in usec */
+	float				cycleTime;		/* desired cycle time in usec */
+	float				delayTime;		/* delay added in usec */
 
 	if (cyclesRemaining == 0 || ownEid == NULL || destEid == NULL
 	|| aduLength == 0)
 	{
 		PUTS("Usage: bpdriver <number of cycles> <own endpoint ID> \
-<destination endpoint ID> [<payload size>] [t<Bundle TTL>]");
+<destination endpoint ID> [<payload size>] [t<Bundle TTL>] \
+<i<inject data rate>");
 		PUTS("  Payload size defaults to 60000 bytes.");
 		PUTS("  Bundle TTL defaults to 300 seconds.");
 		PUTS("");
@@ -96,15 +113,22 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		PUTS("  will be used as the actual payload size.");
 		PUTS("");
 		PUTS("  To use payload sizes chosen at random from the");
-	       	PUTS("	range 1024 to 62464, in multiples of 1024,");
-	       	PUTS("	specify payload size 1 (or -1 for streaming mode).");
+	    PUTS("  range 1024 to 62464, in multiples of 1024,");
+	    PUTS("  specify payload size 1 (or -1 for streaming mode).");
 		PUTS("");
 		PUTS("  bpdriver normally runs with custody transfer");
-	       	PUTS("	disabled.  To request custody transfer for all");
-	       	PUTS("	bundles sent, specify number of cycles as a");
-	       	PUTS("	negative number; the absolute value of this");
-	       	PUTS("	parameter will be used as the actual number of");
-	       	PUTS("	cycles.");
+	    PUTS("  disabled.  To request custody transfer for all");
+	    PUTS("  bundles sent, specify number of cycles as a");
+	    PUTS("  negative number; the absolute value of this");
+	    PUTS("  parameter will be used as the actual number of");
+	    PUTS("  cycles.");
+		PUTS("");
+		PUTS("  Inject data rate specifies in bits-per-second");
+		PUTS("  the equivalent, average rate at which bpdriver");
+		PUTS("  will send bundles into the network. A negative or");
+		PUTS("  0 rate value will turn off injection rate control.");
+		PUTS("  By default, bpdriver will inject bundle as fast");
+		PUTS("  as it can be absorbed by ION.");
 		PUTS("");
 		PUTS("  Destination (receiving) application must be bpecho");
 		PUTS("  when bpdriver is run in stop-and-wait mode, should");
@@ -268,14 +292,25 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 		}
 	}
 
-	snooze(1);	/*	Make sure pilot bundle has been sent.	*/
+	microsnooze(100000);	/*	Make sure pilot bundle has been sent.	*/
 
 	/*	Begin timed bundle transmission.			*/
 
 	isignal(SIGINT, handleQuit);
 	getCurrentTime(&startTime);
+	int bSize = 1;		/* burst size for each burst */
+	int bCount = 0; 	/* counter for each burst */
+	cycleTime = (float) aduLength * 8 * 1000000 / (float) injectRate * bSize;  
+
 	while (running && cyclesRemaining > 0)
 	{
+		/* measure cycle starting time */
+
+		if ( bCount == 0 ) 
+		{
+			startTimestamp = getUsecTimestamp();
+		}
+
 		if (randomAduLength)
 		{
 			aduLength = ((rand() % 60) + 1) * 1024;
@@ -310,7 +345,47 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 
 		if (streaming)
 		{
+			if (injectRate <= 0)
+			{
+				continue;
+			}
+			else
+			{
+				/*  rate control is on  */
+
+				bCount++;
+
+				/*   check end of a cycle  */
+
+				if ( bCount == bSize )
+				{
+					endTimestamp = getUsecTimestamp();
+					delayTime = cycleTime - (float)(endTimestamp - startTimestamp);
+
+					if ( delayTime < 1 )
+					{
+						/*  increase burst size  */
+
+						bSize += 1;
+						cycleTime = (float) aduLength * 8 * 1000000 / (float) injectRate * bSize;
+					
+						if ( bSize > 10000 )
+						{
+							putErrmsg("bpdriver cannot keep up injection rate with burst size < 10,000.", itoa(injectRate));
+							bp_close(sap);
+							return 0;
+						}
+					}
+					else
+					{
+						microsnooze((unsigned int)delayTime);
+						bCount = 0;
+					}
+				}
+			}
+
 			continue;
+
 		}
 
 		/*	Now wait for acknowledgment before sending
@@ -396,6 +471,7 @@ int	bpdriver(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	int	aduLength = (a4 == 0 ? DEFAULT_ADU_LENGTH : atoi((char *) a4));
 	int	streaming = 0;
 	int 	ttl = (a5 == 0 ? DEFAULT_TTL : atoi((char *) a5));
+	int injectRate = (a6 == 0 ? 0 : atoi((char *) a6));
 #else
 int	main(int argc, char **argv)
 {
@@ -405,14 +481,33 @@ int	main(int argc, char **argv)
 	int	aduLength = DEFAULT_ADU_LENGTH;
 	int	streaming = 0;
 	int ttl=0;
+	int injectRate = 0;
+	running = 1;
 
-	if (argc > 6) argc = 6;
+	if (argc > 7) argc = 7;
 	switch (argc)
 	{
+	case 7:
+		if(argv[6][0] == 't')
+		{
+				ttl = atoi(&argv[6][1]);
+		}
+		else if (argv[6][0] == 'i')
+		{
+				injectRate = atoi(&argv[6][1]);
+		}
+		else
+		{
+			aduLength = atoi(argv[6]);
+		}
 	case 6:
 		if(argv[5][0] == 't')
 		{
 				ttl = atoi(&argv[5][1]);
+		}
+		else if (argv[5][0] == 'i')
+		{
+				injectRate = atoi(&argv[5][1]);
 		}
 		else
 		{
@@ -422,6 +517,10 @@ int	main(int argc, char **argv)
 		if(argv[4][0] == 't')
 		{
 				ttl = atoi(&argv[4][1]);
+		}
+		else if (argv[4][0] == 'i')
+		{
+				injectRate = atoi(&argv[4][1]);
 		}
 		else
 		{
@@ -444,5 +543,5 @@ int	main(int argc, char **argv)
 	}
 
 	return run_bpdriver(cyclesRemaining, ownEid, destEid, aduLength,
-			streaming, ttl);
+			streaming, ttl, injectRate);
 }
