@@ -8,7 +8,5 @@
 
 # This tests whether the status report mechanism works in ION, as well as
 # sending a bunch of bundles in one quick test.
-#status-rpts
+status-rpts
 
-
-bsp/
