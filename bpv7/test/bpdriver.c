@@ -300,7 +300,8 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	getCurrentTime(&startTime);
 	int bSize = 1;		/* burst size for each burst */
 	int bCount = 0; 	/* counter for each burst */
-	cycleTime = (float) aduLength * 8 * 1000000 / (float) injectRate * bSize;  
+	cycleTime = (float) aduLength * 8 * 1000000 / (float) injectRate * bSize;
+	startTimestamp = getUsecTimestamp();
 
 	while (running && cyclesRemaining > 0)
 	{
