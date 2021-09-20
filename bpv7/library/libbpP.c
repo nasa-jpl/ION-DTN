@@ -1933,6 +1933,11 @@ void	getCurrentDtnTime(DtnTime *dt)
 	uvast		tv_sec_epoch2000_msec;
 	uvast		tv_usec_msec;
 
+	/* get delta from UTC 	*/
+
+	IonVdb *ionvdb = getIonVdb();
+	int	delta = ionvdb ? ionvdb->deltaFromUTC : 0;
+
 	CHKVOID(dt);
 	if (gettimeofday(&tv, NULL) < 0)
 	{
@@ -1943,7 +1948,7 @@ void	getCurrentDtnTime(DtnTime *dt)
 
 	/*	EPOCH_2000_SEC is 30 years of seconds.			*/
 
-	tv_sec_epoch2000 = tv.tv_sec - EPOCH_2000_SEC;
+	tv_sec_epoch2000 = tv.tv_sec - delta - EPOCH_2000_SEC;
 	tv_sec_epoch2000_msec = tv_sec_epoch2000 * 1000;
 	tv_usec_msec = tv.tv_usec / 1000;
 	*dt = tv_sec_epoch2000_msec + tv_usec_msec;

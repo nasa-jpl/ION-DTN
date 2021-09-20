@@ -374,7 +374,7 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 	/*	Note: lifespan must be converted from seconds to
 	 *	millisecnods for BP processing.				*/
 
-	return bpSend(sourceMetaEid, destEid, reportToEid, lifespan * 1000,
+	return bpSend(sourceMetaEid, destEid, reportToEid, (uvast) lifespan * 1000,
 			classOfService, custodySwitch, srrFlags, ackRequested,
 			ancillaryData, adu, bundleObj, 0);
 }
