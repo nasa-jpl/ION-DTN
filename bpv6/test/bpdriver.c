@@ -64,7 +64,7 @@ static void	handleQuit(int signum)
 {
 	//isignal(SIGINT, handleQuit);
 	printf("Catched Ctrl-C!!!\n");
-    running = 0;
+	running = 0;
 	bp_interrupt(_bpsap(NULL));
 	ionPauseAttendant(_attendant(NULL));
 }
