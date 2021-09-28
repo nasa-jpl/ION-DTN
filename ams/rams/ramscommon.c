@@ -1011,7 +1011,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 	}
 
 	if (bp_send(gWay->sap, ramsNode->gwEid, "dtn:none", gWay->ttl,
-		classOfService, SourceCustodyRequired, 0, 0, &ancillaryData,
+		classOfService, NoCustodyRequested, 0, 0, &ancillaryData,
 		bundleZco, &newBundle) < 1)
 	{
 		isprintf(errorMsg, sizeof errorMsg,
