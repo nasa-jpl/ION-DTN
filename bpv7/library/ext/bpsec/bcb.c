@@ -2354,6 +2354,7 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		return -1;
 	}
 
+
 	/* Must decrypt target block */
 #if 0
 	if (asb->contextFlags & BPSEC_ASB_SEC_SRC)
@@ -2454,10 +2455,13 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		if (bpsec_destinationIsLocal(&(wk->bundle)))
 		{
 			ADD_BCB_RX_PASS(fromEid, 1, 0);
+
 			/* Handle sop_processed event */
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 				 sop_processed, bcbElt, targetElt,
 				 target->targetBlockNumber);
+
+
 			discardTarget(targetElt, bcbElt);
 		}
 		else
@@ -2467,7 +2471,7 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 
 		/* If target block is an extension block and its length
 		 * has changed. */
-		if (extTgtBlk->length != oldLength)
+		if ((extTgtBlk != NULL) && (extTgtBlk->length != oldLength))
 		{
 			bundle->extensionsLength -= oldLength;
 			bundle->extensionsLength += extTgtBlk->length;

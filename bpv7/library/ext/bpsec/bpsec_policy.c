@@ -373,7 +373,8 @@ int bsl_vdb_init(PsmPartition partition)
 
 void bsl_vdb_teardown(PsmPartition partition)
 {
-	SecVdb *secvdb = getSecVdb();
+  /*
+        SecVdb *secvdb = getSecVdb();
 
 	if (secvdb == NULL) return;
 
@@ -385,6 +386,7 @@ void bsl_vdb_teardown(PsmPartition partition)
 
 	radix_destroy(partition, secvdb->bpsecEidDictionary, bsl_cb_ed_delete);
 	//TODO: Delete RBT?
+  */
 }
 
 
