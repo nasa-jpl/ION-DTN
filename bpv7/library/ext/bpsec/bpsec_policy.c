@@ -1119,7 +1119,7 @@ int bsl_handle_sender_sop_event(Bundle *bundle, BpSecEventId sopEvent,
 	/* Step 0: Sanity checks */
 	CHKERR(bundle);
 	CHKERR(sopEvent >= 0);
-	CHKERR(tgtNum);
+	CHKERR(tgtNum >=0);
 
 	BpSecPolRuleSearchTag tag;
 	memset(&tag,0,sizeof(tag));

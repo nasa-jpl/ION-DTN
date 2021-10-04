@@ -903,8 +903,9 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 {
 	/* Step 0: Sanity Checks */
 	CHKERR(bundle);
-	CHKERR(polRule);
-	CHKERR(tgtNum);
+	CHKERR(polRule != NULL);
+	CHKERR(tgtNum >= 0);
+
 
 	Sdr			        sdr = getIonsdr();
 	PsmPartition        wm = getIonwm();
@@ -923,6 +924,9 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 	/* Step 1.1: If the BIB profile is not found, handle event. */
 	if (prof == NULL)
 	{
+
+	        BIB_DEBUG(2, "i bibApplySenderPolRule: Could not retrieve BIB profile.", NULL);
+
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				NULL, NULL, tgtNum);
@@ -933,11 +937,29 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 
 	PsmAddress scAddr = bslpol_scparm_find(wm, polRule->sc_parms, CSI_PARM_KEYINFO);
 	BpSecCtxParm *scParm = (BpSecCtxParm *) psp(wm, scAddr);
+	if (scParm == NULL)
+	{
+		BIB_DEBUG(2, "i bibApplySenderPolRule: Could not populate security "
+				"context parameters.", NULL);
+		return -1;
+	}
+
 	char *keyName = (char *)  psp(wm, scParm->addr);
+	if (keyName == NULL)
+	{
+		BIB_DEBUG(2, "i bibApplySenderPolRule: Could not retrieve "
+				"key name.", NULL);
+		return -1;
+	}
+
 
 	/* Step 2.1: If the key is not found, handle event. */
-	if ((scParm->length > 0 ) && sec_get_key(keyName, &keyBuflen, keyBuffer) == 0)
+	if ((scParm->length > 0 ) &&
+			sec_get_key(keyName, &keyBuflen, keyBuffer) == 0)
 	{
+		BIB_DEBUG(2, "i bibApplySenderPolRule: Could not retrieve "
+				    "key.", keyBuffer);
+
     		/* Handle sop_misconf_at_src event */
     		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
     				NULL, NULL, tgtNum);
@@ -1385,8 +1407,9 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 {
 	/* Step 0: Sanity Checks */
 	CHKERR(wk);
-	CHKERR(polRule);
-	CHKERR(tgtNum);
+	CHKERR(polRule != NULL);
+	CHKERR(tgtNum >= 0);
+
 
 	Sdr			        sdr = getIonsdr();
 	PsmPartition        wm = getIonwm();
