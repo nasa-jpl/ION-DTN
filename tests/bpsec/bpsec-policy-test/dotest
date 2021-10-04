@@ -178,11 +178,75 @@ cd ..
 
 sleep ${TIMETOWAITFORTESTFINISH}
 
+echo -e "\n\nClear Node 2 Policy"
+cd 2.ipn.ltp
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : "4"}}
+d {"event_set" : {"name" : "d_bcb_conf"}}
+ENDOFBPSECADMINCOMMANDS
 
+echo -e "\n\nClear Node 3 Policy"
+cd ../3.ipn.ltp
 
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : 5"}}
+d {"event_set" : {"name" : "d_bcb_conf"}}
+ENDOFBPSECADMINCOMMANDS
 
+cd ..
 
+#########
+# Test 3
 
+echo -e "\n\n\n\n\n*****TEST 3*****"
+echo -e "Add a BIB on the Primary Block at a security source ipn:2.1 and process at acceptor ipn:3.1\n"
+sleep ${TIMETODISPLAYTEXT}
+
+echo -e "\n\nNode 2.1 Configuration \n\n"
+cd 2.ipn.ltp
+
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "d_integrity", "desc":"default integrity event set"}}
+l {"type":"event_set"}
+a {"policyrule" : {"desc":"Integrity source rule", "filter" : {"rule_id" : "1", "role" : "s" , "src" : "ipn:2.1", "tgt" : 0}, "spec": {"svc" : "bib-integrity", "sc_id" : 2, "sc_parms" : [{"id":"key_name","value":"key1"}]}, "es_ref":"d_integrity"}}
+l {"type":"policyrule"}
+ENDOFBPSECADMINCOMMANDS
+
+echo -e "\n\nNode 3.1 Configuration \n\n"
+cd ../3.ipn.ltp
+
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+a {"event_set" : {"name" : "d_integrity", "desc":"default integrity event set"}}
+a {"policyrule" : {"desc":"Integrity acceptor rule", "filter" : {"rule_id" : "2", "role" : "a" , "src" : "ipn:2.1", "tgt" : 0}, "spec": {"svc" : "bib-integrity", "sc_id" : 2, "sc_parms" : [{"id":"key_name","value":"key1"}]}, "es_ref":"d_integrity"}}
+l {"type":"policyrule"}
+ENDOFBPSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+sleep 2
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace"
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+echo -e "\n\nClear Node 2 Policy \n\n"
+
+cd 2.ipn.ltp
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : "1"}}
+d {"event_set" : {"name" : "d_integrity"}}
+ENDOFBPSECADMINCOMMANDS
+
+echo -e "\n\nClear Node 3 Policy"
+cd ../3.ipn.ltp
+
+bpsecadmin<<ENDOFBPSECADMINCOMMANDS
+d {"policyrule" : {"rule_id" : "2"}}
+d {"event_set" : {"name" : "d_integrity"}}
+ENDOFBPSECADMINCOMMANDS
+
+cd ..
+
+###############################################################
 
 # Shut down ION processes.
 echo "Stopping ION..."
