@@ -23,7 +23,7 @@ have sub-elements that are listed within the declaration of the parent
 element, and so on.
 
 The declaration of an element may occupy a single line of text in the
-MIB initialization file or may extend across multiple files.  A single-line
+MIB initialization file or may extend across multiple lines.  A single-line
 element declaration is indicated by a '*' in the first character of the
 line.  The beginning of a multi-line element declaration is indicated by
 a '+' in the first character of the line, while the end of that declaration
