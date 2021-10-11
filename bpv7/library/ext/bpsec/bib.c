@@ -770,6 +770,10 @@ int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			/* Handle sop_misconf_at_src event */
 			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 					bibBlk, bibAsb, target.targetBlockNumber);
+			BIB_TEST_POINT("sop_misconf_at_src",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				target.targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			scratchExtensionBlock(bibBlk);
 			BIB_DEBUG_PROC("- bibAttach --> %d", result);
 			return result;
@@ -794,6 +798,10 @@ int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			/* Handle sop_misconf_at_src event */
 			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 					bibBlk, bibAsb, target.targetBlockNumber);
+			BIB_TEST_POINT("sop_misconf_at_src", bundle->id.source.ssp.ipn.nodeNbr,
+					bundle->id.source.ssp.ipn.serviceNbr, bundle->destination.ssp.ipn.nodeNbr,
+					bundle->destination.ssp.ipn.serviceNbr, target.targetBlockNumber,
+					bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			scratchExtensionBlock(bibBlk);
 			BIB_DEBUG_PROC("- bibAttach --> %d", result);
 			return result;
@@ -803,6 +811,10 @@ int	bibAttach(Bundle *bundle, ExtensionBlock *bibBlk,
 			/* Handle sop_added_at_src event */
 			bsl_handle_sender_sop_event(bundle, sop_added_at_src,
 					bibBlk, bibAsb, target.targetBlockNumber);
+			BIB_TEST_POINT("sop_added_at_src", bundle->id.source.ssp.ipn.nodeNbr,
+					bundle->id.source.ssp.ipn.serviceNbr, bundle->destination.ssp.ipn.nodeNbr,
+					bundle->destination.ssp.ipn.serviceNbr, target.targetBlockNumber,
+					bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 	}
 
@@ -929,6 +941,10 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				NULL, NULL, tgtNum);
+		BIB_TEST_POINT("sop_misconf_at_src",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -962,6 +978,10 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
     		/* Handle sop_misconf_at_src event */
     		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
     				NULL, NULL, tgtNum);
+    		BIB_TEST_POINT("sop_misconf_at_src",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
     		return -1;
     }
 
@@ -988,6 +1008,10 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				&bibBlk, &asb, tgtNum);
+		BIB_TEST_POINT("sop_misconf_at_src",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 	else
@@ -1061,6 +1085,10 @@ int	bpsec_sign(Bundle *bundle)
 			{
 				BIB_DEBUG_INFO("i bpsec_sign: failure occurred in "
 						"bibApplySenderPolRule.", NULL);
+				BIB_TEST_POINT("sop_misconf_at_src",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						block.number, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 				return -1;
 			}
 			polExtRule = NULL;
@@ -1151,6 +1179,10 @@ int	bpsec_sign(Bundle *bundle)
 					/* Handle sop_misconf_at_src event */
 					bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 							&bibBlk, &asb, 0);
+					BIB_TEST_POINT("sop_misconf_at_src",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						PrimaryBlk, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 					return -1;
 				}
 
@@ -1165,6 +1197,10 @@ int	bpsec_sign(Bundle *bundle)
 					/* Handle sop_misconf_at_src event */
 					bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 							&bibBlk, &asb, 1);
+					BIB_TEST_POINT("sop_misconf_at_src",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						PayloadBlk, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 					return -1;
 				}
 
@@ -1190,6 +1226,10 @@ int	bpsec_sign(Bundle *bundle)
 					/* Handle sop_misconf_at_src event */
 					bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 							&bibBlk, &asb, block.number);
+					BIB_TEST_POINT("sop_misconf_at_src",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						block.number, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 					return -1;
 				}
 			}
@@ -1448,11 +1488,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 					sop_missing_at_verifier, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_missing_at_verifier",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		else
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 					sop_missing_at_acceptor, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_missing_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		return -1;
 	}
@@ -1499,11 +1547,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 					sop_missing_at_verifier, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_missing_at_verifier",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		else
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 					sop_missing_at_acceptor, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_missing_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		return -1;
 	}
@@ -1520,11 +1576,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 					sop_misconf_at_verifier, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_misconf_at_verifier",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		else
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 					sop_misconf_at_acceptor, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_misconf_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		return -1;
 	}
@@ -1543,11 +1607,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 					sop_misconf_at_verifier, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_misconf_at_verifier",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		else
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 					sop_misconf_at_acceptor, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_misconf_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		return -1;
 	}
@@ -1575,11 +1647,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 	    {
 	        bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 	                sop_misconf_at_verifier, bibElt, targetElt, tgtNum);
+	        BIB_TEST_POINT("sop_misconf_at_verifier",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 	    }
 	    else
 	    {
 	        bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 	                sop_misconf_at_acceptor, bibElt, targetElt, tgtNum);
+	        BIB_TEST_POINT("sop_misconf_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 	    }
 	    return -1;
 	}
@@ -1594,11 +1674,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 					sop_misconf_at_verifier, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_misconf_at_verifier",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		else
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 					sop_misconf_at_acceptor, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_misconf_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		return -1;
 	}
@@ -1626,11 +1714,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 					sop_corrupt_at_verifier, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_corrupt_at_verifier",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		else
 		{
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 					sop_corrupt_at_acceptor, bibElt, targetElt, tgtNum);
+			BIB_TEST_POINT("sop_corrupt_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 		MRELEASE(fromEid);
 		return -1;
@@ -1650,11 +1746,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 			{
 				bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 						sop_corrupt_at_verifier, bibElt, targetElt, tgtNum);
+				BIB_TEST_POINT("sop_corrupt_at_verifier",
+					bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+					bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+					tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			}
 			else
 			{
 				bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 						sop_corrupt_at_acceptor, bibElt, targetElt, tgtNum);
+				BIB_TEST_POINT("sop_corrupt_at_acceptor",
+					bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+					bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+					tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			}
 			break;
 
@@ -1666,11 +1770,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 			{
 				bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 						sop_corrupt_at_verifier, bibElt, targetElt, tgtNum);
+				BIB_TEST_POINT("sop_corrupt_at_verifier",
+					bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+					bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+					tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			}
 			else
 			{
 				bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 						sop_corrupt_at_acceptor, bibElt, targetElt, tgtNum);
+				BIB_TEST_POINT("sop_corrupt_at_acceptor",
+					bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+					bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+					tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			}
 			break;
 
@@ -1680,11 +1792,19 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 			{
 				bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 						sop_corrupt_at_verifier, bibElt, targetElt, tgtNum);
+				BIB_TEST_POINT("sop_corrupt_at_verifier",
+					bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+					bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+					tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			}
 			else
 			{
 				bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 						sop_corrupt_at_acceptor, bibElt, targetElt, tgtNum);
+				BIB_TEST_POINT("sop_corrupt_at_acceptor",
+					bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+					bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+					tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			}
 		}
 		break;
@@ -1706,7 +1826,11 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			 sop_processed, bibElt, targetElt,
 			 target->targetBlockNumber);
-
+		BIB_TEST_POINT("sop_processed",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec,
+				bundle->id.creationTime.count);
 		discardTarget(targetElt, bibElt);
 		MRELEASE(fromEid);
 		return 1;
@@ -1719,7 +1843,11 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		bsl_handle_receiver_sop_event(wk, BPRF_VER_ROLE,
 			 sop_verified, bibElt, targetElt,
 			 target->targetBlockNumber);
-
+		BIB_TEST_POINT("sop_verified",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				tgtNum, bundle->id.creationTime.msec,
+				bundle->id.creationTime.count);
 		MRELEASE(fromEid);
 		return 1;
 	}
@@ -1780,6 +1908,10 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 		bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
 			 sop_misconf_at_verifier, bibElt, targetElt,
 			 target->targetBlockNumber);
+		BIB_TEST_POINT("sop_misconf_at_verifier",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 #if 0
@@ -1807,6 +1939,10 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 			 sop_misconf_at_acceptor, bibElt, targetElt,
 			 target->targetBlockNumber);
+		BIB_TEST_POINT("sop_misconf_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -1827,6 +1963,10 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 			 sop_corrupt_at_acceptor, bibElt, targetElt,
 			 target->targetBlockNumber);
+		BIB_TEST_POINT("sop_corrupt_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return 0;
 
 	case 0:
@@ -1846,6 +1986,10 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 			bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 				 sop_corrupt_at_acceptor, bibElt, targetElt,
 				 target->targetBlockNumber);
+			BIB_TEST_POINT("sop_corrupt_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			break;
 
 		case PayloadBlk:
@@ -1855,6 +1999,10 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 			bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 				 sop_corrupt_at_acceptor, bibElt, targetElt,
 				 target->targetBlockNumber);
+			BIB_TEST_POINT("sop_corrupt_at_acceptor",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			break;
 
 		default:	/*	Unverified extension block.	*/
@@ -1880,6 +2028,10 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 		bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 			 sop_processed, bibElt, targetElt,
 			 target->targetBlockNumber);
+		BIB_TEST_POINT("sop_processed",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		discardTarget(targetElt, bibElt);
 	}
 	else
@@ -1889,6 +2041,10 @@ static int	applyRule(AcqWorkArea *work, BPsecBibRule *rule,
 		bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
 			 sop_verified, bibElt, targetElt,
 			 target->targetBlockNumber);
+		BIB_TEST_POINT("sop_verified",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 	}
 
 	MRELEASE(fromEid);
