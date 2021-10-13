@@ -1,0 +1,376 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# August 28, 2012
+# 
+# Modified by Jay L. Gao for BPv7
+# October 06, 2021
+#
+# Tests multicast transmission.  Four nodes are in a diamond network
+# topology 1->2->3->4->1 where there is additional connectivity from
+# 2 to 4 but not from 1 to 3.  A multicast tree is overlaid on this
+# network: 1 is the root, 2 is that node's only child, and 3 and 4 are
+# children of 2.  All four nodes are members of multicast group 19.
+# The following transmission is performed:
+#
+# 1.	Node 1 sends a 150-byte file by unicast to node 3.
+# 2.	Node 1 sends a 100-byte file by multicast to group 19.  Nodes
+#	2, 3, and 4 receive copies.
+# 3.	Node 2 sends a 200-byte file by multicast to group 19.  Nodes
+#	1, 3, and 4 receive copies.
+# 4.	Node 4 sends a 400-byte file by multicast to group 19.  Nodes
+#	1, 2, and 3 receive copies.
+# 5.	Node 2 leaves the group.
+# 6.	Node 3 sends a 300-byte file by multicast to group 19.  Nodes
+#	1 and 4 receive copies.
+# 7. 	Node 4 leaves the group.
+# 8.	Node 3 sends a 310-byte file by multicast to group 19.  Only
+#	node 1 receives a copy.
+# 9.	Node 4 is restored to the tree and node 2 rejoins the group.
+# 10.	Node 3 sends a 320-byte file by multicast to group 19.  Nodes
+#	1, 2, and 4 receive copies.
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+fi
+
+if [ "$ACS" == "found" ] ; then
+	echo "Error: ACS should not exist for BPv7, terminate test..."
+	exit 1
+fi
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start all nodes
+cd 1.ipn.ltp
+rm testfile*
+./ionstart >& node1.stdout &
+sleep 2
+
+cd ../2.ipn.ltp
+rm testfile*
+./ionstart >& node2.stdout &
+sleep 2
+
+cd ../3.ipn.ltp
+rm testfile*
+./ionstart >& node3.stdout &
+sleep 2
+
+cd ../4.ipn.ltp
+rm testfile*
+./ionstart >& node4.stdout &
+
+#give nodes enough time to start
+sleep 8
+
+echo "All nodes launched."
+#read -p "Press any key to continue... " -n1 -s
+
+# Now set multicast group membership
+cd ../1.ipn.ltp
+./imcstart >& node1.stdout &
+echo "Add node 1 to imc:19"
+#read -p "Press any key to continue... " -n1 -s
+
+cd ../2.ipn.ltp
+./imcstart >& node2.stdout &
+echo "Add node 2 to imc:19"
+#read -p "Press any key to continue... " -n1 -s
+
+cd ../3.ipn.ltp
+./imcstart >& node3.stdout &
+echo "Add node 3 to imc:19"
+#read -p "Press any key to continue... " -n1 -s
+
+cd ../4.ipn.ltp
+./imcstart >& node4.stdout &
+echo "Add node 4 to imc:19"
+#read -p "Press any key to continue... " -n1 -s
+sleep 3
+
+echo "Starting bprecvfile, both unicast and multicast, on all nodes..."
+cd ../1.ipn.ltp
+bprecvfile ipn:1.1 &
+bprecvfile imc:19.0 &
+# node 2 set recvfile to max of 3 before leaving multicast group
+cd ../2.ipn.ltp
+bprecvfile ipn:2.1 &
+bprecvfile imc:19.0 3 &
+cd ../3.ipn.ltp
+bprecvfile ipn:3.1 &
+bprecvfile imc:19.0 &
+# node 4 set recvfile to max of 3 before leaving multicast group
+cd ../4.ipn.ltp
+bprecvfile ipn:4.1 &
+bprecvfile imc:19.0 4 &
+
+echo "Before step 1, there should be no testfiles anywhere..."
+#read -p "Step 0: Press any key to continue... " -n1 -s
+
+sleep 4
+cd ../1.ipn.ltp
+echo "Sending 150-byte file from ipn:1.2 to ipn:3.1 (unicast)...."
+bpsendfile ipn:1.2 ipn:3.1 file150
+cd ../3.ipn.ltp
+sleep 4
+mv testfile1 testfile01
+#read -p "Step 1 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../1.ipn.ltp
+echo "Sending 100-byte file from ipn:1.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:1.2 imc:19.0 file100
+#read -p "Step 2 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../2.ipn.ltp
+echo "Sending 200-byte file from ipn:2.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:2.2 imc:19.0 file200
+#read -p "Step 3 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../4.ipn.ltp
+echo "Sending 400-byte file from ipn:4.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:4.2 imc:19.0 file400
+#read -p "Step 4 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../2.ipn.ltp
+echo "Node 2 unregisters from imc:19.0."
+bpadmin unregister.bprc
+mv testfile1 testfile01
+mv testfile2 testfile02
+mv testfile3 testfile03
+#read -p "Step 5 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../3.ipn.ltp
+echo "Sending 300-byte file from ipn:3.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:3.2 imc:19.0 file300
+#read -p "Step 6 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../4.ipn.ltp
+echo "Node 4 unregisters from imc:19.0"
+bpadmin unregister.bprc
+mv testfile1 testfile01
+mv testfile2 testfile02
+mv testfile3 testfile03
+#read -p "Step 7 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../3.ipn.ltp
+echo "Sending 310-byte file from ipn:3.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:3.2 imc:19.0 file310
+#read -p "Step 8 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../2.ipn.ltp
+bpadmin reregister.bprc
+echo "Node 2 re-registers in imc:19.0."
+bprecvfile imc:19.0 &
+
+cd ../4.ipn.ltp
+bpadmin reregister.bprc
+echo "Node 4 re-registers in imc:19.0"
+bprecvfile imc:19.0 &
+#read -p "Step 9 done: Press any key to continue... " -n1 -s
+
+sleep 2
+cd ../3.ipn.ltp
+echo "Sending 320-byte file from ipn:3.2 to imc:19.0 (multicast)...."
+bpsendfile ipn:3.2 imc:19.0 file320
+#read -p "Step 10 done: Press any key to continue... " -n1 -s
+
+# Verify that the correct files were received at all nodes.
+sleep 10
+RETVAL=0
+
+echo "Now we check what files are received."
+echo "NOTE: We do not check file sent to self."
+
+# Verify at node 1
+
+cd ../1.ipn.ltp
+
+COUNT=`ls -l testfile* | egrep 200 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 1 did not get file200."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 400 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 1 did not get file400."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 300 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 1 did not get file300."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 310 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 1 did not get file310."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 320 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 1 did not get file320."
+	RETVAL=1
+fi
+
+# Verify at node 2
+
+cd ../2.ipn.ltp
+
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 0 ]
+then
+	echo "Error: node 2 got file150."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 100 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 2 did not get file100."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 400 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 2 did not get file400."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 300 | wc -l`
+if [ $COUNT -ne 0 ]
+then
+	echo "Error: node 2 got file300."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 310 | wc -l`
+if [ $COUNT -ne 0 ]
+then
+	echo "Error: node 2 got file310."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 320 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 2 did not get file320."
+	RETVAL=1
+fi
+
+# Verify at node 3
+
+cd ../3.ipn.ltp
+
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 3 did not get file150."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 100 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 3 did not get file100."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 200 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 3 did not get file200."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 400 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 3 did not get file400."
+	RETVAL=1
+fi
+
+# Verify at node 4
+
+cd ../4.ipn.ltp
+
+COUNT=`ls -l testfile* | egrep 150 | wc -l`
+if [ $COUNT -ne 0 ]
+then
+	echo "Error: node 4 got file150."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 100 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 4 did not get file100."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 200 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 4 did not get file200."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 300 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 4 did not get file300."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 310 | wc -l`
+if [ $COUNT -ne 0 ]
+then
+	echo "Error: node 4 got file310."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | egrep 320 | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "Error: node 4 did not get file320."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+sleep 1
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 5
+../../killm
+echo "Multicast test completed."
+exit $RETVAL

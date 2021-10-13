@@ -1,0 +1,2009 @@
+[2021/10/09-00:34:14] [i] No congestion forecast; horizon reached.
+[2021/10/09-00:34:14] [i] ionwarn finished.
+[2021/10/09-00:34:14] [i] rfxclock is running.
+[2021/10/09-00:34:15] [i] No congestion forecast; horizon reached.
+[2021/10/09-00:34:15] [i] ionwarn finished.
+[2021/10/09-00:34:16] [i] No congestion forecast; horizon reached.
+[2021/10/09-00:34:16] [i] ionwarn finished.
+[2021/10/09-00:34:17] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/09-00:34:17] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/09-00:34:17] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/09-00:34:17] [i] Total max export sessions does not exceed estimate.
+[2021/10/09-00:34:17] [i] ltpmeter is running.
+[2021/10/09-00:34:17] [i] ltpdeliv is running.
+[2021/10/09-00:34:17] [i] ltpclock is running.
+[2021/10/09-00:34:17] [i] ltpmeter is running.
+[2021/10/09-00:34:17] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/09-00:34:17] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/09-00:34:17] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/09-00:34:17] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/09-00:34:17] [i] ltpmeter is running.
+[2021/10/09-00:34:18] [i] This node deploys bundle protocol version 7.
+[2021/10/09-00:34:18] [i] Bundle security is enabled.
+[2021/10/09-00:34:18] [i] bpclm is running: ipn:2.0
+[2021/10/09-00:34:18] [i] bpclm is running: ipn:1.0
+[2021/10/09-00:34:18] [i] bpclm is running: ipn:4.0
+[2021/10/09-00:34:19] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/09-00:34:19] [i] bptransit is running.
+[2021/10/09-00:34:19] [i] ltpclo is running.
+[2021/10/09-00:34:19] [i] ltpclo is running.
+[2021/10/09-00:34:19] [i] bpclock is running.
+[2021/10/09-00:34:19] [i] ltpcli is running.
+[2021/10/09-00:34:19] [i] ipnadminep is running.
+[2021/10/09-00:34:19] [i] ipnfw is running.
+[2021/10/09-00:34:19] [i] imcfw is running.
+[2021/10/09-00:34:19] [i] ltpclo is running.
+[2021/10/09-00:34:19] [i] imcadminep is running.
+[2021/10/09-00:34:20] [x] src from 1969/12/31-16:00:00 to 2021/10/09-00:34:20: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/09-00:34:20] [x] fwd from 1969/12/31-16:00:00 to 2021/10/09-00:34:20: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/09-00:34:20] [x] xmt from 1969/12/31-16:00:00 to 2021/10/09-00:34:20: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/09-00:34:20] [x] rcv from 1969/12/31-16:00:00 to 2021/10/09-00:34:20: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/09-00:34:20] [x] dlv from 1969/12/31-16:00:00 to 2021/10/09-00:34:20: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/09-00:34:20] [x] rfw from 1969/12/31-16:00:00 to 2021/10/09-00:34:20: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/09-00:34:20] [x] exp from 1969/12/31-16:00:00 to 2021/10/09-00:34:20: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/09-00:34:28] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/09-00:34:28] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 91): xmit segment loss rate 0.617186, recv segment loss rate 0.070228, max timeouts 29.
+[2021/10/09-00:34:28] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/09-00:34:28] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 14116, rpt 5822. (1)
+[2021/10/09-00:34:28] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/09-00:34:28] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/09-00:34:28] at line 7108 of ../library/libltpP.c, Acknowledged report is 5822, lowerBound 0, upperBound 91, last report serial number 5822. (1)
+[2021/10/09-00:34:28] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/09-00:34:28] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/09-00:34:28] at line 4894 of ../library/libltpP.c, Opened import session. (2)
+[2021/10/09-00:34:28] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 91): xmit segment loss rate 0.617186, recv segment loss rate 0.070228, max timeouts 29.
+[2021/10/09-00:34:28] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/09-00:34:28] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 15957, rpt 12135. (2)
+[2021/10/09-00:34:28] at line 4486 of ../library/libltpP.c, Reporting all data received. (2)
+[2021/10/09-00:34:28] at line 7028 of ../library/libltpP.c, Handling report ack. (2)
+[2021/10/09-00:34:28] at line 7108 of ../library/libltpP.c, Acknowledged report is 12135, lowerBound 0, upperBound 91, last report serial number 12135. (2)
+[2021/10/09-00:34:28] at line 2866 of ../library/libltpP.c, Stopped import session. (2)
+[2021/10/09-00:34:28] at line 2966 of ../library/libltpP.c, Closed import session. (2)
+[2021/10/09-00:34:29] [i] Max report segments = 2 for red part length 183, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:34:29] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 15623 rpt 0 to node 2. (3)
+[2021/10/09-00:34:29] [i] Max report segments = 2 for red part length 182, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:34:29] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 14153 rpt 0 to node 4. (2)
+[2021/10/09-00:34:29] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/09-00:34:29] at line 6457 of ../library/libltpP.c, [i] Got RS 4675 for checkpoint 15623; 1 claims from 0 to 183. (3)
+[2021/10/09-00:34:29] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/09-00:34:29] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/09-00:34:29] at line 6457 of ../library/libltpP.c, [i] Got RS 4892 for checkpoint 14153; 1 claims from 0 to 182. (2)
+[2021/10/09-00:34:29] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/09-00:34:29] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/09-00:34:29] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/09-00:34:29] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 3672, rpt 7529. (5)
+[2021/10/09-00:34:29] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/09-00:34:29] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/09-00:34:29] at line 7108 of ../library/libltpP.c, Acknowledged report is 7529, lowerBound 0, upperBound 91, last report serial number 7529. (5)
+[2021/10/09-00:34:29] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/09-00:34:29] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/09-00:34:30] at line 4894 of ../library/libltpP.c, Opened import session. (6)
+[2021/10/09-00:34:30] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 92): xmit segment loss rate 0.617186, recv segment loss rate 0.070972, max timeouts 29.
+[2021/10/09-00:34:30] [i] Max report segments = 2 for red part length 92, max segment size 92, segment loss rate 0.070972.
+[2021/10/09-00:34:30] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 92, ckpt 8419, rpt 412. (6)
+[2021/10/09-00:34:30] at line 4486 of ../library/libltpP.c, Reporting all data received. (6)
+[2021/10/09-00:34:30] at line 7028 of ../library/libltpP.c, Handling report ack. (6)
+[2021/10/09-00:34:30] at line 7108 of ../library/libltpP.c, Acknowledged report is 412, lowerBound 0, upperBound 92, last report serial number 412. (6)
+[2021/10/09-00:34:30] at line 2866 of ../library/libltpP.c, Stopped import session. (6)
+[2021/10/09-00:34:30] at line 2966 of ../library/libltpP.c, Closed import session. (6)
+[2021/10/09-00:34:31] [i] bprecvfile is running.
+[2021/10/09-00:34:31] [i] bprecvfile is running.
+[2021/10/09-00:34:41] [i] bpsendfile is running.
+[2021/10/09-00:34:41] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/09-00:34:41] [i] bpsendfile sent 'file150', size 150.
+[2021/10/09-00:34:41] [i] bpsendfile has stopped.
+[2021/10/09-00:34:41] [i] Max report segments = 2 for red part length 228, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:34:41] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 12629 rpt 0 to node 2. (4)
+[2021/10/09-00:34:41] at line 6440 of ../library/libltpP.c, Handling report. (4)
+[2021/10/09-00:34:41] at line 6457 of ../library/libltpP.c, [i] Got RS 1818 for checkpoint 12629; 1 claims from 0 to 228. (4)
+[2021/10/09-00:34:41] at line 2423 of ../library/libltpP.c, Closed export session. (4)
+[2021/10/09-00:34:48] [i] bpsendfile is running.
+[2021/10/09-00:34:48] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/09-00:34:48] [i] bpsendfile sent 'file100', size 100.
+[2021/10/09-00:34:48] [i] bpsendfile has stopped.
+[2021/10/09-00:34:48] [i] Max report segments = 2 for red part length 189, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:34:48] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 5928 rpt 0 to node 2. (6)
+[2021/10/09-00:34:48] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:34:48] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 10069 rpt 0 to node 4. (5)
+[2021/10/09-00:34:48] at line 6440 of ../library/libltpP.c, Handling report. (6)
+[2021/10/09-00:34:48] at line 6457 of ../library/libltpP.c, [i] Got RS 10375 for checkpoint 5928; 1 claims from 0 to 189. (6)
+[2021/10/09-00:34:48] at line 2423 of ../library/libltpP.c, Closed export session. (6)
+[2021/10/09-00:34:48] at line 6440 of ../library/libltpP.c, Handling report. (5)
+[2021/10/09-00:34:48] at line 6457 of ../library/libltpP.c, [i] Got RS 15951 for checkpoint 10069; 1 claims from 0 to 187. (5)
+[2021/10/09-00:34:48] at line 2423 of ../library/libltpP.c, Closed export session. (5)
+[2021/10/09-00:34:49] at line 4894 of ../library/libltpP.c, Opened import session. (10)
+[2021/10/09-00:34:49] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 189): xmit segment loss rate 0.617186, recv segment loss rate 0.140352, max timeouts 29.
+[2021/10/09-00:34:49] [i] Max report segments = 2 for red part length 189, max segment size 189, segment loss rate 0.140352.
+[2021/10/09-00:34:49] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 189, ckpt 8061, rpt 14843. (10)
+[2021/10/09-00:34:49] at line 4486 of ../library/libltpP.c, Reporting all data received. (10)
+[2021/10/09-00:34:49] at line 7028 of ../library/libltpP.c, Handling report ack. (10)
+[2021/10/09-00:34:49] [i] bprecvfile is creating 'testfile1', size 100.
+[2021/10/09-00:34:49] at line 7108 of ../library/libltpP.c, Acknowledged report is 14843, lowerBound 0, upperBound 189, last report serial number 14843. (10)
+[2021/10/09-00:34:49] at line 2866 of ../library/libltpP.c, Stopped import session. (10)
+[2021/10/09-00:34:49] at line 2966 of ../library/libltpP.c, Closed import session. (10)
+[2021/10/09-00:34:49] [i] bprecvfile has created 'testfile1', size 100.
+[2021/10/09-00:34:55] at line 4894 of ../library/libltpP.c, Opened import session. (8)
+[2021/10/09-00:34:55] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 288): xmit segment loss rate 0.617186, recv segment loss rate 0.205824, max timeouts 29.
+[2021/10/09-00:34:55] [i] Max report segments = 2 for red part length 288, max segment size 288, segment loss rate 0.205824.
+[2021/10/09-00:34:55] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 288, ckpt 2343, rpt 2805. (8)
+[2021/10/09-00:34:55] at line 4486 of ../library/libltpP.c, Reporting all data received. (8)
+[2021/10/09-00:34:55] at line 7028 of ../library/libltpP.c, Handling report ack. (8)
+[2021/10/09-00:34:55] [i] bprecvfile is creating 'testfile2', size 200.
+[2021/10/09-00:34:55] at line 7108 of ../library/libltpP.c, Acknowledged report is 2805, lowerBound 0, upperBound 288, last report serial number 2805. (8)
+[2021/10/09-00:34:55] at line 2866 of ../library/libltpP.c, Stopped import session. (8)
+[2021/10/09-00:34:55] at line 2966 of ../library/libltpP.c, Closed import session. (8)
+[2021/10/09-00:34:55] [i] bprecvfile has created 'testfile2', size 200.
+[2021/10/09-00:34:56] [i] Max report segments = 2 for red part length 288, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:34:56] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 5017 rpt 0 to node 4. (8)
+[2021/10/09-00:34:56] at line 6440 of ../library/libltpP.c, Handling report. (8)
+[2021/10/09-00:34:56] at line 6457 of ../library/libltpP.c, [i] Got RS 8967 for checkpoint 5017; 1 claims from 0 to 288. (8)
+[2021/10/09-00:34:56] at line 2423 of ../library/libltpP.c, Closed export session. (8)
+[2021/10/09-00:35:03] at line 4894 of ../library/libltpP.c, Opened import session. (11)
+[2021/10/09-00:35:03] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 489): xmit segment loss rate 0.617186, recv segment loss rate 0.323812, max timeouts 29.
+[2021/10/09-00:35:03] [i] Max report segments = 2 for red part length 489, max segment size 489, segment loss rate 0.323812.
+[2021/10/09-00:35:03] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 489, ckpt 7535, rpt 10579. (11)
+[2021/10/09-00:35:03] at line 4486 of ../library/libltpP.c, Reporting all data received. (11)
+[2021/10/09-00:35:03] at line 7028 of ../library/libltpP.c, Handling report ack. (11)
+[2021/10/09-00:35:03] [i] bprecvfile is creating 'testfile3', size 400.
+[2021/10/09-00:35:03] at line 7108 of ../library/libltpP.c, Acknowledged report is 10579, lowerBound 0, upperBound 489, last report serial number 10579. (11)
+[2021/10/09-00:35:03] at line 2866 of ../library/libltpP.c, Stopped import session. (11)
+[2021/10/09-00:35:03] at line 2966 of ../library/libltpP.c, Closed import session. (11)
+[2021/10/09-00:35:03] [i] bprecvfile has created 'testfile3', size 400.
+[2021/10/09-00:35:04] [i] Max report segments = 2 for red part length 490, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:35:04] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 5823 rpt 0 to node 2. (7)
+[2021/10/09-00:35:04] at line 6440 of ../library/libltpP.c, Handling report. (7)
+[2021/10/09-00:35:04] at line 6457 of ../library/libltpP.c, [i] Got RS 3068 for checkpoint 5823; 1 claims from 0 to 490. (7)
+[2021/10/09-00:35:04] at line 2423 of ../library/libltpP.c, Closed export session. (7)
+[2021/10/09-00:35:11] at line 4894 of ../library/libltpP.c, Opened import session. (15)
+[2021/10/09-00:35:11] [i] Max report segments = 2 for red part length 91, max segment size 288, segment loss rate 0.205824.
+[2021/10/09-00:35:11] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 73, rpt 5661. (15)
+[2021/10/09-00:35:11] at line 4486 of ../library/libltpP.c, Reporting all data received. (15)
+[2021/10/09-00:35:11] at line 7028 of ../library/libltpP.c, Handling report ack. (15)
+[2021/10/09-00:35:11] at line 7108 of ../library/libltpP.c, Acknowledged report is 5661, lowerBound 0, upperBound 91, last report serial number 5661. (15)
+[2021/10/09-00:35:11] at line 2866 of ../library/libltpP.c, Stopped import session. (15)
+[2021/10/09-00:35:11] at line 2966 of ../library/libltpP.c, Closed import session. (15)
+[2021/10/09-00:35:12] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:35:12] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 8665 rpt 0 to node 4. (9)
+[2021/10/09-00:35:12] at line 6440 of ../library/libltpP.c, Handling report. (9)
+[2021/10/09-00:35:12] at line 6457 of ../library/libltpP.c, [i] Got RS 13463 for checkpoint 8665; 1 claims from 0 to 92. (9)
+[2021/10/09-00:35:12] at line 2423 of ../library/libltpP.c, Closed export session. (9)
+[2021/10/09-00:35:18] at line 4894 of ../library/libltpP.c, Opened import session. (18)
+[2021/10/09-00:35:18] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 390): xmit segment loss rate 0.617186, recv segment loss rate 0.268068, max timeouts 29.
+[2021/10/09-00:35:18] [i] Max report segments = 2 for red part length 390, max segment size 390, segment loss rate 0.268068.
+[2021/10/09-00:35:18] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 390, ckpt 11614, rpt 8520. (18)
+[2021/10/09-00:35:18] at line 4486 of ../library/libltpP.c, Reporting all data received. (18)
+[2021/10/09-00:35:18] at line 7028 of ../library/libltpP.c, Handling report ack. (18)
+[2021/10/09-00:35:18] [i] bprecvfile is creating 'testfile4', size 300.
+[2021/10/09-00:35:18] at line 7108 of ../library/libltpP.c, Acknowledged report is 8520, lowerBound 0, upperBound 390, last report serial number 8520. (18)
+[2021/10/09-00:35:18] at line 2866 of ../library/libltpP.c, Stopped import session. (18)
+[2021/10/09-00:35:18] at line 2966 of ../library/libltpP.c, Closed import session. (18)
+[2021/10/09-00:35:18] [i] bprecvfile has created 'testfile4', size 300.
+[2021/10/09-00:35:27] at line 4894 of ../library/libltpP.c, Opened import session. (13)
+[2021/10/09-00:35:27] [i] Max report segments = 2 for red part length 91, max segment size 489, segment loss rate 0.323812.
+[2021/10/09-00:35:27] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 6986, rpt 1401. (13)
+[2021/10/09-00:35:27] at line 4486 of ../library/libltpP.c, Reporting all data received. (13)
+[2021/10/09-00:35:27] at line 7028 of ../library/libltpP.c, Handling report ack. (13)
+[2021/10/09-00:35:27] at line 7108 of ../library/libltpP.c, Acknowledged report is 1401, lowerBound 0, upperBound 91, last report serial number 1401. (13)
+[2021/10/09-00:35:27] at line 2866 of ../library/libltpP.c, Stopped import session. (13)
+[2021/10/09-00:35:27] at line 2966 of ../library/libltpP.c, Closed import session. (13)
+[2021/10/09-00:35:28] [i] Max report segments = 2 for red part length 91, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:35:28] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 7313 rpt 0 to node 2. (10)
+[2021/10/09-00:35:28] at line 6440 of ../library/libltpP.c, Handling report. (10)
+[2021/10/09-00:35:28] at line 6457 of ../library/libltpP.c, [i] Got RS 2674 for checkpoint 7313; 1 claims from 0 to 91. (10)
+[2021/10/09-00:35:28] at line 2423 of ../library/libltpP.c, Closed export session. (10)
+[2021/10/09-00:35:42] at line 4894 of ../library/libltpP.c, Opened import session. (21)
+[2021/10/09-00:35:42] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 400): xmit segment loss rate 0.617186, recv segment loss rate 0.273901, max timeouts 29.
+[2021/10/09-00:35:42] [i] Max report segments = 2 for red part length 400, max segment size 400, segment loss rate 0.273901.
+[2021/10/09-00:35:42] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 400, ckpt 5909, rpt 5862. (21)
+[2021/10/09-00:35:42] at line 4486 of ../library/libltpP.c, Reporting all data received. (21)
+[2021/10/09-00:35:42] at line 7028 of ../library/libltpP.c, Handling report ack. (21)
+[2021/10/09-00:35:42] [i] bprecvfile is creating 'testfile5', size 310.
+[2021/10/09-00:35:42] at line 7108 of ../library/libltpP.c, Acknowledged report is 5862, lowerBound 0, upperBound 400, last report serial number 5862. (21)
+[2021/10/09-00:35:42] at line 2866 of ../library/libltpP.c, Stopped import session. (21)
+[2021/10/09-00:35:42] at line 2966 of ../library/libltpP.c, Closed import session. (21)
+[2021/10/09-00:35:42] [i] bprecvfile has created 'testfile5', size 310.
+[2021/10/09-00:35:52] at line 4894 of ../library/libltpP.c, Opened import session. (18)
+[2021/10/09-00:35:52] [i] Max report segments = 2 for red part length 91, max segment size 489, segment loss rate 0.323812.
+[2021/10/09-00:35:52] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 4141, rpt 1022. (18)
+[2021/10/09-00:35:52] at line 4486 of ../library/libltpP.c, Reporting all data received. (18)
+[2021/10/09-00:35:52] at line 7028 of ../library/libltpP.c, Handling report ack. (18)
+[2021/10/09-00:35:52] at line 7108 of ../library/libltpP.c, Acknowledged report is 1022, lowerBound 0, upperBound 91, last report serial number 1022. (18)
+[2021/10/09-00:35:52] at line 2866 of ../library/libltpP.c, Stopped import session. (18)
+[2021/10/09-00:35:52] at line 2966 of ../library/libltpP.c, Closed import session. (18)
+[2021/10/09-00:35:52] at line 4894 of ../library/libltpP.c, Opened import session. (24)
+[2021/10/09-00:35:52] [i] Max report segments = 2 for red part length 91, max segment size 400, segment loss rate 0.273901.
+[2021/10/09-00:35:52] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 14510, rpt 12511. (24)
+[2021/10/09-00:35:52] at line 4486 of ../library/libltpP.c, Reporting all data received. (24)
+[2021/10/09-00:35:52] at line 7028 of ../library/libltpP.c, Handling report ack. (24)
+[2021/10/09-00:35:52] at line 7108 of ../library/libltpP.c, Acknowledged report is 12511, lowerBound 0, upperBound 91, last report serial number 12511. (24)
+[2021/10/09-00:35:52] at line 2866 of ../library/libltpP.c, Stopped import session. (24)
+[2021/10/09-00:35:52] at line 2966 of ../library/libltpP.c, Closed import session. (24)
+[2021/10/09-00:35:53] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:35:53] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 3937 rpt 0 to node 2. (12)
+[2021/10/09-00:35:53] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/09-00:35:53] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 15 rpt 0 to node 4. (11)
+[2021/10/09-00:35:53] at line 6440 of ../library/libltpP.c, Handling report. (12)
+[2021/10/09-00:35:53] at line 6457 of ../library/libltpP.c, [i] Got RS 12450 for checkpoint 3937; 1 claims from 0 to 92. (12)
+[2021/10/09-00:35:53] at line 2423 of ../library/libltpP.c, Closed export session. (12)
+[2021/10/09-00:35:53] at line 6440 of ../library/libltpP.c, Handling report. (11)
+[2021/10/09-00:35:53] at line 6457 of ../library/libltpP.c, [i] Got RS 14322 for checkpoint 15; 1 claims from 0 to 92. (11)
+[2021/10/09-00:35:53] at line 2423 of ../library/libltpP.c, Closed export session. (11)
+[2021/10/09-00:36:08] at line 4894 of ../library/libltpP.c, Opened import session. (26)
+[2021/10/09-00:36:08] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 410): xmit segment loss rate 0.617186, recv segment loss rate 0.279688, max timeouts 29.
+[2021/10/09-00:36:08] [i] Max report segments = 2 for red part length 410, max segment size 410, segment loss rate 0.279688.
+[2021/10/09-00:36:08] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 410, ckpt 15256, rpt 10893. (26)
+[2021/10/09-00:36:08] at line 4486 of ../library/libltpP.c, Reporting all data received. (26)
+[2021/10/09-00:36:08] at line 7028 of ../library/libltpP.c, Handling report ack. (26)
+[2021/10/09-00:36:08] [i] bprecvfile is creating 'testfile6', size 320.
+[2021/10/09-00:36:08] at line 7108 of ../library/libltpP.c, Acknowledged report is 10893, lowerBound 0, upperBound 410, last report serial number 10893. (26)
+[2021/10/09-00:36:08] at line 2866 of ../library/libltpP.c, Stopped import session. (26)
+[2021/10/09-00:36:08] at line 2966 of ../library/libltpP.c, Closed import session. (26)
+[2021/10/09-00:36:08] [i] bprecvfile has created 'testfile6', size 320.
+[2021/10/09-00:36:25] [i] Endpoint has been stopped.
+[2021/10/09-00:36:25] [i] Endpoint has been stopped.
+[2021/10/09-00:36:25] [i] Endpoint has been stopped.
+[2021/10/09-00:36:25] [i] Administrative endpoint terminated.
+[2021/10/09-00:36:25] [i] Endpoint has been stopped.
+[2021/10/09-00:36:25] [i] ipnfw forwarder has ended.
+[2021/10/09-00:36:25] [i] ipnadminep has ended.
+[2021/10/09-00:36:25] [i] Plan has been stopped: ipn:1.0
+[2021/10/09-00:36:25] [i] Plan has been stopped: ipn:2.0
+[2021/10/09-00:36:25] [i] bpclm has ended: ipn:2.0
+[2021/10/09-00:36:25] [i] bpclm has ended: ipn:1.0
+[2021/10/09-00:36:25] [i] Plan has been stopped: ipn:4.0
+[2021/10/09-00:36:25] [i] Outduct has been stopped: 2
+[2021/10/09-00:36:25] [i] bpclm has ended: ipn:4.0
+[2021/10/09-00:36:25] [i] ltpclo outduct closed.
+[2021/10/09-00:36:25] [i] ltpclo duct has ended.
+[2021/10/09-00:36:25] [i] Outduct has been stopped: 1
+[2021/10/09-00:36:25] [i] ltpclo outduct closed.
+[2021/10/09-00:36:25] [i] ltpclo duct has ended.
+[2021/10/09-00:36:25] [i] Administrative endpoint terminated.
+[2021/10/09-00:36:25] [i] imcadminep has ended.
+[2021/10/09-00:36:25] [i] bptransit has ended.
+[2021/10/09-00:36:25] [i] Outduct has been stopped: 4
+[2021/10/09-00:36:25] [i] Stopping bprecvfile.
+[2021/10/09-00:36:25] [i] ltpclo outduct closed.
+[2021/10/09-00:36:25] [i] ltpclo duct has ended.
+[2021/10/09-00:36:25] [i] Stopping bprecvfile.
+[2021/10/09-00:36:25] [i] ltpcli receiver thread has ended.
+[2021/10/09-00:36:25] [i] ltpcli duct has ended.
+[2021/10/09-00:36:25] [i] bpclock has ended.
+[2021/10/09-00:36:26] [i] imcClock thread has ended.
+[2021/10/09-00:36:26] [i] imcfw forwarder has ended.
+[2021/10/09-00:36:28] [i] ltpdeliv has ended.
+[2021/10/09-00:36:28] [i] LTP meter to engine 1 is stopped.
+[2021/10/09-00:36:28] [i] LSO to engine 1 is stopped.
+[2021/10/09-00:36:28] [i] LSO to engine 4 is stopped.
+[2021/10/09-00:36:28] [i] ltpmeter has ended.
+[2021/10/09-00:36:28] [i] LTP meter to engine 4 is stopped.
+[2021/10/09-00:36:28] [i] udplsa receiver thread has ended.
+[2021/10/09-00:36:28] [i] LSO to engine 2 is stopped.
+[2021/10/09-00:36:28] [i] ltpmeter has ended.
+[2021/10/09-00:36:28] [i] ltpclock has ended.
+[2021/10/09-00:36:28] [i] udplsi has ended.
+[2021/10/09-00:36:28] [i] udplsa receiver thread has ended.
+[2021/10/09-00:36:28] [i] udplsa receiver thread has ended.
+[2021/10/09-00:36:28] [i] udplso has ended.
+[2021/10/09-00:36:28] [i] udplsa receiver thread has ended.
+[2021/10/09-00:36:28] [i] udplso has ended.
+[2021/10/09-00:36:28] [i] udplso has ended.
+[2021/10/09-00:36:28] [i] LTP meter to engine 2 is stopped.
+[2021/10/09-00:36:28] [i] ltpmeter has ended.
+[2021/10/09-00:36:29] [i] rfxclock has ended.
+[2021/10/10-09:39:26] [i] rfxclock is running.
+[2021/10/10-09:39:26] [i] No congestion forecast; horizon reached.
+[2021/10/10-09:39:26] [i] ionwarn finished.
+[2021/10/10-09:39:27] [i] No congestion forecast; horizon reached.
+[2021/10/10-09:39:27] [i] ionwarn finished.
+[2021/10/10-09:39:28] [i] No congestion forecast; horizon reached.
+[2021/10/10-09:39:28] [i] ionwarn finished.
+[2021/10/10-09:39:29] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-09:39:29] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-09:39:29] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-09:39:29] [i] Total max export sessions does not exceed estimate.
+[2021/10/10-09:39:29] [i] ltpdeliv is running.
+[2021/10/10-09:39:29] [i] ltpmeter is running.
+[2021/10/10-09:39:29] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/10-09:39:29] [i] ltpmeter is running.
+[2021/10/10-09:39:29] [i] ltpclock is running.
+[2021/10/10-09:39:29] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/10-09:39:29] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/10-09:39:29] [i] ltpmeter is running.
+[2021/10/10-09:39:29] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/10-09:39:30] [i] This node deploys bundle protocol version 7.
+[2021/10/10-09:39:30] [i] Bundle security is enabled.
+[2021/10/10-09:39:30] [i] bpclm is running: ipn:4.0
+[2021/10/10-09:39:30] [i] bpclm is running: ipn:2.0
+[2021/10/10-09:39:30] [i] bpclm is running: ipn:1.0
+[2021/10/10-09:39:31] [i] bptransit is running.
+[2021/10/10-09:39:31] [i] ltpclo is running.
+[2021/10/10-09:39:31] [i] ipnadminep is running.
+[2021/10/10-09:39:31] [i] imcadminep is running.
+[2021/10/10-09:39:31] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/10-09:39:31] [i] imcfw is running.
+[2021/10/10-09:39:31] [i] bpclock is running.
+[2021/10/10-09:39:31] [i] ipnfw is running.
+[2021/10/10-09:39:31] [i] ltpclo is running.
+[2021/10/10-09:39:31] [i] ltpclo is running.
+[2021/10/10-09:39:31] [i] ltpcli is running.
+[2021/10/10-09:39:32] [x] src from 1969/12/31-16:00:00 to 2021/10/10-09:39:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-09:39:32] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-09:39:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-09:39:32] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-09:39:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-09:39:32] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-09:39:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-09:39:32] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-09:39:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-09:39:32] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-09:39:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-09:39:32] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-09:39:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-09:39:40] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-09:39:40] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 91): xmit segment loss rate 0.617186, recv segment loss rate 0.070228, max timeouts 29.
+[2021/10/10-09:39:40] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/10-09:39:40] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 15813, rpt 9680. (1)
+[2021/10/10-09:39:40] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-09:39:40] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-09:39:40] at line 7108 of ../library/libltpP.c, Acknowledged report is 9680, lowerBound 0, upperBound 91, last report serial number 9680. (1)
+[2021/10/10-09:39:40] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-09:39:40] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-09:39:40] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-09:39:40] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 91): xmit segment loss rate 0.617186, recv segment loss rate 0.070228, max timeouts 29.
+[2021/10/10-09:39:40] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/10-09:39:40] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 8095, rpt 15151. (1)
+[2021/10/10-09:39:40] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-09:39:40] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-09:39:40] at line 7108 of ../library/libltpP.c, Acknowledged report is 15151, lowerBound 0, upperBound 91, last report serial number 15151. (1)
+[2021/10/10-09:39:40] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-09:39:40] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-09:39:40] [i] Max report segments = 2 for red part length 181, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:39:40] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 13749 rpt 0 to node 4. (3)
+[2021/10/10-09:39:40] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:39:40] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 1772 rpt 0 to node 2. (2)
+[2021/10/10-09:39:40] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/10-09:39:40] at line 6457 of ../library/libltpP.c, [i] Got RS 2509 for checkpoint 13749; 1 claims from 0 to 181. (3)
+[2021/10/10-09:39:40] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/10-09:39:40] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/10-09:39:40] at line 6457 of ../library/libltpP.c, [i] Got RS 3947 for checkpoint 1772; 1 claims from 0 to 92. (2)
+[2021/10/10-09:39:40] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/10-09:39:41] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/10-09:39:41] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/10-09:39:41] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 3493, rpt 14234. (5)
+[2021/10/10-09:39:41] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/10-09:39:41] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/10-09:39:41] at line 7108 of ../library/libltpP.c, Acknowledged report is 14234, lowerBound 0, upperBound 91, last report serial number 14234. (5)
+[2021/10/10-09:39:41] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/10-09:39:41] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/10-09:39:41] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/10-09:39:41] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 92): xmit segment loss rate 0.617186, recv segment loss rate 0.070972, max timeouts 29.
+[2021/10/10-09:39:41] [i] Max report segments = 2 for red part length 92, max segment size 92, segment loss rate 0.070972.
+[2021/10/10-09:39:41] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 92, ckpt 7809, rpt 7310. (5)
+[2021/10/10-09:39:41] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/10-09:39:41] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/10-09:39:41] at line 7108 of ../library/libltpP.c, Acknowledged report is 7310, lowerBound 0, upperBound 92, last report serial number 7310. (5)
+[2021/10/10-09:39:41] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/10-09:39:41] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/10-09:39:41] [i] Max report segments = 2 for red part length 91, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:39:41] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 3674 rpt 0 to node 2. (5)
+[2021/10/10-09:39:41] at line 6440 of ../library/libltpP.c, Handling report. (5)
+[2021/10/10-09:39:41] at line 6457 of ../library/libltpP.c, [i] Got RS 14146 for checkpoint 3674; 1 claims from 0 to 91. (5)
+[2021/10/10-09:39:41] at line 2423 of ../library/libltpP.c, Closed export session. (5)
+[2021/10/10-09:39:43] [i] bprecvfile is running.
+[2021/10/10-09:39:43] [i] bprecvfile is running.
+[2021/10/10-09:39:54] [i] bpsendfile is running.
+[2021/10/10-09:39:54] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/10-09:39:54] [i] bpsendfile sent 'file150', size 150.
+[2021/10/10-09:39:54] [i] bpsendfile has stopped.
+[2021/10/10-09:39:55] [i] Max report segments = 2 for red part length 228, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:39:55] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 13307 rpt 0 to node 2. (6)
+[2021/10/10-09:39:55] at line 6440 of ../library/libltpP.c, Handling report. (6)
+[2021/10/10-09:39:55] at line 6457 of ../library/libltpP.c, [i] Got RS 11303 for checkpoint 13307; 1 claims from 0 to 228. (6)
+[2021/10/10-09:39:55] at line 2423 of ../library/libltpP.c, Closed export session. (6)
+[2021/10/10-09:40:01] [i] bpsendfile is running.
+[2021/10/10-09:40:01] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/10-09:40:01] [i] bpsendfile sent 'file100', size 100.
+[2021/10/10-09:40:01] [i] bpsendfile has stopped.
+[2021/10/10-09:40:02] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:40:02] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 3786 rpt 0 to node 4. (4)
+[2021/10/10-09:40:02] [i] Max report segments = 2 for red part length 189, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:40:02] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 2278 rpt 0 to node 2. (7)
+[2021/10/10-09:40:02] at line 6440 of ../library/libltpP.c, Handling report. (4)
+[2021/10/10-09:40:02] at line 6457 of ../library/libltpP.c, [i] Got RS 1847 for checkpoint 3786; 1 claims from 0 to 187. (4)
+[2021/10/10-09:40:02] at line 2423 of ../library/libltpP.c, Closed export session. (4)
+[2021/10/10-09:40:02] at line 6440 of ../library/libltpP.c, Handling report. (7)
+[2021/10/10-09:40:02] at line 6457 of ../library/libltpP.c, [i] Got RS 15028 for checkpoint 2278; 1 claims from 0 to 189. (7)
+[2021/10/10-09:40:02] at line 2423 of ../library/libltpP.c, Closed export session. (7)
+[2021/10/10-09:40:03] at line 4894 of ../library/libltpP.c, Opened import session. (8)
+[2021/10/10-09:40:03] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 189): xmit segment loss rate 0.617186, recv segment loss rate 0.140352, max timeouts 29.
+[2021/10/10-09:40:03] [i] Max report segments = 2 for red part length 189, max segment size 189, segment loss rate 0.140352.
+[2021/10/10-09:40:03] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 189, ckpt 5160, rpt 4309. (8)
+[2021/10/10-09:40:03] at line 4486 of ../library/libltpP.c, Reporting all data received. (8)
+[2021/10/10-09:40:03] at line 7028 of ../library/libltpP.c, Handling report ack. (8)
+[2021/10/10-09:40:03] [i] bprecvfile is creating 'testfile1', size 100.
+[2021/10/10-09:40:03] at line 7108 of ../library/libltpP.c, Acknowledged report is 4309, lowerBound 0, upperBound 189, last report serial number 4309. (8)
+[2021/10/10-09:40:03] at line 2866 of ../library/libltpP.c, Stopped import session. (8)
+[2021/10/10-09:40:03] at line 2966 of ../library/libltpP.c, Closed import session. (8)
+[2021/10/10-09:40:03] [i] bprecvfile has created 'testfile1', size 100.
+[2021/10/10-09:40:05] at line 4894 of ../library/libltpP.c, Opened import session. (8)
+[2021/10/10-09:40:05] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 288): xmit segment loss rate 0.617186, recv segment loss rate 0.205824, max timeouts 29.
+[2021/10/10-09:40:05] [i] Max report segments = 2 for red part length 288, max segment size 288, segment loss rate 0.205824.
+[2021/10/10-09:40:05] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 288, ckpt 13077, rpt 15303. (8)
+[2021/10/10-09:40:05] at line 4486 of ../library/libltpP.c, Reporting all data received. (8)
+[2021/10/10-09:40:05] at line 7028 of ../library/libltpP.c, Handling report ack. (8)
+[2021/10/10-09:40:05] [i] bprecvfile is creating 'testfile2', size 200.
+[2021/10/10-09:40:05] at line 7108 of ../library/libltpP.c, Acknowledged report is 15303, lowerBound 0, upperBound 288, last report serial number 15303. (8)
+[2021/10/10-09:40:05] at line 2866 of ../library/libltpP.c, Stopped import session. (8)
+[2021/10/10-09:40:05] at line 2966 of ../library/libltpP.c, Closed import session. (8)
+[2021/10/10-09:40:05] [i] bprecvfile has created 'testfile2', size 200.
+[2021/10/10-09:40:05] [i] Max report segments = 2 for red part length 288, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:40:05] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 10780 rpt 0 to node 4. (8)
+[2021/10/10-09:40:05] at line 6440 of ../library/libltpP.c, Handling report. (8)
+[2021/10/10-09:40:05] at line 6457 of ../library/libltpP.c, [i] Got RS 10532 for checkpoint 10780; 1 claims from 0 to 288. (8)
+[2021/10/10-09:40:05] at line 2423 of ../library/libltpP.c, Closed export session. (8)
+[2021/10/10-09:40:32] at line 4894 of ../library/libltpP.c, Opened import session. (11)
+[2021/10/10-09:40:32] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 489): xmit segment loss rate 0.617186, recv segment loss rate 0.323812, max timeouts 29.
+[2021/10/10-09:40:32] [i] Max report segments = 2 for red part length 489, max segment size 489, segment loss rate 0.323812.
+[2021/10/10-09:40:32] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 489, ckpt 10459, rpt 4763. (11)
+[2021/10/10-09:40:32] at line 4486 of ../library/libltpP.c, Reporting all data received. (11)
+[2021/10/10-09:40:32] at line 7028 of ../library/libltpP.c, Handling report ack. (11)
+[2021/10/10-09:40:32] [i] bprecvfile is creating 'testfile3', size 400.
+[2021/10/10-09:40:32] at line 7108 of ../library/libltpP.c, Acknowledged report is 4763, lowerBound 0, upperBound 489, last report serial number 4763. (11)
+[2021/10/10-09:40:32] at line 2866 of ../library/libltpP.c, Stopped import session. (11)
+[2021/10/10-09:40:32] at line 2966 of ../library/libltpP.c, Closed import session. (11)
+[2021/10/10-09:40:32] [i] bprecvfile has created 'testfile3', size 400.
+[2021/10/10-09:40:32] [i] Max report segments = 2 for red part length 490, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:40:32] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 16234 rpt 0 to node 2. (9)
+[2021/10/10-09:40:32] at line 6440 of ../library/libltpP.c, Handling report. (9)
+[2021/10/10-09:40:32] at line 6457 of ../library/libltpP.c, [i] Got RS 9440 for checkpoint 16234; 1 claims from 0 to 490. (9)
+[2021/10/10-09:40:32] at line 2423 of ../library/libltpP.c, Closed export session. (9)
+[2021/10/10-09:40:43] at line 4894 of ../library/libltpP.c, Opened import session. (15)
+[2021/10/10-09:40:43] [i] Max report segments = 2 for red part length 91, max segment size 288, segment loss rate 0.205824.
+[2021/10/10-09:40:43] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 8579, rpt 11796. (15)
+[2021/10/10-09:40:43] at line 4486 of ../library/libltpP.c, Reporting all data received. (15)
+[2021/10/10-09:40:43] at line 7028 of ../library/libltpP.c, Handling report ack. (15)
+[2021/10/10-09:40:43] at line 7108 of ../library/libltpP.c, Acknowledged report is 11796, lowerBound 0, upperBound 91, last report serial number 11796. (15)
+[2021/10/10-09:40:43] at line 2866 of ../library/libltpP.c, Stopped import session. (15)
+[2021/10/10-09:40:43] at line 2966 of ../library/libltpP.c, Closed import session. (15)
+[2021/10/10-09:40:43] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:40:43] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 1065 rpt 0 to node 4. (10)
+[2021/10/10-09:40:43] at line 6440 of ../library/libltpP.c, Handling report. (10)
+[2021/10/10-09:40:43] at line 6457 of ../library/libltpP.c, [i] Got RS 10240 for checkpoint 1065; 1 claims from 0 to 92. (10)
+[2021/10/10-09:40:43] at line 2423 of ../library/libltpP.c, Closed export session. (10)
+[2021/10/10-09:40:48] at line 4894 of ../library/libltpP.c, Opened import session. (19)
+[2021/10/10-09:40:48] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 390): xmit segment loss rate 0.617186, recv segment loss rate 0.268068, max timeouts 29.
+[2021/10/10-09:40:48] [i] Max report segments = 2 for red part length 390, max segment size 390, segment loss rate 0.268068.
+[2021/10/10-09:40:48] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 390, ckpt 3195, rpt 5293. (19)
+[2021/10/10-09:40:48] at line 4486 of ../library/libltpP.c, Reporting all data received. (19)
+[2021/10/10-09:40:48] at line 7028 of ../library/libltpP.c, Handling report ack. (19)
+[2021/10/10-09:40:48] [i] bprecvfile is creating 'testfile4', size 300.
+[2021/10/10-09:40:48] at line 7108 of ../library/libltpP.c, Acknowledged report is 5293, lowerBound 0, upperBound 390, last report serial number 5293. (19)
+[2021/10/10-09:40:48] at line 2866 of ../library/libltpP.c, Stopped import session. (19)
+[2021/10/10-09:40:48] at line 2966 of ../library/libltpP.c, Closed import session. (19)
+[2021/10/10-09:40:48] [i] bprecvfile has created 'testfile4', size 300.
+[2021/10/10-09:40:54] at line 4894 of ../library/libltpP.c, Opened import session. (13)
+[2021/10/10-09:40:54] [i] Max report segments = 2 for red part length 91, max segment size 489, segment loss rate 0.323812.
+[2021/10/10-09:40:54] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 15450, rpt 5178. (13)
+[2021/10/10-09:40:54] at line 4486 of ../library/libltpP.c, Reporting all data received. (13)
+[2021/10/10-09:40:54] at line 7028 of ../library/libltpP.c, Handling report ack. (13)
+[2021/10/10-09:40:54] at line 7108 of ../library/libltpP.c, Acknowledged report is 5178, lowerBound 0, upperBound 91, last report serial number 5178. (13)
+[2021/10/10-09:40:54] at line 2866 of ../library/libltpP.c, Stopped import session. (13)
+[2021/10/10-09:40:54] at line 2966 of ../library/libltpP.c, Closed import session. (13)
+[2021/10/10-09:40:54] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:40:54] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 3189 rpt 0 to node 2. (11)
+[2021/10/10-09:40:54] at line 6440 of ../library/libltpP.c, Handling report. (11)
+[2021/10/10-09:40:54] at line 6457 of ../library/libltpP.c, [i] Got RS 4005 for checkpoint 3189; 1 claims from 0 to 92. (11)
+[2021/10/10-09:40:54] at line 2423 of ../library/libltpP.c, Closed export session. (11)
+[2021/10/10-09:41:04] at line 4894 of ../library/libltpP.c, Opened import session. (22)
+[2021/10/10-09:41:04] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 400): xmit segment loss rate 0.617186, recv segment loss rate 0.273901, max timeouts 29.
+[2021/10/10-09:41:04] [i] Max report segments = 2 for red part length 400, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-09:41:04] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 400, ckpt 7264, rpt 13379. (22)
+[2021/10/10-09:41:04] at line 4486 of ../library/libltpP.c, Reporting all data received. (22)
+[2021/10/10-09:41:04] at line 7028 of ../library/libltpP.c, Handling report ack. (22)
+[2021/10/10-09:41:04] [i] bprecvfile is creating 'testfile5', size 310.
+[2021/10/10-09:41:04] at line 7108 of ../library/libltpP.c, Acknowledged report is 13379, lowerBound 0, upperBound 400, last report serial number 13379. (22)
+[2021/10/10-09:41:04] at line 2866 of ../library/libltpP.c, Stopped import session. (22)
+[2021/10/10-09:41:04] at line 2966 of ../library/libltpP.c, Closed import session. (22)
+[2021/10/10-09:41:04] [i] bprecvfile has created 'testfile5', size 310.
+[2021/10/10-09:41:07] at line 4894 of ../library/libltpP.c, Opened import session. (25)
+[2021/10/10-09:41:07] [i] Max report segments = 2 for red part length 91, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-09:41:07] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 15500, rpt 1134. (25)
+[2021/10/10-09:41:07] at line 4486 of ../library/libltpP.c, Reporting all data received. (25)
+[2021/10/10-09:41:07] at line 7028 of ../library/libltpP.c, Handling report ack. (25)
+[2021/10/10-09:41:07] at line 7108 of ../library/libltpP.c, Acknowledged report is 1134, lowerBound 0, upperBound 91, last report serial number 1134. (25)
+[2021/10/10-09:41:07] at line 2866 of ../library/libltpP.c, Stopped import session. (25)
+[2021/10/10-09:41:07] at line 2966 of ../library/libltpP.c, Closed import session. (25)
+[2021/10/10-09:41:07] at line 4894 of ../library/libltpP.c, Opened import session. (18)
+[2021/10/10-09:41:07] [i] Max report segments = 2 for red part length 91, max segment size 489, segment loss rate 0.323812.
+[2021/10/10-09:41:07] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 10943, rpt 13822. (18)
+[2021/10/10-09:41:07] at line 4486 of ../library/libltpP.c, Reporting all data received. (18)
+[2021/10/10-09:41:07] at line 7028 of ../library/libltpP.c, Handling report ack. (18)
+[2021/10/10-09:41:07] at line 7108 of ../library/libltpP.c, Acknowledged report is 13822, lowerBound 0, upperBound 91, last report serial number 13822. (18)
+[2021/10/10-09:41:07] at line 2866 of ../library/libltpP.c, Stopped import session. (18)
+[2021/10/10-09:41:07] at line 2966 of ../library/libltpP.c, Closed import session. (18)
+[2021/10/10-09:41:07] [i] Max report segments = 2 for red part length 91, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:41:07] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 9831 rpt 0 to node 4. (12)
+[2021/10/10-09:41:07] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-09:41:07] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 11465 rpt 0 to node 2. (13)
+[2021/10/10-09:41:07] at line 6440 of ../library/libltpP.c, Handling report. (12)
+[2021/10/10-09:41:07] at line 6457 of ../library/libltpP.c, [i] Got RS 596 for checkpoint 9831; 1 claims from 0 to 91. (12)
+[2021/10/10-09:41:07] at line 2423 of ../library/libltpP.c, Closed export session. (12)
+[2021/10/10-09:41:07] at line 6440 of ../library/libltpP.c, Handling report. (13)
+[2021/10/10-09:41:07] at line 6457 of ../library/libltpP.c, [i] Got RS 12516 for checkpoint 11465; 1 claims from 0 to 92. (13)
+[2021/10/10-09:41:07] at line 2423 of ../library/libltpP.c, Closed export session. (13)
+[2021/10/10-09:41:11] at line 4894 of ../library/libltpP.c, Opened import session. (27)
+[2021/10/10-09:41:11] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 410): xmit segment loss rate 0.617186, recv segment loss rate 0.279688, max timeouts 29.
+[2021/10/10-09:41:11] [i] Max report segments = 2 for red part length 410, max segment size 410, segment loss rate 0.279688.
+[2021/10/10-09:41:11] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 410, ckpt 1803, rpt 13222. (27)
+[2021/10/10-09:41:11] at line 4486 of ../library/libltpP.c, Reporting all data received. (27)
+[2021/10/10-09:41:11] at line 7028 of ../library/libltpP.c, Handling report ack. (27)
+[2021/10/10-09:41:11] [i] bprecvfile is creating 'testfile6', size 320.
+[2021/10/10-09:41:11] at line 7108 of ../library/libltpP.c, Acknowledged report is 13222, lowerBound 0, upperBound 410, last report serial number 13222. (27)
+[2021/10/10-09:41:11] at line 2866 of ../library/libltpP.c, Stopped import session. (27)
+[2021/10/10-09:41:11] at line 2966 of ../library/libltpP.c, Closed import session. (27)
+[2021/10/10-09:41:11] [i] bprecvfile has created 'testfile6', size 320.
+[2021/10/10-09:41:22] [i] Endpoint has been stopped.
+[2021/10/10-09:41:22] [i] ipnfw forwarder has ended.
+[2021/10/10-09:41:22] [i] Endpoint has been stopped.
+[2021/10/10-09:41:22] [i] Administrative endpoint terminated.
+[2021/10/10-09:41:22] [i] ipnadminep has ended.
+[2021/10/10-09:41:22] [i] Endpoint has been stopped.
+[2021/10/10-09:41:22] [i] Endpoint has been stopped.
+[2021/10/10-09:41:22] [i] Administrative endpoint terminated.
+[2021/10/10-09:41:22] [i] imcadminep has ended.
+[2021/10/10-09:41:22] [i] Plan has been stopped: ipn:1.0
+[2021/10/10-09:41:22] [i] bpclm has ended: ipn:1.0
+[2021/10/10-09:41:22] [i] Plan has been stopped: ipn:2.0
+[2021/10/10-09:41:22] [i] bpclm has ended: ipn:2.0
+[2021/10/10-09:41:22] [i] Plan has been stopped: ipn:4.0
+[2021/10/10-09:41:22] [i] Outduct has been stopped: 2
+[2021/10/10-09:41:22] [i] bpclm has ended: ipn:4.0
+[2021/10/10-09:41:22] [i] ltpclo outduct closed.
+[2021/10/10-09:41:22] [i] Outduct has been stopped: 1
+[2021/10/10-09:41:22] [i] ltpclo outduct closed.
+[2021/10/10-09:41:22] [i] ltpclo duct has ended.
+[2021/10/10-09:41:22] [i] ltpclo duct has ended.
+[2021/10/10-09:41:22] [i] Stopping bprecvfile.
+[2021/10/10-09:41:22] [i] Stopping bprecvfile.
+[2021/10/10-09:41:22] [i] Outduct has been stopped: 4
+[2021/10/10-09:41:22] [i] ltpclo outduct closed.
+[2021/10/10-09:41:22] [i] ltpclo duct has ended.
+[2021/10/10-09:41:22] [i] bpclock has ended.
+[2021/10/10-09:41:22] [i] ltpcli receiver thread has ended.
+[2021/10/10-09:41:22] [i] ltpcli duct has ended.
+[2021/10/10-09:41:22] [i] bptransit has ended.
+[2021/10/10-09:41:22] [i] imcClock thread has ended.
+[2021/10/10-09:41:22] [i] imcfw forwarder has ended.
+[2021/10/10-09:41:23] [i] LTP meter to engine 1 is stopped.
+[2021/10/10-09:41:23] [i] LSO to engine 1 is stopped.
+[2021/10/10-09:41:23] [i] LTP meter to engine 2 is stopped.
+[2021/10/10-09:41:23] [i] LSO to engine 2 is stopped.
+[2021/10/10-09:41:23] [i] LTP meter to engine 4 is stopped.
+[2021/10/10-09:41:23] [i] LSO to engine 4 is stopped.
+[2021/10/10-09:41:23] [i] ltpmeter has ended.
+[2021/10/10-09:41:23] [i] ltpmeter has ended.
+[2021/10/10-09:41:23] [i] ltpmeter has ended.
+[2021/10/10-09:41:23] [i] udplsa receiver thread has ended.
+[2021/10/10-09:41:23] [i] udplsa receiver thread has ended.
+[2021/10/10-09:41:23] [i] ltpclock has ended.
+[2021/10/10-09:41:23] [i] udplso has ended.
+[2021/10/10-09:41:23] [i] udplsa receiver thread has ended.
+[2021/10/10-09:41:23] [i] udplsa receiver thread has ended.
+[2021/10/10-09:41:23] [i] udplsi has ended.
+[2021/10/10-09:41:23] [i] udplso has ended.
+[2021/10/10-09:41:23] [i] udplso has ended.
+[2021/10/10-09:41:23] [i] ltpdeliv has ended.
+[2021/10/10-09:41:25] [i] rfxclock has ended.
+[2021/10/10-11:05:32] [i] rfxclock is running.
+[2021/10/10-11:05:32] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:05:32] [i] ionwarn finished.
+[2021/10/10-11:05:33] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:05:33] [i] ionwarn finished.
+[2021/10/10-11:05:34] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:05:34] [i] ionwarn finished.
+[2021/10/10-11:05:35] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-11:05:35] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-11:05:35] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-11:05:35] [i] Total max export sessions does not exceed estimate.
+[2021/10/10-11:05:35] [i] ltpdeliv is running.
+[2021/10/10-11:05:35] [i] ltpmeter is running.
+[2021/10/10-11:05:35] [i] ltpmeter is running.
+[2021/10/10-11:05:35] [i] ltpclock is running.
+[2021/10/10-11:05:35] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/10-11:05:35] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/10-11:05:35] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/10-11:05:35] [i] ltpmeter is running.
+[2021/10/10-11:05:35] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/10-11:05:36] [i] This node deploys bundle protocol version 7.
+[2021/10/10-11:05:36] [i] Bundle security is enabled.
+[2021/10/10-11:05:36] [i] bpclm is running: ipn:1.0
+[2021/10/10-11:05:36] [i] bpclm is running: ipn:2.0
+[2021/10/10-11:05:36] [i] bpclm is running: ipn:4.0
+[2021/10/10-11:05:37] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/10-11:05:37] [i] bpclock is running.
+[2021/10/10-11:05:37] [i] ipnfw is running.
+[2021/10/10-11:05:37] [i] bptransit is running.
+[2021/10/10-11:05:37] [i] imcadminep is running.
+[2021/10/10-11:05:37] [i] ipnadminep is running.
+[2021/10/10-11:05:37] [i] imcfw is running.
+[2021/10/10-11:05:37] [i] ltpclo is running.
+[2021/10/10-11:05:37] [i] ltpclo is running.
+[2021/10/10-11:05:37] [i] ltpclo is running.
+[2021/10/10-11:05:37] [i] ltpcli is running.
+[2021/10/10-11:05:38] [x] src from 1969/12/31-16:00:00 to 2021/10/10-11:05:38: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:05:38] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-11:05:38: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:05:38] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-11:05:38: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:05:38] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-11:05:38: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:05:38] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-11:05:38: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:05:38] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-11:05:38: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:05:38] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-11:05:38: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:05:46] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:05:46] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 15979 rpt 0 to node 4. (2)
+[2021/10/10-11:05:46] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:05:46] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 8483 rpt 0 to node 2. (3)
+[2021/10/10-11:05:46] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/10-11:05:46] at line 6457 of ../library/libltpP.c, [i] Got RS 10860 for checkpoint 8483; 1 claims from 0 to 92. (3)
+[2021/10/10-11:05:46] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/10-11:05:46] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/10-11:05:46] at line 6457 of ../library/libltpP.c, [i] Got RS 13300 for checkpoint 15979; 1 claims from 0 to 90. (2)
+[2021/10/10-11:05:46] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/10-11:05:48] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-11:05:48] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 92): xmit segment loss rate 0.617186, recv segment loss rate 0.070972, max timeouts 29.
+[2021/10/10-11:05:48] [i] Max report segments = 2 for red part length 92, max segment size 92, segment loss rate 0.070972.
+[2021/10/10-11:05:48] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 92, ckpt 14431, rpt 11360. (1)
+[2021/10/10-11:05:48] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-11:05:48] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-11:05:48] at line 7108 of ../library/libltpP.c, Acknowledged report is 11360, lowerBound 0, upperBound 92, last report serial number 11360. (1)
+[2021/10/10-11:05:48] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-11:05:48] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-11:07:38] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-11:07:38] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 91): xmit segment loss rate 0.617186, recv segment loss rate 0.070228, max timeouts 29.
+[2021/10/10-11:07:38] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/10-11:07:38] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 6042, rpt 1050. (1)
+[2021/10/10-11:07:38] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-11:07:38] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-11:07:38] at line 7108 of ../library/libltpP.c, Acknowledged report is 1050, lowerBound 0, upperBound 91, last report serial number 1050. (1)
+[2021/10/10-11:07:38] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-11:07:38] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-11:07:39] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:07:39] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 14423 rpt 0 to node 4. (4)
+[2021/10/10-11:07:39] at line 6440 of ../library/libltpP.c, Handling report. (4)
+[2021/10/10-11:07:39] at line 6457 of ../library/libltpP.c, [i] Got RS 15112 for checkpoint 14423; 1 claims from 0 to 92. (4)
+[2021/10/10-11:07:39] at line 2423 of ../library/libltpP.c, Closed export session. (4)
+[2021/10/10-11:07:42] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/10-11:07:42] [i] Max report segments = 2 for red part length 91, max segment size 92, segment loss rate 0.070972.
+[2021/10/10-11:07:42] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 11260, rpt 5526. (5)
+[2021/10/10-11:07:42] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/10-11:07:42] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/10-11:07:42] at line 7108 of ../library/libltpP.c, Acknowledged report is 5526, lowerBound 0, upperBound 91, last report serial number 5526. (5)
+[2021/10/10-11:07:42] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/10-11:07:42] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/10-11:07:42] at line 4894 of ../library/libltpP.c, Opened import session. (7)
+[2021/10/10-11:07:42] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 92): xmit segment loss rate 0.617186, recv segment loss rate 0.070972, max timeouts 29.
+[2021/10/10-11:07:42] [i] Max report segments = 2 for red part length 92, max segment size 92, segment loss rate 0.070972.
+[2021/10/10-11:07:42] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 92, ckpt 4092, rpt 5457. (7)
+[2021/10/10-11:07:42] at line 4486 of ../library/libltpP.c, Reporting all data received. (7)
+[2021/10/10-11:07:42] at line 7028 of ../library/libltpP.c, Handling report ack. (7)
+[2021/10/10-11:07:42] at line 7108 of ../library/libltpP.c, Acknowledged report is 5457, lowerBound 0, upperBound 92, last report serial number 5457. (7)
+[2021/10/10-11:07:42] at line 2866 of ../library/libltpP.c, Stopped import session. (7)
+[2021/10/10-11:07:42] at line 2966 of ../library/libltpP.c, Closed import session. (7)
+[2021/10/10-11:07:43] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:07:43] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 14678 rpt 0 to node 2. (5)
+[2021/10/10-11:07:43] at line 6440 of ../library/libltpP.c, Handling report. (5)
+[2021/10/10-11:07:43] at line 6457 of ../library/libltpP.c, [i] Got RS 5068 for checkpoint 14678; 1 claims from 0 to 92. (5)
+[2021/10/10-11:07:43] at line 2423 of ../library/libltpP.c, Closed export session. (5)
+[2021/10/10-11:07:45] [i] bprecvfile is running.
+[2021/10/10-11:07:45] [i] bprecvfile is running.
+[2021/10/10-11:07:55] [i] bpsendfile is running.
+[2021/10/10-11:07:55] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/10-11:07:55] [i] bpsendfile sent 'file150', size 150.
+[2021/10/10-11:07:55] [i] bpsendfile has stopped.
+[2021/10/10-11:07:55] [i] Max report segments = 2 for red part length 228, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:07:55] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 893 rpt 0 to node 2. (7)
+[2021/10/10-11:07:55] at line 6440 of ../library/libltpP.c, Handling report. (7)
+[2021/10/10-11:07:55] at line 6457 of ../library/libltpP.c, [i] Got RS 14529 for checkpoint 893; 1 claims from 0 to 228. (7)
+[2021/10/10-11:07:55] at line 2423 of ../library/libltpP.c, Closed export session. (7)
+[2021/10/10-11:08:01] [i] bpsendfile is running.
+[2021/10/10-11:08:01] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/10-11:08:01] [i] bpsendfile sent 'file100', size 100.
+[2021/10/10-11:08:01] [i] bpsendfile has stopped.
+[2021/10/10-11:08:02] [i] Max report segments = 2 for red part length 189, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:02] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 325 rpt 0 to node 2. (8)
+[2021/10/10-11:08:02] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:02] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 6667 rpt 0 to node 4. (6)
+[2021/10/10-11:08:02] at line 6440 of ../library/libltpP.c, Handling report. (8)
+[2021/10/10-11:08:02] at line 6457 of ../library/libltpP.c, [i] Got RS 7206 for checkpoint 325; 1 claims from 0 to 189. (8)
+[2021/10/10-11:08:02] at line 2423 of ../library/libltpP.c, Closed export session. (8)
+[2021/10/10-11:08:02] at line 6440 of ../library/libltpP.c, Handling report. (6)
+[2021/10/10-11:08:02] at line 6457 of ../library/libltpP.c, [i] Got RS 12380 for checkpoint 6667; 1 claims from 0 to 187. (6)
+[2021/10/10-11:08:02] at line 2423 of ../library/libltpP.c, Closed export session. (6)
+[2021/10/10-11:08:03] at line 4894 of ../library/libltpP.c, Opened import session. (8)
+[2021/10/10-11:08:03] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 189): xmit segment loss rate 0.617186, recv segment loss rate 0.140352, max timeouts 29.
+[2021/10/10-11:08:03] [i] Max report segments = 2 for red part length 189, max segment size 189, segment loss rate 0.140352.
+[2021/10/10-11:08:03] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 189, ckpt 2350, rpt 4157. (8)
+[2021/10/10-11:08:03] at line 4486 of ../library/libltpP.c, Reporting all data received. (8)
+[2021/10/10-11:08:03] at line 7028 of ../library/libltpP.c, Handling report ack. (8)
+[2021/10/10-11:08:03] [i] bprecvfile is creating 'testfile1', size 100.
+[2021/10/10-11:08:03] at line 7108 of ../library/libltpP.c, Acknowledged report is 4157, lowerBound 0, upperBound 189, last report serial number 4157. (8)
+[2021/10/10-11:08:03] at line 2866 of ../library/libltpP.c, Stopped import session. (8)
+[2021/10/10-11:08:03] at line 2966 of ../library/libltpP.c, Closed import session. (8)
+[2021/10/10-11:08:03] [i] bprecvfile has created 'testfile1', size 100.
+[2021/10/10-11:08:04] at line 4894 of ../library/libltpP.c, Opened import session. (10)
+[2021/10/10-11:08:04] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 288): xmit segment loss rate 0.617186, recv segment loss rate 0.205824, max timeouts 29.
+[2021/10/10-11:08:04] [i] Max report segments = 2 for red part length 288, max segment size 288, segment loss rate 0.205824.
+[2021/10/10-11:08:04] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 288, ckpt 3198, rpt 86. (10)
+[2021/10/10-11:08:04] at line 4486 of ../library/libltpP.c, Reporting all data received. (10)
+[2021/10/10-11:08:04] at line 7028 of ../library/libltpP.c, Handling report ack. (10)
+[2021/10/10-11:08:04] [i] bprecvfile is creating 'testfile2', size 200.
+[2021/10/10-11:08:04] at line 7108 of ../library/libltpP.c, Acknowledged report is 86, lowerBound 0, upperBound 288, last report serial number 86. (10)
+[2021/10/10-11:08:04] at line 2866 of ../library/libltpP.c, Stopped import session. (10)
+[2021/10/10-11:08:04] at line 2966 of ../library/libltpP.c, Closed import session. (10)
+[2021/10/10-11:08:04] [i] bprecvfile has created 'testfile2', size 200.
+[2021/10/10-11:08:05] [i] Max report segments = 2 for red part length 288, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:05] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 15998 rpt 0 to node 4. (10)
+[2021/10/10-11:08:05] at line 6440 of ../library/libltpP.c, Handling report. (10)
+[2021/10/10-11:08:05] at line 6457 of ../library/libltpP.c, [i] Got RS 1460 for checkpoint 15998; 1 claims from 0 to 288. (10)
+[2021/10/10-11:08:05] at line 2423 of ../library/libltpP.c, Closed export session. (10)
+[2021/10/10-11:08:07] at line 4894 of ../library/libltpP.c, Opened import session. (11)
+[2021/10/10-11:08:07] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 489): xmit segment loss rate 0.617186, recv segment loss rate 0.323812, max timeouts 29.
+[2021/10/10-11:08:07] [i] Max report segments = 2 for red part length 489, max segment size 489, segment loss rate 0.323812.
+[2021/10/10-11:08:07] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 489, ckpt 16338, rpt 15021. (11)
+[2021/10/10-11:08:07] at line 4486 of ../library/libltpP.c, Reporting all data received. (11)
+[2021/10/10-11:08:07] at line 7028 of ../library/libltpP.c, Handling report ack. (11)
+[2021/10/10-11:08:07] [i] bprecvfile is creating 'testfile3', size 400.
+[2021/10/10-11:08:07] at line 7108 of ../library/libltpP.c, Acknowledged report is 15021, lowerBound 0, upperBound 489, last report serial number 15021. (11)
+[2021/10/10-11:08:07] at line 2866 of ../library/libltpP.c, Stopped import session. (11)
+[2021/10/10-11:08:07] at line 2966 of ../library/libltpP.c, Closed import session. (11)
+[2021/10/10-11:08:07] [i] bprecvfile has created 'testfile3', size 400.
+[2021/10/10-11:08:08] [i] Max report segments = 2 for red part length 490, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:08] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 13589 rpt 0 to node 2. (9)
+[2021/10/10-11:08:08] at line 6440 of ../library/libltpP.c, Handling report. (9)
+[2021/10/10-11:08:08] at line 6457 of ../library/libltpP.c, [i] Got RS 10020 for checkpoint 13589; 1 claims from 0 to 490. (9)
+[2021/10/10-11:08:08] at line 2423 of ../library/libltpP.c, Closed export session. (9)
+[2021/10/10-11:08:13] at line 4894 of ../library/libltpP.c, Opened import session. (16)
+[2021/10/10-11:08:13] [i] Max report segments = 2 for red part length 91, max segment size 288, segment loss rate 0.205824.
+[2021/10/10-11:08:13] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 9727, rpt 9697. (16)
+[2021/10/10-11:08:13] at line 4486 of ../library/libltpP.c, Reporting all data received. (16)
+[2021/10/10-11:08:13] at line 7028 of ../library/libltpP.c, Handling report ack. (16)
+[2021/10/10-11:08:13] at line 7108 of ../library/libltpP.c, Acknowledged report is 9697, lowerBound 0, upperBound 91, last report serial number 9697. (16)
+[2021/10/10-11:08:13] at line 2866 of ../library/libltpP.c, Stopped import session. (16)
+[2021/10/10-11:08:13] at line 2966 of ../library/libltpP.c, Closed import session. (16)
+[2021/10/10-11:08:14] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:14] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 4477 rpt 0 to node 4. (11)
+[2021/10/10-11:08:14] at line 6440 of ../library/libltpP.c, Handling report. (11)
+[2021/10/10-11:08:14] at line 6457 of ../library/libltpP.c, [i] Got RS 9374 for checkpoint 4477; 1 claims from 0 to 92. (11)
+[2021/10/10-11:08:14] at line 2423 of ../library/libltpP.c, Closed export session. (11)
+[2021/10/10-11:08:16] at line 4894 of ../library/libltpP.c, Opened import session. (20)
+[2021/10/10-11:08:16] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 390): xmit segment loss rate 0.617186, recv segment loss rate 0.268068, max timeouts 29.
+[2021/10/10-11:08:16] [i] Max report segments = 2 for red part length 390, max segment size 390, segment loss rate 0.268068.
+[2021/10/10-11:08:16] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 390, ckpt 2237, rpt 557. (20)
+[2021/10/10-11:08:16] at line 4486 of ../library/libltpP.c, Reporting all data received. (20)
+[2021/10/10-11:08:16] at line 7028 of ../library/libltpP.c, Handling report ack. (20)
+[2021/10/10-11:08:16] [i] bprecvfile is creating 'testfile4', size 300.
+[2021/10/10-11:08:16] at line 7108 of ../library/libltpP.c, Acknowledged report is 557, lowerBound 0, upperBound 390, last report serial number 557. (20)
+[2021/10/10-11:08:16] at line 2866 of ../library/libltpP.c, Stopped import session. (20)
+[2021/10/10-11:08:16] at line 2966 of ../library/libltpP.c, Closed import session. (20)
+[2021/10/10-11:08:16] [i] bprecvfile has created 'testfile4', size 300.
+[2021/10/10-11:08:21] at line 4894 of ../library/libltpP.c, Opened import session. (13)
+[2021/10/10-11:08:21] [i] Max report segments = 2 for red part length 91, max segment size 489, segment loss rate 0.323812.
+[2021/10/10-11:08:21] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 3239, rpt 14709. (13)
+[2021/10/10-11:08:21] at line 4486 of ../library/libltpP.c, Reporting all data received. (13)
+[2021/10/10-11:08:21] at line 7028 of ../library/libltpP.c, Handling report ack. (13)
+[2021/10/10-11:08:21] at line 7108 of ../library/libltpP.c, Acknowledged report is 14709, lowerBound 0, upperBound 91, last report serial number 14709. (13)
+[2021/10/10-11:08:21] at line 2866 of ../library/libltpP.c, Stopped import session. (13)
+[2021/10/10-11:08:21] at line 2966 of ../library/libltpP.c, Closed import session. (13)
+[2021/10/10-11:08:22] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:22] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 6111 rpt 0 to node 2. (12)
+[2021/10/10-11:08:22] at line 6440 of ../library/libltpP.c, Handling report. (12)
+[2021/10/10-11:08:22] at line 6457 of ../library/libltpP.c, [i] Got RS 16355 for checkpoint 6111; 1 claims from 0 to 92. (12)
+[2021/10/10-11:08:22] at line 2423 of ../library/libltpP.c, Closed export session. (12)
+[2021/10/10-11:08:25] at line 4894 of ../library/libltpP.c, Opened import session. (23)
+[2021/10/10-11:08:25] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 400): xmit segment loss rate 0.617186, recv segment loss rate 0.273901, max timeouts 29.
+[2021/10/10-11:08:25] [i] Max report segments = 2 for red part length 400, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-11:08:25] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 400, ckpt 5198, rpt 2288. (23)
+[2021/10/10-11:08:25] at line 4486 of ../library/libltpP.c, Reporting all data received. (23)
+[2021/10/10-11:08:25] at line 7028 of ../library/libltpP.c, Handling report ack. (23)
+[2021/10/10-11:08:25] at line 7108 of ../library/libltpP.c, Acknowledged report is 2288, lowerBound 0, upperBound 400, last report serial number 2288. (23)
+[2021/10/10-11:08:25] at line 2866 of ../library/libltpP.c, Stopped import session. (23)
+[2021/10/10-11:08:25] at line 2966 of ../library/libltpP.c, Closed import session. (23)
+[2021/10/10-11:08:25] [i] bprecvfile is creating 'testfile5', size 310.
+[2021/10/10-11:08:25] [i] bprecvfile has created 'testfile5', size 310.
+[2021/10/10-11:08:28] at line 4894 of ../library/libltpP.c, Opened import session. (18)
+[2021/10/10-11:08:28] [i] Max report segments = 2 for red part length 91, max segment size 489, segment loss rate 0.323812.
+[2021/10/10-11:08:28] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 10521, rpt 13816. (18)
+[2021/10/10-11:08:28] at line 4486 of ../library/libltpP.c, Reporting all data received. (18)
+[2021/10/10-11:08:28] at line 7028 of ../library/libltpP.c, Handling report ack. (18)
+[2021/10/10-11:08:28] at line 7108 of ../library/libltpP.c, Acknowledged report is 13816, lowerBound 0, upperBound 91, last report serial number 13816. (18)
+[2021/10/10-11:08:28] at line 2866 of ../library/libltpP.c, Stopped import session. (18)
+[2021/10/10-11:08:28] at line 2966 of ../library/libltpP.c, Closed import session. (18)
+[2021/10/10-11:08:28] at line 4894 of ../library/libltpP.c, Opened import session. (26)
+[2021/10/10-11:08:28] [i] Max report segments = 2 for red part length 91, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-11:08:28] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 1758, rpt 3809. (26)
+[2021/10/10-11:08:28] at line 4486 of ../library/libltpP.c, Reporting all data received. (26)
+[2021/10/10-11:08:28] at line 7028 of ../library/libltpP.c, Handling report ack. (26)
+[2021/10/10-11:08:28] at line 7108 of ../library/libltpP.c, Acknowledged report is 3809, lowerBound 0, upperBound 91, last report serial number 3809. (26)
+[2021/10/10-11:08:28] at line 2866 of ../library/libltpP.c, Stopped import session. (26)
+[2021/10/10-11:08:28] at line 2966 of ../library/libltpP.c, Closed import session. (26)
+[2021/10/10-11:08:29] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:29] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 13795 rpt 0 to node 2. (14)
+[2021/10/10-11:08:29] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:08:29] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 16318 rpt 0 to node 4. (13)
+[2021/10/10-11:08:29] at line 6440 of ../library/libltpP.c, Handling report. (14)
+[2021/10/10-11:08:29] at line 6457 of ../library/libltpP.c, [i] Got RS 768 for checkpoint 13795; 1 claims from 0 to 92. (14)
+[2021/10/10-11:08:29] at line 2423 of ../library/libltpP.c, Closed export session. (14)
+[2021/10/10-11:08:29] at line 6440 of ../library/libltpP.c, Handling report. (13)
+[2021/10/10-11:08:29] at line 6457 of ../library/libltpP.c, [i] Got RS 7472 for checkpoint 16318; 1 claims from 0 to 92. (13)
+[2021/10/10-11:08:29] at line 2423 of ../library/libltpP.c, Closed export session. (13)
+[2021/10/10-11:08:30] at line 4894 of ../library/libltpP.c, Opened import session. (28)
+[2021/10/10-11:08:30] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 409): xmit segment loss rate 0.617186, recv segment loss rate 0.279111, max timeouts 29.
+[2021/10/10-11:08:30] [i] Max report segments = 2 for red part length 409, max segment size 409, segment loss rate 0.279111.
+[2021/10/10-11:08:30] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 409, ckpt 15364, rpt 9338. (28)
+[2021/10/10-11:08:30] at line 4486 of ../library/libltpP.c, Reporting all data received. (28)
+[2021/10/10-11:08:30] at line 7028 of ../library/libltpP.c, Handling report ack. (28)
+[2021/10/10-11:08:30] [i] bprecvfile is creating 'testfile6', size 320.
+[2021/10/10-11:08:30] at line 7108 of ../library/libltpP.c, Acknowledged report is 9338, lowerBound 0, upperBound 409, last report serial number 9338. (28)
+[2021/10/10-11:08:30] at line 2866 of ../library/libltpP.c, Stopped import session. (28)
+[2021/10/10-11:08:30] at line 2966 of ../library/libltpP.c, Closed import session. (28)
+[2021/10/10-11:08:30] [i] bprecvfile has created 'testfile6', size 320.
+[2021/10/10-11:08:42] [i] ipnfw forwarder has ended.
+[2021/10/10-11:08:42] [i] Endpoint has been stopped.
+[2021/10/10-11:08:42] [i] Endpoint has been stopped.
+[2021/10/10-11:08:42] [i] Administrative endpoint terminated.
+[2021/10/10-11:08:42] [i] Stopping bprecvfile.
+[2021/10/10-11:08:42] [i] ipnadminep has ended.
+[2021/10/10-11:08:42] [i] Endpoint has been stopped.
+[2021/10/10-11:08:42] [i] Administrative endpoint terminated.
+[2021/10/10-11:08:42] [i] imcadminep has ended.
+[2021/10/10-11:08:42] [i] Endpoint has been stopped.
+[2021/10/10-11:08:42] [i] Plan has been stopped: ipn:1.0
+[2021/10/10-11:08:42] [i] Stopping bprecvfile.
+[2021/10/10-11:08:42] [i] bpclm has ended: ipn:1.0
+[2021/10/10-11:08:42] [i] Outduct has been stopped: 2
+[2021/10/10-11:08:42] [i] ltpclo outduct closed.
+[2021/10/10-11:08:42] [i] Plan has been stopped: ipn:2.0
+[2021/10/10-11:08:42] [i] ltpclo duct has ended.
+[2021/10/10-11:08:42] [i] bpclm has ended: ipn:2.0
+[2021/10/10-11:08:42] [i] Plan has been stopped: ipn:4.0
+[2021/10/10-11:08:42] [i] bpclm has ended: ipn:4.0
+[2021/10/10-11:08:42] [i] Outduct has been stopped: 4
+[2021/10/10-11:08:42] [i] ltpclo outduct closed.
+[2021/10/10-11:08:42] [i] ltpclo duct has ended.
+[2021/10/10-11:08:42] [i] Outduct has been stopped: 1
+[2021/10/10-11:08:42] [i] ltpclo outduct closed.
+[2021/10/10-11:08:42] [i] ltpclo duct has ended.
+[2021/10/10-11:08:42] [i] bptransit has ended.
+[2021/10/10-11:08:42] [i] ltpcli receiver thread has ended.
+[2021/10/10-11:08:42] [i] ltpcli duct has ended.
+[2021/10/10-11:08:42] [i] bpclock has ended.
+[2021/10/10-11:08:42] [i] imcClock thread has ended.
+[2021/10/10-11:08:42] [i] imcfw forwarder has ended.
+[2021/10/10-11:08:43] [i] LSO to engine 2 is stopped.
+[2021/10/10-11:08:43] [i] LTP meter to engine 4 is stopped.
+[2021/10/10-11:08:43] [i] ltpmeter has ended.
+[2021/10/10-11:08:43] [i] udplsa receiver thread has ended.
+[2021/10/10-11:08:43] [i] udplso has ended.
+[2021/10/10-11:08:43] [i] LSO to engine 1 is stopped.
+[2021/10/10-11:08:43] [i] LTP meter to engine 2 is stopped.
+[2021/10/10-11:08:43] [i] ltpmeter has ended.
+[2021/10/10-11:08:43] [i] udplsa receiver thread has ended.
+[2021/10/10-11:08:43] [i] udplsi has ended.
+[2021/10/10-11:08:43] [i] LSO to engine 4 is stopped.
+[2021/10/10-11:08:43] [i] udplsa receiver thread has ended.
+[2021/10/10-11:08:43] [i] udplso has ended.
+[2021/10/10-11:08:43] [i] LTP meter to engine 1 is stopped.
+[2021/10/10-11:08:43] [i] udplsa receiver thread has ended.
+[2021/10/10-11:08:43] [i] ltpmeter has ended.
+[2021/10/10-11:08:43] [i] ltpclock has ended.
+[2021/10/10-11:08:43] [i] udplso has ended.
+[2021/10/10-11:08:43] [i] ltpdeliv has ended.
+[2021/10/10-11:08:45] [i] rfxclock has ended.
+[2021/10/10-11:16:00] [i] rfxclock is running.
+[2021/10/10-11:16:00] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:16:00] [i] ionwarn finished.
+[2021/10/10-11:16:01] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:16:01] [i] ionwarn finished.
+[2021/10/10-11:16:02] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:16:02] [i] ionwarn finished.
+[2021/10/10-11:16:03] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-11:16:03] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-11:16:03] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-11:16:03] [i] Total max export sessions does not exceed estimate.
+[2021/10/10-11:16:03] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/10-11:16:03] [i] ltpdeliv is running.
+[2021/10/10-11:16:03] [i] ltpclock is running.
+[2021/10/10-11:16:03] [i] ltpmeter is running.
+[2021/10/10-11:16:03] [i] ltpmeter is running.
+[2021/10/10-11:16:03] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/10-11:16:03] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/10-11:16:03] [i] ltpmeter is running.
+[2021/10/10-11:16:03] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/10-11:16:04] [i] This node deploys bundle protocol version 7.
+[2021/10/10-11:16:04] [i] Bundle security is enabled.
+[2021/10/10-11:16:04] [i] bpclm is running: ipn:2.0
+[2021/10/10-11:16:04] [i] bpclm is running: ipn:1.0
+[2021/10/10-11:16:04] [i] bpclm is running: ipn:4.0
+[2021/10/10-11:16:05] [i] bptransit is running.
+[2021/10/10-11:16:05] [i] bpclock is running.
+[2021/10/10-11:16:05] [i] ipnfw is running.
+[2021/10/10-11:16:05] [i] imcfw is running.
+[2021/10/10-11:16:05] [i] ipnadminep is running.
+[2021/10/10-11:16:05] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/10-11:16:05] [i] ltpclo is running.
+[2021/10/10-11:16:05] [i] ltpclo is running.
+[2021/10/10-11:16:05] [i] ltpcli is running.
+[2021/10/10-11:16:05] [i] ltpclo is running.
+[2021/10/10-11:16:05] [i] imcadminep is running.
+[2021/10/10-11:16:06] [x] src from 1969/12/31-16:00:00 to 2021/10/10-11:16:06: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:16:06] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-11:16:06: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:16:06] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-11:16:06: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:16:06] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-11:16:06: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:16:06] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-11:16:06: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:16:06] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-11:16:06: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:16:06] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-11:16:06: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:16:57] [i] Max report segments = 2 for red part length 92, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:16:57] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 1795 rpt 0 to node 2. (2)
+[2021/10/10-11:16:57] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:16:57] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 6882 rpt 0 to node 4. (3)
+[2021/10/10-11:16:57] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/10-11:16:57] at line 6457 of ../library/libltpP.c, [i] Got RS 15062 for checkpoint 1795; 1 claims from 0 to 92. (2)
+[2021/10/10-11:16:57] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/10-11:16:57] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/10-11:16:57] at line 6457 of ../library/libltpP.c, [i] Got RS 12385 for checkpoint 6882; 1 claims from 0 to 90. (3)
+[2021/10/10-11:16:57] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/10-11:16:58] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-11:16:58] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 92): xmit segment loss rate 0.617186, recv segment loss rate 0.070972, max timeouts 29.
+[2021/10/10-11:16:58] [i] Max report segments = 2 for red part length 92, max segment size 92, segment loss rate 0.070972.
+[2021/10/10-11:16:58] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 92, ckpt 3367, rpt 10709. (1)
+[2021/10/10-11:16:58] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-11:16:58] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-11:16:58] at line 7108 of ../library/libltpP.c, Acknowledged report is 10709, lowerBound 0, upperBound 92, last report serial number 10709. (1)
+[2021/10/10-11:16:58] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-11:16:58] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-11:26:00] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:26:00] [i] ionwarn finished.
+[2021/10/10-11:26:01] [x] src from 1969/12/31-16:00:00 to 2021/10/10-11:26:01: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-11:26:01] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-11:26:01: (0) 0 0 (1) 0 0 (2) 0 0 (+) 2 6
+[2021/10/10-11:26:01] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-11:26:01: (0) 0 0 (1) 0 0 (2) 2 6 (+) 2 6
+[2021/10/10-11:26:01] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-11:26:01: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-11:26:01] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-11:26:01: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:26:01] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-11:26:01: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:26:01] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-11:26:01: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:26:03] [i] No congestion forecast; horizon reached.
+[2021/10/10-11:26:03] [i] ionwarn finished.
+[2021/10/10-11:26:03] [x] src from 1969/12/31-16:00:00 to 2021/10/10-11:26:03: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-11:26:03] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-11:26:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 2 6
+[2021/10/10-11:26:03] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-11:26:03: (0) 0 0 (1) 0 0 (2) 2 6 (+) 2 6
+[2021/10/10-11:26:03] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-11:26:03: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-11:26:03] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-11:26:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:26:03] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-11:26:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:26:03] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-11:26:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-11:53:01] [i] bprecvfile is running.
+[2021/10/10-11:53:01] [i] bprecvfile is running.
+[2021/10/10-11:53:05] [i] bpsendfile is running.
+[2021/10/10-11:53:05] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/10-11:53:05] [i] bpsendfile sent 'file150', size 150.
+[2021/10/10-11:53:05] [i] bpsendfile has stopped.
+[2021/10/10-11:53:11] [i] bpsendfile is running.
+[2021/10/10-11:53:11] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/10-11:53:11] [i] bpsendfile sent 'file100', size 100.
+[2021/10/10-11:53:11] [i] bpsendfile has stopped.
+[2021/10/10-11:53:11] [i] Max report segments = 2 for red part length 188, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-11:53:11] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 12211 rpt 0 to node 1. (1)
+[2021/10/10-11:53:38] [i] ipnfw forwarder has ended.
+[2021/10/10-11:53:38] [i] Endpoint has been stopped.
+[2021/10/10-11:53:38] [i] Endpoint has been stopped.
+[2021/10/10-11:53:38] [i] Administrative endpoint terminated.
+[2021/10/10-11:53:38] [i] Stopping bprecvfile.
+[2021/10/10-11:53:38] [i] ipnadminep has ended.
+[2021/10/10-11:53:38] [i] Endpoint has been stopped.
+[2021/10/10-11:53:38] [i] Plan has been stopped: ipn:2.0
+[2021/10/10-11:53:38] [i] bpclm has ended: ipn:2.0
+[2021/10/10-11:53:38] [i] Stopping bprecvfile.
+[2021/10/10-11:53:38] [i] Plan has been stopped: ipn:4.0
+[2021/10/10-11:53:38] [i] bpclm has ended: ipn:4.0
+[2021/10/10-11:53:38] [i] Endpoint has been stopped.
+[2021/10/10-11:53:38] [i] Administrative endpoint terminated.
+[2021/10/10-11:53:38] [i] imcadminep has ended.
+[2021/10/10-11:53:38] [i] Outduct has been stopped: 4
+[2021/10/10-11:53:38] [i] ltpclo outduct closed.
+[2021/10/10-11:53:38] [i] Outduct has been stopped: 2
+[2021/10/10-11:53:38] [i] ltpclo duct has ended.
+[2021/10/10-11:53:38] [i] ltpclo outduct closed.
+[2021/10/10-11:53:38] [i] ltpclo duct has ended.
+[2021/10/10-11:53:38] [i] Outduct has been stopped: 1
+[2021/10/10-11:53:38] [i] ltpclo outduct closed.
+[2021/10/10-11:53:38] [i] ltpcli receiver thread has ended.
+[2021/10/10-11:53:38] [i] ltpclo duct has ended.
+[2021/10/10-11:53:38] [i] ltpcli duct has ended.
+[2021/10/10-11:53:38] [i] bpclock has ended.
+[2021/10/10-11:53:38] [i] bptransit has ended.
+[2021/10/10-11:53:39] [i] imcClock thread has ended.
+[2021/10/10-11:53:39] [i] imcfw forwarder has ended.
+[2021/10/10-11:53:39] [i] bpclm has ended: ipn:1.0
+[2021/10/10-11:53:40] [i] LTP meter to engine 1 is stopped.
+[2021/10/10-11:53:40] [i] LSO to engine 1 is stopped.
+[2021/10/10-11:53:40] [i] LTP meter to engine 2 is stopped.
+[2021/10/10-11:53:40] [i] LSO to engine 2 is stopped.
+[2021/10/10-11:53:40] [i] ltpmeter has ended.
+[2021/10/10-11:53:40] [i] ltpmeter has ended.
+[2021/10/10-11:53:40] [i] udplsa receiver thread has ended.
+[2021/10/10-11:53:40] [i] LTP meter to engine 4 is stopped.
+[2021/10/10-11:53:40] [i] ltpmeter has ended.
+[2021/10/10-11:53:40] [i] ltpclock has ended.
+[2021/10/10-11:53:40] [i] udplsa receiver thread has ended.
+[2021/10/10-11:53:40] [i] LSO to engine 4 is stopped.
+[2021/10/10-11:53:40] [i] udplsa receiver thread has ended.
+[2021/10/10-11:53:40] [i] udplsi has ended.
+[2021/10/10-11:53:40] [i] udplso has ended.
+[2021/10/10-11:53:40] [i] udplso has ended.
+[2021/10/10-11:53:40] [i] udplsa receiver thread has ended.
+[2021/10/10-11:53:40] [i] udplso has ended.
+[2021/10/10-11:53:40] [i] ltpdeliv has ended.
+[2021/10/10-11:53:41] [i] rfxclock has ended.
+[2021/10/10-16:44:53] [i] No congestion forecast; horizon reached.
+[2021/10/10-16:44:53] [i] ionwarn finished.
+[2021/10/10-16:44:53] [i] rfxclock is running.
+[2021/10/10-16:44:54] [i] No congestion forecast; horizon reached.
+[2021/10/10-16:44:54] [i] ionwarn finished.
+[2021/10/10-16:44:55] [i] No congestion forecast; horizon reached.
+[2021/10/10-16:44:55] [i] ionwarn finished.
+[2021/10/10-16:44:56] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-16:44:56] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-16:44:56] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-16:44:56] [i] Total max export sessions does not exceed estimate.
+[2021/10/10-16:44:56] [i] ltpmeter is running.
+[2021/10/10-16:44:56] [i] ltpmeter is running.
+[2021/10/10-16:44:56] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/10-16:44:56] [i] ltpdeliv is running.
+[2021/10/10-16:44:56] [i] ltpclock is running.
+[2021/10/10-16:44:56] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/10-16:44:56] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/10-16:44:56] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/10-16:44:56] [i] ltpmeter is running.
+[2021/10/10-16:44:57] [i] This node deploys bundle protocol version 7.
+[2021/10/10-16:44:57] [i] Bundle security is enabled.
+[2021/10/10-16:44:57] [i] bpclm is running: ipn:2.0
+[2021/10/10-16:44:57] [i] bpclm is running: ipn:4.0
+[2021/10/10-16:44:57] [i] bpclm is running: ipn:1.0
+[2021/10/10-16:44:58] [i] bpclock is running.
+[2021/10/10-16:44:58] [i] bptransit is running.
+[2021/10/10-16:44:58] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/10-16:44:58] [i] ipnfw is running.
+[2021/10/10-16:44:58] [i] ipnadminep is running.
+[2021/10/10-16:44:58] [i] imcfw is running.
+[2021/10/10-16:44:58] [i] imcadminep is running.
+[2021/10/10-16:44:58] [i] ltpclo is running.
+[2021/10/10-16:44:58] [i] ltpclo is running.
+[2021/10/10-16:44:58] [i] ltpcli is running.
+[2021/10/10-16:44:58] [i] ltpclo is running.
+[2021/10/10-16:44:59] [x] src from 1969/12/31-16:00:00 to 2021/10/10-16:44:59: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:44:59] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-16:44:59: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:44:59] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-16:44:59: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:44:59] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-16:44:59: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:44:59] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-16:44:59: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:44:59] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-16:44:59: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:44:59] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-16:44:59: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:46:30] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-16:46:30] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 205 rpt 0 to node 1. (1)
+[2021/10/10-16:46:30] [i] Max report segments = 2 for red part length 91, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-16:46:30] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 11972 rpt 0 to node 2. (2)
+[2021/10/10-16:46:30] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-16:46:30] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 2159 rpt 0 to node 4. (3)
+[2021/10/10-16:46:30] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-16:46:30] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-16:46:30] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-16:46:30] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 205, rpt 2032. (1)
+[2021/10/10-16:46:30] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-16:46:30] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/10-16:46:30] at line 6457 of ../library/libltpP.c, [i] Got RS 6174 for checkpoint 11972; 1 claims from 0 to 91. (2)
+[2021/10/10-16:46:30] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/10-16:46:30] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/10-16:46:30] at line 6457 of ../library/libltpP.c, [i] Got RS 8540 for checkpoint 2159; 1 claims from 0 to 90. (3)
+[2021/10/10-16:46:30] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/10-16:46:30] at line 6440 of ../library/libltpP.c, Handling report. (1)
+[2021/10/10-16:46:30] at line 6457 of ../library/libltpP.c, [i] Got RS 2032 for checkpoint 205; 1 claims from 0 to 90. (1)
+[2021/10/10-16:46:30] at line 2423 of ../library/libltpP.c, Closed export session. (1)
+[2021/10/10-16:46:30] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-16:46:30] at line 7108 of ../library/libltpP.c, Acknowledged report is 2032, lowerBound 0, upperBound 90, last report serial number 2032. (1)
+[2021/10/10-16:46:30] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-16:46:30] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-16:54:53] [i] No congestion forecast; horizon reached.
+[2021/10/10-16:54:53] [i] ionwarn finished.
+[2021/10/10-16:54:53] [x] src from 1969/12/31-16:00:00 to 2021/10/10-16:54:53: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-16:54:53] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-16:54:53: (0) 0 0 (1) 0 0 (2) 0 0 (+) 3 9
+[2021/10/10-16:54:53] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-16:54:53: (0) 0 0 (1) 0 0 (2) 3 9 (+) 3 9
+[2021/10/10-16:54:53] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-16:54:53: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-16:54:53] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-16:54:53: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:54:53] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-16:54:53: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:54:53] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-16:54:53: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:54:55] [i] No congestion forecast; horizon reached.
+[2021/10/10-16:54:55] [i] ionwarn finished.
+[2021/10/10-16:54:56] [i] No congestion forecast; horizon reached.
+[2021/10/10-16:54:56] [i] ionwarn finished.
+[2021/10/10-16:54:56] [x] src from 1969/12/31-16:00:00 to 2021/10/10-16:54:56: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-16:54:56] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-16:54:56: (0) 0 0 (1) 0 0 (2) 0 0 (+) 3 9
+[2021/10/10-16:54:56] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-16:54:56: (0) 0 0 (1) 0 0 (2) 3 9 (+) 3 9
+[2021/10/10-16:54:56] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-16:54:56: (0) 0 0 (1) 0 0 (2) 1 3 (+) 1 3
+[2021/10/10-16:54:56] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-16:54:56: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:54:56] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-16:54:56: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-16:54:56] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-16:54:56: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-17:03:19] [i] bprecvfile is running.
+[2021/10/10-17:03:19] [i] bprecvfile is running.
+[2021/10/10-17:03:31] [i] bpsendfile is running.
+[2021/10/10-17:03:31] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/10-17:03:31] [i] bpsendfile sent 'file150', size 150.
+[2021/10/10-17:03:31] [i] bpsendfile has stopped.
+[2021/10/10-17:03:39] [i] bpsendfile is running.
+[2021/10/10-17:03:39] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/10-17:03:39] [i] bpsendfile sent 'file100', size 100.
+[2021/10/10-17:03:39] [i] bpsendfile has stopped.
+[2021/10/10-17:03:39] [i] Max report segments = 2 for red part length 188, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-17:03:39] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 5436 rpt 0 to node 1. (4)
+[2021/10/10-17:04:18] [i] ipnfw forwarder has ended.
+[2021/10/10-17:04:18] [i] Endpoint has been stopped.
+[2021/10/10-17:04:18] [i] Endpoint has been stopped.
+[2021/10/10-17:04:18] [i] Administrative endpoint terminated.
+[2021/10/10-17:04:18] [i] ipnadminep has ended.
+[2021/10/10-17:04:18] [i] Endpoint has been stopped.
+[2021/10/10-17:04:18] [i] Plan has been stopped: ipn:2.0
+[2021/10/10-17:04:18] [i] Administrative endpoint terminated.
+[2021/10/10-17:04:18] [i] bpclm has ended: ipn:2.0
+[2021/10/10-17:04:18] [i] imcadminep has ended.
+[2021/10/10-17:04:18] [i] Outduct has been stopped: 1
+[2021/10/10-17:04:18] [i] ltpclo outduct closed.
+[2021/10/10-17:04:18] [i] ltpclo duct has ended.
+[2021/10/10-17:04:18] [i] Endpoint has been stopped.
+[2021/10/10-17:04:18] [i] Stopping bprecvfile.
+[2021/10/10-17:04:18] [i] Stopping bprecvfile.
+[2021/10/10-17:04:18] [i] Outduct has been stopped: 2
+[2021/10/10-17:04:18] [i] ltpclo outduct closed.
+[2021/10/10-17:04:18] [i] Outduct has been stopped: 4
+[2021/10/10-17:04:18] [i] ltpclo duct has ended.
+[2021/10/10-17:04:18] [i] Plan has been stopped: ipn:4.0
+[2021/10/10-17:04:18] [i] ltpclo outduct closed.
+[2021/10/10-17:04:18] [i] ltpclo duct has ended.
+[2021/10/10-17:04:18] [i] bpclm has ended: ipn:4.0
+[2021/10/10-17:04:18] [i] bpclock has ended.
+[2021/10/10-17:04:18] [i] ltpcli receiver thread has ended.
+[2021/10/10-17:04:18] [i] ltpcli duct has ended.
+[2021/10/10-17:04:18] [i] bptransit has ended.
+[2021/10/10-17:04:18] [i] imcClock thread has ended.
+[2021/10/10-17:04:18] [i] imcfw forwarder has ended.
+[2021/10/10-17:04:19] [i] bpclm has ended: ipn:1.0
+[2021/10/10-17:04:20] [i] LTP meter to engine 1 is stopped.
+[2021/10/10-17:04:20] [i] LSO to engine 1 is stopped.
+[2021/10/10-17:04:20] [i] LTP meter to engine 2 is stopped.
+[2021/10/10-17:04:20] [i] LSO to engine 2 is stopped.
+[2021/10/10-17:04:20] [i] LTP meter to engine 4 is stopped.
+[2021/10/10-17:04:20] [i] ltpmeter has ended.
+[2021/10/10-17:04:20] [i] ltpmeter has ended.
+[2021/10/10-17:04:20] [i] ltpmeter has ended.
+[2021/10/10-17:04:20] [i] udplsa receiver thread has ended.
+[2021/10/10-17:04:20] [i] LSO to engine 4 is stopped.
+[2021/10/10-17:04:20] [i] udplsa receiver thread has ended.
+[2021/10/10-17:04:20] [i] udplso has ended.
+[2021/10/10-17:04:20] [i] udplsa receiver thread has ended.
+[2021/10/10-17:04:20] [i] udplso has ended.
+[2021/10/10-17:04:20] [i] udplso has ended.
+[2021/10/10-17:04:20] [i] udplsa receiver thread has ended.
+[2021/10/10-17:04:20] [i] ltpclock has ended.
+[2021/10/10-17:04:20] [i] udplsi has ended.
+[2021/10/10-17:04:20] [i] ltpdeliv has ended.
+[2021/10/10-17:04:22] [i] rfxclock has ended.
+[2021/10/10-19:46:36] [i] No congestion forecast; horizon reached.
+[2021/10/10-19:46:36] [i] ionwarn finished.
+[2021/10/10-19:46:36] [i] rfxclock is running.
+[2021/10/10-19:46:37] [i] No congestion forecast; horizon reached.
+[2021/10/10-19:46:37] [i] ionwarn finished.
+[2021/10/10-19:46:38] [i] No congestion forecast; horizon reached.
+[2021/10/10-19:46:38] [i] ionwarn finished.
+[2021/10/10-19:46:39] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-19:46:39] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-19:46:39] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-19:46:39] [i] Total max export sessions does not exceed estimate.
+[2021/10/10-19:46:39] [i] ltpclock is running.
+[2021/10/10-19:46:39] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/10-19:46:39] [i] ltpmeter is running.
+[2021/10/10-19:46:39] [i] ltpdeliv is running.
+[2021/10/10-19:46:39] [i] ltpmeter is running.
+[2021/10/10-19:46:39] [i] ltpmeter is running.
+[2021/10/10-19:46:39] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/10-19:46:39] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/10-19:46:39] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/10-19:46:40] [i] This node deploys bundle protocol version 7.
+[2021/10/10-19:46:40] [i] Bundle security is enabled.
+[2021/10/10-19:46:40] [i] bpclm is running: ipn:4.0
+[2021/10/10-19:46:40] [i] bpclm is running: ipn:2.0
+[2021/10/10-19:46:40] [i] bpclm is running: ipn:1.0
+[2021/10/10-19:46:41] [i] ltpcli is running.
+[2021/10/10-19:46:41] [i] ltpclo is running.
+[2021/10/10-19:46:41] [i] ipnadminep is running.
+[2021/10/10-19:46:41] [i] ltpclo is running.
+[2021/10/10-19:46:41] [i] ltpclo is running.
+[2021/10/10-19:46:41] [i] imcfw is running.
+[2021/10/10-19:46:41] [i] bptransit is running.
+[2021/10/10-19:46:41] [i] ipnfw is running.
+[2021/10/10-19:46:41] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/10-19:46:41] [i] bpclock is running.
+[2021/10/10-19:46:41] [i] imcadminep is running.
+[2021/10/10-19:46:42] [x] src from 1969/12/31-16:00:00 to 2021/10/10-19:46:42: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:46:42] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-19:46:42: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:46:42] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-19:46:42: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:46:42] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-19:46:42: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:46:42] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-19:46:42: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:46:42] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-19:46:42: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:46:42] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-19:46:42: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:46:58] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:46:58] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 9760 rpt 0 to node 1. (3)
+[2021/10/10-19:46:58] [i] Max report segments = 2 for red part length 91, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:46:58] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 10497 rpt 0 to node 2. (1)
+[2021/10/10-19:46:58] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:46:58] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 15812 rpt 0 to node 4. (2)
+[2021/10/10-19:46:58] at line 4894 of ../library/libltpP.c, Opened import session. (3)
+[2021/10/10-19:46:58] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-19:46:58] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-19:46:58] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 9760, rpt 5731. (3)
+[2021/10/10-19:46:58] at line 4486 of ../library/libltpP.c, Reporting all data received. (3)
+[2021/10/10-19:46:58] at line 6440 of ../library/libltpP.c, Handling report. (1)
+[2021/10/10-19:46:58] at line 6457 of ../library/libltpP.c, [i] Got RS 2145 for checkpoint 10497; 1 claims from 0 to 91. (1)
+[2021/10/10-19:46:58] at line 2423 of ../library/libltpP.c, Closed export session. (1)
+[2021/10/10-19:46:58] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/10-19:46:58] at line 6457 of ../library/libltpP.c, [i] Got RS 395 for checkpoint 15812; 1 claims from 0 to 90. (2)
+[2021/10/10-19:46:58] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/10-19:46:58] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/10-19:46:58] at line 6457 of ../library/libltpP.c, [i] Got RS 5731 for checkpoint 9760; 1 claims from 0 to 90. (3)
+[2021/10/10-19:46:58] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/10-19:46:58] at line 7028 of ../library/libltpP.c, Handling report ack. (3)
+[2021/10/10-19:46:58] at line 7108 of ../library/libltpP.c, Acknowledged report is 5731, lowerBound 0, upperBound 90, last report serial number 5731. (3)
+[2021/10/10-19:46:58] at line 2866 of ../library/libltpP.c, Stopped import session. (3)
+[2021/10/10-19:46:58] at line 2966 of ../library/libltpP.c, Closed import session. (3)
+[2021/10/10-19:47:01] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-19:47:01] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-19:47:01] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-19:47:01] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 4787, rpt 9854. (1)
+[2021/10/10-19:47:01] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-19:47:01] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-19:47:01] at line 7108 of ../library/libltpP.c, Acknowledged report is 9854, lowerBound 0, upperBound 90, last report serial number 9854. (1)
+[2021/10/10-19:47:01] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-19:47:01] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-19:47:05] at line 4894 of ../library/libltpP.c, Opened import session. (6)
+[2021/10/10-19:47:05] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 92): xmit segment loss rate 0.617186, recv segment loss rate 0.070972, max timeouts 29.
+[2021/10/10-19:47:05] [i] Max report segments = 2 for red part length 92, max segment size 92, segment loss rate 0.070972.
+[2021/10/10-19:47:05] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 92, ckpt 2865, rpt 9341. (6)
+[2021/10/10-19:47:05] at line 4486 of ../library/libltpP.c, Reporting all data received. (6)
+[2021/10/10-19:47:05] at line 7028 of ../library/libltpP.c, Handling report ack. (6)
+[2021/10/10-19:47:05] at line 7108 of ../library/libltpP.c, Acknowledged report is 9341, lowerBound 0, upperBound 92, last report serial number 9341. (6)
+[2021/10/10-19:47:05] at line 2866 of ../library/libltpP.c, Stopped import session. (6)
+[2021/10/10-19:47:05] at line 2966 of ../library/libltpP.c, Closed import session. (6)
+[2021/10/10-19:47:08] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-19:47:08] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-19:47:08] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-19:47:08] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 12676, rpt 16105. (1)
+[2021/10/10-19:47:08] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-19:47:08] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-19:47:08] at line 7108 of ../library/libltpP.c, Acknowledged report is 16105, lowerBound 0, upperBound 90, last report serial number 16105. (1)
+[2021/10/10-19:47:08] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-19:47:08] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-19:47:36] [i] bprecvfile is running.
+[2021/10/10-19:47:36] [i] bprecvfile is running.
+[2021/10/10-19:47:46] [i] bpsendfile is running.
+[2021/10/10-19:47:46] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/10-19:47:46] [i] bpsendfile sent 'file150', size 150.
+[2021/10/10-19:47:46] [i] bpsendfile has stopped.
+[2021/10/10-19:47:46] [i] Max report segments = 2 for red part length 228, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:47:46] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 9588 rpt 0 to node 2. (5)
+[2021/10/10-19:47:46] at line 6440 of ../library/libltpP.c, Handling report. (5)
+[2021/10/10-19:47:46] at line 6457 of ../library/libltpP.c, [i] Got RS 1183 for checkpoint 9588; 1 claims from 0 to 228. (5)
+[2021/10/10-19:47:46] at line 2423 of ../library/libltpP.c, Closed export session. (5)
+[2021/10/10-19:48:32] [i] bpsendfile is running.
+[2021/10/10-19:48:32] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/10-19:48:32] [i] bpsendfile sent 'file100', size 100.
+[2021/10/10-19:48:32] [i] bpsendfile has stopped.
+[2021/10/10-19:48:33] [i] Max report segments = 2 for red part length 188, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:48:33] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 16263 rpt 0 to node 2. (7)
+[2021/10/10-19:48:33] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:48:33] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 7639 rpt 0 to node 1. (4)
+[2021/10/10-19:48:33] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:48:33] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 13018 rpt 0 to node 4. (6)
+[2021/10/10-19:48:33] at line 4894 of ../library/libltpP.c, Opened import session. (4)
+[2021/10/10-19:48:33] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 187): xmit segment loss rate 0.617186, recv segment loss rate 0.138976, max timeouts 29.
+[2021/10/10-19:48:33] [i] Max report segments = 2 for red part length 187, max segment size 187, segment loss rate 0.138976.
+[2021/10/10-19:48:33] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 187, ckpt 7639, rpt 1278. (4)
+[2021/10/10-19:48:33] at line 4486 of ../library/libltpP.c, Reporting all data received. (4)
+[2021/10/10-19:48:33] at line 6440 of ../library/libltpP.c, Handling report. (7)
+[2021/10/10-19:48:33] at line 6457 of ../library/libltpP.c, [i] Got RS 12114 for checkpoint 16263; 1 claims from 0 to 188. (7)
+[2021/10/10-19:48:33] at line 2423 of ../library/libltpP.c, Closed export session. (7)
+[2021/10/10-19:48:33] at line 6440 of ../library/libltpP.c, Handling report. (6)
+[2021/10/10-19:48:33] at line 6457 of ../library/libltpP.c, [i] Got RS 3761 for checkpoint 13018; 1 claims from 0 to 187. (6)
+[2021/10/10-19:48:33] at line 2423 of ../library/libltpP.c, Closed export session. (6)
+[2021/10/10-19:48:33] at line 6440 of ../library/libltpP.c, Handling report. (4)
+[2021/10/10-19:48:33] at line 6457 of ../library/libltpP.c, [i] Got RS 1278 for checkpoint 7639; 1 claims from 0 to 187. (4)
+[2021/10/10-19:48:33] at line 2423 of ../library/libltpP.c, Closed export session. (4)
+[2021/10/10-19:48:33] [i] bprecvfile is creating 'testfile1', size 100.
+[2021/10/10-19:48:33] [i] bprecvfile has created 'testfile1', size 100.
+[2021/10/10-19:48:33] at line 7028 of ../library/libltpP.c, Handling report ack. (4)
+[2021/10/10-19:48:33] at line 7108 of ../library/libltpP.c, Acknowledged report is 1278, lowerBound 0, upperBound 187, last report serial number 1278. (4)
+[2021/10/10-19:48:33] at line 2866 of ../library/libltpP.c, Stopped import session. (4)
+[2021/10/10-19:48:33] at line 2966 of ../library/libltpP.c, Closed import session. (4)
+[2021/10/10-19:48:52] at line 4894 of ../library/libltpP.c, Opened import session. (10)
+[2021/10/10-19:48:52] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 287): xmit segment loss rate 0.617186, recv segment loss rate 0.205188, max timeouts 29.
+[2021/10/10-19:48:52] [i] Max report segments = 2 for red part length 287, max segment size 287, segment loss rate 0.205188.
+[2021/10/10-19:48:52] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 287, ckpt 4592, rpt 7289. (10)
+[2021/10/10-19:48:52] at line 4486 of ../library/libltpP.c, Reporting all data received. (10)
+[2021/10/10-19:48:52] [i] bprecvfile is creating 'testfile2', size 200.
+[2021/10/10-19:48:52] at line 7028 of ../library/libltpP.c, Handling report ack. (10)
+[2021/10/10-19:48:52] [i] bprecvfile has created 'testfile2', size 200.
+[2021/10/10-19:48:52] at line 7108 of ../library/libltpP.c, Acknowledged report is 7289, lowerBound 0, upperBound 287, last report serial number 7289. (10)
+[2021/10/10-19:48:52] at line 2866 of ../library/libltpP.c, Stopped import session. (10)
+[2021/10/10-19:48:52] at line 2966 of ../library/libltpP.c, Closed import session. (10)
+[2021/10/10-19:49:18] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/10-19:49:18] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 488): xmit segment loss rate 0.617186, recv segment loss rate 0.323271, max timeouts 29.
+[2021/10/10-19:49:18] [i] Max report segments = 2 for red part length 488, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-19:49:18] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 488, ckpt 4519, rpt 12375. (5)
+[2021/10/10-19:49:18] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/10-19:49:18] [i] bprecvfile is creating 'testfile3', size 400.
+[2021/10/10-19:49:18] [i] bprecvfile has created 'testfile3', size 400.
+[2021/10/10-19:49:18] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/10-19:49:18] at line 7108 of ../library/libltpP.c, Acknowledged report is 12375, lowerBound 0, upperBound 488, last report serial number 12375. (5)
+[2021/10/10-19:49:18] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/10-19:49:18] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/10-19:50:22] at line 4894 of ../library/libltpP.c, Opened import session. (13)
+[2021/10/10-19:50:22] [i] Max report segments = 2 for red part length 90, max segment size 287, segment loss rate 0.205188.
+[2021/10/10-19:50:22] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 13322, rpt 10015. (13)
+[2021/10/10-19:50:22] at line 4486 of ../library/libltpP.c, Reporting all data received. (13)
+[2021/10/10-19:50:22] at line 7028 of ../library/libltpP.c, Handling report ack. (13)
+[2021/10/10-19:50:22] at line 7108 of ../library/libltpP.c, Acknowledged report is 10015, lowerBound 0, upperBound 90, last report serial number 10015. (13)
+[2021/10/10-19:50:22] at line 2866 of ../library/libltpP.c, Stopped import session. (13)
+[2021/10/10-19:50:22] at line 2966 of ../library/libltpP.c, Closed import session. (13)
+[2021/10/10-19:51:05] at line 4894 of ../library/libltpP.c, Opened import session. (17)
+[2021/10/10-19:51:05] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 390): xmit segment loss rate 0.617186, recv segment loss rate 0.268068, max timeouts 29.
+[2021/10/10-19:51:05] [i] Max report segments = 2 for red part length 390, max segment size 390, segment loss rate 0.268068.
+[2021/10/10-19:51:05] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 390, ckpt 13269, rpt 5425. (17)
+[2021/10/10-19:51:05] at line 4486 of ../library/libltpP.c, Reporting all data received. (17)
+[2021/10/10-19:51:05] at line 7028 of ../library/libltpP.c, Handling report ack. (17)
+[2021/10/10-19:51:05] [i] bprecvfile is creating 'testfile4', size 300.
+[2021/10/10-19:51:05] at line 7108 of ../library/libltpP.c, Acknowledged report is 5425, lowerBound 0, upperBound 390, last report serial number 5425. (17)
+[2021/10/10-19:51:05] at line 2866 of ../library/libltpP.c, Stopped import session. (17)
+[2021/10/10-19:51:05] at line 2966 of ../library/libltpP.c, Closed import session. (17)
+[2021/10/10-19:51:05] [i] bprecvfile has created 'testfile4', size 300.
+[2021/10/10-19:51:43] at line 4894 of ../library/libltpP.c, Opened import session. (9)
+[2021/10/10-19:51:43] [i] Max report segments = 2 for red part length 90, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-19:51:43] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 13810, rpt 13059. (9)
+[2021/10/10-19:51:43] at line 4486 of ../library/libltpP.c, Reporting all data received. (9)
+[2021/10/10-19:51:43] at line 7028 of ../library/libltpP.c, Handling report ack. (9)
+[2021/10/10-19:51:43] at line 7108 of ../library/libltpP.c, Acknowledged report is 13059, lowerBound 0, upperBound 90, last report serial number 13059. (9)
+[2021/10/10-19:51:43] at line 2866 of ../library/libltpP.c, Stopped import session. (9)
+[2021/10/10-19:51:43] at line 2966 of ../library/libltpP.c, Closed import session. (9)
+[2021/10/10-19:52:23] at line 4894 of ../library/libltpP.c, Opened import session. (21)
+[2021/10/10-19:52:23] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 399): xmit segment loss rate 0.617186, recv segment loss rate 0.273320, max timeouts 29.
+[2021/10/10-19:52:23] [i] Max report segments = 2 for red part length 399, max segment size 399, segment loss rate 0.273320.
+[2021/10/10-19:52:23] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 399, ckpt 9388, rpt 1918. (21)
+[2021/10/10-19:52:23] at line 4486 of ../library/libltpP.c, Reporting all data received. (21)
+[2021/10/10-19:52:23] at line 7028 of ../library/libltpP.c, Handling report ack. (21)
+[2021/10/10-19:52:23] [i] bprecvfile is creating 'testfile5', size 310.
+[2021/10/10-19:52:23] at line 7108 of ../library/libltpP.c, Acknowledged report is 1918, lowerBound 0, upperBound 399, last report serial number 1918. (21)
+[2021/10/10-19:52:23] at line 2866 of ../library/libltpP.c, Stopped import session. (21)
+[2021/10/10-19:52:23] at line 2966 of ../library/libltpP.c, Closed import session. (21)
+[2021/10/10-19:52:23] [i] bprecvfile has created 'testfile5', size 310.
+[2021/10/10-19:52:25] at line 4894 of ../library/libltpP.c, Opened import session. (22)
+[2021/10/10-19:52:25] [i] Max report segments = 2 for red part length 90, max segment size 399, segment loss rate 0.273320.
+[2021/10/10-19:52:25] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 10972, rpt 6920. (22)
+[2021/10/10-19:52:25] at line 4486 of ../library/libltpP.c, Reporting all data received. (22)
+[2021/10/10-19:52:25] at line 7028 of ../library/libltpP.c, Handling report ack. (22)
+[2021/10/10-19:52:25] at line 7108 of ../library/libltpP.c, Acknowledged report is 6920, lowerBound 0, upperBound 90, last report serial number 6920. (22)
+[2021/10/10-19:52:25] at line 2866 of ../library/libltpP.c, Stopped import session. (22)
+[2021/10/10-19:52:25] at line 2966 of ../library/libltpP.c, Closed import session. (22)
+[2021/10/10-19:52:25] at line 4894 of ../library/libltpP.c, Opened import session. (16)
+[2021/10/10-19:52:25] [i] Max report segments = 2 for red part length 90, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-19:52:25] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 8111, rpt 3910. (16)
+[2021/10/10-19:52:25] at line 4486 of ../library/libltpP.c, Reporting all data received. (16)
+[2021/10/10-19:52:25] at line 7028 of ../library/libltpP.c, Handling report ack. (16)
+[2021/10/10-19:52:25] at line 7108 of ../library/libltpP.c, Acknowledged report is 3910, lowerBound 0, upperBound 90, last report serial number 3910. (16)
+[2021/10/10-19:52:25] at line 2866 of ../library/libltpP.c, Stopped import session. (16)
+[2021/10/10-19:52:25] at line 2966 of ../library/libltpP.c, Closed import session. (16)
+[2021/10/10-19:52:27] at line 4894 of ../library/libltpP.c, Opened import session. (24)
+[2021/10/10-19:52:27] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 409): xmit segment loss rate 0.617186, recv segment loss rate 0.279111, max timeouts 29.
+[2021/10/10-19:52:27] [i] Max report segments = 2 for red part length 409, max segment size 409, segment loss rate 0.279111.
+[2021/10/10-19:52:27] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 409, ckpt 13559, rpt 9012. (24)
+[2021/10/10-19:52:27] at line 4486 of ../library/libltpP.c, Reporting all data received. (24)
+[2021/10/10-19:52:27] at line 7028 of ../library/libltpP.c, Handling report ack. (24)
+[2021/10/10-19:52:27] [i] bprecvfile is creating 'testfile6', size 320.
+[2021/10/10-19:52:27] at line 7108 of ../library/libltpP.c, Acknowledged report is 9012, lowerBound 0, upperBound 409, last report serial number 9012. (24)
+[2021/10/10-19:52:27] at line 2866 of ../library/libltpP.c, Stopped import session. (24)
+[2021/10/10-19:52:27] at line 2966 of ../library/libltpP.c, Closed import session. (24)
+[2021/10/10-19:52:27] [i] bprecvfile has created 'testfile6', size 320.
+[2021/10/10-19:52:38] [i] Endpoint has been stopped.
+[2021/10/10-19:52:38] [i] ipnfw forwarder has ended.
+[2021/10/10-19:52:38] [i] Endpoint has been stopped.
+[2021/10/10-19:52:38] [i] Administrative endpoint terminated.
+[2021/10/10-19:52:38] [i] Endpoint has been stopped.
+[2021/10/10-19:52:38] [i] ipnadminep has ended.
+[2021/10/10-19:52:38] [i] Stopping bprecvfile.
+[2021/10/10-19:52:38] [i] Administrative endpoint terminated.
+[2021/10/10-19:52:38] [i] imcadminep has ended.
+[2021/10/10-19:52:38] [i] Endpoint has been stopped.
+[2021/10/10-19:52:38] [i] Plan has been stopped: ipn:1.0
+[2021/10/10-19:52:38] [i] bpclm has ended: ipn:1.0
+[2021/10/10-19:52:38] [i] Stopping bprecvfile.
+[2021/10/10-19:52:38] [i] Plan has been stopped: ipn:2.0
+[2021/10/10-19:52:38] [i] bpclm has ended: ipn:2.0
+[2021/10/10-19:52:38] [i] Plan has been stopped: ipn:4.0
+[2021/10/10-19:52:38] [i] bpclm has ended: ipn:4.0
+[2021/10/10-19:52:38] [i] Outduct has been stopped: 1
+[2021/10/10-19:52:38] [i] Outduct has been stopped: 2
+[2021/10/10-19:52:38] [i] ltpclo outduct closed.
+[2021/10/10-19:52:38] [i] ltpclo outduct closed.
+[2021/10/10-19:52:38] [i] ltpclo duct has ended.
+[2021/10/10-19:52:38] [i] ltpclo duct has ended.
+[2021/10/10-19:52:38] [i] Outduct has been stopped: 4
+[2021/10/10-19:52:38] [i] ltpclo outduct closed.
+[2021/10/10-19:52:38] [i] ltpclo duct has ended.
+[2021/10/10-19:52:38] [i] ltpcli receiver thread has ended.
+[2021/10/10-19:52:38] [i] ltpcli duct has ended.
+[2021/10/10-19:52:38] [i] bpclock has ended.
+[2021/10/10-19:52:38] [i] bptransit has ended.
+[2021/10/10-19:52:38] [i] imcClock thread has ended.
+[2021/10/10-19:52:38] [i] imcfw forwarder has ended.
+[2021/10/10-19:52:40] [i] LTP meter to engine 2 is stopped.
+[2021/10/10-19:52:40] [i] LTP meter to engine 1 is stopped.
+[2021/10/10-19:52:40] [i] LTP meter to engine 4 is stopped.
+[2021/10/10-19:52:40] [i] LSO to engine 4 is stopped.
+[2021/10/10-19:52:40] [i] LSO to engine 1 is stopped.
+[2021/10/10-19:52:40] [i] LSO to engine 2 is stopped.
+[2021/10/10-19:52:40] [i] ltpmeter has ended.
+[2021/10/10-19:52:40] [i] ltpmeter has ended.
+[2021/10/10-19:52:40] [i] ltpmeter has ended.
+[2021/10/10-19:52:40] [i] udplsa receiver thread has ended.
+[2021/10/10-19:52:40] [i] udplsa receiver thread has ended.
+[2021/10/10-19:52:40] [i] udplsi has ended.
+[2021/10/10-19:52:40] [i] udplsa receiver thread has ended.
+[2021/10/10-19:52:40] [i] udplso has ended.
+[2021/10/10-19:52:40] [i] udplsa receiver thread has ended.
+[2021/10/10-19:52:40] [i] ltpclock has ended.
+[2021/10/10-19:52:40] [i] udplso has ended.
+[2021/10/10-19:52:40] [i] udplso has ended.
+[2021/10/10-19:52:40] [i] ltpdeliv has ended.
+[2021/10/10-19:52:41] [i] rfxclock has ended.
+[2021/10/10-19:59:29] [i] No congestion forecast; horizon reached.
+[2021/10/10-19:59:29] [i] ionwarn finished.
+[2021/10/10-19:59:29] [i] rfxclock is running.
+[2021/10/10-19:59:30] [i] No congestion forecast; horizon reached.
+[2021/10/10-19:59:30] [i] ionwarn finished.
+[2021/10/10-19:59:31] [i] No congestion forecast; horizon reached.
+[2021/10/10-19:59:31] [i] ionwarn finished.
+[2021/10/10-19:59:32] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-19:59:32] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-19:59:32] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-19:59:32] [i] Total max export sessions does not exceed estimate.
+[2021/10/10-19:59:32] [i] ltpdeliv is running.
+[2021/10/10-19:59:32] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/10-19:59:32] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/10-19:59:32] [i] ltpclock is running.
+[2021/10/10-19:59:32] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/10-19:59:32] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/10-19:59:32] [i] ltpmeter is running.
+[2021/10/10-19:59:32] [i] ltpmeter is running.
+[2021/10/10-19:59:32] [i] ltpmeter is running.
+[2021/10/10-19:59:33] [i] This node deploys bundle protocol version 7.
+[2021/10/10-19:59:33] [i] Bundle security is enabled.
+[2021/10/10-19:59:33] [i] bpclm is running: ipn:1.0
+[2021/10/10-19:59:33] [i] bpclm is running: ipn:2.0
+[2021/10/10-19:59:33] [i] bpclm is running: ipn:4.0
+[2021/10/10-19:59:34] [i] bpclock is running.
+[2021/10/10-19:59:34] [i] bptransit is running.
+[2021/10/10-19:59:34] [i] imcadminep is running.
+[2021/10/10-19:59:34] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/10-19:59:34] [i] ipnfw is running.
+[2021/10/10-19:59:34] [i] ipnadminep is running.
+[2021/10/10-19:59:34] [i] ltpclo is running.
+[2021/10/10-19:59:34] [i] ltpclo is running.
+[2021/10/10-19:59:34] [i] ltpclo is running.
+[2021/10/10-19:59:34] [i] ltpcli is running.
+[2021/10/10-19:59:34] [i] imcfw is running.
+[2021/10/10-19:59:35] [x] src from 1969/12/31-16:00:00 to 2021/10/10-19:59:35: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:59:35] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-19:59:35: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:59:35] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-19:59:35: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:59:35] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-19:59:35: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:59:35] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-19:59:35: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:59:35] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-19:59:35: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:59:35] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-19:59:35: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-19:59:52] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:59:52] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 8631 rpt 0 to node 1. (3)
+[2021/10/10-19:59:52] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:59:52] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 7851 rpt 0 to node 4. (2)
+[2021/10/10-19:59:52] [i] Max report segments = 2 for red part length 91, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-19:59:52] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 3712 rpt 0 to node 2. (1)
+[2021/10/10-19:59:52] at line 4894 of ../library/libltpP.c, Opened import session. (3)
+[2021/10/10-19:59:52] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-19:59:52] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-19:59:52] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 8631, rpt 11632. (3)
+[2021/10/10-19:59:52] at line 4486 of ../library/libltpP.c, Reporting all data received. (3)
+[2021/10/10-19:59:52] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/10-19:59:52] at line 6457 of ../library/libltpP.c, [i] Got RS 2686 for checkpoint 7851; 1 claims from 0 to 90. (2)
+[2021/10/10-19:59:52] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/10-19:59:52] at line 6440 of ../library/libltpP.c, Handling report. (1)
+[2021/10/10-19:59:52] at line 6457 of ../library/libltpP.c, [i] Got RS 14414 for checkpoint 3712; 1 claims from 0 to 91. (1)
+[2021/10/10-19:59:52] at line 2423 of ../library/libltpP.c, Closed export session. (1)
+[2021/10/10-19:59:52] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/10-19:59:52] at line 6457 of ../library/libltpP.c, [i] Got RS 11632 for checkpoint 8631; 1 claims from 0 to 90. (3)
+[2021/10/10-19:59:52] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/10-19:59:52] at line 7028 of ../library/libltpP.c, Handling report ack. (3)
+[2021/10/10-19:59:52] at line 7108 of ../library/libltpP.c, Acknowledged report is 11632, lowerBound 0, upperBound 90, last report serial number 11632. (3)
+[2021/10/10-19:59:52] at line 2866 of ../library/libltpP.c, Stopped import session. (3)
+[2021/10/10-19:59:52] at line 2966 of ../library/libltpP.c, Closed import session. (3)
+[2021/10/10-19:59:53] at line 4894 of ../library/libltpP.c, Opened import session. (3)
+[2021/10/10-19:59:53] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-19:59:53] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-19:59:53] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 1770, rpt 11623. (3)
+[2021/10/10-19:59:53] at line 4486 of ../library/libltpP.c, Reporting all data received. (3)
+[2021/10/10-19:59:53] at line 7028 of ../library/libltpP.c, Handling report ack. (3)
+[2021/10/10-19:59:53] at line 7108 of ../library/libltpP.c, Acknowledged report is 11623, lowerBound 0, upperBound 90, last report serial number 11623. (3)
+[2021/10/10-19:59:53] at line 2866 of ../library/libltpP.c, Stopped import session. (3)
+[2021/10/10-19:59:53] at line 2966 of ../library/libltpP.c, Closed import session. (3)
+[2021/10/10-19:59:55] at line 4894 of ../library/libltpP.c, Opened import session. (6)
+[2021/10/10-19:59:55] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 92): xmit segment loss rate 0.617186, recv segment loss rate 0.070972, max timeouts 29.
+[2021/10/10-19:59:55] [i] Max report segments = 2 for red part length 92, max segment size 92, segment loss rate 0.070972.
+[2021/10/10-19:59:55] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 92, ckpt 15439, rpt 5758. (6)
+[2021/10/10-19:59:55] at line 4486 of ../library/libltpP.c, Reporting all data received. (6)
+[2021/10/10-19:59:55] at line 7028 of ../library/libltpP.c, Handling report ack. (6)
+[2021/10/10-19:59:55] at line 7108 of ../library/libltpP.c, Acknowledged report is 5758, lowerBound 0, upperBound 92, last report serial number 5758. (6)
+[2021/10/10-19:59:55] at line 2866 of ../library/libltpP.c, Stopped import session. (6)
+[2021/10/10-19:59:55] at line 2966 of ../library/libltpP.c, Closed import session. (6)
+[2021/10/10-19:59:56] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-19:59:56] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-19:59:56] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-19:59:56] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 15876, rpt 6818. (1)
+[2021/10/10-19:59:56] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-19:59:56] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-19:59:56] at line 7108 of ../library/libltpP.c, Acknowledged report is 6818, lowerBound 0, upperBound 90, last report serial number 6818. (1)
+[2021/10/10-19:59:56] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-19:59:56] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-20:00:00] [i] bprecvfile is running.
+[2021/10/10-20:00:00] [i] bprecvfile is running.
+[2021/10/10-20:00:07] [i] bpsendfile is running.
+[2021/10/10-20:00:07] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/10-20:00:07] [i] bpsendfile sent 'file150', size 150.
+[2021/10/10-20:00:07] [i] bpsendfile has stopped.
+[2021/10/10-20:00:08] [i] Max report segments = 2 for red part length 228, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:00:08] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 8120 rpt 0 to node 2. (6)
+[2021/10/10-20:00:08] at line 6440 of ../library/libltpP.c, Handling report. (6)
+[2021/10/10-20:00:08] at line 6457 of ../library/libltpP.c, [i] Got RS 10431 for checkpoint 8120; 1 claims from 0 to 228. (6)
+[2021/10/10-20:00:08] at line 2423 of ../library/libltpP.c, Closed export session. (6)
+[2021/10/10-20:00:20] [i] bpsendfile is running.
+[2021/10/10-20:00:20] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/10-20:00:20] [i] bpsendfile sent 'file100', size 100.
+[2021/10/10-20:00:20] [i] bpsendfile has stopped.
+[2021/10/10-20:00:21] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:00:21] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 4850 rpt 0 to node 1. (4)
+[2021/10/10-20:00:21] [i] Max report segments = 2 for red part length 188, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:00:21] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 4436 rpt 0 to node 2. (7)
+[2021/10/10-20:00:21] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:00:21] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 6272 rpt 0 to node 4. (5)
+[2021/10/10-20:00:21] at line 4894 of ../library/libltpP.c, Opened import session. (4)
+[2021/10/10-20:00:21] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 187): xmit segment loss rate 0.617186, recv segment loss rate 0.138976, max timeouts 29.
+[2021/10/10-20:00:21] [i] Max report segments = 2 for red part length 187, max segment size 187, segment loss rate 0.138976.
+[2021/10/10-20:00:21] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 187, ckpt 4850, rpt 890. (4)
+[2021/10/10-20:00:21] at line 4486 of ../library/libltpP.c, Reporting all data received. (4)
+[2021/10/10-20:00:21] at line 6440 of ../library/libltpP.c, Handling report. (7)
+[2021/10/10-20:00:21] at line 6457 of ../library/libltpP.c, [i] Got RS 12568 for checkpoint 4436; 1 claims from 0 to 188. (7)
+[2021/10/10-20:00:21] at line 2423 of ../library/libltpP.c, Closed export session. (7)
+[2021/10/10-20:00:21] at line 6440 of ../library/libltpP.c, Handling report. (5)
+[2021/10/10-20:00:21] at line 6457 of ../library/libltpP.c, [i] Got RS 1174 for checkpoint 6272; 1 claims from 0 to 187. (5)
+[2021/10/10-20:00:21] at line 2423 of ../library/libltpP.c, Closed export session. (5)
+[2021/10/10-20:00:21] at line 6440 of ../library/libltpP.c, Handling report. (4)
+[2021/10/10-20:00:21] at line 6457 of ../library/libltpP.c, [i] Got RS 890 for checkpoint 4850; 1 claims from 0 to 187. (4)
+[2021/10/10-20:00:21] at line 2423 of ../library/libltpP.c, Closed export session. (4)
+[2021/10/10-20:00:21] [i] bprecvfile is creating 'testfile1', size 100.
+[2021/10/10-20:00:21] at line 7028 of ../library/libltpP.c, Handling report ack. (4)
+[2021/10/10-20:00:21] [i] bprecvfile has created 'testfile1', size 100.
+[2021/10/10-20:00:21] at line 7108 of ../library/libltpP.c, Acknowledged report is 890, lowerBound 0, upperBound 187, last report serial number 890. (4)
+[2021/10/10-20:00:21] at line 2866 of ../library/libltpP.c, Stopped import session. (4)
+[2021/10/10-20:00:21] at line 2966 of ../library/libltpP.c, Closed import session. (4)
+[2021/10/10-20:00:41] at line 4894 of ../library/libltpP.c, Opened import session. (10)
+[2021/10/10-20:00:41] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 287): xmit segment loss rate 0.617186, recv segment loss rate 0.205188, max timeouts 29.
+[2021/10/10-20:00:41] [i] Max report segments = 2 for red part length 287, max segment size 287, segment loss rate 0.205188.
+[2021/10/10-20:00:41] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 287, ckpt 3618, rpt 1064. (10)
+[2021/10/10-20:00:41] at line 4486 of ../library/libltpP.c, Reporting all data received. (10)
+[2021/10/10-20:00:41] [i] bprecvfile is creating 'testfile2', size 200.
+[2021/10/10-20:00:41] [i] bprecvfile has created 'testfile2', size 200.
+[2021/10/10-20:00:41] at line 7028 of ../library/libltpP.c, Handling report ack. (10)
+[2021/10/10-20:00:41] at line 7108 of ../library/libltpP.c, Acknowledged report is 1064, lowerBound 0, upperBound 287, last report serial number 1064. (10)
+[2021/10/10-20:00:41] at line 2866 of ../library/libltpP.c, Stopped import session. (10)
+[2021/10/10-20:00:41] at line 2966 of ../library/libltpP.c, Closed import session. (10)
+[2021/10/10-20:01:02] at line 4894 of ../library/libltpP.c, Opened import session. (6)
+[2021/10/10-20:01:02] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 488): xmit segment loss rate 0.617186, recv segment loss rate 0.323271, max timeouts 29.
+[2021/10/10-20:01:02] [i] Max report segments = 2 for red part length 488, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-20:01:02] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 488, ckpt 4943, rpt 15619. (6)
+[2021/10/10-20:01:02] at line 4486 of ../library/libltpP.c, Reporting all data received. (6)
+[2021/10/10-20:01:02] [i] bprecvfile is creating 'testfile3', size 400.
+[2021/10/10-20:01:02] at line 7028 of ../library/libltpP.c, Handling report ack. (6)
+[2021/10/10-20:01:02] [i] bprecvfile has created 'testfile3', size 400.
+[2021/10/10-20:01:02] at line 7108 of ../library/libltpP.c, Acknowledged report is 15619, lowerBound 0, upperBound 488, last report serial number 15619. (6)
+[2021/10/10-20:01:02] at line 2866 of ../library/libltpP.c, Stopped import session. (6)
+[2021/10/10-20:01:02] at line 2966 of ../library/libltpP.c, Closed import session. (6)
+[2021/10/10-20:02:03] at line 4894 of ../library/libltpP.c, Opened import session. (13)
+[2021/10/10-20:02:03] [i] Max report segments = 2 for red part length 90, max segment size 287, segment loss rate 0.205188.
+[2021/10/10-20:02:03] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 14901, rpt 4072. (13)
+[2021/10/10-20:02:03] at line 4486 of ../library/libltpP.c, Reporting all data received. (13)
+[2021/10/10-20:02:03] at line 7028 of ../library/libltpP.c, Handling report ack. (13)
+[2021/10/10-20:02:03] at line 7108 of ../library/libltpP.c, Acknowledged report is 4072, lowerBound 0, upperBound 90, last report serial number 4072. (13)
+[2021/10/10-20:02:03] at line 2866 of ../library/libltpP.c, Stopped import session. (13)
+[2021/10/10-20:02:03] at line 2966 of ../library/libltpP.c, Closed import session. (13)
+[2021/10/10-20:02:30] at line 4894 of ../library/libltpP.c, Opened import session. (17)
+[2021/10/10-20:02:30] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 390): xmit segment loss rate 0.617186, recv segment loss rate 0.268068, max timeouts 29.
+[2021/10/10-20:02:30] [i] Max report segments = 2 for red part length 390, max segment size 390, segment loss rate 0.268068.
+[2021/10/10-20:02:30] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 390, ckpt 14291, rpt 9049. (17)
+[2021/10/10-20:02:30] at line 4486 of ../library/libltpP.c, Reporting all data received. (17)
+[2021/10/10-20:02:30] at line 7028 of ../library/libltpP.c, Handling report ack. (17)
+[2021/10/10-20:02:30] [i] bprecvfile is creating 'testfile4', size 300.
+[2021/10/10-20:02:30] at line 7108 of ../library/libltpP.c, Acknowledged report is 9049, lowerBound 0, upperBound 390, last report serial number 9049. (17)
+[2021/10/10-20:02:30] at line 2866 of ../library/libltpP.c, Stopped import session. (17)
+[2021/10/10-20:02:30] at line 2966 of ../library/libltpP.c, Closed import session. (17)
+[2021/10/10-20:02:30] [i] bprecvfile has created 'testfile4', size 300.
+[2021/10/10-20:03:07] at line 4894 of ../library/libltpP.c, Opened import session. (9)
+[2021/10/10-20:03:07] [i] Max report segments = 2 for red part length 90, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-20:03:07] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 7081, rpt 15745. (9)
+[2021/10/10-20:03:07] at line 4486 of ../library/libltpP.c, Reporting all data received. (9)
+[2021/10/10-20:03:07] at line 7028 of ../library/libltpP.c, Handling report ack. (9)
+[2021/10/10-20:03:07] at line 7108 of ../library/libltpP.c, Acknowledged report is 15745, lowerBound 0, upperBound 90, last report serial number 15745. (9)
+[2021/10/10-20:03:07] at line 2866 of ../library/libltpP.c, Stopped import session. (9)
+[2021/10/10-20:03:07] at line 2966 of ../library/libltpP.c, Closed import session. (9)
+[2021/10/10-20:03:11] at line 4894 of ../library/libltpP.c, Opened import session. (21)
+[2021/10/10-20:03:11] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 400): xmit segment loss rate 0.617186, recv segment loss rate 0.273901, max timeouts 29.
+[2021/10/10-20:03:11] [i] Max report segments = 2 for red part length 400, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-20:03:11] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 400, ckpt 14044, rpt 4826. (21)
+[2021/10/10-20:03:11] at line 4486 of ../library/libltpP.c, Reporting all data received. (21)
+[2021/10/10-20:03:11] at line 7028 of ../library/libltpP.c, Handling report ack. (21)
+[2021/10/10-20:03:11] [i] bprecvfile is creating 'testfile5', size 310.
+[2021/10/10-20:03:11] at line 7108 of ../library/libltpP.c, Acknowledged report is 4826, lowerBound 0, upperBound 400, last report serial number 4826. (21)
+[2021/10/10-20:03:11] at line 2866 of ../library/libltpP.c, Stopped import session. (21)
+[2021/10/10-20:03:11] at line 2966 of ../library/libltpP.c, Closed import session. (21)
+[2021/10/10-20:03:11] [i] bprecvfile has created 'testfile5', size 310.
+[2021/10/10-20:03:13] at line 4894 of ../library/libltpP.c, Opened import session. (14)
+[2021/10/10-20:03:13] [i] Max report segments = 2 for red part length 90, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-20:03:13] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 3673, rpt 9528. (14)
+[2021/10/10-20:03:13] at line 4486 of ../library/libltpP.c, Reporting all data received. (14)
+[2021/10/10-20:03:13] at line 7028 of ../library/libltpP.c, Handling report ack. (14)
+[2021/10/10-20:03:13] at line 7108 of ../library/libltpP.c, Acknowledged report is 9528, lowerBound 0, upperBound 90, last report serial number 9528. (14)
+[2021/10/10-20:03:13] at line 2866 of ../library/libltpP.c, Stopped import session. (14)
+[2021/10/10-20:03:13] at line 2966 of ../library/libltpP.c, Closed import session. (14)
+[2021/10/10-20:03:13] at line 4894 of ../library/libltpP.c, Opened import session. (22)
+[2021/10/10-20:03:13] [i] Max report segments = 2 for red part length 90, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-20:03:13] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 4131, rpt 7353. (22)
+[2021/10/10-20:03:13] at line 4486 of ../library/libltpP.c, Reporting all data received. (22)
+[2021/10/10-20:03:13] at line 7028 of ../library/libltpP.c, Handling report ack. (22)
+[2021/10/10-20:03:13] at line 7108 of ../library/libltpP.c, Acknowledged report is 7353, lowerBound 0, upperBound 90, last report serial number 7353. (22)
+[2021/10/10-20:03:13] at line 2866 of ../library/libltpP.c, Stopped import session. (22)
+[2021/10/10-20:03:13] at line 2966 of ../library/libltpP.c, Closed import session. (22)
+[2021/10/10-20:03:16] at line 4894 of ../library/libltpP.c, Opened import session. (23)
+[2021/10/10-20:03:16] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 410): xmit segment loss rate 0.617186, recv segment loss rate 0.279688, max timeouts 29.
+[2021/10/10-20:03:16] [i] Max report segments = 2 for red part length 410, max segment size 410, segment loss rate 0.279688.
+[2021/10/10-20:03:16] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 410, ckpt 1898, rpt 1483. (23)
+[2021/10/10-20:03:16] at line 4486 of ../library/libltpP.c, Reporting all data received. (23)
+[2021/10/10-20:03:16] at line 7028 of ../library/libltpP.c, Handling report ack. (23)
+[2021/10/10-20:03:16] [i] bprecvfile is creating 'testfile6', size 320.
+[2021/10/10-20:03:16] at line 7108 of ../library/libltpP.c, Acknowledged report is 1483, lowerBound 0, upperBound 410, last report serial number 1483. (23)
+[2021/10/10-20:03:16] at line 2866 of ../library/libltpP.c, Stopped import session. (23)
+[2021/10/10-20:03:16] at line 2966 of ../library/libltpP.c, Closed import session. (23)
+[2021/10/10-20:03:16] [i] bprecvfile has created 'testfile6', size 320.
+[2021/10/10-20:03:29] [i] Endpoint has been stopped.
+[2021/10/10-20:03:29] [i] ipnfw forwarder has ended.
+[2021/10/10-20:03:29] [i] Endpoint has been stopped.
+[2021/10/10-20:03:29] [i] Administrative endpoint terminated.
+[2021/10/10-20:03:29] [i] ipnadminep has ended.
+[2021/10/10-20:03:29] [i] Endpoint has been stopped.
+[2021/10/10-20:03:29] [i] Endpoint has been stopped.
+[2021/10/10-20:03:29] [i] Administrative endpoint terminated.
+[2021/10/10-20:03:29] [i] Plan has been stopped: ipn:1.0
+[2021/10/10-20:03:29] [i] Plan has been stopped: ipn:2.0
+[2021/10/10-20:03:29] [i] imcadminep has ended.
+[2021/10/10-20:03:29] [i] bpclm has ended: ipn:1.0
+[2021/10/10-20:03:29] [i] bpclm has ended: ipn:2.0
+[2021/10/10-20:03:29] [i] Plan has been stopped: ipn:4.0
+[2021/10/10-20:03:29] [i] bpclm has ended: ipn:4.0
+[2021/10/10-20:03:29] [i] Outduct has been stopped: 1
+[2021/10/10-20:03:29] [i] ltpclo outduct closed.
+[2021/10/10-20:03:29] [i] ltpclo duct has ended.
+[2021/10/10-20:03:29] [i] Stopping bprecvfile.
+[2021/10/10-20:03:29] [i] Stopping bprecvfile.
+[2021/10/10-20:03:29] [i] Outduct has been stopped: 4
+[2021/10/10-20:03:29] [i] ltpclo outduct closed.
+[2021/10/10-20:03:29] [i] ltpclo duct has ended.
+[2021/10/10-20:03:29] [i] bptransit has ended.
+[2021/10/10-20:03:29] [i] Outduct has been stopped: 2
+[2021/10/10-20:03:29] [i] ltpclo outduct closed.
+[2021/10/10-20:03:29] [i] ltpclo duct has ended.
+[2021/10/10-20:03:29] [i] bpclock has ended.
+[2021/10/10-20:03:29] [i] ltpcli receiver thread has ended.
+[2021/10/10-20:03:29] [i] ltpcli duct has ended.
+[2021/10/10-20:03:29] [i] imcClock thread has ended.
+[2021/10/10-20:03:29] [i] imcfw forwarder has ended.
+[2021/10/10-20:03:30] [i] LTP meter to engine 1 is stopped.
+[2021/10/10-20:03:30] [i] LSO to engine 1 is stopped.
+[2021/10/10-20:03:30] [i] LTP meter to engine 2 is stopped.
+[2021/10/10-20:03:30] [i] LSO to engine 2 is stopped.
+[2021/10/10-20:03:30] [i] LTP meter to engine 4 is stopped.
+[2021/10/10-20:03:30] [i] ltpmeter has ended.
+[2021/10/10-20:03:30] [i] ltpmeter has ended.
+[2021/10/10-20:03:30] [i] LSO to engine 4 is stopped.
+[2021/10/10-20:03:30] [i] ltpmeter has ended.
+[2021/10/10-20:03:30] [i] udplsa receiver thread has ended.
+[2021/10/10-20:03:30] [i] udplsa receiver thread has ended.
+[2021/10/10-20:03:30] [i] udplso has ended.
+[2021/10/10-20:03:30] [i] udplsa receiver thread has ended.
+[2021/10/10-20:03:30] [i] udplso has ended.
+[2021/10/10-20:03:30] [i] ltpclock has ended.
+[2021/10/10-20:03:30] [i] udplso has ended.
+[2021/10/10-20:03:30] [i] udplsa receiver thread has ended.
+[2021/10/10-20:03:30] [i] udplsi has ended.
+[2021/10/10-20:03:30] [i] ltpdeliv has ended.
+[2021/10/10-20:03:31] [i] rfxclock has ended.
+[2021/10/10-20:05:01] [i] rfxclock is running.
+[2021/10/10-20:05:01] [i] No congestion forecast; horizon reached.
+[2021/10/10-20:05:01] [i] ionwarn finished.
+[2021/10/10-20:05:02] [i] No congestion forecast; horizon reached.
+[2021/10/10-20:05:02] [i] ionwarn finished.
+[2021/10/10-20:05:03] [i] No congestion forecast; horizon reached.
+[2021/10/10-20:05:03] [i] ionwarn finished.
+[2021/10/10-20:05:04] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-20:05:04] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-20:05:04] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 1): xmit segment loss rate 0.617186, recv segment loss rate 0.000800, max timeouts 29.
+[2021/10/10-20:05:04] [i] Total max export sessions does not exceed estimate.
+[2021/10/10-20:05:04] [i] ltpclock is running.
+[2021/10/10-20:05:04] [i] ltpmeter is running.
+[2021/10/10-20:05:04] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/10-20:05:04] [i] ltpdeliv is running.
+[2021/10/10-20:05:04] [i] ltpmeter is running.
+[2021/10/10-20:05:04] [i] udplso is running, spec=[127.0.0.1:0], rengine=1.
+[2021/10/10-20:05:04] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/10-20:05:04] [i] udplsi is running, spec=[127.0.0.1:1113].
+[2021/10/10-20:05:04] [i] ltpmeter is running.
+[2021/10/10-20:05:05] [i] This node deploys bundle protocol version 7.
+[2021/10/10-20:05:05] [i] Bundle security is enabled.
+[2021/10/10-20:05:05] [i] bpclm is running: ipn:2.0
+[2021/10/10-20:05:05] [i] bpclm is running: ipn:1.0
+[2021/10/10-20:05:05] [i] bpclm is running: ipn:4.0
+[2021/10/10-20:05:06] [i] bpclock is running.
+[2021/10/10-20:05:06] [i] imcfw is running.
+[2021/10/10-20:05:06] [i] Not configured for CP sync; cpsd stopping.
+[2021/10/10-20:05:06] [i] ipnadminep is running.
+[2021/10/10-20:05:06] [i] ltpcli is running.
+[2021/10/10-20:05:06] [i] bptransit is running.
+[2021/10/10-20:05:06] [i] ltpclo is running.
+[2021/10/10-20:05:06] [i] ipnfw is running.
+[2021/10/10-20:05:06] [i] imcadminep is running.
+[2021/10/10-20:05:06] [i] ltpclo is running.
+[2021/10/10-20:05:06] [i] ltpclo is running.
+[2021/10/10-20:05:07] [x] src from 1969/12/31-16:00:00 to 2021/10/10-20:05:07: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-20:05:07] [x] fwd from 1969/12/31-16:00:00 to 2021/10/10-20:05:07: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-20:05:07] [x] xmt from 1969/12/31-16:00:00 to 2021/10/10-20:05:07: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-20:05:07] [x] rcv from 1969/12/31-16:00:00 to 2021/10/10-20:05:07: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-20:05:07] [x] dlv from 1969/12/31-16:00:00 to 2021/10/10-20:05:07: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-20:05:07] [x] rfw from 1969/12/31-16:00:00 to 2021/10/10-20:05:07: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-20:05:07] [x] exp from 1969/12/31-16:00:00 to 2021/10/10-20:05:07: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/10-20:05:15] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-20:05:15] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-20:05:15] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-20:05:15] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 7509, rpt 6714. (1)
+[2021/10/10-20:05:15] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-20:05:15] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-20:05:15] at line 7108 of ../library/libltpP.c, Acknowledged report is 6714, lowerBound 0, upperBound 90, last report serial number 6714. (1)
+[2021/10/10-20:05:15] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-20:05:15] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-20:05:15] [i] Max report segments = 2 for red part length 91, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:05:15] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 4184 rpt 0 to node 2. (2)
+[2021/10/10-20:05:15] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:05:15] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 5413 rpt 0 to node 1. (1)
+[2021/10/10-20:05:15] [i] Max report segments = 2 for red part length 90, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:05:15] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 14588 rpt 0 to node 4. (3)
+[2021/10/10-20:05:15] at line 4894 of ../library/libltpP.c, Opened import session. (1)
+[2021/10/10-20:05:15] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-20:05:15] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-20:05:15] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 5413, rpt 2517. (1)
+[2021/10/10-20:05:15] at line 4486 of ../library/libltpP.c, Reporting all data received. (1)
+[2021/10/10-20:05:15] at line 6440 of ../library/libltpP.c, Handling report. (2)
+[2021/10/10-20:05:15] at line 6457 of ../library/libltpP.c, [i] Got RS 13195 for checkpoint 4184; 1 claims from 0 to 91. (2)
+[2021/10/10-20:05:15] at line 2423 of ../library/libltpP.c, Closed export session. (2)
+[2021/10/10-20:05:15] at line 6440 of ../library/libltpP.c, Handling report. (3)
+[2021/10/10-20:05:15] at line 6457 of ../library/libltpP.c, [i] Got RS 2238 for checkpoint 14588; 1 claims from 0 to 90. (3)
+[2021/10/10-20:05:15] at line 2423 of ../library/libltpP.c, Closed export session. (3)
+[2021/10/10-20:05:15] at line 6440 of ../library/libltpP.c, Handling report. (1)
+[2021/10/10-20:05:15] at line 6457 of ../library/libltpP.c, [i] Got RS 2517 for checkpoint 5413; 1 claims from 0 to 90. (1)
+[2021/10/10-20:05:15] at line 2423 of ../library/libltpP.c, Closed export session. (1)
+[2021/10/10-20:05:15] at line 7028 of ../library/libltpP.c, Handling report ack. (1)
+[2021/10/10-20:05:15] at line 7108 of ../library/libltpP.c, Acknowledged report is 2517, lowerBound 0, upperBound 90, last report serial number 2517. (1)
+[2021/10/10-20:05:15] at line 2866 of ../library/libltpP.c, Stopped import session. (1)
+[2021/10/10-20:05:15] at line 2966 of ../library/libltpP.c, Closed import session. (1)
+[2021/10/10-20:05:15] at line 4894 of ../library/libltpP.c, Opened import session. (3)
+[2021/10/10-20:05:15] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 90): xmit segment loss rate 0.617186, recv segment loss rate 0.069484, max timeouts 29.
+[2021/10/10-20:05:15] [i] Max report segments = 2 for red part length 90, max segment size 90, segment loss rate 0.069484.
+[2021/10/10-20:05:15] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 15545, rpt 14181. (3)
+[2021/10/10-20:05:15] at line 4486 of ../library/libltpP.c, Reporting all data received. (3)
+[2021/10/10-20:05:15] at line 7028 of ../library/libltpP.c, Handling report ack. (3)
+[2021/10/10-20:05:15] at line 7108 of ../library/libltpP.c, Acknowledged report is 14181, lowerBound 0, upperBound 90, last report serial number 14181. (3)
+[2021/10/10-20:05:15] at line 2866 of ../library/libltpP.c, Stopped import session. (3)
+[2021/10/10-20:05:15] at line 2966 of ../library/libltpP.c, Closed import session. (3)
+[2021/10/10-20:05:16] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/10-20:05:16] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 91): xmit segment loss rate 0.617186, recv segment loss rate 0.070228, max timeouts 29.
+[2021/10/10-20:05:16] [i] Max report segments = 2 for red part length 91, max segment size 91, segment loss rate 0.070228.
+[2021/10/10-20:05:16] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 13591, rpt 3439. (5)
+[2021/10/10-20:05:16] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/10-20:05:16] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/10-20:05:16] at line 7108 of ../library/libltpP.c, Acknowledged report is 3439, lowerBound 0, upperBound 91, last report serial number 3439. (5)
+[2021/10/10-20:05:16] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/10-20:05:16] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/10-20:05:18] [i] bprecvfile is running.
+[2021/10/10-20:05:18] [i] bprecvfile is running.
+[2021/10/10-20:05:22] [i] bpsendfile is running.
+[2021/10/10-20:05:22] [i] bpsendfile is sending 'file150', size 150.
+[2021/10/10-20:05:22] [i] bpsendfile sent 'file150', size 150.
+[2021/10/10-20:05:22] [i] bpsendfile has stopped.
+[2021/10/10-20:05:22] [i] Max report segments = 2 for red part length 228, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:05:22] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 7563 rpt 0 to node 2. (4)
+[2021/10/10-20:05:22] at line 6440 of ../library/libltpP.c, Handling report. (4)
+[2021/10/10-20:05:22] at line 6457 of ../library/libltpP.c, [i] Got RS 5257 for checkpoint 7563; 1 claims from 0 to 228. (4)
+[2021/10/10-20:05:22] at line 2423 of ../library/libltpP.c, Closed export session. (4)
+[2021/10/10-20:05:28] [i] bpsendfile is running.
+[2021/10/10-20:05:28] [i] bpsendfile is sending 'file100', size 100.
+[2021/10/10-20:05:28] [i] bpsendfile sent 'file100', size 100.
+[2021/10/10-20:05:28] [i] bpsendfile has stopped.
+[2021/10/10-20:05:28] [i] Max report segments = 2 for red part length 188, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:05:28] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 12928 rpt 0 to node 2. (7)
+[2021/10/10-20:05:28] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:05:28] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 14690 rpt 0 to node 1. (5)
+[2021/10/10-20:05:28] [i] Max report segments = 2 for red part length 187, max segment size 1200, segment loss rate 0.617186.
+[2021/10/10-20:05:28] at line 6269 of ../library/libltpP.c, Sending checkpoint: ckpt 10382 rpt 0 to node 4. (6)
+[2021/10/10-20:05:28] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/10-20:05:28] [i] Span to engine 1 (max BER 0.000100, max xmit segment size 1200, max recv segment size 187): xmit segment loss rate 0.617186, recv segment loss rate 0.138976, max timeouts 29.
+[2021/10/10-20:05:28] [i] Max report segments = 2 for red part length 187, max segment size 187, segment loss rate 0.138976.
+[2021/10/10-20:05:28] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 187, ckpt 14690, rpt 12857. (5)
+[2021/10/10-20:05:28] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/10-20:05:28] at line 6440 of ../library/libltpP.c, Handling report. (7)
+[2021/10/10-20:05:28] at line 6457 of ../library/libltpP.c, [i] Got RS 10362 for checkpoint 12928; 1 claims from 0 to 188. (7)
+[2021/10/10-20:05:28] at line 2423 of ../library/libltpP.c, Closed export session. (7)
+[2021/10/10-20:05:28] at line 6440 of ../library/libltpP.c, Handling report. (6)
+[2021/10/10-20:05:28] at line 6457 of ../library/libltpP.c, [i] Got RS 6683 for checkpoint 10382; 1 claims from 0 to 187. (6)
+[2021/10/10-20:05:28] at line 2423 of ../library/libltpP.c, Closed export session. (6)
+[2021/10/10-20:05:28] at line 6440 of ../library/libltpP.c, Handling report. (5)
+[2021/10/10-20:05:28] at line 6457 of ../library/libltpP.c, [i] Got RS 12857 for checkpoint 14690; 1 claims from 0 to 187. (5)
+[2021/10/10-20:05:28] at line 2423 of ../library/libltpP.c, Closed export session. (5)
+[2021/10/10-20:05:28] [i] bprecvfile is creating 'testfile1', size 100.
+[2021/10/10-20:05:28] [i] bprecvfile has created 'testfile1', size 100.
+[2021/10/10-20:05:28] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/10-20:05:28] at line 7108 of ../library/libltpP.c, Acknowledged report is 12857, lowerBound 0, upperBound 187, last report serial number 12857. (5)
+[2021/10/10-20:05:28] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/10-20:05:28] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/10-20:05:31] at line 4894 of ../library/libltpP.c, Opened import session. (9)
+[2021/10/10-20:05:31] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 287): xmit segment loss rate 0.617186, recv segment loss rate 0.205188, max timeouts 29.
+[2021/10/10-20:05:31] [i] Max report segments = 2 for red part length 287, max segment size 287, segment loss rate 0.205188.
+[2021/10/10-20:05:31] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 287, ckpt 4260, rpt 12319. (9)
+[2021/10/10-20:05:31] at line 4486 of ../library/libltpP.c, Reporting all data received. (9)
+[2021/10/10-20:05:31] at line 7028 of ../library/libltpP.c, Handling report ack. (9)
+[2021/10/10-20:05:31] [i] bprecvfile is creating 'testfile2', size 200.
+[2021/10/10-20:05:31] at line 7108 of ../library/libltpP.c, Acknowledged report is 12319, lowerBound 0, upperBound 287, last report serial number 12319. (9)
+[2021/10/10-20:05:31] at line 2866 of ../library/libltpP.c, Stopped import session. (9)
+[2021/10/10-20:05:31] at line 2966 of ../library/libltpP.c, Closed import session. (9)
+[2021/10/10-20:05:31] [i] bprecvfile has created 'testfile2', size 200.
+[2021/10/10-20:05:32] at line 4894 of ../library/libltpP.c, Opened import session. (5)
+[2021/10/10-20:05:32] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1200, max recv segment size 488): xmit segment loss rate 0.617186, recv segment loss rate 0.323271, max timeouts 29.
+[2021/10/10-20:05:32] [i] Max report segments = 2 for red part length 488, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-20:05:32] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 488, ckpt 11581, rpt 5534. (5)
+[2021/10/10-20:05:32] at line 4486 of ../library/libltpP.c, Reporting all data received. (5)
+[2021/10/10-20:05:32] [i] bprecvfile is creating 'testfile3', size 400.
+[2021/10/10-20:05:32] [i] bprecvfile has created 'testfile3', size 400.
+[2021/10/10-20:05:32] at line 7028 of ../library/libltpP.c, Handling report ack. (5)
+[2021/10/10-20:05:32] at line 7108 of ../library/libltpP.c, Acknowledged report is 5534, lowerBound 0, upperBound 488, last report serial number 5534. (5)
+[2021/10/10-20:05:32] at line 2866 of ../library/libltpP.c, Stopped import session. (5)
+[2021/10/10-20:05:32] at line 2966 of ../library/libltpP.c, Closed import session. (5)
+[2021/10/10-20:05:35] at line 4894 of ../library/libltpP.c, Opened import session. (14)
+[2021/10/10-20:05:35] [i] Max report segments = 2 for red part length 91, max segment size 287, segment loss rate 0.205188.
+[2021/10/10-20:05:35] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 91, ckpt 14633, rpt 9339. (14)
+[2021/10/10-20:05:35] at line 4486 of ../library/libltpP.c, Reporting all data received. (14)
+[2021/10/10-20:05:35] at line 7028 of ../library/libltpP.c, Handling report ack. (14)
+[2021/10/10-20:05:35] at line 7108 of ../library/libltpP.c, Acknowledged report is 9339, lowerBound 0, upperBound 91, last report serial number 9339. (14)
+[2021/10/10-20:05:35] at line 2866 of ../library/libltpP.c, Stopped import session. (14)
+[2021/10/10-20:05:35] at line 2966 of ../library/libltpP.c, Closed import session. (14)
+[2021/10/10-20:05:38] at line 4894 of ../library/libltpP.c, Opened import session. (17)
+[2021/10/10-20:05:38] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 390): xmit segment loss rate 0.617186, recv segment loss rate 0.268068, max timeouts 29.
+[2021/10/10-20:05:38] [i] Max report segments = 2 for red part length 390, max segment size 390, segment loss rate 0.268068.
+[2021/10/10-20:05:38] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 390, ckpt 6063, rpt 3773. (17)
+[2021/10/10-20:05:38] at line 4486 of ../library/libltpP.c, Reporting all data received. (17)
+[2021/10/10-20:05:38] at line 7028 of ../library/libltpP.c, Handling report ack. (17)
+[2021/10/10-20:05:38] [i] bprecvfile is creating 'testfile4', size 300.
+[2021/10/10-20:05:38] at line 7108 of ../library/libltpP.c, Acknowledged report is 3773, lowerBound 0, upperBound 390, last report serial number 3773. (17)
+[2021/10/10-20:05:38] at line 2866 of ../library/libltpP.c, Stopped import session. (17)
+[2021/10/10-20:05:38] at line 2966 of ../library/libltpP.c, Closed import session. (17)
+[2021/10/10-20:05:38] [i] bprecvfile has created 'testfile4', size 300.
+[2021/10/10-20:05:39] at line 4894 of ../library/libltpP.c, Opened import session. (10)
+[2021/10/10-20:05:39] [i] Max report segments = 2 for red part length 90, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-20:05:39] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 14230, rpt 10497. (10)
+[2021/10/10-20:05:39] at line 4486 of ../library/libltpP.c, Reporting all data received. (10)
+[2021/10/10-20:05:39] at line 7028 of ../library/libltpP.c, Handling report ack. (10)
+[2021/10/10-20:05:39] at line 7108 of ../library/libltpP.c, Acknowledged report is 10497, lowerBound 0, upperBound 90, last report serial number 10497. (10)
+[2021/10/10-20:05:39] at line 2866 of ../library/libltpP.c, Stopped import session. (10)
+[2021/10/10-20:05:39] at line 2966 of ../library/libltpP.c, Closed import session. (10)
+[2021/10/10-20:05:42] at line 4894 of ../library/libltpP.c, Opened import session. (21)
+[2021/10/10-20:05:42] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 400): xmit segment loss rate 0.617186, recv segment loss rate 0.273901, max timeouts 29.
+[2021/10/10-20:05:42] [i] Max report segments = 2 for red part length 400, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-20:05:42] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 400, ckpt 1606, rpt 3179. (21)
+[2021/10/10-20:05:42] at line 4486 of ../library/libltpP.c, Reporting all data received. (21)
+[2021/10/10-20:05:42] at line 7028 of ../library/libltpP.c, Handling report ack. (21)
+[2021/10/10-20:05:42] [i] bprecvfile is creating 'testfile5', size 310.
+[2021/10/10-20:05:42] at line 7108 of ../library/libltpP.c, Acknowledged report is 3179, lowerBound 0, upperBound 400, last report serial number 3179. (21)
+[2021/10/10-20:05:42] at line 2866 of ../library/libltpP.c, Stopped import session. (21)
+[2021/10/10-20:05:42] at line 2966 of ../library/libltpP.c, Closed import session. (21)
+[2021/10/10-20:05:42] [i] bprecvfile has created 'testfile5', size 310.
+[2021/10/10-20:05:43] at line 4894 of ../library/libltpP.c, Opened import session. (22)
+[2021/10/10-20:05:43] [i] Max report segments = 2 for red part length 90, max segment size 400, segment loss rate 0.273901.
+[2021/10/10-20:05:43] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 11307, rpt 4329. (22)
+[2021/10/10-20:05:43] at line 4486 of ../library/libltpP.c, Reporting all data received. (22)
+[2021/10/10-20:05:43] at line 7028 of ../library/libltpP.c, Handling report ack. (22)
+[2021/10/10-20:05:43] at line 7108 of ../library/libltpP.c, Acknowledged report is 4329, lowerBound 0, upperBound 90, last report serial number 4329. (22)
+[2021/10/10-20:05:43] at line 2866 of ../library/libltpP.c, Stopped import session. (22)
+[2021/10/10-20:05:43] at line 2966 of ../library/libltpP.c, Closed import session. (22)
+[2021/10/10-20:05:43] at line 4894 of ../library/libltpP.c, Opened import session. (14)
+[2021/10/10-20:05:43] [i] Max report segments = 2 for red part length 90, max segment size 488, segment loss rate 0.323271.
+[2021/10/10-20:05:43] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 90, ckpt 14392, rpt 9051. (14)
+[2021/10/10-20:05:43] at line 4486 of ../library/libltpP.c, Reporting all data received. (14)
+[2021/10/10-20:05:43] at line 7028 of ../library/libltpP.c, Handling report ack. (14)
+[2021/10/10-20:05:43] at line 7108 of ../library/libltpP.c, Acknowledged report is 9051, lowerBound 0, upperBound 90, last report serial number 9051. (14)
+[2021/10/10-20:05:43] at line 2866 of ../library/libltpP.c, Stopped import session. (14)
+[2021/10/10-20:05:43] at line 2966 of ../library/libltpP.c, Closed import session. (14)
+[2021/10/10-20:05:46] at line 4894 of ../library/libltpP.c, Opened import session. (23)
+[2021/10/10-20:05:46] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1200, max recv segment size 410): xmit segment loss rate 0.617186, recv segment loss rate 0.279688, max timeouts 29.
+[2021/10/10-20:05:46] [i] Max report segments = 2 for red part length 410, max segment size 410, segment loss rate 0.279688.
+[2021/10/10-20:05:46] at line 4438 of ../library/libltpP.c, Sending RS: 0 to 410, ckpt 8353, rpt 11464. (23)
+[2021/10/10-20:05:46] at line 4486 of ../library/libltpP.c, Reporting all data received. (23)
+[2021/10/10-20:05:46] at line 7028 of ../library/libltpP.c, Handling report ack. (23)
+[2021/10/10-20:05:46] [i] bprecvfile is creating 'testfile6', size 320.
+[2021/10/10-20:05:46] at line 7108 of ../library/libltpP.c, Acknowledged report is 11464, lowerBound 0, upperBound 410, last report serial number 11464. (23)
+[2021/10/10-20:05:46] at line 2866 of ../library/libltpP.c, Stopped import session. (23)
+[2021/10/10-20:05:46] at line 2966 of ../library/libltpP.c, Closed import session. (23)
+[2021/10/10-20:05:46] [i] bprecvfile has created 'testfile6', size 320.
+[2021/10/10-20:05:56] [i] ipnfw forwarder has ended.
+[2021/10/10-20:05:56] [i] Endpoint has been stopped.
+[2021/10/10-20:05:56] [i] Endpoint has been stopped.
+[2021/10/10-20:05:56] [i] Administrative endpoint terminated.
+[2021/10/10-20:05:56] [i] ipnadminep has ended.
+[2021/10/10-20:05:56] [i] Stopping bprecvfile.
+[2021/10/10-20:05:56] [i] Endpoint has been stopped.
+[2021/10/10-20:05:56] [i] Administrative endpoint terminated.
+[2021/10/10-20:05:56] [i] imcadminep has ended.
+[2021/10/10-20:05:56] [i] Endpoint has been stopped.
+[2021/10/10-20:05:56] [i] Plan has been stopped: ipn:1.0
+[2021/10/10-20:05:56] [i] bpclm has ended: ipn:1.0
+[2021/10/10-20:05:56] [i] Plan has been stopped: ipn:2.0
+[2021/10/10-20:05:56] [i] Outduct has been stopped: 1
+[2021/10/10-20:05:56] [i] bpclm has ended: ipn:2.0
+[2021/10/10-20:05:56] [i] ltpclo outduct closed.
+[2021/10/10-20:05:56] [i] ltpclo duct has ended.
+[2021/10/10-20:05:56] [i] Plan has been stopped: ipn:4.0
+[2021/10/10-20:05:56] [i] Stopping bprecvfile.
+[2021/10/10-20:05:56] [i] bpclm has ended: ipn:4.0
+[2021/10/10-20:05:56] [i] bptransit has ended.
+[2021/10/10-20:05:56] [i] Outduct has been stopped: 4
+[2021/10/10-20:05:56] [i] ltpclo outduct closed.
+[2021/10/10-20:05:56] [i] ltpclo duct has ended.
+[2021/10/10-20:05:56] [i] Outduct has been stopped: 2
+[2021/10/10-20:05:56] [i] ltpclo outduct closed.
+[2021/10/10-20:05:56] [i] ltpclo duct has ended.
+[2021/10/10-20:05:56] [i] bpclock has ended.
+[2021/10/10-20:05:56] [i] ltpcli receiver thread has ended.
+[2021/10/10-20:05:56] [i] ltpcli duct has ended.
+[2021/10/10-20:05:56] [i] imcClock thread has ended.
+[2021/10/10-20:05:56] [i] imcfw forwarder has ended.
+[2021/10/10-20:05:58] [i] LSO to engine 2 is stopped.
+[2021/10/10-20:05:58] [i] LTP meter to engine 1 is stopped.
+[2021/10/10-20:05:58] [i] LTP meter to engine 2 is stopped.
+[2021/10/10-20:05:58] [i] LTP meter to engine 4 is stopped.
+[2021/10/10-20:05:58] [i] LSO to engine 1 is stopped.
+[2021/10/10-20:05:58] [i] LSO to engine 4 is stopped.
+[2021/10/10-20:05:58] [i] ltpmeter has ended.
+[2021/10/10-20:05:58] [i] ltpmeter has ended.
+[2021/10/10-20:05:58] [i] ltpmeter has ended.
+[2021/10/10-20:05:58] [i] udplsa receiver thread has ended.
+[2021/10/10-20:05:58] [i] ltpclock has ended.
+[2021/10/10-20:05:58] [i] udplsa receiver thread has ended.
+[2021/10/10-20:05:58] [i] udplsi has ended.
+[2021/10/10-20:05:58] [i] udplsa receiver thread has ended.
+[2021/10/10-20:05:58] [i] udplso has ended.
+[2021/10/10-20:05:58] [i] udplsa receiver thread has ended.
+[2021/10/10-20:05:58] [i] udplso has ended.
+[2021/10/10-20:05:58] [i] udplso has ended.
+[2021/10/10-20:05:58] [i] ltpdeliv has ended.
+[2021/10/10-20:05:59] [i] rfxclock has ended.
