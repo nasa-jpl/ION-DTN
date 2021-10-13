@@ -924,8 +924,7 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 	/* Step 1.1: If the BIB profile is not found, handle event. */
 	if (prof == NULL)
 	{
-
-	        BIB_DEBUG(2, "i bibApplySenderPolRule: Could not retrieve BIB profile.", NULL);
+		BIB_DEBUG_INFO("i bibApplySenderPolRule: Could not retrieve BIB profile.", NULL);
 
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
@@ -939,7 +938,7 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 	BpSecCtxParm *scParm = (BpSecCtxParm *) psp(wm, scAddr);
 	if (scParm == NULL)
 	{
-		BIB_DEBUG(2, "i bibApplySenderPolRule: Could not populate security "
+		BIB_DEBUG_INFO("i bibApplySenderPolRule: Could not populate security "
 				"context parameters.", NULL);
 		return -1;
 	}
@@ -947,7 +946,7 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 	char *keyName = (char *)  psp(wm, scParm->addr);
 	if (keyName == NULL)
 	{
-		BIB_DEBUG(2, "i bibApplySenderPolRule: Could not retrieve "
+		BIB_DEBUG_INFO("i bibApplySenderPolRule: Could not retrieve "
 				"key name.", NULL);
 		return -1;
 	}
@@ -957,8 +956,8 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 	if ((scParm->length > 0 ) &&
 			sec_get_key(keyName, &keyBuflen, keyBuffer) == 0)
 	{
-		BIB_DEBUG(2, "i bibApplySenderPolRule: Could not retrieve "
-				    "key.", keyBuffer);
+			BIB_DEBUG_INFO("i bibApplySenderPolRule: Could not retrieve "
+					"key.", keyBuffer);
 
     		/* Handle sop_misconf_at_src event */
     		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
@@ -1030,8 +1029,7 @@ int	bpsec_sign(Bundle *bundle)
 		policyRuleHandled = 1;
 		if (bibApplySenderPolRule(bundle, polPrimaryRule, 0) < 0)
 		{
-			BIB_DEBUG(2, "i bpsec_sign: failure occurred in "
-					"bibApplySenderPolRule.", NULL);
+			BIB_DEBUG_INFO("i bpsec_sign: failure occurred in bibApplySenderPolRule.", NULL);
 			return -1;
 		}
 	}
@@ -1042,8 +1040,7 @@ int	bpsec_sign(Bundle *bundle)
 		policyRuleHandled = 1;
 		if (bibApplySenderPolRule(bundle, polPayloadRule, 1) < 0)
 		{
-			BIB_DEBUG(2, "i bpsec_sign: failure occurred in "
-					"bibApplySenderPolRule.", NULL);
+			BIB_DEBUG_INFO("i bpsec_sign: failure occurred in bibApplySenderPolRule.", NULL);
 			return -1;
 		}
 	}
@@ -1062,7 +1059,7 @@ int	bpsec_sign(Bundle *bundle)
 			policyRuleHandled = 1;
 			if (bibApplySenderPolRule(bundle, polExtRule, block.number) < 0)
 			{
-				BIB_DEBUG(2, "i bpsec_sign: failure occurred in "
+				BIB_DEBUG_INFO("i bpsec_sign: failure occurred in "
 						"bibApplySenderPolRule.", NULL);
 				return -1;
 			}
@@ -1944,8 +1941,7 @@ int	bpsec_verify(AcqWorkArea *work)
 						polRule, target->
 						targetBlockNumber) < 0)
 					{
-						BIB_DEBUG(2, "i bpsec_verify: \
-failure occurred in bibApplyReceiverPolRule.", NULL);
+						BIB_DEBUG_INFO("i bpsec_verify: failure occurred in bibApplyReceiverPolRule.", NULL);
 						return -1;
 					}
 
