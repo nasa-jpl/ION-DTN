@@ -371,6 +371,6 @@ cd ../4.ipn.ltp
 
 # Give all nodes time to shut down, then clean up.
 sleep 5
-. ~/ionsrc/ion-open-source-4.1.0/killm
+../../killm
 echo "Multicast test completed."
 exit $RETVAL
