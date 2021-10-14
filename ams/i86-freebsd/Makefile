@@ -48,6 +48,8 @@ all:		$(ALL)
 check:		$(PUBINCLS)
 		rm -f *.o
 		touch check
+		touch ./bin/
+		touch ./lib/
 
 clean:
 		rm -f *.o
