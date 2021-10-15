@@ -1,0 +1,8 @@
+at line 580 of ici/library/ion.c, No node has been initialized in this directory. (/home/diazjl1/Desktop/ion-ios-ion-4.1.0-release/tests/bpsec/new_tests/bpsec-test1-6)
+at line 966 of ici/library/ion.c, Failed checking node list parms.
+at line 1862 of bpv7/library/libbpP.c, BP can't attach to ION.
+at line 85 of bpv7/test/bpsink.c, Can't attach to BP.
+at line 580 of ici/library/ion.c, No node has been initialized in this directory. (/home/diazjl1/Desktop/ion-ios-ion-4.1.0-release/tests/bpsec/new_tests/bpsec-test1-6)
+at line 966 of ici/library/ion.c, Failed checking node list parms.
+at line 1862 of bpv7/library/libbpP.c, BP can't attach to ION.
+at line 85 of bpv7/test/bpsink.c, Can't attach to BP.

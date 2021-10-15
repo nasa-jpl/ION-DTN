@@ -1,0 +1,173 @@
+[2021/10/12-14:46:27] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:27] [i] ionwarn finished.
+[2021/10/12-14:46:27] [i] rfxclock is running.
+[2021/10/12-14:46:27] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:27] [i] ionwarn finished.
+[2021/10/12-14:46:27] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1000, max recv segment size 1): xmit segment loss rate 0.550749, recv segment loss rate 0.000800, max timeouts 24.
+[2021/10/12-14:46:27] [i] Span to engine 3 (max BER 0.000100, max xmit segment size 1000, max recv segment size 1): xmit segment loss rate 0.550749, recv segment loss rate 0.000800, max timeouts 24.
+[2021/10/12-14:46:27] [i] Total max export sessions does not exceed estimate.
+[2021/10/12-14:46:27] [i] ltpmeter is running.
+[2021/10/12-14:46:27] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/12-14:46:27] [i] udplsi is running, spec=[127.0.0.1:2113].
+[2021/10/12-14:46:27] [i] ltpmeter is running.
+[2021/10/12-14:46:27] [i] ltpdeliv is running.
+[2021/10/12-14:46:27] [i] udplso is running, spec=[127.0.0.1:0], rengine=3.
+[2021/10/12-14:46:27] [i] ltpclock is running.
+[2021/10/12-14:46:27] [i] This node deploys bundle protocol version 7.
+[2021/10/12-14:46:27] [i] Bundle security is enabled.
+[2021/10/12-14:46:27] [i] bpclm is running: ipn:3.0
+[2021/10/12-14:46:27] [i] bpclm is running: ipn:2.0
+[2021/10/12-14:46:28] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:28] [i] ionwarn finished.
+[2021/10/12-14:46:28] [i] ltpclo is running.
+[2021/10/12-14:46:28] [i] ltpclo is running.
+[2021/10/12-14:46:28] [i] bptransit is running.
+[2021/10/12-14:46:28] [i] Not configured for multicast; cpsd stopping.
+[2021/10/12-14:46:28] [i] ipnadminep is running.
+[2021/10/12-14:46:28] [i] ltpcli is running.
+[2021/10/12-14:46:28] [i] ipnfw is running.
+[2021/10/12-14:46:28] [i] bpclock is running.
+[2021/10/12-14:46:29] [x] src from 1969/12/31-19:00:00 to 2021/10/12-14:46:29: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:29] [x] fwd from 1969/12/31-19:00:00 to 2021/10/12-14:46:29: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:29] [x] xmt from 1969/12/31-19:00:00 to 2021/10/12-14:46:29: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:29] [x] rcv from 1969/12/31-19:00:00 to 2021/10/12-14:46:29: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:29] [x] dlv from 1969/12/31-19:00:00 to 2021/10/12-14:46:29: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:29] [x] rfw from 1969/12/31-19:00:00 to 2021/10/12-14:46:29: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:29] [x] exp from 1969/12/31-19:00:00 to 2021/10/12-14:46:29: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:36] + bibAttach(0xa1a0f210,0xa1a0ed40,0xa1a0ed80)
+[2021/10/12-14:46:36] + bibDefaultSign(5, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:46:36] + bibDefaultCompute(0xbc1c0, 65000, 5, 0x416f4278)
+[2021/10/12-14:46:36] i bibDefaultCompute bytesRemaining: 18
+[2021/10/12-14:46:36] i bibDefaultCompute: bundle size is 18
+[2021/10/12-14:46:36] - bibDefaultSign--> 1
+[2021/10/12-14:46:36] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:1, msec:184828867, count: 0
+[2021/10/12-14:46:36] - bibAttach --> 0
+[2021/10/12-14:46:36] + bibRelease(787ed710)
+[2021/10/12-14:46:36] - bibRelease( )
+[2021/10/12-14:46:45] + bcbAttach (0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80)
+[2021/10/12-14:46:45] + bcbDefaultEncrypt(212, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:46:45] + bcbDefaultCompute(0xa1a0f310, 65000, 212, [0x416f47e8, 20])
+[2021/10/12-14:46:45] i bcbDefaultCompute: target size is 12
+[2021/10/12-14:46:45] i bcbDefaultCompute - CipherBufLen is 12
+[2021/10/12-14:46:45] + bcbUpdatePayloadFromSdr(212,0x416f6418,0xa1a0ea04,768688,0xa1a0ea10,12,0xa1a0e9f8, 2)
+[2021/10/12-14:46:45] - bcbCiphertextToSdr--> 1
+[2021/10/12-14:46:45] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bcb-confidentiality, tgt:1, msec:184838089, count: 1
+[2021/10/12-14:46:45] - bcbAttach --> 0
+[2021/10/12-14:46:45] + bcbRelease(787ed710)
+[2021/10/12-14:46:45] - bcbRelease( )
+[2021/10/12-14:46:54] + bibAttach(0xa1a0f210,0xa1a0ed40,0xa1a0ed80)
+[2021/10/12-14:46:54] + bibDefaultSign(5, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:46:54] + bibDefaultCompute(0xbc350, 65000, 5, 0x416f47e8)
+[2021/10/12-14:46:54] i bibDefaultCompute bytesRemaining: 37
+[2021/10/12-14:46:54] i bibDefaultCompute: bundle size is 37
+[2021/10/12-14:46:54] - bibDefaultSign--> 1
+[2021/10/12-14:46:54] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:0, msec:184847336, count: 2
+[2021/10/12-14:46:54] - bibAttach --> 0
+[2021/10/12-14:46:54] + bibRelease(787ed710)
+[2021/10/12-14:46:54] - bibRelease( )
+[2021/10/12-14:47:13] + bibAttach(0xa1a0f210,0xa1a0ed40,0xa1a0ed80)
+[2021/10/12-14:47:13] + bibDefaultSign(5, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:47:13] + bibDefaultCompute(0xbc420, 65000, 5, 0x416f47e8)
+[2021/10/12-14:47:13] i bibDefaultCompute bytesRemaining: 18
+[2021/10/12-14:47:13] i bibDefaultCompute: bundle size is 18
+[2021/10/12-14:47:13] - bibDefaultSign--> 1
+[2021/10/12-14:47:13] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:4.1,svc: bib-integrity, tgt:1, msec:184865796, count: 4
+[2021/10/12-14:47:13] - bibAttach --> 0
+[2021/10/12-14:47:13] + bibRelease(787ed710)
+[2021/10/12-14:47:13] - bibRelease( )
+[2021/10/12-14:47:22] + bcbAttach (0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80)
+[2021/10/12-14:47:22] + bcbDefaultEncrypt(212, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:47:22] + bcbDefaultCompute(0xa1a0f310, 65000, 212, [0x416f4b68, 20])
+[2021/10/12-14:47:22] i bcbDefaultCompute: target size is 12
+[2021/10/12-14:47:22] i bcbDefaultCompute - CipherBufLen is 12
+[2021/10/12-14:47:22] + bcbUpdatePayloadFromSdr(212,0x416f6a48,0xa1a0ea04,772736,0xa1a0ea10,12,0xa1a0e9f8, 2)
+[2021/10/12-14:47:22] - bcbCiphertextToSdr--> 1
+[2021/10/12-14:47:22] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:4.1,svc: bcb-confidentiality, tgt:1, msec:184875119, count: 5
+[2021/10/12-14:47:22] - bcbAttach --> 0
+[2021/10/12-14:47:22] + bcbRelease(787ed710)
+[2021/10/12-14:47:22] - bcbRelease( )
+[2021/10/12-14:47:31] + bibAttach(0xa1a0f210,0xa1a0ed40,0xa1a0ed80)
+[2021/10/12-14:47:31] + bibDefaultSign(5, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:47:31] + bibDefaultCompute(0xbbc10, 65000, 5, 0x416f4b68)
+[2021/10/12-14:47:31] i bibDefaultCompute bytesRemaining: 18
+[2021/10/12-14:47:31] i bibDefaultCompute: bundle size is 18
+[2021/10/12-14:47:31] - bibDefaultSign--> 1
+[2021/10/12-14:47:31] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:1, msec:184884445, count: 6
+[2021/10/12-14:47:31] - bibAttach --> 0
+[2021/10/12-14:47:31] + bibRelease(787ed710)
+[2021/10/12-14:47:31] - bibRelease( )
+[2021/10/12-14:47:41] + bcbAttach (0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80)
+[2021/10/12-14:47:41] + bcbDefaultEncrypt(212, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:47:41] + bcbDefaultCompute(0xa1a0f310, 65000, 212, [0x416f6a28, 20])
+[2021/10/12-14:47:41] i bcbDefaultCompute: target size is 12
+[2021/10/12-14:47:41] i bcbDefaultCompute - CipherBufLen is 12
+[2021/10/12-14:47:41] + bcbUpdatePayloadFromSdr(212,0x416f6df0,0xa1a0ea04,770576,0xa1a0ea10,12,0xa1a0e9f8, 2)
+[2021/10/12-14:47:41] - bcbCiphertextToSdr--> 1
+[2021/10/12-14:47:41] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bcb-confidentiality, tgt:1, msec:184893696, count: 7
+[2021/10/12-14:47:41] - bcbAttach --> 0
+[2021/10/12-14:47:41] + bcbRelease(787ed710)
+[2021/10/12-14:47:41] - bcbRelease( )
+[2021/10/12-14:47:58] + bcbAttach (0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80)
+[2021/10/12-14:47:58] + bcbDefaultEncrypt(212, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:47:58] + bcbDefaultCompute(0xa1a0f310, 65000, 212, [0x416f6dd0, 20])
+[2021/10/12-14:47:58] i bcbDefaultCompute: target size is 13
+[2021/10/12-14:47:58] i bcbDefaultCompute - CipherBufLen is 13
+[2021/10/12-14:47:58] + bcbUpdatePayloadFromSdr(212,0x416f6f08,0xa1a0ea04,773008,0xa1a0ea10,13,0xa1a0e9f8, 2)
+[2021/10/12-14:47:58] - bcbCiphertextToSdr--> 1
+[2021/10/12-14:47:58] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bcb-confidentiality, tgt:1, msec:184910970, count: 8
+[2021/10/12-14:47:58] - bcbAttach --> 0
+[2021/10/12-14:47:58] + bcbRelease(787ed710)
+[2021/10/12-14:47:58] - bcbRelease( )
+[2021/10/12-14:48:07] + bibAttach(0xa1a0f210,0xa1a0ed40,0xa1a0ed80)
+[2021/10/12-14:48:07] + bibDefaultSign(5, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:48:07] + bibDefaultCompute(0xbcb10, 65000, 5, 0x416f6dd0)
+[2021/10/12-14:48:07] i bibDefaultCompute bytesRemaining: 21
+[2021/10/12-14:48:07] i bibDefaultCompute: bundle size is 21
+[2021/10/12-14:48:07] - bibDefaultSign--> 1
+[2021/10/12-14:48:07] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:4.1,svc: bib-integrity, tgt:1, msec:184920245, count: 9
+[2021/10/12-14:48:07] - bibAttach --> 0
+[2021/10/12-14:48:07] + bibRelease(787ed710)
+[2021/10/12-14:48:07] - bibRelease( )
+[2021/10/12-14:48:14] + bibAttach(0xa1a0f210,0xa1a0ed40,0xa1a0ed80)
+[2021/10/12-14:48:14] + bibDefaultSign(5, 0xa1a0f210, 0xa1a0ed40, 0xa1a0ed80
+[2021/10/12-14:48:14] + bibDefaultCompute(0xbb9e0, 65000, 5, 0x416f6dd0)
+[2021/10/12-14:48:14] i bibDefaultCompute bytesRemaining: 21
+[2021/10/12-14:48:14] i bibDefaultCompute: bundle size is 21
+[2021/10/12-14:48:14] - bibDefaultSign--> 1
+[2021/10/12-14:48:14] [te] sop_added_at_src - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:1, msec:184927257, count: 10
+[2021/10/12-14:48:14] - bibAttach --> 0
+[2021/10/12-14:48:14] + bibRelease(787ed710)
+[2021/10/12-14:48:14] - bibRelease( )
+[2021/10/12-14:48:19] [i] ipnfw forwarder has ended.
+[2021/10/12-14:48:19] [i] Endpoint has been stopped.
+[2021/10/12-14:48:19] [i] Administrative endpoint terminated.
+[2021/10/12-14:48:19] [i] ipnadminep has ended.
+[2021/10/12-14:48:19] [i] Plan has been stopped: ipn:2.0
+[2021/10/12-14:48:19] [i] bpclm has ended: ipn:2.0
+[2021/10/12-14:48:19] [i] Plan has been stopped: ipn:3.0
+[2021/10/12-14:48:19] [i] bpclm has ended: ipn:3.0
+[2021/10/12-14:48:19] [i] Outduct has been stopped: 2
+[2021/10/12-14:48:19] [i] ltpclo outduct closed.
+[2021/10/12-14:48:19] [i] ltpclo duct has ended.
+[2021/10/12-14:48:19] [i] Outduct has been stopped: 3
+[2021/10/12-14:48:19] [i] ltpclo outduct closed.
+[2021/10/12-14:48:19] [i] ltpclo duct has ended.
+[2021/10/12-14:48:19] [i] bptransit has ended.
+[2021/10/12-14:48:19] [i] bpclock has ended.
+[2021/10/12-14:48:19] [i] ltpcli receiver thread has ended.
+[2021/10/12-14:48:19] [i] ltpcli duct has ended.
+[2021/10/12-14:48:21] [i] ltpdeliv has ended.
+[2021/10/12-14:48:21] [i] LTP meter to engine 2 is stopped.
+[2021/10/12-14:48:21] [i] ltpmeter has ended.
+[2021/10/12-14:48:21] [i] LSO to engine 2 is stopped.
+[2021/10/12-14:48:21] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:21] [i] udplso has ended.
+[2021/10/12-14:48:21] [i] LTP meter to engine 3 is stopped.
+[2021/10/12-14:48:21] [i] ltpmeter has ended.
+[2021/10/12-14:48:21] [i] LSO to engine 3 is stopped.
+[2021/10/12-14:48:21] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:21] [i] udplso has ended.
+[2021/10/12-14:48:21] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:21] [i] udplsi has ended.
+[2021/10/12-14:48:21] [i] ltpclock has ended.
+[2021/10/12-14:48:22] [i] rfxclock has ended.

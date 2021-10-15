@@ -1,0 +1,209 @@
+[2021/10/12-14:46:30] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:30] [i] ionwarn finished.
+[2021/10/12-14:46:30] [i] rfxclock is running.
+[2021/10/12-14:46:30] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:30] [i] ionwarn finished.
+[2021/10/12-14:46:30] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1000, max recv segment size 1): xmit segment loss rate 0.550749, recv segment loss rate 0.000800, max timeouts 24.
+[2021/10/12-14:46:30] [i] Span to engine 4 (max BER 0.000100, max xmit segment size 1000, max recv segment size 1): xmit segment loss rate 0.550749, recv segment loss rate 0.000800, max timeouts 24.
+[2021/10/12-14:46:30] [i] Span to engine 5 (max BER 0.000100, max xmit segment size 1000, max recv segment size 1): xmit segment loss rate 0.550749, recv segment loss rate 0.000800, max timeouts 24.
+[2021/10/12-14:46:30] [?] Total max export sessions exceeds estimate.  Session lookup speed may be degraded: -1
+[2021/10/12-14:46:30] [i] ltpmeter is running.
+[2021/10/12-14:46:30] [i] udplso is running, spec=[127.0.0.1:0], rengine=4.
+[2021/10/12-14:46:30] [i] udplso is running, spec=[127.0.0.1:0], rengine=5.
+[2021/10/12-14:46:30] [i] udplsi is running, spec=[127.0.0.1:3113].
+[2021/10/12-14:46:30] [i] udplso is running, spec=[127.0.0.1:0], rengine=2.
+[2021/10/12-14:46:30] [i] ltpmeter is running.
+[2021/10/12-14:46:30] [i] ltpmeter is running.
+[2021/10/12-14:46:30] [i] ltpdeliv is running.
+[2021/10/12-14:46:30] [i] ltpclock is running.
+[2021/10/12-14:46:30] [i] This node deploys bundle protocol version 7.
+[2021/10/12-14:46:30] [i] Bundle security is enabled.
+[2021/10/12-14:46:30] [i] bpclm is running: ipn:2.0
+[2021/10/12-14:46:30] [i] bpclm is running: ipn:4.0
+[2021/10/12-14:46:31] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:31] [i] ionwarn finished.
+[2021/10/12-14:46:31] [i] ipnfw is running.
+[2021/10/12-14:46:31] [i] ltpcli is running.
+[2021/10/12-14:46:31] [i] ltpclo is running.
+[2021/10/12-14:46:31] [i] bptransit is running.
+[2021/10/12-14:46:31] [i] ipnadminep is running.
+[2021/10/12-14:46:31] [i] ltpclo is running.
+[2021/10/12-14:46:31] [i] bpclock is running.
+[2021/10/12-14:46:31] [i] Not configured for multicast; cpsd stopping.
+[2021/10/12-14:46:32] [x] src from 1969/12/31-19:00:00 to 2021/10/12-14:46:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:32] [x] fwd from 1969/12/31-19:00:00 to 2021/10/12-14:46:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:32] [x] xmt from 1969/12/31-19:00:00 to 2021/10/12-14:46:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:32] [x] rcv from 1969/12/31-19:00:00 to 2021/10/12-14:46:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:32] [x] dlv from 1969/12/31-19:00:00 to 2021/10/12-14:46:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:32] [x] rfw from 1969/12/31-19:00:00 to 2021/10/12-14:46:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:32] [x] exp from 1969/12/31-19:00:00 to 2021/10/12-14:46:32: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:36] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1000, max recv segment size 129): xmit segment loss rate 0.550749, recv segment loss rate 0.098074, max timeouts 24.
+[2021/10/12-14:46:36] + bibParse(df8ea1b0, dfa8cff0)
+[2021/10/12-14:46:36] i bibParse: Deserialize result 1
+[2021/10/12-14:46:36] - bibParse -> 1
+[2021/10/12-14:46:36] + bibDefaultVerify(5, 0xdfa8cff0, 0xdf8ea1b0
+[2021/10/12-14:46:36] + bibDefaultCompute(0xbbe10, 65000, 5, 0xdf8ea348)
+[2021/10/12-14:46:36] i bibDefaultCompute bytesRemaining: 18
+[2021/10/12-14:46:36] i bibDefaultCompute: bundle size is 18
+[2021/10/12-14:46:36] - bibDefaultVerify--> 1
+[2021/10/12-14:46:36] i bibApplyReceiverPolRule: Verify result was 1
+[2021/10/12-14:46:36] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:1, msec:184828867, count: 0
+[2021/10/12-14:46:36] + bibClear(df8ea1b0)
+[2021/10/12-14:46:36] - bibClear
+[2021/10/12-14:46:45] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1000, max recv segment size 176): xmit segment loss rate 0.550749, recv segment loss rate 0.131363, max timeouts 24.
+[2021/10/12-14:46:45] + bcbAcquire(0xdf8ea430, 0xdfa8cff0)
+[2021/10/12-14:46:45] i bcbAcquire: Deserialize result 1
+[2021/10/12-14:46:45] - bcbAcquire -> 1
+[2021/10/12-14:46:45] + bcbDefaultDecrypt(212, 0xdfa8cff0, 0xdf8ea430)
+[2021/10/12-14:46:45] + bcbDefaultCompute(0xdfa8d100, 65000, 212, [0xdf8ea658, 20])
+[2021/10/12-14:46:45] i bcbDefaultCompute: target size is 12
+[2021/10/12-14:46:45] i bcbDefaultCompute - CipherBufLen is 12
+[2021/10/12-14:46:45] - bcbUpdatePayloadInPlace--> 0
+[2021/10/12-14:46:45] i bcbApplyReceiverPolRule: Decrypt result was 1
+[2021/10/12-14:46:45] i bcbApplyReceiverPolRule: Decryption of BCB target block successful.
+[2021/10/12-14:46:45] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bcb-confidentiality, tgt:1, msec:184838089, count: 1
+[2021/10/12-14:46:45] + bcbClear(df8ea430)
+[2021/10/12-14:46:45] - bcbClear
+[2021/10/12-14:46:54] + bibParse(df8ea1b0, dfa8cff0)
+[2021/10/12-14:46:54] i bibParse: Deserialize result 1
+[2021/10/12-14:46:54] - bibParse -> 1
+[2021/10/12-14:46:54] + bibDefaultVerify(5, 0xdfa8cff0, 0xdf8ea1b0
+[2021/10/12-14:46:54] + bibDefaultCompute(0xbbba0, 65000, 5, 0xdf8e8b68)
+[2021/10/12-14:46:54] i bibDefaultCompute bytesRemaining: 37
+[2021/10/12-14:46:54] i bibDefaultCompute: bundle size is 37
+[2021/10/12-14:46:54] - bibDefaultVerify--> 1
+[2021/10/12-14:46:54] i bibApplyReceiverPolRule: Verify result was 1
+[2021/10/12-14:46:54] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:0, msec:184847336, count: 2
+[2021/10/12-14:46:54] + bibClear(df8ea1b0)
+[2021/10/12-14:46:54] - bibClear
+[2021/10/12-14:47:13] + bibParse(df8ea1b0, dfa8cff0)
+[2021/10/12-14:47:13] i bibParse: Deserialize result 1
+[2021/10/12-14:47:13] - bibParse -> 1
+[2021/10/12-14:47:13] + bibDefaultVerify(5, 0xdfa8cff0, 0xdf8ea1b0
+[2021/10/12-14:47:13] + bibDefaultCompute(0xbbb70, 65000, 5, 0xdf8ea578)
+[2021/10/12-14:47:13] i bibDefaultCompute bytesRemaining: 18
+[2021/10/12-14:47:13] i bibDefaultCompute: bundle size is 18
+[2021/10/12-14:47:13] - bibDefaultVerify--> 1
+[2021/10/12-14:47:13] i bibApplyReceiverPolRule: Verify result was 1
+[2021/10/12-14:47:13] [te] sop_verified - bsrc:ipn:2.1, bdest:ipn:4.1,svc: bib-integrity, tgt:1, msec:184865796, count: 4
+[2021/10/12-14:47:13] + bibRecord(df8e58f0, df8ea1b0)
+[2021/10/12-14:47:13] - bibRecord
+[2021/10/12-14:47:13] + bibClear(df8ea1b0)
+[2021/10/12-14:47:13] - bibClear
+[2021/10/12-14:47:14] + bibRelease(df8e5710)
+[2021/10/12-14:47:14] - bibRelease( )
+[2021/10/12-14:47:22] + bcbAcquire(0xdf8ea430, 0xdfa8cff0)
+[2021/10/12-14:47:22] i bcbAcquire: Deserialize result 1
+[2021/10/12-14:47:22] - bcbAcquire -> 1
+[2021/10/12-14:47:22] + bcbDefaultDecrypt(212, 0xdfa8cff0, 0xdf8ea430)
+[2021/10/12-14:47:22] + bcbDefaultCompute(0xdfa8d100, 65000, 212, [0xdf8ead28, 20])
+[2021/10/12-14:47:22] i bcbDefaultCompute: target size is 12
+[2021/10/12-14:47:22] i bcbDefaultCompute - CipherBufLen is 12
+[2021/10/12-14:47:22] - bcbUpdatePayloadInPlace--> 0
+[2021/10/12-14:47:22] i bcbApplyReceiverPolRule: Decrypt result was 1
+[2021/10/12-14:47:22] i bcbApplyReceiverPolRule: Decryption of BCB target block successful.
+[2021/10/12-14:47:22] + bcbRecord(df8e58f0, df8ea430)
+[2021/10/12-14:47:22] - bcbRecord
+[2021/10/12-14:47:22] + bcbClear(df8ea430)
+[2021/10/12-14:47:22] - bcbClear
+[2021/10/12-14:47:23] + bcbRelease(df8e5710)
+[2021/10/12-14:47:23] - bcbRelease( )
+[2021/10/12-14:47:31] + bibParse(df8ea1b0, dfa8cff0)
+[2021/10/12-14:47:31] i bibParse: Deserialize result 1
+[2021/10/12-14:47:31] - bibParse -> 1
+[2021/10/12-14:47:31] + bibDefaultVerify(5, 0xdfa8cff0, 0xdf8ea1b0
+[2021/10/12-14:47:31] + bibDefaultCompute(0xbbf50, 65000, 5, 0xdf8ea368)
+[2021/10/12-14:47:31] i bibDefaultCompute bytesRemaining: 18
+[2021/10/12-14:47:31] i bibDefaultCompute: bundle size is 18
+[2021/10/12-14:47:31] - bibDefaultVerify--> 1
+[2021/10/12-14:47:31] i bibApplyReceiverPolRule: Verify result was 1
+[2021/10/12-14:47:31] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:1, msec:184884445, count: 6
+[2021/10/12-14:47:31] + bibClear(df8ea1b0)
+[2021/10/12-14:47:31] - bibClear
+[2021/10/12-14:47:41] + bcbAcquire(0xdf8ea430, 0xdfa8cff0)
+[2021/10/12-14:47:41] i bcbAcquire: Deserialize result 1
+[2021/10/12-14:47:41] - bcbAcquire -> 1
+[2021/10/12-14:47:41] + bcbDefaultDecrypt(212, 0xdfa8cff0, 0xdf8ea430)
+[2021/10/12-14:47:41] + bcbDefaultCompute(0xdfa8d100, 65000, 212, [0xdf8eb220, 20])
+[2021/10/12-14:47:41] i bcbDefaultCompute: target size is 12
+[2021/10/12-14:47:41] i bcbDefaultCompute - CipherBufLen is 12
+[2021/10/12-14:47:41] - bcbUpdatePayloadInPlace--> 0
+[2021/10/12-14:47:41] i bcbApplyReceiverPolRule: Decrypt result was 1
+[2021/10/12-14:47:41] i bcbApplyReceiverPolRule: Decryption of BCB target block successful.
+[2021/10/12-14:47:41] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bcb-confidentiality, tgt:1, msec:184893696, count: 7
+[2021/10/12-14:47:41] + bcbClear(df8ea430)
+[2021/10/12-14:47:41] - bcbClear
+[2021/10/12-14:47:58] [i] Span to engine 2 (max BER 0.000100, max xmit segment size 1000, max recv segment size 177): xmit segment loss rate 0.550749, recv segment loss rate 0.132058, max timeouts 24.
+[2021/10/12-14:47:58] + bcbAcquire(0xdf8ea430, 0xdfa8cff0)
+[2021/10/12-14:47:58] i bcbAcquire: Deserialize result 1
+[2021/10/12-14:47:58] - bcbAcquire -> 1
+[2021/10/12-14:47:58] + bcbDefaultDecrypt(212, 0xdfa8cff0, 0xdf8ea430)
+[2021/10/12-14:47:58] + bcbDefaultCompute(0xdfa8d100, 65000, 212, [0xdf8eb380, 20])
+[2021/10/12-14:47:58] i bcbDefaultCompute: target size is 13
+[2021/10/12-14:47:58] i bcbDefaultCompute - CipherBufLen is 13
+[2021/10/12-14:47:58] - bcbUpdatePayloadInPlace--> 0
+[2021/10/12-14:47:58] i bcbApplyReceiverPolRule: Decrypt result was 1
+[2021/10/12-14:47:58] i bcbApplyReceiverPolRule: Decryption of BCB target block successful.
+[2021/10/12-14:47:58] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bcb-confidentiality, tgt:1, msec:184910970, count: 8
+[2021/10/12-14:47:58] + bcbClear(df8ea430)
+[2021/10/12-14:47:58] - bcbClear
+[2021/10/12-14:48:07] + bibParse(df8ea1b0, dfa8cff0)
+[2021/10/12-14:48:07] i bibParse: Deserialize result 1
+[2021/10/12-14:48:07] - bibParse -> 1
+[2021/10/12-14:48:07] + bibRecord(df8e58f0, df8ea1b0)
+[2021/10/12-14:48:07] - bibRecord
+[2021/10/12-14:48:07] + bibClear(df8ea1b0)
+[2021/10/12-14:48:07] - bibClear
+[2021/10/12-14:48:08] + bibRelease(df8e5710)
+[2021/10/12-14:48:08] - bibRelease( )
+[2021/10/12-14:48:14] + bibParse(df8ea1b0, dfa8cff0)
+[2021/10/12-14:48:14] i bibParse: Deserialize result 1
+[2021/10/12-14:48:14] - bibParse -> 1
+[2021/10/12-14:48:14] + bibDefaultVerify(5, 0xdfa8cff0, 0xdf8ea1b0
+[2021/10/12-14:48:14] + bibDefaultCompute(0xbb6c0, 65000, 5, 0xdf8ea658)
+[2021/10/12-14:48:14] i bibDefaultCompute bytesRemaining: 21
+[2021/10/12-14:48:14] i bibDefaultCompute: bundle size is 21
+[2021/10/12-14:48:14] - bibDefaultVerify--> 1
+[2021/10/12-14:48:14] i bibApplyReceiverPolRule: Verify result was 1
+[2021/10/12-14:48:14] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:3.1,svc: bib-integrity, tgt:1, msec:184927257, count: 10
+[2021/10/12-14:48:14] + bibClear(df8ea1b0)
+[2021/10/12-14:48:14] - bibClear
+[2021/10/12-14:48:19] [i] ipnfw forwarder has ended.
+[2021/10/12-14:48:19] [i] Endpoint has been stopped.
+[2021/10/12-14:48:19] [i] Administrative endpoint terminated.
+[2021/10/12-14:48:19] [i] ipnadminep has ended.
+[2021/10/12-14:48:19] [i] Endpoint has been stopped.
+[2021/10/12-14:48:19] [i] Plan has been stopped: ipn:2.0
+[2021/10/12-14:48:19] [i] bpclm has ended: ipn:2.0
+[2021/10/12-14:48:19] [i] Plan has been stopped: ipn:4.0
+[2021/10/12-14:48:19] [i] bpclm has ended: ipn:4.0
+[2021/10/12-14:48:19] [i] Outduct has been stopped: 2
+[2021/10/12-14:48:19] [i] ltpclo outduct closed.
+[2021/10/12-14:48:19] [i] ltpclo duct has ended.
+[2021/10/12-14:48:19] [i] Outduct has been stopped: 4
+[2021/10/12-14:48:19] [i] ltpclo outduct closed.
+[2021/10/12-14:48:19] [i] ltpclo duct has ended.
+[2021/10/12-14:48:19] [i] bptransit has ended.
+[2021/10/12-14:48:19] [i] bpclock has ended.
+[2021/10/12-14:48:19] [i] ltpcli receiver thread has ended.
+[2021/10/12-14:48:19] [i] ltpcli duct has ended.
+[2021/10/12-14:48:21] [i] ltpdeliv has ended.
+[2021/10/12-14:48:21] [i] LTP meter to engine 2 is stopped.
+[2021/10/12-14:48:21] [i] ltpmeter has ended.
+[2021/10/12-14:48:21] [i] LSO to engine 2 is stopped.
+[2021/10/12-14:48:21] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:21] [i] udplso has ended.
+[2021/10/12-14:48:21] [i] LTP meter to engine 4 is stopped.
+[2021/10/12-14:48:21] [i] ltpmeter has ended.
+[2021/10/12-14:48:21] [i] LSO to engine 4 is stopped.
+[2021/10/12-14:48:21] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:21] [i] udplso has ended.
+[2021/10/12-14:48:21] [i] LTP meter to engine 5 is stopped.
+[2021/10/12-14:48:21] [i] ltpmeter has ended.
+[2021/10/12-14:48:21] [i] LSO to engine 5 is stopped.
+[2021/10/12-14:48:21] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:21] [i] udplso has ended.
+[2021/10/12-14:48:21] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:21] [i] udplsi has ended.
+[2021/10/12-14:48:21] [i] ltpclock has ended.
+[2021/10/12-14:48:22] [i] rfxclock has ended.
