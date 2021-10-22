@@ -37,9 +37,9 @@ B<peer>) node, and there MUST be a BIBE outduct attached to that plan.
 In order to compel bundles bound for some destination node to be forwarded
 via the BIBE peer node rather than over some other route computed by CGR,
 you have to override CGR routing for that bundle.  The way to do this is
-to (a) tag the bundle with flow label X (in ancillary data) and (b) use
+to (a) tag the bundle with data label X (in ancillary data) and (b) use
 ipnadmin to establish at the sending node a I<routing override> that
-coerces all bundles with flow label X to be sent directly to the peer node.
+coerces all bundles with data label X to be sent directly to the peer node.
 
 If the peer node happens to be a true BP neighbor as well - that is,
 there is also a non-BIBE outduct attached to the egress plan for
@@ -49,7 +49,7 @@ need to be forwarded using the BIBE outduct rather than the non-BIBE
 outduct.  The way to do this is to use ipnadmin to establish at the
 sending node a I<class-of-service override> that locally and temporarily
 OR's the BP_BIBE_REQUESTED flag (32) to the quality-of-service flags
-of any bundle tagged with flow label X.
+of any bundle tagged with data label X.
 
 =item B<Quality of Service>
 
@@ -57,7 +57,7 @@ If you want custody transfer to be invoked for each BIBE transmission of a
 bundle from the sending node to the peer node, you must additionally
 use ipnadmin to establish at the sending node a I<class-of-service override>
 that locally and temporarily OR's the BP_CT_REQUESTED flag (64) to the
-quality-of-service flags of any bundle tagged with flow label X.
+quality-of-service flags of any bundle tagged with data label X.
 
 If you need to establish a class-of-service override to set the
 BP_BIBE_REQUESTED flag (as described above) as well, then use the
