@@ -1,0 +1,94 @@
+[2021/10/12-14:46:28] [i] rfxclock is running.
+[2021/10/12-14:46:28] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:28] [i] ionwarn finished.
+[2021/10/12-14:46:28] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:28] [i] ionwarn finished.
+[2021/10/12-14:46:28] [i] Span to engine 3 (max BER 0.000100, max xmit segment size 1000, max recv segment size 1): xmit segment loss rate 0.550749, recv segment loss rate 0.000800, max timeouts 24.
+[2021/10/12-14:46:28] [i] Total max export sessions does not exceed estimate.
+[2021/10/12-14:46:28] [i] ltpmeter is running.
+[2021/10/12-14:46:28] [i] udplsi is running, spec=[127.0.0.1:4113].
+[2021/10/12-14:46:28] [i] udplso is running, spec=[127.0.0.1:0], rengine=3.
+[2021/10/12-14:46:28] [i] ltpdeliv is running.
+[2021/10/12-14:46:28] [i] ltpclock is running.
+[2021/10/12-14:46:28] [i] This node deploys bundle protocol version 7.
+[2021/10/12-14:46:28] [i] Bundle security is enabled.
+[2021/10/12-14:46:28] [i] bpclm is running: ipn:3.0
+[2021/10/12-14:46:29] [i] No congestion forecast; horizon reached.
+[2021/10/12-14:46:29] [i] ionwarn finished.
+[2021/10/12-14:46:30] [i] ltpcli is running.
+[2021/10/12-14:46:30] [i] ipnfw is running.
+[2021/10/12-14:46:30] [i] bptransit is running.
+[2021/10/12-14:46:30] [i] ltpclo is running.
+[2021/10/12-14:46:30] [i] ipnadminep is running.
+[2021/10/12-14:46:30] [i] Not configured for multicast; cpsd stopping.
+[2021/10/12-14:46:30] [i] bpclock is running.
+[2021/10/12-14:46:31] [x] src from 1969/12/31-19:00:00 to 2021/10/12-14:46:31: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:31] [x] fwd from 1969/12/31-19:00:00 to 2021/10/12-14:46:31: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:31] [x] xmt from 1969/12/31-19:00:00 to 2021/10/12-14:46:31: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:31] [x] rcv from 1969/12/31-19:00:00 to 2021/10/12-14:46:31: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:31] [x] dlv from 1969/12/31-19:00:00 to 2021/10/12-14:46:31: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:31] [x] rfw from 1969/12/31-19:00:00 to 2021/10/12-14:46:31: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:46:31] [x] exp from 1969/12/31-19:00:00 to 2021/10/12-14:46:31: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2021/10/12-14:47:14] [i] Span to engine 3 (max BER 0.000100, max xmit segment size 1000, max recv segment size 131): xmit segment loss rate 0.550749, recv segment loss rate 0.099516, max timeouts 24.
+[2021/10/12-14:47:14] + bibParse(331ecb88, 333b0a60)
+[2021/10/12-14:47:14] i bibParse: Deserialize result 1
+[2021/10/12-14:47:14] - bibParse -> 1
+[2021/10/12-14:47:14] + bibDefaultVerify(5, 0x333b0a60, 0x331ecb88
+[2021/10/12-14:47:14] + bibDefaultCompute(0xbe0a0, 65000, 5, 0x331ecd00)
+[2021/10/12-14:47:14] i bibDefaultCompute bytesRemaining: 18
+[2021/10/12-14:47:14] i bibDefaultCompute: bundle size is 18
+[2021/10/12-14:47:14] - bibDefaultVerify--> 1
+[2021/10/12-14:47:14] i bibApplyReceiverPolRule: Verify result was 1
+[2021/10/12-14:47:14] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:4.1,svc: bib-integrity, tgt:1, msec:184865796, count: 4
+[2021/10/12-14:47:14] + bibClear(331ecb88)
+[2021/10/12-14:47:14] - bibClear
+[2021/10/12-14:47:23] [i] Span to engine 3 (max BER 0.000100, max xmit segment size 1000, max recv segment size 178): xmit segment loss rate 0.550749, recv segment loss rate 0.132752, max timeouts 24.
+[2021/10/12-14:47:23] + bcbAcquire(0x331ecde8, 0x333b0a60)
+[2021/10/12-14:47:23] i bcbAcquire: Deserialize result 1
+[2021/10/12-14:47:23] - bcbAcquire -> 1
+[2021/10/12-14:47:23] + bcbDefaultDecrypt(212, 0x333b0a60, 0x331ecde8)
+[2021/10/12-14:47:23] + bcbDefaultCompute(0x333b0b70, 65000, 212, [0x331ed010, 20])
+[2021/10/12-14:47:23] i bcbDefaultCompute: target size is 12
+[2021/10/12-14:47:23] i bcbDefaultCompute - CipherBufLen is 12
+[2021/10/12-14:47:23] - bcbUpdatePayloadInPlace--> 0
+[2021/10/12-14:47:23] i bcbApplyReceiverPolRule: Decrypt result was 1
+[2021/10/12-14:47:23] i bcbApplyReceiverPolRule: Decryption of BCB target block successful.
+[2021/10/12-14:47:23] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:4.1,svc: bcb-confidentiality, tgt:1, msec:184875119, count: 5
+[2021/10/12-14:47:23] + bcbClear(331ecde8)
+[2021/10/12-14:47:23] - bcbClear
+[2021/10/12-14:48:08] + bibParse(331ecb88, 333b0a60)
+[2021/10/12-14:48:08] i bibParse: Deserialize result 1
+[2021/10/12-14:48:08] - bibParse -> 1
+[2021/10/12-14:48:08] + bibDefaultVerify(5, 0x333b0a60, 0x331ecb88
+[2021/10/12-14:48:08] + bibDefaultCompute(0xbde00, 65000, 5, 0x331eb038)
+[2021/10/12-14:48:08] i bibDefaultCompute bytesRemaining: 21
+[2021/10/12-14:48:08] i bibDefaultCompute: bundle size is 21
+[2021/10/12-14:48:08] - bibDefaultVerify--> 1
+[2021/10/12-14:48:08] i bibApplyReceiverPolRule: Verify result was 1
+[2021/10/12-14:48:08] [te] sop_processed - bsrc:ipn:2.1, bdest:ipn:4.1,svc: bib-integrity, tgt:1, msec:184920245, count: 9
+[2021/10/12-14:48:08] + bibClear(331ecb88)
+[2021/10/12-14:48:08] - bibClear
+[2021/10/12-14:48:19] [i] ipnfw forwarder has ended.
+[2021/10/12-14:48:19] [i] Endpoint has been stopped.
+[2021/10/12-14:48:19] [i] Administrative endpoint terminated.
+[2021/10/12-14:48:19] [i] ipnadminep has ended.
+[2021/10/12-14:48:19] [i] Endpoint has been stopped.
+[2021/10/12-14:48:19] [i] Plan has been stopped: ipn:3.0
+[2021/10/12-14:48:19] [i] bpclm has ended: ipn:3.0
+[2021/10/12-14:48:19] [i] Outduct has been stopped: 3
+[2021/10/12-14:48:19] [i] ltpclo outduct closed.
+[2021/10/12-14:48:19] [i] ltpclo duct has ended.
+[2021/10/12-14:48:19] [i] bptransit has ended.
+[2021/10/12-14:48:19] [i] bpclock has ended.
+[2021/10/12-14:48:19] [i] ltpcli receiver thread has ended.
+[2021/10/12-14:48:19] [i] ltpcli duct has ended.
+[2021/10/12-14:48:20] [i] ltpdeliv has ended.
+[2021/10/12-14:48:20] [i] LTP meter to engine 3 is stopped.
+[2021/10/12-14:48:20] [i] ltpmeter has ended.
+[2021/10/12-14:48:20] [i] LSO to engine 3 is stopped.
+[2021/10/12-14:48:20] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:20] [i] udplso has ended.
+[2021/10/12-14:48:20] [i] udplsa receiver thread has ended.
+[2021/10/12-14:48:20] [i] udplsi has ended.
+[2021/10/12-14:48:20] [i] ltpclock has ended.
+[2021/10/12-14:48:21] [i] rfxclock has ended.

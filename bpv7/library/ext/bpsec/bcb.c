@@ -1654,6 +1654,10 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			/* Handle sop_misconf_at_src event */
 			bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				bcbBlk, bcbAsb, target.targetBlockNumber);
+			BCB_TEST_POINT("sop_misconf_at_src",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				target.targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 			scratchExtensionBlock(bcbBlk);
 			BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 			return result;
@@ -1663,6 +1667,11 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 			/* Handle sop_added_at_src event */
 			bsl_handle_sender_sop_event(bundle, sop_added_at_src,
 					bcbBlk, bcbAsb, target.targetBlockNumber);
+			BCB_TEST_POINT("sop_added_at_src",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				target.targetBlockNumber, bundle->id.creationTime.msec,
+				bundle->id.creationTime.count);
 		}
 	}
 
@@ -1685,6 +1694,10 @@ bcbBlk->dataLength = %d", bcbBlk->dataLength);
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				bcbBlk, bcbAsb, target.targetBlockNumber);
+		BCB_TEST_POINT("sop_misconf_at_src",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target.targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		scratchExtensionBlock(bcbBlk);
 		BCB_DEBUG_PROC("- bcbAttach --> %d", result);
 		return result;
@@ -1788,6 +1801,10 @@ int bcbApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				NULL, NULL, tgtNum);
+		BCB_TEST_POINT("sop_misconf_at_src",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -1803,6 +1820,10 @@ int bcbApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				NULL, NULL, tgtNum);
+		BCB_TEST_POINT("sop_misconf_at_src",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -1829,6 +1850,10 @@ int bcbApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf_at_src event */
 		bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 				&bcbBlk, &asb, tgtNum);
+		BCB_TEST_POINT("sop_misconf_at_src",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 	else
@@ -1876,8 +1901,12 @@ int	bpsec_encrypt(Bundle *bundle)
 		policyRuleHandled = 1;
 		if (bcbApplySenderPolRule(bundle, polPayloadRule, 1) < 0)
 		{
-			BCB_DEBUG(2, "i bpsec_encrypt: failure occurred in "
+			BCB_DEBUG_INFO("i bpsec_encrypt: failure occurred in "
 				"bcbApplySenderPolRule.", NULL);
+			BCB_TEST_POINT("sop_misconf_at_src",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		}
 	}
 
@@ -1894,8 +1923,7 @@ int	bpsec_encrypt(Bundle *bundle)
 			policyRuleHandled = 1;
 			if (bcbApplySenderPolRule(bundle, polExtRule, block.number) < 0)
 			{
-				BCB_DEBUG(2, "i bpsec_encrypt: failure occurred in "
-					"bcbApplySenderPolRule.", NULL);
+				BCB_DEBUG_INFO("i bpsec_encrypt: failure occurred in bcbApplySenderPolRule.", NULL);
 			}
 			polExtRule = NULL;
 		}
@@ -1988,6 +2016,10 @@ int	bpsec_encrypt(Bundle *bundle)
 					/* Handle sop_misconf_at_src event */
 					bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 							&bcbBlk, &asb, 1);
+					BCB_TEST_POINT("sop_misconf_at_src",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						PayloadBlk, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 					return -1;
 				}
 
@@ -2013,6 +2045,10 @@ int	bpsec_encrypt(Bundle *bundle)
 					/* Handle sop_misconf_at_src event */
 					bsl_handle_sender_sop_event(bundle, sop_misconf_at_src,
 							&bcbBlk, &asb, block.number);
+					BCB_TEST_POINT("sop_misconf_at_src",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						block.number, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 					return -1;
 				}
 			}
@@ -2271,6 +2307,10 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		/* Handle sop_missing event */
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			sop_missing_at_acceptor, bcbElt, targetElt, tgtNum);
+		BCB_TEST_POINT("sop_missing_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -2280,7 +2320,7 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 
 	if(tgtNum == PrimaryBlk)
 	{
-		BCB_DEBUG(2, "i bcbApplyReceiverPolRule: Rule invalid. "
+		BCB_DEBUG_INFO("i bcbApplyReceiverPolRule: Rule invalid. "
 				"BCB on Primary Block is not permitted.", NULL);
 		return -1;
 	}
@@ -2319,6 +2359,10 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		/* Handle sop_missing event */
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			sop_missing_at_acceptor, bcbElt, targetElt, tgtNum);
+		BCB_TEST_POINT("sop_missing_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -2332,6 +2376,10 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf event */
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 				sop_misconf_at_acceptor, bcbElt, targetElt, tgtNum);
+		BCB_TEST_POINT("sop_misconf_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -2351,8 +2399,13 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf event */
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			sop_misconf_at_acceptor, bcbElt, targetElt, tgtNum);
+		BCB_TEST_POINT("sop_misconf_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
+
 
 	/* Must decrypt target block */
 #if 0
@@ -2377,6 +2430,10 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		/* Handle sop_misconf event */
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			sop_misconf_at_acceptor, bcbElt, targetElt, tgtNum);
+		BCB_TEST_POINT("sop_misconf_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			tgtNum, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		return -1;
 	}
 
@@ -2398,6 +2455,10 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			 sop_corrupt_at_acceptor, bcbElt, targetElt,
 			 target->targetBlockNumber);
+		BCB_TEST_POINT("sop_corrupt_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		MRELEASE(fromEid);
 		return -1;
 
@@ -2408,6 +2469,10 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			 sop_corrupt_at_acceptor, bcbElt, targetElt,
 			 target->targetBlockNumber);
+		BCB_TEST_POINT("sop_corrupt_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		MRELEASE(fromEid);
 		return -1;
 
@@ -2417,11 +2482,15 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 			 sop_misconf_at_acceptor, bcbElt, targetElt,
 			 target->targetBlockNumber);
+		BCB_TEST_POINT("sop_misconf_at_acceptor",
+			bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+			bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+			target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		MRELEASE(fromEid);
 		return -1;
 
 	case 1: /* Success */
-		BCB_DEBUG(2, "i bcbApplyReceiverPolRule: Decryption of BCB "
+		BCB_DEBUG_INFO("i bcbApplyReceiverPolRule: Decryption of BCB "
 				"target block successful.", NULL);
 		break;
 
@@ -2454,10 +2523,16 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 		if (bpsec_destinationIsLocal(&(wk->bundle)))
 		{
 			ADD_BCB_RX_PASS(fromEid, 1, 0);
+
 			/* Handle sop_processed event */
 			bsl_handle_receiver_sop_event(wk, BPRF_ACC_ROLE,
 				 sop_processed, bcbElt, targetElt,
 				 target->targetBlockNumber);
+			BCB_TEST_POINT("sop_processed",
+				bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+				bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+				target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
+
 			discardTarget(targetElt, bcbElt);
 		}
 		else
@@ -2467,7 +2542,7 @@ int bcbApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 
 		/* If target block is an extension block and its length
 		 * has changed. */
-		if (extTgtBlk->length != oldLength)
+		if ((extTgtBlk != NULL) && (extTgtBlk->length != oldLength))
 		{
 			bundle->extensionsLength -= oldLength;
 			bundle->extensionsLength += extTgtBlk->length;
@@ -2531,8 +2606,7 @@ int	bpsec_decrypt(AcqWorkArea *work)
 					if (bcbApplyReceiverPolRule(work, polRule,
 							target->targetBlockNumber) < 0)
 					{
-						BCB_DEBUG(2, "i bpsec_decrypt: failure occurred in "
-								"bcbApplyReceiverPolRule.", NULL);
+						BCB_DEBUG_INFO("i bpsec_decrypt: failure occurred in bcbApplyReceiverPolRule.", NULL);
 						return -1;
 					}
 					polRule = NULL;
@@ -2640,12 +2714,13 @@ int	bpsec_decrypt(AcqWorkArea *work)
 
 					/*	Handle sop_misconf_at_verifier
 					 *	event			*/
-
-					bsl_handle_receiver_sop_event(work,
-						BPRF_VER_ROLE,
-						 sop_misconf_at_verifier,
-						 bcbElt, targetElt,
-						 target->targetBlockNumber);
+					bsl_handle_receiver_sop_event(work, BPRF_VER_ROLE,
+							sop_misconf_at_verifier, bcbElt, targetElt,
+							target->targetBlockNumber);
+					BCB_TEST_POINT("sop_misconf_at_verifier",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 					return -1;
 				}
 #if 0
@@ -2682,6 +2757,10 @@ int	bpsec_decrypt(AcqWorkArea *work)
 					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 						 sop_corrupt_at_acceptor, bcbElt, targetElt,
 						 target->targetBlockNumber);
+					BCB_TEST_POINT("sop_corrupt_at_acceptor",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 
 					/*	Intentional fall-through.	*/
 				case -1:
@@ -2690,6 +2769,10 @@ int	bpsec_decrypt(AcqWorkArea *work)
 					bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 						 sop_misconf_at_acceptor, bcbElt, targetElt,
 						 target->targetBlockNumber);
+					BCB_TEST_POINT("sop_misconf_at_acceptor",
+						bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+						bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+						target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 					continue;
 
 				default:
@@ -2708,13 +2791,17 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				{
 					if (bpsec_destinationIsLocal(&(work->bundle)))
 					{
-						BCB_DEBUG(2, "BCB target decrypted.",
+						BCB_DEBUG_INFO("i bpsec_decrypt: BCB target decrypted.",
 								NULL);
 						ADD_BCB_RX_PASS(fromEid, 1, 0);
 						/* Handle sop_processed event */
 						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 							 sop_processed, bcbElt, targetElt,
 							 target->targetBlockNumber);
+						BCB_TEST_POINT("sop_processed",
+							bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+							bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+							target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 						discardTarget(targetElt, bcbElt);
 					}
 					else
@@ -2793,12 +2880,16 @@ int	bpsec_decrypt(AcqWorkArea *work)
 				{
 					if (bpsec_destinationIsLocal(&(work->bundle)))
 					{
-						BCB_DEBUG(2, "BIB decrypted.", NULL);
+						BCB_DEBUG_INFO("i bpsec_decrypt: BIB decrypted.", NULL);
 						ADD_BCB_RX_PASS(fromEid, 1, 0);
 						/* Handle sop_processed event */
 						bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE,
 							 sop_processed, bcbElt, targetElt,
 							 target->targetBlockNumber);
+						BCB_TEST_POINT("sop_processed",
+							bundle->id.source.ssp.ipn.nodeNbr, bundle->id.source.ssp.ipn.serviceNbr,
+							bundle->destination.ssp.ipn.nodeNbr, bundle->destination.ssp.ipn.serviceNbr,
+							target->targetBlockNumber, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 						discardTarget(targetElt, bcbElt);
 					}
 					else

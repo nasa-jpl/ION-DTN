@@ -81,7 +81,7 @@
 #define BCB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BCB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BCB_DEBUG_LVL			 BCB_DEBUG_LVL_PROC
+#define BCB_DEBUG_LVL            BCB_DEBUG_LVL_PROC
 
 #define GMSG_BUFLEN			256
 #if (BCB_DEBUGGING == 1)
@@ -146,6 +146,32 @@
 
 #endif
 
+/**
+ * \def BCB_TEST_LOGGING
+ * Constructs a string message documenting the occurrence of a security
+ * operation event and prints it to the ion.log file.
+ *
+ * BCB TEST LOGGING statements contain the following:
+ * - [te] test event indicator
+ * - security operation event identifier
+ * - bsrc: bundle source
+ * - bdest: bundle destination
+ * - svc: security service (bcb-confidentiality)
+ * - tgt: target block number
+ * - msec and count: bundle identifiers
+ */
+
+#ifndef BCB_TEST_LOGGING
+#define BCB_TEST_LOGGING 1  /** Whether to enable (1) or disable (0) BCB
+ 	 	 	 	 	 	 	  * test-level logging statements         */
+#endif
+#if (BCB_TEST_LOGGING == 1)
+
+#define BCB_TEST_POINT(event, ...) \
+{_isprintf(gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
+svc: bcb-confidentiality, tgt:%u, msec:%u, count: %u", event, __VA_ARGS__); \
+writeMemo(gMsg);}
+#endif
 
 /*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *

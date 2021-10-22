@@ -139,9 +139,35 @@
 
    #define BIB_DEBUG_ERR(format,...) \
            BIB_DEBUG(BIB_DEBUG_LVL_ERR,format, __VA_ARGS__)
-
 #endif
 
+/**
+ * \def BIB_TEST_LOGGING
+ * Constructs a string message documenting the occurrence of a security
+ * operation event and prints it to the ion.log file.
+ *
+ * BIB TEST LOGGING statements contain the following:
+ * - [te] test event indicator
+ * - security operation event identifier
+ * - bsrc: bundle source
+ * - bdest: bundle destination
+ * - svc: security service (bib-integrity)
+ * - tgt: target block number
+ * - msec and count: bundle identifiers
+ */
+
+#ifndef BIB_TEST_LOGGING
+#define BIB_TEST_LOGGING 1  /** Whether to enable (1) or disable (0) BIB
+ 	 	 	 	 	 	 	  * test-level logging statements         */
+
+#endif
+#if (BIB_TEST_LOGGING == 1)
+
+#define BIB_TEST_POINT(event, ...) \
+{_isprintf(gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
+svc: bib-integrity, tgt:%u, msec:%u, count: %u", event, __VA_ARGS__); \
+writeMemo(gMsg);}
+#endif
 
 /************************************************************************
  *				FUNCTION DEFINITIONS			*

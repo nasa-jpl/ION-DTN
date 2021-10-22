@@ -933,7 +933,7 @@ PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, vo
 		{
 			parm->addr = 0;
 		}
-		else if((parm->addr = psm_zalloc(partition, length)) <= 0)
+		else if((parm->addr = psm_zalloc(partition, length+1)) <= 0)
 		{
 			psm_free(partition, result);
 			result = 0;
@@ -941,6 +941,7 @@ PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, vo
 		else
 		{
 			void *valPtr = psp(partition, parm->addr);
+			memset(valPtr, 0, length+1);
 			memcpy(valPtr, value, length);
 		}
 	}
