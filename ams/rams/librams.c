@@ -1746,14 +1746,8 @@ domainContinuum, domainUnit, domainRole);
 					return 0;
 				}
 
-				if (HandlePetitionCancellation(fromNode,
-						gWay, subjectNbr,
-						domainContinuum, domainUnit,
-						domainRole, fromPlayback) < 0)
-				{
-					ErrMsg("Can't handle imputed cancel");
-					return -1;
-				}
+				//Sky removes call to HandlePetitionCancellation(...) here to correct petition assert/cancel flip-flop on ramsgate restart:
+				//this required ramsgate to be restarted twice to re-enable cross-network AMS messaging
 			}
 
 			/*	Now proceed with the assertion.		*/
