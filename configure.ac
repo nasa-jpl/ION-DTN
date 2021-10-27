@@ -88,6 +88,9 @@ case $host_os in
 		if test $host_cpu = "x86_64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit Darwin specific platform code."
+		elif test $host_cpu = "arm" ; then
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
+			echo "Build 64-bit ARM Darwin specific platform code."
 		else
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2 -m32 "
 			echo "Build 32-bit Darwin specific platform code."
