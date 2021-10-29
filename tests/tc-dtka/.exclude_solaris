@@ -1,0 +1,1 @@
+This test is very dependant on timing so it will need a new set of configuration files to pass consistently on Solaris since it is slower.

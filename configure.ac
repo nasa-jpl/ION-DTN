@@ -568,7 +568,8 @@ else
 fi
 AM_CONDITIONAL([ENABLE_AUTODOC], [ test "$buildautodoc" ])
 
-
+# Add user defined CFLAGS
+CFLAGS="$CFLAGS $CUSTOM_CFLAGS"
 
 # Checks for header files.
 AC_HEADER_DIRENT
