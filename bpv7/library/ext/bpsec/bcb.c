@@ -724,8 +724,8 @@ static int	bcbDefaultCompute(Object *dataObj, uint32_t chunkSize,
 	Object		cipherBuffer = 0;
 
 	BCB_DEBUG_INFO("+ bcbDefaultCompute(0x%x, %d, %d, [0x%x, %d])",
-			       (unsigned long) dataObj, chunkSize, suite,
-				   (unsigned long) key.value, key.length);
+			       (uvast) dataObj, chunkSize, suite,
+				   (uvast) key.value, key.length);
 
 	/* Step 0 - Sanity Check. */
 	CHKERR(key.value);
@@ -954,8 +954,8 @@ int	bcbAcquire(AcqExtBlock *blk, AcqWorkArea *wk)
 {
 	int	result;
 
-	BCB_DEBUG_PROC("+ bcbAcquire(0x%x, 0x%x)", (unsigned long) blk,
-			(unsigned long) wk);
+	BCB_DEBUG_PROC("+ bcbAcquire(0x%x, 0x%x)", (uvast) blk,
+			(uvast) wk);
 	CHKERR(blk);
 	CHKERR(wk);
 
@@ -987,8 +987,8 @@ int	bcbRecord(ExtensionBlock *new, AcqExtBlock *old)
 {
 	int	result;
 
-	BCB_DEBUG_PROC("+ bcbRecord(%x, %x)", (unsigned long) new,
-			(unsigned long) old);
+	BCB_DEBUG_PROC("+ bcbRecord(%x, %x)", (uvast) new,
+			(uvast) old);
 
 	result = bpsec_recordAsb(new, old);
 	new->tag = 0;
@@ -1022,7 +1022,7 @@ void	bcbClear(AcqExtBlock *blk)
 {
 	BpsecInboundBlock	*asb;
 
-	BCB_DEBUG_PROC("+ bcbClear(%x)", (unsigned long) blk);
+	BCB_DEBUG_PROC("+ bcbClear(%x)", (uvast) blk);
 
 	CHKVOID(blk);
 	if (blk->object)
@@ -1088,7 +1088,7 @@ int	bcbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk)
 
 void    bcbRelease(ExtensionBlock *blk)
 {
-	BCB_DEBUG_PROC("+ bcbRelease(%x)", (unsigned long) blk);
+	BCB_DEBUG_PROC("+ bcbRelease(%x)", (uvast) blk);
 
 	CHKVOID(blk);
 	bpsec_releaseOutboundAsb(getIonsdr(), blk->object);
@@ -1377,8 +1377,8 @@ int	bcbDefaultEncrypt(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 	sci_inbound_parms	parms;
 
 	BCB_DEBUG_INFO("+ bcbDefaultEncrypt(%d, 0x%x, 0x%x, 0x%x", suite,
-			(unsigned long) bundle, (unsigned long) blk,
-			(unsigned long) asb);
+			(uvast) bundle, (uvast) blk,
+			(uvast) asb);
 
 	/*	Sanity Checks.						*/
 
@@ -1579,8 +1579,8 @@ static int	bcbAttach(Bundle *bundle, ExtensionBlock *bcbBlk,
 	uvast			    length = 0;
 
 	BCB_DEBUG_PROC("+ bcbAttach (0x%x, 0x%x, 0x%x)",
-			(unsigned long) bundle, (unsigned long) bcbBlk,
-			(unsigned long) bcbAsb);
+			(uvast) bundle, (uvast) bcbBlk,
+			(uvast) bcbAsb);
 
 	/* Step 0 - Sanity checks. */
 	CHKERR(bundle);
@@ -2149,7 +2149,7 @@ int	bcbDefaultDecrypt(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 	sci_inbound_parms	parms;
 
 	BCB_DEBUG_INFO("+ bcbDefaultDecrypt(%d, 0x%x, 0x%x)", suite,
-			(unsigned long) wk, (unsigned long) blk);
+			(uvast) wk, (uvast) blk);
 
 	/* Step 0 - Sanity Checks. */
 	CHKERR(wk && asb && target);

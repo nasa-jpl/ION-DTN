@@ -844,7 +844,7 @@ int radix_prettyprint(PsmPartition partition, PsmAddress radixAddr, char *buffer
 		}
 
 		/* Step 3.4: Write node to cursor, noting written length. */
-		offset += snprintf(cursor, delta, "%*s[%s](%lu->%lu) [%lu]\n", curNodePtr->depth, "", curNodeKeyPtr, curNodePtr->parent, curNodeAddr, curNodePtr->user_data);
+		offset += snprintf(cursor, delta, "%*s[%s]("ADDR_FIELDSPEC_INT"->"ADDR_FIELDSPEC_INT") ["ADDR_FIELDSPEC_INT"]\n", curNodePtr->depth, "", curNodeKeyPtr, curNodePtr->parent, curNodeAddr, curNodePtr->user_data);
 
 		/* Step 3.5: Get the next node in the pre-order traversal. */
 		childAddr = radixP_get_child(partition, curNodePtr, 0);
@@ -1795,5 +1795,3 @@ int radixP_split_insert_node(PsmPartition partition, RadixTree *radixPtr, PsmAdd
 
 	return 1;
 }
-
-
