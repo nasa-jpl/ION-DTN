@@ -3,6 +3,10 @@
 # June 14, 2013
 # Process this file with autoconf to produce a configure script.
 
+
+
+
+
 AC_PREREQ(2.69)
 AC_INIT(ion, open source 3.7.4/4.1.0, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
@@ -19,6 +23,41 @@ AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 
+
+## -----checking wsl type------------------------------------------------------------------- ##
+virtual_device_name=`uname -r`;
+SUB="Microsoft";
+SUB2="wsl2";
+SUB3="WSL2";
+     case $virtual_device_name in
+
+     *"$SUB2"*)
+    SUB=NULL;
+	
+    ;;
+    esac
+	 case $virtual_device_name in
+
+     *"$SUB3"*)
+    SUB=NULL;
+	
+    ;;
+    esac
+	
+	# check uname -r contains wsl1 or not
+    case $virtual_device_name in
+
+     *"$SUB"*)
+    echo -n "You can not install ION-DTN on WSL1 but you can install WSL2 and run ION-DTN on it."
+	echo
+	exit 0;
+    ;;
+    esac
+	
+## -----checking wsl type------------------------------------------------------------------- ##
+
+
+
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -28,6 +67,7 @@ AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 LT_INIT
+
 
 
 # Check for library functions
@@ -48,6 +88,9 @@ case $host_os in
 		if test $host_cpu = "x86_64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit Darwin specific platform code."
+		elif test $host_cpu = "arm" ; then
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
+			echo "Build 64-bit ARM Darwin specific platform code."
 		else
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=2 -m32 "
 			echo "Build 32-bit Darwin specific platform code."
