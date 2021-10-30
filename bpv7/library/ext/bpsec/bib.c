@@ -113,7 +113,7 @@ int	bibDefaultCompute(Object dataObj, uint32_t chunkSize, uint32_t suite,
 
 	BIB_DEBUG_INFO("+ bibDefaultCompute(0x%x, %d, %d, 0x%x)",
 		       (unsigned long) dataObj, chunkSize, suite,
-		       (uvast) context);
+		       (uaddr) context);
 
 	CHKERR(context);
 
@@ -228,8 +228,8 @@ int	bibRecord(ExtensionBlock *new, AcqExtBlock *old)
 {
 	int	result;
 
-	BIB_DEBUG_PROC("+ bibRecord(%x, %x)", (uvast) new,
-			(uvast) old);
+	BIB_DEBUG_PROC("+ bibRecord(%x, %x)", (uaddr) new,
+			(uaddr) old);
 
 	result = bpsec_recordAsb(new, old);
 	new->tag = 0;
@@ -257,7 +257,7 @@ void	bibClear(AcqExtBlock *blk)
 {
 	BpsecInboundBlock	*asb;
 
-	BIB_DEBUG_PROC("+ bibClear(%x)", (uvast) blk);
+	BIB_DEBUG_PROC("+ bibClear(%x)", (uaddr) blk);
 
 	CHKVOID(blk);
 	if (blk->object)
@@ -329,8 +329,8 @@ int	bibParse(AcqExtBlock *blk, AcqWorkArea *work)
 {
 	int	result;
 
-	BIB_DEBUG_PROC("+ bibParse(%x, %x)", (uvast) blk,
-			(uvast) work);
+	BIB_DEBUG_PROC("+ bibParse(%x, %x)", (uaddr) blk,
+			(uaddr) work);
 
 	CHKERR(blk);
 	CHKERR(work);
@@ -365,7 +365,7 @@ int	bibParse(AcqExtBlock *blk, AcqWorkArea *work)
 
 void    bibRelease(ExtensionBlock *blk)
 {
-	BIB_DEBUG_PROC("+ bibRelease(%x)", (uvast) blk);
+	BIB_DEBUG_PROC("+ bibRelease(%x)", (uaddr) blk);
 
 	CHKVOID(blk);
 	bpsec_releaseOutboundAsb(getIonsdr(), blk->object);
@@ -578,8 +578,8 @@ int	bibDefaultSign(uint32_t suite, Bundle *bundle, ExtensionBlock *blk,
 	uint8_t			*context = NULL;
 
 	BIB_DEBUG_INFO("+ bibDefaultSign(%d, 0x%x, 0x%x, 0x%x", suite,
-			(uvast) bundle, (uvast) blk,
-			(uvast) asb);
+			(uaddr) bundle, (uaddr) blk,
+			(uaddr) asb);
 
 	/*	Sanity Checks.						*/
 
@@ -1357,7 +1357,7 @@ int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk, AcqExtBlock *blk,
 	int8_t		retval = 0;
 
 	BIB_DEBUG_INFO("+ bibDefaultVerify(%d, 0x%x, 0x%x",
-			suite, (uvast) wk, (uvast) blk);
+			suite, (uaddr) wk, (uaddr) blk);
 
 	/* Step 0 - Sanity Checks. */
 	CHKERR(wk && asb && targetZco && target);
