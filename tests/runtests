@@ -50,6 +50,11 @@ function excludeBPv_test () {
     TESTS_EXCLUDED_BPv="$TESTS_EXCLUDED_BPv $1"
 }
 
+function excludeObsolete_test () {
+    NUM_EXCLUDED_OBSOLETE=$((NUM_EXCLUDED_OBSOLETE + 1))
+    TESTS_EXCLUDED_OBSOLETE="$TESTS_EXCLUDED_OBSOLETE $1"
+}
+
 
 # runs one test, updates the test status counters
 function run_a_test () {
@@ -63,6 +68,14 @@ function run_a_test () {
     echo "***"
     echo "*** ${TEST}"
     echo "***"
+
+    # check if test is excluded because it is obsolete
+    if [ -f "$TEST/.exclude_obsolete" ]; then
+    	echo "Test excluded because it is obsolete, skipping $TEST"
+	cat $TEST/.exclude_obsolete
+    	excludeObsolete_test $TEST
+    	return
+    fi
 
     # check if test is excluded on all platforms
     if [ -f "$TEST/.exclude_all" ]; then
@@ -157,7 +170,7 @@ function run_a_test () {
     # Allow some extra time for ION to fully shutdown on Windows and Solaris
     if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] 
     then	
-	sleep 10
+	sleep 15
     fi
 
     popd > /dev/null
@@ -209,6 +222,7 @@ NUM_FAILED=0
 NUM_SKIPPED=0
 NUM_EXCLUDED_OS=0
 NUM_EXCLUDED_BPv=0
+NUM_EXCLUDED_OBSOLETE=0
 NUM_UNKNOWN=0
 
 # these track the names of the tests passed/failed/skipped
@@ -218,6 +232,7 @@ TESTS_FAILED=''
 TESTS_SKIPPED=''
 TESTS_EXCLUDED_OS=''
 TESTS_EXCLUDED_BPv=''
+TESTS_EXCLUDED_OBSOLETE=''
 
 # Determine OS version for exclusion of tests
 OS_VERSION=''
@@ -302,6 +317,12 @@ done
 echo
 echo "excluded by BP version: $NUM_EXCLUDED_BPv"
 for TEST in $TESTS_EXCLUDED_BPv; do
+    echo "    $TEST"
+done
+
+echo
+echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
+for TEST in $TESTS_EXCLUDED_OBSOLETE; do
     echo "    $TEST"
 done
 
