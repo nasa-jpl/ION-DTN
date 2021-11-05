@@ -38,9 +38,9 @@ cat > /tmp/${PLISTNAME} <<EOF
 		<string>-c</string>
 		<string>\
 /usr/sbin/sysctl kern.sysv.shmseg=32;  \
-/usr/sbin/sysctl kern.sysv.shmall=32768; \
+/usr/sbin/sysctl kern.sysv.shmall=65536; \
 /usr/sbin/sysctl net.inet.udp.maxdgram=32000; \
-/usr/sbin/sysctl kern.sysv.shmmax=83886080; \
+/usr/sbin/sysctl kern.sysv.shmmax=134217728; \
 </string>
 	</array>
 	<key>RunAtLoad</key>
