@@ -916,7 +916,6 @@ int bibApplySenderPolRule(Bundle *bundle, BpSecPolRule *polRule, unsigned
 	/* Step 0: Sanity Checks */
 	CHKERR(bundle);
 	CHKERR(polRule != NULL);
-	CHKERR(tgtNum >= 0);
 
 
 	Sdr			        sdr = getIonsdr();
@@ -1445,8 +1444,6 @@ int bibApplyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule, unsigned
 	/* Step 0: Sanity Checks */
 	CHKERR(wk);
 	CHKERR(polRule != NULL);
-	CHKERR(tgtNum >= 0);
-
 
 	Sdr			        sdr = getIonsdr();
 	PsmPartition        wm = getIonwm();

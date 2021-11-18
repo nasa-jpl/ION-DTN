@@ -1507,8 +1507,7 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
  *       same filter score.
  *
  * @retval  >0 - The expected size of the rule
- * @retval   0 - The rule could not be sized
- * @retval  -1 - Error.
+ * @retval   0 - Error: The rule could not be sized.
  *****************************************************************************/
 
 int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
@@ -1516,10 +1515,10 @@ int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
 	BpSecPolRule *rulePtr = NULL;
 	int size = 0;
 
-	CHKERR(wm);
-	CHKERR(ruleAddr);
+	CHKZERO(wm);
+	CHKZERO(ruleAddr);
 	rulePtr = (BpSecPolRule*) psp(wm, ruleAddr);
-	CHKERR(rulePtr);
+	CHKZERO(rulePtr);
 
 	/* Step 1: Calculate the storage size of the RULE. */
 	size = 3; /* Size of user_id, and flags */
