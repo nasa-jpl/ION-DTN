@@ -1,6 +1,6 @@
-= Release Notes for ION 4.1.0 =
+= Release Notes for ION 4.1.1 =
 
-May 31, 2021
+November 19, 2021
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,53 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Beginning with the ION 4.1.1 release, we will no longer be distributing 
+two separate .tar.gz files (one that builds with BP version 6 by default and 
+one that builds with BP version 7 by default). Instead, we will distribute a
+single ION .tar.gz file that builds with BP version 7 by default. If you wish 
+to use ION with BP version 6, you can use use the --enable-bpv6 configure 
+option. If you are building ION from source on Windows for BP version 6, you
+will need to run the command "make bpv6".
+
+After ION version 4, all BP version 6 related changes will be bug fixes
+unless explicitly identified as otherwise.
+
+Branches included in this release:
+
+misc-4.1.1-fixes
+  * Improve the killm script 
+  * Update pilot delay and add rate control for bpdriver
+  * Change SourceCustodyRequired to NoCustodyRequested for AMS
+  * Add a version of the req-003-multicast test for BP version 7
+  * Fix a bug in librams.c that caused AMS petition assert/cancel
+    flip-flop
+  * Various updates for Makefiles (autoconf and manual)
+
+apl-4.1.1-security-patches
+  * Added BPSec Python test suite
+  * Added accomodation of NULL terminator in security policy parameters
+  * Added checks for NULL pointer references when a BCB targets an 
+    extension block
+  * Added TEST_POINT macros to BIB and BCB code to log test events
+
+last-pre-git-tweaks
+  * Add a warning about potential forwarding loops
+  * Fix a typo in biberc documentation
+
+autoconf-updates-MacOS_M1-WSL
+  * Fix line ending encoding error in install_macos_sysctl.sh script
+  * Add support for building ION on MacOS using the new M1 processor
+    * At this time, ION works correctly on the M! processor with MacOS
+      version 11.6 (Big Sur) but does not run properly on version
+      12.0.1 (Monterey)
+  * Add support to configure ION to build on WSL2 but not WSL1
+  * ION has also now been tested on RedHat Linux
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.0 =

@@ -8,7 +8,7 @@
 
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 3.7.4/4.1.0, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 4.1.1, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -21,6 +21,16 @@ AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
+
+
+# Moving developmental Makefiles out of the way if the user builds with autoconf
+echo "Moving developmental Makefiles to Makefile.dev"
+MAKEFILES=`find . -name 'Makefile'`
+for f in $MAKEFILES; do 
+	if [[ "$f" != "./Makefile" ]]; then
+		mv $f "$f.dev"
+	fi
+done
 
 
 
@@ -203,7 +213,7 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 AC_ARG_ENABLE(
     bpv6,
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
-    [VER=$(cat bpv6version.txt)
+    [VER="4.1.1"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
      BUILD_BPv6=true
@@ -215,7 +225,7 @@ AC_ARG_ENABLE(
 		no)  ENABLE_BPACS=no;;
      esac
      echo "Building ION with BP version 6"],
-    [VER=$(cat bpv7version.txt)
+    [VER="4.1.1"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
      BUILD_BPv7=true
