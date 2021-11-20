@@ -3548,9 +3548,9 @@ endif #ENABLE_AUTODOC
 #
 ##########################
 
-DOC_VERSION_NUMBER := $(shell cat $(srcdir)/$(BP_DIR)version.txt)
-DOC_VERSION_MAJOR := $(shell cat $(srcdir)/$(BP_DIR)version.txt | sed 's/\..*//')
-DOC_VERSION_MINOR := $(shell cat $(srcdir)/$(BP_DIR)version.txt | sed 's/[0-9]*\.//')
+DOC_VERSION_NUMBER := "4.1.1"
+DOC_VERSION_MAJOR := "4"
+DOC_VERSION_MINOR := "1.1"
 DOC_DATE := $(shell date '+%Y-%m-%d')
 
 distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
