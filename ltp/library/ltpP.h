@@ -93,7 +93,7 @@ extern "C" {
 #endif
 
 #ifndef DEFAULT_MAX_BER
-#define	DEFAULT_MAX_BER		(.0001)
+#define	DEFAULT_MAX_BER		(.000001)
 #endif
 
 #ifndef MAX_CLAIMS_PER_RS
