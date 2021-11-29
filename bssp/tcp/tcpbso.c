@@ -157,21 +157,21 @@ engine number>");
 
 	/*	All command-line arguments are now validated.		*/
 
-	hostName = flowName;
-	parseSocketSpec(flowName, &portNbr, &hostNbr);
+	hostName = flowName;	
+	if (parseSocketSpec(flowName, &portNbr, &hostNbr) != 0)
+	{
+	    putErrmsg("TCPBSO can't get IP/port for host.", hostName);
+		return -1;
+	}
+
 	if (portNbr == 0)
 	{
 		portNbr = bsspTcpDefaultPortNbr;
 	}
 
 	portNbr = htons(portNbr);
-	if (hostNbr == 0)
-	{
-		putErrmsg("Can't get IP address for host.", hostName);
-		return -1;
-	}
-
 	hostNbr = htonl(hostNbr);
+
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;
 	inetName->sin_family = AF_INET;
