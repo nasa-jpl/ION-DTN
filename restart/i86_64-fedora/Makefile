@@ -2,7 +2,7 @@ UTILS = ../utils
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../$(BP)/include -I../../cfdp/include -I../../ltp/library -I../../$(BP)/library -I../../cfdp/library
+CC = gcc $(OPT) $(ADD_FLAGS) -I../../ici/include -I../../ici/sdr -I../../ltp/include -I../../$(BP)/include -I../../cfdp/include -I../../ltp/library -I../../$(BP)/library -I../../cfdp/library
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
