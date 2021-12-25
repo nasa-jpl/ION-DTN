@@ -2661,6 +2661,10 @@ char		buf[256];
 	{
 		putErrmsg("Bssp XmitDataBlock size exceeds maximum block size.",
 		 NULL);
+		
+		/* free block from SDR before return -1 	*/
+		sdr_free(sdr,blockObj);
+
 		return -1;
 	}
 
