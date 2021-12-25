@@ -42,6 +42,8 @@ int	connectToBSI(struct sockaddr *sn, int *sock)
 		return -1;
 	}
 
+	writeMemo("[i] tcpbso connection established.");
+
 	return 0;
 }
 
