@@ -1,5 +1,5 @@
 /*
-	irrd.c:	region membership ("rolodex") management daemon for ION.
+	irfd.c:	inter-regional forwarding (IRF) daemon for ION.
 
 	Author: Scott Burleigh, IPNGROUP
 
@@ -31,23 +31,23 @@ static void	shutDown(int signum)
 	uaddr	stop = 0;
 
 	isignal(SIGTERM, SIG_IGN);
-	oK(_running(&stop));	/*	Terminates irrd.		*/
+	oK(_running(&stop));	/*	Terminates irfd.		*/
 }
 
-static IrrCandidate	*findCandidate(IonNode *node, uvast candidateNodeNbr,
+static IrfCandidate	*findCandidate(IonNode *node, uvast candidateNodeNbr,
 				PsmAddress *candidateElt)
 {
 	PsmPartition	ionwm = getIonwm();
 	Sdr		sdr;
 	int		result;
 	PsmAddress	elt;
-	IrrCandidate	*candidate;
+	IrfCandidate	*candidate;
 
 	if (node->viaPassageways == 0)
 	{
 		sdr = getIonsdr();
 		CHKNULL(sdr_begin_xn(sdr));
-		result = irr_initialize(node);
+		result = irf_initialize(node);
 		sdr_exit_xn(sdr);
 		if (result < 0)
 		{
@@ -58,7 +58,7 @@ static IrrCandidate	*findCandidate(IonNode *node, uvast candidateNodeNbr,
 	for (elt = sm_list_first(ionwm, node->viaPassageways); elt;
 			elt = sm_list_next(ionwm, elt))
 	{
-		candidate = (IrrCandidate *) psp(ionwm,
+		candidate = (IrfCandidate *) psp(ionwm,
 				sm_list_data(ionwm, elt));
 		if (candidate->nodeNbr < candidateNodeNbr)
 		{
@@ -79,7 +79,7 @@ static IrrCandidate	*findCandidate(IonNode *node, uvast candidateNodeNbr,
 
 /*	*	Notifications handler thread functions	*	*	*/
 
-static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
+static int	handleIrfMessage(IonDB *iondb, BpDelivery *dlv)
 {
 	Sdr		sdr = getIonsdr();
 	IonVdb		*ionvdb = getIonVdb();
@@ -98,7 +98,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	Lyst		passageways;
 	IonNode		*terminusNode;
 	PsmAddress	elt;
-	IrrCandidate	*candidate;
+	IrfCandidate	*candidate;
 	PsmAddress	nodeElt;
 	MetaEid		metaEid;
 	VScheme		*vscheme;
@@ -113,7 +113,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	if (buffer == NULL)
 	{
 		oK(sdr_end_xn(sdr));
-		writeMemoNote("[?] IRR message is too large.", itoa(buflen));
+		writeMemoNote("[?] IRF message is too large.", itoa(buflen));
 		return 0;
 	}
 
@@ -123,11 +123,11 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	oK(sdr_end_xn(sdr));
 	if (bytesToParse < 0)
 	{
-		putErrmsg("Can't receive IRR message.", NULL);
+		putErrmsg("Can't receive IRF message.", NULL);
 		return -1;
 	}
 
-	/*	Parse IRR message.					*/
+	/*	Parse IRF message.					*/
 
 	cursor = buffer;
 	unparsedBytes = bytesToParse;
@@ -137,13 +137,13 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	arrayLength = 0;
 	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IRR message array.");
+		writeMemo("[?] Can't decode IRF message array.");
 		return 0;
 	}
 
 	if (arrayLength != 4)
 	{
-		writeMemoNote("[?] Bad IRR message array length",
+		writeMemoNote("[?] Bad IRF message array length",
 				itoa(arrayLength));
 		return 0;
 	}
@@ -153,7 +153,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 			&unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IRR message 'from' node nbr.");
+		writeMemo("[?] Can't decode IRF message 'from' node nbr.");
 		return 0;
 	}
 
@@ -164,7 +164,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 			&unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IRR message 'to' node nbr.");
+		writeMemo("[?] Can't decode IRF message 'to' node nbr.");
 		return 0;
 	}
 
@@ -174,7 +174,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 
 	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IRR message isReachable flag.");
+		writeMemo("[?] Can't decode IRF message isReachable flag.");
 		return 0;
 	}
 
@@ -185,7 +185,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	arrayLength = 0;
 	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
 	{
-		writeMemo("[?] Can't decode IRR message array.");
+		writeMemo("[?] Can't decode IRF message array.");
 		return 0;
 	}
 
@@ -205,7 +205,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
 				&unparsedBytes) < 1)
 		{
-			writeMemo("[?] Can't decode IRR message passageway.");
+			writeMemo("[?] Can't decode IRF message passageway.");
 			lyst_destroy(passageways);
 			return 0;
 		}
@@ -220,12 +220,12 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 		passagewaysCount--;
 	}
 
-	/*	IRR message has been fully parsed.  Now act on it.	*/
+	/*	IRF message has been fully parsed.  Now act on it.	*/
 
 	terminusNode = findNode(ionvdb, toNodeNbr, &nodeElt);
 	if (terminusNode == NULL)
 	{
-		writeMemoNote("[?] Can't apply IRR message.", itoa(toNodeNbr));
+		writeMemoNote("[?] Can't apply IRF message.", itoa(toNodeNbr));
 		lyst_destroy(passageways);
 		return 0;
 	}
@@ -234,7 +234,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 			&vschemeElt) == 0
 	|| metaEid.elementNbr == 0)
 	{
-		writeMemoNote("[?] Can't handle message source EID in IRR.",
+		writeMemoNote("[?] Can't handle message source EID in IRF.",
 				dlv->bundleSourceEid);
 		lyst_destroy(passageways);
 		return 0;
@@ -265,11 +265,11 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	if (pwyElt)
 	{
 		lyst_delete(pwyElt);
-		result = irr_send_msg(fromNodeNbr, toNodeNbr, isReachable,
+		result = irf_send_msg(fromNodeNbr, toNodeNbr, isReachable,
 				passageways);
 		if (result < 0)
 		{
-			putErrmsg("Can't propagate IRR message.", NULL);
+			putErrmsg("Can't propagate IRF message.", NULL);
 		}
 	}
 	else
@@ -281,7 +281,7 @@ static int	handleIrrMessage(IonDB *iondb, BpDelivery *dlv)
 	return result;
 }
 
-static void	*handleIrrMessages(void *parm)
+static void	*handleIrfMessages(void *parm)
 {
 	uaddr		stop = 0;
 	Object		iondbObj;
@@ -296,7 +296,7 @@ static void	*handleIrrMessages(void *parm)
 	{
 		if (bp_receive(sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("IRR message reception failed.", NULL);
+			putErrmsg("IRF message reception failed.", NULL);
 			_running(&stop);
 			continue;
 		}
@@ -318,7 +318,7 @@ static void	*handleIrrMessages(void *parm)
 
 		/*	Process the notification.			*/
 
-		if (handleIrrMessage(&iondb, &dlv) < 0)
+		if (handleIrfMessage(&iondb, &dlv) < 0)
 		{
 			_running(&stop);
 		}
@@ -330,7 +330,7 @@ static void	*handleIrrMessages(void *parm)
 		sm_TaskYield();
 	}
 
-	writeMemo("[i] irrd message handler thread ended.");
+	writeMemo("[i] irfd message handler thread ended.");
 	writeErrmsgMemos();
 	return NULL;
 }
@@ -355,7 +355,7 @@ static int	noticeIsValid(PwcNotice *notice)
 static void	addCandidate(IonNode *node, uvast candidateNodeNbr)
 {
 	PsmAddress	elt;
-	IrrCandidate	*candidate;
+	IrfCandidate	*candidate;
 
 	candidate = findCandidate(node, candidateNodeNbr, &elt);
 	if (candidate)
@@ -366,7 +366,7 @@ static void	addCandidate(IonNode *node, uvast candidateNodeNbr)
 	}
 	else	/*	Insert additional candidate here.		*/
 	{
-		if (irr_add_candidate(candidateNodeNbr, node, elt) < 0)
+		if (irf_add_candidate(candidateNodeNbr, node, elt) < 0)
 		{
 			return;
 		}
@@ -378,7 +378,7 @@ static void	removeCandidate(IonNode *node, uvast candidateNodeNbr)
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	elt;
 	PsmAddress	addr;
-	IrrCandidate	*candidate;
+	IrfCandidate	*candidate;
 
 	candidate = findCandidate(node, candidateNodeNbr, &elt);
 	if (candidate)
@@ -392,7 +392,7 @@ static void	removeCandidate(IonNode *node, uvast candidateNodeNbr)
 static void	resetCandidate(IonNode *node, uvast candidateNodeNbr)
 {
 	PsmAddress	elt;
-	IrrCandidate	*candidate;
+	IrfCandidate	*candidate;
 
 	candidate = findCandidate(node, candidateNodeNbr, &elt);
 	if (candidate)
@@ -402,7 +402,7 @@ static void	resetCandidate(IonNode *node, uvast candidateNodeNbr)
 }
 
 #if defined (ION_LWT)
-int	irrd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int	irfd(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 #else
@@ -430,7 +430,7 @@ int	main(int argc, char *argv[])
 
 	if (bpAttach() < 0)
 	{
-		putErrmsg("irrd can't attach to BP.", NULL);
+		putErrmsg("irfd can't attach to BP.", NULL);
 		return 1;
 	}
 
@@ -445,7 +445,7 @@ int	main(int argc, char *argv[])
 	restoreEidString(&meid);
 	if (velt == 0)
 	{
-		writeMemoNote("[i] Not configured for IRR; irrd stopping",
+		writeMemoNote("[i] Not configured for IRF; irfd stopping",
 				notificationsEid);
 		return 1;
 	}
@@ -456,18 +456,18 @@ int	main(int argc, char *argv[])
 	isignal(SIGTERM, shutDown);
 	oK(_running(&start));
 
-	/*	Start the IRR notification handler thread.		*/
+	/*	Start the IRF notification handler thread.		*/
 
 	if (bp_open(notificationsEid, &notificationsSap) < 0)
 	{
-		putErrmsg("Can't open irrd endpoint.", notificationsEid);
+		putErrmsg("Can't open irfd endpoint.", notificationsEid);
 		return 1;
 	}
 
-	if (pthread_begin(&notificationThread, NULL, handleIrrMessages,
-			notificationsSap, "irrd_notify_handler"))
+	if (pthread_begin(&notificationThread, NULL, handleIrfMessages,
+			notificationsSap, "irfd_notify_handler"))
 	{
-		putSysErrmsg("irrd can't create notification handler thread.",
+		putSysErrmsg("irfd can't create notification handler thread.",
 				NULL);
 		return 1;
 	}
@@ -475,7 +475,7 @@ int	main(int argc, char *argv[])
 	/*	Main loop: snooze 1 second, then drain queue of pending
 	 *	passageway change notices.				*/
 
-	writeMemo("[i] irrd is running.");
+	writeMemo("[i] irfd is running.");
 	while (_running(NULL))
 	{
 		/*	Sleep for 1 second, then apply all pending
@@ -485,7 +485,7 @@ int	main(int argc, char *argv[])
 		snooze(1);
 		if (!sdr_begin_xn(sdr))
 		{
-			putErrmsg("irrd failed to begin new transaction.",
+			putErrmsg("irfd failed to begin new transaction.",
 					NULL);
 			break;
 		}
@@ -554,7 +554,7 @@ int	main(int argc, char *argv[])
 	/*	Wrap up.						*/
 
 	writeErrmsgMemos();
-	writeMemo("[i] irrd has ended.");
+	writeMemo("[i] irfd has ended.");
 	ionDetach();
 	return 0;
 }

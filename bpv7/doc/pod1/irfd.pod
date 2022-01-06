@@ -1,29 +1,29 @@
 =head1 NAME
 
-irrd - inter-regional routing (IRR) support daemon for ION
+irfd - inter-regional forwarding (IRF) support daemon for ION
 
 =head1 SYNOPSIS
 
-B<irrd>
+B<irfd>
 
 =head1 DESCRIPTION
 
-B<irrd> is a background "daemon" task that performs two distinct functions
-in support of inter-regional routing.
+B<irfd> is a background "daemon" task that performs two distinct functions
+in support of inter-regional forwarding.
 
-1.  B<irrd> de-queues passageway change notices from the local node's ION
+1.  B<irfd> de-queues passageway change notices from the local node's ION
 database (inserted into that queue when contact plan management operations
 resulted in changes to nodes' outer region numbers) and applies those
-changes in passageway status to the lists of inter-regional routing
+changes in passageway status to the lists of inter-regional forwarding
 passageway candidates for all nodes that are known bundle destinations.
 
-2.  B<irrd> receives IRR feedback messages (propagated by the passageways
+2.  B<irfd> receives IRF feedback messages (propagated by the passageways
 along inter-regional forwarding paths toward destination nodes in remote
-regions), applies those messages to the lists of inter-regional routing
+regions), applies those messages to the lists of inter-regional forwarding
 passageway candidates for those destination nodes, and further propagates
 those messages toward their source nodes.
 
-B<irrd> is spawned automatically by B<bpadmin> in response to the 's' (START)
+B<irfd> is spawned automatically by B<bpadmin> in response to the 's' (START)
 command that starts operation of the Bundle Protocol, and it is terminated by
 B<bpadmin> in response to an 'x' (STOP) command.
 
@@ -33,15 +33,15 @@ B<bpadmin> in response to an 'x' (STOP) command.
 
 =item "0"
 
-B<irrd> terminated normally, for reasons noted in the B<ion.log> file.  If
+B<irfd> terminated normally, for reasons noted in the B<ion.log> file.  If
 this termination was not commanded, investigate and solve the problem identified
-in the log file and use B<bpadmin> to restart inter-regional routing.
+in the log file and use B<bpadmin> to restart inter-regional forwarding.
 
 =item "1"
 
-B<irrd> terminated abnormally, for reasons noted in the B<ion.log> file.
+B<irfd> terminated abnormally, for reasons noted in the B<ion.log> file.
 Investigate and solve the problem identified in the log file, then use
-B<bpadmin> to restart inter-regional routing.
+B<bpadmin> to restart inter-regional forwarding.
 
 =back
 
@@ -59,13 +59,13 @@ The following diagnostics may be issued to the B<ion.log> log file:
 
 =over 4
 
-=item irrd can't attach to BP.
+=item irfd can't attach to BP.
 
 B<bpadmin> has not yet initialized Bundle Protocol operations.
 
-=item irrd task is already started for this node
+=item irfd task is already started for this node
 
-Redundant initiation of B<irrd>.
+Redundant initiation of B<irfd>.
 
 =back
 

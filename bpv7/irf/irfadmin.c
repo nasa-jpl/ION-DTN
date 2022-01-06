@@ -1,5 +1,5 @@
 /*
-	irradmin.c:	BP inter-regional routing adminstration
+	irfadmin.c:	BP inter-regional forwarding adminstration
 			utility.
 									*/
 /*									*/
@@ -7,7 +7,7 @@
 /*	Author: Scott Burleigh, IPNGROUP				*/
 /*									*/
 
-#include "irr.h"
+#include "irf.h"
 
 static int	_echo(int *newValue)
 {
@@ -47,7 +47,7 @@ static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
-	isprintf(buffer, sizeof buffer, "Syntax error at line %d of irradmin.c",
+	isprintf(buffer, sizeof buffer, "Syntax error at line %d of irfadmin.c",
 			lineNbr);
 	printText(buffer);
 }
@@ -101,7 +101,7 @@ static void	executeJoin(int tokenCount, char **tokens)
 	rcfile = fopen("join.ionrc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("irradmin can't create join.ionrc file.", NULL);
+		putSysErrmsg("irfadmin can't create join.ionrc file.", NULL);
 		return;
 	}
 
@@ -109,7 +109,7 @@ static void	executeJoin(int tokenCount, char **tokens)
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to join.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to join.ionrc", NULL);
 		return;
 	}
 
@@ -117,7 +117,7 @@ static void	executeJoin(int tokenCount, char **tokens)
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to join.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to join.ionrc", NULL);
 		return;
 	}
 
@@ -126,7 +126,7 @@ UVAST_FIELDSPEC " 0 1.0\n", nodeNbr, nodeNbr);
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to join.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to join.ionrc", NULL);
 		return;
 	}
 
@@ -135,7 +135,7 @@ UVAST_FIELDSPEC " 0 1.0\n", nodeNbr, nodeNbr);
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to join.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to join.ionrc", NULL);
 		return;
 	}
 
@@ -161,7 +161,7 @@ UVAST_FIELDSPEC " 0 1.0\n", nodeNbr, nodeNbr);
 				{
 					fclose(specFile);
 					fclose(rcfile);
-					putSysErrmsg("irradmin can't write to \
+					putSysErrmsg("irfadmin can't write to \
 node.ionrc", NULL);
 					return;
 				}
@@ -177,7 +177,7 @@ node.ionrc", NULL);
 
 	if (pseudoshell("bpadmin connect.bprc") < 0)
 	{
-		putSysErrmsg("irradmin can't note duct(s).", itoa(nodeNbr));
+		putSysErrmsg("irfadmin can't note duct(s).", itoa(nodeNbr));
 		return;
 	}
 
@@ -186,14 +186,14 @@ node.ionrc", NULL);
 			regionNbr);
 	if (pseudoshell(cmd) < 0)
 	{
-		putSysErrmsg("irradmin can't load contacts.", itoa(nodeNbr));
+		putSysErrmsg("irfadmin can't load contacts.", itoa(nodeNbr));
 		return;
 	}
 
 	snooze(1);
 	if (pseudoshell("ionadmin join.ionrc") < 0)
 	{
-		putSysErrmsg("irradmin can't register node.", itoa(nodeNbr));
+		putSysErrmsg("irfadmin can't register node.", itoa(nodeNbr));
 	}
 }
 
@@ -224,7 +224,7 @@ static void	executeLeave(int tokenCount, char **tokens)
 	rcfile = fopen("leaveA.ionrc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("irradmin can't create leaveA.ionrc file.", NULL);
+		putSysErrmsg("irfadmin can't create leaveA.ionrc file.", NULL);
 		return;
 	}
 
@@ -232,7 +232,7 @@ static void	executeLeave(int tokenCount, char **tokens)
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to leaveA.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to leaveA.ionrc", NULL);
 		return;
 	}
 
@@ -240,7 +240,7 @@ static void	executeLeave(int tokenCount, char **tokens)
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to leaveA.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to leaveA.ionrc", NULL);
 		return;
 	}
 
@@ -249,14 +249,14 @@ UVAST_FIELDSPEC "\n", nodeNbr, nodeNbr);
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to leaveA.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to leaveA.ionrc", NULL);
 		return;
 	}
 
 	fclose(rcfile);
 	if (pseudoshell("ionadmin leaveA.ionrc") < 0)
 	{
-		putSysErrmsg("No irradmin announce unregister", itoa(nodeNbr));
+		putSysErrmsg("No irfadmin announce unregister", itoa(nodeNbr));
 	}
 
 	/*	Snooze 3 seconds to give announcement time to spread.	*/
@@ -270,7 +270,7 @@ UVAST_FIELDSPEC "\n", nodeNbr, nodeNbr);
 	rcfile = fopen("leaveB.ionrc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("irradmin can't create leaveB.ionrc file.", NULL);
+		putSysErrmsg("irfadmin can't create leaveB.ionrc file.", NULL);
 		return;
 	}
 
@@ -278,7 +278,7 @@ UVAST_FIELDSPEC "\n", nodeNbr, nodeNbr);
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to leaveB.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to leaveB.ionrc", NULL);
 		return;
 	}
 
@@ -286,7 +286,7 @@ UVAST_FIELDSPEC "\n", nodeNbr, nodeNbr);
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to leaveB.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to leaveB.ionrc", NULL);
 		return;
 	}
 
@@ -295,14 +295,14 @@ UVAST_FIELDSPEC "\n", nodeNbr, nodeNbr);
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("irradmin can't write to leaveB.ionrc", NULL);
+		putSysErrmsg("irfadmin can't write to leaveB.ionrc", NULL);
 		return;
 	}
 
 	fclose(rcfile);
 	if (pseudoshell("ionadmin leaveB.ionrc") < 0)
 	{
-		putSysErrmsg("No irradmin post unregister", itoa(nodeNbr));
+		putSysErrmsg("No irfadmin post unregister", itoa(nodeNbr));
 	}
 }
 
@@ -511,7 +511,7 @@ static int	processLine(char *line, int lineLength)
 	}
 }
 
-static int	run_irradmin(char *cmdFileName)
+static int	run_irfadmin(char *cmdFileName)
 {
 	int	cmdFile;
 	char	line[256];
@@ -519,7 +519,7 @@ static int	run_irradmin(char *cmdFileName)
 
 	if (bpAttach() < 0)
 	{
-		putErrmsg("irradmin can't attach to BP", NULL);
+		putErrmsg("irfadmin can't attach to BP", NULL);
 		return -1;
 	}
 
@@ -597,13 +597,13 @@ static int	run_irradmin(char *cmdFileName)
 	}
 
 	writeErrmsgMemos();
-	printText("Stopping irradmin.");
+	printText("Stopping irfadmin.");
 	ionDetach();
 	return 0;
 }
 
 #if defined (ION_LWT)
-int	irradmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
+int	irfadmin(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char	*cmdFileName = (char *) a1;
@@ -612,5 +612,5 @@ int	main(int argc, char **argv)
 {
 	char	*cmdFileName = argc > 1 ? argv[1] : NULL;
 #endif
-	return run_irradmin(cmdFileName);
+	return run_irfadmin(cmdFileName);
 }

@@ -3,7 +3,7 @@
 # Scott Burleigh
 # August 7, 2021
 #
-# Tests inter-regional routing.
+# Tests inter-regional forwarding.
 #
 # This test exercises management of a multi-regional network created
 # by DTN Node Auto-Configuration and the flow of unicast messages over
@@ -23,7 +23,7 @@
 # passageway to 12) and then unregistering it in region 1.  These changes
 # move nodes 23 and 24 "lower" in the region hierarchy.
 #
-# We then test inter-regional routing by sending a small file in a bundle
+# We then test inter-regional forwarding by sending a small file in a bundle
 # from node 23 to node 24 and, 10 seconds later, sending a second small file
 # in a bundle from node 23 to node 24.  The second file should follow a
 # path through only whitelisted passageways.
@@ -154,13 +154,13 @@ sleep 3
 echo ""
 echo "(printing rolodexes for nodes 21-24)"
 cd ../21.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../22.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../23.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../24.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 
 sleep 2
 
@@ -181,9 +181,9 @@ echo "(node 23 operations)"
 
 cd ../23.ipn.tcp
 ionadmin ../list.ionrc
-irradmin join11.irrrc
+irfadmin join11.irfrc
 sleep 2
-irradmin leave1.irrrc
+irfadmin leave1.irfrc
 
 sleep 2
 
@@ -203,24 +203,24 @@ echo ""
 echo "(node 24 operations)"
 
 cd ../24.ipn.tcp
-irradmin join12.irrrc
+irfadmin join12.irfrc
 
 sleep 2
 
-irradmin leave1.irrrc
+irfadmin leave1.irfrc
 
 sleep 2
 
 echo ""
 echo "(printing rolodexes for nodes 21-24)"
 cd ../21.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../22.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../23.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../24.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 
 sleep 1
 
@@ -294,17 +294,17 @@ sleep 3
 echo ""
 echo "(printing rolodexes for nodes 21-26)"
 cd ../21.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../22.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../23.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../24.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../25.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../26.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 
 sleep 2
 
@@ -329,19 +329,19 @@ sleep 10
 echo ""
 echo "(printing rolodexes for nodes 21-27)"
 cd ../21.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../22.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../23.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../24.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../25.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../26.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../27.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 
 sleep 2
 
@@ -375,26 +375,26 @@ cp ranges.ionrc ../24.ipn.tcp
 sleep 2
 
 cd ../24.ipn.tcp
-irradmin join1.irrrc
+irfadmin join1.irfrc
 
 sleep 2
 
 echo ""
 echo "(printing rolodexes for nodes 21-27)"
 cd ../21.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../22.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../23.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../24.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../25.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../26.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../27.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 
 sleep 2
 
@@ -420,7 +420,7 @@ echo ""
 echo "Step 11: convert node 22 into a terminal node in region 1 and open direct contact between nodes 23 and 25"
 
 cd ../22.ipn.tcp
-irradmin leave12.irrrc
+irfadmin leave12.irfrc
 
 sleep 2
 
@@ -439,19 +439,19 @@ sleep 5
 echo ""
 echo "(printing rolodexes for nodes 21-27)"
 cd ../21.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../22.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../23.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../24.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../25.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../26.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 cd ../27.ipn.tcp
-irradmin ../rolodex.irrrc
+irfadmin ../rolodex.irfrc
 
 sleep 2
 
@@ -685,5 +685,5 @@ cd ../27.ipn.tcp
 # Give all nodes time to shut down, then clean up.
 sleep 5
 killm
-echo "IRR test completed."
+echo "IRF test completed."
 exit $RETVAL

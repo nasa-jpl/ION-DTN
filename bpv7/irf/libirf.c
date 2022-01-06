@@ -1,5 +1,5 @@
 /*
-	libirr.c:	functions for inter-regional routing.
+	libirf.c:	functions for inter-regional forwarding.
 
 	Author: Scott Burleigh, IPNGROUP
 
@@ -8,18 +8,18 @@
 #include "ipnfw.h"
 #include "bei.h"
 
-int	irr_add_candidate(uvast nodeNbr, IonNode *node, PsmAddress nextElt)
+int	irf_add_candidate(uvast nodeNbr, IonNode *node, PsmAddress nextElt)
 {
 	PsmPartition	ionwm = getIonwm();
 	PsmAddress	addr;
 	PsmAddress	elt;
-	IrrCandidate	*candidate;
+	IrfCandidate	*candidate;
 
 	CHKERR(ionwm);
-        addr = psm_zalloc(ionwm, sizeof(IrrCandidate));
+        addr = psm_zalloc(ionwm, sizeof(IrfCandidate));
         if (addr == 0)
         {
-                putErrmsg("Can't add IRR candidate.", NULL);
+                putErrmsg("Can't add IRF candidate.", NULL);
                 return -1;
         }
 
@@ -35,17 +35,17 @@ int	irr_add_candidate(uvast nodeNbr, IonNode *node, PsmAddress nextElt)
         if (elt == 0)
         {
                 psm_free(ionwm, addr);
-                putErrmsg("Can't add IRR candidate.", NULL);
+                putErrmsg("Can't add IRF candidate.", NULL);
                 return -1;
         }
 
-        candidate = (IrrCandidate *) psp(ionwm, addr);
+        candidate = (IrfCandidate *) psp(ionwm, addr);
 	candidate->nodeNbr = nodeNbr;
 	candidate->confirmTime = 0;
 	return 0;
 }
 
-int	irr_initialize(IonNode *terminusNode)
+int	irf_initialize(IonNode *terminusNode)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
@@ -57,7 +57,7 @@ int	irr_initialize(IonNode *terminusNode)
 	terminusNode->viaPassageways = sm_list_create(ionwm);
 	if (terminusNode->viaPassageways == 0)
 	{
-		putErrmsg("Can't initialize IRR routing.", NULL);
+		putErrmsg("Can't initialize IRF routing.", NULL);
 		return -1;
 	}
 
@@ -79,10 +79,10 @@ int	irr_initialize(IonNode *terminusNode)
 			/*	Node is a potentially usable passageway
 			 *	for transmission to this destination.	*/
 
-			if (irr_add_candidate(member->nodeNbr, terminusNode, 0)
+			if (irf_add_candidate(member->nodeNbr, terminusNode, 0)
 					< 0)
 			{
-				putErrmsg("Can't note IRR candidate.", NULL);
+				putErrmsg("Can't note IRF candidate.", NULL);
 				return -1;
 			}
 		}
@@ -91,7 +91,7 @@ int	irr_initialize(IonNode *terminusNode)
 	return 0;
 }
 
-static int	serializeIrrMsg(uvast fromNodeNbr, uvast toNodeNbr,
+static int	serializeIrfMsg(uvast fromNodeNbr, uvast toNodeNbr,
 			int isReachable, Lyst passageways, char **msgbuf)
 {
 	int		traceLen;
@@ -112,7 +112,7 @@ static int	serializeIrrMsg(uvast fromNodeNbr, uvast toNodeNbr,
 	buffer = MTAKE(bufsize);
 	if (buffer == NULL)
 	{
-		putErrmsg("Failed taking buffer for IRR message.", NULL);
+		putErrmsg("Failed taking buffer for IRF message.", NULL);
 		*msgbuf = NULL;
 		return -1;
 	}
@@ -120,32 +120,32 @@ static int	serializeIrrMsg(uvast fromNodeNbr, uvast toNodeNbr,
 	memset(buffer, 0, bufsize);
 	cursor = (unsigned char *) buffer;
 
-	/*	IRR message is an array of 4 items.			*/
+	/*	IRF message is an array of 4 items.			*/
 
 	uvtemp = 4;
 	oK(cbor_encode_array_open(uvtemp, &cursor));
 
-	/*	The first item of the IRR message is the node number
+	/*	The first item of the IRF message is the node number
 	 *	of the source of a bundle destined for a node located
 	 *	in some other region.					*/
 
 	uvtemp = fromNodeNbr;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	The second item of the IRR message is the node number
+	/*	The second item of the IRF message is the node number
 	 *	of the destination of that bundle, the node for which
 	 *	this message reports reachability.			*/
 
 	uvtemp = toNodeNbr;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	The third item of the IRR message is the reachability
+	/*	The third item of the IRF message is the reachability
 	 *	flag, a Boolean value.					*/
 
 	uvtemp = isReachable ? 1 : 0;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	The fourth item of the IRR message is an array of N
+	/*	The fourth item of the IRF message is an array of N
 	 *	node numbers identifying additional passageway nodes
 	 *	that relayed the bundle toward its destination.		*/
 
@@ -162,14 +162,14 @@ static int	serializeIrrMsg(uvast fromNodeNbr, uvast toNodeNbr,
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
-	/*	IRR message has now been serialized.			*/
+	/*	IRF message has now been serialized.			*/
 
 	*msgbuf = buffer;
 	msgLength = cursor - ((unsigned char *) buffer);
 	return msgLength;
 }
 
-static int	constructIrrMsg(uvast fromNodeNbr, uvast toNodeNbr,
+static int	constructIrfMsg(uvast fromNodeNbr, uvast toNodeNbr,
 			int isReachable, Lyst passageways, Object *zco)
 {
 	Sdr	sdr = getIonsdr();
@@ -177,7 +177,7 @@ static int	constructIrrMsg(uvast fromNodeNbr, uvast toNodeNbr,
 	int	msgLength;
 	Object	sourceData;
 
-	msgLength = serializeIrrMsg(fromNodeNbr, toNodeNbr, isReachable,
+	msgLength = serializeIrfMsg(fromNodeNbr, toNodeNbr, isReachable,
 			passageways, &msgbuf);
 	if (msgLength < 0)
 	{
@@ -199,21 +199,21 @@ static int	constructIrrMsg(uvast fromNodeNbr, uvast toNodeNbr,
 
 	/*	Pass additive inverse of length to zco_create to
 	 *	indicate that allocating this ZCO space is non-
-	 *	negotiable: for IRR messages, allocation of ZCO
+	 *	negotiable: for IRF messages, allocation of ZCO
 	 *	space can never be denied or delayed.			*/
 
 	*zco = zco_create(sdr, ZcoSdrSource, sourceData, 0, 0 - msgLength,
 			ZcoOutbound);
 	if (sdr_end_xn(sdr) < 0 || *zco == (Object) ERROR || *zco == 0)
 	{
-		putErrmsg("Can't create IRR message.", NULL);
+		putErrmsg("Can't create IRF message.", NULL);
 		return -1;
 	}
 
 	return 0;
 }
 
-int	irr_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
+int	irf_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 		Lyst passageways)
 {
 	char		sourceEid[32];
@@ -248,10 +248,10 @@ int	irr_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 
 	isprintf(destinationEid, sizeof destinationEid,
 			"ipn:" UVAST_FIELDSPEC ".271", destinationNodeNbr);
-	if (constructIrrMsg(fromNodeNbr, toNodeNbr, isReachable, passageways,
+	if (constructIrfMsg(fromNodeNbr, toNodeNbr, isReachable, passageways,
 			&payloadZco) < 0)
 	{
-		putErrmsg("Can't construct IRR message.", NULL);
+		putErrmsg("Can't construct IRF message.", NULL);
 		return -1;
 	}
 
@@ -260,11 +260,11 @@ int	irr_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 			&ecos, payloadZco, NULL, 0))
 	{
 	case -1:
-		putErrmsg("Can't send IRR message.", NULL);
+		putErrmsg("Can't send IRF message.", NULL);
 		return -1;
 
 	case 0:
-		writeMemo("[?] IRR message not transmitted.");
+		writeMemo("[?] IRF message not transmitted.");
 
 			/*	Intentional fall-through to next case.	*/
 	default:
@@ -272,7 +272,7 @@ int	irr_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 	}
 }
 
-int	irr_source_msg(Bundle *bundle, int isReachable)
+int	irf_source_msg(Bundle *bundle, int isReachable)
 {
 	Sdr	sdr = getIonsdr();
 	uvast	fromNodeNbr;
@@ -302,17 +302,17 @@ int	irr_source_msg(Bundle *bundle, int isReachable)
 		}
 	}
 
-	result = irr_send_msg(fromNodeNbr, toNodeNbr, isReachable, passageways);
+	result = irf_send_msg(fromNodeNbr, toNodeNbr, isReachable, passageways);
 	lyst_destroy(passageways);
 	if (result < 0)
 	{
-		putErrmsg("Can't source IRR message.", NULL);
+		putErrmsg("Can't source IRF message.", NULL);
 	}
 
 	return result;
 }
 
-int	irr_load_passageways(Bundle *bundle, Object bundleAddr)
+int	irf_load_passageways(Bundle *bundle, Object bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
 	Object		iptblkElt;
@@ -325,9 +325,9 @@ int	irr_load_passageways(Bundle *bundle, Object bundleAddr)
 
 	/*	Load the bundle's list of passageways from the
 	 *	array of passageway node numbers in the bundle's
-	 *	IRR extension block.					*/
+	 *	IRF extension block.					*/
 
-	iptblkElt = findExtensionBlock(bundle, IrrPassagewaysBlk, 0);
+	iptblkElt = findExtensionBlock(bundle, IrfPassagewaysBlk, 0);
 	if (iptblkElt == 0)
 	{
 		return 0;
@@ -362,14 +362,14 @@ int	irr_load_passageways(Bundle *bundle, Object bundleAddr)
 				< 0)
 		{
 			MRELEASE(nodeNbrsArray);
-			putErrmsg("Can't load from IRR extension block.", NULL);
+			putErrmsg("Can't load from IRF extension block.", NULL);
 			return -1;
 		}
 	}
 
 	MRELEASE(nodeNbrsArray);
 
-	/*	Reinitialize the IRR extension block.			*/
+	/*	Reinitialize the IRF extension block.			*/
 
 	bundle->extensionsLength -= iptblock.length;
 	sdr_write(sdr, bundleAddr, (char *) bundle, sizeof(Bundle));
@@ -383,12 +383,12 @@ int	irr_load_passageways(Bundle *bundle, Object bundleAddr)
 	return 0;
 }
 
-int 	irr_identify_passageways(IonNode *terminusNode, Bundle *bundle,
+int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 		Lyst nominees)
 {
 	Sdr		sdr = getIonsdr();
 	PsmPartition	ionwm = getIonwm();
-	IrrCandidate	*bestCandidate = NULL;
+	IrfCandidate	*bestCandidate = NULL;
 	uvast		sourceNodeNbr;
 	IonDB		iondb;
 	int		priorPassageways;
@@ -401,14 +401,14 @@ int 	irr_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	Object		senderMemberElt;
 	PsmAddress	elt;
 	PsmAddress	addr;
-	IrrCandidate	*candidate;
+	IrfCandidate	*candidate;
 	RegionMember	candidateMember;
 	Object		candidateMemberElt;
 
 	sourceNodeNbr = bundle->id.source.ssp.ipn.nodeNbr;
 	if (terminusNode->viaPassageways == 0)
 	{
-		if (irr_initialize(terminusNode) < 0)
+		if (irf_initialize(terminusNode) < 0)
 		{
 			return -1;
 		}
@@ -456,7 +456,7 @@ int 	irr_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	 *
 	 *	Propagation of a bundle received from a node whose
 	 *	home region or outer region is the receiving node's
-	 *	outer region is inward.	 All other IRR propagation
+	 *	outer region is inward.	 All other IRF propagation
 	 *	is outward.						*/
 
 	sdr_read(sdr, (char *) &iondb, getIonDbObject(), sizeof(IonDB));
@@ -545,7 +545,7 @@ int 	irr_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 			elt = sm_list_next(ionwm, elt))
 	{
 		addr = sm_list_data(ionwm, elt);
-		candidate = (IrrCandidate *) psp(ionwm, addr);
+		candidate = (IrfCandidate *) psp(ionwm, addr);
 		if (candidate->nodeNbr == getOwnNodeNbr())
 		{
 			continue;
@@ -614,7 +614,7 @@ int 	irr_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 				elt; elt = sm_list_next(ionwm, elt))
 		{
 			addr = sm_list_data(ionwm, elt);
-			candidate = (IrrCandidate *) psp(ionwm, addr);
+			candidate = (IrfCandidate *) psp(ionwm, addr);
 			if (candidate->nodeNbr == getOwnNodeNbr())
 			{
 				continue;

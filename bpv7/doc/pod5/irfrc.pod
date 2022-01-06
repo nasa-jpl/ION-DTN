@@ -1,14 +1,14 @@
 =head1 NAME
 
-irrrc - Inter-regional routing (IRR) administration commands file
+irfrc - Inter-regional forwarding (IRF) administration commands file
 
 =head1 DESCRIPTION
 
-IRR administration commands are passed to B<irradmin> either in a file of
-text lines or interactively at B<irradmin>'s command prompt (:).  Commands
+IRF administration commands are passed to B<irfadmin> either in a file of
+text lines or interactively at B<irfadmin>'s command prompt (:).  Commands
 are interpreted line-by line, with exactly one command per line.
 
-IRR administration commands are of two general classes.
+IRF administration commands are of two general classes.
 
 1.  Region registration commands effect the local node's registration or
 unregistration in regions.
@@ -16,7 +16,7 @@ unregistration in regions.
 A region is the set of all, and only, those nodes that are cited as the
 senders or receivers of contacts in any single contact plan.
 
-For the purpose of inter-regional routing (enabling a BP node to send 
+For the purpose of inter-regional forwarding (enabling a BP node to send 
 bundles to nodes for which its contact plan contains no contacts - that
 is, nodes in other regions), regions are interconnected by nodes termed
 "passageways".  Each passageway node is a member of exactly two regions,
@@ -24,7 +24,7 @@ making those two regions topologically adjacent, and is therefore able
 to forward (using ordinary contact graph routing) into one region a bundle
 that it received in the other region.
 
-To prevent routing loops, region topology is structured as a tree.  Every
+To prevent forwarding loops, region topology is structured as a tree.  Every
 region (except the region that is the root of the tree) has exactly one
 super-region; every region has zero or more sub-regions.  Every passageway
 interconnects a region either with its super-region or with one of its
@@ -58,16 +58,16 @@ that sub-region is implicitly created.  This is the mechanism by which
 the region tree is constructed.
 
 Joining and leaving regions are somewhat complex operations accomplished
-by the invocation of other ION administration utilities.  The IRR
+by the invocation of other ION administration utilities.  The IRF
 administration commands automate the construction of the command files
 that must be passed to those utilities for this purpose.
 
-2.  IRR status reporting commands simply list either (a) the nodes that reside
+2.  IRF status reporting commands simply list either (a) the nodes that reside
 in one or the other of the regions in which the local node resides or else
-(b) all nodes that are candidate passageways for inter-regional routing
+(b) all nodes that are candidate passageways for inter-regional forwarding
 to a specified destination node.
 
-The formats and effects of the IRR administration commands are described below.
+The formats and effects of the IRF administration commands are described below.
 
 =head1 GENERAL COMMANDS
 
@@ -84,7 +84,7 @@ Comment line.  Lines beginning with B<#> are not interpreted.
 
 =item B<e> { 1 | 0 }
 
-Echo control.  Setting echo to 1 causes all output printed by irradmin to be
+Echo control.  Setting echo to 1 causes all output printed by irfadmin to be
 logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
 
 =item B<h>
@@ -94,7 +94,7 @@ formats.  It is the same as the B<?> command.
 
 =back
 
-=head1 IRR COMMANDS
+=head1 IRF COMMANDS
 
 =over 4
 
@@ -116,7 +116,7 @@ the local node resides.
 =item B<l> I<passageways> I<destination_node_nbr>
 
 This command lists all nodes that are candidate passageways for inter-regional
-routing to a specified destination node.
+forwarding to a specified destination node.
 
 =back
 
@@ -132,4 +132,4 @@ Causes the local node to become a member of region 31.
 
 =head1 SEE ALSO
 
-irradmin(1), irrd(1)
+irfadmin(1), irfd(1)

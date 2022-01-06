@@ -1,6 +1,6 @@
 /*
  *	ipt.c:		implementation of the extension definition
- *			functions for the IRR Passageway Trace block.
+ *			functions for the IRF Passageway Trace block.
  *
  *	Copyright (c) 2021, IPNGROUP.  ALL RIGHTS RESERVED.
  *
