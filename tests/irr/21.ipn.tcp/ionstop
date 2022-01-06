@@ -1,0 +1,7 @@
+# shell script to stop all daemons
+#!/bin/bash
+tccadmin 203	.
+sleep 1
+bpadmin		.
+sleep 1
+ionadmin	.

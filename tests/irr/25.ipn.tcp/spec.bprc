@@ -1,0 +1,3 @@
+a endpoint ipn:25.2 x
+a induct stcp localhost:5025 stcpcli
+w 1

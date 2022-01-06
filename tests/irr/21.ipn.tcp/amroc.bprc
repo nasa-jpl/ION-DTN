@@ -1,0 +1,16 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:21.0 x
+a endpoint ipn:21.1 x
+a endpoint ipn:21.2 x
+a endpoint ipn:21.271 q
+a scheme imc 'imcfw' 'imcadminep'
+a endpoint imc:0.1 q
+a endpoint imc:0.271 q
+a endpoint imc:203.0 q
+a protocol stcp 1400 100
+a induct stcp localhost:5021 stcpcli
+a outduct stcp localhost:5021 stcpclo
+r 'ipnadmin amroc.ipnrc'
+w 1
+s

@@ -1,0 +1,96 @@
+=head1 NAME
+
+irradmin - BP inter-regional routing (IRR) adminstration utility
+
+=head1 SYNOPSIS
+
+B<irradmin> [ I<commands_filename> ]
+
+=head1 DESCRIPTION
+
+B<irradmin> assists in the management of the local ION node's database
+of inter-regional routing information, specifically the regions in which
+the local node and other known nodes reside.
+
+B<irradmin> operates in response to IRR configuration commands found in
+the file I<commands_filename>, if provided; if not, B<irradmin> prints
+a simple prompt (:) so that the user may type commands directly into
+standard input.
+
+The format of commands for I<commands_filename> can be queried from B<irradmin>
+with the 'h' or '?' commands at the prompt.  The commands are documented in
+irrrc(5).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Successful completion of IRR administration.
+
+=item "-1"
+
+Unsuccessful completion of IRR administration, due to inability to
+attach to the Bundle Protocol system .
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item irradmin
+
+Enter interactive IRR administration command entry mode.
+
+=item irradmin host1.irrrc
+
+Execute all configuration commands in I<host1.irrrc>, then terminate
+immediately.
+
+=back
+
+=head1 FILES
+
+See irrrc(5) for details of the IRR administration commands.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+B<Note>: all ION administration utilities expect source file input to be
+lines of ASCII text that are NL-delimited.  If you edit the irrrc file on
+a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
+before presenting it to B<irradmin>.  Otherwise B<irradmin> will detect syntax
+errors and will not function satisfactorily.
+
+The following diagnostics may be issued to the logfile ion.log:
+
+=over 4
+
+=item irradmin can't attach to BP.
+
+Bundle Protocol has not been initialized on this computer.  You need to run
+bpadmin(1) first.
+
+=item Can't open command file...
+
+The I<commands_filename> specified in the command line doesn't exist.
+
+=back
+
+Various errors that don't cause B<irradmin> to fail but are noted in the
+B<ion.log> log file may be caused by improperly formatted commands
+given at the prompt or in the I<commands_filename> file.
+Please see irrrc(5) for details.
+
+=head1 BUGS
+
+Report bugs to <ion-dtn-support@lists.sourceforge.net>
+
+=head1 SEE ALSO
+
+irrd(1), irrrc(5)
