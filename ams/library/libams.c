@@ -2943,31 +2943,14 @@ static int	locateRegistrar(AmsSAP *sap)
 
 		unlockMib();
 		ep = (MamsEndpoint *) lyst_data(sap->csEndpointElt);
-#if DEBUGAMS
-{
-	snprintf(myBuffer, 200, "[locateRegistrar] ep = (MamsEndpoint *) lyst_data(sap->csEndpointElt)->ept value: %s", ep->ept);
-	debugams(myBuffer);
-}
-#endif
+
 	}
 	else
 	{
 		ep = sap->csEndpoint;
-#if DEBUGAMS
-	snprintf(myBuffer, 200, "[locateRegistrar] ep = sap->csEndpoint->ept value: %s", ep->ept);
-	debugams(myBuffer);	
-#endif
 	}
 
 	ept = sap->mamsTsif.ept;	/*	Own MAMS endpoint name.	*/
-
-#if DEBUGAMS
-{
-	snprintf(myBuffer, 200, "[locateRegistrar] Own MAMS enpoint name: %s", ept);
-	debugams(myBuffer);
-}	
-#endif
-
 
 	eptLen = strlen(ept) + 1;
 	queryNbr = time(NULL);
@@ -3216,9 +3199,6 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 				return 0;
 
 			case reconnected:
-#if DEBUGAMS
-	writeMemo("[reconnectToRegistrar]: reconnected");
-#endif
 				sap->heartbeatsMissed = 0;
 				recycleEvent(evt);
 				unlockMib();
@@ -3228,27 +3208,18 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 			default:
 				/*	Stray message; ignore it and
 				 *	try again.			*/
-#if DEBUGAMS
-	writeMemo("[reconnectToRegistrar] Stray message: ignored");
-#endif
 
 				recycleEvent(evt);
 				continue;
 			}
 
 		case CRASH_EVT:
-#if DEBUGAMS
-	writeMemo("[reconnectToRegistrar] CRASH_EVENT: Can't reconnect to registrar");
-#endif
 			putErrmsg("Can't reconnect to registrar.", evt->value);
 			recycleEvent(evt);
 			unlockMib();
 			return -1;
 
 		default:		/*	Stray message; ignore.	*/
-#if DEBUGAMS
-	writeMemo("[reconnectToRegistrar] CRASH_EVENT: Ignoring stray message");
-#endif
 			recycleEvent(evt);
 			continue;	/*	Try again.		*/
 		}
@@ -3259,11 +3230,6 @@ static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 {
 	int	result;
 	MamsMsg	*msg = (MamsMsg *) (evt->value);
-
-#if DEBUGAMS
-	snprintf(myBuffer, 200, "[sendMsgToRegistrar] Message type: %d", msg->type);
-	debugams(myBuffer);
-#endif
 
 	/*	If registrar is unknown:
 	 *		If configuration server is known:
@@ -3533,9 +3499,6 @@ static int	getModuleNbr(AmsSAP *sap)
 			default:
 				/*	Stray message; ignore it and
 				 *	try again.			*/
-#if DEBUGAMS
-	writeMemo("[getModuleNbr]: Stray message");
-#endif
 
 				recycleEvent(evt);
 				continue;
