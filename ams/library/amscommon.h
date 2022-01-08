@@ -1,16 +1,22 @@
 /*
  	amscommon.h:	common definitions shared by libams, amsd,
 			and the transport service adapters.
-
 	Author: Scott Burleigh, JPL
-
 	Modification History:
 	Date  Who What
-
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+	
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2022
+	
+	Modifications address the following:
+	1.) Allow for SANA node numbers (i.e up to ~2,000,000 see MAX_CONTIN_NBR directive)  
+	2.) New associated function definitions for: getContinuaByNbr() and getMsgSpaceByNbr()	
+	
+	*/
+
 #ifndef _AMSCOMMON_H_
 #define _AMSCOMMON_H_
 
@@ -62,7 +68,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	20
+#define	MAX_CONTIN_NBR	20000000 //skywalker modifies to account for SANA node #'s (see librams.c, amscommon.c, etc)
 #endif
 
 #ifndef MAX_VENTURE_NBR
@@ -372,13 +378,8 @@ typedef struct ventstr
 	Lyst		subjLysts[SUBJ_LIST_CT];/*	hash table	*/
 	Unit		*units[MAX_UNIT_NBR + 1];
 	RamsNetProtocol	gwProtocol;
-	int		ramsNetIsTree;		/*	Boolean.	*/
-
-	/*	The msgspaces array enumerates all messages spaces
-	 *	that are included in this venture, including the one
-	 *	that is in the local continuum.				*/
-
-	Subject		*msgspaces[MAX_CONTIN_NBR + 1];	/*	subj<0	*/
+	int			ramsNetIsTree;		/*	Boolean.	*/
+	Lyst 		msgspace_lyst; //our collection of message spaces (i.e. Subject *)
 } Venture;
 
 /*	The supported transport services listed in the MIB are in
@@ -391,7 +392,8 @@ typedef struct
 	TransSvc	transportServices[TS_INDEX_LIMIT + 1];
 	TransSvc	*pts;			/*	Primary TS.	*/
 	Lyst		amsEndpointSpecs;	/*	(AmsEpspec *)	*/
-	Continuum	*continua[MAX_CONTIN_NBR + 1];
+	Lyst		continuum_lyst; //our collection of continua (i.e. Continuum *)
+
 	Lyst		applications;		/*	(AmsApp *)	*/
 	Venture		*ventures[MAX_VENTURE_NBR + 1];
 	Lyst		csEndpoints;		/*	(MamsEndpoint *)*/
@@ -477,6 +479,8 @@ extern Subject	*lookUpSubject(Venture *venture, char *subjectName);
 extern AppRole	*lookUpRole(Venture *venture, char *roleName);
 extern Unit	*lookUpUnit(Venture *venture, char *unitName);
 extern int	lookUpContinuum(char *continuumName);
+extern Continuum *getContinuaByNbr(int contnbr);
+extern Subject * getMsgSpaceByNbr(Venture *venture, int continuum_nbr);
 
 extern void	eraseApp(AmsApp *app);
 extern LystElt	createApp(char *name, char *publicKeyName,
