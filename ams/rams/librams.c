@@ -5,6 +5,17 @@
 	Author: Shin-Ywan (Cindy) Wang
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2021
+
+	Modifications address the following issues:
+
+	1.) Petition assert/cancel flip-flop on RAMSGATE start (required two restarts to revert petition state)
+	
+	2.) Allow for SANA node numbers (i.e up to 2,000,000) see MAX_CONTIN_NBR directive in amscommon.h 
+	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (linked list)
+
 */
 
 #include "ramscommon.h"
