@@ -530,7 +530,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	AmsModule		amsModule;
 	AmsMib			*mib;
 	int			ownContinuumNbr;
-	Subject			*ownMsgspace;
+	Subject			*ownMsgspace = NULL;
 	RamsGateway		*gWay;
 	Sdr			sdr;
 	LystElt			elt;
@@ -546,7 +546,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	socklen_t		nameLength;
 	int			datagramLength;
 	Lyst			msgspaces;
-	saddr			temp;
+	Subject			*temp; //sky modifies type of var
 	long			cId;
 	Petition		*pet;
 	AmsEventMgt		rules;
@@ -572,7 +572,10 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 	mib = _mib(NULL);
 	ownContinuumNbr = mib->localContinuumNbr;
-	ownMsgspace = amsModule->venture->msgspaces[ownContinuumNbr];
+	
+	//sky modifies with new lyst function instead of array
+	ownMsgspace = getMsgSpaceByNbr(amsModule->venture, ownContinuumNbr);
+
 	amsMemory = getIonMemoryMgr();
 
 	/*	Construct RAMS gateway state.				*/
@@ -620,12 +623,15 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 #if RAMSDEBUG
 printf("continuum lyst:");
-#endif
+#endif	
+	
 	msgspaces = ams_list_msgspaces(amsModule);
+	
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		temp = (saddr) lyst_data(elt);
-		cId = temp;
+		temp = (Subject *) lyst_data(elt); //sky modifies type
+		cId = 0 - temp->nbr; //sky accounts for pseudonumber
+
 #if RAMSDEBUG
 printf(" %ld", cId);		
 #endif
@@ -649,7 +655,12 @@ printf(" %ld", cId);
 		memset(ramsNode, 0, sizeof(RamsNode));
 		ramsNode->continuumNbr = cId;
 		ramsNode->protocol = amsModule->venture->gwProtocol;
-		ramsNode->gwEid = amsModule->venture->msgspaces[cId]->gwEid;
+		
+		//sky modifies to use lyst instead of array
+		Subject *my_msgspace = getMsgSpaceByNbr(amsModule->venture, cId);
+		ramsNode->gwEid = my_msgspace->gwEid;
+
+
 		if (lyst_insert_last(gWay->ramsNeighbors, ramsNode)
 				== NULL)
 		{
@@ -665,8 +676,8 @@ printf("[neighbor]");
 
 #if RAMSDEBUG
 printf("\n");
-#endif
-	lyst_destroy(msgspaces);
+#endif	
+						 
 
 	/*	Load AMS event management rules and spawn AMS event
 	 *	management thread.					*/
