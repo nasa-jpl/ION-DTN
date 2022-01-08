@@ -27,8 +27,6 @@
 
 #include "amsP.h"
 
-//variable used to shortcircuit AMS startup (bypass default long cell census period)
-static int ams_startup = 1;
 
 /*	Note that AMS diverges somewhat from exception handling policy
  *	that is implemented in most of the rest of ION: returning a
