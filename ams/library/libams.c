@@ -7,8 +7,28 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-									*/
+
+
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2022
+
+	Modifications address the following issues:
+
+	
+	
+
+
+
+
+	2.) Allow for SANA node numbers (i.e up to 2,000,000) see MAX_CONTIN_NBR directive in amscommon.h 
+	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (linked list)
+									
+	*/
+
 #include "amsP.h"
+
+//variable used to shortcircuit AMS startup (bypass default long cell census period)
+static int ams_startup = 1;
 
 /*	Note that AMS diverges somewhat from exception handling policy
  *	that is implemented in most of the rest of ION: returning a
@@ -146,6 +166,7 @@ static int	enqueueAmsEvent(AmsSAP *sap, AmsEvt *evt, char *ancillaryBlock,
 
 	temp = (saddr) lyst_compare_get(eventsQueue->list);
 	queryNbr = temp;
+
 	if (queryNbr != 0)	/*	Need response to specfic msg.	*/
 	{
 		if (msgType == AmsMsgReply
@@ -385,13 +406,15 @@ static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
 {
 	*sender = NULL;		/*	Default.			*/
 	msg->continuumNbr = ((*(header + 2) & 0x7f) << 8) + *(header + 3);
+
+
 	if (msg->continuumNbr < 1 || msg->continuumNbr > MAX_CONTIN_NBR
-	|| sap->venture->msgspaces[msg->continuumNbr] == NULL)
+	|| getMsgSpaceByNbr(sap->venture, msg->continuumNbr) == NULL)
 	{
 		writeMemoNote("[?] Received message from unknown continuum",
 				itoa(msg->continuumNbr));
 		return -1;
-	}
+	}	
 
 	msg->unitNbr = (*(header + 4) << 8) + *(header + 5);
 	if (msg->unitNbr < 0 || msg->unitNbr > MAX_UNIT_NBR
@@ -763,7 +786,7 @@ received by non-RAMS-gateway module.");
 			return -1;
 		}
 
-		subject = sap->venture->msgspaces[subjectNbr];
+		subject = getMsgSpaceByNbr(sap->venture, subjectNbr);
 	}
 	else
 	{
@@ -963,7 +986,8 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	}
 	else
 	{
-		subject = sap->venture->msgspaces[0 - subjectNbr];
+		
+		subject = getMsgSpaceByNbr(sap->venture, 0 - subjectNbr); //invert the negative (psuedo) subject Number back to positive here
 	}
 
 	/*	Marshal content as necessary.				*/
@@ -1314,8 +1338,9 @@ static int	subjectIsValid(AmsSAP *sap, int subjectNbr, Subject **subject)
 
 	if (subjectNbr < 0)
 	{
+		
 		if ((pseudoSubjectNbr = 0 - subjectNbr) <= MAX_CONTIN_NBR
-		&& (*subject = sap->venture->msgspaces[pseudoSubjectNbr])
+		&& (*subject = getMsgSpaceByNbr(sap->venture,  pseudoSubjectNbr))
 			!= NULL)
 		{
 			return 1;
@@ -1337,7 +1362,7 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module,
 	 *	subject, if any.					*/
 
 #if AMSDEBUG
-printf("subjects list length is %zu.\n", lyst_length(module->subjects));
+printf("subjects list length is %u.\n", lyst_length(module->subjects));
 #endif
 	if (nextSubj) *nextSubj = NULL;	/*	Default.		*/
 	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
@@ -2365,13 +2390,16 @@ static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 #if AMSDEBUG
 printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 #endif
+
 	switch (msg->type)
 	{
 	case heartbeat:
+
 		sap->heartbeatsMissed = 0;
 		return;
 
 	case you_are_dead:
+
 		if (enqueueAmsCrash(sap,
 			"Killed by registrar; imputed crash.") < 0)
 		{
@@ -2381,6 +2409,7 @@ printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 		return;
 
 	case I_am_starting:
+
 		if (msg->supplementLength < 1)
 		{
 			putErrmsg("I_am_starting lacks MAMS endpoint.", NULL);
@@ -2415,6 +2444,7 @@ printf("Module '%d' got msg of type %d.\n", sap->role->nbr, msg->type);
 		return;
 
 	case module_has_started:
+
 		if (msg->supplementLength < 1)
 		{
 			putErrmsg("module_has_started lacks MAMS endpoint.",
@@ -2904,28 +2934,49 @@ static int	locateRegistrar(AmsSAP *sap)
 		else
 		{
 			sap->csEndpointElt = lyst_next(sap->csEndpointElt);
+
 			if (sap->csEndpointElt == NULL)
 			{
-				sap->csEndpointElt =
-						lyst_first(mib->csEndpoints);
+				sap->csEndpointElt = lyst_first(mib->csEndpoints);
 			}
 		}
 
 		unlockMib();
 		ep = (MamsEndpoint *) lyst_data(sap->csEndpointElt);
+#if DEBUGAMS
+{
+	snprintf(myBuffer, 200, "[locateRegistrar] ep = (MamsEndpoint *) lyst_data(sap->csEndpointElt)->ept value: %s", ep->ept);
+	debugams(myBuffer);
+}
+#endif
 	}
 	else
 	{
 		ep = sap->csEndpoint;
+#if DEBUGAMS
+	snprintf(myBuffer, 200, "[locateRegistrar] ep = sap->csEndpoint->ept value: %s", ep->ept);
+	debugams(myBuffer);	
+#endif
 	}
 
 	ept = sap->mamsTsif.ept;	/*	Own MAMS endpoint name.	*/
+
+#if DEBUGAMS
+{
+	snprintf(myBuffer, 200, "[locateRegistrar] Own MAMS enpoint name: %s", ept);
+	debugams(myBuffer);
+}	
+#endif
+
+
 	eptLen = strlen(ept) + 1;
 	queryNbr = time(NULL);
 	temp = queryNbr;
 	lyst_compare_set(sap->mamsEvents, (LystCompareFn) temp);
+
 	result = sendMamsMsg(ep, &(sap->mamsTsif), registrar_query, queryNbr,
 			eptLen, ept);
+
 	if (result < 0)
 	{
 		putErrmsg("Module can't query configuration server.", NULL);
@@ -2937,11 +2988,12 @@ static int	locateRegistrar(AmsSAP *sap)
 	 *	see enqueueAmsEvent.					*/
 
 	while (1)
-	{
+	{		
 		unlockMib();
 		result = llcv_wait(sap->mamsEventsCV, llcv_reply_received,
 				N2_INTERVAL * 1000000);
 		lockMib();
+
 		if (result < 0)
 		{
 			if (errno == ETIMEDOUT)
@@ -2962,6 +3014,7 @@ static int	locateRegistrar(AmsSAP *sap)
 
 		llcv_lock(sap->mamsEventsCV);
 		elt = lyst_first(sap->mamsEvents);
+
 		if (elt == NULL)	/*	Interrupted; try again.	*/
 		{
 			llcv_unlock(sap->mamsEventsCV);
@@ -2973,7 +3026,8 @@ static int	locateRegistrar(AmsSAP *sap)
 		llcv_unlock(sap->mamsEventsCV);
 		switch (evt->type)
 		{
-		case MAMS_MSG_EVT:
+		case MAMS_MSG_EVT:			
+
 			msg = (MamsMsg *) (evt->value);
 			switch (msg->type)
 			{
@@ -2999,7 +3053,7 @@ static int	locateRegistrar(AmsSAP *sap)
 				 *	(and, in so doing, a valid
 				 *	configuration server).		*/
 
-					sap->csEndpoint = ep;
+					sap->csEndpoint = ep;					
 				}
 
 				lyst_compare_set(sap->mamsEvents, NULL);
@@ -3007,14 +3061,15 @@ static int	locateRegistrar(AmsSAP *sap)
 
 			default:
 				/*	Stray message; ignore it and
-				 *	try again.			*/
+				 *	try again.			*/				
 
 				recycleEvent(evt);
 				continue;
 			}
 
 		case CRASH_EVT:
-			putErrmsg("Can't locate registrar.", evt->value);
+			putErrmsg("Can't locate registrar.", evt->value);			
+
 			recycleEvent(evt);
 			return -1;
 
@@ -3042,6 +3097,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	LystElt		elt;
 	AmsEvt		*evt;
 	MamsMsg		*msg;
+
 
 	/*	Build cell status structure to enable reconnect.	*/
 
@@ -3084,9 +3140,13 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 
 	queryNbr = time(NULL);
 	temp = queryNbr;
+
 	lyst_compare_set(sap->mamsEvents, (LystCompareFn) temp);
+
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif), reconnect,
 			queryNbr, supplementLength, supplement);
+
+
 	MRELEASE(supplement);
 	if (result < 0)
 	{
@@ -3099,16 +3159,18 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	 *	see enqueueAmsEvent.  Wait up to N5_INTERVAL seconds
 	 *	for the registrar to get itself reoriented.		*/
 
+
 	while (1)
 	{
 		unlockMib();
 		result = llcv_wait(sap->mamsEventsCV, llcv_reply_received,
 				N5_INTERVAL * 1000000);
+
 		if (result < 0)
 		{
 			if (errno == ETIMEDOUT)
 			{
-				writeMemo("[?] No registrar response.");
+				writeMemo("[reconnectToRegistrar] errno == Timeout: No registrar response");
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 			}
@@ -3131,6 +3193,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 		}
 
 		evt = (AmsEvent) lyst_data_set(elt, NULL);
+
 		lyst_delete(elt);
 		llcv_unlock(sap->mamsEventsCV);
 		switch (evt->type)
@@ -3140,6 +3203,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 			switch (msg->type)
 			{
 			case you_are_dead:
+
 				recycleEvent(evt);
 				if (enqueueAmsCrash(sap,
 					"Killed by registrar: reconnect.") < 0)
@@ -3152,6 +3216,9 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 				return 0;
 
 			case reconnected:
+#if DEBUGAMS
+	writeMemo("[reconnectToRegistrar]: reconnected");
+#endif
 				sap->heartbeatsMissed = 0;
 				recycleEvent(evt);
 				unlockMib();
@@ -3161,18 +3228,27 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 			default:
 				/*	Stray message; ignore it and
 				 *	try again.			*/
+#if DEBUGAMS
+	writeMemo("[reconnectToRegistrar] Stray message: ignored");
+#endif
 
 				recycleEvent(evt);
 				continue;
 			}
 
 		case CRASH_EVT:
+#if DEBUGAMS
+	writeMemo("[reconnectToRegistrar] CRASH_EVENT: Can't reconnect to registrar");
+#endif
 			putErrmsg("Can't reconnect to registrar.", evt->value);
 			recycleEvent(evt);
 			unlockMib();
 			return -1;
 
 		default:		/*	Stray message; ignore.	*/
+#if DEBUGAMS
+	writeMemo("[reconnectToRegistrar] CRASH_EVENT: Ignoring stray message");
+#endif
 			recycleEvent(evt);
 			continue;	/*	Try again.		*/
 		}
@@ -3183,6 +3259,11 @@ static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 {
 	int	result;
 	MamsMsg	*msg = (MamsMsg *) (evt->value);
+
+#if DEBUGAMS
+	snprintf(myBuffer, 200, "[sendMsgToRegistrar] Message type: %d", msg->type);
+	debugams(myBuffer);
+#endif
 
 	/*	If registrar is unknown:
 	 *		If configuration server is known:
@@ -3206,6 +3287,12 @@ static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 	 *			Registrar is unknown.
 	 *			Give up for now.
 	 *	Send message to known registrar.			*/
+
+
+
+
+
+
 
 	if (sap->rsEndpoint->ept == NULL)	/*	Lost registrar.	*/
 	{
@@ -3248,6 +3335,8 @@ static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif), msg->type,
 			msg->memo, msg->supplementLength, msg->supplement);
+
+
 	if (msg->supplement)
 	{
 		MRELEASE(msg->supplement);
@@ -3347,10 +3436,12 @@ static int	getModuleNbr(AmsSAP *sap)
 
 	supplement = MTAKE(supplementLength);
 	CHKERR(supplement);
+
 	loadContactSummary(sap, supplement, supplementLength);
 	queryNbr = time(NULL);
 	temp = queryNbr;
 	lyst_compare_set(sap->mamsEvents, (LystCompareFn) temp);
+
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif),
 		module_registration, queryNbr, supplementLength, supplement);
 	MRELEASE(supplement);
@@ -3388,13 +3479,11 @@ static int	getModuleNbr(AmsSAP *sap)
 			}
 
 			/*	Unrecoverable failure.			*/
-
 			putErrmsg("Registration attempt failed.", NULL);
 			return -1;
 		}
 
 		/*	A response message has arrived.			*/
-
 		lockMib();
 		llcv_lock(sap->mamsEventsCV);
 		elt = lyst_first(sap->mamsEvents);
@@ -3407,10 +3496,13 @@ static int	getModuleNbr(AmsSAP *sap)
 		evt = (AmsEvent) lyst_data_set(elt, NULL);
 		lyst_delete(elt);
 		llcv_unlock(sap->mamsEventsCV);
+
+
 		switch (evt->type)
 		{
 		case MAMS_MSG_EVT:
 			msg = (MamsMsg *) (evt->value);
+
 			switch (msg->type)
 			{
 			case rejection:
@@ -3420,7 +3512,7 @@ static int	getModuleNbr(AmsSAP *sap)
 				lyst_compare_set(sap->mamsEvents, NULL);
 				return 0;
 
-			case you_are_in:
+			case you_are_in:				
 
 				/*	Post event to main thread, to
 				 *	terminate ams_register2.	*/
@@ -3441,6 +3533,9 @@ static int	getModuleNbr(AmsSAP *sap)
 			default:
 				/*	Stray message; ignore it and
 				 *	try again.			*/
+#if DEBUGAMS
+	writeMemo("[getModuleNbr]: Stray message");
+#endif
 
 				recycleEvent(evt);
 				continue;
@@ -3564,7 +3659,9 @@ static void	*mamsMain(void *parm)
 
 		case MSG_TO_SEND_EVT:
 			lockMib();
+
 			result = sendMsgToRegistrar(sap, evt);
+
 			unlockMib();
 			if (result < 0)
 			{
@@ -3704,11 +3801,11 @@ static int	ams_register2(char *applicationName, char *authorityName,
 	CHKERR(unitName);
 	CHKERR(roleName);
 	CHKERR(module);
-	CHKERR(applicationName);
-	CHKERR(applicationName);
-	CHKERR(applicationName);
-	CHKERR(applicationName);
-	CHKERR(applicationName);
+	CHKERR(applicationName);	
+						 
+						 
+						 
+						 
 	length = strlen(applicationName);
 	CHKERR(length > 0);
 	CHKERR(length <= MAX_APP_NAME);
@@ -4272,35 +4369,37 @@ char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 
 Lyst	ams_list_msgspaces(AmsSAP *sap)
 {
-	Lyst	msgspaces = NULL;
-	int	i;
-	Subject	**msgspace;
-	int	msgspaceNbr;
-	saddr	temp;
+	Lyst	msgspaces = NULL;	
+	   
+					
+				 
+			
 
 	if (validSap(sap))
 	{
-		lockMib();
-		msgspaces = lyst_create_using(getIonMemoryMgr());
-		if (msgspaces)
+		lockMib();		
+		msgspaces = sap->venture->msgspace_lyst;
+
+
+		if(msgspaces == NULL)
 		{
-			for (i = 0, msgspace = sap->venture->msgspaces;
-					i <= MAX_CONTIN_NBR; i++, msgspace++)
-			{
-				if (*msgspace != NULL)
-				{
-					msgspaceNbr = 0 - (*msgspace)->nbr;
-					temp = msgspaceNbr;
-					if (lyst_insert_last(msgspaces,
-							(void *) temp) == NULL)
-					{
-						lyst_destroy(msgspaces);
-						msgspaces = NULL;
-						break;	/*	Loop.	*/
-					}
-				}
-			}
-		}
+												  
+										  
+	
+			return NULL;
+	 
+										
+						
+									
+							  
+	  
+							  
+					   
+						
+	  
+	 
+		}		
+   
 
 		unlockMib();
 	}
@@ -4316,8 +4415,10 @@ int	ams_msgspace_is_neighbor(AmsSAP *sap, int continuumNbr)
 	{
 		return 0;
 	}
+	
+	msgspace = getMsgSpaceByNbr(sap->venture, continuumNbr);
 
-	msgspace = sap->venture->msgspaces[continuumNbr];
+
 	if (msgspace == NULL)
 	{
 		return 0;
@@ -5149,9 +5250,12 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 
 	if (subjectNbr < 1)
 	{
-		CHKERR(sap->role->nbr == 1);	/*	RAMS gateway	*/
+			
+		CHKERR(sap->role->nbr == 1);	//	RAMS gateway	
 		CHKERR(subjectNbr == (0 - myContinNbr));
-		subject = sap->venture->msgspaces[myContinNbr];
+		
+		subject = getMsgSpaceByNbr(sap->venture, myContinNbr);
+
 	}
 	else
 	{
@@ -6305,19 +6409,28 @@ char	*ams_lookup_subject_name(AmsSAP *sap, int subjectNbr)
 }
 
 static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
-{
-	Continuum	*contin;
+{	
+	Continuum 	*myContinuum;
+	AmsMib		*mib = _mib(NULL);
+	LystElt		elt;
+
 
 	lockMib();
 	if (continuumNbr < 0) continuumNbr = 0 - continuumNbr;
        	if (continuumNbr > 0 && continuumNbr <= MAX_CONTIN_NBR)
 	{
-		contin = (_mib(NULL))->continua[continuumNbr];
-		if (contin)	/*	Known continuum.		*/
+		//set elt to first element of continuum_lyst and iterate through the set of lysts
+		for (elt = lyst_first(mib->continuum_lyst); elt; elt = lyst_next(elt))
 		{
-			unlockMib();
-			return contin->name;
-		}
+			//cast lyst element to Continuum pointer
+			myContinuum = (Continuum *) lyst_data(elt);
+			
+			if(myContinuum->nbr == continuumNbr)
+			{
+				unlockMib();
+				return myContinuum->name;
+			}
+		} //end for lyst of Continuum pointers
 	}
 
 	unlockMib();
