@@ -5,6 +5,13 @@
 	Author: Shin-Ywan (Cindy) Wang
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2022
+
+	Modifications correct the following issues:
+	1.) Allow for SANA node numbers (i.e up to 2,000,000) see MAX_CONTIN_NBR directive in amscommon.h 
+	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (linked list)
 */
 
 #include "ramscommon.h"
@@ -1009,7 +1016,7 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 		ErrMsg("Failed creating message.");
 		return -1;
 	}
-
+	//skywalker changes SourceCustodyRequired to NoCustodyRequested (per Scott Burleigh)
 	if (bp_send(gWay->sap, ramsNode->gwEid, "dtn:none", gWay->ttl,
 		classOfService, NoCustodyRequested, 0, 0, &ancillaryData,
 		bundleZco, &newBundle) < 1)
