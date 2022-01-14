@@ -1,0 +1,136 @@
+
+#!/bin/bash
+#
+# Sky DeBaun
+# January 2022
+#
+# boilerplate per Scott Burleigh
+
+
+CONFIGFILES=" \
+./51.ipn.ltp/amroc.bprc \
+./51.ipn.ltp/amroc.ltprc \
+./51.ipn.ltp/amroc.ionconfig \
+./51.ipn.ltp/amroc.ionrc \
+./51.ipn.ltp/amroc.ionrc \
+./51.ipn.ltp/amroc.ionsecrc \
+./51.ipn.ltp/amroc.ipnrc \
+./10001.ipn.ltp/amroc.bprc \
+./10001.ipn.ltp/amroc.ltprc \
+./10001.ipn.ltp/amroc.ionconfig \
+./10001.ipn.ltp/amroc.ionrc \
+./10001.ipn.ltp/amroc.ionrc \
+./10001.ipn.ltp/amroc.ionsecrc \
+./10001.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that AMS functions with large Node numbers (per SANA node range upgrade):
+
+This test instanciates two ION nodes and uses amsbenchr and amsbenchs utilities to verify AMS works using large ION Node numbers"
+
+echo
+echo "CONFIG: for 2 node AMS network begins"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+#cleanup any running ION instances before start----
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+#variable for test result return
+RETVAL=0 #defaults to success
+
+# Start ION nodes and verify -----------------------
+cd 51.ipn.ltp
+./ionstart
+
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 51 not started: Aborting Test"
+	exit 1
+fi
+
+
+cd ../10001.ipn.ltp
+./ionstart
+
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 10001 not started: Aborting Test"
+	exit 1
+fi
+
+# Start message receiver on node 51----------------
+cd ../51.ipn.ltp
+echo "Starting amsbenchr on Node 51"
+# Start message logger.
+amsbenchr > test_output &
+sleep 1
+
+# Start message sender on node 10001----------------
+cd ../10001.ipn.ltp
+echo "Starting amsbenchs on Node 10001"
+amsbenchs 10 100 &
+sleep 3 #give it a moment to finish
+
+#shut down amsbenchs
+killall amsbenchs &> /dev/null
+
+
+
+#check results log---------------------------------- 
+cd ../51.ipn.ltp
+
+# wait for output file to settle
+sleep 5
+
+
+echo "Checking test_output for 'Received 10 messages, a total of 1000 bytes'"
+COUNT=`grep "Received 10 messages, a total of 1000 bytes" test_output | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: Messages received."
+else
+	echo "ERROR: Messages not received."
+	RETVAL=1
+fi
+
+# Shut down ION processes----------------------------
+echo "Stopping ION..."
+
+./ionstop & # node 51
+
+cd ../10001.ipn.ltp
+./ionstop &
+
+
+# Give both nodes time to shut down, then clean up
+sleep 5
+killm
+
+
+echo "ams-sana test completed."
+exit $RETVAL
