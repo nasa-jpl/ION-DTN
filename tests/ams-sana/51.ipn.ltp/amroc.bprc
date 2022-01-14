@@ -1,0 +1,15 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:51.0 x
+a endpoint ipn:51.1 x
+a endpoint ipn:51.2 x
+a endpoint ipn:51.19 x
+a endpoint ipn:51.64 x
+a endpoint ipn:51.65 x
+a endpoint ipn:51.126 x
+a protocol ltp 1400 100
+a induct ltp 51 ltpcli
+a outduct ltp 10001 ltpclo
+r 'ipnadmin amroc.ipnrc'
+w 1
+s
