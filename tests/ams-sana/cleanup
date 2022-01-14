@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Sky DeBaun
+# January 2022
+
+echo "Cleaning up old ION..."
+rm -f ion_nodes 51.ipn.ltp/ion.log 51.ipn.ltp/19.petition.log  51.ipn.ltp/test_output  10001.ipn.ltp/ion.log 10001.ipn.ltp/19.petition.log
+killm
+
+
