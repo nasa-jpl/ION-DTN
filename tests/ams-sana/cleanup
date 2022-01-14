@@ -4,7 +4,10 @@
 # January 2022
 
 echo "Cleaning up old ION..."
-rm -f ion_nodes 51.ipn.ltp/ion.log 51.ipn.ltp/19.petition.log  51.ipn.ltp/test_output  10001.ipn.ltp/ion.log 10001.ipn.ltp/19.petition.log
+rm -f ion_nodes 
+rm -f 51.ipn.ltp/ion.log 
+rm -f 51.ipn.ltp/19.petition.log  
+rm -f 51.ipn.ltp/test_output  
+rm -f 10001.ipn.ltp/ion.log 
+rm -f 10001.ipn.ltp/19.petition.log
 killm
-
-
