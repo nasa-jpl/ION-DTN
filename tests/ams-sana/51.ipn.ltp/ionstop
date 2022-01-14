@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#ion stop routine---------------------
+amsstop amsdemo test
+sleep 1
+bpadmin		.
+sleep 1
+ltpadmin	.
+sleep 1
+ionadmin	.
