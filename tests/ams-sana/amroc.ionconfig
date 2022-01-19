@@ -1,0 +1,4 @@
+wmSize 15000000
+configFlags 1
+heapWords 1000000
+pathName '.'
