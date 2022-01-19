@@ -1,6 +1,8 @@
 #!/bin/bash
 #
-# AMS SANA (i.e. node range upgrade) integration test script
+# AMS SANA (i.e. node number range upgrade) integration test script
+# This test uses amsbenchr and amsbenchs over LTP protocol 
+# Continuum numbers 9999 and 77777 are used
 #
 # Sky DeBaun
 # January 2022
