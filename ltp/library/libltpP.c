@@ -5298,7 +5298,7 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 			LtpImportSession *sessionBuf, unsigned int sessionNbr,
 			LtpVImportSession *vsession, Object spanObj,
 			LtpSpan *span, LtpVspan *vspan, LtpRecvSeg *segment,
-			unsigned int *segUpperBound, LtpPdu *pdu, char **cursor)
+			int *segUpperBound, LtpPdu *pdu, char **cursor)
 {
 	Sdr		sdr = getIonsdr();
 	uvast		endOfSegment;
@@ -5310,7 +5310,7 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 	uvast		endOfIncrement;
 	int		fd;
 
-	*segUpperBound = 0;	/*	Default: discard segment.	*/
+	*segUpperBound = -1;	/*	Default: discard segment and immediate end transaction. */
 	bytesForHeap = pdu->offset < ltpdb->maxAcqInHeap ?
 			ltpdb->maxAcqInHeap - pdu->offset : 0;
 	if (bytesForHeap > pdu->length)
@@ -5523,7 +5523,7 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 	int			result;
 	unsigned int		endOfRed;
 	Object			clientSvcData = 0;
-	unsigned int		segUpperBound;
+	int				segUpperBound;
 				OBJ_POINTER(LtpRecvSeg, firstSegment);
 
 	/*	First finish parsing the segment.			*/
@@ -5793,7 +5793,7 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		return -1;
 	}
 
-	if (segUpperBound == 0)	/*	Segment discarded.		*/
+	if (segUpperBound == -1) /*	segment discarded and not act upon further 	*/
 	{
 #if LTPDEBUG
 putErrmsg("Discarded data segment.", itoa(sessionNbr));
@@ -5804,39 +5804,46 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 	/*	Based on the segment type code, infer additional
 	 *	session information and do additional processing.	*/
 
-	if ((pdu->segTypeCode == LtpDsRedEORP
-	|| pdu->segTypeCode == LtpDsRedEOB)
-	&& sessionBuf.redSegments != 0)
-	{
-		/*	This segment is the end of the red part of
-		 *	the block, so the end of its data is the end
-		 *	of the red part.				*/
+	/*  check if segment data was received and inserted into buffer */
 
-		sessionBuf.redPartLength = segUpperBound;
-		GET_OBJ_POINTER(sdr, LtpRecvSeg, firstSegment,
-				sdr_list_data(sdr, sdr_list_first(sdr,
-				sessionBuf.redSegments)));
-		if (firstSegment->pdu.length > vspan->maxRecvSegSize)
+	if (segUpperBound > 0)
+	{
+		if ((pdu->segTypeCode == LtpDsRedEORP
+		|| pdu->segTypeCode == LtpDsRedEOB)
+		&& sessionBuf.redSegments != 0)
 		{
-			vspan->maxRecvSegSize = firstSegment->pdu.length;
-			computeRetransmissionLimits(vspan);
+			/*	This segment is the end of the red part of
+			*	the block, so the end of its data is the end
+			*	of the red part.				*/
+
+			sessionBuf.redPartLength = segUpperBound;
+			GET_OBJ_POINTER(sdr, LtpRecvSeg, firstSegment,
+					sdr_list_data(sdr, sdr_list_first(sdr,
+					sessionBuf.redSegments)));
+			if (firstSegment->pdu.length > vspan->maxRecvSegSize)
+			{
+				vspan->maxRecvSegSize = firstSegment->pdu.length;
+				computeRetransmissionLimits(vspan);
+			}
+
+			/*	We can now compute an upper limit on the
+			*	number of report segments we can send back
+			*	for this session.				*/
+
+			sessionBuf.maxReports = getMaxReports(sessionBuf.redPartLength,
+					vspan, 1);
 		}
 
-		/*	We can now compute an upper limit on the
-		 *	number of report segments we can send back
-		 *	for this session.				*/
+		if ((pdu->segTypeCode & LTP_FLAG_1)
+		&& (pdu->segTypeCode & LTP_FLAG_0))
+		{
+			/*	This segment is the end of the block.		*/
 
-		sessionBuf.maxReports = getMaxReports(sessionBuf.redPartLength,
-				 vspan, 1);
+			sessionBuf.endOfBlockRecd = 1;
+		}
 	}
 
-	if ((pdu->segTypeCode & LTP_FLAG_1)
-	&& (pdu->segTypeCode & LTP_FLAG_0))
-	{
-		/*	This segment is the end of the block.		*/
-
-		sessionBuf.endOfBlockRecd = 1;
-	}
+	/* act on check point, even if data is duplicate */
 
 	if (pdu->segTypeCode > 0)
 	{
@@ -5844,6 +5851,26 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 		 *	send a report in response.			*/
 
 		ltpSpanTally(vspan, CKPT_RECV, 0);
+
+		/* if the data in CP was duplicate, set upperbound to redPartLength */
+		
+		if (segUpperBound == 0)
+		{
+			/* if red part length is known */
+			if (sessionBuf.redPartLength > 0)
+			{
+				segUpperBound = sessionBuf.redPartLength;
+			}
+			else
+			{
+				/* if redpart length unknown, end transaction */
+#if LTPDEBUG
+putErrmsg("Check point not acted on.", itoa(sessionNbr));
+#endif
+				return sdr_end_xn(sdr);
+			}
+		}
+
 		if (sendReport(&sessionBuf, sessionObj, ckptSerialNbr,
 				rptSerialNbr, segUpperBound) < 0)
 		{
