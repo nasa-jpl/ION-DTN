@@ -230,6 +230,7 @@ echo "Should go from 23 to passageway 21 to passageway 22 to 24."
 
 cd ../24.ipn.tcp
 bprecvfile ipn:24.2 2 &
+
 sleep 1
 
 cd ../23.ipn.tcp
@@ -357,9 +358,13 @@ sleep 1
 cd ../27.ipn.tcp
 bpsendfile ipn:27.1 ipn:26.2 fileA
 sleep 10
-bpsendfile ipn:27.1 ipn:26.2 fileB
+bpsendfile ipn:27.1 ipn:26.2 fileB 0.1.0.0.0.0.1 300 ipn:26.0
 
-sleep 3
+sleep 1
+
+echo "NOTE: an IRF path trace report should now be in node 26's ion.log file."
+
+sleep 2
 
 echo ""
 echo "Step 9: convert node 24 into a passageway back up to region 1"

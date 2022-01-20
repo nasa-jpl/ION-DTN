@@ -312,6 +312,279 @@ int	irf_source_msg(Bundle *bundle, int isReachable)
 	return result;
 }
 
+int	irf_issue_ipt_rpt(Bundle *bundle)
+{
+	Sdr		sdr = getIonsdr();
+	uvast		fromNodeNbr;
+	uvast		toNodeNbr;
+	char		sourceEid[32];
+	MetaEid		sourceMetaEid;
+	VScheme		*vscheme;
+	PsmAddress	vschemeElt;
+	Lyst		passageways;
+	Object		pwyElt;
+	int		traceLen;
+	int		bufsize;
+	char		*buffer;
+	unsigned char	*cursor;
+	uvast		uvtemp;
+	LystElt		elt;
+	int		msgLength;
+	Object		payloadZco;
+	char		*destinationEid;
+	uvast		ttl = 604800;	/*	Seconds; 1 week.	*/
+	BpAncillaryData	ecos = { 0, 0, 255 };
+	Object		sourceData;
+	int		result;
+
+	CHKERR(bundle);
+	CHKERR(bundle->passageways);
+	fromNodeNbr = bundle->id.source.ssp.ipn.nodeNbr;
+	toNodeNbr = bundle->destination.ssp.ipn.nodeNbr;
+	isprintf(sourceEid, sizeof sourceEid, "ipn:" UVAST_FIELDSPEC ".0",
+			getOwnNodeNbr());
+	CHKERR(parseEidString(sourceEid, &sourceMetaEid, &vscheme,
+			&vschemeElt));
+
+	/*	Copy passageways list out of bundle.			*/
+
+	passageways = lyst_create_using(getIonMemoryMgr());
+	CHKERR(passageways);
+	for (pwyElt = sdr_list_first(sdr, bundle->passageways); pwyElt;
+			pwyElt = sdr_list_next(sdr, pwyElt))
+	{
+		if (lyst_insert_last(passageways,
+			(void *) sdr_list_data(sdr, pwyElt)) == NULL)
+		{
+			lyst_destroy(passageways);
+			putErrmsg("Can't copy passageways.", NULL);
+			return -1;
+		}
+	}
+
+	/*	IPT report is the content of a BP admin record of type
+	 *	9; it is an array of 4 items, the fourth of which is
+	 *	an array of passageway node numbers.  This BP admin
+	 *	record is the payload of the bundle that will be sent.	*/
+
+	traceLen = lyst_length(passageways);
+	bufsize =	1		/*	Array of 2 items	*/
+		+	9		/*	Integer: admin rec type	*/
+		+	1		/*	Array of 4 items	*/
+		+	9		/*	Integer: Unix epoch time*/
+		+	9		/*	Integer: source node nbr*/
+		+	9		/*	Integer: dest node nbr	*/
+		+	1		/*	Array of traceLen items	*/
+		+	(9 * traceLen);	/*	Integers: pwy node nbrs	*/
+	buffer = MTAKE(bufsize);
+	if (buffer == NULL)
+	{
+		lyst_destroy(passageways);
+		putErrmsg("Failed taking buffer for IPT report.", NULL);
+		return -1;
+	}
+
+	/*	Can now serialize the record into the buffer.		*/
+
+	memset(buffer, 0, bufsize);
+	cursor = (unsigned char *) buffer;
+
+	/*	Admin record is an array of 2 items.			*/
+
+	uvtemp = 2;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	The first item of the admin record is the admin
+	 *	record type.						*/
+
+	uvtemp = BP_IPT_REPORT;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	The second item of the admin record is its content,
+	 *	the IPT report itself.
+	 *
+	 *	The IPT report is itself an array of 4 items.		*/
+
+	uvtemp = 4;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	The first item of the IPT report is the Unix epoch
+	 *	time at which this report is being issued.		*/
+
+	uvtemp = getCtime();
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	The second item of the IPT report is the node number
+	 *	of the source of a bundle that was destined for a node
+	 *	located in some other region.				*/
+
+	uvtemp = fromNodeNbr;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	The third item of the IPT report is the node number
+	 *	of the destination of that bundle, the node for which
+	 *	this report traces the trans-regional path.		*/
+
+	uvtemp = toNodeNbr;
+	oK(cbor_encode_integer(uvtemp, &cursor));
+
+	/*	The fourth item of the IPT report is an array of N
+	 *	node numbers identifying all of the passageway nodes
+	 *	that relayed the bundle toward its destination.		*/
+
+	uvtemp = traceLen;
+	oK(cbor_encode_array_open(uvtemp, &cursor));
+
+	/*	Each item of this array is the node number of one of
+	 *	the passageway node on that path.			*/
+
+	for (elt = lyst_first(passageways); elt; elt = lyst_next(elt))
+	{
+		uvtemp = (uvast) lyst_data(elt);
+		oK(cbor_encode_integer(uvtemp, &cursor));
+	}
+
+	/*	IPT report has now been serialized.			*/
+
+	lyst_destroy(passageways);
+	msgLength = cursor - ((unsigned char *) buffer);
+	CHKERR(sdr_begin_xn(sdr));
+	sourceData = sdr_malloc(sdr, msgLength);
+	if (sourceData == 0)
+	{
+		MRELEASE(buffer);
+		putErrmsg("No space for source data.", NULL);
+		sdr_cancel_xn(sdr);
+		return -1;
+	}
+
+	sdr_write(sdr, sourceData, buffer, msgLength);
+	MRELEASE(buffer);
+
+	/*	Pass additive inverse of length to zco_create to
+	 *	indicate that allocating this ZCO space is non-
+	 *	negotiable: for IPT reports, allocation of ZCO
+	 *	space can never be denied or delayed.			*/
+
+	payloadZco = zco_create(sdr, ZcoSdrSource, sourceData, 0, 0 - msgLength,
+			ZcoOutbound);
+	if (sdr_end_xn(sdr) < 0
+	|| payloadZco == (Object) ERROR
+	|| payloadZco == 0)
+	{
+		putErrmsg("Can't create IPT report.", NULL);
+		return -1;
+	}
+
+	/*	Construct destination endpoint ID and send report.	*/
+
+	readEid(&(bundle->reportTo), &destinationEid);
+	result = bpSend(&sourceMetaEid, destinationEid, NULL, ttl * 1000,
+			BP_STD_PRIORITY, NoCustodyRequested, 0, 0, &ecos,
+			payloadZco, NULL, BP_IPT_REPORT);
+	MRELEASE(destinationEid);
+	switch (result)
+	{
+	case -1:
+		putErrmsg("Can't send IPT report.", NULL);
+		break;
+
+	case 0:
+		writeMemo("[?] IPT report not transmitted.");
+
+			/*	Intentional fall-through to next case.	*/
+	default:
+		break;
+	}
+
+	return result;
+}
+
+int	irf_print_ipt_rpt(BpDelivery *dlv, unsigned char *cursor,
+		unsigned int unparsedBytes)
+{
+	uvast	arrayLength;
+	uvast	uvtemp;
+	time_t	timestamp;
+	char	timestampBuffer[32];
+	uvast	fromNodeNbr;
+	uvast	toNodeNbr;
+	uvast	pwyNodeNbr;
+	char	buf[256];
+
+	/*	Parse past IPT report array header.			*/
+
+	arrayLength = 4;	/*	Decode array of size 4.		*/
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IPT report.");
+		return 0;
+	}
+
+	/*	Get report effective time.				*/
+
+	if (cbor_decode_integer(&uvtemp, CborAny, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IPT report effective time.");
+		return 0;
+	}
+
+	timestamp = uvtemp;
+	writeTimestampLocal(timestamp, timestampBuffer);
+
+	/*	Get node number of source node.				*/
+
+	if (cbor_decode_integer(&fromNodeNbr, CborAny, &cursor, &unparsedBytes)
+			< 1)
+	{
+		writeMemo("[?] Can't decode IPT report source node nbr.");
+		return 0;
+	}
+
+	/*	Get node number of destination node.			*/
+
+	if (cbor_decode_integer(&toNodeNbr, CborAny, &cursor, &unparsedBytes)
+			< 1)
+	{
+		writeMemo("[?] Can't decode IPT report destination node nbr.");
+		return 0;
+	}
+
+	/*	Print report heading.					*/
+
+	isprintf(buf, sizeof buf, "[i] IRF path trace reported at %s",
+			timestampBuffer);
+	writeMemo(buf);
+	isprintf(buf, sizeof buf, "[i] Passageways from node " UVAST_FIELDSPEC
+" to node " UVAST_FIELDSPEC ":", fromNodeNbr, toNodeNbr);
+	writeMemo(buf);
+
+	/*	Get number of passageways in the path.			*/
+
+	arrayLength = 0;	/*	Decode array of any size.	*/
+	if (cbor_decode_array_open(&arrayLength, &cursor, &unparsedBytes) < 1)
+	{
+		writeMemo("[?] Can't decode IMC briefing array.");
+		return 0;
+	}
+
+	while (arrayLength > 0)
+	{
+		arrayLength--;
+		if (cbor_decode_integer(&pwyNodeNbr, CborAny, &cursor,
+				&unparsedBytes) < 1)
+		{
+			writeMemo("[?] Can't decode passageway node nbr.");
+			return 0;
+		}
+
+		isprintf(buf, sizeof buf, "[i]\t" UVAST_FIELDSPEC, pwyNodeNbr);
+		writeMemo(buf);
+	}
+
+	return 0;
+}
+
 int	irf_load_passageways(Bundle *bundle, Object bundleAddr)
 {
 	Sdr		sdr = getIonsdr();
@@ -391,7 +664,6 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	IrfCandidate	*bestCandidate = NULL;
 	uvast		sourceNodeNbr;
 	IonDB		iondb;
-	int		priorPassageways;
 	Object		pwyElt;
 	uint32_t	okayHomeRegion;
 	uint32_t	okayOuterRegion;
@@ -493,9 +765,7 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 		 *	The last node in the bundle's passageways
 		 *	list is the local node.				*/
 
-		priorPassageways = sdr_list_length(sdr, bundle->passageways)
-				- 1;
-		if (priorPassageways == 0)
+		if (sdr_list_length(sdr, bundle->passageways) < 2)
 		{
 			/*	Bundle was received directly from
 			 *	the source node.			*/

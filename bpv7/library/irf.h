@@ -19,6 +19,9 @@
 
 #include "bpP.h"
 
+/*	Administrative record types	*/
+#define	BP_IPT_REPORT	(9)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,6 +35,9 @@ extern int	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 extern int	irf_send_msg(uvast fromNodeNbr, uvast toNodeNbr,
 			int isReachable, Lyst passageways);
 extern int	irf_source_msg(Bundle *bundle, int isReachable);
+extern int	irf_issue_ipt_rpt(Bundle *bundle);
+extern int	irf_print_ipt_rpt(BpDelivery *dlf, unsigned char *cursor,
+			unsigned int unparsedBytes);
 
 #ifdef __cplusplus
 }

@@ -57,9 +57,9 @@ Configures and deploys a new node in the ../newnode directory; the
 multi-node deployment will be subject to the B<ion_nodes> file in the current
 working directory (i.e., ION_NODE_LIST_DIR will be set to ".").  The new
 node's number will be automatically generated as the concatenation of
-the local node's home region number and the current Unix epoch time.  The
-node's configuration will include items from the "spec" configuration files
-in ../newnode, if any, and the new node's private key will be encrypted
+the local node's home region number and the current DTN time.  The node's
+configuration will include items from the "spec" configuration files in
+../newnode, if any, and the new node's private key will be encrypted
 using the passphrase in ../secure/passwd.  The node will not be automatically
 relocated to any other computer.
 
@@ -74,7 +74,7 @@ the new node.  The file named "contacts.B<regionNbr>.ionrc" will contain
 commands to load all contacts in the contact plan for the home region of
 the node at which B<dnac> is being run.  The file named
 "passageways.B<regionNbr>.ionrc" will contain commands to load all
-passageway information known to this node.  The file named "regions.ionrc"
+passageway information known to this node.  The file named "ranges.ionrc"
 will contain commands to load all range information known to this node.
 All three files will be passed to ionadmin.
 
