@@ -13,8 +13,8 @@
 
 	1.) Petition assert/cancel flip-flop on RAMSGATE start (required two restarts to revert petition state)
 	
-	2.) Allow for SANA node numbers (i.e up to 2,000,000) see MAX_CONTIN_NBR directive in amscommon.h 
-	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (linked list)
+	2.) Allow for full range of SANA node numbers - see MAX_CONTIN_NBR directive in amscommon.h 
+	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (managed linked list)
 
 */
 
