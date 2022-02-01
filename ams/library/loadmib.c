@@ -13,8 +13,8 @@
 
 	Modifications address the following issues:
 
-	1.) Allow for SANA node numbers (i.e up to 2,000,000) see MAX_CONTIN_NBR directive in amscommon.h 
-	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (linked list)
+	1.) Allow for full range of SANA node numbers - see MAX_CONTIN_NBR directive in amscommon.h 
+	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (managed linked list)
 
 */
 
