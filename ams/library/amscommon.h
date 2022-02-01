@@ -68,7 +68,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	21000000 //sky modifies to account for full range of SANA node #'s (see librams.c, amscommon.c, etc)
+#define	MAX_CONTIN_NBR	21000000 //account for full range of SANA node #'s (used only as a sanity check)
 #endif
 
 #ifndef MAX_VENTURE_NBR
