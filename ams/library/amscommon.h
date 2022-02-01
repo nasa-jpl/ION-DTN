@@ -12,7 +12,7 @@
 	Jet Propulsion Laboratory 2022
 	
 	Modifications address the following:
-	1.) Allow for SANA node numbers (i.e up to ~2,000,000 see MAX_CONTIN_NBR directive)  
+	1.) Allow for SANA node numbers (i.e up to ~2,100,000 see MAX_CONTIN_NBR directive)  
 	2.) New associated function definitions for: getContinuaByNbr() and getMsgSpaceByNbr()	
 	
 	*/
@@ -68,7 +68,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	20000000 //skywalker modifies to account for SANA node #'s (see librams.c, amscommon.c, etc)
+#define	MAX_CONTIN_NBR	21000000 //sky modifies to account for full range of SANA node #'s (see librams.c, amscommon.c, etc)
 #endif
 
 #ifndef MAX_VENTURE_NBR
