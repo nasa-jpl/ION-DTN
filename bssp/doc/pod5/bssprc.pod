@@ -163,23 +163,23 @@ de-selecting all others.  BSSP will print each selected activity indication
 character to B<stdout> every time a processing event of the associated type
 occurs:
 
-B<d>	bssp send completed
+B<D>	bssp send completed
 
-B<e>	bssp block constructed for issuance
+B<E>	bssp block constructed for issuance
 
-B<f>	bssp block issued
+B<F>	bssp block issued
 
-B<g>	bssp block popped from best-efforts transmission queue
+B<G>	bssp block popped from best-efforts transmission queue
 
-B<h>	positive ACK received for bssp block, session ended
+B<H>	positive ACK received for bssp block, session ended
 
-B<s>	bssp block received
+B<S>	bssp block received
 
-B<t>	bssp block popped from reliable transmission queue
+B<T>	bssp block popped from reliable transmission queue
 
-B<=>	unacknowledged best-efforts block requeued for reliable transmission
+B<->	unacknowledged best-efforts block requeued for reliable transmission
 
-B<{>	session canceled locally by sender
+B<[>	session canceled locally by sender
 
 =item B<h>
 

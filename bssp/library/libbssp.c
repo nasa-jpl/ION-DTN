@@ -138,7 +138,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 	if (vdb->watching & WATCH_f)
 	{
-		putchar('f');
+		putchar('F');
 		fflush(stdout);
 	}
 	/*	Commit changes to current session to the
@@ -165,7 +165,7 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 	if (vdb->watching & WATCH_d)
 	{
-		putchar('d');
+		putchar('D');
 		fflush(stdout);
 	}
 

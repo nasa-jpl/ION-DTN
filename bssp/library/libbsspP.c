@@ -2101,7 +2101,7 @@ currentTime += 5;	/*	s/b += RTT from contact plan.	*/
 
 	if (bsspvdb->watching & WATCH_g)
 	{
-		putchar('g');
+		putchar('G');
 		fflush(stdout);
 	}
 
@@ -2218,7 +2218,7 @@ int	bsspDequeueRLOutboundBlock(BsspVspan *vspan, char **buf)
 
 	if (bsspvdb->watching & WATCH_t)
 	{
-		putchar('t');
+		putchar('T');
 		fflush(stdout);
 	}
 
@@ -2289,7 +2289,7 @@ static int	cancelSessionBySender(BsspExportSession *session,
 
 	if (bsspvdb->watching & WATCH_CBS)
 	{
-		putchar('{');
+		putchar('[');
 		fflush(stdout);
 	}
 
@@ -2698,7 +2698,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 
 	if ((_bsspvdb(NULL))->watching & WATCH_e)
 	{
-		putchar('e');
+		putchar('E');
 		fflush(stdout);
 	}
 
@@ -2841,7 +2841,7 @@ putErrmsg("Discarding report.", NULL);
 
 	if (bsspvdb->watching & WATCH_h)
 	{
-		putchar('h');
+		putchar('H');
 		fflush(stdout);
 	}
 
@@ -2882,7 +2882,7 @@ int	bsspHandleInboundBlock(char *buf, int length)
 
 	if ((_bsspvdb(NULL))->watching & WATCH_s)
 	{
-		putchar('s');
+		putchar('S');
 		fflush(stdout);
 	}
 
@@ -3215,7 +3215,7 @@ putErrmsg("Checkpoint is already acknowledged.", itoa(sessionNbr));
 	signalRlBso(span->engineId);
 	if ((_bsspvdb(NULL))->watching & WATCH_resendBlk)
 	{
-		putchar('=');
+		putchar('-');
 		fflush(stdout);
 	}
 
