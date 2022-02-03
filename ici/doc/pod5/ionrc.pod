@@ -376,32 +376,6 @@ zero-copy-object space occupancy ceiling, and the maximum level
 of occupancy predicted by the most recent I<ionadmin> congestion forecast
 computation.
 
-=item B<m home> I<home_region_number>
-
-This management command asserts that the node's home region is the region
-that is identified by I<home_region_number>.  If no home region is asserted,
-home region number defaults to zero, the "root region".
-
-=item B<m outer> I<outer_region_number>
-
-This management command asserts that the node's outer region is the region
-that is identified by I<outer_region_number>.  Outer region number defaults
-to -1, "no region", indicating that the node is a "terminal node".  When a
-node's outer region number is not -1, the node is able to function as a
-"passageway" by which bundles are conveyed between nodes in the home
-region and nodes in the outer region.
-
-=item B<m passageway> I<node_number> I<home_region_number> I<outer_region_number>
-
-This management command declares the home and outer region numbers for the
-indicated passageway node.  If the outer region number is -1, then the
-node ceases to be a passageway; if the home region number is -1, then
-the passageway is simply removed.  If neither region number is -1 but
-neither region is one of the regions of which the local node is a member,
-the command has no effect.  Otherwise, the home and outer region numbers
-of the indicated node are recorded.  (This information is needed in order
-to accomplish inter-region routing.)
-
 =item B<r> 'I<command_text>'
 
 The B<run> command.  This command will execute I<command_text> as if it
