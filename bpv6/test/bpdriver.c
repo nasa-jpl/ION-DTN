@@ -102,7 +102,7 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	{
 		PUTS("Usage: bpdriver <number of cycles> <own endpoint ID> \
 <destination endpoint ID> [<payload size>] [t<Bundle TTL>] \
-<i<inject data rate>");
+[i<inject data rate>]");
 		PUTS("  Payload size defaults to 60000 bytes.");
 		PUTS("  Bundle TTL defaults to 300 seconds.");
 		PUTS("");
@@ -124,11 +124,11 @@ static int	run_bpdriver(int cyclesRemaining, char *ownEid, char *destEid,
 	    PUTS("  cycles.");
 		PUTS("");
 		PUTS("  Inject data rate specifies in bits-per-second");
-		PUTS("  the equivalent, average rate at which bpdriver");
-		PUTS("  will send bundles into the network. A negative or");
+		PUTS("  the average rate at which bpdriver will");
+		PUTS("  send bundles into the network. A negative or");
 		PUTS("  0 rate value will turn off injection rate control.");
 		PUTS("  By default, bpdriver will inject bundle as fast");
-		PUTS("  as it can be absorbed by ION.");
+		PUTS("  as it can.");
 		PUTS("");
 		PUTS("  Destination (receiving) application must be bpecho");
 		PUTS("  when bpdriver is run in stop-and-wait mode, should");
