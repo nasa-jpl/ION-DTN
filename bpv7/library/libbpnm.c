@@ -388,6 +388,14 @@ void    bpnm_disposition_get(NmbpDisposition * results)
     /*		Bundle processing errors				*/
 
     sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
+    results->custodyRefusedCount = 0;
+    results->custodyRefusedBytes = 0;
+    results->custodyRefusedCount
+	    += dbStats.tallies[BP_DB_CUSTODY_REFUSED].currentCount;
+    results->custodyRefusedBytes
+	    += dbStats.tallies[BP_DB_CUSTODY_REFUSED].currentBytes;
+
+    sdr_read(sdr, (char *) &dbStats, bpdb.dbStats, sizeof(BpDbStats));
     results->bundleFwdFailedCount
 	    = dbStats.tallies[BP_DB_FWD_FAILED].currentCount;
     results->bundleFwdFailedBytes
