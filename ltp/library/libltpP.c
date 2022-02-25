@@ -6484,8 +6484,8 @@ putErrmsg("Discarding report.", NULL);
 			&sessionBuf, &spanObj, &spanBuf, &vspan, &vspanElt);
 	if (spanObj == 0)	/*	Invalid provenance.		*/
 	{
-#if CLOSED_EXPORTS_ENABLED
 		MRELEASE(newClaims);
+#if CLOSED_EXPORTS_ENABLED
 		if (acknowledgeLateReport(sessionNbr, rptSerialNbr))
 		{
 			if (sdr_end_xn(sdr) < 0)
