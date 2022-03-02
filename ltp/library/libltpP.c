@@ -1014,6 +1014,7 @@ int	ltpInit(int estMaxExportSessions)
 				LTP_MEAN_SEARCH_LENGTH);
 #if CLOSED_EXPORTS_ENABLED
 		ltpdbBuf.closedExports= sdr_list_create(sdr);
+		writeMemo("[i] LTP CLOSED_EXPORTS_ENABLED enhancement active.");
 #endif
 		ltpdbBuf.deadExports = sdr_list_create(sdr);
 		ltpdbBuf.spans = sdr_list_create(sdr);
