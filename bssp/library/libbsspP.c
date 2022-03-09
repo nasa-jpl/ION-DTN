@@ -2289,7 +2289,7 @@ static int	cancelSessionBySender(BsspExportSession *session,
 
 	if (bsspvdb->watching & WATCH_CBS)
 	{
-		putchar('[');
+		putchar('*');
 		fflush(stdout);
 	}
 

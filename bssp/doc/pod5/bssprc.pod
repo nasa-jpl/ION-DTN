@@ -158,7 +158,7 @@ The B<BSSP watch> command.  This command enables and disables production of
 a continuous stream of user-selected BSSP activity indication characters.  A
 watch parameter of "1" selects all BSSP activity indication characters; "0"
 de-selects all BSSP activity indication characters; any other I<activity_spec>
-such as "df=" selects all activity indication characters in the string,
+such as "DF-" selects the activity indication characters in the string,
 de-selecting all others.  BSSP will print each selected activity indication
 character to B<stdout> every time a processing event of the associated type
 occurs:
@@ -179,7 +179,7 @@ B<T>	bssp block popped from reliable transmission queue
 
 B<->	unacknowledged best-efforts block requeued for reliable transmission
 
-B<[>	session canceled locally by sender
+B<*>	session canceled locally by sender
 
 =item B<h>
 

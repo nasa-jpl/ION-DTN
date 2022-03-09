@@ -578,6 +578,22 @@ static void	switchWatch(int tokenCount, char **tokens)
 		case '-':
 			vdb->watching |= WATCH_resendBlk;
 			break;
+		
+		case 'F':
+			vdb->watching |= WATCH_f;
+			break;
+		
+		case 'H':
+			vdb->watching |= WATCH_h;
+			break;
+
+		case 'T':
+			vdb->watching |= WATCH_t;
+			break;
+		
+		case '*':
+			vdb->watching |= WATCH_CBS;
+			break;
 
 		default:
 			isprintf(buffer, sizeof buffer,
