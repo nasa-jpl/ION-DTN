@@ -425,7 +425,7 @@ size %6d, ", item->objectAddress, item->objectSize);
 			if (item->refOpNbr == 0)
 			{
 				len = strlen(buffer);
-				istrcpy(buffer + len, "never freed",
+				istrcpy(buffer + len, "not yet freed",
 						sizeof buffer - len);
 			}
 			else
