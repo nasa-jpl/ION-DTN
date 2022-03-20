@@ -1,0 +1,111 @@
+8171c8171
+< 			writeMemo("[?] Primary block has wrong nbr of items.");
+---
+> 			writeMemo("[?] Primary block has wrong # of items.");
+8175c8175,8183
+< 		length = cursor - startOfBlock;
+---
+> 		/*	CRC is encoded as a CBOR byte string.		*/
+> 
+> 		uvtemp = (uvast) -1;
+> 		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+> 				&unparsedBytes) < 1)
+> 		{
+> 			writeMemo("[?] Can't decode CRC.");
+> 			return 0;
+> 		}
+8177c8185,8192
+< 		/*	Must include CRC in block for CRC calculation.	*/
+---
+> 		/*	Note, because the decoding destination is
+> 		 *	NULL, the cursor was advanced only to the
+> 		 *	end of the *size* of the CRC, not to the
+> 		 *	end of the CRC itself.  The unparsedBytes
+> 		 *	counter was reduced only by the length of
+> 		 *	the *size* of the CRC, not by the length
+> 		 *	of the CRC itself.  However, itemsRemaining
+> 		 *	is reduced by 1 at this time.			*/
+8178a8194
+> 		crcLength = uvtemp;
+8181c8197,8202
+< 			crcLength = 3;	/*	CBOR 16-bit CRC		*/
+---
+> 			if (crcLength != 2)
+> 			{
+> 				writeMemoNote("[?] Wrong CRC size for CRC16",
+> 						itoa(crcLength));
+> 				return 0;
+> 			}
+8185c8206,8211
+< 			crcLength = 5;	/*	CBOR 32-bit CRC		*/
+---
+> 			if (crcLength != 4)
+> 			{
+> 				writeMemoNote("[?] Wrong CRC size for CRC32C",
+> 						itoa(crcLength));
+> 				return 0;
+> 			}
+8193a8220,8223
+> 		/*	Compute CRC over entire block including the
+> 		 *	CRC itself.					*/
+> 
+> 		length = cursor - startOfBlock;
+8203d8232
+< 		itemsRemaining -= 1;
+8448c8477
+< 			writeMemo("[?] Extension block has too few items.");
+---
+> 			writeMemo("[?] Extension block has wrong # of items.");
+8452c8481
+< 		length = cursor - startOfBlock;
+---
+> 		/*	CRC is encoded as a CBOR byte string.		*/
+8454c8483,8489
+< 		/*	Must include CRC in block for CRC calculation.	*/
+---
+> 		uvtemp = (uvast) -1;
+> 		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+> 				&unparsedBytes) < 1)
+> 		{
+> 			writeMemo("[?] Can't decode CRC.");
+> 			return 0;
+> 		}
+8455a8491,8500
+> 		/*	Note, because the decoding destination is
+> 		 *	NULL, the cursor was advanced only to the
+> 		 *	end of the *size* of the CRC, not to the
+> 		 *	end of the CRC itself.  The unparsedBytes
+> 		 *	counter was reduced only by the length of
+> 		 *	the *size* of the CRC, not by the length
+> 		 *	of the CRC itself.  However, itemsRemaining
+> 		 *	is reduced by 1 at this time.			*/
+> 
+> 		crcLength = uvtemp;
+8458c8503,8508
+< 			crcLength = 3;	/*	CBOR 16-bit CRC		*/
+---
+> 			if (crcLength != 2)
+> 			{
+> 				writeMemoNote("[?] Wrong CRC size for CRC16",
+> 						itoa(crcLength));
+> 				return 0;
+> 			}
+8462c8512,8517
+< 			crcLength = 5;	/*	CBOR 32-bit CRC		*/
+---
+> 			if (crcLength != 4)
+> 			{
+> 				writeMemoNote("[?] Wrong CRC size for CRC32C",
+> 						itoa(crcLength));
+> 				return 0;
+> 			}
+8471c8526,8530
+< 		crcComputed = computeBufferCrc(crcType, startOfBlock,
+---
+> 		/*	Compute CRC over entire block including the
+> 		 *	CRC itself.					*/
+> 
+> 		length = cursor - startOfBlock;
+> 		crcComputed = computeBufferCrc(crcType, startOfBlock, 
+8480d8538
+< 		itemsRemaining -= 1;
