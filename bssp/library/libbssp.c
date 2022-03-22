@@ -126,20 +126,18 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 	{
 	case -1:		/*	System error.		*/
 		putErrmsg("Can't issue block.", NULL);
-		
-		/*	Reinitialize span's block buffer for next session		*/
+		sdr_cancel_xn(sdr);
+		return -1;
+
+	case 0:			/*	Database too full.	*/
+		/*	Reinitialize span's block buffer for next session	*/
 		span.lengthOfBufferedBlock = 0;
 		span.clientSvcIdOfBufferedBlock = 0;
 		span.currentExportSessionObj = 0;
 		sdr_write(sdr, spanObj, (char *) &span, sizeof(BsspSpan));
 
-		/*  End instad of cancel transaction. Relevant SDR modifications	*
-		 *  are rolled back in constructDataBlock().		*/
+		/* after clean up of buffer, end transaction */
 		sdr_end_xn(sdr);
-		return -1;
-
-	case 0:			/*	Database too full.	*/
-		sdr_cancel_xn(sdr);
 		return 0;
 	}
 

@@ -2662,10 +2662,10 @@ char		buf[256];
 		putErrmsg("Bssp XmitDataBlock size exceeds maximum block size.",
 		 NULL);
 		
-		/* free block from SDR before return -1 	*/
+		/* free block from SDR before return 0 	*/
 		sdr_free(sdr,blockObj);
 
-		return -1;
+		return 0;
 	}
 
 	/*	Now have enough information to finish the block.	*/
@@ -2706,7 +2706,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 		fflush(stdout);
 	}
 
-	return 0;
+	return 1;
 }
 
 int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
@@ -2722,11 +2722,16 @@ int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
 	CHKERR(span);
 	CHKERR(vspan);
 	
-	if (constructDataBlock(sdr, session, sessionObj, 
-			vspan, span, inOrder) < 0)
+	switch (constructDataBlock(sdr, session, sessionObj, 
+			vspan, span, inOrder))
 	{
+	case -1:
 		putErrmsg("Can't construct data xmit block.", NULL);
 		return -1;
+
+	case 0:
+		putErrmsg("BSSP block size exceeds max limit",NULL);
+		return 0;
 	}
 		
 	/*	Block processing succeeded			*/
