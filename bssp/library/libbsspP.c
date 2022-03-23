@@ -2627,21 +2627,6 @@ char		buf[256];
 	}
 
 	memset((char *) &block, 0, sizeof(BsspXmitBlock));
-	if (inOrder)
-	{
-		block.queueListElt = sdr_list_insert_last(sdr,
-				span->beBlocks, blockObj);
-	}
-	else
-	{
-		block.queueListElt = sdr_list_insert_last(sdr, 
-				span->rlBlocks, blockObj);
-	}
-
-	if (block.queueListElt == 0)
-	{
-		return -1;
-	}
 
 	/*	Compute length of block's known overhead.		*/
 
@@ -2669,6 +2654,23 @@ char		buf[256];
 	}
 
 	/*	Now have enough information to finish the block.	*/
+
+	/*  insert block into queuelist */
+	if (inOrder)
+	{
+		block.queueListElt = sdr_list_insert_last(sdr,
+				span->beBlocks, blockObj);
+	}
+	else
+	{
+		block.queueListElt = sdr_list_insert_last(sdr, 
+				span->rlBlocks, blockObj);
+	}
+
+	if (block.queueListElt == 0)
+	{
+		return -1;
+	}
 
 	session->block = blockObj;
 
