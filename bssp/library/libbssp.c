@@ -139,6 +139,8 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 
 		sessionId->sourceEngineId = vdb->ownEngineId;
 		sessionId->sessionNbr = session.sessionNbr;
+		session.svcDataObject = 0;
+		session.block = 0;
 
 		/* end transaction */
 		sdr_end_xn(sdr);
