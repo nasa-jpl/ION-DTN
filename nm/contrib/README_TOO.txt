@@ -10,3 +10,8 @@ https://github.jpl.nasa.gov/MGSS/anms
 An overview of changes made to address the connection issue consists of the following:
 	- a modified nm_mgr_sql.c (derived from the patch located at anms/ion/anms-ion-4.1.1.patch)
 	- updates to the sql creation scripts (cloned from anms/amp-sql/mysql/)
+
+
+The previously named amp-sql-1.0.tar has been renamed to deprecated-amp-sql-1.0.tar (but left in place).
+
+***Use the updated amp-sql-1.0.1.tar.gz instead***
