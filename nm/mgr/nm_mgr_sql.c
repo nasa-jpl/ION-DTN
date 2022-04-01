@@ -152,6 +152,11 @@ static MYSQL_STMT* queries[MGR_NUM_SQL_CONNECTIONS][MGR_NUM_QUERIES];
 #define dbprep_bind_param_float(idx,var) dbprep_bind_param_cmn(idx,var,MYSQL_TYPE_FLOAT);
 #define dbprep_bind_param_double(idx,var) dbprep_bind_param_cmn(idx,var,MYSQL_TYPE_DOUBLE);
 
+//skywalker adds from anms patch
+#define dbprep_bind_param_bigint(idx,var) dbprep_bind_param_cmn(idx,var,MYSQL_TYPE_LONGLONG);
+
+
+
 #define dbprep_bind_param_str(idx,var) \
 	size_t len_##var = (var==NULL) ? 0 : strlen(var);					\
 	bind_param[idx].buffer_length = len_##var;							\
@@ -183,8 +188,8 @@ static MYSQL_STMT* queries[MGR_NUM_SQL_CONNECTIONS][MGR_NUM_QUERIES];
 	MYSQL_STMT* stmt = queries[dbidx][idx];					\
 	MYSQL_BIND bind_res[cols];								\
 	MYSQL_BIND bind_param[params];							\
-	my_bool is_null[cols];								\
-	my_bool is_err[cols];									\
+	bool is_null[cols];										\
+	bool is_err[cols];										\
 	unsigned long lengths[params];							\
 	memset(bind_res,0,sizeof(bind_res));					\
 	memset(bind_param,0,sizeof(bind_param));
@@ -523,13 +528,23 @@ uint32_t db_mgt_init_con(size_t idx, sql_db_t parms)
 		queries[idx][MSGS_UPDATE_GROUP_STATE] = db_mgr_sql_prepare(idx,"UPDATE message_group mg SET state_id=? WHERE group_id=?");
 		queries[idx][MSGS_OUTGOING_GET]    = db_mgr_sql_prepare(idx,"SELECT group_id, ts FROM vw_ready_outgoing_message_groups");
 		queries[idx][MSGS_OUTGOING_CREATE] = db_mgr_sql_prepare(idx,"INSERT INTO message_group (state_id, is_outgoing) VALUES(1, TRUE)");
-		queries[idx][MSGS_INCOMING_GET]    = db_mgr_sql_prepare(idx,"SELECT * FROM vw_ready_INCOMING_message_groups");
-		queries[idx][MSGS_INCOMING_CREATE] = db_mgr_sql_prepare(idx,"SELECT create_incoming_message_group(FROM_UNIXTIME(?), ? )"); // Received timestamp, From Agent name (ie: ipn:2.1)
 		
+		//skywalker uses anms patch to fix these reported issues
+		//queries[idx][MSGS_INCOMING_GET]    = db_mgr_sql_prepare(idx,"SELECT * FROM vw_ready_INCOMING_message_groups");
+		//queries[idx][MSGS_INCOMING_CREATE] = db_mgr_sql_prepare(idx,"SELECT create_incoming_message_group(FROM_UNIXTIME(?), ? )"); // Received timestamp, From Agent name (ie: ipn:2.1)
+		queries[idx][MSGS_INCOMING_GET]    = db_mgr_sql_prepare(idx,"SELECT * FROM vw_ready_incoming_message_groups");
+		queries[idx][MSGS_INCOMING_CREATE] = db_mgr_sql_prepare(idx,"SELECT create_incoming_message_group(?, ? )"); // Received timestamp, From Agent name (ie: ipn:2.1)
+
+
+
 		queries[idx][MSGS_AGENT_GROUP_ADD_NAME] = db_mgr_sql_prepare(idx,"SELECT insert_message_group_agent_name(?, ?)"); // group_id, agent_name
 //		queries[idx][MSGS_AGENT_GROUP_ADD_ID] = db_mgr_sql_prepare(idx,"SELECT insert_message_group_agent_id(?, ?)"); // group_id, agent_id
 		queries[idx][MSGS_AGENT_MSG_ADD] = db_mgr_sql_prepare(idx,"CALL SP__insert_message_entry_agent(?, ?)"); // message_id, agent_name
-		queries[idx][MSGS_ADD_REPORT_SET_ENTRY] = db_mgr_sql_prepare(idx,"SELECT insert_message_report_entry(?, NULL, ?, ?, FROM_UNIXTIME(?))"); // message_id, order_num, ari_id, tnvc_id, ts
+
+		//skywalker uses anms patch to fix these reported issues
+		//queries[idx][MSGS_ADD_REPORT_SET_ENTRY] = db_mgr_sql_prepare(idx,"SELECT insert_message_report_entry(?, NULL, ?, ?, FROM_UNIXTIME(?))"); // message_id, order_num, ari_id, tnvc_id, ts
+		queries[idx][MSGS_ADD_REPORT_SET_ENTRY] = db_mgr_sql_prepare(idx,"SELECT insert_message_report_entry(?, NULL, ?, ?, ?)"); // message_id, order_num, ari_id, tnvc_id, ts
+
 
 		queries[idx][MSGS_REGISTER_AGENT_INSERT] = db_mgr_sql_prepare(idx,"SELECT add_message_register_entry(?,?,?,?,NULL,?)"); // group_id, ack, nak, acl, idx, agent_name
 		queries[idx][MSGS_REGISTER_AGENT_GET] = db_mgr_sql_prepare(idx,"SELECT * FROM message_agents WHERE message_id = ?");
@@ -4217,19 +4232,27 @@ void db_insert_tnv(db_con_t dbidx, uint32_t tnvc_id, tnv_t *tnv, int *status)
 		break;
 	case AMP_TYPE_VAST:
 		stmt = queries[dbidx][TNVC_INSERT_VAST];
-		dbprep_bind_param_int(C_VAL, tnv->value.as_vast);
+		//skywalker
+		//dbprep_bind_param_int(C_VAL, tnv->value.as_vast);
+		dbprep_bind_param_bigint(C_VAL, tnv->value.as_vast);
 		break;
 	case AMP_TYPE_TV:
 		stmt = queries[dbidx][TNVC_INSERT_TV];
-		dbprep_bind_param_int(C_VAL, tnv->value.as_uvast);
+		//skywalker
+		//dbprep_bind_param_int(C_VAL, tnv->value.as_uvast);
+		dbprep_bind_param_bigint(C_VAL, tnv->value.as_uvast);
 		break;
 	case AMP_TYPE_TS:
 		stmt = queries[dbidx][TNVC_INSERT_TS];
-		dbprep_bind_param_int(C_VAL, tnv->value.as_uvast);
+		//skywalker
+		//dbprep_bind_param_int(C_VAL, tnv->value.as_uvast);
+		dbprep_bind_param_bigint(C_VAL, tnv->value.as_uvast);
 		break;
 	case AMP_TYPE_UVAST:
 		stmt = queries[dbidx][TNVC_INSERT_UVAST];
-		dbprep_bind_param_int(C_VAL, tnv->value.as_uvast);
+		//skywalker
+		//dbprep_bind_param_int(C_VAL, tnv->value.as_uvast);
+		dbprep_bind_param_bigint(C_VAL, tnv->value.as_uvast);
 		break;
 	case AMP_TYPE_REAL32:
 		stmt = queries[dbidx][TNVC_INSERT_REAL32];
