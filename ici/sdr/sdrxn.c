@@ -1717,6 +1717,10 @@ void	sdr_stop_using(Sdr sdrv)
 
 	memset((char *) sdrv, 0, sizeof(SdrView));
 	psm_free(sdrwm, psa(sdrwm, sdrv));
+
+	/*  Finally detach from SDR Working Memory */
+	sm_ShmDetach(sdrwm->space);
+
 }
 
 void	sdr_abort(Sdr sdrv)

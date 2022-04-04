@@ -1061,6 +1061,9 @@ void	ionDetach()
 	if (ionsdr)
 	{
 		sdr_stop_using(ionsdr);
+		/* 	Now detach from ION working memory */
+		PsmPartition	ionwm = _ionwm(NULL);
+		sm_ShmDetach(ionwm->space);
 		ionsdr = NULL;		/*	To reset to NULL.	*/
 		oK(_ionsdr(&ionsdr));
 	}
