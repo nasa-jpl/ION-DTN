@@ -1060,12 +1060,16 @@ void	ionDetach()
 
 	if (ionsdr)
 	{
+		/* sdr_stop_using(): detach from sdr & cleans up	*
+		 * sdr in file, sh mem, log file, log in sh 		*
+		 * mem, and detach from working memory      		*/
 		sdr_stop_using(ionsdr);
+		ionsdr = NULL;		/*	Reset ionsdr database to NULL.	*/
+		oK(_ionsdr(&ionsdr));
+
 		/* 	Now detach from ION working memory */
 		PsmPartition	ionwm = _ionwm(NULL);
 		sm_ShmDetach(ionwm->space);
-		ionsdr = NULL;		/*	To reset to NULL.	*/
-		oK(_ionsdr(&ionsdr));
 	}
 #ifdef mingw
 	oK(_winsock(1));
