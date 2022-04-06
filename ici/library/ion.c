@@ -157,7 +157,7 @@ static PsmPartition	_ionwm(sm_WmParms *parms)
 			wmatop = ionMemAtoP;
 			wmptoa = ionMemPtoA;
 		}
-		
+
 		if (parms->wmName == NULL)	/*	Destroy.	*/
 		{
 			if (ionwm)
@@ -1091,6 +1091,15 @@ void	ionDetach()
 		sm_WmParms reset;
 		reset.wmKey = -11111;
 		oK(_ionwm(&reset));
+
+		/* 	reset ION database object 	*/
+		Object	obj = 0;
+		oK(_iondbObject(&obj));
+
+		/* reset ION volatile database */
+		char	*ionvdbName = NULL;
+		oK(_ionvdb(&ionvdbName));
+
 	}
 #ifdef mingw
 	oK(_winsock(1));
@@ -1160,6 +1169,9 @@ void	ionTerminate()
 	}
 
 	oK(_iondbObject(&obj));
+
+	/* 	Now will destroy ionwm. This   		*
+	 *	is different from resetting static.	*/
 	ionwmParms.wmKey = 0;
 	ionwmParms.wmSize = 0;
 	ionwmParms.wmAddress = NULL;
