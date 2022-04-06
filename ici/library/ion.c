@@ -1100,6 +1100,9 @@ void	ionDetach()
 		char	*ionvdbName = NULL;
 		oK(_ionvdb(&ionvdbName));
 
+		/*	unregister call back 	*/
+		zco_unregister_callback();
+
 	}
 #ifdef mingw
 	oK(_winsock(1));
