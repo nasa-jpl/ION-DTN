@@ -1103,6 +1103,9 @@ void	ionDetach()
 		/*	unregister call back 	*/
 		zco_unregister_callback();
 
+		/* 	reset and detach from ipc semaphore set */
+		sm_ipc_detach();
+
 	}
 #ifdef mingw
 	oK(_winsock(1));

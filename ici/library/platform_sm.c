@@ -1632,6 +1632,19 @@ static SemaphoreBase	*_sembase(int stop)
 	IciSemaphoreSet		*semset;
 	int			i;
 
+	/* 	detach & reset, but not stopping	*/
+	if (stop == -11111)  	
+	{
+		/* if sembase exists, detach from shared memory */
+		if (semaphoreBase != NULL) 
+		{
+			oK(shmdt(semaphoreBase));
+		}
+		semaphoreBase = NULL;
+		sembaseId = 0;
+		return NULL;
+	}
+	
 	if (stop)
 	{
 		if (semaphoreBase != NULL)
@@ -1703,6 +1716,18 @@ static int	_ipcSemaphore(int stop)
 {
 	static int	ipcSem = -1;
 
+	/* 	reset but not stopping	*/
+	if (stop == -11111)  	
+	{
+		/* if semaphore exists */
+		if (ipcSem != -1) 
+		{
+			oK(_sembase(-11111));
+			ipcSem = -1;
+		}
+		return ipcSem;
+	}
+
 	if (stop)
 	{
 		oK(_sembase(1));
@@ -1750,6 +1775,11 @@ int	sm_ipc_init()
 void	sm_ipc_stop()
 {
 	oK(_ipcSemaphore(1));
+}
+
+void 	sm_ipc_detach()
+{
+	oK(_ipcSemaphore(-11111));
 }
 
 static void	takeIpcLock()
