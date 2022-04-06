@@ -142,6 +142,22 @@ static PsmPartition	_ionwm(sm_WmParms *parms)
 
 	if (parms)
 	{
+		if (parms->wmKey == -11111)
+		{
+			ionwm = NULL;	/*	reset database state */
+			return ionwm;
+		}
+
+		if (ionwm == NULL)  /*	re-initialize all static */
+		{
+			ionSmId = 0;
+			memmgrIdx = -1;
+			wmtake = allocFromIonMemory;
+			wmrelease = releaseToIonMemory;
+			wmatop = ionMemAtoP;
+			wmptoa = ionMemPtoA;
+		}
+		
 		if (parms->wmName == NULL)	/*	Destroy.	*/
 		{
 			if (ionwm)
@@ -1070,6 +1086,11 @@ void	ionDetach()
 		/* 	Now detach from ION working memory */
 		PsmPartition	ionwm = _ionwm(NULL);
 		sm_ShmDetach(ionwm->space);
+
+		/* 	Now reset the ION working memory database */
+		sm_WmParms reset;
+		reset.wmKey = -11111;
+		oK(_ionwm(&reset));
 	}
 #ifdef mingw
 	oK(_winsock(1));
