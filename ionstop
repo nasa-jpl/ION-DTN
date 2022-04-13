@@ -29,6 +29,20 @@ sleep 1
 echo "ionadmin ."
 ionadmin .
 sleep 1
-echo "killm"
-killm
+echo "bsspadmin ."
+bsspadmin .
+sleep 1
+
+# Check for multi-ION instances
+if [ -z "${ION_NODE_LIST_DIR}" ];
+then
+    echo "This is a single-ION instance configuration. Run killm."
+    sleep 1
+    echo "killm"
+    killm
+else
+    echo "This is a multi-ION instance configuration. Killm not used."
+    echo "You can execute 'killm' to mannually to clear all shared memory segments if necessary."
+fi
+
 echo "ION node ended. Log file: ion.log"
