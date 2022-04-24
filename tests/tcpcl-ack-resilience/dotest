@@ -5,6 +5,7 @@
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
+which acsadmin
 echo "Looking for acsadmin"
 if [ $? -eq 0 ] ; then
 	ACS="found"
