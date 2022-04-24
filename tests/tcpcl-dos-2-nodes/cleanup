@@ -1,2 +1,5 @@
 #/bin/bash
-rm -f ion.log ionreceivefile.txt ionsendfile.txt 
+rm -f ion.log 
+rm -f ./2.ipn.tcp/ionreceivefile.txt
+rm -f ./1.ipn.tcp/ionsendfile.txt
+rm ion_nodes  
