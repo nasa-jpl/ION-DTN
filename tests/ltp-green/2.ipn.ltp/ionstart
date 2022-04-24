@@ -2,12 +2,12 @@
 #!/bin/bash
 ionadmin	amroc.ionrc
 
-ionadmin	global.ionrc &
+ionadmin	global.ionrc 
 
-ionsecadmin	amroc.ionsecrc &
+ionsecadmin	amroc.ionsecrc 
 
-owltsim		amroc.owltsim  -v &
+owltsim		amroc.owltsim  -v & 
 
-ltpadmin	amroc.ltprc &
+ltpadmin	amroc.ltprc 
 
-bpadmin		amroc.bprc &
+bpadmin		amroc.bprc 
