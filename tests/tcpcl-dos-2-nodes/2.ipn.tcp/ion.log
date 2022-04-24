@@ -1,0 +1,72 @@
+[2022/04/24-05:56:31] [i] This node deploys bundle protocol version 7.
+[2022/04/24-05:56:31] [?] Can't find ION security database.
+[2022/04/24-05:56:31] [?] Warning: running without bundle security.
+[2022/04/24-05:56:31] [i] rfxclock is running.
+[2022/04/24-05:56:32] [i] bpclm is running: ipn:1.0
+[2022/04/24-05:56:32] [i] bptransit is running.
+[2022/04/24-05:56:32] [i] ipnfw is running.
+[2022/04/24-05:56:32] [i] Not configured for multicast; cpsd stopping.
+[2022/04/24-05:56:32] [i] tcpcli is running [127.0.0.1:4556].
+[2022/04/24-05:56:32] [i] Connected to TCP socket: 127.0.0.1:4555
+[2022/04/24-05:56:32] [i] ipnadminep is running.
+[2022/04/24-05:56:32] [i] bpclock is running.
+[2022/04/24-05:56:33] [i] tcpcli sender thread has started: ipn:1.0
+[2022/04/24-05:56:33] [i] tcpcli admin thread has started: ipn:1.0
+[2022/04/24-05:56:33] [i] tcpcli sender thread has started: ipn:1.0
+[2022/04/24-05:56:33] [i] tcpcli admin thread has started: ipn:1.0
+[2022/04/24-05:59:14] at line 1248 of bpv7/tcp/tcpcli.c, Can't get TCPCL contact header. (#:7)
+[2022/04/24-05:59:14] [i] tcpcli got no valid contact header: #:7
+[2022/04/24-05:59:15] [i] tcpcli receiver thread has ended: #:7
+[2022/04/24-05:59:33] [?] Invalid TCPCL contact header: #:8
+[2022/04/24-05:59:33] [i] tcpcli got no valid contact header: #:8
+[2022/04/24-05:59:33] [i] tcpcli receiver thread has ended: #:8
+[2022/04/24-05:59:51] at line 1248 of bpv7/tcp/tcpcli.c, Can't get TCPCL contact header. (#:7)
+[2022/04/24-05:59:51] [i] tcpcli got no valid contact header: #:7
+[2022/04/24-05:59:51] [i] tcpcli receiver thread has ended: #:7
+[2022/04/24-06:07:32] [i] tcpcli admin thread has ended: ipn:1.0
+[2022/04/24-06:07:32] [i] Outduct has been stopped: #:6
+[2022/04/24-06:07:32] [i] tcpcli session output stopped: #:6
+[2022/04/24-06:07:32] [i] tcpcli sender thread has ended: ipn:1.0
+[2022/04/24-06:07:33] [i] tcpcli receiver thread has ended: ipn:1.0
+[2022/04/24-06:07:33] [i] tcpcli admin thread has ended: ipn:1.0
+[2022/04/24-06:07:33] [i] Outduct has been stopped: 127.0.0.1:4555
+[2022/04/24-06:07:33] [i] tcpcli session output stopped: 127.0.0.1:4555
+[2022/04/24-06:07:33] [i] tcpcli sender thread has ended: ipn:1.0
+[2022/04/24-06:07:35] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:07:35] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:07:39] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:07:39] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:07:47] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:07:47] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:08:03] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:08:03] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:08:35] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:08:35] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:09:39] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:09:39] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:11:47] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:11:47] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:16:03] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:16:03] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:24:35] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:24:35] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-06:41:39] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-06:41:39] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-07:15:48] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-07:15:48] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-08:15:48] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-08:15:48] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-09:15:49] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-09:15:49] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-10:15:50] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-10:15:50] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-11:15:50] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-11:15:51] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-12:15:52] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-12:15:52] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-13:15:54] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-13:15:54] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-14:15:55] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-14:15:55] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-15:15:55] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-15:15:55] [i] tcpcli unable to reconnect: ipn:1.0

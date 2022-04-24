@@ -1,0 +1,179 @@
+#!/bin/bash
+#
+# script runs netcat on local port 4556, this will make tcpcl
+# on the local machine to send a contact header and wait for
+# a contact header. 
+# while tcpcl is waiting for a contact header, open a new connection
+# and send a bundle. If we can receive the bundle successfully,
+# then the dos bug has been fixed.
+
+function pause(){
+ read -s -n 1 -p "Press any key to continue . . ."
+ echo ""
+}
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To ensure that tcpcli doesn't have a denial-of-service type bug.
+	The bug, described in issue 146, is that tcpcli will not accept any new
+	connections if it is waiting on a contact header initialization from
+	the other end.  Tcpcli should still accept more incoming connections
+	even if one is improperly initialized."
+echo
+echo
+echo "########################################"
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+PROGRAMTEST="netcat"
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no netcat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+	echo "${PROGRAMTEST} is not present in this system; skipping..."
+	exit 2
+fi
+
+# Setup Two ION Instances
+
+SENDER_PORT=4555
+RECEIVER_PORT=4556
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+    echo "ACS is found"
+fi
+
+echo "Cleaning up old ION ..."
+rm ion_nodes 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/testfile1
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+# Set up node 1
+cd 1.ipn.tcp/
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -ne 2 ]; then
+    echo "Node 1 not started: Aborting Test"
+    exit 1
+fi
+
+# Set up node 2
+cd ../2.ipn.tcp/
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+echo "ION Nodes started successfully..."
+
+pause
+
+# starting a bogus connection
+cd ../1.ipn.tcp/
+echo "starting netcat from node 1..."
+nc 127.0.0.1 $RECEIVER_PORT >/dev/null &
+NETCATPID=$!
+
+# create the test message in a sent file
+# the exclamation point signals the bundle sender to quit
+echo $IONMESSAGE > $IONSENDFILE
+echo "!" >> $IONSENDFILE
+
+
+# receive the message and store it in a file via test bundle sink
+echo "Starting Message Listener on node 2..."
+cd ../2.ipn.tcp/
+bpsink ipn:2.2 > $IONRECEIVEFILE &
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 5
+
+
+# send the message in the file via test bundle source
+echo "Sending message from node 1..."
+cd ../1.ipn.tcp/
+bpsource ipn:2.2 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+# sleep and kill process in case it didn't end properly
+sleep 5
+echo "Killing bpsource if it is still running..."
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+# stop netcat
+echo "Stopping netcat..."
+kill -2 $NETCATPID >/dev/null 2>&1
+sleep 1 
+kill -9 $NETCATPID >/dev/null 2>&1
+
+# shut down ion processes
+echo "Stopping ion node 1..."
+./ionstop
+sleep 1
+
+echo "Stopping ion node 2..."
+../2.ipn.tcp
+./ionstop
+sleep 1
+
+# compare the sent message to the received one
+if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
+    echo "Oh noes, data corruption!"
+    echo
+    echo "Sent this:"
+    echo "----------------------------------------------------------------------"
+    cat ../1.ipn.tcp/$IONSENDFILE
+    echo "----------------------------------------------------------------------"
+    echo
+    echo "Received this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONRECEIVEFILE
+    echo "----------------------------------------------------------------------"
+    RETVAL=1
+else 
+    echo "bundle transfer successful!"
+    RETVAL=0
+fi
+
+
+# clean up
+#../
+#./cleanup
+
+
+exit $RETVAL
+
