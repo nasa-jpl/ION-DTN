@@ -70,8 +70,11 @@ static int	deliverAtSource(Object bundleObj, Bundle *bundle)
 
 	if ((getBpVdb())->watching & WATCH_z)
 	{
+		/*
 		putchar('z');
 		fflush(stdout);
+		*/
+		iwatch('z');
 	}
 
 	/*	Authorize destruction of clone in case

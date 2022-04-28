@@ -542,8 +542,11 @@ int	initOutAdu(Profile *profile, Object outAggrAddr, Object outAggrElt,
 	sdr_write(sdr, outAggrAddr, (char *) &outAggr, sizeof(OutAggregator));
 	if ((_dtpcvdb(NULL))->watching & WATCH_newItem)
 	{
+		/*
 		putchar('<');
 		fflush(stdout);
+		*/
+		iwatch('<');
 	}
 
 	return 0;
@@ -614,8 +617,11 @@ static Object	insertToTopic(unsigned int topicID, Object outAduObj,
 
 	if ((_dtpcvdb(NULL))->watching & WATCH_r)
 	{
+		/*
 		putchar('r');
 		fflush(stdout);
+		*/
+		iwatch('r');
 	}
 
 	return elt;
@@ -773,8 +779,11 @@ int	insertRecord (DtpcSAP sap, char *dstEid, unsigned int profileID,
 				dtpcConstants->outAggregators, outAggrAddr);
 		if (vdb->watching & WATCH_o)
 		{
+			/*
 			putchar('o');
 			fflush(stdout);
+			*/
+			iwatch('o');
 		}
 	}
 
@@ -1051,8 +1060,11 @@ int	createAdu(Profile *profile, Object outAduObj, Object outAduElt)
 	sdr_write(sdr, outAduObj, (char *) &outAdu, sizeof(OutAdu));
 	if (vdb->watching & WATCH_complete)
 	{
+		/*
 		putchar('>');
 		fflush(stdout);
+		*/
+		iwatch('>');
 	}	
 
 	sm_SemGive(vdb->aduSemaphore);
@@ -1246,8 +1258,11 @@ int	sendAdu(BpSAP sap)
 
 	if (vdb->watching & WATCH_send)
 	{
+		/*
 		putchar('-');
 		fflush(stdout);
+		*/
+		iwatch('-');
 	}
 
 	return 0;
@@ -1396,8 +1411,11 @@ event.", NULL);
 		sdr_write(sdr, aduObj, (char *) &adu, sizeof(OutAdu));
 		if (vdb->watching & WATCH_n)
 		{
+			/*
 			putchar('n');
 			fflush(stdout);
+			*/
+			iwatch('n');
 		}
 
 		sm_SemGive(vdb->aduSemaphore);
@@ -1940,8 +1958,11 @@ static int	insertAduAtEnd(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 					&inAdu, sizeof(InAdu));
 			if (vdb->watching & WATCH_v)
 			{
+				/*
 				putchar('v');
 				fflush(stdout);
+				*/
+				iwatch('v');
 			}
 		}
 
@@ -2031,8 +2052,11 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 		zco_destroy(sdr, dlv->adu);
 		if (vdb->watching & WATCH_discard)
 		{
+			/*
 			putchar('?');
 			fflush(stdout);
+			*/
+			iwatch('?');
 		}
 	
 		return 0;
@@ -2068,8 +2092,11 @@ static int	handleOutOfSeq(Sdr sdr, BpDelivery *dlv, Scalar seqNum,
 			zco_destroy(sdr, dlv->adu);
 			if (vdb->watching & WATCH_discard)
 			{
+				/*
 				putchar('?');
 				fflush(stdout);
+				*/
+				iwatch('?');
 			}
 
 			return 0;
@@ -2197,8 +2224,11 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 	CHKERR(sdr_begin_xn(sdr));
 	if (vdb->watching & WATCH_u)
 	{
+		/*
 		putchar('u');
 		fflush(stdout);
+		*/
+		iwatch('u');
 	}
 
 	profile = findProfileByNumber(profNum);
@@ -2303,8 +2333,11 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 		
 		if (vdb->watching & WATCH_i)
 		{
+			/*
 			putchar('i');
 			fflush(stdout);
+			*/
+			iwatch('i');
 		}	
 	}
 #if 0
@@ -2386,8 +2419,11 @@ int	handleInAdu(Sdr sdr, BpSAP txSap, BpDelivery *dlv, unsigned int profNum,
 		zco_destroy(sdr, dlv->adu);
 		if (vdb->watching & WATCH_discard)
 		{
+			/*
 			putchar('?');
 			fflush(stdout);
+			*/
+			iwatch('?');
 		}
 		
 		if (sdr_end_xn(sdr) < 0)
@@ -2999,8 +3035,11 @@ send ACK.");
 
 	if (vdb->watching & WATCH_l)
 	{
+		/*
 		putchar('l');
 		fflush(stdout);
+		*/
+		iwatch('l');
 	}	
 
 	return 0;
