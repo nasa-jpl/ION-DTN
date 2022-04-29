@@ -15,6 +15,7 @@
 
 int	tcpDelayEnabled = 0;
 int	tcpDelayNsecPerByte = 0;
+static int bsspTcpConnectionOK = 1;
 
 /*	*	*	Sender functions	*	*	*	*/
 
@@ -38,11 +39,16 @@ int	connectToBSI(struct sockaddr *sn, int *sock)
 	{
 		closesocket(*sock);
 		*sock = -1;
-		putSysErrmsg("BSO can't connect to TCP socket", NULL);
+		/* suppress errmsg during long outage */
+		if (bsspTcpConnectionOK == 1){
+			putSysErrmsg("BSO can't connect to TCP socket", NULL);
+			bsspTcpConnectionOK = 0;
+		}
 		return -1;
 	}
 
 	writeMemo("[i] tcpbso connection established.");
+	bsspTcpConnectionOK = 1;
 
 	return 0;
 }
