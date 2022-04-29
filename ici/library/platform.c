@@ -3502,8 +3502,11 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 	{
 		if (errno == ECONNREFUSED)
 		{
-			writeMemoNote("[i] Can't connect to TCP socket \
+			if (iciTcpConnectionOK == 1){
+				writeMemoNote("[i] Can't connect to TCP socket \
 (refused)", socketTag);
+				iciTcpConnectionOK = 0;
+			}
 		}
 		else
 		{
