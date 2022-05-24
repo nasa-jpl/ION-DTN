@@ -12,8 +12,11 @@
 	Jet Propulsion Laboratory 2022
 
 	Modifications address the following issue:
-	1.) Allow for full range of SANA node numbers - see MAX_CONTIN_NBR directive in amscommon.h 
-	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (managed linked list)
+	1.) Allow for full range of SANA node numbers:
+		See MAX_CONTIN_NBR directive in amscommon.h 
+
+		Modifications include switching arrays and for-loops 
+		using the MAX_CONTIN_NBR to use ici's lyst (managed linked list)
 
 	*/
 
@@ -202,7 +205,7 @@ void	eraseUnit(Venture *venture, Unit *unit)
 		MRELEASE(unit->name);
 	}
 
-	/*	Erase all local cell data.				*/
+	/*	Erase all local cell data.			*/
 
 	cell = unit->cell;
 	clearMamsEndpoint(&cell->mamsEndpoint);
@@ -296,21 +299,19 @@ void	eraseVenture(Venture *venture)
 			lyst_destroy(venture->subjLysts[i]);
 		}
 	}
-
 	
 	LystElt elt;
 
 	for(elt = lyst_first(venture->msgspace_lyst); elt; elt = lyst_next(elt))
 	{
 		{
-			//need to clean the msgspace's contents first...
+			/* need to clean the msgspace's contents first */
 			eraseMsgspace(venture, (Subject *) lyst_data(elt));
 
-			//then we can safely delete the lyst element
-			lyst_delete(elt); //how can i pass *venture to this so I can call eraseMsgspace() from within the lyst's delete function?		
+			/* then we can safely delete the lyst element */
+			lyst_delete(elt);		
 		}		
 	}
-
 
 	(_mib(NULL))->ventures[venture->nbr] = NULL;
 	MRELEASE(venture);
@@ -352,7 +353,7 @@ static void	eraseMib(AmsMib *mib)
 
 
 
-	//cleans up lyst of Continuum pointers (this should call each lysts deletion function)
+	/* clean up lyst of Continuum pointers */
 	if (mib->continuum_lyst)
 	{
 		lyst_destroy(mib->continuum_lyst);
@@ -374,17 +375,20 @@ static void	eraseAmsEpspec(AmsEpspec *amses)
 	MRELEASE(amses);
 }
 
-//required function for lyst initialization (continuum_lyst)
+/* required for lyst initialization (continuum_lyst) */
 static void destroyMIBContinua(LystElt elt, void *userdata)
 {
 	Continuum *continnuum = (Continuum *) lyst_data(elt);
 	eraseContinuum(continnuum);
 }
 
-//required function for lyst initialization (msgspace_lyst) Note: special consideration must be given to the msgspaces pointers
+ /*	required function for lyst initialization (msgspace_lyst)
+	 Note: special consideration must be given to the 
+	 msgspaces pointers */
 static void destroyMsgSpace(LystElt elt, void *userdata)
 {
-	//msgspace is of type: Subject, so we cast the element to Subject pointer here
+	/*  msgspace is of type: Subject, so we cast the element 
+		to Subject pointer here */
 	Subject *my_msgspace = (Subject *) lyst_data(elt);
 	MRELEASE(my_msgspace);	
 }
@@ -923,17 +927,16 @@ Subject *getMsgSpaceByNbr(Venture *myVenture, int continuum_nbr)
 
 	for (elt = lyst_first(myVenture->msgspace_lyst); elt; elt = lyst_next(elt))
 	{
-		//cast the element to Continuum * type
 		myMsgSpace = (Subject *) lyst_data(elt);
 
-		if (0 - myMsgSpace->nbr == continuum_nbr) //because msg spaces are stored with pseudonumber notation (i.e. negative..)
+		/*Msg spaces are stored in pseudonumber notation (i.e. negative..)*/
+		if (0 - myMsgSpace->nbr == continuum_nbr) 
 		{
-			//we have a match			
+			/* We have a match */		
 			return myMsgSpace;
 		}
 	}
 
-	//else return NULL
 	return NULL;
 }
 
@@ -945,12 +948,11 @@ Continuum	*getContinuaByNbr(int contnbr)
 	
 	for (elt = lyst_first(_mib(NULL)->continuum_lyst); elt; elt = lyst_next(elt))
 	{
-		//cast the element to Continuum * type
 		myContinuum = (Continuum *) lyst_data(elt);
 
 		if (myContinuum->nbr == contnbr)
 		{
-			//we have a match 			
+			/* We have a match */		
 			return myContinuum;
 		}
 	}
@@ -965,18 +967,15 @@ int	lookUpContinuum(char *contName)
 	Continuum 	*myContinuum = NULL;
 	LystElt		elt;
 
-	//set elt to first element of continuum_lyst and iterate through the set of lysts
 		for (elt = lyst_first(_mib(NULL)->continuum_lyst); elt; elt = lyst_next(elt))
 		{
-			//cast lyst element to Continuum pointer
 			myContinuum = (Continuum *) lyst_data(elt);
 			
 			if (strcmp(myContinuum->name, contName) == 0)
 			{
 				unlockMib();
 				return myContinuum->nbr;
-			}//end for lyst of Continuum pointers
-	
+			}	
 		}	
 
 	unlockMib();
@@ -1493,12 +1492,13 @@ Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
 	CHKNULL(continNbr > 0);
 	CHKNULL(continNbr <= MAX_CONTIN_NBR);
 		
-	if(getContinuaByNbr((_mib(NULL), continNbr)) == NULL ) //returns null if no match
+	/* return null if no match */
+	if(getContinuaByNbr((_mib(NULL), continNbr)) == NULL ) 
 	{
 		return NULL;
 	}	
-
-	if (getMsgSpaceByNbr(venture, continNbr) != NULL) //if already exists
+	/* if already exists */
+	if (getMsgSpaceByNbr(venture, continNbr) != NULL) 
 	{
 		return NULL;
 	}
@@ -1537,7 +1537,7 @@ Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
 	
 
 	elt = lyst_insert(venture->msgspace_lyst, msgspace);
-	CHKNULL(elt);//error check me
+	CHKNULL(elt);/* error check me */
 	
 	return msgspace;
 }
@@ -1881,15 +1881,12 @@ Venture	*createVenture(int nbr, char *appname, char *authname,
 static Continuum	*createContinuum2(int nbr, char *name,
 				char *description)
 {
-	AmsMib		*mib = _mib(NULL); //lock not required here as createContinuum has lock
+	AmsMib		*mib = _mib(NULL); /* Note: createContinuum has lock */
 	int			length;
 	Continuum	*contin;
 	int			nameLen;
-	int			descLen = 0;	
+	int			descLen = 0;
 	LystElt		elt;
-	
-
-
 
 	CHKNULL(nbr > 0);
 	CHKNULL(nbr <= MAX_CONTIN_NBR);
@@ -1897,8 +1894,7 @@ static Continuum	*createContinuum2(int nbr, char *name,
 	if(getContinuaByNbr(nbr) != NULL)
 	{
 		return NULL;
-	}	
-
+	}
 
 	CHKNULL(name);
 	length = strlen(name);
