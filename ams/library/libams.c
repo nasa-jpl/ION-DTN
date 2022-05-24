@@ -14,14 +14,11 @@
 
 	Modifications address the following issues:
 
-	
-	
+	1.) Code reformatted to allow for full range of SANA node numbers:
+	See MAX_CONTIN_NBR directive in amscommon.h 
 
-
-
-
-	2.) Allow for full range of SANA node numbers - see MAX_CONTIN_NBR directive in amscommon.h 
-	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (managed linked list)
+	Modifications include changing arrays and for-loops using the 
+	MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead
 									
 	*/
 
