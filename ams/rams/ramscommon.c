@@ -1015,7 +1015,8 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 		ErrMsg("Failed creating message.");
 		return -1;
 	}
-	//sky changes SourceCustodyRequired to NoCustodyRequested (per Scott Burleigh)
+	/* 	Sky changes SourceCustodyRequired to NoCustodyRequested 
+		here per Scott Burleigh */
 	if (bp_send(gWay->sap, ramsNode->gwEid, "dtn:none", gWay->ttl,
 		classOfService, NoCustodyRequested, 0, 0, &ancillaryData,
 		bundleZco, &newBundle) < 1)
