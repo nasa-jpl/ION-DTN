@@ -1364,7 +1364,7 @@ accepting it", itoa(unitNbr));
 			return;		/*	Can't respond.		*/
 		}
 
-		if (rsState->cellHeartbeats < N6_COUNT+1) /* Sky replaces original value: 4 */
+		if (rsState->cellHeartbeats <= N6_COUNT) /* Sky replaces original value: 4 */
 		{
 			reasonCode = REJ_NO_CENSUS;
 			if (sendMamsMsg(&endpoint, &(rsState->tsif), rejection,
