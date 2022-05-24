@@ -3710,7 +3710,7 @@ static void	*heartbeatMain(void *parm)
 		}
 
 		lockMib();
-		if (sap->heartbeatsMissed == 3)
+		if (sap->heartbeatsMissed == N6_COUNT)
 		{
 			clearMamsEndpoint(sap->rsEndpoint);
 		}
