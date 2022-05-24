@@ -981,8 +981,8 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	}
 	else
 	{
-		
-		subject = getMsgSpaceByNbr(sap->venture, 0 - subjectNbr); //invert the negative (psuedo) subject Number back to positive here
+		/* Invert the negative (psuedo) subject Number back to a positive */
+		subject = getMsgSpaceByNbr(sap->venture, 0 - subjectNbr); 
 	}
 
 	/*	Marshal content as necessary.				*/
@@ -3137,7 +3137,6 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 	 *	see enqueueAmsEvent.  Wait up to N5_INTERVAL seconds
 	 *	for the registrar to get itself reoriented.		*/
 
-
 	while (1)
 	{
 		unlockMib();
@@ -3248,11 +3247,6 @@ static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 	 *			Registrar is unknown.
 	 *			Give up for now.
 	 *	Send message to known registrar.			*/
-
-
-
-
-
 
 
 	if (sap->rsEndpoint->ept == NULL)	/*	Lost registrar.	*/
@@ -4327,12 +4321,8 @@ char	*ams_get_role_name(AmsSAP *sap, int unitNbr, int moduleNbr)
 
 Lyst	ams_list_msgspaces(AmsSAP *sap)
 {
-	Lyst	msgspaces = NULL;	
+	Lyst	msgspaces = NULL;
 	   
-					
-				 
-			
-
 	if (validSap(sap))
 	{
 		lockMib();		
@@ -4340,24 +4330,9 @@ Lyst	ams_list_msgspaces(AmsSAP *sap)
 
 
 		if(msgspaces == NULL)
-		{
-												  
-										  
-	
-			return NULL;
-	 
-										
-						
-									
-							  
-	  
-							  
-					   
-						
-	  
-	 
-		}		
-   
+		{	
+			return NULL;	
+		}   
 
 		unlockMib();
 	}
@@ -5207,13 +5182,11 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 	 *	invalid.						*/
 
 	if (subjectNbr < 1)
-	{
-			
-		CHKERR(sap->role->nbr == 1);	//	RAMS gateway	
+	{			
+		CHKERR(sap->role->nbr == 1);	/* RAMS gateway */	
 		CHKERR(subjectNbr == (0 - myContinNbr));
 		
 		subject = getMsgSpaceByNbr(sap->venture, myContinNbr);
-
 	}
 	else
 	{
@@ -6372,15 +6345,15 @@ static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
 	AmsMib		*mib = _mib(NULL);
 	LystElt		elt;
 
-
 	lockMib();
 	if (continuumNbr < 0) continuumNbr = 0 - continuumNbr;
        	if (continuumNbr > 0 && continuumNbr <= MAX_CONTIN_NBR)
 	{
-		//set elt to first element of continuum_lyst and iterate through the set of lysts
+		/* 	Set Elt to first element of continuum_lyst and 
+			iterate through the set of lysts */
 		for (elt = lyst_first(mib->continuum_lyst); elt; elt = lyst_next(elt))
 		{
-			//cast lyst element to Continuum pointer
+			/* Cast lyst element to Continuum pointer */
 			myContinuum = (Continuum *) lyst_data(elt);
 			
 			if(myContinuum->nbr == continuumNbr)
@@ -6388,7 +6361,7 @@ static char	*ams_lookup_continuum_name2(AmsSAP *sap, int continuumNbr)
 				unlockMib();
 				return myContinuum->name;
 			}
-		} //end for lyst of Continuum pointers
+		} /* end for lyst of Continuum pointers	*/
 	}
 
 	unlockMib();
