@@ -351,8 +351,6 @@ static void	eraseMib(AmsMib *mib)
 		lyst_destroy(mib->csEndpoints);
 	}
 
-
-
 	/* clean up lyst of Continuum pointers */
 	if (mib->continuum_lyst)
 	{
