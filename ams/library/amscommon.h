@@ -14,6 +14,8 @@
 	Modifications address the following:
 	1.) Allow for SANA node numbers (i.e up to ~2,100,000 see MAX_CONTIN_NBR directive)  
 	2.) New associated function definitions for: getContinuaByNbr() and getMsgSpaceByNbr()	
+	3.) Modified N1, N2, N3 INTERVAL directives for faster cell census periods (set for 9 seconds)
+	Note: Cell Census Period derived from = (N6_COUNT x N4_INTERVAL) + (N6_COUNT * N3_INTERVAL)
 	
 	*/
 
