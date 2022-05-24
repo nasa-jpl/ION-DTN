@@ -161,7 +161,7 @@ static void	*csHeartbeat(void *parm)
 	while (1)
 	{
 		lockMib();
-		if (cycleCount > 5)	/*	Every N5_INTERVAL sec.	*/
+		if (cycleCount > 5)	/* Every 5 * N3_INTERVAL seconds */
 		{
 			cycleCount = 0;
 			stopOtherConfigServers(csState);
@@ -903,7 +903,7 @@ static void	processHeartbeatCycle(RsState *rsState, int *cycleCount,
 
 	/*	Send heartbeats to modules as necessary.		*/
 
-	if (*cycleCount > 1)	/*	Every 20 seconds.		*/
+	if (*cycleCount > 1)	/* Every N4_INTERVAL (i.e. 2 * N3_INTERVAL) seconds */
 	{
 		*cycleCount = 0;
 
