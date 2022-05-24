@@ -13,8 +13,11 @@
 
 	Modifications address the following issues:
 
-	1.) Allow for full range of SANA node numbers - see MAX_CONTIN_NBR directive in amscommon.h 
-	Modifications include switching arrays and for-loops using the MAX_CONTIN_NBR to use ici's lyst (managed linked list)
+	1.) Allow for full range of SANA node numbers 
+		See MAX_CONTIN_NBR directive in amscommon.h 
+
+		Modifications include switching arrays and for-loops
+		using the MAX_CONTIN_NBR to use ici's lyst
 
 */
 
@@ -316,7 +319,7 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 	{
 		if (contnbr == 0 || contnbr == idx)
 		{			
-			//sky modifies to use continuum_lyst instead of array
+			/*Sky modifies to use continuum_lyst instead of array */
 			contin = getContinuaByNbr(idx);
 		}
 		else
@@ -1169,9 +1172,8 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	//sky modifies to use AmsMib->continuum_lyst instead of array
+	/* Sky modifies to use AmsMib->continuum_lyst instead of array */
 	contin = getContinuaByNbr(contnbr);
-
 
 	if (contin == NULL)
 	{
@@ -1179,9 +1181,8 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	//sky gets msgspace for contNbr
-	msgspace = getMsgSpaceByNbr(state->venture, contnbr);
-		
+	/* Sky gets msgspace for contNbr here*/
+	msgspace = getMsgSpaceByNbr(state->venture, contnbr);		
 
 	switch (state->currentOperation)
 	{
