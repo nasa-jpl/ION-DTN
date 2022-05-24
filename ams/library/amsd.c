@@ -186,7 +186,7 @@ static void	*csHeartbeat(void *parm)
 					clearMamsEndpoint
 						(&(cell->mamsEndpoint));
 				}
-				else if (cell->heartbeatsMissed < (N6_COUNT+1))
+				else if (cell->heartbeatsMissed < N6_COUNT)
 				{
 					if (sendMamsMsg (&cell->mamsEndpoint,
 						&csState->tsif, heartbeat,
@@ -945,7 +945,7 @@ termination to peer modules.", NULL);
 
 				forgetModule(module);
 			}
-			else if (module->heartbeatsMissed < (N6_COUNT+1))
+			else if (module->heartbeatsMissed < N6_COUNT)
 			{
 				if (sendMamsMsg(&(module->mamsEndpoint),
 					&(rsState->tsif), heartbeat,
