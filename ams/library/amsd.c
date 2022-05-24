@@ -1364,7 +1364,7 @@ accepting it", itoa(unitNbr));
 			return;		/*	Can't respond.		*/
 		}
 
-		if (rsState->cellHeartbeats < 4)
+		if (rsState->cellHeartbeats < (N6_COUNT+1))
 		{
 			reasonCode = REJ_NO_CENSUS;
 			if (sendMamsMsg(&endpoint, &(rsState->tsif), rejection,
@@ -1506,7 +1506,7 @@ accepting it", itoa(unitNbr));
 			return;		/*	Can't respond.		*/
 		}
 
-		if (rsState->cellHeartbeats > 3)
+		if (rsState->cellHeartbeats > N6_COUNT)
 		{
 			if (sendMamsMsg(&endpoint, &(rsState->tsif),
 					you_are_dead, 0, 0, NULL) < 0)
