@@ -94,15 +94,15 @@ extern "C" {
 /*		Note: all intervals are in seconds.			*/
 
 #ifndef N1_INTERVAL
-#define	N1_INTERVAL	5
+#define	N1_INTERVAL	1
 #endif
 
 #ifndef N2_INTERVAL
-#define	N2_INTERVAL	5
+#define	N2_INTERVAL	1
 #endif
 
 #ifndef N3_INTERVAL
-#define	N3_INTERVAL	10
+#define	N3_INTERVAL	1
 #endif
 
 #define	N4_INTERVAL	(N3_INTERVAL * 2)
