@@ -181,12 +181,12 @@ static void	*csHeartbeat(void *parm)
 					continue;
 				}
 
-				if (cell->heartbeatsMissed == 3)
+				if (cell->heartbeatsMissed == N6_COUNT)
 				{
 					clearMamsEndpoint
 						(&(cell->mamsEndpoint));
 				}
-				else if (cell->heartbeatsMissed < 3)
+				else if (cell->heartbeatsMissed < (N6_COUNT+1))
 				{
 					if (sendMamsMsg (&cell->mamsEndpoint,
 						&csState->tsif, heartbeat,
@@ -925,7 +925,7 @@ static void	processHeartbeatCycle(RsState *rsState, int *cycleCount,
 				continue;
 			}
 
-			if (module->heartbeatsMissed == 3)
+			if (module->heartbeatsMissed == N6_COUNT)
 			{
 				if (sendMamsMsg(&(module->mamsEndpoint),
 					&(rsState->tsif), you_are_dead,
@@ -945,7 +945,7 @@ termination to peer modules.", NULL);
 
 				forgetModule(module);
 			}
-			else if (module->heartbeatsMissed < 3)
+			else if (module->heartbeatsMissed < (N6_COUNT+1))
 			{
 				if (sendMamsMsg(&(module->mamsEndpoint),
 					&(rsState->tsif), heartbeat,
@@ -1011,7 +1011,7 @@ static void	*rsHeartbeat(void *parm)
 
 		/*	Send heartbeat to configuration server.		*/
 
-		if (rsState->heartbeatsMissed == 3)
+		if (rsState->heartbeatsMissed == N6_COUNT)
 		{
 			rsState->csEndpoint = NULL;
 		}
