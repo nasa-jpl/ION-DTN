@@ -12,10 +12,17 @@
 	Jet Propulsion Laboratory 2022
 	
 	Modifications address the following:
-	1.) Allow for SANA node numbers (i.e up to ~2,100,000 see MAX_CONTIN_NBR directive)  
-	2.) New associated function definitions for: getContinuaByNbr() and getMsgSpaceByNbr()	
-	3.) Modified N1, N2, N3 INTERVAL directives for faster cell census periods (set for 9 seconds)
-	Note: Cell Census Period derived from = (N6_COUNT x N4_INTERVAL) + (N6_COUNT * N3_INTERVAL)
+	1.) Allow for SANA node numbers (i.e up to ~2,100,000 
+		see MAX_CONTIN_NBR directive)  
+
+	2.) New associated function definitions for: 
+		getContinuaByNbr() and getMsgSpaceByNbr()
+
+	3.) Modified N1, N2, N3 INTERVAL directives for faster 
+		cell census periods (set for 9 seconds)
+
+		Note: Cell Census Period derived from: 
+		(N6_COUNT x N4_INTERVAL) + (N6_COUNT * N3_INTERVAL)
 	
 	*/
 
@@ -70,7 +77,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	21000000 //account for full range of SANA node #'s (used only as a sanity check)
+#define	MAX_CONTIN_NBR	21000000 /* Used only as a sanity check */
 #endif
 
 #ifndef MAX_VENTURE_NBR
@@ -381,7 +388,7 @@ typedef struct ventstr
 	Unit		*units[MAX_UNIT_NBR + 1];
 	RamsNetProtocol	gwProtocol;
 	int			ramsNetIsTree;		/*	Boolean.	*/
-	Lyst 		msgspace_lyst; //our collection of message spaces (i.e. Subject *)
+	Lyst 		msgspace_lyst; /* Collection of msgspaces (Subject*) */
 } Venture;
 
 /*	The supported transport services listed in the MIB are in
@@ -394,7 +401,7 @@ typedef struct
 	TransSvc	transportServices[TS_INDEX_LIMIT + 1];
 	TransSvc	*pts;			/*	Primary TS.	*/
 	Lyst		amsEndpointSpecs;	/*	(AmsEpspec *)	*/
-	Lyst		continuum_lyst; //our collection of continua (i.e. Continuum *)
+	Lyst		continuum_lyst; /* Collection of continua (Continuum *) */
 
 	Lyst		applications;		/*	(AmsApp *)	*/
 	Venture		*ventures[MAX_VENTURE_NBR + 1];
@@ -483,7 +490,6 @@ extern Unit	*lookUpUnit(Venture *venture, char *unitName);
 extern int	lookUpContinuum(char *continuumName);
 extern Continuum *getContinuaByNbr(int contnbr);
 extern Subject * getMsgSpaceByNbr(Venture *venture, int continuum_nbr);
-
 extern void	eraseApp(AmsApp *app);
 extern LystElt	createApp(char *name, char *publicKeyName,
 			char *privateKeyName);
