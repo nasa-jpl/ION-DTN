@@ -2,51 +2,31 @@
 # Bug 0015 tcpclo and bpcp signal handling and semaphore signal interruptions
 # Samuel Jero
 # March 5, 2013
+# Update May 25, 2022
+# Jay Gao
 # The issue-358-cfdp-inactivity and issue-352-bpcp tests are sufficient
 # to validate that the tcpclo and bpcp/bpcpd signal handlers work correctly.
 # This test ensures that ION correctly handles semaphore operations that
-# get interrupted by a signal. We do a simple loopback tcp transfer and
+# get interrupted by a signal. We setup a 2-node TCP transfer and
 # run a simple program that constantly attempts to perform a transaction.
 # We then fire a bunch of signals at this simple program. We then check
 # ion.log for failed assertions which would indicate a hijacked transaction.
 
-
-# documentation boilerplate
-CONFIGFILES=" \
-./loopback.ionrc \
-./loopback.ionconfig \
-./loopback.bprc  \
-./loopback.ionsecrc \
-./loopback.ipnrc \
-"
 
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: To ensure that ION correctly handles semaphore operations that"
-echo "         get interrupted by a signal. We do a simple loopback tcp transfer"
+echo "         get interrupted by a signal. We setup a 2-node tcp transfer"
 echo "         and run a simple program that constantly attempts to perform a"
 echo "         transaction. We then fire a bunch of signals at this simple"
 echo "         program. We then check ion.log for failed assertions which would"
 echo "         indicate a hijacked transaction."
-echo
-echo "CONFIG: The standard configuration loopback-tcp:"
-echo
-for N in $CONFIGFILES
-do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
-done
+echo ""
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
-
-echo "Starting ION..."
-
-./cleanup
 
 #Check for test program
 if ! [ -e ./test ]; then
@@ -57,26 +37,64 @@ if ! [ -e ./test ]; then
 	exit 2
 fi
 
-# Start node
-ionstart                \
-    -i ./loopback.ionrc \
-    -b ./loopback.bprc  \
-    -s ./loopback.ionsecrc \
-    -p ./loopback.ipnrc
+# Starting ION
 
-#Starting bprecvfile
-echo "Starting bpcounter..."
-bpcounter ipn:1.2 &
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+
+env >> ~/postscript
+# Start nodes.
+# Setup node 1
+echo "Starting Node 1..."
+cd 1.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 1
+fi
+
+#Set up node 2
+echo "Starting Node 2..."
+cd ../2.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+#Starting receiving data
+echo "Starting bpcounter on node 2"
+cd ../2.ipn.tcp/
+bpcounter ipn:2.2 &
 BPRCV=$!
 sleep 5
 
-#Starting bpsendfile
-echo "Starting bpdriver..."
-bpdriver 100000 ipn:1.1 ipn:1.2 -1000 &
+#Starting sending data
+echo "Starting bpdriver on node 1"
+cd ../1.ipn.tcp/
+bpdriver 100000 ipn:1.2 ipn:2.2 -1000 &
 BPSND=$!
 
 #Starting test program
-echo "Starting test program..."
+echo "Starting test program..., attach to the sending node."
+cd ../1.ipn.tcp/
+export ION_NODE_WDNAME=$PWD
+cd ../
 ./test &
 TST=$!
 
@@ -92,17 +110,27 @@ do
 done
 
 #Test
-test=`grep "Assertion failed" ion.log`
-echo $test
-if [ -z "$test" ]; then
-	echo "OK: ION worked correctly when bombarded by signals. SUCCESS!!"
+test1=`grep "Assertion failed" ./2.ipn.tcp/ion.log`
+echo $test1
+if [ -z "$test1" ]; then
+	echo "OK: Checked node 1, ION worked correctly when bombarded by signals. SUCCESS!!"
 	RETVAL=0
 else
 	echo "ERROR: ION crashed as a result of a signal. FAILED!!"
 	RETVAL=1
 fi
 
-sleep 2
+test2=`grep "Assertion failed" ion.log`
+echo $test2
+if [ -z "$test2" ]; then
+	echo "OK: Checked node 2, ION worked correctly when bombarded by signals. SUCCESS!!"
+	RETVAL=0
+else
+	echo "ERROR: ION crashed as a result of a signal. FAILED!!"
+	RETVAL=1
+fi
+
+sleep 10
 
 #End ION
 echo "Killing ION..."

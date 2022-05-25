@@ -1,0 +1,176 @@
+[2022/05/25-20:23:10] [i] rfxclock is running.
+[2022/05/25-20:23:12] [i] This node deploys bundle protocol version 7.
+[2022/05/25-20:23:12] [i] Bundle security is enabled.
+[2022/05/25-20:23:12] [i] bpclm is running: ipn:1.0
+[2022/05/25-20:23:13] [i] Not configured for multicast; cpsd stopping.
+[2022/05/25-20:23:13] [i] ipnadminep is running.
+[2022/05/25-20:23:13] [i] bptransit is running.
+[2022/05/25-20:23:13] [i] bpclock is running.
+[2022/05/25-20:23:13] [i] ipnfw is running.
+[2022/05/25-20:23:13] [i] tcpcli is running [127.0.0.1:4556].
+[2022/05/25-20:23:13] [i] Connected to TCP socket: 127.0.0.1:4555
+[2022/05/25-20:23:14] [i] tcpcli sender thread has started: ipn:1.0
+[2022/05/25-20:23:14] [i] tcpcli admin thread has started: ipn:1.0
+[2022/05/25-20:23:17] [i] tcpcli sender thread has started: ipn:1.0
+[2022/05/25-20:23:17] [i] tcpcli admin thread has started: ipn:1.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (73)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (69)
+[2022/05/25-20:23:52] at line 250 of bpv7/daemon/bpclm.c, bpclm can't take plan semaphore. (ipn:1.0)
+[2022/05/25-20:23:52] at line 709 of bpv7/library/libbp.c, Can't take endpoint semaphore.
+[2022/05/25-20:23:52] at line 490 of bpv7/daemon/bpclm.c, bpclm can't get outbound bundle.
+[2022/05/25-20:23:52] at line 11949 of bpv7/library/libbpP.c, Admin bundle reception failed.
+[2022/05/25-20:23:52] [i] bpclm has ended: ipn:1.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (74)
+[2022/05/25-20:23:52] [i] Administrative endpoint terminated.
+[2022/05/25-20:23:52] at line 152 of bpv7/daemon/bptransit.c, Can't take transit semaphore.
+[2022/05/25-20:23:52] [i] ipnadminep has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (74)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (76)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (82)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (76)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (82)
+[2022/05/25-20:23:52] at line 10990 of bpv7/library/libbpP.c, CLO failed taking duct semaphore. (#:6)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (68)
+[2022/05/25-20:23:52] at line 974 of bpv7/tcp/tcpcli.c, Can't dequeue bundle.
+[2022/05/25-20:23:52] at line 1333 of bpv7/ipn/ipnfw.c, Can't take forwarder semaphore.
+[2022/05/25-20:23:52] at line 1028 of bpv7/tcp/tcpcli.c, tcpcli failed sending bundle. (ipn:1.0)
+[2022/05/25-20:23:52] [i] ipnfw forwarder has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 10990 of bpv7/library/libbpP.c, CLO failed taking duct semaphore. (127.0.0.1:4555)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (71)
+[2022/05/25-20:23:52] at line 974 of bpv7/tcp/tcpcli.c, Can't dequeue bundle.
+[2022/05/25-20:23:52] at line 1028 of bpv7/tcp/tcpcli.c, tcpcli failed sending bundle. (ipn:1.0)
+[2022/05/25-20:23:52] [i] tcpcli sender thread has ended: ipn:1.0
+[2022/05/25-20:23:52] [i] tcpcli sender thread has ended: ipn:1.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] [i] tcpcli server thread has ended.
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (39)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (71)
+[2022/05/25-20:23:52] at line 709 of bpv7/library/libbp.c, Can't take endpoint semaphore.
+[2022/05/25-20:23:52] at line 143 of bpv7/test/bpcounter.c, bpcounter bundle reception failed.
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (75)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (39)
+[2022/05/25-20:23:52] at line 3156 of ici/library/rfx.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7f6c160c459f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7f6c160c454e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(rfx_remove_alarm+0xcc) [0x7f6c160d5ff7]
+[2022/05/25-20:23:52] [i] : bpcounter(+0x19f8) [0x55d7f83c89f8]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3) [0x7f6c15e6b0b3]
+[2022/05/25-20:23:52] [i] : bpcounter(+0x140e) [0x55d7f83c840e]
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] [i] bpcounter has ended.
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] [i] tcpcli admin thread has ended: ipn:1.0
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (82)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (39)
+[2022/05/25-20:23:52] at line 478 of ici/daemon/rfxclock.c, rfxclock failed to begin new transaction.
+[2022/05/25-20:23:52] [i] rfxclock has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] [i] tcpcli admin thread has ended: ipn:1.0
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (72)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (39)
+[2022/05/25-20:23:52] at line 54 of bpv7/daemon/bpclock.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7f91dc03159f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7f91dc03154e]
+[2022/05/25-20:23:52] [i] : bpclock(+0x28d4) [0x55b1bc20f8d4]
+[2022/05/25-20:23:52] [i] : bpclock(+0x370f) [0x55b1bc21070f]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3) [0x7f91dbdd30b3]
+[2022/05/25-20:23:52] [i] : bpclock(+0x270e) [0x55b1bc20f70e]
+[2022/05/25-20:23:52] at line 556 of bpv7/daemon/bpclock.c, Can't dispatch events.
+[2022/05/25-20:23:52] [i] bpclock has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] [i] bptransit has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (82)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (82)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (39)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (39)
+[2022/05/25-20:23:52] at line 5189 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7f5bd02f659f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7f5bd02f654e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(removeOutduct+0xde) [0x7f5bd028a94d]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x5276) [0x5582833e2276]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x5582833e4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7f5bd0345609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7f5bd0198293]
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (83)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (83)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (72)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (72)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (39)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (78)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (78)
+[2022/05/25-20:23:52] [i] tcpcli receiver thread has ended: ipn:1.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] [i] tcpcli receiver thread has ended: ipn:1.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:55] [i] tcpcli clock thread has ended.
+[2022/05/25-20:23:55] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:55] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:55] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (41)
+[2022/05/25-20:23:55] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (41)
+[2022/05/25-20:23:55] [i] tcpcli has ended.
+[2022/05/25-20:23:55] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:55] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)

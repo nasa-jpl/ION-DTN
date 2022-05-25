@@ -1,0 +1,606 @@
+[2022/05/25-20:23:07] [i] rfxclock is running.
+[2022/05/25-20:23:09] [i] This node deploys bundle protocol version 7.
+[2022/05/25-20:23:09] [i] Bundle security is enabled.
+[2022/05/25-20:23:09] [i] bpclm is running: ipn:2.0
+[2022/05/25-20:23:10] [i] bptransit is running.
+[2022/05/25-20:23:10] [i] Not configured for multicast; cpsd stopping.
+[2022/05/25-20:23:10] [i] bpclock is running.
+[2022/05/25-20:23:10] [i] ipnfw is running.
+[2022/05/25-20:23:10] [i] tcpcli is running [127.0.0.1:4555].
+[2022/05/25-20:23:10] [i] Can't connect to TCP socket (refused): 127.0.0.1:4556
+[2022/05/25-20:23:10] [i] ipnadminep is running.
+[2022/05/25-20:23:11] [i] Can't connect to TCP socket (refused): 127.0.0.1:4556
+[2022/05/25-20:23:13] [i] Can't connect to TCP socket (refused): 127.0.0.1:4556
+[2022/05/25-20:23:14] [i] tcpcli sender thread has started: ipn:2.0
+[2022/05/25-20:23:14] [i] tcpcli admin thread has started: ipn:2.0
+[2022/05/25-20:23:17] [i] Connected to TCP socket: 127.0.0.1:4556
+[2022/05/25-20:23:17] [i] tcpcli admin thread has started: ipn:2.0
+[2022/05/25-20:23:17] [i] tcpcli sender thread has started: ipn:2.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (38)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (33)
+[2022/05/25-20:23:52] at line 709 of bpv7/library/libbp.c, Can't take endpoint semaphore.
+[2022/05/25-20:23:52] at line 11949 of bpv7/library/libbpP.c, Admin bundle reception failed.
+[2022/05/25-20:23:52] at line 152 of bpv7/daemon/bptransit.c, Can't take transit semaphore.
+[2022/05/25-20:23:52] [i] Administrative endpoint terminated.
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (38)
+[2022/05/25-20:23:52] [i] ipnadminep has ended.
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (52)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (52)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (79)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 10990 of bpv7/library/libbpP.c, CLO failed taking duct semaphore. (#:6)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 974 of bpv7/tcp/tcpcli.c, Can't dequeue bundle.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (37)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (36)
+[2022/05/25-20:23:52] at line 250 of bpv7/daemon/bpclm.c, bpclm can't take plan semaphore. (ipn:2.0)
+[2022/05/25-20:23:52] at line 1028 of bpv7/tcp/tcpcli.c, tcpcli failed sending bundle. (ipn:2.0)
+[2022/05/25-20:23:52] at line 490 of bpv7/daemon/bpclm.c, bpclm can't get outbound bundle.
+[2022/05/25-20:23:52] [i] bpclm has ended: ipn:2.0
+[2022/05/25-20:23:52] at line 10990 of bpv7/library/libbpP.c, CLO failed taking duct semaphore. (127.0.0.1:4556)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (5)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1326 of bpv7/ipn/ipnfw.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (5)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 974 of bpv7/tcp/tcpcli.c, Can't dequeue bundle.
+[2022/05/25-20:23:52] at line 478 of ici/daemon/rfxclock.c, rfxclock failed to begin new transaction.
+[2022/05/25-20:23:52] [i] rfxclock has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (5)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (5)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1028 of bpv7/tcp/tcpcli.c, tcpcli failed sending bundle. (ipn:2.0)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (16)
+[2022/05/25-20:23:52] at line 641 of ici/library/smlist.c, Can't get last element.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (16)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 299 of ici/library/smlist.c, Can't lock list.
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 11656 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] at line 2117 of ici/library/ion.c, Can't put ZCO space requisition into list.
+[2022/05/25-20:23:52] at line 2337 of ici/library/ion.c, Failed on ionRequest.
+[2022/05/25-20:23:52] at line 324 of bpv7/test/bpdriver.c, bpdriver can't create ZCO.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] [i] tcpcli sender thread has ended: ipn:2.0
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7ff344dbc59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7ff344dbc54e]
+[2022/05/25-20:23:52] [i] : ipnfw(+0x5bda) [0x55f70e223bda]
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3) [0x7ff344b520b3]
+[2022/05/25-20:23:52] at line 429 of bpv7/test/bpdriver.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] : ipnfw(+0x2bae) [0x55f70e220bae]
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (5)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 54 of bpv7/daemon/bpclock.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] [i] tcpcli sender thread has ended: ipn:2.0
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7f1b3bc3659f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7f1b3bc3654e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : bpdriver(+0x23f8) [0x55b17a2553f8]
+[2022/05/25-20:23:52] [i] : bpdriver(+0x28af) [0x55b17a2558af]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3) [0x7f1b3b9dd0b3]
+[2022/05/25-20:23:52] [i] : bpdriver(+0x154e) [0x55b17a25454e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7f16a439959f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7f16a439954e]
+[2022/05/25-20:23:52] [i] : bpclock(+0x28d4) [0x562fe4d4d8d4]
+[2022/05/25-20:23:52] [i] : bpclock(+0x370f) [0x562fe4d4e70f]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3) [0x7f16a413b0b3]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitSuccess+0x91) [0x7fd12e68e537]
+[2022/05/25-20:23:52] [i] : bpclock(+0x270e) [0x562fe4d4d70e]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x745e) [0x55812dea445e]
+[2022/05/25-20:23:52] at line 556 of bpv7/daemon/bpclock.c, Can't dispatch events.
+[2022/05/25-20:23:52] [i] bpclock has ended.
+[2022/05/25-20:23:52] [i] : tcpcli(+0x782d) [0x55812dea482d]
+[2022/05/25-20:23:52] [i] tcpcli server thread has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e02) [0x55812dea4e02]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 1769 of bpv7/tcp/tcpcli.c, Can't clear oldest bundle. (ipn:2.0)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1911 of bpv7/tcp/tcpcli.c, tcpcli segment handling error. (127.0.0.1:4556)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] [i] tcpcli admin thread has ended: ipn:2.0
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (36)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] [i] tcpcli admin thread has ended: ipn:2.0
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (79)
+[2022/05/25-20:23:52] [i] bptransit has ended.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (36)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (36)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (79)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (79)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 5189 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(removeOutduct+0xde) [0x7fd12e68094d]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x5276) [0x55812dea2276]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (80)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (80)
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2022/05/25-20:23:52] at line 11730 of bpv7/library/libbpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/05/25-20:23:52] [i] Current stack trace:
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(printStackTrace+0x32) [0x7fd12e6ec59f]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(_iEnd+0x48) [0x7fd12e6ec54e]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libbp.so.0(bpHandleXmitFailure+0x91) [0x7fd12e68e803]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x44d9) [0x55812dea14d9]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(+0x1a500) [0x7fd12e6e9500]
+[2022/05/25-20:23:52] [i] : /ionroot/tests/../.libs/libici.so.0(Lyst_clear+0x2f) [0x7fd12e6e95b2]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x51b7) [0x55812dea21b7]
+[2022/05/25-20:23:52] [i] : tcpcli(+0x7e5a) [0x55812dea4e5a]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7fd12e73b609]
+[2022/05/25-20:23:52] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7fd12e58e293]
+[2022/05/25-20:23:52] at line 329 of bpv7/tcp/tcpcli.c, tcpcli neighbor closure can't handle failed xmit.
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (81)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (81)
+[2022/05/25-20:23:52] [i] tcpcli receiver thread has ended: ipn:2.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] [i] tcpcli receiver thread has ended: ipn:2.0
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:52] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:53] [i] tcpcli clock thread has ended.
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2022/05/25-20:23:53] [i] tcpcli has ended.
+[2022/05/25-20:23:53] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/05/25-20:23:53] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
