@@ -3,10 +3,11 @@
 									*/
 /*									*/
 /*	Copyright (c) 2004, California Institute of Technology.		*/
-/*	All rights reserved.						*/
+/*	All rights reserved.									*/
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*	Enhanced by Ryan Metzger (MITRE Corp.) August 2006.		*/
-/*									*/
+/*  Injection rate control added by Jay L. Gao, JPL, 2021 	*/
+/*															*/
 
 #include <bp.h>
 
