@@ -4,6 +4,7 @@
  **                         All rights reserved.
  **
  ******************************************************************************/
+// TODO: Update description
 /*****************************************************************************
  **
  ** File Name: bib.h
@@ -61,7 +62,11 @@
 #define BIB_H_
 
 #include "bpsec_util.h"
-#include "profiles.h"
+#include "bpsec_asb.h"
+#include "sci.h"
+
+
+// TODO: Consider removing BIB debug statements.
 
 // If bpsec debugging is turned on, then turn on bib debugging.
 #if DEBUGGING == 1
@@ -110,20 +115,25 @@
  * BIB_DEBUGGING #define.
  */
 
-   #define BIB_DEBUG(level, format,...) if(level >= BIB_DEBUG_LVL) \
-{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); writeMemo(gMsg);}
+#define BIB_DEBUG(level, prefix, format,...) if(level >= BIB_DEBUG_LVL) \
+{                                                                              \
+  int len = _isprintf(gMsg, GMSG_BUFLEN, "%s: (%s) ", __func__, prefix);        \
+  _isprintf(gMsg+len, GMSG_BUFLEN-len, format, __VA_ARGS__);                   \
+   putErrmsg(gMsg, NULL);                                                      \
+}
 
    #define BIB_DEBUG_PROC(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_PROC,format, __VA_ARGS__)
+           BIB_DEBUG(BIB_DEBUG_LVL_PROC, ">", format, __VA_ARGS__)
 
    #define BIB_DEBUG_INFO(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_INFO,format, __VA_ARGS__)
+           BIB_DEBUG(BIB_DEBUG_LVL_INFO, "i", format, __VA_ARGS__)
 
    #define BIB_DEBUG_WARN(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_WARN,format, __VA_ARGS__)
+           BIB_DEBUG(BIB_DEBUG_LVL_WARN, "w", format, __VA_ARGS__)
 
    #define BIB_DEBUG_ERR(format,...) \
-           BIB_DEBUG(BIB_DEBUG_LVL_ERR,format, __VA_ARGS__)
+           BIB_DEBUG(BPSEC_DEBUG_LVL_ERR,  "e", format, __VA_ARGS__)
+
 #else
    #define BIB_DEBUG(level, format,...) if(level >= BIB_DEBUG_LVL) \
 {}
@@ -152,65 +162,32 @@
  * - bsrc: bundle source
  * - bdest: bundle destination
  * - svc: security service (bib-integrity)
- * - tgt: target block number
+ * - tgt: target block type
  * - msec and count: bundle identifiers
  */
 
 #ifndef BIB_TEST_LOGGING
 #define BIB_TEST_LOGGING 1  /** Whether to enable (1) or disable (0) BIB
  	 	 	 	 	 	 	  * test-level logging statements         */
-
 #endif
 #if (BIB_TEST_LOGGING == 1)
 
-#define BIB_TEST_POINT(event, ...) \
+#define BIB_TEST_POINT(event, bundle, num) \
 {_isprintf(gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
-svc: bib-integrity, tgt:%u, msec:%u, count: %u", event, __VA_ARGS__); \
+svc: bib-integrity, tgt:%u, msec:%u, count: %u", event,\
+(bundle) ? bundle->id.source.ssp.ipn.nodeNbr      : 0, \
+(bundle) ? bundle->id.source.ssp.ipn.serviceNbr   : 0, \
+(bundle) ? bundle->destination.ssp.ipn.nodeNbr    : 0, \
+(bundle) ? bundle->destination.ssp.ipn.serviceNbr : 0, \
+num, \
+(bundle) ? bundle->id.creationTime.msec  : 0, \
+(bundle) ? bundle->id.creationTime.count : 0); \
 writeMemo(gMsg);}
 #endif
 
 /************************************************************************
  *				FUNCTION DEFINITIONS			*
  ************************************************************************/
-
-extern int	bibReview(AcqWorkArea *wk);
-
-extern int	bibCheck(AcqExtBlock *blk, AcqWorkArea *wk);
-
-extern int	bibRecord(ExtensionBlock *newBlk, AcqExtBlock *oldBlk);
-
-extern void	bibClear(AcqExtBlock *blk);
-
-extern int	bibCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBlk);
-
-extern int	bibDefaultCompute(Object dataObj, uint32_t chunkSize,
-			uint32_t suite, void *context, csi_svcid_t svc);
-
-extern uint32_t	bibDefaultResultLen(uint32_t suite, uint8_t tlv);
-
-extern int	bibDefaultSign(uint32_t suite, Bundle *bundle,
-			ExtensionBlock *blk, BpsecOutboundBlock *asb,
-			BpsecOutboundTarget *target, Object targetZco,
-			char *toEid);
-
-extern int	bibDefaultVerify(uint32_t suite, AcqWorkArea *wk,
-			AcqExtBlock *blk, BpsecInboundBlock *asb,
-			BpsecInboundTarget *target, Object targetZco,
-			char *fromEid);
-
-extern BibProfile *bibGetProfile(char *securitySource, char *securityDest,
-			BpBlockType targetBlkType, BPsecBibRule *bibRule);
-
-extern int	bibOffer(ExtensionBlock *blk, Bundle *bundle);
-
-extern int	bibParse(AcqExtBlock *blk, AcqWorkArea *wk);
-
-extern int	bibProcessOnDequeue(ExtensionBlock *blk, Bundle *bundle,
-			void *parm);
-
-extern void	bibRelease(ExtensionBlock *blk);
-
-extern int	bibSerialize(ExtensionBlock *blk, Bundle *bundle);
 
 extern int	bpsec_sign(Bundle *bundle);
 

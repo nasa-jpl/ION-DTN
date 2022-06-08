@@ -92,8 +92,6 @@ extern int	secAttach();
 extern Object	getSecDbObject();
 extern SecDB	*getSecConstants();
 extern SecVdb	*getSecVdb();
-extern int	eidsMatch(char *firstEid, int firstEidLen, char *secondEid,
-			int secondEidLen);
 
 /*	*	Functions for managing public keys.			*/
 

@@ -1,0 +1,14 @@
+a {"event_set" : 
+	{"name" : "test1", "desc":"default test1 set"}
+}
+
+l {"event_set"}
+	
+a 
+{"event_set" : 
+	{
+	"name" : "test2", "desc":"default test2 set"
+	}
+}}
+
+l {"event_set"}

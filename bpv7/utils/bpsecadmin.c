@@ -26,69 +26,7 @@ TODO: Implement support for anonymous event sets in policyrules.
  *                              FILE INCLUSIONS                              *
  *****************************************************************************/
 
-#include "bpsec.h"
-#include "bpP.h"
-#include "jsmn.h"
-#include "bpsec_policy.h"
-#include "bpsec_policy_eventset.h"
-#include "bpsec_policy_event.h"
-#include "bpsec_policy_rule.h"
-
-/*****************************************************************************
- *                                 CONSTANTS                                 *
- *****************************************************************************/
-
-#define RULE_ID_LEN 	(8)
-#define MAX_JSMN_TOKENS (128)
-#define MAX_RULE_ID		(255)
-
-#define USER_TEXT_LEN   (1024)
-#define SEC_ROLE_LEN    (15)
-#define NUM_STR_LEN     (5)
-#define GEN_PARM_LEN    (32)
-
-#define BPSEC_SEARCH_ALL 1
-#define BPSEC_SEARCH_BEST 2
-
-typedef struct {char *key; int value;} BpSecMap;
-
-
-BpSecMap gRoleMap[] = {
-	{"s",                BPRF_SRC_ROLE},
-	{"source",           BPRF_SRC_ROLE},
-	{"sec_source",       BPRF_SRC_ROLE},
-	{"v",                BPRF_VER_ROLE},
-	{"verifier",         BPRF_VER_ROLE},
-	{"sec_verifier",     BPRF_VER_ROLE},
-	{"a",                BPRF_ACC_ROLE},
-	{"acceptor",         BPRF_ACC_ROLE},
-	{"sec_acceptor",     BPRF_ACC_ROLE},
-	{NULL,0}
-};
-
-BpSecMap gActionMap[] = {
-	{"remove_sop",             BSLACT_REMOVE_SOP},
-	{"remove_sop_target",      BSLACT_REMOVE_SOP_TARGET},
-	{"remove_all_target_sops", BSLACT_REMOVE_ALL_TARGET_SOPS},
-	{"do_not_forward",         BSLACT_DO_NOT_FORWARD},
-	{"request_storage",        BSLACT_NOT_IMPLEMENTED}, //BSLACT_REQUEST_STORAGE},
-	{"report_reason_code",     BSLACT_REPORT_REASON_CODE},
-	{"override_target_bpcf",   BSLACT_NOT_IMPLEMENTED}, //BSLACT_OVERRIDE_TARGET_BPCF},
-	{"override_sop_bpcf",      BSLACT_NOT_IMPLEMENTED}, //BSLACT_OVERRIDE_SOP_BPCF},
-	{NULL,0}
-};
-
-BpSecMap gScParmMap[] = {
-	{"key_name", CSI_PARM_KEYINFO},
-	{"iv",       CSI_PARM_IV},
-	{"salt",     CSI_PARM_SALT},
-	{"icv",      CSI_PARM_ICV},
-	{"intsig",   CSI_PARM_INTSIG},
-	{"bek",      CSI_PARM_BEK},
-	{"bekicv",   CSI_PARM_BEKICV},
-	{NULL,0}
-};
-
+#include "bpsecadmin_config.h"
 
 /*****************************************************************************
  *                              GLOBAL VARIABLES                             *
@@ -96,6 +34,9 @@ BpSecMap gScParmMap[] = {
 
 PsmPartition gWm;
 char gUserText[USER_TEXT_LEN];
+const char *singleCmdCodes = "#?1ehvq";     /* Command codes that are used
+											 * on their own, not paired with
+											 * additional JSON */
 
 typedef struct
 {
@@ -105,18 +46,8 @@ typedef struct
 } jsonObject;
 
 /*****************************************************************************
- *                             FUNCTION PROTOTYPES                          *
- *****************************************************************************/
-
-
-/*****************************************************************************
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
-
-static char	*_omitted()
-{
-	return "";
-}
 
 static int	_echo(int *newValue)
 {
@@ -137,7 +68,7 @@ static int	_echo(int *newValue)
 	return state;
 }
 
-static void	printText(char *text)
+static void	bpsec_admin_printText(char *text)
 {
 	if (_echo(NULL))
 	{
@@ -147,153 +78,154 @@ static void	printText(char *text)
 	PUTS(text);
 }
 
-static void	handleQuit(int signum)
+static void	bpsec_admin_handleQuit(int signum)
 {
-	printText("Please enter command 'q' to stop the program.");
+	bpsec_admin_printText("Please enter command 'q' to stop the program.");
 }
 
+#if 0
 static void	printSyntaxError(int lineNbr)
 {
 	char	buffer[80];
 
 	isprintf(buffer, sizeof(buffer), "Syntax error at line %d of \
-bpsecadmin.c", lineNbr);
-	printText(buffer);
+		bpsecadmin.c", lineNbr);
+	bpsec_admin_printText(buffer);
 }
+#endif
 
 #define	SYNTAX_ERROR	printSyntaxError(__LINE__)
 
-/*
- * TODO: update to show the acceptance of JSON
- */
-static void	printUsage()
+static void	bpsec_admin_printUsage()
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
 	PUTS("\th\tHelp");
 	PUTS("\t?\tHelp");
 	PUTS("\tv\tPrint version of ION.");
-
-	PUTS("\n\ta\tAdd");
-	PUTS("\t\tEvery eid expression must be a node identification \
-expression, i.e., a partial eid expression ending in '*' or '~'.");
-	PUTS("\t   a bibrule <source eid expression> <destination eid \
-expression> <block type number> { '' | <ciphersuite name> <key name> }");
-	PUTS("\t   a bcbrule <source eid expression> <destination eid \
-expression> <block type number> { '' | <ciphersuite name> <key name> }");
-
-	PUTS("\n\tc\tChange");
-	PUTS("\t   c bibrule <source eid expression> <destination eid \
-expression> <block type number> { '' | <ciphersuite name> <key name> }");
-	PUTS("\t   c bcbrule <source eid expression> <destination eid \
-expression> <block type number> { '' | <ciphersuite name> <key name> }");
-
-	PUTS("\n\td\tDelete");
-	PUTS("\t   d bibrule <source eid expression> <destination eid \
-	expression> <block type number>");
-	PUTS("\t   d bcbrule <source eid expression> <destination eid \
-	expression> <block type number>");
-
-	PUTS("\n\ti\tInfo");
-	PUTS("\t   i bibrule <source eid expression> <destination eid \
-expression> <block type number>");
-	PUTS("\t   i bcbrule <source eid expression> <destination eid \
-expression> <block type number>");
-
-	PUTS("\n\tl\tList");
-	PUTS("\t   l bibrule");
-	PUTS("\t   l bcbrule");
-
-
-	PUTS("\tx\tClear BSP security rules.");
-	PUTS("\t   x <security source eid> <security destination eid> \
-{ 2 | 3 | 4 | ~ }");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
 	PUTS("\t   e { 0 | 1 }");
 	PUTS("\t#\tComment");
 	PUTS("\t   # <comment text>");
 
-
-    PUTS("\n\n\tJSON Commands (Experimental)");
+    PUTS("\n\n\tJSON Security Policy Commands");
     PUTS("\t--------------------------------");
     PUTS("\tJSON keys wrapped in ?'s are optional in a command.");
     PUTS("\tIf included, the key should be represented without the ?'s.");
-    PUTS("\n\t   ADD");
+	PUTS("\tEvery eid expression must be a node identification expression, i.e., a partial eid expression ending in '*'.");
+
+    PUTS("\n\t   ADD\n");
+
     PUTS("\t   a { \"event\" :");
     PUTS("\t       {");
-    PUTS("\t          \"es_ref\" : \"<event set name>\",");
+    PUTS("\t          \"es_ref\"   : \"<event set name>\",");
     PUTS("\t          \"event_id\" : \"<event name>\",");
-    PUTS("\t          \"actions\" : [{\"id\":\"<action>\", <parms if applicable>},...]");
+    PUTS("\t          \"actions\"  : [{\"id\":\"<action>\", <parms if applicable>},...]");
     PUTS("\t       }");
-    PUTS("\t     }");
-    PUTS("\t   a { \"event_set\" : {\"?desc?\" : \"<desc>\", \"name\" : \"<event set name>\"}}");
-    PUTS("\t   a { \"policyrule\" :");
+    PUTS("\t     }\n");
+
+    PUTS("\t   a { \"event_set\" :");
     PUTS("\t       {");
     PUTS("\t          \"?desc?\" : \"<description>\",");
-    PUTS("\t          \"es_ref\" : \"<event set name>\",");
-    PUTS("\t          \"filter\" : ");
+    PUTS("\t          \"name\"   : \"<event set name>\"");
+    PUTS("\t       }");
+    PUTS("\t     }\n");
+
+    PUTS("\t   a { \"policyrule\" :");
+    PUTS("\t       {");
+    PUTS("\t          \"?desc?\"  : \"<description>\",");
+    PUTS("\t          \"es_ref\"  : \"<event set name>\",");
+    PUTS("\t          \"filter\"  : ");
     PUTS("\t          {");
-    PUTS("\t             \"?rule_id?\" : \"<rule id>\",");
+    PUTS("\t             \"?rule_id?\" : <rule id>,");
     PUTS("\t             \"role\"      : \"<security role>\", ");
-    PUTS("\t             \"src\"       : \"<source eid expression>\",        \\");
-    PUTS("\t             \"dest\"      : \"<destination eid expression>\",    ) (1 of src/dest/ssrc required)");
-    PUTS("\t             \"ssrc\"      : \"<security source eid expression>\"/");
+    PUTS("\t             \"src\"       : \"<source eid expression>\", ");
+    PUTS("\t             \"dest\"      : \"<destination eid expression>\",  (1 of src/dest/sec_src required)");
+    PUTS("\t             \"sec_src\"   : \"<security source eid expression>\",");
+    PUTS("\t             \"tgt\"       : <security target block type>,");
+    PUTS("\t             \"?sc_id?\"   : <security context id> (specified here if role is Security Verifier or Acceptor)");
     PUTS("\t          },");
     PUTS("\t          \"spec\" :");
     PUTS("\t          {");
-    PUTS("\t             \"svc\"      : \"<security service>\"");
-    PUTS("\t             \"sc_parms\" : [{\"id\":\"<parm1_id>\",\"value\":\"<parm1_value\"},...]");
+    PUTS("\t             \"svc\"       : \"<security service>\",");
+    PUTS("\t             \"?sc_id?\"   : <security context id>, (specified here if role is Security Source)");
+    PUTS("\t             \"?sc_parms?\": [{\"<parm1_id>\":\"<parm1_value>\"},...,{\"<parm_id>\":\"<parm_value>\"}]");
     PUTS("\t          }");
     PUTS("\t       }");
-    PUTS("\t     }");
+    PUTS("\t     }\n\n");
 
-    PUTS("\n\t   DELETE");
-    PUTS("\t   d { \"event\" : {\"es_ref\" : \"<event set name>\", \"event_id\" : \"<event name>\"}}");
-    PUTS("\t   d { \"event_set\" : {\"name\" : \"<event set name>\"}}");
-    PUTS("\t   d { \"policyrule\" : {\"rule_id\" : \"<rule id>\"}}");
+    PUTS("\t   DELETE\n");
 
-    PUTS("\n\t   FIND");
+    PUTS("\t   d { \"event\" : ");
+    PUTS("\t       {");
+    PUTS("\t         \"es_ref\"   : \"<event set name>\",");
+    PUTS("\t         \"event_id\" : \"<event name>\"");
+    PUTS("\t       }");
+    PUTS("\t     }\n");
+
+    PUTS("\t   d { \"event_set\" :");
+    PUTS("\t       {");
+    PUTS("\t         \"name\"    : \"<event set name>\"");
+    PUTS("\t       }");
+    PUTS("\t     }\n");
+
+    PUTS("\t   d { \"policyrule\" :");
+    PUTS("\t       {");
+    PUTS("\t         \"rule_id\"  : <rule id>");
+    PUTS("\t       }");
+    PUTS("\t     }\n\n");
+
+    PUTS("\t   FIND\n");
     PUTS("\t   f { \"policyrule\" : ");
     PUTS("\t       {");
-    PUTS("\t          \"type\" : \"all\" | \"best\",");
-    PUTS("\t          \"src\"  : \"<source eid expression>\",         \\");
-    PUTS("\t          \"dest\" : \"<destination eid expression>\",     ) (1 of src/dest/ssrc required)");
-    PUTS("\t          \"ssrc\" : \"<security source eid expression>\"./");
-    PUTS("\t          \"?scid?\" : <security context id>,");
-    PUTS("\t          \"?role?\" : \"<security role>\"");
+    PUTS("\t          \"type\"    : \"all\" | \"best\",");
+    PUTS("\t          \"src\"     : \"<source eid expression>\",");
+    PUTS("\t          \"dest\"    : \"<destination eid expression>\",   (1 of src/dest/sec_src required)");
+    PUTS("\t          \"sec_src\" : \"<security source eid expression>\",");
+    PUTS("\t          \"?sc_id?\"  : <security context id>,");
+    PUTS("\t          \"?role?\"  : \"<security role>\"");
     PUTS("\t       }");
-    PUTS("\t     }");
+    PUTS("\t     }\n\n");
 
-    PUTS("\n\t   INFO");
-    PUTS("\t   i { \"event_set\" : {\"name\" : \"<event set name>\"}}");
-    PUTS("\t   i { \"policyrule\" : <rule id>");
+    PUTS("\t   INFO\n");
+    PUTS("\t   i { \"event_set\" :");
+    PUTS("\t       {");
+    PUTS("\t         \"name\"    : \"<event set name>\"");
+    PUTS("\t       }");
+    PUTS("\t     }\n");
 
-    PUTS("\n\t   LIST");
-    PUTS("\t   l {\"type\" : \"eventset\" | \"policyrule\"}");
+    PUTS("\t   i { \"policyrule\":");
+    PUTS("\t       {");
+    PUTS("\t         \"rule_id\": <rule id>");
+    PUTS("\t       }");
+	PUTS("\t     }\n\n");
+
+    PUTS("\t   LIST\n");
+    PUTS("\t   l {\"event_set\"}");
+    PUTS("\t   l {\"policyrule\"}");
 
 
 }
 
-static int attach(int state)
+static int bpsec_admin_attach(int state)
 {
 
     if (secAttach() != 0)
     {
-        printText("Failed to attach to security database.");
+        putErrmsg("Failed to attach to security database.", NULL);
         return 0;
     }
 
     SecVdb *vdb = getSecVdb();
     if (vdb == NULL)
     {
-        printText("Failed to retrieve security database.");
+        putErrmsg("Failed to retrieve security database.", NULL);
         return 0;
     }
 
-
     if((gWm = getIonwm()) == NULL)
     {
-        printText("ION is not running.");
+        putErrmsg("ION is not running.", NULL);
         return 0;
     }
 
@@ -301,7 +233,7 @@ static int attach(int state)
     {
         if (bsl_all_init(gWm) < 1)
         {
-            printText("Failed to initialize BPSec policy");
+            putErrmsg("Failed to initialize BPSec policy.", NULL);
             return 0;
         }
     }
@@ -311,31 +243,183 @@ static int attach(int state)
 
 /******************************************************************************
  *
- * \par Function Name: init
+ * \par Function Name: bpsec_admin_init
  *
  * \par Purpose: This function initializes the bpsecadmin utility, attaching
  *               to the security database and initializing ION working memory.
  *
- * \retval void
- *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/22/21   S. Heiner      Initial Implementation
+ * @retval int
  *****************************************************************************/
-static int init()
+static int bpsec_admin_init()
 {
 
     /* This will call ionAttach */
 	if (secInitialize() < 0)
 	{
-		printText("Can't initialize the ION security system.");
+		putErrmsg("Can't initialize the ION security system.", NULL);
 		return 0;
 	}
 
-	return attach(1);
+	return bpsec_admin_attach(1);
 }
 
+/******************************************************************************
+ * @brief Retrieve the index of the next key field from a set of JSON tokens
+ * 		  within the provided level.
+ *
+ * Example JSON: {K1 :
+ * 					{K2 : V2,
+ * 					 K3 :{K4:V4,
+ * 					 	  K5:V5}
+ * 					 K6: V6
+ * 					}
+ * 				  }
+ * 		To retrieve the index of the first key in the command:
+ * 			currentKeyIndex = -1
+ * 			level = 0
+ * 			return value = index of K1
+ * 		To retrieve the key that follows K3 (at level 2):
+ * 			currentKeyIndex = index of K3
+ * 			level = 2 (the level of K3. K1 is at level 1).
+ * 			return value = K6
+ *
+ *
+ * @param[in] job        - Parsed JSON tokens.
+ * @param[in] currKeyIdx - Current key index to search from.
+ * @param[in] level      - Level of JSON tokens to be searched for the next key.
+ *
+ * @retval   -1 - Error. The next key could not be found.
+ * @retval    0 - No more keys exist at this level.
+ * @retval  >=1 - Index of the next key found at this level
+ *****************************************************************************/
+
+static int bpsec_admin_json_getNextKeyAtLevel(jsonObject job, int currKeyIdx, int level)
+{
+	CHKERR(currKeyIdx >= -1);
+
+	int idx;
+
+	/* Step 1: Increment the key index to find the key that occurs
+	 * next (after) the current key. */
+	currKeyIdx++;
+
+	/* Step 2: Check if there are more keys to search in the JSON object. */
+	if(currKeyIdx >= job.tokenCount)
+	{
+		/* Step 2.1: No more keys to search */
+		return 0;
+	}
+
+	/* Step 3: Iterate over the JSON tokens from the current key index. */
+	for (idx = currKeyIdx; idx < job.tokenCount; idx++)
+	{
+
+		/* Step 3.1: Check that the key found is at the level specified. */
+		if (job.tokens[idx].parent == level)
+		{
+			/* Step 3.2: Next key index found. */
+			return idx;
+		}
+	}
+
+	return -1;
+}
+
+/******************************************************************************
+ * @brief Retrieve the index of the value associated with a given key in a
+ * 		  JSON policy command.
+ * 		  The value index for a provided key is typically keyIdx+1. This
+ * 		  function is useful in catching corner cases where a value is not
+ * 		  present in the JSON.
+ *
+ * @param[in] job    - Parsed JSON tokens.
+ * @param[in] keyIdx - The index of the key to retrieve the value index for.
+ *
+ * @retval  -1 - Error. The value index for the provided key was not found.
+ * @retval >=0 - Index of the value associated with the key provided.
+ *****************************************************************************/
+
+static int bpsec_admin_json_getValueIdx(jsonObject job, int keyIdx)
+{
+	CHKERR(keyIdx >= 0);
+
+	int idx;
+
+	/* Step 1: Search the JSON tokens following the current key index to find
+	 * its associated value. */
+	for (idx = keyIdx; idx < job.tokenCount; idx++)
+	{
+		/* Step 2: The value for the key will have its parent index set to
+		 * the key index. */
+		if(job.tokens[idx].parent == keyIdx)
+		{
+			return idx;
+		}
+	}
+
+	return -1;
+}
+
+/******************************************************************************
+ * @brief Retrieve a typed value from a set of JSON tokens using the provided
+ *        index.
+ *
+ * @param[in]      job        - Parsed JSON tokens.
+ * @param[in]      type       - Expected jsmn type of the value to extract.
+ * @param[in]      idx        - Index of the value in the JSON tokens.
+ * @param[in||out]  value      - The user-supplied field to hold the value.
+ * @param[in]      size       - The size of the user-supplied field.
+ *
+ * @retval -1 - Error. The value was not extracted.
+ * @retval  1 - Value successfully extracted from the provided JSON.
+ *****************************************************************************/
+
+static int bpsec_admin_json_getValueAtIdx(jsonObject job, jsmntype_t type, int idx, char *value, int size)
+{
+	/* Step 0: Sanity checks */
+	CHKERR(idx >= 0);
+	CHKERR(type >= 0);
+	CHKERR(size >= 1);
+
+	/* Step 1: Check that the index is in bounds. */
+	if(idx < 0 || idx > job.tokenCount)
+	{
+		return -1;
+	}
+
+	/* Step 2: Check that the token type matches expected. */
+	if(job.tokens[idx].type == type)
+	{
+		/* Step 3: Initialize the value field. */
+		memset(value, '\0', size);
+
+		/* Step 4: Obtain the length of the value from the JSON and
+		 * check that the provided field can accommodate it */
+		int len = job.tokens[idx].end - job.tokens[idx].start;
+
+		if(len > size)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Length of value exceeds permitted size. Length of value: %i. Max size: %i.", len, size);
+			bpsec_admin_printText(gUserText);
+			return -1;
+		}
+
+		/* Step 5: Copy JSON token value into the user-provided value field. */
+		if(istrcpy(value, job.line+job.tokens[idx].start, len+1) == NULL)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Command value was not successfully copied for JSON command at index %i.", idx);
+			bpsec_admin_printText(gUserText);
+			return -1;
+		}
+
+		return 1;
+	}
+
+	//isprintf(gUserText, USER_TEXT_LEN, "Command value was not found in provided JSON at index %i with type %i.", idx, type);
+	//bpsec_admin_printText(gUserText);
+
+	return -1;
+}
 
 /******************************************************************************
  * @brief Find the index of a named value from a set of JSON tokens.
@@ -359,9 +443,9 @@ static int init()
  * The found value is copied out of the JSON token and into the supplied value.
  *
  * @retval >0 - The index of the found value.
- * @retval 0 - The value was not found
+ * @retval 0  - The value was not found
  *****************************************************************************/
-static int jsonGetTypedIdx(jsonObject job, int start, int end, char *key, int type)
+static int bpsec_admin_json_getTypedIdx(jsonObject job, int start, int end, char *key, int type)
 {
 	int i = 0;
 	int key_len = 0;
@@ -432,13 +516,13 @@ static int jsonGetTypedIdx(jsonObject job, int start, int end, char *key, int ty
  * @retval 0 - The value was not found
  *****************************************************************************/
 
-static int jsonGetTypedValue(jsonObject job, int start, int end, int type, char *key, int max, char *value, int *idx)
+static int bpsec_admin_json_getTypedValue(jsonObject job, int start, int end, int type, char *key, int max, char *value, int *idx)
 {
 	int result = 0;
 	int i = 0;
 
 	/* Retrieve the index of the token holding the value. */
-	i = jsonGetTypedIdx(job, start, end, key, type);
+	i = bpsec_admin_json_getTypedIdx(job, start, end, key, type);
 
 	if(i > 0)
 	{
@@ -451,9 +535,6 @@ static int jsonGetTypedValue(jsonObject job, int start, int end, int type, char 
 		/* Copy JSON segment into the value. */
 		if(istrcpy(value, job.line+job.tokens[i].start, len+1) == NULL)
 		{
-#if 0
-			result = -1;	/*	0 later overwrites -1.	*/
-#endif
 			return -1;
 		}
 
@@ -490,11 +571,11 @@ static int jsonGetTypedValue(jsonObject job, int start, int end, int type, char 
  * @retval NULL  - The value was not found
  *****************************************************************************/
 
-static char *jsonAllocStrValue(jsonObject job, int start, int end, char *key, int max, int *idx)
+static char *bpsec_admin_json_allocStrValue(jsonObject job, int start, int end, char *key, int max, int *idx)
 {
 	char *tmp = (char*) MTAKE(max+1);
 
-	if(jsonGetTypedValue(job, start, end, JSMN_STRING, key, max, tmp, idx) <= 0)
+	if(bpsec_admin_json_getTypedValue(job, start, end, JSMN_STRING, key, max, tmp, idx) <= 0)
 	{
 		MRELEASE(tmp);
 		tmp = NULL;
@@ -519,7 +600,7 @@ static char *jsonAllocStrValue(jsonObject job, int start, int end, char *key, in
  * @retval !0 - The value
  * @retval 0  - The value was not found.
  *****************************************************************************/
-static int getMappedValue(BpSecMap map[], char *key)
+static int bpsec_admin_getMappedValue(BpSecMap map[], char *key)
 {
 	int idx = 0;
 
@@ -535,8 +616,6 @@ static int getMappedValue(BpSecMap map[], char *key)
 	return 0;
 }
 
-
-
 /******************************************************************************
  * @brief Retrieves the event_id from a JSON string.
  *
@@ -544,40 +623,75 @@ static int getMappedValue(BpSecMap map[], char *key)
  * @param[out] event - The retrieved event enumeration
  *
  * @note
- * The expected JSON pair is "event_id" : "<event name>"
+ * The expected JSON key-value pair is "event_id" : "<event name>"
  *
- * @retval 1  - The event was found and validated.
- * @retval 0  - The event was not found or was invalid.
- * @retval -1 - Error extracting the event.
+ * @retval  1  - The event was found and is valid.
+ * @retval  0  - The event was not found or was invalid.
+ * @retval -1  - Error extracting the event id.
  *****************************************************************************/
 
-static int getEventId(jsonObject job, BpSecEventId *event)
+static int bpsec_admin_json_getEventId(jsonObject job, BpSecEventId *event)
 {
 	char eventName[MAX_EVENT_LEN+1];
 	int result = 1;
 
 	CHKERR(event);
 
-	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "event_id", MAX_EVENT_LEN, eventName, NULL) > 0)
+	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_EVENT_ID, MAX_EVENT_LEN, eventName, NULL) > 0)
 	{
 		/* Check that provided event is supported */
 		*event = bslevt_get_id(eventName);
 
 		if(*event == unsupported)
 		{
-			isprintf(gUserText, USER_TEXT_LEN, "[?] event %s is not supported.", eventName);
-			printText(gUserText);
+			isprintf(gUserText, USER_TEXT_LEN, "Security operation event %s is not supported.", eventName);
+			bpsec_admin_printText(gUserText);
 
 			result = 0;
 		}
 	}
+
 	else
 	{
-		writeMemo("[?] Event format incorrect");
+		bpsec_admin_printText("Event format incorrect. Event name not found.");
 		result = -1;
 	}
 
 	return result;
+}
+
+/******************************************************************************
+ * @brief Using the text security service provided by the user, this function
+ *        returns the security service number corresponding to the supported 
+ *        value.
+ *
+ * @param[in]  svc_str  - User-provided string name of security service.
+ *                        Ex: "bib-integrity"
+ *
+ * @retval -1  - The security service provided was invalid.
+ * @retval >0  - The security service value.
+ *****************************************************************************/
+
+static int bpsec_admin_getSvc(char *svc_str)
+{
+	int svc = -1;
+
+	/* Find the security service value in the map of security services. */
+  	if((svc = bpsec_admin_getMappedValue(gSvcMap, svc_str)) > 0)
+  	{
+		return svc;
+  	}
+	else
+	{
+		isprintf(gUserText, USER_TEXT_LEN, "Security service %s unknown. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality", svc_str);
+		bpsec_admin_printText(gUserText);
+
+		svc = -1;
+		return svc;
+	}
+
+	svc = -1;
+  	return svc;
 }
 
 
@@ -590,23 +704,24 @@ static int getEventId(jsonObject job, BpSecEventId *event)
  *
  * @note
  * An action must be both defined AND map to a supported, implemented enumeration
+ * to be set by this function.
  *
  * @retval !0 - The action enumeration OR'd into the mask
  * @retval 0  - The action was not added to the mask
  *****************************************************************************/
 
-static int setAction(char *action, uint8_t *actionMask)
+static int bpsec_admin_setAction(char *action, uint8_t *actionMask)
 {
   int value = 0;
 
   /* Find the action value in the map of action values. */
-  if((value = getMappedValue(gActionMap, action)) > 0)
+  if((value = bpsec_admin_getMappedValue(gActionMap, action)) > 0)
   {
 	  /* If the action was found but is not implemented...*/
 	  if(value == BSLACT_NOT_IMPLEMENTED)
 	  {
-		isprintf(gUserText, USER_TEXT_LEN, "[i] Action %s currently not supported", action);
-		printText(gUserText);
+		isprintf(gUserText, USER_TEXT_LEN, "Action %s currently not supported.", action);
+		bpsec_admin_printText(gUserText);
 
 		value = 0;
 	  }
@@ -615,10 +730,11 @@ static int setAction(char *action, uint8_t *actionMask)
 		  *actionMask |= value;
 	  }
   }
+
   else
   {
-	  isprintf(gUserText, USER_TEXT_LEN, "[?] Unknown action %s", action);
-	  printText(gUserText);
+	  isprintf(gUserText, USER_TEXT_LEN, "Unknown action: %s.", action);
+	  bpsec_admin_printText(gUserText);
   }
 
   return value;
@@ -633,6 +749,7 @@ static int setAction(char *action, uint8_t *actionMask)
  * @param[out] actionMask - The mask of enabled actions
  * @param[out] parms      - Parameters associated with actions (if any)
  *
+ * @note 
  * JSON structure
  * "actions" : { [ {"id":"action name", (opt parms)}, ...]}
  *
@@ -644,7 +761,7 @@ static int setAction(char *action, uint8_t *actionMask)
  * @retval -1 - Error.
  *****************************************************************************/
 
-static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *parms)
+static int bpsec_admin_json_getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *parms)
 {
 	int start = 0;
 	char actionStr[MAX_ACTION_LEN];
@@ -657,12 +774,12 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 	 * Get the index of the start of the actions array. All key-value searches
 	 * will be from this token onward.
 	 */
-	start = jsonGetTypedIdx(job, 1, 0, "actions", JSMN_ARRAY);
+	start = bpsec_admin_json_getTypedIdx(job, 1, 0, KNS_ACTIONS, JSMN_ARRAY);
 
 	if(start <= 0)
 	{
-		isprintf(gUserText, USER_TEXT_LEN, "[?] Cannot find actions array object", NULL);
-		printText(gUserText);
+		isprintf(gUserText, USER_TEXT_LEN, "Cannot find processing actions array object in JSON.", NULL);
+		bpsec_admin_printText(gUserText);
 
 		return -1;
 	}
@@ -673,27 +790,27 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 		/*
 		 * All valid actions start with "id". If there are no more valid actions, we are done.
 		 */
-		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "id", MAX_ACTION_LEN, actionStr, &start) <= 0)
+		if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_ID, MAX_ACTION_LEN, actionStr, &start) <= 0)
 		{
 			break;
 		}
 
 		/* Convert action name to an enumeration and update the action mask. */
-		curAct = setAction(actionStr, actionMask);
+		curAct = bpsec_admin_setAction(actionStr, actionMask);
 
 		/* Process the action based on its enumeration. */
 		switch(curAct)
 		{
 			/* If this is a report action, reas in the reason code to report. */
 			case BSLACT_REPORT_REASON_CODE:
-				if(jsonGetTypedValue(job, start, start+1, JSMN_PRIMITIVE, "reason_code", 64, parmStr, &start) > 0)
+				if(bpsec_admin_json_getTypedValue(job, start, start+1, JSMN_PRIMITIVE, KNS_REASON_CODE, 64, parmStr, &start) > 0)
 				{
 				   parms[parmIdx++].asReason.reasonCode = atoi(parmStr);
 				}
 				else
 				{
-					isprintf(gUserText, USER_TEXT_LEN, "[x] No reason code supplied for action %d", curAct);
-					printText(gUserText);
+					isprintf(gUserText, USER_TEXT_LEN, "No reason code supplied for action Report Reason Code %d.", curAct);
+					bpsec_admin_printText(gUserText);
 
 					return -1;
 				}
@@ -703,20 +820,20 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 			case BSLACT_OVERRIDE_TARGET_BPCF:
 			case BSLACT_OVERRIDE_SOP_BPCF:
 				numParm = 0;
-				if(jsonGetTypedValue(job, start, start+3, JSMN_PRIMITIVE, "mask", 64, parmStr, NULL) > 0)
+				if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_MASK, 64, parmStr, NULL) > 0)
 				{
 				   parms[parmIdx].asOverride.mask = (uint64_t) strtol(parmStr, NULL, 16);
 				   numParm++;
 				}
-				if(jsonGetTypedValue(job, start, start+3, JSMN_PRIMITIVE, "new_value", 64, parmStr, NULL) > 0)
+				if(bpsec_admin_json_getTypedValue(job, start, start+3, JSMN_PRIMITIVE, KNS_NEW_VALUE, 64, parmStr, NULL) > 0)
 				{
 				   parms[parmIdx].asOverride.val = (uint64_t) strtol(parmStr, NULL, 16);
 				   numParm++;
 				}
 				if(numParm != 2)
 				{
-					isprintf(gUserText, USER_TEXT_LEN, "[x] Incorrect parms for override action", NULL);
-					printText(gUserText);
+					isprintf(gUserText, USER_TEXT_LEN, "Invalid parameters for override action. Check block processing flags.", NULL);
+					bpsec_admin_printText(gUserText);
 
 					parms[parmIdx].asOverride.val = parms[parmIdx].asOverride.mask = 0;
 					return -1;
@@ -728,16 +845,16 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 				break;
 			/* if the action is unknown, stop processing. The JSON is malformed. */
 			case 0:
-				isprintf(gUserText, USER_TEXT_LEN, "[?] Unknown action %s", actionStr);
-				printText(gUserText);
+				isprintf(gUserText, USER_TEXT_LEN, "Unknown processing action %s.", actionStr);
+				bpsec_admin_printText(gUserText);
 
 				return 0;
 				break;
 
 			/* If the action is not implemented, skip and process other actions. */
 			case BSLACT_NOT_IMPLEMENTED:
-				isprintf(gUserText, USER_TEXT_LEN, "[?] Action %s not implemented", actionStr);
-				printText(gUserText);
+				isprintf(gUserText, USER_TEXT_LEN, "Action %s not implemented.", actionStr);
+				bpsec_admin_printText(gUserText);
 				break;
 			default:
 				break;
@@ -747,6 +864,82 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
 }
 
 
+/******************************************************************************
+ * @brief Retrieves and validates the security context ID from the JSON tokens.
+ * 		  Will convert a security context name to ID if that security context
+ *        is supported.
+ *
+ * @param[in]   job   - The parsed JSON tokens.
+ * @param[out]  sc_id - Security context ID.
+ *
+ * @retval -1 - Provided security context was invalid/unsupported.
+ * @retval  0 - sc_id was not present in the JSON. Note that this is NOT an error.
+ * @retval  1 - sc_id was present and was validated.
+ *****************************************************************************/
+
+static int bpsec_admin_json_getScId(jsonObject job, int *sc_id)
+{
+	int result = -1;
+	int input_sc_id = BPSEC_UNSUPPORTED_SC;
+	char sc_id_num[NUM_STR_LEN];
+	char sc_id_str[JSON_VAL_LEN];
+
+	/* sc_id will default to unsupported (out of range).
+	 * If this function returns -1, the initialized sc_id will not be used. */
+	*sc_id = BPSEC_UNSUPPORTED_SC;
+
+	/* The security context may be provided by ID (a primitive) */
+	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_SC_ID, NUM_STR_LEN, sc_id_num, NULL)) <= 0)
+	{
+		/* Or the security context may be identified by its name */
+		if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SC_ID, JSON_VAL_LEN, sc_id_str, NULL)) <= 0)
+		{
+			/* Security context ID is missing - not provided as an int or string. 
+			 * This is permitted for filter/find criteria. */
+			return 0;
+		}
+
+		/* Get the SC ID associated with the string name provided */
+		result = bpsec_sci_idFind(sc_id_str, &input_sc_id);
+
+		/* If the SC ID is found, return it */
+		if(result == 1)
+		{
+			*sc_id = input_sc_id;
+			return 1;
+		}
+		/* Otherwise, the SC name provided is invalid */
+		else
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Security context %s is not supported.", sc_id_str);
+			bpsec_admin_printText(gUserText);
+			return -1;
+		}
+	}
+	else if (result > 0)
+	{
+		input_sc_id = atoi(sc_id_num);
+
+		/* Lookup the provided SC ID to determine if it has a valid security context associated */
+		if (bpsec_sci_defFind(input_sc_id, NULL) == 1)
+		{
+			/* Return 1 to indicate the SC ID lookup was successful */
+			*sc_id = input_sc_id;
+			return 1;
+		}
+		/* Otherwise, the SC ID provided is invalid */
+		else
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Security context %d is not supported.", input_sc_id);
+			bpsec_admin_printText(gUserText);
+			return -1;
+		}
+	}
+
+	/* Otherwise, the sc_id field is not present in the filter/find criteria, which
+	 * is permitted in some cases. */
+	return 0;
+}
 
 /******************************************************************************
  * @brief Retrieves the criteria associated with a policyrule filter.
@@ -758,53 +951,56 @@ static int getActions(jsonObject job, uint8_t *actionMask, BpSecEvtActionParms *
  * @param[out]  type  - Security target block type.
  * @param[out]  role  - Security role.
  * @param[out]  sc_id - Security context ID.
+ * @param[out]  svc   - Security service.
  *
  * @note
  * All out parms are expected to have been pre-allocated by the calling function.
  * \par
  * All EID values are expected to be of MAX_EID_LEN length and memset to 0.
  * \par
- * role and sc_id remain 0 if their are not set in the JSON.
+ * role, sc_id, and svc remain 0 if they are not set in the JSON.
  * \par
- * type is set to -1 if its value is not set in the JSON
+ * sc_id and type are set to -1 if their values are not set in the JSON
  *
  * @retval  1 - Filter criteria parsed successfully - parameters populated
  * @retval  0 - Filter criteria parsed unsuccessfully
  * @retval -1 - Error.
  *****************************************************************************/
 
-static int getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc, int *type, int *role, int *sc_id)
+static int bpsec_admin_json_getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc, int *type, int *role, int *sc_id, int *svc)
 {
 	int result = 0;
 
 	char num_str[NUM_STR_LEN];
 	char role_str[SEC_ROLE_LEN];
+	char svc_str[JSON_VAL_LEN];
 
 	*role = 0;
 	*type = -1;
 	*sc_id = 0;
+	*svc = 0;
 
-	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "src", MAX_EID_LEN, bsrc, NULL) < 0)
+	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SRC, MAX_EID_LEN, bsrc, NULL) < 0)
 	{
-		printText("[?] Malformed bundle source provided");
+		bpsec_admin_printText("Malformed bundle source provided. Expected a string EID.");
 		return 0;
 	}
 
-	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "dest", MAX_EID_LEN, bdest, NULL) < 0)
+	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_DEST, MAX_EID_LEN, bdest, NULL) < 0)
 	{
-		printText("[?] Malformed bundle destination provided");
+		bpsec_admin_printText("Malformed bundle destination provided. Expected a string EID.");
 		return 0;
 	}
 
-	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "sec_src", MAX_EID_LEN, ssrc, NULL) < 0)
+	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SEC_SRC, MAX_EID_LEN, ssrc, NULL) < 0)
 	{
-		printText("[?] Malformed security source provided");
+		bpsec_admin_printText("Malformed security source provided. Expected a string EID.");
 		return 0;
 	}
 
-	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "tgt", NUM_STR_LEN, num_str, NULL)) < 0)
+	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_TGT, NUM_STR_LEN, num_str, NULL)) < 0)
 	{
-		printText("[?] Malformed target block type provided");
+		bpsec_admin_printText("Malformed target block type provided. Expected a block type identifier (int).");
 		return 0;
 	}
 	else if (result > 0)
@@ -816,43 +1012,54 @@ static int getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc
 	 * Role can be either a primitive character "v" or a string "verifier". Check for
 	 * primitive first and if not found, try and read it as a string.
 	 */
-	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "role", SEC_ROLE_LEN, role_str, NULL)) <= 0)
+	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_ROLE, SEC_ROLE_LEN, role_str, NULL)) <= 0)
 	{
-		result = jsonGetTypedValue(job, 1, 0, JSMN_STRING, "role", SEC_ROLE_LEN, role_str, NULL);
+		result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_ROLE, SEC_ROLE_LEN, role_str, NULL);
 	}
 
 	/* A result of 0 means the role was not found in the JSON, which is OK. */
 	if(result < 0)
 	{
-		printText("[?] Malformed security role provided");
+		bpsec_admin_printText("Malformed security role provided. Supported roles are: \n\t\"sec_source\"\n\t\"sec_verifier\"\n\t\"sec_acceptor\"");
 		return 0;
 	}
 	else if (result > 0)
 	{
-		*role = getMappedValue(gRoleMap, role_str);
+		*role = bpsec_admin_getMappedValue(gRoleMap, role_str);
 	}
 
-	/* A result of 0 means the sc_id was not found in the JSON, which is OK. */
-	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "sc_id", NUM_STR_LEN, num_str, NULL)) < 0)
+	/* A result of -1 means the sc_id in the JSON was invalid. */
+	if((result = bpsec_admin_json_getScId(job, sc_id)) == -1)
 	{
-		printText("[?] Malformed security context identifier provided");
+		bpsec_admin_printText("Malformed security context identifier provided.");
+		return 0;
+	}
+	/* A result of 1 means that the sc_id was found and is valid. Result == 0 indicates that
+	 * the sc_id field is missing, which is permitted in some cases. */
+	/* Result is 0 if sc_id is missing */
+	if((*role == BPRF_SRC_ROLE) && (result == 0))
+	{
+		bpsec_admin_printText("Security sources MUST specify a security context identifer (\"sc_id\").");
+		return 0;
+	}
+
+	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SVC, JSON_VAL_LEN, svc_str, NULL)) < 0)
+	{
+		bpsec_admin_printText("Malformed security service provided. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality");
 		return 0;
 	}
 	else if (result > 0)
 	{
-		*sc_id = atoi(num_str);
-	}
-
-
-	if((*role == BPRF_SRC_ROLE) && (*sc_id == 0))
-	{
-		printText("[x] Security sources MUST specify a security context identifer.");
-		return 0;
+		if ((*svc = bpsec_admin_getSvc(svc_str)) < 0)
+		{
+			/* If the security service cannot be mapped to a supported service,
+			 * the bpsec_admin_getSvc function will print a detailed error message. */
+			return 0;
+		}
 	}
 
 	return 1;
 }
-
 
 
 /******************************************************************************
@@ -871,11 +1078,12 @@ static int getFilterCriteria(jsonObject job, char *bsrc, char *bdest, char *ssrc
  * @retval -1 - Error.
  *****************************************************************************/
 
-static int parseFilter(jsonObject job, BpSecFilter *filter)
+static int bpsec_admin_json_parseFilter(jsonObject job, BpSecFilter *filter)
 {
 	int type = -1;
 	int role = 0;
-	int sc_id = 0;
+	int sc_id = BPSEC_UNSUPPORTED_SC;
+	int svc = 0;
 
 	char bsrc[MAX_EID_LEN];
 	char bdest[MAX_EID_LEN];
@@ -885,10 +1093,10 @@ static int parseFilter(jsonObject job, BpSecFilter *filter)
 	memset(bdest, '\0', sizeof(bdest));
 	memset(ssrc, '\0', sizeof(ssrc));
 
-	if (getFilterCriteria(job, bsrc, bdest, ssrc, &type, &role, &sc_id))
+	if (bpsec_admin_json_getFilterCriteria(job, bsrc, bdest, ssrc, &type, &role, &sc_id, &svc))
 	{
 		/* After parsing JSON, build filter for policy rule*/
-		*filter = bslpol_filter_build(gWm, bsrc, bdest, ssrc, type, role, sc_id);
+		*filter = bslpol_filter_build(gWm, bsrc, bdest, ssrc, type, role, sc_id, svc);
 
 		if(filter->flags)
 		{
@@ -897,16 +1105,14 @@ static int parseFilter(jsonObject job, BpSecFilter *filter)
 
 		else
 		{
-			printText("[?] Filter information invalid");
+			bpsec_admin_printText("Filter information for policy rule invalid.");
 			return 0;
 		}
 	}
 
-	printText("[?] Malformed filter criteria");
+	bpsec_admin_printText("Malformed filter criteria found for policy rule.");
 	return 0;
 }
-
-
 
 
 /******************************************************************************
@@ -915,7 +1121,7 @@ static int parseFilter(jsonObject job, BpSecFilter *filter)
  * @param[in]   job    - The parsed JSON tokens.
  *
  * @note
- * Currently, this is a lyst of sci_inbound_tlv structures.
+ * Currently, this is a lyst of sci_value structures.
  * \par
  * The created Lyst has a delete callback to help with lyst cleanup later
  * \par
@@ -925,69 +1131,91 @@ static int parseFilter(jsonObject job, BpSecFilter *filter)
  * @retval  NULL  - Error extracting security parameters
  *****************************************************************************/
 
-static PsmAddress getSecCtxtParms(jsonObject job)
+static PsmAddress bpsec_admin_json_getSecCtxtParms(jsonObject job, sc_Def *secCtx)
 {
-	int i = 0;
-	int start = 0;
-	char curId[GEN_PARM_LEN];
-	char curVal[GEN_PARM_LEN];
+	int scParmIdx = 0;
+	int scParmValIdx = 0;
+	int scParmArrIdx = 0;
+	int scKvPair = 0;
+	char curId[JSON_KEY_LEN];
+	char curVal[JSON_VAL_LEN];
 	PsmAddress result = 0;
-	PsmAddress newParm = 0;
-	PsmPartition partition = getIonwm();
+	PsmPartition wm = getIonwm();
 
-	/* It is not an error to not have security context parms. */
-	if((start = jsonGetTypedIdx(job, 1, 0, "sc_parms", JSMN_ARRAY)) <= 0)
+	/* Step 1: Find the index of the security context parameter array. */
+	if((scParmArrIdx = bpsec_admin_json_getTypedIdx(job, 1, 0, KNS_SC_PARMS, JSMN_ARRAY)) <= 0)
 	{
 		return 0;
 	}
 
-	/* Create a shared memory list to hold the parms we did find. */
-	result = sm_list_create(partition);
+	/* Step 2: Create a shared memory list to hold the parms we did find. */
+	result = sm_list_create(wm);
 	CHKZERO(result);
 
-	/* Start processing parms at the start of the sc_parms JSON object. */
-	i = start;
-	while(i > 0)
+	/* Step 3: Start processing parms at the start of the sc_parms JSON array. */
+	scParmIdx = bpsec_admin_json_getNextKeyAtLevel(job, scParmArrIdx, scParmArrIdx+1);
+
+	while(scParmIdx > 0)
 	{
-		/*
-		 * Get the next parm id. If we can't we will assume there are no more
-		 * parms to be had.
+		/* 	Security context parms are provided in the form:
+		 *  [{<parm id 1>, <value 1>},
+		 *   {<parm id 2>, <value 2>},
+		 *   ...
+		 *   {<parm id n>, <value n>}]
 		 */
-		if(jsonGetTypedValue(job, i, 0, JSMN_STRING, "id", GEN_PARM_LEN, curId, &i) <= 0)
+
+		/* Step 3.1: Retrieve parm id. All parm ids must be strings */
+		if(bpsec_admin_json_getValueAtIdx(job, JSMN_STRING, scParmIdx, curId, sizeof(curId)) <= 0)
 		{
-			i = 0;
+			/* If we can't retrieve the next parm id, assume there are no
+			 * more parms to be processed. */
+			scParmIdx = 0;
 		}
+
+		/* Step 3.2 Retrieve parm value index. */
 		else
 		{
-			/* Init the parm Id */
-			int type = getMappedValue(gScParmMap, curId);
-
-			/* Read the parm value into a tmp variable. */
-			if(jsonGetTypedValue(job, i, 0, JSMN_STRING, "value", GEN_PARM_LEN, curVal, &i) < 0)
+			if((scParmValIdx = bpsec_admin_json_getValueIdx(job, scParmIdx)) < 0)
 			{
-				isprintf(gUserText, USER_TEXT_LEN, "[x] Cannot parse sc_parm %s", curId);
-				printText(gUserText);
-
-				bslpol_scparms_destroy(partition, result);
+				isprintf(gUserText, USER_TEXT_LEN, "Cannot find value for sc_parm id: %s", curId);
+				bpsec_admin_printText(gUserText);
+				sm_list_destroy(wm, result, bpsec_scv_smlistCbDel, NULL);
 				return 0;
 			}
 
-			if((newParm = bslpol_scparm_create(partition, type, strlen(curVal), curVal)) <= 0)
+			/* Step 3.3 Retrieve parm value. All parm values must be jsmn strings */
+			if(bpsec_admin_json_getValueAtIdx(job, JSMN_STRING, scParmValIdx, curVal, sizeof(curVal)) <= 0)
 			{
-                isprintf(gUserText, USER_TEXT_LEN, "[x] Cannot create parameter %s", curVal);
-                printText(gUserText);
+				isprintf(gUserText, USER_TEXT_LEN, "Cannot parse sc_parm %s.", curId);
+				bpsec_admin_printText(gUserText);
 
-                bslpol_scparms_destroy(partition, result);
-                return 0;
+				sm_list_destroy(wm, result, bpsec_scv_smlistCbDel, NULL);
+				return 0;
 			}
 
-			sm_list_insert_last(partition, result, newParm);
+			//isprintf(gUserText, USER_TEXT_LEN, "Adding sc_parm %s with value %s", curId, curVal);
+			//bpsec_admin_printText(gUserText);
+
+			/* Step 4: Add the SCI parameter to shared memory */
+			if(bpsec_sci_polParmAdd(wm, result, secCtx, curId, curVal) != 0)
+			{
+                isprintf(gUserText, USER_TEXT_LEN, "SCI cannot add sc_parm %s", curId);
+				bpsec_admin_printText(gUserText);
+				sm_list_destroy(wm, result, bpsec_scv_smlistCbDel, NULL);
+				return 0;
+
+			}
+
+			/* Step 5: Advance to the next key-value pair of security context parameters.
+			 * If we are at the end of parameters to process, scParkIdx is set to an out
+			 * of bounds value, handled in step 3.1. */
+			scKvPair = bpsec_admin_json_getNextKeyAtLevel(job, scParmValIdx, scParmArrIdx);
+			scParmIdx = scKvPair+1; 
 		}
 	}
 
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -1004,16 +1232,16 @@ static PsmAddress getSecCtxtParms(jsonObject job)
  * @retval  1 - Rule ID valid
  *****************************************************************************/
 
-static int getRuleId(jsonObject job, uint16_t *ruleId)
+static int bpsec_admin_json_getRuleId(jsonObject job, uint16_t *ruleId)
 {
 	char id[RULE_ID_LEN];
 	memset(id, '\0', sizeof(id));
 
 	*ruleId = 0;
 
-	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "rule_id", RULE_ID_LEN, id, NULL) <= 0)
+	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_RULE_ID, RULE_ID_LEN, id, NULL) <= 0)
 	{
-		if(jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "rule_id", RULE_ID_LEN, id, NULL) <= 0)
+		if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_RULE_ID, RULE_ID_LEN, id, NULL) <= 0)
 		{
 		  return 0;
 		}
@@ -1041,12 +1269,12 @@ static int getRuleId(jsonObject job, uint16_t *ruleId)
  * @retval  1 - Rule ID valid
  *****************************************************************************/
 
-static int getNewRuleId(jsonObject job, uint16_t *ruleId)
+static int bpsec_admin_json_getNewRuleId(jsonObject job, uint16_t *ruleId)
 {
 	CHKZERO(ruleId);
 
 	/* Extract the ruleID from the JSON tokens. */
-	getRuleId(job, ruleId);
+	bpsec_admin_json_getRuleId(job, ruleId);
 
 	/*
 	 * If the rule was not in the JSON objects then try and find the first
@@ -1068,8 +1296,8 @@ static int getNewRuleId(jsonObject job, uint16_t *ruleId)
 			}
 		}
 
-		isprintf(gUserText, USER_TEXT_LEN, "[x] No available rule IDs. Max # of %s reached.", MAX_RULE_ID-1);
-		printText(gUserText);
+		isprintf(gUserText, USER_TEXT_LEN, "No available rule IDs. Max # of %s reached. \nDelete existing policy rules before adding a new rule.", MAX_RULE_ID-1);
+		bpsec_admin_printText(gUserText);
 
 		return 0;
 	}
@@ -1077,8 +1305,8 @@ static int getNewRuleId(jsonObject job, uint16_t *ruleId)
 	/* Otherwise, check if user rule ID is already in use */
 	else if (bslpol_rule_get_ptr(gWm, *ruleId) != NULL)
 	{
-		isprintf(gUserText, USER_TEXT_LEN, "[x] Rule %d already defined.", *ruleId);
-		printText(gUserText);
+		isprintf(gUserText, USER_TEXT_LEN, "Rule %d already defined. Add this rule using a different rule ID.", *ruleId);
+		bpsec_admin_printText(gUserText);
 
 		return 0;
 	}
@@ -1087,8 +1315,9 @@ static int getNewRuleId(jsonObject job, uint16_t *ruleId)
 }
 
 
-
 #if 0
+/** Note that this is NOT dead code. This function is a placeholder for the
+ *  implementation of anonymous event sets. */
 /******************************************************************************
  *
  * \par Function Name: createAnonEventset
@@ -1104,10 +1333,7 @@ static int getNewRuleId(jsonObject job, uint16_t *ruleId)
  *                             details of the anonymous event set to be
  *                             constructed.
  *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  01/22/21   S. Heiner      Initial Implementation
+ * TODO: Implement anonymous event sets.
  *****************************************************************************/
 PsmAddress createAnonEventset(jsonObject job)
 {
@@ -1119,250 +1345,188 @@ PsmAddress createAnonEventset(jsonObject job)
 #endif
 
 
-
-
-static void	executeAdd(int tokenCount, char **tokens)
-{
-	char	*keyName = "";
-
-	if (tokenCount < 2)
-	{
-		printText("Add what?");
-		return;
-	}
-
-	if (strcmp(tokens[1], "bibrule") == 0)
-	{
-		switch (tokenCount)
-		{
-		case 7:
-			keyName = tokens[6];
-			break;
-
-		case 6:
-			keyName = _omitted();
-			break;
-
-		default:
-			SYNTAX_ERROR;
-			return;
-		}
-
-		sec_addBPsecBibRule(tokens[2], tokens[3], atoi(tokens[4]),
-				tokens[5], keyName);
-		return;
-	}
-
-	if (strcmp(tokens[1], "bcbrule") == 0)
-	{
-		switch (tokenCount)
-		{
-		case 7:
-			keyName = tokens[6];
-			break;
-
-		case 6:
-			keyName = _omitted();
-			break;
-
-		default:
-			SYNTAX_ERROR;
-			return;
-		}
-
-		sec_addBPsecBcbRule(tokens[2], tokens[3], atoi(tokens[4]),
-				tokens[5], keyName);
-		return;
-	}
-
-	SYNTAX_ERROR;
-}
-
-
-
 /******************************************************************************
- * @brief Process the adding of BPSec policy objects provided a JSON object
+ * @brief Add a security policy event set from the provided JSON object.
  *
- * @param[in]  job    - The parsed JSON tokens.
+ * @param[in]  job  - The parsed JSON tokens.
  *
  *****************************************************************************/
 
-static void	executeAddJson(jsonObject job)
+static void	bpsec_admin_addEventSet(jsonObject job)
+{
+	int start = 0;
+	char name[MAX_EVENT_SET_NAME_LEN];
+	char desc[MAX_EVENT_SET_DESC_LEN];
+
+	memset(name, '\0', sizeof(name));
+	memset(desc, '\0', sizeof(desc));
+
+	/* Step 1: Retrieve eventset name (required). */
+	if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_NAME, MAX_EVENT_SET_NAME_LEN, name, NULL))
+	{
+		/* Step 2: Retrieve eventset description (optional). */
+		bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_DESC, MAX_EVENT_SET_DESC_LEN, desc, NULL);
+		
+		/* Step 3: Add the eventset with name and description. */
+		if(bsles_add(gWm, name, desc) < 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Error adding eventset %s.", name);
+			bpsec_admin_printText(gUserText);
+		}
+	}
+	else
+	{
+		bpsec_admin_printText("Error adding named eventset.");
+	}
+	return;
+}
+
+
+/******************************************************************************
+ * @brief Add a security policy event to an existing event set from the 
+ * provided JSON object.
+ *
+ * @param[in]  job  - The parsed JSON tokens.
+ *
+ *****************************************************************************/
+
+static void	bpsec_admin_addEvent(jsonObject job)
 {
 	int start = 0;
 	char name[MAX_EVENT_SET_NAME_LEN];
 
 	memset(name, '\0', sizeof(name));
 
-	if (job.tokenCount < 2)
+	if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_ES_REF,
+			MAX_EVENT_SET_NAME_LEN, name, NULL))
 	{
-		printText("Add what?");
-		return;
-	}
-
-	if((start = jsonGetTypedIdx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
-	{
-		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "name", MAX_EVENT_SET_NAME_LEN, name, NULL))
+		if(bsles_get_ptr(gWm, name))
 		{
-			if(bsles_add(gWm, name) < 0)
-			{
-				isprintf(gUserText, USER_TEXT_LEN, "[x] Error adding eventset %s ", name);
-				printText(gUserText);
-			}
-		}
-	}
-	else if((start = jsonGetTypedIdx(job, 1, 0, "event", JSMN_OBJECT)) > 0)
-	{
-		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL))
-		{
-			if(bsles_get_ptr(gWm, name))
-			{
-				uint8_t actionMask = 0;
-				BpSecEvtActionParms actionParms[BSLACT_MAX_PARM];
-				BpSecEventId eventId = 0;
+			uint8_t actionMask = 0;
+			BpSecEvtActionParms actionParms[BSLACT_MAX_PARM];
+			BpSecEventId eventId = 0;
 
-				memset(actionParms,0,sizeof(actionParms));
+			memset(actionParms, 0, sizeof(actionParms));
 
-				if(getEventId(job, &eventId) < 0)
-				{
-					isprintf(gUserText, USER_TEXT_LEN, "[x] Malformed EventId for %s.", name);
-					printText(gUserText);
-				}
-				else if(getActions(job, &actionMask, actionParms) < 0)
-				{
-					isprintf(gUserText, USER_TEXT_LEN, "[x] Malformed actions for %s.", name);
-					printText(gUserText);
-				}
-				else if(bslevt_add(gWm, name, eventId, actionMask, actionParms) <= 0)
-				{
-					isprintf(gUserText, USER_TEXT_LEN, "[x] Error adding event %d to %s.", eventId, name);
-					printText(gUserText);
-				}
-			}
-			else
+			if(bpsec_admin_json_getEventId(job, &eventId) < 0)
 			{
-				isprintf(gUserText, USER_TEXT_LEN, "[x] Eventset %s not found.", name);
-				printText(gUserText);
+				isprintf(gUserText, USER_TEXT_LEN, "Malformed security operation event id for eventset %s.", name);
+				bpsec_admin_printText(gUserText);
+			}
+			else if(bpsec_admin_json_getActions(job, &actionMask, actionParms) < 0)
+			{
+				isprintf(gUserText, USER_TEXT_LEN, "Malformed processing action(s) for eventset %s.", name);
+				bpsec_admin_printText(gUserText);
+			}
+			else if(bslevt_add(gWm, name, eventId, actionMask, actionParms) <= 0)
+			{
+				isprintf(gUserText, USER_TEXT_LEN, "Error adding security operation event %d to %s.", eventId, name);
+				bpsec_admin_printText(gUserText);
 			}
 		}
 		else
 		{
-			printText("[x] No es_ref in call to add event.");
-		}
-	}
-	else if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
-	{
-		BpSecFilter filter;
-		PsmAddress sci_parms = 0;
-		uint16_t id = 0;
-		PsmAddress esAddr = 0;
-		char desc[BPSEC_RULE_DESCR_LEN+1];
-
-		if (!parseFilter(job, &filter))
-		{
-			printText("[x] Filter criteria could not be processed");
-		}
-		else if (!getNewRuleId(job, &id))
-		{
-			printText("[x] Rule ID could not be processed");
-		}
-		else if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "desc", BPSEC_RULE_DESCR_LEN, desc, NULL) < 0)
-		{
-			printText("[x] Error reading optional rule description.");
-		}
-		else if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL) <= 0)
-		{
-			printText("[x] Missing Event set reference.");
-		}
-		else if((esAddr = bsles_get_addr(gWm, name)) == 0)
-		{
-			printText("[x] Undefined Event set.");
-		}
-		else if((sci_parms = getSecCtxtParms(job)) == 0)
-		{
-			printText("[x] Security context parameters could not be processed");
-		}
-		else
-		{
-			PsmAddress ruleAddr = 0;
-
-			if((ruleAddr = bslpol_rule_create(gWm, desc, id, 0, filter, sci_parms, esAddr)) == 0)
-			{
-				isprintf(gUserText, USER_TEXT_LEN, "[x] Could not create rule %d.", id);
-				printText(gUserText);
-			}
-
-			/* bslpol_rule_insert will free the rule if it cannot be added. */
-			if(bslpol_rule_insert(gWm, ruleAddr, 1) <= 0)
-			{
-				isprintf(gUserText, USER_TEXT_LEN, "[x] Could not insert rule %d.", id);
-				printText(gUserText);
-			}
+			isprintf(gUserText, USER_TEXT_LEN, "Eventset %s not found.", name);
+			bpsec_admin_printText(gUserText);
 		}
 	}
 	else
 	{
-		SYNTAX_ERROR;
+		bpsec_admin_printText("No \"es_ref\" in call to add event. Must include a named eventset.");
 	}
 }
 
-static void	executeChange(int tokenCount, char **tokens)
+
+/******************************************************************************
+ * @brief Add a security policy rule from provided JSON object.
+ *
+ * @param[in]  job  - The parsed JSON tokens.
+ *
+ *****************************************************************************/
+
+static void	bpsec_admin_addPolicyrule(jsonObject job)
 {
-	char	*keyName;
+	int 			start = 0;
+	BpSecFilter 	filter;
+	PsmAddress  	sci_parms = 0;
+	uint16_t 		id = 0;
+	PsmAddress 		esAddr = 0;
+	char name[MAX_EVENT_SET_NAME_LEN];
+	char desc[BPSEC_RULE_DESCR_LEN+1];
 
-	if (tokenCount < 2)
+	memset(name, '\0', sizeof(name));
+	memset(desc, '\0', sizeof(desc));
+
+	if(!bpsec_admin_json_parseFilter(job, &filter))
 	{
-		printText("Change what?");
-		return;
+		bpsec_admin_printText("Filter criteria could not be processed.");
 	}
-
-	if (strcmp(tokens[1], "bibrule") == 0)
+	else if (!bpsec_admin_json_getNewRuleId(job, &id))
 	{
-		switch (tokenCount)
+		bpsec_admin_printText("Rule ID could not be processed.");
+	}
+	else if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_DESC, BPSEC_RULE_DESCR_LEN, desc, NULL) < 0)
+	{
+		isprintf(gUserText, USER_TEXT_LEN, "Error reading optional rule description. Ensure that description is within character limit of %d.", BPSEC_RULE_DESCR_LEN);
+		bpsec_admin_printText(gUserText);
+	}
+	else if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_ES_REF, MAX_EVENT_SET_NAME_LEN, name, NULL) <= 0)
+	{
+		bpsec_admin_printText("Missing event set reference (\"es_ref\").");
+	}
+	else if((esAddr = bsles_get_addr(gWm, name)) == 0)
+	{
+		isprintf(gUserText, USER_TEXT_LEN, "Undefined event set %s.", name);
+		bpsec_admin_printText(gUserText);
+	}
+	else
+	{
+		PsmAddress ruleAddr = 0;
+
+		/* If the security context ID is provided by the security policy rule,
+		   look up the security context definition to be used to add the security
+		   policy parameters. */
+		if(filter.flags & BPRF_USE_SCID)
 		{
-		case 7:
-			keyName = tokens[6];
-			break;
+			sc_Def secCtx;
+			int sci_lookup = bpsec_sci_defFind(filter.scid, &secCtx);
 
-		case 6:
-			keyName = _omitted();
-			break;
+			if(sci_lookup <= 0)
+			{
+				isprintf(gUserText, USER_TEXT_LEN, "Unsupported security context %i", filter.scid);
+				bpsec_admin_printText(gUserText);
+				return;
+			}
 
-		default:
-			SYNTAX_ERROR;
+			if((sci_parms = bpsec_admin_json_getSecCtxtParms(job, &secCtx)) == 0)
+			{
+				bpsec_admin_printText("Security context parameters could not be processed.");
+				return;
+			}
+		}
+		/* If the security policy rule specifies security context parameters without identifying
+		   the security context to use when processing them, it's an error. */
+		else if ((!(filter.flags & BPRF_USE_SCID)) && (bpsec_admin_json_getTypedIdx(job, 1, 0, KNS_SC_PARMS, JSMN_ARRAY) > 0))
+		{
+			bpsec_admin_printText("Security context parameters provided without security context identifier.");
+			bpsec_admin_printText("\"sc_id\" field must be present in policy rules providing \"sc_parms\".");
 			return;
 		}
-
-		sec_updateBPsecBibRule(tokens[2], tokens[3], atoi(tokens[4]),
-				tokens[5], keyName);
-		return;
-	}
-
-        if (strcmp(tokens[1], "bcbrule") == 0)
-        {
-                switch (tokenCount)
-                {
-                case 7:
-                        keyName = tokens[6];
-                        break;
-
-                case 6:
-                        keyName = _omitted();
-                        break;
-
-                default:
-                        SYNTAX_ERROR;
-                        return;
+		
+		if((ruleAddr = bslpol_rule_create(gWm, desc, id, 0, filter, sci_parms, esAddr)) == 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Could not create rule %d.", id);
+			bpsec_admin_printText(gUserText);
 		}
 
-                sec_updateBPsecBcbRule(tokens[2], tokens[3], atoi(tokens[4]),
-                                tokens[5], keyName);
-                return;
-        }
-
-	SYNTAX_ERROR;
+		/* bslpol_rule_insert will free the rule if it cannot be added. */
+		if(bslpol_rule_insert(gWm, ruleAddr, 1) <= 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Could not insert rule %d.", id);
+			bpsec_admin_printText(gUserText);
+		}
+	}
 }
-
 
 #if 0
 /******************************************************************************
@@ -1376,10 +1540,7 @@ static void	executeChange(int tokenCount, char **tokens)
  * \param[in]  tokens      jsmn token(s).
  * \param[in]  line        'Change' command using JSON syntax.
  *
- * Modification History:
- *  MM/DD/YY  AUTHOR         DESCRIPTION
- *  --------  ------------   ---------------------------------------------
- *  12/30/20   S. Heiner      Initial Implementation
+ * TODO: Implement change option for policy rules.
  *****************************************************************************/
 static void	executeChangeJson(jsonObject job)
 {
@@ -1388,11 +1549,11 @@ static void	executeChangeJson(jsonObject job)
 
 	if (job.tokenCount < 2)
 	{
-		printText("Change what?");
+		bpsec_admin_printText("Change what?");
 		return;
 	}
 
-	if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
+	if((start = bpsec_admin_json_getTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
 	{
 		BpSecFilter filter;
 		Lyst sci_parms = NULL;
@@ -1403,14 +1564,14 @@ static void	executeChangeJson(jsonObject job)
 
 		memset(name, '\0', sizeof(name));
 
-		if ((getRuleId(job, &id) > 0) &&
+		if ((bpsec_admin_json_getRuleId(job, &id) > 0) &&
 		    ((ruleAddr = bslpol_rule_get_addr(gWm, id)) > 0))
 		{
 			/* Delete existing rule */
 			bslpol_rule_delete(gWm, ruleAddr);
 
 			/* Create new rule with same ID as deleted rule */
-			if (!parseFilter(job, &filter))
+			if (!bpsec_admin_json_parseFilter(job, &filter))
 			{
 				writeMemo("[?] Filter criteria could not be processed");
 			}
@@ -1422,7 +1583,7 @@ static void	executeChangeJson(jsonObject job)
 			{
 				writeMemo("[?] Undefined Event set.");
 			}
-			else if((sci_parms = getSecCtxtParms(job)) == NULL)
+			else if((sci_parms = bpsec_admin_json_getSecCtxtParms(job)) == NULL)
 			{
 				writeMemo("[?] Security context parameters could not be processed");
 			}
@@ -1443,154 +1604,100 @@ static void	executeChangeJson(jsonObject job)
 
 #endif
 
-
-
-static void	executeDelete(int tokenCount, char **tokens)
-{
-	if (tokenCount < 3)
-	{
-		printText("Delete what?");
-		return;
-	}
-
-	if (strcmp(tokens[1], "bibrule") == 0)
-	{
-		if (tokenCount != 5)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-		sec_removeBPsecBibRule(tokens[2], tokens[3], atoi(tokens[4]));
-		return;
-	}
-
-	if (strcmp(tokens[1], "bcbrule") == 0)
-	{
-		if (tokenCount != 5)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-		sec_removeBPsecBcbRule(tokens[2], tokens[3], atoi(tokens[4]));
-		return;
-	}
-	SYNTAX_ERROR;
-}
-
-
-
 /******************************************************************************
- * @brief Process the removal of BPSec policy objects provided a JSON object
+ * @brief Delete a named event set identified by the provided JSON object.
  *
  * @param[in]  job    - The parsed JSON tokens.
  *
  *****************************************************************************/
 
-static void	executeDeleteJson(jsonObject job)
+static void	bpsec_admin_deleteEventSet(jsonObject job)
 {
 	int start = 0;
 	char name[MAX_EVENT_SET_NAME_LEN];
 	memset(name, '\0', sizeof(name));
 
-	if (job.tokenCount < 2)
+	if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_NAME, MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
 	{
-		printText("Delete what?");
-		return;
+		if(bsles_delete(gWm, name) < 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Error deleting eventset %s.", name);
+			bpsec_admin_printText(gUserText);
+		}
 	}
-
-	if((start = jsonGetTypedIdx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
+	else
 	{
-		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "name", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
-		{
-			bsles_delete(gWm, name);
-		}
-		else
-		{
-			printText("[?] Missing event set name.");
-		}
-		return;
+		bpsec_admin_printText("Error deleting eventset.");
 	}
-	else if((start = jsonGetTypedIdx(job, 1, 0, "event", JSMN_OBJECT)) > 0)
-	{
-		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "es_ref", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
-		{
-			BpSecEventId eventId = 0;
-			if(getEventId(job, &eventId) > 0)
-			{
-				bslevt_delete(gWm, name, eventId);
-			}
-			else
-			{
-				isprintf(gUserText, USER_TEXT_LEN, "[x] Error removing event %d from %s.", eventId, name);
-				printText(gUserText);
-			}
-		}
-		else
-		{
-			printText("[?] Missing event set name.");
-		}
-		return;
-	}
-	else if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
-	{
-		uint16_t id = 0;
-		if(getRuleId(job, &id) > 0)
-		{
-			bslpol_rule_remove_by_id(gWm, id);
-		}
-		else
-		{
-			printText("[?] Missing rule id.");
-		}
-		return;
-	}
-
-
-	SYNTAX_ERROR;
-}
-
-static void	printBPsecBibRule(Object ruleAddr)
-{
-	Sdr	sdr = getIonsdr();
-		OBJ_POINTER(BPsecBibRule, rule);
-	char	srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
-	char	buf[512];
-
-	GET_OBJ_POINTER(sdr, BPsecBibRule, rule, ruleAddr);
-	sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
-	sdr_string_read(sdr, destEidBuf, rule->destEid);
-	isprintf(buf, sizeof(buf), "rule src eid '%.255s' dest eid '%.255s' \
-type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-		rule->blockType, rule->profileName, rule->keyName);
-	printText(buf);
-}
-
-static void     printBPsecBcbRule(Object ruleAddr)
-{
-        Sdr     sdr = getIonsdr();
-                OBJ_POINTER(BPsecBcbRule, rule);
-        char    srcEidBuf[SDRSTRING_BUFSZ], destEidBuf[SDRSTRING_BUFSZ];
-        char    buf[512];
-
-        GET_OBJ_POINTER(sdr, BPsecBcbRule, rule, ruleAddr);
-        sdr_string_read(sdr, srcEidBuf, rule->securitySrcEid);
-        sdr_string_read(sdr, destEidBuf, rule->destEid);
-        isprintf(buf, sizeof(buf), "rule src eid '%.255s' dest eid '%.255s' \
-type '%d' ciphersuite '%.31s' key name '%.31s'", srcEidBuf, destEidBuf,
-		rule->blockType, rule->profileName, rule->keyName);
-        printText(buf);
+	return;
 }
 
 
 /******************************************************************************
- * @brief Prints an event object
+ * @brief Remove a security operation event from a named event set with both
+ * identified by the provided JSON object.
  *
- * @param[in]   event - The event to be printed.
+ * @param[in]  job    - The parsed JSON tokens.
  *
- * @note
  *****************************************************************************/
 
-static void printEvent(BpSecEvent *event)
+static void	bpsec_admin_deleteEvent(jsonObject job)
+{
+	int start = 0;
+	char name[MAX_EVENT_SET_NAME_LEN];
+	memset(name, '\0', sizeof(name));
+
+	if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_ES_REF,
+			MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
+	{
+		BpSecEventId eventId = 0;
+		if(bpsec_admin_json_getEventId(job, &eventId) > 0)
+		{
+			bslevt_delete(gWm, name, eventId);
+		}
+		else
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Error removing event %d from eventset %s.", eventId, name);
+			bpsec_admin_printText(gUserText);
+		}
+	}
+	else
+	{
+		bpsec_admin_printText("Missing event set name. Cannot delete event.");
+	}
+	return;
+}
+
+/******************************************************************************
+ * @brief Remove a BPSec policy rule provided a JSON object.
+ *
+ * @param[in]  job    - The parsed JSON tokens.
+ *
+ *****************************************************************************/
+
+static void	bpsec_admin_deletePolicyrule(jsonObject job)
+{
+	uint16_t id = 0;
+
+	if(bpsec_admin_json_getRuleId(job, &id) > 0)
+	{
+		bslpol_rule_remove_by_id(gWm, id);
+	}
+	else
+	{
+		bpsec_admin_printText("Missing rule id. Cannot delete policy rule.");
+	}
+	return;
+}
+
+/******************************************************************************
+ * @brief Prints an event object.
+ *
+ * @param[in] event - The event to be printed.
+ *
+ *****************************************************************************/
+
+static void bpsec_admin_printEvent(BpSecEvent *event)
 {
 	int idx = 0;
 	int parmIdx = 0;
@@ -1598,7 +1705,6 @@ static void printEvent(BpSecEvent *event)
 	char buf[2048];
 	char tmp[128];
 	memset(buf, '\0', sizeof buf);
-
 
 	isprintf(tmp, sizeof(tmp), "Event: %s\nActions:\n", bslevt_get_name(event->id));
 	strcat(buf,tmp);
@@ -1634,54 +1740,68 @@ static void printEvent(BpSecEvent *event)
 		idx++;
 	}
 
-	printText(buf);
+	bpsec_admin_printText(buf);
 }
-
 
 
 /******************************************************************************
  * @brief Prints an eventset name
  *
- * @param[in]   edPtr - The eventset whose name is to be printed.
+ * @param[in]  esPtr - The eventset whose name is to be printed.
  *
- * @note
  *****************************************************************************/
 
-static void printEventsetName(BpSecEventSet *esPtr)
+static void bpsec_admin_printEventsetName(BpSecEventSet *esPtr)
 {
 	char buf[MAX_EVENT_SET_NAME_LEN + 500]; //Max 255 named event sets
 	memset(buf, '\0', sizeof(buf));
 
-	isprintf(buf, sizeof(buf), "\nEventset name: %s\n Associated Policy Rules: %i\n",
+	isprintf(buf, sizeof(buf), "\nEventset name: %s\n\tAssociated Policy Rules: %i",
 			 esPtr->name, esPtr->ruleCount);
 
-	printText(buf);
+	bpsec_admin_printText(buf);
 }
 
+
+/******************************************************************************
+ * @brief Prints an eventset description (optional field)
+ *
+ * @param[in]  esPtr - The eventset whose description is to be printed.
+ *
+ *****************************************************************************/
+
+static void bpsec_admin_printEventsetDesc(BpSecEventSet *esPtr)
+{
+	char buf[MAX_EVENT_SET_DESC_LEN + 1]; 
+	memset(buf, '\0', sizeof(buf));
+
+	isprintf(buf, sizeof(buf), "\tDescription: %s\n", esPtr->desc);
+
+	bpsec_admin_printText(buf);
+}
 
 
 /******************************************************************************
  * @brief Prints an eventset
  *
- * @param[in]   esPtr - The eventset to be printed.
+ * @param[in] esPtr - The eventset to be printed.
  *
- * @note
  *****************************************************************************/
 
-static void printEventset(BpSecEventSet *esPtr)
+static void bpsec_admin_printEventset(BpSecEventSet *esPtr)
 {
 	PsmAddress elt = 0;
 
-	printEventsetName(esPtr);
+	bpsec_admin_printEventsetName(esPtr);
+	bpsec_admin_printEventsetDesc(esPtr);
 
 	/* Print each event configured for the event set */
 	for(elt = sm_list_first(gWm, esPtr->events); elt; elt = sm_list_next(gWm, elt))
 	{
 		BpSecEvent *event = (BpSecEvent *) psp(gWm, sm_list_data(gWm,elt));
-		printEvent(event);
+		bpsec_admin_printEvent(event);
 	}
 }
-
 
 
 /******************************************************************************
@@ -1690,10 +1810,9 @@ static void printEventset(BpSecEventSet *esPtr)
  * @param[in] rulePtr - The policyrule to be printed.
  * @param[in] verbose - Whether to print the full rule (1) or not (0)
  *
- * @note
  *****************************************************************************/
 
-static void printRule(BpSecPolRule *rulePtr, int verbose)
+static void bpsec_admin_printPolicyrule(BpSecPolRule *rulePtr, int verbose)
 {
 	char buf[2048];
 	char tmp[512];
@@ -1701,7 +1820,7 @@ static void printRule(BpSecPolRule *rulePtr, int verbose)
 
 	if(rulePtr == NULL)
 	{
-		printText("No Rule.\n");
+		bpsec_admin_printText("No Rule.\n");
 		return;
 	}
 
@@ -1715,7 +1834,7 @@ static void printRule(BpSecPolRule *rulePtr, int verbose)
 
 	if(verbose == 0)
 	{
-		printText(buf);
+		bpsec_admin_printText(buf);
 		return;
 	}
 
@@ -1775,38 +1894,35 @@ static void printRule(BpSecPolRule *rulePtr, int verbose)
 	}
 	strcat(buf,"\n\n");
 
-	printText(buf);
+	bpsec_admin_printText(buf);
 }
 
 
-
 /******************************************************************************
- * @brief Prints a Lyst of policyrules
+ * @brief Prints policy rules from a provided lyst.
  *
  * @param[in] rules   - The policyrules to be printed.
  * @param[in] verbose - Whether to print the full rule (1) or not (0)
  *
- * @note
  *****************************************************************************/
 
-static void printRuleList(Lyst rules, int verbose)
+static void bpsec_admin_printPolicyruleLyst(Lyst rules, int verbose)
 {
 	LystElt elt;
 
 	/* lyst_length does a NULL check. */
 	if(lyst_length(rules) <= 0)
 	{
-		printText("No Rules.\n");
+		bpsec_admin_printText("No policy rules defined.\n");
 		return;
 	}
 
 	for(elt = lyst_first(rules); elt; elt = lyst_next(elt))
 	{
 		BpSecPolRule *rulePtr = (BpSecPolRule *) lyst_data(elt);
-		printRule(rulePtr, verbose);
+		bpsec_admin_printPolicyrule(rulePtr, verbose);
 	}
 }
-
 
 
 /******************************************************************************
@@ -1826,17 +1942,18 @@ static void printRuleList(Lyst rules, int verbose)
  * @retval  1 - Rule ID valid
  *****************************************************************************/
 
-static int getFindCriteria(jsonObject job, int start, int *type, BpSecPolRuleSearchTag *tag)
+static int bpsec_admin_json_getFindCriteria(jsonObject job, int start, int *type, BpSecPolRuleSearchTag *tag)
 {
-	char tmp_str[GEN_PARM_LEN];
+	char tmp_str[JSON_VAL_LEN];
 	int result = 0;
+	int sc_id = 0;
 
 	CHKZERO(tag);
 
 	/* Search the JSON object for the search type and process it. */
-	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "type", GEN_PARM_LEN, tmp_str, NULL) <= 0)
+	if(bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_TYPE, JSON_VAL_LEN, tmp_str, NULL) <= 0)
 	{
-		printText("[x] Search type missing.");
+		bpsec_admin_printText("Search type missing. Include field \"type\" set to value \"all\" or \"best\".");
 		return 0;
 	}
 
@@ -1850,729 +1967,964 @@ static int getFindCriteria(jsonObject job, int start, int *type, BpSecPolRuleSea
 	}
 	else
 	{
-		isprintf(gUserText, USER_TEXT_LEN, "[x] unknown search type %s.", tmp_str);
-		printText(gUserText);
+		isprintf(gUserText, USER_TEXT_LEN, "Unknown search type %s. Supported search types are \"all\" or \"best\".", tmp_str);
+		bpsec_admin_printText(gUserText);
 
 		return 0;
 	}
 
-	/* Search the JSON object for various EIDs. */
-	tag->bsrc = jsonAllocStrValue(job, start, 0, "src", MAX_EID_LEN, NULL);
+	/* Search the JSON object for EIDs: bundle src, bundle dest, and security src. */
+	tag->bsrc = bpsec_admin_json_allocStrValue(job, start, 0, KNS_SRC, MAX_EID_LEN, NULL);
 	tag->bsrc_len = (tag->bsrc) ? istrlen(tag->bsrc, MAX_EID_LEN) : 0;
 
-	tag->bdest = jsonAllocStrValue(job, start, 0, "dest", MAX_EID_LEN, NULL);
+	tag->bdest = bpsec_admin_json_allocStrValue(job, start, 0, KNS_DEST, MAX_EID_LEN, NULL);
 	tag->bdest_len = (tag->bdest) ? istrlen(tag->bdest, MAX_EID_LEN) : 0;
 
-	tag->ssrc = jsonAllocStrValue(job, start, 0, "ssrc", MAX_EID_LEN, NULL);
+	tag->ssrc = bpsec_admin_json_allocStrValue(job, start, 0, KNS_SEC_SRC, MAX_EID_LEN, NULL);
 	tag->ssrc_len = (tag->ssrc) ? istrlen(tag->ssrc, MAX_EID_LEN) : 0;
 
-	/* Search for block type. A value of -1 indicates missing. */
-	result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "tgt", GEN_PARM_LEN, tmp_str, NULL);
+	/* Search for block type. A value of -1 indicates that the type was not provided. */
+	result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_TGT, JSON_VAL_LEN, tmp_str, NULL);
 	tag->type = (result > 0) ? atoi(tmp_str) : -1;
 
-	// Role can be string or primitive.
-	if((result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "role", GEN_PARM_LEN, tmp_str, NULL)) <= 0)
+	/* Role can be a string or primitive value. */
+	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_PRIMITIVE, KNS_ROLE, JSON_VAL_LEN, tmp_str, NULL)) <= 0)
 	{
-		result = jsonGetTypedValue(job, 1, 0, JSMN_STRING, "role", GEN_PARM_LEN, tmp_str, NULL);
+		result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_ROLE, JSON_VAL_LEN, tmp_str, NULL);
 	}
-	tag->role = (result > 0) ? getMappedValue(gRoleMap, tmp_str) : 0;
+	/* If the security role was not provided, set to 0. */
+	tag->role = (result > 0) ? bpsec_admin_getMappedValue(gRoleMap, tmp_str) : 0;
 
-	result = jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "sc_id", GEN_PARM_LEN, tmp_str, NULL);
-	tag->scid = (result > 0) ? atoi(tmp_str) : 0;
+	/* Search for security context ID.  */
+	/* A result of -1 means the sc_id in the JSON was invalid. */
+	if((result = bpsec_admin_json_getScId(job, &sc_id)) == -1)
+	{
+		bpsec_admin_printText("Malformed security context identifier provided.");
+		return 0;
+	}
+	/* A result of 1 means the SC ID is valid (supported by the BPA) */
+	else if(result == 1){
+		tag->scid = sc_id;
+	}
+	/* A value of 0 indicates that the sc_id was not provided. This is permitted behavior
+	   - a find command does not have to specify an SC ID to be valid. */
+	else {
+		tag->scid = BPSEC_UNSUPPORTED_SC;
+	}
+
+	/* Search for an event set name. If none is found, set to NULL */
+	tag->es_name = bpsec_admin_json_allocStrValue(job, start, 0, KNS_ES_REF, MAX_EVENT_SET_NAME_LEN, NULL);
+	tag->es_name_len = (tag->es_name) ? istrlen(tag->es_name, MAX_EVENT_SET_NAME_LEN) : 0;
+
+	/* Search for a security service. If none is found, set to 0 */
+	if((result = bpsec_admin_json_getTypedValue(job, 1, 0, JSMN_STRING, KNS_SVC, JSON_VAL_LEN, tmp_str, NULL)) < 0)
+	{
+		bpsec_admin_printText("Malformed security service provided. Supported security services are: \n\tbib-integrity\n\tbcb-confidentiality");
+		return 0;
+	}
+	else if (result > 0)
+	{
+		int svc = 0;
+		if ((svc = bpsec_admin_getSvc(tmp_str)) < 0)
+		{
+			/* If the security service cannot be mapped to a supported service,
+			 * the bpsec_admin_getSvc function will print a detailed error message. */
+			return 0;
+		}
+		tag->svc = svc;
+	}
+	else
+	{
+		tag->svc = 0;
+	}
 
 	return 1;
 }
 
 
-
 /******************************************************************************
- * @brief Processes a find command given a JSON parm object
+ * @brief Processes a find command given a JSON object.
  *
  * @param[in]  job   - The parsed JSON tokens.
- *
- * @note
  *****************************************************************************/
 
-static void	executeFindJson(jsonObject job)
+static void	bpsec_admin_findPolicyrule(jsonObject job)
 {
 	int start = 0;
-	char name[MAX_EVENT_SET_NAME_LEN];
-	memset(name, '\0', sizeof(name));
+	int type = 0;
+	Lyst rules = NULL;
+	BpSecPolRuleSearchTag tag;
 
-	if (job.tokenCount < 2)
+	memset(&tag, 0, sizeof(tag));
+
+	if(bpsec_admin_json_getFindCriteria(job, start, &type, &tag) <= 0)
 	{
-		printText("Delete what?");
+		bpsec_admin_printText("Unable to populate policy rule find criteria.");
 		return;
 	}
 
-	if((start = jsonGetTypedIdx(job, 1, 0, "policyrule", JSMN_OBJECT)) > 0)
+	switch(type)
 	{
-		int type = 0;
-		Lyst rules = NULL;
-		BpSecPolRuleSearchTag tag;
+		case BPSEC_SEARCH_ALL:
+			rules = bslpol_rule_get_all_match(gWm, tag);
+			bpsec_admin_printPolicyruleLyst(rules, 1);
+			lyst_destroy(rules);
+			break;
 
-		memset(&tag, 0, sizeof(tag));
-
-		if(getFindCriteria(job, start, &type, &tag) <= 0)
-		{
-			printText("[x] Unable to find policyrule find criteria.");
-			return;
-		}
-
-		switch(type)
-		{
-			case BPSEC_SEARCH_ALL:
-				rules = bslpol_rule_get_all_match(gWm, tag);
-				printRuleList(rules, 1);
-				lyst_destroy(rules);
-				break;
-
-			case BPSEC_SEARCH_BEST:
-				printRule(bslpol_rule_get_best_match(gWm, tag), 1);
-				break;
-			default:
-				printText("[i] Unknown search type.");
-				break;
-		}
-
-		return;
+		case BPSEC_SEARCH_BEST:
+			bpsec_admin_printPolicyrule(bslpol_rule_find_best_match(gWm, tag), 1);
+			break;
+		default:
+			bpsec_admin_printText("Unknown find type. Supported types are: \"best\" or \"all\".");
+			break;
 	}
 
-	SYNTAX_ERROR;
-
-}
-
-static void	executeInfo(int tokenCount, char **tokens)
-{
-	Sdr		sdr = getIonsdr();
-	Object		addr;
-	Object		elt;
-
-	if (tokenCount < 2)
-	{
-		printText("Information on what?");
-		return;
-	}
-
-	if (tokenCount > 5)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	if (strcmp(tokens[1], "bibrule") == 0)
-	{
-		if (tokenCount != 5)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-		CHKVOID(sdr_begin_xn(sdr));
-		sec_findBPsecBibRule(tokens[2], tokens[3], atoi(tokens[4]),
-				&addr, &elt);
-		if (elt == 0)
-		{
-			printText("BIB rule not found.");
-		}
-		else
-		{
-			printBPsecBibRule(addr);
-		}
-
-		sdr_exit_xn(sdr);
-		return;
-	}
-
-    if (strcmp(tokens[1], "bcbrule") == 0)
-	{
-    	if (tokenCount != 5)
-		{
-			SYNTAX_ERROR;
-			return;
-		}
-    	CHKVOID(sdr_begin_xn(sdr));
-		sec_findBPsecBcbRule(tokens[2], tokens[3], atoi(tokens[4]),
-				&addr, &elt);
-		if (elt == 0)
-		{
-			printText("BCB rule not found.");
-		}
-		else
-		{
-			printBPsecBcbRule(addr);
-		}
-
-		sdr_exit_xn(sdr);
-        return;
-     }
-	SYNTAX_ERROR;
+	return;
 }
 
 
-
 /******************************************************************************
- * @brief Processes a information command given a JSON parm object
+ * @brief Processes a information command for an event set given a JSON object.
  *
  * @param[in]  job   - The parsed JSON tokens.
- *
- * @note
  *****************************************************************************/
 
-static void	executeInfoJson(jsonObject job)
+static void	bpsec_admin_infoEventSet(jsonObject job)
 {
 	int start = 0;
-	char name[MAX_EVENT_SET_NAME_LEN];
-	memset(name, '\0', sizeof(name));
 
-	if (job.tokenCount < 2)
+	char name[MAX_EVENT_SET_NAME_LEN];
+	char desc[MAX_EVENT_SET_DESC_LEN];
+
+	memset(name, '\0', sizeof(name));
+	memset(desc, '\0', sizeof(desc));
+
+	if(bpsec_admin_json_getTypedValue(job, start, 0, JSMN_STRING, KNS_NAME, MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
 	{
-		printText("Information on what?");
-		return;
+		BpSecEventSet *esPtr = bsles_get_ptr(gWm, name);
+		if(esPtr)
+		{
+			bpsec_admin_printEventset(esPtr);
+		}
+		else
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "No info for unknown event set %s.", name);
+			bpsec_admin_printText(gUserText);
+		}
+	}
+	else
+	{
+		bpsec_admin_printText("Error displaying eventset info.");
 	}
 
-	if((start = jsonGetTypedIdx(job, 1, 0, "event_set", JSMN_OBJECT)) > 0)
+	return;
+}
+
+/******************************************************************************
+ * @brief Processes a information command for a policy rule given a JSON object.
+ *
+ * @param[in]  job  - The parsed JSON tokens.
+ *****************************************************************************/
+
+static void	bpsec_admin_infoPolicyrule(jsonObject job)
+{
+	uint16_t id = 0;
+
+	if(bpsec_admin_json_getRuleId(job, &id) > 0)
 	{
-		if(jsonGetTypedValue(job, start, 0, JSMN_STRING, "name", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
+		bpsec_admin_printPolicyrule(bslpol_rule_get_ptr(gWm, id), 1);
+	}
+	else
+	{
+		bpsec_admin_printText("Missing policy rule id from info command.");
+	}
+	return;
+}
+
+
+/******************************************************************************
+ * @brief Processes an event set list command given a JSON parm object
+ *
+ * @param[in]  job   - The parsed JSON tokens.
+ *****************************************************************************/
+
+static void	bpsec_admin_listEventSet(jsonObject job)
+{
+	char name[MAX_EVENT_SET_NAME_LEN];
+	char desc[MAX_EVENT_SET_DESC_LEN];
+
+	memset(name, '\0', sizeof(name));
+	memset(desc, '\0', sizeof(desc));
+
+	Lyst eventsets = bsles_get_all(getIonwm());
+
+	if (eventsets != NULL)
+	{
+		LystElt elt;
+
+		/* For each element in the lyst (event set), print the eventset name */
+		for(elt = lyst_first(eventsets); elt; elt = lyst_next(elt))
 		{
-			BpSecEventSet *esPtr = bsles_get_ptr(gWm, name);
-			if(esPtr)
+			BpSecEventSet *esPtr = (BpSecEventSet *) lyst_data(elt);
+			bpsec_admin_printEventsetName(esPtr);
+			bpsec_admin_printEventsetDesc(esPtr);
+		}
+		lyst_destroy(eventsets);
+	}
+
+	return;
+}
+
+
+/******************************************************************************
+ * @brief Processes a policyrule list command given a JSON object.
+ *
+ * @param[in]  job   - The parsed JSON tokens.
+ *****************************************************************************/
+
+static void	bpsec_admin_listPolicyrule(jsonObject job)
+{
+	PsmAddress elt = 0;
+
+	/* Print each event configured for the event set */
+	for(elt = sm_list_first(gWm, getSecVdb()->bpsecPolicyRules); elt; elt = sm_list_next(gWm, elt))
+	{
+		BpSecPolRule *rule = (BpSecPolRule *) psp(gWm, sm_list_data(gWm,elt));
+		bpsec_admin_printPolicyrule(rule, 0);
+	}
+	return;
+}
+
+
+/******************************************************************************
+ * @brief Determines the type of security policy command given. The security
+ *        policy command is uniquely identified using two pieces of
+ *        information:
+ *        	1) The command code identifying the action to take ('a' for add,
+ *        		'd' for delete, etc.).
+ *        	2) The command type identifier, policyrule, event_set, or event,
+ *        	    indicating the policy structure to use with the command.
+ *
+ * @param[in] cmdCode - Single character action identifier for the command.
+ * @param[in] job     - JSON object holding parsed command tokens.
+ *
+ * @retval   SecPolCmd enum
+ *****************************************************************************/
+
+SecPolCmd bpsec_admin_json_getSecPolCmd(char *cmdCode, jsonObject job)
+{
+	CHKERR(cmdCode != NULL);
+
+	/* Step 1: Get the key at the first level of the JSON object, which is the
+	 * command type identifier. */
+	int cmdTypeIdx = bpsec_admin_json_getNextKeyAtLevel(job, -1, 0);
+
+	if(cmdTypeIdx < 0)
+	{
+		bpsec_admin_printText("Malformed security policy command. \n"
+				"Hint: Supported command types are: \n"
+				"\t \"event_set\" \n\t \"event\" \n\t \"policyrule\"\n");
+		return invalid;
+	}
+
+	char cmdType[JSON_KEY_LEN];
+	memset(cmdType, '\0', sizeof(cmdType));
+
+	/* Step 1.1: The command type identifier must be a string. */
+	if(bpsec_admin_json_getValueAtIdx(job, JSMN_STRING, cmdTypeIdx, cmdType, sizeof(cmdType)) <= 0)
+	{
+		bpsec_admin_printText("Malformed security policy command. Command type must be a string.\n"
+				"Hint: Supported command types are: \n"
+				"\t \"event_set\" \n\t \"event\" \n\t \"policyrule\"\n");
+		return invalid;
+	}
+
+	/* Step 2: Determine supported command type identifiers for the
+	 * command code provided. */
+	switch (cmdCode[0])
+	{
+		/* Add command */
+		case 'a':
+			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
 			{
-				printEventset(esPtr);
+				return add_policyrule;
+			}
+			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+			{
+				return add_event_set;
+			}
+			else if(strcmp(cmdType, KNS_EVENT) == 0)
+			{
+				return add_event;
 			}
 			else
 			{
-				isprintf(gUserText, USER_TEXT_LEN, "[?] Unknown event set %s", name);
-				printText(gUserText);
+				bpsec_admin_printText("Malformed security policy add command. \n"
+						"Supported command types are: \n"
+						"\t \"event_set\" \t \"event\" \t \"policyrule\"");
+				return invalid;
 			}
-		}
-		else
-		{
-			printText("[?] Missing event set name.");
-		}
-		return;
-	}
-	else if(jsonGetTypedValue(job, 1, 0, JSMN_PRIMITIVE, "policyrule", MAX_EVENT_SET_NAME_LEN, name, NULL) > 0)
-	{
-		printRule(bslpol_rule_get_ptr(gWm, atoi(name)), 1);
-		return;
-	}
-
-
-	SYNTAX_ERROR;
-}
-
-static void	executeList(int tokenCount, char **tokens)
-{
-	Sdr	sdr = getIonsdr();
-	OBJ_POINTER(SecDB, db);
-	Object	elt;
-	Object	obj;
-
-	if (tokenCount < 2)
-	{
-		printText("List what?");
-		return;
-	}
-
-	if (tokenCount != 2)
-	{
-		SYNTAX_ERROR;
-		return;
-	}
-
-	GET_OBJ_POINTER(sdr, SecDB, db, getSecDbObject());
-	if (strcmp(tokens[1], "bibrule") == 0)
-	{
-		CHKVOID(sdr_begin_xn(sdr));
-		for (elt = sdr_list_first(sdr, db->bpsecBibRules); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			obj = sdr_list_data(sdr, elt);
-			printBPsecBibRule(obj);
-		}
-
-		sdr_exit_xn(sdr);
-		return;
-	}
-
-	if (strcmp(tokens[1], "bcbrule") == 0)
-	{
-		CHKVOID(sdr_begin_xn(sdr));
-		for (elt = sdr_list_first(sdr, db->bpsecBcbRules); elt;
-				elt = sdr_list_next(sdr, elt))
-		{
-			obj = sdr_list_data(sdr, elt);
-			printBPsecBcbRule(obj);
-		}
-
-		sdr_exit_xn(sdr);
-		return;
-     }
-
-	SYNTAX_ERROR;
-}
-
-
-
-/******************************************************************************
- * @brief Processes a list command given a JSON parm object
- *
- * @param[in]  job   - The parsed JSON tokens.
- *
- * @note
- *****************************************************************************/
-
-static void	executeListJson(jsonObject job)
-{
-	char name[MAX_EVENT_SET_NAME_LEN];
-	memset(name, '\0', sizeof(name));
-
-	if (job.tokenCount < 2)
-	{
-		printText("List what?");
-		return;
-	}
-
-
-	if(jsonGetTypedValue(job, 1, 0, JSMN_STRING, "type", MAX_EVENT_SET_NAME_LEN, name, NULL) < 0)
-	{
-		printText("Malformed Request.");
-	}
-
-	if(strcmp(name,"event_set") == 0)
-	{
-		Lyst eventsets = bsles_get_all(getIonwm());
-		if (eventsets != NULL)
-		{
-			LystElt elt;
-
-			/* For each element in the lyst (event set), print the eventset name */
-			for(elt = lyst_first(eventsets); elt; elt = lyst_next(elt))
+		/* Delete command */
+		case 'd':
+			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
 			{
-				BpSecEventSet *esPtr = (BpSecEventSet *) lyst_data(elt);
-				printEventsetName(esPtr);
+				return delete_policyrule;
 			}
-			lyst_destroy(eventsets);
-		}
-
-		return;
+			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+			{
+				return delete_event_set;
+			}
+			else if(strcmp(cmdType, KNS_EVENT) == 0)
+			{
+				return delete_event;
+			}
+			else
+			{
+				bpsec_admin_printText("Malformed security policy delete command. \n"
+						"Supported command types are: \n"
+						"\t \"event_set\" \t \"event\" \t \"policyrule\"");
+				return invalid;
+			}
+		/* Find command */
+		case 'f':
+			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+			{
+				return find_policyrule;
+			}
+			else
+			{
+				bpsec_admin_printText("Malformed security policy find command. \n"
+						"Supported command types are: \n"
+						"\t \"policyrule\"");
+				return invalid;
+			}
+		/* Info command */
+		case 'i':
+			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+			{
+				return info_policyrule;
+			}
+			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+			{
+				return info_event_set;
+			}
+			else
+			{
+				bpsec_admin_printText("Malformed security policy info command. \n"
+						"Supported command types are: \n"
+						"\t \"event_set\" \t \"policyrule\"");
+				return invalid;
+			}
+		/* List command */
+		case 'l':
+			if(strcmp(cmdType, KNS_POLICYRULE) == 0)
+			{
+				return list_policyrule;
+			}
+			else if(strcmp(cmdType, KNS_EVENT_SET) == 0)
+			{
+				return list_event_set;
+			}
+			else
+			{
+				bpsec_admin_printText("Malformed security policy list command. \n"
+						"Supported command types are: \n"
+						"\t \"event_set\" \t \"policyrule\"");
+				return invalid;
+			}
 	}
-	else if(strcmp(name,"policyrule") == 0)
-	{
-		PsmAddress elt = 0;
 
-		/* Print each event configured for the event set */
-		for(elt = sm_list_first(gWm, getSecVdb()->bpsecPolicyRules); elt; elt = sm_list_next(gWm, elt))
-		{
-			BpSecPolRule *rule = (BpSecPolRule *) psp(gWm, sm_list_data(gWm,elt));
-			printRule(rule, 0);
-		}
-		return;
-	}
-
-	SYNTAX_ERROR;
+	bpsec_admin_printText("Malformed security policy command. \nCheck security policy user's manual for more information.");
+	return invalid;
 }
-
-static void	switchEcho(int tokenCount, char **tokens)
-{
-	int	state;
-
-	if (tokenCount < 2)
-	{
-		printText("Echo on or off?");
-		return;
-	}
-
-	switch (*(tokens[1]))
-	{
-	case '0':
-		state = 0;
-		break;
-
-	case '1':
-		state = 1;
-		break;
-
-	default:
-		printText("Echo on or off?");
-		return;
-	}
-
-	oK(_echo(&state));
-}
-
-
 
 /******************************************************************************
- * @brief Counts the number of times character c appears in a line.
+ * @brief Checks the structure of a security policy JSON command. A valid
+ *        security policy command must have:
+ *    	  1. At least three JSON tokens.
+ *        2. A command body typed as a JSON object.
+ *        3. A command type (policyrule, event_set, event) typed as a string.
  *
- * @param[in]  line    - A line of JSON text.
- * @param[in]  c       - A character to count.
- * @param[out] counter - The number of times the c appears in the line.
- *
- * @note
- * This is a helper function for parsing JSON objects. The character being
- * counted is usually object delimiters '{' or '}'.
- *****************************************************************************/
-
-void setCounter(char *line, char c, int *counter)
-{
-	char *cursor = strchr(line, c);
-
-	while (cursor != NULL)
-	{
-		(*counter)++;
-		cursor = strchr(cursor+1, c);
-	}
-}
-
-
-
-/******************************************************************************
- * @brief Extracts a command entered by the user to the bpsecadmin utility
- *        which uses JSON.
- *
- * @param[in]     line    - Line of JSON from which a command is extracted.
- * @param[in|out] jsonStr - The concatenated json command.
- * @param[in]     cmdFile - File from which line was extracted.
- * @param[in]     len     - Length of line.
- *
- * @note
- * This is a helper function for parsing JSON objects. The character being
- * counted is usually object delimiters '{' or '}'.
+ * @param[in]  job  - The JSON command to be validated, composed of parsed
+ *                    JSON tokens
  *
  * @retval -1 - Error
- * @retval	0 - Command could not be retrieved.
- * @retval	1 - JSON command successfully retrieved.
+ * @retval	0 - JSON command structure is incorrect.
+ * @retval	1 - JSON command structure is correct.
  *****************************************************************************/
 
-int getJson(char *line, char *jsonStr, int cmdFile, int len)
+int bpsec_admin_json_checkCmd(jsonObject job)
 {
-	int openCounter = 0;
-	int closeCounter = 0;
-
-	setCounter(line, '{', &openCounter);
-	setCounter(line, '}', &closeCounter);
-
-	strcpy(jsonStr, line);
-
-	/* Keep gathering lines until we get a closing brace for JSON */
-	while (openCounter != closeCounter)
+	/* Step 1: Check that there are enough tokens for the policy command */
+	if (job.tokenCount < 2)
 	{
-
-		if (igets(cmdFile, line, 1024, &len) == NULL)
-		{
-			if (len == 0)
-			{
-				break;	/*	Loop.	*/
-			}
-
-			putErrmsg("igets failed.", NULL);
-			break;		/*	Loop.	*/
-		}
-
-		setCounter(line, '{', &openCounter);
-		setCounter(line, '}', &closeCounter);
-
-		/* Accumulate the JSON line contents */
-		strcat(jsonStr, line);
+		return -1;
 	}
 
-	if (openCounter == closeCounter)
+	/* Step 2: Check that the command contents were parsed correctly, with
+	 * 		- the root object typed as a JSON object
+	 * 		- the second token, the command type, as a string */
+	if(job.tokens[0].type == JSMN_OBJECT && job.tokens[1].type == JSMN_STRING)
 	{
-		/* End of JSON - successfully enclosed in braces */
 		return 1;
 	}
 
-	/* Brace mismatch encountered */
-	printText("[?] Invalid JSON syntax detected");
+	return -1;
+}
+
+/******************************************************************************
+ * @brief Parses the provided string using jsmn to create a JSON object (JOb).
+ *
+ * @param[in]      json - The JSON string to parse.
+ * @param[in|out]  job  - The JSON object to hold the parsed JSON tokens.
+ *
+ * @retval -1 - Error
+ * @retval	1 - JSON commands parsed successfully.
+ *****************************************************************************/
+
+int bpsec_admin_json_parseJob(char *json, jsonObject *job)
+{
+	/* Step 0: Sanity checks */
+	CHKERR(json != NULL);
+
+	jsmn_parser p;
+
+	/* Step 0: Sanity checks and jsmn parser initialization */
+	jsmn_init(&p);
+
+	/* Step 1: Parse the JSON command with jsmn */
+	job->line = json;
+	job->tokenCount = jsmn_parse(&p, job->line, strlen(job->line), job->tokens,
+				 sizeof(job->tokens) / sizeof(job->tokens[0]));
+
+	/* Step 2: Check that parsing was successful. If the jsmn token count
+	 * is less than 0, processing was unsuccessful. If the token count exceeds
+	 * the maximum number of permitted tokens, the JSON command is not
+	 * processed/executed */
+	if (job->tokenCount < 0 || job->tokenCount > MAX_JSMN_TOKENS)
+	{
+		return -1;
+	}
+
+	return 1;
+}
+
+
+/******************************************************************************
+ * @brief Retrieves a JSON command from a script read by the bpsecadmin
+ *        utility. This function may be called multiple times for the
+ *        same JSON command if it is composed from multiple lines in the
+ *        script. This function processes a single line of the script at a time.
+ *
+ * @param[in]     line    - Line of JSON from the script being processed.
+ * @param[in|out] jsonStr - The concatenated JSON command.
+ *
+ * @note
+ * This is a helper function for parsing JSON objects. It is expected that the
+ * JSON string (jsonStr) argument is initialized (empty) when the function is
+ * called for the first line of the command, and that the same variable is used
+ * to accumulate the JSON command if it spans multiple lines in the script
+ * being processed.
+ *
+ * @retval -1 - Error
+ * @retval	0 - JSON command is not valid - may be incomplete.
+ * @retval	1 - JSON command has been retrieved and is valid.
+ *****************************************************************************/
+
+int bpsec_admin_json_getCmd(char *line, char *jsonStr)
+{
+	/* Step 0: Sanity checks. */
+	CHKERR(line != NULL);
+
+	jsonObject  job;
+
+	/* Step 1: Strip any leading whitespace from the line */
+	while (isspace((int) *line))
+	{
+		line++;
+	}
+
+	/* Step 2: Check the length of the potential concatenated string. If the
+	 * command length would be longer than jsonStr can accommodate (JSON_CMD_LEN)
+	 * return an error. */
+	if((strlen(line) + strlen(jsonStr)) > JSON_CMD_LEN)
+	{
+		isprintf(gUserText, USER_TEXT_LEN, "Security policy command exceeds permitted length %d.", JSON_CMD_LEN);
+		bpsec_admin_printText(gUserText);
+		return -1;
+	}
+
+	/* Step 3: Add the contents of the new line to the JSON command string */
+	strcat(jsonStr, line);
+
+	/* Step 4: Parse the JSON command string using jsmn to check syntax. Start at
+	 * jsonStr+1 to skip the command code, which is executed in processJson() but
+	 * is not considered to be part of the JSON command body. */
+	if (bpsec_admin_json_parseJob(jsonStr+1, &job))
+	{
+		/* Step 5: JSON syntax is valid. Determine if the command structure
+		 * is valid, containing a primitive for command code and JSON object
+		 * for command content */
+		if(bpsec_admin_json_checkCmd(job) == 1)
+		{
+			return 1;
+		}
+
+		/* Otherwise, valid JSON was provided but it does not fit the
+		 * necessary format for security policy commands. */
+		return 0;
+	}
+
+	/* JSON is not valid. The retrieval of the next line in the script may
+	 * be necessary to form a complete command. */
 	return 0;
 }
 
 
-
 /******************************************************************************
- * @brief Process and execute a JSON command
+ * @brief Set a flag in the 32-bit mask for security policy command keys. The
+ *        flag to be set is identified by the string value passed as the key.
  *
- * @param[in] line       - The JSON command to be executed.
- * @param[in] cmd        - (Optional) The single character command ('a',
- *                         'c', etc.) corresponding to the action the command
- *                         specifies in 'line'.
- * @param[in] cmdPresent - This value is set to true if the cmd field is
- *                         populated. The JSON command in 'line' does NOT
- *                         contain the command value if the cmdPresent
- *                         flag is set - instead, the value is found in the cmd
- *                         parameter.
+ * @param[in]     key     - String key from the security policy command that
+ *                          indicates which flag should be set.
+ * @param[in|out] keyMask - Mask with bits set for each of the keys found in
+ *                          the security policy command
  *
- * @note
- * This is a helper function for parsing JSON objects. The character being
- * counted is usually object delimiters '{' or '}'.
- *
- * @retval -1 - Error
- * @retval	0 - Command could not be successfully executed
- * @retval	1 - Command successfully executed.
+ * @retval   0 - Key was not found. Bit was not set.
+ * @retval   1 - Key was found. Bit was set.
  *****************************************************************************/
 
-int processJson(char *line, char cmd, int cmdPresent)
+int bpsec_admin_setKeyFlag(char *key, uint32_t *keyMask)
 {
-	char 		*cursor;
-	char		buffer[80];
-	jsmn_parser p;
-	jsonObject  job;
-	char        action;
+  int value = 0;
 
-	jsmn_init(&p);
+  /* Find the action value in the map of action values. */
+  if((value = bpsec_admin_getMappedValue(gKeyWords, key)) > 0)
+  {
+	  *keyMask |= value;
+  }
+  else
+  {
+	  isprintf(gUserText, USER_TEXT_LEN, "Unknown key in security policy command %s. \nCheck security policy user's manual for supported keys.", key);
+	  bpsec_admin_printText(gUserText);
+  }
 
-	job.line = line;
-	job.tokenCount = jsmn_parse(&p, job.line, strlen(job.line), job.tokens,
-				 sizeof(job.tokens) / sizeof(job.tokens[0]));
-
-	if (job.tokenCount < 0 || job.tokenCount > MAX_JSMN_TOKENS)
-	{
-		writeMemo("[?] Failed to parse JSON");
-		return -1;
-	}
-
-	/* Skip over any leading whitespace */
-	cursor = line;
-	while (isspace((int) *cursor))
-	{
-		cursor++;
-	}
-
-	action = (cmdPresent) ? cmd : cursor[0];
-
-		/* Command code provided*/
-		switch (action)
-		{
-			case 0:			/*	Empty line.		*/
-			case '#':		/*	Comment.		*/
-				return 0;
-			case '?':
-			case 'h':
-				printUsage();
-				return 0;
-			case '1':
-			    if(init() < 0)
-			    {
-			        return -1;
-			    }
-			    return 0;
-			case 'v':
-				isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
-				printText(buffer);
-				return 0;
-
-			case 'a':
-				if (attach(0) == 1)
-				{
-					executeAddJson(job);
-				}
-				return 0;
-#if 0
-			case 'c':
-				if (attach(0) == 1)
-				{
-					executeChangeJson(job);
-				}
-				return 0;
-#endif
-			case 'd':
-				if (attach(0) == 1)
-				{
-					executeDeleteJson(job);
-				}
-				return 0;
-
-			case 'f':
-				if (attach(0) == 1)
-				{
-					executeFindJson(job);
-				}
-				return 0;
-
-			case 'i':
-				if (attach(0) == 1)
-				{
-					executeInfoJson(job);
-				}
-				return 0;
-
-			case 'l':
-				if (attach(0) == 1)
-				{
-					executeListJson(job);
-				}
-				return 0;
-		}
-
-
-	return 1;
+  return value;
 }
 
-int	processLine(char *line, int lineLength, char *jsonStr, int cmdFile)
-{
-	int			tokenCount;
-	char		*cursor;
-	int			i;
-	char		*tokens[9];
-	char		buffer[80];
-	BpBlockType	blockType;
 
-	tokenCount = 0;
-	for (cursor = line, i = 0; i < 9; i++)
+/******************************************************************************
+ * @brief Check a security policy command's keys. This check ensures that all
+ * 		  mandatory key fields are present in the command and all other keys
+ * 		  that are present are supported as optional for that command.
+ *
+ * @param[in] cmdId      - Security policy command ID
+ * @param[in] cmdKeyMask - Mask with bits set for each of the keys found in
+ *                         the security policy command
+ *
+ * @retval   0 - Command keys are invalid.
+ * @retval   1 - Command keys are valid.
+ *****************************************************************************/
+
+int bpsec_admin_json_checkKeys(SecPolCmd cmdId, uint32_t cmdKeyMask)
+{
+	CHKERR(cmdId);
+
+	switch (cmdId)
 	{
-		if (*cursor == '\0')
+		case add_event_set:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_ES_ADD_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_ADD_KEYS, OPT_ES_ADD_KEYS)))
+			{
+				return 1;
+			}
+			return 0;
+		case delete_event_set:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_DEL_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_DEL_KEYS, 0)))
+			{
+				return 1;
+			}
+			return 0;
+		case info_event_set:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_INFO_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_INFO_KEYS, 0)))
+			{
+				return 1;
+			}
+			return 0;
+		case list_event_set:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_ES_LIST_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_ES_LIST_KEYS, 0)))
+			{
+				return 1;
+			}
+			return 0;
+		case add_event:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_EVENT_ADD_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_EVENT_ADD_KEYS, 0)))
+			{
+				return 1;
+			}
+			return 0;
+		case delete_event:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_EVENT_DEL_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_EVENT_DEL_KEYS, 0)))
+			{
+				return 1;
+			}
+			return 0;
+		case add_policyrule:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_ADD_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_ADD_KEYS, OPT_RULE_ADD_KEYS)))
+			{
+				return 1;
+			}
+			return 0;
+		case delete_policyrule:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_DEL_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_DEL_KEYS, 00)))
+			{
+				return 1;
+			}
+			return 0;
+		case info_policyrule:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask,MAND_RULE_INFO_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_INFO_KEYS, 0)))
+			{
+				return 1;
+			}
+			return 0;
+		case find_policyrule:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_RULE_FIND_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_FIND_KEYS, OPT_RULE_FIND_KEYS)))
+			{
+				return 1;
+			}
+			return 0;
+		case list_policyrule:
+			if((HAS_MANDATORY_KEYS(cmdKeyMask, MAND_RULE_LIST_KEYS)) &&
+				!(HAS_INVALID_KEYS(cmdKeyMask, MAND_RULE_LIST_KEYS, 0)))
+			{
+				return 1;
+			}
+			return 0;
+		default:
+			return 0;
+	}
+	return -1;
+}
+
+/******************************************************************************
+ * @brief Process a JSON security policy command to validate the keys.
+ *
+ * @param[in] cmdType - The security policy command type.
+ * @param[in]     job - The JSON object holding the parsed JSON tokens.
+ *
+ * @retval <=0 - Command is invalid.
+ * @retval  >0 - Command is valid and can be executed.
+ *****************************************************************************/
+
+int bpsec_admin_json_validateCmd(SecPolCmd cmdType, jsonObject job){
+
+	int keyIdx = bpsec_admin_json_getNextKeyAtLevel(job, -1, 0);
+	int valIdx = 0;
+	uint32_t cmdKeyMask = 0;
+	char key[JSON_KEY_LEN];
+	char val[JSON_VAL_LEN];
+
+	memset(key, '\0', sizeof(key));
+	memset(val, '\0', sizeof(val));
+
+	/* Step 1: Get and skip the command type index.
+	 * 		Supported command types are:
+	 * 			event_set
+	 * 			event
+	 * 			policyrule                       */
+	keyIdx = bpsec_admin_json_getNextKeyAtLevel(job, keyIdx, 2);
+
+	/* Step 2: Retrieve all keys at level 2 of the JSMN tokens.
+	 * 		   For each of the level two keys: */
+	while(keyIdx > 0)
+	{
+		/* Step 2.1: Retrieve key field. All keys must be strings */
+		if(bpsec_admin_json_getValueAtIdx(job, JSMN_STRING, keyIdx, key, sizeof(key)) <= 0)
 		{
-			tokens[i] = NULL;
+			bpsec_admin_printText("Malformed key field provided. All keys must be strings.");
+			return -1;
+		}
+
+		/* Step 2.2: Set the flag for the key found */
+		if(bpsec_admin_setKeyFlag(key, &cmdKeyMask) <= 0)
+		{
+			/* Step 2.2.1 If the key is not recognized, error has occurred.
+			 * The error message is printed to user above in bpsec_admin_setKeyFlag */
+			return -1;
+		}
+
+		/* Step 2.3 If the key's value is a string,
+		 * check that it is not a keyword */
+		if((valIdx = bpsec_admin_json_getValueIdx(job, keyIdx)) >= 0)
+		{
+			if(job.tokens[valIdx].type == JSMN_STRING)
+			{
+				/* Step 2.3.1 Retrieve the value */
+				if(bpsec_admin_json_getValueAtIdx(job, JSMN_STRING, valIdx, val, sizeof(val)) <= 0)
+				{
+					isprintf(gUserText, USER_TEXT_LEN, "Malformed value in security policy command for key %s.", key);
+					bpsec_admin_printText(gUserText);
+					return -1;
+				}
+
+				/* Step 2.3.2 Check that the value is not a reserved key word */
+				if((bpsec_admin_getMappedValue(gKeyWords, val)) != 0)
+				{
+					isprintf(gUserText, USER_TEXT_LEN, "Value in security policy command is reserved keyword %s.", val);
+					bpsec_admin_printText(gUserText);
+					return -1;
+				}
+
+				memset(val, '\0', sizeof(val));
+			}
+		}
+		/* Step 2.3.3 If there is not a value associated with the key, the security
+		 * policy command is malformed. */
+		else
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Security policy command missing value for key %s.", key);
+			bpsec_admin_printText(gUserText);
+			return -1;
+		}
+
+		/* Step 2.4 Get the next level 2 key */
+		keyIdx = bpsec_admin_json_getNextKeyAtLevel(job, keyIdx, 2);
+	}
+
+	/* Step 3: With the fully populated mask of keys found in the
+	 * command, check that all mandatory keys are present and all
+	 * other keys are approved as optional keys for that command */
+	if(bpsec_admin_json_checkKeys(cmdType, cmdKeyMask) != 1)
+	{
+		char invalid_cmd[JSON_CMD_LEN];
+		memset(invalid_cmd, '\0', sizeof(invalid_cmd));
+
+		if(bpsec_admin_json_getValueAtIdx(job, JSMN_OBJECT, 0, invalid_cmd, sizeof(invalid_cmd)) > 0)
+		{
+			isprintf(gUserText, USER_TEXT_LEN, "Malformed security policy command: \n\t %s \n Invalid key field provided.", invalid_cmd);
+			bpsec_admin_printText(gUserText);
+			return -1;
 		}
 		else
 		{
-			findToken(&cursor, &(tokens[i]));
-			if (tokens[i])
-			{
-				tokenCount++;
-			}
+			bpsec_admin_printText("Malformed security policy command: Invalid key field provided.");
+			return -1;
 		}
 	}
 
-	if (tokenCount == 0)
+	/* All keys provided in the security policy command are correct */
+	return 1;
+}
+
+
+/******************************************************************************
+ * @brief Process and execute a bpsecadmin command
+ *
+ * @param[in] line - The command to be executed, as JSON or a single character.
+ *
+ * @retval -1 - Error
+ * @retval	0 - Command could not be executed.
+ * @retval	1 - Command successfully executed.
+ *****************************************************************************/
+
+int bpsec_admin_executeCmd(char *line)
+{
+	/* Step 0: Sanity checks. */
+	CHKERR(line != NULL);
+
+	char		buffer[80];
+	jsonObject  job;
+	char        cmdCode[1];
+
+	/* Step 1: Retrieve the command code (char) from the policy command */
+
+	memset(cmdCode, '\0', sizeof(cmdCode));
+
+	/* Step 1.1: Strip any leading whitespace */
+	while (isspace((int) *line))
 	{
-		return 0;
+		line++;
 	}
 
-	/*	Skip over any trailing whitespace.			*/
-	while (isspace((int) *cursor))
+	/* Step 1.2: Check for case where the command code has been omitted
+	 * from the security policy command. In this case, the first char would
+	 * be '{' indicating the start of the JSON command. */
+	if(strchr("{", line[0]) != NULL)
 	{
-		cursor++;
+		bpsec_admin_printText("Security policy command missing command code.");
+		bpsec_admin_printText("Hint: 'a', 'd', 'f', etc.\nEnter 'h' for more information.");
+		return -1;
 	}
 
-	/*	Make sure we've parsed everything.			*/
-	if (*cursor != '\0')
+	/* Step 1.3: Populate the command code field (length is 1 + 1)*/
+	if(istrcpy(cmdCode, line, 2) == NULL)
 	{
-		printText("Too many tokens.");
-		return 0;
+		bpsec_admin_printText("Security policy command code malformed.");
+		bpsec_admin_printText("Hint: 'a', 'd', 'f', etc.\nEnter 'h' for more information.");
+		return -1;
 	}
 
-	/*	Have parsed the command.  Now execute it.		*/
-	if (tokenCount == 1 && ((*(tokens[0]) == 'a') || (*(tokens[0]) == 'c') ||
-				(*(tokens[0]) == 'd') || (*(tokens[0]) == 'i') ||
-				(*(tokens[0]) == 'l')))
+	/* Step 1.4: Advance cursor past command code, now pointing to
+	 * JSON command contents */
+	line++;
+
+	/* Step 1.5: Strip any remaining whitespace */
+	while (isspace((int) *line))
 	{
-		int len;
-		char cmd = *(tokens[0]);
-		igets(cmdFile, line, 1024, &len);
-		getJson(line, jsonStr, cmdFile, len);
-		processJson(jsonStr, cmd, 1);
-		return 0;
+		line++;
 	}
 
-	switch (*(tokens[0]))		/*	Command code.		*/
+	/* Step 2: Execute any single char commands ('h', 'q', etc.) */
+	switch (cmdCode[0])
 	{
 		case 0:			/*	Empty line.		*/
 		case '#':		/*	Comment.		*/
 			return 0;
-
-		case '?':
+		case '?':		/*  Help command.   */
 		case 'h':
-			printUsage();
+			bpsec_admin_printUsage();
 			return 0;
-
-		case 'v':
+		case '1':		/*  Init command    */
+			if(bpsec_admin_init() < 0)
+			{
+				return -1;
+			}
+			return 0;
+		case 'v':		/*  Version command. */
 			isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
-			printText(buffer);
+			bpsec_admin_printText(buffer);
 			return 0;
-
-        case '1':
-            if(init() < 0)
-            {
-                return -1;
-            }
-            return 0;
-
-		case 'a':
-			if (attach(0) == 1)
-			{
-				executeAdd(tokenCount, tokens);
-			}
-
-			return 0;
-
-		case 'c':
-			if (attach(0) == 1)
-			{
-				executeChange(tokenCount, tokens);
-			}
-
-			return 0;
-
-		case 'd':
-			if (attach(0) == 1)
-			{
-				executeDelete(tokenCount, tokens);
-			}
-
-			return 0;
-
-		case 'i':
-			if (attach(0) == 1)
-			{
-				executeInfo(tokenCount, tokens);
-			}
-
-			return 0;
-
-		case 'l':
-			if (attach(0) == 1)
-			{
-				executeList(tokenCount, tokens);
-			}
-
-			return 0;
-
-		case 'x':
-			if (attach(0) == 1)
-			{
-			   	if (tokenCount > 4)
-				{
-					SYNTAX_ERROR;
-				}
-				else if (tokenCount == 4)
-				{
-					blockType = (BpBlockType)
-					atoi(tokens[3]);
-					sec_clearBPsecRules(tokens[1],
-							tokens[2], &blockType);
-				}
-				else if (tokenCount == 3)
-				{
-					sec_clearBPsecRules(tokens[1],
-							tokens[2], NULL);
-				}
-				else if (tokenCount == 2)
-				{
-					sec_clearBPsecRules(tokens[1], "~",
-							NULL);
-				}
-				else
-				{
-					sec_clearBPsecRules("~", "~", NULL);
-				}
-			}
-
-			return 0;
-
-		case 'e':
-			switchEcho(tokenCount, tokens);
-			return 0;
-	
-		case 'q':
-			return -1;	/*	End program.		*/
-
-		default:
-			printText("Invalid command.  Enter '?' for help.");
+		case 'q':       /* Quit command.     */
 			return 0;
 	}
+
+	/* Step 3: If the command code provided requires additional data, it is
+	 * provided as JSON. Parse the JSON command with jsmn. If the cursor is
+	 * at the end of the command, there is no JSON to parse and the command code
+	 * itself is the only portion of the policy command to process
+	 * (Ex: user may have entered 'q') */
+	if(*line != '\0')
+	{
+		if(bpsec_admin_json_parseJob(line, &job) < 1)
+		{
+			bpsec_admin_printText("Malformed security policy command detected. Failed to parse JSON.");
+			return -1;
+		}
+	}
+	else
+	{
+		bpsec_admin_printText("Malformed security policy command. \n "
+				"Hint: Enter 'h' to see supported commands.");
+		return -1;
+	}
+
+	/* Step 3.1: Verify that the provided JSON matches the expected
+	 * structure for a security policy command. */
+	if(bpsec_admin_json_checkCmd(job) < 1)
+	{
+		bpsec_admin_printText("Malformed security policy command. \n"
+				"Hint: Supported command types are: \n"
+				"\t \"event_set\" \n\t \"event\" \n\t \"policyrule\"");
+		return 0;
+	}
+
+	/* Step 3.2: Retrieve the security policy command type */
+	SecPolCmd cmd_id = bpsec_admin_json_getSecPolCmd(cmdCode, job);
+
+	if(cmd_id == invalid)
+	{
+		isprintf(buffer, sizeof(buffer), "Malformed security policy command code %c.\nHint: Enter 'h' to see supported commands.", cmdCode[0]);
+		bpsec_admin_printText(buffer);
+		return 0;
+	}
+
+	/* Step 3.3: Validate all command key fields */
+	if(bpsec_admin_json_validateCmd(cmd_id, job) < 1)
+	{
+		/* Detailed error messages printed to user when validating key fields */
+		return 0;
+	}
+
+	/* Step 3.4: Attach to the security database */
+	if(bpsec_admin_attach(0) != 1)
+	{
+		/* Detailed error message printed to user in attach() */
+		return 0;
+	}
+
+	/* Step 4: Execute security policy command */
+	switch (cmd_id)
+	{
+	case add_event_set:
+	{
+		bpsec_admin_addEventSet(job);
+		return 0;
+	}
+	case delete_event_set:
+	{
+		bpsec_admin_deleteEventSet(job);
+		return 0;
+	}
+	case info_event_set:
+	{
+		bpsec_admin_infoEventSet(job);
+		return 0;
+	}
+	case list_event_set:
+	{
+		bpsec_admin_listEventSet(job);
+		return 0;
+	}
+	case add_event:
+	{
+		bpsec_admin_addEvent(job);
+		return 0;
+	}
+	case delete_event:
+	{
+		bpsec_admin_deleteEvent(job);
+		return 0;
+	}
+	case add_policyrule:
+	{
+		bpsec_admin_addPolicyrule(job);
+		return 0;
+	}
+	case delete_policyrule:
+	{
+		bpsec_admin_deletePolicyrule(job);
+		return 0;
+	}
+	case info_policyrule:
+	{
+		bpsec_admin_infoPolicyrule(job);
+		return 0;
+	}
+	case find_policyrule:
+	{
+		bpsec_admin_findPolicyrule(job);
+		return 0;
+	}
+	case list_policyrule:
+	{
+		bpsec_admin_listPolicyrule(job);
+		return 0;
+	}
+	default:
+		bpsec_admin_printText("Invalid command.  Enter '?' or 'h' for help.");
+		return 0;
+	}
+
+	return 0;
 }
 
 #if defined (ION_LWT)
@@ -2587,8 +2939,11 @@ int	main(int argc, char **argv)
 #endif
 	int		cmdFile;
 	int		len;
-	char	line[1024];
-	char 	jsonStr[2048];
+	char	line[USER_TEXT_LEN];
+	char 	jsonStr[JSON_CMD_LEN];
+
+	memset(jsonStr, '\0', sizeof(jsonStr));
+	memset(line, '\0', sizeof(line));
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
@@ -2596,9 +2951,9 @@ int	main(int argc, char **argv)
 		return 0;			/*	No stdout.	*/
 #else
 		cmdFile = fileno(stdin);
-		isignal(SIGINT, handleQuit);
+		isignal(SIGINT, bpsec_admin_handleQuit);
 
-        if(init() <= 0)
+        if(bpsec_admin_init() <= 0)
         {
             return -1;
         }
@@ -2623,22 +2978,13 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			if (strchr(line, '{') != NULL) /* JSON */
-			{
-				char cmd = '\0';
-				getJson(line, jsonStr, cmdFile, len);
-				processJson(jsonStr, cmd, 0);
-			}
-
-			else if (processLine(line, len, jsonStr, cmdFile))
-			{
-				break;		/*	Out of loop.	*/
-			}
+			bpsec_admin_executeCmd(line);
 		}
 #endif
 	}
-	else					/*	Scripted.	*/
+	else  /*	Scripted.	*/
 	{
+
 		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
 		{
@@ -2648,11 +2994,18 @@ int	main(int argc, char **argv)
 		{
 			while (1)
 			{
-				if (igets(cmdFile, line, sizeof(line), &len)
-						== NULL)
+				if (igets(cmdFile, line, sizeof(line), &len) == NULL)
 				{
 					if (len == 0)
 					{
+
+						/* If an incomplete security policy command (held
+						 * in jsonStr) exists when we reach EOF, that command
+						 * is invalid */
+						if(strlen(jsonStr) != 0)
+						{
+							bpsec_admin_printText("Malformed security policy command detected. JSON incomplete.");
+						}
 						break;	/*	Loop.	*/
 					}
 
@@ -2660,31 +3013,56 @@ int	main(int argc, char **argv)
 					break;		/*	Loop.	*/
 				}
 
-				if (len == 0
-				|| line[0] == '#')	/*	Comment.*/
+				/* If the line is empty or a comment, ignore */
+				if (len == 0 || line[0] == '#')
 				{
 					continue;
 				}
 
-				if (strchr(line, '{') != NULL) /* JSON */
+				/* If the line is a single, supported command code,
+				 * process that command to execute it. */
+				else if (strchr(singleCmdCodes, line[0]) != NULL)
 				{
-					char cmd = '\0';
-					getJson(line, jsonStr, cmdFile, len);
-					processJson(jsonStr, cmd, 0);
+					bpsec_admin_executeCmd(line);
 				}
 
-				else if (processLine(line, len, jsonStr, cmdFile))
+				/* Otherwise, the line is *added* to the JSON command. The
+				 * line may contain a complete security policy command, or
+				 * that command may span several lines in the file.  */
+				else
 				{
-					break;	/*	Out of loop.	*/
+					/* Pass the line to the JSON command accumulator. */
+					int retval = bpsec_admin_json_getCmd(line, jsonStr);
+
+					/* If this line is a complete security policy command,
+					 * process that command. */
+					if (retval == 1)
+					{
+						bpsec_admin_executeCmd(jsonStr);
+
+						/* Clear the accumulated JSON string to begin
+						 * populating the next command. */
+						memset(jsonStr, '\0', sizeof(jsonStr));
+					}
+					else if (retval == -1)
+					{
+						bpsec_admin_printText("Invalid JSON detected.");
+						memset(jsonStr, '\0', sizeof(jsonStr));
+					}
+					/* Otherwise, add the next line to the concatenated JSON command
+					 * in jsonStr. */
+					else
+					{
+						continue;
+					}
 				}
 			}
-
 			close(cmdFile);
 		}
 	}
 
 	writeErrmsgMemos();
-	printText("Stopping bpsecadmin.");
+	bpsec_admin_printText("Stopping bpsecadmin.");
 	ionDetach();
 	return 0;
 }

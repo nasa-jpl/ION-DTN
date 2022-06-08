@@ -1,0 +1,20 @@
+a 
+	{"event_set" : 
+		{"name" : "test1", "desc":"default test1 set"}
+	}
+	
+a 
+{"event_set" : 
+	{
+	"name" : "test2", "desc":"default test2 set"
+	}
+}
+
+l {"event_set"}
+v
+d {"event_set" : {"name" : "test1"}}
+
+#comment, should not impact script
+#l {"type": "event_set"}
+
+d {"event_set" : {"name" : "test2"}}

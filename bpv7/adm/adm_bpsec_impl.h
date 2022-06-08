@@ -23,7 +23,7 @@
 //#include "shared/adm/adm_bp.h"
 #include "shared/primitives/expr.h"
 
-#include "library/ext/bpsec/bpsec_instr.h"
+#include "bpsec/instr/bpsec_instr.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 

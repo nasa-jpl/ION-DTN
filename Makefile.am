@@ -1744,11 +1744,11 @@ bpPODM5 = pod2man -s 5 -c "BP configuration files"
 if UNIBO_CGR
 ### UNIBO CGR EXTENSIONS RGR AND CGRR ###
 
-bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(BP_SRC_DIR)/library/ext/rgr -I$(BP_SRC_DIR)/library/ext/cgrr
+bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(BP_SRC_DIR)/library/ext/rgr -I$(BP_SRC_DIR)/library/ext/cgrr
 
 #########################################
 else
-bpcflags = -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq
+bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq
 endif
 
 if ENABLE_IMC
@@ -1827,13 +1827,20 @@ bplib = \
 
 bpinclude = \
 	bpv7/include/bp.h \
-	bpv7/include/eureka.h
+	bpv7/include/eureka.h \
+	bpv7/bpsec/sci/sci.h \
+	bpv7/bpsec/sci/ion_test_sc.h \
+	bpv7/bpsec/sci/bib_hmac_sha2_sc.h \
+	bpv7/bpsec/sci/bcb_aes_gcm_sc.h \
+	bpv7/bpsec/sci/rfc9173_utils.h \
+	bpv7/bpsec/utils/bpsec_util.h \
+	bpv7/bpsec/utils/bpsec_asb.h \
+	bpv7/bpsec/instr/bpsec_instr.h
 
 bpnoinst = \
 	bpv7/brs/brscla.h \
 	bpv7/dccp/dccpcla.h \
 	bpv7/dtn2/dtn2fw.h \
-	bpv7/include/bpsec.h \
 	bpv7/ipn/ipnfw.h \
 	bpv7/ipnd/ipndP.h \
 	bpv7/library/bpP.h \
@@ -1845,6 +1852,22 @@ bpnoinst = \
 bpextra = \
 	bpv7/README.txt \
 	bpv7/bibe/bibe.h \
+	bpv7/bpsec/instr/bpsec_instr.h \
+	bpv7/bpsec/policy/bpsec_policy.h \
+	bpv7/bpsec/policy/bpsec_policy_eventset.h \
+	bpv7/bpsec/policy/bpsec_policy_event.h \
+	bpv7/bpsec/policy/bpsec_policy_rule.h \
+	bpv7/bpsec/policy/bpsec_policy.c \
+	bpv7/bpsec/policy/bpsec_policy_eventset.c \
+	bpv7/bpsec/policy/bpsec_policy_event.c \
+	bpv7/bpsec/policy/bpsec_policy_rule.c \
+	bpv7/bpsec/sci/sci.h \
+	bpv7/bpsec/sci/ion_test_sc.h \
+	bpv7/bpsec/sci/bib_hmac_sha2_sc.h \
+	bpv7/bpsec/sci/bcb_aes_gcm_sc.h \
+	bpv7/bpsec/sci/rfc9173_utils.h \
+	bpv7/bpsec/utils/bpsec_util.h \
+	bpv7/bpsec/utils/bpsec_asb.h \
 	bpv7/doc/pod1/bibeadmin.pod \
 	bpv7/doc/pod1/bibeclo.pod \
 	bpv7/doc/pod1/bpadmin.pod \
@@ -1900,26 +1923,13 @@ bpextra = \
 	bpv7/doc/pod5/dtn2rc.pod \
 	bpv7/doc/pod5/ipnrc.pod \
 	bpv7/doc/pod5/lgfile.pod \
-	bpv7/include/bpsec.h \
 	bpv7/library/bei.c \
-	bpv7/library/bpsec.c \
 	bpv7/library/saga.h \
 	bpv7/library/saga.c \
 	bpv7/library/ext/bpextensions.c \
 	bpv7/library/ext/noextensions.c \
 	bpv7/library/ext/bpsec/bcb.h \
 	bpv7/library/ext/bpsec/bib.h \
-	bpv7/library/ext/bpsec/bpsec_instr.h \
-	bpv7/library/ext/bpsec/bpsec_util.h \
-	bpv7/library/ext/bpsec/bpsec_policy.h \
-	bpv7/library/ext/bpsec/bpsec_policy_eventset.h \
-	bpv7/library/ext/bpsec/bpsec_policy_event.h \
-	bpv7/library/ext/bpsec/bpsec_policy_rule.h \
-	bpv7/library/ext/bpsec/profiles.h \
-	bpv7/library/ext/bpsec/bpsec_policy.c \
-	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
-	bpv7/library/ext/bpsec/bpsec_policy_event.c \
-	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
 	bpv7/library/ext/ecos/ecos.h \
 	bpv7/library/ext/ecos/ecos.c \
 	bpv7/library/ext/hcb/hcb.h \
@@ -2018,6 +2028,21 @@ if UNIBO_CGR
 ### UNIBO CGR EXTENSIONS RGR AND CGRR ###
 
 libbp_la_SOURCES = \
+    bpv7/bpsec/instr/bpsec_instr.c \
+    bpv7/bpsec/policy/bpsec_policy.c \
+	bpv7/bpsec/policy/bpsec_policy_eventset.c \
+	bpv7/bpsec/policy/bpsec_policy_event.c \
+	bpv7/bpsec/policy/bpsec_policy_rule.c \
+	bpv7/bpsec/sci/ion_test_sc.c \
+	bpv7/bpsec/sci/bib_hmac_sha2_sc.c \
+	bpv7/bpsec/sci/bcb_aes_gcm_sc.c \
+	bpv7/bpsec/sci/rfc9173_utils.c \
+	bpv7/bpsec/sci/sc_util.c \
+	bpv7/bpsec/sci/sci.c \
+	bpv7/bpsec/sci/sci_valmap.c \
+	bpv7/bpsec/sci/sc_value.c \
+	bpv7/bpsec/utils/bpsec_util.c \
+	bpv7/bpsec/utils/bpsec_asb.c \
 	bpv7/bibe/bibe.c \
 	bpv7/dtn2/libdtn2fw.c \
 	bpv7/library/libbp.c \
@@ -2025,18 +2050,10 @@ libbp_la_SOURCES = \
 	bpv7/library/libbpnm.c \
 	bpv7/library/eureka.c \
 	bpv7/library/bei.c \
-	bpv7/library/bpsec.c \
 	bpv7/library/ext/bae/bae.c \
 	bpv7/library/ext/bpq/bpq.c \
 	bpv7/library/ext/bpsec/bcb.c \
 	bpv7/library/ext/bpsec/bib.c \
-	bpv7/library/ext/bpsec/bpsec_instr.c \
-	bpv7/library/ext/bpsec/bpsec_util.c \
-	bpv7/library/ext/bpsec/bpsec_policy.c \
-	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
-	bpv7/library/ext/bpsec/bpsec_policy_event.c \
-	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
-	bpv7/library/ext/bpsec/profiles.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
 	bpv7/library/ext/pnb/pnb.c \
@@ -2062,6 +2079,21 @@ libbp_la_SOURCES = \
 #########################################
 else
 libbp_la_SOURCES = \
+    bpv7/bpsec/instr/bpsec_instr.c \
+    bpv7/bpsec/policy/bpsec_policy.c \
+	bpv7/bpsec/policy/bpsec_policy_eventset.c \
+	bpv7/bpsec/policy/bpsec_policy_event.c \
+	bpv7/bpsec/policy/bpsec_policy_rule.c \
+	bpv7/bpsec/sci/ion_test_sc.c \
+	bpv7/bpsec/sci/bib_hmac_sha2_sc.c \
+	bpv7/bpsec/sci/bcb_aes_gcm_sc.c \
+	bpv7/bpsec/sci/rfc9173_utils.c \
+	bpv7/bpsec/sci/sc_util.c \
+	bpv7/bpsec/sci/sci.c \
+	bpv7/bpsec/sci/sci_valmap.c \
+	bpv7/bpsec/sci/sc_value.c \
+	bpv7/bpsec/utils/bpsec_util.c \
+	bpv7/bpsec/utils/bpsec_asb.c \
 	bpv7/bibe/bibe.c \
 	bpv7/dtn2/libdtn2fw.c \
 	bpv7/library/libbp.c \
@@ -2069,18 +2101,10 @@ libbp_la_SOURCES = \
 	bpv7/library/libbpnm.c \
 	bpv7/library/eureka.c \
 	bpv7/library/bei.c \
-	bpv7/library/bpsec.c \
 	bpv7/library/ext/bae/bae.c \
 	bpv7/library/ext/bpq/bpq.c \
 	bpv7/library/ext/bpsec/bcb.c \
 	bpv7/library/ext/bpsec/bib.c \
-	bpv7/library/ext/bpsec/bpsec_instr.c \
-	bpv7/library/ext/bpsec/bpsec_util.c \
-	bpv7/library/ext/bpsec/bpsec_policy.c \
-	bpv7/library/ext/bpsec/bpsec_policy_eventset.c \
-	bpv7/library/ext/bpsec/bpsec_policy_event.c \
-	bpv7/library/ext/bpsec/bpsec_policy_rule.c \
-	bpv7/library/ext/bpsec/profiles.c \
 	bpv7/library/ext/hcb/hcb.c \
 	bpv7/library/ext/meb/meb.c \
 	bpv7/library/ext/pnb/pnb.c \
@@ -2599,7 +2623,7 @@ nm_shared_src = \
 	$(nm_cbor_src)
 
 libamp_la_SOURCES = $(nm_shared_src)
-libamp_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+libamp_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   $(NM_CBOR_CFLAGS)
 # Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
@@ -2618,7 +2642,7 @@ nm_agent_SOURCES = \
 	nm/agent/adm_amp_agent_agent.c \
 	nm/shared/adm/adm_init.c
 
-NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR)
+NM_ADM_INCLUDES = -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/adm -I$(BP_SRC_DIR) -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci 
 
 nm_agent_ADM_SOURCES = \
 	bpv7/adm/adm_bp_agent_impl.c \

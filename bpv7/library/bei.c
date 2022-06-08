@@ -370,6 +370,8 @@ Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag)
 	return 0;
 }
 
+// TODO: Rename? THis is the same as findExtensionBlockByNumber?
+// TODO Rename this getExtensionBlockElt
 Object	getExtensionBlock(Bundle *bundle, unsigned char nbr)
 {
 	Sdr	sdr = getIonsdr();
@@ -392,12 +394,11 @@ Object	getExtensionBlock(Bundle *bundle, unsigned char nbr)
 	return 0;
 }
 
-Object	findExtensionBlockByNumber(Bundle *bundle, BpBlockType type,
-		unsigned char blockNum)
+Object getExtensionBlockObj(Bundle *bundle, unsigned char blockNum)
 {
 	Sdr	bpSdr = getIonsdr();
-	Object	elt;
-	Object	addr;
+	Object	elt = 0;
+	Object	addr = 0;
 	OBJ_POINTER(ExtensionBlock, blk);
 
 	CHKZERO(bundle);
@@ -408,7 +409,7 @@ Object	findExtensionBlockByNumber(Bundle *bundle, BpBlockType type,
 		GET_OBJ_POINTER(bpSdr, ExtensionBlock, blk, addr);
 		if (blk->number == blockNum)
 		{
-			return elt;
+		    return addr;
 		}
 	}
 

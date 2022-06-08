@@ -50,40 +50,40 @@ static ExtensionDef	extensionDefs[] =
 				0
 		},
 		{ "bcb", BlockConfidentialityBlk,
-				0,
-				bcbSerialize,
-				{0,
-				0,
-				0,
-				0,
-				0},
-				bcbRelease,
-				bcbCopy,
-				bcbAcquire,
-				0,
-				0,
-				0,
-				0,
-                                bcbRecord,
-				bcbClear
+				0,  /* Offer Function           - N/A. BCBs offered directly by BPA. */
+				0,  /* Serialize Function       - N/A. BCBs serializied by BPA.      */
+				{0, /* Process on Forward       - N/A. */
+				0,  /* Process on Custody       - N/A. */
+				0,  /* Process on Enqueue       - N/A. */
+				0,  /* Process on Dequeue       - N/A. */
+				0}, /* Process on Transmit      - N/A. */
+				bpsec_util_outboundBlkRelease,   /* Outbound Release function. */
+				bpsec_asb_outboundAsbCopy,       /* Outbound Copy Function.    */
+				bpsec_asb_inboundAsbDeserialize, /* Inbound Acquire Function.  */
+				0,  /* Inbound Review function  - N/A. */
+				0,  /* Inbound Decrypt function - N/A. */
+				0,  /* Inbound Parse function   - N/A. */
+				0,  /* Inbound Check function   - N/A. */
+				bpsec_asb_inboundAsbRecord,      /* Inbound record function. */
+				bpsec_util_inboundBlkClear       /* Inbound clear function.  */
 		},
 		{ "bib", BlockIntegrityBlk,
-				0,
-				bibSerialize,
-				{0,
-				0,
-				0,
-				0,
-				0},
-				bibRelease,
-				bibCopy,
-				0,
-				0,
-				0,
-				bibParse,
-				0,
-				bibRecord,
-				bibClear
+				0,  /* Offer Function           - N/A. BIBs offered directly by BPA. */
+				0,  /* Serialize Function       - N/A. BIBs serializied by BPA.      */
+				{0, /* Process on Forward       - N/A. */
+				0,  /* Process on Custody       - N/A. */
+				0,  /* Process on Enqueue       - N/A. */
+				0,  /* Process on Dequeue       - N/A. */
+				0}, /* Process on Transmit      - N/A. */
+				bpsec_util_outboundBlkRelease,  /* Outbound Release function. */
+				bpsec_asb_outboundAsbCopy,      /* Outbound Copy Function.    */
+				0,  /* Inbound Acquire Function - N/A  */
+				0,  /* Inbound Review function  - N/A. */
+				0,  /* Inbound Decrypt function - N/A. */
+				bpsec_asb_inboundAsbDeserialize, /* Inbound Parse function - BIBs are deserialized in the PARSE callback. */
+				0,  /* Inbound Check function - N/A.   */
+				bpsec_asb_inboundAsbRecord,      /* Inbound record function. */
+				bpsec_util_inboundBlkClear       /* Inbound clear function.  */
 		},
 		{ "bpq", QualityOfServiceBlk,
 				qos_offer,

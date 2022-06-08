@@ -1,0 +1,6 @@
+a {"event_set" : 
+	{"name", 
+	"desc":"default test1 set"
+	"invalid_key" : "invalid value"}
+}
+	
