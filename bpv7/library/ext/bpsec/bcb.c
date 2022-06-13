@@ -102,8 +102,8 @@ int    bpsec_encrypt(Bundle *bundle)
     /* If there is a policy rule for the payload block, apply it */
     if((curRule = bslpol_get_sender_rule(bundle, BlockConfidentialityBlk, PayloadBlk)) != NULL)
     {
+        BPSEC_DEBUG_INFO("Found rule id %d.", curRule->user_id);
 
-        BPSEC_DEBUG_ERR("EJB - Found rule id %d.", curRule->user_id);
         if (bslpol_proc_applySenderPolRule(bundle, BlockConfidentialityBlk, curRule, 1) < 0)
         {
             BPSEC_DEBUG_ERR("Failed applying rule %d (payload blk).", curRule->user_id);

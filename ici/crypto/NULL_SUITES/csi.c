@@ -953,35 +953,49 @@ int8_t csi_crypt_finish(csi_csid_t suite, void *context, csi_svcid_t svc, csi_ci
 int8_t csi_crypt_full(csi_csid_t suite, csi_svcid_t svc, csi_cipherparms_t *parms, 
                       csi_val_t key, csi_val_t input, csi_val_t *output)
 {
-    
-    CSI_DEBUG_ERR("EJB - Calling full.", NULL);
+    int8_t retval = ERROR;
 
+	CSI_DEBUG_PROC("+ csi_crypt_full(%d, %d, key (len=%d), input(len=%d),"ADDR_FIELDSPEC")",
+			       suite, svc, (uaddr)parms, key.len, input.len, (uaddr)output);
 
-    if(parms->aad.len <= 0 ||
-       parms->icv.len <= 0 ||
-       parms->intsig.len <= 0 ||
-       parms->iv.len <= 0 || 
-       parms->keyinfo.len <= 0 ||
-       parms->salt.len <= 0)
-    {
-        return ERROR;
-    }
-    
+	CHKERR(parms);
+	CHKERR(output);
+
 #ifdef NULL_FAIL
     return 0;
 #endif
 
-//    output->len = NCS_LEN_VAL;
-    output->len = input.len;
+    switch(suite)
+	{
+
+	case CSTYPE_SHA256_AES128:
+	case CSTYPE_SHA384_AES256:
+	case CSTYPE_AES128_GCM:
+	case CSTYPE_AES256_GCM:
+		 output->len = input.len;
     
-    if(csi_memAlloc(&output->contents, &output->len) == ERROR)
-    {
-        return ERROR;
-    }
+        if(csi_memAlloc(&output->contents, &output->len) == ERROR)
+        {
+            return ERROR;
+        }
 
-    memcpy(output->contents, input.contents, MIN(output->len, input.len));
+        /* TODO: Check return value. */
+        memcpy(output->contents, input.contents, MIN(output->len, input.len));
+        retval = 1;
+		break;
 
-    return 1;
+	default:
+		CSI_DEBUG_ERR("x csi_crypt_full: Unsupported suite %d.", suite);
+		break;
+	}
+
+    /* TODO: Check return value. */
+    parms->icv.len = NCS_ICV_LEN;
+    csi_memAlloc(&parms->icv.contents, &parms->icv.len);
+
+	CSI_DEBUG_PROC("- csi_crypt_full ->%d", retval);
+	return retval;
+
 }
 
 /******************************************************************************

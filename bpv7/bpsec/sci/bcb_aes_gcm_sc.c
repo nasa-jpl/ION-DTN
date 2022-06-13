@@ -822,6 +822,10 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
     	    }
     	}
     }
+    else if(csi_parms.icv.len == 0)
+    {
+    	BPSEC_DEBUG_WARN("No integrity check value (authentication tag) produced.", NULL);
+    }
 
 
     csi_cipherparms_free(csi_parms);

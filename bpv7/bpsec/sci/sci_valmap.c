@@ -200,7 +200,7 @@ int bpsec_scvm_hexCborDecode(PsmPartition wm, sc_value *val, unsigned int len, u
      * For debugging...
      *
      * char *tmp_str = bpsec_scutl_hexStrCvt(buffer, len);
-     * BPSEC_DEBUG_INFO("EJB: CBOR buffer is %s.", tmp_str);
+     * BPSEC_DEBUG_INFO("CBOR buffer is %s.", tmp_str);
      * MRELEASE(tmp_str);
      */
 

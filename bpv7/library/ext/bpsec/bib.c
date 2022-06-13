@@ -322,7 +322,7 @@ int bpsec_verify(AcqWorkArea *work)
     /*    Then check for BIBs that are required but not present.    */
     // TODO - This needs to be implemented.
     // TODO - This probably also means being able to query by wildcard SCID.
-    // TODO - Maybe we keep al ist of processed rule IDs
+    // TODO - Maybe we keep a list of processed rule IDs
 
     bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
     BPSEC_DEBUG_PROC("Returning 0", NULL);
