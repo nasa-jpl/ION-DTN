@@ -498,7 +498,9 @@ uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 		{
 			uvast value = 0;
 			memcpy(&value, rawVal, sizeof(uvast));
+
 			*len = cbor_encode_integer(value, &result);
+
 		}
 	}
 	return result;
@@ -527,20 +529,20 @@ uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *
  *****************************************************************************/
 int   bpsec_scvm_intStrDecode(PsmPartition wm, sc_value *val, unsigned int len, char *value)
 {
-    int *cursor = NULL;
+    uvast *cursor = NULL;
 
     /* Step 0: Sanity checks. */
     CHKERR(val);
     CHKERR(value);
 
     /* Step 1: Allocate and populate. */
-    if((cursor = (int *) bpsec_scv_rawAlloc(wm, val, sizeof(int))) == NULL)
+    if((cursor = (uvast *) bpsec_scv_rawAlloc(wm, val, sizeof(uvast))) == NULL)
     {
         bpsec_scv_clear(wm, val);
         return -1;
     }
 
-    if(sscanf(value,"%d", cursor) != 1)
+    if(sscanf(value,UVAST_FIELDSPEC, cursor) != 1)
     {
     	bpsec_scv_clear(wm, val);
         return -1;
