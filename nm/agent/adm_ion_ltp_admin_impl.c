@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -246,7 +246,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_heap(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 
 /*
- * This control sets the expected maximum bit error rate(BER) that LTP should provide for in computing 
+ * This control sets the expected maximum bit error rate(BER) that LTP should provide for in computing
  * the maximum number of transmission efforts to initiate in the transmission of a given block.(Note th
  * at this computation is also sensitive to data segment size and to the size of the block that is to b
  * e transmitted.) The default value is .0001 (10^-4).
@@ -326,7 +326,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_manage_own_queue_time(eid_t *def_mgr, tnvc_t *parms
 	Sdr	sdr = getIonsdr();
 	Object	ltpdbObj = getLtpDbObject();
 	LtpDB	ltpdb;
-	int	newOwnQtime;
+	int newOwnQtime;
 	int success;
 
 	newOwnQtime = adm_get_parm_uint(parms, 0, &success);
@@ -453,9 +453,11 @@ tnv_t *dtn_ion_ltpadmin_ctrl_span_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 	unsigned int aggrTimeLimit = adm_get_parm_uint(parms, 5, &success);
 	char *lsoCmd = adm_get_parm_obj(parms, 6, AMP_TYPE_STR);
 	unsigned int qTime = adm_get_parm_uint(parms, 7, &success);
+
 	int purge = 0;
 
-	if (qTime == 0)
+        if (qTime == 0)
+if (qTime == 0)
 	{
 		purge = 1;
 		qTime = 0 - qTime;
@@ -476,7 +478,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_span_change(eid_t *def_mgr, tnvc_t *parms, int8_t *
 
 
 /*
- * This control deletes the span identified by peerEngineNumber. The control will fail if any outbound 
+ * This control deletes the span identified by peerEngineNumber. The control will fail if any outbound
  * segments for this span are pending transmission or any inbound blocks from the peer engine are incom
  * plete.
  */
@@ -537,7 +539,7 @@ tnv_t *dtn_ion_ltpadmin_ctrl_stop(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
  * elects all LTP activity indication characters; any other activitySpec such as df{] selects all activ
  * ity indication characters in the string, de-selecting all others. LTP will print each selected activ
  * ity indication character to stdout every time a processing event of the associated type occurs: d bu
- * ndle appended to block for next session, e segment of block is queued for transmission, f block has 
+ * ndle appended to block for next session, e segment of block is queued for transmission, f block has
  * been fully segmented for transmission, g segment popped from transmission queue, h positive ACK rece
  * ived for block and session ended, s segment received, t block has been fully received, @ negative AC
  * K received for block and segments retransmitted, = unacknowledged checkpoint was retransmitted, + un

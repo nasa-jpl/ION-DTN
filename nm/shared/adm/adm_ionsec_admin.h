@@ -24,6 +24,9 @@
 #include "shared/utils/nm_types.h"
 #include "shared/adm/adm.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * +---------------------------------------------------------------------------------------------+
@@ -248,5 +251,12 @@ void dtn_ion_ionsecadmin_init_ctrl();
 void dtn_ion_ionsecadmin_init_mac();
 void dtn_ion_ionsecadmin_init_rpttpl();
 void dtn_ion_ionsecadmin_init_tblt();
+
 #endif /* _HAVE_DTN_ION_IONSECADMIN_ADM_ */
-#endif //ADM_IONSEC_ADMIN_H_
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _ADM_IONSEC_ADMIN_H_ */

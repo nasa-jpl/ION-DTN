@@ -8,10 +8,10 @@
  **
  ** Assumptions: TODO
  **
- ** Modification History: 
+ ** Modification History:
  **  YYYY-MM-DD  AUTHOR           DESCRIPTION
  **  ----------  --------------   --------------------------------------------
- **  2020-04-13  AUTO             Auto-generated c file 
+ **  2020-04-13  AUTO             Auto-generated c file
  **
  ****************************************************************************/
 
@@ -121,25 +121,25 @@ tbl_t *dtn_ion_ionadmin_tblt_contacts(ari_t *id)
 
 		if((contact = (IonCXref *) psp(getIonwm(), addr)) == NULL)
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts","NULL contact encountered. Skipping.", NULL);
-			continue;
+		  AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts","NULL contact encountered. Skipping.", NULL);
+		  continue;
 		}
 
 		 /* Table is: (TV)Start, (TV)Stop, (UINT)Src Node, (UINT)Dest Node, (UVAST)Xmit, (UVAST)Confidence */
 		if((cur_row = tnvc_create(6)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_tv((uvast)(contact->fromTime)));
- 			tnvc_insert(cur_row, tnv_from_tv((uvast)(contact->toTime)));
-			tnvc_insert(cur_row, tnv_from_uint(contact->fromNode));
-			tnvc_insert(cur_row, tnv_from_uint(contact->toNode));
-			tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));
-			tnvc_insert(cur_row, tnv_from_uvast(contact->confidence));
-
-			tbl_add_row(table, cur_row);
+		  tnvc_insert(cur_row, tnv_from_tv(contact->fromTime));
+		  tnvc_insert(cur_row, tnv_from_tv(contact->toTime));
+		  tnvc_insert(cur_row, tnv_from_uint(contact->fromNode));
+		  tnvc_insert(cur_row, tnv_from_uint(contact->toNode));
+		  tnvc_insert(cur_row, tnv_from_uvast(contact->xmitRate));
+		  tnvc_insert(cur_row, tnv_from_uvast(contact->confidence));
+		  
+		  tbl_add_row(table, cur_row);
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "Can't allocate row. Skipping.", NULL);
+		  AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -197,8 +197,8 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 		 /* Table is: (TV)Start, (TV)Stop, (UINT) Node, (UINT)Other Node, (UINT) Dist */
 		if((cur_row = tnvc_create(5)) != NULL)
 		{
-			tnvc_insert(cur_row, tnv_from_uvast(range->fromTime));
-			tnvc_insert(cur_row, tnv_from_uvast(range->toTime));
+			tnvc_insert(cur_row, tnv_from_tv(range->fromTime));
+			tnvc_insert(cur_row, tnv_from_tv(range->toTime));
 			tnvc_insert(cur_row, tnv_from_uint(range->fromNode));
 			tnvc_insert(cur_row, tnv_from_uint(range->toNode));
 			tnvc_insert(cur_row, tnv_from_uint(range->owlt));
@@ -207,7 +207,7 @@ tbl_t *dtn_ion_ionadmin_tblt_ranges(ari_t *id)
 		}
 		else
 		{
-			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_contacts", "Can't allocate row. Skipping.", NULL);
+			AMP_DEBUG_WARN("dtn_ion_ionadmin_tblt_ranges", "Can't allocate row. Skipping.", NULL);
 		}
 	}
 
@@ -345,7 +345,7 @@ tnv_t *dtn_ion_ionadmin_get_congestion_end_time_forecasts(tnvc_t *parms)
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_uint(iondb.horizon);
 	sdr_end_xn(sdr);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_congestion_end_time_forecasts BODY
@@ -366,7 +366,7 @@ tnv_t *dtn_ion_ionadmin_get_consumption_rate(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_consumption_rate BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	
+
 	Sdr     sdr = getIonsdr();
 	Object  iondbObj = getIonDbObject();
 	IonDB   iondb;
@@ -418,7 +418,7 @@ tnv_t *dtn_ion_ionadmin_get_inbound_file_system_occupancy_limit(tnvc_t *parms)
 
 
 /*
- * This is the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be 
+ * This is the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be
  * used for the storage of inbound zero-copy objects. The default heap limit is 20% of the SDR data spa
  * ce's total heap size.
  */
@@ -465,12 +465,12 @@ tnv_t *dtn_ion_ionadmin_get_number(tnvc_t *parms)
 	Sdr     sdr = getIonsdr();
 	Object  iondbObj = getIonDbObject();
 	IonDB   iondb;
-	
+
 	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_uvast(iondb.ownNodeNbr);
 	sdr_end_xn(sdr);
-	  
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_number BODY
@@ -502,7 +502,7 @@ tnv_t *dtn_ion_ionadmin_get_outbound_file_system_occupancy_limit(tnvc_t *parms)
 	fileLimit = zco_get_max_file_occupancy(sdr, ZcoOutbound);
 	result = tnv_from_vast(fileLimit);
 	sdr_end_xn(sdr);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_outbound_file_system_occupancy_limit BODY
@@ -513,7 +513,7 @@ tnv_t *dtn_ion_ionadmin_get_outbound_file_system_occupancy_limit(tnvc_t *parms)
 
 
 /*
- * This is the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be 
+ * This is the maximum number of megabytes of storage space in ION's SDR non-volatile heap that can be
  * used for the storage of outbound zero-copy objects. The default heap limit is 20% of the SDR data sp
  * ace's total heap size.
  */
@@ -535,7 +535,7 @@ tnv_t *dtn_ion_ionadmin_get_outbound_heap_occupancy_limit(tnvc_t *parms)
 	heapLimit = zco_get_max_heap_occupancy(sdr, ZcoOutbound);
 	result = tnv_from_vast(heapLimit);
 	sdr_end_xn(sdr);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_outbound_heap_occupancy_limit BODY
@@ -560,12 +560,12 @@ tnv_t *dtn_ion_ionadmin_get_production_rate(tnvc_t *parms)
 	Sdr sdr = getIonsdr();
 	Object iondbObj = getIonDbObject();
 	IonDB iondb;
-	  
+
 	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_int(iondb.productionRate);
 	sdr_end_xn(sdr);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_production_rate BODY
@@ -588,7 +588,7 @@ tnv_t *dtn_ion_ionadmin_get_ref_time(tnvc_t *parms)
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_ref_time BODY
@@ -602,7 +602,7 @@ tnv_t *dtn_ion_ionadmin_get_ref_time(tnvc_t *parms)
  * The time delta is used to compensate for error (drift) in clocks, particularly spacecraft clocks. Th
  * e hardware clock on a spacecraft might gain or lose a few seconds every month, to the point at which
  *  its understanding of the current time - as reported out by the operating system - might differ sign
- * ificantly from the actual value of Unix Epoch time as reported by authoritative clocks on Earth. To 
+ * ificantly from the actual value of Unix Epoch time as reported by authoritative clocks on Earth. To
  * compensate for this difference without correcting the clock itself (which can be difficult and dange
  * rous), ION simply adds the time delta to the Epoch time reported by the operating system.
  */
@@ -614,16 +614,16 @@ tnv_t *dtn_ion_ionadmin_get_time_delta(tnvc_t *parms)
 	 * |START CUSTOM FUNCTION get_time_delta BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-		
+
 	Sdr sdr = getIonsdr();
 	Object iondbObj = getIonDbObject();
 	IonDB iondb;
-	  
+
 	CHKNULL(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &iondb, iondbObj, sizeof(IonDB));
 	result = tnv_from_int(iondb.deltaFromUTC);
 	sdr_end_xn(sdr);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_time_delta BODY
@@ -648,7 +648,7 @@ tnv_t *dtn_ion_ionadmin_get_version(tnvc_t *parms)
 	char buffer[80]; // pulled from ionadmin.c
 	isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
 	result = tnv_from_str(buffer);
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_version BODY
@@ -663,12 +663,12 @@ tnv_t *dtn_ion_ionadmin_get_version(tnvc_t *parms)
 
 /*
  * Until this control is executed, the local ION node does not exist and most ionadmin controls will fa
- * il. The control configures the local node to be identified by node_number, a CBHE node number which 
+ * il. The control configures the local node to be identified by node_number, a CBHE node number which
  * uniquely identifies the node in the delay-tolerant network.  It also configures ION's data space (SD
  * R) and shared working-memory region.  For this purpose it uses a set of default settings if no argum
  * ent follows node_number or if the argument following node_number is ''; otherwise it uses the config
  * uration settings found in a configuration file.  If configuration file name is provided, then the co
- * nfiguration file's name is implicitly 'hostname.ionconfig'; otherwise, ion_config_filename is taken 
+ * nfiguration file's name is implicitly 'hostname.ionconfig'; otherwise, ion_config_filename is taken
  * to be the explicit configuration file name.
  */
 tnv_t *dtn_ion_ionadmin_ctrl_node_init(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -681,7 +681,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_init(eid_t *def_mgr, tnvc_t *parms, int8_t *st
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_init BODY
@@ -764,7 +764,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_clock_sync_set(eid_t *def_mgr, tnvc_t *parms, 
 		 sdr_end_xn(sdr);
 		 *status = CTRL_SUCCESS;
 	 }
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_clock_sync_set BODY
@@ -822,8 +822,8 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_congestion_alarm_control_set(eid_t *def_mgr, t
 
 /*
  * This management control sets the end time for computed congestion forecasts. Setting congestion fore
- * cast horizon to zero sets the congestion forecast end time to infinite time in the future: if there 
- * is any predicted net growth in bundle storage space occupancy at all, following the end of the last 
+ * cast horizon to zero sets the congestion forecast end time to infinite time in the future: if there
+ * is any predicted net growth in bundle storage space occupancy at all, following the end of the last
  * scheduled contact, then eventual congestion will be predicted. The default value is zero, i.e., no e
  * nd time.
  */
@@ -924,10 +924,10 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_consumption_rate_set(eid_t *def_mgr, tnvc_t *p
 
 /*
  * This control schedules a period of data transmission from source_node to dest_node. The period of tr
- * ansmission will begin at start_time and end at stop_time, and the rate of data transmission will be 
+ * ansmission will begin at start_time and end at stop_time, and the rate of data transmission will be
  * xmit_data_rate bytes/second. Our confidence in the contact defaults to 1.0, indicating that the cont
  * act is scheduled - not that non-occurrence of the contact is impossible, just that occurrence of the
- *  contact is planned and scheduled rather than merely imputed from past node behavior. In the latter 
+ *  contact is planned and scheduled rather than merely imputed from past node behavior. In the latter
  * case, confidence indicates our estimation of the likelihood of this potential contact.
  */
 tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -950,11 +950,11 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 	uvast       confidence;
 	int     	success = 0;
 
-	fromTime = adm_get_parm_uint(parms, 0, &success);
+	fromTime = adm_get_parm_uvast(parms, 0, &success);
 
 	if(success)
 	{
-		toTime = adm_get_parm_uint(parms, 1, &success);
+		toTime = adm_get_parm_uvast(parms, 1, &success);
 	}
 
 	if (toTime <= fromTime)
@@ -972,7 +972,6 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 		toNodeNbr = adm_get_parm_uvast(parms, 3, &success);
 	}
 
-	oK(ionRegionOf(fromNodeNbr, toNodeNbr, &regionNbr));
 	if(success)
 	{
 		xmitRate = adm_get_parm_uvast(parms, 4, &success);
@@ -985,15 +984,31 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_add(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		if(rfx_insert_contact(regionNbr, fromTime, toTime, fromNodeNbr,
-			toNodeNbr, xmitRate, confidence, &xaddr, 0) == 0)
-		{
-			*status = CTRL_SUCCESS;
-		}
+	    /* Sanity checks for contacts. */
+	    if((fromNodeNbr <= 0) || (toNodeNbr <= 0))
+	    {
+	        AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Node number must be greater than 0", NULL);
+	    }
+	    else if((confidence < 0.0 || confidence > 1.0))
+	    {
+            AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Confidence must be in the range 0.0 to 1.0.", NULL);
+	    }
+	    else if(toTime <= fromTime)
+	    {
+	        AMP_DEBUG_ERR("dtn_ion_ionadmin_ctrl_node_contact_add","Interval end time must be later than start time", NULL);
+	    }
+
+	    // TODO: Need to accept region number.
+        if (rfx_insert_contact(1,fromTime, toTime,
+                fromNodeNbr, toNodeNbr, xmitRate, confidence,
+                &xaddr, 0) == 0)
+        {
+            *status = CTRL_SUCCESS;
+        }
 	}
 
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_contact_add BODY
@@ -1023,7 +1038,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 	int 	success = 0;
 	uint32_t	regionNbr;
 
-	timestamp = adm_get_parm_uint(parms, 0, &success);
+	timestamp = adm_get_parm_uvast(parms, 0, &success);
 
 	if(success)
 	{
@@ -1036,16 +1051,13 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 
 	if(success)
 	{
-		// TODO refTime = _referenceTime(NULL);
-	    // TODO  timestamp = readTimestampUTC(tokens[2], refTime);
-
 		if (timestamp == 0)
 		{
 			return NULL;
 		}
 
-		oK(ionRegionOf(fromNodeNbr, toNodeNbr, &regionNbr));
-		if(rfx_remove_contact(regionNbr, &timestamp, fromNodeNbr,
+		// TODO accept region...
+		if(rfx_remove_contact(1, &timestamp, fromNodeNbr,
 				toNodeNbr, 0) == 0)
 		{
 			// TODO _forecastNeeded(1);
@@ -1053,7 +1065,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_contact_del(eid_t *def_mgr, tnvc_t *parms, int
 		}
 	}
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_contact_del BODY
@@ -1079,7 +1091,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_inbound_heap_occupancy_limit_set(eid_t *def_mg
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_inbound_heap_occupancy_limit_set BODY
@@ -1091,7 +1103,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_inbound_heap_occupancy_limit_set(eid_t *def_mg
 
 /*
  * This management control sets the maximum number of megabytes of storage space in ION's SDR non-volat
- * ile heap that can be used for the storage of outbound zero-copy objects.  A value of  -1 for either 
+ * ile heap that can be used for the storage of outbound zero-copy objects.  A value of  -1 for either
  * limit signifies 'leave unchanged'. The default heap  limit is 30% of the SDR data space's total heap
  *  size.
  */
@@ -1105,7 +1117,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_outbound_heap_occupancy_limit_set(eid_t *def_m
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_outbound_heap_occupancy_limit_set BODY
@@ -1117,7 +1129,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_outbound_heap_occupancy_limit_set(eid_t *def_m
 
 /*
  * This management control sets ION's expectation of the mean rate of continuous data origination by lo
- * cal BP applications throughout the period of time over which congestion forecasts are computed. For 
+ * cal BP applications throughout the period of time over which congestion forecasts are computed. For
  * nodes that function only as routers this variable will normally be zero. A value of -1, which is the
  *  default, indicates that the rate of local data production is unknown; in that case local data produ
  * ction is not considered in the computation of congestion forecasts.
@@ -1132,7 +1144,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_production_rate_set(eid_t *def_mgr, tnvc_t *pa
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_production_rate_set BODY
@@ -1144,7 +1156,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_production_rate_set(eid_t *def_mgr, tnvc_t *pa
 
 /*
  * This control predicts a period of time during which the distance from node to other_node will be con
- * stant to within one light second. The period will begin at start_time and end at stop_time, and the 
+ * stant to within one light second. The period will begin at start_time and end at stop_time, and the
  * distance between the nodes during that time will be distance light seconds.
  */
 tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -1182,22 +1194,22 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 	if(success)
 	{
 	  distance = adm_get_parm_uint(parms, 4, &success);
-	}   
+	}
 
 	if(success)
 	{
-	  if(stop <= start) 
+	  if(stop <= start)
 	  {
 	    return NULL;
 	  }
-	  
+
 	  if (rfx_insert_range(start, stop, from_node, to_node, distance,
 			&xaddr, 0) >= 0 && xaddr != 0)
 	  {
 	    *status = CTRL_SUCCESS;
 	  }
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_range_add BODY
@@ -1208,7 +1220,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 
 
 /*
- * This control deletes the predicted period of constant distance between node and other_node starting 
+ * This control deletes the predicted period of constant distance between node and other_node starting
  * at start_time. To delete all ranges between some pair of nodes, use '*' as start_time.
  */
 tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
@@ -1220,14 +1232,14 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 	 * |START CUSTOM FUNCTION ctrl_node_range_del BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-	
+
 	time_t  start = 0;
 	uint32_t    from_node = 0;
 	uint32_t    to_node   = 0;
 	int 	success   = 0;
 	PsmAddress xaddr;
 
-	start = adm_get_parm_uint(parms, 0, &success);
+	start = adm_get_parm_uvast(parms, 0, &success);
 
 	if(success)
 	{
@@ -1245,7 +1257,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 	    *status = CTRL_SUCCESS;
 	  }
 	}
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_range_del BODY
@@ -1256,7 +1268,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_del(eid_t *def_mgr, tnvc_t *parms, int8_
 
 
 /*
- * This is used to set the reference time that will be used for interpreting relative time values from 
+ * This is used to set the reference time that will be used for interpreting relative time values from
  * now until the next revision of reference time. Note that the new reference time can be a relative ti
  * me, i.e., an offset beyond the current reference time.
  */
@@ -1270,7 +1282,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_ref_time_set(eid_t *def_mgr, tnvc_t *parms, in
 	 * +-------------------------------------------------------------------------+
 	 */
 
-	
+
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_node_ref_time_set BODY
@@ -1281,7 +1293,7 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_ref_time_set(eid_t *def_mgr, tnvc_t *parms, in
 
 
 /*
- * This management control sets ION's understanding of the current difference between correct time and 
+ * This management control sets ION's understanding of the current difference between correct time and
  * the Unix Epoch time values reported by the clock for the local ION node's computer. This delta is au
  * tomatically applied to locally obtained time values whenever ION needs to know the current time.
  */

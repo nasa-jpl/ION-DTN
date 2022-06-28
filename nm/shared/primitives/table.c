@@ -350,7 +350,25 @@ int tbl_serialize(QCBOREncodeContext *encoder, void *item)
 
 blob_t*   tbl_serialize_wrapper(tbl_t *tbl)
 {
-	return cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE, tbl, (cut_enc_fn)tbl_serialize);
+    blob_t *result = NULL;
+
+    /*
+     * Tables may have increasingly large numbers of entries. To
+     * preserve memory, we try with first small, then large, then huge allocations.
+     */
+
+    if((result = cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE_SMALL, tbl, (cut_enc_fn)tbl_serialize)) == NULL)
+    {
+        AMP_DEBUG_WARN("tbl_serialize_wrapper", "Increasing buffer size to %d.", TBL_DEFAULT_ENC_SIZE_LARGE);
+
+        if((result = cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE_LARGE, tbl, (cut_enc_fn)tbl_serialize)) == NULL)
+        {
+            AMP_DEBUG_WARN("tbl_serialize_wrapper", "Increasing buffer size to %d.", TBL_DEFAULT_ENC_SIZE_HUGE);
+            result = cut_serialize_wrapper(TBL_DEFAULT_ENC_SIZE_HUGE, tbl, (cut_enc_fn)tbl_serialize);
+        }
+    }
+
+	return result;
 }
 
 void tbl_cb_del_fn(void *item)

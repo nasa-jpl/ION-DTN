@@ -40,6 +40,12 @@
 #include "../shared/primitives/report.h"
 #include "../shared/primitives/rules.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #define NM_LOG_FILE "nm_mgr.log"
 
 #define AGENT_ADD_VAR_STR "ADD_VAR"
@@ -334,4 +340,8 @@ void ui_display_init(char* title);
 /** Log information on transmitted messages (dependent on logging settings) */
 void ui_log_transmit_msg(agent_t* agent, msg_ctrl_t *msg);
 
-#endif // _NM_MGR_UI_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _NM_MGR_UI_H */

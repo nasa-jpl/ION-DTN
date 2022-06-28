@@ -37,6 +37,11 @@
 #include "vector.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -258,5 +263,9 @@ int vdb_db_init_rpttpl(blob_t *data, db_desc_t desc);
 int vdb_db_init_rule(blob_t *data, db_desc_t desc);
 int vdb_db_init_var(blob_t *data, db_desc_t desc);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* DB_H_ */

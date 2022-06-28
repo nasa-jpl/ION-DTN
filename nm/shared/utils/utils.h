@@ -36,6 +36,11 @@
 
 #include "../primitives/blob.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -98,4 +103,8 @@ int      utils_time_delta(struct timeval *result, struct timeval *t1, struct tim
 vast     utils_time_cur_delta(struct timeval *t1);
 
 
-#endif /* UTILS_H_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _UTILS_H_ */

@@ -33,6 +33,11 @@
 #include "qcbor.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #define CUT_ENC_BUFSIZE 4096
 
 /** Callback function prototype for cut_serialize_vector() and cut_serialize_wrapper() */
@@ -74,4 +79,9 @@ int cut_get_cbor_str_ptr(QCBORDecodeContext *it, char *dst, size_t length);
      AMP_DEBUG_WARN(__func__, "Warning: CBOR Decoding finished with err %d", tmperr); \
    }
 
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif  /* _CBOR_UTILS_H_ */

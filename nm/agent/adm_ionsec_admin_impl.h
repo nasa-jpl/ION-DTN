@@ -33,6 +33,12 @@
 #include "shared/primitives/table.h"
 #include "shared/primitives/tnv.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*   START typeENUM */
 
 /*   STOP typeENUM  */
@@ -100,4 +106,9 @@ tnv_t *dtn_ion_ionsecadmin_ctrl_list_ltp_tx_rules(eid_t *def_mgr, tnvc_t *parms,
 tbl_t *dtn_ion_ionsecadmin_tblt_ltp_rx_rules(ari_t *id);
 tbl_t *dtn_ion_ionsecadmin_tblt_ltp_tx_rules(ari_t *id);
 
-#endif //ADM_IONSEC_ADMIN_IMPL_H_
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _ADM_IONSEC_ADMIN_IMPL_H_ */

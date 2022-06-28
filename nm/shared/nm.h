@@ -1,6 +1,10 @@
 #ifndef __NM__
 #define __NM__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Preprocessor magic helper
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
@@ -24,4 +28,8 @@
 #define AMP_VERSION_STR       STR(AMP_VERSION) " - " AMP_PROTOCOL_URL
 
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  /* _NM_H_ */

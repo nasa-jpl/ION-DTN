@@ -165,17 +165,17 @@ static int versionHandler(struct mg_connection *conn, void *cbdata)
 
    if (0 != strcmp(ri->request_method, "GET")) {
       	mg_send_http_error(conn,
-                           405,
+                           HTTP_METHOD_NOT_ALLOWED,
                            "Only GET method supported for this page");
-        return 405;
+        return HTTP_METHOD_NOT_ALLOWED;
    }
    
    obj = cJSON_CreateObject();
 
 	if (!obj) {
 		/* insufficient memory? */
-		mg_send_http_error(conn, 500, "Server error");
-		return 500;
+		mg_send_http_error(conn, HTTP_INTERNAL_ERROR, "Server error");
+		return HTTP_INTERNAL_ERROR;
 	}
 
 
@@ -199,7 +199,7 @@ static int versionHandler(struct mg_connection *conn, void *cbdata)
 	SendJSON(conn, obj);
 	cJSON_Delete(obj);
 
-	return 200;
+	return HTTP_OK;
 }
 
 static int agentsGETHandler(struct mg_connection *conn)
@@ -212,16 +212,16 @@ static int agentsGETHandler(struct mg_connection *conn)
    
    if (!obj) {
       /* insufficient memory? */
-      mg_send_http_error(conn, 500, "Server error");
-      return 500;
+      mg_send_http_error(conn, HTTP_INTERNAL_ERROR, "Server error");
+      return HTTP_INTERNAL_ERROR;
    }
 
    agentList = cJSON_AddArrayToObject(obj, "agents");
    if (agentList == NULL)
    {
       cJSON_Delete(obj);
-      mg_send_http_error(conn, 500, "Server error (can't allocate array for agents)");
-      return 500;
+      mg_send_http_error(conn, HTTP_INTERNAL_ERROR, "Server error (can't allocate array for agents)");
+      return HTTP_INTERNAL_ERROR;
    }
 
 
@@ -249,24 +249,29 @@ static int agentsCreateHandler(struct mg_connection *conn, char *name)
    eid_t agent_eid;
 
    // Sanity-check string length
-   if (name == NULL || strlen(name) > AMP_MAX_EID_LEN-2)
+   if (name == NULL || (strlen(name) > AMP_MAX_EID_LEN-2))
    {
-      mg_send_http_error(conn, 400, "Invalid EID length");
-      return 400;
+      mg_send_http_error(conn, HTTP_BAD_REQUEST, "Invalid EID length");
+      return HTTP_BAD_REQUEST;
    }
    else
    {
-      strcpy(agent_eid.name, name);
-      if (agent_add(agent_eid) == AMP_OK)
-      {
-         mg_send_http_error(conn, 400, "Unable to register agent");
-         return 400;
-      }
-      else
-      {
-         return HTTP_NO_CONTENT;
-      }
+     strcpy(agent_eid.name, name);
+
+     if (agent_add(agent_eid) == AMP_OK)
+     {
+       mg_send_http_ok(conn, NULL, 0);
+       return HTTP_OK;
+     }
+     else
+     {	
+       mg_send_http_error(conn, HTTP_BAD_REQUEST, "Unable to register agent");
+       return HTTP_BAD_REQUEST;
+     }
    }
+
+   mg_send_http_error(conn, HTTP_INTERNAL_ERROR, "Server error");
+   return HTTP_INTERNAL_ERROR;
 }
 
 static int agentsHandler(struct mg_connection *conn, void *cbdata)
@@ -280,16 +285,16 @@ static int agentsHandler(struct mg_connection *conn, void *cbdata)
       char buffer[AMP_MAX_EID_LEN+1];
       int dlen = mg_read(conn, buffer, sizeof(buffer));
       if ( dlen < 1 ) {
-         mg_send_http_error(conn, 400, "Invalid request body data (expect EID name) %d", dlen);
-         return 400;
+         mg_send_http_error(conn, HTTP_BAD_REQUEST, "Invalid request body data (expect EID name) %d", dlen);
+         return HTTP_BAD_REQUEST;
       } else {
          return agentsCreateHandler(conn, buffer);
       }
    } else {
       	mg_send_http_error(conn,
-                           405,
+                           HTTP_METHOD_NOT_ALLOWED,
                            "Only GET and PUT methods supported for this page");
-        return 405;
+        return HTTP_METHOD_NOT_ALLOWED;
    }
 
 }
@@ -303,17 +308,17 @@ static int agentSendRaw(struct mg_connection *conn, time_t ts, agent_t *agent, c
    blob_t *data = utils_string_to_hex(hex);
    if (data == NULL) {
       mg_send_http_error(conn,
-                         500,
+                         HTTP_INTERNAL_ERROR,
                          "Error creating blob from input");
-      return 500;
+      return HTTP_INTERNAL_ERROR;
    }
    id = ari_deserialize_raw(data, &success);
    blob_release(data, 1);
    if (id == NULL) {
       mg_send_http_error(conn,
-                         500,
+                         HTTP_INTERNAL_ERROR,
                          "Error creating blob from input");
-      return 500;
+      return HTTP_INTERNAL_ERROR;
    }
 
    
@@ -323,7 +328,7 @@ static int agentSendRaw(struct mg_connection *conn, time_t ts, agent_t *agent, c
    {
       ari_release(id, 1);
       mg_send_http_error(conn,
-                         500,
+                         HTTP_INTERNAL_ERROR,
                          "Error creating ARI from input");
       return HTTP_INTERNAL_ERROR;
    }
@@ -361,6 +366,31 @@ static int agentShowTextReports(struct mg_connection *conn, agent_t *agent)
 
 }
 
+static int agentShowTextTables(struct mg_connection *conn, agent_t *agent)
+{
+   vecit_t table_it;
+   ui_print_cfg_t fd = INIT_UI_PRINT_CFG_CONN(conn);
+
+   if (agent == NULL)
+   {
+      return HTTP_INTERNAL_ERROR;
+   }
+
+   start_text_page(conn,
+                   "Showing %d tables for agent %s \n",
+                   vec_num_entries_ptr(&(agent->tbls)),
+                   agent->eid.name);
+   
+   /* Iterate through all tables for this agent. */
+   for(table_it = vecit_first(&(agent->tbls)); vecit_valid(table_it); table_it = vecit_next(table_it))
+   {
+     ui_fprint_table(&fd, (tbl_t*)vecit_data(table_it));
+   }
+   
+   return HTTP_OK;
+
+}
+
 static int agentShowJSONReports(struct mg_connection *conn, agent_t *agent)
 {
    cJSON *obj;
@@ -383,6 +413,37 @@ static int agentShowJSONReports(struct mg_connection *conn, agent_t *agent)
       rpt_t *rpt = ( (rpt_t*)vecit_data(rpt_it) );
 
       cJSON_AddItemToArray(reports, ui_json_report(rpt) );
+   }
+
+   SendJSON(conn, obj);
+   cJSON_Delete(obj);
+   return HTTP_OK;
+
+}
+
+static int agentShowJSONTables(struct mg_connection *conn, agent_t *agent)
+{
+   cJSON *obj;
+   cJSON *tables;
+   vecit_t table_it;
+   ui_print_cfg_t fd = INIT_UI_PRINT_CFG_CONN(conn);
+
+   if (agent == NULL)
+   {
+      return HTTP_INTERNAL_ERROR;
+   }
+
+   obj = cJSON_CreateObject();
+   cJSON_AddStringToObject(obj, "eid", agent->eid.name);
+   tables = cJSON_AddArrayToObject(obj, "tables");
+   
+   /* Iterate through all tables for this agent. */
+   for(table_it = vecit_first(&(agent->tbls)); vecit_valid(table_it); table_it = vecit_next(table_it))
+   {
+      tbl_t *table = ( (tbl_t*)vecit_data(table_it) );
+
+      /* Populate the data in the table */
+      cJSON_AddItemToArray(tables, ui_json_table(table) );
    }
 
    SendJSON(conn, obj);
@@ -426,6 +487,40 @@ static int agentShowRawReports(struct mg_connection *conn, agent_t *agent)
 
 }
 
+
+static int agentShowRawTables(struct mg_connection *conn, agent_t *agent)
+{
+   cJSON *obj;
+   cJSON *tables;
+   vecit_t table_it;
+
+   if (agent == NULL)
+   {
+      return HTTP_INTERNAL_ERROR;
+   }
+   
+   obj = cJSON_CreateObject();
+   cJSON_AddStringToObject(obj, "eid", agent->eid.name);
+   tables = cJSON_AddArrayToObject(obj, "tables");
+   
+   /* Iterate through all tables for this agent. */
+   for(table_it = vecit_first(&(agent->tbls)); vecit_valid(table_it); table_it = vecit_next(table_it))
+   {
+      blob_t *tbl = tbl_serialize_wrapper( (tbl_t*)vecit_data(table_it) );
+      char *tbl_str = utils_hex_to_string(tbl->value, tbl->length);
+
+      cJSON_AddItemToArray(tables, cJSON_CreateStringReference(tbl_str));
+      SRELEASE(tbl_str);
+      blob_release(tbl,1);
+   }
+
+   SendJSON(conn, obj);
+   cJSON_Delete(obj);
+   return HTTP_OK;
+
+}
+
+
 /** Handler for /agents/eid*
  *    Supported requests:
  *    - PUT /agents/eid/$eid/hex - Send HEX-encoded CBOR Command (hex string as request body).
@@ -434,7 +529,11 @@ static int agentShowRawReports(struct mg_connection *conn, agent_t *agent)
  *    - PUT /agents/eid/$eid/clear_tables - Clear all received tables for this agent.
  *    - GET /agents/eid/$eid/reports/hex - Retrieve array of reports in CBOR-encoded HEX form
  *    - GET /agents/eid/$eid/reports/text - Retrieve array of reports in ASCII Text form (same as ui)
+ *    - GET /agents/eid/$eid/reports/json - Retrieve reports in JSON.
  *    - GET /agents/eid/$eid/reports* - Alias for hex reports. format will change in the future.
+ *    - GET /agents/eid/$eid/tables/hex - Retrieve array of tables in CBOR-encoded HEX form
+ *    - GET /agents/eid/$eid/tables/text - Retrieve array of tables in ASCII Text form (same as ui)
+ *    - GET /agents/eid/$eid/tables/json - Retrieve tables in JSON.
  */
 static int agentEidHandler(struct mg_connection *conn, void *cbdata)
 {
@@ -508,6 +607,22 @@ static int agentEidHandler(struct mg_connection *conn, void *cbdata)
          else if (cnt == 3 && 0 == strcmp(cmd2, "json") )
          {
             return agentShowJSONReports(conn, agent_get((eid_t*)eid) );
+         }
+      }
+
+      else if (0 == strcmp(cmd, "tables"))
+      {
+         if (cnt == 2 || 0 == strcmp(cmd2, "text") )
+         {
+            return agentShowTextTables(conn,agent_get((eid_t*)eid) );
+         }
+         else if (cnt == 3 && 0 == strcmp(cmd2, "hex") )
+         {
+            return agentShowRawTables(conn, agent_get((eid_t*)eid) );
+         }
+         else if (cnt == 3 && 0 == strcmp(cmd2, "json") )
+         {
+            return agentShowJSONTables(conn, agent_get((eid_t*)eid) );
          }
       }
     }

@@ -5,7 +5,7 @@
  ******************************************************************************/
 /*****************************************************************************
  **
- ** File Name: tdc.c
+ ** File Name: tnv.c
  **
  ** Description: This implements a Type-Name-Value instance and multiple
  **              encodings of TNV collections.
@@ -88,6 +88,7 @@ tnv_t* tnv_cast(tnv_t *tnv, amp_type_e type)
 		(type_is_numeric(type) == 0) ||
 		(TNV_IS_MAP(tnv->flags)))
 	{
+		AMP_DEBUG_ERR("tnv_cast", "tnv->type is %d and type is %d.", tnv->type, type);
 		AMP_DEBUG_ERR("tnv_cast","Bad parms.", NULL);
 		return NULL;
 	}
@@ -293,6 +294,7 @@ tnv_t *tnv_copy_ptr(tnv_t *val)
 
 	if(val == NULL)
 	{
+		AMP_DEBUG_ERR("tnv_copy_ptr","NULL value.", NULL);
 		return NULL;
 	}
 
@@ -748,7 +750,7 @@ tnv_t* tnv_from_real64(double val)
  *   1. Result must be freed with tnv_release(<item>, 1);
  *****************************************************************************/
 
-tnv_t*  tnv_from_str(char *str)
+tnv_t*  tnv_from_str(const char *str)
 {
 	tnv_t* result = NULL;
 	uint32_t len = 0;
@@ -1153,6 +1155,8 @@ int32_t  tnv_to_int(tnv_t val, int *success)
 		case AMP_TYPE_INT:    result = val.value.as_int;              break;
 		case AMP_TYPE_UINT:   result = (int32_t) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:   result = (int32_t) val.value.as_vast;   break;
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  result = (int32_t) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32: result = (int32_t) val.value.as_real32; break;
 		case AMP_TYPE_REAL64: result = (int32_t) val.value.as_real64; break;
@@ -1196,6 +1200,8 @@ float  tnv_to_real32(tnv_t val, int *success)
 		case AMP_TYPE_INT:   result = (float) val.value.as_int;    break;
 		case AMP_TYPE_UINT:  result = (float) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:  result = (float) val.value.as_vast;   break;
+        case AMP_TYPE_TV:
+        case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST: result = (float) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32:result = (float) val.value.as_real32; break;
 		case AMP_TYPE_REAL64:result = (float) val.value.as_real64; break;
@@ -1238,6 +1244,8 @@ double  tnv_to_real64(tnv_t val, int *success)
 		case AMP_TYPE_INT:   result = (double) val.value.as_int;    break;
 		case AMP_TYPE_UINT:  result = (double) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:  result = (double) val.value.as_vast;   break;
+        case AMP_TYPE_TV:
+        case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST: result = (double) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32:result = (double) val.value.as_real32; break;
 		case AMP_TYPE_REAL64:result = (double) val.value.as_real64; break;
@@ -1245,7 +1253,6 @@ double  tnv_to_real64(tnv_t val, int *success)
 	}
 	return result;
 }
-
 
 
 /******************************************************************************
@@ -1280,6 +1287,8 @@ uint32_t  tnv_to_uint(tnv_t val, int *success)
 		case AMP_TYPE_INT:    result = (uint32_t) val.value.as_int;    break;
 		case AMP_TYPE_UINT:   result = val.value.as_uint;              break;
 		case AMP_TYPE_VAST:   result = (uint32_t) val.value.as_vast;   break;
+        case AMP_TYPE_TV:
+        case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  result = (uint32_t) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32: result = (uint32_t) val.value.as_real32; break;
 		case AMP_TYPE_REAL64: result = (uint32_t) val.value.as_real64; break;
@@ -1323,6 +1332,8 @@ uvast  tnv_to_uvast(tnv_t val, int *success)
 		case AMP_TYPE_INT:    result = (uvast) val.value.as_int;    break;
 		case AMP_TYPE_UINT:   result = (uvast) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:   result = (uvast) val.value.as_vast;   break;
+		case AMP_TYPE_TV:
+		case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  result =  val.value.as_uvast;         break;
 		case AMP_TYPE_REAL32: result = (uvast) val.value.as_real32; break;
 		case AMP_TYPE_REAL64: result = (uvast) val.value.as_real64; break;
@@ -1365,6 +1376,8 @@ vast  tnv_to_vast(tnv_t val, int *success)
 		case AMP_TYPE_INT:    result = (vast) val.value.as_int;    break;
 		case AMP_TYPE_UINT:   result = (vast) val.value.as_uint;   break;
 		case AMP_TYPE_VAST:   result = val.value.as_vast;          break;
+        case AMP_TYPE_TV:
+        case AMP_TYPE_TS:
 		case AMP_TYPE_UVAST:  result = (vast) val.value.as_uvast;  break;
 		case AMP_TYPE_REAL32: result = (vast) val.value.as_real32; break;
 		case AMP_TYPE_REAL64: result = (vast) val.value.as_real64; break;
@@ -2059,8 +2072,9 @@ blob_t tnvc_get_types(tnvc_t *tnvc, int *success)
 	blob_init(&types, NULL, 0, length);
 	for(i = 0; i < length; i++)
 	{
-		amp_type_e cur_type = tnvc_get_type(tnvc, i);
-		blob_append(&types, (uint8_t*)&cur_type, 1);
+		// Force as single-byte value for serializing
+		uint8_t cur_type = (uint8_t)tnvc_get_type(tnvc, i);
+		blob_append(&types, &cur_type, 1);
 	}
 
 	*success = AMP_OK;

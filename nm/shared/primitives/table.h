@@ -33,13 +33,22 @@
 #include "../utils/db.h"
 #include "ari.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
  * +--------------------------------------------------------------------------+
  */
 
-#define TBL_DEFAULT_ENC_SIZE  1024
+#define TBL_DEFAULT_ENC_SIZE_SMALL  1024
+#define TBL_DEFAULT_ENC_SIZE_LARGE  10240
+#define TBL_DEFAULT_ENC_SIZE_HUGE   102400
+
 #define TBLT_DEFAULT_ENC_SIZE 1024
 
 /*
@@ -143,4 +152,8 @@ void      tblt_col_cb_del_fn(void *item);
 void*     tblt_col_cb_copy_fn(void *item);
 
 
-#endif // TABLE_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _TABLE_H_ */

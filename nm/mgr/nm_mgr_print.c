@@ -119,7 +119,7 @@ static int ui_print_agents_cb_parse(int idx, int keypress, void* data, char* sta
    agent_t *agent = (agent_t*)data;
    char *subtitle = "";
    char *tmp;
-   
+  
    switch(keypress)
    {
    case 'e':
@@ -289,6 +289,12 @@ cJSON* ui_json_table(tbl_t *tbl)
    CHKNULL(tblt);
 
    out_tbl = cJSON_CreateObject();
+
+   /* Add the table name to the JSON table */
+   char *tbl_name = ui_str_from_ari(tbl->id, NULL, 0);
+   cJSON_AddStringToObject(out_tbl, "table name", (tbl_name == NULL) ? "Unknown" : tbl_name);
+   SRELEASE(tbl_name);
+      
    cJSON *cols = cJSON_AddArrayToObject(out_tbl, "cols");
    cJSON *rows = cJSON_AddArrayToObject(out_tbl, "rows");
 
@@ -333,7 +339,15 @@ cJSON* ui_json_table(tbl_t *tbl)
 
 void ui_fprint_json_table(ui_print_cfg_t *fd, tbl_t *table)
 {
-   cJSON *json = ui_json_table(table);
+
+  /* Step 1: Print the table name */
+  char *tbl_name = ui_str_from_ari(table->id, NULL, 0);
+  ui_fprintf(fd, "\nTable Name: %s \n", (tbl_name == NULL) ? "Unknown" : tbl_name);
+  SRELEASE(tbl_name);
+
+  /* Step 2: Print table contents */
+
+  cJSON *json = ui_json_table(table);
    if (json == NULL)
    {
       return;
@@ -351,7 +365,14 @@ void ui_fprint_json_table(ui_print_cfg_t *fd, tbl_t *table)
 
 void ui_fprint_table(ui_print_cfg_t *fd, tbl_t *tbl)
 {
-   char *tmp = ui_str_from_tbl(tbl);
+
+  /* Step 1: Print the table name */
+  char *tbl_name = ui_str_from_ari(tbl->id, NULL, 0);
+  ui_fprintf(fd, "\nTable Name: %s \n", (tbl_name == NULL) ? "Unknown" : tbl_name);
+  SRELEASE(tbl_name);
+
+  /* Step 2: Print table contents */
+  char *tmp = ui_str_from_tbl(tbl);
    if (tmp != NULL) {
       ui_fprintf(fd,"%s\n", tmp);
       SRELEASE(tmp);
@@ -656,6 +677,7 @@ cJSON* ui_json_report(rpt_t *rpt)
 	/* Step 3: Add report to object */
     return rtv;
 }
+
 void ui_fprint_json_report(ui_print_cfg_t *fd, rpt_t *rpt)
 {
    cJSON *json = ui_json_report(rpt);
@@ -1050,7 +1072,7 @@ char *ui_str_from_sbr(rule_t *sbr)
 
 char *ui_str_from_tbl(tbl_t *tbl)
 {
-	char *result = STAKE(4096); // todo dynamically size this.
+	char *result = STAKE(8192); // todo dynamically size this.
 	char fmt[100];
 	vecit_t it;
 	int i, j;
@@ -1067,9 +1089,10 @@ char *ui_str_from_tbl(tbl_t *tbl)
 		SRELEASE(result);
 		return NULL;
 	}
+
 	strcat(result, tmp);
 	SRELEASE(tmp);
-
+	
 	num_rows = tbl_num_rows(tbl);
 
 	strcat(result, "----------------------------------------------------------------------\n");
@@ -1078,10 +1101,10 @@ char *ui_str_from_tbl(tbl_t *tbl)
 	for(i = 0; i < num_rows; i++)
 	{
 		cur_row = tbl_get_row(tbl, i);
-
+		
 		for(j = 0; j < tnvc_get_count(cur_row); j++)
 		{
-			tnv_t *val = tnvc_get(cur_row, j);
+		  tnv_t *val = tnvc_get(cur_row, j);
 			if(j == 0)
 			{
 				strcat(result, "|");
@@ -1113,7 +1136,7 @@ void ui_json_from_tbl(cJSON *obj, tbl_t *tbl)
 	char *tmp = NULL;
 
 	CHKVOID(obj);
-    CHKVOID(tbl);
+	CHKVOID(tbl);
 
 	/* Print table headers, if we have a table template. */
 	if((tmp = ui_str_from_tblt(tblt)) == NULL)

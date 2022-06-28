@@ -30,6 +30,10 @@
 
 #include "../shared/primitives/report.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LDC_MAX_NESTING (5)
 
 
@@ -44,5 +48,9 @@ tnv_t *ldc_collect_var(ari_t *id, tnvc_t *parms);
 int    ldc_fill_rpt(rpttpl_t *rpttpl, rpt_t *rpt);
 
 
-#endif // _LDC_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _LDC_H_ */
 

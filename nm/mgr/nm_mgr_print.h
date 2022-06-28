@@ -39,6 +39,10 @@
 #include "nm_mgr.h"
 #include "metadata.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef USE_JSON
 #include "cJSON.h"
 #endif
@@ -74,6 +78,7 @@ void  ui_print_report_set(agent_t* agent);
 
 #ifdef USE_JSON
 cJSON* ui_json_report(rpt_t *rpt);
+cJSON* ui_json_table(tbl_t *tbl);
 void ui_fprint_json_report(ui_print_cfg_t *fd, rpt_t *rpt);
 void ui_fprint_json_table(ui_print_cfg_t *fd, tbl_t *rpt);
 #endif
@@ -103,4 +108,8 @@ char* ui_str_from_tnvc(tnvc_t *tnvc);
 char* ui_str_from_var(var_t *var);
 
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif  /* _NM_MGR_PRINT_H_ */

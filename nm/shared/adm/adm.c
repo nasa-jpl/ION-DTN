@@ -365,6 +365,8 @@ int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 
 	if((def = op_create(id, num_parm, apply_fn)) == NULL)
 	{
+		AMP_DEBUG_ERR("adm_add_op_ari","Cannot create op.", NULL);
+
 		ari_release(id, 1);
 		return AMP_FAIL;
 	}
@@ -377,6 +379,8 @@ int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 	}
 	if(rh_code != RH_OK)
 	{
+		AMP_DEBUG_ERR("adm_add_op_ari","Cannot create op.", NULL);
+
 		op_release(def, 1);
 	}
 
@@ -385,6 +389,7 @@ int adm_add_op_ari(ari_t *id, uint8_t num_parm, op_fn apply_fn)
 
 int adm_add_op(vec_idx_t nn, uvast name, uint8_t num_parm, op_fn apply_fn)
 {
+	// The OPER ARI itself has no parameters, but the operator consumes stack items
 	return adm_add_op_ari(adm_build_ari(AMP_TYPE_OPER, 1, nn, name),num_parm, apply_fn);
 }
 
@@ -471,6 +476,7 @@ int	adm_add_var_from_expr(ari_t *id, amp_type_e type, expr_t *expr)
 
 	if((id == NULL) || (expr == NULL))
 	{
+		AMP_DEBUG_ERR("adm_add_var_from_expr","Bad args.", NULL);
 		return AMP_FAIL;
 	}
 

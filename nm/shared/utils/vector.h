@@ -17,6 +17,12 @@
 #include "platform.h"
 #include "../primitives/blob.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #define VEC_MAX_IDX 100
 #define VEC_HALF_IDX 50
 #define VEC_DEFAULT_NUM 4
@@ -135,5 +141,8 @@ int vec_uvast_find_idx(vector_t *vec, uvast value, vec_idx_t *idx);
 
 
 
+#ifdef __cplusplus
+}
+#endif
 
-#endif /* NM_SHARED_PRIMITIVES_VECTOR_H_ */
+#endif  /* _VECTOR_H_ */

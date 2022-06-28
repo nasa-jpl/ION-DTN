@@ -32,6 +32,12 @@
 #include "bp.h"
 #include "msg.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -78,4 +84,9 @@ int     iif_register_node(iif_t *iif, eid_t eid);
 int     iif_send_grp(iif_t *iif, msg_grp_t *group, char *recipient);
 int     iif_send_msg(iif_t *iif, int msg_type, void *msg, char *recipient);
 
-#endif /* ION_IF_H_ */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _ION_IF_H_ */

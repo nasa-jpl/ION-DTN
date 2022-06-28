@@ -51,6 +51,9 @@
 #include "../shared/msg/msg.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef HAVE_MYSQL
 #include "nm_mgr_sql.h"
@@ -95,4 +98,8 @@ void*    mgr_rx_thread(int *running);
 
 
 
-#endif // NM_MGR_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _NM_MGR_H_ */

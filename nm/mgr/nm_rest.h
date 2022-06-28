@@ -1,6 +1,10 @@
 #ifndef __NM_REST_H__
 #define __NM_REST_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // TODO: Allow these to be configurable
 #ifdef NO_SSL
 #define PORT "8089"
@@ -24,5 +28,8 @@ void nm_rest_stop();
 #define HTTP_NOT_IMPLEMENTED     501
 #define HTTP_NO_SERVICE          503
 
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif  /* _NM_REST_H_ */

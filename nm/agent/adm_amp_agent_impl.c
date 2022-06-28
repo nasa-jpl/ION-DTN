@@ -486,78 +486,78 @@ tnv_t *adm_agent_binary_log_op(amp_agent_op_e op, vector_t *stack)
 	case AMP_TYPE_INT:
 		switch(op)
 		{
-		case LOGAND: result->value.as_uint = tnv_to_int(*lval, &ls) && tnv_to_int(*rval, &rs); break;
-		case LOGOR:  result->value.as_uint = tnv_to_int(*lval, &ls) || tnv_to_int(*rval, &rs); break;
-		case LT:     result->value.as_uint = tnv_to_int(*lval, &ls) < tnv_to_int(*rval, &rs); break;
-		case GT:     result->value.as_uint = tnv_to_int(*lval, &ls) > tnv_to_int(*rval, &rs); break;
-		case LTE:    result->value.as_uint = tnv_to_int(*lval, &ls) <= tnv_to_int(*rval, &rs); break;
-		case GTE:    result->value.as_uint = tnv_to_int(*lval, &ls) >= tnv_to_int(*rval, &rs); break;
-		case EQ:     result->value.as_uint = tnv_to_int(*lval, &ls) == tnv_to_int(*rval, &rs); break;
+		case LOGAND: result->value.as_byte = tnv_to_int(*lval, &ls) && tnv_to_int(*rval, &rs); break;
+		case LOGOR:  result->value.as_byte = tnv_to_int(*lval, &ls) || tnv_to_int(*rval, &rs); break;
+		case LT:     result->value.as_byte = tnv_to_int(*lval, &ls) < tnv_to_int(*rval, &rs); break;
+		case GT:     result->value.as_byte = tnv_to_int(*lval, &ls) > tnv_to_int(*rval, &rs); break;
+		case LTE:    result->value.as_byte = tnv_to_int(*lval, &ls) <= tnv_to_int(*rval, &rs); break;
+		case GTE:    result->value.as_byte = tnv_to_int(*lval, &ls) >= tnv_to_int(*rval, &rs); break;
+		case EQ:     result->value.as_byte = tnv_to_int(*lval, &ls) == tnv_to_int(*rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
 		break;
 	case AMP_TYPE_UINT:
 		switch(op)
 		{
-		case LOGAND: result->value.as_uint = tnv_to_uint(*lval, &ls) && tnv_to_uint(*rval, &rs); break;
-		case LOGOR:  result->value.as_uint = tnv_to_uint(*lval, &ls) || tnv_to_uint(*rval, &rs); break;
-		case LT:     result->value.as_uint = tnv_to_uint(*lval, &ls) < tnv_to_uint(*rval, &rs); break;
-		case GT:     result->value.as_uint = tnv_to_uint(*lval, &ls) > tnv_to_uint(*rval, &rs); break;
-		case LTE:    result->value.as_uint = tnv_to_uint(*lval, &ls) <= tnv_to_uint(*rval, &rs); break;
-		case GTE:    result->value.as_uint = tnv_to_uint(*lval, &ls) >= tnv_to_uint(*rval, &rs); break;
-		case EQ:     result->value.as_uint = tnv_to_uint(*lval, &ls) == tnv_to_uint(*rval, &rs); break;
+		case LOGAND: result->value.as_byte = tnv_to_uint(*lval, &ls) && tnv_to_uint(*rval, &rs); break;
+		case LOGOR:  result->value.as_byte = tnv_to_uint(*lval, &ls) || tnv_to_uint(*rval, &rs); break;
+		case LT:     result->value.as_byte = tnv_to_uint(*lval, &ls) < tnv_to_uint(*rval, &rs); break;
+		case GT:     result->value.as_byte = tnv_to_uint(*lval, &ls) > tnv_to_uint(*rval, &rs); break;
+		case LTE:    result->value.as_byte = tnv_to_uint(*lval, &ls) <= tnv_to_uint(*rval, &rs); break;
+		case GTE:    result->value.as_byte = tnv_to_uint(*lval, &ls) >= tnv_to_uint(*rval, &rs); break;
+		case EQ:     result->value.as_byte = tnv_to_uint(*lval, &ls) == tnv_to_uint(*rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
 		break;
 	case AMP_TYPE_VAST:
 		switch(op)
 		{
-		case LOGAND: result->value.as_uint = tnv_to_vast(*lval, &ls) && tnv_to_vast(*rval, &rs); break;
-		case LOGOR:  result->value.as_uint = tnv_to_vast(*lval, &ls) || tnv_to_vast(*rval, &rs); break;
-		case LT:     result->value.as_uint = tnv_to_vast(*lval, &ls) < tnv_to_vast(*rval, &rs); break;
-		case GT:     result->value.as_uint = tnv_to_vast(*lval, &ls) > tnv_to_vast(*rval, &rs); break;
-		case LTE:    result->value.as_uint = tnv_to_vast(*lval, &ls) <= tnv_to_vast(*rval, &rs); break;
-		case GTE:    result->value.as_uint = tnv_to_vast(*lval, &ls) >= tnv_to_vast(*rval, &rs); break;
-		case EQ:     result->value.as_uint = tnv_to_vast(*lval, &ls) == tnv_to_vast(*rval, &rs); break;
+		case LOGAND: result->value.as_byte = tnv_to_vast(*lval, &ls) && tnv_to_vast(*rval, &rs); break;
+		case LOGOR:  result->value.as_byte = tnv_to_vast(*lval, &ls) || tnv_to_vast(*rval, &rs); break;
+		case LT:     result->value.as_byte = tnv_to_vast(*lval, &ls) < tnv_to_vast(*rval, &rs); break;
+		case GT:     result->value.as_byte = tnv_to_vast(*lval, &ls) > tnv_to_vast(*rval, &rs); break;
+		case LTE:    result->value.as_byte = tnv_to_vast(*lval, &ls) <= tnv_to_vast(*rval, &rs); break;
+		case GTE:    result->value.as_byte = tnv_to_vast(*lval, &ls) >= tnv_to_vast(*rval, &rs); break;
+		case EQ:     result->value.as_byte = tnv_to_vast(*lval, &ls) == tnv_to_vast(*rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
 		break;
 	case AMP_TYPE_UVAST:
 		switch(op)
 		{
-		case LOGAND: result->value.as_uint = tnv_to_uvast(*lval, &ls) && tnv_to_uvast(*rval, &rs); break;
-		case LOGOR:  result->value.as_uint = tnv_to_uvast(*lval, &ls) || tnv_to_uvast(*rval, &rs); break;
-		case LT:     result->value.as_uint = tnv_to_uvast(*lval, &ls) < tnv_to_uvast(*rval, &rs); break;
-		case GT:     result->value.as_uint = tnv_to_uvast(*lval, &ls) > tnv_to_uvast(*rval, &rs); break;
-		case LTE:    result->value.as_uint = tnv_to_uvast(*lval, &ls) <= tnv_to_uvast(*rval, &rs); break;
-		case GTE:    result->value.as_uint = tnv_to_uvast(*lval, &ls) >= tnv_to_uvast(*rval, &rs); break;
-		case EQ:     result->value.as_uint = tnv_to_uvast(*lval, &ls) == tnv_to_uvast(*rval, &rs); break;
+		case LOGAND: result->value.as_byte = tnv_to_uvast(*lval, &ls) && tnv_to_uvast(*rval, &rs); break;
+		case LOGOR:  result->value.as_byte = tnv_to_uvast(*lval, &ls) || tnv_to_uvast(*rval, &rs); break;
+		case LT:     result->value.as_byte = tnv_to_uvast(*lval, &ls) < tnv_to_uvast(*rval, &rs); break;
+		case GT:     result->value.as_byte = tnv_to_uvast(*lval, &ls) > tnv_to_uvast(*rval, &rs); break;
+		case LTE:    result->value.as_byte = tnv_to_uvast(*lval, &ls) <= tnv_to_uvast(*rval, &rs); break;
+		case GTE:    result->value.as_byte = tnv_to_uvast(*lval, &ls) >= tnv_to_uvast(*rval, &rs); break;
+		case EQ:     result->value.as_byte = tnv_to_uvast(*lval, &ls) == tnv_to_uvast(*rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
 		break;
 	case AMP_TYPE_REAL32:
 		switch(op)
 		{
-		case LOGAND: result->value.as_uint = tnv_to_real32(*lval, &ls) && tnv_to_real32(*rval, &rs); break;
-		case LOGOR:  result->value.as_uint = tnv_to_real32(*lval, &ls) || tnv_to_real32(*rval, &rs); break;
-		case LT:     result->value.as_uint = tnv_to_real32(*lval, &ls) < tnv_to_real32(*rval, &rs); break;
-		case GT:     result->value.as_uint = tnv_to_real32(*lval, &ls) > tnv_to_real32(*rval, &rs); break;
-		case LTE:    result->value.as_uint = tnv_to_real32(*lval, &ls) <= tnv_to_real32(*rval, &rs); break;
-		case GTE:    result->value.as_uint = tnv_to_real32(*lval, &ls) >= tnv_to_real32(*rval, &rs); break;
-		case EQ:     result->value.as_uint = tnv_to_real32(*lval, &ls) == tnv_to_real32(*rval, &rs); break;
+		case LOGAND: result->value.as_byte = tnv_to_real32(*lval, &ls) && tnv_to_real32(*rval, &rs); break;
+		case LOGOR:  result->value.as_byte = tnv_to_real32(*lval, &ls) || tnv_to_real32(*rval, &rs); break;
+		case LT:     result->value.as_byte = tnv_to_real32(*lval, &ls) < tnv_to_real32(*rval, &rs); break;
+		case GT:     result->value.as_byte = tnv_to_real32(*lval, &ls) > tnv_to_real32(*rval, &rs); break;
+		case LTE:    result->value.as_byte = tnv_to_real32(*lval, &ls) <= tnv_to_real32(*rval, &rs); break;
+		case GTE:    result->value.as_byte = tnv_to_real32(*lval, &ls) >= tnv_to_real32(*rval, &rs); break;
+		case EQ:     result->value.as_byte = tnv_to_real32(*lval, &ls) == tnv_to_real32(*rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
 		break;
 	case AMP_TYPE_REAL64:
 		switch(op)
 		{
-		case LOGAND: result->value.as_uint = tnv_to_real64(*lval, &ls) && tnv_to_real64(*rval, &rs); break;
-		case LOGOR:  result->value.as_uint = tnv_to_real64(*lval, &ls) || tnv_to_real64(*rval, &rs); break;
-		case LT:     result->value.as_uint = tnv_to_real64(*lval, &ls) < tnv_to_real64(*rval, &rs); break;
-		case GT:     result->value.as_uint = tnv_to_real64(*lval, &ls) > tnv_to_real64(*rval, &rs); break;
-		case LTE:    result->value.as_uint = tnv_to_real64(*lval, &ls) <= tnv_to_real64(*rval, &rs); break;
-		case GTE:    result->value.as_uint = tnv_to_real64(*lval, &ls) >= tnv_to_real64(*rval, &rs); break;
-		case EQ:     result->value.as_uint = tnv_to_real64(*lval, &ls) == tnv_to_real64(*rval, &rs); break;
+		case LOGAND: result->value.as_byte = tnv_to_real64(*lval, &ls) && tnv_to_real64(*rval, &rs); break;
+		case LOGOR:  result->value.as_byte = tnv_to_real64(*lval, &ls) || tnv_to_real64(*rval, &rs); break;
+		case LT:     result->value.as_byte = tnv_to_real64(*lval, &ls) < tnv_to_real64(*rval, &rs); break;
+		case GT:     result->value.as_byte = tnv_to_real64(*lval, &ls) > tnv_to_real64(*rval, &rs); break;
+		case LTE:    result->value.as_byte = tnv_to_real64(*lval, &ls) <= tnv_to_real64(*rval, &rs); break;
+		case GTE:    result->value.as_byte = tnv_to_real64(*lval, &ls) >= tnv_to_real64(*rval, &rs); break;
+		case EQ:     result->value.as_byte = tnv_to_real64(*lval, &ls) == tnv_to_real64(*rval, &rs); break;
 		default: ls = rs = 0; break;
 		}
 		break;
@@ -1561,7 +1561,7 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	{
 		tnv_t *cur_mgr = (tnv_t*)vecit_data(mgr_it);
 		eid_t mgr_eid;
-		msg_rpt_t* msg_rpt;
+		msg_tbl_t* msg_tbl = NULL;
 
 		if((cur_mgr == NULL) || (cur_mgr->type != AMP_TYPE_STR))
 		{
@@ -1570,32 +1570,30 @@ tnv_t *amp_agent_ctrl_gen_tbls(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 		}
 
 		strncpy(mgr_eid.name, cur_mgr->value.as_ptr, AMP_MAX_EID_LEN-1);
-		msg_rpt = rda_get_msg_rpt(mgr_eid);
 
-		/* For each report being sent. */
+		msg_tbl = rda_get_msg_tbl(mgr_eid);
+
+		/* For each table being sent. */
 		for(ac_it = vecit_first(&(ids->values)); vecit_valid(ac_it); ac_it = vecit_next(ac_it))
 		{
 			ari_t *cur_id = vecit_data(ac_it);
 			tblt_t *def = VDB_FINDKEY_TBLT(cur_id);
-			rpt_t *rpt = NULL;
 			tbl_t *tbl = NULL;
 			tnv_t *val = NULL;
 
 			if( (def == NULL) ||
-				((rpt = rpt_create(ari_copy_ptr(cur_id), getCtime(), NULL)) == NULL) ||
 				((tbl = def->build(cur_id)) == NULL) ||
-				((val = tnv_from_obj(AMP_TYPE_TBL, tbl)) == NULL) ||
-				(rpt_add_entry(rpt, val) != AMP_OK))
+				((val = tnv_from_obj(AMP_TYPE_TBL, tbl)) == NULL))
 			{
-				rpt_release(rpt, 1);
 				tbl_release(tbl, 1);
 
 				AMP_DEBUG_ERR("GEN_TBLT","Cannot build table.", NULL);
 				continue;
 			}
 
-			msg_rpt_add_rpt(msg_rpt, rpt);
+			msg_tbl_add_tbl(msg_tbl, tbl);
 		}
+
 	}
 
 	*status = CTRL_SUCCESS;

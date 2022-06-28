@@ -33,6 +33,11 @@
 #include "tnv.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -142,4 +147,8 @@ op_t*     op_create(ari_t *ari, uint8_t num, op_fn apply);
 void      op_release(op_t *op, int destroy);
 
 
-#endif /* EXPR_H_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _EXPR_H_ */

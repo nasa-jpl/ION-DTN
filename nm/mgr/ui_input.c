@@ -216,7 +216,7 @@ uint8_t  ui_input_byte(char *prompt)
 	uint8_t result = 0;
 	char line[3];
 	memset(line,0,3);
-	ui_input_get_line(prompt, (char**)&line, 2);
+	ui_input_get_line(prompt, (char**)&line, 3);
 
 	blob_t *blob = utils_string_to_hex(line);
 	if(blob == NULL)
@@ -224,6 +224,7 @@ uint8_t  ui_input_byte(char *prompt)
 		AMP_DEBUG_ERR("ui_input_byte","Problem reading value. Returning 0.", NULL);
 		return 0;
 	}
+
 	if(blob->length > 1)
 	{
 		ui_printf("Read %d bytes. Only selecting first.", blob->length);

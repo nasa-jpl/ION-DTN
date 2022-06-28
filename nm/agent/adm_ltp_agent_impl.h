@@ -29,6 +29,12 @@
 #include "shared/primitives/table.h"
 #include "shared/primitives/tnv.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*   START typeENUM */
 /*   STOP typeENUM  */
 
@@ -111,4 +117,9 @@ tnv_t *dtn_ltp_agent_ctrl_reset(eid_t *def_mgr, tnvc_t *parms, int8_t *status);
 /* Table Build Functions */
 tbl_t *dtn_ltp_agent_tblt_engines(ari_t *id);
 
-#endif //ADM_LTP_AGENT_IMPL_H_
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _ADM_LTP_AGENT_IMPL_H_ */

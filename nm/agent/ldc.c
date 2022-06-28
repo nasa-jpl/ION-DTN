@@ -149,6 +149,7 @@ tnv_t *ldc_collect_var(ari_t *id, tnvc_t *parms)
 	var = VDB_FINDKEY_VAR(id);
 	if(var == NULL)
 	{
+		AMP_DEBUG_ERR("ldc_collect_var","Can't find ARI.", NULL);
 		return NULL;
 	}
 
