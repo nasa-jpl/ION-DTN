@@ -302,6 +302,24 @@ static PsmPartition	_sdrwm(sm_WmParms *parms)
 
 	if (parms)
 	{
+		if (parms->wmKey == -11111 )
+		{
+			sdrwm = NULL;   /* reset database state */
+			return sdrwm;
+		}
+
+		if (sdrwm == NULL)  /* re-initialize all static */
+		{
+			sdrwmId = 0;
+			memmgrIdx = -1; /*	For local lists only.	*/
+			sdrwmIsPrivate = 0;
+			sdrmtake = allocFromSdrMemory;
+			sdrmrlse = releaseToSdrMemory;
+			sdrmatop = sdrMemAtoP;
+			sdrmptoa = sdrMemPtoA;
+			sch = (SdrControlHeader *) NULL;
+		}
+
 		if (parms->wmName == NULL)	/*	Shutdown.	*/
 		{
 			if (sdrwm)
@@ -1717,6 +1735,15 @@ void	sdr_stop_using(Sdr sdrv)
 
 	memset((char *) sdrv, 0, sizeof(SdrView));
 	psm_free(sdrwm, psa(sdrwm, sdrv));
+
+	/*  Detach from SDR Working Memory */
+	sm_ShmDetach(sdrwm->space);
+
+	/*  Reset sdrwm database */
+	sm_WmParms reset;
+	reset.wmKey = -11111; 	/* use key value of -11111 to reset database */
+	oK(_sdrwm(&reset));
+
 }
 
 void	sdr_abort(Sdr sdrv)

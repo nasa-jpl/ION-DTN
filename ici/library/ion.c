@@ -142,6 +142,22 @@ static PsmPartition	_ionwm(sm_WmParms *parms)
 
 	if (parms)
 	{
+		if (parms->wmKey == -11111)
+		{
+			ionwm = NULL;	/*	reset database state */
+			return ionwm;
+		}
+
+		if (ionwm == NULL)  /*	re-initialize all static */
+		{
+			ionSmId = 0;
+			memmgrIdx = -1;
+			wmtake = allocFromIonMemory;
+			wmrelease = releaseToIonMemory;
+			wmatop = ionMemAtoP;
+			wmptoa = ionMemPtoA;
+		}
+
 		if (parms->wmName == NULL)	/*	Destroy.	*/
 		{
 			if (ionwm)
@@ -1060,9 +1076,36 @@ void	ionDetach()
 
 	if (ionsdr)
 	{
+		/* sdr_stop_using(): detach from sdr & cleans up	*
+		 * sdr in file, sh mem, log file, log in sh 		*
+		 * mem, and detach from working memory      		*/
 		sdr_stop_using(ionsdr);
-		ionsdr = NULL;		/*	To reset to NULL.	*/
+		ionsdr = NULL;		/*	Reset ionsdr database to NULL.	*/
 		oK(_ionsdr(&ionsdr));
+
+		/* 	Now detach from ION working memory */
+		PsmPartition	ionwm = _ionwm(NULL);
+		sm_ShmDetach(ionwm->space);
+
+		/* 	Now reset the ION working memory database */
+		sm_WmParms reset;
+		reset.wmKey = -11111;
+		oK(_ionwm(&reset));
+
+		/* 	reset ION database object 	*/
+		Object	obj = 0;
+		oK(_iondbObject(&obj));
+
+		/* reset ION volatile database */
+		char	*ionvdbName = NULL;
+		oK(_ionvdb(&ionvdbName));
+
+		/*	unregister call back 	*/
+		zco_unregister_callback();
+
+		/* 	reset and detach from ipc semaphore set */
+		sm_ipc_detach();
+
 	}
 #ifdef mingw
 	oK(_winsock(1));
@@ -1132,6 +1175,9 @@ void	ionTerminate()
 	}
 
 	oK(_iondbObject(&obj));
+
+	/* 	Now will destroy ionwm. This   		*
+	 *	is different from resetting static.	*/
 	ionwmParms.wmKey = 0;
 	ionwmParms.wmSize = 0;
 	ionwmParms.wmAddress = NULL;

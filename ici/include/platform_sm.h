@@ -70,6 +70,7 @@ extern int		pthread_begin_named(pthread_t *thread,
 /*      IPC services access control */
 extern int		sm_ipc_init();
 extern void		sm_ipc_stop();
+extern void		sm_ipc_detach();
 extern int		sm_GetUniqueKey();
 
 /*	Portable semaphore management routines.				*/
