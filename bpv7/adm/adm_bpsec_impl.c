@@ -25,7 +25,7 @@
 #include "shared/primitives/table.h"
 
 #include "adm_bpsec.h"
-#include "profiles.h"
+// TODO EJB#include "profiles.h"
 /*   STOP CUSTOM INCLUDES HERE  */
 
 
@@ -223,7 +223,7 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 	 * |START CUSTOM FUNCTION tblt_bib_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-
+/* TODO EJB
 	Sdr sdr = getIonsdr();
 	Object listObj = 0;
 	Object	elt = 0;
@@ -279,7 +279,7 @@ tbl_t *dtn_bpsec_tblt_bib_rules(ari_t *id)
 	}
 
 	sdr_exit_xn(sdr);
-
+*/
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION tblt_bib_rules BODY
@@ -305,7 +305,7 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 	 * |START CUSTOM FUNCTION tblt_bcb_rules BODY
 	 * +-------------------------------------------------------------------------+
 	 */
-
+/* TODO EJB
 	Sdr sdr = getIonsdr();
 	Object listObj = 0;
 	Object	elt = 0;
@@ -360,6 +360,7 @@ tbl_t *dtn_bpsec_tblt_bcb_rules(ari_t *id)
 	}
 
 	sdr_exit_xn(sdr);
+*/
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1709,18 +1710,20 @@ tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_delete_key BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	/* TODO EJB
 	char *name = NULL;
 	int success = 0;
-	/* Step 1: Grab the name of the key to delete. */
+	/ * Step 1: Grab the name of the key to delete. * /
 	if((name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR)) == NULL)
 	{
 		return NULL;
 	}
 
-	/*
+	/ *
 	 * Step 2: Make sure key to be deleted is not an active key. Deleting
 	 * an active key can lock someone out of the system
-	 */
+	 * /
 	if(sec_activeKey(name) != 0)
 	{
 		AMP_DEBUG_WARN("adm_bpsec_ctrl_delete_key","Can't remove active key %s", name);
@@ -1731,6 +1734,7 @@ tnv_t *dtn_bpsec_ctrl_delete_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	{
 		*status = CTRL_SUCCESS;
 	}
+	*/
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_delete_key BODY
@@ -1752,16 +1756,17 @@ tnv_t *dtn_bpsec_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	 * |START CUSTOM FUNCTION ctrl_add_key BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	/* TODO EJB
 	char *name = NULL;
 	blob_t *value = NULL;
 	int success = 0;
-	/* Step 1: Grab the name of the new key. */
+	/ * Step 1: Grab the name of the new key. * /
 	if((name = adm_get_parm_obj(parms, 0, AMP_TYPE_STR)) == NULL)
 	{
 		return NULL;
 	}
 
-	/* Step 2: Grab the key value. */
+	/ * Step 2: Grab the key value. * /
 	if((value = adm_get_parm_obj(parms, 1, AMP_TYPE_STR)) == NULL)
 	{
 		return NULL;
@@ -1771,6 +1776,7 @@ tnv_t *dtn_bpsec_ctrl_add_key(eid_t *def_mgr, tnvc_t *parms, int8_t *status)
 	{
 		*status = CTRL_SUCCESS;
 	}
+*/
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1796,13 +1802,14 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	 * |START CUSTOM FUNCTION ctrl_add_bib_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	/* TODO EJB
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
 	char *cs = NULL;
 	char *key = NULL;
 	int success = 0;
-	/* Step 1: Grab the name of the new key. */
+	/ * Step 1: Grab the name of the new key. * /
 	src = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	dst = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 	tgt = adm_get_parm_uint(parms, 2, &success);
@@ -1814,11 +1821,11 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 		Object addr;
 		Object elt;
 
-		/* Step 3: Check to see if key exists. */
+		/ * Step 3: Check to see if key exists. * /
 		sec_findKey(key, &addr, &elt);
 		if(elt != 0)
 		{
-			/* Step 4: Update the BCB Rule. */
+			/ * Step 4: Update the BCB Rule. * /
 			if(sec_addBPsecBibRule(src, dst, tgt, cs, key) == 1)
 			{
 				*status = CTRL_SUCCESS;
@@ -1837,7 +1844,7 @@ tnv_t *dtn_bpsec_ctrl_add_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	{
 		AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bib_rule", "CIphersuite %s not supported.", cs);
 	}
-
+*/
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_add_bib_rule BODY
@@ -1861,11 +1868,13 @@ tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	 * |START CUSTOM FUNCTION ctrl_del_bib_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	/* TODO EJB
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
 	int success = 0;
-	/* Step 1: Grab the name of the new key. */
+	/ * Step 1: Grab the name of the new key. * /
 	src = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	dst = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 	tgt = adm_get_parm_uint(parms, 2, &success);
@@ -1875,6 +1884,7 @@ tnv_t *dtn_bpsec_ctrl_del_bib_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	{
 		*status = CTRL_SUCCESS;
 	}
+*/
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1900,6 +1910,8 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	 * |START CUSTOM FUNCTION ctrl_add_bcb_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+
+	/* TODO EJB
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
@@ -1907,7 +1919,7 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	char *key = NULL;
 	int success = 0;
 
-	/* Step 1: Grab the name of the new key. */
+	/ * Step 1: Grab the name of the new key. * /
 	src = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	dst = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 	tgt = adm_get_parm_int(parms, 2, &success);
@@ -1920,11 +1932,11 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 		Object addr;
 		Object elt;
 
-		/* Step 3: Check to see if key exists. */
+		/ * Step 3: Check to see if key exists. * /
 		sec_findKey(key, &addr, &elt);
 		if(elt != 0)
 		{
-			/* Step 4: Update the BCB Rule. */
+			/ * Step 4: Update the BCB Rule. * /
 			if(sec_addBPsecBcbRule(src, dst, tgt, cs, key) == 1)
 			{
 				*status = CTRL_SUCCESS;
@@ -1943,6 +1955,7 @@ tnv_t *dtn_bpsec_ctrl_add_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	{
 		AMP_DEBUG_ERR("dtn_bpsec_ctrl_add_bcbrule", "Ciphersuite %s not supported.", cs);
 	}
+*/
 
 	/*
 	 * +-------------------------------------------------------------------------+
@@ -1967,12 +1980,13 @@ tnv_t *dtn_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	 * |START CUSTOM FUNCTION ctrl_del_bcb_rule BODY
 	 * +-------------------------------------------------------------------------+
 	 */
+	/* TODO EJB
 	char *src = NULL;
 	char *dst = NULL;
 	uint32_t tgt = 0;
 	int success = 0;
 
-	/* Step 1: Grab the name of the new key. */
+	/ * Step 1: Grab the name of the new key. * /
 	src = adm_get_parm_obj(parms, 0, AMP_TYPE_STR);
 	dst = adm_get_parm_obj(parms, 1, AMP_TYPE_STR);
 	tgt = adm_get_parm_int(parms, 2, &success);
@@ -1981,7 +1995,7 @@ tnv_t *dtn_bpsec_ctrl_del_bcb_rule(eid_t *def_mgr, tnvc_t *parms, int8_t *status
 	{
 		*status = CTRL_SUCCESS;
 	}
-
+*/
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION ctrl_del_bcb_rule BODY

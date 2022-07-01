@@ -15,7 +15,6 @@
  */
 
 #include "bpP.h"
-#include "bpsec.h"
 
 extern void	bpEndpointTally(VEndpoint *vpoint, unsigned int idx,
 			unsigned int size);

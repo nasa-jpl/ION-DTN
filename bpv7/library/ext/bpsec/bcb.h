@@ -5,6 +5,7 @@
  **
  ******************************************************************************/
 
+//TODO: Update description
 /*****************************************************************************
  **
  ** File Name: bcb.h
@@ -61,11 +62,12 @@
 #define BCB_H_
 
 #include "bpsec_util.h"
-#include "profiles.h"
+#include "bpsec_asb.h"
+#include "sci.h"
 #include "csi.h"
 
-#define BCB_FILENAME			"bcb_tmpfile"
-#define	MAX_TEMP_FILES_PER_SECOND	5
+
+// TODO: Consider removing these debug macros?
 
 // If bpsec debugging is turned on, then turn on bcb debugging.
 #if DEBUGGING == 1
@@ -115,7 +117,7 @@
  */
 
    #define BCB_DEBUG(level, format,...) if(level >= BCB_DEBUG_LVL) \
-{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); putErrmsg(gMsg, NULL);}
+{_isprintf(gMsg, GMSG_BUFLEN, format, __VA_ARGS__); writeMemo(gMsg);}
 
    #define BCB_DEBUG_PROC(format,...) \
            BCB_DEBUG(BCB_DEBUG_LVL_PROC,format, __VA_ARGS__)
@@ -128,6 +130,7 @@
 
    #define BCB_DEBUG_ERR(format,...) \
            BCB_DEBUG(BCB_DEBUG_LVL_ERR,format, __VA_ARGS__)
+
 #else
    #define BCB_DEBUG(level, format,...) if(level >= BCB_DEBUG_LVL) \
 {}
@@ -157,7 +160,7 @@
  * - bsrc: bundle source
  * - bdest: bundle destination
  * - svc: security service (bcb-confidentiality)
- * - tgt: target block number
+ * - tgt: target block type
  * - msec and count: bundle identifiers
  */
 
@@ -167,9 +170,16 @@
 #endif
 #if (BCB_TEST_LOGGING == 1)
 
-#define BCB_TEST_POINT(event, ...) \
+#define BCB_TEST_POINT(event, bundle, num) \
 {_isprintf(gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
-svc: bcb-confidentiality, tgt:%u, msec:%u, count: %u", event, __VA_ARGS__); \
+svc: bcb-confidentiality, tgt:%u, msec:%u, count: %u", event,\
+(bundle) ? bundle->id.source.ssp.ipn.nodeNbr      : 0, \
+(bundle) ? bundle->id.source.ssp.ipn.serviceNbr   : 0, \
+(bundle) ? bundle->destination.ssp.ipn.nodeNbr    : 0, \
+(bundle) ? bundle->destination.ssp.ipn.serviceNbr : 0, \
+num, \
+(bundle) ? bundle->id.creationTime.msec  : 0, \
+(bundle) ? bundle->id.creationTime.count : 0); \
 writeMemo(gMsg);}
 #endif
 
@@ -177,65 +187,6 @@ writeMemo(gMsg);}
  *                             FUNCTION DEFINITIONS                          *
  *****************************************************************************/
 
-extern int		bcbAcquire(AcqExtBlock *blk,
-						AcqWorkArea *wk);
-
-extern int		bcbRecord(ExtensionBlock *newBlk,
-						AcqExtBlock *oldBlk);
-
-extern void		bcbClear(AcqExtBlock *blk);
-
-extern int		bcbCopy(ExtensionBlock *newBlk,
-						ExtensionBlock *oldBlk);
-
-extern int		bcbReview(AcqWorkArea *wk);
-
-extern int		bcbDecrypt(AcqExtBlock *blk,
-						AcqWorkArea *wk);
-
-extern int		bcbDefaultConstruct(uint32_t suite,
-						ExtensionBlock *blk,
-						BpsecOutboundBlock *asb);
-
-extern int		bcbDefaultDecrypt(uint32_t suite,
-	       					AcqWorkArea *wk,
-						AcqExtBlock *blk,
-						BpsecInboundBlock *asb,
-						BpsecInboundTarget *target,
-						char *fromEid);
-
-extern int		bcbDefaultEncrypt(uint32_t suite,
-						Bundle *bundle,
-						ExtensionBlock *blk,
-						BpsecOutboundBlock *asb,
-						BpsecOutboundTarget *target,
-						size_t xmitRate,
-						uvast *length,
-						char *toEid);
-
-extern BcbProfile	*bcbGetProfile(char *secSrc,
-						char *secDest,
-						int secTgtType,
-						BPsecBcbRule *secBcbRule);
-
-extern  int		bcbHelper(Object *dataObj,
-						uint32_t chunkSize,
-						uint32_t suite,
-						sci_inbound_tlv key,
-						sci_inbound_parms parms,
-						uint8_t encryptInPlace,
-						size_t xmitRate,
-						uint8_t function);
-
-extern int		bcbOffer(ExtensionBlock *blk, Bundle *bundle);
-
-extern int		bcbProcessOnDequeue(ExtensionBlock *blk,
-						Bundle *bundle,
-						void *parm);
-
-extern void		bcbRelease(ExtensionBlock *blk);
-
-extern int		bcbSerialize(ExtensionBlock *blk, Bundle *bundle);
 
 extern int		bpsec_encrypt(Bundle *bundle);
 

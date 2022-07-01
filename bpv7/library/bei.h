@@ -197,7 +197,7 @@ void		destroyExtensionBlocks(Bundle *bundle);
  *            S. Burleigh		   Initial Implementation
  */
 extern Object	findExtensionBlock(Bundle *bundle, BpBlockType type, char tag);
-
+extern Object   getExtensionBlockObj(Bundle *bundle, unsigned char blockNum);
 extern Object	getExtensionBlock(Bundle *bundle, unsigned char nbr);
 
 extern int	patchExtensionBlocks(Bundle *bundle);
@@ -256,6 +256,9 @@ extern int	serializeExtBlk(ExtensionBlock *blk, char *blockData);
  *            S. Burleigh		   Initial Implementation
  */
 extern void	suppressExtensionBlock(ExtensionBlock *blk);
+
+
+
 
 /*	Functions that operate on inbound extension blocks		*/
 
