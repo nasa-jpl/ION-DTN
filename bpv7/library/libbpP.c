@@ -8168,21 +8168,47 @@ requests prohibited for anonymous bundle.");
 	{
 		if (itemsRemaining != 1)
 		{
-			writeMemo("[?] Primary block has wrong nbr of items.");
+			writeMemo("[?] Primary block has wrong # of items.");
 			return 0;
 		}
 
-		length = cursor - startOfBlock;
+		/*	CRC is encoded as a CBOR byte string.		*/
+ 
+ 		uvtemp = (uvast) -1;
+ 		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+ 				&unparsedBytes) < 1)
+ 		{
+ 			writeMemo("[?] Can't decode CRC.");
+ 			return 0;
+ 		}
 
-		/*	Must include CRC in block for CRC calculation.	*/
+		/*	Note, because the decoding destination is
+ 		 *	NULL, the cursor was advanced only to the
+ 		 *	end of the *size* of the CRC, not to the
+ 		 *	end of the CRC itself.  The unparsedBytes
+ 		 *	counter was reduced only by the length of
+ 		 *	the *size* of the CRC, not by the length
+ 		 *	of the CRC itself.  However, itemsRemaining
+ 		 *	is reduced by 1 at this time.			*/
 
+		crcLength = uvtemp;
 		if (crcType == X25CRC16)
 		{
-			crcLength = 3;	/*	CBOR 16-bit CRC		*/
+			if (crcLength != 2)
+ 			{
+ 				writeMemoNote("[?] Wrong CRC size for CRC16",
+ 						itoa(crcLength));
+ 				return 0;
+ 			}
 		}
 		else
 		{
-			crcLength = 5;	/*	CBOR 32-bit CRC		*/
+			if (crcLength != 4)
+ 			{
+ 				writeMemoNote("[?] Wrong CRC size for CRC32C",
+ 						itoa(crcLength));
+ 				return 0;
+ 			}
 		}
 
 		if (crcLength > unparsedBytes)
@@ -8190,7 +8216,11 @@ requests prohibited for anonymous bundle.");
 			writeMemo("[?] Primary block truncated.");
 			return 0;
 		}
-
+		
+		/*	Compute CRC over entire block including the
+ 		 *	CRC itself.					*/
+ 
+ 		length = cursor - startOfBlock;
 		crcComputed = computeBufferCrc(crcType, startOfBlock, 
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
@@ -8200,7 +8230,6 @@ requests prohibited for anonymous bundle.");
 		}
 
 		unparsedBytes -= crcLength;
-		itemsRemaining -= 1;
 	}
 
 	/*	Have got primary block; include its length in the
@@ -8445,21 +8474,47 @@ undefined block.");
 	{
 		if (itemsRemaining != 1)
 		{
-			writeMemo("[?] Extension block has too few items.");
+			writeMemo("[?] Extension block has wrong # of items.");
 			return 0;
 		}
 
-		length = cursor - startOfBlock;
+		/*	CRC is encoded as a CBOR byte string.		*/
 
-		/*	Must include CRC in block for CRC calculation.	*/
+		uvtemp = (uvast) -1;
+ 		if (cbor_decode_byte_string(NULL, &uvtemp, &cursor,
+ 				&unparsedBytes) < 1)
+ 		{
+ 			writeMemo("[?] Can't decode CRC.");
+ 			return 0;
+ 		}
 
+		/*	Note, because the decoding destination is
+ 		 *	NULL, the cursor was advanced only to the
+ 		 *	end of the *size* of the CRC, not to the
+ 		 *	end of the CRC itself.  The unparsedBytes
+ 		 *	counter was reduced only by the length of
+ 		 *	the *size* of the CRC, not by the length
+ 		 *	of the CRC itself.  However, itemsRemaining
+ 		 *	is reduced by 1 at this time.			*/
+ 
+ 		crcLength = uvtemp;
 		if (crcType == X25CRC16)
 		{
-			crcLength = 3;	/*	CBOR 16-bit CRC		*/
+			if (crcLength != 2)
+ 			{
+ 				writeMemoNote("[?] Wrong CRC size for CRC16",
+ 						itoa(crcLength));
+ 				return 0;
+ 			}
 		}
 		else
 		{
-			crcLength = 5;	/*	CBOR 32-bit CRC		*/
+			if (crcLength != 4)
+ 			{
+ 				writeMemoNote("[?] Wrong CRC size for CRC32C",
+ 						itoa(crcLength));
+ 				return 0;
+ 			}
 		}
 
 		if (crcLength > unparsedBytes)
@@ -8468,7 +8523,11 @@ undefined block.");
 			return 0;
 		}
 
-		crcComputed = computeBufferCrc(crcType, startOfBlock,
+		/*	Compute CRC over entire block including the
+ 		 *	CRC itself.					*/
+ 
+ 		length = cursor - startOfBlock;
+ 		crcComputed = computeBufferCrc(crcType, startOfBlock, 
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
@@ -8477,7 +8536,6 @@ undefined block.");
 		}
 
 		unparsedBytes -= crcLength;
-		itemsRemaining -= 1;
 	}
 
 	/*	Have got extension block; include its length in the
