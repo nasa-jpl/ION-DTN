@@ -7,7 +7,20 @@
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-									*/
+
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2022
+
+	Modifications address the following issues:
+
+	1.) Allow for full range of SANA node numbers 
+		See MAX_CONTIN_NBR directive in amscommon.h 
+
+		Modifications include switching arrays and for-loops
+		using the MAX_CONTIN_NBR to use ici's lyst
+
+*/
+
 #include "amscommon.h"
 #ifndef NOEXPAT
 #include "expat.h"
@@ -305,8 +318,9 @@ static void	handle_continuum_start(LoadMibState *state, const char **atts)
 	else
 	{
 		if (contnbr == 0 || contnbr == idx)
-		{
-			contin = (_mib(NULL))->continua[idx];
+		{			
+			/*Sky modifies to use continuum_lyst instead of array */
+			contin = getContinuaByNbr(idx);
 		}
 		else
 		{
@@ -1109,7 +1123,7 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 	char		*name;
 	char		*value;
 	Continuum	*contin;
-	Subject		*msgspace;
+	Subject		*msgspace = NULL;
 
 	if (noMibYet(state)) return;
 	if (state->venture == NULL)
@@ -1158,14 +1172,18 @@ static void	handle_msgspace_start(LoadMibState *state, const char **atts)
 		return;
 	}
 
-	contin = (_mib(NULL))->continua[contnbr];
+	/* Sky modifies to use AmsMib->continuum_lyst instead of array */
+	contin = getContinuaByNbr(contnbr);
+
 	if (contin == NULL)
 	{
 		noteLoadError(state, "Unknown continuum.");
 		return;
 	}
 
-	msgspace = state->venture->msgspaces[contnbr];
+	/* Sky gets msgspace for contNbr here*/
+	msgspace = getMsgSpaceByNbr(state->venture, contnbr);		
+
 	switch (state->currentOperation)
 	{
 	case LoadAdding:

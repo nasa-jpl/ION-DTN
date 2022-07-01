@@ -5,6 +5,12 @@
 	Author: Shin-Ywan (Cindy) Wang
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2021
+
+	Modifications include the following issue:
+	1.) Changed SourceCustodyRequired to NoCustodyRequested in bp_send()
 */
 
 #include "ramscommon.h"
@@ -1009,7 +1015,8 @@ static int	SendRPDUviaBp(RamsGateway *gWay, RamsNode *ramsNode,
 		ErrMsg("Failed creating message.");
 		return -1;
 	}
-
+	/* 	Sky changes SourceCustodyRequired to NoCustodyRequested 
+		here per Scott Burleigh */
 	if (bp_send(gWay->sap, ramsNode->gwEid, "dtn:none", gWay->ttl,
 		classOfService, NoCustodyRequested, 0, 0, &ancillaryData,
 		bundleZco, &newBundle) < 1)

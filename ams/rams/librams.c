@@ -5,6 +5,21 @@
 	Author: Shin-Ywan (Cindy) Wang
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
+
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2021
+
+	Modifications address the following issues:
+
+	1.) Resolution of petition assert/cancel flip-flop on RAMSGATE start: 
+	    Note: required two restarts to revert petition state
+	
+	2.) Refactoring to allow for full range of SANA node numbers:
+	    See MAX_CONTIN_NBR directive in amscommon.h 
+
+	   	Modifications include switching arrays and for-loops using the 
+	   	MAX_CONTIN_NBR to use ici's lyst (managed linked list)
+
 */
 
 #include "ramscommon.h"
@@ -530,7 +545,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	AmsModule		amsModule;
 	AmsMib			*mib;
 	int			ownContinuumNbr;
-	Subject			*ownMsgspace;
+	Subject			*ownMsgspace = NULL;
 	RamsGateway		*gWay;
 	Sdr			sdr;
 	LystElt			elt;
@@ -546,7 +561,7 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 	socklen_t		nameLength;
 	int			datagramLength;
 	Lyst			msgspaces;
-	saddr			temp;
+	Subject			*temp; /* sky modifies type of var */
 	long			cId;
 	Petition		*pet;
 	AmsEventMgt		rules;
@@ -572,7 +587,10 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 	mib = _mib(NULL);
 	ownContinuumNbr = mib->localContinuumNbr;
-	ownMsgspace = amsModule->venture->msgspaces[ownContinuumNbr];
+	
+	/* sky modifies to use new lyst function instead of array */
+	ownMsgspace = getMsgSpaceByNbr(amsModule->venture, ownContinuumNbr);
+
 	amsMemory = getIonMemoryMgr();
 
 	/*	Construct RAMS gateway state.				*/
@@ -620,12 +638,15 @@ int	rams_run(char *mibSource, char *tsorder, char *applicationName,
 
 #if RAMSDEBUG
 printf("continuum lyst:");
-#endif
+#endif	
+	
 	msgspaces = ams_list_msgspaces(amsModule);
+	
 	for (elt = lyst_first(msgspaces); elt; elt = lyst_next(elt))
 	{
-		temp = (saddr) lyst_data(elt);
-		cId = temp;
+		temp = (Subject *) lyst_data(elt); /* sky modifies type */
+		cId = 0 - temp->nbr; /* sky accounts for pseudonumber */
+
 #if RAMSDEBUG
 printf(" %ld", cId);		
 #endif
@@ -649,7 +670,12 @@ printf(" %ld", cId);
 		memset(ramsNode, 0, sizeof(RamsNode));
 		ramsNode->continuumNbr = cId;
 		ramsNode->protocol = amsModule->venture->gwProtocol;
-		ramsNode->gwEid = amsModule->venture->msgspaces[cId]->gwEid;
+		
+		/* sky modifies to use lyst instead of array */
+		Subject *my_msgspace = getMsgSpaceByNbr(amsModule->venture, cId);
+		ramsNode->gwEid = my_msgspace->gwEid;
+
+
 		if (lyst_insert_last(gWay->ramsNeighbors, ramsNode)
 				== NULL)
 		{
@@ -665,8 +691,8 @@ printf("[neighbor]");
 
 #if RAMSDEBUG
 printf("\n");
-#endif
-	lyst_destroy(msgspaces);
+#endif	
+						 
 
 	/*	Load AMS event management rules and spawn AMS event
 	 *	management thread.					*/
@@ -1746,11 +1772,13 @@ domainContinuum, domainUnit, domainRole);
 					return 0;
 				}
 
-				//Sky removes call to HandlePetitionCancellation(...) here to correct petition assert/cancel flip-flop on ramsgate restart:
-				//this required ramsgate to be restarted twice to re-enable cross-network AMS messaging
+				/* Sky removes call to HandlePetitionCancellation() here 
+				 * to correct petition assert/cancel flip-flop on ramsgate 
+				 * restart: this required RAMSgate to be restarted twice 
+				 * to re-enable cross-network AMS messaging */
 			}
 
-			/*	Now proceed with the assertion.		*/
+			/*	Now proceed with the assertion.	*/
 
 			if (lyst_insert_last(pet->DestinationNodeSet,
 					fromNode) == NULL)

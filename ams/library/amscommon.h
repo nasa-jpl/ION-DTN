@@ -1,16 +1,31 @@
 /*
  	amscommon.h:	common definitions shared by libams, amsd,
 			and the transport service adapters.
-
 	Author: Scott Burleigh, JPL
-
 	Modification History:
 	Date  Who What
-
 	Copyright (c) 2005, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
- 									*/
+	
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2022
+	
+	Modifications address the following:
+	1.) Allow for SANA node numbers (i.e up to ~2,100,000 
+		see MAX_CONTIN_NBR directive)  
+
+	2.) New associated function definitions for: 
+		getContinuaByNbr() and getMsgSpaceByNbr()
+
+	3.) Modified N1, N2, N3 INTERVAL directives for faster 
+		cell census periods (set for 9 seconds)
+
+		Note: Cell Census Period derived from: 
+		(N6_COUNT x N4_INTERVAL) + (N6_COUNT * N3_INTERVAL)
+	
+	*/
+
 #ifndef _AMSCOMMON_H_
 #define _AMSCOMMON_H_
 
@@ -62,7 +77,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	20
+#define	MAX_CONTIN_NBR	21000000 /* Used only as a sanity check */
 #endif
 
 #ifndef MAX_VENTURE_NBR
@@ -88,15 +103,15 @@ extern "C" {
 /*		Note: all intervals are in seconds.			*/
 
 #ifndef N1_INTERVAL
-#define	N1_INTERVAL	5
+#define	N1_INTERVAL	1
 #endif
 
 #ifndef N2_INTERVAL
-#define	N2_INTERVAL	5
+#define	N2_INTERVAL	1
 #endif
 
 #ifndef N3_INTERVAL
-#define	N3_INTERVAL	10
+#define	N3_INTERVAL	1
 #endif
 
 #define	N4_INTERVAL	(N3_INTERVAL * 2)
@@ -372,13 +387,8 @@ typedef struct ventstr
 	Lyst		subjLysts[SUBJ_LIST_CT];/*	hash table	*/
 	Unit		*units[MAX_UNIT_NBR + 1];
 	RamsNetProtocol	gwProtocol;
-	int		ramsNetIsTree;		/*	Boolean.	*/
-
-	/*	The msgspaces array enumerates all messages spaces
-	 *	that are included in this venture, including the one
-	 *	that is in the local continuum.				*/
-
-	Subject		*msgspaces[MAX_CONTIN_NBR + 1];	/*	subj<0	*/
+	int			ramsNetIsTree;		/*	Boolean.	*/
+	Lyst 		msgspace_lyst; /* Collection of msgspaces (Subject*) */
 } Venture;
 
 /*	The supported transport services listed in the MIB are in
@@ -391,7 +401,8 @@ typedef struct
 	TransSvc	transportServices[TS_INDEX_LIMIT + 1];
 	TransSvc	*pts;			/*	Primary TS.	*/
 	Lyst		amsEndpointSpecs;	/*	(AmsEpspec *)	*/
-	Continuum	*continua[MAX_CONTIN_NBR + 1];
+	Lyst		continuum_lyst; /* Collection of continua (Continuum *) */
+
 	Lyst		applications;		/*	(AmsApp *)	*/
 	Venture		*ventures[MAX_VENTURE_NBR + 1];
 	Lyst		csEndpoints;		/*	(MamsEndpoint *)*/
@@ -477,7 +488,8 @@ extern Subject	*lookUpSubject(Venture *venture, char *subjectName);
 extern AppRole	*lookUpRole(Venture *venture, char *roleName);
 extern Unit	*lookUpUnit(Venture *venture, char *unitName);
 extern int	lookUpContinuum(char *continuumName);
-
+extern Continuum *getContinuaByNbr(int contnbr);
+extern Subject * getMsgSpaceByNbr(Venture *venture, int continuum_nbr);
 extern void	eraseApp(AmsApp *app);
 extern LystElt	createApp(char *name, char *publicKeyName,
 			char *privateKeyName);

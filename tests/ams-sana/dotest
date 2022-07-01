@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# AMS SANA (i.e. node number range upgrade) integration test script
+# This test uses amsbenchr and amsbenchs over LTP protocol 
+# Continuum numbers 9999 and 77777 are used
+#
+# Sky DeBaun
+# January 2022
+#
+# boilerplate per Scott Burleigh
+
+CONFIGFILES=" \
+./amroc.ltprc \
+./amroc.bprc \
+./global.ionrc \
+./amroc.ionrc \
+./amroc.ionconfig \
+./amroc.ionsecrc \
+./amroc.ipnrc \
+./mib.amsrc
+"
+#./amsmib.xml
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify AMS functionality when using large Node numbers (per SANA node number upgrade):
+
+This test uses amsbenchr and amsbenchs utilities to verify AMS functions with large Node/Continuum numbers"
+
+echo
+echo "CONFIG: A simple AMS message space with large Continuum numbers"
+echo
+
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+#start ION nodes and verify -----------------------
+./ionstart
+
+#start message logger------------------------------
+amsbenchr > test_output &
+sleep 1
+
+#start message transmitter-------------------------
+amsbenchs 10 100 &
+sleep 3
+
+#kill message transmitter--------------------------
+echo 'Killing amsbenchs tranmitter...'
+killall amsbenchs &> /dev/null
+sleep 5 #wait for output file to settle
+
+#test result variable------------------------------
+RETVAL=0 #default to success
+
+#check for good message transmission---------------
+echo "Checking test_output for 'Received 10 messages, a total of 1000 bytes'"
+COUNT=`grep "Received 10 messages, a total of 1000 bytes" test_output | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: Messages received (TEST SUCCESS)"
+else
+	echo "ERROR: Messages not received"
+	RETVAL=1
+fi
+
+# Shut down ION processes--------------------------
+echo "Stopping ION..."
+./ionstop
+
+#test complete: return test result-----------------
+echo "AMS SANA functionality test completed"
+exit $RETVAL
