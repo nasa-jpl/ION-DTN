@@ -559,24 +559,40 @@ static void	switchWatch(int tokenCount, char **tokens)
 	{
 		switch (*cursor)
 		{
-		case 'd':
+		case 'D':
 			vdb->watching |= WATCH_d;
 			break;
 
-		case 'e':
+		case 'E':
 			vdb->watching |= WATCH_e;
 			break;
 
-		case 'g':
+		case 'G':
 			vdb->watching |= WATCH_g;
 			break;
 
-		case 's':
+		case 'S':
 			vdb->watching |= WATCH_s;
 			break;
 
-		case '=':
+		case '-':
 			vdb->watching |= WATCH_resendBlk;
+			break;
+		
+		case 'F':
+			vdb->watching |= WATCH_f;
+			break;
+		
+		case 'H':
+			vdb->watching |= WATCH_h;
+			break;
+
+		case 'T':
+			vdb->watching |= WATCH_t;
+			break;
+		
+		case '*':
+			vdb->watching |= WATCH_CBS;
 			break;
 
 		default:

@@ -144,8 +144,11 @@ static int	handleEvents(Sdr sdr, time_t currentTime)
 			deleteAdu(sdr, event->aduElt);
 			if ((getDtpcVdb())->watching & WATCH_m)
 			{
+				/*
 				putchar('m');
 				fflush(stdout);
+				*/
+				iwatch('m');
 			}
 
 			result = 0;
@@ -155,8 +158,11 @@ static int	handleEvents(Sdr sdr, time_t currentTime)
 			deletePlaceholder(sdr, event->aduElt);
 			if ((getDtpcVdb())->watching & WATCH_expire)
 			{
+				/*
 				putchar('*');
 				fflush(stdout);
+				*/
+				iwatch('*');
 			}
 
 			result = parseInAdus(sdr);
