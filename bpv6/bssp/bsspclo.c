@@ -291,6 +291,17 @@ int	main(int argc, char *argv[])
 		{
 		case 0:
 			putErrmsg("Unable to send this bundle via BSSP.", NULL);
+			/* Destroy bundleZco Here */
+
+			putErrmsg("Destroy bundle.", NULL);
+			CHKERR(sdr_begin_xn(sdr));
+			zco_destroy(sdr, bundleZco);
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("Failed destroying ZCO.", NULL);
+				running = 0;
+			}
+
 			break;
 
 		case -1:

@@ -2636,21 +2636,6 @@ char		buf[256];
 	}
 
 	memset((char *) &block, 0, sizeof(BsspXmitBlock));
-	if (inOrder)
-	{
-		block.queueListElt = sdr_list_insert_last(sdr,
-				span->beBlocks, blockObj);
-	}
-	else
-	{
-		block.queueListElt = sdr_list_insert_last(sdr, 
-				span->rlBlocks, blockObj);
-	}
-
-	if (block.queueListElt == 0)
-	{
-		return -1;
-	}
 
 	/*	Compute length of block's known overhead.		*/
 
@@ -2670,10 +2655,31 @@ char		buf[256];
 	{
 		putErrmsg("Bssp XmitDataBlock size exceeds maximum block size.",
 		 NULL);
-		return -1;
+		
+		/* free block from SDR before return 0 	*/
+		sdr_free(sdr,blockObj);
+
+		return 0;
 	}
 
 	/*	Now have enough information to finish the block.	*/
+
+	/*  insert block into queuelist */
+	if (inOrder)
+	{
+		block.queueListElt = sdr_list_insert_last(sdr,
+				span->beBlocks, blockObj);
+	}
+	else
+	{
+		block.queueListElt = sdr_list_insert_last(sdr, 
+				span->rlBlocks, blockObj);
+	}
+
+	if (block.queueListElt == 0)
+	{
+		return -1;
+	}
 
 	session->block = blockObj;
 
@@ -2714,7 +2720,7 @@ putErrmsg(buf, itoa(session->sessionNbr));
 		iwatch('E');
 	}
 
-	return 0;
+	return 1;
 }
 
 int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
@@ -2730,11 +2736,16 @@ int	issueXmitBlock(Sdr sdr, BsspSpan *span, BsspVspan *vspan,
 	CHKERR(span);
 	CHKERR(vspan);
 	
-	if (constructDataBlock(sdr, session, sessionObj, 
-			vspan, span, inOrder) < 0)
+	switch (constructDataBlock(sdr, session, sessionObj, 
+			vspan, span, inOrder))
 	{
+	case -1:
 		putErrmsg("Can't construct data xmit block.", NULL);
 		return -1;
+
+	case 0:
+		putErrmsg("BSSP block size exceeds max limit",NULL);
+		return 0;
 	}
 		
 	/*	Block processing succeeded			*/

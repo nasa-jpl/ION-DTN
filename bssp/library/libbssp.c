@@ -129,8 +129,21 @@ int	bssp_send(uvast destinationEngineId, unsigned int clientSvcId,
 		sdr_cancel_xn(sdr);
 		return -1;
 
-	case 0:			/*	Database too full.	*/
-		sdr_cancel_xn(sdr);
+	case 0:		/*	Database too full or block exceed max size	*/
+
+		/*		Reset span buffer but keep 						
+		 *	 	currentExportSessionObj	which was not used 		*/
+		span.lengthOfBufferedBlock = 0;
+		span.clientSvcIdOfBufferedBlock = 0;
+		sdr_write(sdr, spanObj, (char *) &span, sizeof(BsspSpan));
+
+		sessionId->sourceEngineId = vdb->ownEngineId;
+		sessionId->sessionNbr = session.sessionNbr;
+		session.svcDataObject = 0;
+		session.block = 0;
+
+		/* end transaction */
+		sdr_end_xn(sdr);
 		return 0;
 	}
 

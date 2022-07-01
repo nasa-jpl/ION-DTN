@@ -51,7 +51,13 @@ BSSP data interchange exists between the local BSSP engine and the indicated
 
 The I<max_block_size> is expressed as a number of bytes of data.
 I<max_block_size> is used to configure transmission buffer sizes; as such, it
-limits client data item size.
+limits client data item size. When exceeded, it causes bssp_send() to fail, and
+bssp_clo() to shutdown. To restart bssp_clo() without rebooting ION immediately,
+say, due to on-going data transfer over other convergence layers, one can try to first 
+stop bpadmin with 'x', then stop bsspadmin with 'x', then run ionrestart to repair
+any issue in the volatile database, then relaunch bssp daemon and then bp
+daemon using corresponding configuration files. This procedure could temporarily 
+enable resumption of operation until it is safe to reboot ION.
 
 I<max_nbr_of__sessions> constitutes, in effect, the local BSSP engine's
 retransmission "window" for this span.  The retransmission windows of the
