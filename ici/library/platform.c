@@ -3458,6 +3458,7 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 	struct sockaddr_in	*inetName;
 	char			dottedString[16];
 	char			socketTag[32];
+	static int iciTcpConnectionOK = 1;
 
 	CHKERR(socketSpec);
 	CHKERR(sock);
@@ -3501,12 +3502,19 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 	{
 		if (errno == ECONNREFUSED)
 		{
-			writeMemoNote("[i] Can't connect to TCP socket \
+			if (iciTcpConnectionOK == 1){
+				writeMemoNote("[i] Can't connect to TCP socket \
 (refused)", socketTag);
+				iciTcpConnectionOK = 0;
+			}
 		}
 		else
 		{
-			putSysErrmsg("Can't connect to TCP socket", socketTag);
+			if (iciTcpConnectionOK == 1){
+				putSysErrmsg("Can't connect to TCP socket", socketTag);
+				iciTcpConnectionOK = 0;
+			}
+			
 		}
 
 		closesocket(*sock);
@@ -3514,6 +3522,7 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 		return 0;
 	}
 
+	iciTcpConnectionOK = 1;
 	writeMemoNote("[i] Connected to TCP socket", socketTag);
 	return 1;	/*	Connected to remote socket.		*/
 }
