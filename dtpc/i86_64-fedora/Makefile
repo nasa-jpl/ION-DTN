@@ -5,7 +5,7 @@ DAEMON = ../daemon
 UTILS = ../utils
 
 OPT = -g -Wall -Werror -Dlinux -fPIC
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 

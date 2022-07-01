@@ -9,7 +9,7 @@ BULK = ../bulk/STUB_BULK
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto 
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 

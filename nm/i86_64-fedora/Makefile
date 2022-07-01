@@ -109,7 +109,7 @@ OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux -DAMP_VERSION=7
 
 INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I../../bp/library -I../../bp/library/ext/sbsp -I../../bp/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
 
-CC = gcc $(OPT) $(INCLDIRS)
+CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 
 LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib
 
