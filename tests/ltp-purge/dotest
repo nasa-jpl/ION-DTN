@@ -14,11 +14,14 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ipnrc \
 "
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
+	fi
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -30,7 +33,7 @@ CONFIGFILES=$CONFIGFILES"
 ./5.ipn.ltp/amroc.ipnrc \
 "
 
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./5.ipn.ltp/amroc.acsrc"
 fi
 
@@ -43,7 +46,7 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ipnrc \
 "
 
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
 fi
 
@@ -93,7 +96,7 @@ ionadmin amroc.ionrc
 cd ../5.ipn.ltp
 ionadmin amroc.ionrc
 
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	cd ../2.ipn.ltp
 	acsadmin amroc.acsrc
 	cd ../3.ipn.ltp

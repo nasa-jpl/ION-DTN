@@ -26,15 +26,20 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start nodes.
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	cd 1.ipn.ltp
-	./ionstart-acs &
-	sleep 1
-	cd ../2.ipn.ltp
-	./ionstart-acs &
-else
+STARTED=0
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		STARTED=1
+		cd 1.ipn.ltp
+		./ionstart-acs &
+		sleep 1
+		cd ../2.ipn.ltp
+		./ionstart-acs &
+	fi
+fi
+if [[ STARTED -eq 0 ]] ; then
 	cd 1.ipn.ltp
 	./ionstart &
 	sleep 1

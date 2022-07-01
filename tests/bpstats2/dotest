@@ -16,6 +16,7 @@ if [ $? -eq 0 ] ; then
 	./config/host1-acs.rc \
 	"
 else
+    ACS="missing"
 	CONFIGFILES=" \
 	./config/host1.rc \
 	"

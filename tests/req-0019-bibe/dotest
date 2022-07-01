@@ -49,17 +49,19 @@ ionadmin amroc.ionrc
 cd ../4.ipn.ltp
 ionadmin amroc.ionrc
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	cd ../1.ipn.ltp
-	acsadmin amroc.acsrc
-	cd ../2.ipn.ltp
-	acsadmin amroc.acsrc
-	cd ../3.ipn.ltp
-	acsadmin amroc.acsrc
-	cd ../4.ipn.ltp
-	acsadmin amroc.acsrc
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		cd ../1.ipn.ltp
+		acsadmin amroc.acsrc
+		cd ../2.ipn.ltp
+		acsadmin amroc.acsrc
+		cd ../3.ipn.ltp
+		acsadmin amroc.acsrc
+		cd ../4.ipn.ltp
+		acsadmin amroc.acsrc
+	fi
 fi
 
 cd ../1.ipn.ltp

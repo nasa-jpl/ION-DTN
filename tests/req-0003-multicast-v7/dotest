@@ -30,17 +30,6 @@
 # 10.	Node 3 sends a 320-byte file by multicast to group 19.  Nodes
 #	1, 2, and 4 receive copies.
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-fi
-
-if [ "$ACS" == "found" ] ; then
-	echo "Error: ACS should not exist for BPv7, terminate test..."
-	exit 1
-fi
-
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes

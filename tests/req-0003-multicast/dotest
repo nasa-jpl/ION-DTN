@@ -31,6 +31,8 @@ echo "Looking for acsadmin"
 which acsadmin
 if [ $? -eq 0 ] ; then
 	ACS="found"
+else
+	ACS="missing"
 fi
 
 echo "Starting ION..."

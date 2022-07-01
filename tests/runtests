@@ -253,6 +253,7 @@ fi
 
 #Determine BP version for exclustion of tests
 BP_VERSION=`bpversion`
+export BP_VERSION
 echo "BP version is $BP_VERSION"
 
 CLEANUP=""
@@ -263,7 +264,7 @@ fi
 
 
 if [ $# -eq 0 ]; then
-    TESTS=$(find_tests_in .)
+    TESTS=$(find_tests_in ../demos/)" "$(find_tests_in .)
 else
     TESTS=$(find_tests_in "$@")
 fi

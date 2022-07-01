@@ -12,11 +12,14 @@ CONFIGFILES=" \
 ./amroc.ipnrc
 "
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./amroc.acsrc"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=$CONFIGFILES" ./amroc.acsrc"
+	fi
 fi
 
 echo "########################################"
@@ -47,7 +50,7 @@ echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 
 # Start node 9, with 20-second loopback range.
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

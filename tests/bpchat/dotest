@@ -4,19 +4,25 @@
 #
 
 # documentation boilerplate
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
 echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=" \
-	./config/host1-acs.rc \
-	"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=" \
+		./config/host1-acs.rc \
+		"
+	else
+		CONFIGFILES=" \
+		./config/host1.rc \
+		"
+	fi
 else
 	CONFIGFILES=" \
 	./config/host1.rc \
 	"
 fi
-
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -54,7 +60,7 @@ rm -f ion.log bpchatoutput bpchatinfifo
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="config"
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	"ionstart" -I "${CONFIGDIR}/host1-acs.rc"
 else
 	"ionstart" -I "${CONFIGDIR}/host1.rc"

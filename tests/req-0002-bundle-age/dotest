@@ -14,11 +14,14 @@ CONFIGFILES=" \
 ./2.bench.tcp/bench.ipnrc \
 "
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./2.bench.tcp/bench.acsrc"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=$CONFIGFILES" ./2.bench.tcp/bench.acsrc"
+	fi
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -30,7 +33,7 @@ CONFIGFILES=$CONFIGFILES"
 ./3.bench.tcp/bench.ipnrc \
 "
 
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./3.bench.tcp/bench.acsrc"
 fi
 
@@ -71,7 +74,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 2.bench.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -87,7 +90,7 @@ else
 fi
 
 cd ../3.bench.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

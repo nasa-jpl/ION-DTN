@@ -13,10 +13,13 @@
 # path from node 3 to node 2 there is no such artificial data loss
 # and therefore the bundle we send on this path should arrive.
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+	fi
 fi
 ./cleanup
 sleep 1
@@ -26,7 +29,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 2.ipn.ltp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs >& node2.stdout &
 else
 	./ionstart >& node2.stdout &
@@ -42,7 +45,7 @@ else
 fi
 
 cd ../3.ipn.ltp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs >& node3.stdout &
 else
 	./ionstart >& node3.stdout &

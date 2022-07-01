@@ -22,22 +22,26 @@ rm -f ./ion_nodes
 RETVAL=0
 
 # Start nodes.
-
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	cd 5.ipn.ltp
-	./ionstart-acs &
-	sleep 1
-	cd ../3.ipn.ltp
-	./ionstart-acs &
-	sleep 1
-	cd ../1.ipn.ltp
-	./ionstart-acs &
-	sleep 1
-	cd ../2.ipn.ltp
-	./ionstart-acs &
-else
+STARTED=0
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		STARTED=1
+		cd 5.ipn.ltp
+		./ionstart-acs &
+		sleep 1
+		cd ../3.ipn.ltp
+		./ionstart-acs &
+		sleep 1
+		cd ../1.ipn.ltp
+		./ionstart-acs &
+		sleep 1
+		cd ../2.ipn.ltp
+		./ionstart-acs &
+	fi
+fi
+if [ $STARTED -eq 0 ] ; then
 	cd 5.ipn.ltp
 	./ionstart &
 	sleep 1

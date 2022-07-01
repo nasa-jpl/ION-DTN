@@ -15,13 +15,16 @@ CONFIGFILES=" \
 ./configs/loopback.bprc \
 ./configs/loopback.ipnrc"
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./configs/loopback.acsrc"
-else
-	ACS="not found"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=$CONFIGFILES" ./configs/loopback.acsrc"
+	else
+		ACS="not found"
+	fi
 fi
 
 echo "########################################"
@@ -49,7 +52,7 @@ echo "########################################"
 
 echo "Starting ION..."
 cd ./configs
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

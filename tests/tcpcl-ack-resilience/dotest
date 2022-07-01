@@ -5,9 +5,14 @@
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
-echo "Looking for acsadmin"
-if [ $? -eq 0 ] ; then
-	ACS="found"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+    echo "Looking for acsadmin"
+    if [ $? -eq 0 ] ; then
+        ACS="found"
+    else
+        ACS="missing"
+    fi
 fi
 
 echo "Cleaning up old ION ..."
@@ -31,7 +36,7 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -45,7 +50,7 @@ fi
 
 # Set up node 2
 cd ../2.ipn.tcp/
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

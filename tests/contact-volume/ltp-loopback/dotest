@@ -6,13 +6,20 @@
 #
 # documentation boilerplate
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=" \
-	${CONFIGSROOT}/loopback-ltp/loopback-acs.rc \
-	"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=" \
+		${CONFIGSROOT}/loopback-ltp/loopback-acs.rc \
+		"
+	else
+		CONFIGFILES=" \
+		${CONFIGSROOT}/loopback-ltp/loopback.rc \
+		"
+	fi
 else
 	CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-ltp/loopback.rc \
@@ -50,7 +57,7 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=3
 
 echo "Starting ION..."
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback-acs.rc
 else
 	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc

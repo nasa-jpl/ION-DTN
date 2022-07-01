@@ -102,10 +102,13 @@
 #	-	All nodes shut down.
 
 ./cleanup
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+	fi
 fi
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -124,7 +127,7 @@ sleep 1
 echo "Starting all nodes..."
 
 cd 2.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -140,7 +143,7 @@ else
 fi
 
 cd ../3.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -156,7 +159,7 @@ else
 fi
 
 cd ../5.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -172,7 +175,7 @@ else
 fi
 
 cd ../6.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -190,7 +193,7 @@ fi
 bprecvfile ipn:6.1 &
 
 cd ../7.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

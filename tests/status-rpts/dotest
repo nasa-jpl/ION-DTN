@@ -20,6 +20,8 @@ which acsadmin
 if [ $? -eq 0 ] ; then
 	ACS="found"
 	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
+else
+	ACS="missing"
 fi
 
 CONFIGFILES=$CONFIGFILES"

@@ -12,11 +12,15 @@ CONFIGFILES=" \
 ./global.ionrc
 "
 
+
 echo "Looking for acsadmin"
 which acsadmin
 if [ $? -eq 0 ] ; then
 	ACS="found"
 	CONFIGFILES=$CONFIGFILES" ./test.acsrc"
+else
+	echo "acsadmin not found"
+	ACS="missing"
 fi
 
 echo "########################################"

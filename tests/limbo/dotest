@@ -55,11 +55,15 @@ function getStatsCounter() {
 
 ./cleanup
 sleep 1
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+	fi
 fi
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -68,7 +72,7 @@ RETVAL=0
 
 # Start nodes.
 cd 3.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -84,7 +88,7 @@ else
 fi
 
 cd ../5.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -100,7 +104,7 @@ else
 fi
 
 cd ../2.ipn.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

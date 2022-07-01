@@ -10,10 +10,13 @@
 # the likelihood of arrival.  This results in two copies of the file
 # being written at node 4.
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+	fi
 fi
 
 echo "Starting ION..."
@@ -21,7 +24,7 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start nodes.
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	cd 1.ipn.ltp
 	./ionstart-acs >& node1.stdout
 	cd ../2.ipn.ltp

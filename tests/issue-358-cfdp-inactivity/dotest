@@ -14,11 +14,14 @@ CONFIGFILES=" \
 ./ipn.cfdp.bp.tcp/host1.ionsecrc \
 "
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./ipn.cfdp.bp.tcp/host1.acsrc"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=$CONFIGFILES" ./ipn.cfdp.bp.tcp/host1.acsrc"
+	fi
 fi
 
 echo "########################################"
@@ -49,7 +52,7 @@ echo "Starting ION..."
 
 # Start nodes
 cd ipn.cfdp.bp.tcp
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

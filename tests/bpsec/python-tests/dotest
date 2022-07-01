@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# This script is a wrapper to run all the active bpsec python tests
+
+python3 ./dotest.py --test_macro all

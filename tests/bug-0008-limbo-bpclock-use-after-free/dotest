@@ -15,11 +15,14 @@ CONFIGFILES=" \
 ./config.bprc \
 ./config.ipnrc"
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./config.acsrc"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=$CONFIGFILES" ./config.acsrc"
+	fi
 fi
 
 
@@ -55,7 +58,7 @@ ionadmin config.ionrc
 
 ionsecadmin config.ionsecrc
 
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	acsadmin config.acsrc
 fi
 

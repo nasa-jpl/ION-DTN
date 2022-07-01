@@ -34,12 +34,16 @@ IONRECEIVEFILE=./ionreceivefile.txt
 
 echo "Performing a simple loopback test of the DCCP Convergence Layer for BP"
 echo "Starting ION..."
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ionstart  -I ./loopback-dccp-acs.rc
+if [[ $BP_VERSION == "bpv6" ]] ; then
+    echo "Looking for acsadmin"
+    which acsadmin
+    if [ $? -eq 0 ] ; then
+        ionstart  -I ./loopback-dccp-acs.rc
+    else
+        ionstart  -I ./loopback-dccp.rc
+    fi
 else
-	ionstart  -I ./loopback-dccp.rc
+    ionstart  -I ./loopback-dccp.rc
 fi
 
 # create the test message in a sent file

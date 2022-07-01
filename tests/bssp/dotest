@@ -15,11 +15,14 @@ CONFIGFILES=" \
 ./1.ipn.bssp/amroc.ipnrc \
 "
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-	CONFIGFILES=$CONFIGFILES" ./1.ipn.bssp/amroc.acsrc"
+ACS=""
+if [[ $BP_VERSION == "bpv6" ]] ; then
+	echo "Looking for acsadmin"
+	which acsadmin
+	if [ $? -eq 0 ] ; then
+		ACS="found"
+		CONFIGFILES=$CONFIGFILES" ./1.ipn.bssp/amroc.acsrc"
+	fi
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -31,7 +34,7 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.bssp/amroc.ipnrc
 "
 
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./2.ipn.bssp/amroc.acsrc"
 fi
 
@@ -93,7 +96,7 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0 
 # Start nodes.
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	cd 1.ipn.bssp
 	./ionstart-acs >& node1.stdout
 	cd ../2.ipn.bssp
