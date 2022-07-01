@@ -229,7 +229,7 @@ otherstuff_DATA = \
 	$(srcdir)/ionstart.awk \
 	$(srcdir)/ION.pdf \
 	$(srcdir)/ION-LTP-configuration.pdf \
-	$(srcdir)/ION-LTP-configuration.xls
+	$(srcdir)/ION-LTP-configuration_tool.xlsm
 
 #################
 #
