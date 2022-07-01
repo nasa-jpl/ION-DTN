@@ -68,11 +68,13 @@ agent_db_t gAgentDb;
  *  10/21/11  E. Birrane     Initial implementation,
  *  05/20/15  E. Birrane     Switched to global, mutex-protected lysts.
  *  10/04/18  E. Birrane     Updated to AMP V0.5 (JHU/APL)
+ *  11/23/21  E. Birrane     Added table sets (JHU/APL)
  *****************************************************************************/
 
 void rda_cleanup()
 {
 	vec_release(&(gAgentDb.rpt_msgs), 0);
+	vec_release(&(gAgentDb.tbl_msgs), 0);
 	vec_release(&(gAgentDb.tbrs), 0);
 	vec_release(&(gAgentDb.sbrs), 0);
 }
@@ -82,6 +84,7 @@ int rda_init()
 	int success;
 
 	gAgentDb.rpt_msgs = vec_create(RDA_DEF_NUM_RPTS, msg_rpt_cb_del_fn, NULL, NULL, 0, &success);
+	gAgentDb.tbl_msgs = vec_create(RDA_DEF_NUM_TBLS, msg_tbl_cb_del_fn, NULL, NULL, 0, &success);
 
 	gAgentDb.tbrs = vec_create(RDA_DEF_NUM_TBRS, NULL, NULL, NULL, 0, &success);
 	gAgentDb.sbrs = vec_create(RDA_DEF_NUM_SBRS, NULL, NULL, NULL, 0, &success);
@@ -153,6 +156,73 @@ msg_rpt_t *rda_get_msg_rpt(eid_t recipient)
     }
 
     return msg_rpt;
+}
+
+
+
+
+/******************************************************************************
+ *
+ * \par Function Name: rda_get_msg_tbl
+ *
+ * \par Purpose: Find the table set intended for a given recipient. The
+ *               agent will, when possible, combine table sets for a single
+ *               recipient.
+ *
+ * \param[in]  recipient     - The recipient for which we are searching for
+ *                             a table set.
+ *
+ * \par Notes:
+ *
+ * \return !NULL - Report for this recipient.
+ *         NULL  - Error.
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  11/23/21  E. Birrane     Initial Implementation (JHU/APL)
+ *****************************************************************************/
+
+msg_tbl_t *rda_get_msg_tbl(eid_t recipient)
+{
+    vecit_t it;
+    msg_tbl_t *msg_tbl;
+
+    AMP_DEBUG_ENTRY("rda_get_msg_tbl","(%s)", recipient.name);
+
+    /* Step 0: Sanity check. */
+    if(strlen(recipient.name) <= 0)
+    {
+        AMP_DEBUG_ERR("rda_get_msg_tbl","Bad parms.",NULL);
+        return NULL;
+    }
+
+    /* Step 1: See if we already have a report message going to
+     * that recipient. If so, return it.
+     */
+    for(it = vecit_first(&(gAgentDb.tbl_msgs)); vecit_valid(it); it = vecit_next(it))
+    {
+        int success;
+        msg_tbl_t *cur = vecit_data(it);
+
+        vec_find(&(cur->rx), recipient.name, &success);
+        if(success == AMP_OK)
+        {
+            return cur;
+        }
+    }
+
+    /* Step 2; If we get here, create a new report for that recipient. */
+    if((msg_tbl = msg_tbl_create(recipient.name)) != NULL)
+    {
+        if(vec_push(&(gAgentDb.tbl_msgs), msg_tbl) != VEC_OK)
+        {
+            msg_tbl_release(msg_tbl, 1);
+            return NULL;
+        }
+    }
+
+    return msg_tbl;
 }
 
 
@@ -464,6 +534,78 @@ int rda_send_reports()
 
 /******************************************************************************
  *
+ * \par Function Name: rda_send_tables
+ *
+ * \par Purpose: For each table set constructed during this evaluation period,
+ *               create a message and send it.
+ *
+ * \retval int -  0 : Success
+ *               -1 : Failure
+ *
+ * \par Notes:
+ *      - When we construct the tablesets, we build one compound tableset
+ *        per recipient. By the time we get to this function, we should have
+ *        one tableset per recipient, so making one message per tableset should
+ *        not result in multiple messages to the same recipient.
+ *
+ *
+ * Modification History:
+ *  MM/DD/YY  AUTHOR         DESCRIPTION
+ *  --------  ------------   ---------------------------------------------
+ *  11/23/21  E. Birrane     Initial Implementation (JHU/APL)
+ *****************************************************************************/
+
+int rda_send_tables()
+{
+    vecit_t it1;
+    vecit_t it2;
+
+    AMP_DEBUG_ENTRY("rda_send_tables","()", NULL);
+
+
+    vec_lock(&(gAgentDb.tbl_msgs));
+
+    for(it1 = vecit_first(&(gAgentDb.tbl_msgs)); vecit_valid(it1); it1 = vecit_next(it1))
+    {
+        msg_tbl_t *msg_tbl = (msg_tbl_t*)vecit_data(it1);
+
+        if(msg_tbl == NULL)
+        {
+            continue;
+        }
+
+        for(it2 = vecit_first(&(msg_tbl->rx)); vecit_valid(it2); it2 = vecit_next(it2))
+        {
+            char *rx = vecit_data(it2);
+
+            if(rx == NULL)
+            {
+                AMP_DEBUG_ERR("rda_send_tables", "NULL rx", NULL);
+                continue;
+            }
+            if(iif_send_msg(&ion_ptr, MSG_TYPE_TBL_SET, msg_tbl, rx) == AMP_OK)
+            {
+                gAgentInstr.num_sent_tbls += vec_num_entries(msg_tbl->tbls);
+            }
+            else
+            {
+                AMP_DEBUG_ERR("rda_send_tables", "Error sending reports to %s", rx);
+            }
+        }
+    }
+
+    /* Sent successfully or not, clear the reports. */
+    vec_clear(&(gAgentDb.tbl_msgs));
+
+    vec_unlock(&(gAgentDb.tbl_msgs));
+
+    return AMP_OK;
+}
+
+
+
+/******************************************************************************
+ *
  * \par Function Name: rda_thread
  *
  * \par Purpose: "Main" function for the remote data aggregator.  This thread
@@ -484,6 +626,7 @@ int rda_send_reports()
  *  --------  ------------   ---------------------------------------------
  *  09/06/11  M. Reid        Initial Implementation
  *  10/21/11  E. Birrane     Code comments and functional updates.
+ *  11/23/21  E. Birrane     Send tablesets (JHU/APL)
  *****************************************************************************/
 
 void* rda_thread(int* running)
@@ -522,7 +665,12 @@ void* rda_thread(int* running)
     		AMP_DEBUG_ERR("rda_thread","Problem sending reports.", NULL);
     	}
 
-        delta = utils_time_cur_delta(&start_time);
+        else if(rda_send_tables() != AMP_OK)
+        {
+            AMP_DEBUG_ERR("rda_thread","Problem sending tables.", NULL);
+        }
+
+    	delta = utils_time_cur_delta(&start_time);
 
         // Sleep for 1 second (10^6 microsec) subtracting the processing time.
         if((delta < 1000000) && (delta > 0))

@@ -35,6 +35,11 @@
 
 #include "../shared/utils/vector.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #define AGENT_DEF_NUM_AGTS (4)
 #define AGENT_DEF_NUM_RPTS (8)
 #define AGENT_DEF_NUM_TBLS (8)
@@ -85,4 +90,8 @@ void     agent_release(agent_t *agent, int destroy);
 void     agent_rotate_log(agent_t *agent, int force);
 
 
-#endif // AGENTS_H
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _AGENTS_H */

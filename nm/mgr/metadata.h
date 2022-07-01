@@ -34,6 +34,12 @@
 #include "../shared/adm/adm.h"
 #include "../shared/primitives/ari.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -166,4 +172,8 @@ meta_col_t* metacol_create();
 void        metacol_release(meta_col_t*col, int destroy);
 
 
-#endif // METADATA_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _METADATA_H_ */

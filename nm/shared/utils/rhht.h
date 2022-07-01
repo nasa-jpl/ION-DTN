@@ -37,6 +37,10 @@
 #include "ion.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -118,5 +122,9 @@ int     rhht_insert(rhht_t *ht, void *key, void *value, rh_idx_t *idx);
 void    rhht_release(rhht_t *ht, int destroy);
 void*   rhht_retrieve_idx(rhht_t *ht, rh_idx_t idx);
 void*   rhht_retrieve_key(rhht_t *ht, void *key);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* RHHT_H_ */

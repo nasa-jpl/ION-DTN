@@ -33,6 +33,10 @@
 #include "../primitives/expr.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -166,4 +170,8 @@ tbr_def_t tbrdef_deserialize(QCBORDecodeContext *it, int *success);
 int tbrdef_serialize(QCBOREncodeContext *encoder, tbr_def_t *def);
 
 
-#endif // _RULES_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* _RULES_H_ */

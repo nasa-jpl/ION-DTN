@@ -34,6 +34,10 @@
 #include "qcbor.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -92,4 +96,9 @@ void      blob_release(blob_t *blob, int destroy);
 blob_t*   blob_serialize_wrapper(blob_t *blob);
 int8_t    blob_trim(blob_t *blob, uint32_t length);
 
-#endif // BLOB_H
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _BLOB_H_ */

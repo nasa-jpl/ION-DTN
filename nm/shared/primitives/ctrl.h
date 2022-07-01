@@ -31,6 +31,11 @@
 #include "ari.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -168,5 +173,8 @@ int       macdef_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*   macdef_serialize_wrapper(macdef_t *mac);
 
 
+#ifdef __cplusplus
+}
+#endif
 
-#endif // _CTRL_H
+#endif  /* _CTRL_H_ */

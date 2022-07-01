@@ -35,7 +35,9 @@
 #include "../utils/vector.h"
 #include "../primitives/tnv.h"
 
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * +--------------------------------------------------------------------------+
@@ -225,4 +227,9 @@ void      ac_release(ac_t *ac, int destroy);
 int        ac_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*   ac_serialize_wrapper(ac_t *ac);
 
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif  /* _ARI_H_ */

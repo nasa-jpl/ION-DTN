@@ -36,6 +36,11 @@
 #include "../primitives/table.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #define MSG_DEFAULT_ENC_SIZE 1024
 
 #define MSG_TYPE_UNK       (-1)
@@ -201,11 +206,8 @@ int msg_grp_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*    msg_grp_serialize_wrapper(msg_grp_t *msg_grp);
 
 
+#ifdef __cplusplus
+}
+#endif
 
-
-
-
-
-
-
-#endif /* _PDU_H_ */
+#endif  /* _MSG_H_ */

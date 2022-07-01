@@ -175,6 +175,8 @@ expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 	expr_t result;
 #if AMP_VERSION < 7
 	blob_t *data = NULL;
+#else
+	uint8_t expr_type;
 #endif
 
 	AMP_DEBUG_ENTRY("expr_deserialize","("ADDR_FIELDSPEC","ADDR_FIELDSPEC")", (uaddr)it, (uaddr)success);
@@ -192,7 +194,8 @@ expr_t expr_deserialize(QCBORDecodeContext *it, int *success)
 	/* Grab and verify the expression type. */
 	result.type = data->value[0];
 #else
-	cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &result.type);
+	cut_get_cbor_numeric(it, AMP_TYPE_BYTE, &expr_type);
+	result.type = expr_type;
 #endif
     if(type_is_known(result.type) == 0)
     {
@@ -320,6 +323,7 @@ tnv_t *expr_eval(expr_t *expr)
 	/* Sanity Checks. */
 	if((expr == NULL) || ((max = vec_num_entries(expr->rpn.values)) == 0))
 	{
+		AMP_DEBUG_ERR("expr_eval","Bad args.", NULL);
 		return NULL;
 	}
 
@@ -330,6 +334,7 @@ tnv_t *expr_eval(expr_t *expr)
 	stack = vec_create(max, tnv_cb_del, tnv_cb_comp, tnv_cb_copy, VEC_FLAG_AS_STACK, &success);
 	if(success != AMP_OK)
 	{
+		AMP_DEBUG_ERR("expr_eval","Cannot create stack.", NULL);
 		return NULL;
 	}
 
@@ -359,6 +364,8 @@ tnv_t *expr_eval(expr_t *expr)
 
 		if(result == NULL)
 		{
+			AMP_DEBUG_ERR("expr_eval","Cannot evaluate expression.", NULL);
+
 			vec_release(&stack, 0);
 			return NULL;
 		}

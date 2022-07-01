@@ -25,6 +25,10 @@
 #include "shared/adm/adm.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * +---------------------------------------------------------------------------------------------+
  * |                                 ADM TEMPLATE DOCUMENTATION                                  +
@@ -265,5 +269,12 @@ void dtn_ion_ltpadmin_init_ctrl();
 void dtn_ion_ltpadmin_init_mac();
 void dtn_ion_ltpadmin_init_rpttpl();
 void dtn_ion_ltpadmin_init_tblt();
+
+
 #endif /* _HAVE_DTN_ION_LTPADMIN_ADM_ */
-#endif //ADM_ION_LTP_ADMIN_H_
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _ADM_ION_LTP_ADMIN_H_ */

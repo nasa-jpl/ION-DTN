@@ -37,6 +37,10 @@
 #include "../primitives/ctrl.h"
 #include "../primitives/table.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -131,4 +135,9 @@ vast adm_get_parm_vast(tnvc_t *parms, uint8_t idx, int *success);
 void adm_init();
 void adm_common_init();
 
-#endif /* ADM_H_*/
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _ADM_H_*/

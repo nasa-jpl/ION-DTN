@@ -5,7 +5,7 @@
  ******************************************************************************/
 /*****************************************************************************
  **
- ** \file var.h
+ ** \file edd_var.h
  **
  **
  ** Description: Structures that capture AMP EDD and Variable definitions.
@@ -32,6 +32,11 @@
 #include "ari.h"
 #include "tnv.h"
 #include "expr.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 
 /*
@@ -151,5 +156,8 @@ int        vardef_serialize(QCBOREncodeContext *encoder, void *item);
 blob_t*    vardef_serialize_wrapper(var_def_t *def);
 
 
+#ifdef __cplusplus
+}
+#endif
 
-#endif /* _VAR_H_ */
+#endif  /* _VAR_H_ */

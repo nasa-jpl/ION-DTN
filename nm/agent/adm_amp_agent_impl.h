@@ -28,6 +28,10 @@
 #include "shared/primitives/table.h"
 #include "shared/primitives/tnv.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*   START typeENUM */
 
 typedef enum
@@ -191,4 +195,8 @@ tbl_t *amp_agent_tblt_macros(ari_t *id);
 tbl_t *amp_agent_tblt_rules(ari_t *id);
 tbl_t *amp_agent_tblt_tblts(ari_t *id);
 
-#endif //ADM_AMP_AGENT_IMPL_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _ADM_AMP_AGENT_IMPL_H_ */

@@ -29,6 +29,10 @@
 #include "../shared/adm/adm.h"
 #include "../shared/utils/nm_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LCC_MAX_NESTING 5
 
 
@@ -45,5 +49,9 @@ int lcc_run_macro(macdef_t *mac, tnvc_t *parent_parms);
 void lcc_send_retval(eid_t *rx, tnv_t *retval, ctrl_t *ctrl, tnvc_t *parms);
 
 
-#endif // _LCC_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _LCC_H_ */
 

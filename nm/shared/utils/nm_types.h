@@ -33,6 +33,11 @@
 #include "debug.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -89,9 +94,10 @@ typedef enum
 
 
 /* The AMP relative time cut-off, set as the first second of
- * September 9th, 2012.
+ * September 9th, 2017.
  */
-#define AMP_RELATIVE_TIME_EPOCH (1347148800)
+#define AMP_RELATIVE_TIME_EPOCH (1504915200)
+
 
 /*
  * +--------------------------------------------------------------------------+
@@ -132,5 +138,9 @@ uint8_t      type_is_known(amp_type_e type);
 
 const char*  type_to_str(amp_type_e type);
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* NM_TYPES_H */

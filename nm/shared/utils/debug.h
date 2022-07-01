@@ -23,6 +23,12 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*****************************************************************************
  *                              DEBUG DEFINITIONS                            *
  *****************************************************************************/
@@ -104,4 +110,9 @@ AMP_DEBUG(AMP_DEBUG_LVL,':',func,format, __VA_ARGS__)
 
 #define AMP_DBG_ERR(format,...) AMP_DEBUG_ERR(__func__,format,__VA_ARGS__)
 
-#endif // DEBUG_H_
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _DEBUG_H_ */

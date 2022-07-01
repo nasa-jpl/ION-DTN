@@ -20,6 +20,7 @@
  **  MM/DD/YY  AUTHOR         DESCRIPTION
  **  --------  ------------   ---------------------------------------------
  **  07/04/13  E. Birrane     Initial Implementation (JHU/APL)
+ **  11/23/21  E. Birrane     Added counting of sent table sets (JHU/APL)
  *****************************************************************************/
 
 
@@ -28,6 +29,11 @@
 
 
 #include "../shared/utils/nm_types.h"
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * +--------------------------------------------------------------------------+
@@ -53,6 +59,7 @@
 
 typedef struct {
 	unsigned long num_sent_rpts;
+	unsigned long num_sent_tbls;
 	unsigned long num_tbrs;
 	unsigned long num_tbrs_run;
 	unsigned long num_sbrs;
@@ -74,5 +81,10 @@ void agent_instr_init();
 void agent_instr_clear();
 
 extern agent_instr_t gAgentInstr;
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _INSTR_H_ */

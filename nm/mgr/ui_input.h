@@ -33,6 +33,10 @@
 
 #include "nm_mgr_ui.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_INPUT_BYTES 1024
 
 #define TYPE_AS_MASK(type) (((uvast)1) << ((uvast)type))
@@ -106,4 +110,9 @@ tnvc_t* ui_input_tnvc(char* prompt);
 
 macdef_t *ui_input_mac(char *prompt);
 
-#endif // _UI_INPUT_H
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _UI_INPUT_H_ */

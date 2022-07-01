@@ -428,10 +428,9 @@ char* mgr_parse_args(int argc, char* argv[])
 void mgr_print_usage(void)
 {
 
-    printf("AMP Protocol Version %d - %s/%02d, built on %s %s\n",
+    printf("AMP Protocol Version %d - %s, built on %s %s\n",
            AMP_VERSION,
            AMP_PROTOCOL_URL,
-           AMP_VERSION,
            __DATE__, __TIME__);
 
     printf("Usage: nm_mgr [options] <manager eid>\n");

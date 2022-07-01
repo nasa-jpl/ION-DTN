@@ -144,7 +144,7 @@ int	main(int argc, char *argv[])
     if(argc != 3)
     {
         printf("Usage: nmagent <agent eid> <manager eid>\n");
-        printf("AMP Protocol Version %d - %s/%02d, built on %s %s\n", AMP_VERSION, AMP_PROTOCOL_URL, AMP_VERSION, __DATE__, __TIME__);
+        printf("AMP Protocol Version %d - %s, built on %s %s\n", AMP_VERSION, AMP_PROTOCOL_URL, __DATE__, __TIME__);
         return 0;
     }
     

@@ -44,6 +44,10 @@
 
 #include "../shared/msg/msg.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -117,5 +121,8 @@ extern eid_t agent_eid;
 extern iif_t ion_ptr;
 
 
+#ifdef __cplusplus
+}
+#endif
 
-#endif //_NM_AGENT_H_
+#endif  /* _NM_AGENT_H_ */

@@ -233,6 +233,14 @@ var_t* var_create(ari_t *id, amp_type_e type, expr_t *expr)
 	{
 		result->value = expr_eval(expr);
 		expr_release(expr, 1);
+		if(result->value == NULL)
+		{
+			AMP_DEBUG_ERR("var_create", "Cannot eval var expr.", NULL);
+
+			ari_release(id, 1);
+			SRELEASE(result);
+			result = NULL;
+		}
 	}
 	/* If var/expr types differ, calc value and then cast. */
 	else

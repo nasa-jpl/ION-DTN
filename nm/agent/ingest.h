@@ -27,7 +27,15 @@
 
 #include "../shared/msg/msg.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void *rx_thread(int *running);
 void rx_handle_perf_ctrl(msg_metadata_t *meta, blob_t *contents);
 
-#endif /* _INGEST_H_ */
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _INGEST_H_ */

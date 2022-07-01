@@ -353,6 +353,7 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 	blob_t *result = NULL;
 	QCBOREncodeContext encoder;
 	QCBORError err;
+	size_t orig_size = size;
 
 	if(item == NULL)
 	{
@@ -388,6 +389,13 @@ blob_t* cut_serialize_wrapper(size_t size, void *item, cut_enc_fn encode)
 
     UsefulBufC Encoded;
     err = QCBOREncode_Finish(&encoder, &Encoded);
+
+    // Debugging Info.
+    if(err == QCBOR_ERR_BUFFER_TOO_SMALL)
+    {
+        AMP_DEBUG_ERR("cut_serialize_wrapper","Buffer too small. Orig size was %d. Calc size was %d.", orig_size, size);
+    }
+
     if (err != QCBOR_SUCCESS) {
 		AMP_DEBUG_ERR("cut_serialize_wrapper", "Encoding Error %d", err);
 		blob_release(result,1);

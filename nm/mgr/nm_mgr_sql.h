@@ -55,6 +55,12 @@
 #include "nm_mgr_ui.h"
 #include "agents.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -240,8 +246,15 @@ void db_logf_msg(size_t dbidx, const char* msg, const char* details, int level, 
 #define DB_LOGF_WARN(dbidx,msg,details,...) DB_LOGF_MSG(dbidx,msg,details,AMP_DEBUG_LVL_WARN, __VA_ARGS__)
 #define DB_LOGF_ERR(dbidx,msg,details,...) DB_LOGF_MSG(dbidx,msg,details,AMP_DEBUG_LVL_ERR, __VA_ARGS__)
 
-	
-#endif // HDR
+
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _BPSEC_H_ */
+
 #endif // HAVE_MYSQL
+
 
 

@@ -37,6 +37,11 @@
 #include "ari.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*
  * +--------------------------------------------------------------------------+
  * |							  CONSTANTS  								  +
@@ -145,5 +150,10 @@ void      rpttpl_release(rpttpl_t *rpttpl, int destroy);
 int       rpttpl_serialize(QCBOREncodeContext *encoder, void *item);
 
 blob_t*   rpttpl_serialize_wrapper(rpttpl_t *rpttpl);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _REPORT_H_ */

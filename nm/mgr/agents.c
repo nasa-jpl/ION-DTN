@@ -150,7 +150,7 @@ void agent_rotate_log(agent_t *agent, int force)
 			agent->log_fd_cnt = 0;
 			agent->log_file_num++;
 		} else {
-			AMP_DEBUG_ERR("Failed to open report log file (%s) for agent %s", fn, agent->eid.name);
+		  AMP_DEBUG_ERR("agent_rotate_log", "Failed to open report log file (%s) for agent %s", fn, agent->eid.name);
 		}
 	}
 	else if (agent->log_fd != NULL)

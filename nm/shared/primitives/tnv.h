@@ -39,6 +39,9 @@
 #include "../utils/vector.h"
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * +--------------------------------------------------------------------------+
@@ -171,7 +174,7 @@ tnv_t*    tnv_from_map(amp_type_e type, uint8_t map_idx);
 tnv_t*    tnv_from_obj(amp_type_e type, void *item);
 tnv_t*    tnv_from_real32(float val);
 tnv_t*    tnv_from_real64(double val);
-tnv_t*    tnv_from_str(char *str);
+tnv_t*    tnv_from_str(const char *str);
 tnv_t*    tnv_from_uint(uint32_t val);
 tnv_t*    tnv_from_uvast(uvast val);
 tnv_t*    tnv_from_tv(time_t val);
@@ -230,4 +233,8 @@ int      tnvc_size(tnvc_t *tnvc);
 int      tnvc_update(tnvc_t *tnvc, uint8_t idx, tnv_t *src_tnv);
 
 
-#endif // TNV_H_INCLUDED
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _TNV_H_ */
