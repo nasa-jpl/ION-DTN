@@ -5,6 +5,7 @@
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
+<<<<<<< HEAD
 ACS=""
 if [[ $BP_VERSION == "bpv6" ]] ; then
     echo "Looking for acsadmin"
@@ -13,6 +14,12 @@ if [[ $BP_VERSION == "bpv6" ]] ; then
     else
         ACS="missing"
     fi
+=======
+which acsadmin
+echo "Looking for acsadmin"
+if [ $? -eq 0 ] ; then
+	ACS="found"
+>>>>>>> origin/update-4.1.2-tcpcl-tests
 fi
 
 echo "Cleaning up old ION ..."

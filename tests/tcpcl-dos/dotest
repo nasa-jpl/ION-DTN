@@ -1,22 +1,17 @@
 #!/bin/bash
 #
-# Mithun Roy(Mostly Dave's loopback test script)
-# March 10, 2010
-
 # script runs netcat on local port 4556, this will make tcpcl
 # on the local machine to send a contact header and wait for
 # a contact header. 
 # while tcpcl is waiting for a contact header, open a new connection
 # and send a bundle. If we can receive the bundle successfully,
-# then the dos bug has been fixed
+# then the dos bug has been fixed.
 
-# documentation boilerplate
-CONFIGFILES=" \
-${CONFIGSROOT}/loopback-tcp/loopback.ionrc \
-${CONFIGSROOT}/loopback-tcp/loopback.bprc  \
-${CONFIGSROOT}/loopback-tcp/loopback.ionsecrc \
-${CONFIGSROOT}/loopback-tcp/loopback.ipnrc \
-"
+function pause(){
+ read -s -n 1 -p "Press any key to continue . . ."
+ echo ""
+}
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -27,23 +22,6 @@ echo "PURPOSE: To ensure that tcpcli doesn't have a denial-of-service type bug.
 	the other end.  Tcpcli should still accept more incoming connections
 	even if one is improperly initialized."
 echo
-echo "CONFIG: The standard configuration loopback-tcp: "
-echo
-for N in $CONFIGFILES
-do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
-done
-echo "OUTPUT: While running a single node loopback configuration, we will
-	use netcat to connect to the node.  This connection will not function
-	properly- netcat will not respond with any initialization header.  This
-	leaves the netcat-initialized tcp connection in a bad state with ION.
-	During this process, a single bundle is sent to the node via loopback.
-	Messages below will confirm if the bundle was successfully sent (PASS)
-	or if the bad tcp connection has halted the tcpcl, prohibiting bundle
-	transmission (FAIL)."
 echo
 echo "########################################"
 
@@ -64,44 +42,121 @@ if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
 	exit 2
 fi
 
+# Setup Two ION Instances
+
+SENDER_PORT=4555
+RECEIVER_PORT=4556
+
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	ACS="found"
+    echo "ACS is found"
+fi
+
+echo "Cleaning up old ION ..."
+./cleanup
+killm
+sleep 1
+
 echo "Starting ION..."
-CONFIGDIR="${CONFIGSROOT}/loopback-tcp"
-ionstart                           \
-    -i ${CONFIGDIR}/loopback.ionrc \
-    -b ${CONFIGDIR}/loopback.bprc  \
-    -s ${CONFIGDIR}/loopback.ionsecrc \
-    -p ${CONFIGDIR}/loopback.ipnrc
+export ION_NODE_LIST_DIR=$PWD
+
+# Set up node 1
+cd 1.ipn.tcp/
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -ne 2 ]; then
+    echo "Node 1 not started: Aborting Test"
+    exit 1
+fi
+
+# Set up node 2
+cd ../2.ipn.tcp/
+if [ $ACS == "found" ] ; then
+	./ionstart-acs
+else
+	./ionstart
+fi
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+echo "ION Nodes started successfully..."
+echo ""
+echo "Due to potentailly very slow start for TCPCL when"
+echo "no peer is running. We need to make sure ipnadmin" 
+echo "is completed and also bp daemons were launched"
+echo "before proceeding to the next step."
+echo ""
+echo "This can take up to 2 minutes."
+echo ""
+echo "Check Node 1 first..."
+cd ../1.ipn.tcp/
+bpclm_running=""
+while [ "$bpclm_running" == "" ]
+do
+    echo "...wait for bpclm to run for 5 seconds..."
+    sleep 5
+    bpclm_running=$(grep "bpclm is running" ion.log)
+done
+echo "bpclm started for node 1"
+echo ""
+
+echo "Check Node 2 next..."
+cd ../2.ipn.tcp/
+bpclm_running=""
+while [ "$bpclm_running" == "" ]
+do
+    echo "...wait for bpclm to run for 5 seconds..."
+    sleep 5
+    bpclm_running=$(grep "bpclm is running" ion.log)
+done
+echo "bpclm started for node 2"
+echo ""
+echo "Ready to proceed to rest of the test..."
 
 # starting a bogus connection
-echo "starting netcat..."
-netcat 127.0.0.1 4556 >/dev/null &
+cd ../1.ipn.tcp/
+echo "starting netcat from node 1..."
+nc 127.0.0.1 $RECEIVER_PORT >/dev/null &
 NETCATPID=$!
+
+sleep 5
 
 # create the test message in a sent file
 # the exclamation point signals the bundle sender to quit
 echo $IONMESSAGE > $IONSENDFILE
 echo "!" >> $IONSENDFILE
 
-
 # receive the message and store it in a file via test bundle sink
-echo "Starting Message Listener..."
-bpsink ipn:1.1 > $IONRECEIVEFILE &
+echo "Starting Message Listener on node 2..."
+cd ../2.ipn.tcp/
+bpsink ipn:2.2 > $IONRECEIVEFILE &
 BPSINKPID=$!
 
 # give bpsink some time to start up
 sleep 5
 
-
 # send the message in the file via test bundle source
-echo "Sending message..."
-bpsource ipn:1.1 < $IONSENDFILE &
+echo "Sending message from node 1..."
+cd ../1.ipn.tcp/
+bpsource ipn:2.2 < $IONSENDFILE &
 BPSOURCEPID=$!
 
-# sleep and kill process in case it didn't end properly
 sleep 5
+
+# sleep and kill process in case it didn't end properly
 echo "Killing bpsource if it is still running..."
 kill -9 $BPSOURCEPID >/dev/null 2>&1
-
 
 # bpsink does not self-terminate, so send it SIGINT
 echo "stopping bpsink"
@@ -116,9 +171,20 @@ sleep 1
 kill -9 $NETCATPID >/dev/null 2>&1
 
 # shut down ion processes
-echo "Stopping ion..."
-ionstop
+echo "Stopping ion node 1..."
+cd ../1.ipn.tcp/
+./ionstop
+killm
+sleep 2
 
+echo "Stopping ion node 2..."
+cd ../2.ipn.tcp/
+./ionstop
+killm
+sleep 2
+
+echo "Clean everything..."
+killm
 
 # compare the sent message to the received one
 if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
@@ -126,7 +192,7 @@ if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
     echo
     echo "Sent this:"
     echo "----------------------------------------------------------------------"
-    cat $IONSENDFILE
+    cat ../1.ipn.tcp/$IONSENDFILE
     echo "----------------------------------------------------------------------"
     echo
     echo "Received this:"
@@ -141,7 +207,8 @@ fi
 
 
 # clean up
-#rm -f $IONSENDFILE $IONRECEIVEFILE
+#../
+#./cleanup
 
 
 exit $RETVAL

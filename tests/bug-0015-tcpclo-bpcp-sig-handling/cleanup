@@ -1,8 +1,9 @@
 #!/bin/bash
-# Samuel Jero
-# Ohio University
-# March 5, 2013
+#
+# James Swaro
+# April 25, 2012
 
-echo "Cleaning up old ION..."
+echo "Cleaning up old ION ..."
 killm
-rm -f ion.log ./data ./bpdriverAduFile ./testfile* ./bpacq.*
+rm -f ion_nodes 1.ipn.tcp/ion.log 1.ipn.tcp/dpdriverAduFile 2.ipn.tcp/ion.log 2.ipn.tcp/testfile* 2.ipn.tcp/bpacq*
+

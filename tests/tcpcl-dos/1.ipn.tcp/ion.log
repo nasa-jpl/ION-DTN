@@ -1,0 +1,40 @@
+[2022/04/24-18:33:20] [i] This node deploys bundle protocol version 7.
+[2022/04/24-18:33:20] [i] Bundle security is enabled.
+[2022/04/24-18:34:47] [i] rfxclock is running.
+[2022/04/24-18:34:48] [i] Not configured for multicast; cpsd stopping.
+[2022/04/24-18:34:48] [i] ipnadminep is running.
+[2022/04/24-18:34:49] [i] bptransit is running.
+[2022/04/24-18:34:49] [i] tcpcli is running [127.0.0.1:4555].
+[2022/04/24-18:34:49] [i] Can't connect to TCP socket (refused): 127.0.0.1:4556
+[2022/04/24-18:34:49] [i] bpclock is running.
+[2022/04/24-18:34:49] [i] ipnfw is running.
+[2022/04/24-18:34:50] [i] Can't connect to TCP socket (refused): 127.0.0.1:4556
+[2022/04/24-18:34:51] [i] tcpcli sender thread has started: ipn:2.0
+[2022/04/24-18:34:51] [i] tcpcli admin thread has started: ipn:2.0
+[2022/04/24-18:34:52] [i] Connected to TCP socket: 127.0.0.1:4556
+[2022/04/24-18:34:52] [i] tcpcli sender thread has started: ipn:2.0
+[2022/04/24-18:34:52] [i] tcpcli admin thread has started: ipn:2.0
+[2022/04/24-18:35:41] [i] bpclm is running: ipn:2.0
+[2022/04/24-18:35:57] [i] Stopping bpsource.
+[2022/04/24-18:36:04] [i] ipnfw forwarder has ended.
+[2022/04/24-18:36:04] [i] Endpoint has been stopped.
+[2022/04/24-18:36:04] [i] Plan has been stopped: ipn:2.0
+[2022/04/24-18:36:04] [i] Administrative endpoint terminated.
+[2022/04/24-18:36:04] [i] bpclm has ended: ipn:2.0
+[2022/04/24-18:36:04] [i] ipnadminep has ended.
+[2022/04/24-18:36:04] [i] bpclock has ended.
+[2022/04/24-18:36:04] [i] tcpcli server thread has ended.
+[2022/04/24-18:36:04] [i] bptransit has ended.
+[2022/04/24-18:36:05] [i] tcpcli admin thread has ended: ipn:2.0
+[2022/04/24-18:36:05] [i] Outduct has been stopped: 127.0.0.1:4556
+[2022/04/24-18:36:05] [i] tcpcli session output stopped: 127.0.0.1:4556
+[2022/04/24-18:36:05] [i] tcpcli sender thread has ended: ipn:2.0
+[2022/04/24-18:36:05] [i] tcpcli receiver thread has ended: ipn:2.0
+[2022/04/24-18:36:05] [i] tcpcli admin thread has ended: ipn:2.0
+[2022/04/24-18:36:05] [i] Outduct has been stopped: #:5
+[2022/04/24-18:36:05] [i] tcpcli session output stopped: #:5
+[2022/04/24-18:36:05] [i] tcpcli sender thread has ended: ipn:2.0
+[2022/04/24-18:36:06] [i] tcpcli receiver thread has ended: ipn:2.0
+[2022/04/24-18:36:07] [i] tcpcli clock thread has ended.
+[2022/04/24-18:36:07] [i] tcpcli has ended.
+[2022/04/24-18:36:08] [i] rfxclock has ended.

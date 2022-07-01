@@ -1,0 +1,115 @@
+[2022/04/24-18:33:21] [i] This node deploys bundle protocol version 7.
+[2022/04/24-18:33:21] [i] Bundle security is enabled.
+[2022/04/24-18:34:49] [i] rfxclock is running.
+[2022/04/24-18:34:49] [i] ipnadminep is running.
+[2022/04/24-18:34:50] [i] Not configured for multicast; cpsd stopping.
+[2022/04/24-18:34:50] [i] ipnfw is running.
+[2022/04/24-18:34:50] [i] tcpcli is running [127.0.0.1:4556].
+[2022/04/24-18:34:50] [i] Connected to TCP socket: 127.0.0.1:4555
+[2022/04/24-18:34:50] [i] bptransit is running.
+[2022/04/24-18:34:50] [i] bpclock is running.
+[2022/04/24-18:34:51] [i] tcpcli sender thread has started: ipn:1.0
+[2022/04/24-18:34:51] [i] tcpcli admin thread has started: ipn:1.0
+[2022/04/24-18:34:52] [i] tcpcli sender thread has started: ipn:1.0
+[2022/04/24-18:34:52] [i] tcpcli admin thread has started: ipn:1.0
+[2022/04/24-18:35:42] [i] bpclm is running: ipn:1.0
+[2022/04/24-18:36:04] at line 1248 of bpv7/tcp/tcpcli.c, Can't get TCPCL contact header. (#:7)
+[2022/04/24-18:36:04] [i] tcpcli got no valid contact header: #:7
+[2022/04/24-18:36:04] [i] tcpcli receiver thread has ended: #:7
+[2022/04/24-18:36:05] [i] tcpcli admin thread has ended: ipn:1.0
+[2022/04/24-18:36:05] [i] Outduct has been stopped: #:6
+[2022/04/24-18:36:05] [i] tcpcli session output stopped: #:6
+[2022/04/24-18:36:05] [i] tcpcli sender thread has ended: ipn:1.0
+[2022/04/24-18:36:05] [i] tcpcli receiver thread has ended: ipn:1.0
+[2022/04/24-18:36:05] [i] tcpcli admin thread has ended: ipn:1.0
+[2022/04/24-18:36:05] [i] Outduct has been stopped: 127.0.0.1:4555
+[2022/04/24-18:36:05] [i] tcpcli session output stopped: 127.0.0.1:4555
+[2022/04/24-18:36:05] [i] tcpcli sender thread has ended: ipn:1.0
+[2022/04/24-18:36:07] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-18:36:07] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-18:36:11] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-18:36:11] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (66)
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (73)
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (70)
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (65)
+[2022/04/24-18:36:13] at line 709 of bpv7/library/libbp.c, Can't take endpoint semaphore.
+[2022/04/24-18:36:13] at line 250 of bpv7/daemon/bpclm.c, bpclm can't take plan semaphore. (ipn:1.0)
+[2022/04/24-18:36:13] at line 152 of bpv7/daemon/bptransit.c, Can't take transit semaphore.
+[2022/04/24-18:36:13] at line 11949 of bpv7/library/libbpP.c, Admin bundle reception failed.
+[2022/04/24-18:36:13] at line 1333 of bpv7/ipn/ipnfw.c, Can't take forwarder semaphore.
+[2022/04/24-18:36:13] at line 490 of bpv7/daemon/bpclm.c, bpclm can't get outbound bundle.
+[2022/04/24-18:36:13] [i] Administrative endpoint terminated.
+[2022/04/24-18:36:13] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (70)
+[2022/04/24-18:36:13] [i] ipnfw forwarder has ended.
+[2022/04/24-18:36:13] [i] bpclm has ended: ipn:1.0
+[2022/04/24-18:36:13] [i] ipnadminep has ended.
+[2022/04/24-18:36:13] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (77)
+[2022/04/24-18:36:13] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (77)
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/04/24-18:36:13] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/04/24-18:36:13] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/04/24-18:36:13] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/04/24-18:36:13] [i] bptransit has ended.
+[2022/04/24-18:36:13] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/04/24-18:36:13] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/04/24-18:36:14] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (38)
+[2022/04/24-18:36:14] at line 478 of ici/daemon/rfxclock.c, rfxclock failed to begin new transaction.
+[2022/04/24-18:36:14] [i] rfxclock has ended.
+[2022/04/24-18:36:14] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/04/24-18:36:14] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/04/24-18:36:14] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (43)
+[2022/04/24-18:36:14] at line 82 of ici/library/smrbt.c, Can't lock red-black table.
+[2022/04/24-18:36:14] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (38)
+[2022/04/24-18:36:14] at line 54 of bpv7/daemon/bpclock.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/04/24-18:36:14] [i] Current stack trace:
+[2022/04/24-18:36:14] [i] : /usr/local/lib/libici.so.0(printStackTrace+0x32) [0x7ff18a72159f]
+[2022/04/24-18:36:14] [i] : /usr/local/lib/libici.so.0(_iEnd+0x48) [0x7ff18a72154e]
+[2022/04/24-18:36:14] [i] : bpclock(+0x28d4) [0x5634a45878d4]
+[2022/04/24-18:36:14] [i] : bpclock(+0x370f) [0x5634a458870f]
+[2022/04/24-18:36:14] [i] : /lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf3) [0x7ff18a4c30b3]
+[2022/04/24-18:36:14] [i] : bpclock(+0x270e) [0x5634a458770e]
+[2022/04/24-18:36:14] at line 556 of bpv7/daemon/bpclock.c, Can't dispatch events.
+[2022/04/24-18:36:14] [i] bpclock has ended.
+[2022/04/24-18:36:14] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/04/24-18:36:14] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2022/04/24-18:36:15] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (43)
+[2022/04/24-18:36:15] at line 82 of ici/library/smrbt.c, Can't lock red-black table.
+[2022/04/24-18:36:16] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (43)
+[2022/04/24-18:36:16] at line 82 of ici/library/smrbt.c, Can't lock red-black table.
+[2022/04/24-18:36:17] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (43)
+[2022/04/24-18:36:17] at line 82 of ici/library/smrbt.c, Can't lock red-black table.
+[2022/04/24-18:36:18] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (43)
+[2022/04/24-18:36:18] at line 82 of ici/library/smrbt.c, Can't lock red-black table.
+[2022/04/24-18:36:19] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (43)
+[2022/04/24-18:36:19] at line 82 of ici/library/smrbt.c, Can't lock red-black table.
+[2022/04/24-18:36:19] [i] Can't connect to TCP socket (refused): 127.0.0.1:4555
+[2022/04/24-18:36:19] [i] tcpcli unable to reconnect: ipn:1.0
+[2022/04/24-18:36:20] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (43)
+[2022/04/24-18:36:20] at line 82 of ici/library/smrbt.c, Can't lock red-black table.
+[2022/04/24-18:36:21] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (38)
+[2022/04/24-18:36:21] at line 2357 of bpv7/tcp/tcpcli.c, Assertion failed. (sdr_begin_xn(sdr))
+[2022/04/24-18:36:21] [i] Current stack trace:
+[2022/04/24-18:36:21] [i] : /usr/local/lib/libici.so.0(printStackTrace+0x32) [0x7f824ca5159f]
+[2022/04/24-18:36:21] [i] : /usr/local/lib/libici.so.0(_iEnd+0x48) [0x7f824ca5154e]
+[2022/04/24-18:36:21] [i] : tcpcli(+0x84a7) [0x56040579f4a7]
+[2022/04/24-18:36:21] [i] : tcpcli(+0x8a2e) [0x56040579fa2e]
+[2022/04/24-18:36:21] [i] : tcpcli(+0x8f54) [0x56040579ff54]
+[2022/04/24-18:36:21] [i] : /lib/x86_64-linux-gnu/libpthread.so.0(+0x9609) [0x7f824caa0609]
+[2022/04/24-18:36:21] [i] : /lib/x86_64-linux-gnu/libc.so.6(clone+0x43) [0x7f824c8f3293]
+[2022/04/24-18:36:21] [i] tcpcli clock thread has ended.
+[2022/04/24-18:36:21] [i] tcpcli server thread has ended.
+[2022/04/24-18:36:21] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (38)
+[2022/04/24-18:36:23] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (40)
+[2022/04/24-18:36:23] [i] tcpcli has ended.
+[2022/04/24-18:36:23] at line 1922 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2022/04/24-18:36:23] at line 1952 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)

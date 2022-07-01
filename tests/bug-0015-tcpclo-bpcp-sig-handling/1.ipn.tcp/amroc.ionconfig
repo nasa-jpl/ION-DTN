@@ -1,6 +1,5 @@
-wmKey 1
-sdrName ion2
+wmKey 2
+sdrName ion1
 wmSize 2000000
 configFlags 1
 heapWords 80000
-pathName /usr/ion2
