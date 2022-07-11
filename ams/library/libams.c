@@ -703,7 +703,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 	int	deliveredContentLength;
 	AmsMsg	msg;
 	Module	*sender;
-	short	subjectNbr;
+	int	subjectNbr;
 	Subject	*subject;
 	LystElt	elt;
 	char	*name;
@@ -931,7 +931,7 @@ static MarshalFn	findMarshalFn(Subject *subject)
 	return NULL;
 }
 
-static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
+static int	constructMessage(AmsSAP *sap, int subjectNbr, int priority,
 			unsigned char flowLabel, int context, char **content,
 			int *contentLength, unsigned char *header,
 			AmsMsgType msgType)
@@ -1106,7 +1106,7 @@ static int	getDeclarationLength(AmsSAP *sap)
 
 static void	loadAssertion(char **cursor, int ruleType, unsigned char
 			roleNbr, unsigned int continuumNbr, unsigned short
-			unitNbr, short subjectNbr, int vectorNbr, int priority,
+			unitNbr, int subjectNbr, int vectorNbr, int priority,
 			unsigned char flowLabel)
 {
 	subjectNbr = htons(subjectNbr);
