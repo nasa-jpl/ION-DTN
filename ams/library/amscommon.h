@@ -77,7 +77,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	21000000 /* Used only as a sanity check */
+#define	MAX_CONTIN_NBR	2100000 /* Used only as a sanity check */
 #endif
 
 #ifndef MAX_VENTURE_NBR

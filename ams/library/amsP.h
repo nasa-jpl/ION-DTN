@@ -213,7 +213,7 @@ typedef struct
 	int		continuumNbr;
 	int		unitNbr;
 	short		moduleNbr;
-	short		subjectNbr;
+	int		subjectNbr;
 	int		contextNbr;
 	AmsMsgType	type;
 	int		contentLength;
