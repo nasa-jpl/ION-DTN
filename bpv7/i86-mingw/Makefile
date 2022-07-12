@@ -20,10 +20,11 @@ BIBE = ../bibe
 IPND = ../ipnd
 ICI = ../../ici
 SAGA = ../saga
+BPSEC = ../bpsec
 
 OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC
 # -Werror
-CC = gcc $(OPT) -I$(ICI)/incude -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(API)/ext/imc -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(ICI)/incude -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(API)/ext/imc -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
 
 
 LDFLAGS = -fPIC -shared
@@ -34,7 +35,6 @@ PUBINCLS = \
 
 BPINCLS = \
 	$(API)/bpP.h \
-	$(INCL)/bpsec.h \
 	$(BIBE)/bibe.h \
 	$(SAGA)/saga.h \
 	$(ICI)/include/cbor.h \
@@ -49,12 +49,30 @@ BPINCLS = \
 	$(API)/ext/imc/imc.h \
 	$(API)/ext/snw/snw.h \
 	$(DGR_MAIN)/include/dgr.h \
-	$(DCCP)/dccpcla.h
+	$(DCCP)/dccpcla.h \
+	$(INCL)/eureka.h \
+	$(BPSEC)/sci/sci.h \
+	$(BPSEC)/sci/ion_test_sc.h \
+	$(BPSEC)/sci/bib_hmac_sha2_sc.h \
+	$(BPSEC)/sci/bcb_aes_gcm_sc.h \
+	$(BPSEC)/sci/rfc9173_utils.h \
+	$(BPSEC)/utils/bpsec_util.h \
+	$(BPSEC)/utils/bpsec_asb.h \
+	$(BPSEC)/instr/bpsec_instr.h \
+	$(BPSEC)/policy/bpsec_policy.h \
+	$(BPSEC)/policy/bpsec_policy_eventset.h \
+	$(BPSEC)/policy/bpsec_policy_event.h \
+	$(BPSEC)/policy/bpsec_policy_rule.h \
+	$(BPSEC)/policy/bpsec_policy.c \
+	$(BPSEC)/policy/bpsec_policy_eventset.c \
+	$(BPSEC)/policy/bpsec_policy_event.c \
+	$(BPSEC)/policy/bpsec_policy_rule.c
+
 
 BPLIBS = \
 	libbp.dll
 
-BPPOBJS = libbpP.o eureka.o bei.o bibe.o bpsec.o imc.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bpsec_util.o bpsec_instr.o profiles.o bib.o bcb.o
+BPPOBJS = libbpP.o eureka.o bei.o bibe.o imc.o saga.o snw.o pnb.o hcb.o bpq.o meb.o bae.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bpsec_util.o bpsec_instr.o bib.o bcb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
@@ -394,6 +412,18 @@ libudpcla.dll:	libudpcla.o
 		$(CC) -c $<
 
 %.o:		$(API)/ext/snw/%.c
+		$(CC) -c $<
+
+%.o:		$(BPSEC)/instr/%.c
+		$(CC) -c $<
+
+%.o:		$(BPSEC)/policy/%.c
+		$(CC) -c $<
+
+%.o:		$(BPSEC)/sci/%.c
+		$(CC) -c $<
+
+%.o:		$(BPSEC)/utils/%.c
 		$(CC) -c $<
 
 %.o:		$(TEST)/%.c
