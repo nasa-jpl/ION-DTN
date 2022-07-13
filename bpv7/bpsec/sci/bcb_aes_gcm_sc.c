@@ -576,7 +576,7 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
     {
     	csi_val_t csi_tmp;
 
-        csi_tmp = csi_crypt_parm_get(suite, BPSEC_BAGSC_PARM_IV);
+        csi_tmp = csi_crypt_parm_get(suite, (csi_parmid_t) BPSEC_BAGSC_PARM_IV);
         if(csi_tmp.len == 0)
         {
             BPSEC_DEBUG_ERR("Cannot get IV using suite %d.", suite);

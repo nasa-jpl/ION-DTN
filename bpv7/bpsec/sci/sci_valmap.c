@@ -409,7 +409,7 @@ char* bpsec_scvm_hexStrEncode(PsmPartition wm, sc_value *val)
         sprintf(cursor,"%02x", value);
         cursor += 2;
     }
-    cursor = '\0';
+    cursor = NULL;
 
     return result;
 }
