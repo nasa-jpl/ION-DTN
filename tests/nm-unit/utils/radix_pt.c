@@ -53,7 +53,7 @@ Lyst radixpt_lyst_populate()
 		{
 			LystTestData *test_data = (LystTestData*) malloc(sizeof(LystTestData));
 			memset(test_data, 0, sizeof(LystTestData));
-			strncpy(&(test_data->key[0]), tmp, RADIX_MAX_SUBSTR);
+			strncpy(&(test_data->key[0]), tmp, RADIX_MAX_SUBSTR-1);
 			test_data->data = strndup(tmp,RADIX_MAX_SUBSTR);
 			if(gConfig.verbose)
 			{

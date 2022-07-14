@@ -3375,7 +3375,6 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
 	tests/issue-330-cfdpclock-FDU-removal/cfdplisten \
 	tests/issue-334-cfdp-transaction-id/dotest \
-	tests/nm-unit/dotest \
 	tests/nm-unit/utils/vector/dotest \
 	tests/nm-unit/utils/rhht/dotest \
 	tests/nm-unit/utils/radix_pt/dotest \
