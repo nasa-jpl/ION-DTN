@@ -289,6 +289,17 @@ void msgs_encoding_tests() {
 int main(int argc, char **argv)
 {
    printf("Test Suite Built on %s %s\n", __DATE__, __TIME__);
+
+   sleep(5);
+
+   /* Start ION */
+   ionstart_default_config("loopback-ltp/loopback.ionrc",
+		                   "loopback-ltp/loopback.ionsecrc",
+						   "loopback-ltp/loopback.ltprc",
+						   "loopback-ltp/loopback.bprc",
+						   "loopback-ltp/loopback.ipnrc",
+                           NULL);
+
    // Setup
    if (ionAttach() < 0)
    {
