@@ -205,6 +205,8 @@ extern void	sec_get_sbspSrcEIDs(char *buffer, int length);
 		 * with sbsp rule src EID names. Src names are
 		 * comma-separated as "K1,K2,CS3".
 		 */
+
+int 		eidsMatch(char *firstEid, int firstEidLen, char *secondEid, int secondEidLen);
 #endif
 
 #ifdef __cplusplus
