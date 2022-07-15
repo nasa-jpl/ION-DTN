@@ -180,14 +180,13 @@ void test_simple_int(void)
 
 int main(void)
 {
-#if 0
    // Memory initialization
    if (ionAttach() < 0)
    {
       AMP_DEBUG_ERR("nm_dotest", "can't attach to ION.", NULL);
       return -1;
    }
-#endif
+
    utils_mem_int(); // Initialize utils
    db_init("test_db", &adm_init); // Initialize global structures (used in some nested functions)
 

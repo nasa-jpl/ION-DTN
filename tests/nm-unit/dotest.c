@@ -289,14 +289,23 @@ void msgs_encoding_tests() {
 int main(int argc, char **argv)
 {
    printf("Test Suite Built on %s %s\n", __DATE__, __TIME__);
-#if 0
+
+   sleep(5);
+
+   /* Start ION */
+   ionstart_default_config("loopback-ltp/loopback.ionrc",
+		                   "loopback-ltp/loopback.ionsecrc",
+						   "loopback-ltp/loopback.ltprc",
+						   "loopback-ltp/loopback.bprc",
+						   "loopback-ltp/loopback.ipnrc",
+                           NULL);
+
    // Setup
    if (ionAttach() < 0)
    {
       AMP_DEBUG_ERR("nm_dotest", "can't attach to ION.", NULL);
       return -1;
    }
-#endif
    
    utils_mem_int(); // Initialize utils
    db_init("test_db", &adm_init_stub); // Initialize global structures (used in some nested functions)

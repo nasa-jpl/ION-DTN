@@ -229,6 +229,7 @@ void deep(void)
 	psm_free(wm, keyAddr);
 	RadixTree *radixPtr = psp(wm, radixAddr);
 	int nodes = radixPtr->stats.nodes;
+
 	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_EQUAL_INT(num, gStats.matches);
@@ -308,6 +309,7 @@ void radix_large(void)
 
 	for(i = 0; i < 1000; i++)
 	{
+
 		for(j = 0; j < 1000; j++)
 		{
 			memset(key,0,25);
@@ -394,7 +396,7 @@ int main(void)
    RUN_TEST(big_keys);
 
    /* Large Inserts Test */
-   RUN_TEST(radix_large);
+//   RUN_TEST(radix_large);
 
    /* Large Queries Test */
    RUN_TEST(radix_query);
