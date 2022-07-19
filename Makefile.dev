@@ -1,53 +1,55 @@
 BP = bpv7
 
+$(info ION ROOT: ADD_FLAGS is $(ADD_FLAGS))
+
 all:	with$(BP)
 
 withbpv6:
-	gmake -C ici all
+	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)" 
 	gmake -C ici install
-	gmake -C ltp all
+	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ltp install
-	gmake -C dgr all
+	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dgr install
-	gmake -C bssp all
+	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bssp install
-	gmake -C $(BP) all
+	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C $(BP) install
-	gmake -C ams all
+	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ams install
-	gmake -C cfdp all
+	gmake -C cfdp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C cfdp install
-	gmake -C bss all
+	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bss install
-	gmake -C dtpc all
+	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dtpc install
-	gmake -C nm all
+	gmake -C nm all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C nm install
-	gmake -C restart all BP=$(BP)
+	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C restart install BP=$(BP)
 
 withbpv7:
-	gmake -C ici all
+	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ici install
-	gmake -C ltp all
+	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ltp install
-	gmake -C dgr all
+	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dgr install
-	gmake -C bssp all
+	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bssp install
-	gmake -C $(BP) all
+	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C $(BP) install
-	gmake -C ams all
+	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ams install
-	gmake -C cfdp all
+	gmake -C cfdp all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C cfdp install
-	gmake -C bss all
+	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bss install
-	gmake -C dtpc all
+	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dtpc install
-#	gmake -C nm all
+#	gmake -C nm all ADD_FLAGS="$(ADD_FLAGS)"
 #	gmake -C nm install
-	gmake -C restart all BP=$(BP)
+	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C restart install BP=$(BP)
 
 clean:
