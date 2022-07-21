@@ -12,9 +12,10 @@ a protocol udp 1400 100
 a outduct udp 127.0.0.1:5003 udpclo
 a protocol bibe 1400 100
 a induct bibe * ''
-a outduct bibe ipn:4.0 'bibeclo ipn:3.0'
-a plan ipn:4.0 1000000000
-a planduct ipn:4.0 bibe ipn:4.0
+a outduct bibe ipn:3.0 'bibeclo ipn:3.0'
+a plan ipn:3.0 1000000000
+a planduct ipn:3.0 udp 127.0.0.1:5003
+a planduct ipn:3.0 bibe ipn:3.0
 r 'ipnadmin bench.ipnrc'
 w 1
 s

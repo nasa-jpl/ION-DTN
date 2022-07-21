@@ -80,17 +80,26 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.bibe
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 "Go."
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
-bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1.0.0.0.13 @bpdriverAduFile
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 "Go."
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
+sleep 6
+bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -122,9 +131,9 @@ then
 	echo "Test did not complete."
 fi
 
-echo "Waiting 20 sec for transmission to complete and fragments to expire..."
+echo "Waiting 150 sec for transmission to complete and fragments to expire..."
 
-sleep 20
+sleep 150
 
 echo "...stopping ION..."
 cd ../2.bench.bibe

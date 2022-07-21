@@ -10,11 +10,13 @@ a protocol stcp 1400 100
 a induct stcp 127.0.0.1:5002 stcpcli
 a protocol udp 1400 100
 a induct udp 127.0.0.1:5002 udpcli
+# port 4546 goes to OWLT sim
 a outduct udp 127.0.0.1:4546 udpclo
 a protocol bibe 1400 100
 a induct bibe * ''
 a outduct bibe ipn:3.0 'bibeclo ipn:3.0'
 a plan ipn:3.0 1000000000
+# port 4546 goes to OWLT sim
 a planduct ipn:3.0 udp 127.0.0.1:4546
 a planduct ipn:3.0 bibe ipn:3.0
 r 'ipnadmin amroc.ipnrc'
