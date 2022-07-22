@@ -9,9 +9,9 @@ a endpoint ipn:3.65 x
 a protocol stcp 1400 100
 a induct stcp 127.0.0.1:5003 stcpcli
 a outduct stcp 127.0.0.1:5004 stcpclo
-a outduct stcp 127.0.0.1:5002 stcpclo
 a protocol udp 1400 100
 a induct udp 127.0.0.1:5003 udpcli
+a outduct udp 127.0.0.1:5002 udpclo
 a protocol bibe 1400 100
 a induct bibe * ''
 a outduct bibe ipn:2.0 'bibeclo ipn:2.0'

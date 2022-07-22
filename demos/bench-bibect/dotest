@@ -11,7 +11,7 @@ CONFIGFILES=" \
 ./2.bench.bibe/bench.ionconfig \
 ./2.bench.bibe/bench.ionrc \
 ./2.bench.bibe/bench.ionsecrc \
-./2.bench.bibe/bench.ipnrc \
+./2.bench.bibe/benc-.ipnrc \
 ./3.bench.bibe/bench.bprc \
 ./3.bench.bibe/bench.biberc \
 ./3.bench.bibe/bench.ionconfig \
@@ -28,17 +28,16 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: produce simple throughput benchmark results, for direct
-	comparison among computing platforms running ION.  The test is
-	performed using the BIBE convergence-layer protocol (over UDP/IP)
-	between neighboring nodes residing on the same computer, relying
-	on BIBE custodial retransmission for reliability; bundles received
-	via BIBE are forwarded to the final destination by STCP.  So the
-	results exercise BP and BIBE CT in a non-loopback configuration,
-	over loopback IP; the results are therefore unaffected by network
-	traffic, router performance, or network interface card performance.
-	Since the bundle size exceeds the maximum capacity of a UDP
-	packet, the test exercises BP fragmentation and reassembly as well."
+echo "PURPOSE: produce a demonstration configuration for using the 
+	BIBE convergence-layer protocol (over UDP/IP) between neighboring 
+	DTN nodes, relying on BIBE custodial retransmission for reliability; 
+	bundles received via BIBE are forwarded to the final destination 
+	by STCP. Since the bundle size exceeds the maximum capacity of a UDP
+	packet, the test exercises BP fragmentation and reassembly as well.
+	Due to the inherent unreliability of UDP and the fact the way network
+	subsystem drops UDP data is implementation-dependent, the actual 
+	throughput will vary from system to system. A final note is that the
+	throughput is also a function of the size of the bundle."
 
 echo
 echo "CONFIG: 2 node custom:"
@@ -73,7 +72,7 @@ cd ../3.bench.bibe
 
 sleep 3
 echo ""
-echo "Test 1: 10 bundles of 1000000 bytes each."
+echo "Test 1: 10 bundles of 10,000,000 bytes each."
 cd ../4.bench.bibe
 bpcounter ipn:4.1 10 &
 BPCOUNTER_PID=$!
@@ -82,23 +81,14 @@ sleep 1
 cd ../2.bench.bibe
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 "Go."
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
-sleep 6
 bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-10MB
 
 # Wait for transmission to finish.
