@@ -5510,8 +5510,8 @@ static int	handleDataSegment(uvast sourceEngineId, LtpDB *ltpdb,
 	LtpVdb			*ltpvdb = _ltpvdb(NULL);
 	LtpPdu			*pdu = &(segment->pdu);
 	char			*endOfHeader;
-	unsigned int		ckptSerialNbr;
-	unsigned int		rptSerialNbr;
+	unsigned int		ckptSerialNbr = 0;
+	unsigned int		rptSerialNbr = 0;
 	LtpVspan		*vspan;
 	PsmAddress		vspanElt;
 	LtpVImportSession	*vsession;
@@ -5845,10 +5845,13 @@ putErrmsg("Discarded data segment.", itoa(sessionNbr));
 
 	/* act on check point, even if data is duplicate */
 
-	if (pdu->segTypeCode > 0)
+	if ((pdu->segTypeCode > 0)
+		|| ((sessionBuf.redPartLength > 0)
+			&& (sessionBuf.redPartReceived == sessionBuf.redPartLength)))
 	{
-		/*	This segment is a checkpoint, so we have to
-		 *	send a report in response.			*/
+		/* Generate either a synchronous report (respond to checkpoint) or
+		 * asynchronous report (respond to receiving all red part out-of-order).
+		 */
 
 		ltpSpanTally(vspan, CKPT_RECV, 0);
 
