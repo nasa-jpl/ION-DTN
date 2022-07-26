@@ -2,4 +2,13 @@
 
 # This script is a wrapper to run all the active bpsec python tests
 
-python3 ./dotest.py --test_macro all
+PY_VER=`python3 -c 'import sys; print(sys.version_info[:2] >= (3,7))'`
+
+if [ "$PY_VER" == "True" ]; then
+
+    python3 ./dotest.py --test_macro all
+
+else
+    echo "You need to install Python version 3.7 or greater to run these tests. Exiting."
+    exit 2
+fi
