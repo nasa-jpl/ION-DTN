@@ -703,7 +703,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 	int	deliveredContentLength;
 	AmsMsg	msg;
 	Module	*sender;
-	int	subjectNbr;
+	short	subjectNbr;
 	Subject	*subject;
 	LystElt	elt;
 	char	*name;
@@ -773,6 +773,10 @@ received by non-RAMS-gateway module.");
 
 		/*	Receiving module is a RAMS gateway.		*/
 
+		/* Sky comments: 
+		This is not strictly required (serves only as sanity check in case large node number)
+		Commenting because MacOS not happy about comparing short (subjectNbr) here
+
 		subjectNbr = 0 - msg.subjectNbr;
 		if (subjectNbr > MAX_CONTIN_NBR)
 		{
@@ -781,6 +785,9 @@ received by non-RAMS-gateway module.");
 			return -1;
 		}
 
+		*/
+
+		subjectNbr = 0 - msg.subjectNbr;
 		subject = getMsgSpaceByNbr(sap->venture, subjectNbr);
 	}
 	else
@@ -931,7 +938,7 @@ static MarshalFn	findMarshalFn(Subject *subject)
 	return NULL;
 }
 
-static int	constructMessage(AmsSAP *sap, int subjectNbr, int priority,
+static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 			unsigned char flowLabel, int context, char **content,
 			int *contentLength, unsigned char *header,
 			AmsMsgType msgType)
@@ -1106,7 +1113,7 @@ static int	getDeclarationLength(AmsSAP *sap)
 
 static void	loadAssertion(char **cursor, int ruleType, unsigned char
 			roleNbr, unsigned int continuumNbr, unsigned short
-			unitNbr, int subjectNbr, int vectorNbr, int priority,
+			unitNbr, short subjectNbr, int vectorNbr, int priority,
 			unsigned char flowLabel)
 {
 	subjectNbr = htons(subjectNbr);
