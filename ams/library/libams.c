@@ -772,22 +772,19 @@ received by non-RAMS-gateway module.");
 		}
 
 		/*	Receiving module is a RAMS gateway.		*/
-
-		/* Sky comments: 
-		This is not strictly required (serves only as sanity check in case large node number)
-		Commenting because MacOS not happy about comparing short (subjectNbr) here
-
+		
 		subjectNbr = 0 - msg.subjectNbr;
-		if (subjectNbr > MAX_CONTIN_NBR)
+
+		/* Work around MacOS build error when comparing short to long (i.e. MAX_CONTIN_NBR) */
+		int verifyNbr = (int) subjectNbr; 
+
+		if (verifyNbr > MAX_CONTIN_NBR)
 		{
 			writeMemoNote("[?] Received msg for invalid continuum",
-					itoa(subjectNbr));
+					itoa(verifyNbr));
 			return -1;
 		}
 
-		*/
-
-		subjectNbr = 0 - msg.subjectNbr;
 		subject = getMsgSpaceByNbr(sap->venture, subjectNbr);
 	}
 	else
