@@ -15,7 +15,7 @@
 	Modifications address the following issues:
 
 	1.) Code reformatted to allow for full range of SANA node numbers:
-	See MAX_CONTIN_NBR directive in amscommon.h 
+	See MAX_CONTIN_NBR directive in amscommon.h for more information
 
 	Modifications include changing arrays and for-loops using the 
 	MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead
@@ -773,15 +773,12 @@ received by non-RAMS-gateway module.");
 
 		/*	Receiving module is a RAMS gateway.		*/
 		
-		subjectNbr = 0 - msg.subjectNbr;
+		subjectNbr = 0 - msg.subjectNbr;		
 
-		/* Work around MacOS build error when comparing short to long (i.e. MAX_CONTIN_NBR) */
-		int verifyNbr = (int) subjectNbr; 
-
-		if (verifyNbr > MAX_CONTIN_NBR)
+		if (subjectNbr > MAX_CONTIN_NBR)
 		{
 			writeMemoNote("[?] Received msg for invalid continuum",
-					itoa(verifyNbr));
+					itoa(subjectNbr));
 			return -1;
 		}
 
