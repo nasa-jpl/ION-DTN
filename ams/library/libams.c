@@ -773,7 +773,7 @@ received by non-RAMS-gateway module.");
 
 		/*	Receiving module is a RAMS gateway.		*/
 		
-		subjectNbr = 0 - msg.subjectNbr;		
+		subjectNbr = 0 - msg.subjectNbr;
 
 		if (subjectNbr > MAX_CONTIN_NBR)
 		{
