@@ -12,8 +12,9 @@
 	Jet Propulsion Laboratory 2022
 	
 	Modifications address the following:
-	1.) Allow for SANA node numbers (i.e up to ~2,100,000 
-		see MAX_CONTIN_NBR directive)  
+	1.) Allow for SANA node numbers (see MAX_CONTIN_NBR directive)
+	Note: this is currently constrained by the size
+	of a Short (for MacOS) 
 
 	2.) New associated function definitions for: 
 		getContinuaByNbr() and getMsgSpaceByNbr()
@@ -77,7 +78,7 @@ extern "C" {
 #define	TS_INDEX_LIMIT	5
 
 #ifndef MAX_CONTIN_NBR
-#define	MAX_CONTIN_NBR	2100000 /* Used only as a sanity check */
+#define	MAX_CONTIN_NBR	32767 /* Constrained by size of short - for MacOS*/
 #endif
 
 #ifndef MAX_VENTURE_NBR
