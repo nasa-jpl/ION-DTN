@@ -213,7 +213,7 @@ typedef struct
 	int		continuumNbr;
 	int		unitNbr;
 	short		moduleNbr;
-	int		subjectNbr;
+	short		subjectNbr;
 	int		contextNbr;
 	AmsMsgType	type;
 	int		contentLength;
@@ -231,7 +231,7 @@ typedef struct
 	int		roleNbr;
 	int		domainContinuumNbr;
 	int		domainUnitNbr;
-	int		subjectNbr;
+	short		subjectNbr;
 	int		priority;
 	unsigned char	flowLabel;
 	AmsSequence	sequence;

@@ -15,7 +15,7 @@
 	Modifications address the following issues:
 
 	1.) Code reformatted to allow for full range of SANA node numbers:
-	See MAX_CONTIN_NBR directive in amscommon.h 
+	See MAX_CONTIN_NBR directive in amscommon.h for more information
 
 	Modifications include changing arrays and for-loops using the 
 	MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead
@@ -703,7 +703,7 @@ int	enqueueAmsMsg(AmsSAP *sap, unsigned char *msgBuffer, int length)
 	int	deliveredContentLength;
 	AmsMsg	msg;
 	Module	*sender;
-	int	subjectNbr;
+	short	subjectNbr;
 	Subject	*subject;
 	LystElt	elt;
 	char	*name;
@@ -772,8 +772,9 @@ received by non-RAMS-gateway module.");
 		}
 
 		/*	Receiving module is a RAMS gateway.		*/
-
+		
 		subjectNbr = 0 - msg.subjectNbr;
+
 		if (subjectNbr > MAX_CONTIN_NBR)
 		{
 			writeMemoNote("[?] Received msg for invalid continuum",
@@ -931,7 +932,7 @@ static MarshalFn	findMarshalFn(Subject *subject)
 	return NULL;
 }
 
-static int	constructMessage(AmsSAP *sap, int subjectNbr, int priority,
+static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 			unsigned char flowLabel, int context, char **content,
 			int *contentLength, unsigned char *header,
 			AmsMsgType msgType)
@@ -1106,7 +1107,7 @@ static int	getDeclarationLength(AmsSAP *sap)
 
 static void	loadAssertion(char **cursor, int ruleType, unsigned char
 			roleNbr, unsigned int continuumNbr, unsigned short
-			unitNbr, int subjectNbr, int vectorNbr, int priority,
+			unitNbr, short subjectNbr, int vectorNbr, int priority,
 			unsigned char flowLabel)
 {
 	subjectNbr = htons(subjectNbr);
