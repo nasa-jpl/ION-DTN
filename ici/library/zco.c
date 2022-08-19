@@ -2321,7 +2321,6 @@ int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
 	Zco		zco;
 	vast		bytesToSkip;
 	vast		bytesToRevise;
-	vast		bytesRevised;
 	Object		obj;
 	Capsule		capsule;
 	vast		bytesExposed;
@@ -2341,7 +2340,6 @@ int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
 	sdr_read(sdr, (char *) &zco, zcoObj, sizeof(Zco));
 	bytesToSkip = offset;
 	bytesToRevise = length;
-	bytesRevised = 0;
 
 	/*	Revise header data as necessary.			*/
 
@@ -2371,7 +2369,6 @@ int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
 		buffer += bytesExposed;
 		bytesToSkip = 0;
 		bytesToRevise -= bytesExposed;
-		bytesRevised += bytesExposed;
 	}
 
 	/*	Revise source data as necessary.			*/
@@ -2405,7 +2402,6 @@ int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
 
 		bytesToSkip = 0;
 		bytesToRevise -= bytesExposed;
-		bytesRevised += bytesExposed;
 	}
 
 	/*	Revise trailer data as necessary.			*/
@@ -2436,7 +2432,6 @@ int	zco_revise(Sdr sdr, Object zcoObj, vast offset, char *buffer,
 		buffer += bytesExposed;
 		bytesToSkip = 0;
 		bytesToRevise -= bytesExposed;
-		bytesRevised += bytesExposed;
 	}
 
 	if (failed)

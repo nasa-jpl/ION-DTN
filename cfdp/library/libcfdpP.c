@@ -4893,7 +4893,9 @@ int	cfdpHandleInboundPdu(unsigned char *buf, int length)
 	int			modeIsUnacknowledged;
 	int			crcIsPresent;
 	int			largeFile;
+	/*
 	int			dataFieldLength;
+	*/
 	int			recordStructure;
 	int			entityNbrLength;
 	int			entityNbrPad;
@@ -4939,10 +4941,14 @@ printf("...in cfdpHandleInboundPdu...\n");
 	largeFile = (*cursor) & 0x01;
 	cursor++;
 	bytesRemaining--;
+	/*
 	dataFieldLength = *cursor << 8;
+	*/
 	cursor++;
 	bytesRemaining--;
+	/*
 	dataFieldLength += *cursor;
+	*/
 	cursor++;
 	bytesRemaining--;
 	recordStructure = ((*cursor) >> 7) & 0x01;
