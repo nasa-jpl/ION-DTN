@@ -21,12 +21,12 @@ fi
 #ams daemon as config server and registrar--------------
 amsd mib.amsrc @ amsdemo test "" &
 
-echo "Waiting for AMS cell census (9 seconds left)..."
-sleep 3
-echo "Waiting for AMS cell census (6 seconds left)..."
-sleep 3
-echo "Waiting for AMS cell census (3 seconds left)..."
-sleep 3
+echo "Waiting for AMS cell census (90 seconds left)..."
+sleep 30
+echo "Waiting for AMS cell census (60 seconds left)..."
+sleep 30
+echo "Waiting for AMS cell census (30 seconds left)..."
+sleep 30
 
 #start ramsgate-----------------------------------------
 ramsgate amsdemo test &
