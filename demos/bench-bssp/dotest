@@ -60,13 +60,13 @@ cd 2.bench.bssp
 cd ../3.bench.bssp
 ./ionstart
 
-sleep 3
+sleep 5
 echo ""
 echo "Test 1: 10,000 bundles of 1000 bytes each."
 cd ../3.bench.bssp
 bpcounter ipn:3.1 10000 &
 BPCOUNTER_PID=$!
-sleep 1
+sleep 5
 
 cd ../2.bench.bssp
 bpdriver 10000 ipn:2.1 ipn:3.1 -1000 &
@@ -115,13 +115,13 @@ then
 	exit $RETVAL
 fi
 
-sleep 3
+sleep 5
 echo ""
 echo "Test 2: 10000 bundles of 10,000 bytes each."
 cd ../3.bench.bssp
 bpcounter ipn:3.1 10000 &
 BPCOUNTER_PID=$!
-sleep 1
+sleep 5
 
 cd ../2.bench.bssp
 bpdriver 10000 ipn:2.1 ipn:3.1 -10000 &

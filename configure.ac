@@ -98,6 +98,9 @@ case $host_os in
 		if test $host_cpu = "x86_64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit Darwin specific platform code."
+		elif test $host_cpu = "aarch64" ; then
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64"
+			echo "Build 64-bit ARM Darwin specific platform code."	
 		elif test $host_cpu = "arm" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit ARM Darwin specific platform code."
@@ -110,6 +113,10 @@ case $host_os in
 	linux*)
 		PLATFORM="linux"
 		if test $host_cpu = "x86_64" ; then
+			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
+			AM_CFLAGS="$AM_CFLAGS -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
+			echo "Build 64-bit Linux specific platform code."
+		elif test $host_cpu = "aarch64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
 			AM_CFLAGS="$AM_CFLAGS -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
 			echo "Build 64-bit Linux specific platform code."
