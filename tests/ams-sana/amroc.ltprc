@@ -1,5 +1,5 @@
 1 100
 a span 9999 100  100  1500  100000  1 'udplso localhost:9118'
-a span 77777 100  100  1500  100000  1 'udplso localhost:5113'
+a span 32767 100  100  1500  100000  1 'udplso localhost:5113'
 s udplsi localhost:9118
 w 1
