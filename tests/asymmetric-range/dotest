@@ -139,7 +139,9 @@ else
 fi
 
 echo "Checking ion.log for 'rfw' message '(+) 1 3'..."
-COUNT=`grep rfw ion.log | grep "(+) 1 3" | wc -l`
+COUNT1=`grep rfw ion.log | grep "(+) 1 3" | wc -l`
+COUNT2=`grep rfw ion.log | grep "(+) 2 6" | wc -l`
+COUNT=$(($COUNT1 + $COUNT2))
 if [ $COUNT -gt 0 ]
 then
 	echo "OK: One bundle presented for reforwarding."
