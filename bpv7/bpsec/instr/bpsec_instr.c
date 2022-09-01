@@ -216,6 +216,16 @@ void bpsec_instr_update(char *src, uvast blk, uvast bytes, bpsec_instr_type_e ty
 	Object sdrElt = 0;
 	Object sdrData = 0;
 
+	/*
+	 * TODO: Currently the instrumentation API uses the same SDR as
+	 * the rest of bundle processing. This must be fixed, as this
+	 * can cause transaction and rollback problems in ION.
+	 *
+	 * This should be fixed in ION 4.2.
+	 */
+	return;
+
+
 	CHKVOID(sdr_begin_xn(sdr));
 
 	/* If we can't find the source to update, then add it. */

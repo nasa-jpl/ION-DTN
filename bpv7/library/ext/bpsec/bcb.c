@@ -173,6 +173,8 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
     switch(result)
     {
 
+        /* TODO: add checks for tgtId validity in test point statements */
+        
         case 0:  /* Corrupt target */
         case -1: /* System error handled as corrupt block. */
 
@@ -180,8 +182,9 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
 
             /* Handle sop_corrupt_at_acceptor event */
             bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_corrupt_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
+
             bundlePtr = &(work->bundle);
-            BCB_TEST_POINT("sop_corrupt_at_acceptor", bundlePtr, tgtBlk->type);
+            BCB_TEST_POINT("sop_corrupt_at_acceptor", bundlePtr, tgtId);
             break;
 
         case -2: /* Misconfiguration of BCB. */
@@ -189,7 +192,7 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
             /* Handle sop_misconf_at_acceptor event */
             bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_misconf_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
             bundlePtr = &(work->bundle);
-            BCB_TEST_POINT("sop_misconf_at_acceptor", bundlePtr, tgtBlk->type);
+            BCB_TEST_POINT("sop_misconf_at_acceptor", bundlePtr, (tgtBlk) ? tgtBlk->type : -1);
             break;
     }
 
@@ -197,7 +200,7 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
 
     /* If target block was an extension block and it was discarded during decryption */
     /* TODO: What if the tgtBlk was NULL? Should that ever happen? */
-    if ((tgtBlk != NULL) || (tgtBlk->length == 0))
+    if ((tgtBlk != NULL) && (tgtBlk->length == 0))
     {
         deleteAcqExtBlock(tgtBlkElt);
         work->bundle.extensionsLength -= tgtBlkOrigLen;

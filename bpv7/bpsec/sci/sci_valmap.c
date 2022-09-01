@@ -474,7 +474,6 @@ int   bpsec_scvm_intCborDecode(PsmPartition wm, sc_value *val, unsigned int len,
  *  - It is assumed that the calling function has allocated space for the
  *    SCI value and pre-set the type of value being initialized.
  *
- * @retval   1 - Success
  * @retval  <0 - Error
  *****************************************************************************/
 uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *len)
@@ -496,13 +495,19 @@ uint8_t* bpsec_scvm_intCborEncode(PsmPartition wm, sc_value *val, unsigned int *
 		}
 		else
 		{
-			uvast value = 0;
+   			uvast value = 0;
+   			unsigned char *cursor = result;
 			memcpy(&value, rawVal, sizeof(uvast));
 
-			*len = cbor_encode_integer(value, &result);
-
+			/*
+			 * cbor_encode_integer advances cursor by len,
+			 * so you need to pass in a sacrificial pointer (cursor)
+			 * instead of the actual pointer (result).
+			 */
+			*len = cbor_encode_integer(value, &cursor);
 		}
 	}
+
 	return result;
 }
 
