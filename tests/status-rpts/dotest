@@ -3,6 +3,10 @@
 # Scott Burleigh
 # April 12, 2010
 
+# Updated for compatability with bpv7
+# Silas Springer
+# August 23, 2022
+
 # documentation boilerplate
 CONFIGFILES=" \
 ./global.ionrc \
@@ -162,18 +166,33 @@ else
 	exit 1
 fi
 
+# fetch bpversion (bpv6 or bpv7) for correct syntax using bptrace
+BPV=`bpversion`
+
 echo "Starting bpsink on ipn:5.1 ..."
 sleep 1
 bpsink ipn:5.1 &
 
 cd ../2.ipn.ltp
-echo "Sending bptrace from ipn:2.1 to ipn:5.1, should be delivered to bpsink ..."
-# Send first bundle from node 2 to node 5 requesting all status reports.
-bptrace ipn:2.1 ipn:5.1 ipn:2.0 5 1.1 "Hello." rcv,ct,fwd,dlv,del
+# This bpv6 test relies on custody transfer signals sent by ACS which only exists for bpv6
+# bpv7 must test without checking custody transfer.
+if [ $BPV == "bpv6" ] ; then
+	echo "Sending bptrace from ipn:2.1 to ipn:5.1, should be delivered to bpsink ..."
+	# Send first bundle from node 2 to node 5 requesting all status reports.
+	bptrace ipn:2.1 ipn:5.1 ipn:2.0 5 1.1 "Hello." rcv,ct,fwd,dlv,del
 
-echo "Sending bptrace from ipn:2.1 to ipn:5.2, should expire and be deleted..."
-# Send first bundle from node 2 to node 5 requesting all status reports.
-bptrace ipn:2.1 ipn:5.2 ipn:2.0 5 1.1 "Hey." rcv,ct,fwd,dlv,del
+	echo "Sending bptrace from ipn:2.1 to ipn:5.2, should expire and be deleted..."
+	# Send first bundle from node 2 to node 5 requesting all status reports.
+	bptrace ipn:2.1 ipn:5.2 ipn:2.0 5 1.1 "Hey." rcv,ct,fwd,dlv,del
+else
+	echo "Sending bptrace from ipn:2.1 to ipn:5.1, should be delivered to bpsink ..."
+	# Send first bundle from node 2 to node 5 requesting all status reports.
+	bptrace ipn:2.1 ipn:5.1 ipn:2.0 5 0.1 "Hello." rcv,fwd,dlv,del
+
+	echo "Sending bptrace from ipn:2.1 to ipn:5.2, should expire and be deleted..."
+	# Send first bundle from node 2 to node 5 requesting all status reports.
+	bptrace ipn:2.1 ipn:5.2 ipn:2.0 5 0.1 "Hey." rcv,fwd,dlv,del
+fi
 
 # Wait for contacts to terminate.
 echo "Waiting for contacts to terminate..."
@@ -185,17 +204,21 @@ cd ../2.ipn.ltp
 RETVAL=0
 
 echo
-echo "Checking for 'status 2' in ./2.ipn.ltp/ion.log..."
-COUNT=`grep " \[s\] " ion.log | grep "status 2" | wc -l`
-if [ $COUNT -eq 2 ]
-then
-	echo "OK: Initial custody of both bundles taken."
-else
-	echo "ERROR: Initial bundle custody not taken."
-	RETVAL=1
+# custody transfer reportsare  supported only in bpv6
+if [ $BPV == "bpv6" ] ; then
+	echo "Checking for 'status 2' in ./2.ipn.ltp/ion.log..."
+	COUNT=`grep " \[s\] " ion.log | grep "status 2" | wc -l`
+	if [ $COUNT -eq 2 ]
+	then
+		echo "OK: Initial custody of both bundles taken."
+	else
+		echo "ERROR: Initial bundle custody not taken."
+		RETVAL=1
+	fi
 fi
 
 echo
+# status 4 is the forwarded status
 echo "Checking for 'status 4' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 4" | wc -l`
 if [ $COUNT -eq 4 ]
@@ -207,17 +230,33 @@ else
 fi
 
 echo
-echo "Checking for 'status 3' in ./2.ipn.ltp/ion.log..."
-COUNT=`grep " \[s\] " ion.log | grep "status 3" | wc -l`
-if [ $COUNT -eq 2 ]
-then
-	echo "OK: Custody taken upon receipt of both bundles."
+# custody transfer reports are supported only in bpv6
+if [ $BPV == "bpv6" ] ; then
+	echo "Checking for 'status 3' in ./2.ipn.ltp/ion.log..."
+	COUNT=`grep " \[s\] " ion.log | grep "status 3" | wc -l`
+	if [ $COUNT -eq 2 ]
+	then
+		echo "OK: Custody taken upon receipt of both bundles."
+	else
+		echo "ERROR: No report of custody taken upon receipt."
+		RETVAL=1
+	fi
 else
-	echo "ERROR: No report of custody taken upon receipt."
-	RETVAL=1
+	# with no custody transfer, only reception (status 1) needs checked.
+	# note the extra space following the '1' in this grep, this is to prevent 
+	# registering status 17 as status 1
+	echo "Checking for 'status 1' in ./2.ipn.ltp/ion.log..."
+	COUNT=`grep " \[s\] " ion.log | grep "status 1 " | wc -l`
+	if [ $COUNT -eq 2 ]
+	then
+		echo "OK: report of reciept found for both bundles."
+	else
+		echo "ERROR: No report of receipt."
+		RETVAL=1
+	fi
 fi
-
 echo
+# status 9 is the deleted (8) + recieved (1) status.
 echo "Checking for 'status 9' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 9" | wc -l`
 if [ $COUNT -eq 1 ]
@@ -229,6 +268,7 @@ else
 fi
 
 echo
+# status 17 is the deleted (16) + recieved (1) status.
 echo "Checking for 'status 17' in ./2.ipn.ltp/ion.log..."
 COUNT=`grep " \[s\] " ion.log | grep "status 17" | wc -l`
 if [ $COUNT -eq 1 ]
