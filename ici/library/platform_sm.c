@@ -1805,13 +1805,6 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	int		semSetIdx;
 	int		semid;
 
-	/*	If key is not specified, invent one.			*/
-
-	if (key == SM_NO_KEY)
-	{
-		key = sm_GetUniqueKey();
-	}
-
 	/*	Look through list of all existing ICI semaphores.	*/
 
 	takeIpcLock();
@@ -1823,13 +1816,22 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		return SM_SEM_NONE;
 	}
 
-	for (i = 0, sem = sembase->semaphores; i < sembase->idsAllocated;
-			i++, sem++)
+	/*	If key is not specified, invent one.			*/
+
+	if (key == SM_NO_KEY)
 	{
-		if (sem->key == key)
+		key = sm_GetUniqueKey();
+	}
+	else   /* If key is specified, check if semaphore already exists */
+	{
+		for (i = 0, sem = sembase->semaphores; i < sembase->idsAllocated;
+				i++, sem++)
 		{
-			giveIpcLock();
-			return i;	/*	already created		*/
+			if (sem->key == key)
+			{
+				giveIpcLock();
+				return i;	/*	already created		*/
+			}
 		}
 	}
 
@@ -3380,7 +3382,12 @@ int	sm_GetUniqueKey()
 
 	/*	Compose unique key: low-order 16 bits of process ID
 		followed by low-order 16 bits of process-specific
-		sequence count.						*/
+		sequence count randomized by starting time in seconds	*/
+
+	if (ipcUniqueKey == 0)
+	{
+		ipcUniqueKey = clock()/CLOCKS_PER_SEC;
+	}
 
 	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
 #ifdef mingw
