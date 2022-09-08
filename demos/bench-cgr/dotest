@@ -113,7 +113,7 @@ done
 
 if [ $RETVAL -eq 1 ]
 then
-	echo "Test did not complete."
+	echo "Test ended, but not all bundles were delivered."
 fi
 
 cd ../1.bench.stcp
