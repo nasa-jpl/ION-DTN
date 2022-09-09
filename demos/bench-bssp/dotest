@@ -124,7 +124,9 @@ BPCOUNTER_PID=$!
 sleep 5
 
 cd ../2.bench.bssp
-bpdriver 10000 ipn:2.1 ipn:3.1 -10000 &
+# temporary measure to limit traffic to 10Mbps at source
+# improvement for bsspcli will be provided in future release
+bpdriver 10000 ipn:2.1 ipn:3.1 -10000 i10000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
