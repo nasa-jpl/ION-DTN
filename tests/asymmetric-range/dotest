@@ -19,6 +19,8 @@ if [[ $BP_VERSION == "bpv6" ]] ; then
 	if [ $? -eq 0 ] ; then
 		ACS="found"
 		CONFIGFILES=$CONFIGFILES" ./amroc.acsrc"
+	else
+		ACS="missing"
 	fi
 fi
 
@@ -119,10 +121,12 @@ else
 fi
 
 echo "Checking ion.log for 'fwd' message '(+) 3 9'..."
-COUNT=`grep fwd ion.log | grep "(+) 3 9" | wc -l`
+COUNT1=`grep fwd ion.log | grep "(+) 3 9" | wc -l`
+COUNT2=`grep fwd ion.log | grep "(+) 4 12" | wc -l`
+COUNT=$(($COUNT1 + $COUNT2))
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: Three bundle forwarding attempts including reforward."
+	echo "OK: At least three bundle forwarding attempts including reforward."
 else
 	echo "ERROR: Bundle forwarding is incomplete."
 	RETVAL=1
@@ -144,7 +148,7 @@ COUNT2=`grep rfw ion.log | grep "(+) 2 6" | wc -l`
 COUNT=$(($COUNT1 + $COUNT2))
 if [ $COUNT -gt 0 ]
 then
-	echo "OK: One bundle presented for reforwarding."
+	echo "OK: At least one bundle presented for reforwarding."
 else
 	echo "ERROR: Bundle not reforwarded."
 	RETVAL=1
