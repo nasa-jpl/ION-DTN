@@ -420,7 +420,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.dgr
-bpdriver 1 ipn:2.1 ipn:3.1 -1000000000 &
+bpdriver 1 ipn:2.1 ipn:3.1 -1000000000 t900 &
 
 #Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -443,7 +443,7 @@ do
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ $TIMER -gt 300 ]
+	if [ $TIMER -gt 900 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
