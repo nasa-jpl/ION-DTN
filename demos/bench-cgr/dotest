@@ -111,11 +111,6 @@ do
 	fi
 done
 
-if [ $RETVAL -eq 1 ]
-then
-	echo "Test ended, but not all bundles were delivered."
-fi
-
 cd ../1.bench.stcp
 bpstats
 cd ../2.bench.stcp
@@ -125,6 +120,17 @@ bpstats
 cd ../4.bench.stcp
 bpstats
 sleep 1
+
+if [ $RETVAL -eq 1 ]
+then
+	BUNDLES_RCV=`grep "rcv" ion.log | tail -1 | grep "(1) 0 0"`
+	if [ -z "$BUNDLES_RCV" ] ; then
+		echo "Test ended, but not all bundles were delivered."
+		RETVAL=0
+	else
+		echo "No bundles were delivered."
+	fi
+fi
 
 echo "Stopping ION..."
 cd ../1.bench.stcp
