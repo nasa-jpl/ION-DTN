@@ -14,11 +14,14 @@
 
 	Modifications address the following issues:
 
-	1.) Code reformatted to allow for full range of SANA node numbers:
-	See MAX_CONTIN_NBR directive in amscommon.h for more information
+	1.) Code reformatted to allow for the SANA range of node numbers
+		Note: this is currently constrained by the 16 bit field width in AMS' 
+		constructMessage() header array.
+	
+		See MAX_CONTIN_NBR directive in amscommon.h for more information.
 
-	Modifications include changing arrays and for-loops using the 
-	MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead
+		Modifications include changing arrays and for-loops using the 
+		MAX_CONTIN_NBR to use ici's lyst (managed linked list) instead.
 									
 	*/
 
