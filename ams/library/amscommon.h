@@ -12,9 +12,11 @@
 	Jet Propulsion Laboratory 2022
 	
 	Modifications address the following:
-	1.) Allow for SANA node numbers (see MAX_CONTIN_NBR directive)
-	Note: this is currently constrained by the size
-	of a Short (for MacOS) 
+	1.) Allow for SANA range of node numbers (see MAX_CONTIN_NBR directive)
+		Note: this is currently constrained by the 16 bit field width in AMS' 
+		constructMessage() header array
+
+		See MAX_CONTIN_NBR directive in amscommon.h
 
 	2.) New associated function definitions for: 
 		getContinuaByNbr() and getMsgSpaceByNbr()
