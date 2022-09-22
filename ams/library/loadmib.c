@@ -13,7 +13,10 @@
 
 	Modifications address the following issues:
 
-	1.) Allow for full range of SANA node numbers 
+	1.) Allow for SANA range of node numbers (see MAX_CONTIN_NBR directive)
+		Note: this is currently constrained by the 16 bit field width in AMS' 
+		constructMessage() header array.
+		
 		See MAX_CONTIN_NBR directive in amscommon.h 
 
 		Modifications include switching arrays and for-loops
