@@ -14,8 +14,11 @@
 	1.) Resolution of petition assert/cancel flip-flop on RAMSGATE start: 
 	    Note: required two restarts to revert petition state
 	
-	2.) Refactoring to allow for full range of SANA node numbers:
-	    See MAX_CONTIN_NBR directive in amscommon.h 
+	2.) Refactoring for SANA range of node numbers (see MAX_CONTIN_NBR directive)
+		Note: this is currently constrained by the 16 bit field width in AMS' 
+		constructMessage() header array.
+		
+		See MAX_CONTIN_NBR directive in amscommon.h
 
 	   	Modifications include switching arrays and for-loops using the 
 	   	MAX_CONTIN_NBR to use ici's lyst (managed linked list)
