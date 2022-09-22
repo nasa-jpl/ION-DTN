@@ -16,6 +16,8 @@
 		Note: this is currently constrained by the 16 bit field width in AMS' 
 		constructMessage() header array
 
+		See MAX_CONTIN_NBR directive in amscommon.h
+
 	2.) New associated function definitions for: 
 		getContinuaByNbr() and getMsgSpaceByNbr()
 
