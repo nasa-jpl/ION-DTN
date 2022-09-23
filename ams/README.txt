@@ -36,7 +36,7 @@ by default ION is built with the -DNOEXPAT option to account for
 operating environments that lack the expat XML parsing library 
 (for example VxWorks 5.4). 
 
-To enable expat for use with AMS (or other ION componants) configure 
+To enable expat for use with AMS (or other ION components) configure 
 ION using the "--with-expat" option and then compile. 
 
 For example: ./configure --with-expat
