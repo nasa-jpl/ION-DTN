@@ -57,6 +57,12 @@ echo "########################################"
 
 ./cleanup
 sleep 1
+# set timeouts based on OS type
+if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
+	TIMETOWAIT=10
+else
+	TIMETOWAIT=20
+fi
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -95,7 +101,7 @@ echo "Sending text lines to node 3..."
 TESTCOUNT=`wc -l < test.text`
 sdatest 3 < test.text &
 
-sleep 10
+sleep $TIMETOWAIT
 echo ""
 echo "Transmission finished. Stopping ION..."
 
