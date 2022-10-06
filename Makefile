@@ -47,8 +47,8 @@ withbpv7:
 	gmake -C bss install
 	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dtpc install
-#	gmake -C nm all ADD_FLAGS="$(ADD_FLAGS)"
-#	gmake -C nm install
+	gmake -C nm all ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C nm install
 	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C restart install BP=$(BP)
 
