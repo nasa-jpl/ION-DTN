@@ -6,7 +6,7 @@ CC = gcc $(OPT) $(ADD_FLAGS) -I../../ici/include -I../../ici/sdr -I../../ltp/inc
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
-LBP = -lbp -limcfw -lipnfw -ldtn2fw
+LBP = -lbp
 
 UTILITIES = ionrestart ionexit
 
