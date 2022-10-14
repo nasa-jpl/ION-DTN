@@ -63,6 +63,10 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		rm $(ROOT)/lib/libams*	
+		
+
 #	-	-	Daemon executable	-	-	-	-
 
 amsd:		$(AMSDOBJS) $(API)/amscommon.h
