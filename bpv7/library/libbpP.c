@@ -8960,6 +8960,19 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	if (bpsec_decrypt(work) < 0)
 	{
 		putErrmsg("Failed decrypting extension blocks.", NULL);
+
+		/* check non-critical error flags */
+		
+		/* check for corruption */
+		if (work->malformed == 1)
+		{
+			writeMemo("[?] Malformed Bundle: Failed decryption.");
+			bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+			return abortBundleAcq(work);
+		}
+
+		/* system error */
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
@@ -9014,11 +9027,41 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	initAuthenticity(work);	/*	Set default.			*/
 	if (bpsec_verify(work) < 0)
 	{
+		/* first check for non-critical error */
+		if (bundle->corrupt == 1)
+		{
+			writeMemo("[?] security verification failed for target primary block.");
+			bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+				bundle->payload.length);
+			return abortBundleAcq(work);
+		}
+
+		if (bundle->altered == 1)
+		{
+			writeMemo("[?] security verification failed for target extension block.");
+			bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+				bundle->payload.length);
+			return abortBundleAcq(work);	
+		}
+
+		/* system error */
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
 
+	/* check additional error codes after security verification */
+
+	if (work->authentic == 0)
+	{
+		writeMemo("[?] security block misconfigured for target payload block.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+			bundle->payload.length);
+		return abortBundleAcq(work);	
+	}
+
+	/* To be confirmed: would bpsec_verify return 0 but set 
+		bundle->corrupt to 1? This might be a redundant test case. */
 	if (bundle->corrupt)
 	{
 		writeMemo("[?] Corrupt bundle.");
@@ -9037,7 +9080,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (bundle->altered)
 	{
-		writeMemo("[?] Altered bundle.");
+		writeMemo("[?] Altered bundle: target payload block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
 		return abortBundleAcq(work);
