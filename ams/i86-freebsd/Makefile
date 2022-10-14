@@ -65,6 +65,8 @@ install:
 
 uninstall:		
 		rm $(ROOT)/lib/libams*
+		rm $(ROOT)/include/ams*
+		rm $(ROOT)/bin/ams*
 		
 #	-	-	Daemon executable	-	-	-	-
 
