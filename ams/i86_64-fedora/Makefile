@@ -62,6 +62,9 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+		
+uninstall:		
+		rm $(ROOT)/lib/libams*	
 
 #	-	-	Daemon executable	-	-	-	-
 
