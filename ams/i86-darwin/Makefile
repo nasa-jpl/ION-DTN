@@ -65,6 +65,7 @@ install:
 uninstall:		
 		rm $(ROOT)/lib/libams*
 		rm $(ROOT)/include/ams*
+		rm $(ROOT)/include/rams*
 		rm $(ROOT)/bin/ams*
 		
 #	-	-	Daemon executable	-	-	-	-
@@ -112,7 +113,7 @@ amsmib:		amsmib.o libams.so $(INCL)/ams.h
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm -limcfw -lipnfw -ldtn2fw -lexpat
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-
