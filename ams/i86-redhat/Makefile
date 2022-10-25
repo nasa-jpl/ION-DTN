@@ -37,7 +37,7 @@ RAMSTESTOBJS = \
 PUBINCLS = \
 	$(INCL)/ams.h
 
-LBP = -lbp -limcfw -lipnfw -ldtn2fw
+LBP = -lbp
 
 RUNTIMES = amsd amshello amsshell amslog amslogprt amsbenchs amsbenchr ramsgate amsstop amsmib
 
@@ -64,8 +64,9 @@ install:
 		cp bin/* $(ROOT)/bin
 
 uninstall:		
-		rm $(ROOT)/lib/libams*	
+		rm $(ROOT)/lib/libams*
 		rm $(ROOT)/include/ams*
+		rm $(ROOT)/include/rams*
 		rm $(ROOT)/bin/ams*		
 
 #	-	-	Daemon executable	-	-	-	-
@@ -113,7 +114,7 @@ amsmib:		amsmib.o libams.so $(INCL)/ams.h
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm -limcfw -lipnfw -ldtn2fw 
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-
