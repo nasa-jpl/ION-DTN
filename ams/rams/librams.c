@@ -972,12 +972,13 @@ printf("Before bp_receive...\n");
 	}
 
 	TerminateGateway(gWay);
+	oK(_gWay(gWay));//cleanup before calling bp_detach()
+
 	if (gWay->netProtocol == RamsBp)
 	{
 		bp_detach();
 	}
 
-	oK(_gWay(gWay));
 	oK(_petitionLog(NULL, 0));	/*	Close the petition log.	*/
 	writeMemo("[i] Stopping RAMS gateway.");
 	return 0;
