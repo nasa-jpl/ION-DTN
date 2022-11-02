@@ -113,7 +113,7 @@ amsmib:		amsmib.o libams.so $(INCL)/ams.h
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm -limcfw -lipnfw -ldtn2fw -lexpat
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm -lexpat
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-
