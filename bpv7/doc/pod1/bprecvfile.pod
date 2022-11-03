@@ -10,12 +10,11 @@ B<bprecvfile> I<own_endpoint_ID> [I<max_files>]
 
 B<bprecvfile> is intended to serve as the counterpart to B<bpsendfile>.  It
 uses bp_receive() to receive bundles containing file content.  The content
-of each bundle is simply written to a file named "testfileN" where N is
-the total number of bundles received since the program began running.
-
-If a I<max_files> value of N (where N > 0) is provided, the program will
-terminate automatically upon completing its Nth file reception.  Otherwise
-it will run indefinitely; use ^C to terminate the program.
+of each bundle is simply written to a file named "filename". If the filename
+is not provided on the command line bundles are written to stdout. Use of
+UNIX pipes is allowed. Note: If filename exists data will be appended to that
+file. If filename does not exist it will be created.
+Use ^C to terminate the program.
 
 =head1 EXIT STATUS
 
