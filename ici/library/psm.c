@@ -457,6 +457,12 @@ PsmAddress	psm_get_root(PsmPartition partition)
 
 	CHKZERO(partition);
 	map = (PartitionMap *) (partition->space);
+
+	if (map->status == 0) //catch before ineffectual assert in lockPartition()
+	{
+		return 0; //sky resolves "Assertion failed" issue during psmwatch
+	}
+
 	lockPartition(map);
 	root = map->directory;
 	unlockPartition(map);
