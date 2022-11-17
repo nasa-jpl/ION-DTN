@@ -13,9 +13,14 @@ queue of PDUs bound for the indicated remote BSSP engine, encapsulates
 them in UDP datagrams, and sends those datagrams to the indicated UDP port
 on the indicated host.  If not specified, port number defaults to 6001.
 
-UDP congestion can be controlled by setting udpbso's rate of UDP datagram
-transmission I<txbps> (transmission rate in bits per second) to the value
-that is supported by the underlying network.
+The parameter I<txbps> is optional and kept only for backward compatibility 
+with older configuration files. If it is included, it's value is ignored.
+For context, I<txbps> (transmission rate in bits per second) was used for
+congestion control but  B<udpbso> now derive its data rate from contact graph.
+
+When invoking B<udpbso> through bsspadmin using the start or add seat command,
+the I<remote_engine_nbr> and I<txbps> should be omitted. BSSP admin daemon
+will automatically provide the I<remote_engine_nbr>.
 
 Each "span" of BSSP data interchange between the local BSSP engine and a
 neighboring BSSP engine requires its own best-effort and reliable link service
