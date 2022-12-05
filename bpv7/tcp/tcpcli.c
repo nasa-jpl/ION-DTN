@@ -19,7 +19,7 @@
 #endif
 
 #ifndef MAX_RESCAN_INTERVAL
-#define MAX_RESCAN_INTERVAL	(20)
+#define MAX_RESCAN_INTERVAL	(240)
 #endif
 
 #ifndef KEEPALIVE_INTERVAL
@@ -2689,7 +2689,7 @@ static void	*handleEvents(void *parm)
 			}
 
 			secUntilRescan = rescanInterval;
-			rescanInterval <<= 1;
+			rescanInterval <<= 3;
 			if (rescanInterval > MAX_RESCAN_INTERVAL)
 			{
 				rescanInterval = MAX_RESCAN_INTERVAL;
