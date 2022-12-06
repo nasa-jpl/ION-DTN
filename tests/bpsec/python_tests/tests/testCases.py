@@ -1581,7 +1581,7 @@ def test20(inputScId=testUtils.BCB_AES_GCM_SCID, inputSourceScParams=testUtils.b
         time.sleep(testUtils.TIME_DISPLAYTEXT)
            
         '''
-        This test is not needed for IOS 4.2 testing as the Security Verifier role
+        This test is not needed for IOS 4.1.2 testing as the Security Verifier role
         for bcb-confidentiality has not been implemented yet. 
         '''
 
@@ -1648,23 +1648,28 @@ def test21(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
 
     try:
         testUtils.start_test(
-            "21", "Brief: BIB targeting a large Payload (1MB).\n\n"
-                 "Description: Add a BIB targeting a large Payload Block (1MB) at \n"
-                 "Security Source ipn:2.1 and process that BIB at Security \n"
-                 "Acceptor ipn:3.1\n\n"
-                 "Bundle Path: ipn:2.1 -> ipn:3.1\n\n")
+            "21", "Brief: Multi-bundle test.\n\n"
+                  "Description: Configure node ipn:2.1 to serve as a security source for\n"
+                  "bib-integrity targeting the payload block regardless of bundle\n"
+                  "destination. Configure node ipn:3.1 to serve as the security acceptor for\n"
+                  "Bundle 1 and node ipn:4.1 to serve as the security acceptor for Bundle 2.\n"
+                  "Ensure that BIB processing events are handled on a per-bundle basis by \n"
+                  "the test framework.\n\n"
+                  "Bundle 1 Path: ipn:2.1 -> ipn:4.1\n"
+                  "Bundle 2 Path: ipn:2.1 -> ipn:3.1\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
         # Tracking current position in log
         log2 = testUtils.log_position("2")
         log3 = testUtils.log_position("3")
+        log4 = testUtils.log_position("4")
 
         print("Node ipn:2.1 Configuration\n")
         testUtils.add_key(2, "key_1_32bytes")
         testUtils.add_event_set(2, "d_integrity", "default bib")
 
         desc = "bib src tgt:payload"
-        filter = testUtils.build_filter("1", "s", "ipn:2.1", tgt=PAYLOAD, sc_id=inputScId)
+        filter = testUtils.build_filter("10", "s", "ipn:2.1", tgt=PAYLOAD, sc_id=inputScId)
         spec = testUtils.build_spec("bib-integrity", sc_params=inputScParams)
         es_ref = "d_integrity"
         testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
@@ -1676,14 +1681,14 @@ def test21(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
         if testUtils.g_verbose == "verbose":
             testUtils.list_key(2)
             testUtils.info_event_set(2, "d_integrity")
-            testUtils.info_policy_rule(2, 1)
+            testUtils.info_policy_rule(2, 10)
 
         print("Node ipn:3.1 Configuration \n")
         testUtils.add_key(3, "key_1_32bytes")
         testUtils.add_event_set(3, "d_integrity", "default bib")
 
         desc = "bib acceptor tgt:payload"
-        filter = testUtils.build_filter("2", "a", "ipn:2.1", tgt=PAYLOAD)
+        filter = testUtils.build_filter("11", "a", dest="ipn:3.1", tgt=PAYLOAD)
         spec = testUtils.build_spec("bib-integrity", sc_id=inputScId, sc_params=inputScParams)
         es_ref = "d_integrity"
         testUtils.add_policy_rule(3, desc, filter, spec, es_ref)
@@ -1695,44 +1700,67 @@ def test21(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
         if testUtils.g_verbose == "verbose":
             testUtils.list_key(3)
             testUtils.info_event_set(3, "d_integrity")
-            testUtils.info_policy_rule(3, 2)
+            testUtils.info_policy_rule(3, 11)
 
-        # Generate the large payload for this bundle
-        testUtils.gen_large_file(2, "test21.txt", 1000000)
+        print("Node ipn:4.1 Configuration\n")
+        testUtils.add_key(4, "key_1_32bytes")
+        testUtils.add_event_set(4, "d_integrity", "default bib")
 
-        time.sleep(2)
+        desc = "bib acceptor for dest ipn:4.1"
+        filter = testUtils.build_filter("12", "a", dest="ipn:4.1", tgt=PAYLOAD)
+        spec = testUtils.build_spec("bib-integrity", sc_id=inputScId, sc_params=inputScParams)
+        es_ref = "d_integrity"
+        testUtils.add_policy_rule(4, desc, filter, spec, es_ref)
 
-        # Set up bprecvfile at destination ipn:3.1
-        testUtils.recv_file(3)
+        if testUtils.g_verbose == "detailed":
+            testUtils.list_key(4)
+            testUtils.list_event_set(4)
+            testUtils.list_policy_rule(4)
+        if testUtils.g_verbose == "verbose":
+            testUtils.list_key(4)
+            testUtils.info_event_set(4, "d_integrity")
+            testUtils.info_policy_rule(4, 12)
 
-        # Send the file from ipn:2.1 -> ipn:3.1
-        testUtils.send_file(2, 3, "test21.txt", 120)
+        # Send Bundle 1 from ipn:2.1 -> ipn:4.1
+        testUtils.send_bundle("2.1", "4.1", "2.0", "test_trace21_1")
+
+        # Send Bundle 2 from ipn:2.1 -> ipn:3.1
+        testUtils.send_bundle("2.1", "3.1", "2.0", "test_trace21_2")
 
         print("\n\nClear Node ipn:2.1 Policy \n")
-        testUtils.del_policy_rule(2, "1")
+        testUtils.del_policy_rule(2, "10")
         testUtils.del_event_set(2, "d_integrity")
         testUtils.del_key(2, "key_1_32bytes")
 
-        print("Clear Node ipn:3.1 Policy\n")
-        testUtils.del_policy_rule(3, "2")
+        print("Clear Node ipn:3.1 Policy \n")
+        testUtils.del_policy_rule(3, "11")
         testUtils.del_event_set(3, "d_integrity")
         testUtils.del_key(3, "key_1_32bytes")
 
+        print("Clear Node ipn:4.1 Policy \n\n")
+        testUtils.del_policy_rule(4, "12")
+        testUtils.del_event_set(4, "d_integrity")
+        testUtils.del_key(4, "key_1_32bytes")
+        
         # Verify results on ipn:2.1
         log2_events = testUtils.get_test_events(2, log2)
         te_1, log2_events = testUtils.find_test_event(
+            log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '1', None, None)
+        te_2, log2_events = testUtils.find_test_event(
             log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', None, None)
-
+        
         # Verify results on ipn:3.1
         log3_events = testUtils.get_test_events(3, log3)
-        te_2, log3_events = testUtils.find_test_event(
-            log3_events, 'sop_processed', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', te_1['msec'], te_1['count'])
+        te_3, log3_events = testUtils.find_test_event(
+            log3_events, 'sop_processed', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', te_2['msec'], te_2['count'])
+
+        # Verify results on ipn:4.1
+        log4_events = testUtils.get_test_events(4, log4)
+        te_4, log4_events = testUtils.find_test_event(
+            log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '1', te_1['msec'], te_1['count'])
 
         # Process all test results
-        testUtils.check_test_results([3], ["payload length is 1000000"], [log2_events, log3_events])
-
-        if os.path.exists('2.ipn.ltp/test21.txt'):
-            os.remove('2.ipn.ltp/test21.txt')
+        testUtils.check_test_results([4, 3], ["test_trace21_1", "test_trace21_2"], [log2_events, log3_events, log4_events])
 
     except subprocess.TimeoutExpired as e:
         print(e)
@@ -3383,6 +3411,7 @@ def test35():
     print("is implemented for ION Open Source.")
     print("###############################################################################")
 
+
 def test36():
     print("###############################################################################")
     print("Test 36 not implemented. This test will be provided when target multiplicity")
@@ -3390,132 +3419,10 @@ def test36():
     print("###############################################################################")
 
 
-def test37(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibScParms):
+def test37():
     print("###############################################################################")
-
-    try:
-        testUtils.start_test(
-            "37", "Brief: Multi bundle test.\n\n"
-                  "Description: Configure node ipn:2.1  to serve as a security source for\n"
-                  "bib-integrity targeting the payload block regardless of bundle\n"
-                  "destination. Configure node ipn:3.1 to serve as the security acceptor for\n"
-                  "Bundle 1 and node ipn:4.1 to serve as the security acceptor for Bundle 2.\n"
-                  "Ensure that BIB processing events are handled on a per-bundle basis by \n"
-                  "the test framework.\n\n"
-                  "Bundle 1 Path: ipn:2.1 -> ipn:4.1\n"
-                  "Bundle 2 Path: ipn:2.1 -> ipn:3.1\n\n")
-        time.sleep(testUtils.TIME_DISPLAYTEXT)
-
-        # Tracking current position in log
-        log2 = testUtils.log_position("2")
-        log3 = testUtils.log_position("3")
-        log4 = testUtils.log_position("4")
-
-        print("Node ipn:2.1 Configuration\n")
-        testUtils.add_key(2, "key_1_32bytes")
-        testUtils.add_event_set(2, "d_integrity", "default bib")
-
-        desc = "bib src tgt:payload"
-        filter = testUtils.build_filter("10", "s", "ipn:2.1", tgt=PAYLOAD, sc_id=inputScId)
-        spec = testUtils.build_spec("bib-integrity", sc_params=inputScParams)
-        es_ref = "d_integrity"
-        testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
-
-        if testUtils.g_verbose == "detailed":
-            testUtils.list_key(2)
-            testUtils.list_event_set(2)
-            testUtils.list_policy_rule(2)
-        if testUtils.g_verbose == "verbose":
-            testUtils.list_key(2)
-            testUtils.info_event_set(2, "d_integrity")
-            testUtils.info_policy_rule(2, 10)
-
-        print("Node ipn:3.1 Configuration \n")
-        testUtils.add_key(3, "key_1_32bytes")
-        testUtils.add_event_set(3, "d_integrity", "default bib")
-
-        desc = "bib acceptor tgt:payload"
-        filter = testUtils.build_filter("11", "a", dest="ipn:3.1", tgt=PAYLOAD)
-        spec = testUtils.build_spec("bib-integrity", sc_id=inputScId, sc_params=inputScParams)
-        es_ref = "d_integrity"
-        testUtils.add_policy_rule(3, desc, filter, spec, es_ref)
-
-        if testUtils.g_verbose == "detailed":
-            testUtils.list_key(3)
-            testUtils.list_event_set(3)
-            testUtils.list_policy_rule(3)
-        if testUtils.g_verbose == "verbose":
-            testUtils.list_key(3)
-            testUtils.info_event_set(3, "d_integrity")
-            testUtils.info_policy_rule(3, 11)
-
-        print("Node ipn:4.1 Configuration\n")
-        testUtils.add_key(4, "key_1_32bytes")
-        testUtils.add_event_set(4, "d_integrity", "default bib")
-
-        desc = "bib acceptor for dest ipn:4.1"
-        filter = testUtils.build_filter("12", "a", dest="ipn:4.1", tgt=PAYLOAD)
-        spec = testUtils.build_spec("bib-integrity", sc_id=inputScId, sc_params=inputScParams)
-        es_ref = "d_integrity"
-        testUtils.add_policy_rule(4, desc, filter, spec, es_ref)
-
-        if testUtils.g_verbose == "detailed":
-            testUtils.list_key(4)
-            testUtils.list_event_set(4)
-            testUtils.list_policy_rule(4)
-        if testUtils.g_verbose == "verbose":
-            testUtils.list_key(4)
-            testUtils.info_event_set(4, "d_integrity")
-            testUtils.info_policy_rule(4, 12)
-
-        # Send Bundle 1 from ipn:2.1 -> ipn:4.1
-        testUtils.send_bundle("2.1", "4.1", "2.0", "test_trace37_1")
-
-        # Send Bundle 2 from ipn:2.1 -> ipn:3.1
-        testUtils.send_bundle("2.1", "3.1", "2.0", "test_trace37_2")
-
-        print("\n\nClear Node ipn:2.1 Policy \n")
-        testUtils.del_policy_rule(2, "10")
-        testUtils.del_event_set(2, "d_integrity")
-        testUtils.del_key(2, "key_1_32bytes")
-
-        print("Clear Node ipn:3.1 Policy \n")
-        testUtils.del_policy_rule(3, "11")
-        testUtils.del_event_set(3, "d_integrity")
-        testUtils.del_key(3, "key_1_32bytes")
-
-        print("Clear Node ipn:4.1 Policy \n\n")
-        testUtils.del_policy_rule(4, "12")
-        testUtils.del_event_set(4, "d_integrity")
-        testUtils.del_key(4, "key_1_32bytes")
-        
-        # Verify results on ipn:2.1
-        log2_events = testUtils.get_test_events(2, log2)
-        te_1, log2_events = testUtils.find_test_event(
-            log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '1', None, None)
-        te_2, log2_events = testUtils.find_test_event(
-            log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', None, None)
-        
-        # Verify results on ipn:3.1
-        log3_events = testUtils.get_test_events(3, log3)
-        te_3, log3_events = testUtils.find_test_event(
-            log3_events, 'sop_processed', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', te_2['msec'], te_2['count'])
-
-        # Verify results on ipn:4.1
-        log4_events = testUtils.get_test_events(4, log4)
-        te_4, log4_events = testUtils.find_test_event(
-            log4_events, 'sop_processed', 'ipn:2.1', 'ipn:4.1', 'bib-integrity', '1', te_1['msec'], te_1['count'])
-
-        # Process all test results
-        testUtils.check_test_results([4, 3], ["test_trace37_1", "test_trace37_2"], [log2_events, log3_events, log4_events])
-
-
-    except subprocess.TimeoutExpired as e:
-        print(e)
-        print("TEST FAILED")
-        testUtils.g_tests_failed += 1
-        os.chdir("..")
-
+    print("Test 37 not implemented. This test will be provided for the ION Open Source 4.2")
+    print("release to test the \'do_not_forward\' security policy processing action behavior.")
     print("###############################################################################")
 
 
@@ -4178,12 +4085,320 @@ def test43(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
     print("###############################################################################")
 
 
-def test44(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScParms):
+def test44(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibScParms):
     print("###############################################################################")
 
     try:
         testUtils.start_test(
-            "44", "Brief: BCB targeting a large Payload (1MB).\n\n"
+            "44", "Brief: Intentionally corrupt a BIB targeting an Extension Block.\n\n"
+                 "Description: Add a BIB targeting the Bundle Age Block at \n"
+                 "Security Source ipn:2.1 using key_1_32bytes and process that BIB at Security \n"
+                 "Acceptor ipn:3.1 using key_2_32bytes. This intentional key misconfiguration \n"
+                 "causes the Security Acceptor to identify the integrity security operation as \n"
+                 "corrupted. A processing action is added to the event set to instruct the BPA to \n"
+                 "discard the security target (the BAB) if it is corrupted at the Acceptor.\n\n"
+                 "Bundle Path: ipn:2.1 -> ipn:3.1\n\n")
+        time.sleep(testUtils.TIME_DISPLAYTEXT)
+
+        # Tracking current position in log
+        log2 = testUtils.log_position("2")
+        log3 = testUtils.log_position("3")
+
+        print("Node ipn:2.1 Configuration\n")
+        testUtils.add_key(2, "key_1_32bytes")
+        testUtils.add_event_set(2, "d_integrity", "default bib")
+
+        desc = "bib src tgt:BAB"
+        filter = testUtils.build_filter("1", "s", "ipn:2.1", tgt=BUNDLEAGE, sc_id=inputScId)
+        spec = testUtils.build_spec("bib-integrity", sc_params=inputScParams)
+        es_ref = "d_integrity"
+        testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
+
+        if testUtils.g_verbose == "detailed":
+            testUtils.list_key(2)
+            testUtils.list_event_set(2)
+            testUtils.list_policy_rule(2)
+        if testUtils.g_verbose == "verbose":
+            testUtils.list_key(2)
+            testUtils.info_event_set(2, "d_integrity")
+            testUtils.info_policy_rule(2, 1)
+
+        print("Node ipn:3.1 Configuration \n")
+        testUtils.add_key(3, "key_2_32bytes")
+        testUtils.add_event_set(3, "d_integrity", "default bib")
+        testUtils.add_event(3, "d_integrity", "sop_corrupt_at_acceptor", [["remove_sop_target"]])        
+       
+        desc = "bib acceptor tgt:BAB"
+        filter = testUtils.build_filter("2", "a", "ipn:2.1", tgt=BUNDLEAGE)
+        spec = testUtils.build_spec("bib-integrity", sc_id=inputScId, sc_params=inputScParams)
+        es_ref = "d_integrity"
+        testUtils.add_policy_rule(3, desc, filter, spec, es_ref)
+
+        if testUtils.g_verbose == "detailed":
+            testUtils.list_key(3)
+            testUtils.list_event_set(3)
+            testUtils.list_policy_rule(3)
+        if testUtils.g_verbose == "verbose":
+            testUtils.list_key(3)
+            testUtils.info_event_set(3, "d_integrity")
+            testUtils.info_policy_rule(3, 2)
+
+        # Send the bundle from ipn:2.1 -> ipn:3.1
+        testUtils.send_bundle("2.1", "3.1", "2.0", "test_trace44")
+
+        print("\n\nClear Node ipn:2.1 Policy \n")
+        testUtils.del_policy_rule(2, "1")
+        testUtils.del_event_set(2, "d_integrity")
+        testUtils.del_key(2, "key_1_32bytes")
+
+        print("Clear Node ipn:3.1 Policy\n")
+        testUtils.del_policy_rule(3, "2")
+        testUtils.del_event_set(3, "d_integrity")
+        testUtils.del_key(3, "key_2_32bytes")
+
+        # Verify results on ipn:2.1
+        log2_events = testUtils.get_test_events(2, log2)
+        te_1, log2_events = testUtils.find_test_event(
+            log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', BUNDLEAGE, None, None)
+
+        # Verify results on ipn:3.1
+        log3_events = testUtils.get_test_events(3, log3)
+        te_2, log3_events = testUtils.find_test_event(
+            log3_events, 'sop_corrupt_at_acceptor', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', BUNDLEAGE, te_1['msec'], te_1['count'])
+
+        # Process all test results
+        testUtils.check_test_results([3], ["test_trace44"], [log2_events, log3_events], deliver_bundle=False)
+
+    except subprocess.TimeoutExpired as e:
+        print(e)
+        print("TEST FAILED")
+        testUtils.g_tests_failed += 1
+        os.chdir("..")
+
+    print("###############################################################################")
+
+
+def test45(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScParms):
+    print("###############################################################################")
+
+    try:
+        testUtils.start_test(
+            "45", "Brief: Intentionally corrupt a BCB targeting an Extension Block.\n\n"
+                 "Description: Add a BCB targeting the Bundle Age Block at \n"
+                 "Security Source ipn:2.1 using bcb_key_32bytes and process that BCB at Security \n"
+                 "Acceptor ipn:3.1 using bcb_key_2_32bytes. This intentional key misconfiguration \n"
+                 "causes the Security Acceptor to identify the confidentiality security operation as \n"
+                 "corrupted. A processing action is added to the event set to instruct the BPA to \n"
+                 "discard the security target (the BAB) if it is corrupted at the Acceptor.\n\n"
+                 "Bundle Path: ipn:2.1 -> ipn:3.1\n\n")
+        time.sleep(testUtils.TIME_DISPLAYTEXT)
+
+        # Tracking current position in log
+        log2 = testUtils.log_position("2")
+        log3 = testUtils.log_position("3")
+
+        print("Node ipn:2.1 Configuration\n")
+        testUtils.add_key(2, "bcb_key_32bytes")
+        testUtils.add_event_set(2, "d_bcb_conf", "default bcb")
+
+        desc = "bcb src tgt:BAB"
+        filter = testUtils.build_filter("4", "s", "ipn:2.1", tgt=BUNDLEAGE, sc_id=inputScId)
+        spec = testUtils.build_spec("bcb-confidentiality", sc_params=inputScParams)
+        es_ref = "d_bcb_conf"
+        testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
+
+        if testUtils.g_verbose == "detailed":
+            testUtils.list_key(2)
+            testUtils.list_event_set(2)
+            testUtils.list_policy_rule(2)
+        if testUtils.g_verbose == "verbose":
+            testUtils.list_key(2)
+            testUtils.info_event_set(2, "d_bcb_conf")
+            testUtils.info_policy_rule(2, 4)
+
+        print("Node ipn:3.1 Configuration \n")
+        testUtils.add_key(3, "bcb_key_2_32bytes")
+        testUtils.add_event_set(3, "d_bcb_conf", "default bcb")
+        testUtils.add_event(3, "d_bcb_conf", "sop_corrupt_at_acceptor", [["remove_sop_target"]])
+        
+        desc = "bcb acceptor tgt:BAB"
+        filter = testUtils.build_filter("5", "a", "ipn:2.1", tgt=BUNDLEAGE)
+        spec = testUtils.build_spec("bcb-confidentiality", sc_id=inputScId, sc_params=inputScParams)
+        es_ref = "d_bcb_conf"
+        testUtils.add_policy_rule(3, desc, filter, spec, es_ref)
+
+        if testUtils.g_verbose == "detailed":
+            testUtils.list_key(3)
+            testUtils.list_event_set(3)
+            testUtils.list_policy_rule(3)
+        if testUtils.g_verbose == "verbose":
+            testUtils.list_key(3)
+            testUtils.info_event_set(3, "d_bcb_conf")
+            testUtils.info_policy_rule(3, 5)
+
+        # Send the bundle from ipn:2.1 -> ipn:3.1
+        testUtils.send_bundle("2.1", "3.1", "2.0", "test_trace45")
+
+        print("\n\nClear Node ipn:2.1 Policy \n")
+        testUtils.del_policy_rule(2, "4")
+        testUtils.del_event_set(2, "d_bcb_conf")
+        testUtils.del_key(2, "bcb_key_32bytes")
+
+        print("Clear Node ipn:3.1 Policy\n")
+        testUtils.del_policy_rule(3, "5")
+        testUtils.del_event_set(3, "d_bcb_conf")
+        testUtils.del_key(3, "bcb_key_2_32bytes")
+
+        # Verify results on ipn:2.1
+        log2_events = testUtils.get_test_events(2, log2)
+        te_1, log2_events = testUtils.find_test_event(
+            log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:3.1', 'bcb-confidentiality', BUNDLEAGE, None, None)
+
+        # Verify results on ipn:3.1
+        log3_events = testUtils.get_test_events(3, log3)
+        te_2, log3_events = testUtils.find_test_event(
+            log3_events, 'sop_corrupt_at_acceptor', 'ipn:2.1', 'ipn:3.1', 'bcb-confidentiality', BUNDLEAGE, te_1['msec'], te_1['count'])
+
+        # Process all test results
+        testUtils.check_test_results([3], ["test_trace45"], [log2_events, log3_events], deliver_bundle=False)
+
+    except subprocess.TimeoutExpired as e:
+        print(e)
+        print("TEST FAILED")
+        testUtils.g_tests_failed += 1
+        os.chdir("..")
+
+    print("###############################################################################")
+
+def test46():
+    print("###############################################################################")
+    print("Test 46 not implemented. This test will be provided for the ION Open Source 4.2")
+    print("release to test the execution of multiple security policy processing actions")
+    print("in response to an integrity corruption security operation event.")
+    print("###############################################################################")
+
+
+def test47():
+    print("###############################################################################")
+    print("Test 47 not implemented. This test will be provided for the ION Open Source 4.2")
+    print("release to test the execution of multiple security policy processing actions")
+    print("in response to a confidentiality corruption security operation event.")
+    print("###############################################################################")
+
+
+def test48():
+    print("###############################################################################")
+    print("Test 48 not implemented. This test will be provided for the ION Open Source 4.2")
+    print("release to test the \'report_reason_code\' security policy processing action behavior.")
+    print("###############################################################################")
+
+
+def test49(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibScParms):
+    print("###############################################################################")
+
+    try:
+        testUtils.start_test(
+            "49", "Brief: BIB targeting a large Payload (1MB).\n\n"
+                 "Description: Add a BIB targeting a large Payload Block (1MB) at \n"
+                 "Security Source ipn:2.1 and process that BIB at Security \n"
+                 "Acceptor ipn:3.1\n\n"
+                 "Bundle Path: ipn:2.1 -> ipn:3.1\n\n")
+        time.sleep(testUtils.TIME_DISPLAYTEXT)
+
+        # Tracking current position in log
+        log2 = testUtils.log_position("2")
+        log3 = testUtils.log_position("3")
+
+        print("Node ipn:2.1 Configuration\n")
+        testUtils.add_key(2, "key_1_32bytes")
+        testUtils.add_event_set(2, "d_integrity", "default bib")
+
+        desc = "bib src tgt:payload"
+        filter = testUtils.build_filter("1", "s", "ipn:2.1", tgt=PAYLOAD, sc_id=inputScId)
+        spec = testUtils.build_spec("bib-integrity", sc_params=inputScParams)
+        es_ref = "d_integrity"
+        testUtils.add_policy_rule(2, desc, filter, spec, es_ref)
+
+        if testUtils.g_verbose == "detailed":
+            testUtils.list_key(2)
+            testUtils.list_event_set(2)
+            testUtils.list_policy_rule(2)
+        if testUtils.g_verbose == "verbose":
+            testUtils.list_key(2)
+            testUtils.info_event_set(2, "d_integrity")
+            testUtils.info_policy_rule(2, 1)
+
+        print("Node ipn:3.1 Configuration \n")
+        testUtils.add_key(3, "key_1_32bytes")
+        testUtils.add_event_set(3, "d_integrity", "default bib")
+
+        desc = "bib acceptor tgt:payload"
+        filter = testUtils.build_filter("2", "a", "ipn:2.1", tgt=PAYLOAD)
+        spec = testUtils.build_spec("bib-integrity", sc_id=inputScId, sc_params=inputScParams)
+        es_ref = "d_integrity"
+        testUtils.add_policy_rule(3, desc, filter, spec, es_ref)
+
+        if testUtils.g_verbose == "detailed":
+            testUtils.list_key(3)
+            testUtils.list_event_set(3)
+            testUtils.list_policy_rule(3)
+        if testUtils.g_verbose == "verbose":
+            testUtils.list_key(3)
+            testUtils.info_event_set(3, "d_integrity")
+            testUtils.info_policy_rule(3, 2)
+
+        # Generate the large payload for this bundle
+        testUtils.gen_large_file(2, "test49.txt", 1000000)
+
+        time.sleep(2)
+
+        # Set up bprecvfile at destination ipn:3.1
+        testUtils.recv_file(3)
+
+        # Send the file from ipn:2.1 -> ipn:3.1
+        testUtils.send_file(2, 3, "test49.txt", 120)
+
+        print("\n\nClear Node ipn:2.1 Policy \n")
+        testUtils.del_policy_rule(2, "1")
+        testUtils.del_event_set(2, "d_integrity")
+        testUtils.del_key(2, "key_1_32bytes")
+
+        print("Clear Node ipn:3.1 Policy\n")
+        testUtils.del_policy_rule(3, "2")
+        testUtils.del_event_set(3, "d_integrity")
+        testUtils.del_key(3, "key_1_32bytes")
+
+        # Verify results on ipn:2.1
+        log2_events = testUtils.get_test_events(2, log2)
+        te_1, log2_events = testUtils.find_test_event(
+            log2_events, 'sop_added_at_src', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', None, None)
+
+        # Verify results on ipn:3.1
+        log3_events = testUtils.get_test_events(3, log3)
+        te_2, log3_events = testUtils.find_test_event(
+            log3_events, 'sop_processed', 'ipn:2.1', 'ipn:3.1', 'bib-integrity', '1', te_1['msec'], te_1['count'])
+
+        # Process all test results
+        testUtils.check_test_results([3], ["payload length is 1000000"], [log2_events, log3_events])
+
+        if os.path.exists('2.ipn.ltp/test49.txt'):
+            os.remove('2.ipn.ltp/test49.txt')
+
+    except subprocess.TimeoutExpired as e:
+        print(e)
+        print("TEST FAILED")
+        testUtils.g_tests_failed += 1
+        os.chdir("..")
+
+    print("###############################################################################")
+
+
+def test50(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScParms):
+    print("###############################################################################")
+
+    try:
+        testUtils.start_test(
+            "50", "Brief: BCB targeting a large Payload (1MB).\n\n"
                  "Description: Add a BCB targeting a large Payload Block (1MB) at \n"
                  "Security Source ipn:2.1 and process that BCB at Security \n"
                  "Acceptor ipn:3.1\n\n"
@@ -4233,7 +4448,7 @@ def test44(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
             testUtils.info_policy_rule(3, 2)
 
         # Generate the large payload for this bundle
-        testUtils.gen_large_file(2, "test44.txt", 1000000)
+        testUtils.gen_large_file(2, "test50.txt", 1000000)
 
         time.sleep(2)
 
@@ -4241,7 +4456,7 @@ def test44(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
         testUtils.recv_file(3)
 
         # Send the file from ipn:2.1 -> ipn:3.1
-        testUtils.send_file(2, 3, "test44.txt", 120)
+        testUtils.send_file(2, 3, "test50.txt", 120)
 
         print("\n\nClear Node ipn:2.1 Policy \n")
         testUtils.del_policy_rule(2, "1")
@@ -4266,8 +4481,8 @@ def test44(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
         # Process all test results
         testUtils.check_test_results([3], ["payload length is 1000000"], [log2_events, log3_events])
 
-        if os.path.exists('2.ipn.ltp/test44.txt'):
-            os.remove('2.ipn.ltp/test44.txt')
+        if os.path.exists('2.ipn.ltp/test50.txt'):
+            os.remove('2.ipn.ltp/test50.txt')
 
     except subprocess.TimeoutExpired as e:
         print(e)
@@ -4325,7 +4540,12 @@ def all_tests():
     test42()
     test43()
     test44()
-
+    test45()
+    test46()
+    test47()
+    test48()
+    test49()
+    test50()
 
 def bib_tests():
     test1()
@@ -4353,6 +4573,9 @@ def bib_tests():
     test37()
     test38()
     test42()
+    test44()
+    test46()
+    test49()
 
 
 def bcb_tests():
@@ -4379,7 +4602,9 @@ def bcb_tests():
     test36()
     test39()
     test43()
-    test44()
+    test45()
+    test47()
+    test50()
 
 
 def payload_tgt():
@@ -4430,7 +4655,7 @@ def primary_tgt():
 
 def help():
     print("Test format:\npython3 main.py <test> <test> \n\nTests to run: \n"
-          "single tests: 1 - 39 \n"
+          "single tests: 1 - 50 \n"
           "group tests: 'all', 'bib', 'bcb', 'payload', 'primary' \n")
 
 
@@ -4440,7 +4665,7 @@ test_dict = {1: test1, 2: test2, 3: test3, 4: test4, 5: test5, 6: test6, 7: test
              23: test23, 24: test24, 25: test25, 26: test26, 27: test27, 28: test28, 29: test29,
              30: test30, 31: test31, 32: test32, 33: test33, 34: test34, 35: test35, 36: test36,
              37: test37, 38: test38, 39: test39, 40: test40, 41: test41, 42: test42, 43:test43,
-             44: test44,
+             44: test44, 45: test45, 46: test46, 47: test47, 48: test48, 49: test49, 50: test50,
              "all": all_tests, 
              "bib_tests": bib_tests, "bib": bib_tests, 
              "bcb_tests": bcb_tests, "bcb": bcb_tests, 

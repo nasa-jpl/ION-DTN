@@ -26,7 +26,7 @@
  **     The implementation supports re-entrancy via blocking writes. 
  **
  ** Notes:
- **     This implementation *only* supports wildcard prefix searches (data~)
+ **     This implementation *only* supports wildcard prefix searches (data*)
  **
  ** Assumptions:
  **     Keys are strings

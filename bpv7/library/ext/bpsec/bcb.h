@@ -170,14 +170,14 @@
 #endif
 #if (BCB_TEST_LOGGING == 1)
 
-#define BCB_TEST_POINT(event, bundle, num) \
+#define BCB_TEST_POINT(event, bundle, blktype) \
 {_isprintf(gMsg, GMSG_BUFLEN, "[te] %s - bsrc:ipn:%i.%i, bdest:ipn:%i.%i,\
 svc: bcb-confidentiality, tgt:%u, msec:%u, count: %u", event,\
 (bundle) ? bundle->id.source.ssp.ipn.nodeNbr      : 0, \
 (bundle) ? bundle->id.source.ssp.ipn.serviceNbr   : 0, \
 (bundle) ? bundle->destination.ssp.ipn.nodeNbr    : 0, \
 (bundle) ? bundle->destination.ssp.ipn.serviceNbr : 0, \
-num, \
+blktype, \
 (bundle) ? bundle->id.creationTime.msec  : 0, \
 (bundle) ? bundle->id.creationTime.count : 0); \
 writeMemo(gMsg);}

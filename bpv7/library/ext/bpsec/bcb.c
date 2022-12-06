@@ -184,7 +184,7 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
             bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_corrupt_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
 
             bundlePtr = &(work->bundle);
-            BCB_TEST_POINT("sop_corrupt_at_acceptor", bundlePtr, tgtId);
+            BCB_TEST_POINT("sop_corrupt_at_acceptor", bundlePtr, (tgtBlk) ? tgtBlk->type : -1);
             break;
 
         case -2: /* Misconfiguration of BCB. */

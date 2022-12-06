@@ -373,7 +373,7 @@ def build_event(es_ref, event_id, actions_lst):
     return json.dumps(cmd)
 
 
-def add_event(es_name, event_id, actions_lst):
+def add_event(node_num, es_name, event_id, actions_lst):
     """
     [add_event] adds an event [event_id] with corresponding [actions]
     to an existing, named event set [es_name].
@@ -387,12 +387,15 @@ def add_event(es_name, event_id, actions_lst):
 
     ION utility used: bpsecadmin
     """
+    os.chdir(str(node_num) + ".ipn.ltp")
 
     cmd = "bpsecadmin<<END\na " + build_event(es_name, event_id, actions_lst) + "\nq\nEND"
 
     out = subprocess.run(cmd, shell=True, timeout=TIME_TESTTIMEOUT, capture_output=True, text=True)
 
     print_debug(out)
+
+    os.chdir("..")
 
 
 def del_event(es_name, event_id):
