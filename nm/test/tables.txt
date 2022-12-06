@@ -1,0 +1,55 @@
+# Test Set 6: Standard Tables.
+#
+# Assume nm_mgr is on ipn:1.1
+# Assume nm_agent is on ipn:1.2
+# Assume ipn:1.0 is available
+
+###################################################
+# Test Case 1 Generate Tables.
+###################################################
+
+#------------------------------------------------------------------------------
+# Step 1.1: Generate a table that lists all the adms that are supported by 
+#           the agent using the AMP Agent adm table template.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.adms()],[])
+#
+#------------------------------------------------------------------------------
+c115410605022523818a181b410000
+WAIT 1
+
+#------------------------------------------------------------------------------
+# Step 1.2: Verify ADM table received and correct. Must include the AMP Agent ADM
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Step 1.3: Generate a table that lists all the table templates that are defined  
+#           by the agent using the AMP Agent tblts table template.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.tblts()],[])
+#
+#------------------------------------------------------------------------------
+c115410605022523818a181b410500
+WAIT 1
+
+#------------------------------------------------------------------------------
+# Step 1.4: Verify TBLT table received and correct. 
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# Step 1.5: Generate tables concurrently: variables and rules.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls(
+#         [ari:/IANA:amp.agent/Tblt.variables(), 
+#          ari:/IANA:amp.agent/Tblt.rules()],[])
+#
+#------------------------------------------------------------------------------
+c115410605022523828a181b41018a181b410400
+WAIT 1
+
+#------------------------------------------------------------------------------
+# Step 1.6: Verify both tables received and correct.
+#------------------------------------------------------------------------------
