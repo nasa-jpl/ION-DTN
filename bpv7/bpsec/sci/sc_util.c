@@ -117,9 +117,10 @@ int   bpsec_scutl_keyGet(sc_state *state, int key_id, sc_value *key_value)
         *key_value = bpsec_util_keyRetrieve(tmp);
         if(key_value->scValLength == 0)
         {
-            BPSEC_DEBUG_ERR("Cannot find value for key %s", key_name->scRawValue.asPtr);
+            BPSEC_DEBUG_ERR("Cannot find value for key %s", tmp);
             return -1;
         }
+
     }
 
     return 0;

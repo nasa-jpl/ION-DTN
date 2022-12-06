@@ -26,7 +26,7 @@
  **     The implementation supports re-entrancy via blocking writes. 
  **
  ** Notes:
- **     This implementation *only* supports wildcard prefix searches (data~)
+ **     This implementation *only* supports wildcard prefix searches (data*)
  **
  **      Locking is a balance between performance and precision. Locking
  **      too specific an area leads to too much locking and unlocking. Locking
@@ -57,7 +57,7 @@
  */
 
 /**> Wildcard for prefix matching. */
-#define RADIX_PREFIX_WILDCARD '~'
+#define RADIX_PREFIX_WILDCARD '*'
 
 #define RADIX_MATCH_NONE     (1)
 #define RADIX_MATCH_PARTIAL  (2)
