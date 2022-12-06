@@ -1,39 +1,116 @@
-# Create a Macro that dumps an AMP full report. Clears the AMP report. Produces new Report.
-# Type: Macro. NN=1, ISS=1, Name=1
-# 0xa401410101
+# Test Set 3: Macros
 #
-c1154107584285054312242543624d3145a40141010158308354c11541054f840542252347814587181941004180448115410f54c11541054f840542252347814587181941004180
-WAIT 1
+# Assume nm_mgr is on ipn:1.1
+# Assume nm_agent is on ipn:1.2
 
-#Describe Macro
-c11541094c83054125478145a401410101
-WAIT 1
-
-# Reboot manager and see if macro reloads.
-
-# Request table of known macros.
+###############################################################################
+# Test Case 1 Test Basic Macro Operations
+###############################################################################
+# Generate basic macros in the AMP.
 #
-c11541064f84054225234781458a181b41034180
+###############################################################################
+
+#------------------------------------------------------------------------------
+# Step 1.1: Create a Macro that 
+#   1) Generates a BP Agent Full Report
+#   2) Issues a reset all counts command to reset the counters in the BP Agent
+#      full report
+#   3) Generates a new BP Agent Full Report
+#
+#------------------------------------------------------------------------------
+#
+# Type: Macro (mac)
+# Nickname (NN): 1
+# Issuer (ISS): 1 
+# Name: test_full_rpt
+# Macro ARI: ari:/1:1/Mac.test_full_rpt
+# CBOR Macro ARI: 0x344d746573745f66756c6c5f72707441314131
+#
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.add_macro("test_full_rpt", ari:/1:1/Mac.test_full_rpt,
+#       [ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/Rptt.full_report()], []),
+#        ari:/IANA:dtn.bp_agent/Ctrl.reset_all_counts(),
+#        ari:/IANA:amp.agent/Ctrl.gen_rpts([ari:/IANA:dtn.bp_agent/Rptt.full_report()], [])])
+#
+#------------------------------------------------------------------------------
+c115410705031224256d746573745f66756c6c5f727074344d746573745f66756c6c5f7270744131413183c1154105050225238187182d4100008118294100c1154105050225238187182d410000
 WAIT 1
 
-# Reboot agent and see if macro comes back.
-
-# Request table of known macros. Make sure it is still there.
-c11541064f84054225234781458a181b41034180
+#------------------------------------------------------------------------------
+# Step 1.2: Describe Macro test_full_rpt.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.desc_macro([ari:/1:1/Mac.test_full_rpt])
+#
+#------------------------------------------------------------------------------
+c115410905012581344d746573745f66756c6c5f72707441314131
 WAIT 1
 
-# Delete Macro
-c11541084c83054125478145a401410101
+#------------------------------------------------------------------------------
+# Step 1.3: Reboot manager and see if macro is restored.
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# Step 1.4: Request table of known macros.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.macros()],[])
+#
+#------------------------------------------------------------------------------
+c115410605022523818a181b410300
 WAIT 1
 
-# Request table of known macros and make sure macro is no longer listed.
+#------------------------------------------------------------------------------
+# Step 1.5: Reboot manager and see if macro is restored.
+#------------------------------------------------------------------------------
 
-# Reboot agent and make sure macro doesn't come back.
+#------------------------------------------------------------------------------
+# Step 1.6: Request table of known macros. Make sure the macro is still present.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.macros()],[])
+#
+#------------------------------------------------------------------------------
+c115410605022523818a181b410300
+WAIT 1
 
-# Request table of known macros. Make sure it is no longer there.
-c11541064f84054225234781458a181b41034180
+
+#------------------------------------------------------------------------------
+# Step 1.7: Delete macro test_full_rptt.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.del_macro([ari:/1:1/Mac.test_full_rpt])
+#
+#------------------------------------------------------------------------------
+c115410805012581344d746573745f66756c6c5f72707441314131
+WAIT 1
+
+#------------------------------------------------------------------------------
+# Step 1.8: Request table of known macros. Make sure the macro is no longer 
+#           listed.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.macros()],[])
+#
+#------------------------------------------------------------------------------
+c115410605022523818a181b410300
+WAIT 1
 
 
+#------------------------------------------------------------------------------
+# Step 1.9: Reboot agent and make sure macro doesn't come back.
+#------------------------------------------------------------------------------
 
 
-
+#------------------------------------------------------------------------------
+# Step 1.10: Request table of known macros. Make sure the macro is no longer 
+#           listed.
+#------------------------------------------------------------------------------
+#
+# ARI: ari:/IANA:amp.agent/Ctrl.gen_tbls([ari:/IANA:amp.agent/Tblt.macros()],[])
+#
+#------------------------------------------------------------------------------
+c115410605022523818a181b410300
+WAIT 1
