@@ -83,7 +83,7 @@
 #define BCB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BCB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BCB_DEBUG_LVL            BCB_DEBUG_LVL_PROC
+#define BCB_DEBUG_LVL            BCB_DEBUG_LVL_ERR
 
 #define GMSG_BUFLEN			256
 #if (BCB_DEBUGGING == 1)
@@ -165,7 +165,7 @@
  */
 
 #ifndef BCB_TEST_LOGGING
-#define BCB_TEST_LOGGING 1  /** Whether to enable (1) or disable (0) BCB
+#define BCB_TEST_LOGGING 0  /** Whether to enable (1) or disable (0) BCB
  	 	 	 	 	 	 	  * test-level logging statements         */
 #endif
 #if (BCB_TEST_LOGGING == 1)
