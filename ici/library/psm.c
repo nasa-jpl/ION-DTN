@@ -808,21 +808,12 @@ static int	traceInProgress(PsmPartition partition)
 
 	if (partition->trace == NULL)
 	{
-		if (map->traceSize < 1)	/*	Trace is disabled.	*/
-		{
-			return 0;	/*	Don't trace.		*/
-		}
-
-		if (psm_start_trace(partition, map->traceSize, NULL) < 0)
-		{
-			return 0;	/*	Fail silently.		*/
-		}
+		return 0;  /* Don't trace, not ready */	
 	}
 	else	/*	Still valid?					*/
 	{
 		if (map->traceSize < 1)	/*	Trace is now disabled.	*/
 		{
-			partition->trace = NULL;
 			return 0;	/*	Don't trace.		*/
 		}
 	}
@@ -1411,9 +1402,10 @@ void	psm_stop_trace(PsmPartition partition)
 	CHKVOID(partition);
 	map = (PartitionMap *) (partition->space);
 	lockPartition(map);
+	map->traceSize = 0;			/*	Disable trace.	*/
+	snooze(1);   /* allow sufficient time for existing trace to end */
 	sptrace_stop(partition->trace);
 	partition->trace = NULL;
-	map->traceSize = 0;			/*	Disable trace.	*/
 	unlockPartition(map);
 #endif
 }
