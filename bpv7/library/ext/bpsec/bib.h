@@ -168,7 +168,7 @@
 
 #ifndef BIB_TEST_LOGGING
 #define BIB_TEST_LOGGING 0  /** Whether to enable (1) or disable (0) BIB
- 	 	 	 	 	 	 	  * test-level logging statements         */
+                              * test-level logging statements         */
 #endif
 #if (BIB_TEST_LOGGING == 1)
 
@@ -183,6 +183,8 @@ num, \
 (bundle) ? bundle->id.creationTime.msec  : 0, \
 (bundle) ? bundle->id.creationTime.count : 0); \
 writeMemo(gMsg);}
+#else
+#define BIB_TEST_POINT(event, bundle, num) {}
 #endif
 
 /************************************************************************

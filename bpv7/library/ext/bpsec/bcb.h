@@ -166,7 +166,7 @@
 
 #ifndef BCB_TEST_LOGGING
 #define BCB_TEST_LOGGING 0  /** Whether to enable (1) or disable (0) BCB
- 	 	 	 	 	 	 	  * test-level logging statements         */
+                              * test-level logging statements         */
 #endif
 #if (BCB_TEST_LOGGING == 1)
 
@@ -181,6 +181,8 @@ blktype, \
 (bundle) ? bundle->id.creationTime.msec  : 0, \
 (bundle) ? bundle->id.creationTime.count : 0); \
 writeMemo(gMsg);}
+#else
+#define BCB_TEST_POINT(event, bundle, blktype) {}
 #endif
 
 /*****************************************************************************
