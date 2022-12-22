@@ -1,35 +1,13 @@
 /*
-	amshello.c:	A distributed "Hello, world" implemented
-			using AMS on a Unix platform (only).
-									*/
-/*	Copyright (c) 2005, California Institute of Technology.		*/
-/*	All rights reserved.						*/
-/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
+amshello.c
+"Hello world" demonstration using AMS - Unix platform (only)
+
+Copyright (c) 2023, California Institute of Technology.	
+Sky DeBaun, Jet Propulsion Laboratory.
+*/
+
 
 #include "ams.h"
-
-static int	runCatcher()
-{
-	AmsModule	me;
-	AmsEvent	evt;
-	int		cn, zn, nn, sn, len, ct, pr;
-	unsigned char	fl;
-	AmsMsgType	mt;
-	char		*txt;
-
-	oK(ams_register(NULL, NULL, "amsdemo", "test", "", "catch", &me));
-	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
-	while (1)
-	{
-		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
-		if (ams_get_event_type(evt) == AMS_MSG_EVT) break;
-		else ams_recycle_event(evt);
-	}
-
-	ams_parse_msg(evt, &cn, &zn, &nn, &sn, &len, &txt, &ct, &mt, &pr, &fl);
-	printf("%d received '%s'.\n", (int) getpid(), txt); fflush(stdout);
-	ams_recycle_event(evt); ams_unregister(me); return 0;
-}
 
 static int	runPitcher()
 {
@@ -43,9 +21,9 @@ static int	runPitcher()
 	AmsDiligence	diligence;
 	char		buffer[80];
 
-	isprintf(buffer, sizeof buffer, "Hello from %d.", (int) getpid());
+	isprintf(buffer, sizeof buffer, "Hello from process %d", (int) getpid());
 	textlen = strlen(buffer) + 1;
-	oK(ams_register(NULL, NULL, "amsdemo", "test", "", "pitch", &me));
+	oK(ams_register("", NULL, "amsdemo", "test", "", "pitch", &me));
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
@@ -54,7 +32,7 @@ static int	runPitcher()
 		ams_recycle_event(evt);
 		if (state == AmsInvitationState && sn == 1)
 		{
-			printf("%d sending  '%s'.\n", (int) getpid(), buffer);
+			printf("Process %d sending:  '%s'\n", (int) getpid(), buffer);
 			fflush(stdout);
 			ams_send(me, -1, zn, nn, 1, 0, 0, textlen, buffer, 0);
 			ams_unregister(me); return 0;
@@ -62,7 +40,45 @@ static int	runPitcher()
 	}
 }
 
-int	main(int argc, char **argv)
+static int	runCatcher()
 {
-	if (fork() == 0) return runCatcher(); else return runPitcher();
+	AmsModule	me;
+	AmsEvent	evt;
+	int		cn, zn, nn, sn, len, ct, pr;
+	unsigned char	fl;
+	AmsMsgType	mt;
+	char		*txt;
+
+	oK(ams_register("", NULL, "amsdemo", "test", "", "catch", &me));
+	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
+		if (ams_get_event_type(evt) == AMS_MSG_EVT) break;
+		else ams_recycle_event(evt);
+	}
+
+	ams_parse_msg(evt, &cn, &zn, &nn, &sn, &len, &txt, &ct, &mt, &pr, &fl);
+	printf("Process %d received: '%s'\n", (int) getpid(), txt); fflush(stdout);
+	ams_recycle_event(evt); ams_unregister(me); return 0;
+}
+
+
+int main(void) 
+{
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        fprintf(stderr, "Failed to create child process.\n");
+        return EXIT_FAILURE;
+    }
+
+    if (pid == 0)
+        //child process runs transmitter----------------------
+        runPitcher();
+    else 
+    {
+        //parent process runs receiver------------------------
+        runCatcher();
+    }
 }
