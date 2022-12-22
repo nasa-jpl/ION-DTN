@@ -4,32 +4,48 @@ amshello.c
 
 Copyright (c) 2023, California Institute of Technology.	
 Sky DeBaun, Jet Propulsion Laboratory.
-*/
 
+
+This program assumes the following conditions---------------
+1.) ION is running
+2.) An AMS Registrar is running 	
+3.) An AMS Configuration Server is running 
+4.) An MIB configuration file has been created
+
+The command to configure and start the
+AMS daemon as both Configuration Server and 
+root unit Registrar follows.
+
+Example (run after ION starts):
+amsd mib.amsrc 192.168.xxx.xx:2502 amsdemo test "" &
+
+*/
 
 #include "ams.h"
 
 static int	runPitcher()
 {
-	AmsModule	me;
-	AmsEvent	evt;
+	AmsModule	    me;
+	AmsEvent	    evt;
 	AmsStateType	state;
 	AmsChangeType	change;
-	int		zn, nn, rn, dcn, dzn, sn, pr, textlen;
+	int		        zn, nn, rn, dcn, dzn, sn, pr, textlen;
 	unsigned char	fl;
-	AmsSequence	sequence;
+	AmsSequence	    sequence;
 	AmsDiligence	diligence;
-	char		buffer[80];
+	char		    buffer[80];
 
 	isprintf(buffer, sizeof buffer, "Hello from process %d", (int) getpid());
 	textlen = strlen(buffer) + 1;
 	oK(ams_register("", NULL, "amsdemo", "test", "", "pitch", &me));
+	
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
-		ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
-				&dzn, &sn, &pr, &fl, &sequence, &diligence);
-		ams_recycle_event(evt);
+			ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
+					&dzn, &sn, &pr, &fl, &sequence, &diligence);
+			ams_recycle_event(evt);
+
 		if (state == AmsInvitationState && sn == 1)
 		{
 			printf("Process %d sending:  '%s'\n", (int) getpid(), buffer);
@@ -42,15 +58,16 @@ static int	runPitcher()
 
 static int	runCatcher()
 {
-	AmsModule	me;
-	AmsEvent	evt;
-	int		cn, zn, nn, sn, len, ct, pr;
+	AmsModule	    me;
+	AmsEvent	    evt;
+	int		        cn, zn, nn, sn, len, ct, pr;
 	unsigned char	fl;
-	AmsMsgType	mt;
-	char		*txt;
+	AmsMsgType	    mt;
+	char		    *txt;
 
 	oK(ams_register("", NULL, "amsdemo", "test", "", "catch", &me));
 	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
+	
 	while (1)
 	{
 		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
