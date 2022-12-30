@@ -158,7 +158,7 @@ static int	serializeIrfMsg(uvast fromNodeNbr, uvast toNodeNbr,
 
 	for (elt = lyst_first(passageways); elt; elt = lyst_next(elt))
 	{
-		uvtemp = (uvast) lyst_data(elt);
+		uvtemp = (uvast) (uintptr_t)lyst_data(elt);
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
@@ -237,7 +237,7 @@ int	irf_send_msg(uvast fromNodeNbr, uvast toNodeNbr, int isReachable,
 	{
 		/*	Send message to last passageway in trace list.	*/
 
-		destinationNodeNbr = (uvast) lyst_data(elt);
+		destinationNodeNbr = (uvast) (uintptr_t)lyst_data(elt);
 	}
 	else
 	{
@@ -440,7 +440,7 @@ int	irf_issue_ipt_rpt(Bundle *bundle)
 
 	for (elt = lyst_first(passageways); elt; elt = lyst_next(elt))
 	{
-		uvtemp = (uvast) lyst_data(elt);
+		uvtemp = (uvast) (uintptr_t)lyst_data(elt);
 		oK(cbor_encode_integer(uvtemp, &cursor));
 	}
 
@@ -839,7 +839,7 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 
 		case 0:			/*	Potential, unconfirmed.	*/
 			if (!lyst_insert_last(nominees,
-					(void *) (candidate->nodeNbr)))
+					(void *) (uintptr_t)(candidate->nodeNbr)))
 			{
 				putErrmsg("Can't note potential passageway.",
 						NULL);
@@ -861,7 +861,7 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 	{
 		lyst_clear(nominees);
 		if (!lyst_insert_last(nominees,
-				(void *) (bestCandidate->nodeNbr)))
+				(void *) (uintptr_t)(bestCandidate->nodeNbr)))
 		{
 			putErrmsg("Can't note best passageway.", NULL);
 			return -1;
@@ -903,7 +903,7 @@ int 	irf_identify_passageways(IonNode *terminusNode, Bundle *bundle,
 
 			candidate->confirmTime = 0;
 			if (!lyst_insert_last(nominees,
-					(void *) (candidate->nodeNbr)))
+					(void *) (uintptr_t)(candidate->nodeNbr)))
 			{
 				putErrmsg("Can't note potential passageway.",
 						NULL);
