@@ -2,11 +2,11 @@ PODM1 = pod2man -s 1 -c "DNAC executables"
 PODH = pod2html --noindex
 
 MANFILES = \
-	./man/man1/dnac.1 \
+	./man/man1/dnacp.1 \
 	./man/man1/dnacc.1
 
 HTMLFILES = \
-	./html/man1/dnac.html \
+	./html/man1/dnacp.html \
 	./html/man1/dnacc.html
 
 ALL = $(MANFILES) $(HTMLFILES)
