@@ -1,17 +1,17 @@
 =head1 NAME
 
-dnac - DTN node auto-configuration
+dnacp - "parent" utility for DTN node auto-configuration
 
 =head1 SYNOPSIS
 
-B<dnac> [ I<node_list_dir_name> [ I<node_nbr> [ I<path_name> [ I<host_name> [ I<password_path_name> ] ] ] ] ]
+B<dnacp> [ I<node_list_dir_name> [ I<node_nbr> [ I<path_name> [ I<host_name> [ I<password_path_name> ] ] ] ] ]
 
 =head1 DESCRIPTION
 
-B<dnac> is a utility program for automatically configuring and deploying a
+B<dnacp> is a utility program for automatically configuring and deploying a
 new ION node.  The new node is instantiated within the directory identified
 by I<path_name> as an additional node on the same machine as the node within
-which B<dnac> is running; after instantiation, the new node may either be
+which B<dnacp> is running; after instantiation, the new node may either be
 started on that machine or else automatically relocated to another machine
 and started there.
 
@@ -20,7 +20,7 @@ or "sponsor") node for communication with the new node, then announcing
 to the home region the parent node's impending contacts with the new
 node.  Then standard ION configuration files are constructed in the
 instantiation directory; default values for all configuration parameters
-are provided by B<dnac> but may be supplemented (or in some cases
+are provided by B<dnacp> but may be supplemented (or in some cases
 overridden) by select parameters provided in user-written ION
 configuration files pre-placed in the instantiation directory.
 
@@ -31,7 +31,7 @@ B<dnacc> utility is spawned for the new node.
 B<dnacc> generates the new node's public/private key pair, stores the new
 private key in encrypted representation (as enabled by the passphrase
 in the file identified by I<password_path_name>), and sends the public
-key back to B<dnac>.  B<dnac> submits the new public key to the DTKA
+key back to B<dnacp>.  B<dnacp> submits the new public key to the DTKA
 public key authority (signed in the parent node's own private key) and
 starts the new node, either on the local machine or after copying the
 node's state (its SDR heap file) to the remote machine identified by
@@ -51,7 +51,7 @@ Completion of node deployment.
 
 =over 4
 
-=item dnac . 0 ../newnode "" ../secure/passwd
+=item dnacp . 0 ../newnode "" ../secure/passwd
 
 Configures and deploys a new node in the ../newnode directory; the
 multi-node deployment will be subject to the B<ion_nodes> file in the current
@@ -67,55 +67,55 @@ relocated to any other computer.
 
 =head1 FILES
 
-B<dnac> will create a file named "node.ionrc" that will be passed to ionadmin.
+B<dnacp> will create a file named "node.ionrc" that will be passed to ionadmin.
 
-B<dnac> will execute "briefing" commands to create orientation files for
+B<dnacp> will execute "briefing" commands to create orientation files for
 the new node.  The file named "contacts.B<regionNbr>.ionrc" will contain
 commands to load all contacts in the contact plan for the home region of
-the node at which B<dnac> is being run.  The file named
+the node at which B<dnacp> is being run.  The file named
 "passageways.B<regionNbr>.ionrc" will contain commands to load all
 passageway information known to this node.  The file named "ranges.ionrc"
 will contain commands to load all range information known to this node.
 All three files will be passed to ionadmin.
 
-B<dnac> will create a file named "node.ionconfig" that will be referenced by
+B<dnacp> will create a file named "node.ionconfig" that will be referenced by
 the node initialization command in the node.ionrc file.  The default values
 written to this file may be overridden by user-selected values noted in a
 file named "spec.ionconfig".
 
-B<dnac> will create a file named "node.ionsecrc" that will be passed to
+B<dnacp> will create a file named "node.ionsecrc" that will be passed to
 ionsecadmin.  The commands written to this file may be supplemented by
 user-written commands noted in a file named "spec.ionsecrc".
 
-B<dnac> may create a file named "node.ltprc" that will be passed to
+B<dnacp> may create a file named "node.ltprc" that will be passed to
 ltpadmin.  The commands written to this file may be supplemented by
 user-written commands noted in a file named "spec.ltprc".
 
-B<dnac> may create a file named "node.bssprc" that will be passed to
+B<dnacp> may create a file named "node.bssprc" that will be passed to
 bsspadmin.  The commands written to this file may be supplemented by
 user-written commands noted in a file named "spec.bssprc".
 
-B<dnac> will create a file named "node.bprc" that will be passed to
+B<dnacp> will create a file named "node.bprc" that will be passed to
 bpadmin.  The commands written to this file may be supplemented by
 user-written commands noted in a file named "spec.bprc".
 
-B<dnac> will create a file named "node.tccrc" that will be passed to
+B<dnacp> will create a file named "node.tccrc" that will be passed to
 tccadmin.  The commands written to this file may be supplemented by
 user-written commands noted in a file named "spec.tccrc".
 
-B<dnac> will create a file named "node.dtkarc" that will be passed to
+B<dnacp> will create a file named "node.dtkarc" that will be passed to
 dtkaadmin.  The commands written to this file may be supplemented by
 user-written commands noted in a file named "spec.dtkarc".
 
-B<dnac> may create a file named "node.cfdprc" that will be passed to
+B<dnacp> may create a file named "node.cfdprc" that will be passed to
 cfdpadmin.  The commands written to this file may be supplemented by
 user-written commands noted in a file named "spec.cfdprc".
 
-B<dnac> will create a file named "ionstart" that will be executed as
+B<dnacp> will create a file named "ionstart" that will be executed as
 a script to start the new node and to restart it after it has been
 stopped.
 
-B<dnac> will create a file named "ionstop" that can later be executed as
+B<dnacp> will create a file named "ionstop" that can later be executed as
 a script to stop the new node.
 
 =head1 ENVIRONMENT
@@ -128,7 +128,7 @@ The following diagnostics may be issued to the logfile ion.log:
 
 =over 4
 
-=item dnac can't attach to DTKA system.
+=item dnacp can't attach to DTKA system.
 
 Delay-tolerant key administration is not initialized.
 

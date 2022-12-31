@@ -98,7 +98,7 @@ fi
 
 sleep 10
 
-dnac $ION_NODE_LIST_DIR 22 ../22.ipn.tcp "" ../passwd
+dnacp $ION_NODE_LIST_DIR 22 ../22.ipn.tcp "" ../passwd
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -111,7 +111,7 @@ fi
 
 sleep 2
 
-dnac $ION_NODE_LIST_DIR 23 ../23.ipn.tcp "" ../passwd
+dnacp $ION_NODE_LIST_DIR 23 ../23.ipn.tcp "" ../passwd
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -124,7 +124,7 @@ fi
 
 sleep 2
 
-dnac $ION_NODE_LIST_DIR 24 ../24.ipn.tcp "" ../passwd
+dnacp $ION_NODE_LIST_DIR 24 ../24.ipn.tcp "" ../passwd
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -256,7 +256,7 @@ echo ""
 echo "Step 5: start nodes 25 and 26 in regions 11 and 12"
 
 cd ../21.ipn.tcp
-dnac $ION_NODE_LIST_DIR 25 ../25.ipn.tcp "" ../passwd
+dnacp $ION_NODE_LIST_DIR 25 ../25.ipn.tcp "" ../passwd
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -270,7 +270,7 @@ fi
 sleep 1
 
 cd ../24.ipn.tcp
-dnac $ION_NODE_LIST_DIR 26 ../26.ipn.tcp "" ../passwd
+dnacp $ION_NODE_LIST_DIR 26 ../26.ipn.tcp "" ../passwd
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]
@@ -313,7 +313,7 @@ echo ""
 echo "Step 7: start node 27 in region 111"
 
 cd ../25.ipn.tcp
-dnac $ION_NODE_LIST_DIR 27 ../27.ipn.tcp "" ../passwd
+dnacp $ION_NODE_LIST_DIR 27 ../27.ipn.tcp "" ../passwd
 ../../../system_up -i "p 30" -b "p 30"
 
 if [ $? -eq 2 ]

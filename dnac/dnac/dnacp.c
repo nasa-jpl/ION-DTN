@@ -1,5 +1,5 @@
 /*
-	dnac.c:		DTN node auto-configuration utility.
+	dnacp.c:	DTN node auto-configuration utility.
 
 	Author: Scott Burleigh, IPNGROUP
 
@@ -36,7 +36,7 @@ static int	announceNewContacts(uint32_t regionNbr, uvast newNode)
 	if (rfx_insert_contact(regionNbr, MAX_POSIX_TIME, MAX_POSIX_TIME,
 			newNode, newNode, 0, 1.0, &cxaddr, 1) != 0)
 	{
-		putErrmsg("dnac can't announce registration contact.", NULL);
+		putErrmsg("dnacp can't announce registration contact.", NULL);
 		return -1;
 	}
 
@@ -45,7 +45,7 @@ static int	announceNewContacts(uint32_t regionNbr, uvast newNode)
 	if (rfx_insert_contact(regionNbr, fromTime, fromTime + 315360000,
 			newNode, newNode, 1000000000, 1.0, &cxaddr, 1) != 0)
 	{
-		putErrmsg("dnac can't announce registration contact.", NULL);
+		putErrmsg("dnacp can't announce registration contact.", NULL);
 		return -1;
 	}
 
@@ -54,14 +54,14 @@ static int	announceNewContacts(uint32_t regionNbr, uvast newNode)
 	if (rfx_insert_contact(regionNbr, fromTime, toTime,
 			self, newNode, xmitRate, 1.0, &cxaddr, 1) != 0)
 	{
-		putErrmsg("dnac can't announce contact to new node.", NULL);
+		putErrmsg("dnacp can't announce contact to new node.", NULL);
 		return -1;
 	}
 
 	if (rfx_insert_contact(regionNbr, fromTime, toTime,
 			newNode, self, xmitRate, 1.0, &cxaddr, 1) != 0)
 	{
-		putErrmsg("dnac can't announce contact from new node.", NULL);
+		putErrmsg("dnacp can't announce contact from new node.", NULL);
 		return -1;
 	}
 
@@ -76,7 +76,7 @@ static int	writeIonrcFile(uint32_t regionNbr, uvast nodeNbr)
 	rcfile = fopen("node.ionrc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.ionrc file.", NULL);
+		putSysErrmsg("dnacp can't create node.ionrc file.", NULL);
 		return -1;
 	}
 
@@ -84,7 +84,7 @@ static int	writeIonrcFile(uint32_t regionNbr, uvast nodeNbr)
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -93,7 +93,7 @@ static int	writeIonrcFile(uint32_t regionNbr, uvast nodeNbr)
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -245,7 +245,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	rcfile = fopen("node.ionconfig", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.ionconfig file.", NULL);
+		putSysErrmsg("dnacp can't create node.ionconfig file.", NULL);
 		return -1;
 	}
 
@@ -279,7 +279,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -295,7 +295,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -310,7 +310,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -325,7 +325,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -335,7 +335,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -350,7 +350,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -365,7 +365,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionconfig", NULL);
+		putSysErrmsg("dnacp can't write to node.ionconfig", NULL);
 		return -1;
 	}
 
@@ -375,7 +375,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -390,7 +390,7 @@ static int	writeIonconfigFile(uvast nodeNbr, char *sdrName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionrc", NULL);
 		return -1;
 	}
 
@@ -408,7 +408,7 @@ static int	writeIonsecrcFile()
 	rcfile = fopen("node.ionsecrc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.ionsecrc file.", NULL);
+		putSysErrmsg("dnacp can't create node.ionsecrc file.", NULL);
 		return -1;
 	}
 
@@ -418,7 +418,7 @@ static int	writeIonsecrcFile()
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.ionsecrc", NULL);
+		putSysErrmsg("dnacp can't write to node.ionsecrc", NULL);
 		return -1;
 	}
 
@@ -449,7 +449,7 @@ static int	writeIonsecrcFile()
 			{
 				fclose(specFile);
 				fclose(rcfile);
-				putSysErrmsg("dnac can't write node.ionsecrc",
+				putSysErrmsg("dnacp can't write node.ionsecrc",
 						NULL);
 				return -1;
 			}
@@ -472,7 +472,7 @@ static int	writeLtprcFile()
 	rcfile = fopen("node.ltprc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.ltprc file.", NULL);
+		putSysErrmsg("dnacp can't create node.ltprc file.", NULL);
 		return -1;
 	}
 
@@ -507,7 +507,7 @@ static int	writeLtprcFile()
 			{
 				fclose(specFile);
 				fclose(rcfile);
-				putSysErrmsg("dnac can't write to node.ltprc",
+				putSysErrmsg("dnacp can't write to node.ltprc",
 						NULL);
 				return -1;
 			}
@@ -530,7 +530,7 @@ static int	writeBssprcFile()
 	rcfile = fopen("node.bssprc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.bssprc file.", NULL);
+		putSysErrmsg("dnacp can't create node.bssprc file.", NULL);
 		return -1;
 	}
 
@@ -565,7 +565,7 @@ static int	writeBssprcFile()
 			{
 				fclose(specFile);
 				fclose(rcfile);
-				putSysErrmsg("dnac can't write to node.bssprc",
+				putSysErrmsg("dnacp can't write to node.bssprc",
 						NULL);
 				return -1;
 			}
@@ -589,7 +589,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	rcfile = fopen("node.bprc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.bprc file.", NULL);
+		putSysErrmsg("dnacp can't create node.bprc file.", NULL);
 		return -1;
 	}
 
@@ -599,7 +599,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -609,7 +609,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -618,7 +618,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -627,7 +627,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -636,7 +636,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -646,7 +646,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -654,7 +654,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -662,7 +662,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -670,7 +670,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -680,7 +680,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -689,7 +689,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -698,7 +698,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -707,7 +707,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -718,7 +718,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -727,7 +727,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -738,7 +738,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -747,7 +747,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.bprc", NULL);
+		putSysErrmsg("dnacp can't write to node.bprc", NULL);
 		return -1;
 	}
 
@@ -785,7 +785,7 @@ static int	writeBprcFile(uvast nodeNbr, char *sponsorInductName,
 			{
 				fclose(specFile);
 				fclose(rcfile);
-				putSysErrmsg("dnac can't write to node.bprc",
+				putSysErrmsg("dnacp can't write to node.bprc",
 						NULL);
 				return -1;
 			}
@@ -808,7 +808,7 @@ static int	writeTccrcFile()
 	rcfile = fopen("node.tccrc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.tccrc file.", NULL);
+		putSysErrmsg("dnacp can't create node.tccrc file.", NULL);
 		return -1;
 	}
 
@@ -818,7 +818,7 @@ static int	writeTccrcFile()
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.tccrc", NULL);
+		putSysErrmsg("dnacp can't write to node.tccrc", NULL);
 		return -1;
 	}
 
@@ -849,7 +849,7 @@ static int	writeTccrcFile()
 			{
 				fclose(specFile);
 				fclose(rcfile);
-				putSysErrmsg("dnac can't write node.tccrc",
+				putSysErrmsg("dnacp can't write node.tccrc",
 						NULL);
 				return -1;
 			}
@@ -872,7 +872,7 @@ static int	writeDtkarcFile()
 	rcfile = fopen("node.dtkarc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.dtkarc file.", NULL);
+		putSysErrmsg("dnacp can't create node.dtkarc file.", NULL);
 		return -1;
 	}
 
@@ -882,7 +882,7 @@ static int	writeDtkarcFile()
 	if (fwrite(cmd, strlen(cmd), 1, rcfile) < 1)
 	{
 		fclose(rcfile);
-		putSysErrmsg("dnac can't write to node.dtkarc", NULL);
+		putSysErrmsg("dnacp can't write to node.dtkarc", NULL);
 		return -1;
 	}
 
@@ -913,7 +913,7 @@ static int	writeDtkarcFile()
 			{
 				fclose(specFile);
 				fclose(rcfile);
-				putSysErrmsg("dnac can't write node.dtkarc",
+				putSysErrmsg("dnacp can't write node.dtkarc",
 						NULL);
 				return -1;
 			}
@@ -936,7 +936,7 @@ static int	writeCfdprcFile()
 	rcfile = fopen("node.cfdprc", "w");
 	if (rcfile == NULL)
 	{
-		putSysErrmsg("dnac can't create node.cfdprc file.", NULL);
+		putSysErrmsg("dnacp can't create node.cfdprc file.", NULL);
 		return -1;
 	}
 
@@ -971,7 +971,7 @@ static int	writeCfdprcFile()
 			{
 				fclose(specFile);
 				fclose(rcfile);
-				putSysErrmsg("dnac can't write to node.cfdprc",
+				putSysErrmsg("dnacp can't write to node.cfdprc",
 						NULL);
 				return -1;
 			}
@@ -993,7 +993,7 @@ static int	constructScripts(char **startCmds, char **stopCmds)
 	ionstartScript = fopen("ionstart", "w");
 	if (ionstartScript == NULL)
 	{
-		putSysErrmsg("dnac can't open ionstart script", NULL);
+		putSysErrmsg("dnacp can't open ionstart script", NULL);
 		return -1;
 	}
 
@@ -1001,7 +1001,7 @@ static int	constructScripts(char **startCmds, char **stopCmds)
 	if (ionstopScript == NULL)
 	{
 		fclose(ionstartScript);
-		putSysErrmsg("dnac can't open ionstop script", NULL);
+		putSysErrmsg("dnacp can't open ionstop script", NULL);
 		return -1;
 	}
 
@@ -1014,7 +1014,7 @@ static int	constructScripts(char **startCmds, char **stopCmds)
 			{
 				fclose(ionstartScript);
 				fclose(ionstopScript);
-				putSysErrmsg("dnac can't write script", NULL);
+				putSysErrmsg("dnacp can't write script", NULL);
 				return -1;
 			}
 		}
@@ -1026,7 +1026,7 @@ static int	constructScripts(char **startCmds, char **stopCmds)
 			{
 				fclose(ionstartScript);
 				fclose(ionstopScript);
-				putSysErrmsg("dnac can't write script", NULL);
+				putSysErrmsg("dnacp can't write script", NULL);
 				return -1;
 			}
 		}
@@ -1036,7 +1036,7 @@ static int	constructScripts(char **startCmds, char **stopCmds)
 	if (fwrite(dtkaCmd, strlen(dtkaCmd), 1, ionstartScript) < 1)
 	{
 		fclose(ionstartScript);
-		putSysErrmsg("dnac can't write script", NULL);
+		putSysErrmsg("dnacp can't write script", NULL);
 		return -1;
 	}
 
@@ -1049,13 +1049,13 @@ static int	constructScripts(char **startCmds, char **stopCmds)
 
 	if (chmod("ionstart", 00777) < 0)
 	{
-		putSysErrmsg("dnac can't make ionstart executable.", NULL);
+		putSysErrmsg("dnacp can't make ionstart executable.", NULL);
 		return -1;
 	}
 
 	if (chmod("ionstop", 00777) < 0)
 	{
-		putSysErrmsg("dnac can't make ionstop executable.", NULL);
+		putSysErrmsg("dnacp can't make ionstop executable.", NULL);
 		return -1;
 	}
 
@@ -1077,7 +1077,7 @@ static int	getPublicKey(int sock, unsigned short bufLen,
 	closesocket(sock);
 	if (newSocket < 0)
 	{
-		putSysErrmsg("dnac accept() failed", NULL);
+		putSysErrmsg("dnacp accept() failed", NULL);
 		return -1;
 	}
 
@@ -1088,7 +1088,7 @@ static int	getPublicKey(int sock, unsigned short bufLen,
 	if (bytesReceived < 1)
 	{
 		closesocket(newSocket);
-		putSysErrmsg("dnac key effective time reception failed",
+		putSysErrmsg("dnacp key effective time reception failed",
 				itoa(bytesReceived));
 		return -1;
 	}
@@ -1099,7 +1099,7 @@ static int	getPublicKey(int sock, unsigned short bufLen,
 	if (bytesReceived < 1)
 	{
 		closesocket(newSocket);
-		putSysErrmsg("dnac key assertion time reception failed",
+		putSysErrmsg("dnacp key assertion time reception failed",
 				itoa(bytesReceived));
 		return -1;
 	}
@@ -1110,7 +1110,7 @@ static int	getPublicKey(int sock, unsigned short bufLen,
 	if (bytesReceived < 1)
 	{
 		closesocket(newSocket);
-		putSysErrmsg("dnac key length reception failed",
+		putSysErrmsg("dnacp key length reception failed",
 				itoa(bytesReceived));
 		return -1;
 	}
@@ -1119,7 +1119,7 @@ static int	getPublicKey(int sock, unsigned short bufLen,
 	if (*keyLen > bufLen)
 	{
 		closesocket(newSocket);
-		putErrmsg("dnac key length is invalid", itoa(*keyLen));
+		putErrmsg("dnacp key length is invalid", itoa(*keyLen));
 		return -1;
 	}
 
@@ -1127,7 +1127,7 @@ static int	getPublicKey(int sock, unsigned short bufLen,
 	closesocket(newSocket);
 	if (bytesReceived < 1)
 	{
-		putSysErrmsg("dnac public key reception failed",
+		putSysErrmsg("dnacp public key reception failed",
 				itoa(bytesReceived));
 		return -1;
 	}
@@ -1212,7 +1212,7 @@ static int	assertPublicKey(uvast nodeNbr, time_t effectiveTime,
 }
 
 #if defined (ION_LWT)
-int	dnac(int a1, int a2, int a3, int a4, int a5,
+int	dnacp(int a1, int a2, int a3, int a4, int a5,
 		int a6, int a7, int a8, int a9, int a10)
 {
 	char			*dirName = a1 ? (char *) a1 : ".";
@@ -1242,7 +1242,7 @@ int	main(int argc, char *argv[])
 	struct sockaddr_in	*inetName;
 	unsigned int		hostNbr;
 	int			sock;
-	unsigned short		dnacPortNbr;
+	unsigned short		dnacpPortNbr;
 	socklen_t		socketNameLen;
 	struct stat		statbuf;
 	char			*startCmds[MAX_SCRIPT_CMDS];
@@ -1287,7 +1287,7 @@ int	main(int argc, char *argv[])
 	putenv(envString);
 	if (dtkaAttach() < 0)
 	{
-		putErrmsg("dnac can't attach to DTKA system.", NULL);
+		putErrmsg("dnacp can't attach to DTKA system.", NULL);
 		return 1;
 	}
 
@@ -1295,7 +1295,7 @@ int	main(int argc, char *argv[])
 	regionNbr = iondb.regions[0].regionNbr;
 	if (regionNbr == 0)
 	{
-		putErrmsg("dnac fails: home region number unknown.", NULL);
+		putErrmsg("dnacp fails: home region number unknown.", NULL);
 		return 1;
 	}
 
@@ -1335,7 +1335,7 @@ int	main(int argc, char *argv[])
 	findInduct("stcp", NULL, &vinduct, &vductElt);
 	if (vductElt == 0)
 	{
-		putErrmsg("dnac can't find sponsor node's stcp induct.",
+		putErrmsg("dnacp can't find sponsor node's stcp induct.",
 				itoa(nodeNbr));
 		return 1;
 	}
@@ -1373,8 +1373,8 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	dnacPortNbr = inetName->sin_port;
-	dnacPortNbr = ntohs(dnacPortNbr);
+	dnacpPortNbr = inetName->sin_port;
+	dnacpPortNbr = ntohs(dnacpPortNbr);
 
 	/*	Now add own outduct and plan for transmission to the
 	 *	new node as prescribed by the new contacts.		*/
@@ -1385,7 +1385,7 @@ int	main(int argc, char *argv[])
 	if (addPlan(adminEid, 0) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't add egress plan for new node.",
+		putErrmsg("dnacp can't add egress plan for new node.",
 				itoa(nodeNbr));
 		return 1;
 	}
@@ -1395,7 +1395,7 @@ int	main(int argc, char *argv[])
 	if (addOutduct("stcp", ductname, "stcpclo", 0) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't add outduct to new node.", itoa(nodeNbr));
+		putErrmsg("dnacp can't add outduct to new node.", itoa(nodeNbr));
 		return 1;
 	}
 
@@ -1403,7 +1403,7 @@ int	main(int argc, char *argv[])
 	if (vductElt == 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't find newly added outduct to new node.",
+		putErrmsg("dnacp can't find newly added outduct to new node.",
 				itoa(nodeNbr));
 		return 1;
 	}
@@ -1411,7 +1411,7 @@ int	main(int argc, char *argv[])
 	if (bpStartOutduct("stcp", ductname) < 1)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't start newly added outduct to new node.",
+		putErrmsg("dnacp can't start newly added outduct to new node.",
 				itoa(nodeNbr));
 		return 1;
 	}
@@ -1419,7 +1419,7 @@ int	main(int argc, char *argv[])
 	if (attachPlanDuct(adminEid, voutduct->outductElt) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't add plan duct for new node.",
+		putErrmsg("dnacp can't add plan duct for new node.",
 				itoa(nodeNbr));
 		return 1;
 	}
@@ -1427,7 +1427,7 @@ int	main(int argc, char *argv[])
 	if (bpStartPlan(adminEid) < 1)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't start egress plan for new node.",
+		putErrmsg("dnacp can't start egress plan for new node.",
 				itoa(nodeNbr));
 		return 1;
 	}
@@ -1439,7 +1439,7 @@ int	main(int argc, char *argv[])
 	if (announceNewContacts(regionNbr, nodeNbr) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac failed announcing new node's contacts", NULL);
+		putErrmsg("dnacp failed announcing new node's contacts", NULL);
 		return 1;
 	}
 
@@ -1454,23 +1454,23 @@ int	main(int argc, char *argv[])
 			if (mkdir(pathname, S_IRWXU | S_IRWXG | S_IRWXO) < 0)
 			{
 				closesocket(sock);
-				putSysErrmsg("dnac node directory name invalid",
-						pathname);
+				putSysErrmsg("dnacp node directory name \
+invalid", pathname);
 				return 1;
 			}
 
 			if (chdir(pathname) < 0)
 			{
 				closesocket(sock);
-				putSysErrmsg("dnac node directory name invalid",
-						pathname);
+				putSysErrmsg("dnacp node directory name \
+invalid", pathname);
 				return 1;
 			}
 		}
 		else
 		{
 			closesocket(sock);
-			putSysErrmsg("dnac node directory name invalid",
+			putSysErrmsg("dnacp node directory name invalid",
 					pathname);
 			return 1;
 		}
@@ -1497,7 +1497,7 @@ int	main(int argc, char *argv[])
 	if (writeIonrcFile(regionNbr, nodeNbr) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't write ionrc file.", NULL);
+		putErrmsg("dnacp can't write ionrc file.", NULL);
 		return 1;
 	}
 
@@ -1511,7 +1511,7 @@ int	main(int argc, char *argv[])
 		&heapKey, &logSize, &logKey, sdrPathName, &wmSize, &wmKey) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't write ionconfig file.", NULL);
+		putErrmsg("dnacp can't write ionconfig file.", NULL);
 		return 1;
 	}
 
@@ -1536,7 +1536,7 @@ int	main(int argc, char *argv[])
 	if (writeIonsecrcFile() < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't write ionsecrc file.", NULL);
+		putErrmsg("dnacp can't write ionsecrc file.", NULL);
 		return 1;
 	}
 
@@ -1548,7 +1548,7 @@ int	main(int argc, char *argv[])
 		if (writeLtprcFile() < 0)
 		{
 			closesocket(sock);
-			putErrmsg("dnac can't write ltprc file.", NULL);
+			putErrmsg("dnacp can't write ltprc file.", NULL);
 			return 1;
 		}
 
@@ -1567,7 +1567,7 @@ int	main(int argc, char *argv[])
 		if (writeBssprcFile() < 0)
 		{
 			closesocket(sock);
-			putErrmsg("dnac can't write bssprc file.", NULL);
+			putErrmsg("dnacp can't write bssprc file.", NULL);
 			return 1;
 		}
 
@@ -1585,7 +1585,7 @@ int	main(int argc, char *argv[])
 			childPortNbr) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't write bprc file.", NULL);
+		putErrmsg("dnacp can't write bprc file.", NULL);
 		return 1;
 	}
 
@@ -1600,7 +1600,7 @@ int	main(int argc, char *argv[])
 	if (writeTccrcFile() < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't write tccrc file.", NULL);
+		putErrmsg("dnacp can't write tccrc file.", NULL);
 		return 1;
 	}
 
@@ -1615,7 +1615,7 @@ int	main(int argc, char *argv[])
 	if (writeDtkarcFile() < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't write dtkarc file.", NULL);
+		putErrmsg("dnacp can't write dtkarc file.", NULL);
 		return 1;
 	}
 
@@ -1627,7 +1627,7 @@ int	main(int argc, char *argv[])
 		if (writeCfdprcFile() < 0)
 		{
 			closesocket(sock);
-			putErrmsg("dnac can't write cfdprc file.", NULL);
+			putErrmsg("dnacp can't write cfdprc file.", NULL);
 			return 1;
 		}
 
@@ -1643,7 +1643,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell("ionadmin node.ionrc") < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load node.ionrc.", NULL);
+		putErrmsg("dnacp can't load node.ionrc.", NULL);
 		return 1;
 	}
 
@@ -1652,7 +1652,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell(cmd) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load contacts.", contactsFileName);
+		putErrmsg("dnacp can't load contacts.", contactsFileName);
 		return 1;
 	}
 
@@ -1661,7 +1661,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell(cmd) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load passageways.", passagewaysFileName);
+		putErrmsg("dnacp can't load passageways.", passagewaysFileName);
 		return 1;
 	}
 
@@ -1669,7 +1669,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell("ionadmin ranges.ionrc") < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load ranges.", NULL);
+		putErrmsg("dnacp can't load ranges.", NULL);
 		return 1;
 	}
 
@@ -1677,7 +1677,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell("ionsecadmin node.ionsecrc") < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load node.ionsecrc.", NULL);
+		putErrmsg("dnacp can't load node.ionsecrc.", NULL);
 		return 1;
 	}
 
@@ -1687,7 +1687,7 @@ int	main(int argc, char *argv[])
 		if (pseudoshell("ltpadmin node.ltprc") < 0)
 		{
 			closesocket(sock);
-			putErrmsg("dnac can't load node.ltprc.", NULL);
+			putErrmsg("dnacp can't load node.ltprc.", NULL);
 			return 1;
 		}
 	}
@@ -1698,7 +1698,7 @@ int	main(int argc, char *argv[])
 		if (pseudoshell("bsspadmin node.bssprc") < 0)
 		{
 			closesocket(sock);
-			putErrmsg("dnac can't load node.bssprc.", NULL);
+			putErrmsg("dnacp can't load node.bssprc.", NULL);
 			return 1;
 		}
 	}
@@ -1707,7 +1707,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell("bpadmin node.bprc") < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load node.bprc.", NULL);
+		putErrmsg("dnacp can't load node.bprc.", NULL);
 		return 1;
 	}
 
@@ -1715,7 +1715,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell("tccadmin 203 node.tccrc") < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load node.tccrc.", NULL);
+		putErrmsg("dnacp can't load node.tccrc.", NULL);
 		return 1;
 	}
 
@@ -1723,7 +1723,7 @@ int	main(int argc, char *argv[])
 	if (pseudoshell("dtkaadmin node.dtkarc") < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't load node.dtkarc.", NULL);
+		putErrmsg("dnacp can't load node.dtkarc.", NULL);
 		return 1;
 	}
 
@@ -1733,7 +1733,7 @@ int	main(int argc, char *argv[])
 		if (pseudoshell("cfdpadmin node.cfdprc") < 0)
 		{
 			closesocket(sock);
-			putErrmsg("dnac can't load node.cfdprc.", NULL);
+			putErrmsg("dnacp can't load node.cfdprc.", NULL);
 			return 1;
 		}
 	}
@@ -1748,18 +1748,19 @@ int	main(int argc, char *argv[])
 		return 1;
 	}
 
-	isprintf(cmd, sizeof cmd, "dnacc %u %s &", dnacPortNbr, passwdPathName);
+	isprintf(cmd, sizeof cmd, "dnacc %u %s &", dnacpPortNbr,
+			passwdPathName);
 	if (pseudoshell(cmd) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't run dnacc.", NULL);
+		putErrmsg("dnacp can't run dnacc.", NULL);
 		return 1;
 	}
 
 	if (getPublicKey(sock, sizeof publicKey, publicKey, &keyLen, 
 			&effectiveTime, &assertionTime) < 0)
 	{
-		putErrmsg("dnac can't get new node's public key from dnacc.",
+		putErrmsg("dnacp can't get new node's public key from dnacc.",
 				NULL);
 		return 1;
 	}
@@ -1770,7 +1771,7 @@ int	main(int argc, char *argv[])
 	if (assertPublicKey(nodeNbr, effectiveTime, assertionTime, keyLen,
 			publicKey) < 0)
 	{
-		putErrmsg("dnac failed asserting new node's public key", NULL);
+		putErrmsg("dnacp failed asserting new node's public key", NULL);
 		return 1;
 	}
 
@@ -1779,7 +1780,7 @@ int	main(int argc, char *argv[])
 	if (constructScripts(startCmds, stopCmds) < 0)
 	{
 		closesocket(sock);
-		putErrmsg("dnac can't construct admin scripts.", NULL);
+		putErrmsg("dnacp can't construct admin scripts.", NULL);
 		return 1;
 	}
 
@@ -1837,7 +1838,7 @@ int	main(int argc, char *argv[])
 	/*	Finish node auto-configuration.				*/
 
 	writeErrmsgMemos();
-	writeMemo("[i] dnac has ended.");
+	writeMemo("[i] dnacp has ended.");
 	ionDetach();
 	return 0;
 }

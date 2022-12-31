@@ -16,7 +16,7 @@ TCINCLS = \
 
 LBP = -limcfw -lipnfw -ldtn2fw -lbp
 
-RUNTIMES = dnac dnacc
+RUNTIMES = dnacp dnacc
 
 ALL = $(RUNTIMES)
 
@@ -32,9 +32,9 @@ install:
 
 #	-	-	DNAC executables	-	-	-	-
 
-dnac:		dnac.o
-		$(CC) -o dnac dnac.o -L$(ROOT)/lib -ldtka -ltcc -ltccP -ltc $(LBP) -lici -lpthread -lm
-		cp dnac ./bin
+dnacp:		dnacp.o
+		$(CC) -o dnacp dnacp.o -L$(ROOT)/lib -ldtka -ltcc -ltccP -ltc $(LBP) -lici -lpthread -lm
+		cp dnacp ./bin
 
 dnacc:		dnacc.o
 		$(CC) -o dnacc dnacc.o -L$(ROOT)/lib -ldtka -ltcc -ltccP -ltc $(LBP) -lici -lpthread -lm

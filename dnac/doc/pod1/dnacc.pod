@@ -9,7 +9,7 @@ B<dnacc> I<port_nbr> I<password_path_name>
 =head1 DESCRIPTION
 
 B<dnacc> is a utility program that runs as an application in an ION
-node that has been automatically configured by the dnac utility running
+node that has been automatically configured by the dnacp utility running
 in a separate "sponsor" node on the same computer.  Its purpose is to
 generate the new node's public/private key pair and pass the public
 key back to the sponsor node, which will be listening for that information
@@ -56,4 +56,4 @@ Report bugs to <ion-dtn-support@lists.sourceforge.net>
 
 =head1 SEE ALSO
 
-dnac(1), dtka(1), dtkaadmin(1), dtkarc(5)
+dnacp(1), dtka(1), dtkaadmin(1), dtkarc(5)

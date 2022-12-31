@@ -3,7 +3,7 @@
 
 			The dnacc utility runs as an application
 			in an ION node that has been automatically
-			configured by the dnac utility running in
+			configured by the dnacp utility running in
 			a separate "sponsor" node on the same
 			computer.  Its purpose is to establish the
 			new node's public/private key pair and pass
@@ -55,11 +55,11 @@ int	main(int argc, char *argv[])
 	switch (itcp_connect(socketName, portNbr, &sock))
 	{
 	case -1:
-		putErrmsg("dnacc failed connecting to dnac", NULL);
+		putErrmsg("dnacc failed connecting to dnacp", NULL);
 		return 1;
 
 	case 0:
-		writeMemo("dnacc unable to connect to dnac");
+		writeMemo("dnacc unable to connect to dnacp");
 		return 1;
 
 	default:
