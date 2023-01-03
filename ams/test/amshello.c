@@ -17,7 +17,7 @@ AMS daemon as both Configuration Server and
 root unit Registrar follows.
 
 Example (run after ION starts):
-amsd mib.amsrc 192.168.xxx.xx:2502 amsdemo test "" &
+amsd @ @ amsdemo test "" &
 
 */
 
@@ -37,7 +37,7 @@ static int	runPitcher()
 
 	isprintf(buffer, sizeof buffer, "Hello from process %d", (int) getpid());
 	textlen = strlen(buffer) + 1;
-	oK(ams_register("", NULL, "amsdemo", "test", "", "pitch", &me));
+	oK(ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me));
 	
 	while (1)
 	{
@@ -65,7 +65,7 @@ static int	runCatcher()
 	AmsMsgType	    mt;
 	char		    *txt;
 
-	oK(ams_register("", NULL, "amsdemo", "test", "", "catch", &me));
+	oK(ams_register("@", NULL, "amsdemo", "test", "", "catch", &me));
 	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
 	
 	while (1)
@@ -98,4 +98,6 @@ int main(void)
         //parent process runs receiver------------------------
         runCatcher();
     }
+
+	return 0;
 }
