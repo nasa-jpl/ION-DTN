@@ -66,7 +66,7 @@ IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 To build and install the entire ION system on a Linux, OS/X, or Solaris
 platform, cd into ion-open-source and enter three commands:
 
-	./configure
+	./configure (If configure is not present run: "autoreconf -fi" first)
 	make
 	sudo make install
 
