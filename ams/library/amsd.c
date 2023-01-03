@@ -4,9 +4,15 @@
 
 	Author: Scott Burleigh, JPL
 
-	Copyright (c) 2005, California Institute of Technology.
+	Modified by Sky DeBaun	
+	Jet Propulsion Laboratory 2023
+
+	Copyright (c) 2023, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
+
+	
+
 									*/
 #include "amscommon.h"
 #include "ams.h"
@@ -2053,13 +2059,8 @@ static int	run_amsd(char *mibSource, char *csEndpointSpec,
 #if AMSDEBUG
 PUTS("...in run_amsd...");
 #endif
-	/*	Apply defaults as necessary.				*/
-
-	if (strcmp(mibSource, "@") == 0)
-	{
-		mibSource = NULL;
-	}
-
+		
+	//if '@' set Config Server to ownHostName at default port
 	if (strcmp(csEndpointSpec, "@") == 0)
 	{
 		getNameOfHost(ownHostName, sizeof ownHostName);
