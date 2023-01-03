@@ -19,7 +19,7 @@ POSSIBILITY.
 USER BEARS ALL RISK RELATING TO QUALITY AND PERFORMANCE OF THE
 SOFTWARE AND/OR RELATED MATERIALS.
 *******************************************************************
-Copyright 2002-2011, by the California Institute of Technology. ALL
+Copyright 2002-2022, by the California Institute of Technology. ALL
 RIGHTS RESERVED. U.S. Government Sponsorship acknowledged.
 
 This software and/or related materials may be subject to U.S. export
@@ -30,12 +30,15 @@ or other export authority as may be required before exporting the
 software or related materials to foreign countries or providing
 access to foreign persons.
 *******************************************************************
+Note regarding the use of XML configuration files with AMS: 
+by default ION is built with the -DNOEXPAT option to account for 
+operating environments that lack the expat XML parsing library 
+(for example VxWorks 5.4). 
 
-Note: the default build of AMS depends on the "expat" XML parsing library
-for C.  expat is included in just about all distributions of Linux and other
-Unix-derived operating systems, but not in (for example) VxWorks 5.4.  If
-you need to build AMS for an operating environment that lacks expat, either
-compile with the -DNOEXPAT switch set or else download expat from SourceForge
-and install as advised:
+To enable expat for use with AMS (or other ION components) configure 
+ION using the "--with-expat" option and then compile. 
 
-	http://expat.sourceforge.net
+For example: ./configure --with-expat
+
+Information about expat is available here:
+https://libexpat.github.io/
