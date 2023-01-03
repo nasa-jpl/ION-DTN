@@ -211,7 +211,7 @@ blob_t *iif_receive(iif_t *iif, msg_metadata_t *meta, int timeout, int *success)
     /* Step 1: Receive the bundle.*/
     if((status = bp_receive(iif->sap, &dlv, timeout)) < 0)
     {
-    	AMP_DEBUG_INFO("iif_receive","bp_receive failed. Result: %d.", result);
+    	AMP_DEBUG_INFO("iif_receive","bp_receive failed. Result: %d.", status);
     	*success = AMP_SYSERR;
     	return NULL;
     }

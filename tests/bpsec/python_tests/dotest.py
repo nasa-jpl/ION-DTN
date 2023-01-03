@@ -61,8 +61,10 @@ def main():
         print("\nThe tests below will use the following security contexts, unless otherwise noted: \n"
             "\tbib-integrity operations: BIB-HMAC-SHA2\n"
             "\tbcb-confidentiality operations: BCB-AES-GCM\n"
-            "As defined in RFC 9173.\n"
-            "These security contexts do NOT generate cryptographic material.\n")
+            "As defined in RFC 9173.\n\n"
+            "Security contexts do NOT generate cryptographic material in ION Open Source releases.\n"
+            "The ION NASA Baseline (INB) generates cryptographic material for these security contexts \n"
+            "using the MBEDTLS cipher suites.\n")
                 
     elif vers == "ION-NASA-BASELINE":
 

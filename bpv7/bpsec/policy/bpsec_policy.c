@@ -630,7 +630,8 @@ void bsl_remove_sop_target_at_receiver(LystElt tgtElt, LystElt sopElt)
 	}
 
 	/* Step 1: Discard target block */
-	bpsec_asb_inboundTargetResultRelease(tgtElt, sopElt);
+	bpsec_asb_inboundTargetResultRemove(tgtElt, sopElt);
+
 	return;
 }
 

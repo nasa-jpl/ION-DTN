@@ -1177,11 +1177,11 @@ tnv_t *dtn_ion_ionadmin_ctrl_node_range_add(eid_t *def_mgr, tnvc_t *parms, int8_
 	int 	success   = 0;
 	PsmAddress xaddr;
 
-	start = adm_get_parm_uint(parms, 0, &success);
+	start = adm_get_parm_uvast(parms, 0, &success);
 
 	if(success)
 	{
-	  stop = adm_get_parm_uint(parms, 1, &success);
+	  stop = adm_get_parm_uvast(parms, 1, &success);
 	}
 	if(success)
 	{

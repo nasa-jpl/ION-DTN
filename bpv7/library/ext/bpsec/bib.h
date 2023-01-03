@@ -82,7 +82,7 @@
 #define BIB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BIB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
-#define BIB_DEBUG_LVL   BIB_DEBUG_LVL_PROC
+#define BIB_DEBUG_LVL   BIB_DEBUG_LVL_ERR
 
 #define GMSG_BUFLEN     256
 #if (BIB_DEBUGGING == 1)
@@ -167,8 +167,8 @@
  */
 
 #ifndef BIB_TEST_LOGGING
-#define BIB_TEST_LOGGING 1  /** Whether to enable (1) or disable (0) BIB
- 	 	 	 	 	 	 	  * test-level logging statements         */
+#define BIB_TEST_LOGGING 0  /** Whether to enable (1) or disable (0) BIB
+                              * test-level logging statements         */
 #endif
 #if (BIB_TEST_LOGGING == 1)
 
@@ -183,6 +183,8 @@ num, \
 (bundle) ? bundle->id.creationTime.msec  : 0, \
 (bundle) ? bundle->id.creationTime.count : 0); \
 writeMemo(gMsg);}
+#else
+#define BIB_TEST_POINT(event, bundle, num) {}
 #endif
 
 /************************************************************************
