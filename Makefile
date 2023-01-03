@@ -65,6 +65,9 @@ clean:
 	gmake -C nm clean
 	gmake -C restart clean BP=$(BP)
 
+uninstall:
+	gmake -C ams uninstall
+
 test:
 	cd tests && ./runtestset normaltests
 

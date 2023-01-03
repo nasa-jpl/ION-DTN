@@ -52,6 +52,7 @@ check:		$(PUBINCLS)
 
 clean:
 		rm -f *.o
+		rm -f *.so
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
@@ -61,6 +62,12 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		rm $(ROOT)/lib/libams*
+		rm $(ROOT)/include/ams*
+		rm $(ROOT)/include/rams*
+		rm $(ROOT)/bin/ams*
+		
 #	-	-	Daemon executable	-	-	-	-
 
 amsd:		$(AMSDOBJS) $(API)/amscommon.h
@@ -106,7 +113,7 @@ amsmib:		amsmib.o libams.so $(INCL)/ams.h
 #	-	-	RAMS executable		-	-	-	-
 
 ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.so $(INCL)/ams.h
-		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lexpat
+		$(CC) -o ramsgate $(RAMSTESTOBJS) -L./lib -L$(ROOT)/lib $(LBP) -lams -ldgr -lici -lpthread -lm -lexpat
 		cp ramsgate ./bin
 
 #	-	-	Libraries	-	-	-	-	-

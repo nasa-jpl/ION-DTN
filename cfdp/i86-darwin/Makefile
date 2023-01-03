@@ -31,6 +31,7 @@ check:		$(CFDPINCLS) $(PUBINCLS)
 
 clean:
 		rm -f *.o
+		rm -f *.so
 		rm -f $(ALL)
 		rm -f ./lib/*
 		rm -f ./bin/*
