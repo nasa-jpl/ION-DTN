@@ -9,7 +9,7 @@
 	acknowledged.
 
 	Modified by Sky DeBaun	
-	Jet Propulsion Laboratory 2022
+	Jet Propulsion Laboratory 2023
 
 	Modifications address the following issues:
 
@@ -21,6 +21,14 @@
 
 		Modifications include switching arrays and for-loops
 		using the MAX_CONTIN_NBR to use ici's lyst
+
+	2.) Modified loadMib() to align with documentation. The 'test MIB' is now 
+		initialized and loaded using '@' character (as specified in man pages). 
+		
+		Additional modifications include removal of nested (redundant) checks 
+		for the NULL argument (as relates to the MIB filename). This update 
+		provides a more clearly delineated path for the desired functionality 
+		(i.e. consolidating the parameter check to a single logical location)
 
 */
 
@@ -89,7 +97,7 @@ static int	loadTestMib()
 	{
 		return crash();
 	}
-
+	//note the 1 here creates venture #1
 	venture = createVenture(1, "amsdemo", "test", NULL, 0, 0);
 	if (venture == NULL)
 	{
@@ -1625,7 +1633,7 @@ static int	loadMibFromRcSource(char *mibSource)
 
 	if (*mibSource == '\0')		/*	Use default file name.	*/
 	{
-		mibSource = "mib.amsrc";
+		mibSource = "mib.amsrc"; //default to this if nothing specified
 	}
 
 	sourceFile = iopen(mibSource, O_RDONLY, 0777);
@@ -1685,7 +1693,7 @@ static int	loadMibFromXmlSource(char *mibSource)
 
 	if (*mibSource == '\0')		/*	Use default file name.	*/
 	{
-		mibSource = "amsmib.xml";
+		mibSource = "amsmib.xml"; //default to this if nothing specified
 	}
 
 	sourceFile = iopen(mibSource, O_RDONLY, 0777);
@@ -1786,13 +1794,15 @@ AmsMib	*loadMib(char *mibSource)
 		unlockMib();
 		return mib;	/*	MIB is already loaded.		*/
 	}
-
-	if (mibSource == NULL)
+	
+	//load in-memory test MIB if '@' specified
+	if (*mibSource == '@')
 	{
 		result = loadTestMib();
 	}
 	else
 	{
+/* load the specified MIB or use default filename (if NULL argument) */
 #ifdef NOEXPAT
 		result = loadMibFromRcSource(mibSource);
 #else
