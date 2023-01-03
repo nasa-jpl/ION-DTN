@@ -14,7 +14,7 @@ LIBBSSOBJS = \
 PUBINCLS = \
 	$(INCL)/bss.h
 
-LBP = -lbp -limcfw -lipnfw -ldtn2fw
+LBP = -lbp
 
 RUNTIMES = bssrecv bssStreamingApp bsscounter bssdriver
 

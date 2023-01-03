@@ -4,11 +4,11 @@ AUTHORITY = ../authority
 CLIENT = ../client
 DTKA = ../dtka
 ZFEC = ../../ici/zfec-1.4.24/zfec
-BP = ../../bpv7
+BP_V = ../../bpv7
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DNDEBUG
-CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(ZFEC) -I$(BP)/library -I$(ROOT)/include
+CC = gcc $(OPT) -I$(AUTHORITY) -I$(CLIENT) -I$(INCL) -I$(ZFEC) -I$(BP_V)/library -I$(ROOT)/include
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -19,7 +19,7 @@ TCINCLS = \
 	$(CLIENT)/tccP.h \
 	$(INCL)/tc.h
 
-LBP = -lbp -limcfw -lipnfw -ldtn2fw
+LBP = -lbp
 
 RUNTIMES = tcaboot tcarecv tcacompile tcapublish tcaadmin tcc tccadmin dtka dtkaadmin
 

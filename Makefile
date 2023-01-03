@@ -17,14 +17,14 @@ withbpv6:
 	gmake -C $(BP) install
 	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C ams install
-	gmake -C cfdp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C cfdp install
+	gmake -C cfdp all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C cfdp install BP=$(BP)
 	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C bss install
 	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dtpc install
-	gmake -C nm all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C nm install
+	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C nm install BP=$(BP)
 	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C restart install BP=$(BP)
 
@@ -47,8 +47,8 @@ withbpv7:
 	gmake -C bss install
 	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C dtpc install
-	gmake -C nm all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C nm install
+	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
+	gmake -C nm install BP=$(BP)
 	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C restart install BP=$(BP)
 

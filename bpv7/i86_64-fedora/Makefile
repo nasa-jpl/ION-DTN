@@ -59,21 +59,24 @@ BPINCLS = \
 	$(BPSEC)/policy/bpsec_policy_rule.h
 
 BPLIBS = \
-	libbp.so
+	libbp.so \
+	libcgr.so \
+	libstcpcla.so \
+	libudpcla.so
 
-BPPOBJS = libbpP.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o snw.o imc.o bpsec_util.o bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o bpsec_asb.o
+BPPOBJS = libbpP.o libipnfw.o libimcfw.o libdtn2fw.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o snw.o imc.o bpsec_util.o bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o bpsec_asb.o
 
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 
 CGROBJS = libcgr.o
 # CGROBJS = libcgr.o interface_cgr_ion.o commonFunctions.o list.o log.o rbt.o scalar.o general_functions_ported_from_ion.o contacts.o ranges.o nodes.o contactPlan.o routes.o phase_one.o phase_two.o phase_three.o cgr.o msr.o msr_utils.o bundles.o time.o
 
-LBP = -lbp -limcfw -lipnfw -ldtn2fw
+LBP = -lbp
 
 RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion cpsd
 # dccpcli dccpclo
 
-ALL = check $(BPLIBS) libcgr.so libipnfw.so libimcfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
+ALL = check $(BPLIBS) $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -127,11 +130,11 @@ bpsecadmin:	bpsecadmin.o $(BPLIBS)
 		$(CC) -o bpsecadmin bpsecadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsecadmin ./bin
 
-ipnadmin:	ipnadmin.o $(BPLIBS) libipnfw.so
+ipnadmin:	ipnadmin.o $(BPLIBS) libbp.so
 		$(CC) -o ipnadmin ipnadmin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp ipnadmin ./bin
 
-dtn2admin:	dtn2admin.o $(BPLIBS) libdtn2fw.so
+dtn2admin:	dtn2admin.o $(BPLIBS) libbp.so
 		$(CC) -o dtn2admin dtn2admin.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp dtn2admin ./bin
 
@@ -185,31 +188,31 @@ bpversion:	bpversion.o
 
 #	-	-	IPN executables	-	-	-	-	-
 
-ipnfw:		ipnfw.o $(BPLIBS) libipnfw.so libcgr.so
+ipnfw:		ipnfw.o $(BPLIBS) libbp.so libcgr.so
 		$(CC) -o ipnfw ipnfw.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread -lm
 		cp ipnfw ./bin
 
-ipnadminep:	ipnadminep.o $(BPLIBS) libipnfw.so
+ipnadminep:	ipnadminep.o $(BPLIBS) libbp.so
 		$(CC) -o ipnadminep ipnadminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp ipnadminep ./bin
 
 #	-	-	IMC executables	-	-	-	-	-
 
-imcfw:		imcfw.o $(BPLIBS) libimcfw.so libipnfw.so libcgr.so
+imcfw:		imcfw.o $(BPLIBS) libbp.so libcgr.so
 		$(CC) -o imcfw imcfw.o -L./lib -L$(ROOT)/lib -lcgr $(LBP) -lici -lpthread -lm
 		cp imcfw ./bin
 
-imcadminep:	imcadminep.o $(BPLIBS) libimcfw.so libipnfw.so
+imcadminep:	imcadminep.o $(BPLIBS) libbp.so
 		$(CC) -o imcadminep imcadminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp imcadminep ./bin
 
 #	-	-	DTN2 executables	-	-	-	-
 
-dtn2fw:		dtn2fw.o $(BPLIBS) libdtn2fw.so
+dtn2fw:		dtn2fw.o $(BPLIBS) libbp.so
 		$(CC) -o dtn2fw dtn2fw.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp dtn2fw ./bin
 
-dtn2adminep:	dtn2adminep.o $(BPLIBS) libdtn2fw.so
+dtn2adminep:	dtn2adminep.o $(BPLIBS) libbp.so
 		$(CC) -o dtn2adminep dtn2adminep.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp dtn2adminep ./bin
 
@@ -348,18 +351,6 @@ libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
 libcgr.so:	$(CGROBJS)
 		$(LD) -o libcgr.so $(CGROBJS)
 		cp libcgr.so ./lib
-
-libipnfw.so:	libipnfw.o
-		$(LD) -o libipnfw.so libipnfw.o
-		cp libipnfw.so ./lib
-
-libimcfw.so:	libimcfw.o
-		$(LD) -o libimcfw.so libimcfw.o
-		cp libimcfw.so ./lib
-
-libdtn2fw.so:	libdtn2fw.o
-		$(LD) -o libdtn2fw.so libdtn2fw.o
-		cp libdtn2fw.so ./lib
 
 libstcpcla.so:	libstcpcla.o
 		$(LD) -o libstcpcla.so libstcpcla.o
