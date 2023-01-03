@@ -12,11 +12,7 @@ This program assumes the following conditions---------------
 3.) An AMS Configuration Server is running 
 4.) An MIB configuration file has been created
 
-The command to configure and start the
-AMS daemon as both Configuration Server and 
-root unit Registrar follows.
-
-Example (run after ION starts):
+NOTE: the following command completes steps 2, 3, and 4 (run this after ION starts):
 amsd @ @ amsdemo test "" &
 
 */
@@ -37,6 +33,8 @@ static int	runPitcher()
 
 	isprintf(buffer, sizeof buffer, "Hello from process %d", (int) getpid());
 	textlen = strlen(buffer) + 1;
+
+	//register pitch module using default in-memory MIB (i.e. @)
 	oK(ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me));
 	
 	while (1)
@@ -65,6 +63,7 @@ static int	runCatcher()
 	AmsMsgType	    mt;
 	char		    *txt;
 
+	//register catch module using default in-memory MIB (i.e. @)
 	oK(ams_register("@", NULL, "amsdemo", "test", "", "catch", &me));
 	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
 	
