@@ -12,7 +12,11 @@
 /*	Ioannis Alexiadis, Democritus University of Thrace, 2011.	*/
 /*									*/
 #include "platform.h"
+
+/* Only for Ubuntu as of ION 4.1.2 */
+#if defined (TCP_LOW_CYCLE)
 #include <netinet/tcp.h>
+#endif
 
 #define	ABORT_AS_REQD		if (_coreFileNeeded(NULL)) sm_Abort()
 
@@ -3498,11 +3502,13 @@ int	itcp_connect(char *socketSpec, unsigned short defaultPort, int *sock)
 		putSysErrmsg("Can't open TCP socket", socketTag);
 		return -1;
 	}
-	
+
+#if defined (TCPCL_LOW_CYCLE)
 	/* set lower SYN retries */
 	int syncnt = 1;
 	int syncnt_sz = sizeof(syncnt);
 	setsockopt(*sock, IPPROTO_TCP, TCP_SYNCNT, &syncnt, syncnt_sz);
+#endif
 
 	if (connect(*sock, &socketName, sizeof(struct sockaddr)) < 0)
 	{
