@@ -490,6 +490,35 @@ AC_ARG_ENABLE(
         )
 AM_CONDITIONAL([BUILD_NM_REST], [test "x$BUILD_NM_REST" = "xtrue"])
 
+#
+# allow the user running configure to declare that the platform is musl
+#
+AC_ARG_ENABLE(
+	musl,
+	[AC_HELP_STRING([--enable-musl], [declare that the platform is MUSL])],
+	[AM_CFLAGS="$AM_CFLAGS -DMUSL"
+	 MUSL=yes],
+	[]
+)
+if test "x$MUSL" = "xyes" ; then
+	echo "Building for MUSL... yes"
+fi
+AM_CONDITIONAL([MUSL], [test "x$MUSL" = "xyes"])
+
+#
+# allow the user running configure to choose the TCPCL_LOW_CYCLE option
+#
+AC_ARG_ENABLE(
+	tcpcl-low-cycle,
+	[AC_HELP_STRING([--enable-tcpcl-low-cycle], [enable TCPCL_LOW_CYCLE option])],
+	[AM_CFLAGS="$AM_CFLAGS -DTCPCL_LOW_CYCLE"
+	 TCPCL_LOW_CYCLE=yes],
+	[]
+)
+if test "x$TCPCL_LOW_CYCLE" = "xyes" ; then
+	echo "Enabling TCPCL_LOW_CYCLE... yes"
+fi
+AM_CONDITIONAL([TCPCL_LOW_CYCLE], [test "x$TCPCL_LOW_CYCLE" = "xyes"])
 
 # Check for libraries.
 ORIGCFLAGS="$CFLAGS"
