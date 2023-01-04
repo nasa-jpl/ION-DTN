@@ -1,6 +1,6 @@
-= Release Notes for ION 4.1.1 =
+= Release Notes for ION 4.1.2 =
 
-November 19, 2021
+January 4, 2023
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,17 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Added new TCPCL_LOW_CYCLE macro and configure option (--enable-tcpcl-low-cycle)
+  * This option reduces the TCP connection timeout from several minutes down to
+    a few seconds and lowers the frequency of repeated connection attempts with
+    TCPCL peer nodes that are not responding to handshaking messages. 
+    This is an experimental feature and only available on Ubuntu as of ION 4.1.2.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.1 =
