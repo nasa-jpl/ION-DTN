@@ -2696,7 +2696,7 @@ static void	*handleEvents(void *parm)
 #if defined (TCPCL_LOW_CYCLE)
 			rescanInterval <<= 3;
 #else
-			rescanInterval <= 1;
+			rescanInterval <<= 1;
 #endif
 			if (rescanInterval > MAX_RESCAN_INTERVAL)
 			{
