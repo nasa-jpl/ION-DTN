@@ -72,7 +72,7 @@ void radix_wildcard1(void)
 	for(i = 0; i < 10; i++)
 	{
 		memset(key,0,20);
-		sprintf(key,"ipn:%d.~", i);
+		sprintf(key,"ipn:%d.*", i);
 		TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 	}
 
@@ -110,7 +110,7 @@ void radix_wildcard2(void)
 	radixAddr = radix_create(wm);
 
 	memset(key,0,20);
-	sprintf(key,"ipn:~");
+	sprintf(key,"ipn:*");
 	char *tmp = strdup(key);
 	TEST_ASSERT_EQUAL_INT(1,radix_insert(wm, radixAddr, key, makeDataFromString(wm, key), NULL, radixpt_user_del));
 

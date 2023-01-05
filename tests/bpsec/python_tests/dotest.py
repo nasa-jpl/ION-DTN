@@ -1,4 +1,5 @@
 import argparse
+from sys import exit
 
 from tests import testUtils
 from tests import testCases
@@ -99,6 +100,11 @@ def main():
     print("\tTest(s) passed: " + str(testUtils.g_tests_passed))
     print("\tTest(s) failed: " + str(testUtils.g_tests_failed))
     print("###############################################################################")
+
+    if testUtils.g_tests_failed != 0:
+        exit(1)
+    else:
+        exit(0)
 
 if __name__ == "__main__":
     main()
