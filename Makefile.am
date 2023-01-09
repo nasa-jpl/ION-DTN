@@ -3565,31 +3565,3 @@ ION.pdf: doc/ION-beginning.pdf
 	cp $^ $@
 
 endif #ENABLE_AUTODOC
-
-##########################
-#
-# DISTRIBUTION SECTION
-#
-##########################
-
-DOC_VERSION_NUMBER := "4.1.1"
-DOC_VERSION_MAJOR := "4"
-DOC_VERSION_MINOR := "1.1"
-DOC_DATE := $(shell date '+%Y-%m-%d')
-
-distribution: doc/ION-beginning.pdf doc/ION-manpages.ps
-	@echo ""
-	@echo "UPDATING VERSION NUMBER IN:"
-	@echo "configure.ac"
-	sed -r -i.bak 's/ion, open source [0-9]+\.[0-9]+\.[0-9]+[a-Z]*/ion, open source $(DOC_VERSION_NUMBER)/' configure.ac
-	@echo "arch-uClib/ion.package/ion.mk"
-	sed -r -i.bak 's/ION_VERSION_MAJOR=[0-9]+/ION_VERSION_MAJOR=$(DOC_VERSION_MAJOR)/' ./arch-uClibc/ion.package/ion.mk
-	sed -r -i.bak 's/ION_VERSION_MINOR=[0-9]+\.[0-9]+[a-Z]*+/ION_VERSION_MINOR=$(DOC_VERSION_MINOR)/' ./arch-uClibc/ion.package/ion.mk
-	@echo ""
-	@echo "Archiving the directory to ~/releases/ion-$(DOC_VERSION_NUMBER)."
-	@echo ""
-	hg archive ~/releases/ion-$(DOC_VERSION_NUMBER)
-	@echo "Now creating ION.pdf"
-	$(PS2PDF) doc/ION-manpages.ps
-	gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=ION.pdf doc/ION-beginning.pdf ION-manpages.pdf
-	rm ION-manpages.pdf
