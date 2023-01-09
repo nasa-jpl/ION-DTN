@@ -1,6 +1,6 @@
 = Release Notes for ION 4.1.2 =
 
-January 4, 2023
+January 9, 2023
 
 %%%%%%%%%%%
 = GENERAL =
@@ -66,14 +66,98 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-= NOTES ON RELEASE 4.1.1 =
+= NOTES ON RELEASE 4.1.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Branches included in this release:
+
+118-provide-initial-rfc9172-rfc9173-support
+  * added support for BPSec (RFC 9172) and default security contexts (RFC 9173)
+
+125-update-ion-4-1-1-amp-implementation-with-current-enhancements-and-bugfixes
+  * added network management updates
+
+apl-4.1.2-updates
+  * The implementation of BPSec in ION Open Source (IOS) 4.1.2 is not
+    feature-complete and is considered to be a “beta” version of BPSec.
+    This early release of the code allows users to begin to integrate BPSec into
+    their projects, as core functionality is implemented, as well as encourages
+    early testing and feedback for the major BPSec release in IOS 4.2.
+
+    A feature-complete implementation of BPSec (RFC 9172) will be provided in the
+    ION Open Source 4.2 release. Additional information is provided in the file:
+      IOS_4.1.2_BPSEC_Release_Notes.pdf
+
+Bugfix-4.1.2-nm_manager-database-connection-issue
+  * added fixed nm/contrib/amp-sql-1.0.1.tar.gz
+
+bugfix-4.1.2-tcpbso
+  * fixed tcpbso parsing of 0.0.0.0
+  * added tcpbso connection memo
+
+bugfix-4.1.2-bssp-max-block
+  * fixed max-block transaction crash
+
+bugfix-4.1.2-crc-parsing
+  * fixed issue with parsing CBOR encoded CRCs
+
+bugfix-4.1.2-ltp
+  * updated default maxber for ltp
+  * fixed ionwm memory leak
+  * added status message for CLOSED_EXPORTS_ENABLED
+
+bugfix-4.1.2-custodyRefusedCountBytes
+  * fix for Source Forge bug report #162
+
+bugfix-4.1.2-cp-duplicate-reddata
+  * fixed CP handling with duplicate data
+  * fixed out-of-order red part reception 
+
+dso-bprecvfile-integration-4.1.2
+  * new bprecvfile2 application that adds filename and pipe capabilities
+
+Makefile-cleanup-integration-4.1.2
+  * added remove for .so files for developmental Makefiles
+  * added uninstall target for developmental Makefiles
+
+update-4.1.2-bssp-wchar
+  * updated bssp whatch characters 
+
+update-4.1.2-shared-mem
+  * fix various shared memory issues with detaching from and resetting the
+    ION database
+
+update-4.1.2-tcpcl-tests
+  * fix various issues in TCP related tests
+
+update-4.1.2-makefile
+  * updated developmental Makefiles to accept commandline flags
+
+update-4.1.2-psmwatch
+  * resolved assertion failures issued during psmwatch
+  * fixed inconsistent alteration of the map -> status value
+
+update-4.1.2-developmental-makefiles
+  * updated fedora developmental Makefiles to build a single libbp to match
+    what the autoconf system does. This allows for "mixed-mode" builds on
+    generic Linux platforms where ION is originally built using autoconf and
+    then individual modules are rebuilt using the developmental Makefiles.
+
+update-ams-documentation-4.1.2
+  * fixed errors in AMS documentation
+
+upgrade-4.1.2-ams-sana-numbers
+  * lowered the AMS cell census period from 90 seconds to 9 seconds
+  * replaced hard coded cell census values with appropriate preprocessor
+    directives
+  * increased the maximum allowed AMS Continuum number from 20 to 32767
+
 
 Added new TCPCL_LOW_CYCLE macro and configure option (--enable-tcpcl-low-cycle)
   * This option reduces the TCP connection timeout from several minutes down to
     a few seconds and lowers the frequency of repeated connection attempts with
     TCPCL peer nodes that are not responding to handshaking messages. 
-    This is an experimental feature and only available on Ubuntu as of ION 4.1.2.
+    This is an experimental feature only available on Ubuntu as of ION 4.1.2.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
