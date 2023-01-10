@@ -159,6 +159,11 @@ Added new TCPCL_LOW_CYCLE macro and configure option (--enable-tcpcl-low-cycle)
     TCPCL peer nodes that are not responding to handshaking messages. 
     This is an experimental feature only available on Ubuntu as of ION 4.1.2.
 
+To verify the SHA256 hash provided with the release, please
+  contact Jay Gao at Jay.L.Gao@jpl.nasa.gov
+
+If you have any issues, please submit a SourceForge ticket here:
+  https://sourceforge.net/p/ion-dtn/bugs/new/
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.1 =
