@@ -4,7 +4,7 @@ bssrecv - Bundle Streaming Service reception test program
 
 =head1 SYNOPSIS
 
-B<bssrecv>
+B<bssrecv> I<menu_option> I<parameters>
 
 =head1 DESCRIPTION
 
@@ -16,8 +16,17 @@ of BSS data acquisition from B<bssStreamingApp>, displaying the data as it
 arrives in real time; to replay data acquired during the current session;
 and to replay data acquired during a prior session.
 
-The user must provide values for three parameters in order to initiate the
-acquisition or replay of data from B<bssStreamingApp>:
+If no argument is provided, a list of menu option is shown on shell prompt.
+
+If only the I<menu_option> is specified, additional prompt, when necessary,
+will be displayed to request user input for the necessary parameters.
+
+If both I<menu_option> and I<parameters> are specified, bssrecv will directly
+execute the specified action.
+
+When initiating the acquisition or replay of data from B<bssStreamingApp>, 
+which corresponds to menu option 1, 2 and 3, the user must provide the following
+three additional parameters:
 
 =over 4
 
@@ -92,6 +101,11 @@ real-time acquisition of streaming data.
 =item 8. Exit
 
 B<bssrecv> terminates.
+
+For each streaming payload displayed, B<bssrecv> prints a string of "*" 
+characters, whose length is the sequence number modulo 150 and at the end
+of the string, the sequence number, which is inserted as the first byte of 
+the payload by the B<bssStreamingApp> program, is printed out.
 
 =back
 
