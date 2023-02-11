@@ -116,7 +116,7 @@ int	bssOpen(char* bssName, char* path)
 		PUTS("An active playback session was detected.  If you \
 wish to initiate a new one, please first close the active playback session.");
 		fflush(stdout);
-		/* do nothing, keep existing existing database opened */
+		/* do nothing, keep existing database opened */
 		return -2;
 	}
 	
