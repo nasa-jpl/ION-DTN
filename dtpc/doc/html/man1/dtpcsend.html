@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dtpcsend - Delay-Tolerant Payload Conditioning transmission test program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dtpcsend - Delay-Tolerant Payload Conditioning transmission test program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>dtpcsend</b> <i>nbr_of_cycles</i> <i>rate</i> <i>payload_size</i> <i>topic_ID</i> <i>profile_ID</i> <i>destination_endpoint</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>dtpcsend</b> uses DTPC to send <i>nbr_of_cycles</i> application data items of <i>payload_size</i> bytes each on topic <i>topic_ID</i> to <i>destination_endpoint</i> using transmission profile <i>profile_ID</i> at <i>rate</i> bits per second.</p>
+
+<p><i>rate</i> must be between 1000 and 200 million bits per second.</p>
+
+<p><i>payload_size</i> must be between 2 and 1 million bytes. To use application data item sizes chosen at random from the range 1 to 65536, specify <i>payload_size</i> = 1.</p>
+
+<p><b>NOTE</b> that <b>dtpcsend</b> invokes an elision function that removes from the outbound DTPC aggregate ADU all records that are of the same size as the first record in that aggregation. This means that specifying any payload size other than 1 that is less than the configured DTPC aggregation size limit will cause DTPC to issue ADUs only when the aggregation time limit is exceeded, and each such ADU will always contain only a single record.</p>
+
+<p>Use CTRL-C to terminate the program.</p>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>dtpcreceive(1), dtpc(3)</p>
+
+
+</body>
+
+</html>
+
+

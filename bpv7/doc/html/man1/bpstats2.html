@@ -1,0 +1,135 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bpstats2 - Bundle Protocol (BP) processing statistics query utility via bundles</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bpstats2 - Bundle Protocol (BP) processing statistics query utility via bundles</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bpstats2</b> <i>sourceEID</i> [<i>default destEID</i>] [ct]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bpstats2</b> creates bundles containing the current values of all BP processing statistics accumulators. It creates these bundles when:</p>
+
+<ul>
+
+<li><p>an interrogation bundle is delivered to <i>sourceEID</i>: the contents of the bundle are discarded, a new statistics bundle is generated and sent to the source of the interrogation bundle. The format of the interrogation bundle is irrelevant.</p>
+
+</li>
+<li><p>a SIGUSR1 signal is delivered to the <b>bpstats2</b> application: a new statistics bundle is generated and sent to <i>default destEID</i>.</p>
+
+</li>
+</ul>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bpstats2</b> has terminated. Any problems encountered during operation will be noted in the <b>ion.log</b> log file.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bpstats2</b> failed to start up or receive bundles. Diagnose the issue reported in the <b>ion.log</b> file and try again.</p>
+
+</dd>
+</dl>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<dl>
+
+<dt id="ct">[ct]</dt>
+<dd>
+
+<p>If the string &quot;ct&quot; is appended as the last argument, then statistics bundles will be sent with custody transfer requested.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="bpstats2-cant-bp_attach">bpstats2 can&#39;t bp_attach().</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized BP operations.</p>
+
+</dd>
+<dt id="bpstats2-cant-open-own-endpoint">bpstats2 can&#39;t open own endpoint.</dt>
+<dd>
+
+<p>Another BP application has opened that endpoint; close it and try again.</p>
+
+</dd>
+<dt id="No-space-for-ZCO-extent">No space for ZCO extent.</dt>
+<dd>
+
+<p>ION system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="Cant-create-ZCO-extent">Can&#39;t create ZCO extent.</dt>
+<dd>
+
+<p>ION system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="bpstats2-cant-send-stats-bundle">bpstats2 can&#39;t send stats bundle.</dt>
+<dd>
+
+<p>Bundle Protocol service to the remote endpoint has been stopped.</p>
+
+</dd>
+<dt id="Cant-send-stats:-bad-dest-EID-dest-EID">Can&#39;t send stats: bad dest EID (dest EID)</dt>
+<dd>
+
+<p>The destination EID printed is an invalid destination EID. The destination EID may be specified in <i>default destEID</i> or the source EID of the interrogation bundle. Ensure that <i>default destEID</i> is an EID that is valid for ION, and that the interrogator is a source EID that is also a valid destination EID. Note that &quot;dtn:none&quot; is not a valid destination EID, but is a valid source EID.</p>
+
+</dd>
+</dl>
+
+<h1 id="NOTES">NOTES</h1>
+
+<p>A very simple interrogator is <b>bpchat</b> which can repeatedly interrogate <b>bpstats2</b> by just striking the enter key.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpstats(1), bpchat(1)</p>
+
+
+</body>
+
+</html>
+
+

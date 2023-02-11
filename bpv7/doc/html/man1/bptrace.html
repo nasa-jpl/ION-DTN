@@ -1,0 +1,105 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bptrace - Bundle Protocol (BP) network trace utility</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bptrace - Bundle Protocol (BP) network trace utility</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bptrace</b> <i>own_endpoint_ID</i> <i>destination_endpoint_ID</i> <i>report-to_endpoint_ID</i> <i>TTL</i> <i>class_of_service</i> &quot;<i>trace_text</i>&quot; [<i>status_report_flags</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bptrace</b> uses bp_send() to issue a single bundle to a designated destination endpoint, with status reporting options enabled as selected by the user, then terminates. The status reports returned as the bundle makes its way through the network provide a view of the operation of the network as currently configured.</p>
+
+<p><i>TTL</i> indicates the number of seconds the trace bundle may remain in the network, undelivered, before it is automatically destroyed.</p>
+
+<p><i>class_of_service</i> is <i>custody-requested</i>.<i>priority</i>[.<i>ordinal</i>[.<i>unreliable</i>.<i>critical</i>[.<i>data-label</i>]]], where <i>custody-requested</i> must be 0 or 1 (Boolean), <i>priority</i> must be 0 (bulk) or 1 (standard) or 2 (expedited), <i>ordinal</i> must be 0-254, <i>unreliable</i> must be 0 or 1 (Boolean), <i>critical</i> must also be 0 or 1 (Boolean), and <i>data-label</i> may be any unsigned integer. <i>custody-requested</i> is passed in with the bundle transmission request, but if set to 1 it serves only to request the use of reliable convergence-layer protocols; this will have the effect of enabling custody transfer whenever the applicable convergence-layer protocol is bundle-in-bundle encapsulation (BIBE). <i>ordinal</i> is ignored if <i>priority</i> is not 2. Setting <i>class_of_service</i> to &quot;0.2.254&quot; or &quot;1.2.254&quot; gives a bundle the highest possible priority. Setting <i>unreliable</i> to 1 causes BP to forego convergence-layer retransmission in the event of data loss. Setting <i>critical</i> to 1 causes contact graph routing to forward the bundle on all plausible routes rather than just the &quot;best&quot; route it computes; this may result in multiple copies of the bundle arriving at the destination endpoint, but when used in conjunction with priority 2.254 it ensures that the bundle will be delivered as soon as physically possible.</p>
+
+<p><i>trace_text</i> can be any string of ASCII text; alternatively, if we want to send a file, it can be &quot;@&quot; followed by the name of the file.</p>
+
+<p><i>status_report_flags</i> must be a sequence of status report flags, separated by commas, with no embedded whitespace. Each status report flag must be one of the following: rcv, fwd, dlv, del.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bptrace</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="bptrace-cant-attach-to-BP">bptrace can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized BP operations.</p>
+
+</dd>
+<dt id="bptrace-cant-open-own-endpoint">bptrace can&#39;t open own endpoint.</dt>
+<dd>
+
+<p>Another BP application task currently has <i>own_endpoint_ID</i> open for bundle origination and reception. Try again after that task has terminated. If no such task exists, it may have crashed while still holding the endpoint open; the easiest workaround is to select a different source endpoint.</p>
+
+</dd>
+<dt id="No-space-for-bptrace-text">No space for bptrace text.</dt>
+<dd>
+
+<p>Probably an unrecoverable database error, in which case the local ION node must be terminated and re-initialized.</p>
+
+</dd>
+<dt id="bptrace-cant-create-ZCO">bptrace can&#39;t create ZCO.</dt>
+<dd>
+
+<p>Probably an unrecoverable database error, in which case the local ION node must be terminated and re-initialized.</p>
+
+</dd>
+<dt id="bptrace-cant-send-message">bptrace can&#39;t send message.</dt>
+<dd>
+
+<p>BP system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bp(3)</p>
+
+
+</body>
+
+</html>
+
+

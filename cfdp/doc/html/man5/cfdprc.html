@@ -1,0 +1,185 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>cfdprc - CCSDS File Delivery Protocol management commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>cfdprc - CCSDS File Delivery Protocol management commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>CFDP management commands are passed to <b>cfdpadmin</b> either in a file of text lines or interactively at <b>cfdpadmin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line. The formats and effects of the CFDP management commands are described below.</p>
+
+<h1 id="COMMANDS">COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by cfdpadmin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="v"><b>v</b></dt>
+<dd>
+
+<p>Version number. Prints out the version of ION currently installed. HINT: combine with <b>e 1</b> command to log the version number at startup.</p>
+
+</dd>
+<dt id="pod11"><b>1</b></dt>
+<dd>
+
+<p>The <b>initialize</b> command. Until this command is executed, CFDP is not in operation on the local ION node and most <i>cfdpadmin</i> commands will fail.</p>
+
+</dd>
+<dt id="a-entity-entity-nbr-UT-protocol-name-UT-endpoint-name-rtt-incstype-outcstype"><b>a entity</b>&gt; &lt;entity nbr&gt; &lt;UT protocol name&gt; &lt;UT endpoint name&gt; &lt;rtt&gt; &lt;incstype&gt; &lt;outcstype&gt;</dt>
+<dd>
+
+<p>The <b>add entity</b> command. This command will add a new remote CFDP entity to the CFDP management information base. Valid UT protocol names are bp and tcp. Endpoint name is EID for bp, socket spec (<i>IP address</i>:<i>port number</i>) for tcp. RTT is round-trip time, used to set acknowledgement timers. incstype is the type of checksum to use when validating data received from this entity; valid values are 0 (modular checksum), 2 (CRC32C), and 15 (the null checksum). outcstype is the type of checksum to use when computing the checksum for transmitting data to this entity.</p>
+
+</dd>
+<dt id="c-entity-entity-nbr-UT-protocol-name-UT-endpoint-name-rtt-incstype-outcstype"><b>c entity</b>&gt; &lt;entity nbr&gt; &lt;UT protocol name&gt; &lt;UT endpoint name&gt; &lt;rtt&gt; &lt;incstype&gt; &lt;outcstype&gt;</dt>
+<dd>
+
+<p>The <b>change entity</b> command. This command will change information associated with an existing entity in the CFDP management information base.</p>
+
+</dd>
+<dt id="d-entity-entity-nbr"><b>d entity</b>&gt; &lt;entity nbr&gt;</dt>
+<dd>
+
+<p>The <b>delete entity</b> command. This command will delete an existing entity from the CFDP management information base.</p>
+
+</dd>
+<dt id="i-entity-nbr"><b>i</b> [&lt;entity nbr&gt;]</dt>
+<dd>
+
+<p>The <b>info</b> command. When <b>entity nbr</b> is provided, this command will print information about the indicated entity. Otherwise this command will print information about the current state of the local CFDP entity, including the current settings of all parameters that can be managed as described below.</p>
+
+</dd>
+<dt id="s-UTS-command"><b>s</b> &#39;<i>UTS command</i>&#39;</dt>
+<dd>
+
+<p>The <b>start</b> command. This command starts the UT-layer service task for the local CFDP entity.</p>
+
+</dd>
+<dt id="m-discard-0-1"><b>m discard</b> { 0 | 1 }</dt>
+<dd>
+
+<p>The <b>manage discard</b> command. This command enables or disables the discarding of partially received files upon cancellation of a file reception. The default value is 1;</p>
+
+</dd>
+<dt id="m-requirecrc-0-1"><b>m requirecrc</b> { 0 | 1 }</dt>
+<dd>
+
+<p>The <b>manage CRC data integrity</b> command. This command enables or disables the attachment of CRCs to all PDUs issued by the local CFDP entity. The default value is 0;</p>
+
+</dd>
+<dt id="m-fillchar-file_fill_character"><b>m fillchar</b> <i>file_fill_character</i></dt>
+<dd>
+
+<p>The <b>manage fill character</b> command. This command establishes the fill character to use for the portions of an incoming file that have not yet been received. The fill character is normally expressed in hex, e.g., the default value is 0xaa.</p>
+
+</dd>
+<dt id="m-ckperiod-check_cycle_period"><b>m ckperiod</b> <i>check_cycle_period</i></dt>
+<dd>
+
+<p>The <b>manage check interval</b> command. This command establishes the number of seconds following reception of the EOF PDU -- or following expiration of a prior check cycle -- after which the local CFDP will check for completion of a file that is being received. Default value is 86400 (i.e., one day).</p>
+
+</dd>
+<dt id="m-maxtimeouts-check_cycle_limit"><b>m maxtimeouts</b> <i>check_cycle_limit</i></dt>
+<dd>
+
+<p>The <b>manage check limit</b> command. This command establishes the number of check cycle expirations after which the local CFDP entity will invoke the check cycle expiration fault handler upon expiration of a check cycle. Default value is 7.</p>
+
+</dd>
+<dt id="m-maxevents-event_queue_limit"><b>m maxevents</b> <i>event_queue_limit</i></dt>
+<dd>
+
+<p>The <b>manage event queue limit</b> command. This command establishes the maximum number of unread service indications (CFDP &quot;events&quot;) that may be queued up for delivery at any time. When the events queue length exceeds this figure, events are simply deleted (in decreasing age order, oldest first) until the the limit is no longer exceeded. Default value is 20.</p>
+
+</dd>
+<dt id="m-maxtrnbr-max_transaction_number"><b>m maxtrnbr</b> <i>max_transaction_number</i></dt>
+<dd>
+
+<p>The <b>manage transaction numbers</b> command. This command establishes the largest possible transaction number used by the local CFDP entity for file transmission transactions. After this number has been used, the transaction number assigned to the next transaction will be 1. The default value is 999999999.</p>
+
+</dd>
+<dt id="m-segsize-max_bytes_per_file_data_segment"><b>m segsize</b> <i>max_bytes_per_file_data_segment</i></dt>
+<dd>
+
+<p>The <b>manage segment size</b> command. This command establishes the number of bytes of file data in each file data PDU transmitted by the local CFDP entity in the absence of an application-supplied reader function. The default value is 65000.</p>
+
+</dd>
+<dt id="m-inactivity-inactivity_period"><b>m inactivity</b> <i>inactivity_period</i></dt>
+<dd>
+
+<p>The <b>manage inactivity period</b> command. This command establishes the number of seconds that a CFDP file transfer is allowed to go idle before being canceled for inactivity. The default is one day.</p>
+
+</dd>
+<dt id="x"><b>x</b></dt>
+<dd>
+
+<p>The <b>stop</b> command. This command stops the UT-layer service task for the local CFDP engine.</p>
+
+</dd>
+<dt id="w-0-1-activity_spec"><b>w</b> { 0 | 1 | &lt;activity_spec&gt; }</dt>
+<dd>
+
+<p>The <b>CFDP watch</b> command. This command enables and disables production of a continuous stream of user-selected CFDP activity indication characters. A watch parameter of &quot;1&quot; selects all CFDP activity indication characters; &quot;0&quot; de-selects all CFDP activity indication characters; any other <i>activity_spec</i> such as &quot;p&quot; selects all activity indication characters in the string, de-selecting all others. CFDP will print each selected activity indication character to <b>stdout</b> every time a processing event of the associated type occurs:</p>
+
+<p><b>p</b> CFDP PDU transmitted</p>
+
+<p><b>q</b> CFDP PDU received</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="m-requirecrc-1">m requirecrc 1</dt>
+<dd>
+
+<p>Initiates attachment of CRCs to all subsequently issued CFDP PDUs.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>cfdpadmin(1), bputa(1)</p>
+
+
+</body>
+
+</html>
+
+

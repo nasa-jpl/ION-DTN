@@ -1,0 +1,18 @@
+[i] admin pgm using SDR parm overrides from amroc.ionconfig.
+wmKey:           2
+wmSize:          5000000
+wmAddress:       0
+sdrName:        'ion2'
+sdrWmSize:       0
+configFlags:     1
+heapWords:       3000000
+heapKey:         -1
+logSize:         0
+logKey:          -1
+pathName:       '/tmp'
+Stopping ionadmin.
+Stopping bsspadmin.
+Stopping ionsecadmin.
+Stopping ionadmin.
+Stopping ipnadmin.
+Stopping bpadmin.

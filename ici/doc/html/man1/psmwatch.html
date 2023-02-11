@@ -1,0 +1,107 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>psmwatch - PSM memory partition activity monitor</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>psmwatch - PSM memory partition activity monitor</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>psmwatch</b> <i>shared_memory_key</i> <i>memory_size</i> <i>partition_name</i> <i>interval</i> <i>count</i> [ verbose ]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>For <i>count</i> interations, <b>psmwatch</b> sleeps <i>interval</i> seconds and then invokes the psm_print_trace() function (see psm(3)) to report on PSM dynamic memory management activity in the PSM-managed shared memory partition identified by <i>shared_memory_key</i> during that interval. If the optional <b>verbose</b> parameter is specified, the printed PSM activity trace will be verbose as described in psm(3).</p>
+
+<p>To prevent confusion, the specified <i>memory_size</i> and <i>partition_name</i> are compared to those declared when this shared memory partition was initially managed; if they don&#39;t match, <b>psmwatch</b> immediately terminates.</p>
+
+<p>If <i>interval</i> is zero, <b>psmwatch</b> merely prints a current usage summary for the indicated shared-memory partition and terminates.</p>
+
+<p><b>psmwatch</b> is helpful for detecting and diagnosing memory leaks. For debugging the ION protocol stack:</p>
+
+<dl>
+
+<dt id="shared_memory_key"><i>shared_memory_key</i></dt>
+<dd>
+
+<p>Normally &quot;65281&quot;, but might be overridden by the value of wmKey in the .ionconfig file used to configure the node under study.</p>
+
+</dd>
+<dt id="memory_size"><i>memory_size</i></dt>
+<dd>
+
+<p>As given by the value of wmKey in the .ionconfig file used to configure the node under study. If this value is not stated in the .ionconfig file, the default value is &quot;5000000&quot;.</p>
+
+</dd>
+<dt id="partition_name"><i>partition_name</i></dt>
+<dd>
+
+<p>Always &quot;ionwm&quot;.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>psmwatch</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="Cant-attach-to-psm">Can&#39;t attach to psm.</dt>
+<dd>
+
+<p>ION system error. One possible cause is that ION has not yet been initialized on the local computer; run ionadmin(1) to correct this.</p>
+
+</dd>
+<dt id="Cant-start-trace">Can&#39;t start trace.</dt>
+<dd>
+
+<p>Insufficient ION working memory to contain trace information. Reinitialize ION with more memory.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>psm(3), sdrwatch(1)</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,131 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>brsccla - BRSC-based BP convergence layer adapter (input and output) task</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>brsccla - BRSC-based BP convergence layer adapter (input and output) task</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>brsccla</b> <i>server_hostname</i>[:<i>server_port_nbr</i>]_<i>own_node_nbr</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>BRSC is the &quot;client&quot; side of the Bundle Relay Service (BRS) convergence layer protocol for BP. It is complemented by BRSS, the &quot;server&quot; side of the BRS convergence layer protocol for BP. BRS clients send bundles directly only to the server, regardless of their final destinations, and the server forwards them to other clients as necessary.</p>
+
+<p><b>brsccla</b> is a background &quot;daemon&quot; task comprising three threads: one that connects to the BRS server, spawns the other threads, and then handles BRSC protocol output by transmitting bundles over the connected socket to the BRS server; one that simply sends periodic &quot;keepalive&quot; messages over the connected socket to the server (to assure that local inactivity doesn&#39;t cause the connection to be lost); and one that handles BRSC protocol input from the connected server.</p>
+
+<p>The output thread connects to the server&#39;s TCP socket at <i>server_hostname</i> and <i>server_port_nbr</i>, sends over the connected socket the client&#39;s <i>own_node_nbr</i> (in SDNV representation) followed by a 32-bit time tag and a 160-bit HMAC-SHA1 digest of that time tag, to authenticate itself; checks the authenticity of the 160-bit countersign returned by the server; spawns the keepalive and receiver threads; and then begins extracting bundles from the queues of bundles ready for transmission via BRSC and transmitting those bundles over the connected socket to the server. Each transmitted bundle is preceded by its length, a 32-bit unsigned integer in network byte order. The default value for <i>server_port_nbr</i>, if omitted, is 80.</p>
+
+<p>The reception thread receives bundles over the connected socket and passes them to the bundle protocol agent on the local ION node. Each bundle received on the connection is preceded by its length, a 32-bit unsigned integer in network byte order.</p>
+
+<p>The keepalive thread simply sends a &quot;bundle length&quot; value of zero (a 32-bit unsigned integer in network byte order) to the server once every 15 seconds.</p>
+
+<p><b>brsccla</b> is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; (START) command that starts operation of the Bundle Protocol, and it is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command. <b>brsccla</b> can also be spawned and terminated in response to START and STOP commands that pertain specifically to the BRSC convergence layer protocol.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>brsccla</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart the BRSC protocol.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>brsccla</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bpadmin</b> to restart the BRSC protocol.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="brsccla-cant-attach-to-BP">brsccla can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="No-such-brsc-induct">No such brsc induct.</dt>
+<dd>
+
+<p>No BRSC induct with duct name matching <i>server_hostname</i>, <i>own_node_nbr</i>, and <i>server_port_nbr</i> has been added to the BP database. Use <b>bpadmin</b> to stop the BRSC convergence-layer protocol, add the induct, and then restart the BRSC protocol.</p>
+
+</dd>
+<dt id="CLI-task-is-already-started-for-this-duct">CLI task is already started for this duct.</dt>
+<dd>
+
+<p>Redundant initiation of <b>brsccla</b>.</p>
+
+</dd>
+<dt id="No-such-brsc-outduct">No such brsc outduct.</dt>
+<dd>
+
+<p>No BRSC outduct with duct name matching <i>server_hostname</i>, <i>own_node_nbr</i>, and <i>server_port_nbr</i> has been added to the BP database. Use <b>bpadmin</b> to stop the BRSC convergence-layer protocol, add the outduct, and then restart the BRSC protocol.</p>
+
+</dd>
+<dt id="Cant-connect-to-server">Can&#39;t connect to server.</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart BRSC.</p>
+
+</dd>
+<dt id="Cant-register-with-server">Can&#39;t register with server.</dt>
+<dd>
+
+<p>Configuration error. Authentication has failed, probably because (a) the client and server are using different HMAC/SHA1 keys or (b) the clocks of the client and server differ by more than 5 seconds. Update security policy database(s), as necessary, and assure that the clocks are synchronized.</p>
+
+</dd>
+<dt id="brsccla-cant-create-receiver-thread">brsccla can&#39;t create receiver thread</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart BRSC.</p>
+
+</dd>
+<dt id="brsccla-cant-create-keepalive-thread">brsccla can&#39;t create keepalive thread</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart BRSC.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bprc(5), brsscla(1)</p>
+
+
+</body>
+
+</html>
+
+

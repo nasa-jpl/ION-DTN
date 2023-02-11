@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ltpdriver - LTP transmission test program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ltpdriver - LTP transmission test program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>ltpdriver</b> <i>remoteEngineNbr</i> <i>clientId</i> <i>nbrOfCycles</i> <i>greenLength</i> [<i> totalLength</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>ltpdriver</b> uses LTP to send <i>nbrOfCycles</i> service data units of length indicated by <i>totalLength</i>, of which the trailing <i>greenLength</i> bytes are sent unreliably, to the <b>ltpcounter</b> client service process for client service number <i>clientId</i> attached to the remote LTP engine identified by <i>remoteEngineNbr</i>. If omitted, <i>length</i> defaults to 60000. If <i>length</i> is 1, the sizes of the transmitted service data units will be randomly selected multiples of 1024 in the range 1024 to 62464.</p>
+
+<p>Whenever the size of the transmitted service data unit is less than or equal to <i>greenLength</i>, the entire SDU is sent unreliably.</p>
+
+<p>When all copies of the file have been sent, <b>ltpdriver</b> prints a performance report.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>ltpdriver</b> has terminated. Any problems encountered during operation will be noted in the <b>ion.log</b> log file.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>ltpdriver</b> was unable to start, because it could not attach to the LTP protocol on the local node. Run <b>ltpadmin</b> to start LTP, then try again.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>The service data units transmitted by <b>ltpdriver</b> are sequences of text obtained from a file in the current working directory named &quot;ltpdriverAduFile&quot;, which <b>ltpdriver</b> creates automatically.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>Diagnostic messages produced by <b>ltpdriver</b> are written to the ION log file <i>ion.log</i>.</p>
+
+<dl>
+
+<dt id="ltpdriver-cant-initialize-LTP">ltpdriver can&#39;t initialize LTP.</dt>
+<dd>
+
+<p><b>ltpadmin</b> has not yet initialized LTP protocol operations.</p>
+
+</dd>
+<dt id="Cant-create-ADU-file">Can&#39;t create ADU file</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="Error-writing-to-ADU-file">Error writing to ADU file</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="ltpdriver-cant-create-file-ref">ltpdriver can&#39;t create file ref.</dt>
+<dd>
+
+<p>ION system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="ltpdriver-cant-create-ZCO">ltpdriver can&#39;t create ZCO.</dt>
+<dd>
+
+<p>ION system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="ltpdriver-cant-send-message">ltpdriver can&#39;t send message.</dt>
+<dd>
+
+<p>LTP span to the remote engine has been stopped.</p>
+
+</dd>
+<dt id="ltp_send-failed">ltp_send failed.</dt>
+<dd>
+
+<p>LTP system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ltpadmin(1), ltpcounter(1), ltp(3)</p>
+
+
+</body>
+
+</html>
+
+

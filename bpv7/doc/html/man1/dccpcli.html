@@ -1,0 +1,127 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dccpcli - DCCP-based BP convergence layer input task</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dccpcli - DCCP-based BP convergence layer input task</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>dccpcli</b> <i>local_hostname</i>[:<i>local_port_nbr</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>dccpcli</b> is a background &quot;daemon&quot; task that receives DCCP datagrams via a DCCP socket bound to <i>local_hostname</i> and <i>local_port_nbr</i>, extracts bundles from those datagrams, and passes them to the bundle protocol agent on the local ION node.</p>
+
+<p>If not specified, port number defaults to 4556.</p>
+
+<p>Note that <b>dccpcli</b> has no fragmentation support at all. Therefore, the largest bundle that can be sent via this convergence layer is limited to just under the link&#39;s MTU (typically 1500 bytes).</p>
+
+<p>The convergence layer input task is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; (START) command that starts operation of the Bundle Protocol; the text of the command that is used to spawn the task must be provided at the time the &quot;dccp&quot; convergence layer protocol is added to the BP database. The convergence layer input task is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command. <b>dccpcli</b> can also be spawned and terminated in response to START and STOP commands that pertain specifically to the DCCP convergence layer protocol.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>dccpcli</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart <b>dccpcli</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>dccpcli</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bpadmin</b> to restart <b>dccpcli</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="dccpcli-cant-attach-to-BP">dccpcli can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="No-such-dccp-duct">No such dccp duct.</dt>
+<dd>
+
+<p>No DCCP induct matching <i>local_hostname</i> and <i>local_port_nbr</i> has been added to the BP database. Use <b>bpadmin</b> to stop the DCCP convergence-layer protocol, add the induct, and then restart the DCCP protocol.</p>
+
+</dd>
+<dt id="CLI-task-is-already-started-for-this-duct">CLI task is already started for this duct.</dt>
+<dd>
+
+<p>Redundant initiation of <b>dccpcli</b>.</p>
+
+</dd>
+<dt id="dccpcli-cant-get-IP-address-for-host">dccpcli can&#39;t get IP address for host.</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>dccpcli</b>.</p>
+
+</dd>
+<dt id="CLI-cant-open-DCCP-socket.-This-probably-means-DCCP-is-not-supported-on-your-system">CLI can&#39;t open DCCP socket. This probably means DCCP is not supported on your system.</dt>
+<dd>
+
+<p>Operating system error. This probably means that you are not using an operating system that supports DCCP. Make sure that you are using a current Linux kernel and that the DCCP modules are being compiled. Check errtext, correct problem, and restart <b>dccpcli</b>.</p>
+
+</dd>
+<dt id="CLI-cant-initialize-socket">CLI can&#39;t initialize socket.</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>dccpcli</b>.</p>
+
+</dd>
+<dt id="dccpcli-cant-get-acquisition-work-area">dccpcli can&#39;t get acquisition work area.</dt>
+<dd>
+
+<p>ION system error. Check errtext, correct problem, and restart <b>dccpcli</b>.</p>
+
+</dd>
+<dt id="dccpcli-cant-create-new-thread">dccpcli can&#39;t create new thread.</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>dccpcli</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bprc(5), dccpclo(1)</p>
+
+
+</body>
+
+</html>
+
+

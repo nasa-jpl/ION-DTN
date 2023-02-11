@@ -1,0 +1,161 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>amsshell - Asynchronous Message Service (AMS) test message sender (UNIX)</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>amsshell - Asynchronous Message Service (AMS) test message sender (UNIX)</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>amsshell</b> <i>unit_name</i> <i>role_name</i> <i>application_name</i> <i>authority_name</i> <i>[{ p | s | q | a }]</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>amsshell</b> is a message issuance program designed to test AMS functionality.</p>
+
+<p>When <b>amsshell</b> is started, it registers as an application module in the unit identified by <i>unit_name</i> of the venture identified by <i>application_name</i> and <i>authority_name</i>; the role in which it registers must be indicated in <i>role_name</i>. A configuration server for the local continuum and a registrar for the indicated unit of the indicated venture (which may both be instantiated in a single <b>amsd</b> daemon task) must be running in order for <b>amsshell</b> to run.</p>
+
+<p><b>amsshell</b> runs as two threads: a background thread that receives watches for AMS configuration events (including shutdown), together with a foreground thread that acquires operating parameters and message content in lines of console input to control the issuance of messages.</p>
+
+<p>The first character of each line of input from stdin to the <b>amsshell</b> indicates the significance of that line:</p>
+
+<dl>
+
+<dt id="pod"><b>=</b></dt>
+<dd>
+
+<p>Sets the name of the subject on which all messages are to be issued, until superseded by another &quot;=&quot; line. The subject name must begin at the second character of this line. Optionally, subject name may be followed by a single &#39; &#39; (space) character and then the text of the first message to be issued on this subject, which is to be issued immediately.</p>
+
+</dd>
+<dt id="r"><b>r</b></dt>
+<dd>
+
+<p>Sets the number of the role constraining the domain of message issuance. The role number must begin at the second character of this line.</p>
+
+</dd>
+<dt id="c"><b>c</b></dt>
+<dd>
+
+<p>Sets the number of the continuum constraining the domain of message issuance. The continuum number must begin at the second character of this line.</p>
+
+</dd>
+<dt id="u"><b>u</b></dt>
+<dd>
+
+<p>Sets the number of the unit constraining the domain of message issuance. The unit number must begin at the second character of this line.</p>
+
+</dd>
+<dt id="m"><b>m</b></dt>
+<dd>
+
+<p>Sets the number of the module to which subsequent messages are to be issued. The module number must begin at the second character of this line.</p>
+
+</dd>
+<dt id="pod1"><b>.</b></dt>
+<dd>
+
+<p>Terminates <b>amsshell</b>.</p>
+
+</dd>
+</dl>
+
+<p>When the first character of a line of input from stdin is none of the above, the entire line is taken to be the text of a message that is to be issued immediately, on the previously specified subject, to the previously specified module (if applicable), and subject to the previously specified domain (if applicable).</p>
+
+<p>By default, <b>amsshell</b> runs in &quot;publish&quot; mode: when a message is to be issued, it is simply published. This behavior can be overridden by providing a fifth command-line argument to <b>amsshell</b> - a &quot;mode&quot; indicator. The supported modes are as follows:</p>
+
+<dl>
+
+<dt id="p"><b>p</b></dt>
+<dd>
+
+<p>This is &quot;publish&quot; mode. Every message is published.</p>
+
+</dd>
+<dt id="s"><b>s</b></dt>
+<dd>
+
+<p>This is &quot;send&quot; mode. Every message is sent privately to the application module identified by the specified module, unit, and continuum numbers.</p>
+
+</dd>
+<dt id="q"><b>q</b></dt>
+<dd>
+
+<p>This is &quot;query&quot; mode. Every message is sent privately to the application module identified by the specified module, unit, and continuum numbers, and <b>amsshell</b> then waits for a reply message before continuing.</p>
+
+</dd>
+<dt id="a"><b>a</b></dt>
+<dd>
+
+<p>This is &quot;announce&quot; mode. Every message is announced to all modules in the domain established by the previously specified role, unit, and continuum numbers.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod-1">-1</dt>
+<dd>
+
+<p><b>amsshell</b> terminated with an error as noted in the ion.log file.</p>
+
+</dd>
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>amsshell</b> terminated normally.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>A MIB initialization file with the applicable default name (see amsrc(5)) must be present.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<dl>
+
+<dt id="amsshell-cant-register">amsshell can&#39;t register.</dt>
+<dd>
+
+<p><b>amsshell</b> failed to register, for reasons noted in the ion.log file.</p>
+
+</dd>
+<dt id="amsshell-cant-set-event-manager">amsshell can&#39;t set event manager.</dt>
+<dd>
+
+<p><b>amsshell</b> failed to start its background thread, for reasons noted in the ion.log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>amslog(1), amsrc(5)</p>
+
+
+</body>
+
+</html>
+
+

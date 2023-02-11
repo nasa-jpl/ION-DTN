@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bpclock - Bundle Protocol (BP) daemon task for managing scheduled events</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bpclock - Bundle Protocol (BP) daemon task for managing scheduled events</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bpclock</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bpclock</b> is a background &quot;daemon&quot; task that periodically performs scheduled Bundle Protocol activities. It is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; command that starts operation of Bundle Protocol on the local ION node, and it is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<p>Once per second, <b>bpclock</b> takes the following action:</p>
+
+<ul>
+
+<p>First it (a) destroys all bundles whose TTLs have expired, (b) enqueues for re-forwarding all bundles that were expected to have been transmitted (by convergence-layer output tasks) by now but are still stuck in their assigned transmission queues, and (c) enqueues for re-forwarding all bundles for which custody has not yet been taken that were expected to have been received and acknowledged by now (as noted by invocation of the bpMemo() function by some convergence-layer adapter that had CL-specific insight into the appropriate interval to wait for custody acceptance).</p>
+
+<p>Then <b>bpclock</b> adjusts the transmission and reception &quot;throttles&quot; that control rates of LTP transmission to and reception from neighboring nodes, in response to data rate changes as noted in the RFX database by <b>rfxclock</b>.</p>
+
+<p><b>bpclock</b> then checks for bundle origination activity that has been blocked due to insufficient allocated space for BP traffic in the ION data store: if space for bundle origination is now available, <b>bpclock</b> gives the bundle production throttle semaphore to unblock that activity.</p>
+
+<p>Finally, <b>bpclock</b> applies rate control to all convergence-layer protocol inducts and outducts:</p>
+
+<ul>
+
+<p>For each induct, <b>bpclock</b> increases the current capacity of the duct by the applicable nominal data reception rate. If the revised current capacity is greater than zero, <b>bpclock</b> gives the throttle&#39;s semaphore to unblock data acquisition (which correspondingly reduces the current capacity of the duct) by the associated convergence layer input task.</p>
+
+<p>For each outduct, <b>bpclock</b> increases the current capacity of the duct by the applicable nominal data transmission rate. If the revised current capacity is greater than zero, <b>bpclock</b> gives the throttle&#39;s semaphore to unblock data transmission (which correspondingly reduces the current capacity of the duct) by the associated convergence layer output task.</p>
+
+</ul>
+
+</ul>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bpclock</b> terminated, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart <b>bpclock</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bpclock</b> was unable to attach to Bundle Protocol operations, probably because <b>bpadmin</b> has not yet been run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="bpclock-cant-attach-to-BP">bpclock can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized BP operations.</p>
+
+</dd>
+<dt id="Cant-dispatch-events">Can&#39;t dispatch events.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>bpclock</b> terminates.</p>
+
+</dd>
+<dt id="Cant-adjust-throttles">Can&#39;t adjust throttles.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>bpclock</b> terminates.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), rfxclock(1)</p>
+
+
+</body>
+
+</html>
+
+

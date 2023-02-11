@@ -1,0 +1,105 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>tcpbso - TCP-based reliable link service output task for BSSP</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>tcpbso - TCP-based reliable link service output task for BSSP</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>tcpbso</b> {<i>remote_engine_hostname</i> | @}[:<i>remote_port_nbr</i>] <i>remote_engine_nbr</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>tcpbso</b> is a background &quot;daemon&quot; task that extracts BSSP blocks from the queue of blocks bound for the indicated remote BSSP engine and uses a TCP socket to send them to the indicated TCP port on the indicated host. If not specified, port number defaults to 4556.</p>
+
+<p>Each &quot;span&quot; of BSSP data interchange between the local BSSP engine and a neighboring BSSP engine requires its own best-effort and reliable link service output tasks. All link service output tasks are spawned automatically by <b>bsspadmin</b> in response to the &#39;s&#39; command that starts operation of the BSSP protocol, and they are all terminated by <b>bsspadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>tcpbso</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bsspadmin</b> to restart <b>tcpbso</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>tcpbso</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bsspadmin</b> to restart <b>tcpbso</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="tcpbso-cant-initialize-BSSP">tcpbso can&#39;t initialize BSSP.</dt>
+<dd>
+
+<p><b>bsspadmin</b> has not yet initialized BSSP protocol operations.</p>
+
+</dd>
+<dt id="No-such-engine-in-database">No such engine in database.</dt>
+<dd>
+
+<p><i>remote_engine_nbr</i> is invalid, or the applicable span has not yet been added to the BSSP database by <b>bsspadmin</b>.</p>
+
+</dd>
+<dt id="RL-BSO-task-is-already-started-for-this-engine">RL-BSO task is already started for this engine.</dt>
+<dd>
+
+<p>Redundant initiation of <b>tcpbso</b>.</p>
+
+</dd>
+<dt id="RL-BSO-cant-open-TCP-socket">RL-BSO can&#39;t open TCP socket</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>tcpbso</b>.</p>
+
+</dd>
+<dt id="RL-BSO-cant-bind-TCP-socket">RL-BSO can&#39;t bind TCP socket</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>tcpbso</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ABSO">SEE ABSO</h1>
+
+<p>bsspadmin(1), tcpbsi(1), udpbso(1)</p>
+
+
+</body>
+
+</html>
+
+

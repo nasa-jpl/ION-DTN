@@ -1,0 +1,93 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>amspub - Asynchronous Message Service (AMS) test driver for VxWorks</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>amspub - Asynchronous Message Service (AMS) test driver for VxWorks</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>amspub</b> &quot;<i>application_name</i>&quot;, &quot;<i>authority_name</i>&quot;, &quot;<i>subject_name</i>&quot;, &quot;<i>message_text</i>&quot;</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>amspub</b> is a message publication program designed to test AMS functionality in a VxWorks environment. When an <b>amspub</b> task is started, it registers as an application module in the root unit of the venture identified by <i>application_name</i> and <i>authority_name</i>, looks up the subject number for <i>subject_name</i>, publishes a single message with content <i>message_text</i> on that subject, unregisters, and terminates.</p>
+
+<p>A configuration server for the local continuum and a registrar for the root unit of the indicated venture (which may both be instantiated in a single <b>amsd</b> daemon task) must be running in order for <b>amspub</b> to run.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod-1">-1</dt>
+<dd>
+
+<p><b>amspub</b> terminated with an error as noted in the ion.log file.</p>
+
+</dd>
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>amspub</b> terminated normally.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>The <b>amspub</b> source code is in the amspubsub.c source file.</p>
+
+<p>A MIB initialization file with the applicable default name (see amsrc(5)) must be present.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<dl>
+
+<dt id="amspub-cant-register">amspub can&#39;t register.</dt>
+<dd>
+
+<p><b>amspub</b> failed to register, for reasons noted in the ion.log file.</p>
+
+</dd>
+<dt id="amspub:-subject-is-unknown">amspub: subject is unknown</dt>
+<dd>
+
+<p><b>amspub</b> can&#39;t publish test messages on the specified subject; possibly an error in the MIB initialization file.</p>
+
+</dd>
+<dt id="amspub-cant-publish-message">amspub can&#39;t publish message.</dt>
+<dd>
+
+<p><b>amspub</b> failed to publish, for reasons noted in the ion.log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>amssub(1), amsrc(5)</p>
+
+
+</body>
+
+</html>
+
+

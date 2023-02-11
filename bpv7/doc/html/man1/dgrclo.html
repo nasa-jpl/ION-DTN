@@ -1,0 +1,115 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dgrclo - DGR-based BP convergence layer transmission task</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dgrclo - DGR-based BP convergence layer transmission task</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>dgrclo</b> <i>remote_hostname</i>[:<i>remote_port_nbr</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>dgrclo</b> is a background &quot;daemon&quot; task that spawns two threads, one that handles DGR convergence layer protocol input (positive and negative acknowledgments) and a second that handles DGR convergence layer protocol output.</p>
+
+<p>The output thread extracts bundles from the queues of bundles ready for transmission via DGR to a remote bundle protocol agent, encapsulates them in DGR messages, and uses a randomly configured local UDP socket to send those messages to the remote UDP socket bound to <i>remote_hostname</i> and <i>remote_port_nbr</i>. (<i>local_port_nbr</i> defaults to 1113 if not specified.)</p>
+
+<p>The input thread receives DGR messages via the same local UDP socket and uses them to manage DGR retransmission of transmitted datagrams.</p>
+
+<p><b>dgrclo</b> is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; (START) command that starts operation of the Bundle Protocol, and it is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command. <b>dgrclo</b> can also be spawned and terminated in response to START and STOP commands that pertain specifically to the DGR convergence layer protocol.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>dgrclo</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart <b>dgrclo</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>dgrclo</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bpadmin</b> to restart <b>dgrclo</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="dgrclo-cant-attach-to-BP">dgrclo can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="CLI-task-is-already-started-for-this-engine">CLI task is already started for this engine.</dt>
+<dd>
+
+<p>Redundant initiation of <b>dgrclo</b>.</p>
+
+</dd>
+<dt id="No-such-dgr-outduct">No such dgr outduct.</dt>
+<dd>
+
+<p>No DGR outduct with duct name matching <i>remote_hostname</i> and <i>remote_port_nbr</i> has been added to the BP database. Use <b>bpadmin</b> to stop the DGR convergence-layer protocol, add the outduct, and then restart the DGR protocol.</p>
+
+</dd>
+<dt id="dgrclo-cant-open-DGR-service-access-point">dgrclo can&#39;t open DGR service access point.</dt>
+<dd>
+
+<p>DGR system error. Check prior messages in <b>ion.log</b> log file, correct problem, and then stop and restart the DGR protocol.</p>
+
+</dd>
+<dt id="dgrclo-cant-create-sender-thread">dgrclo can&#39;t create sender thread</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart DGR.</p>
+
+</dd>
+<dt id="dgrclo-cant-create-receiver-thread">dgrclo can&#39;t create receiver thread</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart DGR.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bprc(5)</p>
+
+
+</body>
+
+</html>
+
+

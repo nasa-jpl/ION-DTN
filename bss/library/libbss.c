@@ -116,7 +116,7 @@ int	bssOpen(char* bssName, char* path)
 		PUTS("An active playback session was detected.  If you \
 wish to initiate a new one, please first close the active playback session.");
 		fflush(stdout);
-		ionDetach();
+		/* return without taking action */
 		return -2;
 	}
 	

@@ -1,0 +1,141 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>psmshell - PSM memory management test shell</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>psmshell - PSM memory management test shell</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>psmshell</b> <i>partition_size</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>psmshell</b> allocates a region of <i>partition_size</i> bytes of system memory, places it under PSM management, and offers the user an interactive &quot;shell&quot; for testing various PSM management functions.</p>
+
+<p><b>psmshell</b> prints a prompt string (&quot;: &quot;) to stdout, accepts a command from stdin, executes the command (possibly printing a diagnostic message), then prints another prompt string and so on.</p>
+
+<p>The locations of objects allocated from the PSM-managed region of memory are referred to as &quot;cells&quot; in psmshell operations. That is, when an object is to be allocated, a cell number in the range 0-99 must be specified as the notional &quot;handle&quot; for that object, for use in future commands.</p>
+
+<p>The following commands are supported:</p>
+
+<dl>
+
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. Causes <b>psmshell</b> to print a summary of available commands. Same effect as the <b>?</b> command.</p>
+
+</dd>
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>Another <b>help</b> command. Causes <b>psmshell</b> to print a summary of available commands. Same effect as the <b>h</b> command.</p>
+
+</dd>
+<dt id="m-cell_nbr-size"><b>m</b> <i>cell_nbr</i> <i>size</i></dt>
+<dd>
+
+<p>The <b>malloc</b> command. Allocates a large-pool object of the indicated size and associates that object with <i>cell_nbr</i>.</p>
+
+</dd>
+<dt id="z-cell_nbr-size"><b>z</b> <i>cell_nbr</i> <i>size</i></dt>
+<dd>
+
+<p>The <b>zalloc</b> command. Allocates a small-pool object of the indicated size and associates that object with <i>cell_nbr</i>.</p>
+
+</dd>
+<dt id="p-cell_nbr"><b>p</b> <i>cell_nbr</i></dt>
+<dd>
+
+<p>The <b>print</b> command. Prints the address (i.e., the offset within the managed block of memory) of the object associated with <i>cell_nbr</i>.</p>
+
+</dd>
+<dt id="f-cell_nbr"><b>f</b> <i>cell_nbr</i></dt>
+<dd>
+
+<p>The <b>free</b> command. Frees the object associated with <i>cell_nbr</i>, returning the space formerly occupied by that object to the appropriate free block list.</p>
+
+</dd>
+<dt id="u"><b>u</b></dt>
+<dd>
+
+<p>The <b>usage</b> command. Prints a partition usage report, as per psm_report(3).</p>
+
+</dd>
+<dt id="q"><b>q</b></dt>
+<dd>
+
+<p>The <b>quit</b> command. Frees the allocated system memory in the managed block and terminates <b>psmshell</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>psmshell</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<dl>
+
+<dt id="IPC-initialization-failed">IPC initialization failed.</dt>
+<dd>
+
+<p>ION system error. Investigate, correct problem, and try again.</p>
+
+</dd>
+<dt id="psmshell:-cant-allocate-space-quitting">psmshell: can&#39;t allocate space; quitting.</dt>
+<dd>
+
+<p>Insufficient available system memory for selected partition size.</p>
+
+</dd>
+<dt id="psmshell:-cant-allocate-test-variables-quitting">psmshell: can&#39;t allocate test variables; quitting.</dt>
+<dd>
+
+<p>Insufficient available system memory for selected partition size.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>psm(3)</p>
+
+
+</body>
+
+</html>
+
+

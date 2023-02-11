@@ -1,0 +1,115 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ionsecrc - ION security database management commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ionsecrc - ION security database management commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>ION security database management commands are passed to <b>ionsecadmin</b> either in a file of text lines or interactively at <b>ionsecadmin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line. The formats and effects of the ION security database management commands are described below.</p>
+
+<h1 id="COMMANDS">COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by ionsecadmin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="v"><b>v</b></dt>
+<dd>
+
+<p>Version number. Prints out the version of ION currently installed. HINT: combine with <b>e 1</b> command to log the version number at startup.</p>
+
+</dd>
+<dt id="pod11"><b>1</b></dt>
+<dd>
+
+<p>The <b>initialize</b> command. Until this command is executed, the local ION node has no security database and most <i>ionsecadmin</i> commands will fail.</p>
+
+</dd>
+<dt id="a-key-key_name-file_name"><b>a key</b> <i>key_name</i> <i>file_name</i></dt>
+<dd>
+
+<p>The <b>add key</b> command. This command adds a named key value to the security database. The content of <i>file_name</i> is taken as the value of the key. Named keys can be referenced by other elements of the security database.</p>
+
+</dd>
+<dt id="c-key-key_name-file_name"><b>c key</b> <i>key_name</i> <i>file_name</i></dt>
+<dd>
+
+<p>The <b>change key</b> command. This command changes the value of the named key, obtaining the new key value from the content of <i>file_name</i>.</p>
+
+</dd>
+<dt id="d-key-key_name"><b>d key</b> <i>key_name</i></dt>
+<dd>
+
+<p>The <b>delete key</b> command. This command deletes the key identified by <i>name</i>.</p>
+
+</dd>
+<dt id="i-key-key_name"><b>i key</b> <i>key_name</i></dt>
+<dd>
+
+<p>This command will print information about the named key, i.e., the length of its current value.</p>
+
+</dd>
+<dt id="l-key"><b>l key</b></dt>
+<dd>
+
+<p>This command lists all keys in the security database.</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="a-key-BABKEY-.-babkey.txt">a key BABKEY ./babkey.txt</dt>
+<dd>
+
+<p>Adds a new key named &quot;BABKEY&quot; whose value is the content of the file &quot;./babkey.txt&quot;.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ionsecadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

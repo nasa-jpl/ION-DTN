@@ -1,0 +1,106 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>llcv - library for manipulating linked-list condition variable objects</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>llcv - library for manipulating linked-list condition variable objects</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    #include &quot;llcv.h&quot;
+
+    typedef struct llcv_str
+    {
+        Lyst            list;
+        pthread_mutex_t mutex;
+        pthread_cond_t  cv;
+    } *Llcv;
+
+    typedef int (*LlcvPredicate)(Llcv);
+
+    [see description for available functions]</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>A &quot;linked-list condition variable&quot; object (LLCV) is an inter-thread communication mechanism that pairs a process-private linked list in memory with a condition variable as provided by the pthreads library. LLCVs echo in thread programming the standard ION inter-process or inter-task communication model that pairs shared-memory semaphores with linked lists in shared memory or shared non-volatile storage. As in the semaphore/list model, variable-length messages may be transmitted; the resources allocated to the communication mechanism grow and shrink to accommodate changes in data rate; the rate at which messages are issued is completely decoupled from the rate at which messages are received and processed. That is, there is no flow control, no blocking, and therefore no possibility of deadlock or &quot;deadly embrace&quot;. Traffic spikes are handled without impact on processing rate, provided sufficient memory is provided to accommodate the peak backlog.</p>
+
+<p>An LLCV comprises a Lyst, a mutex, and a condition variable. The Lyst may be in either private or shared memory, but the Lyst itself is not shared with other processes. The reader thread waits on the condition variable until signaled by a writer that some condition is now true. The standard Lyst API functions are used to populate and drain the linked list. In order to protect linked list integrity, each thread must call llcv_lock() before operating on the Lyst and llcv_unlock() afterwards. The other llcv functions merely effect flow signaling in a way that makes it unnecessary for the reader to poll or busy-wait on the Lyst.</p>
+
+<dl>
+
+<dt id="Llcv-llcv_open-Lyst-list-Llcv-llcv">Llcv llcv_open(Lyst list, Llcv llcv)</dt>
+<dd>
+
+<p>Opens an LLCV, initializing as necessary. The <i>list</i> argument must point to an existing Lyst, which may reside in either private or shared dynamic memory. <i>llcv</i> must point to an existing llcv_str management object, which may reside in either static or dynamic (private or shared) memory -- but <i>NOT</i> in stack space. Returns <i>llcv</i> on success, NULL on any error.</p>
+
+</dd>
+<dt id="void-llcv_lock-Llcv-llcv">void llcv_lock(Llcv llcv)</dt>
+<dd>
+
+<p>Locks the LLCV&#39;s Lyst so that it may be updated or examined safely by the calling thread. Fails silently on any error.</p>
+
+</dd>
+<dt id="void-llcv_unlock-Llcv-llcv">void llcv_unlock(Llcv llcv)</dt>
+<dd>
+
+<p>Unlocks the LLCV&#39;s Lyst so that another thread may lock and update or examine it. Fails silently on any error.</p>
+
+</dd>
+<dt id="int-llcv_wait-Llcv-llcv-LlcvPredicate-cond-int-microseconds">int llcv_wait(Llcv llcv, LlcvPredicate cond, int microseconds)</dt>
+<dd>
+
+<p>Returns when the Lyst encapsulated within the LLCV meets the indicated condition. If <i>microseconds</i> is non-negative, will return -1 and set <i>errno</i> to ETIMEDOUT when the indicated number of microseconds has passed, if and only if the indicated condition has not been met by that time. Negative values of the microseconds argument other than LLCV_BLOCKING (defined as -1) are illegal. Returns -1 on any error.</p>
+
+</dd>
+<dt id="void-llcv_signal-Llcv-llcv-LlcvPredicate-cond">void llcv_signal(Llcv llcv, LlcvPredicate cond)</dt>
+<dd>
+
+<p>Locks the indicated LLCV&#39;s Lyst; tests (evaluates) the indicated condition with regard to that LLCV; if the condition is true, signals to the waiting reader on this LLCV (if any) that the Lyst encapsulated in the indicated LLCV now meets the indicated condition; and unlocks the Lyst.</p>
+
+</dd>
+<dt id="void-llcv_signal_while_locked-Llcv-llcv-LlcvPredicate-cond">void llcv_signal_while_locked(Llcv llcv, LlcvPredicate cond)</dt>
+<dd>
+
+<p>Same as llcv_signal() except does not lock the Llcv&#39;s mutex before signalling or unlock afterwards. For use when the Llcv is already locked; prevents deadlock.</p>
+
+</dd>
+<dt id="void-llcv_close-Llcv-llcv">void llcv_close(Llcv llcv)</dt>
+<dd>
+
+<p>Destroys the indicated LLCV&#39;s mutex and condition variable. Fails silently (and has no effect) if a reader is currently waiting on the Llcv.</p>
+
+</dd>
+<dt id="int-llcv_lyst_is_empty-Llcv-Llcv">int llcv_lyst_is_empty(Llcv Llcv)</dt>
+<dd>
+
+<p>A built-in &quot;convenience&quot; predicate, for use when calling llcv_wait(), llcv_signal(), or llcv_signal_while_locked(). Returns true if the length of the indicated LLCV&#39;s encapsulated Lyst is zero, false otherwise.</p>
+
+</dd>
+<dt id="int-llcv_lyst_not_empty-Llcv-Llcv">int llcv_lyst_not_empty(Llcv Llcv)</dt>
+<dd>
+
+<p>A built-in &quot;convenience&quot; predicate, for use when calling llcv_wait(), llcv_signal(), or llcv_signal_while_locked(). Returns true if the length of the LLCV&#39;s encapsulated Lyst is non-zero, false otherwise.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>lyst(3)</p>
+
+
+</body>
+
+</html>
+
+

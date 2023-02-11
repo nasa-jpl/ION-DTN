@@ -1,0 +1,101 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ltpsecadmin - LTP security policy administration interface</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ltpsecadmin - LTP security policy administration interface</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>ltpsecadmin</b> [ <i>commands_filename</i> ]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>ltpsecadmin</b> configures and manages LTP security policy on the local computer.</p>
+
+<p>It configures and manages LTP security policy on the local computer in response to LTP configuration commands found in <i>commands_filename</i>, if provided; if not, <b>ltpsecadmin</b> prints a simple prompt (:) so that the user may type commands directly into standard input.</p>
+
+<p>The format of commands for <i>commands_filename</i> can be queried from <b>ltpsecadmin</b> by entering the command &#39;h&#39; or &#39;?&#39; at the prompt. The commands are documented in ltpsecrc(5).</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p>Successful completion of LTP security policy administration.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="ltpsecadmin">ltpsecadmin</dt>
+<dd>
+
+<p>Enter interactive LTP security policy administration command entry mode.</p>
+
+</dd>
+<dt id="ltpsecadmin-host1.ltpsecrc">ltpsecadmin host1.ltpsecrc</dt>
+<dd>
+
+<p>Execute all configuration commands in <i>host1.ltpsecrc</i>, then terminate immediately.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>Status and diagnostic messages from <b>ltpsecadmin</b> and from other software that utilizes the ION node are nominally written to a log file in the current working directory within which <b>ltpsecadmin</b> was run. The log file is typically named <b>ion.log</b>.</p>
+
+<p>See also ltpsecrc(5).</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p><b>Note</b>: all ION administration utilities expect source file input to be lines of ASCII text that are NL-delimited. If you edit the ionrc file on a Windows machine, be sure to <b>use dos2unix to convert it to Unix text format</b> before presenting it to <b>ltpsecadmin</b>. Otherwise <b>ltpsecadmin</b> will detect syntax errors and will not function satisfactorily.</p>
+
+<p>The following diagnostics may be issued to the log file:</p>
+
+<dl>
+
+<dt id="Cant-open-command-file">Can&#39;t open command file...</dt>
+<dd>
+
+<p>The <i>commands_filename</i> specified in the command line doesn&#39;t exist.</p>
+
+</dd>
+</dl>
+
+<p>Various errors that don&#39;t cause <b>ltpsecadmin</b> to fail but are noted in the log file may be caused by improperly formatted commands given at the prompt or in the <i>commands_filename</i>. Please see ltpsecrc(5) for details.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ltpsecrc(5)</p>
+
+
+</body>
+
+</html>
+
+

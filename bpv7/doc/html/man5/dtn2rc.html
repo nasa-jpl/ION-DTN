@@ -1,0 +1,147 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dtn2rc - &quot;dtn&quot; scheme configuration commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dtn2rc - &quot;dtn&quot; scheme configuration commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>&quot;dtn&quot; scheme configuration commands are passed to <b>dtn2admin</b> either in a file of text lines or interactively at <b>dtn2admin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line.</p>
+
+<p>&quot;dtn&quot; scheme configuration commands establish static routing rules for forwarding bundles to nodes identified by &quot;dtn&quot;-scheme destination endpoints.</p>
+
+<p>Static routes are expressed as <b>plan</b>s in the &quot;dtn&quot;-scheme routing database. A plan that is established for a given node name associates a routing <b>directive</b> with the named node. Each directive is a string of one of two possible forms:</p>
+
+<ul>
+
+<p>f <i>endpoint_ID</i></p>
+
+</ul>
+
+<p>...or...</p>
+
+<ul>
+
+<p>x <i>protocol_name</i>/<i>outduct_name</i></p>
+
+</ul>
+
+<p>The former form signifies that the bundle is to be forwarded to the indicated endpoint, requiring that it be re-queued for processing by the forwarder for that endpoint (which might, but need not, be identified by another &quot;dtn&quot;-scheme endpoint ID). The latter form signifies that the bundle is to be queued for transmission via the indicated convergence layer protocol outduct.</p>
+
+<p>The node names cited in dtn2rc plans may be &quot;wild-carded&quot;. That is, when the last character of a plan&#39;s node name is either &#39;*&#39; or &#39;~&#39; (these two wild-card characters are equivalent for this purpose), the plan applies to all nodes whose names are identical to the wild-carded node name up to the wild-card character. For example, a bundle whose destination EID is &quot;dtn://foghorn/x&quot; would be routed by plans citing the following node names: &quot;foghorn&quot;, &quot;fogh*&quot;, &quot;fog~&quot;, &quot;*&quot;. When multiple plans are all applicable to the same destination EID, the one citing the longest (i.e., most narrowly targeted) node name will be applied.</p>
+
+<p>The formats and effects of the DTN scheme configuration commands are described below.</p>
+
+<h1 id="GENERAL-COMMANDS">GENERAL COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by dtn2admin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="v"><b>v</b></dt>
+<dd>
+
+<p>Version number. Prints out the version of ION currently installed. HINT: combine with <b>e 1</b> command to log the version number at startup.</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="PLAN-COMMANDS">PLAN COMMANDS</h1>
+
+<dl>
+
+<dt id="a-plan-node_name-directive-nominal_xmit_rate"><b>a plan</b> <i>node_name</i> <i>directive</i> [<i>nominal_xmit_rate</i>]</dt>
+<dd>
+
+<p>The <b>add plan</b> command. This command establishes a static route for the bundles destined for the node(s) identified by <i>node_nameID</i>. The <i>nominal_xmit_rate</i> is the assumed rate of transmission to this node in the absence of contact plan information. A <i>nominal_data_rate</i> of zero (the default) in the absence of contact plan information completely disables rate control.</p>
+
+<p><b>Note</b> that the plan commands consumed by dtn2admin are a simplified shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)). The syntax of these commands is DIFFERENT from that of the more general and more powerful bpadmin commands.</p>
+
+</dd>
+<dt id="c-plan-node_nameID-f-endpoint_ID-nominal_xmit_rate"><b>c plan</b> <i>node_nameID</i> [f <i>endpoint_ID</i>] [<i>nominal_xmit_rate</i>]</dt>
+<dd>
+
+<p>The <b>change plan</b> command. This command revises the &quot;via node&quot; and/or <i>nominal_data_rate</i> of the static route for the node(s) identified by <i>node_nameID</i>. To detach an outduct from the plan, use the &quot;planduct&quot; deletion command processed by bpadmin.</p>
+
+</dd>
+<dt id="d-plan-node_nameID"><b>d plan</b> <i>node_nameID</i></dt>
+<dd>
+
+<p>The <b>delete plan</b> command. This command deletes the static route for the node(s) identified by <i>node_nameID</i>.</p>
+
+</dd>
+<dt id="i-plan-node_nameID"><b>i plan</b> <i>node_nameID</i></dt>
+<dd>
+
+<p>This command will print information about the static route for the node(s) identified by <i>node_nameID</i>.</p>
+
+</dd>
+<dt id="l-plan"><b>l plan</b></dt>
+<dd>
+
+<p>This command lists all static routes established in the DTN database for the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="a-plan-bbn2-f-ipn:8.41">a plan bbn2 f ipn:8.41</dt>
+<dd>
+
+<p>Declares a static route from the local node to node &quot;bbn2&quot;. Any bundle destined for any endpoint whose node name is &quot;bbn2&quot; will be forwarded to endpoint &quot;ipn:8.41&quot;.</p>
+
+</dd>
+<dt id="a-plan-mitre-x-ltp-6">a plan mitre* x ltp/6</dt>
+<dd>
+
+<p>Declares a static route from the local node to any node whose node name begins with &quot;mitre&quot;. Any bundle destined for any endpoint whose node name begins with &quot;mitre1&quot; will be queued for transmission on LTP outduct 6.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>dtn2admin(1)</p>
+
+
+</body>
+
+</html>
+
+

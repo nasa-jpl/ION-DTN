@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ionxnowner - report on which threads are initiating SDR transactions</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ionxnowner - report on which threads are initiating SDR transactions</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>ionxnowner</b> [<i>interval</i> [<i>count</i> [<i>echo</i>]]]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>For <i>count</i> interations (defaulting to 1), <b>ionxnowner</b> prints the process ID and thread ID of the thread that currently &quot;owns&quot; the local node&#39;s SDR data store (i.e., started the current transaction), then sleeps <i>interval</i> seconds (minimum 1). If the optional <i>echo</i> parameter is set to 1, then the transaction owner message is logged as well as printed to the console.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>ionxnowner</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="Cant-attach-to-ION">Can&#39;t attach to ION.</dt>
+<dd>
+
+<p>ION system error. See earlier diagnostic messages posted to ion.log for details.</p>
+
+</dd>
+<dt id="Cant-access-SDR">Can&#39;t access SDR.</dt>
+<dd>
+
+<p>ION system error. See earlier diagnostic messages posted to ion.log for details.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ionunlock(1), sdr(3), psmwatch(1)</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,117 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dccplso - DCCP-based LTP link service output task</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dccplso - DCCP-based LTP link service output task</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>dccplso</b> {<i>remote_engine_hostname</i> | @}[:<i>remote_port_nbr</i>] <i>remote_engine_nbr</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>dccplso</b> is a background &quot;daemon&quot; task that extracts LTP segments from the queue of segments bound for the indicated remote LTP engine, encapsulates them in DCCP datagrams, and sends those datagrams to the indicated DCCP port on the indicated host. If not specified, port number defaults to 1113.</p>
+
+<p>Each &quot;span&quot; of LTP data interchange between the local LTP engine and a neighboring LTP engine requires its own link service output task, such as <b>dccplso</b>. All link service output tasks are spawned automatically by <b>ltpadmin</b> in response to the &#39;s&#39; command that starts operation of the LTP protocol, and they are all terminated by <b>ltpadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>dccplso</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>ltpadmin</b> to restart <b>dccplso</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>dccplso</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>ltpadmin</b> to restart <b>dccplso</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="dccplso-cant-initialize-LTP">dccplso can&#39;t initialize LTP.</dt>
+<dd>
+
+<p><b>ltpadmin</b> has not yet initialized LTP protocol operations.</p>
+
+</dd>
+<dt id="No-such-engine-in-database">No such engine in database.</dt>
+<dd>
+
+<p><i>remote_engine_nbr</i> is invalid, or the applicable span has not yet been added to the LTP database by <b>ltpadmin</b>.</p>
+
+</dd>
+<dt id="LSO-task-is-already-started-for-this-engine">LSO task is already started for this engine.</dt>
+<dd>
+
+<p>Redundant initiation of <b>dccplso</b>.</p>
+
+</dd>
+<dt id="LSO-cant-create-idle-thread">LSO can&#39;t create idle thread.</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>dccplso</b>.</p>
+
+</dd>
+<dt id="LSO-cant-open-DCCP-socket.-This-probably-means-DCCP-is-not-supported-on-your-system">LSO can&#39;t open DCCP socket. This probably means DCCP is not supported on your system.</dt>
+<dd>
+
+<p>Operating system error. This probably means that you are not using an operating system that supports DCCP. Make sure that you are using a current Linux kernel and that the DCCP modules are being compiled. Check errtext, correct problem, and restart <b>dccplso</b>.</p>
+
+</dd>
+<dt id="LSO-cant-connect-DCCP-socket">LSO can&#39;t connect DCCP socket.</dt>
+<dd>
+
+<p>Remote host&#39;s <b>dccplsi</b> isn&#39;t listening or has terminated. Restart <b>dccplsi</b> on the remote host and then restart <b>dccplso</b>.</p>
+
+</dd>
+<dt id="Segment-is-too-big-for-DCCP-LSO">Segment is too big for DCCP LSO.</dt>
+<dd>
+
+<p>Configuration error: segments that are too large for DCCP transmission (i.e., larger than 65535 bytes) are being enqueued for <b>dccplso</b>. Use <b>ltpadmin</b> to change maximum segment size for this span.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ltpadmin(1), ltpmeter(1), dccplsi(1), owltsim(1)</p>
+
+
+</body>
+
+</html>
+
+

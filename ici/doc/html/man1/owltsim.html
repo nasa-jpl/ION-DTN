@@ -1,0 +1,221 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>owltsim - one-way light time transmission delay simulator</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>owltsim - one-way light time transmission delay simulator</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>owltsim</b> <i>config_filename</i> [-v]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>owltsim</b> delays delivery of data between pairs of ION nodes by specified lengths of time, simulating the signal propagation delay imposed by distance between the nodes.</p>
+
+<p>Its operation is configured by delay simulation configuration lines in the file identified by <i>config_filename</i>. A pair of threads is created for each line in the file: one that receives UDP datagrams on a specified port and queues them in a linked list, and a second that later removes queued datagrams from the linked list and sends them on to a specified UDP port on a specified network host.</p>
+
+<p>Each configuration line must be of the following form:</p>
+
+<ul>
+
+<p><i>to</i> <i>from</i> <i>my_port#</i> <i>dest_host</i> <i>dest_port#</i> <i>owlt</i> <i>modulus</i></p>
+
+</ul>
+
+<dl>
+
+<dt id="to-identifies-the-receiving-node"><i>to</i> identifies the receiving node.</dt>
+<dd>
+
+<p>This parameter is purely informational, intended to make <b>owltsim</b>&#39;s printed messages more helpful to the user.</p>
+
+</dd>
+<dt id="from-identifies-the-sending-node"><i>from</i> identifies the sending node.</dt>
+<dd>
+
+<p>A value of &#39;*&#39; may be used to indicate &quot;all nodes&quot;. Again, this parameter is purely informational, intended to make <b>owltsim</b>&#39;s printed messages more helpful to the user.</p>
+
+</dd>
+<dt id="my_port-identifies-owltsims-receiving-port-for-this-traffic"><i>my_port#</i> identifies <b>owltsim</b>&#39;s receiving port for this traffic.</dt>
+<dd>
+
+</dd>
+<dt id="dest_host-is-a-hostname-identifying-the-computer-to-which-owltsim-will-transmit-this-traffic"><i>dest_host</i> is a hostname identifying the computer to which <b>owltsim</b> will transmit this traffic.</dt>
+<dd>
+
+</dd>
+<dt id="dest_port-identifies-the-port-to-which-owltsim-will-transmit-this-traffic"><i>dest_port#</i> identifies the port to which <b>owltsim</b> will transmit this traffic.</dt>
+<dd>
+
+</dd>
+<dt id="owlt-specifies-the-number-of-seconds-to-wait-before-forwarding-each-received-datagram"><i>owlt</i> specifies the number of seconds to wait before forwarding each received datagram.</dt>
+<dd>
+
+</dd>
+<dt id="modulus-controls-the-artificial-random-data-loss-imposed-on-this-traffic-by-owltsim"><i>modulus</i> controls the artificial random data loss imposed on this traffic by <b>owltsim</b>.</dt>
+<dd>
+
+<p>A value of &#39;0&#39; specifies &quot;no imposed data loss&quot;. Any modulus value N &gt; 0 causes <b>owltsim</b> to randomly drop (i.e., not transmit upon expiration of the delay interval) one out of every N packets. Any modulus value N &lt; 0 causes <b>owltsim</b> to deterministically drop every (0 - N)th packet.</p>
+
+</dd>
+</dl>
+
+<p>The optional <b>-v</b> (&quot;verbose&quot;) parameter causes <b>owltsim</b> to print a message whenever it receives, sends, or drops (due to artificial random data loss) a datagram.</p>
+
+<p>Note that error conditions may cause one delay simulation (a pair of threads) to terminate without terminating any others.</p>
+
+<p><b>owltsim</b> is designed to run indefinitely. To terminate the program, just use control-C to kill it.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="Nominal-termination">&quot;0&quot; Nominal termination.</dt>
+<dd>
+
+</dd>
+<dt id="Termination-due-to-an-error-condition-as-noted-in-printed-messages">&quot;1&quot; Termination due to an error condition, as noted in printed messages.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>Here is a sample owltsim configuration file:</p>
+
+<dl>
+
+<dt id="ptl07.jpl.nasa.gov-5001-75-0">2 7 5502 ptl07.jpl.nasa.gov 5001 75 0</dt>
+<dd>
+
+</dd>
+<dt id="ptl02.jpl.nasa.gov-5001-75-16">7 2 5507 ptl02.jpl.nasa.gov 5001 75 16</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p>This file indicates that <b>owltsim</b> will receive on port 5502 the ION traffic from node 2 that is destined for node 7, which will receive it at port 5001 on the computer named ptl07.jpl.nasa.gov; 75 seconds of delay (simulating a distance of 75 light seconds) will be imposed on this transmission activity, and <b>owltsim</b> will not simulate any random data loss.</p>
+
+<p>In the reverse direction, <b>owltsim</b> will receive on port 5507 the ION traffic from node 7 that is destined for node 2, which will receive it at port 5001 on the computer named ptl02.jpl.nasa.gov; 75 seconds of delay will again be imposed on this transmission activity, and <b>owltsim</b> will randomly discard (i.e., not transmit upon expiration of the transmission delay interval) one datagram out of every 16 received at this port.</p>
+
+<h1 id="FILES">FILES</h1>
+
+<p>Not applicable.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be printed to stdout:</p>
+
+<dl>
+
+<dt id="owltsim-cant-open-configuration-file">owltsim can&#39;t open configuration file</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-failed-on-fscanf">owltsim failed on fscanf</dt>
+<dd>
+
+<p>Failure on reading the configuration file. The program terminates.</p>
+
+</dd>
+<dt id="owltsim-stopped-malformed-config-file-line-line_number">owltsim stopped malformed config file line <i>line_number</i>.</dt>
+<dd>
+
+<p>Failure on parsing the configuration file. The program terminates.</p>
+
+</dd>
+<dt id="owltsim-cant-spawn-receiver-thread">owltsim can&#39;t spawn receiver thread</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-out-of-memory">owltsim out of memory.</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-cant-open-reception-socket">owltsim can&#39;t open reception socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-cant-initialize-reception-socket">owltsim can&#39;t initialize reception socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-cant-open-transmission-socket">owltsim can&#39;t open transmission socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-cant-initialize-transmission-socket">owltsim can&#39;t initialize transmission socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-cant-spawn-timer-thread">owltsim can&#39;t spawn timer thread</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owltsim-cant-acquire-datagram">owltsim can&#39;t acquire datagram</dt>
+<dd>
+
+<p>Datagram transmission failed. This causes the threads for the affected delay simulation to terminate, without terminating any other threads.</p>
+
+</dd>
+<dt id="owltsim-failed-on-send">owltsim failed on send</dt>
+<dd>
+
+<p>Datagram transmission failed. This causes the threads for the affected delay simulation to terminate, without terminating any other threads.</p>
+
+</dd>
+<dt id="at-time-owltsim-LOST-a-dg-of-length-length-from-sending-node-destined-for-receiving-node-due-to-ECONNREFUSED">at <i>time</i> owltsim LOST a dg of length <i>length</i> from <i>sending node</i> destined for <i>receiving node</i> due to ECONNREFUSED.</dt>
+<dd>
+
+<p>This is an informational message. Due to an apparent bug in Internet protocol implementation, transmission of a datagram on a connected UDP socket occasionally fails. <b>owltsim</b> does not attempt to retransmit the affected datagram.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>udplsi(1), udplso(1)</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,95 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>amsstop - Asynchronous Message Service (AMS) message space shutdown utility</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>amsstop - Asynchronous Message Service (AMS) message space shutdown utility</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>amsstop</b> <i>application_name</i> <i>authority_name</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>amsstop</b> is a utility program that terminates the operation of all registrars and all application modules running in the message space which is that portion of the indicated AMS venture that is operating in the local continuum. If one of the <b>amsd</b> tasks that are functioning as registrars for this venture is also functioning as the configuration server for the local continuum, then that configuration server is also terminated.</p>
+
+<p><i>application_name</i> and <i>authority_name</i> must identify an AMS venture that is known to operate in the local continuum, as noted in the MIB for the <b>amsstop</b> application module.</p>
+
+<p>A message space can only be shut down by <b>amsstop</b> if the subject &quot;amsstop&quot; is defined in the MIBs of all modules in the message spaces.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>amsstop</b> terminated normally.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p>An anomalous exit status, indicating that <b>amsstop</b> was unable to register and therefore failed to shut down its message space, for reasons noted in the ion.log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>A MIB initialization file with the applicable default name (see amsrc(5) and amsxml(5)) must be present.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="amsstop-cant-register">amsstop can&#39;t register.</dt>
+<dd>
+
+<p>This message indicates that <b>amsstop</b> was unable to register, possibly because the &quot;amsstop&quot; role is not defined in the MIB initialization file.</p>
+
+</dd>
+<dt id="amsstop-subject-undefined">amsstop subject undefined.</dt>
+<dd>
+
+<p>This message indicates that <b>amsstop</b> was unable to stop the message space because the &quot;amsstop&quot; subject is not defined in the MIB initialization file.</p>
+
+</dd>
+<dt id="amsstop-cant-publish-amsstop-message">amsstop can&#39;t publish &#39;amsstop&#39; message.</dt>
+<dd>
+
+<p>This message indicates that <b>amsstop</b> was unable to publish a message on subject &#39;amsstop&#39; for reasons noted in the <b>ion.log</b> log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>amsrc(5)</p>
+
+
+</body>
+
+</html>
+
+

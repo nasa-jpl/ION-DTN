@@ -1,0 +1,211 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bpextensions - interface for adding extensions to Bundle Protocol</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bpextensions - interface for adding extensions to Bundle Protocol</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    #include &quot;bpextensions.c&quot;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>ION&#39;s interface for extending the Bundle Protocol enables the definition of external functions that insert <i>extension</i> blocks into outbound bundles (either before or after the payload block), parse and record extension blocks in inbound bundles, and modify extension blocks at key points in bundle processing. All extension-block handling is statically linked into ION at build time, but the addition of an extension never requires that any standard ION source code be modified.</p>
+
+<p>Standard structures for recording extension blocks -- both in transient storage [memory] during bundle acquisition (AcqExtBlock) and in persistent storage [the ION database] during subsequent bundle processing (ExtensionBlock) -- are defined in the <i>bei.h</i> header file. In each case, the extension block structure comprises a block <i>type</i> code, block processing <i>flags</i>, possibly a list of <i>EID references</i>, an array of <i>bytes</i> (the serialized form of the block, for transmission), the <i>length</i> of that array, optionally an extension-specific opaque <i>object</i> whose structure is designed to characterize the block in a manner that&#39;s convenient for the extension processing functions, and the <i>size</i> of that object.</p>
+
+<p>The definition of each extension is asserted in an ExtensionDef structure, also as defined in the <i>bei.h</i> header file. Each ExtensionDef must supply:</p>
+
+<ul>
+
+<p>The name of the extension. (Used in some diagnostic messages.)</p>
+
+<p>The extension&#39;s block type code.</p>
+
+<p>A pointer to an <b>offer</b> function.</p>
+
+<p>A pointer to a function to be called when <b>forwarding</b> a bundle containing this sort of block.</p>
+
+<p>A pointer to a function to be called when <b>taking custody</b> of a bundle containing this sort of block.</p>
+
+<p>A pointer to a function to be called when <b>enqueuing</b> for transmission a bundle containing this sort of block.</p>
+
+<p>A pointer to a function to be called when a convergence-layer adapter <b>dequeues</b> a bundle containing this sort of block, before serializing it.</p>
+
+<p>A pointer to a function to be called immediately before a convergence-layer adapter <b>transmits</b> a bundle containing this sort of block, after the bundle has been serialized.</p>
+
+<p>A pointer to a <b>release</b> function.</p>
+
+<p>A pointer to a <b>copy</b> function.</p>
+
+<p>A pointer to an <b>acquire</b> function.</p>
+
+<p>A pointer to a <b>review</b> function.</p>
+
+<p>A pointer to a <b>decrypt</b> function.</p>
+
+<p>A pointer to a <b>parse</b> function.</p>
+
+<p>A pointer to a <b>check</b> function.</p>
+
+<p>A pointer to a <b>record</b> function.</p>
+
+<p>A pointer to a <b>clear</b> function.</p>
+
+</ul>
+
+<p>All extension definitions must be coded into an array of ExtensionDef structures named <i>extensionDefs</i>.</p>
+
+<p>An array of ExtensionSpec structures named <i>extensionSpecs</i> is also required. Each ExtensionSpec provides the specification for producing an outbound extension block: block definition (identified by block type number), three discriminator tags whose semantics are block-type-specific, and CRC type indicating what type of CRC must be used to protect this extension block. The order of appearance of extension specifications in the extensionSpecs array determines the order in which extension blocks will be inserted into locally sourced bundles.</p>
+
+<p>The standard extensionDefs array -- which is empty -- is in the <i>noextensions.c</i> prototype source file. The procedure for extending the Bundle Protocol in ION is as follows:</p>
+
+<p>1. Specify -DBP_EXTENDED in the Makefile&#39;s compiler command line when building the libbpP.c library module.</p>
+
+<p>2. Create a copy of the prototype extensions file, named &quot;bpextensions.c&quot;, in a directory that is made visible to the Makefile&#39;s libbpP.c compilation command line (by a -I parameter).</p>
+
+<p>3. In the &quot;external function declarations&quot; area of &quot;bpextensions.c&quot;, add &quot;extern&quot; function declarations identifying the functions that will implement your extension (or extensions).</p>
+
+<p>4. Add one or more ExtensionDef structure initialization lines to the extensionDefs array, referencing those declared functions.</p>
+
+<p>5. Add one or more ExtensionSpec structure initialization lines to the extensionSpecs array, referencing those extension definitions.</p>
+
+<p>6. Develop the implementations of the extension implementation functions in one or more new source code files.</p>
+
+<p>7. Add the object file or files for the new extension implementation source file (or files) to the Makefile&#39;s command line for linking libbpP.so.</p>
+
+<p>The function pointers supplied in each ExtensionDef must conform to the following specifications. NOTE that any function that modifies the <i>bytes</i> member of an ExtensionBlock or AckExtBlock <b>must</b> set the corresponding <i>length</i> to the new length of the <i>bytes</i> array, if changed.</p>
+
+<dl>
+
+<dt id="int-BpExtBlkOfferFn-ExtensionBlock-blk-Bundle-bundle">int (*BpExtBlkOfferFn)(ExtensionBlock *blk, Bundle *bundle)</dt>
+<dd>
+
+<p>Populates all fields of the indicated ExtensionBlock structure for inclusion in the indicated outbound bundle. This function is automatically called when a new bundle is locally sourced or upon acquisition of a remotely sourced bundle that does not contain an extension block of this type. The values of the extension block are typically expected to be a function of the state of the bundle, but this is extension-specific. If it is not appropriate to offer an extension block of this type as part of this bundle, then the <i>size</i>, <i>length</i>, <i>object</i>, and <i>bytes</i> members of <i>blk</i> must all be set to zero. If it is appropriate to offer such a block but no internal object representing the state of the block is needed, the <i>object</i> and <i>size</i> members of <i>blk</i> must be set to zero. The <i>type</i>, <i>blkProcFlags</i>, and <i>dataLength</i> members of <i>blk</i> must be populated by the implementation of the &quot;offer&quot; function, but the <i>length</i> and <i>bytes</i> members are typically populated by calling the BP library function serializeExtBlk(), which must be passed the block to be serialized (with <i>type</i>, <i>blkProcFlags</i> and <i>dataLength</i> already set), a Lyst of EID references (two list elements -- offsets -- per EID reference, if applicable; otherwise NULL), and a pointer to the extension-specific block data. The block&#39;s <i>bytes</i> array and <i>object</i> (if present) must occupy space allocated from the ION database heap. Return zero on success, -1 on any system failure.</p>
+
+</dd>
+<dt id="int-BpExtBlkProcessFn-ExtensionBlock-blk-Bundle-bundle-void-context">int (*BpExtBlkProcessFn)(ExtensionBlock *blk, Bundle *bundle, void *context)</dt>
+<dd>
+
+<p>Performs some extension-specific transformation of the data encapsulated in <i>blk</i> based on the state of <i>bundle</i>. The transformation to be performed will typically vary depending on whether the identified function is the one that is automatically invoked upon forwarding the bundle, upon taking custody of the bundle, upon enqueuing the bundle for transmission, upon removing the bundle from the transmission queue, or upon transmitting the serialized bundle. The <i>context</i> argument may supply useful supplemental information; in particular, the context provided to the ON_DEQUEUE function will comprise the name of the protocol for the duct from which the bundle has been dequeued, together with the EID of the neighboring node endpoint to which the bundle will be directly transmitted when serialized. The block-specific data in <i>blk</i> is located within <i>bytes</i> immediately after the header of the extension block; the length of the block&#39;s header is the difference between <i>length</i> and <i>dataLength</i>. Whenever the block&#39;s <i>blkProcFlags</i>, EID extensions, and/or block-specific data are altered, the serializeExtBlk() function should be called again to recalculate the size of the extension block and rebuild the <i>bytes</i> array. Return zero on success, -1 on any system failure.</p>
+
+</dd>
+<dt id="void-BpExtBlkReleaseFn-ExtensionBlock-blk">void (*BpExtBlkReleaseFn)(ExtensionBlock *blk)</dt>
+<dd>
+
+<p>Releases all ION database space occupied by the <i>object</i> member of <i>blk</i>. This function is automatically called when a bundle is destroyed. Note that incorrect implementation of this function may result in a database space leak.</p>
+
+</dd>
+<dt id="int-BpExtBlkCopyFn-ExtensionBlock-newblk-ExtensionBlock-oldblk">int (*BpExtBlkCopyFn)(ExtensionBlock *newblk, ExtensionBlock *oldblk)</dt>
+<dd>
+
+<p>Copies the <i>object</i> member of <i>oldblk</i> to ION database heap space and places the address of that new non-volatile object in the <i>object</i> member of <i>newblk</i>, also sets <i>size</i> in <i>newblk</i>. This function is automatically called when two copies of a bundle are needed, e.g., in the event that it must both be delivered to a local client and also fowarded to another node. Return zero on success, -1 on any system failure.</p>
+
+</dd>
+<dt id="int-BpAcqExtBlkAcquireFn-AcqExtBlock-acqblk-AcqWorkArea-work">int (*BpAcqExtBlkAcquireFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</dt>
+<dd>
+
+<p>Populates the indicated AcqExtBlock structure with <i>size</i> and <i>object</i> for retention as part of the indicated inbound bundle. (The <i>type</i>, <i>blkProcFlags</i>, EID references (if any), <i>dataLength</i>, <i>length</i>, and <i>bytes</i> values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is only to be provided for extension blocks that are never encrypted; a extension block that may be encrypted should have a BpAcqExtBlkParseFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the <i>object</i> member of <i>acqblk</i> must be set to NULL and the <i>size</i> member must be set to zero. If an <i>object</i> is needed for this block, it must occupy space that is allocated from ION working memory using <b>MTAKE</b> and its <i>size</i> must be indicated in <i>blk</i>. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.</p>
+
+</dd>
+<dt id="int-BpAcqExtBlkReviewFn-AcqWorkArea-work">int (*BpAcqExtBlkReviewFn)(AcqWorkArea *work)</dt>
+<dd>
+
+<p>Reviews the extension blocks that have been acquired for this bundle, checking to make sure that all blocks of this type that are required by policy are present. Returns 0 if any blocks are missing, 1 if all required blocks are present, -1 on any system failure.</p>
+
+</dd>
+<dt id="int-BpAcqExtBlkDecryptFn-AcqExtBlock-acqblk-AcqWorkArea-work">int (*BpAcqExtBlkDecryptFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</dt>
+<dd>
+
+<p>Decrypts some other extension block that has been acquired but not yet parsed, nominally using encapsulated ciphersuite information. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if no error in decryption was encountered, -1 on any system failure.</p>
+
+</dd>
+<dt id="int-BpAcqExtBlkParseFn-AcqExtBlock-acqblk-AcqWorkArea-work">int (*BpAcqExtBlkParseFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</dt>
+<dd>
+
+<p>Populates the indicated AcqExtBlock structure with <i>size</i> and <i>object</i> for retention as part of the indicated inbound bundle. (The <i>type</i>, <i>blkProcFlags</i>, EID references (if any), <i>dataLength</i>, <i>length</i>, and <i>bytes</i> values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is provided for extension blocks that may be encrypted; a extension block that can never be encrypted should have a BpAcqExtBlkAcquireFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the <i>object</i> member of <i>acqblk</i> must be set to NULL and the <i>size</i> member must be set to zero. If an <i>object</i> is needed for this block, it must occupy space that is allocated from ION working memory using <b>MTAKE</b> and its <i>size</i> must be indicated in <i>blk</i>. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.</p>
+
+</dd>
+<dt id="int-BpAcqExtBlkCheckFn-AcqExtBlock-acqblk-AcqWorkArea-work">int (*BpAcqExtBlkCheckFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</dt>
+<dd>
+
+<p>Examines the bundle in <i>work</i> to determine whether or not it is authentic, in the context of the indicated extension block. Return 1 if the block is determined to be inauthentic (this will cause the bundle to be discarded), zero if no inauthenticity is detected, -1 on any system failure.</p>
+
+</dd>
+<dt id="int-BpExtBlkRecordFn-ExtensionBlock-blk-AcqExtBlock-acqblk">int (*BpExtBlkRecordFn)(ExtensionBlock *blk, AcqExtBlock *acqblk)</dt>
+<dd>
+
+<p>Copies the <i>object</i> member of <i>acqblk</i> to ION database heap space and places the address of that non-volatile object in the <i>object</i> member of <i>blk</i>; also sets <i>size</i> in <i>blk</i>. This function is automatically called when an acquired bundle is accepted for forwarding and/or delivery. Return zero on success, -1 on any system failure.</p>
+
+</dd>
+<dt id="void-BpAcqExtBlkClearFn-AcqExtBlock-acqblk">void (*BpAcqExtBlkClearFn)(AcqExtBlock *acqblk)</dt>
+<dd>
+
+<p>Uses <b>MRELEASE</b> to release all ION working memory occupied by the <i>object</i> member of <i>acqblk</i>. This function is automatically called when acquisition of a bundle is completed, whether or not the bundle is accepted. Note that incorrect implementation of this function may result in a working memory leak.</p>
+
+</dd>
+</dl>
+
+<h2 id="UTILITY-FUNCTIONS-FOR-EXTENSION-PROCESSING">UTILITY FUNCTIONS FOR EXTENSION PROCESSING</h2>
+
+<dl>
+
+<dt id="void-discardExtensionBlock-AcqExtBlock-blk">void discardExtensionBlock(AcqExtBlock *blk)</dt>
+<dd>
+
+<p>Deletes this block from the bundle acquisition work area prior to the recording of the bundle in the ION database.</p>
+
+</dd>
+<dt id="void-scratchExtensionBlock-ExtensionBlock-blk">void scratchExtensionBlock(ExtensionBlock *blk)</dt>
+<dd>
+
+<p>Deletes this block from the bundle after the bundle has been recorded in the ION database.</p>
+
+</dd>
+<dt id="Object-findExtensionBlock-Bundle-bundle-unsigned-int-type-unsigned-char-tag1-unsigned-char-tag2-unsigned-char-tag3">Object findExtensionBlock(Bundle *bundle, unsigned int type, unsigned char tag1, unsigned char tag2, unsigned char tag3)</dt>
+<dd>
+
+<p>On success, returns the address of the ExtensionBlock in <i>bundle</i> for the indicated <i>type</i> and tag values. If no such extension block exists, returns zero.</p>
+
+</dd>
+<dt id="int-serializeExtBlk-ExtensionBlock-blk-char-blockData">int serializeExtBlk(ExtensionBlock *blk, char *blockData)</dt>
+<dd>
+
+<p>Constructs a BPv7-conformant serialized representation of this extension block in blk-&gt;bytes. Returns 0 on success, -1 on an unrecoverable system error.</p>
+
+</dd>
+<dt id="void-suppressExtensionBlock-ExtensionBlock-blk">void suppressExtensionBlock(ExtensionBlock *blk)</dt>
+<dd>
+
+<p>Causes <i>blk</i> to be omitted when the bundle to which it is attached is serialized for transmission. This suppression remains in effect until it is reversed by restoreExtensionBlock();</p>
+
+</dd>
+<dt id="void-restoreExtensionBlock-ExtensionBlock-blk">void restoreExtensionBlock(ExtensionBlock *blk)</dt>
+<dd>
+
+<p>Reverses the effect of suppressExtensionBlock(), enabling the block to be included when the bundle to which it is attached is serialized.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bp(3)</p>
+
+
+</body>
+
+</html>
+
+

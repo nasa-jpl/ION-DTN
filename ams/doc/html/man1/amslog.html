@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>amslog - Asynchronous Message Service (AMS) test message receiver</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>amslog - Asynchronous Message Service (AMS) test message receiver</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>amslog</b> <i>unit_name</i> <i>role_name</i> <i>application_name</i> <i>authority_name</i> <i>[{ s | i }]</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>amslog</b> is a message reception program designed to test AMS functionality.</p>
+
+<p>When <b>amslog</b> is started, it registers as an application module in the unit identified by <i>unit_name</i> of the venture identified by <i>application_name</i> and <i>authority_name</i>; the role in which it registers must be indicated in <i>role_name</i>. A configuration server for the local continuum and a registrar for the indicated unit of the indicated venture (which may both be instantiated in a single <b>amsd</b> daemon task) must be running in order for <b>amslog</b> to run.</p>
+
+<p><b>amslog</b> runs as two threads: a background thread that receives AMS messages and logs them to standard output, together with a foreground thread that acquires operating parameters in lines of console input to control the flow of messages to the background thread.</p>
+
+<p>When the first character of a line of input from stdin to the <b>amslog</b> foreground thread is &#39;.&#39; (period), <b>amslog</b> immediately terminates. Otherwise, the first character of each line of input from stdin must be either &#39;+&#39; indicating assertion of interest in a message subject or &#39;-&#39; indicating cessation of interest in a subject. In each case, the name of the subject in question must begin in the second character of the input line. Note that &quot;everything&quot; is a valid subject name.</p>
+
+<p>By default, <b>amslog</b> runs in &quot;subscribe&quot; mode: when interest in a message subject is asserted, <b>amslog</b> subscribes to that subject; when interest in a message subject is rescinded, <b>amslog</b> unsubscribes to that subject. This behavior can be overridden by providing a third command-line argument to <b>amslog</b> - a &quot;mode&quot; indicator. When mode is &#39;i&#39;, <b>amslog</b> runs in &quot;invite&quot; mode. In &quot;invite&quot; mode, when interest in a message subject is asserted, <b>amslog</b> invites messages on that subject; when interest in a message subject is rescinded, <b>amslog</b> cancels its invitation for messages on that subject.</p>
+
+<p>The &quot;domain&quot; of a subscription or invitation can optionally be specified immediately after the subject name, on the same line of console input:</p>
+
+<ul>
+
+<p>Domain continuum name may be specified, or the place-holder domain continuum name &quot;_&quot; may be specified to indicate &quot;all continua&quot;.</p>
+
+<p>If domain continuum name (&quot;_&quot; or otherwise) is specified, then domain unit name may be specified or the place-holder domain unit name &quot;_&quot; may be specified to indicate &quot;the root unit&quot; (i.e., the entire venture).</p>
+
+<p>If domain unit name (&quot;_&quot; or otherwise) is specified, then domain role name may be specified.</p>
+
+</ul>
+
+<p>When <b>amslog</b> runs in VxWorks or RTEMS, the subject and content of each message are simply written to standard output in a text line for display on the console. When <b>amslog</b> runs in a UNIX environment, the subject name length (a binary integer), subject name (ASCII text), content length (a binary integer), and content (ASCII text) are written to standard output for redirection either to a file or to a pipe to <b>amslogprt</b>.</p>
+
+<p>Whenever a received message is flagged as a Query, <b>amslog</b> returns a reply message whose content is the string &quot;Got &quot; followed by the first 128 bytes of the content of the Query message, enclosed in single quote marks and followed by a period.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod-1">-1</dt>
+<dd>
+
+<p><b>amslog</b> terminated with an error as noted in the ion.log file.</p>
+
+</dd>
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>amslog</b> terminated normally.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>A MIB initialization file with the applicable default name (see amsrc(5)) must be present.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<dl>
+
+<dt id="amslog-cant-register">amslog can&#39;t register.</dt>
+<dd>
+
+<p><b>amslog</b> failed to register, for reasons noted in the ion.log file.</p>
+
+</dd>
+<dt id="amslog-cant-set-event-manager">amslog can&#39;t set event manager.</dt>
+<dd>
+
+<p><b>amslog</b> failed to start its background thread, for reasons noted in the ion.log file.</p>
+
+</dd>
+<dt id="amslog-cant-read-from-stdin">amslog can&#39;t read from stdin</dt>
+<dd>
+
+<p><b>amslog</b> foreground thread failed to read console input, for reasons noted in the ion.log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>amsshell(1), amslogprt(1), amsrc(5)</p>
+
+
+</body>
+
+</html>
+
+

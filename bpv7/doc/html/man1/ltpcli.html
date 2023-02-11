@@ -1,0 +1,111 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ltpcli - LTP-based BP convergence layer input task</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ltpcli - LTP-based BP convergence layer input task</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>ltpcli</b> <i>local_node_nbr</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>ltpcli</b> is a background &quot;daemon&quot; task that receives LTP data transmission blocks, extracts bundles from the received blocks, and passes them to the bundle protocol agent on the local ION node.</p>
+
+<p><b>ltpcli</b> is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; (START) command that starts operation of the Bundle Protocol; the text of the command that is used to spawn the task must be provided at the time the &quot;ltp&quot; convergence layer protocol is added to the BP database. The convergence layer input task is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command. <b>ltpcli</b> can also be spawned and terminated in response to START and STOP commands that pertain specifically to the LTP convergence layer protocol.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>ltpcli</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart <b>ltpcli</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>ltpcli</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bpadmin</b> to restart <b>ltpcli</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="ltpcli-cant-attach-to-BP">ltpcli can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="No-such-ltp-duct">No such ltp duct.</dt>
+<dd>
+
+<p>No LTP induct matching <i>local_node_nbr</i> has been added to the BP database. Use <b>bpadmin</b> to stop the LTP convergence-layer protocol, add the induct, and then restart the LTP protocol.</p>
+
+</dd>
+<dt id="CLI-task-is-already-started-for-this-duct">CLI task is already started for this duct.</dt>
+<dd>
+
+<p>Redundant initiation of <b>ltpcli</b>.</p>
+
+</dd>
+<dt id="ltpcli-cant-initialize-LTP">ltpcli can&#39;t initialize LTP.</dt>
+<dd>
+
+<p><b>ltpadmin</b> has not yet initialized LTP operations.</p>
+
+</dd>
+<dt id="ltpcli-cant-open-client-access">ltpcli can&#39;t open client access.</dt>
+<dd>
+
+<p>Another task has already opened the client service for BP over LTP.</p>
+
+</dd>
+<dt id="ltpcli-cant-create-receiver-thread">ltpcli can&#39;t create receiver thread</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart LTP.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bprc(5), ltpadmin(1), ltprc(5), ltpclo(1)</p>
+
+
+</body>
+
+</html>
+
+

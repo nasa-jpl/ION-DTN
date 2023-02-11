@@ -1,0 +1,99 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bpsink - Bundle Protocol reception test program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bpsink - Bundle Protocol reception test program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bpsink</b> <i>ownEndpointId</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bpsink</b> uses Bundle Protocol to receive application data units from a remote <b>bpsource</b> application task. For each application data unit it receives, it prints the ADU&#39;s length and -- if length is less than 80 -- its text.</p>
+
+<p><b>bpsink</b> terminates upon receiving the SIGQUIT signal, i.e., ^C from the keyboard.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bpsink</b> has terminated. Any problems encountered during operation will be noted in the <b>ion.log</b> log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>Diagnostic messages produced by <b>bpsink</b> are written to the ION log file <i>ion.log</i>.</p>
+
+<dl>
+
+<dt id="Cant-attach-to-BP">Can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="Cant-open-own-endpoint">Can&#39;t open own endpoint.</dt>
+<dd>
+
+<p>Another application has already opened <i>ownEndpointId</i>. Terminate that application and rerun.</p>
+
+</dd>
+<dt id="bpsink-bundle-reception-failed">bpsink bundle reception failed.</dt>
+<dd>
+
+<p>BP system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="Cant-receive-payload">Can&#39;t receive payload.</dt>
+<dd>
+
+<p>BP system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="Cant-handle-delivery">Can&#39;t handle delivery.</dt>
+<dd>
+
+<p>BP system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bpsource(1), bp(3)</p>
+
+
+</body>
+
+</html>
+
+

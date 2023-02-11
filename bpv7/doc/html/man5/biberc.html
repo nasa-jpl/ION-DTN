@@ -1,0 +1,159 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>biberc - BIBE configuration commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>biberc - BIBE configuration commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>BIBE configuration commands are passed to <b>bibeadmin</b> either in a file of text lines or interactively at <b>bibeadmin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line.</p>
+
+<p>BIBE configuration commands establish the parameters governing transmission of BIBE PDUs to specified <b>peer</b> nodes: anticipated delivery latency in the forward direction, anticipated delivery latency in the return direction, TTL for BIBE PDUs, priority for BIBE PDUs, ordinal priority for BIBE PDUs in the event that priority is Expedited, and (optionally) data label for BIBE PDUs. As such, they configure BIBE convergence-layer adapter (<b>bcla</b>) structures.</p>
+
+<p>The formats and effects of the BIBE configuration commands are described below.</p>
+
+<p>NOTE: in order to cause bundles to be transmitted via BIBE:</p>
+
+<dl>
+
+<dt id="Plan"><b>Plan</b></dt>
+<dd>
+
+<p>Remember that BIBE is a convergence-layer protocol; as such, it operates between two nodes that are topologically adjacent in a BP network (but in this case the BP network within which the nodes are topologically adjacent is an overlay on top of the real BP network). Since the sending and receiving nodes are topologically adjacent they are neighbors: the sending node MUST have an egress plan for transmission to the receiving (that is, <b>peer</b>) node, and there MUST be a BIBE outduct attached to that plan.</p>
+
+</dd>
+<dt id="Routing"><b>Routing</b></dt>
+<dd>
+
+<p>In order to compel bundles bound for some destination node to be forwarded via the BIBE peer node rather than over some other route computed by CGR, you have to override CGR routing for that bundle. The way to do this is to (a) tag the bundle with data label X (in ancillary data) and (b) use ipnadmin to establish at the sending node a <i>routing override</i> that coerces all bundles with data label X to be sent directly to the peer node.</p>
+
+<p>If the peer node happens to be a true BP neighbor as well - that is, there is also a non-BIBE outduct attached to the egress plan for transmission to that node - then you additionally need to tell the egress plan management daemon (bpclm) for that node which bundles need to be forwarded using the BIBE outduct rather than the non-BIBE outduct. The way to do this is to use ipnadmin to establish at the sending node a <i>class-of-service override</i> that locally and temporarily OR&#39;s the BP_BIBE_REQUESTED flag (32) to the quality-of-service flags of any bundle tagged with data label X.</p>
+
+</dd>
+<dt id="Quality-of-Service"><b>Quality of Service</b></dt>
+<dd>
+
+<p>If you want custody transfer to be invoked for each BIBE transmission of a bundle from the sending node to the peer node, you must additionally use ipnadmin to establish at the sending node a <i>class-of-service override</i> that locally and temporarily OR&#39;s the BP_CT_REQUESTED flag (64) to the quality-of-service flags of any bundle tagged with data label X.</p>
+
+<p>If you need to establish a class-of-service override to set the BP_BIBE_REQUESTED flag (as described above) as well, then use the OR of BP_BIBE_REQUESTED and BP_CT_REQUESTED - that is, 96 - as the quality-of-service flags argument for that override.</p>
+
+<p><b>NOTE</b> that an alternative method of setting both the BP_BIBE_REQUESTED and BP_CT_REQUESTED flags for a given bundle is simply to request custody transfer when the bundle is sourced; this will OR that bundle&#39;s own quality-of-service flags (in ancillary data) with 96. But be careful: in this case the bundle will be permanently tagged with these flag values, meaning that it will be forwarded via BIBE with custody transfer over every &quot;hop&quot; of the end-to-end path to its destination, and if BIBE is unavailable at any forwarding node on the path then the bundle can never reach the destination node.</p>
+
+</dd>
+</dl>
+
+<h1 id="GENERAL-COMMANDS">GENERAL COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by bibeadmin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="w-0-1-activity_spec"><b>w</b> { 0 | 1 | <i>activity_spec</i> }</dt>
+<dd>
+
+<p>The <b>watch</b> command. This command enables and disables production of a continuous stream of user-selected Bundle-in-Bundle Encapsulation custody transfer activity indication characters. A watch parameter of &quot;1&quot; selects all BIBE-CT activity indication characters; &quot;0&quot; de-selects all BIBE-CT activity indication characters; any other <i>activity_spec</i> such as &quot;mw&quot; selects all activity indicators in the string, de-selecting all others. BIBE will print each selected activity indication character to <b>stdout</b> every time a processing event of the associated type occurs:</p>
+
+<p><b>w</b> custody of bundle is accepted</p>
+
+<p><b>m</b> custody acceptance is received for one bundle</p>
+
+<p><b>x</b> custody of bundle is refused</p>
+
+<p><b>&amp;</b> custody refusal is received for one bundle</p>
+
+<p><b>$</b> bundle retransmitted due to expired custodial retransmission interval</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="BCLA-COMMANDS">BCLA COMMANDS</h1>
+
+<dl>
+
+<dt id="a-bcla-peer_EID-fwd_latency-rtn_latency-time_to_live-priority-ordinal-data-label"><b>a</b> bcla <i>peer_EID</i> <i>fwd_latency</i> <i>rtn_latency</i> <i>time_to_live</i> <i>priority</i> <i>ordinal</i> [<i>data label</i>]</dt>
+<dd>
+
+<p>The <b>add bcla</b> command. This command adds the neighboring node identified by <i>peer_EID</i> as a BIBE destination of the local node.</p>
+
+</dd>
+<dt id="c-bcla-peer_EID-fwd_latency-rtn_latency-time_to_live-priority-ordinal-data-label"><b>c</b> bcla <i>peer_EID</i> <i>fwd_latency</i> <i>rtn_latency</i> <i>time_to_live</i> <i>priority</i> <i>ordinal</i> [<i>data label</i>]</dt>
+<dd>
+
+<p>The <b>change bcla</b> command. This command changes the transmission parameters governing BIBE PDU transmission to the indicated peer node.</p>
+
+</dd>
+<dt id="d-bcla-peer_EID"><b>d</b> bcla <i>peer_EID</i></dt>
+<dd>
+
+<p>The <b>delete bcla</b> command. This command deletes the <b>bcla</b> identified by <i>peer_EID</i>.</p>
+
+</dd>
+<dt id="i-bcla-peer_EID"><b>i</b> bcla <i>peer_EID</i></dt>
+<dd>
+
+<p>This command will print information (the transmission parameters) for the BIBE peer node identified by <i>peer_EID</i>.</p>
+
+</dd>
+<dt id="l"><b>l</b></dt>
+<dd>
+
+<p>This command lists all of the local node&#39;s BIBE peers.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="a-bcla-ipn:3.2-10-10-60-1-0-16">a bcla ipn:3.2 10 10 60 1 0 16</dt>
+<dd>
+
+<p>Declares that ipn:3.2 is a BIBE destination and that BIBE PDUs destined for this node are to be sent with TTL 60 seconds, priority 1 (standard), and data label 16; it is expected that BIBE PDUs sent to this node will arrive within 10 seconds and that BIBE PDUs sent from this node will arrive within 10 seconds.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bibeadmin(1), bibeclo(1)</p>
+
+
+</body>
+
+</html>
+
+

@@ -44,10 +44,11 @@ this structure; it's strictly for the private use of the BSS library.
 
 =item int bssOpen(char *bssName, char *path, char *eid)
 
-Opens access to a BSS database, to enable data playback.  I<bssName>
+Opens read-only access to a BSS database, to enable data playback.  I<bssName>
 identifies the specific BSS database that is to be opened.  I<path> identifies
-the directory in which the database resides.  I<eid> is ignored.  On any
-failure, returns -1.  On success, returns zero.
+the directory in which the database resides.  I<eid> is ignored.  On 
+failure to open database, returns -1.  On detection of existing opened database,
+keep existing database open, returns -2. On success, returns 0.
 
 =item int bssStart(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)
 

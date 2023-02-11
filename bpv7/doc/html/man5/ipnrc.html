@@ -1,0 +1,229 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ipnrc - IPN scheme configuration commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ipnrc - IPN scheme configuration commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>IPN scheme configuration commands are passed to <b>ipnadmin</b> either in a file of text lines or interactively at <b>ipnadmin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line.</p>
+
+<p>IPN scheme configuration commands (a) establish egress plans for direct transmission to neighboring nodes that are members of endpoints identified in the &quot;ipn&quot; URI scheme and (b) establish static default routing rules for forwarding bundles to specified destination nodes.</p>
+
+<p>The egress <b>plan</b> established for a given node associates a <b>duct expression</b> with that node. Each duct expression is a string of the form &quot;<i>protocol_name</i>/<i>outduct_name</i>&quot; signifying that the bundle is to be queued for transmission via the indicated convergence layer protocol outduct.</p>
+
+<p>Note that egress plans <b>must</b> be established for all neighboring nodes, regardless of whether or not contact graph routing is used for computing dynamic routes to distant nodes. This is by definition: if there isn&#39;t an egress plan to a node, it can&#39;t be considered a neighbor.</p>
+
+<p>Static default routes are declared as <b>exits</b> in the ipn-scheme routing database. An exit is a range of node numbers identifying a set of nodes for which defined default routing behavior is established. Whenever a bundle is to be forwarded to a node whose number is in the exit&#39;s node number range <b>and</b> it has not been possible to compute a dynamic route to that node from the contact schedules that have been provided to the local node <b>and</b> that node is not a neighbor to which the bundle can be directly transmitted, BP will forward the bundle to the <b>gateway</b> node associated with this exit. The gateway node for any exit is identified by an endpoint ID, which might or might not be an ipn-scheme EID; regardless, directing a bundle to the gateway for an exit causes the bundle to be re-forwarded to that intermediate destination endpoint. Multiple exits may encompass the same node number, in which case the gateway associated with the most restrictive exit (the one with the smallest range) is always selected.</p>
+
+<p><b>Note</b> that &quot;exits&quot; were termed &quot;groups&quot; in earlier versions of ION. The term &quot;exit&quot; has been adopted instead, to minimize any possible confusion with multicast groups. To protect backward compatibility, the keyword &quot;group&quot; continues to be accepted by ipnadmin as an alias for the new keyword &quot;exit&quot;, but the older terminology is deprecated.</p>
+
+<p>Routing and class-of-service overrides may also be managed:</p>
+
+<ul>
+
+<p>A routing override declares a neighboring node to which all bundles must be forwarded that meet specified criteria. This override is strictly local, affecting only forwarding from the local node, and it is applied before any route computed by CGR or IRR is considered.</p>
+
+<p>A class-of-service override declares the class of service (priority and ordinal and [optionally] quality-of-service flags) that will condition - in terms of order and outduct selection - the forwarding of all bundles that meet specified criteria. Again this override is strictly local, affecting only forwarding from the local node.</p>
+
+</ul>
+
+<p>The formats and effects of the IPN scheme configuration commands are described below.</p>
+
+<h1 id="GENERAL-COMMANDS">GENERAL COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by ipnadmin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="v"><b>v</b></dt>
+<dd>
+
+<p>Version number. Prints out the version of ION currently installed. HINT: combine with <b>e 1</b> command to log the version number at startup.</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="PLAN-COMMANDS">PLAN COMMANDS</h1>
+
+<dl>
+
+<dt id="a-plan-node_nbr-duct_expression-nominal_data_rate"><b>a plan</b> <i>node_nbr</i> <i>duct_expression</i> [<i>nominal_data_rate</i>]</dt>
+<dd>
+
+<p>The <b>add plan</b> command. This command establishes an egress plan for the bundles that must be transmitted to the neighboring node identified by <i>node_nbr</i>. The <i>nominal_data_rate</i> is the assumed rate of transmission to this node in the absence of contact plan information. A <i>nominal_data_rate</i> of zero (the default) in the absence of contact plan information completely disables rate control.</p>
+
+<p><b>Note that the plan commands consumed by ipnadmin are a simplified shortcut for submitting plan commands as consumed by bpadmin (see bprc(5)). The syntax of these commands is DIFFERENT from that of the more general and more powerful bpadmin commands.</b></p>
+
+</dd>
+<dt id="c-plan-node_nbr-nominal_data_rate"><b>c plan</b> <i>node_nbr</i> <i>nominal_data_rate</i></dt>
+<dd>
+
+<p>The <b>change plan</b> command. This command changes the nominal data rate for the indicated plan.</p>
+
+</dd>
+<dt id="d-plan-node_nbr"><b>d plan</b> <i>node_nbr</i></dt>
+<dd>
+
+<p>The <b>delete plan</b> command. This command deletes the egress plan for the node identified by <i>node_nbr</i>.</p>
+
+</dd>
+<dt id="i-plan-node_nbr"><b>i plan</b> <i>node_nbr</i></dt>
+<dd>
+
+<p>This command will print information about the egress plan for the node identified by <i>node_nbr</i>.</p>
+
+</dd>
+<dt id="l-plan"><b>l plan</b></dt>
+<dd>
+
+<p>This command lists all egress plans established in the IPN database for the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXIT-COMMANDS">EXIT COMMANDS</h1>
+
+<dl>
+
+<dt id="a-exit-first_node_nbr-last_node_nbr-gateway_endpoint_ID"><b>a exit</b> <i>first_node_nbr</i> <i>last_node_nbr</i> <i>gateway_endpoint_ID</i></dt>
+<dd>
+
+<p>The <b>add exit</b> command. This command establishes an &quot;exit&quot; for static default routing as described above.</p>
+
+</dd>
+<dt id="c-exit-first_node_nbr-last_node_nbr-gateway_endpoint_ID"><b>c exit</b> <i>first_node_nbr</i> <i>last_node_nbr</i> <i>gateway_endpoint_ID</i></dt>
+<dd>
+
+<p>The <b>change exit</b> command. This command changes the gateway node number for the exit identified by <i>first_node_nbr</i> and <i>last_node_nbr</i> .</p>
+
+</dd>
+<dt id="d-exit-first_node_nbr-last_node_nbr"><b>d exit</b> <i>first_node_nbr</i> <i>last_node_nbr</i></dt>
+<dd>
+
+<p>The <b>delete exit</b> command. This command deletes the exit identified by <i>first_node_nbr</i> and <i>last_node_nbr</i>.</p>
+
+</dd>
+<dt id="i-exit-first_node_nbr-last_node_nbr"><b>i exit</b> <i>first_node_nbr</i> <i>last_node_nbr</i></dt>
+<dd>
+
+<p>This command will print information (the gateway endpoint ID) about the exit identified by <i>first_node_nbr</i> and <i>last_node_nbr</i>.</p>
+
+</dd>
+<dt id="l-exit"><b>l exit</b></dt>
+<dd>
+
+<p>This command lists all exits defined in the IPN database for the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="OVERRIDE-COMMANDS">OVERRIDE COMMANDS</h1>
+
+<dl>
+
+<dt id="a-rtovrd-data_label-dest_node_nbr-source_node_nbr-neighbor"><b>a rtovrd</b> <i>data_label</i> <i>dest_node_nbr</i> <i>source_node_nbr</i> <i>neighbor</i></dt>
+<dd>
+
+<p>The <b>add rtovrd</b> command. This command cause bundles characterized by <i>data_label</i>, <i>dest_node_nbr</i> (&quot;all other destinations&quot; if this node number is zero) and <i>source_node_nbr</i> (&quot;all other sources&quot; if this node number is zero) to be forwarded to <i>neighbor</i>. If <i>neighbor</i> is zero, the override will be &quot;learned&quot; by ION: the neighbor selected for this bundle, by whatever means, becomes the override for all subsequent matching bundles.</p>
+
+</dd>
+<dt id="c-rtovrd-data_label-dest_node_nbr-source_node_nbr-neighbor"><b>c rtovrd</b> <i>data_label</i> <i>dest_node_nbr</i> <i>source_node_nbr</i> <i>neighbor</i></dt>
+<dd>
+
+<p>The <b>change rtovrd</b> command. This command changes the override neighbor for the override identified by <i>data_label</i>, <i>dest_node_nbr</i>, and <i>source_node_nbr</i>. To cause ION to forget the override, use -1 as <i>neighbor</i>.</p>
+
+</dd>
+<dt id="a-cosovrd-data_label-dest_node_nbr-source_node_nbr-priority-ordinal-qos_flags"><b>a cosovrd</b> <i>data_label</i> <i>dest_node_nbr</i> <i>source_node_nbr</i> <i>priority</i> <i>ordinal</i> [<i>qos_flags</i>]</dt>
+<dd>
+
+<p>The <b>add cosovrd</b> command. This command cause bundles characterized by <i>data_label</i>, <i>dest_node_nbr</i> (&quot;all other destinations&quot; if this node number is zero) and <i>source_node_nbr</i> (&quot;all other sources&quot; if this node number is zero) to have their effective class of service (priority and ordinal and, optionally, additional quality-of-service flags) changed as noted.</p>
+
+</dd>
+<dt id="c-cosovrd-data_label-dest_node_nbr-source_node_nbr-priority-ordinal-qos_flags"><b>c cosovrd</b> <i>data_label</i> <i>dest_node_nbr</i> <i>source_node_nbr</i> <i>priority</i> <i>ordinal</i> [<i>qos_flags</i>]</dt>
+<dd>
+
+<p>The <b>change cosovrd</b> command. This command changes the effective class of service (priority and ordinal and, optionally, additional quality-of-service flags) for the override identified by <i>data_label</i>, <i>dest_node_nbr</i>, and <i>source_node_nbr</i>. To cause ION to forget the override, use -1 as <i>priority</i>.</p>
+
+</dd>
+<dt id="d-ovrd-data_label-dest_node_nbr-source_node_nbr"><b>d ovrd</b> <i>data_label</i> <i>dest_node_nbr</i> <i>source_node_nbr</i></dt>
+<dd>
+
+<p>The <b>delete override</b> command. This command deletes all overrides identified by <i>data_label</i>, <i>dest_node_nbr</i>, and <i>source_node_nbr</i>.</p>
+
+</dd>
+<dt id="i-ovrd-data_label-dest_node_nbr-source_node_nbr"><b>i ovrd</b> <i>data_label</i> <i>dest_node_nbr</i> <i>source_node_nbr</i></dt>
+<dd>
+
+<p>This command will print information for all overrides identified by <i>data_label</i>, <i>dest_node_nbr</i>, and <i>source_node_nbr</i>.</p>
+
+</dd>
+<dt id="l-ovrd"><b>l ovrd</b></dt>
+<dd>
+
+<p>This command lists all overrides defined in the IPN database for the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="a-plan-18-ltp-18">a plan 18 ltp/18</dt>
+<dd>
+
+<p>Declares the egress plan to use for transmission from the local node to neighboring node 18. By default, any bundle for which the computed &quot;next hop&quot; node is node 18 will be queued for transmission on LTP outduct 18.</p>
+
+</dd>
+<dt id="a-exit-1-999-dtn:-stargate">a exit 1 999 dtn://stargate</dt>
+<dd>
+
+<p>Declares a default route for bundles destined for all nodes whose numbers are in the range 1 through 999 inclusive: absent any other routing decision, such bundles are to be forwarded to &quot;dtn://stargate&quot;.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ipnadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

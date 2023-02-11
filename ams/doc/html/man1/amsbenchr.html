@@ -1,0 +1,99 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>amsbenchr - Asynchronous Message Service (AMS) benchmarking meter</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>amsbenchr - Asynchronous Message Service (AMS) benchmarking meter</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>amsbenchr</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>amsbenchr</b> is a test program that simply subscribes to subject &quot;bench&quot; and receives messages published by <b>amsbenchs</b> until all messages in the test - as indicated by the count of remaining messages, in in the first four bytes of each message - have been received. Then it stops receiving messages, calculates and prints performance statistics, and terminates.</p>
+
+<p><b>amsbenchr</b> will register as an application module in the root unit of the venture identified by application name &quot;amsdemo&quot; and authority name &quot;test&quot;. A configuration server for the local continuum and a registrar for the root unit of that venture (which may both be instantiated in a single <b>amsd</b> daemon task) must be running in order for <b>amsbenchr</b> to commence operations.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod-1">-1</dt>
+<dd>
+
+<p><b>amsbenchr</b> failed, for reasons noted in the ion.log file.</p>
+
+</dd>
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>amsbenchr</b> terminated normally.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>A MIB initialization file with the applicable default name (see amsrc(5)) must be present.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="amsbenchr-cant-register">amsbenchr can&#39;t register.</dt>
+<dd>
+
+<p><b>amsbenchr</b> failed to register, for reasons noted in the ion.log file.</p>
+
+</dd>
+<dt id="amsbenchr:-subject-bench-is-unknown">amsbenchr: subject &#39;bench&#39; is unknown.</dt>
+<dd>
+
+<p><b>amsbenchr</b> can&#39;t subscribe to test messages; probably an error in the MIB initialization file.</p>
+
+</dd>
+<dt id="amsbenchr-cant-subscribe">amsbenchr can&#39;t subscribe.</dt>
+<dd>
+
+<p><b>amsbenchr</b> failed to subscribe, for reasons noted in the ion.log file.</p>
+
+</dd>
+<dt id="amsbenchr-cant-get-event">amsbenchr can&#39;t get event.</dt>
+<dd>
+
+<p><b>amsbenchr</b> failed to receive a message, for reasons noted in the ion.log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>amsrc(5)</p>
+
+
+</body>
+
+</html>
+
+

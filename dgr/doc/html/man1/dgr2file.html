@@ -1,0 +1,93 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dgr2file - DGR reception test program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dgr2file - DGR reception test program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>dgr2file</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>dgr2file</b> uses DGR to receive multiple copies of the text of a file transmitted by <b>file2dgr</b>, writing each copy of the file to the current working directory. The name of each file written by <b>dgr2file</b> is file_copy_<i>cycleNbr</i>, where <i>cycleNbr</i> is initially zero and is increased by 1 every time <b>dgr2file</b> closes the file it is currently writing and opens a new one.</p>
+
+<p>Upon receiving a DGR datagram from <b>file2dgr</b>, <b>dgr2file</b> extracts the content of the datagram (either a line of text from the file that is being transmitted by <b>file2dgr</b> or else an EOF string indicating the end of that file). It appends each extracted line of text to the local copy of that file that <b>dgr2file</b> is currently writing. When the extracted datagram content is an EOF string (the ASCII text &quot;*** End of the file ***&quot;), <b>dgr2file</b> closes the file it is writing, increments <i>cycleNbr</i>, opens a new copy of the file for writing, and prints the message &quot;working on cycle <i>cycleNbr</i>.&quot;</p>
+
+<p><b>dgr2file</b> always receives datagrams at port 2101.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>dgr2file</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<dl>
+
+<dt id="cant-open-dgr-service">can&#39;t open dgr service</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="cant-open-output-file">can&#39;t open output file</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="dgr_receive-failed">dgr_receive failed</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="cant-write-to-output-file">can&#39;t write to output file</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>file2dgr(1), dgr(3)</p>
+
+
+</body>
+
+</html>
+
+

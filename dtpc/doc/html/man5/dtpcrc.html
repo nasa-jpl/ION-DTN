@@ -1,0 +1,169 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dtpcrc - Delay-Tolerant Payload Conditioning management commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dtpcrc - Delay-Tolerant Payload Conditioning management commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>DTPC management commands are passed to <b>dtpcadmin</b> either in a file of text lines or interactively at <b>dtpcadmin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line. The formats and effects of the DTPC management commands are described below.</p>
+
+<h1 id="COMMANDS">COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by dtpcadmin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="v"><b>v</b></dt>
+<dd>
+
+<p>Version number. Prints out the version of ION currently installed. HINT: combine with <b>e 1</b> command to log the version number at startup.</p>
+
+</dd>
+<dt id="pod11"><b>1</b></dt>
+<dd>
+
+<p>The <b>initialize</b> command. Until this command is executed, DTPC is not in operation on the local ION node and most <i>dtpcadmin</i> commands will fail.</p>
+
+</dd>
+<dt id="a-profile-profileID-maxRtx-aggrSizeLimit-aggrTimeLimit-TTL-class_of_service-report_to_endpointID-statusReportFlags"><b>a profile</b> <i>profileID</i> <i>maxRtx</i> <i>aggrSizeLimit</i> <i>aggrTimeLimit</i> <i>TTL</i> <i>class_of_service</i> <i>report_to_endpointID</i> [<i>statusReportFlags</i>]</dt>
+<dd>
+
+<p>The <b>add profile</b> command. This command notes the definition of a single DPTC transmission profile. A transmission profile asserts the BP and DTPC configuration parameter values that will be applied to all application data items (encapsulated in DTPC application data units and transmitted in bundles) that are issued subject to this profile. Transmission profiles are globally defined; all transmission profiles must be provided, with identical parameter values, to all inter-communicating DTPC protocol entities.</p>
+
+<p><i>profileID</i> must be the positive integer that uniquely defines the profile.</p>
+
+<p><i>maxRtx</i> is the maximum number of times any single DTPC ADU transmitted subject to the indicated profile may be retransmitted by the DTPC entity. If <i>maxRtx</i> is zero, then the DTPC transport service features (in-order delivery, end-to-end acknowledgment, etc.) are disabled for this profile.</p>
+
+<p><i>aggrSizeLimit</i> is the size threshold for concluding aggregation of an outbound ADU and requesting transmission of that ADU. If <i>aggrSizeLimit</i> is zero, then the DTPC transmission optimization features (aggregation and elision) are disabled for this profile.</p>
+
+<p><i>aggrTimeLimit</i> is the time threshold for concluding aggregation of an outbound ADU and requesting transmission of that ADU. If <i>aggrTimeLimit</i> is zero, then the DTPC transmission optimization features (aggregation and elision) are disabled for this profile.</p>
+
+<p><i>class_of_service</i> is the class-of-service string as defined for bptrace(1).</p>
+
+<p><i>report_to_endpointID</i> identifies the BP endpoint to which all status reports generated from bundles transmitted subject to this profile will be sent.</p>
+
+<p><i>statusReportFlags</i>, if present, must be a sequence of status report flags, separated by commas, with no embedded whitespace. Each status report flag must be one of the following: rcv, ct, fwd, dlv, del.</p>
+
+</dd>
+<dt id="d-profile-profileId"><b>d profile</b> <i>profileId</i></dt>
+<dd>
+
+<p>The <b>delete profile</b> command. This command erases the definition of the DTPC transmission profile identified by <i>profileId</i>.</p>
+
+</dd>
+<dt id="i-profile-profileId"><b>i profile</b> <i>profileId</i></dt>
+<dd>
+
+<p>This command will print information (all configuration parameters) about the profile identified by <i>profileId</i>.</p>
+
+</dd>
+<dt id="l-profile"><b>l profile</b></dt>
+<dd>
+
+<p>This command lists all known DTPC transmission profiles.</p>
+
+</dd>
+<dt id="s"><b>s</b></dt>
+<dd>
+
+<p>The <b>start</b> command. This command starts the DTPC clock and daemon tasks for the local BP node.</p>
+
+</dd>
+<dt id="x"><b>x</b></dt>
+<dd>
+
+<p>The <b>stop</b> command. This command stops all DTPC tasks and notifies all DTPC applications that DTPC service has been stopped.</p>
+
+</dd>
+<dt id="w-0-1-activity_spec"><b>w</b> { 0 | 1 | &lt;activity_spec&gt; }</dt>
+<dd>
+
+<p>The <b>DTPC watch</b> command. This command enables and disables production of a continuous stream of user-selected DTPC activity indication characters. A watch parameter of &quot;1&quot; selects all DTPC activity indication characters; &quot;0&quot; de-selects all DTPC activity indication characters; any other <i>activity_spec</i> such as &quot;o&lt;r&gt;&quot; selects all activity indication characters in the string, de-selecting all others. DTPC will print each selected activity indication character to <b>stdout</b> every time a processing event of the associated type occurs:</p>
+
+<p><b>o</b> new aggregator created for profile and destination endpoint</p>
+
+<p><b>\&lt;</b> new ADU aggregation initiated</p>
+
+<p><b>r</b> application data item added to aggregation</p>
+
+<p><b>\</b>&gt; aggregation complete, outbound ADU created</p>
+
+<p><b>-</b> outbound ADU sent via BP</p>
+
+<p><b>l</b> ADU end-to-end acknowledgment sent</p>
+
+<p><b>m</b> ADU deleted due to TTL expiration</p>
+
+<p><b>n</b> ADU queued for retransmission</p>
+
+<p><b>i</b> inbound ADU collector created</p>
+
+<p><b>u</b> inbound ADU received</p>
+
+<p><b>v</b> ADU sequence gap detected</p>
+
+<p><b>?</b> inbound ADU discarded</p>
+
+<p><b>*</b> ADU sequence gap deleted due to impending ADU TTL expiration</p>
+
+<p><b>$</b> inbound ADU collector reset</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="a-profile-5-6-1000000-5-3600-0.1-dtn:none">a profile 5 6 1000000 5 3600 0.1 dtn:none</dt>
+<dd>
+
+<p>Notes the definition of DTPC transmission profile 5: transport services are enabled, with an end-to-end retransmission limit of 5; transmission optimization service is enabled, initiating bundle transmission whenever the aggregation of data items queued for transmission subject to this profile exceeds one million bytes or is more than five seconds old; the transmitted bundles will have one-hour lifetime, will not be subject to custody transfer, will be sent at &quot;standard&quot; priority, and will not be tracked by any bundle status report production.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>dtpcadmin(1), bptrace(1)</p>
+
+
+</body>
+
+</html>
+
+

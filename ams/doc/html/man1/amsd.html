@@ -1,0 +1,99 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>amsd - AMS configuration server and/or registrar daemon</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>amsd - AMS configuration server and/or registrar daemon</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>amsd</b> { @ | <i>MIB_source_name</i> } { . | @ | <i>config_server_endpoint_spec</i> } [<i>application_name</i> <i>authority_name</i> <i>registrar_unit_name</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>amsd</b> is a background &quot;daemon&quot; task that functions as an AMS &quot;configuration server&quot; in the local continuum, as an AMS &quot;registrar&quot; in a specified cell, or both.</p>
+
+<p>If <i>MIB_source_name</i> is specified, it must name a MIB initialization file in the correct format for <b>amsd</b>, either amsrc(5) or amsxml(5), depending on whether or not -DNOEXPAT was set at compile time. Otherwise <b>@</b> is required; in this case, the built-in default MIB is loaded.</p>
+
+<p>If this <b>amsd</b> task is <b>NOT</b> to run as a configuration server then the second command-line argument must be a &#39;.&#39; character. Otherwise the second command-line argument must be either &#39;@&#39; or <i>config_server_endpoint_spec</i>. If &#39;@&#39; then the endpoint specification for this configuration server is automatically computed as the default endpoint specification for the primary transport service as noted in the MIB: &quot;<i>hostname</i>:2357&quot;.</p>
+
+<p>If an AMS module is <b>NOT</b> to be run in a background thread for this daemon (enabling shutdown by amsstop(1) and/or runtime MIB update by amsmib(1)), then either the last three command-line arguments must be omitted or else the &quot;amsd&quot; role must not be defined in the MIB loaded for this daemon. Otherwise the <i>application_name</i> and <i>authority_name</i> arguments are required and the &quot;amsd&quot; role must be defined in the MIB.</p>
+
+<p>If this <b>amsd</b> task is <b>NOT</b> to run as a registrar then the last command-line argument must be omitted. Otherwise the last three command-line arguments are required and they must identify a unit in an AMS venture for the indicated application and authority that is known to operate in the local continuum, as noted in the MIB. Note that the unit name for the &quot;root unit&quot; of a venture is the zero-length string &quot;&quot;.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>amsd</b> terminated without error.</p>
+
+</dd>
+<dt id="pod-1">-1</dt>
+<dd>
+
+<p><b>amsd</b> terminated due to an anomaly as noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and restart <b>amsd</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>If <i>MIB source name</i> is specified, then a file of this name must be present. Otherwise a MIB initialization file with the applicable default name (see amsrc(5)) must be present.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="amsd-cant-load-MIB">amsd can&#39;t load MIB.</dt>
+<dd>
+
+<p>MIB initialization file was missing, unreadable, or invalid.</p>
+
+</dd>
+<dt id="amsd-cant-start-CS">amsd can&#39;t start CS.</dt>
+<dd>
+
+<p>Configuration server initialization failed for reasons noted in ion.log file.</p>
+
+</dd>
+<dt id="amsd-cant-start-RS">amsd can&#39;t start RS.</dt>
+<dd>
+
+<p>Registrar initialization failed for reasons noted in ion.log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>amsmib(1), amsstop(1), amsrc(5), amsxml(5)</p>
+
+
+</body>
+
+</html>
+
+

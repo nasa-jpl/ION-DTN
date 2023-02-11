@@ -1,0 +1,163 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ipnd - ION IPND module</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ipnd - ION IPND module</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The <b>ipnd</b> daemon is the ION implementation of DTN IP Neighbor Discovery. This module allows the node to send and receive beacon messages using unicast, multicast or broadcast IP addresses. Beacons are used for the discovery of neighbors and may be used to advertise services that are present and available on nodes, such as routing algorithms or CLAs.</p>
+
+<p>ION IPND module is configured using a *.rc configuration file. The name of the configuration file must be passed as the sole command-line argument to <b>ipnd</b> when the daemon is started. Commands are interpreted line by line, with exactly one command per line. The formats and effects of the ION <b>ipnd</b> management commands are described below.</p>
+
+<h1 id="USAGE">USAGE</h1>
+
+<p>ipnd <i>config_file_name</i></p>
+
+<h1 id="COMMANDS">COMMANDS</h1>
+
+<dl>
+
+<dt id="pod1"><b>1</b></dt>
+<dd>
+
+<p>The <b>initialize</b> command. This must be the first command.</p>
+
+</dd>
+<dt id="pod"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by ipnd to be logged into ion.log. Setting echo to 0 disables this behavior. Default is 1.</p>
+
+</dd>
+<dt id="m-eid-eid"><b>m eid</b> <i>eid</i></dt>
+<dd>
+
+<p>Local eid. This command sets the advertised BP endpoint ID by which the node will identify itself in beacon messages.</p>
+
+</dd>
+<dt id="m-announce-period-1-0"><b>m announce period</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Announce period control. Setting to 1 causes all beacons messages sent to contain beacon period. Setting to 0 disables this behavior. Default is 1.</p>
+
+</dd>
+<dt id="m-announce-eid-1-0"><b>m announce eid</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Announce eid control. Setting to 1 causes all beacons messages sent to contain source eid. Setting to 0 disables this behavior. This should be always set to 1. Default is 1.</p>
+
+</dd>
+<dt id="m-interval-unicast-interval"><b>m interval unicast</b> <i>interval</i></dt>
+<dd>
+
+<p>Unicast interval. This command sets the beacon messages period on unicast transmissions. Time interval is expressed in seconds. Default is 5.</p>
+
+</dd>
+<dt id="m-interval-multicast-interval"><b>m interval multicast</b> <i>interval</i></dt>
+<dd>
+
+<p>Multicast interval. This command sets the beacon messages period on multicast transmissions. Time interval is expressed in seconds. Default is 7.</p>
+
+</dd>
+<dt id="m-interval-broadcast-interval"><b>m interval broadcast</b> <i>interval</i></dt>
+<dd>
+
+<p>Broadcastcast interval. This command sets the beacon messages period on broadcast transmissions. Time interval is expressed in seconds. Default is 11.</p>
+
+</dd>
+<dt id="m-multicast-ttl-ttl"><b>m multicast ttl</b> <i>ttl</i></dt>
+<dd>
+
+<p>Multicast ttl. This command sets the multicast outgoing beacon messages&#39; time to live, in seconds. Default is 255.</p>
+
+</dd>
+<dt id="m-svcdef-id-name-child_name:child_type"><b>m svcdef</b> <i>id</i> <i>name</i> <i>child_name</i>:<i>child_type</i> ...</dt>
+<dd>
+
+<p>Service definition. This command specifies definitions of &quot;services&quot;, which are dynamically defined beacon message data structures indicating the capabilities of the beacon message sender. <i>id</i> is a service-identifying number in the range 128-255. <i>name</i> is the name of the service type that is being defined. The definition of the structure of the service is a sequence of elements, each of which is a <i>name</i><b>:</b><i>type</i> pair. Each <i>child_type</i> must be the name of a standard or previously defined service type. Infinite recursion is supported.</p>
+
+</dd>
+<dt id="a-svcadv-name-child_name:child_value"><b>a svcadv</b> <i>name</i> <i>child_name</i>:<i>child_value</i> ...</dt>
+<dd>
+
+<p>Service advertising command. This command defines which services will be advertised and with which values. All types of formats for values are supported (e.g. 999, 0345 (octal), 0x999 (hex), -1e-9, 0.32, etc.). For a service that contains only a single element, it is not necessary to provide that element&#39;s name. E.g. it is enough to write Booleans:true instead of Booleans:BooleanValues:B:true, as BooleanValues is the only child of Booleans and B is the only child of BooleanValues.</p>
+
+</dd>
+<dt id="a-listen-IP_address"><b>a listen</b> <i>IP_address</i></dt>
+<dd>
+
+<p>Listen socket specification command. This command asserts, in the form <i>IP_address</i>, the IP address of the socket at which the IPND daemon is to listen for incoming beacons; a default port number is used. The address can be an unicast, a multicast or a broadcast address. If a multicast address is provided all the configured unicast addresses will listen for multicast packets in that group. If a broadcast address is provided all the unicast addresses will listen for broadcasted packets.</p>
+
+</dd>
+<dt id="a-destination-destination_socket_spec"><b>a destination</b> <i>destination_socket_spec</i></dt>
+<dd>
+
+<p>Destination socket specification command. This command asserts the specification for a socket to which the IPND daemon is to send beacons. It can be an unicast, a multicast or a broadcast address.</p>
+
+</dd>
+<dt id="s"><b>s</b></dt>
+<dd>
+
+<p>The <b>start</b> command. This command starts the IPND daemon for the local ION node.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>m scvdef 128 FooRouter Seed:SeedVal BaseWeight:WeightVal RootHash:bytes</p>
+
+<p>Defines a new service called FooRouter comprising 3 elements. SeedVal and WeightVal are user defined services that must be already defined.</p>
+
+<p>m svcdef 129 SeedVal Value:fixed16</p>
+
+<p>m svcdef 130 WeightVal Value:fixed16</p>
+
+<p>m svcdef 128 FooRouter Seed:SeedVal BaseWeight:WeightVal RootHash:bytes</p>
+
+<p>m svcdef 150 FixedValuesList F16:fixed16 F32:fixed32 F64:fixed64</p>
+
+<p>m svcdef 131 VariableValuesList U64:uint64 S64:sint64</p>
+
+<p>m svcdef 132 BooleanValues B:boolean</p>
+
+<p>m svcdef 133 FloatValuesList F:float D:double</p>
+
+<p>m svcdef 135 IntegersList FixedValues:FixedValuesList VariableValues:VariableValuesList</p>
+
+<p>m svcdef 136 NumbersList Integers:IntegersList Floats:FloatValuesList</p>
+
+<p>m svcdef 140 HugeService CLAv4:CLA-TCP-v4 Booleans:BooleanValues Numbers:NumbersList FR:FooRouter</p>
+
+<p>a svcadv HugeService CLAv4:IP:10.1.0.10 CLAv4:Port:4444 Booleans:true FR:Seed:0x5432 FR:BaseWeight:13 FR:RootHash:BEEF Numbers:Integers:FixedValues:F16:0x16 Numbers:Integers:FixedValues:F32:0x32 Numbers:Integers:FixedValues:F64:0x1234567890ABCDEF Numbers:Floats:F:0.32 Numbers:Floats:D:-1e-6 Numbers:Integers:VariableValues:U64:18446744073704783380 Numbers:Integers:VariableValues:S64:-4611686018422619668</p>
+
+<p>This shows how to define multiple nested services and how to advertise them.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ion(3)</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,83 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>sdrwatch - SDR non-volatile data store activity monitor</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>sdrwatch - SDR non-volatile data store activity monitor</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>sdrwatch</b> <i>sdr_name</i> [ -t | -s | -r | -z ] [<i>interval</i> [<i>count</i> [ verbose ]]]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>For <i>count</i> interations (defaulting to 1), <b>sdrwatch</b> sleeps <i>interval</i> seconds and then performs the SDR operation indicated by the specified mode: &#39;s&#39; to print statistics, &#39;r&#39; to reset statistics, &#39;z&#39; to print ZCO space utilization, &#39;t&#39; (the default) to call the sdr_print_trace() function (see sdr(3)) to report on SDR data storage management activity in the SDR data store identified by <i>sdr_name</i> during that interval. If the optional <b>verbose</b> parameter is specified, the printed SDR activity trace will be verbose as described in sdr(3).</p>
+
+<p>If <i>interval</i> is zero, <b>sdrwatch</b> just performs the indicated operation once (for &#39;t&#39;, it merely prints a current usage summary for the indicated data store) and terminates.</p>
+
+<p><b>sdrwatch</b> is helpful for detecting and diagnosing storage space leaks. For debugging the ION protocol stack, <i>sdr_name</i> is normally &quot;ion&quot; but might be overridden by the value of sdrName in the .ionconfig file used to configure the node under study.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>sdrwatch</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="Cant-attach-to-sdr">Can&#39;t attach to sdr.</dt>
+<dd>
+
+<p>ION system error. One possible cause is that ION has not yet been initialized on the local computer; run ionadmin(1) to correct this.</p>
+
+</dd>
+<dt id="Cant-start-trace">Can&#39;t start trace.</dt>
+<dd>
+
+<p>Insufficient ION working memory to contain trace information. Reinitialize ION with more memory.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>sdr(3), psmwatch(1)</p>
+
+
+</body>
+
+</html>
+
+

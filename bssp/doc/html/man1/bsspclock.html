@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bsspclock - BSSP daemon task for managing scheduled events</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bsspclock - BSSP daemon task for managing scheduled events</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bsspclock</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bsspclock</b> is a background &quot;daemon&quot; task that periodically performs scheduled BSSP activities. It is spawned automatically by <b>bsspadmin</b> in response to the &#39;s&#39; command that starts operation of the BSSP protocol, and it is terminated by <b>bsspadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<p>Once per second, <b>bsspclock</b> takes the following action:</p>
+
+<ul>
+
+<p>First it manages the current state of all links (&quot;spans&quot;). Specifically, it infers link state changes (&quot;link cues&quot;) from data rate changes as noted in the RFX database by <b>rfxclock</b>:</p>
+
+<ul>
+
+<p>If the rate of transmission to a neighbor was zero but is now non-zero, then transmission to that neighbor resumes. The applicable &quot;buffer empty&quot; semaphore is given (enabling start of a new transmission session) and the best-efforts and/or reliable &quot;PDUs ready&quot; semaphores are given if the corresponding outbound PDU queues are non-empty (enabling transmission of PDUs by the link service output task).</p>
+
+<p>If the rate of transmission to a neighbor was non-zero but is now zero, then transmission to that neighbor is suspended -- i.e., the semaphores triggering transmission will no longer be given.</p>
+
+<p>If the imputed rate of transmission from a neighbor was non-zero but is now zero, then all best-efforts transmission acknowledgment timers affecting transmission to that neighbor are suspended. This has the effect of extending the interval of each affected timer by the length of time that the timers remain suspended.</p>
+
+<p>If the imputed rate of transmission from a neighbor was zero but is now non-zero, then all best-efforts transmission acknowledgment timers affecting transmission to that neighbor are resumed.</p>
+
+</ul>
+
+<p>Then <b>bsspclock</b> enqueues for reliable transmission all blocks for which the best-efforts transmission acknowledgment timeout interval has now expired but no acknowledgment has yet been received.</p>
+
+</ul>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bsspclock</b> terminated, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bsspadmin</b> to restart <b>bsspclock</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bsspclock</b> was unable to attach to BSSP protocol operations, probably because <b>bsspadmin</b> has not yet been run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="bsspclock-cant-initialize-BSSP">bsspclock can&#39;t initialize BSSP.</dt>
+<dd>
+
+<p><b>bsspadmin</b> has not yet initialized BSSP protocol operations.</p>
+
+</dd>
+<dt id="Cant-dispatch-events">Can&#39;t dispatch events.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>bsspclock</b> terminates.</p>
+
+</dd>
+<dt id="Cant-manage-links">Can&#39;t manage links.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>bsspclock</b> terminates.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bsspadmin(1), rfxclock(1)</p>
+
+
+</body>
+
+</html>
+
+

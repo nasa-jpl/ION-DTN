@@ -1,0 +1,87 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dtpcd - DTPC daemon task for receiving and processing DTPC ADUs in bundles</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dtpcd - DTPC daemon task for receiving and processing DTPC ADUs in bundles</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>dtpcd</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>dtpcd</b> is a background &quot;daemon&quot; task that manages the reception and processing of DTPC protocol data units. It receives the payloads of bundles destined for the &quot;ipn&quot;-scheme endpoint whose node number is the number of the local node and whose service number is the DTPC_RECV_SVC_NBR (129 as of the time of this writeng).</p>
+
+<p>DTPC protocol data units are of two types: application data units (ADUs, i.e., aggregations of application data items) and acknowledgments. Each acknowledgment is interpreted as authorization to release the buffer space occupied by the node&#39;s local copy of the acknowledged ADU. Each ADU is parsed into its constituent application data items, which are then delivered to the applications awaiting them, and when required a DTPC end-to-end acknowledgment PDU is returned to the DTPC PDU sender.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0"><code>0</code></dt>
+<dd>
+
+<p><b>dtpcd</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>dtpcadmin</b> to restart <b>dtpcd</b>.</p>
+
+</dd>
+<dt id="pod1"><code>1</code></dt>
+<dd>
+
+<p><b>dtpcd</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>dtpcadmin</b> to restart <b>dtpcd</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="DTPC-cant-open-own-send-endpoint">DTPC can&#39;t open own &#39;send&#39; endpoint.</dt>
+<dd>
+
+<p>Bundle protocol agent has not been started. See ion(3).</p>
+
+</dd>
+<dt id="dtpcd-cant-attach-to-DTPC">dtpcd can&#39;t attach to DTPC.</dt>
+<dd>
+
+<p><b>dtpcadmin</b> has not yet initialized DTPC protocol operations.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>dtpcadmin(1), ion(3)</p>
+
+
+</body>
+
+</html>
+
+

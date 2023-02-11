@@ -1,0 +1,75 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>sdatest - LTP service data aggreggation test program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>sdatest - LTP service data aggreggation test program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>sdatest</b> [<i>remoteEngineNbr</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>sdatest</b> tests LTP service data aggregation (SDA).</p>
+
+<p>Each instance of the program can run either as a sender and receiver or as a receiver only. For sending, <b>sdatest</b> starts a background thread that offers a command-line prompt and accepts strings of text for transmission. It uses SDA to aggregate the strings into LTP service data items for LTP client ID 2, which is SDA. The strings (SDA data units) are delimited by terminating NULLs, and they are all identified by SDA client ID number 135.</p>
+
+<p>For reception, <b>sdatest</b> listens for LTP traffic for client 2. When it receives an LTP Service data item (in an LTP block), it parses out all of the SDA data units aggregated in that data item and prints them to stdout.</p>
+
+<p>Use ^C to terminate <b>sdatest</b>.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>sdatest</b> has terminated. Any problems encountered during operation will be noted in the <b>ion.log</b> log file.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>sdatest</b> was unable to start. See the <b>ion.log</b> file for details.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No files are used by sdatest.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>Diagnostic messages produced by <b>sdatest</b> are written to the ION log file <i>ion.log</i>.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>sda(3)</p>
+
+
+</body>
+
+</html>
+
+

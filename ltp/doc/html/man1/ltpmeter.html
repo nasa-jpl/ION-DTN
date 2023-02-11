@@ -1,0 +1,127 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ltpmeter - LTP daemon task for aggregating and segmenting transmission blocks</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ltpmeter - LTP daemon task for aggregating and segmenting transmission blocks</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>ltpmeter</b> <i>remote_engine_nbr</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>ltpmeter</b> is a background &quot;daemon&quot; task that manages the presentation of LTP segments to link service output tasks. Each &quot;span&quot; of LTP data interchange between the local LTP engine and a neighboring LTP engine requires its own <b>ltpmeter</b> task. All <b>ltpmeter</b> tasks are spawned automatically by <b>ltpadmin</b> in response to the &#39;s&#39; command that starts operation of the LTP protocol, and they are all terminated by <b>ltpadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<p><b>ltpmeter</b> waits until its span&#39;s current transmission block (the data to be transmitted during the transmission session that is currently being constructed) is ready for transmission, then divides the data in the span&#39;s block buffer into segments and enqueues the segments for transmission by the span&#39;s link service output task (giving the segments semaphore to unblock the link service output task as necessary), then reinitializes the span&#39;s block buffer and starts another session (giving the &quot;buffer empty&quot; semaphore to unblock the client service task -- nominally <b>ltpclo</b>, the LTP convergence layer output task for Bundle Protocol -- as necessary).</p>
+
+<p><b>ltpmeter</b> determines that the current transmission block is ready for transmission by waiting until either (a) the aggregate size of all service data units in the block&#39;s buffer exceeds the aggregation size limit for this span or (b) the length of time that the first service data unit in the block&#39;s buffer has been awaiting transmission exceeds the aggregation time limit for this span. The &quot;buffer full&quot; semaphore is given when ION (either the ltp_send() function or the <b>ltpclock</b> daemon) determines that one of these conditions is true; <b>ltpmeter</b> simply waits for this semaphore to be given.</p>
+
+<p>The initiation of a new session may also be blocked: the total number of transmission sessions that the local LTP engine may have open at a single time is limited (this is LTP flow control), and while the engine is at this limit no new sessions can be started. Availability of a session from the session pool is signaled by the &quot;session&quot; semaphore, which is given whenever a session is completed or canceled.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>ltpmeter</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>ltpadmin</b> to restart <b>ltpmeter</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>ltpmeter</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>ltpadmin</b> to restart <b>ltpmeter</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="ltpmeter-cant-initialize-LTP">ltpmeter can&#39;t initialize LTP.</dt>
+<dd>
+
+<p><b>ltpadmin</b> has not yet initialized LTP protocol operations.</p>
+
+</dd>
+<dt id="No-such-engine-in-database">No such engine in database.</dt>
+<dd>
+
+<p><i>remote_engine_nbr</i> is invalid, or the applicable span has not yet been added to the LTP database by <b>ltpadmin</b>.</p>
+
+</dd>
+<dt id="ltpmeter-task-is-already-started-for-this-engine">ltpmeter task is already started for this engine.</dt>
+<dd>
+
+<p>Redundant initiation of <b>ltpmeter</b>.</p>
+
+</dd>
+<dt id="ltpmeter-cant-start-new-session">ltpmeter can&#39;t start new session.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>ltpmeter</b> terminates.</p>
+
+</dd>
+<dt id="Cant-take-bufClosedSemaphore">Can&#39;t take bufClosedSemaphore.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>ltpmeter</b> terminates.</p>
+
+</dd>
+<dt id="Cant-create-extents-list">Can&#39;t create extents list.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>ltpmeter</b> terminates.</p>
+
+</dd>
+<dt id="Cant-post-ExportSessionStart-notice">Can&#39;t post ExportSessionStart notice.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>ltpmeter</b> terminates.</p>
+
+</dd>
+<dt id="Cant-finish-session">Can&#39;t finish session.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>ltpmeter</b> terminates.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ltpadmin(1), ltpclock(1)</p>
+
+
+</body>
+
+</html>
+
+

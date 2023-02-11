@@ -1,0 +1,249 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ltprc - Licklider Transmission Protocol management commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ltprc - Licklider Transmission Protocol management commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>LTP management commands are passed to <b>ltpadmin</b> either in a file of text lines or interactively at <b>ltpadmin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line. The formats and effects of the LTP management commands are described below.</p>
+
+<h1 id="COMMANDS">COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by ltpadmin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="v"><b>v</b></dt>
+<dd>
+
+<p>Version number. Prints out the version of ION currently installed. HINT: combine with <b>e 1</b> command to log the version number at startup.</p>
+
+</dd>
+<dt id="est_max_export_sessions"><b>1</b> <i>est_max_export_sessions</i></dt>
+<dd>
+
+<p>The <b>initialize</b> command. Until this command is executed, LTP is not in operation on the local ION node and most <i>ltpadmin</i> commands will fail.</p>
+
+<p>The command uses <i>est_max_export_sessions</i> to configure the hashtable it will use to manage access to export transmission sessions that are currently in progress. For optimum performance, <i>est_max_export_sessions</i> should normally equal or exceed the summation of <i>max_export_sessions</i> over all spans as discussed below.</p>
+
+<p>Appropriate values for the parameters configuring each &quot;span&quot; of potential LTP data exchange between the local LTP and neighboring engines are non-trivial to determine. See the ION LTP configuration spreadsheet and accompanying documentation for details.</p>
+
+</dd>
+<dt id="a-span-peer_engine_nbr-max_export_sessions-max_import_sessions-max_segment_size-aggregation_size_threshold-aggregation_time_limit-LSO_command-queuing_latency"><b>a span</b> <i>peer_engine_nbr</i> <i>max_export_sessions</i> <i>max_import_sessions</i> <i>max_segment_size</i> <i>aggregation_size_threshold</i> <i>aggregation_time_limit</i> &#39;<i>LSO_command</i>&#39; [<i>queuing_latency</i>]</dt>
+<dd>
+
+<p>The <b>add span</b> command. This command declares that a <i>span</i> of potential LTP data interchange exists between the local LTP engine and the indicated (neighboring) LTP engine.</p>
+
+<p>The <i>max_segment_size</i> and <i>aggregation_size_threshold</i> are expressed as numbers of bytes of data. <i>max_segment_size</i> limits the size of each of the segments into which each outbound data <i>block</i> will be divided; typically this limit will be the maximum number of bytes that can be encapsulated within a single transmission frame of the underlying <i>link service</i>.</p>
+
+<p><i>aggregation_size_threshold</i> limits the number of LTP service data units (e.g., bundles) that can be aggregated into a single block: when the sum of the sizes of all service data units aggregated into a block exceeds this threshold, aggregation into this block must cease and the block must be segmented and transmitted.</p>
+
+<p><i>aggregation_time_limit</i> alternatively limits the number of seconds that any single export session block for this span will await aggregation before it is segmented and transmitted regardless of size. The aggregation time limit prevents undue delay before the transmission of data during periods of low activity.</p>
+
+<p><i>max_export_sessions</i> constitutes, in effect, the local LTP engine&#39;s retransmission &quot;window&quot; for this span. The retransmission windows of the spans impose flow control on LTP transmission, reducing the chance of allocation of all available space in the ION node&#39;s data store to LTP transmission sessions.</p>
+
+<p><i>max_import_sessions</i> is simply the neighoring engine&#39;s own value for the corresponding export session parameter; it is the neighboring engine&#39;s retransmission window size for this span. It reduces the chance of allocation of all available space in the ION node&#39;s data store to LTP reception sessions.</p>
+
+<p><i>LSO_command</i> is script text that will be executed when LTP is started on this node, to initiate operation of a link service output task for this span. Note that &quot; <i>peer_engine_nbr</i>&quot; will automatically be appended to <i>LSO_command</i> by <b>ltpadmin</b> before the command is executed, so only the link-service-specific portion of the command should be provided in the <i>LSO_command</i> string itself.</p>
+
+<p><i>queuing_latency</i> is the estimated number of seconds that we expect to lapse between reception of a segment at this node and transmission of an acknowledging segment, due to processing delay in the node. (See the &#39;m ownqtime&#39; command below.) The default value is 1.</p>
+
+<p>If <i>queuing latency</i> a negative number, the absolute value of this number is used as the actual queuing latency and session purging is enabled; otherwise session purging is disabled. If session purging is enabled for a span then at the end of any period of transmission over this span all of the span&#39;s export sessions that are currently in progress are automatically canceled. Notionally this forces re-forwarding of the DTN bundles in each session&#39;s block, to avoid having to wait for the restart of transmission on this span before those bundles can be successfully transmitted.</p>
+
+</dd>
+<dt id="a-seat-LSI_command"><b>a seat</b> &#39;<i>LSI_command</i>&#39;</dt>
+<dd>
+
+<p>The <b>add seat</b> command. This command declares that the local LTP engine can receive LTP segments via the link service input daemon that begins running when <i>&#39;LSI_command&#39;</i> is executed.</p>
+
+</dd>
+<dt id="c-span-peer_engine_nbr-max_export_sessions-max_import_sessions-max_segment_size-aggregation_size_threshold-aggregation_time_limit-LSO_command-queuing_latency"><b>c span</b> <i>peer_engine_nbr</i> <i>max_export_sessions</i> <i>max_import_sessions</i> <i>max_segment_size</i> <i>aggregation_size_threshold</i> <i>aggregation_time_limit</i> &#39;<i>LSO_command</i>&#39; [<i>queuing_latency</i>]</dt>
+<dd>
+
+<p>The <b>change span</b> command. This command sets the indicated span&#39;s configuration parameters to the values provided as arguments.</p>
+
+</dd>
+<dt id="d-span-peer_engine_nbr"><b>d span</b> <i>peer_engine_nbr</i></dt>
+<dd>
+
+<p>The <b>delete span</b> command. This command deletes the span identified by <i>peer_engine_nbr</i>. The command will fail if any outbound segments for this span are pending transmission or any inbound blocks from the peer engine are incomplete.</p>
+
+</dd>
+<dt id="d-seat-LSI_command"><b>d seat</b> &#39;<i>LSI_command</i>&#39;</dt>
+<dd>
+
+<p>The <b>delete seat</b> command. This command deletes the seat identified by &#39;<i>LSI_command</i>&#39;.</p>
+
+</dd>
+<dt id="i-span-peer_engine_nbr"><b>i span</b> <i>peer_engine_nbr</i></dt>
+<dd>
+
+<p>This command will print information (all configuration parameters) about the span identified by <i>peer_engine_nbr</i>.</p>
+
+</dd>
+<dt id="i-seat-LSI_command"><b>i seat</b> &#39;<i>LSI_command</i>&#39;</dt>
+<dd>
+
+<p>This command will print all information (i.e., process ID number) about the seat identified by &#39;<i>LSI_command</i>&#39;.</p>
+
+</dd>
+<dt id="l-span"><b>l span</b></dt>
+<dd>
+
+<p>This command lists all declared LTP data interchange spans.</p>
+
+</dd>
+<dt id="l-seat"><b>l seat</b></dt>
+<dd>
+
+<p>This command lists all declared LTP data acquisition seats.</p>
+
+</dd>
+<dt id="s-LSI_command"><b>s</b> [&#39;<i>LSI_command</i>&#39;]</dt>
+<dd>
+
+<p>The <b>start</b> command. This command starts link service input tasks for all LTP seats and output tasks for all LTP spans (to remote engines) from the local LTP engine. &#39;<i>LSI_command</i>&#39; is deprecated but is supported for backward compatibility; if provided, the effect is the same as entering the command &quot;a seat &#39;<i>LSI_command</i>&#39;&quot; prior to starting all daemon tasks.</p>
+
+</dd>
+<dt id="m-heapmax-max_database_heap_per_block"><b>m heapmax</b> <i>max_database_heap_per_block</i></dt>
+<dd>
+
+<p>The <b>manage heap for block acquisition</b> command. This command declares the maximum number of bytes of SDR heap space that will be occupied by the acquisition of any single LTP block. All data acquired in excess of this limit will be written to a temporary file pending extraction and dispatching of the acquired block. Default is the minimum allowed value (560 bytes), which is the approximate size of a ZCO file reference object; this is the minimum SDR heap space occupancy in the event that all acquisition is into a file.</p>
+
+</dd>
+<dt id="m-screening-y-n"><b>m screening</b> { y | n }</dt>
+<dd>
+
+<p>The <b>manage screening</b> command.</p>
+
+<p>The <b>manage screening</b> command. This command disables or enables the screening of received LTP segments per the periods of scheduled reception in the node&#39;s contact graph.</p>
+
+<p>By default, screening is enabled - that is, LTP segments from a given remote LTP engine (ION node) will be silently discarded when they arrive during an interval when the contact graph says the data rate from that engine to the local LTP engine is zero. The reason for this is that without a known nominal reception rate we cannot enforce reception rate control, which is needed in order to prevent resource exhaustion at the receiving node.</p>
+
+<p>Note, though, that the enabling of screening implies that the ranges declared in the contact graph must be accurate and clocks must be synchronized; otherwise, segments will be arriving at times other than the scheduled contact intervals and will be discarded.</p>
+
+<p>For some research purposes this constraint may be difficult to satisfy. For such purposes ONLY, where resource exhaustion at the receiving node is not at issue, screening may be disabled.</p>
+
+</dd>
+<dt id="m-ownqtime-own_queuing_latency"><b>m ownqtime</b> <i>own_queuing_latency</i></dt>
+<dd>
+
+<p>The <b>manage own queuing time</b> command. This command sets the number of seconds of predicted additional latency attributable to processing delay within the local engine itself that should be included whenever LTP computes the nominal round-trip time for an exchange of data with any remote engine. The default value is 1.</p>
+
+</dd>
+<dt id="m-maxber-max_expected_bit_error_rate"><b>m maxber</b> <i>max_expected_bit_error_rate</i></dt>
+<dd>
+
+<p>The <b>manage max bit error rate</b> command. This command sets the expected maximum bit error rate that LTP should provide for in computing the maximum number of transmission efforts to initiate in the transmission of a given block. (Note that this computation is also sensitive to data segment size and to the size of the block that is to be transmitted.) The default value is .000001 (10^-6).</p>
+
+</dd>
+<dt id="m-maxbacklog-max_delivery_backlog"><b>m maxbacklog</b> <i>max_delivery_backlog</i></dt>
+<dd>
+
+<p>The <b>manage max delivery backlog</b> command. This command sets the limit on the number of blocks (service data units) that may be queued up for delivery to clients. While the queue is at this limit, red segments are discarded as it is not possible to deliver the blocks to which they pertain. The intent here is to prevent resource exhaustion by limiting the rate at which new blocks can be acquired and inserted into ZCO space. The default value is 10.</p>
+
+</dd>
+<dt id="x"><b>x</b></dt>
+<dd>
+
+<p>The <b>stop</b> command. This command stops all link service input and output tasks for the local LTP engine.</p>
+
+</dd>
+<dt id="w-0-1-activity_spec"><b>w</b> { 0 | 1 | &lt;activity_spec&gt; }</dt>
+<dd>
+
+<p>The <b>LTP watch</b> command. This command enables and disables production of a continuous stream of user-selected LTP activity indication characters. A watch parameter of &quot;1&quot; selects all LTP activity indication characters; &quot;0&quot; de-selects all LTP activity indication characters; any other <i>activity_spec</i> such as &quot;df{]&quot; selects all activity indication characters in the string, de-selecting all others. LTP will print each selected activity indication character to <b>stdout</b> every time a processing event of the associated type occurs:</p>
+
+<p><b>d</b> bundle appended to block for next session</p>
+
+<p><b>e</b> segment of block is queued for transmission</p>
+
+<p><b>f</b> block has been fully segmented for transmission</p>
+
+<p><b>g</b> segment popped from transmission queue</p>
+
+<p><b>h</b> positive ACK received for block, session ended</p>
+
+<p><b>s</b> segment received</p>
+
+<p><b>t</b> block has been fully received</p>
+
+<p><b>@</b> negative ACK received for block, segments retransmitted</p>
+
+<p><b>=</b> unacknowledged checkpoint was retransmitted</p>
+
+<p><b>+</b> unacknowledged report segment was retransmitted</p>
+
+<p><b>{</b> export session canceled locally (by sender)</p>
+
+<p><b>}</b> import session canceled by remote sender</p>
+
+<p><b>[</b> import session canceled locally (by receiver)</p>
+
+<p><b>]</b> export session canceled by remote receiver</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="a-span-19-20-5-1024-32768-2-udplso-node19.ohio.edu:5001">a span 19 20 5 1024 32768 2 &#39;udplso node19.ohio.edu:5001&#39;</dt>
+<dd>
+
+<p>Declares a data interchange span between the local LTP engine and the remote engine (ION node) numbered 19. There can be at most 20 concurrent sessions of export activity to this node. Conversely, node 19 can have at most 5 concurrent sessions of export activity to the local node. Maximum segment size for this span is set to 1024 bytes, aggregation size threshold is 32768 bytes, aggregation time limit is 2 seconds, and the link service output task that is initiated when LTP is started on the local ION node will execute the <i>udplso</i> program as indicated.</p>
+
+</dd>
+<dt id="m-screening-n">m screening n</dt>
+<dd>
+
+<p>Disables strict enforcement of the contact schedule.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ltpadmin(1), udplsi(1), udplso(1)</p>
+
+
+</body>
+
+</html>
+
+

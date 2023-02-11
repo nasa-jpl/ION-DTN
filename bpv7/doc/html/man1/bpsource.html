@@ -1,0 +1,103 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bpsource - Bundle Protocol transmission test shell</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bpsource - Bundle Protocol transmission test shell</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bpsource</b> <i>destinationEndpointId</i> [&quot;<i>text</i>&quot;] [-t<i>TTL</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>When <i>text</i> is supplied, <b>bpsource</b> simply uses Bundle Protocol to send <i>text</i> to a counterpart <b>bpsink</b> application task that has opened the BP endpoint identified by <i>destinationEndpointId</i>, then terminates.</p>
+
+<p>Otherwise, <b>bpsource</b> offers the user an interactive &quot;shell&quot; for testing Bundle Protocol data transmission. <b>bpsource</b> prints a prompt string (&quot;: &quot;) to stdout, accepts a string of text from stdin, uses Bundle Protocol to send the string to a counterpart <b>bpsink</b> application task that has opened the BP endpoint identified by <i>destinationEndpointId</i>, then prints another prompt string and so on. To terminate the program, enter a string consisting of a single exclamation point (!) character.</p>
+
+<p><i>TTL</i> indicates the number of seconds the bundles may remain in the network, undelivered, before they are automatically destroyed. If omitted, <i>TTL</i> defaults to 300 seconds.</p>
+
+<p>The source endpoint ID for each bundle sent by <b>bpsource</b> is the null endpoint ID, i.e., the bundles are anonymous. All bundles are sent standard priority with no custody transfer and no status reports requested.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bpsource</b> has terminated. Any problems encountered during operation will be noted in the <b>ion.log</b> log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>The service data units transmitted by <b>bpsource</b> are sequences of text obtained from a file in the current working directory named &quot;bpsourceAduFile&quot;, which <b>bpsource</b> creates automatically.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>Diagnostic messages produced by <b>bpsource</b> are written to the ION log file <i>ion.log</i>.</p>
+
+<dl>
+
+<dt id="Cant-attach-to-BP">Can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="bpsource-fgets-failed">bpsource fgets failed</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="No-space-for-ZCO-extent">No space for ZCO extent.</dt>
+<dd>
+
+<p>ION system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="Cant-create-ZCO-extent">Can&#39;t create ZCO extent.</dt>
+<dd>
+
+<p>ION system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="bpsource-cant-send-ADU">bpsource can&#39;t send ADU</dt>
+<dd>
+
+<p>Bundle Protocol service to the remote endpoint has been stopped.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bpsink(1), bp(3)</p>
+
+
+</body>
+
+</html>
+
+

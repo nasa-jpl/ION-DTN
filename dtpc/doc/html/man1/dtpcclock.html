@@ -1,0 +1,115 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dtpcclock - DTPC daemon task for managing scheduled events</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dtpcclock - DTPC daemon task for managing scheduled events</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>dtpcclock</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>dtpcclock</b> is a background &quot;daemon&quot; task that periodically performs scheduled DTPC activities. It is spawned automatically by <b>dtpcadmin</b> in response to the &#39;s&#39; command that starts operation of the DTPC protocol, and it is terminated by <b>dtpcadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<p>Once per second, <b>dtpcclock</b> takes the following action:</p>
+
+<ul>
+
+<p>First it executes all DTPC events scheduled to occur at any time up to the current moment:</p>
+
+<ul>
+
+<p>DTPC ADUs for which an expected positive acknowledgment has not yet arrived are retransmitted.</p>
+
+<p>Received DTPC ADUs whose time to live has elapsed are deleted.</p>
+
+</ul>
+
+<p>Then <b>dtpcclock</b> increases the ages of all DTPC ADUs pending transmission and initiates transmission of each such ADU whose age now equals or exceeds its aggregation time limit.</p>
+
+</ul>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0"><code>0</code></dt>
+<dd>
+
+<p><b>dtpcclock</b> terminated, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>dtpcadmin</b> to restart <b>dtpcclock</b>.</p>
+
+</dd>
+<dt id="pod1"><code>1</code></dt>
+<dd>
+
+<p><b>dtpcclock</b> was unable to attach to DTPC protocol operations, probably because <b>dtpcadmin</b> has not yet been run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="dtpcclock-cant-initialize-DTPC">dtpcclock can&#39;t initialize DTPC.</dt>
+<dd>
+
+<p><b>dtpcadmin</b> has not yet initialized DTPC protocol operations.</p>
+
+</dd>
+<dt id="Cant-send-finished-adu">Can&#39;t send finished adu.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>dtpcclock</b> terminates.</p>
+
+</dd>
+<dt id="Cant-stop-aggregation-for-adu">Can&#39;t stop aggregation for adu.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>dtpcclock</b> terminates.</p>
+
+</dd>
+<dt id="Could-not-scan-outbound-Adus">Could not scan outbound Adus</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>dtpcclock</b> terminates.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>dtpcadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

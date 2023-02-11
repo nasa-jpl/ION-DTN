@@ -1,0 +1,149 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>amsmib - Asynchronous Message Service (AMS) MIB update utility</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>amsmib - Asynchronous Message Service (AMS) MIB update utility</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>amsmib</b> <i>application_name</i> <i>authority_name</i> <i>role_name</i> <i>continuum_name</i> <i>unit_name</i> <i>file_name</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>amsmib</b> is a utility program that announces relatively brief Management Information Base (MIB) updates to a select population of AMS modules. Because <b>amsd</b> processes may run AAMS modules in background threads, and because a single MIB is shared in common among all threads of any process, <b>amsmib</b> may update the MIBs used by registrars and/or configuration servers as well.</p>
+
+<p>MIB updates can only be propagated to modules for which the subject &quot;amsmib&quot; was defined in the MIB initialization files cited at module registration time. All ION AMS modules implicitly invite messages on subject &quot;amsmib&quot; (from all modules registered in role &quot;amsmib&quot; in all continua of the same venture) at registration time if subject &quot;amsmib&quot; and role &quot;amsmib&quot; are defined in the MIB.</p>
+
+<p><b>amsmib</b> registers in the root cell of the message space identified by <i>application_name</i> and <i>authority_name</i>, within the local continuum. It registers in the role &quot;amsmib&quot;; if this role is not defined in the (initial) MIB loaded by <b>amsmib</b> at registration time, then registration fails and <b>amsmib</b> terminates.</p>
+
+<p><b>amsmib</b> then reads into a memory buffer up to 4095 bytes of MIB update text from the file identified by <i>file_name</i>. The MIB update text must conform to amsxml(5) or amsrc(5) syntax, depending on whether or not the intended recipient modules were compiled with the -DNOEXPAT option.</p>
+
+<p><b>amsmib</b> then &quot;announces&quot; (see ams_announce() in ams(3)) the contents of the memory buffer to all modules of this same venture (identified by <i>application_name</i> and <i>authority_name</i>) that registered in the indicated role, in the indicated unit of the indicated continuum. If <i>continuum_name</i> is &quot;&quot; then the message will be sent to modules in all continua. If <i>role_name</i> is &quot;&quot; then all modules will be eligible to receive the message, regardless of the role in which they registered. If <i>unit_name</i> is &quot;&quot; (the root unit) then all modules will be eligible to receive the message, regardless of the unit in which they registered.</p>
+
+<p>Upon reception of the announced message, each destination module will apply all of the MIB updates in the content of the message, in exactly the same way that its original MIB was loaded from the MIB initialization file when the module started running.</p>
+
+<p>If multiple modules are running in the same memory space (e.g., in different threads of the same process, or in different tasks on the same VxWorks target) then the updates will be applied multiple times, because all modules in the same memory space share a single MIB. MIB updates are idempotent, so this is harmless (though some diagnostics may be printed).</p>
+
+<p>Moreover, an <b>amsd</b> daemon will have a relevant &quot;MIB update&quot; module running in a background thread if <i>application_name</i> and <i>authority_name</i> were cited on the command line that started the daemon (provided the role &quot;amsd&quot; was defined in the initial MIB loaded at the time <b>amsd</b> began running). The MIB exposed to the configuration server and/or registrar running in that daemon will likewise be updated upon reception of the announced message.</p>
+
+<p>The name of the subject of the announced mib update message is &quot;amsmib&quot;; if this subject is not defined in the (initial) MIB loaded by <b>amsmib</b> then the message cannot be announced. Nor can any potential recipient module receive the message if subject &quot;amsmib&quot; is not defined in that module&#39;s MIB.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>amsmib</b> terminated normally.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p>An anomalous exit status, indicating that <b>amsmib</b> failed to register.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>A MIB initialization file with the applicable default name (see amsrc(5) and amsxml(5)) must be present.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="amsmib-subject-undefined">amsmib subject undefined.</dt>
+<dd>
+
+<p>The <b>amsmib</b> utility was unable to announce the MIB update message.</p>
+
+</dd>
+<dt id="amsmib-domain-role-unknown">amsmib domain role unknown.</dt>
+<dd>
+
+<p>The <b>amsmib</b> utility was unable to announce the MIB update message.</p>
+
+</dd>
+<dt id="amsmib-domain-continuum-unknown">amsmib domain continuum unknown.</dt>
+<dd>
+
+<p>The <b>amsmib</b> utility was unable to announce the MIB update message.</p>
+
+</dd>
+<dt id="amsmib-domain-unit-unknown">amsmib domain unit unknown.</dt>
+<dd>
+
+<p>The <b>amsmib</b> utility was unable to announce the MIB update message.</p>
+
+</dd>
+<dt id="amsmib-cant-open-MIB-file">amsmib can&#39;t open MIB file.</dt>
+<dd>
+
+<p>The <b>amsmib</b> utility was unable to construct the MIB update message.</p>
+
+</dd>
+<dt id="MIB-file-length-4096">MIB file length &gt; 4096.</dt>
+<dd>
+
+<p>The MIB update text file was too long to fit into the <b>amsmib</b> message buffer.</p>
+
+</dd>
+<dt id="Cant-seek-to-end-of-MIB-file">Can&#39;t seek to end of MIB file.</dt>
+<dd>
+
+<p>I/O error in processing the MIB update text file.</p>
+
+</dd>
+<dt id="Cant-read-MIB-file">Can&#39;t read MIB file.</dt>
+<dd>
+
+<p>I/O error in processing the MIB update text file.</p>
+
+</dd>
+<dt id="amsmib-cant-announce-amsmib-message">amsmib can&#39;t announce &#39;amsmib&#39; message.</dt>
+<dd>
+
+<p>The <b>amsmib</b> utility was unable to announce the MIB update message, for reasons noted in the log file.</p>
+
+</dd>
+<dt id="amsmib-cant-register">amsmib can&#39;t register.</dt>
+<dd>
+
+<p>The <b>amsmib</b> utility failed to register, for reasons noted in the log file.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>amsd(1), ams(3), amsrc(5), amsxml(5)</p>
+
+
+</body>
+
+</html>
+
+

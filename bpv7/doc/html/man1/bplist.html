@@ -1,0 +1,85 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bplist - Bundle Protocol (BP) utility for listing queued bundles</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bplist - Bundle Protocol (BP) utility for listing queued bundles</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bplist</b> [{count | detail} [<i>destination_EID</i>[/<i>priority</i>]]]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bplist</b> is a utility program that reports on bundles that currently reside in the local node, as identified by entries in the local bundle agent&#39;s &quot;timeline&quot; list.</p>
+
+<p>Either a count of bundles or a detailed list of bundles (noting primary block information together with hex and ASCII dumps of the payload and all extension blocks, in expiration-time sequence) may be requested.</p>
+
+<p>Either all bundles or just a subset of bundles - restricted to bundles for a single destination endpoint, or to bundles of a given level of priority that are all destined for some specified endpoint - may be included in the report.</p>
+
+<p>By default, <b>bplist</b> prints a detailed list of all bundles residing in the local node.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bplist</b> terminated, for reasons noted in the <b>ion.log</b> file.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bplist</b> was unable to attach to Bundle Protocol operations, probably because <b>bpadmin</b> has not yet been run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="Cant-attach-to-BP">Can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized BP operations.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpclock(1)</p>
+
+
+</body>
+
+</html>
+
+

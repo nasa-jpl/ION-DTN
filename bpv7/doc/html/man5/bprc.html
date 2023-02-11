@@ -1,0 +1,465 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bprc - Bundle Protocol management commands file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bprc - Bundle Protocol management commands file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>Bundle Protocol management commands are passed to <b>bpadmin</b> either in a file of text lines or interactively at <b>bpadmin</b>&#39;s command prompt (:). Commands are interpreted line-by line, with exactly one command per line. The formats and effects of the Bundle Protocol management commands are described below.</p>
+
+<h1 id="GENERAL-COMMANDS">GENERAL COMMANDS</h1>
+
+<dl>
+
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>h</b> command.</p>
+
+</dd>
+<dt id="pod1"><b>#</b></dt>
+<dd>
+
+<p>Comment line. Lines beginning with <b>#</b> are not interpreted.</p>
+
+</dd>
+<dt id="e-1-0"><b>e</b> { 1 | 0 }</dt>
+<dd>
+
+<p>Echo control. Setting echo to 1 causes all output printed by bpadmin to be logged as well as sent to stdout. Setting echo to 0 disables this behavior.</p>
+
+</dd>
+<dt id="v"><b>v</b></dt>
+<dd>
+
+<p>Version number. Prints out the version of ION currently installed and the crypto suite BP was compiled with. HINT: combine with <b>e 1</b> command to log the version number at startup.</p>
+
+</dd>
+<dt id="pod11"><b>1</b></dt>
+<dd>
+
+<p>The <b>initialize</b> command. Until this command is executed, Bundle Protocol is not in operation on the local ION node and most <i>bpadmin</i> commands will fail.</p>
+
+</dd>
+<dt id="r-command_text"><b>r</b> &#39;<i>command_text</i>&#39;</dt>
+<dd>
+
+<p>The <b>run</b> command. This command will execute <i>command_text</i> as if it had been typed at a console prompt. It is used to, for example, run another administrative program.</p>
+
+</dd>
+<dt id="s"><b>s</b></dt>
+<dd>
+
+<p>The <b>start</b> command. This command starts all schemes and all protocols on the local node.</p>
+
+</dd>
+<dt id="m-heapmax-max_database_heap_per_acquisition"><b>m heapmax</b> <i>max_database_heap_per_acquisition</i></dt>
+<dd>
+
+<p>The <b>manage heap for bundle acquisition</b> command. This command declares the maximum number of bytes of SDR heap space that will be occupied by any single bundle acquisition activity (nominally the acquisition of a single bundle, but this is at the discretion of the convergence-layer input task). All data acquired in excess of this limit will be written to a temporary file pending extraction and dispatching of the acquired bundle or bundles. Default is the minimum allowed value (560 bytes), which is the approximate size of a ZCO file reference object; this is the minimum SDR heap space occupancy in the event that all acquisition is into a file.</p>
+
+</dd>
+<dt id="m-maxcount-max_value_of_bundle_ID_sequence_nbr"><b>m maxcount</b> <i>max_value_of_bundle_ID_sequence_nbr</i></dt>
+<dd>
+
+<p>The <b>manage maximum bundle ID sequence number</b> command. This command sets the maximum value that will be assigned as the sequence number in a bundle ID for any bundle sourced at a node that lacks a synchronized clock (such that the creation time in the ID of every locally sourced bundle is always zero). The default value is -1, i.e., unlimited.</p>
+
+</dd>
+<dt id="x"><b>x</b></dt>
+<dd>
+
+<p>The <b>stop</b> command. This command stops all schemes and all protocols on the local node.</p>
+
+</dd>
+<dt id="w-0-1-activity_spec"><b>w</b> { 0 | 1 | <i>activity_spec</i> }</dt>
+<dd>
+
+<p>The <b>BP watch</b> command. This command enables and disables production of a continuous stream of user-selected Bundle Protocol activity indication characters. A watch parameter of &quot;1&quot; selects all BP activity indication characters; &quot;0&quot; de-selects all BP activity indication characters; any other <i>activity_spec</i> such as &quot;acz~&quot; selects all activity indication characters in the string, de-selecting all others. BP will print each selected activity indication character to <b>stdout</b> every time a processing event of the associated type occurs:</p>
+
+<p><b>a</b> new bundle is queued for forwarding</p>
+
+<p><b>b</b> bundle is queued for transmission</p>
+
+<p><b>c</b> bundle is popped from its transmission queue</p>
+
+<p><b>y</b> bundle is accepted upon arrival</p>
+
+<p><b>z</b> bundle is queued for delivery to an application</p>
+
+<p><b>~</b> bundle is abandoned (discarded) on attempt to forward it</p>
+
+<p><b>!</b> bundle is destroyed due to TTL expiration</p>
+
+<p><b>#</b> bundle is queued for re-forwarding due to CL protocol failure</p>
+
+<p><b>j</b> bundle is placed in &quot;limbo&quot; for possible future re-forwarding</p>
+
+<p><b>k</b> bundle is removed from &quot;limbo&quot; and queued for re-forwarding</p>
+
+<p>Note that a slightly amended interpretation should be applied to watch characters printed in the course of multicast transmission. The &#39;~&#39; character, meaning Abandoned (node did not forward this bundle), is printed by a node that is a leaf of the multicast tree, i.e., a node with no children; it cannot forward the bundle because it&#39;s got nobody to forward it to. The &#39;!&#39; character, meaning Destroyed (node destroyed a physical copy of a bundle), is printed by a node that has forwarded copies of the bundle to all of its children and no longer needs to retain the original - so it does an immediate permanent bundle destruction just as if the bundle&#39;s time to live had expired. Neither condition is anomalous.</p>
+
+</dd>
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. This will display a listing of the commands and their formats. It is the same as the <b>?</b> command.</p>
+
+</dd>
+</dl>
+
+<h1 id="SCHEME-COMMANDS">SCHEME COMMANDS</h1>
+
+<dl>
+
+<dt id="a-scheme-scheme_name-forwarder_command-admin_app_command"><b>a scheme</b> <i>scheme_name</i> &#39;<i>forwarder_command</i>&#39; &#39;<i>admin_app_command</i>&#39;</dt>
+<dd>
+
+<p>The <b>add scheme</b> command. This command declares an endpoint naming &quot;scheme&quot; for use in endpoint IDs, which are structured as URIs: <i>scheme_name</i>:<i>scheme-specific_part</i>. <i>forwarder_command</i> will be executed when the scheme is started on this node, to initiate operation of a forwarding daemon for this scheme. <i>admin_app_command</i> will also be executed when the scheme is started on this node, to initiate operation of a daemon that opens a custodian endpoint identified within this scheme so that it can receive and process custody signals and bundle status reports.</p>
+
+</dd>
+<dt id="c-scheme-scheme_name-forwarder_command-admin_app_command"><b>c scheme</b> <i>scheme_name</i> &#39;<i>forwarder_command</i>&#39; &#39;<i>admin_app_command</i>&#39;</dt>
+<dd>
+
+<p>The <b>change scheme</b> command. This command sets the indicated scheme&#39;s <i>forwarder_command</i> and <i>admin_app_command</i> to the strings provided as arguments.</p>
+
+</dd>
+<dt id="d-scheme-scheme_name"><b>d scheme</b> <i>scheme_name</i></dt>
+<dd>
+
+<p>The <b>delete scheme</b> command. This command deletes the scheme identified by <i>scheme_name</i>. The command will fail if any bundles identified in this scheme are pending forwarding, transmission, or delivery.</p>
+
+</dd>
+<dt id="i-scheme-scheme_name"><b>i scheme</b> <i>scheme_name</i></dt>
+<dd>
+
+<p>This command will print information (number and commands) about the endpoint naming scheme identified by <i>scheme_name</i>.</p>
+
+</dd>
+<dt id="l-scheme"><b>l scheme</b></dt>
+<dd>
+
+<p>This command lists all declared endpoint naming schemes.</p>
+
+</dd>
+<dt id="s-scheme-scheme_name"><b>s scheme</b> <i>scheme_name</i></dt>
+<dd>
+
+<p>The <b>start scheme</b> command. This command starts the forwarder and administrative endpoint tasks for the indicated scheme task on the local node.</p>
+
+</dd>
+<dt id="x-scheme-scheme_name"><b>x scheme</b> <i>scheme_name</i></dt>
+<dd>
+
+<p>The <b>stop scheme</b> command. This command stops the forwarder and administrative endpoint tasks for the indicated scheme task on the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="ENDPOINT-COMMANDS">ENDPOINT COMMANDS</h1>
+
+<dl>
+
+<dt id="a-endpoint-endpoint_ID-q-x-recv_script"><b>a endpoint</b> <i>endpoint_ID</i> { q | x } [&#39;<i>recv_script</i>&#39;]</dt>
+<dd>
+
+<p>The <b>add endpoint</b> command. This command establishes a DTN endpoint named <i>endpoint_ID</i> on the local node. The remaining parameters indicate what is to be done when bundles destined for this endpoint arrive at a time when no application has got the endpoint open for bundle reception. If &#39;x&#39;, then such bundles are to be discarded silently and immediately. If &#39;q&#39;, then such bundles are to be enqueued for later delivery and, if <i>recv_script</i> is provided, <i>recv_script</i> is to be executed.</p>
+
+</dd>
+<dt id="c-endpoint-endpoint_ID-q-x-recv_script"><b>c endpoint</b> <i>endpoint_ID</i> { q | x } [&#39;<i>recv_script</i>&#39;]</dt>
+<dd>
+
+<p>The <b>change endpoint</b> command. This command changes the action that is to be taken when bundles destined for this endpoint arrive at a time when no application has got the endpoint open for bundle reception, as described above.</p>
+
+</dd>
+<dt id="d-endpoint-endpoint_ID"><b>d endpoint</b> <i>endpoint_ID</i></dt>
+<dd>
+
+<p>The <b>delete endpoint</b> command. This command deletes the endpoint identified by <i>endpoint_ID</i>. The command will fail if any bundles are currently pending delivery to this endpoint.</p>
+
+</dd>
+<dt id="i-endpoint-endpoint_ID"><b>i endpoint</b> <i>endpoint_ID</i></dt>
+<dd>
+
+<p>This command will print information (disposition and script) about the endpoint identified by <i>endpoint_ID</i>.</p>
+
+</dd>
+<dt id="l-endpoint"><b>l endpoint</b></dt>
+<dd>
+
+<p>This command lists all local endpoints, regardless of scheme name.</p>
+
+</dd>
+</dl>
+
+<h1 id="PROTOCOL-COMMANDS">PROTOCOL COMMANDS</h1>
+
+<dl>
+
+<dt id="a-protocol-protocol_name-protocol_class"><b>a protocol</b> <i>protocol_name</i> [<i>protocol_class</i>]</dt>
+<dd>
+
+<p>The <b>add protocol</b> command. This command establishes access to the named convergence layer protocol at the local node.</p>
+
+<p>The optional <i>protocol_class</i> argument indicates the reliability of the protocol. The value 1 indicates that the protocol natively supports bundle streaming; currently the only protocol in class 1 is BSSP. The value 2 indicates that the protocol performs no retransmission; an example is UDP. The value 8 (which is the default) indicates that the protocol detects data loss and automatically retransmits data accordingly; an example is TCP. Protocol class need not be specified when <i>protocol_name</i> is bssp, udp, tcp, stcp, brss, brsc, or ltp, as the protocol classes for these well-known protocols are hard-coded in ION.</p>
+
+<p>In earlier versions of ION this command took two additional arguments, <i>payload_bytes_per_frame</i> and <i>overhead_bytes_per_frame</i>. These arguments are deprecated. BP configuration files that include <b>a protocol</b> commands in the old format will be processed correctly; the deprecated arguments will simply be ignored.</p>
+
+</dd>
+<dt id="d-protocol-protocol_name"><b>d protocol</b> <i>protocol_name</i></dt>
+<dd>
+
+<p>The <b>delete protocol</b> command. This command deletes the convergence layer protocol identified by <i>protocol_name</i>. The command will fail if any ducts are still locally declared for this protocol.</p>
+
+</dd>
+<dt id="i-protocol-protocol_name"><b>i protocol</b> <i>protocol_name</i></dt>
+<dd>
+
+<p>This command will print information about the convergence layer protocol identified by <i>protocol_name</i>.</p>
+
+</dd>
+<dt id="l-protocol"><b>l protocol</b></dt>
+<dd>
+
+<p>This command lists all convergence layer protocols that can currently be utilized at the local node.</p>
+
+</dd>
+<dt id="s-protocol-protocol_name"><b>s protocol</b> <i>protocol_name</i></dt>
+<dd>
+
+<p>The <b>start protocol</b> command. This command starts all induct and outduct tasks for inducts and outducts that have been defined for the indicated CL protocol on the local node.</p>
+
+</dd>
+<dt id="x-protocol-protocol_name"><b>x protocol</b> <i>protocol_name</i></dt>
+<dd>
+
+<p>The <b>stop protocol</b> command. This command stops all induct and outduct tasks for inducts and outducts that have been defined for the indicated CL protocol on the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="INDUCT-COMMANDS">INDUCT COMMANDS</h1>
+
+<dl>
+
+<dt id="a-induct-protocol_name-duct_name-CLI_command"><b>a induct</b> <i>protocol_name</i> <i>duct_name</i> &#39;<i>CLI_command</i>&#39;</dt>
+<dd>
+
+<p>The <b>add induct</b> command. This command establishes a &quot;duct&quot; for reception of bundles via the indicated CL protocol. The duct&#39;s data acquisition structure is used and populated by the &quot;induct&quot; task whose operation is initiated by <i>CLI_command</i> at the time the duct is started.</p>
+
+</dd>
+<dt id="c-induct-protocol_name-duct_name-CLI_command"><b>c induct</b> <i>protocol_name</i> <i>duct_name</i> &#39;<i>CLI_command</i>&#39;</dt>
+<dd>
+
+<p>The <b>change induct</b> command. This command changes the command that is used to initiate operation of the induct task for the indicated duct.</p>
+
+</dd>
+<dt id="d-induct-protocol_name-duct_name"><b>d induct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>delete induct</b> command. This command deletes the induct identified by <i>protocol_name</i> and <i>duct_name</i>. The command will fail if any bundles are currently pending acquisition via this induct.</p>
+
+</dd>
+<dt id="i-induct-protocol_name-duct_name"><b>i induct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>This command will print information (the CLI command) about the induct identified by <i>protocol_name</i> and <i>duct_name</i>.</p>
+
+</dd>
+<dt id="l-induct-protocol_name"><b>l induct</b> [<i>protocol_name</i>]</dt>
+<dd>
+
+<p>If <i>protocol_name</i> is specified, this command lists all inducts established locally for the indicated CL protocol. Otherwise it lists all locally established inducts, regardless of protocol.</p>
+
+</dd>
+<dt id="s-induct-protocol_name-duct_name"><b>s induct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>start induct</b> command. This command starts the indicated induct task as defined for the indicated CL protocol on the local node.</p>
+
+</dd>
+<dt id="x-induct-protocol_name-duct_name"><b>x induct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>stop induct</b> command. This command stops the indicated induct task as defined for the indicated CL protocol on the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="OUTDUCT-COMMANDS">OUTDUCT COMMANDS</h1>
+
+<dl>
+
+<dt id="a-outduct-protocol_name-duct_name-CLO_command-max_payload_length"><b>a outduct</b> <i>protocol_name</i> <i>duct_name</i> &#39;<i>CLO_command</i>&#39; [<i>max_payload_length</i>]</dt>
+<dd>
+
+<p>The <b>add outduct</b> command. This command establishes a &quot;duct&quot; for transmission of bundles via the indicated CL protocol. The duct&#39;s data transmission structure is serviced by the &quot;outduct&quot; task whose operation is initiated by <i>CLO_command</i> at the time the duct is started. A value of zero for <i>max_payload_length</i> indicates that bundles of any size can be accommodated; this is the default.</p>
+
+</dd>
+<dt id="c-outduct-protocol_name-duct_name-CLO_command-max_payload_length"><b>c outduct</b> <i>protocol_name</i> <i>duct_name</i> &#39;<i>CLO_command</i>&#39; [<i>max_payload_length</i>]</dt>
+<dd>
+
+<p>The <b>change outduct</b> command. This command sets new values for the indicated duct&#39;s payload size limit and the command that is used to initiate operation of the outduct task for this duct.</p>
+
+</dd>
+<dt id="d-outduct-protocol_name-duct_name"><b>d outduct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>delete outduct</b> command. This command deletes the outduct identified by <i>protocol_name</i> and <i>duct_name</i>. The command will fail if any bundles are currently pending transmission via this outduct.</p>
+
+</dd>
+<dt id="i-outduct-protocol_name-duct_name"><b>i outduct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>This command will print information (the CLO command) about the outduct identified by <i>protocol_name</i> and <i>duct_name</i>.</p>
+
+</dd>
+<dt id="l-outduct-protocol_name"><b>l outduct</b> [<i>protocol_name</i>]</dt>
+<dd>
+
+<p>If <i>protocol_name</i> is specified, this command lists all outducts established locally for the indicated CL protocol. Otherwise it lists all locally established outducts, regardless of protocol.</p>
+
+</dd>
+<dt id="s-outduct-protocol_name-duct_name"><b>s outduct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>start outduct</b> command. This command starts the indicated outduct task as defined for the indicated CL protocol on the local node.</p>
+
+</dd>
+<dt id="x-outduct-protocol_name-duct_name"><b>x outduct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>stop outduct</b> command. This command stops the indicated outduct task as defined for the indicated CL protocol on the local node.</p>
+
+</dd>
+</dl>
+
+<h1 id="EGRESS-PLAN-COMMANDS">EGRESS PLAN COMMANDS</h1>
+
+<dl>
+
+<dt id="a-plan-endpoint_name-transmission_rate"><b>a plan</b> <i>endpoint_name</i> [<i>transmission_rate</i>]</dt>
+<dd>
+
+<p>The <b>add plan</b> command. This command establishes an egress plan governing transmission to the neighboring node[s] identified by <i>endpoint_name</i>. The plan is functionally enacted by a bpclm(1) daemon dedicated to managing bundles queued for transmission to the indicated neighboring node[s].</p>
+
+<p>NOTE that these &quot;plan&quot; commands supersede and generalize the egress plan commands documented in the ipnrc(5) and dtn2rc(5) man pages, which are retained for backward compatibility. <b>The syntax of the egress plan commands consumed by bpadmin is DIFFERENT from that of the commands consumed by ipnadmin and dtn2admin.</b> The <i>endpoint_name</i> identifying an egress plan is normally the node ID for a single node but may instead be &quot;wild-carded&quot;. That is, when the last character of an endpoint name ID is either &#39;*&#39; or &#39;~&#39; (these two wild-card characters are equivalent for this purpose), the plan applies to all nodes whose IDs are identical to the wild-carded node name up to the wild-card character. For example, a bundle whose destination EID name is &quot;dtn://foghorn&quot; would be routed by plans citing the following node IDs: &quot;dtn://foghorn&quot;, &quot;dtn://fogh*&quot;, &quot;dtn://fog~&quot;, &quot;//*&quot;. When multiple plans are all applicable to the same destination EID, the one citing the longest (i.e., most narrowly targeted) node ID will be applied.</p>
+
+<p>An egress plan may direct that bundles queued for transmission to the node[s] matching <i>endpoint_name</i> be transmitted using one of the convergence-layer protocol &quot;outducts&quot; that have been attached to the plan, or instead that those bundles be routed to some other &quot;gateway&quot; endpoint (resulting in transmission according to some other egress plan). In the event that both a gateway endpoint and one or more outducts have been declared for a given plan, the gateway declaration prevails.</p>
+
+<p>A <i>transmission_rate</i> may be asserted for an egress plan; this rate is used as the basis for transmission rate control in the absence of applicable contacts (in the node&#39;s contact plan, as per ionrc(5)). A transmission rate of zero (absent applicable contacts) disables rate control completely; this is the default.</p>
+
+</dd>
+<dt id="c-plan-endpoint_name-transmission_rate"><b>c plan</b> <i>endpoint_name</i> [<i>transmission_rate</i>]</dt>
+<dd>
+
+<p>The <b>change plan</b> command. This command sets a new value for the indicated plan&#39;s transmission rate.</p>
+
+</dd>
+<dt id="d-plan-endpoint_name"><b>d plan</b> <i>endpoint_name</i></dt>
+<dd>
+
+<p>The <b>delete plan</b> command. This command deletes the plan identified by <i>endpoint_name</i>. The command will fail if any bundles are currently pending transmission per this plan.</p>
+
+</dd>
+<dt id="i-plan-endpoint_name"><b>i plan</b> <i>endpoint_name</i></dt>
+<dd>
+
+<p>This command will print information (the transmission rate) about the plan identified by <i>endpoint_name</i>.</p>
+
+</dd>
+<dt id="l-plan"><b>l plan</b></dt>
+<dd>
+
+<p>This command lists all locally established egress plans.</p>
+
+</dd>
+<dt id="s-plan-endpoint_name"><b>s plan</b> <i>endpoint_name</i></dt>
+<dd>
+
+<p>The <b>start plan</b> command. This command starts the bpclm(1) task for the indicated egress plan.</p>
+
+</dd>
+<dt id="x-plan-endpoint_name"><b>x plan</b> <i>endpoint_name</i></dt>
+<dd>
+
+<p>The <b>stop plan</b> command. This command stops the bpclm(1) task for the indicated egress plan.</p>
+
+</dd>
+<dt id="b-plan-endpoint_name"><b>b plan</b> <i>endpoint_name</i></dt>
+<dd>
+
+<p>The <b>block plan</b> command. This command disables transmission of bundles queued for transmission to the indicated node and reforwards all non-critical bundles currently queued for transmission to this node. This may result in some or all of these bundles being enqueued for transmission (actually just retention) to the pseudo-node &quot;limbo&quot;.</p>
+
+</dd>
+<dt id="u-plan-endpoint_name"><b>u plan</b> <i>endpoint_name</i></dt>
+<dd>
+
+<p>The <b>unblock plan</b> command. This command re-enables transmission of bundles to the indicated node and reforwards all bundles in &quot;limbo&quot; in the hope that the unblocking of this egress plan will enable some of them to be transmitted.</p>
+
+</dd>
+<dt id="g-plan-endpoint_name-gateway_endpoint_name"><b>g plan</b> <i>endpoint_name</i> <i>gateway_endpoint_name</i></dt>
+<dd>
+
+<p>The <b>declare gateway</b> command. This command declares the name of the endpoint to which bundles queued for transmission to the node[s] identified by <i>endpoint_name</i> must be re-routed. Declaring <i>gateway_endpoint_name</i> to be the zero-length string &quot;&#39;&#39;&quot; disables re-routing: bundles will instead be transmitted using the plan&#39;s attached convergence-layer protocol outduct[s].</p>
+
+</dd>
+<dt id="a-planduct-endpoint_name-protocol_name-duct_name"><b>a planduct</b> <i>endpoint_name</i> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>attach outduct</b> command. This command declares that the indicated convergence-layer protocol outduct is now a viable device for transmitting bundles to the node[s] identified by <i>endpoint_name</i>.</p>
+
+</dd>
+<dt id="d-planduct-protocol_name-duct_name"><b>d planduct</b> <i>protocol_name</i> <i>duct_name</i></dt>
+<dd>
+
+<p>The <b>detach outduct</b> command. This command declares that the indicated convergence-layer protocol outduct is no longer a viable device for transmitting bundles to the node[s] to which it is currently assigned.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="a-scheme-ipn-ipnfw-ipnadminep">a scheme ipn &#39;ipnfw&#39; &#39;ipnadminep&#39;</dt>
+<dd>
+
+<p>Declares the &quot;ipn&quot; scheme on the local node.</p>
+
+</dd>
+<dt id="a-protocol-udp-1400-100-16384">a protocol udp 1400 100 16384</dt>
+<dd>
+
+<p>Establishes access to the &quot;udp&quot; convergence layer protocol on the local node, estimating the number of payload bytes per ultimate (lowest-layer) frame to be 1400 with 100 bytes of total overhead (BP, UDP, IP, AOS) per lowest-layer frame, and setting the default nominal data rate to be 16384 bytes per second.</p>
+
+</dd>
+<dt id="r-ipnadmin-flyby.ipnrc">r &#39;ipnadmin flyby.ipnrc&#39;</dt>
+<dd>
+
+<p>Runs the administrative program <i>ipnadmin</i> from within <i>bpadmin</i>.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), ipnadmin(1), dtn2admin(1)</p>
+
+
+</body>
+
+</html>
+
+

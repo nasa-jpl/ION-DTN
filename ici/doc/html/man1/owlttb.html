@@ -1,0 +1,225 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>owlttb - one-way light time transmission delay simulator</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>owlttb - one-way light time transmission delay simulator</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>owlttb</b> <i>own_uplink_port#</i> <i>own_downlink_port#</i> <i>dest_uplink_IP_address</i> <i>dest_uplink_port#</i> <i>dest_downlink_IP_address</i> <i>dest_downlink_port#</i> <i>owlt_sec.</i> [-v]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>owlttb</b> delays delivery of data between an NTTI and a NetAcquire box (or two, one for uplink and one for downlink) by a specified length of time, simulating the signal propagation delay imposed by distance between the nodes.</p>
+
+<p>Its operation is configured by the command-line parameters, except that the delay interval itself may be changed while the program is running. <b>owlttb</b> offers a command prompt (:), and when a new value of one-way light time is entered at this prompt the new delay interval takes effect immediately.</p>
+
+<dl>
+
+<dt id="own_uplink_port-identifies-the-port-on-owlttb-accepts-the-NTTIs-TCP-connection-for-uplink-traffic-i.e.-data-destined-for-the-NetAcquire-box"><i>own_uplink_port#</i> identifies the port on <b>owlttb</b> accepts the NTTI&#39;s TCP connection for uplink traffic (i.e., data destined for the NetAcquire box).</dt>
+<dd>
+
+</dd>
+<dt id="own_downlink_port-identifies-the-port-on-owlttb-accepts-the-NTTIs-TCP-connection-for-downlink-traffic-i.e.-data-issued-by-the-NetAcquire-box"><i>own_downlink_port#</i> identifies the port on <b>owlttb</b> accepts the NTTI&#39;s TCP connection for downlink traffic (i.e., data issued by the NetAcquire box).</dt>
+<dd>
+
+</dd>
+<dt id="dest_uplink_IP_address-is-the-IP-address-a-dotted-string-identifying-the-NetAcquire-box-to-which-owlttb-will-transmit-uplink-traffic"><i>dest_uplink_IP_address</i> is the IP address (a dotted string) identifying the NetAcquire box to which <b>owlttb</b> will transmit uplink traffic.</dt>
+<dd>
+
+</dd>
+<dt id="dest_uplink_port-identifies-the-TCP-port-to-which-owlttb-will-connect-in-order-to-transmit-uplink-traffic-to-NetAcquire"><i>dest_uplink_port#</i> identifies the TCP port to which <b>owlttb</b> will connect in order to transmit uplink traffic to NetAcquire.</dt>
+<dd>
+
+</dd>
+<dt id="dest_downlink_IP_address-is-the-IP-address-a-dotted-string-identifying-the-NetAcquire-box-from-which-owlttb-will-receive-downlink-traffic"><i>dest_downlink_IP_address</i> is the IP address (a dotted string) identifying the NetAcquire box from which <b>owlttb</b> will receive downlink traffic.</dt>
+<dd>
+
+</dd>
+<dt id="dest_downlink_port-identifies-the-TCP-port-to-which-owlttb-will-connect-in-order-to-receive-downlink-traffic-from-NetAcquire"><i>dest_downlink_port#</i> identifies the TCP port to which <b>owlttb</b> will connect in order to receive downlink traffic from NetAcquire.</dt>
+<dd>
+
+</dd>
+<dt id="owlt-specifies-the-number-of-seconds-to-wait-before-forwarding-each-received-segment-of-TCP-traffic"><i>owlt</i> specifies the number of seconds to wait before forwarding each received segment of TCP traffic.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p>The optional <b>-v</b> (&quot;verbose&quot;) parameter causes <b>owlttb</b> to print a message whenever it receives, sends, or discards (due to absence of a connected downlink client) a segment of TCP traffic.</p>
+
+<p><b>owlttb</b> is designed to run indefinitely. To terminate the program, just use control-C to kill it or enter &quot;q&quot; at the prompt.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="Nominal-termination">&quot;0&quot; Nominal termination.</dt>
+<dd>
+
+</dd>
+<dt id="Termination-due-to-an-error-condition-as-noted-in-printed-messages">&quot;1&quot; Termination due to an error condition, as noted in printed messages.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<p>Here is a sample owlttb command:</p>
+
+<dl>
+
+<dt id="owlttb-2901-2902-137.7.8.19-10001-137.7.8.19-10002-75">owlttb 2901 2902 137.7.8.19 10001 137.7.8.19 10002 75</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p>This command indicates that <b>owlttb</b> will accept an uplink traffic connection on port 2901, forwarding the received uplink traffic to port 10001 on the NetAcquire box at 137.7.8.19, and it will accept a downlink traffic connection on port 2902, delivering over that connection all downlink traffic that it receives from connecting to port 10002 on the NetAcquire box at 137.7.8.19. 75 seconds of delay (simulating a distance of 75 light seconds) will be imposed on this transmission activity.</p>
+
+<h1 id="FILES">FILES</h1>
+
+<p>Not applicable.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be printed to stdout:</p>
+
+<dl>
+
+<dt id="owlttb-cant-spawn-uplink-thread">owlttb can&#39;t spawn uplink thread</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-spawn-uplink-sender-thread">owlttb can&#39;t spawn uplink sender thread</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-spawn-downlink-thread">owlttb can&#39;t spawn downlink thread</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-spawn-downlink-receiver-thread">owlttb can&#39;t spawn downlink receiver thread</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-spawn-downlink-sender-thread">owlttb can&#39;t spawn downlink sender thread</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-fgets-failed">owlttb fgets failed</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-out-of-memory">owlttb out of memory.</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-lost-uplink-client">owlttb lost uplink client.</dt>
+<dd>
+
+<p>This is an informational message. The NTTI may reconnect at any time.</p>
+
+</dd>
+<dt id="owlttb-lost-downlink-client">owlttb lost downlink client</dt>
+<dd>
+
+<p>This is an informational message. The NTTI may reconnect at any time.</p>
+
+</dd>
+<dt id="owlttb-cant-open-TCP-socket-to-NetAcquire">owlttb can&#39;t open TCP socket to NetAcquire</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-connect-TCP-socket-to-NetAcquire">owlttb can&#39;t connect TCP socket to NetAcquire</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-write-error-on-socket">owlttb write() error on socket</dt>
+<dd>
+
+<p>The program terminates if it was writing to NetAcquire; otherwise it simply recognizes that the client NTTI has disconnected.</p>
+
+</dd>
+<dt id="owlttb-read-error-on-socket">owlttb read() error on socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-open-uplink-dialup-socket">owlttb can&#39;t open uplink dialup socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-initialize-uplink-dialup-socket">owlttb can&#39;t initialize uplink dialup socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-open-downlink-dialup-socket">owlttb can&#39;t open downlink dialup socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-cant-initialize-downlink-dialup-socket">owlttb can&#39;t initialize downlink dialup socket</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+<dt id="owlttb-accept-failed">owlttb accept() failed</dt>
+<dd>
+
+<p>The program terminates.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+
+</body>
+
+</html>
+
+

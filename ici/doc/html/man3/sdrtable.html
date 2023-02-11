@@ -1,0 +1,93 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>sdrtable - Simple Data Recorder table management functions</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>sdrtable - Simple Data Recorder table management functions</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    #include &quot;sdr.h&quot;
+
+    Object  sdr_table_create        (Sdr sdr, int rowSize, int rowCount);
+    int     sdr_table_user_data_set (Sdr sdr, Object table, Address userData);
+    Address sdr_table_user_data     (Sdr sdr, Object table);
+    int     sdr_table_dimensions    (Sdr sdr, Object table, int *rowSize, 
+                                        int *rowCount);
+    int     sdr_table_stage         (Sdr sdr, Object table);
+    Address sdr_table_row           (Sdr sdr, Object table, 
+                                        unsigned int rowNbr);
+    int     sdr_table_destroy       (Sdr sdr, Object table);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The SDR table functions manage table objects in the SDR. An SDR table comprises N rows of M bytes each, plus optionally one word of user data (which is nominally the address of some other object in the SDR&#39;s heap space). When a table is created, the number of rows in the table and the length of each row are specified; they remain fixed for the life of the table. The table functions merely maintain information about the table structure and its location in the SDR and calculate row addresses; other SDR functions such as sdr_read() and sdr_write() are used to read and write the contents of the table&#39;s rows. In particular, the format of the rows of a table is left entirely up to the user.</p>
+
+<dl>
+
+<dt id="Object-sdr_table_create-Sdr-sdr-int-rowSize-int-rowCount">Object sdr_table_create(Sdr sdr, int rowSize, int rowCount)</dt>
+<dd>
+
+<p>Creates a &quot;self-delimited table&quot;, comprising <i>rowCount</i> rows of <i>rowSize</i> bytes each, in the heap space of the indicated SDR. Note that the content of the table, a two-dimensional array, is a single SDR heap space object of size (<i>rowCount</i> x <i>rowSize</i>). Returns the address of the new table on success, zero on any error.</p>
+
+</dd>
+<dt id="void-sdr_table_user_data_set-Sdr-sdr-Object-table-Address-userData">void sdr_table_user_data_set(Sdr sdr, Object table, Address userData)</dt>
+<dd>
+
+<p>Sets the &quot;user data&quot; word of <i>table</i> to <i>userData</i>. Note that <i>userData</i> is nominally an Address but can in fact be any value that occupies a single word. It is typically used to point to an SDR object that somehow characterizes the table as a whole, such as an SDR string containing a name.</p>
+
+</dd>
+<dt id="Address-sdr_table_user_data-Sdr-sdr-Object-table">Address sdr_table_user_data(Sdr sdr, Object table)</dt>
+<dd>
+
+<p>Returns the value of the &quot;user data&quot; word of <i>table</i>, or zero on any error.</p>
+
+</dd>
+<dt id="void-sdr_table_dimensions-Sdr-sdr-Object-table-int-rowSize-int-rowCount">void sdr_table_dimensions(Sdr sdr, Object table, int *rowSize, int *rowCount)</dt>
+<dd>
+
+<p>Reports on the row size and row count of the indicated table, as specified when the table was created.</p>
+
+</dd>
+<dt id="void-sdr_table_stage-Sdr-sdr-Object-table">void sdr_table_stage(Sdr sdr, Object table)</dt>
+<dd>
+
+<p>Stages <i>table</i> so that the array it encapsulates may be updated; see the discussion of sdr_stage() in sdr(3). The effect of this function is the same as:</p>
+
+<pre><code>   sdr_stage(sdr, NULL, (Object) sdr_table_row(sdr, table, 0), 0)</code></pre>
+
+</dd>
+<dt id="Address-sdr_table_row-Sdr-sdr-Object-table-unsigned-int-rowNbr">Address sdr_table_row(Sdr sdr, Object table, unsigned int rowNbr)</dt>
+<dd>
+
+<p>Returns the address of the <i>rowNbr</i>th row of <i>table</i>, for use in reading or writing the content of this row; returns -1 on any error.</p>
+
+</dd>
+<dt id="void-sdr_table_destroy-Sdr-sdr-Object-table">void sdr_table_destroy(Sdr sdr, Object table)</dt>
+<dd>
+
+<p>Destroys <i>table</i>, releasing all bytes of all rows and destroying the table structure itself. DO NOT use sdr_free() to destroy a table, as this would leave the table&#39;s content allocated yet unreferenced.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>sdr(3), sdrlist(3), sdrstring(3)</p>
+
+
+</body>
+
+</html>
+
+

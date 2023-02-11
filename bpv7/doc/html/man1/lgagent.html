@@ -1,0 +1,123 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>lgagent - ION Load/Go remote agent program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>lgagent - ION Load/Go remote agent program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>lgagent</b> <i>own_endpoint_ID</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>ION Load/Go is a system for management of an ION-based network, enabling the execution of ION administrative programs at remote nodes. The system comprises two programs, <b>lgsend</b> and <b>lgagent</b>.</p>
+
+<p>The <b>lgagent</b> task on a given node opens the indicated ION endpoint for bundle reception, receives the extracted payloads of Load/Go bundles sent to it by <b>lgsend</b> as run on one or more remote nodes, and processes those payloads, which are the text of Load/Go source files.</p>
+
+<p>Load/Go source file content is limited to newline-terminated lines of ASCII characters. More specifically, the text of any Load/Go source file is a sequence of <i>line sets</i> of two types: <i>file capsules</i> and <i>directives</i>. Any Load/Go source file may contain any number of file capsules and any number of directives, freely intermingled in any order, but the typical structure of a Load/Go source file is simply a single file capsule followed by a single directive.</p>
+
+<p>When <b>lgagent</b> identifies a file capsule, it copies all of the capsule&#39;s text lines to a new file that it creates in the current working directory. When <b>lgagent</b> identifies a directive, it executes the directive by passing the text of the directive to the pseudoshell() function (see platform(3)). <b>lgagent</b> processes the line sets of a Load/Go source file in the order in which they appear in the file, so the text of a directive may reference a file that was created as the result of processing a prior file capsule in the same source file.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p>Load/Go remote agent processing has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p><b>lgfile</b> contains the Load/Go file capsules and directives that are to be processed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="lgagent:-cant-attach-to-BP">lgagent: can&#39;t attach to BP.</dt>
+<dd>
+
+<p>Bundle Protocol is not running on this computer. Run bpadmin(1) to start BP.</p>
+
+</dd>
+<dt id="lgagent:-cant-open-own-endpoint">lgagent: can&#39;t open own endpoint.</dt>
+<dd>
+
+<p><i>own_endpoint_ID</i> is not a declared endpoint on the local ION node. Run bpadmin(1) to add it.</p>
+
+</dd>
+<dt id="lgagent:-bundle-reception-failed">lgagent: bundle reception failed.</dt>
+<dd>
+
+<p>ION system problem. Investigate and correct before restarting.</p>
+
+</dd>
+<dt id="lgagent-cannot-continue">lgagent cannot continue.</dt>
+<dd>
+
+<p>lgagent processing problem. See earlier diagnostic messages for details. Investigate and correct before restarting.</p>
+
+</dd>
+<dt id="lgagent:-no-space-for-bundle-content">lgagent: no space for bundle content.</dt>
+<dd>
+
+<p>ION system problem: have exhausted available SDR data store reserves.</p>
+
+</dd>
+<dt id="lgagent:-cant-receive-bundle-content">lgagent: can&#39;t receive bundle content.</dt>
+<dd>
+
+<p>ION system problem: have exhausted available SDR data store reserves.</p>
+
+</dd>
+<dt id="lgagent:-cant-handle-bundle-delivery">lgagent: can&#39;t handle bundle delivery.</dt>
+<dd>
+
+<p>ION system problem. Investigate and correct before restarting.</p>
+
+</dd>
+<dt id="lgagent:-pseudoshell-failed">lgagent: pseudoshell failed.</dt>
+<dd>
+
+<p>Error in directive line, usually an attempt to execute a non-existent administration program (e.g., a misspelled program name). Terminates processing of source file content.</p>
+
+</dd>
+</dl>
+
+<p>A variety of other diagnostics noting source file parsing problems may also be reported. These errors are non-fatal but they terminate the processing of the source file content from the most recently received bundle.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>lgsend(1), lgfile(5)</p>
+
+
+</body>
+
+</html>
+
+

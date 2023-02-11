@@ -1,0 +1,79 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>petition.log - Remote AMS petition log</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>petition.log - Remote AMS petition log</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The Remote AMS daemon <b>ramsgate</b> records all &quot;petitions&quot; (requests for data on behalf of AMS modules in other continua) in a file named <b>petition.log</b>. At startup, the <b>ramsgate</b> daemon automatically reads and processes all petitions in the <b>petition.log</b> file just as if they were received in real time, to re-establish the petition state that was in effect at the time the <b>ramsgate</b> daemon shut down. Note that this means that you can cause petitions to be, in effect, &quot;pre-received&quot; by simply editing this file prior to startup. This can be an especially effective way to configure a RAMS network in which long signal propagation times would otherwise retard real-time petitioning and thus delay the onset of fully functional message exchange.</p>
+
+<p>Entries in <b>petition.log</b> are simple ASCII text lines, with parameters separated by spaces. Each line of <b>petition.log</b> has the following parameters:</p>
+
+<dl>
+
+<dt id="protocolId">protocolId</dt>
+<dd>
+
+<p>This is a number that identifies the RAMS network protocol characterizing the network on which the petition was received: 1 == DTN Bundle Protocol, 2 = UDP.</p>
+
+</dd>
+<dt id="gatewayID">gatewayID</dt>
+<dd>
+
+<p>This is a string that identifies the remote RAMS gateway node that issued this petition.</p>
+
+</dd>
+<dt id="controlCode">controlCode</dt>
+<dd>
+
+<p>This is a number that indicates whether the petition described by this line is one that is being asserted (2) or canceled (3).</p>
+
+</dd>
+<dt id="subject">subject</dt>
+<dd>
+
+<p>A number that identifies the subject of the traffic to which the petition pertains.</p>
+
+</dd>
+<dt id="continuumNumber">continuumNumber</dt>
+<dd>
+
+<p>Identifies the continuum for the domain of the petition.</p>
+
+</dd>
+<dt id="unitNumber">unitNumber</dt>
+<dd>
+
+<p>Identifies the unit for the domain of the petition.</p>
+
+</dd>
+<dt id="roleNumber">roleNumber</dt>
+<dd>
+
+<p>Identifies the role for the domain of the petition.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ramsgate(1), ams(3)</p>
+
+
+</body>
+
+</html>
+
+

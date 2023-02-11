@@ -1,0 +1,99 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ltpclo - LTP-based BP convergence layer adapter output task</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ltpclo - LTP-based BP convergence layer adapter output task</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>ltpclo</b> <i>remote_node_nbr</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>ltpclo</b> is a background &quot;daemon&quot; task that extracts bundles from the queues of segments ready for transmission via LTP to the remote bundle protocol agent identified by <i>remote_node_nbr</i> and passes them to the local LTP engine for aggregation, segmentation, and transmission to the remote node.</p>
+
+<p><b>ltpclo</b> is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; (START) command that starts operation of the Bundle Protocol, and it is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command. <b>ltpclo</b> can also be spawned and terminated in response to START and STOP commands that pertain specifically to the LTP convergence layer protocol.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>ltpclo</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart the BRSC protocol.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>ltpclo</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bpadmin</b> to restart the BRSC protocol.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="ltpclo-cant-attach-to-BP">ltpclo can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="No-such-ltp-duct">No such ltp duct.</dt>
+<dd>
+
+<p>No LTP outduct with duct name matching <i>remote_node_nbr</i> has been added to the BP database. Use <b>bpadmin</b> to stop the LTP convergence-layer protocol, add the outduct, and then restart the LTP protocol.</p>
+
+</dd>
+<dt id="CLO-task-is-already-started-for-this-duct">CLO task is already started for this duct.</dt>
+<dd>
+
+<p>Redundant initiation of <b>ltpclo</b>.</p>
+
+</dd>
+<dt id="ltpclo-cant-initialize-LTP">ltpclo can&#39;t initialize LTP.</dt>
+<dd>
+
+<p><b>ltpadmin</b> has not yet initialized LTP operations.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bprc(5), ltpadmin(1), ltprc(5), ltpcli(1)</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,128 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>dgr - Datagram Retransmission system library</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>dgr - Datagram Retransmission system library</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    #include &quot;dgr.h&quot;
+
+    [see description for available functions]</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The DGR library is an alternative implementation of a subset of LTP, intended for use over UDP/IP in the Internet; unlike ION&#39;s canonical LTP implementation it includes a congestion control mechanism that interprets LTP block transmission failure as an indication of network congestion (not data corruption) and reduces data transmission rate in response.</p>
+
+<p>As such, DGR differs from many reliable-UDP systems in two main ways:</p>
+
+<pre><code>        It uses adaptive timeout interval computation techniques
+        borrowed from TCP to try to avoid introducing congestion
+        into the network.
+
+        It borrows the concurrent-session model of transmission
+        from LTP (and ultimately from CFDP), rather than waiting
+        for one datagram to be acknowledged before sending the next,
+        to improve bandwidth utilization.</code></pre>
+
+<p>At this time DGR is interoperable with other implementations of LTP only when each block it receives is transmitted in a single LTP data segment encapsulated in a single UDP datagram. More complex LTP behavior may be implemented in the future.</p>
+
+<dl>
+
+<dt id="int-dgr_open-uvast-ownEngineId-unsigned-int-clientSvcId-unsigned-short-ownPortNbr-unsigned-int-ownIpAddress-char-memmgrName-Dgr-dgr-DgrRC-rc">int dgr_open(uvast ownEngineId, unsigned int clientSvcId, unsigned short ownPortNbr, unsigned int ownIpAddress, char *memmgrName, Dgr *dgr, DgrRC *rc)</dt>
+<dd>
+
+<p>Establishes the application&#39;s access to DGR communication service.</p>
+
+<p><i>ownEngineId</i> is the sending LTP engine ID that will characterize segments issued by this DGR service access point. In order to prevent erroneous system behavior, never assign the same LTP engine ID to any two interoperating DGR SAPs.</p>
+
+<p><i>clientSvcId</i> identifies the LTP client service to which all LTP segments issued by this DGR service access point will be directed.</p>
+
+<p><i>ownPortNbr</i> is the port number to use for DGR service. If zero, a system-assigned UDP port number is used.</p>
+
+<p><i>ownIpAddress</i> is the Internet address of the network interface to use for DGR service. If zero, this argument defaults to the address of the interface identified by the local machine&#39;s host name.</p>
+
+<p><i>memmgrName</i> is the name of the memory manager (see memmgr(3)) to use for dynamic memory management in DGR. If NULL, defaults to the standard system malloc() and free() functions.</p>
+
+<p><i>dgr</i> is the location in which to store the service access pointer that must be supplied on subsequent DGR function invocations.</p>
+
+<p><i>rc</i> is the location in which to store the DGR return code resulting from the attempt to open this service access point (always DgrOpened).</p>
+
+<p>On any failure, returns -1. On success, returns zero.</p>
+
+</dd>
+<dt id="void-dgr_getsockname-Dgr-dgr-unsigned-short-portNbr-unsigned-int-ipAddress">void dgr_getsockname(Dgr dgr, unsigned short *portNbr, unsigned int *ipAddress)</dt>
+<dd>
+
+<p>States the port number and IP address of the UDP socket used for this DGR service access point.</p>
+
+</dd>
+<dt id="void-dgr_close-Dgr-dgr">void dgr_close(Dgr dgr)</dt>
+<dd>
+
+<p>Reverses dgr_open(), releasing resources where possible.</p>
+
+</dd>
+<dt id="int-dgr_send-Dgr-dgr-unsigned-short-toPortNbr-unsigned-int-toIpAddress-int-notificationFlags-char-content-int-length-DgrRC-rc">int dgr_send(Dgr dgr, unsigned short toPortNbr, unsigned int toIpAddress, int notificationFlags, char *content, int length, DgrRC *rc)</dt>
+<dd>
+
+<p>Sends the indicated content, of length as indicated, to the remote DGR service access point identified by <i>toPortNbr</i> and <i>toIpAddress</i>. The message will be retransmitted as necessary until either it is acknowledged or DGR determines that it cannot be delivered.</p>
+
+<p><i>notificationFlags</i>, if non-zero, is the logical OR of the notification behaviors requested for this datagram. Available behaviors are DGR_NOTE_FAILED (a notice of datagram delivery failure will issued if delivery of the datagram fails) and DGR_NOTE_ACKED (a notice of datagram delivery success will be issued if delivery of the datagram succeeds). Notices are issued via dgr_receive() that is, the thread that calls dgr_receive() on this DGR service access point will receive these notices interspersed with inbound datagram contents.</p>
+
+<p><i>length</i> of content must be greater than zero and may be as great as 65535, but lengths greater than 8192 may not be supported by the local underlying UDP implementation; to minimize the chance of data loss when transmitting over the internet, length should not exceed 512.</p>
+
+<p><i>rc</i> is the location in which to store the DGR return code resulting from the attempt to send the content.</p>
+
+<p>On any failure, returns -1 and sets <i>*rc</i> to DgrFailed. On success, returns zero.</p>
+
+</dd>
+<dt id="int-dgr_receive-Dgr-dgr-unsigned-short-fromPortNbr-unsigned-int-fromIpAddress-char-content-int-length-int-errnbr-int-timeoutSeconds-DgrRC-rc">int dgr_receive(Dgr dgr, unsigned short *fromPortNbr, unsigned int *fromIpAddress, char *content, int *length, int *errnbr, int timeoutSeconds, DgrRC *rc)</dt>
+<dd>
+
+<p>Delivers the oldest undelivered DGR event queued for delivery.</p>
+
+<p>DGR events are of two type: (a) messages received from a remote DGR service access point and (b) notices of previously sent messages that DGR has determined either have been or cannot be delivered, as requested in the <i>notificationFlags</i> parameters provided to the dgr_send() calls that sent those messages.</p>
+
+<p>In the former case, dgr_receive() will place the content of the inbound message in <i>content</i>, its length in <i>length</i>, and the IP address and port number of the sender in <i>fromIpAddress</i> and <i>fromPortNbr</i>, and it will set <i>*rc</i> to DgrDatagramReceived and return zero.</p>
+
+<p>In the latter case, dgr_receive() will place the content of the affected <b>outbound</b> message in <i>content</i> and its length in <i>length</i> and return zero. If the event being reported is a delivery success, then DgrDatagramAcknowledged will be placed in <i>*rc</i>. Otherwise, DgrDatagramNotAcknowledged will be placed in <i>*rc</i> and the relevant errno (if any) will be placed in <i>*errnbr</i>.</p>
+
+<p>The <i>content</i> buffer should be at least 65535 bytes in length to enable delivery of the content of the received or delivered/undeliverable message.</p>
+
+<p><i>timeoutSeconds</i> controls blocking behavior. If <i>timeoutSeconds</i> is DGR_BLOCKING (i.e., -1), dgr_receive() will not return until (a) there is either an inbound message to deliver or an outbound message delivery result to report, or (b) the function is interrupted by means of dgr_interrupt(). If <i>timeoutSeconds</i> is DGR_POLL (i.e., zero), dgr_receive() returns immediately; if there is currently no inbound message to deliver and no outbound message delivery result to report, the function sets <i>*rc</i> to DgrTimedOut and returns zero. For any other positive value of <i>timeoutSeconds</i>, dgr_receive() returns after the indicated number of seconds have lapsed (in which case the returned value of <i>*rc</i> is DgrTimedOut), or when there is a message to deliver or a delivery result to report, or when the function is interrupted by means of dgr_interrupt(), whichever occurs first. When the function returns due to interruption by dgr_interrupt(), the value placed in <i>*rc</i> is DgrInterrupted instead of DgrDatagramReceived.</p>
+
+<p><i>rc</i> is the location in which to store the DGR return code resulting from the attempt to receive content.</p>
+
+<p>On any I/O error or other unrecoverable system error, returns -1. Otherwise always returns zero, placing DgrFailed in <i>*rc</i> and writing a failure message in the event of an operating error.</p>
+
+</dd>
+<dt id="void-dgr_interrupt-Dgr-dgr">void dgr_interrupt(Dgr dgr)</dt>
+<dd>
+
+<p>Interrupts a dgr_receive() invocation that is currently blocked. Designed to be called from a signal handler; for this purpose, <i>dgr</i> may need to be obtained from a static variable.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ltp(3), file2dgr(1), dgr2file(1)</p>
+
+
+</body>
+
+</html>
+
+

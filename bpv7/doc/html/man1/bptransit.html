@@ -1,0 +1,85 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bptransit - Bundle Protocol (BP) daemon task for forwarding received bundles</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bptransit - Bundle Protocol (BP) daemon task for forwarding received bundles</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bptransit</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bptransit</b> is a background &quot;daemon&quot; task that is responsible for presenting to ION&#39;s forwarding daemons any bundles that were received from other nodes (i.e., bundles whose payloads reside in Inbound ZCO space) and are destined for yet other nodes. In doing so, it migrates these bundles from Inbound buffer space to Outbound buffer space on the same prioritized basis as the insertion of locally sourced outbound bundles.</p>
+
+<p>Management of the bptransit daemon is automatic. It is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; command that starts operation of Bundle Protocol on the local ION node, and it is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<p>Whenever a received bundle is determined to have a destination other than the local node, a pointer to that bundle is appended to one of two queues of &quot;in-transit&quot; bundles, one for bundles whose forwarding is provisional (depending on the availability of Outbound ZCO buffer space; bundles in this queue are potentially subject to congestion loss) and one for bundles whose forwarding is confirmed. Bundles received via convergence-layer adapters that can sustain flow control, such as STCP, are appended to the &quot;confirmed&quot; queue, while those from CLAs that cannot sustain flow control (such as LTP) are appended to the &quot;provisional&quot; queue.</p>
+
+<p><b>bptransit</b> comprises two threads, one for each in-transit queue. The confirmed in-transit thread dequeues bundles from the &quot;confirmed&quot; queue and moves them from Inbound to Outbound ZCO buffer space, blocking (if necessary) until space becomes available. The provisional in-transit queue dequeues bundles from the &quot;provisional&quot; queue and moves them from Inbound to Outbound ZCO buffer space if Outbound space is available, discarding (&quot;abandoning&quot;) them if it is not.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bptransit</b> terminated, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart <b>bptransit</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bptransit</b> was unable to attach to Bundle Protocol operations, probably because <b>bpadmin</b> has not yet been run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="bptransit-cant-attach-to-BP">bptransit can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized BP operations.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

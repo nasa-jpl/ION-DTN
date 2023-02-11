@@ -1,0 +1,165 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bibeclo - BP convergence layer output task using bundle-in-bundle encapsulation</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bibeclo - BP convergence layer output task using bundle-in-bundle encapsulation</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bibeclo</b> <i>peer_EID</i> <i>destination_EID</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bibeclo</b> is a background &quot;daemon&quot; task that extracts bundles from the queues of bundles destined for <i>destination_EID</i> that are ready for transmission via bundle-in-bundle encapsulation (BIBE) to <i>peer_EID</i>, encapsulates them in BP administrative records of (non-standard) record type 7 (BP_BIBE_PDU), and sends those administrative records in encapsulating bundles destined for <i>peer_EID</i>. The forwarding of encapsulated bundles for which custodial acknowledgment is requested causes <b>bibeclo</b> to post custodial re-forwarding timers to the node&#39;s timeline. Parameters governing the forwarding of BIBE PDUs to <i>peer_EID</i> are stipulated in the corresponding BIBE convergence-layer adapter (<b>bcla</b>) structure residing in the BIBE database, as managed by <b>bibeadmin</b>.</p>
+
+<p>The receiving node is expected to process received BIBE PDUs by simply dispatching the encapsulated bundles - whose destination is the node identified by <i>destination_EID</i> - as if they had been received from neighboring nodes in the normal course of operations; BIBE PDUs for which custodial acknowledgment was requested cause the received bundles to be noted in custody signals that are being aggregated by the receiving node.</p>
+
+<p><b>bibeclo</b> additionally sends aggregated custody signals in BP administrative records of (non-standard) record type 8 (BP_BIBE_SIGNAL) as the deadlines for custody signal transmission arrive.</p>
+
+<p>Note that the reception and processing of both encapsulated bundles and custody signals is performed by the scheme-specific administration endpoint daemon(s) at the receiving nodes. Reception of a custody signal terminates the custodial re-forwarding timers for all bundles acknowledged in that signal; the re-forwarding of bundles upon custodial re-forwarding timer expiration is initiated by the <b>bpclock</b> daemon.</p>
+
+<p><b>bibeclo</b> is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; (START) command that starts operation of the Bundle Protocol, and it is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command. <b>bibeclo</b> can also be spawned and terminated in response to START and STOP commands that pertain specifically to the BIBE convergence layer protocol.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bibeclo</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart <b>bibeclo</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bibeclo</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bpadmin</b> to restart <b>bibeclo</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="bibeclo-cant-attach-to-BP">bibeclo can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="No-such-bibe-outduct">No such bibe outduct.</dt>
+<dd>
+
+<p>No BIBE outduct with duct name <i>destination_EID</i> exists. Use <b>bpadmin</b> to stop the BIBE convergence-layer protocol, add the outduct, and then restart the BIBE protocol.</p>
+
+</dd>
+<dt id="No-such-bcla">No such bcla.</dt>
+<dd>
+
+<p>No bcla structure for the node identified by <i>peer_EID</i> has been added to the BP database. Use <b>bpadmin</b> to stop the BIBE convergence-layer protocol, use <b>bibeadmin</b> to add the bcla, and then use <b>bpadmin</b> to restart the BIBE protocol.</p>
+
+</dd>
+<dt id="CLO-task-is-already-started-for-this-duct">CLO task is already started for this duct.</dt>
+<dd>
+
+<p>Redundant initiation of <b>bibeclo</b>.</p>
+
+</dd>
+<dt id="Cant-dequeue-bundle">Can&#39;t dequeue bundle.</dt>
+<dd>
+
+<p>BIBE outduct closed deleted or other system error. Check ION log; correct the problem and restart BIBE.</p>
+
+</dd>
+<dt id="i-bibeclo-outduct-closed">[i] bibeclo outduct closed.</dt>
+<dd>
+
+<p>Nominal shutdown message.</p>
+
+</dd>
+<dt id="Cant-prepend-header-CLO-stopping">Can&#39;t prepend header; CLO stopping.</dt>
+<dd>
+
+<p>System error. Check ION log; correct the problem and restart BIBE.</p>
+
+</dd>
+<dt id="Cant-destroy-old-ZCO-CLO-stopping">Can&#39;t destroy old ZCO; CLO stopping.</dt>
+<dd>
+
+<p>System error. Check ION log; correct the problem and restart BIBE.</p>
+
+</dd>
+<dt id="Cant-get-outbound-space-for-BPDU">Can&#39;t get outbound space for BPDU.</dt>
+<dd>
+
+<p>System error. Check ION log; correct the problem and restart BIBE.</p>
+
+</dd>
+<dt id="Cant-send-encapsulated-bundle">Can&#39;t send encapsulated bundle.</dt>
+<dd>
+
+<p>System error. Check ION log; correct the problem and restart BIBE.</p>
+
+</dd>
+<dt id="Cant-track-bundle">Can&#39;t track bundle.</dt>
+<dd>
+
+<p>System error. Check ION log; correct the problem and restart BIBE.</p>
+
+</dd>
+<dt id="Encapsulated-bundle-not-sent">[!] Encapsulated bundle not sent.</dt>
+<dd>
+
+<p>Malformed bundle issuance request, which might be a software error. Contact technical support.</p>
+
+</dd>
+<dt id="Cant-release-ZCO-CLO-stopping">Can&#39;t release ZCO; CLO stopping.</dt>
+<dd>
+
+<p>System error. Check ION log; correct the problem and restart BIBE.</p>
+
+</dd>
+<dt id="i-bibeclo-duct-has-ended">[i] bibeclo duct has ended.</dt>
+<dd>
+
+<p>Nominal shutdown message.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>biberc(5), bibeadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

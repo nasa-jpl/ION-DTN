@@ -1,0 +1,121 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>file2sm - shared-memory linked list data ingestion test program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>file2sm - shared-memory linked list data ingestion test program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>file2sm</b> <i>fileName</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>file2sm</b> stress-tests shared-memory linked list data ingestion by repeatedly writing all text lines of the file named <i>fileName</i> to a shared-memory linked list that is the root object of a PSM partition named &quot;file2sm&quot;.</p>
+
+<p>After writing each line to the linked list, <b>file2sm</b> gives a semaphore to indicate that the list is now non-empty. This is mainly for the benefit of the complementary test program sm2file(1).</p>
+
+<p>The operation of <b>file2sm</b> is cyclical. After copying all text lines of the source file to the linked list, <b>file2sm</b> appends an EOF line to the linked list, containing the text &quot;*** End of the file ***&quot;, and prints a brief performance report:</p>
+
+<pre><code>        Processing I&lt;lineCount&gt; lines per second.</code></pre>
+
+<p>Then it reopens the source file and starts appending the file&#39;s text lines to the linked list again.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>file2sm</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<dl>
+
+<dt id="Cant-attach-to-shared-memory">Can&#39;t attach to shared memory</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="Cant-manage-shared-memory">Can&#39;t manage shared memory.</dt>
+<dd>
+
+<p>PSM error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="Cant-create-shared-memory-list">Can&#39;t create shared memory list.</dt>
+<dd>
+
+<p>smlist error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="Cant-create-semaphore">Can&#39;t create semaphore.</dt>
+<dd>
+
+<p>ION system error. Check for earlier diagnostic messages describing the cause of the error; correct problem and rerun.</p>
+
+</dd>
+<dt id="Cant-open-input-file">Can&#39;t open input file</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="Cant-reopen-input-file">Can&#39;t reopen input file</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="Cant-read-from-input-file">Can&#39;t read from input file</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and rerun.</p>
+
+</dd>
+<dt id="Ran-out-of-memory">Ran out of memory.</dt>
+<dd>
+
+<p>Nominal behavior. <b>sm2file</b> is not extracting data from the linked list quickly enough to prevent it from growing to consume all memory allocated to the test partition.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>sm2file(1), smlist(3), psm(3)</p>
+
+
+</body>
+
+</html>
+
+

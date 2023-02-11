@@ -1,0 +1,155 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ionconfig - ION node configuration parameters file</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ionconfig - ION node configuration parameters file</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>ION node configuration parameters are passed to <b>ionadmin</b> in a file of parameter name/value pairs:</p>
+
+<ul>
+
+<p><i>parameter_name</i> <i>parameter_value</i></p>
+
+</ul>
+
+<p>Any line of the file that begins with a &#39;#&#39; character is considered a comment and is ignored.</p>
+
+<p><b>ionadmin</b> supplies default values for any parameters for which no value is provided in the node configuration parameters file.</p>
+
+<p>The applicable parameters are as follows:</p>
+
+<dl>
+
+<dt id="sdrName">sdrName</dt>
+<dd>
+
+<p>This is the character string by which this ION node&#39;s SDR database will be identified. (Note that the SDR database infrastructure enables multiple databases to be constructed on a single host computer.) The default value is &quot;ion&quot;.</p>
+
+</dd>
+<dt id="sdrWmSize">sdrWmSize</dt>
+<dd>
+
+<p>This is the size of the block of dynamic memory that will be reserved as private working memory for the SDR system itself. A block of system memory of this size will be allocated (e.g., by malloc()) at the time the SDR system is initialized on the host computer. The default value is 1000000 (1 million bytes).</p>
+
+</dd>
+<dt id="configFlags">configFlags</dt>
+<dd>
+
+<p>This is the bitwise &quot;OR&quot; (i.e., the sum) of the flag values that characterize the SDR database to use for this ION node. The default value is 13 (that is, SDR_IN_DRAM | SDR_REVERSIBLE | SDR_BOUNDED). The SDR configuration flags are documented in detail in sdr(3). To recap:</p>
+
+<dl>
+
+<dt id="SDR_IN_DRAM-1">SDR_IN_DRAM (1)</dt>
+<dd>
+
+<p>The SDR is implemented in a region of shared memory. [Possibly with write-through to a file, for fault tolerance.]</p>
+
+</dd>
+<dt id="SDR_IN_FILE-2">SDR_IN_FILE (2)</dt>
+<dd>
+
+<p>The SDR is implemented as a file. [Possibly cached in a region of shared memory, for faster data retrieval.]</p>
+
+</dd>
+<dt id="SDR_REVERSIBLE-4">SDR_REVERSIBLE (4)</dt>
+<dd>
+
+<p>Transactions in the SDR are written ahead to a log, making them reversible.</p>
+
+</dd>
+<dt id="SDR_BOUNDED-8">SDR_BOUNDED (8)</dt>
+<dd>
+
+<p>SDR heap updates are not allowed to cross object boundaries.</p>
+
+</dd>
+</dl>
+
+</dd>
+<dt id="heapKey">heapKey</dt>
+<dd>
+
+<p>This is the shared-memory key by which the pre-allocated block of shared dynamic memory to be used as heap space for this SDR can be located, if applicable. The default value is -1, i.e., not specified and not applicable.</p>
+
+</dd>
+<dt id="pathName">pathName</dt>
+<dd>
+
+<p>This is the fully qualified path name of the directory in which are located (a) the file to be used as heap space for this SDR (which will be created, if it doesn&#39;t already exist), in the event that the SDR is to be implemented in a file, and (b) the file to be used to log the database updates of each SDR transaction, in the event that transactions in this SDR are to be reversible. The default value is <b>/tmp</b>.</p>
+
+</dd>
+<dt id="heapWords">heapWords</dt>
+<dd>
+
+<p>This is the number of words (of 32 bits each on a 32-bit machine, 64 bits each on a 64-bit machine) of nominally non-volatile storage to use for ION&#39;s SDR database. If the SDR is to be implemented in shared memory and no <i>heapKey</i> is specified, a block of shared memory of this size will be allocated (e.g., by malloc()) at the time the node is created. If the SDR is to be implemented in a file and no file named <b>ion.sdr</b> exists in the directory identified by <i>pathName</i>, then a file of this name and size will be created in this directory and initialized to all binary zeroes. The default value is 250000 words (1 million bytes on a 32-bit computer).</p>
+
+</dd>
+<dt id="logSize">logSize</dt>
+<dd>
+
+<p>This is the number of bytes of shared memory to use for ION&#39;s SDR transaction log. If zero (the default), the transaction log is written to a file rather than to memory. If the log is to be implemented in shared memory and no <i>logKey</i> is specified, a block of shared memory of this size will be allocated (e.g., by malloc()) at the time the node is created.</p>
+
+</dd>
+<dt id="logKey">logKey</dt>
+<dd>
+
+<p>This is the shared-memory key by which the pre-allocated block of shared dynamic memory to be used for the transaction log for this SDR can be located, if applicable. The default value is -1, i.e., not specified and not applicable.</p>
+
+</dd>
+<dt id="wmKey">wmKey</dt>
+<dd>
+
+<p>This is the shared-memory key by which this ION node&#39;s working memory will be identified. The default value is 65281.</p>
+
+</dd>
+<dt id="wmAddress">wmAddress</dt>
+<dd>
+
+<p>This is the address of the block of dynamic memory -- volatile storage, which is not expected to persist across a system reboot -- to use for this ION node&#39;s working memory. If zero, the working memory block will be allocated from system memory (e.g., by malloc()) at the time the local ION node is created. The default value is zero.</p>
+
+</dd>
+<dt id="wmSize">wmSize</dt>
+<dd>
+
+<p>This is the size of the block of dynamic memory that will be used for this ION node&#39;s working memory. If <i>wmAddress</i> is zero, a block of system memory of this size will be allocated (e.g., by malloc()) at the time the node is created. The default value is 5000000 (5 million bytes).</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLE">EXAMPLE</h1>
+
+<p>configFlags 1</p>
+
+<p>heapWords 2500000</p>
+
+<p>heapKey -1</p>
+
+<p>pathName /usr/ion</p>
+
+<p>wmSize 5000000</p>
+
+<p>wmAddress 0</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ionadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

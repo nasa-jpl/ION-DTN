@@ -1,0 +1,115 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>rfxclock - ION daemon task for managing scheduled events</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>rfxclock - ION daemon task for managing scheduled events</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>rfxclock</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>rfxclock</b> is a background &quot;daemon&quot; task that periodically applies scheduled changes in node connectivity and range to the ION node&#39;s database. It is spawned automatically by <b>ionadmin</b> in response to the &#39;s&#39; command that starts operation of the ION node infrastructure, and it is terminated by <b>ionadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<p>Once per second, <b>rfxclock</b> takes the following action:</p>
+
+<ul>
+
+<p>For each neighboring node that has been refusing custody of bundles sent to it to be forwarded to some destination node, to which no such bundle has been sent for at least N seconds (where N is twice the one-way light time from the local node to this neighbor), <b>rfxclock</b> turns on a <i>probeIsDue</i> flag authorizing transmission of the next such bundle in hopes of learning that this neighbor is now able to accept custody.</p>
+
+<p>Then <b>rfxclock</b> purges the database of all range and contact information that is no longer applicable, based on the stop times of the records.</p>
+
+<p>Finally, <b>rfxclock</b> applies to the database all range and contact information that is currently applicable, i.e., those records whose start times are before the current time and whose stop times are in the future.</p>
+
+</ul>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>rfxclock</b> terminated, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>ionadmin</b> to restart <b>rfxclock</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>rfxclock</b> was unable to attach to the local ION node, probably because <b>ionadmin</b> has not yet been run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="rfxclock-cant-attach-to-ION">rfxclock can&#39;t attach to ION.</dt>
+<dd>
+
+<p><b>ionadmin</b> has not yet initialized the ION database.</p>
+
+</dd>
+<dt id="Cant-apply-ranges">Can&#39;t apply ranges.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>rfxclock</b> terminates.</p>
+
+</dd>
+<dt id="Cant-apply-contacts">Can&#39;t apply contacts.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>rfxclock</b> terminates.</p>
+
+</dd>
+<dt id="Cant-purge-ranges">Can&#39;t purge ranges.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>rfxclock</b> terminates.</p>
+
+</dd>
+<dt id="Cant-purge-contacts">Can&#39;t purge contacts.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>rfxclock</b> terminates.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ionadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

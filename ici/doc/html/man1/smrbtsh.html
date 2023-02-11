@@ -1,0 +1,143 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>smrbtsh - shared-memory red-black tree test shell</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>smrbtsh - shared-memory red-black tree test shell</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>smrbtsh</b> [<i>command_file_name</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>smrbtsh</b> allocates a region of shared system memory, attaches to that region, places it under PSM management, creates a temporary &quot;test&quot; red-black tree in that memory region, and executes a series of shared-memory red-black tree commands that exercise various tree access and management functions.</p>
+
+<p>If <i>command_file_name</i> is provided, then the commands in the indicated file are executed and the program then terminates. Upon termination, the shared memory region allocated to <b>smrbtsh</b> is detached and destroyed.</p>
+
+<p>Otherwise, <b>smrbtsh</b> offers the user an interactive &quot;shell&quot; for testing the smrbt functions in a conversational manner: <b>smrbtsh</b> prints a prompt string (&quot;: &quot;) to stdout, accepts a command from stdin, executes the command (possibly printing a diagnostic message), then prints another prompt string and so on. Upon execution of the &#39;q&#39; command, the program terminates.</p>
+
+<p>The following commands are supported:</p>
+
+<dl>
+
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. Causes <b>smrbtsh</b> to print a summary of available commands. Same effect as the <b>?</b> command.</p>
+
+</dd>
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>Another <b>help</b> command. Causes <b>smrbtsh</b> to print a summary of available commands. Same effect as the <b>h</b> command.</p>
+
+</dd>
+<dt id="s-seed_value"><b>s</b> [<i>seed_value</i>]</dt>
+<dd>
+
+<p>The <b>seed</b> command. Seeds random data value generator, which is used to generate node values when the <b>r</b> command is used. If <i>seed_value</i> is omitted, uses current time (as returned by time(1)) as seed value.</p>
+
+</dd>
+<dt id="r-count"><b>r</b> [<i>count</i>]</dt>
+<dd>
+
+<p>The <b>random</b> command. Inserts <i>count</i> new nodes into the red-black tree, using randomly selected unsigned long integers as the data values of the nodes; <i>count</i> defaults to 1 if omitted.</p>
+
+</dd>
+<dt id="i-data_value"><b>i</b> <i>data_value</i></dt>
+<dd>
+
+<p>The <b>insert</b> command. Inserts a single new node into the red-black tree, using <i>data_value</i> as the data value of the node.</p>
+
+</dd>
+<dt id="f-data_value"><b>f</b> <i>data_value</i></dt>
+<dd>
+
+<p>The <b>find</b> command. Finds the rbt node whose value is <i>data_value</i>, within the red-black tree, and prints the address of that node. If the node is not found, prints address zero and prints the address of the successor node in the tree.</p>
+
+</dd>
+<dt id="d-data_value"><b>d</b> <i>data_value</i></dt>
+<dd>
+
+<p>The <b>delete</b> command. Deletes the rbt node whose data value is <i>data_value</i>.</p>
+
+</dd>
+<dt id="p"><b>p</b></dt>
+<dd>
+
+<p>The <b>print</b> command. Prints the red-black tree, using indentation to indicate descent along paths of the tree.</p>
+
+<p>Note: this function is supported only if the <b>smrbt</b> library was built with compilation flag -DSMRBT_DEBUG=1.</p>
+
+</dd>
+<dt id="k"><b>k</b></dt>
+<dd>
+
+<p>The <b>check</b> command. Examines the red-black tree, noting the first violation of red-black structure rules, if any.</p>
+
+<p>Note: this function is supported only if the <b>smrbt</b> library was built with compilation flag -DSMRBT_DEBUG=1.</p>
+
+</dd>
+<dt id="l"><b>l</b></dt>
+<dd>
+
+<p>The <b>list</b> command. Lists all nodes in the red-black tree in traversal order, noting any nodes whose data values are not in ascending numerical order.</p>
+
+</dd>
+<dt id="q"><b>q</b></dt>
+<dd>
+
+<p>The <b>quit</b> command. Detaches <b>smrbtsh</b> from the region of shared memory it is currently using, destroys that shared memory region, and terminates <b>smrbtsh</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>smrbtsh</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>No diagnostics apply.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>smrbt(3)</p>
+
+
+</body>
+
+</html>
+
+

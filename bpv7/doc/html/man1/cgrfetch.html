@@ -1,0 +1,125 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>cgrfetch - Visualize CGR simulations</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>cgrfetch - Visualize CGR simulations</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>cgrfetch</b> [<i>OPTIONS</i>] <i>DEST-NODE</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>cgrfetch</b> uses CGR to simulate sending a bundle from the local node to <i>DEST-NODE</i>. It traces the execution of CGR to generate graphs of the routes that were considered and the routes that were ultimately chosen to forward along. No bundle is sent during the simulation.</p>
+
+<p>A JSON representation of the simulation is output to <i>OUTPUT-FILE</i>. The representation includes parameters of the simulation and a structure for each considered route, which in turn includes calculated parameters for the route and an image of the contact graph.</p>
+
+<p>The dot(1) tool from the Graphviz package is used to generate the contact graph images and is required for cgrfetch(1). The base64(1) tool from coreutils is used to embed the images in the JSON and is also required.</p>
+
+<p>Note that a trace of the route computation logic performed by CGR is printed to stderr; there is currently no cgrfetch option for redirecting this output to a file.</p>
+
+<h1 id="OPTIONS">OPTIONS</h1>
+
+<dl>
+
+<dt id="DEST-NODE"><b>DEST-NODE</b></dt>
+<dd>
+
+<p>The final destination to route to. To be useful, it should be a node that exists in the contact plan.</p>
+
+</dd>
+<dt id="q"><b>-q</b></dt>
+<dd>
+
+<p>Disable trace message output.</p>
+
+</dd>
+<dt id="j"><b>-j</b></dt>
+<dd>
+
+<p>Disable JSON output.</p>
+
+</dd>
+<dt id="m"><b>-m</b></dt>
+<dd>
+
+<p>Use a minimum-latency extended COS for the bundle. This ends up sending the bundle to all proximate nodes.</p>
+
+</dd>
+<dt id="t-DISPATCH-OFFSET"><b>-t DISPATCH-OFFSET</b></dt>
+<dd>
+
+<p>Request a dispatch time of <i>DISPATCH-OFFSET</i> seconds from the time the command is run (default: 0).</p>
+
+</dd>
+<dt id="e-EXPIRATION-OFFSET"><b>-e EXPIRATION-OFFSET</b></dt>
+<dd>
+
+<p>Set the bundle expiration time to <i>EXPIRATION-OFFSET</i> seconds from the time the command is run (default: 3600).</p>
+
+</dd>
+<dt id="s-BUNDLE-SIZE"><b>-s BUNDLE-SIZE</b></dt>
+<dd>
+
+<p>Set the bundle payload size to <i>BUNDLE-SIZE</i> bytes (default: 0).</p>
+
+</dd>
+<dt id="o-OUTPUT-FILE"><b>-o OUTPUT-FILE</b></dt>
+<dd>
+
+<p>Send JSON to <i>OUTPUT-FILE</i> (default: stdout).</p>
+
+</dd>
+<dt id="d-PROTO:NAME"><b>-d PROTO:NAME</b></dt>
+<dd>
+
+<p>Use <i>PROTO</i> as the outduct protocol and <i>NAME</i> as the outduct name (default: udp:*). Use <b>list</b> to list all available outducts.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="cgrfetch-8">cgrfetch 8</dt>
+<dd>
+
+<p>Simulate CGR with destination node 8 and dispatch time equal to the current time.</p>
+
+</dd>
+<dt id="cgrfetch-8--t-60">cgrfetch 8 -t 60</dt>
+<dd>
+
+<p>Do the same with a dispatch time 60 seconds in the future.</p>
+
+</dd>
+<dt id="cgrfetch--d-list">cgrfetch -d list</dt>
+<dd>
+
+<p>List all available outducts.</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>dot(1), base64(1)</p>
+
+
+</body>
+
+</html>
+
+

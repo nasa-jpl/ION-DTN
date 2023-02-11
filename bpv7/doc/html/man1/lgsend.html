@@ -1,0 +1,131 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>lgsend - ION Load/Go command program</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>lgsend - ION Load/Go command program</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>lgsend</b> <i>command_file_name</i> <i>own_endpoint_ID</i> <i>destination_endpoint_ID</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>ION Load/Go is a system for management of an ION-based network, enabling the execution of ION administrative programs at remote nodes. The system comprises two programs, <b>lgsend</b> and <b>lgagent</b>.</p>
+
+<p>The <b>lgsend</b> program reads a Load/Go source file from a local file system, encapsulates the text of that source file in a bundle, and sends the bundle to an <b>lgagent</b> task that is waiting for data at a designated DTN endpoint on the remote node.</p>
+
+<p>To do so, it first reads all lines of the Load/Go source file identified by <i>command_file_name</i> into a temporary buffer in ION&#39;s SDR data store, concatenating the lines of the file and retaining all newline characters. Then it invokes the bp_send() function to create and send a bundle whose payload is this temporary buffer, whose destination is <i>destination_endpoint_ID</i>, and whose source endpoint ID is <i>own_endpoint_ID</i>. Then it terminates.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p>Load/Go file transmission succeeded.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p>Load/Go file transmission failed. Examine <b>ion.log</b> to determine the cause of the failure, then re-run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p><b>lgfile</b> contains the Load/Go file capsules and directive that are to be sent to the remote node.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="lgsend:-cant-attach-to-BP">lgsend: can&#39;t attach to BP.</dt>
+<dd>
+
+<p>Bundle Protocol is not running on this computer. Run bpadmin(1) to start BP.</p>
+
+</dd>
+<dt id="lgsend:-cant-open-own-endpoint">lgsend: can&#39;t open own endpoint.</dt>
+<dd>
+
+<p><i>own_endpoint_ID</i> is not a declared endpoint on the local ION node. Run bpadmin(1) to add it.</p>
+
+</dd>
+<dt id="lgsend:-cant-open-file-of-LG-commands:-error-description">lgsend: can&#39;t open file of LG commands: <i>error description</i></dt>
+<dd>
+
+<p><i>command_file_name</i> doesn&#39;t identify a file that can be opened. Correct spelling of file name or file&#39;s access permissions.</p>
+
+</dd>
+<dt id="lgsend:-cant-get-size-of-LG-command-file:-error-description">lgsend: can&#39;t get size of LG command file: <i>error description</i></dt>
+<dd>
+
+<p>Operating system problem. Investigate and correct before rerunning.</p>
+
+</dd>
+<dt id="lgsend:-LG-cmd-file-size-64000">lgsend: LG cmd file size &gt; 64000.</dt>
+<dd>
+
+<p>Load/Go command file is too large. Split it into multiple files if possible.</p>
+
+</dd>
+<dt id="lgsend:-no-space-for-application-data-unit">lgsend: no space for application data unit.</dt>
+<dd>
+
+<p>ION system problem: have exhausted available SDR data store reserves.</p>
+
+</dd>
+<dt id="lgsend:-fgets-failed:-error-description">lgsend: fgets failed: <i>error description</i></dt>
+<dd>
+
+<p>Operating system problem. Investigate and correct before rerunning.</p>
+
+</dd>
+<dt id="lgsend:-cant-create-application-data-unit">lgsend: can&#39;t create application data unit.</dt>
+<dd>
+
+<p>ION system problem: have exhausted available SDR data store reserves.</p>
+
+</dd>
+<dt id="lgsend:-cant-send-bundle">lgsend: can&#39;t send bundle.</dt>
+<dd>
+
+<p>ION system problem. Investigate and correct before rerunning.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>lgagent(1), lgfile(5)</p>
+
+
+</body>
+
+</html>
+
+

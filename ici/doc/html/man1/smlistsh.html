@@ -1,0 +1,155 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>smlistsh - shared-memory linked list test shell</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>smlistsh - shared-memory linked list test shell</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>smlistsh</b> <i>partition_size</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>smlistsh</b> attaches to a region of system memory (allocating it if necessary, and placing it under PSM management as necessary) and offers the user an interactive &quot;shell&quot; for testing various shared-memory linked list management functions.</p>
+
+<p><b>smlistsh</b> prints a prompt string (&quot;: &quot;) to stdout, accepts a command from stdin, executes the command (possibly printing a diagnostic message), then prints another prompt string and so on.</p>
+
+<p>The following commands are supported:</p>
+
+<dl>
+
+<dt id="h"><b>h</b></dt>
+<dd>
+
+<p>The <b>help</b> command. Causes <b>smlistsh</b> to print a summary of available commands. Same effect as the <b>?</b> command.</p>
+
+</dd>
+<dt id="pod"><b>?</b></dt>
+<dd>
+
+<p>Another <b>help</b> command. Causes <b>smlistsh</b> to print a summary of available commands. Same effect as the <b>h</b> command.</p>
+
+</dd>
+<dt id="k"><b>k</b></dt>
+<dd>
+
+<p>The <b>key</b> command. Computes and prints an unused shared-memory key, for possible use in attaching to a shared-memory region.</p>
+
+</dd>
+<dt id="key_value-size"><b>+</b> <i>key_value</i> <i>size</i></dt>
+<dd>
+
+<p>The <b>attach</b> command. Attaches <b>smlistsh</b> to a region of shared memory. <i>key_value</i> identifies an existing shared-memory region, in the event that you want to attach to an existing shared-memory region (possibly created by another <b>smlistsh</b> process running on the same computer). To create and attach to a new shared-memory region that other processes can attach to, use a <i>key_value</i> as returned by the <b>key</b> command and supply the <i>size</i> of the new region. If you want to create and attach to a new shared-memory region that is for strictly private use, use -1 as key and supply the <i>size</i> of the new region.</p>
+
+</dd>
+<dt id="pod1"><b>-</b></dt>
+<dd>
+
+<p>The <b>detach</b> command. Detaches <b>smlistsh</b> from the region of shared memory it is currently using, but does not free any memory.</p>
+
+</dd>
+<dt id="n"><b>n</b></dt>
+<dd>
+
+<p>The <b>new</b> command. Creates a new shared-memory list to operate on, within the currently attached shared-memory region. Prints the address of the list.</p>
+
+</dd>
+<dt id="s-list_address"><b>s</b> <i>list_address</i></dt>
+<dd>
+
+<p>The <b>share</b> command. Selects an existing shared-memory list to operate on, within the currently attached shared-memory region.</p>
+
+</dd>
+<dt id="a-element_value"><b>a</b> <i>element_value</i></dt>
+<dd>
+
+<p>The <b>append</b> command. Appends a new list element, containing <i>element_value</i>, to the list on which <b>smlistsh</b> is currently operating.</p>
+
+</dd>
+<dt id="p-element_value"><b>p</b> <i>element_value</i></dt>
+<dd>
+
+<p>The <b>prepend</b> command. Prepends a new list element, containing <i>element_value</i>, to the list on which <b>smlistsh</b> is currently operating.</p>
+
+</dd>
+<dt id="w"><b>w</b></dt>
+<dd>
+
+<p>The <b>walk</b> command. Prints the addresses and contents of all elements of the list on which <b>smlistsh</b> is currently operating.</p>
+
+</dd>
+<dt id="f-element_value"><b>f</b> <i>element_value</i></dt>
+<dd>
+
+<p>The <b>find</b> command. Finds the list element that contains <i>element_value</i>, within the list on which <b>smlistsh</b> is currently operating, and prints the address of that list element.</p>
+
+</dd>
+<dt id="d-element_address"><b>d</b> <i>element_address</i></dt>
+<dd>
+
+<p>The <b>delete</b> command. Deletes the list element located at <i>element_address</i>.</p>
+
+</dd>
+<dt id="r"><b>r</b></dt>
+<dd>
+
+<p>The <b>report</b> command. Prints a partition usage report, as per psm_report(3).</p>
+
+</dd>
+<dt id="q"><b>q</b></dt>
+<dd>
+
+<p>The <b>quit</b> command. Detaches <b>smlistsh</b> from the region of shared memory it is currently using (without freeing any memory) and terminates <b>smlistsh</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>smlistsh</b> has terminated.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>No diagnostics apply.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>smlist(3)</p>
+
+
+</body>
+
+</html>
+
+

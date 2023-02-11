@@ -1,0 +1,113 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>ipnadmin - Interplanetary Internet (IPN) scheme administration interface</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>ipnadmin - Interplanetary Internet (IPN) scheme administration interface</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>ipnadmin</b> [ <i>commands_filename</i> ]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>ipnadmin</b> configures the local ION node&#39;s routing of bundles to endpoints whose IDs conform to the <i>ipn</i> endpoint ID scheme. Every endpoint ID in the <i>ipn</i> scheme is a string of the form &quot;ipn:<i>node_number</i>.<i>service_number</i>&quot; where <i>node_number</i> is a CBHE &quot;node number&quot; and <i>service_number</i> identifies a specific application processing point. When <i>service_number</i> is zero, the endpoint ID constitutes a node ID. All endpoint IDs formed in the <i>ipn</i> scheme identify singleton endpoints.</p>
+
+<p><b>ipnadmin</b> operates in response to IPN scheme configuration commands found in the file <i>commands_filename</i>, if provided; if not, <b>ipnadmin</b> prints a simple prompt (:) so that the user may type commands directly into standard input.</p>
+
+<p>The format of commands for <i>commands_filename</i> can be queried from <b>ipnadmin</b> with the &#39;h&#39; or &#39;?&#39; commands at the prompt. The commands are documented in ipnrc(5).</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="Successful-completion-of-IPN-scheme-administration">&quot;0&quot; Successful completion of IPN scheme administration.</dt>
+<dd>
+
+</dd>
+<dt id="Unsuccessful-completion-of-IPN-scheme-administration-due-to-inability-to-attach-to-the-Bundle-Protocol-system-or-to-initialize-the-IPN-scheme">&quot;1&quot; Unsuccessful completion of IPN scheme administration, due to inability to attach to the Bundle Protocol system or to initialize the IPN scheme.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="ipnadmin">ipnadmin</dt>
+<dd>
+
+<p>Enter interactive IPN scheme configuration command entry mode.</p>
+
+</dd>
+<dt id="ipnadmin-host1.ipnrc">ipnadmin host1.ipnrc</dt>
+<dd>
+
+<p>Execute all configuration commands in <i>host1.ipnrc</i>, then terminate immediately.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>See ipnrc(5) for details of the IPN scheme configuration commands.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p><b>Note</b>: all ION administration utilities expect source file input to be lines of ASCII text that are NL-delimited. If you edit the ipnrc file on a Windows machine, be sure to <b>use dos2unix to convert it to Unix text format</b> before presenting it to <b>ipnadmin</b>. Otherwise <b>ipnadmin</b> will detect syntax errors and will not function satisfactorily.</p>
+
+<p>The following diagnostics may be issued to the logfile ion.log:</p>
+
+<dl>
+
+<dt id="ipnadmin-cant-attach-to-BP">ipnadmin can&#39;t attach to BP.</dt>
+<dd>
+
+<p>Bundle Protocol has not been initialized on this computer. You need to run bpadmin(1) first.</p>
+
+</dd>
+<dt id="ipnadmin-cant-initialize-routing-database">ipnadmin can&#39;t initialize routing database.</dt>
+<dd>
+
+<p>There is no SDR data store for <i>ipnadmin</i> to use. Please run ionadmin(1) to start the local ION node.</p>
+
+</dd>
+<dt id="Cant-open-command-file">Can&#39;t open command file...</dt>
+<dd>
+
+<p>The <i>commands_filename</i> specified in the command line doesn&#39;t exist.</p>
+
+</dd>
+</dl>
+
+<p>Various errors that don&#39;t cause <b>ipnadmin</b> to fail but are noted in the <b>ion.log</b> log file may be caused by improperly formatted commands given at the prompt or in the <i>commands_filename</i> file. Please see ipnrc(5) for details.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>ipnrc(5)</p>
+
+
+</body>
+
+</html>
+
+

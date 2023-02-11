@@ -1,0 +1,101 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>cfdpclock - CFDP daemon task for managing scheduled events</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>cfdpclock - CFDP daemon task for managing scheduled events</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>cfdpclock</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>cfdpclock</b> is a background &quot;daemon&quot; task that periodically performs scheduled CFDP activities. It is spawned automatically by <b>cfdpadmin</b> in response to the &#39;s&#39; command that starts operation of the CFDP protocol, and it is terminated by <b>cfdpadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<p>Once per second, <b>cfdpclock</b> takes the following action:</p>
+
+<ul>
+
+<p>First it scans all inbound file delivery units (FDUs). For each one whose check timeout deadline has passed, it increments the check timeout count and resets the check timeout deadline. For each one whose check timeout count exceeds the limit configured for this node, it invokes the Check Limit Reached fault handling procedure.</p>
+
+<p>Then it scans all outbound FDUs. For each one that has been Canceled, it cancels all extant PDU bundles and sets transmission progress to the size of the file, simulating the completion of transmission. It destroys each outbound FDU whose transmission is completed.</p>
+
+</ul>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>cfdpclock</b> terminated, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>cfdpadmin</b> to restart <b>cfdpclock</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>cfdpclock</b> was unable to attach to CFDP protocol operations, probably because <b>cfdpadmin</b> has not yet been run.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="cfdpclock-cant-initialize-CFDP">cfdpclock can&#39;t initialize CFDP.</dt>
+<dd>
+
+<p><b>cfdpadmin</b> has not yet initialized CFDP protocol operations.</p>
+
+</dd>
+<dt id="Cant-dispatch-events">Can&#39;t dispatch events.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>cfdpclock</b> terminates.</p>
+
+</dd>
+<dt id="Cant-manage-links">Can&#39;t manage links.</dt>
+<dd>
+
+<p>An unrecoverable database error was encountered. <b>cfdpclock</b> terminates.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>cfdpadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

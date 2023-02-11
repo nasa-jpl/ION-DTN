@@ -1,0 +1,117 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>udpclo - UDP-based BP convergence layer output task</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>udpclo - UDP-based BP convergence layer output task</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>udpclo</b> <i>remote_hostname</i>[:<i>remote_port_nbr</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>udpclo</b> is a background &quot;daemon&quot; task that extracts bundles from the queues of bundles ready for transmission via UDP to a remote node&#39;s UDP socket at <i>remote_hostname</i> and <i>remote_port_nbr</i>, encapsulates those bundles in UDP datagrams, and sends those datagrams to that remote UDP socket.</p>
+
+<p><b>udpclo</b> is spawned automatically by <b>bpadmin</b> in response to the &#39;s&#39; (START) command that starts operation of the Bundle Protocol, and it is terminated by <b>bpadmin</b> in response to an &#39;x&#39; (STOP) command. <b>udpclo</b> can also be spawned and terminated in response to START and STOP commands that pertain specifically to the UDP convergence layer protocol.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>udpclo</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bpadmin</b> to restart <b>udpclo</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>udpclo</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bpadmin</b> to restart <b>udpclo</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="udpclo-cant-attach-to-BP">udpclo can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized Bundle Protocol operations.</p>
+
+</dd>
+<dt id="No-memory-for-UDP-buffer-in-udpclo">No memory for UDP buffer in udpclo.</dt>
+<dd>
+
+<p>ION system error. Check errtext, correct problem, and restart UDP.</p>
+
+</dd>
+<dt id="No-such-udp-duct">No such udp duct.</dt>
+<dd>
+
+<p>No UDP outduct with duct name <i>remote_hostname</i>[:&lt;remote_port_nbr&gt;] has been added to the BP database. Use <b>bpadmin</b> to stop the UDP convergence-layer protocol, add the outduct, and then restart the UDP protocol.</p>
+
+</dd>
+<dt id="CLO-task-is-already-started-for-this-engine">CLO task is already started for this engine.</dt>
+<dd>
+
+<p>Redundant initiation of <b>udpclo</b>.</p>
+
+</dd>
+<dt id="CLO-cant-open-UDP-socket">CLO can&#39;t open UDP socket</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>udpclo</b>.</p>
+
+</dd>
+<dt id="CLO-write-error-on-socket">CLO write() error on socket</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>udpclo</b>.</p>
+
+</dd>
+<dt id="Bundle-is-too-big-for-UDP-CLA">Bundle is too big for UDP CLA.</dt>
+<dd>
+
+<p>Configuration error: bundles that are too large for UDP transmission (i.e., larger than 65535 bytes) are being enqueued for <b>udpclo</b>. Change routing.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpadmin(1), bprc(5), udpcli(1)</p>
+
+
+</body>
+
+</html>
+
+

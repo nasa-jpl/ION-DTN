@@ -1,0 +1,105 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>tcpbsi - TCP-based reliable link service input task for BSSP</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>tcpbsi - TCP-based reliable link service input task for BSSP</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>tcpbsi</b> {<i>local_hostname</i> | @}[:<i>local_port_nbr</i>]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>tcpbsi</b> is a background &quot;daemon&quot; task that receives TCP stream data via a TCP socket bound to <i>local_hostname</i> and <i>local_port_nbr</i>, extracts BSSP blocks from that stream, and passes them to the local BSSP engine. Host name &quot;@&quot; signifies that the host name returned by hostname(1) is to be used as the socket&#39;s host name. If not specified, port number defaults to 4556.</p>
+
+<p>The link service input task is spawned automatically by <b>bsspadmin</b> in response to the &#39;s&#39; command that starts operation of the BSSP protocol; the text of the command that is used to spawn the task must be provided as a parameter to the &#39;s&#39; command. The link service input task is terminated by <b>bsspadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>tcpbsi</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>bsspadmin</b> to restart <b>tcpbsi</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>tcpbsi</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>bsspadmin</b> to restart <b>tcpbsi</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="tcpbsi-cant-initialize-BSSP">tcpbsi can&#39;t initialize BSSP.</dt>
+<dd>
+
+<p><b>bsspadmin</b> has not yet initialized BSSP protocol operations.</p>
+
+</dd>
+<dt id="RL-BSI-task-is-already-started">RL-BSI task is already started.</dt>
+<dd>
+
+<p>Redundant initiation of <b>tcpbsi</b>.</p>
+
+</dd>
+<dt id="RL-BSI-cant-open-TCP-socket">RL-BSI can&#39;t open TCP socket</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>tcpbsi</b>.</p>
+
+</dd>
+<dt id="RL-BSI-cant-initialize-socket">RL-BSI can&#39;t initialize socket</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>tcpbsi</b>.</p>
+
+</dd>
+<dt id="tcpbsi-cant-create-receiver-thread">tcpbsi can&#39;t create receiver thread</dt>
+<dd>
+
+<p>Operating system error. Check errtext, correct problem, and restart <b>tcpbsi</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bsspadmin(1), tcpbso(1), udpbsi(1)</p>
+
+
+</body>
+
+</html>
+
+

@@ -1,0 +1,111 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>cbor - ION library for encoding and decoding CBOR data representations</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>cbor - ION library for encoding and decoding CBOR data representations</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>    #include &quot;cbor.h&quot;</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>ION&#39;s &quot;cbor&quot; library implements a subset of the Concise Binary Object Representation (CBOR) standard, RFC 7049; only those data types used in ION code are implemented. Unlike other CBOR implementations, ION CBOR is specifically intended for compatibility with zero-copy objects, i.e., the data being decoded need not all be in a memory buffer.</p>
+
+<p>For all functions, <i>*cursor</i> is a pointer to the location in the CBOR coding buffer at which bytes are to be encoded or decoded. This pointer is automatically advanced as the encoding or decoding operation is performed.</p>
+
+<p>Most of the ION CBOR decoding functions entail the decoding of unsigned integers. The invoking code may require that an integer representation have a specific size by indicating the integer size &quot;class&quot; that is required. Class -1 indicates that an integer of any size is acceptable; the other classes (0, 1, 2, 4, 8) indicate the number of bytes of integer data that MUST follow the integers initial byte.</p>
+
+<dl>
+
+<dt id="int-cbor_encode_integer-uvast-value-unsigned-char-cursor">int cbor_encode_integer(uvast value, unsigned char **cursor)</dt>
+<dd>
+
+<p>Represent this value in an integer of the smallest possible integer class. Cursor is automatically advanced. Returns number of bytes written.</p>
+
+</dd>
+<dt id="int-cbor_encode_fixed_int-uvast-value-int-class-unsigned-char-cursor">int cbor_encode_fixed_int(uvast value, int class, unsigned char **cursor)</dt>
+<dd>
+
+<p>Represent this value in an integer of the indicated class. Cursor is automatically advanced. Returns number of bytes written, 0 on encoding error.</p>
+
+</dd>
+<dt id="int-cbor_encode_byte_string-unsigned-char-value-uvast-size-unsigned-char-cursor">int cbor_encode_byte_string(unsigned char *value, uvast size, unsigned char **cursor)</dt>
+<dd>
+
+<p><i>size</i> is the number of bytes to write. If value is NULL, only the size of the byte string is written; otherwise the byte string itself is written as well. Cursor is advanced by the number of bytes written in either case. Returns number of bytes written.</p>
+
+</dd>
+<dt id="int-cbor_encode_text_string-char-value-uvast-size-unsigned-char-cursor">int cbor_encode_text_string(char *value, uvast size, unsigned char **cursor)</dt>
+<dd>
+
+<p><i>size</i> is the number of bytes to write. If value is NULL, only the size of the text string is written; otherwise the text string itself is written as well. Cursor is advanced by the number of bytes written in either case. Returns number of bytes written.</p>
+
+</dd>
+<dt id="int-cbor_encode_array_open-uvast-size-unsigned-char-cursor">int cbor_encode_array_open(uvast size, unsigned char **cursor)</dt>
+<dd>
+
+<p>If <i>size</i> is ((uvast) -1), the array is of indefinite size; otherwise <i>size</i> indicates the number of items in the array. Cursor is automatically advanced. Returns number of bytes written.</p>
+
+</dd>
+<dt id="int-cbor_encode_break-unsigned-char-cursor">int cbor_encode_break(unsigned char **cursor)</dt>
+<dd>
+
+<p>Break code is written at the indicated location. Cursor is automatically advanced. Returns number of bytes written (always 1).</p>
+
+</dd>
+<dt id="int-cbor_decode_initial_byte-unsigned-char-cursor-unsigned-int-bytesBuffered-int-majorType-int-additionalInfo">int cbor_decode_initial_byte(unsigned char **cursor, unsigned int *bytesBuffered, int *majorType, int *additionalInfo)</dt>
+<dd>
+
+<p>This function just extracts major type and additional info from the byte identified by <i>cursor</i>. Cursor is automatically advanced. Returns number of bytes decoded (always 1) or 0 on decoding error (e.g., no byte to decode).</p>
+
+</dd>
+<dt id="int-cbor_decode_integer-uvast-value-int-class-unsigned-char-cursor-unsigned-int-bytesBuffered">int cbor_decode_integer( uvast *value, int class, unsigned char **cursor, unsigned int *bytesBuffered)</dt>
+<dd>
+
+<p>If <i>class</i> is CborAny, any class of data item is accepted; otherwise only an integer data item of the indicated class is accepted. Cursor is automatically advanced. Returns number of bytes read, 0 on decoding error (e.g., integer is of the wrong class).</p>
+
+</dd>
+<dt id="int-cbor_decode_byte_string-unsigned-char-value-uvast-size-unsigned-char-cursor-unsigned-int-bytesBuffered">int cbor_decode_byte_string(unsigned char *value, uvast *size, unsigned char **cursor, unsigned int *bytesBuffered)</dt>
+<dd>
+
+<p>Initial value of <i>size</i> is the maximum allowable size of the decoded byte string; the actual number of bytes in the byte string (which, <b>NOTE</b>, is less than the number of bytes read) is returned in <i>size</i>. If <i>value</i> is non-NULL, the decoded byte string is copied into <i>value</i> and cursor is automatically advanced to the end of the byte string; otherwise, cursor is advanced only to the beginning of the byte string. Returns number of bytes read, 0 on decoding error (e.g., byte string exceeds maximum size).</p>
+
+</dd>
+<dt id="int-cbor_decode_text_string-char-value-uvast-size-unsigned-char-cursor-unsigned-int-bytesBuffered">int cbor_decode_text_string(char *value, uvast *size, unsigned char **cursor, unsigned int *bytesBuffered)</dt>
+<dd>
+
+<p>Initial value of <i>size</i> is the maximum allowable size of the decoded text string; the actual number of bytes in the text string (which, <b>NOTE</b>, is less than the number of bytes read) is returned in size. If <i>value</i> is non-NULL, the decoded text string is copied into <i>value</i> and cursor is automatically advanced to the end of the text string; otherwise, cursor is advanced only to the beginning of the text string. Returns number of bytes read, 0 on decoding error (e.g., text string exceeds maximum size).</p>
+
+</dd>
+<dt id="int-cbor_decode_array_open-uvast-size-unsigned-char-cursor-unsigned-int-bytesBuffered">int cbor_decode_array_open(uvast *size, unsigned char **cursor, unsigned int *bytesBuffered)</dt>
+<dd>
+
+<p>If <i>size</i> is zero, any array is accepted and the actual size of the decoded array is returned in <i>size</i>; ((uvast) -1) is returned in <i>size</i> if the array is of indefinite size. If <i>size</i> is ((uvast) -1), <b>only</b> an array of indefinite length is accepted. Otherwise, <i>size</i> indicates the required number of items in the array. Cursor is automatically advanced. Returns number of bytes read, 0 on decoding error (such as wrong number of items).</p>
+
+</dd>
+<dt id="int-cbor_decode_break-unsigned-char-cursor-unsigned-int-bytesBuffered">int cbor_decode_break(unsigned char **cursor, unsigned int *bytesBuffered)</dt>
+<dd>
+
+<p>Break code is read from the indicated location. Cursor is automatically advanced. Returns number of bytes read, 0 on decoding error (e.g., no break character at this location).</p>
+
+</dd>
+</dl>
+
+
+</body>
+
+</html>
+
+

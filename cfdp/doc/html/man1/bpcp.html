@@ -1,0 +1,127 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bpcp - A remote copy utility for delay tolerant networks utilizing NASA JPL's Interplanetary Overlay Network (ION)</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bpcp - A remote copy utility for delay tolerant networks utilizing NASA JPL&#39;s Interplanetary Overlay Network (ION)</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bpcp</b> [-dqr | -v] [-L <i>bundle_lifetime</i>] [-C <i>custody_on/off</i>] [-S <i>class_of_service</i>] [<i>host1</i>:]<i>file1</i> ... [<i>host2</i>:]<i>file2</i></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bpcp</b> copies files between hosts utilizing NASA JPL&#39;s Interplanetary Overlay Network (ION) to provide a delay tolerant network. File copies from local to remote, remote to local, or remote to remote are permitted. <b>bpcp</b> depends on ION to do any authentication or encryption of file transfers. All covergence layers over which <b>bpcp</b> runs MUST be reliable.</p>
+
+<p>The options are permitted as follows:</p>
+
+<dl>
+
+<dt id="d-Debug-output.-Repeat-for-increased-verbosity"><b> -d</b> Debug output. Repeat for increased verbosity.</dt>
+<dd>
+
+</dd>
+<dt id="q-Quiet.-Do-not-output-status-messages"><b> -q</b> Quiet. Do not output status messages.</dt>
+<dd>
+
+</dd>
+<dt id="r-Recursive"><b> -r</b> Recursive.</dt>
+<dd>
+
+</dd>
+<dt id="v-Display-version-information"><b> -v</b> Display version information.</dt>
+<dd>
+
+</dd>
+<dt id="L-bundle_lifetime"><b> -L</b> <i>bundle_lifetime</i></dt>
+<dd>
+
+<p>Bundle lifetime in seconds. Default is 86400 seconds (1 day).</p>
+
+</dd>
+<dt id="C-BP_custody"><b> -C</b> <i>BP_custody</i></dt>
+<dd>
+
+<p>Acceptable values are ON/OFF,YES/NO,1/0. Default is OFF.</p>
+
+</dd>
+<dt id="S-class_of_service"><b> -S</b> <i>class_of_service</i></dt>
+<dd>
+
+<p>Bundle Protocol Class of Service for this transfer. Available options are:</p>
+
+<dl>
+
+<dt id="Bulk-Priority">0 Bulk Priority</dt>
+<dd>
+
+</dd>
+<dt id="Standard-Priority">1 Standard Priority</dt>
+<dd>
+
+</dd>
+<dt id="Expedited-Priority">2 Expedited Priority</dt>
+<dd>
+
+</dd>
+</dl>
+
+<p>Default is Standard Priority.</p>
+
+</dd>
+</dl>
+
+<p><b>bpcp</b> utilizes CFDP to preform the actual file transfers. This has several important implications. First, ION&#39;s CFDP implementation requires that reliable convergence layers be used to transfer the data. Second, file permissions are not transferred. Files will be made executable on copy. Third, symbolic links are ignored for local to remote transfers and their target is copied for remote transfers. Fourth, all hosts must be specified using ION&#39;s IPN naming scheme.</p>
+
+<p>In order to preform remote to local transfers or remote to remote transfers, <b>bpcpd</b> must be running on the remote hosts. However, <b>bpcp</b> should NOT be run simultaneously with <b>bpcpd</b> or <b>cfdptest</b>.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bpcp</b> terminated normally.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bpcp</b> terminated abnormally. Check console and the <b>ion.log</b> file for error messages.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>bpcpd(1), ion(3), cfdptest(1)</p>
+
+
+</body>
+
+</html>
+
+

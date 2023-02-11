@@ -1,0 +1,93 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>hmackeys - utility program for generating good HMAC-SHA1 keys</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>hmackeys - utility program for generating good HMAC-SHA1 keys</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>hmackeys</b> [ <i>keynames_filename</i> ]</p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>hmackeys</b> writes files containing randomized 160-bit key values suitable for use by HMAC-SHA1 in support of Bundle Authentication Block processing, Bundle Relay Service connections, or other functions for which symmetric hash computation is applicable. One file is written for each key name presented to <i>hmackeys</i>; the content of each file is 20 consecutive randomly selected 8-bit integer values, and the name given to each file is simply &quot;<i>keyname</i>.hmk&quot;.</p>
+
+<p><b>hmackeys</b> operates in response to the key names found in the file <i>keynames_filename</i>, one name per file text line, if provided; if not, <b>hmackeys</b> prints a simple prompt (:) so that the user may type key names directly into standard input.</p>
+
+<p>When the program is run in interactive mode, either enter &#39;q&#39; or press ^C to terminate.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="Completion-of-key-generation">&quot;0&quot; Completion of key generation.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h1 id="EXAMPLES">EXAMPLES</h1>
+
+<dl>
+
+<dt id="hmackeys">hmackeys</dt>
+<dd>
+
+<p>Enter interactive HMAC/SHA1 key generation mode.</p>
+
+</dd>
+<dt id="hmackeys-host1.keynames">hmackeys host1.keynames</dt>
+<dd>
+
+<p>Create a key file for each key name in <i>host1.keynames</i>, then terminate immediately.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No other files are used in the operation of <i>hmackeys</i>.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the logfile ion.log:</p>
+
+<dl>
+
+<dt id="Cant-open-keynames-file">Can&#39;t open keynames file...</dt>
+<dd>
+
+<p>The <i>keynames_filename</i> specified in the command line doesn&#39;t exist.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>brsscla(1), ionsecadmin(1)</p>
+
+
+</body>
+
+</html>
+
+

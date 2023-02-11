@@ -1,0 +1,141 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>bputa - BP-based CFDP UT-layer adapter</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body>
+
+
+
+<h1 id="NAME">NAME</h1>
+
+<p>bputa - BP-based CFDP UT-layer adapter</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<p><b>bputa</b></p>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p><b>bputa</b> is a background &quot;daemon&quot; task that sends and receives CFDP PDUs encapsulated in DTN bundles.</p>
+
+<p>The task is spawned automatically by <b>cfdpadmin</b> in response to the &#39;s&#39; command that starts operation of the CFDP protocol; the text of the command that is used to spawn the task must be provided as a parameter to the &#39;s&#39; command. The UT-layer daemon is terminated by <b>cfdpadmin</b> in response to an &#39;x&#39; (STOP) command.</p>
+
+<h1 id="EXIT-STATUS">EXIT STATUS</h1>
+
+<dl>
+
+<dt id="pod0">&quot;0&quot;</dt>
+<dd>
+
+<p><b>bputa</b> terminated normally, for reasons noted in the <b>ion.log</b> file. If this termination was not commanded, investigate and solve the problem identified in the log file and use <b>cfdpadmin</b> to restart <b>bputa</b>.</p>
+
+</dd>
+<dt id="pod1">&quot;1&quot;</dt>
+<dd>
+
+<p><b>bputa</b> terminated abnormally, for reasons noted in the <b>ion.log</b> file. Investigate and solve the problem identified in the log file, then use <b>cfdpadmin</b> to restart <b>bputa</b>.</p>
+
+</dd>
+</dl>
+
+<h1 id="FILES">FILES</h1>
+
+<p>No configuration files are needed.</p>
+
+<h1 id="ENVIRONMENT">ENVIRONMENT</h1>
+
+<p>No environment variables apply.</p>
+
+<h1 id="DIAGNOSTICS">DIAGNOSTICS</h1>
+
+<p>The following diagnostics may be issued to the <b>ion.log</b> log file:</p>
+
+<dl>
+
+<dt id="CFDP-cant-attach-to-BP">CFDP can&#39;t attach to BP.</dt>
+<dd>
+
+<p><b>bpadmin</b> has not yet initialized BP protocol operations.</p>
+
+</dd>
+<dt id="CFDP-cant-open-own-endpoint">CFDP can&#39;t open own endpoint.</dt>
+<dd>
+
+<p>Most likely another bputa task is already running. Use <b>cfdpadmin</b> to stop CFDP and restart.</p>
+
+</dd>
+<dt id="CFDP-cant-get-Bundle-Protocol-SAP">CFDP can&#39;t get Bundle Protocol SAP.</dt>
+<dd>
+
+<p>Most likely a BP configuration problem. Use <b>bpadmin</b> to stop BP and restart.</p>
+
+</dd>
+<dt id="bputa-cant-attach-to-CFDP">bputa can&#39;t attach to CFDP.</dt>
+<dd>
+
+<p><b>cfdpadmin</b> has not yet initialized CFDP protocol operations.</p>
+
+</dd>
+<dt id="bputa-cant-dequeue-outbound-CFDP-PDU-terminating">bputa can&#39;t dequeue outbound CFDP PDU; terminating.</dt>
+<dd>
+
+<p>Possible system error. Check ion.log for additional diagnostic messages.</p>
+
+</dd>
+<dt id="bputa-cant-send-PDU-in-bundle-terminating">bputa can&#39;t send PDU in bundle; terminating.</dt>
+<dd>
+
+<p>Possible system error. Check ion.log for additional diagnostic messages.</p>
+
+</dd>
+<dt id="bputa-cant-track-PDU-terminating">bputa can&#39;t track PDU; terminating.</dt>
+<dd>
+
+<p>Possible system error. Check ion.log for additional diagnostic messages.</p>
+
+</dd>
+<dt id="bputa-bundle-reception-failed">bputa bundle reception failed.</dt>
+<dd>
+
+<p>Possible system error; reception thread terminates. Check ion.log for additional diagnostic messages.</p>
+
+</dd>
+<dt id="bputa-cant-receive-bundle-ADU">bputa can&#39;t receive bundle ADU.</dt>
+<dd>
+
+<p>Possible system error; reception thread terminates. Check ion.log for additional diagnostic messages.</p>
+
+</dd>
+<dt id="bputa-cant-handle-bundle-delivery">bputa can&#39;t handle bundle delivery.</dt>
+<dd>
+
+<p>Possible system error; reception thread terminates. Check ion.log for additional diagnostic messages.</p>
+
+</dd>
+<dt id="bputa-cant-handle-inbound-PDU">bputa can&#39;t handle inbound PDU.</dt>
+<dd>
+
+<p>Possible system error; reception thread terminates. Check ion.log for additional diagnostic messages.</p>
+
+</dd>
+</dl>
+
+<h1 id="BUGS">BUGS</h1>
+
+<p>Report bugs to &lt;ion-dtn-support@lists.sourceforge.net&gt;</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p>cfdpadmin(1), bpadmin(1)</p>
+
+
+</body>
+
+</html>
+
+
