@@ -83,8 +83,6 @@ cd 1.ipn.bssp
 cd ../2.ipn.bssp
 ./ionstart >& node2.stdout
 
-exit 
-
 # Start BSS receiver on node 2.
 cd ../2.ipn.bssp
 echo
