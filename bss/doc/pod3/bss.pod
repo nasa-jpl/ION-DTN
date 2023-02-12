@@ -74,19 +74,20 @@ On any failure, returns -1.  On success, returns zero.
 =item int bssRun(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)
 
 A convenience function that performs both bssOpen() and bssStart().  On any
-failure, returns -1.  On success, returns zero.
+failure, returns -1.  On success, returns zero. This function essentially 
+instantiates both realtime and playback modes simultaneously.
 
 =item void bssClose()
 
-Terminates data playback access to the most recently opened BSS database.
+Terminates data playback access to the most recently opened BSS database. (playback mode)
 
 =item void bssStop()
 
-Terminates the most recently initiated BSS data acquisition background thread.
+Terminates the most recently initiated BSS data acquisition background thread. (realtime mode)
 
 =item void bssExit()
 
-A convenience function that performs both bssClose() and bssStop().
+A convenience function that performs both bssClose() and bssStop() - stops both modes.
 
 =item long bssRead(bssNav nav, char *data, int dataLen)
 

@@ -23,10 +23,9 @@ void	bssStop()
 	int		recvThreadValid;
 	pthread_t	recvThread;
 
-	if (_datFile(0, 0) == -1)	/*	Must destroy tblIndex.	*/
+	if (_datFile(0, 0) == -1)	/* check if playback mode is there*/
 	{
-		oK(_tblIndex(&destroy));
-		ionDetach();
+		oK(_tblIndex(&destroy));   /* no playback mode, destroy tblIndex.	*/
 	}
 
 	recvThreadValid = _recvThreadId(&recvThread, 0);
@@ -52,10 +51,9 @@ void	bssClose()
 {
 	int	destroy = 0;
 
-	if (_recvThreadId(NULL, 0) == 0)/*	No active receiver.	*/
+	if (_recvThreadId(NULL, 0) == 0)/*	Check no active receiver.	*/
 	{
-		oK(_tblIndex(&destroy));/*	Must destroy tblIndex.	*/
-		ionDetach();
+		oK(_tblIndex(&destroy));  /*	We can destroy tblIndex now.	*/
 	}
 
 	if (_datFile(0,0) != -1)
@@ -81,6 +79,8 @@ void	bssExit()
 	fflush(stdout);
 	bssStop();
 	bssClose();
+	/* exiting both real-time and playback modes, detach from ION */
+	ionDetach();
 }
 
 /* Start and terminate BSS receiver operations */
