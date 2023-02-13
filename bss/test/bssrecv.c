@@ -328,11 +328,11 @@ int	main(int argc, char **argv)
 			PUTS("\n");
 			PUTS("---------------Menu-----------------");
 			PUTS("1. Open BSS Receiver in playback mode");
-			PUTS("2. Start BSS receiving thread");
-			PUTS("3. Start BSS Receiver");
-			PUTS("4. Close current playback session");
-			PUTS("5. Stop BSS receiving thread");
-			PUTS("6. Stop BSS Receiver");
+			PUTS("2. Start BSS receiving thread in realtime mode");
+			PUTS("3. Start BSS Receiver in both playback and realtime modes");
+			PUTS("4. Close current playback mode session");
+			PUTS("5. Stop BSS receiving thread in realtime mode");
+			PUTS("6. Stop BSS Receiver in both realtime and playback modes");
 			PUTS("7. Exit");
 			fflush(stdout);
 
