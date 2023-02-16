@@ -1,242 +1,755 @@
 #!/bin/bash
 #
 # Copyright (c) 2009, Regents of the University of Colorado.
-# Written by Sebastian Kuzminsky <seb@highlab.com>
+# Originally written by Sebastian Kuzminsky <seb@highlab.com>.
+# Modified by many; last rewrite by John Veregge at the Jet
+# Propulsion Lab in 2023 who can be blamed for all the errors.
 # This script is released into the public domain.
+
+
+#set -u # treat unset variables as an error
+#set -x # echo commands as they are executed
+
+
+########################################################################
+# message functions
+function echo2() { echo 1>&2 "$@"; }
+function echoErr() { echo 'ERROR:' "$@"; }
+function echoWarn() { echo 'WARNING:' "$@"; }
+function echoPErr() { echo 'PROGRAMMING ERROR:' "$@"; }
+function echoInfo() { echo 'INFO:' "$@"; }
+function echoDbug() { echo 'DEBUG:' "$@"; }
+
+
+########################################################################
+# constants
 #
+# NOTE 1: While there appear to be alternate test case filenames, e.g.
+# filenames with the suffixes .py and .exe, this script executes only
+# one test case filename. The workaround for this script to execute
+# an alternately named test case filename is to create a script with
+# the standard test case filename that executes the alternate.
+#
+# NOTE 2: In computer terminolgy a filename is "name", a pathname is
+# "<directory-path>/name", and the non-technical terms "file name" or
+# "file" can be either a filename or a pathname.
+#
+# Standard test case script filename.
+readonly TEST_CASE_FILENAME="dotest"
+# Standard test cleanup script filename.
+readonly TEST_CLEAN_FILENAME="cleanup"
+# This output file will contain the tests that failed.
+readonly FAILED_FILENAME="retest"
+# This file should contain environment settings necessary for the tests.
+readonly TEST_ENV_FILENAME="pretest-script"
+# Standard exit and return values.
+readonly EXIT_SUCCESS=0
+readonly EXIT_FAILURE=1
+readonly EXIT_SKIPPED=2
+readonly EXIT_PROGRAMMING_ERROR=127
 
 
-#set -x
+########################################################################
+# arrays store the names of tests passed, failed, skipped, or excluded
+TESTS_PASSED=()
+TESTS_FAILED=()
+TESTS_SKIPPED=()
+TESTS_EXCLUDED_ALL=()
+TESTS_EXCLUDED_EXP=()
+TESTS_EXCLUDED_CB=()
+TESTS_EXCLUDED_OS=()
+TESTS_EXCLUDED_BP=()
+TESTS_EXCLUDED_OBS=()
 
-# This file will contain the tests that failed.
-# --dyoung oct 2010
-FAILEDFILE="retest"
+
+########################################################################
+# source the environment settings file
+if [ -f "$TEST_ENV_FILENAME" ] ; then
+    echoInfo "sourcing environment settings file \"$TEST_ENV_FILENAME\"."
+    source "$TEST_ENV_FILENAME"
+else
+    echoInfo "environment settings file \"$TEST_ENV_FILENAME\" not found."
+fi
 
 
-[ -f pretest-script ] && source pretest-script
-
-
-function find_tests_in () {
-	find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
+########################################################################
+# determine which arguments are directories for passing to find(1).
+#  - arguments that are directories are printed to standard output.
+#  - arguments that are not directories are not printed.
+#  - no arguments results in the current directory being printed.
+#  - returns $EXIT_SUCCESS if one or more directories are found.
+#  - returns $EXIT_FAILURE if no directories are found.
+function get_directories() {
+    local name=
+    local directories=()
+    if [ $# -eq 0 ]
+    then
+        directories=( . )
+    else
+        for name in "$@"
+        do
+            if [ -d "$name" ]
+            then
+                directories+=( "$name" )
+            fi
+        done
+    fi
+    if [ ${#directories[@]} -gt 0 ]
+    then
+        echo "${directories[@]}"
+        return $EXIT_SUCCESS
+    else
+        return $EXIT_FAILURE
+    fi
 }
 
 
-function pass_test () {
-    NUM_PASSED=$((NUM_PASSED + 1))
-    TESTS_PASSED="$TESTS_PASSED $1"
+########################################################################
+# find test case executables: these files start the execution of all test cases
+function find_test_cases() {
+    local filename="$TEST_CASE_FILENAME"
+    local pathnames=($(find "$@" \( -type f -o -type l \) -a -name $filename))
+    if [ ${#pathnames[*]} -eq 0 ] ; then
+        return $EXIT_FAILURE
+    fi
+    echo "${pathnames[@]}" | xargs -L 1 dirname | grep -v "\.libs/" | sort
 }
 
 
-function fail_test () {
-    NUM_FAILED=$((NUM_FAILED + 1))
-    TESTS_FAILED="$TESTS_FAILED $1"
+########################################################################
+# find cleanup scripts: most are run before and after an associated test
+# case to remove test output files, but they can exist without a test case
+# to remove other output files that do not belong in the ION distribution.
+function find_cleanup_scripts() {
+    local filename="$TEST_CLEAN_FILENAME"
+    local pathnames=($(find "$@" \( -type f -o -type l \) -a -name $filename))
+    if [ ${#pathnames[*]} -eq 0 ] ; then
+        return $EXIT_FAILURE
+    fi
+    echo "${pathnames[@]}" | xargs -L 1 dirname | sort
 }
 
 
-function skip_test () {
-    NUM_SKIPPED=$((NUM_SKIPPED + 1))
-    TESTS_SKIPPED="$TESTS_SKIPPED $1"
+########################################################################
+function shutdown_ion() {
+    if type ionkill 1>/dev/null 2>/dev/null
+    then
+        # JPL killm substitute
+        echo
+        echo ionkill started.
+        ionkill
+        echo ionkill completed.
+
+    elif type killm 1>/dev/null 2>/dev/null
+    then
+        # less verbose killm
+        echo
+        echo Killm started.
+        killm \
+        | sed -e '/Sending TERM to.*/ s//Terminating your ION processes.../
+                  /Sending KILL to the processes/ d
+                  /Checking if all processes ended/ d
+                  /Deleting shared memory/ s//Deleting your IPCs/
+                 '
+    else
+        echoErr "Cannot find ionkill or killm scripts: terminating $(basename $0)."
+        exit $EXIT_FAILURE
+    fi
 }
 
 
-function excludeOS_test () {
-    NUM_EXCLUDED_OS=$((NUM_EXCLUDED_OS + 1))
-    TESTS_EXCLUDED_OS="$TESTS_EXCLUDED_OS $1"
+########################################################################
+# subroutine called by run_one_test() for each passing test
+function pass_test() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    echo
+    echo "$1 TEST PASSED!"
+    TESTS_PASSED+=( "$1" )
 }
 
 
-function excludeBPv_test () {
-    NUM_EXCLUDED_BPv=$((NUM_EXCLUDED_BPv + 1))
-    TESTS_EXCLUDED_BPv="$TESTS_EXCLUDED_BPv $1"
+########################################################################
+# subroutine called by run_one_test() for each failed test
+function fail_test() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    echo
+    echo "$1 TEST FAILED!"
+    TESTS_FAILED+=( "$1" )
 }
 
-function excludeObsolete_test () {
-    NUM_EXCLUDED_OBSOLETE=$((NUM_EXCLUDED_OBSOLETE + 1))
-    TESTS_EXCLUDED_OBSOLETE="$TESTS_EXCLUDED_OBSOLETE $1"
+
+########################################################################
+# subroutine called by run_one_test() for each skipped test
+function skip_test() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    echo
+    echo "$1 TEST SKIPPED!"
+    TESTS_SKIPPED+=( "$1" )
 }
 
 
-# runs one test, updates the test status counters
-function run_a_test () {
-    TEST=$1
+########################################################################
+# I am not sure why this was necessary, but the substitution logic was
+# in the old runtests, so it remains in the rewritten runtests as well.
+function clean_pathname() {
+    local pathname="$1"
+    # erase trailing "/"
+    pathname=${pathname%%/}
+    # erase leading "./"
+    pathname=${pathname##./}
+    echo "$pathname"
+}
 
-    # see, you can make bash read like perl if you try
-    TEST=${TEST##./}
-    TEST=${TEST%%/}
+
+########################################################################
+# subroutine called by run_one_test() for test exclusion: all platforms
+function is_test_excluded_all() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local exclude_filename=".exclude_all"
+    local exclude_pathname="$testcase/$exclude_filename"
+
+    if [ -f "$exclude_pathname" ]
+    then
+    	echo "Test universally excluded, skipping $testcase."
+	cat "$exclude_pathname"
+        TESTS_EXCLUDED_ALL+=( "$testcase" )
+        # $EXIT_SUCCESS tells the caller that this test was excluded
+    	return $EXIT_SUCCESS
+    else
+        # $EXIT_FAILURE tells the caller that this test was not excluded
+    	return $EXIT_FAILURE
+    fi
+}
+
+
+########################################################################
+# subroutine called by run_one_test() for test exclusion: expertise class
+function is_test_excluded_expert() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local exclude_filename=".exclude_expert"
+    local exclude_pathname="$testcase/$exclude_filename"
+
+    # do not skip the testcase when the environment variable is defined
+    if [ -f "$exclude_pathname" -a -z "$ION_RUN_EXPERT" ]
+    then
+    	echo "Test excluded by expertise class, skipping $testcase."
+	cat "$exclude_pathname"
+        TESTS_EXCLUDED_EXP+=( "$testcase" )
+        # $EXIT_SUCCESS tells the caller that this test was excluded
+    	return $EXIT_SUCCESS
+    else
+        # $EXIT_FAILURE tells the caller that this test was not excluded
+    	return $EXIT_FAILURE
+    fi
+}
+
+
+########################################################################
+# subroutine called by run_one_test() for test exclusion: c code based
+function is_test_excluded_cbased() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local exclude_filename=".exclude_cbased"
+    local exclude_pathname="$testcase/$exclude_filename"
+
+    # only skip the testcase when the environment variable is defined
+    if [ -f "$exclude_pathname" -a -n "$ION_EXCLUDE_CBASED" ]
+    then
+    	echo "Test excluded because of C code, skipping $testcase."
+	cat "$exclude_pathname"
+        TESTS_EXCLUDED_CB+=( "$testcase" )
+        # $EXIT_SUCCESS tells the caller that this test was excluded
+    	return $EXIT_SUCCESS
+    else
+        # $EXIT_FAILURE tells the caller that this test was not excluded
+    	return $EXIT_FAILURE
+    fi
+}
+
+
+########################################################################
+# subroutine called by run_one_test() for test exclusion: os version
+function is_test_excluded_os_version() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ -z "$OS_VERSION" ]
+    then
+        echoPErr "$FUNCNAME() called with OS_VERSION undefined."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local exclude_filename=".exclude_$OS_VERSION"
+    local exclude_pathname="$testcase/$exclude_filename"
+
+    if [ -f "$exclude_pathname" ]
+    then
+    	echo "Test excluded by OS type, skipping $testcase."
+	cat "$exclude_pathname"
+        TESTS_EXCLUDED_OS+=( "$testcase" )
+        # $EXIT_SUCCESS tells the caller that this test was excluded
+    	return $EXIT_SUCCESS
+    else
+        # $EXIT_FAILURE tells the caller that this test was not excluded
+    	return $EXIT_FAILURE
+    fi
+}
+
+
+########################################################################
+# subroutine called by run_one_test() for test exclusion: bp version
+function is_test_excluded_bp_version() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ -z "$BP_VERSION" ]
+    then
+        echoPErr "$FUNCNAME() called with BP_VERSION undefined."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local exclude_filename=".exclude_$BP_VERSION"
+    local exclude_pathname="$testcase/$exclude_filename"
+
+    if [ -f "$exclude_pathname" ]
+    then
+    	echo "Test excluded by BP version, skipping $testcase."
+	cat "$exclude_pathname"
+        TESTS_EXCLUDED_BP+=( "$testcase" )
+        # $EXIT_SUCCESS tells the caller that this test was excluded
+    	return $EXIT_SUCCESS
+    else
+        # $EXIT_FAILURE tells the caller that this test was not excluded
+    	return $EXIT_FAILURE
+    fi
+}
+
+
+########################################################################
+# subroutine called by run_one_test() for test exclusion: obsolescence
+function is_test_excluded_obsolete() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local exclude_filename=".exclude_obsolete"
+    local exclude_pathname="$testcase/$exclude_filename"
+
+    if [ -f "$exclude_pathname" ]
+    then
+    	echo "Test excluded as obsolete, skipping $testcase."
+	cat "$exclude_pathname"
+        TESTS_EXCLUDED_OBS+=( "$testcase" )
+        # $EXIT_SUCCESS tells the caller that this test was excluded
+    	return $EXIT_SUCCESS
+    else
+        # $EXIT_FAILURE tells the caller that this test was not excluded
+    	return $EXIT_FAILURE
+    fi
+}
+
+
+########################################################################
+# run a single test cleanup script
+function run_cleanup() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local cleanup_filename="$TEST_CLEAN_FILENAME"
+    local cleanup_pathname="$testcase/$cleanup_filename"
+
+    if [ ! -f "$cleanup_pathname" ]
+    then
+        echoWarn "$cleanup_pathname file does not exist!"
+    	return
+    fi
+    if [ ! -x "$cleanup_pathname" ]
+    then
+        echoWarn "$cleanup_pathname file is not executable."
+    	return
+    fi
+
+    # open parenthesis: run in a subshell causing no changes in current shell
+    (
+    cd $testcase
+    ./$cleanup_filename
+
+    # close parenthesis: end subshell
+    )
+}
+
+
+########################################################################
+# run a single test case and update test status arrays
+function run_one_test() {
+    if [ $# -eq 0 ]
+    then
+        echoPErr "$FUNCNAME() called without an argument."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ $# -gt 1 ]
+    then
+        echoPErr "$FUNCNAME() called with too many arguments: \"$@\"."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    if [ -z "$OS_VERSION" ]
+    then
+        echoPErr "$FUNCNAME() called with OS_VERSION undefined."
+        exit $EXIT_PROGRAMMING_ERROR
+    fi
+    local testcase=$(clean_pathname "$1")
+    local testcase_filename="$TEST_CASE_FILENAME"
+    local testcase_pathname="$testcase/$testcase_filename"
 
     echo
     echo "***"
-    echo "*** ${TEST}"
+    echo "*** $testcase"
     echo "***"
 
-    # check if test is excluded because it is obsolete
-    if [ -f "$TEST/.exclude_obsolete" ]; then
-    	echo "Test excluded because it is obsolete, skipping $TEST"
-	cat $TEST/.exclude_obsolete
-    	excludeObsolete_test $TEST
+    # check for existence of the testcase's directory
+    if [ ! -d "$testcase" ]
+    then
+        echoErr "$testcase directory does not exist!"
+        fail_test "$testcase"
+        return
+    fi
+
+    # check if test is excluded as obsolete
+    if is_test_excluded_obsolete "$testcase"
+    then
     	return
     fi
 
     # check if test is excluded on all platforms
-    if [ -f "$TEST/.exclude_all" ]; then
-    	echo "Test universally excluded, skipping $TEST"
-	cat $TEST/.exclude_all
-    	skip_test $TEST
+    if is_test_excluded_all "$testcase"
+    then
     	return
     fi
 
-    # check for environment variable to skip these	
-    if [ -f "$TEST/.exclude_expert" ]; then
-	    if [ -z "$ION_RUN_EXPERT" ]; then
-		echo "Test excluded by expertise class, skipping $TEST"
-		cat $TEST/.exclude_expert
-		skip_test $TEST
-		return
-	    fi
+    # check if test is excluded by expertise class
+    if is_test_excluded_expert "$testcase"
+    then
+    	return
     fi
 
-    # check for environment variable to skip these	
-    if [ -f "$TEST/.exclude_cbased" ]; then
-	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
-		echo "Test excluded because of C code, skipping $TEST"
-		cat $TEST/.exclude_cbased
-		skip_test $TEST
-		return
-	    fi
+    # check if test is excluded because of C code
+    if is_test_excluded_cbased "$testcase"
+    then
+    	return
     fi
 
     # check if test is excluded by OS version
-    if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
-    	echo "Test excluded by OS type, skipping $TEST"
-	cat $TEST/.exclude_$OS_VERSION
-    	excludeOS_test $TEST
+    if is_test_excluded_os_version "$testcase"
+    then
     	return
     fi
 
     # check if test is excluded by BP version
-    if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
-    	echo "Test excluded by BP version, skipping $TEST"
-	cat $TEST/.exclude_$BP_VERSION
-    	excludeBPv_test $TEST
+    if is_test_excluded_bp_version "$testcase"
+    then
     	return
     fi
 
-    # check for existance of dotest script
-    if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
-        echo "test $TEST does not exist!"
-        NUM_FAILED=$((NUM_FAILED + 1))
-        TESTS_FAILED="$TESTS_FAILED $TEST"
+    # check for existence of the testcase's script
+    if [ ! -f "$testcase_pathname" ]
+    then
+        echoErr "$testcase_pathname file does not exist!"
+        fail_test "$testcase"
         return
     fi
 
-    # make sure dotest script is executable
-    if [ ! -x "$TEST/dotest" ]; then
-        echo "dotest script not executable, skipping"
-        NUM_SKIPPED=$((NUM_SKIPPED + 1))
-        TESTS_SKIPPED="$TESTS_SKIPPED $TEST"
+    # check that the testcase's script is executable
+    if [ ! -x "$testcase_pathname" ]
+    then
+        echoWarn "$testcase_pathname file is not executable."
+        skip_test "$testcase"
         return
     fi
 
-    pushd "$TEST" > /dev/null
+    run_cleanup "$testcase"
 
-    if [ -x "cleanup" ]; then
-        ./cleanup
-    fi
-
-    # Prefer X/Open Portable tools if Solaris
-    if [ -x "/usr/xpg4/bin" ]; then
+    # open parenthesis: run in a subshell causing no changes in current shell
+    (
+    # Prefer X/Open tools if Solaris
+    if [ -x "/usr/xpg4/bin" ]
+    then
         PATH="/usr/xpg4/bin:$PATH"
     fi    
-        
-    ./dotest $OS_VERSION
-    TEST_RETVAL=$?
-    if [ $TEST_RETVAL -eq 0 ]; then
-        echo "TEST PASSED!"
-        pass_test $TEST
-        if [ -x "cleanup" ]; then
-            ./cleanup
-        fi
-    elif [ $TEST_RETVAL -eq 1 ]; then
-        echo "TEST FAILED!"
-        fail_test $TEST
-    elif [ $TEST_RETVAL -eq 2 ]; then
-        echo "TEST SKIPPED!"
-        skip_test $TEST
-    else 
-        echo "test returned unknown value $TEST_RETVAL"
-        fail_test $TEST
+    # Prefer Linux tools to X/Open tools if Solaris
+    if [ -x "/usr/gnu/bin" ]
+    then
+        PATH="/usr/gnu/bin:$PATH"
     fi
 
-    # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] 
-    then	
+    cd "$testcase"
+    ./$testcase_filename "$OS_VERSION"
+    test_retval=$?
+
+    # return from the test case's subshell; the return statement is unnecessary
+    # but exists in case in the future something is executed following the test
+    return $test_retval
+
+    # close parenthesis: end test case's subshell
+    )
+    local test_retval=$?
+
+    if [ $test_retval -eq $EXIT_SUCCESS ]
+    then
+        pass_test "$testcase"
+
+    elif [ $test_retval -eq $EXIT_FAILURE ]
+    then
+        fail_test "$testcase"
+
+    elif [ $test_retval -eq $EXIT_SKIPPED ]
+    then
+        skip_test "$testcase"
+
+    else 
+        echoWarn "$testcase_pathname returned unexpected value $test_retval"
+        fail_test "$testcase"
+    fi
+
+    shutdown_ion # shutdown ION following every test
+
+    # Allow some extra time for ION to fully shutdown on Windows
+    if [ $OS_VERSION = "windows" ] 
+    then
 	sleep 15
     fi
 
-    popd > /dev/null
-
+    # cleanup test output files only for successful tests
+    if [ $test_retval -eq $EXIT_SUCCESS ]
+    then
+        run_cleanup "$testcase"
+    fi
 }
 
 
-# cleans up one test
-function cleanup_a_test () {
-    TEST=$1
+########################################################################
+# print test results summary to standard output
+function print_test_results() {
+    local testcase=
 
-    # see, you can make bash read like perl if you try
-    TEST=${TEST##./}
-    TEST=${TEST%%/}
+    echo
+    echo "****************************"
+    echo "*** Test Results Summary ***"
+    echo "****************************"
 
-    if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
-        echo "test $TEST doesnt exist!"
-        return
-    fi
+    echo
+    echo "tests passed: ${#TESTS_PASSED[*]}"
+    for testcase in "${TESTS_PASSED[@]}"; do
+        echo "    $testcase"
+    done
 
-    if [ ! -x "$TEST/cleanup" ]; then
-        return
-    fi
+    echo
+    echo "tests failed: ${#TESTS_FAILED[*]}"
+    for testcase in "${TESTS_FAILED[@]}"; do
+        echo "    $testcase"
+    done
 
-    pushd "$TEST" > /dev/null
-    ./cleanup
-    popd > /dev/null
-}
+    echo
+    echo "tests skipped: ${#TESTS_SKIPPED[*]}"
+    for testcase in "${TESTS_SKIPPED[@]}"; do
+        echo "    $testcase"
+    done
 
+    echo
+    echo "tests universally excluded: ${#TESTS_EXCLUDED_ALL[*]}"
+    for testcase in "${TESTS_EXCLUDED_ALL[@]}"; do
+        echo "    $testcase"
+    done
 
-# run all tests listed in $@
-function run_tests () {
-    for TEST in "$@"; do
-        run_a_test $TEST
+    echo
+    echo "tests excluded by expertise class: ${#TESTS_EXCLUDED_EXP[*]}"
+    for testcase in "${TESTS_EXCLUDED_EXP[@]}"; do
+        echo "    $testcase"
+    done
+
+    echo
+    echo "tests excluded because of C code: ${#TESTS_EXCLUDED_CB[*]}"
+    for testcase in "${TESTS_EXCLUDED_CB[@]}"; do
+        echo "    $testcase"
+    done
+
+    echo
+    echo "tests excluded by OS type: ${#TESTS_EXCLUDED_OS[*]}"
+    for testcase in "${TESTS_EXCLUDED_OS[@]}"; do
+         echo "    $testcase"
+    done
+
+    echo
+    echo "tests excluded by BP version: ${#TESTS_EXCLUDED_BP[*]}"
+    for testcase in "${TESTS_EXCLUDED_BP[@]}"; do
+         echo "    $testcase"
+    done
+
+    echo
+    echo "tests excluded as obsolete: ${#TESTS_EXCLUDED_OBS[*]}"
+    for testcase in "${TESTS_EXCLUDED_OBS[@]}"; do
+        echo "    $testcase"
     done
 }
 
 
-# cleanup all tests listed in $@
-function cleanup_tests () {
-    for TEST in "$@"; do
-        cleanup_a_test $TEST
+########################################################################
+# run all tests on the command line
+function run_all_tests() {
+    shutdown_ion # prophylactically shutdown ION before running any tests
+    local directory=
+    for directory in "$@"; do
+        run_one_test "$directory"
     done
 }
 
-# these track how much of the test suite is passing/failing/skipped
-NUM_PASSED=0
-NUM_FAILED=0
-NUM_SKIPPED=0
-NUM_EXCLUDED_OS=0
-NUM_EXCLUDED_BPv=0
-NUM_EXCLUDED_OBSOLETE=0
-NUM_UNKNOWN=0
 
-# these track the names of the tests passed/failed/skipped
-# each is a string consisting of the names of all the tests in that category, separated by spaces
-TESTS_PASSED=''
-TESTS_FAILED=''
-TESTS_SKIPPED=''
-TESTS_EXCLUDED_OS=''
-TESTS_EXCLUDED_BPv=''
-TESTS_EXCLUDED_OBSOLETE=''
+########################################################################
+# run all cleanups on the command line
+function run_all_cleanups() {
+    local directory=
+    for directory in "$@"; do
+        run_cleanup "$directory"
+    done
+}
+
+########################################################################
+# parse the command line and verify the inputs
+
+CLEANUP_ARGUMENT="cleanup"
+usage_message="USAGE: $(basename $0) [$CLEANUP_ARGUMENT] [<directory>[...]]"
+
+if [ "$1" = "-h" -o "$1" = "--help" ] ; then
+    echo "$usage_message"
+    exit $EXIT_SUCCESS
+fi
+
+do_cleanup=
+if [ "$1" = "$CLEANUP_ARGUMENT" ]; then
+    do_cleanup=$1
+    shift
+fi
+
+if ! root_directories=( $(get_directories "$@") ) ; then
+    echoErr "none of the arguments are directories."
+    echo "$usage_message"
+    exit $EXIT_FAILURE
+fi
+
+if [ -n "$do_cleanup" ]; then
+    all_directories=( $(find_cleanup_scripts ${root_directories[*]}) )
+    if [ "${#all_directories[*]}" -eq 0 ]; then
+        echoErr "no test cleanup scripts found."
+        exit $EXIT_FAILURE
+    fi
+else
+    all_directories=( $(find_test_cases ${root_directories[*]}) )
+    if [ "${#all_directories[*]}" -eq 0 ]; then
+        echoErr "no test case scripts found."
+        exit $EXIT_FAILURE
+    fi
+fi
+
+
+########################################################################
+# run test cases and report results
+
+if [ -n "$do_cleanup" ]; then
+    run_all_cleanups "${all_directories[@]}"
+    exit
+fi
+
+# Determine BP version for exclusion of tests
+BP_VERSION=$(bpversion)
+echoInfo "BP version is $BP_VERSION."
 
 # Determine OS version for exclusion of tests
 OS_VERSION=''
-version=`uname -a`
+version=$(uname -a)
 if [[ $version == *"MINGW"* ]] || [[ $version == *"Msys"* ]] 
 then
 	OS_VERSION=windows;
@@ -250,87 +763,20 @@ elif [[ $version == *"Solaris"* ]] || [[ $version == *"SunOS"* ]]
 then
         OS_VERSION=solaris;
 fi
+echoInfo "OS version is $OS_VERSION."
 
-#Determine BP version for exclustion of tests
-BP_VERSION=`bpversion`
-export BP_VERSION
-echo "BP version is $BP_VERSION"
+run_all_tests "${all_directories[@]}"
 
-CLEANUP=""
-if [ "$1" = "cleanup" ]; then
-    shift
-    CLEANUP="cleanup"
-fi
+print_test_results
 
-
-if [ $# -eq 0 ]; then
-    TESTS=$(find_tests_in ../demos/)" "$(find_tests_in .)
+if [[ ${#TESTS_FAILED[*]} == 0 ]]; then
+    exit $EXIT_SUCCESS
 else
-    TESTS=$(find_tests_in "$@")
+    echo
+    echoInfo "creating test failure list in the file \"$FAILED_FILENAME\"."
+    echo "# Generated by $(basename $0) on $(date)" > $FAILED_FILENAME
+    for testcase in "${TESTS_FAILED[@]}"; do
+        echo "$testcase" >> $FAILED_FILENAME
+    done
+    exit $EXIT_FAILURE
 fi
-
-if [ -z "$TESTS" ]; then
-    echo "no tests found!"
-    exit 1
-fi
-
-
-if [ -z "$CLEANUP" ]; then
-    run_tests $TESTS
-else 
-    cleanup_tests $TESTS
-    if [ $? -eq 0 ]; then
-        exit 0
-    else
-        echo "some tests failed to clean up"
-        exit 1
-    fi
-fi
-
-
-echo
-echo "passed: $NUM_PASSED"
-for TEST in $TESTS_PASSED; do
-    echo "    $TEST"
-done
-
-echo
-echo "failed: $NUM_FAILED"
-RIGHTNOW=`date`
-echo "# Generated by $0 $RIGHTNOW" > $FAILEDFILE
-for TEST in $TESTS_FAILED; do
-    echo "    $TEST"
-    echo "$TEST" >> $FAILEDFILE
-done
-
-echo
-echo "skipped: $NUM_SKIPPED"
-for TEST in $TESTS_SKIPPED; do
-    echo "    $TEST"
-done
-
-echo
-echo "excluded by OS type: $NUM_EXCLUDED_OS"
-for TEST in $TESTS_EXCLUDED_OS; do
-    echo "    $TEST"
-done
-
-echo
-echo "excluded by BP version: $NUM_EXCLUDED_BPv"
-for TEST in $TESTS_EXCLUDED_BPv; do
-    echo "    $TEST"
-done
-
-echo
-echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
-for TEST in $TESTS_EXCLUDED_OBSOLETE; do
-    echo "    $TEST"
-done
-
-
-if [[ $NUM_FAILED == 0 ]]; then
-    exit 0
-else
-    exit 1
-fi
-

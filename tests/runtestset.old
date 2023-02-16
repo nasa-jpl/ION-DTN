@@ -43,7 +43,7 @@ while [ $# -gt 0 ]; do
 done
 
 # This restricts an emptry string from being passed to runtests
-if [ -z "${TESTS}" ]; then
+if [ -z ${TESTS} ]; then
     echo "$0 has an empty test set. No tests run."
     exit 0;
 fi
