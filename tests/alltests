@@ -1,4 +1,5 @@
 # alltests test set
+# usage: ./runteset alltests
 
 # Run all tests.
-*
+.
