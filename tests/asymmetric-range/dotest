@@ -11,17 +11,10 @@ CONFIGFILES=" \
 ./amroc.ionsecrc \
 ./amroc.ipnrc \
 "
+source ../setacs.sh
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
+if [ $ACS = "found" ] ; then
 		CONFIGFILES=$CONFIGFILES" ./amroc.acsrc"
-	else
-		ACS="missing"
-	fi
 fi
 
 echo "########################################"

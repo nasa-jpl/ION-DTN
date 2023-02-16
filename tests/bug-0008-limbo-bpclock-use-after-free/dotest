@@ -15,14 +15,10 @@ CONFIGFILES=" \
 ./config.bprc \
 ./config.ipnrc"
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./config.acsrc"
-	fi
+source ../setacs.sh
+
+if [ $ACS = "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./config.acsrc"
 fi
 
 

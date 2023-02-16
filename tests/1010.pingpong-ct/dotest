@@ -5,16 +5,14 @@
 # Written by Andrew Jenkins, based on loopbacktest.sh by David Young
 #
 echo "Looking for acsadmin"
+source ../setacs.sh
+
 which acsadmin
-if [ $? -eq 0 ] ; then
-	echo "Found acsadmin"
-	ACS="found"
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-udp/loopback-acs.rc \
 	"
 else
-	echo "acsadmin not found"
-	ACS="missing"
 	CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-udp/loopback.rc \
 	"

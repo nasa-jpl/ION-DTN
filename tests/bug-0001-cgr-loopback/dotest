@@ -14,14 +14,12 @@ CONFIGFILES=" \
 ./3.ipn.ltp/amroc.ipnrc \
 "
 
+source ../setacs.sh
+
 ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
-	fi
+if [ $ACS = "found" ] ; then
+
+	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"

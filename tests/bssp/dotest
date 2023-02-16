@@ -15,14 +15,11 @@ CONFIGFILES=" \
 ./1.ipn.bssp/amroc.ipnrc \
 "
 
+source ../setacs.sh
+
 ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./1.ipn.bssp/amroc.acsrc"
-	fi
+if [ $ACS = "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.bssp/amroc.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -34,7 +31,7 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.bssp/amroc.ipnrc
 "
 
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./2.ipn.bssp/amroc.acsrc"
 fi
 

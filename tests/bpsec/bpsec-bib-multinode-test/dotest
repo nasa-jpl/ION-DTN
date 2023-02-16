@@ -9,14 +9,7 @@
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=5
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-	fi
-fi
+source ../../setacs.sh
 
 echo "Cleaning up old ION..."
 rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
