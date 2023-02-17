@@ -99,7 +99,7 @@ ITERATION=1
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-udp"
-if [ $ACS == "found" ] ; then
+if [ $ACS = "found" ] ; then
 	echo "ionstart -I ${CONFIGDIR}/loopback-acs.rc"
 	"ionstart" -I "${CONFIGDIR}/loopback-acs.rc"
 else

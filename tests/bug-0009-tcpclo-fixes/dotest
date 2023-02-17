@@ -12,15 +12,10 @@ CONFIGFILES=" \
 ./1.ipn.tcp/config.bprc \
 ./1.ipn.tcp/config.ipnrc \
 "
+source ../setacs.sh
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./1.ipn.tcp/config.acsrc"
-	fi
+if [ $ACS = "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.tcp/config.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -31,7 +26,7 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.tcp/config.ipnrc \
 "
 
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./2.ipn.tcp/config.acsrc"
 fi
 
@@ -62,7 +57,7 @@ export ION_NODE_LIST_DIR=$PWD
 echo
 echo "Starting node 1..."
 cd 1.ipn.tcp/
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -91,7 +86,7 @@ sleep 5
 echo
 echo "Starting node 2..."
 cd ../2.ipn.tcp/
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart

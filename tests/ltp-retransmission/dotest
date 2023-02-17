@@ -14,15 +14,10 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
 "
+source ../setacs.sh
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
-	fi
+if [ $ACS = "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -35,7 +30,7 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ipnrc \
 "
 
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
 fi
 
@@ -76,7 +71,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 2.ipn.ltp
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	./ionstart-acs >& node2.stdout &
 else
 	./ionstart >& node2.stdout &
@@ -92,7 +87,7 @@ else
 fi
 
 cd ../3.ipn.ltp
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	./ionstart-acs >& node3.stdout &
 else
 	./ionstart >& node3.stdout &
