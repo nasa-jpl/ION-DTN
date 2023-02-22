@@ -289,7 +289,10 @@ END {
 	# ignore sections with last line one greater than first line.
 
 	# run programs in order- but only if they have defined linenumbers
-	for (x = 1; x <= 10; x++) {
+	num_prog = 0
+	for (process in programs)
+		num_prog += 1
+	for (x = 1; x <= num_prog; x++) {
 		if (firstline[programs[x]] > 0 && 
 		    firstline[programs[x]] <= lastline[programs[x]]) {
 			if(ION_OPEN_SOURCE==0 && programs[x]=="cfdpadmin"){
