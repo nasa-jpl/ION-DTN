@@ -95,7 +95,7 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop
+./ionstop &
 killm
 echo "CGR test completed."
 exit $RETVAL

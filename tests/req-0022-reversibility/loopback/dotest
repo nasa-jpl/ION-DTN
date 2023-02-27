@@ -100,7 +100,7 @@ fi
 # shut down ion processes
 echo
 echo "Stopping ion..."
-./ionstop
+./ionstop &
 cd ..
 
 exit ${RETVAL}

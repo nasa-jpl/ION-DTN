@@ -98,7 +98,7 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop
+./ionstop &
 killm
 echo "bpMemo timeline test completed."
 exit $RETVAL
