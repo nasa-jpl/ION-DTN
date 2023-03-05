@@ -1,0 +1,16 @@
+#!/bin/bash
+
+ionadmin .
+sleep 1
+
+ionsecadmin .
+sleep 1
+
+ltpadmin .
+sleep 1
+
+bpadmin .
+sleep 1
+
+bpsecadmin .
+sleep 1
