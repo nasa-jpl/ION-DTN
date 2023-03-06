@@ -3380,7 +3380,7 @@ int	sm_GetUniqueKey()
 	static int	ipcUniqueKey = 0;
 	int		result;
 
-	/*	Compose unique key: low-order 16 bits of process ID
+	/*	Compose unique key: low-order 15 bits of process ID
 		followed by low-order 16 bits of process-specific
 		sequence count randomized by starting time in seconds	*/
 
@@ -3391,9 +3391,9 @@ int	sm_GetUniqueKey()
 
 	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
 #ifdef mingw
-	result = (_getpid() << 16) + ipcUniqueKey;
+	result = ((_getpid() & 0x00007fff) << 16) + ipcUniqueKey;
 #else
-	result = (getpid() << 16) + ipcUniqueKey;
+	result = ((getpid() & 0x00007fff) << 16) + ipcUniqueKey;
 #endif
 	return result;
 }
