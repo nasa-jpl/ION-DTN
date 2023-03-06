@@ -43,33 +43,33 @@ rm -f ./ion_nodes
 cd 1.ipn.ltp
 rm testfile*
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node1.stdout &
+	./ionstart-acs >& node1.stdout 
 else
-	./ionstart >& node1.stdout &
+	./ionstart >& node1.stdout 
 fi
 sleep 2
 cd ../2.ipn.ltp
 rm testfile*
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node2.stdout &
+	./ionstart-acs >& node2.stdout 
 else
-	./ionstart >& node2.stdout &
+	./ionstart >& node2.stdout 
 fi
 sleep 2
 cd ../3.ipn.ltp
 rm testfile*
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node3.stdout &
+	./ionstart-acs >& node3.stdout 
 else
-	./ionstart >& node3.stdout &
+	./ionstart >& node3.stdout 
 fi
 sleep 2
 cd ../4.ipn.ltp
 rm testfile*
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node4.stdout &
+	./ionstart-acs >& node4.stdout 
 else
-	./ionstart >& node4.stdout &
+	./ionstart >& node4.stdout 
 fi
 #give nodes enough time to start
 sleep 8

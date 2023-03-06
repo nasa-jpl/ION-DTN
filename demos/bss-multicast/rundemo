@@ -86,19 +86,19 @@ sleep 1
 # Start nodes.
 cd 1.ipn.bss
 echo "Starting node 1..."
-./ionstart >& node1.stdout &
+./ionstart >& node1.stdout 
 sleep 5
 cd ../2.ipn.bss
 echo "Starting node 2..."
-./ionstart >& node2.stdout &
+./ionstart >& node2.stdout 
 sleep 1
 cd ../3.ipn.bss
 echo "Starting node 3..."
-./ionstart >& node3.stdout &
+./ionstart >& node3.stdout 
 sleep 1
 cd ../4.ipn.bss
 echo "Starting node 4..."
-./ionstart >& node4.stdout &
+./ionstart >& node4.stdout 
 
 # Wait for all nodes to be configured.
 sleep 25

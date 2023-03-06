@@ -65,45 +65,45 @@ rm -f ./ion_nodes
 # Start nodes.
 cd 1.ipn.ltp
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node1.stdout &
+	./ionstart-acs >& node1.stdout 
 else
-	./ionstart >& node1.stdout &
+	./ionstart >& node1.stdout 
 fi
 
 sleep 1
 cd ../2.ipn.ltp
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node2.stdout &
+	./ionstart-acs >& node2.stdout 
 else
-	./ionstart >& node2.stdout &
+	./ionstart >& node2.stdout 
 fi
 
 sleep 1
 cd ../3.ipn.ltp
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node3.stdout &
+	./ionstart-acs >& node3.stdout 
 else
-	./ionstart >& node3.stdout &
+	./ionstart >& node3.stdout 
 fi
 
 sleep 1
 cd ../4.ipn.ltp
 if [ $ACS = "found" ] ; then
-	./ionstart-acs >& node4.stdout &
+	./ionstart-acs >& node4.stdout 
 else
-	./ionstart >& node4.stdout &
+	./ionstart >& node4.stdout 
 fi
 
 
 sleep 30
 echo "Starting dtpcreceive on nodes 3 and 4..."
 cd ../3.ipn.ltp
-dtpcreceive 11  >& node3.11.stdout &
-dtpcreceive 12  >& node3.12.stdout &
-dtpcreceive 13  >& node3.13.stdout &
+dtpcreceive 11  >& node3.11.stdout 
+dtpcreceive 12  >& node3.12.stdout 
+dtpcreceive 13  >& node3.13.stdout 
 cd ../4.ipn.ltp
-dtpcreceive 11  >& node4.11.stdout &
-dtpcreceive 12  >& node4.12.stdout &
+dtpcreceive 11  >& node4.11.stdout 
+dtpcreceive 12  >& node4.12.stdout 
 
 sleep 2
 cd ../1.ipn.ltp
