@@ -72,6 +72,6 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop
+./ionstop &
 echo "AMS basic functionality test completed."
 exit $RETVAL

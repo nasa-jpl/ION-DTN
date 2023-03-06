@@ -82,7 +82,7 @@ fi
 
 # Shut down ION processes--------------------------
 echo "Stopping ION..."
-./ionstop
+./ionstop &
 
 #test complete: return test result-----------------
 echo "AMS SANA functionality test completed"

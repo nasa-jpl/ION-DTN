@@ -29,30 +29,30 @@ if [[ $BP_VERSION == "bpv6" ]] ; then
 	if [ $? -eq 0 ] ; then
 		STARTED=1
 		cd 5.ipn.ltp
-		./ionstart-acs &
+		./ionstart-acs
 		sleep 1
 		cd ../3.ipn.ltp
-		./ionstart-acs &
+		./ionstart-acs
 		sleep 1
 		cd ../1.ipn.ltp
-		./ionstart-acs &
+		./ionstart-acs
 		sleep 1
 		cd ../2.ipn.ltp
-		./ionstart-acs &
+		./ionstart-acs
 	fi
 fi
 if [ $STARTED -eq 0 ] ; then
 	cd 5.ipn.ltp
-	./ionstart &
+	./ionstart
 	sleep 1
 	cd ../3.ipn.ltp
-	./ionstart &
+	./ionstart
 	sleep 1
 	cd ../1.ipn.ltp
-	./ionstart &
+	./ionstart
 	sleep 1
 	cd ../2.ipn.ltp
-	./ionstart &
+	./ionstart
 fi
 
 
