@@ -79,7 +79,7 @@ fi
 echo ""
 # Now break TCP connectivity to node 3.
 echo "Breaking TCP connection to node 3..."
-./ionstop
+./ionstop &
 echo "Node 3 is stopped."
 echo "Sleeping 30 sec to give keepalive thread time to detect closed socket..."
 sleep 30

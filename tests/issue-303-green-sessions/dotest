@@ -86,6 +86,6 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop
+./ionstop &
 echo "Unlimited green LTP sessions test completed."
 exit $RETVAL
