@@ -2,10 +2,10 @@
 #!/bin/bash
 ionadmin	amroc.ionrc
 
-ionadmin	../global.ionrc &
+ionadmin	../global.ionrc 
 
-ionsecadmin	amroc.ionsecrc &
+ionsecadmin	amroc.ionsecrc 
 
-bsspadmin	amroc.bssprc &
+bsspadmin	amroc.bssprc 
 
-bpadmin		amroc.bprc &
+bpadmin		amroc.bprc 

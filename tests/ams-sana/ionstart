@@ -3,10 +3,10 @@
 
 #start ion---------------------------------------------
 ionadmin	amroc.ionrc
-ionadmin	global.ionrc &
-ionsecadmin	amroc.ionsecrc &
-ltpadmin	amroc.ltprc &
-bpadmin		amroc.bprc &
+ionadmin	global.ionrc
+ionsecadmin	amroc.ionsecrc
+ltpadmin	amroc.ltprc
+bpadmin		amroc.bprc
 
 ../../system_up -i "p 30" -l "p 30" -b "p 30"
 

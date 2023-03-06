@@ -4,10 +4,10 @@ ionadmin	amroc.ionrc
 sleep 1
 acsadmin	amroc.acsrc
 sleep 1
-ionadmin	global.ionrc &
+ionadmin	global.ionrc 
 
-ionsecadmin	amroc.ionsecrc &
+ionsecadmin	amroc.ionsecrc 
 
-ltpadmin	amroc.ltprc &
+ltpadmin	amroc.ltprc 
 
-bpadmin		amroc.bprc &
+bpadmin		amroc.bprc 

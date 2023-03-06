@@ -91,9 +91,9 @@ function startNodes
 	for i in {1..4}; do
 		cd node$i
 		if [ $ACS = "found" ] ; then
-			ionstart -I host_$i-acs.rc &
+			ionstart -I host_$i-acs.rc 
 		else
-			ionstart -I host_$i.rc &
+			ionstart -I host_$i.rc 
 		fi
 		cd ..
 		sleep 1
@@ -105,7 +105,7 @@ function finishSetup
 {
 	for i in {1..4}; do
 		cd node$i
-		ionadmin ../global.ionrc &
+		ionadmin ../global.ionrc 
 		sleep 1
 		echo "l contact" | ionadmin | sed -e "s/^: //" | grep "From" &> ion_contacts.txt
 		bpecho ipn:$i.2 &
