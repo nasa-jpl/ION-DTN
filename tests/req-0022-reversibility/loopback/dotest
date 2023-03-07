@@ -15,7 +15,7 @@ CONFIGFILES=" \
 ./configs/loopback.bprc \
 ./configs/loopback.ipnrc"
 
-source ../setacs.sh
+source ../../setacs.sh
 
 if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./configs/loopback.acsrc"
