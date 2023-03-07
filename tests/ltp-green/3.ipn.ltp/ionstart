@@ -1,3 +1,4 @@
+# shell script to get node running
 #!/bin/bash
 ionadmin	amroc.ionrc
 
