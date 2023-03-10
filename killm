@@ -193,8 +193,15 @@ echo "Checking if all processes ended..."
 #   ([^-a-zA-Z]bping$)|([^-a-zA-Z]bpecho$)|...
 PATTERN_PREFIX='([^-a-zA-Z]'
 PATTERN_POSTFIX='$)'
-PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | sed 's/\s*$//' | sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
-NOT_KILLED="$(ps -e | grep -E "${PATTERN}" | grep -v grep)"
+
+# check if OS is SunOS
+if [ "$(uname -s)" == "SunOS" ]; then
+	PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | /usr/gnu/bin/sed 's/\s*$//' | /usr/gnu/bin/sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
+	NOT_KILLED="$(ps -e | /usr/gnu/bin/grep -E "${PATTERN}" | /usr/gnu/bin/grep -v grep)"	
+else
+	PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | sed 's/\s*$//' | sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
+	NOT_KILLED="$(ps -e | grep -E "${PATTERN}" | grep -v grep)"
+fi
 
 if [[ "$(echo -n "${NOT_KILLED}" | wc -l)" -gt 0  ]]; then
     echo "${NOT_KILLED}"
