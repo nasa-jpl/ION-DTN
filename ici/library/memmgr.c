@@ -112,10 +112,15 @@ static int	_mem_mgrs(int nbr, char *name, MemAllocator take,
 		CHKERR(name);
 		for (i = 0, mgr = mem_mgrs; i < mem_mgr_count; i++, mgr++)
 		{
+
+/* gcc is being protective of strcmp() and can't tell that CHKERR() above asserted name!=NULL */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnonnull"
 			if (strcmp(mgr->name, name) != 0)
 			{
 				continue;
 			}
+#pragma GCC diagnostic pop
 
 			/*	Found the named memory manager.		*/
 
