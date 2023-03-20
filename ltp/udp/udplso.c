@@ -586,14 +586,26 @@ segment batch.", NULL);
 	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (fd >= 0)
 	{
+#if 0
 		if (isendto(fd, &quit, 1, 0, &ownSockName,
 				sizeof(struct sockaddr)) == 1)
 		{
 			pthread_join(receiverThread, NULL);
 		}
+#endif
+		/*	Fix LTP hanging at closing
+		 *  Fix by Scott Burleigh, IONe 
+		 *  Still don't know why the original code
+		 *	sometimes fails to stop the thread, but this
+		 *	workaround prevents hanging on shutdown.	*/
 
+		oK(isendto(fd, &quit, 1, 0, &ownSockName,
+				sizeof(struct sockaddr)));
+		microsnooze(10000);
 		closesocket(fd);
 	}
+
+	pthread_detach(receiverThread);	/*	Part of workaround.	*/
 
 	closesocket(rtp.linkSocket);
 	writeErrmsgMemos();
