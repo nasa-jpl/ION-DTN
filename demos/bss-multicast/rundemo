@@ -70,7 +70,7 @@ echo
 for N in $CONFIGFILES
 do
 	echo "$N:"
-	cat $N
+	cat "$N"
 	echo "# EOF"
 	echo
 done
@@ -130,9 +130,9 @@ pkill bssrecv
 echo
 echo "Replaying the received stream."
 cd ../3.ipn.bss
-xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 $TOTIME &
+xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 "$TOTIME" &
 cd ../4.ipn.bss
-xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 $TOTIME &
+xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 0 "$TOTIME" &
 echo
 sleep 70
 pkill bssrecv
@@ -153,4 +153,4 @@ cd ../4.ipn.bss
 sleep 15
 killm
 echo "BSS demo completed."
-exit $RETVAL
+exit "$RETVAL"
