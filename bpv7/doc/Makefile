@@ -26,6 +26,7 @@ MANFILES = \
 	./man/man1/bping.1 \
 	./man/man1/brsccla.1 \
 	./man/man1/brsscla.1 \
+	./man/man1/cpsd.1 \
 	./man/man1/dgrcli.1 \
 	./man/man1/dgrclo.1 \
 	./man/man1/dtn2adminep.1 \
@@ -84,6 +85,7 @@ HTMLFILES = \
 	./html/man1/bping.html \
 	./html/man1/brsccla.html \
 	./html/man1/brsscla.html \
+	./html/man1/cpsd.html \
 	./html/man1/dgrcli.html \
 	./html/man1/dgrclo.html \
 	./html/man1/dtn2adminep.html \
