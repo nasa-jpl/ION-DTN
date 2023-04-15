@@ -6907,7 +6907,9 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				iwatch('z');
 			}
 
-			if (bundle->destination.schemeCodeNbr != imc)
+			if (bundle->destination.schemeCodeNbr != imc ||
+			      bundle->clDossier.senderNodeNbr == 
+				   getOwnNodeNbr())
 			{
 				/*	This is not a multicast bundle.
 				 *	So we now write the bundle state
@@ -6926,7 +6928,17 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				 *	failure action for this
 				 *	endpoint is DiscardBundle,
 				 *	now the the time to destroy
-				 *	the bundle.			*/
+				 *	the bundle.	
+				 *  Another case is that this node
+				 *  just send the bundle as loopback
+				 *  because it is either unicast to
+				 *  itself or multicast to a group
+				 *  this node itself belongs and
+				 *  that this node is the source of
+				 *  the bundle, then to prevent
+				 *  infinite loops, we destroy it
+				 *  instead of sending to forwarder
+				 *  to figure out.		*/
 
 				sdr_write(sdr, bundleObj, (char *) bundle,
 						sizeof(Bundle));
