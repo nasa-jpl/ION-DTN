@@ -251,7 +251,7 @@ that starts at I<start_time>.
 
 =item B<l range>
 
-This command lists all predicted periods of constant distance.
+This command lists all predicted periods of known range in light seconds.
 
 =item B<b range>
 
