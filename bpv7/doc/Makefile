@@ -24,6 +24,7 @@ MANFILES = \
 	./man/man1/bpcancel.1 \
 	./man/man1/bptrace.1 \
 	./man/man1/bping.1 \
+	./man/man1/bpversion.1 \
 	./man/man1/brsccla.1 \
 	./man/man1/brsscla.1 \
 	./man/man1/cpsd.1 \
