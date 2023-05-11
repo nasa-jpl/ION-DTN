@@ -44,6 +44,14 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		rm $(ROOT)/lib/libcfdp.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		rm $(ROOT)/include/cfdpops.h
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 #	-	-	Daemon executables	-	-	-	-
 
 cfdpclock:	cfdpclock.o libcfdp.so

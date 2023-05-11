@@ -37,6 +37,13 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		rm $(ROOT)/lib/libdgr.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 #	-	-	Test executables	-	-	-	-
 
 file2dgr:	file2dgr.o libdgr.so $(TEST)/file2dgr.h

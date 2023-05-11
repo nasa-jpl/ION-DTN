@@ -40,6 +40,13 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		rm $(ROOT)/lib/libdtpc.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 #	-	-	Daemon executables	-	-	-	-
 
 dtpcd:		dtpcd.o libdtpc.so

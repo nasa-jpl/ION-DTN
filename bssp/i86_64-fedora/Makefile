@@ -41,6 +41,15 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		rm $(ROOT)/lib/libbsspP.so
+		rm $(ROOT)/lib/libbssp.so
+		rm $(ROOT)/lib/libtcpbsa.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 #	-	-	Daemon executables	-	-	-	-
 
 bsspclock:	bsspclock.o libbsspP.so

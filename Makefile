@@ -66,7 +66,17 @@ clean:
 	gmake -C restart clean BP=$(BP)
 
 uninstall:
+	gmake -C ici uninstall
+	gmake -C ltp uninstall
+	gmake -C dgr uninstall
+	gmake -C bssp uninstall
+	gmake -C $(BP) uninstall
 	gmake -C ams uninstall
+	gmake -C cfdp uninstall
+	gmake -C bss uninstall
+	gmake -C dtpc uninstall
+	gmake -C nm uninstall
+	gmake -C restart uninstall BP=$(BP)
 
 test:
 	cd tests && ./runtestset normaltests

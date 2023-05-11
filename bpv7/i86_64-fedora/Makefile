@@ -98,6 +98,15 @@ install:
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		for file in $(BPLIBS); \
+			do rm $(ROOT)/lib/$(notdir $$file); done
+		rm $(ROOT)/include/eureka.h
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 #	-	-	Daemon executables	-	-	-	-
 
 bpclock:	bpclock.o $(BPLIBS)

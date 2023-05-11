@@ -22,6 +22,10 @@ clean:
 install:
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		for file in $(UTILITIES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 #	-	-	Utility executables	-	-	-	-
 
 ionrestart:	ionrestart.o

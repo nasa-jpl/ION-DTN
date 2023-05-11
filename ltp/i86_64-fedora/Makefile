@@ -24,7 +24,7 @@ LTPINCLS = \
 	$(DCCP)/dccplsa.h
 
 RUNTIMES = ltpadmin ltpsecadmin ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
-#dccplsi dccplso
+#dccplsi dccplso libudplsa
 
 ALL = check libltp.so $(RUNTIMES)
 
@@ -45,6 +45,14 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libltp.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 
 #	-	-	Daemon executables	-	-	-	-
 

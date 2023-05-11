@@ -144,6 +144,10 @@ clean:
 install:
 		cp bin/* $(ROOT)/bin
 
+uninstall:		
+		for file in $(ALL); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 #	-	-	NM executables	-	-	-	-	-
 
 nm_agent:	$(SHARED_OBJS) $(AGENT_OBJS)
