@@ -1,5 +1,7 @@
 BP = bpv7
 
+SCRIPTS= ionstart ionstop killm ionscript ionstart.awk 
+
 $(info ION ROOT: ADD_FLAGS is $(ADD_FLAGS))
 
 all:	with$(BP)
@@ -51,6 +53,8 @@ withbpv7:
 	gmake -C nm install BP=$(BP)
 	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
 	gmake -C restart install BP=$(BP)
+	for file in $(SCRIPTS); \
+		do cp ./$(notdir $$file) /usr/local/bin; done
 
 clean:
 	gmake -C ici clean
@@ -77,6 +81,8 @@ uninstall:
 	gmake -C dtpc uninstall
 	gmake -C nm uninstall
 	gmake -C restart uninstall BP=$(BP)
+	for file in $(SCRIPTS); \
+		do rm /usr/local/bin/$(notdir $$file); done
 
 test:
 	cd tests && ./runtestset normaltests
