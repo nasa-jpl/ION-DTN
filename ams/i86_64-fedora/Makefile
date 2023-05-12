@@ -1,4 +1,8 @@
 INCL = ../include
+ICI_INCL = ../../ici/include
+ICI_LIB = ../../ici/i86_64-fedora/lib
+DGR_LIB = ../../dgr/i86_64-fedora/lib
+BP_LIB = ../../bpv7/i86_64-fedora/lib
 API = ../library
 TEST = ../test
 UTILS = ../utils
@@ -6,7 +10,7 @@ RAMS = ../rams
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I$(ICI_INCL) -I../../dgr/include -I../../ici/library -I../../bpv7/include -I../../dgr/library -L$(ICI_LIB) -L$(BP_LIB) -L$(DGR_LIB) 
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 

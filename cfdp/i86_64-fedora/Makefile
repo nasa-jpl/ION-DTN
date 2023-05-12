@@ -1,5 +1,8 @@
 API = ../library
 INCL = ../include
+ICI_INCL = ../../ici/include
+ICI_LIB = ../../ici/i86_64-fedora/lib
+BP_LIB = ../../bpv7/i86_64-fedora/lib
 UTILS = ../utils
 DAEMON = ../daemon
 BP = ../bp
@@ -8,7 +11,7 @@ TEST = ../test
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../bpv7/include -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 

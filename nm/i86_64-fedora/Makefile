@@ -110,11 +110,11 @@ OPT += -g -Wall -Werror -Wno-unused-variable -Dlinux -DAMP_VERSION=8
 #-DHEAP_PTRS=$(PTRS)  # Leave this at default for now
 # For database support, append -DHAVE_MYSQL
 
-INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/library -I../../ici/include -I../../ltp/library -I$(BP_DIR)/adm -I$(BP_DIR) -I$(BP_DIR)/library -I$(BP_DIR)/library/ext/sbsp -I$(BP_DIR)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
+INCLDIRS = -I.. -I../.. -I$(AGENT) -I$(MGR) -I$(SHARED)/adm -I$(SHARED)/msg -I$(SHARED)/primitives -I$(SHARED)/utils -I../../ici/include -I../../ltp/include -I../../bpv7/include -I../../bpv7/library -I../../ltp/library -I../../ici/library -I$(BP_DIR)/adm -I$(BP_DIR) -I$(BP_DIR)/library -I$(BP_DIR)/library/ext/sbsp -I$(BP_DIR)/library/ext/bpsec -I$(ROOT)/include -I/usr/include/mysql -I/usr/local/mysql/include -I$(CONTRIB)/QCBOR/inc
 
 CC = gcc $(OPT) $(ADD_FLAGS) $(INCLDIRS)
 
-LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib
+LIBDIRS = -L$(ROOT)/lib -L/usr/local/mysql/lib -L../../ici/i86_64-fedora/lib -L../../bpv7/i86_64-fedora/lib -L../../ltp/i86_64-fedora/lib -L../../cfdp/i86_64-fedora/lib
 
 LIBS = -lcfdp -lbp -lltp -lici -lpthread -lm
 

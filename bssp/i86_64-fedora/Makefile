@@ -1,13 +1,15 @@
 API = ../library
 INCL = ../include
+ICI_INCL = ../../ici/include
 UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
 TCP = ../tcp
+ICI_LIB = ../../ici/i86_64-fedora/lib
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(UDP) -I$(TCP) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(UDP) -I$(TCP) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -L$(ICI_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 

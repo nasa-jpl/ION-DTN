@@ -2,59 +2,38 @@ BP = bpv7
 
 SCRIPTS= ionstart ionstop killm ionscript ionstart.awk 
 
+$(info Development Makefiles actively maintained for only for "bpv7" on platform "i86_64-fedora" options)
+$(info  - All other options (bpv6 and platforms) are informational only.)
 $(info ION ROOT: ADD_FLAGS is $(ADD_FLAGS))
+
 
 all:	with$(BP)
 
 withbpv6:
 	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)" 
-	gmake -C ici install
 	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ltp install
 	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C dgr install
 	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C bssp install
 	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C $(BP) install
 	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ams install
 	gmake -C cfdp all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C cfdp install BP=$(BP)
 	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C bss install
 	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C dtpc install
 	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C nm install BP=$(BP)
 	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C restart install BP=$(BP)
 
 withbpv7:
 	gmake -C ici all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ici install
 	gmake -C ltp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ltp install
 	gmake -C dgr all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C dgr install
 	gmake -C bssp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C bssp install
 	gmake -C $(BP) all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C $(BP) install
 	gmake -C ams all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C ams install
 	gmake -C cfdp all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C cfdp install
 	gmake -C bss all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C bss install
 	gmake -C dtpc all ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C dtpc install
 	gmake -C nm all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C nm install BP=$(BP)
 	gmake -C restart all BP=$(BP) ADD_FLAGS="$(ADD_FLAGS)"
-	gmake -C restart install BP=$(BP)
-	for file in $(SCRIPTS); \
-		do cp ./$(notdir $$file) /usr/local/bin; done
 
 clean:
 	gmake -C ici clean
@@ -68,6 +47,21 @@ clean:
 	gmake -C dtpc clean
 	gmake -C nm clean
 	gmake -C restart clean BP=$(BP)
+
+install:
+	gmake -C ici install
+	gmake -C ltp install
+	gmake -C dgr install
+	gmake -C bssp install
+	gmake -C $(BP) install
+	gmake -C ams install
+	gmake -C cfdp install
+	gmake -C bss install
+	gmake -C dtpc install
+	gmake -C nm install BP=$(BP)
+	gmake -C restart install BP=$(BP)
+	for file in $(SCRIPTS); \
+		do cp ./$(notdir $$file) /usr/local/bin; done
 
 uninstall:
 	gmake -C ici uninstall
