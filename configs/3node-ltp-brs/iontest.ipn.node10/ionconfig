@@ -5,4 +5,4 @@ wmAddress 0
 #	and object boundaries are enforced.
 configFlags 15
 heapWords 5000000
-pathName /usr/ion
+pathName /tmp
