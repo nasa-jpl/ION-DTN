@@ -75,21 +75,12 @@ the place to do this is in the ./configure command.  For details,
 
 	./configure -h
 
-To build ION for Android, cd into ion-open-source/arch-android and
-see the instructions in the README.bionic text file.
-
-To build ION for RTEMS, cd into ion-open-source/arch-rtems and
-see the instructions in the README text file.
-
-To build ION for Windows, see the instructions in the "Building ION from source
-on Windows.pdf" document.
-
-To build ION for the ARM-based AT91SAM9G20 board, cd into
-ion-open-source/arch-uClibc and see the instructions in the
-"ARM build.pdf" file. 
+To build ION for Windows, please download the Windows installer.
 
 It's also possible to build the individual packages of ION, using
-platform-specific Makefiles in the package subdirectories.  If you choose
+platform-specific Makefiles in the package subdirectories.  Currently 
+the only actively maintained platform-specific Makefile is for 64-bits 
+Linux under the "i86_48-fedora" folder. If you choose
 this option, be aware of the dependencies among the packages:
 
 	The "ici" package must be built ("make" and "make install")
@@ -114,7 +105,7 @@ Note that all Makefiles are for gmake; on a freebsd platform, be sure
 to install gmake before trying to build ION.
 
 Tutorials can be found on the ION-DTN Sourceforge page at
-https://sourceforge.net/p/ion-dtn/wiki/Tutorial_Home/.
+https://sourceforge.net/p/ion-dtn/wiki/NASA_ION_Course/
 
-Scott Burleigh, JPL
-scott.c.burleigh@jpl.nasa.gov 
+Jay L. Gao, JPL/Caltech
+Jay.L.Gao@jpl.nasa.gov
