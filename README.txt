@@ -104,6 +104,9 @@ directories of some of the subsystems.
 Note that all Makefiles are for gmake; on a freebsd platform, be sure
 to install gmake before trying to build ION.
 
+A quick start guide can be found on the ION-DTN SourceForge page at:
+https://sourceforge.net/p/ion-dtn/wiki/Home/
+
 Tutorials can be found on the ION-DTN Sourceforge page at
 https://sourceforge.net/p/ion-dtn/wiki/NASA_ION_Course/
 
