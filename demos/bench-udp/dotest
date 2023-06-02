@@ -23,29 +23,28 @@ echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
 echo "PURPOSE: produce simple throughput benchmark results, for direct
-	comparison among computing platforms running ION.  All tests are
-	performed using the UDP convergence-layer protocol between neighboring
-	nodes residing on the same computer, relying on BP custodial
-	retransmission for reliability.  So the results exercise BP and UDP
-	in a non-loopback configuration, over loopback IP; the results are
-	therefore unaffected by network traffic, router performance, or
-	network interface card performance."
+        comparison among computing platforms running ION.  All tests are
+        performed using the UDP convergence-layer protocol between neighboring
+        nodes residing on the same computer.  So the results exercise BP and UDP
+        in a non-loopback configuration, over loopback IP; the results are
+        therefore unaffected by network traffic, router performance, or
+        network interface card performance. Since UDP is no reliable, many more
+		bundles were sent than need to be received for throughput calculation."
 
 echo
 echo "CONFIG: 2 node custom:"
 echo
 for N in $CONFIGFILES
 do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
-	echo
+        echo "$N:"
+        cat $N
+        echo "# EOF"
+        echo
 done
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 echo
-echo "***PLEASE NOTE: this benchmark test requires Bundle Protocol version 6."
 
 ./cleanup
 sleep 1
@@ -69,7 +68,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 10100 ipn:2.1 ipn:3.1 -1000 &
+bpdriver 10100 ipn:2.1 ipn:3.1 -1000 i10000000&
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -77,42 +76,42 @@ RUNNING=1
 TIMER=0
 while [ $RUNNING -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
+        TIMER=$((++TIMER))
+        sleep 1
+        echo "...receiving..."
+        # some ps don't like -p syntax, most do.
+        if [ "$1" == "windows" ]
+        then
+                ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        else
+                ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        fi
+        if [ $RETURN_VALUE -eq 0 ]
+        then
+                echo "...transmission finished."
+                RUNNING=0
+        fi
+        if [ $TIMER -gt 300 ]
+        then
+                #infinite loop protection
+                echo "...5 minutes passed; giving up."
+                RUNNING=0
+                RETVAL=1
+        fi
 done
 
 if [ $RETVAL -eq 1 ]
 then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.udp
-	./ionstop &
-	cd ../3.bench.udp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
+        echo "Test did not complete."
+        echo "Stopping ION..."
+        cd ../2.bench.udp
+        ./ionstop &
+        cd ../3.bench.udp
+        ./ionstop &
+        sleep 5
+        killm
+        echo "...benchmarking terminated."
+        exit $RETVAL
 fi
 
 sleep 3
@@ -124,7 +123,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 10100 ipn:2.1 ipn:3.1 -10000 &
+bpdriver 11000 ipn:2.1 ipn:3.1 -10000 i90000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -132,54 +131,54 @@ RUNNING=1
 TIMER=0
 while [ $RUNNING -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
+        TIMER=$((++TIMER))
+        sleep 1
+        echo "...receiving..."
+        # some ps don't like -p syntax, most do.
+        if [ "$1" == "windows" ]
+        then
+                ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        else
+                ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        fi
+        if [ $RETURN_VALUE -eq 0 ]
+        then
+                echo "...transmission finished."
+                RUNNING=0
+        fi
+        if [ $TIMER -gt 300 ]
+        then
+                #infinite loop protection
+                echo "...5 minutes passed; giving up."
+                RUNNING=0
+                RETVAL=1
+        fi
 done
 
 if [ $RETVAL -eq 1 ]
 then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.udp
-	./ionstop &
-	cd ../3.bench.udp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
+        echo "Test did not complete."
+        echo "Stopping ION..."
+        cd ../2.bench.udp
+        ./ionstop &
+        cd ../3.bench.udp
+        ./ionstop &
+        sleep 5
+        killm
+        echo "...benchmarking terminated."
+        exit $RETVAL
 fi
 
 sleep 3
 echo ""
-echo "Test 3: 10000 bundles of 100,000 bytes each."
+echo "Test 3: 5000 bundles of 100,000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 10000 &
+bpcounter ipn:3.1 5000 &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 10100 ipn:2.1 ipn:3.1 -100000 t900 &
+bpdriver 10100 ipn:2.1 ipn:3.1 -100000 t900 i1000000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -187,47 +186,47 @@ RUNNING=1
 TIMER=0
 while [ $RUNNING -eq 1 ]
 do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ "$1" == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 900 ]
-	then
-		#infinite loop protection
-		echo "...15 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
+        TIMER=$((++TIMER))
+        sleep 1
+        echo "...receiving..."
+        # some ps don't like -p syntax, most do.
+        if [ "$1" == "windows" ]
+        then
+                ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        else
+                ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+        fi
+        if [ $RETURN_VALUE -eq 0 ]
+        then
+                echo "...transmission finished."
+                RUNNING=0
+        fi
+        if [ $TIMER -gt 900 ]
+        then
+                #infinite loop protection
+                echo "...15 minutes passed; giving up."
+                RUNNING=0
+                RETVAL=1
+        fi
 done
 
 if [ $RETVAL -eq 1 ]
 then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.udp
-	./ionstop &
-	cd ../3.bench.udp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
+        echo "Test did not complete."
+        echo "Stopping ION..."
+        cd ../2.bench.udp
+        ./ionstop &
+        cd ../3.bench.udp
+        ./ionstop &
+        sleep 5
+        killm
+        echo "...benchmarking terminated."
+        exit $RETVAL
 fi
 
 if [ $RETVAL -eq 1 ]
 then
-	echo "Test did not complete."
+        echo "Test did not complete."
 fi
 
 echo "Stopping ION..."
