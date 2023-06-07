@@ -4,9 +4,11 @@
 # Sky DeBaun
 # June 2023
 
+# Benchtest variables-------------------------------------------------
+COUNT=10000
+MESSAGE_SIZE=1024
 
-
-#shut down routine---------------------------------------------------
+# Shut down routine---------------------------------------------------
 function stop_and_exit() {
     local retval=$1  # 0 for success, 1 for failure
 
@@ -15,28 +17,29 @@ function stop_and_exit() {
     ./ionstop &
     cd ../node3
     ./ionstop &
-    sleep 5
+    sleep 8
     killm
 
-	#success-----------------------
+	# Success-----------------------
     if [[ $retval -eq 0 ]]
     then
-        echo "AMS benchtest successfully completed"
-		echo "All ION processes stopped"
-		echo -e "\nDemo results -------------------------------------------------- "
+		echo -e "All ION processes stopped."
+        echo -e "AMS benchtest successfully completed."
+		echo -e "\nTest results -------------------------------------------------- "
 		echo -e "SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS \n"
 		cat bench.log
-    #failure----------------------
+    # Failure----------------------
 	else
-        echo -e "\nFailure: demo failed!"
-        echo "AMS benchtest terminated"
+    	echo -e "All ION processes stopped."
+        echo -e "\nTest results -------------------------------------------------- "
+		echo -e "FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE \n"
     fi
-
+    echo ""
     exit $retval
 }
 
 
-# documentation boilerplate
+# Documentation boilerplate
 CONFIGFILES="
 ./global.ionrc
 ./node2/amroc.bprc
@@ -74,12 +77,12 @@ echo "########################################"
 ./cleanup
 sleep 1
 
-echo "Checking for additional memory needed for this demo..."
+echo "Checking for additional memory required for this demo..."
 ./check_memory 
 
 # If check_memory returns non-zero, resources are insufficient
 if [ $? != 0 ]; then
-    echo "Can't run, need additional system resources"
+    echo -e "Can't run, need additional system resources!\n"
     exit 1
 fi
 
@@ -92,17 +95,18 @@ cd node2
 ./ionstart
 cd ../node3
 ./ionstart
+sleep 2
 
-sleep 3
-echo ""
 echo -e "\nSTARTING AMS BENCH TEST--------------------------------- "
 sleep 2
+
 cd ../node3
-echo -e "Starting amsbench receiver: \n"
+echo -e "Starting amsbench receiver: "
+echo -e "Subscribing to 'bench' messages. \n"
 sleep 2
 
-#Subscribe to and count 100 messages--------------------------------
-amsbenchr 100 > bench.log &
+# Subscribe to and count $COUNT messages-----------------------------
+amsbenchr $COUNT > bench.log &
 BENCHR_PID=$!
 sleep 1
 
@@ -127,14 +131,14 @@ fi
 cd ../node2
 echo -e "Starting amsbench sender: "
 sleep 1
-echo -e "Publishing 100 messages of 1024 bytes each \n"
+echo -e "Publishing $COUNT messages of $MESSAGE_SIZE bytes each. \n"
 
-#publish 100 messages of length 1024 bytes---------------------
-amsbenchs 100 1024 &
+# Publish $COUNT messages of length 1024 bytes-----------------------
+amsbenchs $COUNT $MESSAGE_SIZE > /dev/null &
 BENCHS_PID=$!
 sleep 1
 
-# Wait for transmission to finish------------------------------
+# Wait for transmission to finish-------------------------------------
 RUNNING=1
 TIMER=0
 
@@ -143,7 +147,7 @@ while [[ $RUNNING -eq 1 && $TIMER -lt 120 ]]
 do
     TIMER=$((++TIMER))
     sleep 1
-    echo -e "\nListening for published AMS messages..."
+    echo -e "Listening for published AMS messages..."
     
     # Process check for amsbenchr based on OS
     if [[ $1 == "windows" ]]
@@ -158,22 +162,24 @@ do
     # If amsbenchr process check fails, assume messages have been received (amsbenchr terminates on completion!)
     if [[ $RETURN_VALUE -eq 0 ]]
     then
-        echo -e "Message publication finished \n"
+        
         RUNNING=0
 
         # Verify delivery of bench messages
         cd ../node3
         FILE="bench.log"
-        PATTERN="Received 100 messages"
+        PATTERN="Received $COUNT messages"
 
         # If the pattern is in the file, delivery was successful
         if grep -q "$PATTERN" "$FILE"; then
-            echo -e "Success: message delivery success!"
+            echo -e "\nSuccess: delivery of $COUNT messages verified:"
+            echo -e "Standby for ION shutdown and benchtest report. \n"
             RETVAL=0
         else
-            echo "Failure: message delivery failure!"
+            echo -e "\nFailure: message delivery failure!\n"
             RETVAL=1
         fi
+        sleep 2
     fi
 
     # Infinite loop protection: If 2 minutes have passed, stop the process

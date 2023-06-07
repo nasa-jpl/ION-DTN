@@ -4,7 +4,7 @@
 echo > ion.log
 echo -e "\nStarting ION Node 3 on localhost"
 
-#Normally you wouldn't do this on every startup
+#normally you wouldn't do this on every startup
 cp init.petition.log 9.petition.log
 
 ionadmin amroc.ionrc

@@ -9,7 +9,6 @@ PID=$(ps | egrep ramsgate | awk '{ print $1 }')
 if [[ -n $PID ]]; then
     kill $PID
 fi
-
 sleep 2
 
 echo "Stopping AMS..."
@@ -19,8 +18,7 @@ PID=$(ps | egrep amsd | awk '{ print $1 }')
 if [[ -n $PID ]]; then
     kill $PID
 fi
-
-sleep 1
+sleep 2
 
 echo "Stopping DTN..."
 bpadmin  .
