@@ -1,0 +1,28 @@
+# shell script to shut down ION
+#!/bin/bash
+
+echo "Stopping RAMS..."
+
+PID=$(ps | egrep ramsgate | awk '{ print $1 }')
+
+# If the PID variable is not empty, then we have a process to kill
+if [[ -n $PID ]]; then
+    kill $PID
+fi
+
+sleep 2
+
+echo "Stopping AMS..."
+PID=$(ps | egrep amsd | awk '{ print $1 }')
+
+# If the PID variable is not empty, then we have a process to kill
+if [[ -n $PID ]]; then
+    kill $PID
+fi
+
+sleep 1
+
+echo "Stopping DTN..."
+bpadmin  .
+sleep 1
+ionadmin .
