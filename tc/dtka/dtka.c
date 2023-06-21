@@ -6,9 +6,9 @@
 		cryptography software that is not distributed with
 		ION.  To indicate that this supporting software
 		has been installed, set the compiler flag
-			
+
 			-DCRYPTO_SOFTWARE_INSTALLED
-				
+
 		when compiling this program.  Absent that flag
 		setting at compile time, dtka's generateKeyPair()
 		function simply uses the rand() function to generate
@@ -20,7 +20,7 @@
 	Copyright (c) 2013, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "dtka.h"
 #include "ionsec.h"
@@ -31,14 +31,10 @@
 #endif
 
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-#include "polarssl/config.h"
-#include "polarssl/entropy.h"
-#include "polarssl/ctr_drbg.h"
-#include "polarssl/bignum.h"
-#include "polarssl/rsa.h"
-#include "polarssl/x509.h"
-#include "polarssl/base64.h"
-#include "polarssl/x509write.h"
+#include "mbedtls/entropy.h"
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/rsa.h"
+#include "mbedtls/pk.h"
 #endif
 
 #define KEY_SIZE 1024
@@ -48,7 +44,7 @@ static saddr	_running(saddr *newValue)
 {
 	void	*value;
 	saddr	state;
-	
+
 	if (newValue)			/*	Changing state.		*/
 	{
 		value = (void *) (*newValue);
@@ -91,7 +87,7 @@ static int	writeAddPubKeyCmd(time_t effectiveTime,
 		return -1;
 	}
 
-	len = _isprintf(cmdbuf, sizeof cmdbuf, "a pubkey " UVAST_FIELDSPEC 
+	len = _isprintf(cmdbuf, sizeof cmdbuf, "a pubkey " UVAST_FIELDSPEC
 			" %d %d %d ", getOwnNodeNbr(), effectiveTime,
 			getCtime(), publicKeyLen);
 	cursor += len;
@@ -124,11 +120,11 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 	Sdr			sdr = getIonsdr();
 	time_t			effectiveTime;
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	entropy_context		entropy;
-	ctr_drbg_context	ctr_drbg;
-	const char		*pers = "rsa_genkey";
-	rsa_context		rsa;
-	int			result;
+	mbedtls_entropy_context  entropy;
+	mbedtls_ctr_drbg_context ctr_drbg;
+	const char               *pers = "rsa_genkey";
+	mbedtls_rsa_context      rsa;
+	int                      result;
 #else		/*	For regression testing only.			*/
 	int			key;
 #endif
@@ -147,29 +143,31 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 
 	effectiveTime = currentTime + db->effectiveLeadTime;
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	entropy_init(&entropy);
-	if (ctr_drbg_init(&ctr_drbg, entropy_func, &entropy,
-			(const unsigned char *) pers, strlen(pers)))
+	mbedtls_entropy_init(&entropy);
+	mbedtls_ctr_drbg_init(&ctr_drbg);
+
+	if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+							  (const unsigned char *)pers, strlen(pers)))
 	{
-		putErrmsg("ctr_drbg_init failed.", NULL);
+		putErrmsg("ctr_drbg_seed failed", NULL);
 		return -1;
 	}
 
-	rsa_init(&rsa, RSA_PKCS_V15, 0);
-	if (rsa_gen_key(&rsa, ctr_drbg_random, &ctr_drbg, KEY_SIZE, EXPONENT))
+	mbedtls_rsa_init(&rsa, MBEDTLS_RSA_PKCS_V15, 0);
+	if (mbedtls_rsa_gen_key(&rsa, mbedtls_ctr_drbg_random, &ctr_drbg, KEY_SIZE, EXPONENT))
 	{
 		putErrmsg("rsa_gen_key failed.", NULL);
 		return -1;
 	}
-
-	result = rsa_check_privkey(&rsa);
+	writeMemo("gen private key");
+	result = mbedtls_rsa_check_privkey(&rsa);
 	if (result != 0)
 	{
 		putErrmsg("Bad private key.", itoa(result));
 		return -1;
 	}
-
-	result = rsa_check_pubkey(&rsa);
+	writeMemo("gen public key");
+	result = mbedtls_rsa_check_pubkey(&rsa);
 	if (result != 0)
 	{
 		putErrmsg("Bad public key.", itoa(result));
@@ -178,25 +176,25 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 
 	/*	Extract public key from context.			*/
 
-	result = x509_write_pubkey_der(pubKeyBuf, sizeof pubKeyBuf, &rsa);
+	result = mbedtls_pk_write_pubkey_der((mbedtls_pk_context *)&rsa, pubKeyBuf, sizeof pubKeyBuf);
 	if (result < 0)
 	{
 		putErrmsg("Can't extract public key.", NULL);
 		return -1;
 	}
-
+	writeMemo("extracted public key");
 	publicKeyLen = result;
 	publicKey = (pubKeyBuf + (sizeof pubKeyBuf - 1)) - publicKeyLen;
 
 	/*	Extract private key from context.			*/
 
-	result = x509_write_key_der(privKeyBuf, sizeof privKeyBuf, &rsa);
+	result = mbedtls_pk_write_key_der((mbedtls_pk_context *)&rsa, privKeyBuf, sizeof privKeyBuf);
 	if (result < 0)
 	{
 		putErrmsg("Can't extract private key.", NULL);
 		return -1;
 	}
-
+	writeMemo("extracted privated key");
 	privateKeyLen = result;
 	privateKey = (privKeyBuf + (sizeof privKeyBuf - 1)) - privateKeyLen;
 	rsa_free(&rsa);
@@ -557,7 +555,6 @@ int	main(int argc, char *argv[])
 			oK(_running(&state));
 			continue;
 		}
-
 
 		result = handleBulletin(bulletinContent, length);
 		MRELEASE(bulletinContent);
