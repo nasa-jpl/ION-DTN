@@ -492,6 +492,13 @@ are not encrypted.  The value of this attribute (if present) must
 identify a key that has been loaded into the ION security database,
 nominally by ionsecadmin(1).
 
+=item neighbor
+
+Signifies adjacency of the message space with the parent continuum using
+a Boolean value (i.e. 1 is adjacent, 0 is non-adjacent). Note that in this 
+context message space is analogous to continuum. If the neighbor attribute 
+is omitted the default value is 1.
+
 =back
 
 =back
@@ -544,7 +551,9 @@ nominally by ionsecadmin(1).
 
 *unit nbr=3 name=orbiters.far
 
-*msgspace nbr=2
+*msgspace nbr=1 neighbor=1
+
+*msgspace nbr=2 neighbor=0
 
 -venture
 
