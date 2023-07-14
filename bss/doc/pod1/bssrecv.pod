@@ -49,6 +49,14 @@ In order to acquire streaming data issued by B<bssStreamingApp>, the B<bssrecv>
 session thread must open the BP endpoint to which that data is directed.  For
 this purpose, the ID of that endpoint is needed.
 
+=item fromTime & toTime
+
+In playback mode, you may specific specific time period starting from I<fromTime>
+to I<toTime> as part of the command line argument. If these are required but 
+missing, the user will be prompted to enter them. The time format is  
+I<yyyy/mm/dd-hh:mm:ss>, where I<yyyy> is the year, I<mm> is the month, I<dd> is the
+day of the month, I<hh> is the hour, I<mm> is the minute, and I<ss> is the second. 
+
 =back
 
 B<bssrecv> offers the following menu options:
