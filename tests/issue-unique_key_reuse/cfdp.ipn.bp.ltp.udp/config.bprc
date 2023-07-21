@@ -1,0 +1,23 @@
+# Config file for issue-334-cfdp-transaction-id test
+# Samuel Jero
+# December 15, 2011
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a endpoint ipn:1.64 x
+a endpoint ipn:1.65 x
+
+# Add a protocol. 
+a protocol ltp 1400 100
+
+# Add an induct. (listen)
+a induct ltp 10 ltpcli
+
+# Add an outduct.
+a outduct ltp 1 ltpclo
