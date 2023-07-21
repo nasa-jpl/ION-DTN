@@ -451,8 +451,8 @@ static int	handleBulletin(char *buffer, int bufSize)
 	time_t		assertionTime;
 	unsigned short	datLength;
 	unsigned char	datValue[TC_MAX_DATLEN];
-	int		recCount = 0;
 #if TC_DEBUG
+	int		recCount = 0;
 	char		msgbuf[72];
 	writeMemo("---DTKA: Bulletin received---");
 #endif
@@ -471,8 +471,8 @@ static int	handleBulletin(char *buffer, int bufSize)
 			break;
 		}
 
-		recCount++;
 #if TC_DEBUG
+		recCount++;
 		printRecord(nodeNbr, effectiveTime, assertionTime, datLength,
 				datValue);
 #endif
