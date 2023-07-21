@@ -107,7 +107,6 @@ int	bssOpen(char* bssName, char* path)
 			putErrmsg("BSS library: Failed to read from database.", 
 				   path);
 			bssClose();
-			//JG ionDetach();
 			return -1;
 		}
 	}
@@ -159,7 +158,6 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 			putErrmsg("BSS library: Database creation failed.", 
 				   path);
 			bssStop();
-			//JG ionDetach();
 			return -1;
 		}
 	}
@@ -168,7 +166,6 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 		PUTS("Please terminate the already active real-time \
 session in order to initiate a new one.");
 		fflush(stdout);
-		//JG ionDetach();
 		return -1;
 	}
 
@@ -187,7 +184,6 @@ session in order to initiate a new one.");
 	{
 		putSysErrmsg("Can't create recvBundles thread", NULL);
 		bssStop();
-		//JG ionDetach();
 		return -1;
 	}
 
