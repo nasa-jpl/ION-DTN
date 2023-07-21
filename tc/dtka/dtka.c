@@ -33,8 +33,10 @@
 #ifdef CRYPTO_SOFTWARE_INSTALLED
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
-#include "mbedtls/rsa.h"
-#include "mbedtls/pk.h"
+#include "mbedtls/ecdsa.h"
+#include "mbedtls/ecp.h"
+#include "mbedtls/hmac_drbg.h"
+#include "mbedtls/md.h"
 #endif
 
 #define KEY_SIZE 1024
@@ -114,24 +116,121 @@ static int	writeAddPubKeyCmd(time_t effectiveTime,
 	return 0;
 }
 
+int generateAESKey(int keysize, unsigned char *buf)
+{
+	mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_context entropy;
+    int result;
+    const char *pers = "aes_genkey";
+
+	mbedtls_entropy_init(&entropy);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+
+    mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                          (const unsigned char *)pers, strlen(pers));
+
+    result = mbedtls_ctr_drbg_random(&ctr_drbg, buf, keysize);
+
+	mbedtls_ctr_drbg_free(&ctr_drbg);
+    mbedtls_entropy_free(&entropy);
+	return result;
+}
+
+int generateHMACKey(int keysize, unsigned char *buf)
+{
+	mbedtls_entropy_context entropy;
+    mbedtls_hmac_drbg_context hmac_drbg;
+    const mbedtls_md_info_t *md_info;
+    mbedtls_md_type_t md_type;
+    int result;
+    const char *pers = "hmac_genkey";
+
+	if (keysize == 32)
+	{
+		md_type = MBEDTLS_MD_SHA256;
+	}
+	else if (keysize == 48)
+	{
+		md_type = MBEDTLS_MD_SHA384;
+	}
+	else if (keysize == 64)
+	{
+		md_type = MBEDTLS_MD_SHA512;
+	}
+	else
+	{
+		putErrmsg("Unsupported key size", itoa(keysize));
+	}
+
+	md_info = mbedtls_md_info_from_type(md_type);
+    mbedtls_entropy_init(&entropy);
+    mbedtls_hmac_drbg_init(&hmac_drbg);
+    mbedtls_hmac_drbg_seed(&hmac_drbg, md_info, mbedtls_entropy_func, &entropy,
+                           (const unsigned char *)pers, strlen(pers));
+
+    result = mbedtls_hmac_drbg_random(&hmac_drbg, buf, keysize);
+
+	mbedtls_hmac_drbg_free(&hmac_drbg);
+    mbedtls_entropy_free(&entropy);
+    return result;
+}
+
+int generateECDSAKey(int keysize, unsigned char *buf, unsigned char *private_buf)
+{
+	mbedtls_ecdsa_context    ecdsa_context;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_context  entropy;
+    mbedtls_ecp_group_id     curve;
+    int                      result;
+	size_t len;
+    const char               *pers = "ecdsa_genkey";
+
+    if (keysize == 32) {
+        curve = MBEDTLS_ECP_DP_SECP256R1;
+    }
+    else if (keysize == 48) {
+        curve = MBEDTLS_ECP_DP_SECP384R1;
+    }
+	else
+	{
+		putErrmsg("Unsupported key size", itoa(keysize));
+	}
+
+    mbedtls_entropy_init(&entropy);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+							  (const unsigned char *)pers, strlen(pers));
+
+    mbedtls_ecdsa_init(&ecdsa_context);
+    result = mbedtls_ecdsa_genkey(&ecdsa_context, curve,
+                                  mbedtls_ctr_drbg_random, &ctr_drbg);
+
+	// Extract keys from context
+	mbedtls_ecp_point_write_binary(&ecdsa_context.grp, &ecdsa_context.Q,
+                                   MBEDTLS_ECP_PF_UNCOMPRESSED, &len, buf, sizeof(buf));
+	mbedtls_ecp_write_key(&ecdsa_context, private_buf, sizeof(private_buf));
+
+    mbedtls_entropy_free(&entropy);
+	mbedtls_ctr_drbg_free(&ctr_drbg);
+	mbedtls_ecdsa_free(&ecdsa_context);
+    return result;
+}
+
 static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 {
 	time_t			currentTime = getCtime();
 	Sdr			sdr = getIonsdr();
 	time_t			effectiveTime;
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	mbedtls_entropy_context  entropy;
-	mbedtls_ctr_drbg_context ctr_drbg;
-	const char               *pers = "rsa_genkey";
-	mbedtls_rsa_context      rsa;
 	int                      result;
+
 #else		/*	For regression testing only.			*/
 	int			key;
 #endif
-	unsigned char		pubKeyBuf[16000];
+	unsigned char		*pubKeyBuf = malloc(sizeof(unsigned char) * 16);
 	unsigned short		publicKeyLen;
 	unsigned char		*publicKey;
-	unsigned char		privKeyBuf[16000];
+	unsigned char		*privKeyBuf = malloc(sizeof(unsigned char) * 16);
 	unsigned short		privateKeyLen;
 	unsigned char		*privateKey;
 	char			recordBuffer[TC_MAX_REC];
@@ -143,61 +242,48 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 
 	effectiveTime = currentTime + db->effectiveLeadTime;
 #ifdef CRYPTO_SOFTWARE_INSTALLED
-	mbedtls_entropy_init(&entropy);
-	mbedtls_ctr_drbg_init(&ctr_drbg);
-
-	if (mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-							  (const unsigned char *)pers, strlen(pers)))
+	if (strcmp((const char*)db->keyType, "hmac") == 0)
 	{
-		putErrmsg("ctr_drbg_seed failed", NULL);
-		return -1;
+		pubKeyBuf = realloc(pubKeyBuf, db->keySize);
+		result = generateHMACKey(db->keySize, pubKeyBuf);
 	}
 
-	mbedtls_rsa_init(&rsa, MBEDTLS_RSA_PKCS_V15, 0);
-	if (mbedtls_rsa_gen_key(&rsa, mbedtls_ctr_drbg_random, &ctr_drbg, KEY_SIZE, EXPONENT))
+	else if (strcmp((const char*)db->keyType, "aes") == 0)
 	{
-		putErrmsg("rsa_gen_key failed.", NULL);
-		return -1;
+		pubKeyBuf = realloc(pubKeyBuf, db->keySize);
+		result = generateAESKey(db->keySize, pubKeyBuf);
 	}
-	writeMemo("gen private key");
-	result = mbedtls_rsa_check_privkey(&rsa);
-	if (result != 0)
+
+	else if (strcmp((const char*)db->keyType, "ecdsa") == 0)
 	{
-		putErrmsg("Bad private key.", itoa(result));
-		return -1;
+		pubKeyBuf = realloc(pubKeyBuf, db->keySize);
+		result = generateECDSAKey(db->keySize, pubKeyBuf, privKeyBuf);
 	}
-	writeMemo("gen public key");
-	result = mbedtls_rsa_check_pubkey(&rsa);
-	if (result != 0)
+
+	else
 	{
-		putErrmsg("Bad public key.", itoa(result));
+		putErrmsg("Unrecognized key type.", (const char*)db->keyType);
 		return -1;
 	}
 
-	/*	Extract public key from context.			*/
-
-	result = mbedtls_pk_write_pubkey_der((mbedtls_pk_context *)&rsa, pubKeyBuf, sizeof pubKeyBuf);
-	if (result < 0)
+	if (result != 0 )
 	{
-		putErrmsg("Can't extract public key.", NULL);
+		putErrmsg("Error generating key.", NULL);
 		return -1;
 	}
-	writeMemo("extracted public key");
-	publicKeyLen = result;
+
+	publicKeyLen = db->keySize;
 	publicKey = (pubKeyBuf + (sizeof pubKeyBuf - 1)) - publicKeyLen;
 
-	/*	Extract private key from context.			*/
-
-	result = mbedtls_pk_write_key_der((mbedtls_pk_context *)&rsa, privKeyBuf, sizeof privKeyBuf);
-	if (result < 0)
+	if (strcmp((const char*)db->keyType, "ecdsa") != 0)
 	{
-		putErrmsg("Can't extract private key.", NULL);
-		return -1;
+		privKeyBuf = realloc(privKeyBuf, db->keySize);
+		pubKeyBuf = pubKeyBuf;
 	}
-	writeMemo("extracted privated key");
-	privateKeyLen = result;
+
+	privateKeyLen = db->keySize;
 	privateKey = (privKeyBuf + (sizeof privKeyBuf - 1)) - privateKeyLen;
-	rsa_free(&rsa);
+
 #else		/*	For regression testing only.			*/
 	srand((unsigned int) currentTime / getOwnNodeNbr());
 	key = rand();
@@ -211,7 +297,6 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 	privateKeyLen = sizeof key;
 #endif
 	/*	Store public and private keys locally.			*/
-
 	if (sec_addOwnPublicKey(effectiveTime, publicKeyLen, publicKey) < 0)
 	{
 		putErrmsg("Can't add own public key.", NULL);
@@ -225,7 +310,6 @@ static int	generateKeyPair(BpSAP sap, DtkaDB *db)
 	}
 
 	/*	Write "add public key" command to dtka.ionsecrc file.	*/
-
 	if (writeAddPubKeyCmd(effectiveTime, publicKeyLen, publicKey) < 0)
 	{
 		putErrmsg("Can't write command to add node public key.", NULL);

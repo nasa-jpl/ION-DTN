@@ -11,7 +11,7 @@
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
-	
+
 	if (newValue)
 	{
 		if (*newValue == 1)
@@ -66,6 +66,10 @@ static void	printUsage()
 	PUTS("\t\tTime format is yyyy/mm/dd-hh:mm:ss.");
 	PUTS("\t   m interval <new key pair generation interval, in seconds>");
 	PUTS("\t   m leadtime <key pair effectiveness lead time, in seconds>");
+	PUTS("\t   m keytype <type of key to generate (aes, hmac, or ecdsa)> <key size (bytes)>");
+	PUTS("\t\tvalid key size hmac: 32, 48, 64");
+	PUTS("\t\tvalid key size aes: 16, 32");
+	PUTS("\t\tvalid key size ecdsa: 32, 48");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
@@ -97,6 +101,43 @@ static int	attachToDtka()
 	}
 
 	return 0;
+}
+
+static void managekeyType(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		dtkadbObj = getDtkaDbObject();
+	DtkaDB	dtkadb;
+	char	newkeyType[5];
+	unsigned int	newkeySize;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	strcpy(newkeyType, tokens[2]);
+	if (strcmp((const char*)newkeyType, "aes") != 0 || strcmp((const char*)newkeyType, "hmac") != 0)
+	{
+		putErrmsg("Unsupported key type.", tokens[2]);
+	}
+
+	newkeySize = atoi(tokens[3]);
+	if (newkeySize % 8 != 0)
+	{
+		putErrmsg("Key size is invalid.", tokens[2]);
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &dtkadb, dtkadbObj, sizeof(DtkaDB));
+	strcpy(dtkadb.keyType, newkeyType);
+	dtkadb.keySize = newkeySize;
+	sdr_write(sdr, dtkadbObj, (char *) &dtkadb, sizeof(DtkaDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change keygentime.", NULL);
+	}
 }
 
 static void	manageKeyGenTime(int tokenCount, char **tokens)
@@ -212,6 +253,12 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (strcmp(tokens[1], "leadtime") == 0)
 	{
 		manageLeadTime(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "keytype") == 0)
+	{
+		managekeyType(tokenCount, tokens);
 		return;
 	}
 

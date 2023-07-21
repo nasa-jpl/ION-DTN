@@ -26,6 +26,8 @@ typedef struct
 	time_t		nextKeyGenTime;
 	unsigned int	keyGenInterval;		/*	At least 60.	*/
 	unsigned int	effectiveLeadTime;	/*	At least 20.	*/
+	char		keyType[5];	/* HMAC, ECDSA, AES are supported */
+	unsigned int	keySize;	/* In bytes*/
 } DtkaDB;
 
 extern int	dtkaInit();
