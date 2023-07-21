@@ -3434,7 +3434,9 @@ int	pseudoshell(char *commandLine)
 	char	*cursor;
 	int	i;
 	char	*argv[11];
+#ifdef ION_LWT
 	int	argc = 0;
+#endif
 	int	pid;
 
 	if (commandLine == NULL)
@@ -3459,10 +3461,12 @@ int	pseudoshell(char *commandLine)
 		else
 		{
 			findToken(&cursor, &(argv[i]));
+#ifdef ION_LWT
 			if (argv[i] != NULL)
 			{
 				argc++;
 			}
+#endif
 		}
 	}
 
