@@ -3403,7 +3403,8 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/nm-unit/utils/vector/dotest \
 	tests/nm-unit/utils/rhht/dotest \
 	tests/nm-unit/utils/radix_pt/dotest \
-	tests/nm-unit/utils/radix_ut/dotest 	 	
+	tests/nm-unit/utils/radix_ut/dotest \
+	tests/issue-unique_key_reuse/runtest 	 	
 #	tests/nm-unit/primitives/ari/dotest
 
 if BUILD_BPv6
@@ -3485,6 +3486,10 @@ tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFL
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(TESTUTILOBJS)
 tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_issue_unique_key_reuse_SOURCES = tests/issue-unique_key_reuse/runtest.c
+tests_issue_unique_key_reuse_LDADD = libcfdp.la libici.la -lm $(TESTUTILOBJS)
+tests_issue_unique_key_reuse_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 
 ##########################
