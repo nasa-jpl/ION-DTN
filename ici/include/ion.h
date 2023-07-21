@@ -531,8 +531,8 @@ extern uvast		getOwnNodeNbr();
 
 extern int		startIonMemTrace(size_t size);
 extern void		printIonMemTrace(int verbose);
-extern void		clearIonMemTrace();
-extern void		stopIonMemTrace();
+extern void		clearIonMemTrace(int verbose);
+extern void		stopIonMemTrace(int verbose);
 
 /*	The term "ctime" is used in ION to signify "calendar time"
 	(as used in the Linux ctime(3) man page), i.e., Unix epoch
