@@ -115,7 +115,7 @@ int   bpsec_instr_get_src_update(char *src_id, time_t *result);
 int   bpsec_instr_get_total_blk(bpsec_instr_type_e type, uvast *result);
 int   bpsec_instr_get_total_bytes(bpsec_instr_type_e type, uvast *result);
 int   bpsec_instr_get_tot_update(time_t *result);
-uint32_t bpsec_instr_get_num_keys();
+uint32_t bpsec_instr_get_num_keys(void);
 char*    bpsec_instr_get_keynames();
 char*    bpsec_instr_get_csnames();
 char*    bpsec_instr_get_srcnames();
