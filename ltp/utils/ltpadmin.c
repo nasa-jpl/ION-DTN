@@ -1234,7 +1234,7 @@ int	main(int argc, char **argv)
 	{
 		if (attachToLtp() == 0)
 		{
-			ltpStart(NULL);
+			ltpStart();
 		}
 	}
 	else					/*	Scripted.	*/
