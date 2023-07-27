@@ -706,7 +706,7 @@ start_dtka_nodes(){
   local n
 
   # set first compilation time
-  kaboot "$FIRST_COMPILATION_DELAY" > "$OUT"
+  tcaboot 124 125 "$DTKA_NUM_AUTHS" 50 0.2 "$FIRST_COMPILATION_DELAY" > "$OUT"
   sleep 1
   for n in $(seq 1 $1); do
     start_dtka_node "$n"
@@ -1334,7 +1334,7 @@ RUNNING_ION_NODES=()    # array that holds the nodes on which ION is running
 RUNNING_DTKA_NODES=()   # array that holds the nodes on which DTKA is running
 TEST_DIRECTORY="$PWD"   # directory of the script
 DTKA_DIRECTORY="$(dirname "$TEST_DIRECTORY")" # where to find DTKA
-DTKA_HEADER_FILE='include/dtka.h' # where to find the DTKA configuration macros
+DTKA_HEADER_FILE='dtka/dtka.h' # where to find the DTKA configuration macros
 OUT='/dev/null'         # where to print additional output
 COUNT=0                 # number of keys
 TIMEOUT=180             # timeout for the distribution to succeed
