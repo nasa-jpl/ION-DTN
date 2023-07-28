@@ -3404,7 +3404,7 @@ check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/nm-unit/utils/rhht/dotest \
 	tests/nm-unit/utils/radix_pt/dotest \
 	tests/nm-unit/utils/radix_ut/dotest \
-	tests/issue-unique_key_reuse/runtest 	 	
+	tests/issue-unique-key-reuse/dotest
 #	tests/nm-unit/primitives/ari/dotest
 
 if BUILD_BPv6
@@ -3438,7 +3438,6 @@ tests_nm_unit_utils_radix_ut_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLA
 #tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
 #tests_nm_unit_primitives_ari_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
 #tests_nm_unit_primitives_ari_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS)
-
 
 tests_1000_loopback_dotest_SOURCES = tests/1000.loopback/dotest.c
 tests_1000_loopback_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
@@ -3481,15 +3480,16 @@ tests_bug_0015_tcpclo_bpcp_sig_handling_test_CFLAGS=$(bpcflags) $(icicflags) $(A
 
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_SOURCES = tests/issue-330-cfdpclock-FDU-removal/cfdplisten.c
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -lm $(bplib) 
-tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
+tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(bpcflags) $(icicflags) $(cfdpcflags) $(AM_CFLAGS)
 
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(TESTUTILOBJS)
 tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
-tests_issue_unique_key_reuse_SOURCES = tests/issue-unique_key_reuse/runtest.c
-tests_issue_unique_key_reuse_LDADD = libcfdp.la libici.la -lm $(TESTUTILOBJS)
-tests_issue_unique_key_reuse_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+tests_issue_unique_key_reuse_dotest_SOURCES = tests/issue-unique-key-reuse/dotest.c
+tests_issue_unique_key_reuse_dotest_LDADD = libici.la -lm $(bplib) $(TESTUTILOBJS)
+tests_issue_unique_key_reuse_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(icicflags) 
+
 
 
 ##########################
