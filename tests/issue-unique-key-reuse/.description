@@ -1,0 +1,3 @@
+Ensure that sm_GetUniqueKey() doesn't give the same "unique" as an open semaphore or memory region
+
+
