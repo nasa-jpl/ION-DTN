@@ -1063,7 +1063,10 @@ void	*recvBundles(void *args)
 	bp_close(sap);
 	writeErrmsgMemos();
 	writeMemo("[i] Stopping bss reception thread.");
-	bp_detach();
+
+	/* note: not detaching from ION yet, playback mode may 
+	 *        still be operating    	*/
+	
 	oK(_recvThreadId(NULL, -1));
 	return NULL;
 }

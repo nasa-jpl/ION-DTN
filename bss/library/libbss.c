@@ -26,13 +26,14 @@ void	bssStop()
 	if (_datFile(0, 0) == -1)	/* check if playback mode is there*/
 	{
 		oK(_tblIndex(&destroy));   /* no playback mode, destroy tblIndex.	*/
+		ionDetach();
 	}
 
 	recvThreadValid = _recvThreadId(&recvThread, 0);
-	oK(_running(&stopLoop));
 	if (recvThreadValid)
 	{
 		bp_interrupt(_bpsap(NULL));
+		oK(_running(&stopLoop));
 		oK(_recvThreadId(NULL, -1));
 		oK(pthread_join(recvThread, NULL));
 	}
@@ -54,6 +55,7 @@ void	bssClose()
 	if (_recvThreadId(NULL, 0) == 0)/*	Check no active receiver.	*/
 	{
 		oK(_tblIndex(&destroy));  /*	We can destroy tblIndex now.	*/
+		ionDetach();
 	}
 
 	if (_datFile(0,0) != -1)
