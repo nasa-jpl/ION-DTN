@@ -15,6 +15,17 @@
 static void	takeIpcLock();
 static void	giveIpcLock();
 
+#ifdef POSIX_SEMAPHORES
+#ifdef POSIX_NAMED_SEMAPHORES
+	#include "sdrP.h"
+	#include "ion.h"
+	static char named_semaphore_key[MAX_SDR_NAME + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
+	static void _initialize_named_semaphores(void);
+	static int semaphore_erasure_needed = 0;
+#endif /* POSIX_NAMED_SEMAPHORES */
+#endif /* POSIX_SEMAPHORES */
+
+
 /************************* Shared-memory services *****************************/
 
 	/*	sm_ShmAttach returns have the following meanings:
@@ -1344,6 +1355,14 @@ static SmSem	*_semTbl()
 		semTableInitialized = 1;
 	}
 
+#ifdef POSIX_NAMED_SEMAPHORES
+	if (semaphore_erasure_needed) {
+		/* only the initial ION process will have this set */
+		_initialize_named_semaphores();
+		semaphore_erasure_needed = 0;
+	}
+#endif /* POSIX_NAMED_SEMAPHORES */
+
 	return semTable;
 }
 
@@ -1356,21 +1375,36 @@ static SmSem	*_semTbl()
 /* return the name used for the semaphore whole key is key */
 static void _named_posix_semname(char *namebuf, unsigned bufsize, int key)
 {
-	int this_ion_key = 695; // need to read this from SDR
-	static int complained=0;
-	if (!complained)
-		writeMemo("\n\n\n\n***** Still need to find unique key for current ION instance!!\n\n\n\n\n");
-	complained=1;
+	if (key < 0 ) {
+		snprintf(namebuf, bufsize, "/ion:%s:ipcSem", "key");  // max 18 with NULL
+	} else {
+		Sdr	sdr;
+		SdrState	*sdrstate;
 
-	if (key < 0 )
-		snprintf(namebuf, bufsize, "/ion:%d:ipcSem", this_ion_key);  // max 18 with NULL
-	else
-		snprintf(namebuf, bufsize, "/ion:%d:%d", this_ion_key, key);   // max 17 with NULL
-	// writeMemoNote("Generating posix semaphore name: ", namebuf);
+		if (named_semaphore_key[0] == '\0') {
+			// look up unique name of ION instance
+			sdr = getIonsdr();	
+			if (sdr == NULL) {
+					writeMemo("\n\nNeed ION name!!\n\n");
+					snprintf(namebuf, bufsize, "/ion/BUGUS/%d", key);
+					return;
+			}
+
+			sdrstate = sdr->sdr;
+			writeMemo("Got SDRstate");
+
+			strncpy(named_semaphore_key,sdrstate->name,MAX_SDR_NAME);
+
+			writeMemoNote("Initializing semaphores for SDR name:", named_semaphore_key);
+		}		
+		
+		snprintf(namebuf, bufsize, "/ion:%s:%d", named_semaphore_key, key);   // max 17 with NULL
+	}
+	writeMemoNote("Generating posix semaphore name: ", namebuf);
 }
 
 /* unlink the names of all named POSIX semaphores that could belong to ION instance ionId */
-static void _erase_named_semaphores(int ionId)
+static void _initialize_named_semaphores()
 {
 	char sem_name[SEM_NAMEDPOSIX_MAXNAME];
 
@@ -1402,7 +1436,6 @@ static sem_t	*_ipcSemaphore(int stop)
 			_named_posix_semname(sem_name,sizeof(sem_name),-1);
 			oK(sem_close(&ipcSem));
 			oK(sem_unlink(sem_name));
-			_erase_named_semaphores(0);
 #else
 			oK(sem_destroy(&ipcSem));
 #endif /* POSIX_NAMED_SEMAPHORES */
@@ -1419,8 +1452,12 @@ static sem_t	*_ipcSemaphore(int stop)
 #ifdef POSIX_NAMED_SEMAPHORES
 		char sem_name[SEM_NAMEDPOSIX_MAXNAME];
 		sem_t *psem;
+		Sdr sdr = getIonsdr();	
 
-		_erase_named_semaphores(0);
+		if (!sdr) {
+			/* no SDR yet means that we're just getting started and don't know the ION instance name */
+			semaphore_erasure_needed = 1;
+		}
 
 		_named_posix_semname(sem_name,sizeof(sem_name),-1);
 		writeMemoNote("calling sem_open", itoa(getpid()));
