@@ -14,6 +14,7 @@
  */
 
 #include "bsstest.h"
+#include <time.h>
 
 static int	_count(int increment)
 {
@@ -55,40 +56,79 @@ static int	display(time_t sec, unsigned long count, char *buf,
 static int	checkReceptionStatus(char *buffer, int limit)
 {
 	static int		dbRecordsCount = 0;
-	bssNav		nav;
-	time_t		bundleIdTime;
-	unsigned long	bundleIdCount;
+	static bssNav		nav;
+	static time_t		bundleIdTime = 0;
+	static unsigned long	bundleIdCount = 0;
 	static unsigned long 	waitForBundleIdCount = 0;
 	long		bytesRead;
 	unsigned int	prevDataValue = 0;
 	unsigned int	dataValue;
 
-	memset((char *) &nav, 0, sizeof nav);
-	/* JG
+	// JG
 	puts("...entered checkRecptionStatus...");
 	printf("......record count = %d. \n", dbRecordsCount);
 	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 	printf("......bundle Id Count = %ld. \n", bundleIdCount);
 	printf("......bundle Id Time = %ld. \n", bundleIdTime);
 	fflush(stdout);
-	*/
-	if (bssSeek(&nav, 0, &bundleIdTime, &bundleIdCount) < 0)
+	
+	/* 	check for data arrival */
+	if (bundleIdTime == 0)
 	{
-		putErrmsg("Failed in bssSeek.", NULL);
+		memset((char *) &nav, 0, sizeof nav);
+		if (bssSeek(&nav, 0, &bundleIdTime, &bundleIdCount) < 0)
+		{
+			puts("...waiting...");
+			fflush(stdout);
+			//putErrmsg("Failed in bssSeek.", NULL);
+			//JG
+			//puts("......failed bssSeek...");
+			//fflush(stdout);
+
+			/* not started yet */
+			return 0;
+		}
+		else
+		{
+			puts("...data arrived...");
+			fflush(stdout);
+		}
+	}
+	else
+	{
 		//JG
-		//puts("......failed bssSeek...");
-		//fflush(stdout);
-		return -1;
+		puts(".... another round ....");
+		printf("... nav current position(%ld), prev(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.nextOffset);
+		printf("... current time... %ld \n",time(NULL));
+		fflush(stdout);
+
+		if (bssSeek(&nav, bundleIdTime, &bundleIdTime, &bundleIdCount) < 0)
+		{
+			puts("... still in gap ...");
+			fflush(stdout);
+			//putErrmsg("Failed in bssSeek.", NULL);
+			//JG
+			//puts("......failed bssSeek...");
+			//fflush(stdout);
+
+			/* not started yet */
+			return 0;
+		}	
+		else
+		{
+			puts("... resume ...");
+			fflush(stdout);
+		}
 	}
 
-	/* JG
+	//JG
 	puts("......after bssSeek()....");
 	printf("......record count = %d. \n", dbRecordsCount);
 	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 	printf("......bundle Id Count = %ld. \n", bundleIdCount);
 	printf("......bundle Id Time = %ld. \n", bundleIdTime);
 	fflush(stdout);
-	*/
+
 	while (1)
 	{
 		/* JG
@@ -120,14 +160,14 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			return -1;
 		}
 
-		/* check if new bundle(s) were read */
+		/* check if new bssp bundle(s) were read */
 		if (bundleIdCount >= waitForBundleIdCount)
 		{
 			waitForBundleIdCount = bundleIdCount + 1;
 			dbRecordsCount++;
-			if ((dbRecordsCount % 50) == 0)
+			if ((dbRecordsCount % 10) == 0)
 			{
-				printf("... bsscounter received %d bundles.\n", dbRecordsCount);
+				printf("...received %d bundles.\n", dbRecordsCount);
 				fflush(stdout);
 			}
 
