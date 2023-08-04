@@ -54,24 +54,50 @@ static int	display(time_t sec, unsigned long count, char *buf,
 
 static int	checkReceptionStatus(char *buffer, int limit)
 {
-	int		dbRecordsCount = 0;
+	static int		dbRecordsCount = 0;
 	bssNav		nav;
 	time_t		bundleIdTime;
 	unsigned long	bundleIdCount;
+	static unsigned long 	waitForBundleIdCount = 0;
 	long		bytesRead;
 	unsigned int	prevDataValue = 0;
 	unsigned int	dataValue;
 
 	memset((char *) &nav, 0, sizeof nav);
+	/* JG
+	puts("...entered checkRecptionStatus...");
+	printf("......record count = %d. \n", dbRecordsCount);
+	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
+	printf("......bundle Id Count = %ld. \n", bundleIdCount);
+	printf("......bundle Id Time = %ld. \n", bundleIdTime);
+	fflush(stdout);
+	*/
 	if (bssSeek(&nav, 0, &bundleIdTime, &bundleIdCount) < 0)
 	{
 		putErrmsg("Failed in bssSeek.", NULL);
+		//JG
+		//puts("......failed bssSeek...");
+		//fflush(stdout);
 		return -1;
 	}
 
+	/* JG
+	puts("......after bssSeek()....");
+	printf("......record count = %d. \n", dbRecordsCount);
+	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
+	printf("......bundle Id Count = %ld. \n", bundleIdCount);
+	printf("......bundle Id Time = %ld. \n", bundleIdTime);
+	fflush(stdout);
+	*/
 	while (1)
 	{
+		/* JG
+		puts("....running bssRead...");
+		fflush(stdout);
+		*/
+
 		bytesRead = bssRead(nav, buffer, RCV_LENGTH);
+		
 		if (bytesRead < 0)
 		{
 			putErrmsg("Failed in bssRead.", NULL);
@@ -94,18 +120,55 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			return -1;
 		}
 
-		dbRecordsCount++;
-		if (dbRecordsCount == limit)
+		/* check if new bundle(s) were read */
+		if (bundleIdCount >= waitForBundleIdCount)
 		{
-			return limit;
+			waitForBundleIdCount = bundleIdCount + 1;
+			dbRecordsCount++;
+			if ((dbRecordsCount % 50) == 0)
+			{
+				printf("... bsscounter received %d bundles.\n", dbRecordsCount);
+				fflush(stdout);
+			}
+
+			/* JG
+			puts("......new bundle was read......");
+			printf("......record count = %d. \n", dbRecordsCount);
+			printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
+			printf("......bundle Id Count = %ld. \n", bundleIdCount);
+			printf("......bundle Id Time = %ld. \n", bundleIdTime);
+			fflush(stdout);
+			*/
+		}
+
+		if (dbRecordsCount >= limit)
+		{
+			/* JG
+			puts("...exiting checkReceptionStatus (reach limit)...");
+			printf("......record count = %d. \n", dbRecordsCount);
+			fflush(stdout);
+			*/
+			return dbRecordsCount;
 		}
 
 		switch (bssNext(&nav, &bundleIdTime, &bundleIdCount))
 		{
 		case -2:		/*	End of database.	*/
+			/* JG
+			puts("...exiting checkReceptionStatus (bssNext: end of database)");
+			printf("......record count = %d. \n", dbRecordsCount);
+			printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
+			printf("......bundle Id Count = %ld. \n", bundleIdCount);
+			printf("......bundle Id Time = %ld. \n", bundleIdTime);
+			fflush(stdout);
+			*/
 			break;		/*	Out of switch.		*/
 
 		case -1:
+			/* JG
+			puts("...exiting checkReceptionStatus (failed bssNext)");
+			fflush(stdout);
+			*/
 			putErrmsg("Failed in bssNext.", NULL);
 			return -1;
 
@@ -115,6 +178,11 @@ static int	checkReceptionStatus(char *buffer, int limit)
 
 		break;			/*	Out of loop.		*/
 	}
+
+	/* JG
+	puts("...exiting checkReceptionStatus (not done yet; return 0)");
+	fflush(stdout);
+	*/
 
 	return 0;			/*	Not done yet.		*/
 }
@@ -139,6 +207,7 @@ int	main(int argc, char **argv)
 	char	*eid = NULL;
 	char	*buffer;
 	int	result;
+	int recv_count = 0;
 
 	if (argc > 5) argc = 5;
 	switch (argc)
@@ -203,7 +272,8 @@ database name> <path for BSS database files> <own endpoint ID>");
 	while (1)
 	{
 		snooze(5);
-		switch (checkReceptionStatus(buffer + RCV_LENGTH, limit))
+		recv_count = checkReceptionStatus(buffer + RCV_LENGTH, limit);
+		switch (recv_count)
 		{
 		case -1:
 			puts("bss test failed.");
@@ -215,10 +285,12 @@ database name> <path for BSS database files> <own endpoint ID>");
 			continue;		/*	Not done yet.	*/
 
 		default:
-			fprintf(stderr, "Received %d real-time frames.\n",
+			/* in-order real-time reception reported by display */
+			fprintf(stderr, "Received %d in-order, real-time frames.\n",
 					_count(0));
+
 			fprintf(stderr, "Received %d frames in total.\n",
-					limit);
+					recv_count);
 			puts("bss test succeeded.");
 			fflush(stdout);
 			result = 0;		/*	Succeeded.	*/
