@@ -14,7 +14,8 @@
  */
 
 #include "bsstest.h"
-#include <time.h>
+//JG
+//#include <time.h>
 
 static int	_count(int increment)
 {
@@ -65,13 +66,15 @@ static int	checkReceptionStatus(char *buffer, int limit)
 	unsigned int	dataValue;
 
 	// JG
+	/*
 	puts("...entered checkRecptionStatus...");
 	printf("......record count = %d. \n", dbRecordsCount);
 	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 	printf("......bundle Id Count = %ld. \n", bundleIdCount);
 	printf("......bundle Id Time = %ld. \n", bundleIdTime);
 	fflush(stdout);
-	
+	*/
+
 	/* 	check for data arrival */
 	if (bundleIdTime == 0)
 	{
@@ -94,15 +97,17 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			fflush(stdout);
 		}
 	}
-	else
+	else //JG this section tries to handle gap, not working yet
 	{
 		//JG
+		/*
 		puts(".... another round ....");
 		printf("... nav current position(%ld), prev(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.nextOffset);
 		printf("... current time... %ld \n",time(NULL));
 		fflush(stdout);
+		*/
 
-		if (bssSeek(&nav, bundleIdTime, &bundleIdTime, &bundleIdCount) < 0)
+		if (bssSeek(&nav, bundleIdTime+1, &bundleIdTime, &bundleIdCount) < 0)
 		{
 			puts("... still in gap ...");
 			fflush(stdout);
@@ -122,12 +127,14 @@ static int	checkReceptionStatus(char *buffer, int limit)
 	}
 
 	//JG
+	/*
 	puts("......after bssSeek()....");
 	printf("......record count = %d. \n", dbRecordsCount);
 	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 	printf("......bundle Id Count = %ld. \n", bundleIdCount);
 	printf("......bundle Id Time = %ld. \n", bundleIdTime);
 	fflush(stdout);
+	*/
 
 	while (1)
 	{
