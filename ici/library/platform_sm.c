@@ -1358,7 +1358,7 @@ static SmSem	*_semTbl()
 #ifdef POSIX_NAMED_SEMAPHORES
 	if (semaphore_erasure_needed) {
 		/* only the initial ION process will have this set */
-		_initialize_named_semaphores();
+		if (0) _initialize_named_semaphores();
 		semaphore_erasure_needed = 0;
 	}
 #endif /* POSIX_NAMED_SEMAPHORES */
@@ -1376,7 +1376,7 @@ static SmSem	*_semTbl()
 static void _named_posix_semname(char *namebuf, unsigned bufsize, int key)
 {
 	if (key < 0 ) {
-		snprintf(namebuf, bufsize, "/ion:%s:ipcSem", "key");  // max 18 with NULL
+		snprintf(namebuf, bufsize, "/ion:pid%d:ipcSem", getpid());  // max 18 with NULL
 	} else {
 		Sdr	sdr;
 		SdrState	*sdrstate;
@@ -1460,16 +1460,15 @@ static sem_t	*_ipcSemaphore(int stop)
 		}
 
 		_named_posix_semname(sem_name,sizeof(sem_name),-1);
-		writeMemoNote("calling sem_open", itoa(getpid()));
+fprintf(stderr,"calling sem_open(%s) in pid %d\n", sem_name, getpid());
 
 		if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0 )) == SEM_FAILED)
 		{
 			putSysErrmsg("Can't initialize IPC semaphore", sem_name);
 			return NULL;
 		}
-		writeMemoNote("sem_open succeeded", itoa(getpid()));
 		ipcSemPtr = psem;
-		writeMemoNote("Initialized Named Posix Semaphore protected by sem: ", sem_name);
+fprintf(stderr,"Initialized Named Posix Semaphore protected by sem: %s (%p) for pid %d\n", sem_name, ipcSemPtr, getpid());
 #else /* POSIX_NAMED_SEMAPHORES */
 		if (sem_init(&ipcSem, 0, 0) < 0)
 		{
@@ -1486,6 +1485,7 @@ static sem_t	*_ipcSemaphore(int stop)
 		giveIpcLock();
 	}
 
+fprintf(stderr,"    _ipcSemaphore() returns %p\n", ipcSemPtr);
 	return ipcSemPtr;
 }
 
@@ -1507,13 +1507,15 @@ void	sm_ipc_stop()
 
 static void	takeIpcLock()
 {
+fprintf(stderr,"takeIpcLock(%p) called by pid %d\n", _ipcSemaphore(0), getpid());
 	oK(sem_wait(_ipcSemaphore(0)));
-
+fprintf(stderr,"   takeIpcLock returns to pid %d\n", getpid());
 }
 
 static void	giveIpcLock()
 {
 	oK(sem_post(_ipcSemaphore(0)));
+fprintf(stderr,"giveIpcLock(%p) called by pid %d\n", _ipcSemaphore(0), getpid());
 }
 
 sm_SemId	sm_SemCreate(int key, int semType)
@@ -1524,7 +1526,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 	/*	If key is not specified, invent one.			*/
 
-writeMemoNote("sm_SemCreate called with key: ", itoa(key));
+fprintf(stderr,"sm_SemCreate(%d) called by pid %d\n", key, getpid());
 
 #ifdef OLDWAY
 	if (key == SM_NO_KEY)
@@ -1537,17 +1539,18 @@ writeMemoNote("     sm_SemCreate called with NO key, using key: ", itoa(key));
 	/*	If key was specified, try to find it  */
 	takeIpcLock();
 	if (key != SM_NO_KEY) {
-		takeIpcLock();
 		for (i = 0, sem = semTbl; i < SEM_NSEMS_MAX; i++, sem++)
 		{
 			if (sem->key == key)
 			{
+writeMemoNote("     sm_SemCreate: existing key found for key: ", itoa(key));
 				giveIpcLock();
 				return i;
 			}
 		}
 	}
 	/* key was unspecified, or specified but not found.  IpcLock is still held */
+writeMemoNote("     sm_SemCreate: Making a new key", NULL);
 
 	for (i = 0, sem = semTbl; i < SEM_NSEMS_MAX; i++, sem++)
 	{
