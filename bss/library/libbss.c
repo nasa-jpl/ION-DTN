@@ -343,8 +343,10 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 	tblRow		*row;
 	lstEntry 	entry;
 	long		curPosition = nav->curPosition;
+	long		startingPosition = nav->curPosition;
 	int 		i = 0;
 	unsigned long	nextTime;
+	unsigned long 	startingTime;
 
 	CHKERR(nav);
 	CHKERR(curTime); 
@@ -357,10 +359,31 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 		return -1;
 	}
 
+	/* check if current position is within the WINDOW */
+
+	if (curPosition < hdr->oldestRowIndex)
+	{
+		/* move position up to current window */
+		curPosition = hdr->oldestRowIndex;
+		startingPosition = hdr->oldestRowIndex;
+	 
+	 	/* TO DO: this may lead to skipping the first second 
+		* when jumping forward to a new WINDOW is the previous
+		* bssNext() call reached end of doubly-linked list.
+		* It might be better to call bssSeek() here to refresh
+		* the nav data structure instead. */
+
+	}
+	
+
 	if (nav->nextOffset == -1) 
 	{
 		/*	The end of the current doubly-linked list was
 		 *	reached.
+		 * 
+		 *  TO DO: bssNext will jump to next second and skip any
+		 *  new data arriving later that filled in the 
+		 *  rest of the second. This may be fixed
 		 *
 		 *	The following check ensures that bssNext 
 		 *	 function will either break or return.		*/
@@ -371,8 +394,11 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			return -1;
 		}
 
-		/* 	Move to the next position 			*/
+		/* record stating time */
+		startingTime = hdr->oldestTime
+					+ startingPosition - hdr->oldestRowIndex;
 
+		/* moved to next position and search */
 		curPosition = (curPosition + 1) % WINDOW;
 		while (i < WINDOW)
 		{
@@ -390,21 +416,17 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			 *  hdr->oldestRowIndex value.
 			 */
 
-			if (curPosition >= hdr->oldestRowIndex)
-			{
-				nextTime = hdr->oldestTime
+			nextTime = hdr->oldestTime
 					+ curPosition - hdr->oldestRowIndex;
-			}
-			else
-			{
-				nextTime = hdr->oldestTime + WINDOW
-					- hdr->oldestRowIndex + curPosition;
-			}
-			
-			if (nextTime <= *curTime)
+
+			/* Check reaching end of WINDOW when
+			 * nextTime rolled back to starting 
+			 */
+
+			if (nextTime <= startingTime)
 			{
 				oK(_lockMutex(0));
-				return -2;	/* 	end of list	*/
+				return -2;	/* 	reached end of WINDOW  */
 			}
 
 			row = index->rows + curPosition;
@@ -416,6 +438,8 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 				 *  move to the next position. 
 				 */
 				curPosition = (curPosition + 1) % WINDOW;
+				printf("...bssNext need to check next position %ld. \n", curPosition);
+				fflush(stdout);
 			}
 			else
 			{
@@ -425,10 +449,19 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			i++;
 		}
 
+		//JG
+		puts("...bssNext found bundle after gap...");
+		printf("row->firstEntryOffset = %ld. \n", row->firstEntryOffset);
+		fflush(stdout);
+
 		if (row->firstEntryOffset < 0
 		|| getLstEntry(_lstFile(0,0), &entry, row->firstEntryOffset)
 				== -1)
 		{
+			//JG
+			puts("......what happened here A....");
+			fflush(stdout);
+
 			oK(_lockMutex(0));
 			return -1;
 		}
@@ -437,6 +470,10 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 	{
 		if (getLstEntry(_lstFile(0,0), &entry, nav->nextOffset) == -1)
 		{
+			//JG
+			puts("......what happened here B....");
+			fflush(stdout);
+
 			oK(_lockMutex(0));
 			return -1;
 		}

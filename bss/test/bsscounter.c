@@ -57,7 +57,7 @@ static int	display(time_t sec, unsigned long count, char *buf,
 static int	checkReceptionStatus(char *buffer, int limit)
 {
 	static int		dbRecordsCount = 0;
-	static bssNav		nav;
+	bssNav		nav;
 	static time_t		bundleIdTime = 0;
 	static unsigned long	bundleIdCount = 0;
 	static unsigned long 	waitForBundleIdCount = 0;
@@ -65,20 +65,21 @@ static int	checkReceptionStatus(char *buffer, int limit)
 	unsigned int	prevDataValue = 0;
 	unsigned int	dataValue;
 
+	/* reset nav data structure */
+	memset((char *) &nav, 0, sizeof nav);
+
 	// JG
-	/*
-	puts("...entered checkRecptionStatus...");
+	printf("...entered checkRecptionStatus... time = %ld sec.\n", time(NULL));
 	printf("......record count = %d. \n", dbRecordsCount);
 	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 	printf("......bundle Id Count = %ld. \n", bundleIdCount);
 	printf("......bundle Id Time = %ld. \n", bundleIdTime);
 	fflush(stdout);
-	*/
+	
 
 	/* 	check for data arrival */
 	if (bundleIdTime == 0)
 	{
-		memset((char *) &nav, 0, sizeof nav);
 		if (bssSeek(&nav, 0, &bundleIdTime, &bundleIdCount) < 0)
 		{
 			puts("...waiting...");
@@ -97,44 +98,23 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			fflush(stdout);
 		}
 	}
-	else //JG this section tries to handle gap, not working yet
+	else //JG this section tries to interrupted Reception
 	{
-		//JG
-		/*
-		puts(".... another round ....");
-		printf("... nav current position(%ld), prev(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.nextOffset);
-		printf("... current time... %ld \n",time(NULL));
-		fflush(stdout);
-		*/
-
-		if (bssSeek(&nav, bundleIdTime+1, &bundleIdTime, &bundleIdCount) < 0)
+		/* reset nav content by seeking to last know bundle time */
+		if (bssSeek(&nav, bundleIdTime, &bundleIdTime, &bundleIdCount) < 0)
 		{
-			puts("... still in gap ...");
-			fflush(stdout);
-			//putErrmsg("Failed in bssSeek.", NULL);
 			//JG
-			//puts("......failed bssSeek...");
-			//fflush(stdout);
-
-			/* not started yet */
-			return 0;
-		}	
-		else
-		{
-			puts("... resume ...");
+			puts("......failed bssSeek...");
 			fflush(stdout);
-		}
+			return -1;
+		}	
 	}
 
 	//JG
-	/*
-	puts("......after bssSeek()....");
-	printf("......record count = %d. \n", dbRecordsCount);
-	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
-	printf("......bundle Id Count = %ld. \n", bundleIdCount);
-	printf("......bundle Id Time = %ld. \n", bundleIdTime);
+	puts("...another round ....");
+	printf("......resetted nav current position(%ld), prev(%ld), datOffset(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.datOffset, nav.nextOffset);
+	printf("......current bundle time... %ld \n", bundleIdTime);
 	fflush(stdout);
-	*/
 
 	while (1)
 	{
@@ -178,14 +158,16 @@ static int	checkReceptionStatus(char *buffer, int limit)
 				fflush(stdout);
 			}
 
-			/* JG
-			puts("......new bundle was read......");
+
+			//* JG
+			puts("...new bundle was read......");
+			printf("......nav current position(%ld), prev(%ld), datOffset(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.datOffset, nav.nextOffset);
 			printf("......record count = %d. \n", dbRecordsCount);
 			printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 			printf("......bundle Id Count = %ld. \n", bundleIdCount);
 			printf("......bundle Id Time = %ld. \n", bundleIdTime);
 			fflush(stdout);
-			*/
+			
 		}
 
 		if (dbRecordsCount >= limit)
@@ -201,14 +183,14 @@ static int	checkReceptionStatus(char *buffer, int limit)
 		switch (bssNext(&nav, &bundleIdTime, &bundleIdCount))
 		{
 		case -2:		/*	End of database.	*/
-			/* JG
+			//JG
 			puts("...exiting checkReceptionStatus (bssNext: end of database)");
-			printf("......record count = %d. \n", dbRecordsCount);
+			printf("......nav current position(%ld), prev(%ld), datOffset(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.datOffset, nav.nextOffset);			printf("......record count = %d. \n", dbRecordsCount);
 			printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 			printf("......bundle Id Count = %ld. \n", bundleIdCount);
 			printf("......bundle Id Time = %ld. \n", bundleIdTime);
 			fflush(stdout);
-			*/
+			
 			break;		/*	Out of switch.		*/
 
 		case -1:
