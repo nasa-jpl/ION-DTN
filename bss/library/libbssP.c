@@ -15,7 +15,7 @@
 #include "bssP.h"
 
 #ifndef BSSLIBDEBUG
-#define BSSLIBDEBUG	0
+#define BSSLIBDEBUG	1
 #endif
 
 static time_t	bpSeconds(BpTimestamp ts)
@@ -593,7 +593,7 @@ static long	getEntryPosition(int tblFile, BpTimestamp time, long entry)
 	tblRow		*row;
 	long		elapsed;
 	long		relativeTime;
-	long		position;
+	long		position = -1;
 	long		offset;
 	long		newestRow = -1;
 	time_t		newestTime = 0;

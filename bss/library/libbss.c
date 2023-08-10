@@ -438,8 +438,9 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 				 *  move to the next position. 
 				 */
 				curPosition = (curPosition + 1) % WINDOW;
-				printf("...bssNext need to check next position %ld. \n", curPosition);
-				fflush(stdout);
+				// JG
+				//printf("...bssNext need to check next position %ld. \n", curPosition);
+				//fflush(stdout);
 			}
 			else
 			{
