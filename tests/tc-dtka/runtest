@@ -1,0 +1,282 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# September 21, 2020
+#
+# Tests security key distribution, relying on Trusted Collective
+# infrastructure and CGR-based multicast.
+#
+# Six nodes (1-6) form a collective authority for public key distribution;
+# three additional nodes are clients of that authority.  The network has
+# star topology: all nodes connect directly to node 6 (an authority node),
+# the root of the multicast tree.
+#
+# At startup, all 9 nodes are notionally co-located: they are all started
+# at the same time, and they all compute initial asymmetric key pairs and
+# share their initial public keys by means of a file that is accessible to
+# all.  After that, all of the nodes execute two re-keying cycles.
+# For each re-keying cycle, the subscriber waits 60 seconds and then
+# computes a new key pair with effective time 20 seconds in the future
+# and multicasts its new public key to the key authority nodes.
+#
+# The collective authority daemons on each authority node are started 5
+# seconds after any client nodes.  Every 60 seconds, all six authority
+# nodes initiate publication of proposed public key announcement bulletins
+# announcing the most recently declared public keys; they allow one
+# another 5 seconds "grace" time to issue bulletin proposals, then
+# compute consensus bulletins and publish them to all 9 nodes (themselves
+# and their subscribers).  All nodes receive the published bulletins and
+# process the distributed public key information.
+#
+# The difference between the two cycles is this: 95 seconds after the
+# start of the test, authority node 4 is terminated and authority
+# nodes 1 and 6 are notionally compromised ("hijack" flag is set to
+# 1 to trigger simulated adversarial operation).  Notices that nodes
+# 1, 4, and 6 are out of service are provided to nodes 2, 3, and 5.
+#
+# The test succeeds if all subscriber nodes receive their peers' new
+# public keys without error in each re-keying cycle.			*/
+
+echo "Starting ION..."
+rm -f ./ion_nodes
+export ION_NODE_LIST_DIR=$PWD
+
+# Start all nodes, build multicast distribution tree, start DTKA.
+
+sleep 2
+tcaboot 202 201 6 50 .2 20
+
+echo "Initializing all nodes..."
+sleep 2
+
+cd 1.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../2.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../3.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../4.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../5.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../6.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../7.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../8.ipn.ltp
+ionadmin node.ionrc
+sleep 1
+cd ../9.ipn.ltp
+ionadmin node.ionrc
+
+echo "Finished node initialization, starting all nodes..."
+sleep 2
+
+cd ../1.ipn.ltp
+./ionstart >& node1.stdout &
+cd ../2.ipn.ltp
+./ionstart >& node2.stdout &
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout &
+cd ../4.ipn.ltp
+./ionstart >& node4.stdout &
+cd ../5.ipn.ltp
+./ionstart >& node5.stdout &
+cd ../6.ipn.ltp
+./ionstart >& node6.stdout &
+cd ../7.ipn.ltp
+./ionstart >& node7.stdout &
+cd ../8.ipn.ltp
+./ionstart >& node8.stdout &
+cd ../9.ipn.ltp
+./ionstart >& node9.stdout &
+
+# Sleep to let all nodes finish initializing.
+# Then create all initial keys and load them to each node.
+
+if [[ $1 == "linux" ]] ; then
+	echo "Waiting 30 seconds for node startup..."
+	sleep 30
+else
+	echo "Waiting 60 seconds for node startup..."
+	sleep 60
+fi
+
+echo "Finished starting DTKA, now loading initial keys to all nodes..."
+
+cd ..
+cat 1.ipn.ltp/dtka.ionsecrc 2.ipn.ltp/dtka.ionsecrc 3.ipn.ltp/dtka.ionsecrc 4.ipn.ltp/dtka.ionsecrc 5.ipn.ltp/dtka.ionsecrc 6.ipn.ltp/dtka.ionsecrc 7.ipn.ltp/dtka.ionsecrc 8.ipn.ltp/dtka.ionsecrc 9.ipn.ltp/dtka.ionsecrc > dtka.ionsecrc
+cd 1.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+cd ../2.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+cd ../4.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+cd ../5.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+cd ../6.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+cd ../7.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+ionsecadmin list.ionsecrc > initial.keys
+cd ../8.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+ionsecadmin list.ionsecrc > initial.keys
+cd ../9.ipn.ltp
+ionsecadmin ../dtka.ionsecrc
+ionsecadmin list.ionsecrc > initial.keys
+
+sleep 1
+echo "Finished loading initial keys, now sleeping 6 minutes."
+
+# Sleep 360 seconds, note that first re-keying cycle should have completed.
+
+sleep 360
+echo "First re-keying cycle should have completed by now."
+cd ../7.ipn.ltp
+ionsecadmin list.ionsecrc > revised.keys
+cd ../8.ipn.ltp
+ionsecadmin list.ionsecrc > revised.keys
+cd ../9.ipn.ltp
+ionsecadmin list.ionsecrc > revised.keys
+
+# Sleep another 5 seconds (i.e., after completion of first re-keying
+# cycle), then shut down node 4 and compromise nodes 1 and 6.
+
+sleep 5
+echo "Taking three key authority nodes out of service..."
+cd ../1.ipn.ltp
+tcaadmin 203 hijack.tcarc
+cd ../4.ipn.ltp
+./ionstop &
+cd ../6.ipn.ltp
+tcaadmin 203 hijack.tcarc
+cd ../2.ipn.ltp
+tcaadmin 203 recover.tcarc
+cd ../3.ipn.ltp
+tcaadmin 203 recover.tcarc
+cd ../5.ipn.ltp
+tcaadmin 203 recover.tcarc
+
+# Sleep another 6 minutes, note that second re-keying cycle should be done.
+sleep 360
+echo "Second re-keying cycle should have completed by now."
+cd ../7.ipn.ltp
+ionsecadmin list.ionsecrc > final.keys
+cd ../8.ipn.ltp
+ionsecadmin list.ionsecrc > final.keys
+cd ../9.ipn.ltp
+ionsecadmin list.ionsecrc > final.keys
+
+# Check results
+RETVAL=0
+
+# Verify at node 7
+
+cd ../7.ipn.ltp
+COUNT=`cat revised.keys | wc -l`
+if [ $COUNT -ge 17 ]
+then
+	echo ""
+	echo "Node 7 got first key distribution."
+else
+	echo ""
+	echo "Error: node 7 didn't get first key distribution."
+	RETVAL=1
+fi
+
+COUNT=`cat final.keys | wc -l`
+if [ $COUNT -ge 24 ]
+then
+	echo ""
+	echo "Node 7 got second key distribution."
+else
+	echo ""
+	echo "Error: node 7 didn't get second key distribution."
+	RETVAL=1
+fi
+
+# Verify at node 8
+
+cd ../8.ipn.ltp
+COUNT=`cat revised.keys | wc -l`
+if [ $COUNT -ge 17 ]
+then
+	echo ""
+	echo "Node 8 got first key distribution."
+else
+	echo ""
+	echo "Error: node 8 didn't get first key distribution."
+	RETVAL=1
+fi
+
+COUNT=`cat final.keys | wc -l`
+if [ $COUNT -ge 24 ]
+then
+	echo ""
+	echo "Node 8 got second key distribution."
+else
+	echo ""
+	echo "Error: node 8 didn't get second key distribution."
+	RETVAL=1
+fi
+
+# Verify at node 9
+
+cd ../9.ipn.ltp
+COUNT=`cat revised.keys | wc -l`
+if [ $COUNT -ge 17 ]
+then
+	echo ""
+	echo "Node 9 got first key distribution."
+else
+	echo ""
+	echo "Error: node 9 didn't get first key distribution."
+	RETVAL=1
+fi
+
+COUNT=`cat final.keys | wc -l`
+if [ $COUNT -ge 24 ]
+then
+	echo ""
+	echo "Node 9 got second key distribution."
+else
+	echo ""
+	echo "Error: node 9 didn't get second key distribution."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+sleep 10
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../5.ipn.ltp
+./ionstop &
+cd ../6.ipn.ltp
+./ionstop &
+cd ../7.ipn.ltp
+./ionstop &
+cd ../8.ipn.ltp
+./ionstop &
+cd ../9.ipn.ltp
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 20
+killm
+echo "Key distribution test completed."
+exit $RETVAL

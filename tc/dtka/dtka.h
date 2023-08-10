@@ -13,30 +13,31 @@
 #define _DTKA_H_
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-#define	DTKA_DECLARE	201
-#define	DTKA_ANNOUNCE	203
+#define DTKA_DECLARE 201
+#define DTKA_ANNOUNCE 203
 
-/*	*	*	Database structure	*	*	*	*/
+	/*	*	*	Database structure	*	*	*	*/
 
-typedef struct
-{
-	time_t		nextKeyGenTime;
-	unsigned int	keyGenInterval;		/*	At least 60.	*/
-	unsigned int	effectiveLeadTime;	/*	At least 20.	*/
-	char		keyType[5];	/* HMAC, ECDSA, AES are supported */
-	unsigned int	keySize;	/* In bytes*/
-} DtkaDB;
+	typedef struct
+	{
+		time_t nextKeyGenTime;
+		unsigned int keyGenInterval;	/*	At least 60.	*/
+		unsigned int effectiveLeadTime; /*	At least 20.	*/
+		char keyType[6];				/* HMAC, ECDSA, AES are supported */
+		unsigned int keySize;			/* In bytes*/
+	} DtkaDB;
 
-extern int	dtkaInit();
-extern int	dtkaAttach();
-extern Object	getDtkaDbObject();
-extern DtkaDB	*getDtkaConstants();
+	extern int dtkaInit();
+	extern int dtkaAttach();
+	extern Object getDtkaDbObject();
+	extern DtkaDB *getDtkaConstants();
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/*	_DTKA_H	*/
+#endif /*	_DTKA_H	*/
