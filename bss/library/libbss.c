@@ -363,19 +363,12 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 
 	if (curPosition < hdr->oldestRowIndex)
 	{
-		/* move position up to current window */
+		/* table rolled over; reset nav */
+
 		curPosition = hdr->oldestRowIndex;
 		startingPosition = hdr->oldestRowIndex;
-	 
-	 	/* TO DO: this may lead to skipping the first second 
-		* when jumping forward to a new WINDOW is the previous
-		* bssNext() call reached end of doubly-linked list.
-		* It might be better to call bssSeek() here to refresh
-		* the nav data structure instead. */
-
 	}
 	
-
 	if (nav->nextOffset == -1) 
 	{
 		/*	The end of the current doubly-linked list was

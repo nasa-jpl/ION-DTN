@@ -69,13 +69,14 @@ static int	checkReceptionStatus(char *buffer, int limit)
 	memset((char *) &nav, 0, sizeof nav);
 
 	// JG
+	/*
 	printf("...entered checkRecptionStatus... time = %ld sec.\n", time(NULL));
 	printf("......record count = %d. \n", dbRecordsCount);
 	printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 	printf("......bundle Id Count = %ld. \n", bundleIdCount);
 	printf("......bundle Id Time = %ld. \n", bundleIdTime);
 	fflush(stdout);
-	
+	*/
 
 	/* 	check for data arrival */
 	if (bundleIdTime == 0)
@@ -98,7 +99,7 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			fflush(stdout);
 		}
 	}
-	else //JG this section tries to interrupted Reception
+	else //JG this section tries to handle interrupted Reception
 	{
 		/* reset nav content by seeking to last know bundle time */
 		if (bssSeek(&nav, bundleIdTime, &bundleIdTime, &bundleIdCount) < 0)
@@ -111,10 +112,12 @@ static int	checkReceptionStatus(char *buffer, int limit)
 	}
 
 	//JG
+	/*
 	puts("...another round ....");
 	printf("......resetted nav current position(%ld), prev(%ld), datOffset(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.datOffset, nav.nextOffset);
 	printf("......current bundle time... %ld \n", bundleIdTime);
 	fflush(stdout);
+	*/
 
 	while (1)
 	{
@@ -160,6 +163,7 @@ static int	checkReceptionStatus(char *buffer, int limit)
 
 
 			//* JG
+			/*
 			puts("...new bundle was read......");
 			printf("......nav current position(%ld), prev(%ld), datOffset(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.datOffset, nav.nextOffset);
 			printf("......record count = %d. \n", dbRecordsCount);
@@ -167,7 +171,8 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			printf("......bundle Id Count = %ld. \n", bundleIdCount);
 			printf("......bundle Id Time = %ld. \n", bundleIdTime);
 			fflush(stdout);
-			
+			*/
+
 		}
 
 		if (dbRecordsCount >= limit)
@@ -184,13 +189,15 @@ static int	checkReceptionStatus(char *buffer, int limit)
 		{
 		case -2:		/*	End of database.	*/
 			//JG
+			/*
 			puts("...exiting checkReceptionStatus (bssNext: end of database)");
 			printf("......nav current position(%ld), prev(%ld), datOffset(%ld), next(%ld) \n", nav.curPosition, nav.prevOffset, nav.datOffset, nav.nextOffset);			printf("......record count = %d. \n", dbRecordsCount);
 			printf("......wait for bundle Id Count = %ld. \n", waitForBundleIdCount);
 			printf("......bundle Id Count = %ld. \n", bundleIdCount);
 			printf("......bundle Id Time = %ld. \n", bundleIdTime);
 			fflush(stdout);
-			
+			*/
+
 			break;		/*	Out of switch.		*/
 
 		case -1:
