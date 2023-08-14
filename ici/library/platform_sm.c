@@ -19,7 +19,8 @@ static void	giveIpcLock();
 #ifdef POSIX_NAMED_SEMAPHORES
 	#include "sdrP.h"
 	#include "ion.h"
-	static char named_semaphore_key[MAX_SDR_NAME + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
+	#define MAX_NAMED_SEM_KEYLENGTH 100
+	static char named_semaphore_key[MAX_NAMED_SEM_KEYLENGTH + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
 	static void _initialize_named_semaphores(void);
 	static int semaphore_erasure_needed = 0;
 #endif /* POSIX_NAMED_SEMAPHORES */
@@ -1358,7 +1359,7 @@ static SmSem	*_semTbl()
 #ifdef POSIX_NAMED_SEMAPHORES
 	if (semaphore_erasure_needed) {
 		/* only the initial ION process will have this set */
-		if (0) _initialize_named_semaphores();
+		_initialize_named_semaphores();
 		semaphore_erasure_needed = 0;
 	}
 #endif /* POSIX_NAMED_SEMAPHORES */
@@ -1371,36 +1372,38 @@ static SmSem	*_semTbl()
 	/ion:5digits:5digits NULL
 	/ion:5digits:ipcSem NULL
 */
-#define	SEM_NAMEDPOSIX_MAXNAME 32		
+#define	SEM_NAMEDPOSIX_MAXNAME (MAX_NAMED_SEM_KEYLENGTH + 32)
 /* return the name used for the semaphore whole key is key */
 static void _named_posix_semname(char *namebuf, unsigned bufsize, int key)
 {
-	if (key < 0 ) {
-		snprintf(namebuf, bufsize, "/ion:pid%d:ipcSem", getpid());  // max 18 with NULL
-	} else {
-		Sdr	sdr;
-		SdrState	*sdrstate;
+	static int initialized = 0;
 
-		if (named_semaphore_key[0] == '\0') {
-			// look up unique name of ION instance
-			sdr = getIonsdr();	
-			if (sdr == NULL) {
-					writeMemo("\n\nNeed ION name!!\n\n");
-					snprintf(namebuf, bufsize, "/ion/BUGUS/%d", key);
-					return;
-			}
+	if (!initialized) {
+		/* see if this is the ONLY Ion node on this machine */
+		char *nodeListDir = getenv("ION_NODE_LIST_DIR");
 
-			sdrstate = sdr->sdr;
-			writeMemo("Got SDRstate");
+		if (nodeListDir == NULL) {
+			/* only one Ion instance on computer, use default name */
+			strncpy(named_semaphore_key,"LONE_ION",MAX_NAMED_SEM_KEYLENGTH);
+fprintf(stderr,"Only expecting one Ion instance, using semaphore keyname: '%s'\n", named_semaphore_key);
+		} else {
+			/* could be multiple instances, use nodeListDir to disambiguate semaphore names */
+			strncpy(named_semaphore_key,nodeListDir,MAX_NAMED_SEM_KEYLENGTH);
+fprintf(stderr,"Expecting several Ion instances, using semaphore keyname: '%s'\n", named_semaphore_key);
+		}
 
-			strncpy(named_semaphore_key,sdrstate->name,MAX_SDR_NAME);
-
-			writeMemoNote("Initializing semaphores for SDR name:", named_semaphore_key);
-		}		
-		
-		snprintf(namebuf, bufsize, "/ion:%s:%d", named_semaphore_key, key);   // max 17 with NULL
+		writeMemoNote("Initializing posix named semaphores for SDR name:", named_semaphore_key);
+		initialized = 1;
 	}
-	writeMemoNote("Generating posix semaphore name: ", namebuf);
+
+	if (key < 0 ) {
+		snprintf(namebuf, bufsize, "/ion:%s:ipcSem", named_semaphore_key);
+	} else {
+		/* see if this is the ONLY Ion node on this machine */
+		snprintf(namebuf, bufsize, "/ion:%s:%d", named_semaphore_key, key);   
+	}	
+
+fprintf(stderr,"Generating posix semaphore name: '%s'\n", namebuf);
 }
 
 /* unlink the names of all named POSIX semaphores that could belong to ION instance ionId */
