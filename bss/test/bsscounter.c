@@ -57,8 +57,6 @@ static int	checkReceptionStatus(char *buffer, int limit)
 	static unsigned long	bundleIdCount = 0;
 	static unsigned long 	waitForBundleIdCount = 0;
 	long		bytesRead;
-	unsigned int	prevDataValue = 0;
-	unsigned int	dataValue;
 
 	/* reset nav data structure */
 	memset((char *) &nav, 0, sizeof nav);
@@ -108,16 +106,15 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			return -1;
 		}
 
-		memcpy((char *) &dataValue, buffer, sizeof(unsigned int));
-		dataValue = ntohl(dataValue);
-		if (dataValue < prevDataValue)
-		{
-			writeMemoNote("[?] BSS database out of order",
-					itoa(dataValue));
-			return -1;
-		}
+		/* Check if new real-time bssp bundle(s) were read. 
+		 * Note: bundle sequence number may leap due to multiplexing
+		 * with non-bss traffic. 		*/
 
-		/* check if new bssp bundle(s) were read */
+		/* TO DO: generalize order checking to accommodate 
+		 * 		  implementation that may reset seq. number
+		 *        on second boundary. Currently ION does 
+		 *        not reset bundle seq. number. 		*/
+
 		if (bundleIdCount >= waitForBundleIdCount)
 		{
 			waitForBundleIdCount = bundleIdCount + 1;
@@ -127,7 +124,6 @@ static int	checkReceptionStatus(char *buffer, int limit)
 				printf("Received %d bundles...\n", dbRecordsCount);
 				fflush(stdout);
 			}
-
 		}
 
 		if (dbRecordsCount >= limit)
@@ -253,10 +249,9 @@ database name> <path for BSS database files> <own endpoint ID>");
 
 		default:
 			/* in-order real-time reception reported by display */
-			fprintf(stderr, "Received %d in-order, real-time frames.\n",
-					_count(0));
+			fprintf(stderr, "Real-time 'display' callback picked up %d in-order real-time frames.\n", _count(0));
 
-			fprintf(stderr, "Received %d frames in total.\n",
+			fprintf(stderr, "Bsscounter terminated after receiving %d frames.\n",
 					recv_count);
 			puts("bss test succeeded.");
 			fflush(stdout);
