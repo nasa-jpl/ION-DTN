@@ -995,6 +995,8 @@ printf("#2 display function returns res value = %d\n",res);
 	}
 	else
 	{
+		writeMemo("[?] Bssp content larger than buffer space. Failed to\
+		 receive bss frame.");
 		res = display((time_t) 0, 0, error, sizeof(error));
 	}
 
