@@ -15,7 +15,7 @@
 #include "bssP.h"
 
 #ifndef BSSLIBDEBUG
-#define BSSLIBDEBUG	1
+#define BSSLIBDEBUG	0
 #endif
 
 static time_t	bpSeconds(BpTimestamp ts)
@@ -926,6 +926,9 @@ newEntryOffset);
 			{
 			case -1:
 				oK(_lockMutex(0));
+#if BSSLIBDEBUG
+printf("UpdateLstEntries failed, return -1 to receiveFrame");
+#endif
 				return -1;	/*	Unsuccessful.	*/
 
 			case 0:
@@ -938,7 +941,7 @@ newEntryOffset);
 				break;
 			}
 		}
-#if BSSRECVLIBDEBUG
+#if BSSLIBDEBUG
 printf(".lst file Entry Offset that was returned from getEntryPosition function: \
 	%ld\n", lstEntryOffset);
 #endif
@@ -969,6 +972,9 @@ printf("from this point on, the execution of the provided display function begin
 			res = display(bundleSeconds,
 				dlv->bundleCreationTime.count, buffer, 
 				contentLength);
+#if BSSLIBDEBUG
+printf("#1 display function returns res value = %d\n",res);
+#endif
 			*lastDis = dlv->bundleCreationTime;
 			displaySeconds = bpSeconds(*lastDis);
 		}
@@ -979,6 +985,9 @@ printf("from this point on, the execution of the provided display function begin
 				res = display(bundleSeconds,
 					dlv->bundleCreationTime.count, buffer, 
 					contentLength);
+#if BSSLIBDEBUG
+printf("#2 display function returns res value = %d\n",res);
+#endif
 				*lastDis = dlv->bundleCreationTime;
 				displaySeconds = bpSeconds(*lastDis);
 			}

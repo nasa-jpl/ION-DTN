@@ -431,9 +431,6 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 				 *  move to the next position. 
 				 */
 				curPosition = (curPosition + 1) % WINDOW;
-				// JG
-				//printf("...bssNext need to check next position %ld. \n", curPosition);
-				//fflush(stdout);
 			}
 			else
 			{
@@ -443,19 +440,11 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			i++;
 		}
 
-		//JG
-		puts("...bssNext found bundle after gap...");
-		printf("row->firstEntryOffset = %ld. \n", row->firstEntryOffset);
-		fflush(stdout);
-
 		if (row->firstEntryOffset < 0
 		|| getLstEntry(_lstFile(0,0), &entry, row->firstEntryOffset)
 				== -1)
 		{
-			//JG
-			puts("......what happened here A....");
-			fflush(stdout);
-
+			writeMemo("[?] bssNext: #1 getLstEntry failed.");
 			oK(_lockMutex(0));
 			return -1;
 		}
@@ -464,10 +453,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 	{
 		if (getLstEntry(_lstFile(0,0), &entry, nav->nextOffset) == -1)
 		{
-			//JG
-			puts("......what happened here B....");
-			fflush(stdout);
-
+			writeMemo("[?] bssNext: #2 getLstEntry failed.");
 			oK(_lockMutex(0));
 			return -1;
 		}
