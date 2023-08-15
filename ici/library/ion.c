@@ -686,6 +686,10 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		return -1;
 	}
 
+#ifdef POSIX_SEMAPHORES
+	sm_ipc_reset();
+#endif /* POSIX_SEMAPHORES */
+
 	if (sdr_initialize(parms->sdrWmSize, NULL, SM_NO_KEY, NULL) < 0)
 	{
 		putErrmsg("Can't initialize the SDR system.", NULL);
@@ -1109,7 +1113,6 @@ void	ionDetach()
 		 * only implemented for SVR$ platform			*/
 		sm_ipc_detach();
 #endif
-
 	}
 #ifdef mingw
 	oK(_winsock(1));
