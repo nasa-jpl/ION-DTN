@@ -35,6 +35,9 @@
 #include "bib.h"
 #include "bcb.h"
 
+/* Enhanced Watch Character */
+#define EWCHAR
+
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
@@ -2929,6 +2932,15 @@ incomplete bundle.", NULL);
 			if ((_bpvdb(NULL))->watching & WATCH_expire)
 			{
 				iwatch('!');
+
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(%u)",bundle.id.creationTime.count);
+				PUTS(ewchar);
+				fflush(stdout);
+#endif
+
 			}
 
 			if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
@@ -6547,6 +6559,15 @@ when asking for status reports.");
 	if (bpvdb->watching & WATCH_a)
 	{
 		iwatch('a');
+	
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%lu,%u)",bundle.id.creationTime.msec, bundle.id.creationTime.count);
+		PUTS(ewchar);
+		fflush(stdout);
+#endif
+
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -6905,6 +6926,15 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
 				iwatch('z');
+
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
+				PUTS(ewchar);
+				fflush(stdout);
+#endif
+
 			}
 
 			if (bundle->destination.schemeCodeNbr != imc)
@@ -9210,6 +9240,15 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
 		iwatch('y');
+
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
+		PUTS(ewchar);
+		fflush(stdout);
+#endif
+
 	}
 
 	/*	Other decisions and reporting are left to the
@@ -10709,6 +10748,15 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
 		iwatch('b');
+
+	#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
+		PUTS(ewchar);
+		fflush(stdout);
+	#endif
+
 	}
 
 	bpPlanTally(vplan, BP_PLAN_ENQUEUED, bundle->payload.length);

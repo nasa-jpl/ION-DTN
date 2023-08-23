@@ -11,6 +11,8 @@
 									*/
 #include "bpP.h"
 
+#define EWCHAR
+
 static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 {
 	uaddr		temp;
@@ -628,6 +630,15 @@ int	main(int argc, char *argv[])
 		if ((getBpVdb())->watching & WATCH_c)
 		{
 			iwatch('c');
+
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)",bundle.id.creationTime.count);
+			PUTS(ewchar);
+			fflush(stdout);
+#endif
+
 		}
 
 		/*	Consume estimated transmission capacity.	*/
