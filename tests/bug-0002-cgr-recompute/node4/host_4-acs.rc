@@ -36,7 +36,7 @@ a plan 4 tcp/127.0.0.1:3604
 ## end ipnadmin 
 
 ## begin ltpadmin
-1 20 200000
+1 20
 m screening n
 a span 3 10 10 1400 1400 1 'udplso 127.0.0.1:3703'
 a span 2 10 10 1400 1400 1 'udplso 127.0.0.1:3702'
