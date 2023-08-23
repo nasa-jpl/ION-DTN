@@ -6559,7 +6559,7 @@ when asking for status reports.");
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(%lu,%u)",bundle.id.creationTime.msec, bundle.id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),"(%llu,%u)",bundle.id.creationTime.msec, bundle.id.creationTime.count);
 		printf("%s",ewchar);
 		fflush(stdout);
 #endif
