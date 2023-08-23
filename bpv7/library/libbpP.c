@@ -2937,7 +2937,7 @@ incomplete bundle.", NULL);
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
 				isprintf(ewchar,sizeof(ewchar),"(%u)",bundle.id.creationTime.count);
-				PUTS(ewchar);
+				printf("%s",ewchar);
 				fflush(stdout);
 #endif
 
@@ -6564,7 +6564,7 @@ when asking for status reports.");
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(%lu,%u)",bundle.id.creationTime.msec, bundle.id.creationTime.count);
-		PUTS(ewchar);
+		printf("%s",ewchar);
 		fflush(stdout);
 #endif
 
@@ -6931,7 +6931,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
 				isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
-				PUTS(ewchar);
+				printf("%s",ewchar);
 				fflush(stdout);
 #endif
 
@@ -9245,7 +9245,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
-		PUTS(ewchar);
+		printf("%s",ewchar);
 		fflush(stdout);
 #endif
 
@@ -10753,7 +10753,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
-		PUTS(ewchar);
+		printf("%s",ewchar);
 		fflush(stdout);
 	#endif
 
