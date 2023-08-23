@@ -2934,7 +2934,8 @@ incomplete bundle.", NULL);
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(%u)",bundle.id.creationTime.count);
+				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
 				printf("%s",ewchar);
 				fflush(stdout);
 #endif
@@ -6559,7 +6560,8 @@ when asking for status reports.");
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(%llu,%u)",bundle.id.creationTime.msec, bundle.id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%llu,%u)",bundle.id.source.ssp.ipn.nodeNbr,
+		   bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.msec, bundle.id.creationTime.count);
 		printf("%s",ewchar);
 		fflush(stdout);
 #endif
@@ -6924,7 +6926,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
+				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
 				printf("%s",ewchar);
 				fflush(stdout);
 #endif
@@ -9236,7 +9239,8 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
 		printf("%s",ewchar);
 		fflush(stdout);
 #endif
@@ -10742,7 +10746,8 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
 		printf("%s",ewchar);
 		fflush(stdout);
 #endif

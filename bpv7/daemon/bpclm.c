@@ -632,7 +632,8 @@ int	main(int argc, char *argv[])
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(%u)",bundle.id.creationTime.count);
+			isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
 			printf("%s",ewchar);
 			fflush(stdout);
 #endif
