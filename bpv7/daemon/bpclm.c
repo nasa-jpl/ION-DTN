@@ -629,8 +629,6 @@ int	main(int argc, char *argv[])
 		bpXmitTally(bundle.priority, bundle.payload.length);
 		if ((getBpVdb())->watching & WATCH_c)
 		{
-			iwatch('c');
-
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
@@ -638,7 +636,7 @@ int	main(int argc, char *argv[])
 			printf("%s",ewchar);
 			fflush(stdout);
 #endif
-
+			iwatch('c');
 		}
 
 		/*	Consume estimated transmission capacity.	*/

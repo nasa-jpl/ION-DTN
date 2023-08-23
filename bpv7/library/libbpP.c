@@ -2931,8 +2931,6 @@ incomplete bundle.", NULL);
 			bpDbTally(BP_DB_EXPIRED, bundle.payload.length);
 			if ((_bpvdb(NULL))->watching & WATCH_expire)
 			{
-				iwatch('!');
-
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
@@ -2940,7 +2938,7 @@ incomplete bundle.", NULL);
 				printf("%s",ewchar);
 				fflush(stdout);
 #endif
-
+				iwatch('!');
 			}
 
 			if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
@@ -6558,8 +6556,6 @@ when asking for status reports.");
 	bpSourceTally(bundle.classOfService, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
-		iwatch('a');
-	
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
@@ -6567,7 +6563,7 @@ when asking for status reports.");
 		printf("%s",ewchar);
 		fflush(stdout);
 #endif
-
+		iwatch('a');
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -6925,8 +6921,6 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
-				iwatch('z');
-
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
@@ -6934,7 +6928,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				printf("%s",ewchar);
 				fflush(stdout);
 #endif
-
+				iwatch('z');
 			}
 
 			if (bundle->destination.schemeCodeNbr != imc)
@@ -9239,8 +9233,6 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bpRecvTally(bundle->classOfService, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
-		iwatch('y');
-
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
@@ -9248,7 +9240,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		printf("%s",ewchar);
 		fflush(stdout);
 #endif
-
+		iwatch('y');
 	}
 
 	/*	Other decisions and reporting are left to the
@@ -10747,16 +10739,14 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
-		iwatch('b');
-
-	#if defined (EWCHAR)
+#if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(%u)",bundle->id.creationTime.count);
 		printf("%s",ewchar);
 		fflush(stdout);
-	#endif
-
+#endif
+		iwatch('b');
 	}
 
 	bpPlanTally(vplan, BP_PLAN_ENQUEUED, bundle->payload.length);

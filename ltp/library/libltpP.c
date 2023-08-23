@@ -28,6 +28,8 @@
 #include "ltpP.h"
 #include "ltpei.h"
 
+#define EWCHAR
+
 #define	EST_LINK_OHD		16
 
 #ifndef LTPDEBUG
@@ -3677,10 +3679,28 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		if (timer->expirationCount == 0)
 		{
 			ltpSpanTally(vspan, CKPT_XMIT, 0);
+
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(c%u)",segment.sessionNbr);
+			printf("%s",ewchar);
+			fflush(stdout);
+#endif
+
 		}
 		else
 		{
 			ltpSpanTally(vspan, CKPT_RE_XMIT, 0);
+
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(cr%u)",segment.sessionNbr);
+			printf("%s",ewchar);
+			fflush(stdout);
+#endif
+
 		}
 
 		break;
@@ -3710,15 +3730,36 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 					- segment.pdu.lowerBound)
 			{
 				ltpSpanTally(vspan, POS_RPT_XMIT, 0);
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(pr%u)",segment.sessionNbr);
+				printf("%s",ewchar);
+				fflush(stdout);
+#endif
 			}
 			else
 			{
 				ltpSpanTally(vspan, NEG_RPT_XMIT, 0);
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(nr%u)",segment.sessionNbr);
+				printf("%s",ewchar);
+				fflush(stdout);
+#endif
 			}
 		}
 		else
 		{
 			ltpSpanTally(vspan, RPT_RE_XMIT, 0);
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(rr%u)",segment.sessionNbr);
+			printf("%s",ewchar);
+			fflush(stdout);
+#endif
 		}
 
 		break;
@@ -6872,6 +6913,13 @@ putErrmsg("Discarding report.", NULL);
 
 		if (ltpvdb->watching & WATCH_h)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
+			printf("%s",ewchar);
+			fflush(stdout);
+#endif
 			iwatch('h');
 		}
 
@@ -7033,6 +7081,13 @@ putErrmsg(claimbuf, itoa(sessionBuf.sessionNbr));
 
 	if (ltpvdb->watching & WATCH_nak)
 	{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
+			printf("%s",ewchar);
+			fflush(stdout);
+#endif
 		iwatch('@');
 	}
 

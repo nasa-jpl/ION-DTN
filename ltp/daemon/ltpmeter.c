@@ -10,6 +10,8 @@
 									*/
 #include "ltpP.h"
 
+#define EWCHAR
+
 #if defined (ION_LWT)
 int	ltpmeter(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
@@ -182,6 +184,15 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 
 		if (vdb->watching & WATCH_f)
 		{
+
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)",session.sessionNbr);
+			printf("%s",ewchar);
+			fflush(stdout);
+#endif
+
 			iwatch('f');
 		}
 
