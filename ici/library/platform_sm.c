@@ -15,16 +15,7 @@
 static void	takeIpcLock();
 static void	giveIpcLock();
 
-#ifdef POSIX_SEMAPHORES
-#ifdef POSIX_NAMED_SEMAPHORES
-	#include "sdrP.h"
-	#include "ion.h"
-	#define MAX_NAMED_SEM_KEYLENGTH 100
-	static char named_semaphore_key[MAX_NAMED_SEM_KEYLENGTH + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
-	static void _initialize_named_semaphores(void);
-	static int pdebug = 0;
-#endif /* POSIX_NAMED_SEMAPHORES */
-#endif /* POSIX_SEMAPHORES */
+
 
 
 /************************* Shared-memory services *****************************/
@@ -423,7 +414,6 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	if (key == SM_NO_KEY)
 	{
 		key = sm_GetUniqueKey();
-writeMemoNote("     sm_ShmAttach called with no key, using key: ", itoa(key));
 	}
 
 	if (size != 0)	/*	Want to create region if not present.	*/
@@ -749,8 +739,6 @@ static SEM_ID	_ipcSemaphore(int stop)
 
 	if (ipcSem == NULL)
 	{
-		writeMemo("Initializing semaphores to use: VMWorks");
-
 		ipcSem = semBCreate(SEM_Q_FIFO, SEM_EMPTY);
 		if (ipcSem == NULL)
 		{
@@ -1024,8 +1012,6 @@ static SemaphoreTable	*_semTbl(int stop)
 
 	if (semaphoreTable == NULL)
 	{
-		writeMemo("Initializing semaphores to use: MinGW");
-
 		switch(sm_ShmAttach(SM_SEMTBLKEY, sizeof(SemaphoreTable),
 				(char **) &semaphoreTable, &semtblId))
 		{
@@ -1338,9 +1324,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 typedef struct
 {
 	int		key;
-#ifndef POSIX_NAMED_SEMAPHORES
 	sem_t		semobj;
-#endif /* POSIX_NAMED_SEMAPHORES */
 	sem_t		*id;
 	int		ended;
 } SmSem;
@@ -1359,81 +1343,16 @@ static SmSem	*_semTbl()
 	return semTable;
 }
 
-#ifdef POSIX_NAMED_SEMAPHORES
-/* name format: 
-	/ion:5digits:5digits NULL
-	/ion:5digits:ipcSem NULL
-*/
-#define	SEM_NAMEDPOSIX_MAXNAME (MAX_NAMED_SEM_KEYLENGTH + 32)
-/* return the name used for the semaphore whole key is key */
-static void _named_posix_semname(char *namebuf, unsigned bufsize, int key)
-{
-	static int initialized = 0;
-
-	if (!initialized) {
-		/* see if this is the ONLY Ion node on this machine */
-		char *nodeListDir = getenv("ION_NODE_LIST_DIR");
-
-		if (nodeListDir == NULL) {
-			/* only one Ion instance on computer, use default name */
-			strncpy(named_semaphore_key,"LONE_ION",MAX_NAMED_SEM_KEYLENGTH);
-fprintf(stderr,"Only expecting one Ion instance, using semaphore keyname: '%s'\n", named_semaphore_key);
-		} else {
-			/* could be multiple instances, use nodeListDir to disambiguate semaphore names */
-			strncpy(named_semaphore_key,nodeListDir,MAX_NAMED_SEM_KEYLENGTH);
-fprintf(stderr,"Expecting several Ion instances, using semaphore keyname: '%s'\n", named_semaphore_key);
-		}
-
-		writeMemoNote("Initializing posix named semaphores for SDR name:", named_semaphore_key);
-		initialized = 1;
-	}
-
-	if (key < 0 ) {
-		snprintf(namebuf, bufsize, "/ion:%s:ipcSem", named_semaphore_key);
-	} else {
-		/* see if this is the ONLY Ion node on this machine */
-		snprintf(namebuf, bufsize, "/ion:%s:%d", named_semaphore_key, key);   
-	}	
-
-if (pdebug) fprintf(stderr,"Generating posix semaphore name: '%s'\n", namebuf);
-}
-
-/* unlink the names of all named POSIX semaphores that could belong to ION instance ionId */
-static void _initialize_named_semaphores()
-{
-	char sem_name[SEM_NAMEDPOSIX_MAXNAME];
-
-fprintf(stderr,"\n\n*******  Cleaning Named Semaphores\n\n");
-
-	for (int semnum=0; semnum < 0x00ffff; ++semnum) {
-		_named_posix_semname(sem_name,sizeof(sem_name),semnum);
-		sem_unlink(sem_name); /* doesn't matter if it fails */
-	}
-
-	_named_posix_semname(sem_name,sizeof(sem_name),-1);
-	sem_unlink(sem_name); /* doesn't matter if it fails */
-}
-#endif /* POSIX_NAMED_SEMAPHORES */
-
-
 static sem_t	*_ipcSemaphore(int stop)
 {
 	static sem_t	ipcSem;
-	static sem_t	*ipcSemPtr = NULL;
 	static int	ipcSemInitialized = 0;
-
-if (pdebug) fprintf(stderr,"_ipcSemaphore(%d) called\n", stop);
 
 	if (stop)
 	{
 		if (ipcSemInitialized)
 		{
-#ifdef POSIX_NAMED_SEMAPHORES
-			oK(sem_close(&ipcSem));
-			_initialize_named_semaphores();
-#else
 			oK(sem_destroy(&ipcSem));
-#endif /* POSIX_NAMED_SEMAPHORES */
 			ipcSemInitialized = 0;
 		}
 
@@ -1442,34 +1361,11 @@ if (pdebug) fprintf(stderr,"_ipcSemaphore(%d) called\n", stop);
 
 	if (ipcSemInitialized == 0)
 	{
-
-#ifdef POSIX_NAMED_SEMAPHORES
-		char sem_name[SEM_NAMEDPOSIX_MAXNAME];
-		sem_t *psem;
-
-		writeMemoNote("Initializing semaphores to use: Named Posix Semaphores   Pid", itoa(getpid()));
-
-		_named_posix_semname(sem_name,sizeof(sem_name),-1);
-fprintf(stderr,"calling sem_open(%s) in pid %d\n", sem_name, getpid());
-
-		/* not that it might already exist, and that's fine */
-		if ((psem = sem_open(sem_name, O_CREAT, S_IRUSR | S_IWUSR, 0 )) == SEM_FAILED)
-		{
-			putSysErrmsg("Can't initialize IPC semaphore", sem_name);
-			return NULL;
-		}
-		ipcSemPtr = psem;
-fprintf(stderr,"Initialized Named Posix Semaphore protected by sem: %s (%p) for pid %d\n", sem_name, ipcSemPtr, getpid());
-#else /* POSIX_NAMED_SEMAPHORES */
-		writeMemoNote("Initializing semaphores to use: Posix Semaphores   Pid", itoa(getpid()));
-
 		if (sem_init(&ipcSem, 0, 0) < 0)
 		{
 			putSysErrmsg("Can't initialize IPC semaphore", NULL);
 			return NULL;
 		}
-		ipcSemPtr = &ipcSem;
-#endif /* POSIX_NAMED_SEMAPHORES */
 
 		/*	Initialize the semaphore system.		*/
 
@@ -1478,13 +1374,11 @@ fprintf(stderr,"Initialized Named Posix Semaphore protected by sem: %s (%p) for 
 		giveIpcLock();
 	}
 
-if (pdebug) fprintf(stderr,"    _ipcSemaphore() returns %p\n", ipcSemPtr);
-	return ipcSemPtr;
+	return &ipcSem;
 }
 
 int	sm_ipc_init()
-{	
-if (pdebug) fprintf(stderr,"sm_ipc_init() called by pid: %d\n\n\n", getpid());
+{
 	if (_ipcSemaphore(0) == NULL)
 	{
 		putErrmsg("Can't initialize IPC.", NULL);
@@ -1501,15 +1395,13 @@ void	sm_ipc_stop()
 
 static void	takeIpcLock()
 {
-if (pdebug) fprintf(stderr,"takeIpcLock(%p) called by pid %d\n", _ipcSemaphore(0), getpid());
 	oK(sem_wait(_ipcSemaphore(0)));
-if (pdebug) fprintf(stderr,"   takeIpcLock returns to pid %d\n", getpid());
+
 }
 
 static void	giveIpcLock()
 {
 	oK(sem_post(_ipcSemaphore(0)));
-if (pdebug) fprintf(stderr,"giveIpcLock(%p) called by pid %d\n", _ipcSemaphore(0), getpid());
 }
 
 sm_SemId	sm_SemCreate(int key, int semType)
@@ -1520,74 +1412,33 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 	/*	If key is not specified, invent one.			*/
 
-fprintf(stderr,"sm_SemCreate(%d) called by pid %d\n", key, getpid());
-
-#ifdef OLDWAY
 	if (key == SM_NO_KEY)
 	{
 		key = sm_GetUniqueKey();
-writeMemoNote("     sm_SemCreate called with NO key, using key: ", itoa(key));
 	}
-#endif
 
-	/*	If key was specified, try to find it  */
 	takeIpcLock();
-	if (key != SM_NO_KEY) {
-		for (i = 0, sem = semTbl; i < SEM_NSEMS_MAX; i++, sem++)
+	for (i = 0, sem = semTbl; i < SEM_NSEMS_MAX; i++, sem++)
+	{
+		if (sem->key == key)
 		{
-			if (sem->key == key)
-			{
-writeMemoNote("     sm_SemCreate: existing key found for key: ", itoa(key));
-				giveIpcLock();
-				return i;
-			}
+			giveIpcLock();
+			return i;
 		}
 	}
-	/* key was unspecified, or specified but not found.  IpcLock is still held */
-writeMemoNote("     sm_SemCreate: Making a new key", NULL);
 
 	for (i = 0, sem = semTbl; i < SEM_NSEMS_MAX; i++, sem++)
 	{
 		if (sem->id == NULL)	/*	Not in use.		*/
 		{
-#ifdef POSIX_NAMED_SEMAPHORES
-			char sem_name[SEM_NAMEDPOSIX_MAXNAME];
-			sem_t *psem;
-
-			if (key == SM_NO_KEY)
-			{
-				sem->key = key = ((getpid()&0xf) << 8) | i;
-fprintf(stderr,"     sm_SemCreate called with NO key, using key: %u (0x%08x)\n", key, key);
-			}
-
-			_named_posix_semname(sem_name,sizeof(sem_name),key);
-			if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0 )) == SEM_FAILED)
-			{
-				if (errno == EEXIST) {
-					/* some other process/thread on this ION is using this same name, pick a different one */
-					writeMemoNote("Skipping semaphore that already exists... ", sem_name);
-					continue;  /* loop around again... */
-				}
-				putSysErrmsg("Can't initialize IPC semaphore", NULL);
-				return SM_SEM_NONE;
-			}
-			sem->id = psem;
-fprintf(stderr,"  sm_SemCreate() returns semId:%d, key:%d, which maps to sem fd:%p\n", i, sem->key, sem->id);
-
-#else /* POSIX_NAMED_SEMAPHORES */
-			if (key == SM_NO_KEY)
-			{
-				sem->key = key = sm_GetUniqueKey();
-			}
 			if (sem_init(&(sem->semobj), 0, 0) < 0)
 			{
 				giveIpcLock();
 				putSysErrmsg("Can't init semaphore", NULL);
 				return SM_SEM_NONE;
 			}
-			sem->id = &sem->semobj;
-#endif /* POSIX_NAMED_SEMAPHORES */
 
+			sem->id = &sem->semobj;
 			sem->key = key;
 			sem->ended = 0;
 			sm_SemGive(i);	/*	(First taker succeeds.)	*/
@@ -1609,31 +1460,13 @@ void	sm_SemDelete(sm_SemId i)
 	CHKVOID(i >= 0);
 	CHKVOID(i < SEM_NSEMS_MAX);
 	takeIpcLock();
-
-#ifdef POSIX_NAMED_SEMAPHORES
-	if (sem_close(sem->id) < 0)
-	{
-		giveIpcLock();
-		putSysErrmsg("Can't destroy semaphore", itoa(i));
-		return;
-	}
-	char sem_name[SEM_NAMEDPOSIX_MAXNAME];
-	_named_posix_semname(sem_name,sizeof(sem_name),sem->key);
-	if (sem_unlink(sem_name) < 0)
-	{
-		giveIpcLock();
-		putSysErrmsg("Can't delete named semaphore", sem_name);
-		return;
-	}
-#else /* POSIX_NAMED_SEMAPHORES */
 	if (sem_destroy(&(sem->semobj)) < 0)
 	{
 		giveIpcLock();
 		putSysErrmsg("Can't destroy semaphore", itoa(i));
 		return;
 	}
-#endif /* POSIX_NAMED_SEMAPHORES */
-	
+
 	sem->id = NULL;
 	sem->key = SM_NO_KEY;
 	giveIpcLock();
@@ -1643,8 +1476,6 @@ int	sm_SemTake(sm_SemId i)
 {
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem = semTbl + i;
-
-if (pdebug) fprintf(stderr,"  sm_SemTake(semId:%d) called by pid:%d\n", i, getpid());
 
 	CHKERR(i >= 0);
 	CHKERR(i < SEM_NSEMS_MAX);
@@ -1666,8 +1497,6 @@ void	sm_SemGive(sm_SemId i)
 {
 	SmSem	*semTbl = _semTbl();
 	SmSem	*sem = semTbl + i;
-
-if (pdebug) fprintf(stderr,"  sm_SemGive(semId:%d) called by pid:%d\n", i, getpid());
 
 	CHKVOID(i >= 0);
 	CHKVOID(i < SEM_NSEMS_MAX);
@@ -1715,51 +1544,24 @@ void	sm_SemUnend(sm_SemId i)
 	sem->ended = 0;
 }
 
-#ifdef POSIX_NAMED_SEMAPHORES
-/* many posix semaphore systems that implement "named semaphores" do NOT implement sem_timedwait() */
-/* ... so we'll have to do it old school with an alarm clock signal */
-static void	handleTimeout(int signum)
-{
-	return;
-}
-#endif /* POSIX_NAMED_SEMAPHORES */
-
-
 int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
 	SmSem		*semTbl = _semTbl();
 	SmSem		*sem = semTbl + i;
+	struct timespec	timeout;
 
 	CHKERR(i >= 0);
 	CHKERR(i < SEM_NSEMS_MAX);
 	if (timeoutSeconds < 1) timeoutSeconds = 1;
-
-#ifdef POSIX_NAMED_SEMAPHORES
-	/* sem_timedwait() not usually provided - use signals instead */
-	isignal(SIGALRM, handleTimeout);
-	oK(alarm(timeoutSeconds));
-fprintf(stderr,"sm_SemUnwedge() called for semId:%d, which maps to sem fd:%p\n", i, sem->id);
-#else /* POSIX_NAMED_SEMAPHORES */
-	struct timespec	timeout;
 	oK(clock_gettime(CLOCK_REALTIME, &timeout));
 	timeout.tv_sec += timeoutSeconds;
-#endif /* POSIX_NAMED_SEMAPHORES */
-
-#ifdef POSIX_NAMED_SEMAPHORES
-	while (sem_wait(sem->id) < 0)
-#else /* POSIX_NAMED_SEMAPHORES */
 	while (sem_timedwait(sem->id, &timeout) < 0)
-#endif /* POSIX_NAMED_SEMAPHORES */
 	{
 		switch (errno)
 		{
 		case EINTR:
-#ifdef POSIX_NAMED_SEMAPHORES
-			break;  /* timeout alarm went off (or another signal that we don't understand) */
-#else /* POSIX_NAMED_SEMAPHORES */
 			continue;
-#endif /* POSIX_NAMED_SEMAPHORES */
-		
+			
 		case ETIMEDOUT:
 			break;	/*	Out of switch.			*/
 
@@ -1771,10 +1573,6 @@ fprintf(stderr,"sm_SemUnwedge() called for semId:%d, which maps to sem fd:%p\n",
 		break;		/*	Out of loop.			*/
 	}
 
-#ifdef POSIX_NAMED_SEMAPHORES
-	isignal(SIGALRM, SIG_DFL);
-#endif /* POSIX_NAMED_SEMAPHORES */
-	
 	if (sem_post(sem->id) < 0)
 	{
 		putSysErrmsg("Can't unwedge semaphore", itoa(i));
@@ -1782,14 +1580,6 @@ fprintf(stderr,"sm_SemUnwedge() called for semId:%d, which maps to sem fd:%p\n",
 	}
 
 	return 0;
-}
-
-void 	sm_ipc_reset()
-{
-#ifdef POSIX_NAMED_SEMAPHORES
-fprintf(stderr,"\n\n\n********* sm_ipc_reset() called\n\n\n");
-	_initialize_named_semaphores();
-#endif
 }
 
 #endif			/*	End of #ifdef POSIX_SEMAPHORES		*/
@@ -1955,8 +1745,6 @@ static int	_ipcSemaphore(int stop)
 
 	if (ipcSem == -1)
 	{
-		writeMemoNote("Initializing semaphores to use: SVR4   Pid", itoa(getpid()));
-
 		ipcSem = semget(SM_SEMKEY, 1, IPC_CREAT | 0666);
 		if (ipcSem == -1)
 		{
@@ -3610,7 +3398,6 @@ int	sm_GetUniqueKey()
 #else
 	result = (getpid() << 16) + ipcUniqueKey;
 #endif
-fprintf(stderr,"sm_GetUniqueKey called, returns: %u \n", result);
 	return result;
 }
 
@@ -3620,6 +3407,547 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 }
 
 #endif	/*	End of #ifdef RTOS_SHM					*/
+
+#ifdef POSIX_NAMED_SEMAPHORES
+/* ---- Semaphore services (POSIX NAMED SEMAPHORES) ---------	*/
+/* for process-based OSs where available - quite a bit faster than SVR4 semaphores */
+
+
+#define MAX_NAMED_SEM_KEYLENGTH 100
+static char named_semaphore_key[MAX_NAMED_SEM_KEYLENGTH + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
+static void _initialize_named_semaphores(void);
+static int pdebug = 2;
+
+
+/* for ensuring that the process sem table is in sync with the global sem table */
+typedef unsigned long int smSequence;
+
+typedef struct
+{
+	smSequence	seq;		/* 0 means not in use */
+	int			key;
+	int			ended;
+	char		semfile[MAX_NAMED_SEM_KEYLENGTH];
+} SmSharedSem;
+
+typedef struct
+{
+	smSequence	seq;		/* 0 means not in use */
+	sem_t		*id;
+	SmSharedSem *semgl;  	/* pointer to ION-wide shared master semtable */
+} SmSem;
+
+/* the data structure shared by ALL processes/threads for a single ION Instance */
+/* kept in SVR4 shared memory */
+typedef struct{
+	smSequence 	seq;		
+	SmSharedSem	semtable[SEM_NSEMS_MAX];
+} SmGlobalSemtable;
+
+/* the data structure shared by ALL processes/threads for a single ION Instance */
+typedef struct{
+	smSequence seq;
+	SmSem	semtable[SEM_NSEMS_MAX];
+	SmGlobalSemtable *semtablegl;  	/* pointer to ION-wide shared master semtable */
+} SmProcessSemtable;
+
+/* ensure that the process local and shared global semaphores are in sync */
+static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum)
+{
+	CHKZERO(semnum >= 0);
+	CHKZERO(semnum < SEM_NSEMS_MAX);
+	CHKZERO(plocal);
+	SmGlobalSemtable *pglobal = plocal->semtablegl;
+	CHKZERO(pglobal);
+
+	SmSem 		*plocalSem  = &plocal->semtable[semnum];
+	SmSharedSem *pglobalSem = &pglobal->semtable[semnum];
+
+	if (plocalSem->seq == pglobalSem->seq)
+		return(1);
+
+	/* open the global semaphore locally */
+	sem_t *psem;
+	/* MUST already exist */
+	if ((psem = sem_open(pglobalSem->semfile, 0)) == SEM_FAILED)
+		{
+fprintf(stderr, "Couldn't open global semaphore %i with filename '%s'\n", 
+semnum, pglobalSem->semfile);
+
+			putSysErrmsg("Can't initialize IPC semaphore", pglobalSem->semfile);
+			return 0;
+		}
+
+	plocalSem->seq = pglobalSem->seq;
+	plocalSem->id = psem;
+	plocalSem->semgl = pglobalSem;
+	plocal->seq = pglobal->seq;
+
+	return(1);
+}
+
+
+static SmProcessSemtable	*_semTbl()
+{
+	static SmProcessSemtable	semStruct;
+	static int	semTableInitialized = 0;
+
+	if (!semTableInitialized)
+	{
+		int i;
+		static SmGlobalSemtable	semGlobal;   /* needs to be in shared memory */
+		semStruct.semtablegl = &semGlobal;   /* fixme */
+
+		for (i = 0; i < SEM_NSEMS_MAX; i++) {
+			if (!_semSync(&semStruct, i)) {
+fprintf(stderr, "Couldn't sync global semaphore %i\n", i);
+				writeMemoNote("Couldn't sync global semaphore:", itoa(i));
+				return(NULL);
+			}
+		}
+		semStruct.seq = semStruct.semtablegl->seq;
+
+		memset((char *) &semStruct, 0, sizeof(SmProcessSemtable));
+		semStruct.seq = 1;
+		semTableInitialized = 1;
+
+fprintf(stderr,"_semTbl() initialized by process %d to match global table sequence: %lu\n", 
+getpid(), semStruct.semtablegl->seq);
+	}
+
+	return &semStruct;
+}
+
+static SmSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum)
+{
+	SmSem *psemLocal  = &psemtable->semtable[semnum];
+
+	CHKNULL(semnum >= 0);
+	CHKNULL(semnum < SEM_NSEMS_MAX);
+
+	if (_semSync(psemtable, semnum)) {
+		return(psemLocal);
+	}
+
+	writeMemoNote("Couldn't get local semaphore:", itoa(semnum));
+
+fprintf(stderr,"Couldn't Sync Semaphore\n\n\n");
+
+	return(NULL)	;
+}
+
+/* name format: 
+	/ion:5digits:5digits NULL
+	/ion:5digits:ipcSem NULL
+*/
+#define	SEM_NAMEDPOSIX_MAXNAME (MAX_NAMED_SEM_KEYLENGTH + 32)
+/* return the name used for the semaphore whole key is key */
+static void _generate_posix_semname(char *namebuf, unsigned bufsize, int key)
+{
+	static int initialized = 0;
+
+	if (!initialized) {
+		/* see if this is the ONLY Ion node on this machine */
+		char *nodeListDir = getenv("ION_NODE_LIST_DIR");
+
+		if (nodeListDir == NULL) {
+			/* only one Ion instance on computer, use default name */
+			strncpy(named_semaphore_key,"LONE_ION",MAX_NAMED_SEM_KEYLENGTH);
+fprintf(stderr,"Only expecting one Ion instance, using semaphore keyname: '%s'\n", named_semaphore_key);
+		} else {
+			/* could be multiple instances, use nodeListDir to disambiguate semaphore names */
+			strncpy(named_semaphore_key,nodeListDir,MAX_NAMED_SEM_KEYLENGTH);
+fprintf(stderr,"Expecting several Ion instances, using semaphore keyname: '%s'\n", named_semaphore_key);
+		}
+
+		writeMemoNote("Initializing posix named semaphores for SDR name:", named_semaphore_key);
+		initialized = 1;
+	}
+
+	if (key == -1 ) {
+		snprintf(namebuf, bufsize, "/ion:%s:ipcSem", named_semaphore_key);
+	} else {
+		/* see if this is the ONLY Ion node on this machine */
+		snprintf(namebuf, bufsize, "/ion:%s:%u", named_semaphore_key, (unsigned) key);   
+	}	
+
+if (pdebug>2) fprintf(stderr,"Generating posix semaphore name: '%s'\n", namebuf);
+}
+
+/* unlink the names of all named POSIX semaphores that could belong to ION instance ionId */
+static void _initialize_named_semaphores()
+{
+	char sem_name[SEM_NAMEDPOSIX_MAXNAME];
+
+fprintf(stderr,"\n\n*******  Cleaning Named Semaphores\n\n");
+
+	for (int semnum=0; semnum < 0x00ffff; ++semnum) {
+		_generate_posix_semname(sem_name,sizeof(sem_name),semnum);
+		sem_unlink(sem_name); /* doesn't matter if it fails */
+	}
+
+	_generate_posix_semname(sem_name,sizeof(sem_name),-1);
+	sem_unlink(sem_name); /* doesn't matter if it fails */
+}
+
+
+static sem_t	*_ipcSemaphore(int stop)
+{
+	static sem_t	ipcSem;
+	static sem_t	*ipcSemPtr = NULL;
+	static int	ipcSemInitialized = 0;
+
+if (pdebug>1) fprintf(stderr,"_ipcSemaphore(%d) called\n", stop);
+
+	if (stop)
+	{
+		if (ipcSemInitialized)
+		{
+			oK(sem_close(&ipcSem));
+			_initialize_named_semaphores();
+			ipcSemInitialized = 0;
+		}
+
+		return NULL;
+	}
+
+	if (ipcSemInitialized == 0)
+	{
+
+		char sem_name[SEM_NAMEDPOSIX_MAXNAME];
+		sem_t *psem;
+
+		writeMemoNote("Initializing semaphores to use: Named Posix Semaphores   Pid", itoa(getpid()));
+
+		_generate_posix_semname(sem_name,sizeof(sem_name),-1);
+if (pdebug) fprintf(stderr,"calling sem_open(%s) in pid %d\n", sem_name, getpid());
+
+		/* not that it might already exist, and that's fine */
+		if ((psem = sem_open(sem_name, O_CREAT, S_IRUSR | S_IWUSR, 0 )) == SEM_FAILED)
+		{
+			putSysErrmsg("Can't initialize IPC semaphore", sem_name);
+			return NULL;
+		}
+		ipcSemPtr = psem;
+if (pdebug) fprintf(stderr,"Initialized Named Posix Semaphore protected by sem: %s (%p) for pid %d\n", sem_name, ipcSemPtr, getpid());
+
+		/*	Initialize the semaphore system.		*/
+
+		oK(_semTbl());
+		ipcSemInitialized = 1;
+		giveIpcLock();
+	}
+
+if (pdebug>1) fprintf(stderr,"    _ipcSemaphore() returns %p\n", ipcSemPtr);
+	return ipcSemPtr;
+}
+
+int	sm_ipc_init()
+{	
+if (pdebug) fprintf(stderr,"sm_ipc_init() called by pid: %u ('%s')\n\n\n", getpid(),getprogname());
+	if (_ipcSemaphore(0) == NULL)
+	{
+		putErrmsg("Can't initialize IPC.", NULL);
+		return -1;
+	}
+
+	return 0;
+}
+
+void	sm_ipc_stop()
+{
+	oK(_ipcSemaphore(1));
+}
+
+static void	takeIpcLock()
+{
+if (pdebug) fprintf(stderr,"takeIpcLock(%p) called by pid %d\n", _ipcSemaphore(0), getpid());
+	oK(sem_wait(_ipcSemaphore(0)));
+if (pdebug) fprintf(stderr,"   takeIpcLock returns to pid %d\n", getpid());
+}
+
+static void	giveIpcLock()
+{
+	oK(sem_post(_ipcSemaphore(0)));
+if (pdebug) fprintf(stderr,"giveIpcLock(%p) called by pid %d\n", _ipcSemaphore(0), getpid());
+}
+
+sm_SemId	sm_SemCreate(int key, int semType)
+{
+	SmProcessSemtable	*semTbl = _semTbl();
+	int	i;
+	SmSem	*sem;
+	char sem_name[SEM_NAMEDPOSIX_MAXNAME];
+	sem_t *psem;
+
+if (pdebug) fprintf(stderr,"sm_SemCreate(%d == 0x%x) called by pid %d\n", key, key, getpid());
+
+	/*	If key was specified, try to find it  */
+	takeIpcLock();
+	if (key != SM_NO_KEY) {
+		_generate_posix_semname(sem_name,sizeof(sem_name),key);
+		/* check if it's already been created by this process */
+		for (i = 0; i < SEM_NSEMS_MAX; i++)
+		{
+			sem = _semGetSem(semTbl,i);
+			if (sem->semgl->key == key)
+			{
+if (pdebug) fprintf(stderr,"     sm_SemCreate: existing semaphore found for key: %d in sem slot %d\n", key, i);
+				giveIpcLock();
+				return i;
+			}
+		}
+
+		/* else find an empty semaphore slot and put it there */
+		for (i = 0; i < SEM_NSEMS_MAX; i++)
+		{
+			sem = _semGetSem(semTbl,i);
+			if (sem->id == NULL) 
+			{
+				if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0 )) != SEM_FAILED) {
+					/* semaphore named key didn't already exist, but now it does */
+if (pdebug) fprintf(stderr,"     sm_SemCreate: created new semaphore with key: %d as sem slot %d\n", key, i);
+					sem->id = psem;
+					sem->semgl->key = key;
+					sem->semgl->ended = 0;
+					sm_SemGive(i);	/*	(First taker succeeds.)	*/
+					giveIpcLock();
+					return i;
+				} else if ((psem = sem_open(sem_name, O_CREAT, S_IRUSR | S_IWUSR, 0 )) != SEM_FAILED) {
+					/* already exists - another process for this ION instance already created it */
+if (pdebug) fprintf(stderr,"     sm_SemCreate: using semaphore with key: %d created by somebody else as sem slot %d\n", key, i);
+					sem->id = psem;
+					sem->semgl->key = key;
+					sem->semgl->ended = 0;
+					giveIpcLock();
+					return i;
+				}
+			}
+		}
+		if (pdebug) fprintf(stderr,"     sm_SemCreate: couldn't create semaphore with key: %d, table is full\n", key);
+
+		giveIpcLock();
+		putErrmsg("Too many semaphores.", itoa(SEM_NSEMS_MAX));
+		return SM_SEM_NONE;
+	}
+
+	/* ... else key was unspecified, make a new semaphore with an unused name */
+	for (i = 0; i < SEM_NSEMS_MAX; i++)
+	{
+		sem = _semGetSem(semTbl,i);
+		if (sem->seq == 0)	/*	Not in use.		*/
+		{
+			int max_retries = 1000;
+			int trykey = sm_GetUniqueKey();  /* start by trying this one */
+
+if (pdebug) fprintf(stderr,"     sm_SemCreate: looping at most %d times to find unused random key number\n", max_retries);
+			for (int try=0; try < max_retries; ++try) {  /* try all possibilities, shouldn't loop much */
+if (pdebug) fprintf(stderr,"     sm_SemCreate called with NO key, trying key: %u (0x%08x)\n", trykey, trykey);
+
+				_generate_posix_semname(sem_name,sizeof(sem_name),trykey);
+if (pdebug) fprintf(stderr," trying to sem_open semaphore '%s' as semaphore %d\n", sem_name, i);
+				if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0 )) == SEM_FAILED)
+				{
+					if (errno == EEXIST) {
+						/* some other process/thread on this ION is using this same name, pick a different one */
+if (pdebug) fprintf(stderr,"   Found semaphore that already exists... '%s'\n", sem_name);
+					} else {
+						putSysErrmsg("Can't initialize IPC semaphore", NULL);
+						giveIpcLock();
+						return SM_SEM_NONE;
+					}
+				} else {
+					/* that worked, use that one */
+					sem->id = psem;
+					sem->semgl->key = trykey;
+if (pdebug) fprintf(stderr,"  sm_SemCreate() made new random key: returning semId:%d, key:%u, which maps to sem fd:%p\n", i, sem->semgl->key, sem->id);
+					sem->semgl->ended = 0;
+					sm_SemGive(i);	/*	(First taker succeeds.)	*/
+					giveIpcLock();
+					return i;
+				}
+				++trykey;  /* try again with higher key */
+			}
+			giveIpcLock();
+			putErrmsg("Couldn't make new semaphore with random name after many tries: ", itoa(max_retries));
+			return SM_SEM_NONE;
+		}
+	}
+
+	giveIpcLock();
+	putErrmsg("Too many semaphores.", itoa(SEM_NSEMS_MAX));
+	return SM_SEM_NONE;
+}
+
+
+void	sm_SemDelete(sm_SemId i)
+{
+	SmProcessSemtable	*semTbl = _semTbl();
+	SmSem	*sem = _semGetSem(semTbl,i);
+
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
+
+	takeIpcLock();
+
+	if (sem_close(sem->id) < 0)
+	{
+		giveIpcLock();
+		putSysErrmsg("Can't destroy semaphore", itoa(i));
+		return;
+	}
+	char sem_name[SEM_NAMEDPOSIX_MAXNAME];
+	_generate_posix_semname(sem_name,sizeof(sem_name),sem->semgl->key);
+	if (sem_unlink(sem_name) < 0)
+	{
+		giveIpcLock();
+		putSysErrmsg("Can't delete named semaphore", sem_name);
+		return;
+	}
+	
+	sem->id = NULL;
+	sem->semgl->key = SM_NO_KEY;
+	giveIpcLock();
+}
+
+int	sm_SemTake(sm_SemId i)
+{
+	SmProcessSemtable	*semTbl = _semTbl();
+	SmSem	*sem = _semGetSem(semTbl,i);
+
+if (pdebug>2) fprintf(stderr,"  sm_SemTake(semId:%d) pointing to semaphore 0x%p called by pid:%d\n", i, sem->id, getpid());
+
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
+
+	while (sem_wait(sem->id) < 0)
+	{
+		if (errno == EINTR)
+		{
+			continue;
+		}
+
+		putSysErrmsg("Can't take semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
+}
+
+void	sm_SemGive(sm_SemId i)
+{
+	SmProcessSemtable	*semTbl = _semTbl();
+	SmSem	*sem = _semGetSem(semTbl,i);
+
+if (pdebug>2) fprintf(stderr,"  sm_SemGive(semId:%d) pointing to semaphore 0x%p called by pid:%d\n", i, sem->id, getpid());
+
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
+	if (sem_post(sem->id) < 0)
+	{
+		putSysErrmsg("Can't give semaphore", itoa(i));
+	}
+}
+
+void	sm_SemEnd(sm_SemId i)
+{
+	SmProcessSemtable	*semTbl = _semTbl();
+	SmSem	*sem = _semGetSem(semTbl,i);
+
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
+
+	sem->semgl->ended = 1;
+	sm_SemGive(i);
+}
+
+int	sm_SemEnded(sm_SemId i)
+{
+	SmProcessSemtable	*semTbl = _semTbl();
+	SmSem	*sem = _semGetSem(semTbl,i);
+	int	ended;
+
+	CHKZERO(i >= 0);
+	CHKZERO(i < SEM_NSEMS_MAX);
+	ended = sem->semgl->ended;
+	if (ended)
+	{
+		sm_SemGive(i);	/*	Enable multiple tests.		*/
+	}
+
+	return ended;
+}
+
+void	sm_SemUnend(sm_SemId i)
+{
+	SmProcessSemtable	*semTbl = _semTbl();
+	SmSem	*sem = _semGetSem(semTbl,i);
+
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
+	sem->semgl->ended = 0;
+}
+
+/* many posix semaphore systems that implement "named semaphores" do NOT implement sem_timedwait() */
+/* ... so we'll have to do it old school with an alarm clock signal */
+static void	handleTimeout(int signum)
+{
+	return;
+}
+
+int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
+{
+	SmProcessSemtable		*semTbl = _semTbl();
+	SmSem	*sem = _semGetSem(semTbl,i);
+
+	CHKERR(i >= 0);
+	CHKERR(i < SEM_NSEMS_MAX);
+	if (timeoutSeconds < 1) timeoutSeconds = 1;
+
+	/* sem_timedwait() not usually provided - use signals instead */
+	isignal(SIGALRM, handleTimeout);
+	oK(alarm(timeoutSeconds));
+fprintf(stderr,"sm_SemUnwedge() called for semId:%d, which maps to sem fd:%p  by process %d\n", i, sem->id, getpid());
+
+	while (sem_wait(sem->id) < 0)
+	{
+		switch (errno)
+		{
+		case EINTR:
+			break;  /* timeout alarm went off (or another signal that we don't understand) */
+		
+		case ETIMEDOUT:
+			break;	/*	Out of switch.			*/
+
+		default:
+			putSysErrmsg("Can't unwedge semaphore", itoa(i));
+if (pdebug) fprintf(stderr,"Unwedge failed while calling sem_wait(%p) for semaphore %d\n", sem->id, i);
+			return -1;
+		}
+
+		break;		/*	Out of loop.			*/
+	}
+
+	isignal(SIGALRM, SIG_DFL);
+	
+	if (sem_post(sem->id) < 0)
+	{
+		putSysErrmsg("Can't unwedge semaphore", itoa(i));
+		return -1;
+	}
+
+	return 0;
+}
+
+#endif /* POSIX_NAMED_SEMAPHORES */
+
+void 	sm_ipc_reset()
+{
+#ifdef POSIX_NAMED_SEMAPHORES
+fprintf(stderr,"\n\n\n********* sm_ipc_reset() called for pid:%d ('%s')\n\n\n", getpid(), getprogname());
+	_initialize_named_semaphores();
+#endif
+}
 
 /******************* platform-independent functions ***************************/
 
@@ -3652,7 +3980,7 @@ int	pseudoshell(char *commandLine)
 	char	*argv[11];
 #ifdef ION_LWT
 	int	argc = 0;
-#endif
+#endif	
 	int	pid;
 
 	if (commandLine == NULL)
