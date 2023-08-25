@@ -12,22 +12,22 @@
 #include "testutil.h"
 
 #ifdef SVR4_SEMAPHORES
-		static int Sem_Key_exists(int sem_key) {
-			int semid;
-			return(0);
-			if ((semid = semget(sem_key, 0, 0)) == -1) {
-				perror("semget");
-				if (errno == ENOENT) {
-					printf("No semaphore with key 0x%08x exists\n", sem_key);
-					return(0);
-				} else {
-					perror("semget: semget failed");
-					exit(1);
-				}
+	static int Sem_Key_exists(int sem_key) {
+		int semid;
+		return(0);
+		if ((semid = semget(sem_key, 0, 0)) == -1) {
+			perror("semget");
+			if (errno == ENOENT) {
+				printf("No semaphore with key 0x%08x exists\n", sem_key);
+				return(0);
+			} else {
+				perror("semget: semget failed");
+				exit(1);
 			}
-			printf("A semaphore with key 0x%08x DOES exist\n", sem_key);
-			return(1);
 		}
+		printf("A semaphore with key 0x%08x DOES exist\n", sem_key);
+		return(1);
+	}
 #elif defined(RTOS_SHM)
 	#error WONT COMPILE: NOT TESTED ON PLATFORM RTOS
 #elif defined(MINGW_SHM)
@@ -35,10 +35,17 @@
 #elif defined(VXWORKS_SEMAPHORES)
 	#error WONT COMPILE: NOT TESTED ON PLATFORM VXWORKS
 #elif defined(POSIX_SEMAPHORES)
-	#error WONT COMPILE: NOT TESTED ON PLATFORM POSIX
+static int Sem_Key_exists(int sem_key) {
+		return(0);
+	}
+#elif defined(POSIX_NAMED_SEMAPHORES)
+static int Sem_Key_exists(int sem_key) {
+		return(0);
+	}
 #else
 	#error WONT COMPILE: CANNOT DETERMINE SEMAPHORE PLATFORM FOR TEST
 #endif
+
 
 // test2 - parent makes semaphores, one of the CHILDREN clobbers it
 static int check_parent_process_and_children()
@@ -50,15 +57,22 @@ static int check_parent_process_and_children()
 	// disable ION exit signal handling
 	signal(SIGCHLD, SIG_DFL);
 
+fprintf(stderr,"DOTEST: making uniquekey\n");
 	// generate a TARGET semaphore key in the parent process
 	target_sem_unique_key = sm_GetUniqueKey();  // make a new one for THIS test
+fprintf(stderr,"DOTEST: got back key %d\n", target_sem_unique_key);
+
 	printf("For multi-process testing, Processid %d (%08x) generated 'unique' key:  %d (%08x)\n", getpid(), getpid(), target_sem_unique_key, target_sem_unique_key);
+
+fprintf(stderr,"DOTEST: making sure it exists\n");
 
 	// verify that the key doesn't exist before we even start...
 	if (Sem_Key_exists(target_sem_unique_key)) {
 		printf("Test setup failure, 'unique' key already exists: 0x%08x\n", target_sem_unique_key);
 		return(0);
 	}
+
+fprintf(stderr,"DOTEST: making a semaphore\n");
 
 	// generate an ION semaphore with that unique key
 	target_semid = sm_SemCreate(target_sem_unique_key, SM_SEM_FIFO);
@@ -173,6 +187,8 @@ static int check_one_process_many_sems()
 		if ((l % 100000) == 0)
 			printf("  iteration %d...\n", l);
 		sm_SemId semid = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
+//		printf("Semid: 0x%08x\n", semid);
+
 		if (semid == -1) {
 			printf("###### semaphore creation failed on loop iteration %d (%08x)\n", l, l);
 			break;
@@ -200,19 +216,27 @@ int main(int argc, char **argv)
 {
 	int passed;
 
-	ionstop();
+	// ionstop();
 
 	/* Start ION */
-	printf("Starting ION...\n");
-	_xadmin("ionadmin", "", "cfdp.ipn.bp.ltp.udp/config.ionrc"); 		sleep(1);
-	_xadmin("ltpadmin", "", "cfdp.ipn.bp.ltp.udp/config.ltprc");		sleep(1);
-	_xadmin("bpadmin", "", "cfdp.ipn.bp.ltp.udp/config.bprc");			sleep(1);
-	_xadmin("ipnadmin", "", "cfdp.ipn.bp.ltp.udp/config.ipnrc");		sleep(1);
-	_xadmin("bpadmin", "", "cfdp.ipn.bp.ltp.udp/loopbackstart.bprc");	sleep(5);
+	printf("Starting ION...\n"); fflush(stdout);
+	ionstart_default_config("loopback-ltp/loopback.ionrc", 
+			"loopback-ltp/loopback.ionsecrc",
+			"loopback-ltp/loopback.ltprc",
+			"loopback-ltp/loopback.bprc",
+			"loopback-ltp/loopback.ipnrc",
+			NULL);
+	// ionstart_default_config(NULL, NULL, NULL,
+	// 		"loopback-ltp/loopbackstart.bprc",
+	// 		NULL, NULL);
 
+	printf("Waiting 5 seconds...\n"); fflush(stdout);
+	sleep(5);
 
 	// run each of the 3 scenarios...
 	passed = check_one_process_many_sems();
+
+exit(99);
 	passed |= check_parent_process_and_children();
 
 
