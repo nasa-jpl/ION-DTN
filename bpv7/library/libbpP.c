@@ -2936,8 +2936,7 @@ incomplete bundle.", NULL);
 				/* spec is for 64 bit, non-Window */
 				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle.id.source.ssp.ipn.nodeNbr, 
 		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
-				printf("%s",ewchar);
-				fflush(stdout);
+				iwatch_str(ewchar);
 #endif
 				iwatch('!');
 			}
@@ -6562,8 +6561,7 @@ when asking for status reports.");
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%llu,%u)",bundle.id.source.ssp.ipn.nodeNbr,
 		   bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.msec, bundle.id.creationTime.count);
-		printf("%s",ewchar);
-		fflush(stdout);
+		iwatch_str(ewchar);
 #endif
 		iwatch('a');
 	}
@@ -6928,8 +6926,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				/* spec is for 64 bit, non-Window */
 				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle->id.source.ssp.ipn.nodeNbr, 
 		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
-				printf("%s",ewchar);
-				fflush(stdout);
+				iwatch_str(ewchar);
 #endif
 				iwatch('z');
 			}
@@ -9241,8 +9238,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle->id.source.ssp.ipn.nodeNbr, 
 		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
-		printf("%s",ewchar);
-		fflush(stdout);
+		iwatch_str(ewchar);
 #endif
 		iwatch('y');
 	}
@@ -10748,8 +10744,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 		/* spec is for 64 bit, non-Window */
 		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle->id.source.ssp.ipn.nodeNbr, 
 		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
-		printf("%s",ewchar);
-		fflush(stdout);
+		iwatch_str(ewchar);
 #endif
 		iwatch('b');
 	}

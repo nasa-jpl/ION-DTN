@@ -3684,8 +3684,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
 			isprintf(ewchar,sizeof(ewchar),"(c%u)",segment.sessionNbr);
-			printf("%s",ewchar);
-			fflush(stdout);
+			iwatch_str(ewchar);
 #endif
 
 		}
@@ -3697,8 +3696,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
 			isprintf(ewchar,sizeof(ewchar),"(cr%u)",segment.sessionNbr);
-			printf("%s",ewchar);
-			fflush(stdout);
+			iwatch_str(ewchar);
 #endif
 
 		}
@@ -3734,8 +3732,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
 				isprintf(ewchar,sizeof(ewchar),"(pr%u)",segment.sessionNbr);
-				printf("%s",ewchar);
-				fflush(stdout);
+				iwatch_str(ewchar);	
 #endif
 			}
 			else
@@ -3745,8 +3742,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
 				isprintf(ewchar,sizeof(ewchar),"(nr%u)",segment.sessionNbr);
-				printf("%s",ewchar);
-				fflush(stdout);
+				iwatch_str(ewchar);
 #endif
 			}
 		}
@@ -3757,8 +3753,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
 			isprintf(ewchar,sizeof(ewchar),"(rr%u)",segment.sessionNbr);
-			printf("%s",ewchar);
-			fflush(stdout);
+			iwatch_str(ewchar);
 #endif
 		}
 
@@ -6917,8 +6912,7 @@ putErrmsg("Discarding report.", NULL);
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
 			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
-			printf("%s",ewchar);
-			fflush(stdout);
+			iwatch_str(ewchar);
 #endif
 			iwatch('h');
 		}
@@ -7085,8 +7079,7 @@ putErrmsg(claimbuf, itoa(sessionBuf.sessionNbr));
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
 			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
-			printf("%s",ewchar);
-			fflush(stdout);
+			iwatch_str(ewchar);	
 #endif
 		iwatch('@');
 	}
@@ -8432,6 +8425,12 @@ putErrmsg("Resending checkpoint that is still in queue!", itoa(sessionNbr));
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendCP)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
+			iwatch_str(ewchar);	
+#endif
 			iwatch('=');
 		}
 	}
@@ -8604,6 +8603,12 @@ putErrmsg("Resending report that is still in queue!", itoa(sessionNbr));
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendRS)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
+			iwatch_str(ewchar);	
+#endif
 			iwatch('+');
 		}
 	}

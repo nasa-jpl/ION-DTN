@@ -1391,9 +1391,15 @@ void	*acquireSystemMemory(size_t size)
 	return block;
 }
 
-static void	watchToStdout(char token)
+static void	watchToStdout(char *token)
 {
-	oK(putchar(token));
+	/*  now handles string */
+	printf("%s",token);
+	
+	/* previous single char wchar
+		oK(putchar(token));
+	 */
+	
 	oK(fflush(stdout));
 }
 
@@ -1419,7 +1425,14 @@ void	setWatcher(Watcher watchFunction)
 
 void	iwatch(char token)
 {
-	(_watchOneEvent(NULL))(token);
+	char token_str[2] = " ";
+	token_str[0] = token;
+	(_watchOneEvent(NULL))(token_str);
+}
+
+void	iwatch_str(char *token_str)
+{
+	(_watchOneEvent(NULL))(token_str);
 }
 
 static void	logToStdout(char *text)

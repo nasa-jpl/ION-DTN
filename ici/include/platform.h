@@ -762,7 +762,7 @@ int pthread_setname_np(const char *name);
 /*	Prototypes for standard ION platform functions.			*/
 
 typedef void			(* Logger)(char *);
-typedef void			(* Watcher)(char);
+typedef void			(* Watcher)(char *);
 
 extern void			*acquireSystemMemory(size_t);
 extern int			createFile(const char*, int);
@@ -773,6 +773,7 @@ extern void			writeErrMemo(char *);
 extern void			writeMemoNote(char *, char *);
 extern void			setWatcher(Watcher);
 extern void			iwatch(char);
+extern void			iwatch_str(char *);
 extern void			snooze(unsigned int);
 extern void			microsnooze(unsigned int);
 extern void			getCurrentTime(struct timeval *);

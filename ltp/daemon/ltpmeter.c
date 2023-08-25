@@ -189,8 +189,7 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
 			isprintf(ewchar,sizeof(ewchar),"(%u)",session.sessionNbr);
-			printf("%s",ewchar);
-			fflush(stdout);
+			iwatch_str(ewchar);	
 #endif
 
 			iwatch('f');

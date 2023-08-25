@@ -634,8 +634,7 @@ int	main(int argc, char *argv[])
 			/* spec is for 64 bit, non-Window */
 			isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)",bundle.id.source.ssp.ipn.nodeNbr, 
 		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
-			printf("%s",ewchar);
-			fflush(stdout);
+			iwatch_str(ewchar);	
 #endif
 			iwatch('c');
 		}
