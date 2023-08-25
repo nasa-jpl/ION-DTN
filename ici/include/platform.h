@@ -617,6 +617,8 @@ extern int getpriority(int, id_t);
 #include <pthread.h>
 int pthread_setname_np(pthread_t thread, const char *name);
 
+
+
 #ifdef bionic			/****	Bionic subset of Linux      ****/
 
 #undef	SVR4_SHM
@@ -663,6 +665,20 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #define	O_LARGEFILE	0
 
 #endif				/****	End of #ifdef freebsd	     ****/
+
+// sdo additions for testing named Posix Semaphores
+#ifdef darwin
+
+#undef	SVR4_SEMAPHORES
+#undef POSIX_SEMAPHORES
+#define POSIX_NAMED_SEMAPHORES
+
+#ifndef SEM_NSEMS_MAX
+#define	SEM_NSEMS_MAX		256
+#endif
+
+#endif /* sdo's darwin-specific posix-semaphore testing */
+
 
 #ifdef darwin			/****	Mac OS X		     ****/
 
@@ -717,6 +733,10 @@ int pthread_setname_np(const char *name);
 #endif				/****	End of #ifndef SEMMNS	     ****/
 
 #elif defined (POSIX_SEMAPHORES)
+
+#include <semaphore.h>
+
+#elif defined (POSIX_NAMED_SEMAPHORES)
 
 #include <semaphore.h>
 
