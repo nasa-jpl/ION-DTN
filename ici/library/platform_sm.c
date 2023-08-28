@@ -414,6 +414,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	if (key == SM_NO_KEY)
 	{
 		key = sm_GetUniqueKey();
+fprintf(stderr,"ShmAttach(SM_NO_KEY) called and got key:%u == 0x%x\n", key, key);
 	}
 
 	if (size != 0)	/*	Want to create region if not present.	*/
@@ -457,6 +458,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	}
 
 	*shmPtr = mem;
+fprintf(stderr,"ShmAttach(key:%u == 0x%x) returns pointer %p of size %zu\n", key, key, mem, size)	;
 	return result;
 }
 
@@ -3398,6 +3400,7 @@ int	sm_GetUniqueKey()
 #else
 	result = (getpid() << 16) + ipcUniqueKey;
 #endif
+fprintf(stderr,"sm_GetUniqueKey returns key %u (0x%x) to process %d (%s)\n", result, result, getpid(), getprogname());
 	return result;
 }
 
@@ -3417,7 +3420,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 #define MAX_NAMED_SEM_KEYLENGTH 100
 static char named_semaphore_key[MAX_NAMED_SEM_KEYLENGTH + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
 
-static int pdebug = 0;
+static int pdebug = 1;
 
 #ifndef SM_SEMTBLKEY
 #define SM_SEMTBLKEY	(0xee02)
@@ -3512,7 +3515,7 @@ if (pdebug) fprintf(stderr,"Only expecting one Ion instance, using semaphore tab
 		} else {
 			/* could be multiple instances, use nodeListDir to disambiguate semaphore names */
 			crc = ion_CRC16_1021_X25(nodeListDir, strlen(nodeListDir), 0);
-if (pdebug) fprintf(stderr,"Expecting multiple Ion instances, using semaphore table hash: %04x\n", crc);
+if (pdebug) fprintf(stderr,"Expecting multiple Ion instances, using semaphore table hash: %04x (path '%s')\n", crc, nodeListDir);
 
 		}
 		writeMemoNote("Distinguishing this ION instance using hash", itoa(crc));
@@ -3548,14 +3551,14 @@ if (pdebug>2) fprintf(stderr, "_semSync(): slot %d is still current\n", semnum);
 if (pdebug>2) fprintf(stderr, "_semSync(): need to open semaphore for slot %d\n", semnum);
 
 	/* open the global semaphore locally */
-	if (pglobalSem != 0) {
+	if (pglobalSem->seq != 0) {
 		/* it's in use */
 		/* MUST already exist */
 		if ((psem = sem_open(pglobalSem->semfile, 0)) == SEM_FAILED)
 			{
 fprintf(stderr, "Couldn't open global semaphore %i with filename '%s'\n", 
 	semnum, pglobalSem->semfile);
-
+				_semPrintTable();
 				putSysErrmsg("Can't initialize IPC semaphore", pglobalSem->semfile);
 				return 0;
 			}
@@ -3670,7 +3673,7 @@ if (pdebug>5) fprintf(stderr,"_semGetSem: returning correctly synced slot %d\n",
 		return(psemLocal);
 	}
 
-	writeMemoNote("Couldn't get local semaphore:", itoa(semnum));
+	writeMemoNote("Couldn't get local semaphore", itoa(semnum));
 
 if (pdebug) fprintf(stderr,"Couldn't Sync Semaphore\n\n\n");
 
@@ -3694,11 +3697,12 @@ static void _generate_posix_semname(char *namebuf, unsigned bufsize, int key)
 		if (crc == 0) {
 			/* only one Ion instance on computer, use default name */
 			strncpy(named_semaphore_key,"LONE",MAX_NAMED_SEM_KEYLENGTH);
-fprintf(stderr,"Only expecting one Ion instance, using semaphore ion instance hash: '%04x'\n", crc);
+fprintf(stderr,"Only expecting one Ion instance, using semaphore ion instance key prefix: '0x%04x'\n", crc);
 		} else {
 			/* could be multiple instances, use nodeListDir to disambiguate semaphore names */
 			snprintf(named_semaphore_key, MAX_NAMED_SEM_KEYLENGTH, "MULTI_%04x", crc);
-fprintf(stderr,"Expecting Multiple Ion instances, using multi semaphore keyname: '%04x'\n", crc);
+fprintf(stderr,"Expecting Multiple Ion instances, using multi semaphore key prefix: '%u == 0x%04x'\n", 
+crc, crc);
 		}
 		writeMemoNote("Initializing posix named semaphores for prefix", named_semaphore_key);
 		initialized = 1;
@@ -3842,7 +3846,7 @@ if (pdebug>2) fprintf(stderr,"sm_SemCreate() checking for match in slot %d\n", i
 if (pdebug>2) fprintf(stderr,"sm_SemCreate: semGetSem returns %p\n", sem);
 if (pdebug>5) fprintf(stderr,"sm_SemCreate: sem->semgl is  %p\n", sem->semgl);
 
-			if (!sem->semgl->seq) continue;
+			if (sem->semgl->seq == 0) continue;
 			if (sem->semgl->key == key)
 			{
 				_semSync(semTbl, i);
