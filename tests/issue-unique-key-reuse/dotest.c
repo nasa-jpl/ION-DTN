@@ -11,6 +11,8 @@
 #include "check.h"
 #include "testutil.h"
 
+static int debug = 0;
+
 #ifdef SVR4_SEMAPHORES
 	static int Sem_Key_exists(int sem_key) {
 		int semid;
@@ -63,7 +65,7 @@ static int check_parent_process_and_children()
 fprintf(stderr,"DOTEST: making uniquekey\n");
 	// generate a TARGET semaphore key in the parent process
 	target_sem_unique_key = sm_GetUniqueKey();  // make a new one for THIS test
-fprintf(stderr,"DOTEST: got back key %d\n", target_sem_unique_key);
+fprintf(stderr,"DOTEST: got back key %u (%x)\n", target_sem_unique_key, target_sem_unique_key);
 
 	printf("For multi-process testing, Processid %d (%08x) generated 'unique' key:  %d (%08x)\n", getpid(), getpid(), target_sem_unique_key, target_sem_unique_key);
 
@@ -206,15 +208,15 @@ static int check_one_process_many_sems()
 	printf("Process %d completed loop %d times and found %d non-unique semaphores\n",
 	getpid(), iterations, non_unique);
 	if (non_unique == 0)
-		printf("**** PASSED part 1\n");
+		printf("**** PASSED\n");
 	else
-		printf("**** FAILED part 1 - semaphore key 0x%08x was reused %d times\n", sem_unique_key, non_unique);
+		printf("**** FAILED - semaphore key 0x%08x was reused %d times\n", sem_unique_key, non_unique);
 
 	return(non_unique == 0);
 }
 
 // counter protection
-int sem;
+int semnum = -1;
 int counter = 0;
 int iterations = 100000;
 int nthreads = 10;
@@ -222,37 +224,44 @@ int nthreads = 10;
 pthread_t threads[MAXTHREADS];
 
 
-void *
-thread_adder (void *parg)
+static int
+thread_adder_guts (int *pcounter)
 {
-	// fprintf (stderr,"I am thread number %d\n", *((int *)parg));
+	if (debug) fprintf (stderr,"I am a worker adding to shared variable at address %p (protected by semaphore %d)\n", pcounter, semnum);
 
     for (int iter = 0; iter < iterations; ++iter)
         {
                 // begin critical section
-                sm_SemTake (sem);
-            ++counter;  // fails if executed by multiple threads concurrently!
-                sm_SemGive (sem);
+                sm_SemTake (semnum);
+            ++(*pcounter);  // fails if executed by multiple threads concurrently!
+                sm_SemGive (semnum);
                 // end critical section
         }
 
+    return(0);
+}
+static void *
+thread_adder (void *parg)
+{
+	thread_adder_guts(&counter);
     pthread_exit (NULL);
 }
 
 
-int
-multi_thread_semtest(void)
+static int multi_thread_semtest(void)
 {
     int i;
     struct timeval time_begin, time_end;
+	counter = 0;
 
-	sem = sm_SemCreate (-1, 0);
+	semnum = sm_SemCreate (-1, 0);
 
    	gettimeofday (&time_begin, NULL);
 
     for (i = 0; i < nthreads; i++)
         {
-            pthread_create (&threads[i], NULL, thread_adder, (void *)&i);
+			int workernum = i;
+            pthread_create (&threads[i], NULL, thread_adder, (void *)&workernum);
         }
 
     for (i = 0; i < nthreads; i++)
@@ -276,17 +285,87 @@ multi_thread_semtest(void)
     fprintf (stderr,"  Elapsed time: %.3lf seconds\n", elapsed_sec);
     fprintf (stderr,"  Critical sections/second: %'.0lf\n",
             (double)((double)critical_sections / elapsed_sec));
-    fprintf (stderr,"  Microseconds/critical section: %.6lf\n",
+    fprintf (stderr,"  Microseconds/critical section: %.3lf\n",
             (elapsed_sec * 1000000.0) / critical_sections);
 
-    return (0);
+	// sm_SemDelete(semnum);
+
+    return (1);
 }
 
+static int multi_process_semtest(void)
+{
+    int i;
+	int exitval;
+    struct timeval time_begin, time_end;
+	uaddr shmid;
+
+	struct shmem {
+		int semnum;
+		int counter;
+	} *pshmemInt = NULL;
+
+	/* create shared memory to store counter */
+	int fdshm = sm_ShmAttach(-1, sizeof(*pshmemInt), (void *) &pshmemInt, &shmid);
+	if (fdshm == -1) 
+		return(-1);
+	if (debug) fprintf(stderr,"Shared memory pointer for counter is %p\n", pshmemInt);		
+	pshmemInt->counter = 0;			
+
+	/* semaphore created in CHILD process to verify that shared semaphores work correctly */
+	if (fork() == 0) { 
+		/* child */
+		int sem = sm_SemCreate (-1, 0);
+		fprintf(stderr,"I am the child and I created ION semaphore %d\n", sem);
+		pshmemInt->semnum = sem;  // stash semnum in shared memory
+		exit(0); // ION semaphore number is exit value
+	}
+	wait(&exitval);
+	semnum = pshmemInt->semnum;  // pull semnum from shared memory	
+
+   	gettimeofday (&time_begin, NULL);
+
+    for (i = 0; i < nthreads; i++)
+        {
+            if (fork() == 0) {
+				/* child */
+				thread_adder_guts(&pshmemInt->counter);
+				exit(0);
+			}
+        }
+
+    while (wait(&exitval) != -1) {
+		if (exitval != 0)
+			fprintf (stderr,"process returned with exit value %d\n", exitval);
+	}
+
+    gettimeofday (&time_end, NULL);
+
+    long int critical_sections = nthreads * iterations;
+    fprintf (stderr,"Main thread done, counter: %'d   %s\n", counter,
+            (counter == (critical_sections)) ? "CORRECT" : "WRONG!!!!!!!!!!!!");
+
+    double elapsed_sec
+        = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
+          - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
+
+    fprintf (stderr,"  Elapsed time: %.3lf seconds\n", elapsed_sec);
+    fprintf (stderr,"  Critical sections/second: %'.0lf\n",
+            (double)((double)critical_sections / elapsed_sec));
+    fprintf (stderr,"  Microseconds/critical section: %.3lf\n",
+            (elapsed_sec * 1000000.0) / critical_sections);
+
+
+	sm_ShmDetach((char *)pshmemInt);
+	sm_SemDelete(semnum);
+
+    return (1);
+}
 
 
 int main(int argc, char **argv)
 {
-	int passed;
+	int passed = 1;
 
 	// ionstop();
 
@@ -304,16 +383,26 @@ int main(int argc, char **argv)
 
 	// run each of the 3 scenarios...
 	fprintf(stderr,"\n####################################################\n");
-	fprintf(stderr,"Testing simple critical sections with multiple threads in one process ...\n");
-	passed = multi_thread_semtest();
+	fprintf(stderr,"Testing simple critical sections with multiple threads in one process ...\n\n");
+	if (!multi_thread_semtest())
+		passed = 0;
 
 	fprintf(stderr,"\n####################################################\n");
-	fprintf(stderr,"Testing multiple processes and many semaphores...\n");
-	passed |= check_one_process_many_sems();
+	fprintf(stderr,"Testing simple critical sections with multiple child processes ...\n\n");
+	if (!multi_process_semtest())
+		passed = 0;
 
-exit(99);
-	passed |= check_parent_process_and_children();
+	fprintf(stderr,"\n####################################################\n");
+	fprintf(stderr,"Testing multiple processes and many semaphores...\n\n");
+	if (!check_one_process_many_sems())
+		passed = 0;
 
+if (0) {
+	fprintf(stderr,"\n####################################################\n");
+	fprintf(stderr,"Testing check_parent_process_and_children...\n\n");
+	if (!check_parent_process_and_children())
+		passed = 0;
+}
 
 	if (passed)
 		printf("**** PASSED\n");
