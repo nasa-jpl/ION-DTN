@@ -47,6 +47,9 @@ static int Sem_Key_exists(int sem_key) {
 #endif
 
 
+
+
+
 // test2 - parent makes semaphores, one of the CHILDREN clobbers it
 static int check_parent_process_and_children()
 {
@@ -77,7 +80,7 @@ fprintf(stderr,"DOTEST: making a semaphore\n");
 	// generate an ION semaphore with that unique key
 	target_semid = sm_SemCreate(target_sem_unique_key, SM_SEM_FIFO);
 
-		system("echo; echo; ipcs -s; echo; echo");
+		system("echo; echo; ipcs -a; echo; echo");
 
 
 	if (   !   Sem_Key_exists(target_sem_unique_key)) {
@@ -174,7 +177,7 @@ static int check_one_process_many_sems()
 
 	// generate an ION semaphore with that unique key
 	target_semid = sm_SemCreate(sem_unique_key, SM_SEM_FIFO);
-	if (target_semid == -1) {
+	if (target_semid == SM_SEM_NONE) {
 		printf("Creation of target semaphore failed\n");
 		exit(-1);
 	}
@@ -210,6 +213,75 @@ static int check_one_process_many_sems()
 	return(non_unique == 0);
 }
 
+// counter protection
+int sem;
+int counter = 0;
+int iterations = 100000;
+int nthreads = 10;
+#define MAXTHREADS 100
+pthread_t threads[MAXTHREADS];
+
+
+void *
+thread_adder (void *parg)
+{
+	// fprintf (stderr,"I am thread number %d\n", *((int *)parg));
+
+    for (int iter = 0; iter < iterations; ++iter)
+        {
+                // begin critical section
+                sm_SemTake (sem);
+            ++counter;  // fails if executed by multiple threads concurrently!
+                sm_SemGive (sem);
+                // end critical section
+        }
+
+    pthread_exit (NULL);
+}
+
+
+int
+multi_thread_semtest(void)
+{
+    int i;
+    struct timeval time_begin, time_end;
+
+	sem = sm_SemCreate (-1, 0);
+
+   	gettimeofday (&time_begin, NULL);
+
+    for (i = 0; i < nthreads; i++)
+        {
+            pthread_create (&threads[i], NULL, thread_adder, (void *)&i);
+        }
+
+    for (i = 0; i < nthreads; i++)
+        {
+            int exitValue;
+            pthread_join (threads[i], (void *)&exitValue);
+			if (exitValue != 0)
+				fprintf (stderr,"Thread %d returned with exit value %d\n", i, exitValue);
+        }
+
+    gettimeofday (&time_end, NULL);
+
+    long int critical_sections = nthreads * iterations;
+    fprintf (stderr,"Main thread done, counter: %'d   %s\n", counter,
+            (counter == (critical_sections)) ? "CORRECT" : "WRONG!!!!!!!!!!!!");
+
+    double elapsed_sec
+        = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
+          - (time_begin.tv_sec + (time_begin.tv_usec / 1000000.0));
+
+    fprintf (stderr,"  Elapsed time: %.3lf seconds\n", elapsed_sec);
+    fprintf (stderr,"  Critical sections/second: %'.0lf\n",
+            (double)((double)critical_sections / elapsed_sec));
+    fprintf (stderr,"  Microseconds/critical section: %.6lf\n",
+            (elapsed_sec * 1000000.0) / critical_sections);
+
+    return (0);
+}
+
 
 
 int main(int argc, char **argv)
@@ -230,11 +302,14 @@ int main(int argc, char **argv)
 	// 		"loopback-ltp/loopbackstart.bprc",
 	// 		NULL, NULL);
 
-	printf("Waiting 5 seconds...\n"); fflush(stdout);
-	sleep(5);
-
 	// run each of the 3 scenarios...
-	passed = check_one_process_many_sems();
+	fprintf(stderr,"\n####################################################\n");
+	fprintf(stderr,"Testing simple critical sections with multiple threads in one process ...\n");
+	passed = multi_thread_semtest();
+
+	fprintf(stderr,"\n####################################################\n");
+	fprintf(stderr,"Testing multiple processes and many semaphores...\n");
+	passed |= check_one_process_many_sems();
 
 exit(99);
 	passed |= check_parent_process_and_children();
