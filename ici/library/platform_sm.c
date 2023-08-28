@@ -3412,6 +3412,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 /* ---- Semaphore services (POSIX NAMED SEMAPHORES) ---------	*/
 /* for process-based OSs where available - quite a bit faster than SVR4 semaphores */
 
+#include <crc.h>
 
 #define MAX_NAMED_SEM_KEYLENGTH 100
 static char named_semaphore_key[MAX_NAMED_SEM_KEYLENGTH + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
@@ -3443,7 +3444,8 @@ typedef struct
 /* the data structure shared by ALL processes/threads for a single ION Instance */
 /* kept in SVR4 shared memory */
 typedef struct{
-	smSequence 	seq;		
+	smSequence 	seq;	
+	uint16_t ion_instance_hash;  
 	SmSharedSem	semtable[SEM_NSEMS_MAX];
 } SmGlobalSemtable;
 
@@ -3458,6 +3460,7 @@ static void _initialize_named_semaphores(void);
 static void _semPrintTable();
 static SmProcessSemtable *_semTbl();
 static SmSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum);
+uint16_t _ionInstanceHash();
 
 
 static void _semPrintTable()
@@ -3471,6 +3474,8 @@ static void _semPrintTable()
 	fprintf(stderr,"=========== Semaphore Table =================\n");
 
 	fprintf(stderr,"  Global seq: %lu\n", semTbl->seq);
+	fprintf(stderr,"  Local  seq: %lu\n", semTbl->semtablegl->seq);
+	fprintf(stderr,"  Ion Instance hash: 0x%04x\n", (unsigned)semTbl->semtablegl->ion_instance_hash);
 	fprintf(stderr,"  Local  seq: %lu\n", semTbl->semtablegl->seq);
 
 	fprintf(stderr,"  SemNum Key        ID    LocSeq GloSeq SemPath\n");
@@ -3491,6 +3496,31 @@ static void _semPrintTable()
 	fprintf(stderr,"====================================================\n");
 }
 
+/* distinguish multiple ION instances by using the (required) envariable ION_NODE_LIST_DIR */
+uint16_t _ionInstanceHash(void)
+{
+	static uint16_t crc = -1;
+	static int initialized = 0;
+
+	if (!initialized) {
+		/* initialize */
+		char *nodeListDir = getenv("ION_NODE_LIST_DIR");  /* required to be set in documentation */
+		if (nodeListDir == NULL) {
+			/* only one Ion instance on computer, use default name */
+			crc = 0;
+if (pdebug) fprintf(stderr,"Only expecting one Ion instance, using semaphore table hash: %04x\n", crc);
+		} else {
+			/* could be multiple instances, use nodeListDir to disambiguate semaphore names */
+			crc = ion_CRC16_1021_X25(nodeListDir, strlen(nodeListDir), 0);
+if (pdebug) fprintf(stderr,"Expecting multiple Ion instances, using semaphore table hash: %04x\n", crc);
+
+		}
+		writeMemoNote("Distinguishing this ION instance using hash", itoa(crc));
+	}
+	initialized=1;
+
+	return(crc);
+}
 
 
 /* ensure that the process local and shared global semaphores are in sync */
@@ -3571,20 +3601,26 @@ if (pdebug>2) fprintf(stderr, "_semTbl() called\n");
 		/* create the shared memory structure that all of one particular ION instance will use */
 		if (psemGlobal == NULL)
 		{	
-			switch(sm_ShmAttach(SM_SEMTBLKEY, sizeof(SmGlobalSemtable),
+			uint16_t crc = _ionInstanceHash();
+			uint32_t shmemkey = (SM_SEMTBLKEY & 0xffff) | (crc<<16);
+			writeMemoNote("Attaching to shared memory for semaphore table using hash ", itoa(shmemkey));
+if (pdebug) fprintf(stderr,"Attaching to shared memory for semaphore table using prefix hash 0x%08x pid:%d\n", shmemkey, getpid());
+			switch(sm_ShmAttach(shmemkey, sizeof(SmGlobalSemtable),
 					(char **) &psemGlobal, &semtblId))
 			{
-			case -1:
-				putErrmsg("Can't create semaphore table.", NULL);
-				break;
+				case -1:
+					putErrmsg("Can't create semaphore table.", NULL);
+					break;
 
-			case 0:
-				break;		/*	Semaphore table exists.	*/
+				case 0:
+					break;		/*	Semaphore table exists.	*/
 
-			default:		/*	New SemaphoreTable.	*/
-				memset((char *) psemGlobal, 0, sizeof(SmGlobalSemtable));
-				psemGlobal->seq = 1;
+				default:		/*	New SemaphoreTable.	*/
+					memset((char *) psemGlobal, 0, sizeof(SmGlobalSemtable));
+					psemGlobal->ion_instance_hash = crc;
+					psemGlobal->seq = 1;
 			}
+if (pdebug) fprintf(stderr,"psemGlobal in shared memory at address %p for process %d\n", psemGlobal, getpid());
 		}
 
 	semStruct.seq = psemGlobal->seq;
@@ -3653,20 +3689,18 @@ static void _generate_posix_semname(char *namebuf, unsigned bufsize, int key)
 	static int initialized = 0;
 
 	if (!initialized) {
-		/* see if this is the ONLY Ion node on this machine */
-		char *nodeListDir = getenv("ION_NODE_LIST_DIR");
+		uint16_t crc = _ionInstanceHash();
 
-		if (nodeListDir == NULL) {
+		if (crc == 0) {
 			/* only one Ion instance on computer, use default name */
-			strncpy(named_semaphore_key,"LONE_ION",MAX_NAMED_SEM_KEYLENGTH);
-fprintf(stderr,"Only expecting one Ion instance, using semaphore keyname: '%s'\n", named_semaphore_key);
+			strncpy(named_semaphore_key,"LONE",MAX_NAMED_SEM_KEYLENGTH);
+fprintf(stderr,"Only expecting one Ion instance, using semaphore ion instance hash: '%04x'\n", crc);
 		} else {
 			/* could be multiple instances, use nodeListDir to disambiguate semaphore names */
-			strncpy(named_semaphore_key,nodeListDir,MAX_NAMED_SEM_KEYLENGTH);
-fprintf(stderr,"Expecting several Ion instances, using semaphore keyname: '%s'\n", named_semaphore_key);
+			snprintf(named_semaphore_key, MAX_NAMED_SEM_KEYLENGTH, "MULTI_%04x", crc);
+fprintf(stderr,"Expecting Multiple Ion instances, using multi semaphore keyname: '%04x'\n", crc);
 		}
-
-		writeMemoNote("Initializing posix named semaphores for SDR name:", named_semaphore_key);
+		writeMemoNote("Initializing posix named semaphores for prefix", named_semaphore_key);
 		initialized = 1;
 	}
 
@@ -3719,11 +3753,10 @@ if (pdebug>1) fprintf(stderr,"_ipcSemaphore(%d) called\n", stop);
 
 	if (ipcSemInitialized == 0)
 	{
-
 		char sem_name[SEM_NAMEDPOSIX_MAXNAME];
 		sem_t *psem;
 
-		writeMemoNote("Initializing semaphores to use: Named Posix Semaphores   Pid", itoa(getpid()));
+		writeMemoNote("Initializing semaphores to use: Named Posix Semaphores   Pid:", itoa(getpid()));
 
 		_generate_posix_semname(sem_name,sizeof(sem_name),-1);
 if (pdebug) fprintf(stderr,"calling sem_open(%s) in pid %d\n", sem_name, getpid());
@@ -3738,7 +3771,6 @@ if (pdebug) fprintf(stderr,"calling sem_open(%s) in pid %d\n", sem_name, getpid(
 if (pdebug) fprintf(stderr,"Initialized Named Posix Semaphore protected by sem: %s (%p) for pid %d\n", sem_name, ipcSemPtr, getpid());
 
 		/*	Initialize the semaphore system.		*/
-
 		oK(_semTbl());
 		ipcSemInitialized = 1;
 		giveIpcLock();
@@ -4033,7 +4065,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	/* sem_timedwait() not usually provided - use signals instead */
 	isignal(SIGALRM, handleTimeout);
 	oK(alarm(timeoutSeconds));
-fprintf(stderr,"sm_SemUnwedge() called for semId:%d, which maps to sem fd:%p  by process %d\n", i, sem->id, getpid());
+if (pdebug) fprintf(stderr,"sm_SemUnwedge() called for semId:%d, which maps to sem fd:%p  by process %d\n", i, sem->id, getpid());
 
 	while (sem_wait(sem->id) < 0)
 	{
