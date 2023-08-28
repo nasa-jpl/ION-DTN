@@ -3416,7 +3416,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 #define MAX_NAMED_SEM_KEYLENGTH 100
 static char named_semaphore_key[MAX_NAMED_SEM_KEYLENGTH + 1] = "";   /* all semaphores in this running version of ION will include this key in their name */
 
-static int pdebug = 1;
+static int pdebug = 0;
 
 
 /* for ensuring that the process sem table is in sync with the global sem table */
@@ -3470,17 +3470,18 @@ static void _semPrintTable()
 	fprintf(stderr,"  Global seq: %lu\n", semTbl->seq);
 	fprintf(stderr,"  Local  seq: %lu\n", semTbl->semtablegl->seq);
 
-	fprintf(stderr,"  SemNum Key        ID   Seq    SemPath\n");
-	fprintf(stderr,"  ------ ---------- ----- ------ --------------\n");
+	fprintf(stderr,"  SemNum Key        ID    LocSeq GloSeq SemPath\n");
+	fprintf(stderr,"  ------ ---------- ----- ------ ------ -----------------------\n");
 
 	for (i = 0; i < SEM_NSEMS_MAX; i++)
 		{			
 			SmSem *psem  = &semTbl->semtable[i];
 			if (psem->seq) {
-				fprintf(stderr,"  %6d ", i);
+				fprintf(stderr,"  %-6d ", i);
 				fprintf(stderr,"%10u ", psem->semgl->key);
 				fprintf(stderr,"%5p ", psem->id);
 				fprintf(stderr,"%6lu ", psem->seq);
+				fprintf(stderr,"%6lu ", psem->semgl->seq);
 				fprintf(stderr,"%s\n", psem->semgl->semfile);
 			}
 		}
@@ -3526,12 +3527,14 @@ fprintf(stderr, "Couldn't open global semaphore %i with filename '%s'\n",
 				return 0;
 			}
 	} else {
-		/* NOT in use globally, remove our version */
+		/* NOT (or no longer) in use globally, remove our version */
 		if (sem_close(plocalSem->id) < 0)
 		{
+			plocalSem->seq = 0;
 			putSysErrmsg("Can't destroy semaphore", itoa(semnum));
 			return(0);
 		}		
+		plocalSem->seq = 0;
 		psem = NULL;
 	}
 
@@ -3577,9 +3580,6 @@ if (pdebug) fprintf(stderr, "Couldn't sync global semaphore %i\n", i);
 		}
 
 if (pdebug>2) fprintf(stderr, "_semTbl(): done initializing.\n");
-
-
-
 
 		semStruct.seq = semStruct.semtablegl->seq;
 		semStruct.seq = 1;
@@ -3758,7 +3758,7 @@ if (pdebug) fprintf(stderr,"giveIpcLock(%p) called by pid %d\n", _ipcSemaphore(0
 }
 
 sm_SemId	sm_SemCreate(int key, int semType)
-{
+{	
 	SmProcessSemtable	*semTbl = _semTbl();
 	int	i;
 	SmSem	*sem;
@@ -3786,9 +3786,7 @@ if (pdebug>2) fprintf(stderr,"sm_SemCreate() checking for match in slot %d\n", i
 			sem = _semGetSem(semTbl,i);
 
 if (pdebug>2) fprintf(stderr,"sm_SemCreate: semGetSem returns %p\n", sem);
-if (pdebug>2) fprintf(stderr,"sm_SemCreate: sem->semgl is  %p\n", sem->semgl);
-
-			if (!sem->semgl) continue;  /* unused */
+if (pdebug>5) fprintf(stderr,"sm_SemCreate: sem->semgl is  %p\n", sem->semgl);
 
 			if (!sem->semgl->seq) continue;
 			if (sem->semgl->key == key)
@@ -3811,7 +3809,7 @@ if (pdebug>2) fprintf(stderr,"sm_SemCreate() checking for empty slot %d\n", i);
 			sem = _semGetSem(semTbl,i);
 if (pdebug>2) fprintf(stderr,"sm_SemCreate: returned sem %p in slot %d (semgl:%p)\n", sem, i, sem->semgl);
 
-			if (sem->semgl->seq == 0) 
+			if (sem->semgl->seq == 0) /* unused */
 			{
 				if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0 )) != SEM_FAILED) {
 					/* semaphore named key didn't already exist, but now it does */
@@ -3819,8 +3817,9 @@ if (pdebug) fprintf(stderr,"     sm_SemCreate: created new semaphore with key: %
 					sem->id = psem;
 					sem->semgl->key = key;
 					sem->semgl->ended = 0;
-					sem->seq = ++sem->semgl->seq;
-					strncpy(sem_name,sem->semgl->semfile,SEM_NAMEDPOSIX_MAXNAME-1);
+					semTbl->seq = ++semTbl->semtablegl->seq;
+					sem->seq = sem->semgl->seq = semTbl->seq;
+					strncpy(sem->semgl->semfile,sem_name,SEM_NAMEDPOSIX_MAXNAME);
 					sm_SemGive(i);	/*	(First taker succeeds.)	*/
 					giveIpcLock();
 					return i;
@@ -3830,10 +3829,15 @@ if (pdebug) fprintf(stderr,"     sm_SemCreate: using semaphore with key: %d crea
 					sem->id = psem;
 					sem->semgl->key = key;
 					sem->semgl->ended = 0;
-					sem->seq = ++sem->semgl->seq;
-					strncpy(sem_name,sem->semgl->semfile,SEM_NAMEDPOSIX_MAXNAME-1);
+					sem->seq = sem->semgl->seq;
 					giveIpcLock();
 					return i;
+				} else {
+					/* couldn't open it*/
+if (pdebug) fprintf(stderr,"     sm_SemCreate: couldn't create semaphore with key: %d, open() failed\n", key);
+					putErrmsg("Semaphore open failed for sem file ", sem_name);
+					giveIpcLock();
+					return SM_SEM_NONE;
 				}
 			}
 		}
@@ -3873,10 +3877,12 @@ if (pdebug) fprintf(stderr,"   Found semaphore that already exists... '%s'\n", s
 					/* that worked, use that one */
 					sem->id = psem;
 					sem->semgl->key = trykey;
-if (pdebug) fprintf(stderr,"  sm_SemCreate() made new random key: returning semId:%d, key:%u, which maps to sem fd:%p\n", i, sem->semgl->key, sem->id);
+
 					sem->semgl->ended = 0;
-					sem->seq = ++sem->semgl->seq;
-					strncpy(sem_name,sem->semgl->semfile,SEM_NAMEDPOSIX_MAXNAME-1);
+					semTbl->seq = ++semTbl->semtablegl->seq;
+					sem->seq = sem->semgl->seq = semTbl->seq;
+					strncpy(sem->semgl->semfile,sem_name,SEM_NAMEDPOSIX_MAXNAME);
+if (pdebug) fprintf(stderr,"  sm_SemCreate() made new random key: returning semId:%d, key:%u, which maps to sem fd:%p in file %s\n", i, sem->semgl->key, sem->id, sem_name);
 					sm_SemGive(i);	/*	(First taker succeeds.)	*/
 					giveIpcLock();
 					return i;
@@ -3911,17 +3917,17 @@ void	sm_SemDelete(sm_SemId i)
 		putSysErrmsg("Can't destroy semaphore", itoa(i));
 		return;
 	}
-	char sem_name[SEM_NAMEDPOSIX_MAXNAME];
-	_generate_posix_semname(sem_name,sizeof(sem_name),sem->semgl->key);
-	if (sem_unlink(sem_name) < 0)
+
+	if (sem_unlink(sem->semgl->semfile) < 0)
 	{
 		giveIpcLock();
-		putSysErrmsg("Can't delete named semaphore", sem_name);
+		putSysErrmsg("Can't delete named semaphore", sem->semgl->semfile);
 		return;
 	}
 	
 	sem->id = NULL;
 	sem->semgl->key = SM_NO_KEY;
+	sem->seq = sem->semgl->seq = 0;
 	giveIpcLock();
 }
 
