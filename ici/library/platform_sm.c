@@ -3418,6 +3418,9 @@ static char named_semaphore_key[MAX_NAMED_SEM_KEYLENGTH + 1] = "";   /* all sema
 
 static int pdebug = 0;
 
+#ifndef SM_SEMTBLKEY
+#define SM_SEMTBLKEY	(0xee02)
+#endif
 
 /* for ensuring that the process sem table is in sync with the global sem table */
 typedef unsigned long int smSequence;
@@ -3551,7 +3554,7 @@ if (pdebug>2) fprintf(stderr, "_semSync(): returning OK\n");
 static SmProcessSemtable *_semTbl()
 {
 	static SmProcessSemtable semStruct;
-	static SmGlobalSemtable	 semGlobal;   /* needs to be in shared memory */
+	static SmGlobalSemtable	 *psemGlobal;  
 	static int	semTableInitialized = 0;
 
 if (pdebug>2) fprintf(stderr, "_semTbl() called\n");
@@ -3560,13 +3563,32 @@ if (pdebug>2) fprintf(stderr, "_semTbl() called\n");
 	if (!semTableInitialized)
 	{
 		int i;
+		static uaddr semtblId = 0;
+
 
 		memset((char *) &semStruct, 0, sizeof(SmProcessSemtable));
-		semStruct.semtablegl = &semGlobal;   /* fixme */
-		semGlobal.seq = 1;  /* fixme - shared mem */
 
-		semStruct.seq = semGlobal.seq;
+		/* create the shared memory structure that all of one particular ION instance will use */
+		if (psemGlobal == NULL)
+		{	
+			switch(sm_ShmAttach(SM_SEMTBLKEY, sizeof(SmGlobalSemtable),
+					(char **) &psemGlobal, &semtblId))
+			{
+			case -1:
+				putErrmsg("Can't create semaphore table.", NULL);
+				break;
 
+			case 0:
+				break;		/*	Semaphore table exists.	*/
+
+			default:		/*	New SemaphoreTable.	*/
+				memset((char *) psemGlobal, 0, sizeof(SmGlobalSemtable));
+				psemGlobal->seq = 1;
+			}
+		}
+
+	semStruct.seq = psemGlobal->seq;
+	semStruct.semtablegl = psemGlobal;  
 
 if (pdebug>2) fprintf(stderr, "_semTbl(): initializing...\n");
 
@@ -3576,7 +3598,7 @@ if (pdebug) fprintf(stderr, "Couldn't sync global semaphore %i\n", i);
 				writeMemoNote("Couldn't sync global semaphore:", itoa(i));
 				return(NULL);
 			}
-			semStruct.semtable[i].semgl = &semGlobal.semtable[i];
+			semStruct.semtable[i].semgl = &psemGlobal->semtable[i];
 		}
 
 if (pdebug>2) fprintf(stderr, "_semTbl(): done initializing.\n");
@@ -3906,9 +3928,6 @@ void	sm_SemDelete(sm_SemId i)
 	SmProcessSemtable	*semTbl = _semTbl();
 	SmSem	*sem = _semGetSem(semTbl,i);
 
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEM_NSEMS_MAX);
-
 	takeIpcLock();
 
 	if (sem_close(sem->id) < 0)
@@ -3938,9 +3957,6 @@ int	sm_SemTake(sm_SemId i)
 
 if (pdebug>2) fprintf(stderr,"  sm_SemTake(semId:%d) pointing to semaphore 0x%p called by pid:%d\n", i, sem->id, getpid());
 
-	CHKERR(i >= 0);
-	CHKERR(i < SEM_NSEMS_MAX);
-
 	while (sem_wait(sem->id) < 0)
 	{
 		if (errno == EINTR)
@@ -3962,8 +3978,6 @@ void	sm_SemGive(sm_SemId i)
 
 if (pdebug>2) fprintf(stderr,"  sm_SemGive(semId:%d) pointing to semaphore 0x%p called by pid:%d\n", i, sem->id, getpid());
 
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEM_NSEMS_MAX);
 	if (sem_post(sem->id) < 0)
 	{
 		putSysErrmsg("Can't give semaphore", itoa(i));
@@ -3975,9 +3989,6 @@ void	sm_SemEnd(sm_SemId i)
 	SmProcessSemtable	*semTbl = _semTbl();
 	SmSem	*sem = _semGetSem(semTbl,i);
 
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEM_NSEMS_MAX);
-
 	sem->semgl->ended = 1;
 	sm_SemGive(i);
 }
@@ -3988,8 +3999,6 @@ int	sm_SemEnded(sm_SemId i)
 	SmSem	*sem = _semGetSem(semTbl,i);
 	int	ended;
 
-	CHKZERO(i >= 0);
-	CHKZERO(i < SEM_NSEMS_MAX);
 	ended = sem->semgl->ended;
 	if (ended)
 	{
@@ -4004,8 +4013,6 @@ void	sm_SemUnend(sm_SemId i)
 	SmProcessSemtable	*semTbl = _semTbl();
 	SmSem	*sem = _semGetSem(semTbl,i);
 
-	CHKVOID(i >= 0);
-	CHKVOID(i < SEM_NSEMS_MAX);
 	sem->semgl->ended = 0;
 }
 
@@ -4021,8 +4028,6 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	SmProcessSemtable		*semTbl = _semTbl();
 	SmSem	*sem = _semGetSem(semTbl,i);
 
-	CHKERR(i >= 0);
-	CHKERR(i < SEM_NSEMS_MAX);
 	if (timeoutSeconds < 1) timeoutSeconds = 1;
 
 	/* sem_timedwait() not usually provided - use signals instead */
