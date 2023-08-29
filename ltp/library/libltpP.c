@@ -3520,6 +3520,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	LtpTimer			*timer;
 	LtpImportSession		rsessionBuf;
 
+#if defined (EWCHAR)
+	char 	ewchar[256];
+#endif
+
 	CHKERR(vspan);
 	CHKERR(buf);
 	*buf = (char *) psp(getIonwm(), vspan->segmentBuffer);
@@ -3681,22 +3685,17 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			ltpSpanTally(vspan, CKPT_XMIT, 0);
 
 #if defined (EWCHAR)
-			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(c%u)",segment.sessionNbr);
-			iwatch_str(ewchar);
+			isprintf(ewchar,sizeof(ewchar),"(c%u)g",segment.sessionNbr);
 #endif
-
 		}
 		else
 		{
 			ltpSpanTally(vspan, CKPT_RE_XMIT, 0);
 
 #if defined (EWCHAR)
-			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(cr%u)",segment.sessionNbr);
-			iwatch_str(ewchar);
+			isprintf(ewchar,sizeof(ewchar),"(cr%u)g",segment.sessionNbr);
 #endif
 
 		}
@@ -3729,20 +3728,16 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			{
 				ltpSpanTally(vspan, POS_RPT_XMIT, 0);
 #if defined (EWCHAR)
-				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(pr%u)",segment.sessionNbr);
-				iwatch_str(ewchar);	
+				isprintf(ewchar,sizeof(ewchar),"(pr%u)g",segment.sessionNbr);
 #endif
 			}
 			else
 			{
 				ltpSpanTally(vspan, NEG_RPT_XMIT, 0);
 #if defined (EWCHAR)
-				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(nr%u)",segment.sessionNbr);
-				iwatch_str(ewchar);
+				isprintf(ewchar,sizeof(ewchar),"(nr%u)g",segment.sessionNbr);
 #endif
 			}
 		}
@@ -3750,10 +3745,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		{
 			ltpSpanTally(vspan, RPT_RE_XMIT, 0);
 #if defined (EWCHAR)
-			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(rr%u)",segment.sessionNbr);
-			iwatch_str(ewchar);
+			isprintf(ewchar,sizeof(ewchar),"(rr%u)g",segment.sessionNbr);
 #endif
 		}
 
@@ -3942,7 +3935,13 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	if (ltpvdb->watching & WATCH_g)
 	{
+#if defined (EWCHAR)
+		iwatch_str(ewchar);
+		ewchar[0] = 'g';
+		ewchar[1] = '\0';
+#else
 		iwatch('g');
+#endif
 	}
 
 	return segmentLength;
@@ -6911,10 +6910,12 @@ putErrmsg("Discarding report.", NULL);
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
+			isprintf(ewchar,sizeof(ewchar),"(%u)h",sessionNbr);
 			iwatch_str(ewchar);
-#endif
+#else
 			iwatch('h');
+#endif
+
 		}
 
 		return 1;	/*	Complete red part exported.	*/
@@ -7076,12 +7077,13 @@ putErrmsg(claimbuf, itoa(sessionBuf.sessionNbr));
 	if (ltpvdb->watching & WATCH_nak)
 	{
 #if defined (EWCHAR)
-			char ewchar[256];
-			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
-			iwatch_str(ewchar);	
-#endif
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%u)@",sessionNbr);
+		iwatch_str(ewchar);	
+#else
 		iwatch('@');
+#endif
 	}
 
 	return 1;	/*	Report handled successfully.		*/
@@ -8428,10 +8430,11 @@ putErrmsg("Resending checkpoint that is still in queue!", itoa(sessionNbr));
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
+			isprintf(ewchar,sizeof(ewchar),"(%u)=",sessionNbr);
 			iwatch_str(ewchar);	
-#endif
+#else
 			iwatch('=');
+#endif
 		}
 	}
 
@@ -8606,10 +8609,11 @@ putErrmsg("Resending report that is still in queue!", itoa(sessionNbr));
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(%u)",sessionNbr);
+			isprintf(ewchar,sizeof(ewchar),"(%u)+",sessionNbr);
 			iwatch_str(ewchar);	
-#endif
+#else
 			iwatch('+');
+#endif
 		}
 	}
 

@@ -188,11 +188,12 @@ engine " UVAST_FIELDSPEC " is stopped.", remoteEngineId);
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(%u)",session.sessionNbr);
-			iwatch_str(ewchar);	
+			isprintf(ewchar,sizeof(ewchar),"(%u)f",session.sessionNbr);
+			iwatch_str(ewchar);
+#else
+			iwatch('f');
 #endif
 
-			iwatch('f');
 		}
 
 		if (enqueueNotice(vdb->clients + session.clientSvcId,
