@@ -530,6 +530,7 @@ void	sdr_shutdown()		/*	Ends SDR service on machine.	*/
 	if (_sdrwm(NULL) != NULL)
 	{
 		wmparms.wmName = NULL;
+		wmparms.wmKey = 0;
 		oK(_sdrwm(&wmparms));
 	}
 
