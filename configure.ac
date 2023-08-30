@@ -267,6 +267,30 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
 
 #
+# allow the user running configure to force the use of Posix Named Semaphores over the 
+# otherwise recommended system. This might not produce a running system on some platforms
+AC_ARG_ENABLE(
+    force-posix-named-sems,
+    [AC_HELP_STRING([--force-posix-named-semaphores], 
+	[Force the use of Posix Named Semaphores, which are faster then SVR4, but might not work on platform])],
+    [AM_CFLAGS="$AM_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"
+     FORCE_POSIX_NAMED_SEMAPHORES=yes],
+    [])
+AM_CONDITIONAL(FORCE_POSIX_NAMED_SEMAPHORES, test x$FORCE_POSIX_NAMED_SEMAPHORES = xyes)
+
+#
+# allow the user running configure to force the use of SVR4 Semaphores over the 
+# otherwise recommended system. They are supported on all process-based platforms
+AC_ARG_ENABLE(
+    force-posix-named-sems,
+    [AC_HELP_STRING([--force-SVR4-semaphores], 
+	[Force the use of SVR4 Semaphores, which are supported on most platforms, but might be slower])],
+    [AM_CFLAGS="$AM_CFLAGS -DFORCE_SVR4_SEMAPHORES"
+     FORCE_SVR4_SEMAPHORES=yes],
+    [])
+AM_CONDITIONAL(FORCE_SVR4_SEMAPHORES, test x$FORCE_SVR4_SEMAPHORES = xyes)
+
+#
 # Try to enable DCCP support
 #
 AC_ARG_ENABLE(
