@@ -3726,7 +3726,8 @@ static void _initialize_named_semaphores()
 {
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 
-	writeMemoNote("Initializing semaphores to use: Named Posix Semaphores   Pid", itoa(getpid()));
+if (pdebug) fprintf(stderr,"Initializing semaphores to use: Named Posix Semaphores - max %d - by Pid %d\n", SEM_NSEMS_MAX, getpid());
+	writeMemoNote("Initializing semaphores to use: Named Posix Semaphores - max ", itoa(SEM_NSEMS_MAX));
 
 	for (int semnum=0; semnum < SEM_NSEMS_MAX; ++semnum) {
 		_generate_posix_semname(sem_name,sizeof(sem_name),semnum);
