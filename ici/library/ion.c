@@ -201,9 +201,13 @@ void	*allocFromIonMemory(const char *fileName, int lineNbr, size_t length)
 	PsmAddress	address;
 	void		*block;
 
+//fprintf(stderr,"allocFromIonMemory(%s, lineNbr:%d, length:%zu) called\n", fileName, lineNbr, length);
+
 	address = Psm_zalloc(fileName, lineNbr, ionwm, length);
 	if (address == 0)
 	{
+fprintf(stderr,"FAILED*** allocFromIonMemory(%s, lineNbr:%d, length:%zu) called\n", fileName, lineNbr, length);
+
 		putErrmsg("Can't allocate ION working memory.", itoa(length));
 		return NULL;
 	}
@@ -685,10 +689,6 @@ int	ionInitialize(IonParms *parms, uvast ownNodeNbr)
 		putErrmsg("Failed checking node list parms.", NULL);
 		return -1;
 	}
-
-#ifdef POSIX_SEMAPHORES
-	sm_ipc_reset();
-#endif /* POSIX_SEMAPHORES */
 
 	if (sdr_initialize(parms->sdrWmSize, NULL, SM_NO_KEY, NULL) < 0)
 	{
