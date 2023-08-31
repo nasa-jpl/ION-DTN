@@ -3447,9 +3447,6 @@ typedef struct
 	smSequence	seq;
 	int			key;
 	char		semfile[MAX_NAMED_SEM_KEYLENGTH];
-	/* debugging... */
-	// pid_t lastpid;
-	// time_t lasttime;
 } SmSharedSem;
 
 typedef struct
@@ -3476,14 +3473,12 @@ typedef struct{
 } SmProcessSemtable;
 
 
-static void _initialize_named_semaphores(void);
 static SmProcessSemtable *_semTbl();
-static SmSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum);
-uint16_t _ionInstanceHash();
 static sem_t *_ipcSemaphore(int);
+static void _semInitNamedSems(void);
+static SmSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum);
 
-
-     void _semPrintTable()  // FIXME - should be static
+void _semPrintTable()  // Only for debugging purposes
 {
 // 	SmProcessSemtable	*semTbl = _semTbl();
 	SmProcessSemtable	*semTbl;
@@ -3514,37 +3509,25 @@ static sem_t *_ipcSemaphore(int);
 		if (psem->semgl->inuse || (psem->semgl->seq>0)) {
 			fprintf(stderr,"  %-6d ", i);
 			fprintf(stderr,"%-5d ", psem->semgl->inuse);
-			if (psem->semgl->key == SEM_ANON_KEY)
-				fprintf(stderr,"    ANON   ");
-			else
-				fprintf(stderr,"0x%08x ", psem->semgl->key);
-			fprintf(stderr,"%5p ", psem->id);
+			if (!psem->semgl->inuse) {
+				fprintf(stderr,"    DELETED      ");
+			} else {
+				if (psem->semgl->key == SEM_ANON_KEY) {
+					fprintf(stderr,"    ANON   ");
+				} else {
+					fprintf(stderr,"0x%08x ", psem->semgl->key);
+				}
+				fprintf(stderr,"%5p ", psem->id);
+			}
 			fprintf(stderr,"%10lu ", psem->seq);
 			fprintf(stderr,"%10lu ", psem->semgl->seq);
 			fprintf(stderr,"%s ", psem->semgl->semfile);
-			// fprintf(stderr,"%d ", psem->semgl->lastpid); /* debug */
-			// fprintf(stderr,"%lds ", psem->semgl->lastpid ? time(NULL) - psem->semgl->lasttime:0); /* debug */
 			fprintf(stderr,"\n");
 		}
 	}
 	fprintf(stderr,"====================================================\n");
 }
 
-/* distinguish multiple ION instances by using the (required) envariable ION_NODE_LIST_DIR */
-uint16_t _ionInstanceHash(void)
-{
-	static uint16_t crc = -1;
-	static int initialized = 0;
-
-	if (!initialized) {
-		crc = SM_SEMTBLKEY;
-// fprintf(stderr,"NOW USING SINGLE SemTbl format across all ION instances...\n");
-//		writeMemoNote("Distinguishing this ION instance using hash", itoa(crc));
-		initialized=1;
-	}
-
-	return(crc);
-}
 
 
 /* ensure that the process local and shared global semaphores are in sync */
@@ -3623,7 +3606,7 @@ if (pdebug>1) fprintf(stderr, "_semTbl(): initializing for pid %d (%s)...\n", ge
 		/* create the shared memory structure that all of one particular ION instance will use */
 		if (psemGlobal == NULL)
 		{	
-			uint32_t shmemkey = _ionInstanceHash();
+			uint32_t shmemkey = SM_SEMTBLKEY;
 			// writeMemoNote("Attaching to shared memory for semaphore table using hash ", itoa(shmemkey));
 if (pdebug>1) fprintf(stderr,"Attaching to shared memory for semaphore table using prefix hash 0x%08x pid:%d\n", shmemkey, getpid());
 			switch(sm_ShmAttach(shmemkey, sizeof(SmGlobalSemtable),
@@ -3640,7 +3623,7 @@ if (pdebug>1) fprintf(stderr,"Attaching to shared memory for semaphore table usi
 					memset((char *) psemGlobal, 0, sizeof(SmGlobalSemtable));
 					psemGlobal->ion_instance_hash = shmemkey;
 					psemGlobal->seq = 1;
-					_initialize_named_semaphores();
+					_semInitNamedSems();
 			}
 if (pdebug>1) fprintf(stderr,"psemGlobal in shared memory at address %p for process %d\n", psemGlobal, getpid());
 		}
@@ -3722,7 +3705,7 @@ if (pdebug>2) fprintf(stderr,"Generated posix semaphore name: '%s'\n", namebuf);
 
 
 /* unlink the names of all named POSIX semaphores that could belong to ION instance ionId */
-static void _initialize_named_semaphores()
+static void _semInitNamedSems()
 {
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 
@@ -3756,7 +3739,7 @@ if (1 || pdebug>1) fprintf(stderr,"_ipcSemaphore(%d) ordered to stop\n", stop);
 		if (ipcSemInitialized)
 		{
 			oK(sem_close(&ipcSem));
-			_initialize_named_semaphores();
+			_semInitNamedSems();
 			ipcSemInitialized = 0;
 		}
 
@@ -4138,7 +4121,7 @@ void 	sm_ipc_reset()
 {
 #ifdef POSIX_NAMED_SEMAPHORES
 // fprintf(stderr,"\n\n\n********* sm_ipc_reset() called for pid:%d ('%s')\n\n\n", getpid(), getprogname());
-// 	_initialize_named_semaphores();
+// 	_semInitNamedSems();
 #endif
 }
 
