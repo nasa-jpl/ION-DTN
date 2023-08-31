@@ -174,7 +174,7 @@ static int check_one_process_many_sems()
 	printf("Processid %d (0x%08x) generated 'unique' key:  %d (0x%08x)\n", 
 	getpid(), getpid(), sem_unique_key, sem_unique_key);
 
-	system("sleep 1; echo; echo; ipcs -s; echo; echo");
+	system("sleep 1; echo; echo; ipcs -a; echo; echo");
 
 
 	// generate an ION semaphore with that unique key
@@ -342,8 +342,8 @@ static int multi_process_semtest(void)
     gettimeofday (&time_end, NULL);
 
     long int critical_sections = nthreads * iterations;
-    fprintf (stderr,"Main thread done, counter: %'d   %s\n", counter,
-            (counter == (critical_sections)) ? "CORRECT" : "WRONG!!!!!!!!!!!!");
+    fprintf (stderr,"Main thread done, counter: %'d   %s\n", pshmemInt->counter,
+            (pshmemInt->counter == (critical_sections)) ? "CORRECT" : "WRONG!!!!!!!!!!!!");
 
     double elapsed_sec
         = (time_end.tv_sec + (time_end.tv_usec / 1000000.0))
@@ -403,6 +403,9 @@ if (0) {
 	if (!check_parent_process_and_children())
 		passed = 0;
 }
+
+	extern void _semPrintTable();
+	_semPrintTable();
 
 	if (passed)
 		printf("**** PASSED\n");
