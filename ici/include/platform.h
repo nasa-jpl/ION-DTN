@@ -674,7 +674,8 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #define POSIX_NAMED_SEMAPHORES
 
 #ifndef SEM_NSEMS_MAX
-#define	SEM_NSEMS_MAX		256
+// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
+#define	SEM_NSEMS_MAX		1024
 #endif
 
 #endif /* sdo's darwin-specific posix-semaphore testing */
