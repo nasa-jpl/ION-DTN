@@ -73,9 +73,7 @@ extern void		sm_ipc_stop();
 #if defined(SVR4_SEMAPHORES)
 extern void		sm_ipc_detach();
 #endif
-#if defined(POSIX_SEMAPHORES)
-extern void		sm_ipc_reset();
-#endif
+
 extern int		sm_GetUniqueKey();
 
 /*	Portable semaphore management routines.				*/
