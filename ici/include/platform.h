@@ -666,20 +666,6 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 
 #endif				/****	End of #ifdef freebsd	     ****/
 
-// sdo additions for testing named Posix Semaphores
-#ifdef darwin
-
-#undef	SVR4_SEMAPHORES
-#undef POSIX_SEMAPHORES
-#define POSIX_NAMED_SEMAPHORES
-
-#ifndef SEM_NSEMS_MAX
-// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		1024
-#endif
-
-#endif /* sdo's darwin-specific posix-semaphore testing */
-
 
 #ifdef darwin			/****	Mac OS X		     ****/
 
@@ -687,6 +673,28 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+
+/* semaphore options */
+#ifdef FORCE_SVR4_SEMAPHORES
+/* NOT the default on darwin/MacOS */
+#define	SVR4_SEMAPHORES
+#undef POSIX_SEMAPHORES
+#undef POSIX_NAMED_SEMAPHORES
+#else /* FORCE_SVR4_SEMAPHORES */
+#undef	SVR4_SEMAPHORES
+#undef POSIX_SEMAPHORES
+#define POSIX_NAMED_SEMAPHORES
+#endif /* FORCE_SVR4_SEMAPHORES */
+
+
+
+
+/* allow the default to be overwritten */
+#ifndef SEM_NSEMS_MAX
+// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
+#define	SEM_NSEMS_MAX		1024
+#endif
+
 int pthread_setname_np(const char *name);
 
 #include <sys/msg.h>
