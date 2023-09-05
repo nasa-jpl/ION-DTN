@@ -3413,12 +3413,12 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 #endif	/*	End of #ifdef RTOS_SHM					*/
 
+
 #ifdef POSIX_NAMED_SEMAPHORES
 /* ---- Semaphore services (POSIX NAMED SEMAPHORES) ---------	*/
 /* for process-based OSs where available - quite a bit faster than SVR4 semaphores */
 
-#include <crc.h>
-
+/* maximum name to store Posix Named Semaphore names */
 #define MAX_NAMED_SEM_KEYLENGTH 100
 
 
@@ -3440,27 +3440,30 @@ static int pdebug = 0;
 /* WARNING - overflow not checked -- FIXME */
 typedef unsigned long int smSequence;
 
+/* this structure makes up the GLOBAL - all processes - all Ion instances - semaphore table */
 typedef struct
 {
 	char		inuse;
 	char		ended;
 	smSequence	seq;
 	int			key;
-} SmSharedSem;
+} SmGlobalSem;
 
+/* this structure makes up the process-local semaphore table */
+/* needed because the sem_t for semaphore operations is process-local */
 typedef struct
 {
 	smSequence	seq;
 	sem_t		*id;
-	SmSharedSem *semgl;  	/* pointer to ION-wide shared master semtable */
+	SmGlobalSem *semgl;  	/* pointer to ION-wide shared master semtable */
 } SmSem;
 
-/* the data structure shared by ALL processes/threads for a single ION Instance */
+/* the data structure shared by ALL processes/threads for all ION Instances */
 /* kept in SVR4 shared memory */
 typedef struct {
 	int locked;
 	smSequence 	seq;	
-	SmSharedSem	semtable[SEM_NSEMS_MAX];
+	SmGlobalSem	semtable[SEM_NSEMS_MAX];
 } SmGlobalSemtable;
 
 /* the data structure shared by ALL processes/threads for a single ION Instance */
@@ -3479,19 +3482,12 @@ static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum);
 
 void _semPrintTable()  // Only for debugging purposes
 {
-// 	SmProcessSemtable	*semTbl = _semTbl();
-	SmProcessSemtable	*semTbl;
+	SmProcessSemtable	*semTbl = _semTbl();
 	int	i;
-// fprintf(stderr,"_semPrintTable - called\n");
-
-	semTbl = _semTbl();
 
 	if (!semTbl) {
-// fprintf(stderr,"Can't print table, can't find semTbl\n");
 		return;
 	}
-
-// fprintf(stderr,"_semPrintTable - got semTbl at addres %p\n", semTbl);
 
 	fprintf(stderr,"=========== Semaphore Table - pid %d (%s) =================\n", getpid(), getprogname());
 
@@ -3542,17 +3538,14 @@ if (pdebug>2) fprintf(stderr, "_semSync(semTbl, semnum:%d) called\n", semnum);
 	CHKZERO(semnum < SEM_NSEMS_MAX);
 	CHKZERO(plocal);
 	SmGlobalSemtable *pglobal = plocal->semtablegl;
-	CHKZERO(pglobal);
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 	sem_t *psem;
 
-if (pdebug>2) fprintf(stderr, "_semSync(): checking addresses\n");
-
 	SmSem 		*plocalSem  = &plocal->semtable[semnum];
-	SmSharedSem *pglobalSem = &pglobal->semtable[semnum];
+	SmGlobalSem *pglobalSem = &pglobal->semtable[semnum];
 
 	if (plocalSem->seq == pglobalSem->seq) {
-if (pdebug>2) fprintf(stderr, "_semSync(): slot %d is still current\n", semnum);
+		/* local copy is up to date */
 		return(1);
 	}
 
@@ -3591,14 +3584,11 @@ if (pdebug>2) fprintf(stderr, "_semSync(): returning OK\n");
 static SmProcessSemtable *_semTbl()
 {
 	static SmProcessSemtable semStruct;
-	static SmGlobalSemtable	 *psemGlobal;  
 	static int	semTableInitialized = 0;
-
-if (pdebug>5) fprintf(stderr, "_semTbl() called\n");
-
 
 	if (!semTableInitialized)
 	{
+		static SmGlobalSemtable	 *psemGlobal;  
 		int i;
 		static uaddr semtblId = 0;
 
@@ -3607,14 +3597,11 @@ if (pdebug>1) fprintf(stderr, "_semTbl(): initializing for pid %d (%s)...\n", ge
 		/* create the process-local version of the global semaphore table */
 		memset((char *) &semStruct, 0, sizeof(SmProcessSemtable));
 
-		/* create the shared memory structure that all of one particular ION instance will use */
+		/* create/join the shared memory structure that ALL ION instances will share */
 		if (psemGlobal == NULL)
 		{	
 			uint32_t shmemkey = SM_SEMTBLKEY;
-			// writeMemoNote("Attaching to shared memory for semaphore table using hash ", itoa(shmemkey));
-if (pdebug>1) fprintf(stderr,"Attaching to shared memory for semaphore table using prefix hash 0x%08x pid:%d\n", shmemkey, getpid());
-			switch(sm_ShmAttach(shmemkey, sizeof(SmGlobalSemtable),
-					(char **) &psemGlobal, &semtblId))
+			switch(sm_ShmAttach(shmemkey, sizeof(SmGlobalSemtable), (char **) &psemGlobal, &semtblId))
 			{
 				case -1:
 					putErrmsg("Can't create semaphore table.", NULL);
@@ -3628,27 +3615,13 @@ if (pdebug>1) fprintf(stderr,"Attaching to shared memory for semaphore table usi
 					psemGlobal->seq = 1;
 					_semInitNamedSems();
 			}
-if (pdebug>1) fprintf(stderr,"psemGlobal in shared memory at address %p for process %d\n", psemGlobal, getpid());
 		}
 
-	semStruct.seq = 0;
-	semStruct.semtablegl = psemGlobal;  
-
-if (pdebug>2) fprintf(stderr, "_semTbl(): still initializing...\n");
-
-	for (i = 0; i < SEM_NSEMS_MAX; i++) {
-#ifdef ISTHISBROKEN
-		if (!_semSync(&semStruct, i)) {
-if (pdebug) fprintf(stderr, "******* Couldn't sync global semaphore %i\n", i);
-			writeMemoNote("Couldn't sync global semaphore:", itoa(i));
-			return(NULL);
+		for (i = 0; i < SEM_NSEMS_MAX; i++) {
+			semStruct.semtable[i].semgl = &psemGlobal->semtable[i];
 		}
-#endif
-		semStruct.semtable[i].semgl = &psemGlobal->semtable[i];
-	}
 
-if (pdebug>2) fprintf(stderr, "_semTbl(): done initializing.\n");
-
+		semStruct.semtablegl = psemGlobal;  
 		semStruct.seq = semStruct.semtablegl->seq;
 		semStruct.seq = 1;
 		semTableInitialized = 1;
@@ -3656,8 +3629,6 @@ if (pdebug>2) fprintf(stderr, "_semTbl(): done initializing.\n");
 if (pdebug>2) fprintf(stderr,"_semTbl() initialized by process %d to match global table sequence: %lu\n", 
 getpid(), semStruct.semtablegl->seq);
 	}
-
-if (pdebug>5) fprintf(stderr, "_semTbl(): returning %p\n", &semStruct);
 
 	return &semStruct;
 }
@@ -3668,41 +3639,35 @@ static SmSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum)
 {
 	SmSem *psemLocal;
 
-if (pdebug>5) fprintf(stderr,"_semGetSem() finding semaphore %d in table %p\n", semnum, psemtable);
-
 	CHKNULL(psemtable);
 	CHKNULL(semnum >= 0);
 	CHKNULL(semnum < SEM_NSEMS_MAX);
 
 	psemLocal  = &psemtable->semtable[semnum];
 
-	if (_semSync(psemtable, semnum)) {
-if (pdebug>5) fprintf(stderr,"_semGetSem: returning correctly synced slot %d\n", semnum);
-		return(psemLocal);
+	if (!_semSync(psemtable, semnum)) {
+		writeMemoNote("Couldn't sync local semaphore", itoa(semnum));
+		return(NULL)	;
 	}
 
-	writeMemoNote("Couldn't get local semaphore", itoa(semnum));
-
-if (1 || pdebug) fprintf(stderr,"******* Couldn't Sync Semaphore\n\n\n");
-
-	return(NULL)	;
+	if (pdebug>5) fprintf(stderr,"_semGetSem: returning correctly synced sem in slot %d\n", semnum);
+	
+	return(psemLocal);
 }
 
 
-/* return the name used for the semaphore whole key is key */
+/* return the name used for the semaphore whole key is key through buffer passed */
 static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum)
 {
 	if (semnum == -1 ) {
 		snprintf(namebuf, bufsize, "/ion:GLOBAL:ipcSem");
 	} else {
-		/* see if this is the ONLY Ion node on this machine */
 		snprintf(namebuf, bufsize, "/ion:GLOBAL:%u", (unsigned) semnum);   
 	}	
 
-if (pdebug>2) fprintf(stderr,"Generated posix semaphore name: '%s'\n", namebuf);
+	if (pdebug>2) fprintf(stderr,"Generated posix semaphore name: '%s'\n", namebuf);
 	return(namebuf);
 }
-
 
 
 /* unlink the names of all named POSIX semaphores that could belong to ION instance ionId */
@@ -3779,21 +3744,20 @@ sem_name, ipcSemPtr, getpid(), getprogname());
 		ipcSemInitialized = 1;
 	}
 
-if (pdebug>1) fprintf(stderr,"    _ipcSemaphore() returns %p\n", ipcSemPtr);
 	return ipcSemPtr;
 }
 
+
 int	sm_ipc_init()
 {	
-if (pdebug) fprintf(stderr,"sm_ipc_init() called by pid: %u ('%s')\n\n\n", getpid(),getprogname());
-	if (_ipcSemaphore(0) == NULL)
-	{
+	if (_ipcSemaphore(0) == NULL) {
 		putErrmsg("Can't initialize IPC.", NULL);
 		return -1;
 	}
 
 	return 0;
 }
+
 
 void	sm_ipc_stop()
 {
@@ -3806,7 +3770,6 @@ static void	takeIpcLock()
 		putSysErrmsg("takeIpcLock failed", NULL);
 	}
 }
-
 
 static void	giveIpcLock()
 {
@@ -3870,8 +3833,7 @@ if (pdebug>2) fprintf(stderr,"sm_SemCreate(key) didn't find match, looking for e
 	}
 
 	if (freeslot == -1) {
-if (pdebug) fprintf(stderr,"sm_SemCreate: can't add new entry for key: %d, table is full\n", key);
-		putErrmsg("Too many semaphores.", itoa(SEM_NSEMS_MAX));
+		putErrmsg("Too many semaphores. Recompile to increase SEM_NSEMS_MAX", itoa(SEM_NSEMS_MAX));
 		giveIpcLock();
 		return SM_SEM_NONE;		
 	}
@@ -3879,7 +3841,6 @@ if (pdebug) fprintf(stderr,"sm_SemCreate: can't add new entry for key: %d, table
 	/* at this point, it's a new semaphore and it goes in "freeslot" */
 	sem = _semGetSem(semTbl,freeslot);
 if (pdebug>2) fprintf(stderr,"sm_SemCreate: putting new semaphore with key %d in unused global sem slot %d for pid %d (%s)\n", key, freeslot, getpid(), getprogname());
-// fprintf(stderr,"Table BEFORE\n"); _semPrintTable();	
 
 	if (key == -1) 
 		key = SEM_ANON_KEY;
@@ -3896,10 +3857,6 @@ if (1 || pdebug) fprintf(stderr,"******* sm_SemCreate: couldn't create semaphore
 		return SM_SEM_NONE;
 	}
 
-
-// fprintf(stderr,"Table HALFWAY\n"); _semPrintTable();	
-
-
 	/* semaphore named key didn't already exist, but now it does */
 if (pdebug) fprintf(stderr,"sm_SemCreate: created new semaphore with key: %d (0x%x) as sem slot %d with name '%s' by process %d (%s)\n", 
 				key, key, freeslot, sem_name, getpid(), getprogname());
@@ -3910,7 +3867,6 @@ if (pdebug) fprintf(stderr,"sm_SemCreate: created new semaphore with key: %d (0x
 	semTbl->seq = ++semTbl->semtablegl->seq;
 	sem->seq = ++sem->semgl->seq;
 	sm_SemGive(freeslot);	/*	(First taker succeeds.)	*/
-// fprintf(stderr,"Table AFTER\n"); _semPrintTable();	
 	giveIpcLock();
 	return freeslot;
 }
@@ -3928,22 +3884,19 @@ void	sm_SemDelete(sm_SemId i)
 
 	_semGenPosixSemname(sem_name, sizeof(sem_name), i);
 
-
 if (pdebug) fprintf(stderr,"sm_SemDelete: deleting semaphore in sem slot %d with name '%s' by process %d (%s)\n", 
 				i, sem_name, getpid(), getprogname());
-// _semPrintTable();
 	if (sem_close(sem->id) == -1)
 	{
-if (1 || pdebug) fprintf(stderr,"FAILED sm_SemDelete call sem_close(%p) failed for semaphore in sem slot %d with name '%s' by process %d (%s)\n", 
+if (pdebug) fprintf(stderr,"FAILED sm_SemDelete call sem_close(%p) failed for semaphore in sem slot %d with name '%s' by process %d (%s)\n", 
 				sem->id, i, sem_name, getpid(), getprogname());
 		putSysErrmsg("Can't destroy semaphore", itoa(i));
 	}
 
 	if (sem_unlink(sem_name) == -1)
 	{
-if (1 || pdebug) fprintf(stderr,"******* sm_SemDelete call sem_unlink(%s) failed for semaphore in sem slot %d with name '%s' by process %d (%s)\n", 
+if (pdebug) fprintf(stderr,"******* sm_SemDelete call sem_unlink(%s) failed for semaphore in sem slot %d with name '%s' by process %d (%s)\n", 
 				sem_name, i, sem_name, getpid(), getprogname());
-perror(sem_name);			
 		putSysErrmsg("Can't delete named semaphore", sem_name);
 	}
 	
@@ -3952,8 +3905,6 @@ perror(sem_name);
 	sem->semgl->key = 0;
 	semTbl->seq = ++semTbl->semtablegl->seq;
 	sem->seq = ++sem->semgl->seq;
-
-// _semPrintTable();	
 
 	giveIpcLock();
 }
@@ -3968,9 +3919,6 @@ int	sm_SemTake(sm_SemId i)
 if (pdebug>2) fprintf(stderr,"  sm_SemTake(semId:%d) pointing to semaphore %p called by pid:%d (%s)\n", 
 i, sem->id, getpid(), getprogname());
 
-// sem->semgl->lastpid = getpid();  /* debug */
-// sem->semgl->lasttime = time(NULL); /* debug */
-
 	while (sem_wait(sem->id) == -1)
 	{
 		if (errno == EINTR)
@@ -3979,14 +3927,10 @@ i, sem->id, getpid(), getprogname());
 		}
 
 		putSysErrmsg("Can't take semaphore", itoa(i));
-fprintf(stderr,"******* FAILED - sm_SemTake(semId:%d) pointing to semaphore %p called by pid:%d (%s)\n", i, sem->id, getpid(),getprogname());
+if (pdebug) fprintf(stderr,"******* FAILED - sm_SemTake(semId:%d) pointing to semaphore %p called by pid:%d (%s)\n", i, sem->id, getpid(),getprogname());
 _semPrintTable();
-// sem->semgl->lastpid = 0;  /* debug */
-
 		return -1;
 	}
-
-// sem->semgl->lastpid = 0;  /* debug */
 
 	return 0;
 }
@@ -4103,13 +4047,6 @@ if (pdebug) fprintf(stderr,"sm_SemUnwedge() returns succesfully to pid %d\n", ge
 
 #endif /* POSIX_NAMED_SEMAPHORES */
 
-void 	sm_ipc_reset()
-{
-#ifdef POSIX_NAMED_SEMAPHORES
-// fprintf(stderr,"\n\n\n********* sm_ipc_reset() called for pid:%d ('%s')\n\n\n", getpid(), getprogname());
-// 	_semInitNamedSems();
-#endif
-}
 
 /******************* platform-independent functions ***************************/
 
