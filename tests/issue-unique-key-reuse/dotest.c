@@ -13,6 +13,7 @@
 
 static int debug = 0;
 
+
 #ifdef SVR4_SEMAPHORES
 	static int Sem_Key_exists(int sem_key) {
 		int semid;
@@ -30,20 +31,26 @@ static int debug = 0;
 		printf("A semaphore with key 0x%08x DOES exist\n", sem_key);
 		return(1);
 	}
+#define SEMAPHORE_SYSTEM "SVR4"	
 #elif defined(RTOS_SHM)
 	#error WONT COMPILE: NOT TESTED ON PLATFORM RTOS
+#define SEMAPHORE_SYSTEM "RTOS"	
 #elif defined(MINGW_SHM)
 	#error WONT COMPILE: NOT TESTED ON PLATFORM MINGW
+#define SEMAPHORE_SYSTEM "MINGW"	
 #elif defined(VXWORKS_SEMAPHORES)
 	#error WONT COMPILE: NOT TESTED ON PLATFORM VXWORKS
+#define SEMAPHORE_SYSTEM "VXWORKS"	
 #elif defined(POSIX_SEMAPHORES)
 static int Sem_Key_exists(int sem_key) {
 		return(0);
 	}
+#define SEMAPHORE_SYSTEM "Posix Semaphores"	
 #elif defined(POSIX_NAMED_SEMAPHORES)
 static int Sem_Key_exists(int sem_key) {
 		return(0);
 	}
+#define SEMAPHORE_SYSTEM "Posix Named Semaphores"	
 #else
 	#error WONT COMPILE: CANNOT DETERMINE SEMAPHORE PLATFORM FOR TEST
 #endif
@@ -174,7 +181,7 @@ static int check_one_process_many_sems()
 	printf("Processid %d (0x%08x) generated 'unique' key:  %d (0x%08x)\n", 
 	getpid(), getpid(), sem_unique_key, sem_unique_key);
 
-	system("sleep 1; echo; echo; ipcs -a; echo; echo");
+	// system("sleep 1; echo; echo; ipcs -a; echo; echo");
 
 
 	// generate an ION semaphore with that unique key
@@ -363,11 +370,56 @@ static int multi_process_semtest(void)
 }
 
 
+int semaphore_churn()
+{
+	int numsems_each = 10;
+	int iterations = 1000;
+	int numprocs = 10;
+	int p, i, s;
+
+	for (p = 0; p < numprocs; ++p) {
+		fprintf(stderr,"Making process %d\n", p);
+		if (fork() == 0) {
+			/* child */
+			int semlist[numsems_each];
+			for (i=0; i < iterations; ++i) {
+				for (s=0; s < numsems_each; ++s) {
+					int sem = sm_SemCreate(-1,0);
+					if (sem == SM_SEM_NONE) {
+						fprintf(stderr,"\n!!!!!!!!!! Process %d failed to create semaphore\n", getpid());
+						return(0);
+					}
+					semlist[s] = sem;
+				}
+				for (s=0; s < numsems_each; ++s) {
+					sm_SemTake(semlist[s]);
+					sm_SemGive(semlist[s]);
+				}
+				for (s=0; s < numsems_each; ++s) {
+					sm_SemDelete(semlist[s]);
+				}
+			}
+			exit(0);
+		}
+	}
+	while (wait(0) != -1) {
+		fprintf(stderr,"Child finished...\n");
+	}
+
+	fprintf(stderr,"  no errors seen\n");
+
+	return(1);
+}
+
+
+
 int main(int argc, char **argv)
 {
 	int passed = 1;
 
 	// ionstop();
+
+	printf("\nCompiled for underlying semaphore system: %s\n\n", SEMAPHORE_SYSTEM);
 
 	/* Start ION */
 	printf("Starting ION...\n"); fflush(stdout);
@@ -377,11 +429,14 @@ int main(int argc, char **argv)
 			"loopback-ltp/loopback.bprc",
 			"loopback-ltp/loopback.ipnrc",
 			NULL);
-	// ionstart_default_config(NULL, NULL, NULL,
-	// 		"loopback-ltp/loopbackstart.bprc",
-	// 		NULL, NULL);
 
-	// run each of the 3 scenarios...
+	// run each of the scenarios...
+	
+	fprintf(stderr,"\n####################################################\n");
+	fprintf(stderr,"Semaphore churn test...\n\n");
+	if (!semaphore_churn())
+		passed = 0;
+
 	fprintf(stderr,"\n####################################################\n");
 	fprintf(stderr,"Testing simple critical sections with multiple threads in one process ...\n\n");
 	if (!multi_thread_semtest())
@@ -403,9 +458,6 @@ if (0) {
 	if (!check_parent_process_and_children())
 		passed = 0;
 }
-
-	extern void _semPrintTable();
-	_semPrintTable();
 
 	if (passed)
 		printf("**** PASSED\n");
