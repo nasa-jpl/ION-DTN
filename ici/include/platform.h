@@ -663,6 +663,12 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 
 #else				/****	Not bionic		     ****/
 
+/* allow the default to be overwritten */
+#ifndef SEM_NSEMS_MAX
+// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
+#define	SEM_NSEMS_MAX		1024
+#endif
+
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
 #ifndef uClibc			/****	uClibc subset of Linux	     ****/
