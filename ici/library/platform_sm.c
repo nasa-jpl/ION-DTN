@@ -15,6 +15,9 @@
 static void	takeIpcLock();
 static void	giveIpcLock();
 
+#ifdef linux
+char *getprogname() {return("");}
+#endif
 
 
 
