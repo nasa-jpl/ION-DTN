@@ -630,6 +630,24 @@ int pthread_setname_np(pthread_t thread, const char *name);
 #undef	UNIX_TASKS
 #define POSIX_TASKS
 
+#if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
+  #error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
+#endif
+#ifdef FORCE_SVR4_SEMAPHORES
+/* NOT the default on darwin/MacOS */
+#define	SVR4_SEMAPHORES
+#undef POSIX_SEMAPHORES
+#undef POSIX_NAMED_SEMAPHORES
+#pragma message("**  NOT Using experimental Posix Named Semaphores on Linux")
+#elif FORCE_POSIX_NAMED_SEMAPHORES
+ /* FORCE_SVR4_SEMAPHORES */
+#undef	SVR4_SEMAPHORES
+#undef POSIX_SEMAPHORES
+#define POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using experimental Posix Named Semaphores on Linux")
+#endif /* FORCE_SVR4_SEMAPHORES */
+
+
 typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 			saddr, saddr, saddr);
 
