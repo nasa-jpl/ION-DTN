@@ -675,18 +675,26 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #include <pthread.h>
 
 /* semaphore options */
+/* this is the default for MacOS */
+#define POSIX_NAMED_SEMAPHORES
+#undef	SVR4_SEMAPHORES
+#undef POSIX_SEMAPHORES
+#
+#if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
+  #error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
+#endif
 #ifdef FORCE_SVR4_SEMAPHORES
 /* NOT the default on darwin/MacOS */
 #define	SVR4_SEMAPHORES
 #undef POSIX_SEMAPHORES
 #undef POSIX_NAMED_SEMAPHORES
-#else /* FORCE_SVR4_SEMAPHORES */
+#elif FORCE_POSIX_NAMED_SEMAPHORES
+ /* FORCE_SVR4_SEMAPHORES */
 #undef	SVR4_SEMAPHORES
 #undef POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using experimental Posix Named Semaphores on MacOS")
 #endif /* FORCE_SVR4_SEMAPHORES */
-
-
 
 
 /* allow the default to be overwritten */
