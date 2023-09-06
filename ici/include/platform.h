@@ -618,18 +618,7 @@ extern int getpriority(int, id_t);
 int pthread_setname_np(pthread_t thread, const char *name);
 
 
-
-#ifdef bionic			/****	Bionic subset of Linux      ****/
-
-#undef	SVR4_SHM
-#define RTOS_SHM
-
-#undef	SVR4_SEMAPHORES
-#define POSIX_SEMAPHORES
-
-#undef	UNIX_TASKS
-#define POSIX_TASKS
-
+/* semaphore options */
 #if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
   #error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
 #endif
@@ -646,6 +635,19 @@ int pthread_setname_np(pthread_t thread, const char *name);
 #define POSIX_NAMED_SEMAPHORES
 #pragma message("**  Using experimental Posix Named Semaphores on Linux")
 #endif /* FORCE_SVR4_SEMAPHORES */
+
+
+#ifdef bionic			/****	Bionic subset of Linux      ****/
+
+#undef	SVR4_SHM
+#define RTOS_SHM
+
+#undef	SVR4_SEMAPHORES
+#define POSIX_SEMAPHORES
+
+#undef	UNIX_TASKS
+#define POSIX_TASKS
+
 
 
 typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
