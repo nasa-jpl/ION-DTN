@@ -3402,7 +3402,7 @@ int	sm_GetUniqueKey()
 #else
 	result = (getpid() << 16) + ipcUniqueKey;
 #endif
-if (0) fprintf(stderr,"sm_GetUniqueKey returns key %u (0x%x) to process %d (%s)\n", result, result, getpid(), getprogname());
+if (0) fprintf(stderr,"sm_GetUniqueKey returns key %u (0x%x) to process %d\n", result, result, getpid());
 	return result;
 }
 
