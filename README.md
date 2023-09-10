@@ -13,7 +13,7 @@ ION DTN is suitable to both planetary and interplanetary environments succeptibl
 
 ## Quick Start
 
-**1. Linux, OS/X or Solaris**
+**1. Linux, MacOS or Solaris**
 	To build and install the entire ION system on a `Linux, OS/X, or Solaris
 platform`, cd into ion-open-source and enter three commands:
 
@@ -71,7 +71,9 @@ to install gmake before trying to build ION.
 
 * Tutorials, applications of Artificial Intelligence and IoT, and further details on ION capabilities can be found on the [Wiki](https://github.com/nasa-jpl/ION-DTN/wiki) pages.
 
-* Videos and documents and links to videos of the Interplanetary Overlay Network course can be found on the [NASA](https://www.nasa.gov/directorates/heo/scan/engineering/technology/disruption_tolerant_networking_software_options_ion) website 
+* Videos and documents and links to videos of the Interplanetary Overlay Network course can be found on the [NASA](https://www.nasa.gov/directorates/heo/scan/engineering/technology/disruption_tolerant_networking_software_options_ion) website.
+
+* For details about changes regarding each ION release, please see the [Release Notes](./release-notes.txt)
 
 ## Copyright and No Warranty Disclaimer
 
