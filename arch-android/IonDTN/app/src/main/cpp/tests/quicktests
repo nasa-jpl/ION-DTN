@@ -1,0 +1,14 @@
+# quicktests test set
+# a set of tests that are quick and provide basic coverage.
+# If a test tests a corner case or a presumed-resolved bug, it probably
+# doesn't go here.
+
+# This is the simplest "does ION work?" test.
+1000.loopback
+
+# This tests whether the status report mechanism works in ION, as well as
+# sending a bunch of bundles in one quick test.
+#status-rpts
+
+
+bsp/

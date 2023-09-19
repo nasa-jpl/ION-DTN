@@ -1,0 +1,14 @@
+TODO
+
+1. Make a CLEAR_ASB function in bsp_utils.
+2. Add super encryption
+3. Extend encrypt functions to support any additional encryption algorithms
+4. Perhaps Figure a way to explicity differentiate from not wanting a security block 
+   and wanting a security block, but not having the key or rule for it
+5. Consider making security block debug print statements togglable from ionsecadmin
+6. Create colloboration blocks for pcb/pib for super encryption
+
+Dependent on future ciphersuites
+6. Consider making bsp_GetSecResult a single thing for all ciphersuites?
+7. Implement cases where ASB has a ciphersuite param
+8. Possibly check against list of valid ciphersuite names in getSecurityInfo

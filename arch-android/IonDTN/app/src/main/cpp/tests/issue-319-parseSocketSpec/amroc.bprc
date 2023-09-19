@@ -1,0 +1,16 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:9.0 x
+a endpoint ipn:9.1 x
+a endpoint ipn:9.2 x
+a endpoint ipn:9.19 x
+a endpoint ipn:9.64 x
+a endpoint ipn:9.65 x
+a endpoint ipn:9.126 x
+a protocol ltp 1400 100
+a induct ltp 9 ltpcli
+a outduct ltp 9 ltpclo
+a outduct ltp 5 ltpclo
+r 'ipnadmin amroc.ipnrc'
+w 1
+s

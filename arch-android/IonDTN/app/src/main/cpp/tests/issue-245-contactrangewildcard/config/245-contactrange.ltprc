@@ -1,0 +1,55 @@
+# ltprc configuration file for the loopback test.
+#	Command: % ltpadmin loopback.ltprc
+#	This command should be run AFTER ionadmin and BEFORE bpadmin.
+#
+#	Ohio University, July 2009
+#
+#	A warning: the ltp configuration is not ideal in this case.
+#	please consult manual pages and other documentation for a
+#	better description.
+
+# Initialization command (command 1). 
+# Establishes the LTP retransmission window. 
+# (Prohibiting LTP from seizing all available storage).
+#	A maximum of 32 sessions.  A session is assumed to be around one
+#	second of transmission.  This value should be estimated at the sum
+#	of maximum round-trip times (in seconds) for all "spans."
+#	Suggest throwing 20% higher number of sessions to account for extra-
+#	long sessions which contain an actual retransmission.
+#	Set a total LTP memory space usage limit as the sum of the memory
+#	space usage of all spans (more or less the number of bytes in transit
+#	on all links for their duration).
+1 10 500000
+
+# Add a span. (a connection) 
+#	Identify the span as engine number 1.  That is the ipn node number
+#	of the node on the other end of this span.
+#	Use 2 as the maximum number of export sessions.
+#	Use 1024 as the maximum size of an export block.  This more or less
+#	limits the maximum size of a bundle in the system.
+#	The next two items are the maximum number of import sessions and the
+#	maximum size of an imported block. Since this is loopback, we just
+#	copy the export numbers here.
+#	1024 is the maximum segment size- more or less, the amount of data
+#	that can be held in a single frame of the underlying protocol.  In
+#	this case, UDP packets are the frame, and we will give a conservative
+#	limit.
+#	Limit the aggregation size to 1024 bytes, and set a time limit on
+#	aggregation to 1 second.
+#	Use the command 'aoslso localhost:1113' to implement the link
+#	itself.  In this case, we use udp to connect to localhost (this is
+#	loopback) using port 1200.  The single quote is
+#	important, don't use double quotes.
+#
+#       tx datarate is set to 750kbits/sec so the 1 megabyte data file will take
+#       at least 10 secs, which is how we verify rate limiting works
+#
+a span 1 2 125000 2 125000 1024 1024 1 'udplso localhost:1200'
+
+# Start command.
+#	This command actually runs the link service output commands
+#	(defined above, in the "a span" commands).
+#	Also starts the link service INPUT task 'aoslsi localhost:1113' to
+#	listen locally on UDP port 1200 for incoming LTP traffic.
+s 'udplsi localhost:1200'
+

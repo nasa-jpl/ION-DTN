@@ -1,0 +1,7 @@
+# ION Configuration
+# Transaction Reversibility Test
+# Samuel Jero <sj323707@ohio.edu>
+1 2 config.ionconfig
+s
+a contact +0 +1200 1 2 100000
+a range +0 +1200 1 2 1

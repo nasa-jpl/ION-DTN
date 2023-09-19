@@ -1,0 +1,73 @@
+=head1 NAME
+
+dtpcd - DTPC daemon task for receiving and processing DTPC ADUs in bundles
+
+=head1 SYNOPSIS
+
+B<dtpcd>
+
+=head1 DESCRIPTION
+
+B<dtpcd> is a background "daemon" task that manages the reception and
+processing of DTPC protocol data units.  It receives the payloads
+of bundles destined for the "ipn"-scheme endpoint whose node number is the
+number of the local node and whose service number is the DTPC_RECV_SVC_NBR
+(129 as of the time of this writeng).
+
+DTPC protocol data units are of two types: application data units (ADUs,
+i.e., aggregations of application data items) and acknowledgments.  Each
+acknowledgment is interpreted as authorization to release the buffer space
+occupied by the node's local copy of the acknowledged ADU.  Each ADU is
+parsed into its constituent application data items, which are then delivered
+to the applications awaiting them, and when required a DTPC end-to-end
+acknowledgment PDU is returned to the DTPC PDU sender.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item C<0>
+
+B<dtpcd> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<dtpcadmin> to restart B<dtpcd>.
+
+=item C<1>
+
+B<dtpcd> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<dtpcadmin> to restart B<dtpcd>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item DTPC can't open own 'send' endpoint. 
+
+Bundle protocol agent has not been started.  See ion(3).
+
+=item dtpcd can't attach to DTPC. 
+
+B<dtpcadmin> has not yet initialized DTPC protocol operations.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+dtpcadmin(1), ion(3)

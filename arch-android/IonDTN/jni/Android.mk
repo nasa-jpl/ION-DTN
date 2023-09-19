@@ -18,7 +18,9 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE    := iondtn
 
-MY_ICI		:= $(LOCAL_PATH)/../../../ici
+# Jay Gao check to new directory
+#MY_ICI		:= $(LOCAL_PATH)/../../../ici
+MY_ICI		:= $(LOCAL_PATH)/../app/src/main/cpp/ici
 
 MY_ICISOURCES := \
 	$(MY_ICI)/library/platform.c    \
@@ -50,9 +52,7 @@ MY_ICISOURCES := \
 	$(MY_ICI)/utils/sdrmend.c       \
 	$(MY_ICI)/utils/ionsecadmin.c 	\
 	$(MY_ICI)/utils/ionwarn.c	\
-	$(MY_ICI)/utils/ionunlock.c	\
-	$(MY_ICI)/utils/ionxnowner.c	\
-	$(MY_ICI)/utils/ionlog.c
+	$(MY_ICI)/utils/ionunlock.c
 
 #	$(MY_ICI)/utils/ionexit.c      \
 
@@ -61,7 +61,8 @@ MY_ICISOURCES := \
 #	MY_RESTARTSOURCE :=     \
 #		$(MY_RESTART)/utils/ionrestart.c
 
-MY_DGR		:= $(LOCAL_PATH)/../../../dgr
+# MY_DGR		:= $(LOCAL_PATH)/../../../dgr
+MY_DGR		:= $(LOCAL_PATH)/../app/src/main/cpp/dgr
 
 MY_DGRSOURCES :=     \
 	$(MY_DGR)/library/libdgr.c    \
@@ -79,7 +80,8 @@ MY_DGRSOURCES :=     \
 #		$(MY_LTP)/udp/udplso.c        \
 #		$(MY_LTP)/utils/ltpadmin.c
 
-MY_BSSP		:= $(LOCAL_PATH)/../../../bssp
+#MY_BSSP		:= $(LOCAL_PATH)/../../../bssp
+MY_BSSP		:= $(LOCAL_PATH)/../app/src/main/cpp/bssp
 
 MY_BSSPSOURCES :=     \
 	$(MY_BSSP)/library/libbssp.c    \
@@ -92,19 +94,17 @@ MY_BSSPSOURCES :=     \
 	$(MY_BSSP)/tcp/libtcpbsa.c      \
 	$(MY_BSSP)/utils/bsspadmin.c
 
-MY_BP		:= $(LOCAL_PATH)/../../../bp
+#MY_BP		:= $(LOCAL_PATH)/../../../bp
+MY_BP		:= $(LOCAL_PATH)/../app/src/main/cpp/bp
 
 MY_BPSOURCES :=      \
 	$(MY_BP)/library/libbp.c      \
 	$(MY_BP)/library/libbpP.c     \
 	$(MY_BP)/library/libbpnm.c    \
-	$(MY_BP)/library/bpsec.c      \
-	$(MY_BP)/library/saga.c       \
 	$(MY_BP)/daemon/bpclock.c     \
 	$(MY_BP)/daemon/bptransit.c   \
 	$(MY_BP)/daemon/bpclm.c       \
 	$(MY_BP)/utils/bpadmin.c      \
-	$(MY_BP)/utils/bpsecadmin.c   \
 	$(MY_BP)/utils/bpstats.c      \
 	$(MY_BP)/utils/bptrace.c      \
 	$(MY_BP)/utils/bplist.c       \
@@ -138,7 +138,6 @@ MY_BPSOURCES :=      \
 	$(MY_BP)/dgr/dgrclo.c         \
 	$(MY_BP)/library/eureka.c     \
 	$(MY_BP)/library/bei.c        \
-	$(MY_BP)/library/ext/phn/snw.c \
 	$(MY_BP)/library/ext/phn/phn.c \
 	$(MY_BP)/library/ext/ecos/ecos.c \
 	$(MY_BP)/library/ext/meb/meb.c \
@@ -156,7 +155,8 @@ MY_SBSPSOURCES :=                    \
 	$(MY_SBSP)/sbsp_bib.c       \
 	$(MY_SBSP)/sbsp_bcb.c
 
-MY_NM		:= $(LOCAL_PATH)/../../../nm
+#MY_NM		:= $(LOCAL_PATH)/../../../nm
+MY_NM		:= $(LOCAL_PATH)/../app/src/main/cpp/nm
 
 MY_NMSOURCES :=                       \
 	$(MY_NM)/shared/adm/adm.c \
@@ -201,7 +201,8 @@ MY_NMSOURCES :=                       \
 	$(MY_NM)/agent/adm_sbsp_impl.c \
 	$(MY_NM)/agent/nmagent.c
 
-MY_BSS		:= $(LOCAL_PATH)/../../../bss
+#MY_BSS		:= $(LOCAL_PATH)/../../../bss
+MY_BSS		:= $(LOCAL_PATH)/../app/src/main/cpp/bss
 
 MY_BSSSOURCES :=    \
 	$(MY_BSS)/library/libbss.c    \
@@ -253,8 +254,10 @@ LOCAL_C_INCLUDES := $(MY_ICI)/include \
 
 #	$(MY_LTP)/include $(MY_LTP)/library $(MY_LTP)/udp
 #	$(MY_CFDP)/include $(MY_CFDP)/library
+// Jay L. Gao: add compiler flag SPACE_ORDER=3 for 64-bit processor; also need to change to ABI to arm64-v8a in gradle build
+//LOCAL_CFLAGS = -g -Werror -Wall -Wno-unused-variable -Wno-int-to-pointer-cast -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC -DSBSP -DAGENT_ROLE
+LOCAL_CFLAGS = -g -Werror -Wall -Wno-unused-variable -Wno-int-to-pointer-cast -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC -DSBSP -DAGENT_ROLE -DSPACE_ORDER=3
 
-LOCAL_CFLAGS = -g -fsigned-char -Werror -Wall -Wno-unused-variable -Wno-int-to-pointer-cast -Dbionic -DBP_EXTENDED -DGDSSYMTAB -DUSING_SDR_POINTERS -DNO_SDR_TRACE -DNO_PSM_TRACE -DENABLE_IMC -DSBSP -DAGENT_ROLE
 #	-DENABLE_ACS -DNO_PROXY -DNO_DIRLIST
 
 LOCAL_LDLIBS :=  -llog

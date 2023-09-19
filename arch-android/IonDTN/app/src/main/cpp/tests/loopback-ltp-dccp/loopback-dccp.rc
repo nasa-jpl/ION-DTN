@@ -1,0 +1,166 @@
+# configuration file for the loopback-dccp test.
+#	Command: ionstart -Iloopback-dccp.rc
+#	This command should be run AFTER ionadmin and ltpadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, November 2010
+#
+## begin ionadmin 
+# ionrc configuration file for the loopback-dccp test.
+#	This uses ltp as the primary convergence layer.
+#	command: % ionadmin loopback-dccp.ionrc
+# 	This command should be run FIRST.
+#
+#	Ohio University, November 2010
+
+# Initialization command (command 1). 
+#	Set this node to be node 1 (as in ipn:1).
+#	Use default sdr configuration (empty configuration file name '').
+1 1 ''
+
+# start ion node
+s
+
+# Add a contact.
+# 	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself
+#	It will transmit 100000 bytes/second.
+a contact +1 +3600 1 1 100000
+
+# Add a range. This is the physical distance between nodes.
+#	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself.
+#	Data on the link is expected to take 1 second to reach the other
+#	end (One Way Light Time).
+a range +1 +3600 1 1 1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 1000000
+m consumption 1000000
+## end ionadmin
+
+## begin ionsecadmin
+1
+## end ionsecadmin
+
+## begin ltpadmin 
+# ltprc configuration file for the loopback-dccp test.
+#	Command: % ltpadmin loopback-dccp.ltprc
+#	This command should be run AFTER ionadmin and BEFORE bpadmin.
+#
+#	Ohio University, November 2010
+#
+#	A warning: the ltp configuration is not ideal in this case.
+#	please consult manual pages and other documentation for a
+#	better description.
+
+# Initialization command (command 1). 
+# Establishes the LTP retransmission window. 
+# (Prohibiting LTP from seizing all available storage).
+#	A maximum of 32 sessions.  A session is assumed to be around one
+#	second of transmission.  This value should be estimated at the sum
+#	of maximum round-trip times (in seconds) for all "spans."
+#	Suggest throwing 20% higher number of sessions to account for extra-
+#	long sessions which contain an actual retransmission.
+#	Set a total LTP memory space usage limit as the sum of the memory
+#	space usage of all spans (more or less the number of bytes in transit
+#	on all links for their duration).
+1 128 262144
+
+# Add a span. (a connection) 
+#	Identify the span as engine number 1.  That is the ipn node number
+#	of the node on the other end of this span.
+#	Use 128 as the maximum number of export sessions.
+#	Use 1024 as the maximum size of an export block.  This more or less
+#	limits the maximum size of a bundle in the system.
+#	The next two items are the maximum number of import sessions and the
+#	maximum size of an imported block. Since this is loopback, we just
+#	copy the export numbers here.
+#	1024 is the maximum segment size- more or less, the amount of data
+#	that can be held in a single frame of the underlying protocol.  In
+#	this case, DCCP packets are the frame, and we will give a conservative
+#	limit.
+#	Limit the aggregation size to 1024 bytes, and set a time limit on
+#	aggregation to 1 second.
+#	Use the command 'udplso localhost:1113' to implement the link
+#	itself.  In this case, we use udp to connect to localhost (this is
+#	loopback) using port 1113 (defined by IANA as the default DCCP port
+#	for Licklider Transmission Protocol).  The single quote is
+#	important, don't use double quotes.
+a span 1 128 1024 128 1024 1024 1024 1 'dccplso localhost:1113'
+
+# Start command.
+#	This command actually runs the link service output commands
+#	(defined above, in the "a span" commands).
+#	Also starts the link service INPUT task 'dccplsi localhost:1113' to
+#	listen locally on DCCP port 1113 for incoming LTP traffic.
+s 'dccplsi localhost:1113'
+## end ltpadmin 
+
+## begin bpadmin 
+# bprc configuration file for the loopback-dccp test.
+#	Command: % bpadmin loopback-dccp.bprc
+#	This command should be run AFTER ionadmin and ltpadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, November 2010
+
+# Initialization command (command 1).
+1 
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+#	Note that the custodian endpoint ipn:1.0 is automatically generated.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add a protocol. 
+#	Add the protocol named ltp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
+a protocol ltp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the ltp protocol.
+#	The duct's name is 1 (this is for future changing/deletion of the
+#	induct).
+#	The induct itself is implemented by the 'ltpcli' command.
+a induct ltp 1 ltpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the ltp protocol.
+#	The duct's name is 1 (this is for future changing/deletion of the
+#	outduct).
+#	The outduct itself is implemented by the 'ltpclo' command.
+a outduct ltp 1 ltpclo
+
+# Start the daemons
+s
+## end bpadmin 
+
+## begin ipnadmin 
+# ipnrc configuration file for the loopback-dccp test.
+#	Essentially, this is the IPN scheme's routing table.
+#	Command: % ipnadmin loopback-dccp.ipnrc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, November 2010
+
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1 (that is, yourself).
+#	The plan is to queue for transmission (x) on protocol 'ltp' using
+#	the outduct identified as '1.'
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan 1 ltp/1
+## end ipnadmin 

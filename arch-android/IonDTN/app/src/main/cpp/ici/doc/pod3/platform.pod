@@ -1,0 +1,989 @@
+=head1 NAME
+
+platform - C software portability definitions and functions
+
+=head1 SYNOPSIS
+
+    #include "platform.h"
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+I<platform> is a library of functions that simplify the porting of
+software written in C.  It provides an API that enables application 
+code to access the resources of an abstract POSIX-compliant
+"least common denominator" operating system -- typically a large
+subset of the resources of the actual underlying operating system.
+
+Most of the functionality provided by the platform library is
+aimed at making communication code portable: common functions for
+shared memory, semaphores, and IP sockets are provided.  
+The implementation of the abstract O/S API varies according
+to the actual operating system on which the application runs, but
+the API's behavior is always the same; applications that invoke
+the platform library functions rather than native O/S system
+calls may forego some O/S-specific capability, but they gain portability 
+at little if any cost in performance.
+
+Differences in word size among platforms are implemented by values
+of the I<SPACE_ORDER> macro.  "Space order" is the base 2 log of the
+number of octets in a word: for 32-bit machines the space order is
+2 (2^2 = 4 octets per word), for 64-bit machines it is 3 (2^3 = 8
+octets per word).
+
+A consistent platform-independent representation of large integers is
+useful for some applications.  For this purpose, I<platform> defines
+new types B<vast> and B<uvast> (unsigned vast) which are consistently
+defined to be 64-bit integers regardless of the platform's native word
+size.
+
+The platform.h header file #includes many of the most frequently
+needed header files: sys/types.h, errno.h, string.h, stdio.h,
+sys/socket.h, signal.h, dirent.h, netinet/in.h, unistd.h,
+stdlib.h, sys/time.h, sys/resource.h, malloc.h, sys/param.h,
+netdb.h, sys/uni.h, and fcntl.h.  Beyond this, I<platform> attempts 
+to enhance compatibility by providing standard macros,
+type definitions, external references, or function implementations 
+that are missing from a few supported O/S's but supported
+by all others.  Finally, entirely new, generic functions are provided 
+to establish a common body of functionality that subsumes
+significantly different O/S-specific capabilities.
+
+=head2 PLATFORM COMPATIBILITY PATCHES
+
+The platform library "patches" the APIs of supported O/S's to
+guarantee that all of the following items may be utilized by application 
+software:
+
+    The strchr(), strrchr(), strcasecmp(), and strncasecmp() functions.
+
+    The unlink(), getpid(), and gettimeofday() functions.
+
+    The select() function.
+
+    The FD_BITMAP macro (used by select()).
+
+    The MAXHOSTNAMELEN macro.
+
+    The NULL macro.
+
+    The timer_t type definition.
+
+=head2 PLATFORM GENERIC MACROS AND FUNCTIONS
+
+The generic macros and functions in this section may be used in
+place of comparable O/S-specific functions, to enhance the portability 
+of code.  (The implementations of these macros and functions are 
+no-ops in environments in which they are inapplicable,
+so they're always safe to call.)
+
+=over 4
+
+=item FDTABLE_SIZE
+
+The FDTABLE_SIZE macro returns the total number of file
+descriptors defined for the process (or VxWorks target).
+
+=item ION_PATH_DELIMITER
+
+The ION_PATH_DELIMITER macro returns the ASCII character -- either '/' or
+'\' -- that is used as a directory name delimiter in path names for the
+file system used by the local platform.
+
+=item oK(expression)
+
+The oK macro simply casts the value of I<expression> to void, a way of
+handling function return codes that are not meaningful in this context.
+
+=item CHKERR(condition)
+
+The CHKERR macro is an "assert" mechanism.  It causes the calling function
+to return -1 immediately if I<condition> is false. 
+
+=item CHKZERO(condition)
+
+The CHKZERO macro is an "assert" mechanism.  It causes the calling function
+to return 0 immediately if I<condition> is false. 
+
+=item CHKNULL(condition)
+
+The CHKNULL macro is an "assert" mechanism.  It causes the calling function
+to return NULL immediately if I<condition> is false. 
+
+=item CHKVOID(condition)
+
+The CHKVOID macro is an "assert" mechanism.  It causes the calling function
+to return immediately if I<condition> is false. 
+
+=item void snooze(unsigned int seconds)
+
+Suspends execution of the invoking task or process for the indicated 
+number of seconds.
+
+=item void microsnooze(unsigned int microseconds)
+
+Suspends execution of the invoking task or process for
+the indicated number of microseconds.
+
+=item void getCurrentTime(struct timeval *time)
+
+Returns the current local time in a timeval structure (see gettimeofday(3C)).
+
+=item void isprintf(char *buffer, int bufSize, char *format, ...)
+
+isprintf() is a safe, portable implementation of snprintf(); see the
+snprintf(P) man page for details.  isprintf() differs from snprintf() in that
+it always NULL-terminates the string in I<buffer>, even if the length of the
+composed string would equal or exceed I<bufSize>.  Buffer overruns are
+reported by log message; unlike snprintf(), isprintf() returns void.
+
+=item size_t istrlen(const char *sourceString, size_t maxlen)
+
+istrlen() is a safe implementation of strlen(); see the strlen(3) man 
+page for details.  istrlen() differs from strlen() in that it takes a second
+argument, the maximum valid length of I<sourceString>.  The function
+returns the number of non-NULL characters in I<sourceString> preceding
+the first NULL character in I<sourceString>, provided that a NULL
+character appears somewhere within the first I<maxlen> characters of
+I<sourceString>; otherwise it returns I<maxlen>.
+
+=item char *istrcpy(char *buffer, char *sourceString, int bufSize)
+
+istrcpy() is a safe implementation of strcpy(); see the strcpy(3) man
+page for details.  istrcpy() differs from strcpy() in that it takes a
+third argument, the total size of the buffer into which I<sourceString>
+is to be copied.  istrcpy() always NULL-terminates the string in I<buffer>,
+even if the length of I<sourceString> string would equal or exceed
+I<bufSize> (in which case I<sourceString> is truncated to fit within
+the buffer).
+
+=item char *istrcat(char *buffer, char *sourceString, int bufSize)
+
+istrcat() is a safe implementation of strcat(); see the strcat(3) man
+page for details.  istrcat() differs from strcat() in that it takes a
+third argument, the total size of the buffer for the string that is being
+aggregated. istrcat() always NULL-terminates the string in I<buffer>, even
+if the length of I<sourceString> string would equal or exceed the sum of
+I<bufSize> and the length of the string currently occupying the buffer
+(in which case I<sourceString> is truncated to fit within the buffer).
+
+=item char *igetcwd(char *buf, size_t size)
+
+igetcwd() is normally just a wrapper around getcwd(3).  It differs from
+getcwd(3) only when FSWWDNAME is defined, in which case the implementation
+of igetcwd() must be supplied in an included file named "wdname.c"; this
+adaptation option accommodates flight software environments in which the
+current working directory name must be configured rather than discovered
+at run time.
+
+=item void isignal(int signbr, void (*handler)(int))
+
+isignal() is a portable, simplified interface to signal handling that is
+functionally indistinguishable from signal(P).  It assures that reception
+of the indicated signal will interrupt system calls in SVR4 fashion, even
+when running on a FreeBSD platform.
+
+=item void iblock(int signbr)
+
+iblock() simply prevents reception of the indicated signal by the calling
+thread.  It provides a means of controlling which of the threads in a process
+will receive the signal cited in an invocation of isignal().
+
+=item char *igets(int fd, char *buffer, int buflen, int *lineLen)
+
+igets() reads a line of text, delimited by a newline character, from I<fd>
+into I<buffer> and writes a NULL character at the end of the string.  The
+newline character itself is omitted from the NULL-terminated text line in
+I<buffer>; if the newline is immediately preceded by a carriage return
+character (i.e., the line is from a DOS text file), then the carriage return
+character is likewise omitted from the NULL-terminated text line in
+I<buffer>.  End of file is interpreted as an implicit newline, terminating
+the line.  If the number of characters preceding the newline is greater
+than or equal to I<buflen>, only the first (I<buflen> - 1) characters of
+the line are written into I<buffer>.  On error the function sets I<*lineLen>
+to -1 and returns NULL.  On reading end-of-file, the function sets I<*lineLen>
+to zero and returns NULL.  Otherwise the function sets I<*lineLen> to the
+length of the text line in I<buffer>, as if from strlen(3), and returns
+I<buffer>.
+
+=item int iputs(int fd, char *string)
+
+iputs() writes to I<fd> the NULL-terminated character string at I<string>.  No
+terminating newline character is appended to I<string> by iputs().  On error
+the function returns -1; otherwise the function returns the length of the
+character string written to I<fd>, as if from strlen(3).
+
+=item vast strtovast(char *string)
+
+Converts the leading characters of I<string>, skipping leading white space
+and ending at the first subsequent character that can't be interpreted as
+contributing to a numeric value, to a B<vast> integer and returns that integer.
+
+=item uvast strtouvast(char *string)
+
+Same as strtovast() except the result is an unsigned B<vast> integer value.
+
+=item void findToken(char **cursorPtr, char **token)
+
+Locates the next non-whitespace lexical token in a character array, starting
+at I<*cursorPtr>.  The function NULL-terminates that token within the array
+and places a pointer to the token in I<*token>.  Also accommodates tokens
+enclosed within matching single quotes, which may contain embedded spaces
+and escaped single-quote characters.  If no token is found, I<*token> contains
+NULL on return from this function.
+
+=item void *acquireSystemMemory(size_t size)
+
+Uses memalign() to allocate a block of system memory of length I<size>,
+starting at an address that is guaranteed to be an integral multiple of
+the size of a pointer to void, and initializes the entire block to binary
+zeroes.  Returns the starting address of the allocated block on success;
+returns NULL on any error.
+
+=item int createFile(const char *name, int flags)
+
+Creates a file of the indicated name, using the indicated file creation flags.
+This function provides common file creation functionality across VxWorks and
+Unix platforms, invoking creat() under VxWorks and open() elsewhere.  For
+return values, see creat(2) and open(2).
+
+=item unsigned int getInternetAddress(char *hostName)
+
+Returns the IP address of the indicated host machine, or zero if the
+address cannot be determined.
+
+=item char *getInternetHostName(unsigned int hostNbr, char *buffer)
+
+Writes the host name of the indicated host machine into I<buffer> and
+returns I<buffer>, or returns NULL on any error.  The size of I<buffer>
+should be (MAXHOSTNAMELEN + 1).
+
+=item int getNameOfHost(char *buffer, int bufferLength)
+
+Writes the first (I<bufferLength> - 1) characters of the
+host name of the local machine into I<buffer>.  Returns 0 on success, -1 on
+any error.
+
+=item unsigned int getAddressOfHost()
+
+Returns the IP address for the host name of the local machine, or 0 on any
+error.
+
+=item void parseSocketSpec(char *socketSpec, unsigned short *portNbr, unsigned int *hostNbr)
+
+Parses I<socketSpec>, extracting host number (IP address) and port number from
+the string.  I<socketSpec> is expected to be of the form
+"{ @ | hostname }[:<portnbr>]", where @ signifies "the host name of the
+local machine".  If host number can be determined, writes it into I<*hostNbr>;
+otherwise writes 0 into I<*hostNbr>.  If port number is supplied and
+is in the range 1024 to 65535, writes it into I<*portNbr>; otherwise writes
+0 into I<*portNbr>.
+
+=item void printDottedString(unsigned int hostNbr, char *buffer)
+
+Composes a dotted-string (xxx.xxx.xxx.xxx) representation of the IPv4 address
+in I<hostNbr> and writes that string into I<buffer>.  The length of I<buffer>
+must be at least 16.
+
+=item char *getNameOfUser(char *buffer)
+
+Writes the user name of the invoking task or process
+into I<buffer> and returns I<buffer>.  The size of I<buffer>
+must be at least I<L_cuserid>, a constant defined in the
+stdio.h header file.  Returns I<buffer>.
+
+=item int reUseAddress(int fd)
+
+Makes the address that is bound to the socket identified by 
+I<fd> reusable, so that the socket can be closed
+and immediately reopened and re-bound to the same port number.
+Returns 0 on success, -1 on any error.
+
+=item int makeIoNonBlocking(int fd)
+
+Makes I/O on the socket identified by I<fd> non-blocking; returns -1 on
+failure.  An attempt to read on a non-blocking socket when no data are pending, 
+or to write on it when its output buffer is full, will not block; 
+it will instead return -1 and cause errno to be set to EWOULDBLOCK.
+
+=item int watchSocket(int fd)
+
+Turns on the "linger" and "keepalive" options for the
+socket identified by I<fd>.  See socket(2) for details.  Returns 0 on
+success, -1 on any failure.
+
+=item void closeOnExec(int fd)
+
+Ensures that I<fd> will NOT be open in any child process
+fork()ed from the invoking process.  Has no effect on a VxWorks platform.
+
+=back
+
+=head2 EXCEPTION REPORTING
+
+The functions in this section offer platform-independent capabilities
+for reporting on processing exceptions.
+
+The underlying mechanism for ICI's exception reporting is a pair of
+functions that record error messages in a privately managed pool of
+static memory.  These functions -- postErrmsg() and postSysErrmsg() --
+are designed to return very rapidly with no possibility of failing,
+themselves.  Nonetheless they are not safe to call from an interrupt
+service routing (ISR).  Although each merely copies its text to the
+next available location in the error message memory pool, that pool
+is protected by a mutex; multiple processes might be queued up to
+take that mutex, so the total time to execute the function is
+non-deterministic.
+
+Built on top of postErrmsg() and postSysErrmsg() are the putErrmsg()
+and putSysErrmsg() functions, which may take longer to return.  Each
+one simply calls the corresponding "post" function but then calls the
+writeErrmsgMemos() function, which calls writeMemo() to print (or
+otherwise deliver) each message currently posted to the pool and
+then destroys all of those posted messages, emptying the pool.
+
+Recommended general policy on using the ICI exception reporting functions
+(which the functions in the ION distribution libraries are supposed to
+adhere to) is as follows:
+
+	In the implementation of any ION library function or any ION
+	task's top-level driver function, any condition that prevents
+	the function from continuing execution toward producing the
+	effect it is designed to produce is considered an "error".
+
+	Detection of an error should result in the printing of an
+	error message and, normally, the immediate return of whatever
+	return value is used to indicate the failure of the function
+	in which the error was detected.  By convention this value
+	is usually -1, but both zero and NULL are appropriate
+	failure indications under some circumstances such as object
+	creation.
+
+	The CHKERR, CHKZERO, CHKNULL, and CHKVOID macros are used to
+	implement this behavior in a standard and lexically terse
+	manner.  Use of these macros offers an additional feature:
+	for debugging purposes, they can easily be configured to
+	call sm_Abort() to terminate immediately with a core dump
+	instead of returning a error indication.  This option is
+	enabled by setting the compiler parameter CORE_FILE_NEEDED
+	to 1 at compilation time.
+
+	In the absence of either any error, the function returns a
+	value that indicates nominal completion.  By convention this
+	value is usually zero, but under some circumstances other
+	values (such as pointers or addresses) are appropriate
+	indications of nominal completion.  Any additional information
+	produced by the function, such as an indication of "success",
+	is usually returned as the value of a reference argument.
+	[Note, though, that database management functions and the
+	SDR hash table management functions deviate from this rule:
+	most return 0 to indicate nominal completion but functional
+	failure (e.g., duplicate key or object not found) and return
+	1 to indicate functional success.]
+
+	So when returning a value that indicates nominal completion
+	of the function -- even if the result might be interpreted
+	as a failure at a higher level (e.g., an object identified
+	by a given string is not found, through no failure of the
+	search function) -- do NOT invoke putErrmsg().
+
+	Use putErrmsg() and putSysErrmsg() only when functions are
+	unable to proceed to nominal completion.  Use writeMemo()
+	or writeMemoNote() if you just want to log a message.
+
+	Whenever returning a value that indicates an error:
+
+		If the failure is due to the failure of a system call
+		or some other non-ION function, assume that errno
+		has already been set by the function at the lowest
+		layer of the call stack; use putSysErrmsg (or
+		postSysErrmsg if in a hurry) to describe the nature
+		of the activity that failed.  The text of the error
+		message should normally start with a capital letter
+		and should NOT end with a period.
+
+		Otherwise -- i.e., the failure is due to a condition
+		that was detected within ION -- use putErrmsg (or
+		postErrmg if pressed for time) to describe the nature
+		of the failure condition.  This will aid in tracing
+		the failure through the function stack in which the
+		failure was detected.  The text of the error message
+		should normally start with a capital letter and should
+		end with a period.
+
+	When a failure in a called function is reported to "driver"
+	code in an application program, before continuing or exiting
+	use writeErrmsgMemos() to empty the message pool and print a
+	simple stack trace identifying the failure.
+
+=over 4
+
+=item char *system_error_msg( )
+
+Returns a brief text string describing the current system error, as identified
+by the current value of errno.
+
+=item void setLogger(Logger usersLoggerName)
+
+Sets the user function to be used for writing messages to a user-defined "log"
+medium.  The logger function's calling sequence must match the following
+prototype:
+
+	void	usersLoggerName(char *msg);
+
+The default Logger function simply writes the message to standard output.
+
+=item void writeMemo(char *msg)
+
+Writes one log message, using the currently defined message logging function.
+
+=item void writeMemoNote(char *msg, char *note)
+
+Writes a log message like writeMemo(), accompanied by the user-supplied
+context-specific text in I<note>.
+
+=item void writeErrMemo(char *msg)
+
+Writes a log message like writeMemo(), accompanied by text describing the
+current system error.
+
+=item char *itoa(int value)
+
+Returns a string representation of the signed integer in I<value>, nominally
+for immediate use as an argument to putErrmsg().  [Note that the string is
+constructed in a static buffer; this function is not thread-safe.]
+
+=item char *utoa(unsigned int value)
+
+Returns a string representation of the unsigned integer in I<value>, nominally
+for immediate use as an argument to putErrmsg().  [Note that the string is
+constructed in a static buffer; this function is not thread-safe.]
+
+=item void postErrmsg(char *text, char *argument)
+
+Constructs an error message noting the name of the source file containing
+the line at which this function was called, the line number, the I<text> of
+the message, and -- if not NULL -- a single textual I<argument> that can be
+used to give more specific information about the nature of the reported
+failure (such as the value of one of the arguments to the failed
+function).  The error message is appended to the list of messages in
+a privately managed pool of static memory, ERRMSGS_BUFSIZE bytes in length.
+
+If I<text> is NULL or is a string of zero length or begins with a newline
+character (i.e., I<*text> == '\0' or '\n'), the function returns immediately
+and no error message is recorded.
+
+The errmsgs pool is designed to be large enough to contain error messages
+from all levels of the calling stack at the time that an error is
+encountered.  If the remaining unused space in the pool is less than
+the size of the new error message, however, the error message is silently
+omitted.  In this case, provided at least two bytes of unused space remain
+in the pool, a message comprising a single newline character is appended to
+the list to indicate that a message was omitted due to excessive length.
+
+=item void postSysErrmsg(char *text, char *arg)
+
+Like postErrmsg() except that the error message constructed by the function
+additionally contains text describing the current system error.  I<text> is
+truncated as necessary to assure that the sum of its length and that of
+the description of the current system error does not exceed 1021 bytes.
+
+=item int getErrmsg(char *buffer)
+
+Copies the oldest error message in the message pool into I<buffer> and
+removes that message from the pool, making room for new messages.  Returns
+zero if the message pool cannot be locked for update or there are no more
+messages in the pool; otherwise returns the length of the message copied
+into I<buffer>.  Note that, for safety, the size of I<buffer> should be
+ERRMSGS_BUFSIZE.
+
+Note that a returned error message comprising only a single newline character
+always signifies an error message that was silently omitted because there
+wasn't enough space left on the message pool to contain it.
+
+=item void writeErrmsgMemos( )
+
+Calls getErrmsg() repeatedly until the message pool is empty, using
+writeMemo() to log all the messages in the pool.  Messages that were
+omitted due to excessive length are indicated by logged lines of the
+form "[message omitted due to excessive length]".
+
+=item void putErrmsg(char *text, char *argument)
+
+The putErrmsg() function merely calls postErrmsg() and then
+writeErrmsgMemos().
+
+=item void putSysErrmsg(char *text, char *arg)
+
+The putSysErrmsg() function merely calls postSysErrmsg() and then
+writeErrmsgMemos().
+
+=item void discardErrmsgs( )
+
+Calls getErrmsg() repeatedly until the message pool is empty, discarding all
+of the messages.
+
+=item void printStackTrace( )
+
+On Linux machines only, uses writeMemo() to print a trace of the process's
+current execution stack, starting with the lowest level of the stack and
+proceeding to the main() function of the executable.
+
+Note that (a) printStackTrace() is B<only> implemented for Linux platforms
+at this time; (b) symbolic names of functions can only be printed if the
+I<-rdynamic> flag was enabled when the executable was linked; (c) only the
+names of non-static functions will appear in the stack trace.
+
+For more complete information about the state of the executable at the time
+the stack trace snapshot was taken, use the Linux I<addr2line> tool. To do
+this, cd into a directory in which the executable file resides (such as
+/opt/bin) and submit an addr2line command as follows:
+
+=over 4
+
+addr2line -e I<name_of_executable> I<stack_frame_address>
+
+=back
+
+where both I<name_of_executable> and I<stack_frame_address> are taken from
+one of the lines of the printed stack trace.  addr2line will print the source
+file name and line number for that stack frame.
+
+=back
+
+=head2 WATCH CHARACTERS
+
+The functions in this section offer platform-independent capabilities
+for recording "watch" characters indicating the occurrence of protocol
+events.  See bprc(5), ltprc(5), cfdprc(5), etc. for details of the
+watch character production options provided by the protocol packages.
+
+=over 4
+
+=item void setWatcher(Watcher usersWatcherName)
+
+Sets the user function to be used for recording watch characters to a
+user-defined "watch" medium.  The watcher function's calling sequence
+must match the following prototype:
+
+	void	usersWatcherName(char token);
+
+The default Watcher function simply writes the token to standard output.
+
+=item void iwatch(char token)
+
+Records one "watch" character, using the currently defined watch character
+recording function.
+
+=back
+
+=head2 SELF-DELIMITING NUMERIC VALUES (SDNV)
+
+The functions in this section encode and decode SDNVs, portable variable-length
+numeric variables that expand to whatever size is necessary to contain the
+values they contain.  SDNVs are used extensively in the BP and LTP libraries.
+
+=over 4
+
+=item void encodeSdnv(Sdnv *sdnvBuffer, uvast value)
+
+Determines the number of octets of SDNV text needed to contain the value,
+places that number in the I<length> field of the SDNV buffer, and encodes
+the value in SDNV format into the first I<length> octets of the I<text> field
+of the SDNV buffer.
+
+=item int decodeSdnv(uvast *value, unsigned char *sdnvText)
+
+Determines the length of the SDNV located at I<sdnvText> and returns this
+number after extracting the SDNV's value from those octets and storing it
+in I<value>.  Returns 0 if the encoded number value will not fit into an
+unsigned vast integer.
+
+=back
+
+=head2 ARITHMETIC ON LARGE INTEGERS (SCALARS)
+
+The functions in this section perform simple arithmetic operations on
+unsigned Scalar objects -- structures encapsulating large positive
+integers in a machine-independent way.  Each Scalar comprises two
+integers, a count of units [ranging from 0 to (2^30 - 1), i.e., up
+to 1 gig] and a count of gigs [ranging from 0 to (2^31 -1)].  A
+Scalar can represent a numeric value up to 2 billion billions,
+i.e., 2 million trillions.
+
+=over 4
+
+=item void loadScalar(Scalar *scalar, signed int value)
+
+Sets the value of I<scalar> to the absolute value of I<value>.
+
+=item void increaseScalar(Scalar *scalar, signed int value)
+
+Adds to I<scalar> the absolute value of I<value>.
+
+=item void reduceScalar(Scalar *scalar, signed int value)
+
+Adds to I<scalar> the absolute value of I<value>.
+
+=item void multiplyScalar(Scalar *scalar, signed int value)
+
+Multiplies I<scalar> by the absolute value of I<value>.
+
+=item void divideScalar(Scalar *scalar, signed int value)
+
+Divides I<scalar> by the absolute value of I<value>.
+
+=item void copyScalar(Scalar *to, Scalar *from)
+
+Copies the value of I<from> into I<to>.
+
+=item void addToScalar(Scalar *scalar, Scalar *increment)
+
+Adds I<increment> (a Scalar rather than a C integer) to I<scalar>.
+
+=item void subtractFromScalar(Scalar *scalar, Scalar *decrement)
+
+Subtracts I<decrement> (a Scalar rather than a C integer) from I<scalar>.
+
+=item int scalarIsValid(Scalar *scalar)
+
+Returns 1 if the arithmetic performed on I<scalar> has not resulted in
+overflow or underflow.
+
+=item int scalarToSdnv(Sdnv *sdnv, Scalar *scalar)
+
+If I<scalar> points to a valid Scalar, stores the value of I<scalar> in
+I<sdnv>; otherwise sets the length of I<sdnv> to zero.
+
+=item int sdnvToScalar(Scalar *scalar, unsigned char *sdnvText)
+
+If I<sdnvText> points to a sequence of bytes that, when interpreted as
+the text of an Sdnv, has a value that can be represented in a 61-bit
+unsigned binary integer, then this function stores that value in I<scalar>
+and returns the detected Sdnv length.  Otherwise returns zero.
+
+Note that Scalars and Sdnvs are both representations of potentially large
+unsigned integer values.  Any Scalar can alternatively be represented as
+an Sdnv.  However, it is possible for a valid Sdnv to be too large to
+represent in a Scalar.
+
+=back
+
+=head2 PRIVATE MUTEXES
+
+The functions in this section provide platform-independent management of
+mutexes for synchronizing operations of threads or tasks in a common private
+address space.
+
+=over 4
+
+=item int initResourceLock(ResourceLock *lock)
+
+Establishes an inter-thread lock for use in locking some resource.  Returns
+0 if successful, -1 if not.
+
+=item void killResourceLock(ResourceLock *lock)
+
+Deletes the resource lock referred to by I<lock>.
+
+=item void lockResource(ResourceLock *lock)
+
+Checks the state of I<lock>.  If the lock is already
+owned by a different thread, the call blocks until the
+other thread relinquishes the lock.  If the lock is
+unowned, it is given to the current thread and the lock
+count is set to 1.  If the lock is already owned by
+this thread, the lock count is incremented by 1.
+
+=item void unlockResource(ResourceLock *lock)
+
+If called by the current owner of I<lock>, decrements I<lock>'s
+lock count by 1; if zero, relinquishes the lock so it may be
+taken by other threads.  Care must be taken to make sure that one, and
+only one, unlockResource() call is issued for each
+lockResource() call issued on a given resource lock.
+
+=back
+
+=head2 SHARED MEMORY IPC DEVICES
+
+The functions in this section provide platform-independent management of
+IPC mechanisms for synchronizing operations of threads, tasks, or processes
+that may occupy different address spaces but share access to a common system
+(nominally, processor) memory.
+
+I<NOTE> that this is distinct from the VxWorks "VxMP" capability enabling
+tasks to share access to bus memory or dual-ported board memory from multiple
+processors.  The "platform" system will support IPC devices that 
+utilize this capability at some time in the future, but that support is
+not yet implemented.
+
+=over 4
+
+=item int sm_ipc_init( )
+
+Acquires and initializes shared-memory IPC management resources.  Must be
+called before any other shared-memory IPC function is called.  Returns 0
+on success, -1 on any failure.
+
+=item void sm_ipc_stop( )
+
+Releases shared-memory IPC management resources, disabling the shared-memory
+IPC functions until sm_ipc_init() is called again.
+
+=item int sm_GetUniqueKey( )
+
+Some of the "sm_" (shared memory) functions described
+below associate new communication objects with I<key>
+values that uniquely identify them, so that different
+processes can access them independently.  Key values
+are typically defined as constants in application code.
+However, when a new communication object is required
+for which no specific need was anticipated in the application, 
+the sm_GetUniqueKey() function can be invoked to obtain a new,
+arbitrary key value that is known not to be already in use.
+
+=item sm_SemId sm_SemCreate(int key, int semType)
+
+Creates a shared-memory semaphore that can be used to
+synchronize activity among tasks or processes residing
+in a common system memory but possibly multiple address
+spaces; returns a reference handle for that semaphore,
+or SM_SEM_NONE on any failure.  If I<key> refers to an existing
+semaphore, returns the handle of that semaphore.  If
+I<key> is the constant value SM_NO_KEY, automatically
+obtains an unused key.  On VxWorks platforms, I<semType>
+determines the order in which the semaphore
+is given to multiple tasks that attempt to take it while
+it is already taken: if set to SM_SEM_PRIORITY then the
+semaphore is given to tasks in task priority sequence (i.e.,
+the highest-priority task waiting for it receives it when
+it is released), while otherwise (SM_SEM_FIFO) the semaphore
+is given to tasks in the order in which they attempted to take
+it.  On all other platforms, only SM_SEM_FIFO behavior is
+supported and I<semType> is ignored.
+
+=item int sm_SemTake(sm_SemId semId)
+
+Blocks until the indicated semaphore is no longer taken by any other
+task or process, then takes it.  Return 0 on success, -1 on any error.
+
+=item void sm_SemGive(sm_SemId semId)
+
+Gives the indicated semaphore, so that another task or process can take it.
+
+=item void sm_SemEnd(sm_SemId semId)
+
+This function is used to pass a termination signal to whatever task is
+currently blocked on taking the indicated semaphore, if any.  It sets
+to 1 the "ended" flag associated with this semaphore, so that a test for
+sm_SemEnded() will return 1, and it gives the semaphore so that the
+blocked task will have an opportunity to test that flag.
+
+=item int sm_SemEnded(sm_SemId semId)
+
+This function returns 1 if the "ended" flag associated with the
+indicated semaphore has been set to 1; returns zero otherwise.  When
+the function returns 1 it also gives the semaphore so that any other
+tasks that might be pended on the same semaphore are also given an
+opportunity to test it and discover that it has been ended.
+
+=item void sm_SemUnend(sm_SemId semId)
+
+This function is used to reset an ended semaphore, so that a restarted
+subsystem can reuse that semaphore rather than delete it and allocate a
+new one.
+
+=item int sm_SemUnwedge(sm_SemId semId, int timeoutSeconds)
+
+Used to release semaphores that have been taken but never released, possibly
+because the tasks or processes that took them crashed before releasing them.
+Attempts to take the semaphore; if this attempt does not succeed within
+I<timeoutSeconds> seconds (providing time for normal processing to be
+completed, in the event that the semaphore is legitimately and temporarily
+locked by some task), the semaphore is assumed to be wedged.  In any case,
+the semaphore is then released.  Returns 0 on success, -1 on any error.
+
+=item void sm_SemDelete(sm_SemId semId)
+
+Destroys the indicated semaphore.
+
+=item sm_SemId sm_GetTaskSemaphore(int taskId)
+
+Returns the ID of the semaphore that is dedicated to the private use of the
+indicated task, or SM_SEM_NONE on any error.
+
+This function implements the concept that for each task there can
+always be one dedicated semaphore, which the task can always use for its
+own purposes, whose key value may be known a priori because the key of the
+semaphore is based on the task's ID.  The design of the function
+rests on the assumption that each task's ID, whether a VxWorks task ID
+or a Unix process ID, maps to a number that is out of the range of all
+possible key values that are arbitrarily produced by sm_GetUniqueKey().
+For VxWorks, we assume this to be true because task ID is a pointer to
+task state in memory which we assume not to exceed 2GB; the unique key
+counter starts at 2GB.  For Unix, we assume this to be true because
+process ID is an index into a process table whose size is less than 64K;
+unique keys are formed by shifting process ID left 16 bits and adding
+the value of an incremented counter which is always greater than zero.
+
+=item int sm_ShmAttach(int key, int size, char **shmPtr, int *id)
+
+Attaches to a segment of memory to which tasks or processes residing in
+a common system memory, but possibly multiple address spaces, all have
+access.
+
+This function registers the invoking task or process as a user of the
+shared memory segment identified by I<key>.  If I<key> is the constant value 
+SM_NO_KEY, automatically sets I<key> to some unused key value.
+If a shared memory segment identified by I<key> already exists, then
+I<size> may be zero and the value of I<*shmPtr> is ignored.
+Otherwise the size of the shared memory segment must be provided
+in I<size> and a new shared memory segment is created in a manner that is
+dependent on I<*shmPtr>: if I<*shmPtr> is NULL then 
+I<size> bytes of shared memory are dynamically acquired, allocated, and
+assigned to the newly created shared memory segment; otherwise the
+memory located at I<shmPtr> is assumed to have been pre-allocated
+and is merely assigned to the newly created shared memory segment. 
+
+On success, stores the unique shared memory ID of the segment in I<*id>
+for possible future destruction, stores a pointer to the segment's
+assigned memory in I<*shmPtr>, and returns 1 (if the segment is newly
+created) or 0 (otherwise).  Returns -1 on any error.  
+
+=item void sm_ShmDetach(char *shmPtr)
+
+Unregisters the invoking task or process as a user of
+the shared memory starting at I<shmPtr>.
+
+=item void sm_ShmDestroy(int id)
+
+Destroys the shared memory segment identified by I<id>, releasing any
+memory that was allocated when the segment was created.
+
+=back
+
+=head2 PORTABLE MULTI-TASKING
+
+=over 4
+
+=item int sm_TaskIdSelf( )
+
+Returns the unique identifying number of the invoking task or process.
+
+=item int sm_TaskExists(int taskId)
+
+Returns non-zero if a task or process identified by
+I<taskId> is currently running on the local processor, zero otherwise.
+
+=item void *sm_TaskVar(void **arg)
+
+Posts or retrieves the value of the "task variable" belonging to the
+invoking task.  Each task has access to a single task variable, initialized
+to NULL, that resides in the task's private state; this can be convenient
+for passing task-specific information to a signal handler, for example.  If
+I<arg> is non-NULL, then I<*arg> is posted as the new value of the task's
+private task variable.  In any case, the value of that task variable is
+returned.
+
+=item void sm_TaskSuspend( )
+
+Indefinitely suspends execution of the invoking task or
+process.  Helpful if you want to freeze an application
+at the point at which an error is detected, then use a
+debugger to examine its state.
+
+=item void sm_TaskDelay(int seconds)
+
+Same as snooze(3).
+
+=item void sm_TaskYield( )
+
+Relinquishes CPU temporarily for use by other tasks.
+
+=item int sm_TaskSpawn(char *name, char *arg1, char *arg2, char
+                       *arg3, char *arg4, char *arg5, char *arg6, char
+                       *arg7, char *arg8, char *arg9, char *arg10, int
+                       priority, int stackSize)
+
+Spawns/forks a new task/process, passing it up to ten
+command-line arguments.  I<name> is the name of the
+function (VxWorks) or executable image (UNIX) to be executed 
+in the new task/process.
+
+For UNIX, I<name> must be the name of some executable 
+program in the $PATH of the invoking process.
+
+For VxWorks, I<name> must be
+the name of some function named in an application-defined private
+symbol table (if PRIVATE_SYMTAB is defined) or the system symbol
+table (otherwise).  If PRIVATE_SYMTAB is defined, the application must
+provide a suitable adaptation of the symtab.c source file, which
+implements the private symbol table.
+
+"priority" and "stackSize" are ignored under UNIX.  Under VxWorks, if
+zero they default to the values in the application-defined private
+symbol table if provided, or otherwise to ICI_PRIORITY (nominally 100)
+and 32768 respectively.
+
+Returns the task/process ID of the new task/process on
+success, or -1 on any error.
+
+=item void sm_TaskKill(int taskId, int sigNbr)
+
+Sends the indicated signal to the indicated task or process.
+
+=item void sm_TaskDelete(int taskId)
+
+Terminates the indicated task or process.
+
+=item void sm_Abort()
+
+Terminates the calling task or process.  If not called while ION is in
+flight configuration, a stack trace is printed or a core file is written.
+
+=item int pseudoshell(char *script)
+
+Parses I<script> into a command name and up to 10 arguments, then passes the
+command name and arguments to sm_TaskSpawn() for execution.
+The sm_TaskSpawn() function is invoked with priority and stack size both
+set to zero, causing default values (possibly from an application-defined
+private symbol table) to be used.  Tokens in 
+I<script> are normally whitespace-delimited, but a token that is enclosed in
+single-quote characters (') may contain embedded whitespace and may contain
+escaped single-quote characters ("\'").  On any parsing
+failure returns -1; otherwise returns the value returned by sm_TaskSpawn().
+
+=back
+
+=head1 USER'S GUIDE
+
+=over 4
+
+=item Compiling an application that uses "platform":
+
+Just be sure to "#include "platform.h"" at the top of each
+source file that includes any platform function calls.
+
+=item Linking/loading an application that uses "platform":
+
+    a.   In a Solaris environment, link with these libraries:
+
+             -lplatform -socket -nsl -posix4 -c
+
+    b.   In a Linux environment, simply link with platform:
+
+             -lplatform
+
+    c.   In a VxWorks environment, use
+
+             ld 1, 0, "libplatform.o"
+
+	 to load platform on the target before loading applications.
+
+=back
+
+=head1 SEE ALSO
+
+gettimeofday(3C)

@@ -1,0 +1,12 @@
+#Issue 358-CFDP-inactivity
+#Samuel Jero
+#June 26,2012
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.1 x
+a endpoint ipn:1.64 x
+a endpoint ipn:1.65 x
+a protocol stcp 1400 100
+a induct stcp 127.0.0.1:2556 stcpcli
+a outduct stcp 127.0.0.1:2556 stcpclo
+s

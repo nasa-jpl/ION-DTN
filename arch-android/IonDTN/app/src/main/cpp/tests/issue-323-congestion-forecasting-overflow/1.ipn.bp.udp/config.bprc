@@ -1,0 +1,37 @@
+# Config file for issue-323-congestion-forcasting-overflow test
+# Samuel Jero
+# December 1, 2011
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	The scheme's number is 1.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) schemes ONLY.  All other
+#	schemes (dtn for example) should use number -1.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+a endpoint ipn:1.1 x
+a endpoint ipn:1.2 x
+a endpoint ipn:1.3 x
+
+# Add a protocol. 
+a protocol udp 1400 100
+
+# Add an induct. (listen)
+a induct udp 127.0.0.1:4556 udpcli
+
+# Add an outduct. (since one UDP socket can address any IP, use '*' 
+# for the destination address, then this clo can send to any udp cli)
+a outduct udp 127.0.0.1:4556 udpclo
+
+s

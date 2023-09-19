@@ -1,0 +1,124 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 8, 2010
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.udp/amroc.bprc \
+./2.ipn.udp/amroc.ionconfig \
+./2.ipn.udp/global.ionrc \
+./2.ipn.udp/amroc.ionrc \
+./2.ipn.udp/amroc.ionsecrc \
+./2.ipn.udp/amroc.ipnrc \
+./3.ipn.udp/amroc.bprc \
+./3.ipn.udp/amroc.ionconfig \
+./3.ipn.udp/global.ionrc \
+./3.ipn.udp/amroc.ionrc \
+./3.ipn.udp/amroc.ionsecrc \
+./3.ipn.udp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing modifications for issues 325 and 329, bundle replication.
+	This test exercises the partial replication that is done when a bundle
+	is fragmented, i.e., it is split into two bundles containing different
+	portions of the original bundle's payload.  To test this capability,
+	we use bpsendfile to send a file that is larger than a single UDP
+	datagram, from a node whose only convergence-layer adapter is UDP.
+	The file is initially encapsulated in a single bundle, but as udpclo
+	dequeues bundles for transmission it forces that bundle to be fragmented
+	into multiple bundles that are small enough for transmission by UDP;
+	at the destination node, the fragments are reassembled so that the
+	complete orginal bundle payload can be reconstituted and written to
+	the file system by bprecvfile.  The test succeeds if the destination
+	file is identical to the source file."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.udp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.udp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+echo "Starting bprecvfile on node 3..."
+sleep 1
+bprecvfile ipn:3.1 &
+BPCOUNTER_PID=$!
+
+cd ../2.ipn.udp
+echo "Sending file via UDP to ipn:3.1, should be reassembled from fragments..."
+bpsendfile ipn:2.1 ipn:3.1 my.file &
+
+# Wait for transmission to finish.
+echo "Waiting 5 seconds for transmission to finish..."
+sleep 5
+echo "Transmission finished.  Verifying results..."
+
+# Verify file was transmitted.
+RETVAL=0
+
+COUNT=`diff my.file ../3.ipn.udp/testfile1 | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "Bundle was reassembled from fragments."
+else
+	echo "Bundle was NOT successfully reassembled at node 3."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.udp
+./ionstop &
+cd ../3.ipn.udp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Bundle replication test completed."
+exit $RETVAL

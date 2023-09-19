@@ -1,0 +1,7 @@
+wmKey 1
+sdrName ion1
+wmSize 10000000
+configFlags 13
+heapWords 2500000
+logSize 10000000
+pathName '/usr/'

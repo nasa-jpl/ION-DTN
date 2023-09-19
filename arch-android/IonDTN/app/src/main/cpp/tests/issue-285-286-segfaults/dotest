@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# September 17, 2010
+# documentation boilerplate
+CONFIGFILES=" \
+./amroc.ltprc \
+./amroc.bprc \
+./global.ionrc \
+./amroc.ionrc \
+./amroc.ionsecrc \
+./amroc.ipnrc
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that admin command syntax errors which resulted in
+segfault, because they didn't return after SYNTAX_ERROR, no longer do so."
+echo
+echo "CONFIG: Basic initialization, just enough to enable administration."
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Successful if we don't segfault."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start node 9.
+./ionstart
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+echo "Issuing erroneous screening and ownqtime mgt commands in ltpadmin."
+ltpadmin test.ltprc
+sleep 1
+echo "Issuing erroneous heapmax mgt command in ltpadmin."
+bpadmin test.bprc
+sleep 1
+
+RETVAL=0
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop
+killm
+echo "Issue-285-286 test completed."
+exit $RETVAL

@@ -1,0 +1,181 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# May 27, 2014
+#
+# This script tests BIBE encapsulation.  Four nodes (1, 2, 3, 4) are in
+# series.
+#
+# Node 1 is configured to send everything directly to node 2 via LTP.
+#
+# Node 2 is configured:
+#	To use bibe/ipn:3.0 for bundles with destination 4, 5, 6, or 7.
+#	To use ltp/3 for bundles with destination 3.
+#
+# Node 3 is configured:
+#	To use udp/*,127.0.0.0.1:8888 for bundles with destination 5.
+#	(udp/*,127.0.0.1:8888 is the bit bucket.)
+#	To use ltp/4 for bundles with all other destinations.
+#
+# That is, all bundles for destination nodes 4 through 7 are tunneled
+# through node 3, which discards bundles destined for node 5 and forwards
+# all others directly to 4.
+#
+# We send 4 bundles from 1: to destinations 4, 5, 6, and 7, one bundle each.
+# The bundle destined for 4 should be delivered; bundles destined for nodes
+# 6 and 7 should be received at 4 and abandoned there, while the bundle
+# destined for node 5 should be received and abandoned at node 3.
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=2
+echo "Cleaning up old ION..."
+rm -f 1.ipn.ltp/ion.log 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log 
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+PASS=1
+
+# Start nodes.
+cd 1.ipn.ltp
+ionadmin amroc.ionrc
+cd ../2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../4.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../1.ipn.ltp
+ionadmin ../global.ionrc
+cd ../2.ipn.ltp
+ionadmin ../global.ionrc
+cd ../3.ipn.ltp
+ionadmin ../global.ionrc
+cd ../4.ipn.ltp
+ionadmin ../global.ionrc
+
+cd ../1.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../4.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../1.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../4.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../1.ipn.ltp
+bpadmin amroc.bprc
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../4.ipn.ltp
+bpadmin amroc.bprc
+
+cd ..
+
+rm -f 4.ipn.ltp/results.txt
+touch 4.ipn.ltp/results.txt
+
+echo "------------------"
+echo "Starting bpsink on node 4..."
+cd 4.ipn.ltp
+bpsink ipn:4.1 >> results.txt &
+
+sleep 1
+
+cd ../1.ipn.ltp
+
+##############################
+# Send one bundle from node 1 to node 4.
+
+echo -e "\n\n***Sending one bundle from node 1 to node 4.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.1 ipn:4.1 ipn:1.0 3600 0.1 "test_trace4" rcv,ct,fwd,dlv,del
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+##############################
+# Send one bundle from node 1 to node 5.
+
+echo -e "\n\n***Sending one bundle from node 1 to node 5.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.1 ipn:5.1 ipn:1.0 3600 0.1 "test_trace5" rcv,ct,fwd,dlv,del
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+##############################
+# Send one bundle from node 1 to node 6.
+
+echo -e "\n\n***Sending one bundle from node 1 to node 6.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.2 ipn:6.1 ipn:1.0 3600 0.1 "test_trace6" rcv,ct,fwd,dlv,del
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+##############################
+# Send one bundle from node 1 to node 7.
+
+echo -e "\n\n***Sending one bundle from node 1 to node 7.***"
+sleep ${TIMETODISPLAYTEXT}
+
+bptrace ipn:1.3 ipn:7.1 ipn:1.0 3600 0.1 "test_trace4" rcv,ct,fwd,dlv,del
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+echo ""
+
+cd ../4.ipn.ltp
+
+COUNT=`grep "test_trace4" results.txt | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo "ERROR: bundle for node 4 not received."
+        PASS=0
+else
+	echo "Bundle for node 4 was received."
+fi
+
+############################################################
+#   END OF TESTS                ........
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+cd ..
+
+# Give all four nodes time to shut down, then clean up.
+sleep 7
+killm
+echo "Status reports test completed."
+
+if [ $PASS -eq 1 ]
+then
+	exit 0
+else
+	exit 1
+fi

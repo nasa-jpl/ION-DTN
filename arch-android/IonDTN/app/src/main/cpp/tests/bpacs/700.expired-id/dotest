@@ -1,0 +1,43 @@
+#!/bin/bash
+#
+# Copyright (c) 2010, Regents of the University of Colorado.
+#
+
+# Sends an ACS with a custody ID of an expired bundle to the ION node
+# and verifies that the ION node handles this properly.
+
+export PYTHONPATH=`pwd`/..:`pwd`/../../pylib:$PYTHONPATH
+echo "Setting PYTHONPATH to $PYTHONPATH"
+
+FAIL=0
+
+echo "Killing old ION..."
+killm
+rm -f ion.log > /dev/null
+sleep 1
+
+echo "Starting ION..."
+srcdir=`pwd`
+echo ION_LOG="ion.log" "ionstart -I host1.rc"
+ION_LOG="ion.log" "ionstart" -I "host1.rc"
+
+echo "l\nq" | acsadmin
+
+
+# Run the test manifest.
+../test-acs manifest
+FAIL=$?
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+# Check for anything bad in ion.log
+echo "Checking for bad SDR operations in ion.log..."
+if egrep -e '(Transaction aborted|SDR boundaries)' ion.log; then
+    FAIL=1
+fi
+
+echo "return value is $FAIL"
+
+exit $FAIL

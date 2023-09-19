@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# 196-checkforcongestion.sh
+# Greg Menke
+# April 5, 2011
+# copied from 1000.loopback test
+
+# script used in "make test" to ensure ion is functioning properly.
+# script is expected to be run by automake, meaning:
+# 1: Environment variable "srcdir" exists and points to the root directory of
+# the ion source code.
+# 2: The current working directory contains the built programs of ion.
+
+
+
+echo "**** Starting ION..."
+CONFIGDIR="./config"
+ionstart                           \
+    -i ${CONFIGDIR}/196-checkforcongestion.ionrc \
+    -l ${CONFIGDIR}/196-checkforcongestion.ltprc \
+    -b ${CONFIGDIR}/196-checkforcongestion.bprc  \
+    -s ${CONFIGDIR}/196-checkforcongestion.ionsecrc \
+    -p ${CONFIGDIR}/196-checkforcongestion.ipnrc
+
+
+# set contacts & ranges for 30 years from now
+echo "**** Adding contacts & ranges..."
+
+contactfile="/tmp/196-contacts.text"
+
+(
+    curyear=`date +"%Y"`
+
+    date1="2037/4/1-0:0:0"
+    date2="2037/4/1-3:14:15"
+
+    echo > $contactfile
+    echo "a contact ${date1} ${date2} 1 2 10000" >> $contactfile
+    echo "a range ${date1} ${date2} 1 2 1" >> $contactfile
+)
+
+
+# measure how long ionadmin takes to load the contacts and check for congestion
+tbase=`perl -le 'print time()'`
+
+ionadmin < $contactfile
+
+# count number of contact/range lines to make sure we actually loaded something
+echo "l contact" > /tmp/196-cmdfile
+numc=`ionadmin < /tmp/196-cmdfile | grep "From" | wc -l`
+echo "l range" > /tmp/196-cmdfile
+numr=`ionadmin < /tmp/196-cmdfile | grep "From" | wc -l`
+rm -f /tmp/196-cmdfile
+
+tnow=`perl -le 'print time()'`
+
+elapsedsecs=$((tnow-tbase))
+contactlines=$((numc+numr))
+
+# shut down ion processes
+echo "**** Stopping ion..."
+ionstop
+
+echo "**** Checking runtime..."
+
+if [ $contactlines -ge 2 ]; then
+    if [ $elapsedsecs -le 3 ]; then
+        echo "Success, checkforcongestion() did not loop excessively"
+        RETVAL=0
+    else
+        echo "Oh Noes!  checkforcongestion() looped for too long"
+        RETVAL=1
+    fi
+else
+    echo "Oh Noes!  contact/range did not load"
+    RETVAL=2
+fi
+
+# clean up
+rm -f $contactfile
+
+exit $RETVAL
+

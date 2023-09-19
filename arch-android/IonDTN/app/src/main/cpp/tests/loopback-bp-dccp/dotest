@@ -1,0 +1,104 @@
+#!/bin/bash
+#
+# dotest.sh
+# Samuel Jero
+# December 2010
+# 
+# Mostly loopbacktest.sh by David Young
+#
+# script runs a BP over DCCP test
+#
+
+# check if DCCP support was compiled in, return 2 if it wasn't
+DCCPTEST=./dccptest.txt
+DCCPMSG="Usage: "
+dccpclo >>$DCCPTEST
+if ! grep -q $DCCPMSG $DCCPTEST; then
+	echo "DCCP Support isn't available. Test not run."
+	exit 2
+fi
+
+# check if the Operating System is Linux. Return 2 if it isn't
+LINUXCHECK="Linux"
+LINUXTEST=./linuxtest.txt
+uname -o >>$LINUXTEST
+if ! grep -q $LINUXCHECK $LINUXTEST; then
+	echo "DCCP Support isn't available. Test not run."
+	exit 2
+fi
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+echo "Performing a simple loopback test of the DCCP Convergence Layer for BP"
+echo "Starting ION..."
+CONFIGDIR="."
+ionstart  -I ${CONFIGDIR}/loopback-dccp.rc
+
+
+# create the test message in a sent file
+# the exclamation point signals the bundle sender to quit
+echo $IONMESSAGE > $IONSENDFILE
+echo "!" >> $IONSENDFILE
+
+
+# receive the message and store it in a file via test bundle sink
+echo "Starting Message Listener..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 10
+
+
+# send the message in the file via test bundle source
+echo "Sending message..."
+bpsource ipn:1.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+# sleep and kill process in case it didn't end properly
+sleep 10
+echo "Killing bpsource if it is still running..."
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 2
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+
+# compare the sent message to the received one
+if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
+    echo "Oh noes, data corruption!"
+    echo
+    echo "Sent this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONSENDFILE
+    echo "----------------------------------------------------------------------"
+    echo
+    echo "Received this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONRECEIVEFILE
+    echo "----------------------------------------------------------------------"
+    RETVAL=1
+else 
+    echo "bundle transfer successful!"
+    RETVAL=0
+fi
+
+
+# clean up
+#rm -f $IONSENDFILE $IONRECEIVEFILE
+
+
+exit $RETVAL
+

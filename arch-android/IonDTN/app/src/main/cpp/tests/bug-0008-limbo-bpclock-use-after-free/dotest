@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# October 3, 2012
+#
+# This test verifies that bundles in the limbo queue can be successfully deleted
+# by bpclock on lifetime expiration. This ensures that bug-008, "Expiration of Limbo
+# Bundles causes bpclock crash ", is fixed.
+
+
+CONFIGFILES=" \
+./config.ionrc \
+./config.ionconfig \
+./config.bprc \
+./config.ipnrc"
+
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: This test verifies that bundles in the limbo queue can be"
+echo "         successfully deleted by bpclock on lifetime expiration. This"
+echo "         ensures that bug-008, \"Expiration of Limbo Bundles causes"
+echo "         bpclock crash\", is fixed."
+echo
+echo "CONFIG: 1 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+./cleanup
+RETVAL=1
+
+
+#Start ION
+echo "Starting ION..."
+ionadmin config.ionrc
+
+ionsecadmin config.ionsecrc &
+
+bpadmin config.bprc &
+
+ipnadmin config.ipnrc &
+
+../../system_up -i "p 30" -b "p 30"
+
+
+echo "Start sending bundles..."
+bpdriver 10 ipn:1.1 ipn:2.1 -1000 t10
+
+echo "Wait for bundles to expire..."
+sleep 20
+
+log=`grep "Transaction aborted" ion.log | wc -l`
+bundles=`bplist | wc -l`
+echo $bundles
+if [ $log -eq 1 ] || [ $bundles -ne 0 ];then
+	echo "SDR transaction aborted! bpclock crashed! FAILURE!"
+	RETVAL=1
+else
+	echo "ION successfully expired the bundles! SUCCESS!"
+	RETVAL=0
+fi
+
+bpadmin .
+sleep 1
+ionadmin .
+sleep 1
+killm
+exit $RETVAL

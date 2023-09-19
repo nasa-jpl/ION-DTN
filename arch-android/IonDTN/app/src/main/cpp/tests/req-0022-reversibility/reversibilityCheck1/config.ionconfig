@@ -1,0 +1,7 @@
+configFlags 13
+heapWords 25000
+heapKey -1
+logSize 1000000
+pathName '/usr/'
+wmSize 5000000
+wmAddress 0

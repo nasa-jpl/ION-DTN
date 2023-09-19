@@ -1,0 +1,145 @@
+#!/bin/bash
+#
+# Copyright (c) 2009, Regents of the University of Colorado.
+#
+# Written by Andrew Jenkins, based on loopbacktest.sh by David Young
+#
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-udp/loopback.rc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Ping-pongs bundles with custody transfer from on BP endpoint
+	to another over UDP."
+echo
+echo "CONFIG: Standard loopback-udp: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will determine if the required number of
+	bundles were sent and received."
+echo
+echo "########################################"
+
+# Ping pongs bundles with custody transfer from one BP endpoint to another
+# over UDP.
+
+if [ -z $1 ]; then
+    ITERATIONGOAL=5
+else
+    ITERATIONGOAL=$1
+fi
+
+# Guess what ION will say if a bundle containing $1 is received.
+# The extra byte in the length is because bptrace adds a null terminator at 
+# the end (but bpsource does not).  How lame is that?
+predictreceived () {
+    EXLENGTH=`expr ${#1} + 1`
+    echo "ION event: Payload delivered."
+    echo "	payload length is ${EXLENGTH}."
+    echo "	'${1}'"
+}
+
+# Try 10 times to see if the bundle has been received.
+tryreceive () {
+    X=0
+
+    while [ $X -lt 200 ]
+    do
+        # sleep and kill process in case it didn't end properly
+        sleep 0.04 
+
+        # Check if bpsink got the file.
+        if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
+        then
+            X=`expr $X + 1`
+        else
+            # We received it.  Hooray.
+            return 0
+        fi
+    done
+    # We didn't receive it, even after 10 tries; bummer.
+    diff $IONRECEIVEFILE $IONEXPECTEDFILE
+    return 1
+}
+
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+IONEXPECTEDFILE=./ionexpectedfile.txt
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+# Prepare for loop start
+rm -f $IONSENDFILE $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
+PASS=1
+ITERATION=1
+
+echo "Starting ION..."
+srcdir=`pwd`
+CONFIGDIR="${CONFIGSROOT}/loopback-udp"
+echo "ionstart -I ${CONFIGDIR}/loopback.rc"
+"ionstart" -I "${CONFIGDIR}/loopback.rc"
+
+# Start the listener that will receive all the bundles.
+echo "Starting Message Listener..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 5
+
+while [ ${PASS} -eq 1 ] && [ ! $ITERATION -gt $ITERATIONGOAL ]
+do
+    IONMESSAGE=$( date )
+    
+    # send the message in the file via test bundle source
+    bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE" 31
+
+    # Predict what should come out the other end.
+    predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
+
+    if tryreceive 
+    then
+        echo -n "."
+        if [ `expr $ITERATION % 80` -eq 0 ]
+        then
+            echo $ITERATION
+        fi
+        ITERATION=`expr $ITERATION + 1`
+    else
+        PASS=0
+        echo "FAILED on ITERATION $ITERATION at `date`."
+    fi
+done
+
+echo
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "Stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+if [ $ITERATION -eq `expr $ITERATIONGOAL + 1` ]
+then
+    echo Completed `expr $ITERATION - 1` iterations successfully
+    exit 0
+else
+    exit 1
+fi

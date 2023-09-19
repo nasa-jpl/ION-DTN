@@ -95,6 +95,10 @@ instance, jstring absoluteConfigPath_) {
 
     /* Run ionadmin. */
     isprintf(cmd, sizeof cmd, "ionadmin %s/node.ionrc", absoluteConfigPath);
+    // Jay L. Gao: print debug statement
+    __android_log_print(ANDROID_LOG_INFO, "IonConfig",
+                        "Issue command: %s",
+                        cmd);
     pseudoshell(cmd);
     snooze(5);
 
@@ -303,6 +307,8 @@ Java_gov_nasa_jpl_iondtn_backend_NativeAdapter_stopION(JNIEnv
 
     snooze(1);
 
+    // Jay Gao: change per same file in 3.7.0
+    //clearPosixTask();
     sm_TasksClear();
 
     return (*env)->NewStringUTF(env, result);

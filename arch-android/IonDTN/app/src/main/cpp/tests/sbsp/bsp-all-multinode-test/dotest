@@ -1,0 +1,451 @@
+#!/bin/bash
+#
+# Based off earlier test by Scott Burleigh
+# April 12, 2010
+#
+# Adapted to BSP, Ryan Brown
+# August 2011
+
+TIMETODISPLAYTEXT=2
+TIMETOWAITFORTESTFINISH=5
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log 
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+PASS=1
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../4.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin ../global.ionrc
+cd ../3.ipn.ltp
+ionadmin ../global.ionrc
+cd ../4.ipn.ltp
+ionadmin ../global.ionrc
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc
+cd ../4.ipn.ltp
+ionsecadmin amroc.ionsecrc
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc
+cd ../4.ipn.ltp
+ltpadmin amroc.ltprc
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc
+cd ../3.ipn.ltp
+bpadmin amroc.bprc
+cd ../4.ipn.ltp
+bpadmin amroc.bprc
+
+cd ..
+
+rm -f 3.ipn.ltp/3_receive_file.txt
+rm -f 3.ipn.ltp/3_results.txt
+touch 3.ipn.ltp/3_receive_file.txt
+touch 3.ipn.ltp/3_results.txt
+
+echo "Starting bpsink on node 3..."
+cd 3.ipn.ltp
+
+bpsink ipn:3.1 >> 3_results.txt &
+cd ..
+
+sleep 1
+
+#############
+# Test 1 ....
+
+cd 2.ipn.ltp
+echo -e "\n\n\n\n\n*****TEST 1*****"
+echo "Sending bundle (no security blocks) to ipn:3.1, should be delivered..."
+sleep ${TIMETODISPLAYTEXT}
+# Send first bundle from node 2 to node 3 requesting all status reports.
+# Bundle is sent to endpoint ipn:3.1, on which bpsink is listening, so
+# it should be delivered.
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test_trace" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "test_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+
+echo "'test_trace'" >> expected.txt
+
+if ! diff -w expected.txt 3.ipn.ltp/3_receive_file.txt
+then
+	echo "FAIL (test 1)"
+	PASS=0
+else
+	echo "SUCCESS (test 1)"
+fi
+
+
+#########
+# Test 2
+
+echo -e "\n\n\n\n\n*****TEST 2*****"
+echo -e "Sending bundle with all security blocks to ipn:3.1, s/b delivered..."
+sleep ${TIMETODISPLAYTEXT}
+cd 2.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a key key1 key1.hmk 
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../3.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a key key1 key1.hmk
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test2_trace" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "test2_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+echo "'test2_trace'" >> expected.txt
+
+if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
+then
+	echo "FAIL (test2)"
+	PASS=0
+else 
+	echo "SUCCESS (test2)"
+fi
+
+#############
+# Test 3 ....
+
+echo -e "\n\n\n\n\n*****TEST 3*****"
+echo -e "Send bundle with all security blocks to ipn:3.1 but where"
+echo -e "node 3 has the wrong key for every security block, s/b rejected..."
+sleep ${TIMETODISPLAYTEXT}
+cd 2.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a key key2 key2.hmk 
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key2
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key2
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key2
+ENDOFIONSECADMINCOMMANDS
+
+cd ../3.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test3_trace" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "test3_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+echo "'test3_trace'" >> expected.txt
+
+if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
+then
+	echo "SUCCESS (test3)"
+else 
+	echo "FAIL (test3)"
+	PASS=0
+fi
+
+#############
+# Test 4 ....
+
+echo -e "\n\n\n\n\n*****TEST 4*****"
+echo -e "Clear security rules, send bundle without security blocks again (should deliver)"
+sleep ${TIMETODISPLAYTEXT}
+cd 2.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+ENDOFIONSECADMINCOMMANDS
+
+cd ../3.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+ENDOFIONSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+bptrace ipn:2.1 ipn:3.1 ipn:2.0 5 0.1 "test4_trace" rcv,ct,fwd,dlv,del
+cd ..
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+grep "test4_trace" 3.ipn.ltp/3_results.txt > 3.ipn.ltp/3_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+echo "'test4_trace'" >> expected.txt
+
+if ! diff -w expected.txt ./3.ipn.ltp/3_receive_file.txt
+then
+	echo "FAIL (test4)"
+	PASS=0
+else
+	echo "SUCCESS (test4)"
+fi
+
+#############
+# Test 5 
+#
+# This test consists of passing a huge file protected by bib.
+# In this case we will use a script to generate a ~4MB file.
+
+echo -e "\n\n\n\n\n*****TEST 5*****"
+echo -e "Restore consistent rules, send BIG bundle with all security blocks (should deliver)"
+sleep ${TIMETODISPLAYTEXT}
+cd 2.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../3.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:3.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:3.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+bprecvfile ipn:3.2 &
+
+cd ../2.ipn.ltp
+
+# Create a ~4 MB file
+# 2^22 = ~ 4MB.  Do _NOT_ run this script with a large number
+perl file_make.pl 10
+ 
+# Send the ~4 MB file
+bpsendfile ipn:2.1 ipn:3.2 hugefile.big
+
+# Wait 2 seconds while it transfers
+sleep ${TIMETOWAITFORTESTFINISH}
+
+cd ..
+
+PROGRAMTEST="stat"
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no stat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+	echo "${PROGRAMTEST} is not present in this system; using ls"
+# ls -l on solaris (and other platforms) puts the byte size in the 5th column
+# of output and we use sed to eliminate long strings of whitespace since cut
+# is fragile and interprets each instance of space as a delimiter
+# IF ls changes its column order, this will break, but it is only a fallback.
+	RECV_SIZE=`ls -1l 3.ipn.ltp/testfile1 | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
+	SEND_SIZE=`ls -1l 2.ipn.ltp/hugefile.big | sed 's/ [ ]*/ /g' | cut -d' ' -f5`
+else
+	RECV_SIZE=`stat -c %s 3.ipn.ltp/testfile1`
+	SEND_SIZE=`stat -c %s 2.ipn.ltp/hugefile.big`
+fi
+
+echo "Receive size: $RECV_SIZE; Send size: $SEND_SIZE"
+if [ "$RECV_SIZE" = "$SEND_SIZE" ] 
+then
+	echo "SUCCESS (test5)" 
+else
+	echo "FAIL (test5)"
+	PASS=0
+fi
+
+rm -f 2.ipn.ltp/hugefile.big
+rm -f 3.ipn.ltp/testfile1
+
+##############################
+# Test 6
+# Send bundle from node 2 to 4 via node 3 with BABs at each point, requesting all status reports.
+# Bundle is sent to endpoint ipn:4.1, on which bpsink is listening, so
+# it should be delivered.
+
+rm -f 4.ipn.ltp/4_receive_file.txt
+rm -f 4.ipn.ltp/4_results.txt
+touch 4.ipn.ltp/4_receive_file.txt
+touch 4.ipn.ltp/4_results.txt
+
+echo -e "\n\n***3 node Tests***"
+echo "------------------"
+echo "Starting bpsink on node 4..."
+cd 4.ipn.ltp
+bpsink ipn:4.1 >> 4_results.txt &
+cd ..
+
+sleep 1
+
+echo -e "\n\n\n*****TEST 6*****"
+echo -e "Sending Bundle with BAB, BCB, BIB to ipn:4.1 from ipn:2.1. This will pass through node ipn:3.1 who doesn't have bib or bcb key..it should still be forwarded.\nBAB blocks are authenticated at each hop.  This should deliver."
+sleep ${TIMETODISPLAYTEXT}
+cd 2.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../3.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbabrule ipn:3.* ipn:4.* 'BAB-HMAC-SHA1' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../4.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a key key1 key1.hmk
+a bspbabrule ipn:3.* ipn:4.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+bptrace ipn:2.1 ipn:4.1 ipn:2.0 5 0.1 "test_trace6" rcv,ct,fwd,dlv,del
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+cd ..
+
+grep "test_trace6" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+
+echo "'test_trace6'" >> expected.txt
+
+if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
+then   
+        echo "FAIL (test 6)"
+        PASS=0
+else   
+        echo "SUCCESS (test 6)"
+fi
+
+##############################
+# Test 7
+# Same as test 6, but with an
+# anonymous bundle (no source id!)
+
+echo -e "\n\n\n*****TEST 7*****"
+echo "Sending Bundle with all blocks from ANONYMOUS bpsource on node 2 to ipn:4.1 via node 3. BAB should be authenticated at each hop, BIB and BCB at the destination. The bundle should be delivered."
+sleep ${TIMETODISPLAYTEXT}
+cd 2.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../3.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:2.* ipn:3.* 'BAB-HMAC-SHA1' key1
+a bspbabrule ipn:3.* ipn:4.* 'BAB-HMAC-SHA1' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../4.ipn.ltp
+ionsecadmin<<ENDOFIONSECADMINCOMMANDS
+x
+a bspbabrule ipn:3.* ipn:4.* 'BAB-HMAC-SHA1' key1
+a bspbibrule ipn:2.* ipn:4.* 1 'BIB-HMAC-SHA256' key1
+a bspbcbrule ipn:2.* ipn:4.* 1 'BCB-ARC4-AES128' key1
+ENDOFIONSECADMINCOMMANDS
+
+cd ../2.ipn.ltp
+bpsource ipn:4.1 "test_trace7"
+
+sleep ${TIMETOWAITFORTESTFINISH}
+
+cd ..
+
+grep "test_trace7" 4.ipn.ltp/4_results.txt > 4.ipn.ltp/4_receive_file.txt
+
+echo ""
+rm -f expected.txt
+touch expected.txt
+
+echo "'test_trace7'" >> expected.txt
+
+if ! diff -w expected.txt 4.ipn.ltp/4_receive_file.txt
+then   
+        echo "FAIL (test 7)"
+        PASS=0
+else   
+        echo "SUCCESS (test 7)"
+fi
+
+############################################################
+#   END OF TESTS                ........
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd 2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+cd ..
+
+# Give all three nodes time to shut down, then clean up.
+sleep 7
+killm
+echo "Status reports test completed."
+
+if [ $PASS -eq 1 ]
+then
+	exit 0
+else
+	exit 1
+fi

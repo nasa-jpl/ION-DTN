@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,6 +20,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+// Jay L. Gao
+import java.nio.file.FileAlreadyExistsException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+//Jay L. Gao
+import android.os.Handler;
 
 import gov.nasa.jpl.iondtn.DtnBundle;
 import gov.nasa.jpl.iondtn.IBundleReceiverListener;
@@ -28,14 +36,33 @@ public class MainActivity extends AppCompatActivity {
     private gov.nasa.jpl.iondtn.IBundleService mService;
     boolean subscribed = false;
 
+    //Jay L. Gao: add handler in the main UI thread (mainactivity) to repeatedly send bundle
+    private Handler mHandler = new Handler();
+
     String received = "Received:\n\n";
 
     Button buttonSend;
     Button buttonSubUnsub;
     TextView textViewReceive;
+    // Jay L. Gao: add the scroll view from main activity xml
+    ScrollView receivedScrollView;
     EditText editTextPayload;
     EditText editTextDestEid;
     EditText editTextSinkId;
+    // Jay L. Gao: Read in number of payloads to send
+    EditText numPayloadToSend;
+    // Jay L. Gao: regex to detect the command strlen and the number of character per payload
+    String regex_keyword = "^strlen=";
+    String regex_num = "[0-9]+";
+    Pattern keywordPattern = Pattern.compile(regex_keyword);
+    Pattern numberPattern = Pattern.compile(regex_num);
+    // Jay L. Gao: counter of received Payload
+    int receivedPayloadCount = 0;
+    // Jay L. Gao: counter of Payload to sent and already sent during current cycle
+    int countPayloadToSend = 0;
+    int countPayloadAlreadySent = 0;
+    int sendIntervalMSec = 100;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,10 +72,14 @@ public class MainActivity extends AppCompatActivity {
         // Bind GUI elements to the xml resources
         buttonSend = findViewById(R.id.buttonSend);
         buttonSubUnsub = findViewById(R.id.buttonSubUnsub);
+        // Jay L. Gao: add scroll view
+        receivedScrollView = findViewById(R.id.receivedScrollView);
         textViewReceive = findViewById(R.id.textViewReceive);
         editTextPayload = findViewById(R.id.editTextPayload);
         editTextDestEid = findViewById(R.id.editTextDestEid);
         editTextSinkId = findViewById(R.id.editTextSinkId);
+        // Jay L. Gao
+        numPayloadToSend = findViewById(R.id.editTextNumberSigned7);
 
         // Disable all GUI elements
         buttonSend.setEnabled(false);
@@ -56,9 +87,12 @@ public class MainActivity extends AppCompatActivity {
         editTextPayload.setEnabled(false);
         editTextSinkId.setEnabled(false);
         editTextDestEid.setEnabled(false);
+        // Jay L. Gao
+        numPayloadToSend.setEnabled(false);
 
         // Set the start value for the receiving output
         textViewReceive.setText(received);
+
 
         // Set the OnClickListener for the send button
         buttonSend.setOnClickListener(new View.OnClickListener() {
@@ -81,49 +115,15 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                try {
-                    // Check if the service is available, abort action if not
-                    if (mService == null) {
-                        Toast.makeText(getApplicationContext(), "Service not " +
-                                "available! Reconnecting! Try again!", Toast
-                                .LENGTH_LONG).show();
-                        bindBundleService();
-                        return;
-                    }
+                // Reset the payload text field (intuitive user
+                // experience, sent -> gone)
+                // Jay L. Gao: don't clear text to reduce typing
+                // editTextPayload.setText("");
 
-                    // Create new bundle to transmit
-                    DtnBundle b = new DtnBundle(
-                            editTextDestEid.getText().toString(),
-                            0,
-                            300,
-                            DtnBundle.Priority.BULK,
-                            editTextPayload.getText().toString()
-                                    .getBytes("UTF-8"));
+                // start repeating task here
+                // disable the button?
+                startRepeatingSend();
 
-                    // Use the bundleService interface to send the data to
-                    // the IonDTN provider application
-                    if (!mService.sendBundle(b)) {
-                        Toast.makeText(getApplicationContext(), "Service not " +
-                                "available!", Toast.LENGTH_LONG).show();
-                    }
-
-                    // Reset the payload text field (intuitive user
-                    // experience, sent -> gone)
-                    editTextPayload.setText("");
-
-                }
-                // Catch exceptions if UTF-8 is not available or the service
-                // disconnected unexpectedly
-                catch (UnsupportedEncodingException e) {
-                    Log.e(TAG, "onClick: UTF-8 encoding seems not to be " +
-                            "available on this platform");
-                    Toast.makeText(getApplicationContext(), "Failed to send bundle!", Toast
-                            .LENGTH_SHORT).show();
-                }
-                catch (RemoteException e) {
-                    Toast.makeText(getApplicationContext(), "Failed to send bundle!", Toast
-                            .LENGTH_SHORT).show();
-                }
             }
         });
 
@@ -168,6 +168,9 @@ public class MainActivity extends AppCompatActivity {
                         editTextPayload.setEnabled(false);
                         editTextSinkId.setEnabled(false);
                         editTextDestEid.setEnabled(false);
+                        // Jay L. Gao
+                        numPayloadToSend.setEnabled(false);
+
                         e.printStackTrace();
                         Toast.makeText(getApplicationContext(), "Failed to " +
                                 "use Service! Reconnecting!", Toast
@@ -198,7 +201,101 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
     }
+
+    // Jay L. Gao: this will start repeating a number of bundle transmission
+    private void startRepeatingSend() {
+        // set the number of payload to sent for the current cycle
+        countPayloadToSend = Integer.parseInt(numPayloadToSend.getText().toString());
+        countPayloadAlreadySent = 0;
+        // disable button so payload cannot be sent until cycle is over
+        buttonSend.setEnabled(false);
+        // start repeating task
+        mHandler.postDelayed(mSendPayloadRunnable, sendIntervalMSec);
+    }
+
+    private void stopRepeatingSend(){
+        mHandler.removeCallbacks(mSendPayloadRunnable);
+        buttonSend.setEnabled(true);
+    }
+
+    // Jay L. Gao:
+
+
+    // Jay L. Gao: create runnable to repeat bundle transmission
+    private Runnable mSendPayloadRunnable = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                // Check if the service is available, abort action if not
+                if (mService == null) {
+                    Toast.makeText(getApplicationContext(), "Service not " +
+                            "available! Reconnecting! Try again!", Toast
+                            .LENGTH_LONG).show();
+                    bindBundleService();
+                    return;
+                }
+                // Jay L. Gao: determine if there is payload command
+                String payloadStr = editTextPayload.getText().toString();
+                Matcher k = keywordPattern.matcher(payloadStr);
+                if (k.find()) {
+                    Log.d("PayloadCommandString:", "Yes");
+                    Matcher n = numberPattern.matcher(payloadStr);
+                    if (n.find()) {
+                        int payloadLength = Integer.parseInt(n.group(0));
+                        StringBuilder buf = new StringBuilder();
+                        Log.d("PayloadCommandLength:", String.valueOf(payloadLength));
+                        // construct a string of length
+                        for (int i = 1; i <= payloadLength; i++) {
+                            buf.append("a");
+                        }
+                        payloadStr = buf.toString();
+                    }
+                }
+
+                // Jay L. Gao: start a for loop
+                //Create new bundle to transmit
+                DtnBundle b = new DtnBundle(
+                        editTextDestEid.getText().toString(),
+                        0,
+                        300,
+                        DtnBundle.Priority.BULK,
+                        payloadStr.getBytes("UTF-8"));
+
+                // Use the bundleService interface to send the data to
+                // the IonDTN provider application
+                if (!mService.sendBundle(b)) {
+                    Toast.makeText(getApplicationContext(), "Service not " +
+                            "available!", Toast.LENGTH_LONG).show();
+                }
+
+                // increment counter and stop if
+                countPayloadAlreadySent = countPayloadAlreadySent + 1;
+                Log.d("Answer: ", String.valueOf(countPayloadAlreadySent));
+                // should we stop?
+                if(countPayloadAlreadySent < countPayloadToSend) {
+                    mHandler.postDelayed(this, sendIntervalMSec);
+                }
+                else {
+                    stopRepeatingSend();
+                }
+            }
+
+            // Catch exceptions if UTF-8 is not available or the service
+            // disconnected unexpectedly
+            catch (UnsupportedEncodingException e) {
+                Log.e(TAG, "onClick: UTF-8 encoding seems not to be " +
+                        "available on this platform");
+                Toast.makeText(getApplicationContext(), "Failed to send bundle!", Toast
+                        .LENGTH_SHORT).show();
+            }
+            catch (RemoteException e) {
+                Toast.makeText(getApplicationContext(), "Failed to send bundle!", Toast
+                        .LENGTH_SHORT).show();
+            }
+        }
+    };
 
     @Override
     protected void onStart() {
@@ -233,6 +330,8 @@ public class MainActivity extends AppCompatActivity {
             editTextPayload.setEnabled(false);
             editTextSinkId.setEnabled(false);
             editTextDestEid.setEnabled(false);
+            // Jay L. Gao
+            numPayloadToSend.setEnabled(false);
 
             if (subscribed) {
                 try {
@@ -259,14 +358,27 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public int notifyBundleReceived(gov.nasa.jpl.iondtn.DtnBundle b) throws
                 RemoteException {
+            // Jay L. Gao: clear received string
+            received = "";
             // Check which payload type the bundle encapsulates
             if (b.getPayloadType() == gov.nasa.jpl.iondtn.DtnBundle.payload_type
                     .BYTE_ARRAY) {
                 try {
                     // Receive the data from the bundle and extract the
                     // ByteArray directly
-                    received += "Source: " + b.getEID() + " Payload: ";
-                    received += new String(b.getPayloadByteArray(), "UTF-8");
+                    // Jay L. Gao: add count, short display, add length
+                    receivedPayloadCount++;
+                    String payloadText = new String(b.getPayloadByteArray(), "UTF-8");
+                    int payloadSize = payloadText.length();
+                    received += String.format("Source: %s, Count: %d, ", b.getEID(), receivedPayloadCount);
+                    received += String.format(" size: %d, Payload: ",payloadSize);
+                    if (payloadSize > 15) {
+                        received += payloadText.substring(0,15);
+                    }
+                    else
+                    {
+                        received += payloadText;
+                    }
                     received += "\n";
 
                     // Update the GUI
@@ -274,6 +386,8 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             textViewReceive.setText(received);
+                            // Jay L. Gao: makes sure scroll view rolls to bottom to show new content
+                            receivedScrollView.fullScroll(ScrollView.FOCUS_DOWN);
                         }
                     });
                 }
@@ -291,9 +405,19 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     // Receive the data from the bundle and extract the
                     // FileDescriptor of the actual data file
+                    // Jay L. Gao: for large payload, it will not be received as byte array
+                    //             but handled here as (file?)
+                    receivedPayloadCount++;
                     while ((line = br.readLine()) != null) {
-                        received += "Source: " + b.getEID() + " Payload: ";
-                        received += line;
+                        received += "Source: " + b.getEID() + ", Count: " + String.valueOf(receivedPayloadCount);
+                        received += ", Size: " + String.valueOf(line.length()) + ", Line: ";
+                        if (line.length() > 15){
+                            received += line.substring(0,15);
+                        }
+                        else
+                        {
+                            received += line;
+                        }
                         received += "\n";
                     }
                 }
@@ -305,7 +429,10 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+
                         textViewReceive.setText(received);
+                        // Jay L. Gao: makes sure scroll view rolls to bottom to show new content
+                        receivedScrollView.fullScroll(ScrollView.FOCUS_DOWN);
                     }
                 });
             }
@@ -327,6 +454,8 @@ public class MainActivity extends AppCompatActivity {
             editTextPayload.setEnabled(true);
             editTextSinkId.setEnabled(true);
             editTextDestEid.setEnabled(true);
+            // Jay L. Gao
+            numPayloadToSend.setEnabled(true);
         }
 
         @Override

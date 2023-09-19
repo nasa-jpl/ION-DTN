@@ -1,0 +1,166 @@
+=head1 NAME
+
+dtpcrc - Delay-Tolerant Payload Conditioning management commands file
+
+=head1 DESCRIPTION
+
+DTPC management commands are passed to B<dtpcadmin> either in a file of
+text lines or interactively at B<dtpcadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.  The formats
+and effects of the DTPC management commands are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by dtpcadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<1>
+
+The B<initialize> command.  Until this command is executed, DTPC is not
+in operation on the local ION node and most I<dtpcadmin> commands will fail.
+
+=item B<a profile> I<profileID> I<maxRtx> I<aggrSizeLimit> I<aggrTimeLimit> I<TTL> I<class_of_service> I<report_to_endpointID> [I<statusReportFlags>]
+
+The B<add profile> command.  This command notes the definition of a single
+DPTC transmission profile.  A transmission profile asserts the BP and DTPC
+configuration parameter values that will be applied to all application
+data items (encapsulated in DTPC application data units and transmitted in
+bundles) that are issued subject to this profile.  Transmission profiles are
+globally defined; all transmission profiles must be provided, with identical
+parameter values, to all inter-communicating DTPC protocol entities.
+
+I<profileID> must be the positive integer that uniquely defines the profile.
+
+I<maxRtx> is the maximum number of times any single DTPC ADU transmitted
+subject to the indicated profile may be retransmitted by the DTPC entity.  If
+I<maxRtx> is zero, then the DTPC transport service features (in-order delivery,
+end-to-end acknowledgment, etc.) are disabled for this profile.
+
+I<aggrSizeLimit> is the size threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If I<aggrSizeLimit> is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.
+
+I<aggrTimeLimit> is the time threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If I<aggrTimeLimit> is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.
+
+I<class_of_service> is the class-of-service string as defined for bptrace(1).
+
+I<report_to_endpointID> identifies the BP endpoint to which all status
+reports generated from bundles transmitted subject to this profile will
+be sent.
+
+I<statusReportFlags>, if present, must be a sequence of status report flags,
+separated by commas, with no embedded whitespace.  Each status report flag
+must be one of the following: rcv, ct, fwd, dlv, del.
+
+=item B<d profile> I<profileId>
+
+The B<delete profile> command.  This command erases the definition of the
+DTPC transmission profile identified by I<profileId>.
+
+=item B<i profile> I<profileId>
+
+This command will print information (all configuration parameters)
+about the profile identified by I<profileId>.
+
+=item B<l profile>
+
+This command lists all known DTPC transmission profiles.
+
+=item B<s>
+
+The B<start> command.  This command starts the DTPC clock and daemon tasks
+for the local BP node.
+
+=item B<x>
+
+The B<stop> command.  This command stops all DTPC tasks and notifies all
+DTPC applications that DTPC service has been stopped.
+
+=item B<w> { 0 | 1 | <activity_spec> }
+
+The B<DTPC watch> command.  This command enables and disables production of
+a continuous stream of user-selected DTPC activity indication characters.  A
+watch parameter of "1" selects all DTPC activity indication characters; "0"
+de-selects all DTPC activity indication characters; any other I<activity_spec>
+such as "o<r>" selects all activity indication characters in the string,
+de-selecting all others.  DTPC will print each selected activity indication
+character to B<stdout> every time a processing event of the associated type
+occurs:
+
+B<o>	new aggregator created for profile and destination endpoint
+
+B<\<>	new ADU aggregation initiated
+
+B<r>	application data item added to aggregation
+
+B<\>>	aggregation complete, outbound ADU created
+
+B<->	outbound ADU sent via BP
+
+B<l>	ADU end-to-end acknowledgment sent
+
+B<m>	ADU deleted due to TTL expiration
+
+B<n>	ADU queued for retransmission
+
+B<i>	inbound ADU collector created
+
+B<u>	inbound ADU received
+
+B<v>	ADU sequence gap detected
+
+B<?>	inbound ADU discarded
+
+B<*>	ADU sequence gap deleted due to impending ADU TTL expiration
+
+B<$>	inbound ADU collector reset
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item a profile 5 6 1000000 5 3600 0.1 dtn:none
+
+Notes the definition of DTPC transmission profile 5: transport services are
+enabled, with an end-to-end retransmission limit of 5; transmission
+optimization service is enabled, initiating bundle transmission whenever
+the aggregation of data items queued for transmission subject to this
+profile exceeds one million bytes or is more than five seconds old; the
+transmitted bundles will have one-hour lifetime, will not be subject to
+custody transfer, will be sent at "standard" priority, and will not be
+tracked by any bundle status report production.
+
+=back
+
+=head1 SEE ALSO
+
+dtpcadmin(1), bptrace(1)

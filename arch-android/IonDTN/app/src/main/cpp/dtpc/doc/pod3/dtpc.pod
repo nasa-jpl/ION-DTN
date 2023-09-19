@@ -1,0 +1,159 @@
+=head1 NAME
+
+dtpc - Delay-Tolerant Payload Conditioning (DTPC) communications library
+
+=head1 SYNOPSIS
+
+    #include "dtpc.h"
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+The dtpc library provides functions enabling application software to use
+Delay-Tolerant Payload Conditioning (DTPC) when exchanging information over a
+delay-tolerant network.  DTPC is an application service protocol, running in
+a layer immediately above Bundle Protocol, that offers delay-tolerant support
+for several end-to-end services to applications that may require them.  These
+services include delivery of application data items in transmission (rather
+than reception) order; detection of reception gaps in the sequence of
+transmitted application data items, with end-to-end negative acknowledgment
+of the missing data; end-to-end positive acknowledgment of successfully
+received data; end-to-end retransmission of missing data, driven either by
+negative acknowledgment or timer expiration; suppression of duplicate
+application data items; aggregation of small application data items into
+large bundle payloads, to reduce bundle protocol overhead; and
+application-controlled elision of redundant data items in aggregated payloads,
+to improve link utiliization.
+
+=over 4
+
+=item int dptc_attach( )
+
+Attaches the application to DTPC functionality on the local computer.  Returns
+0 on success, -1 on any error.
+
+=item void dptc_detach( )
+
+Terminates all access to DTPC functionality on the local computer.
+
+=item int dtpc_entity_is_started( )
+
+Returns 1 if the local DTPC entity has been started and not yet stopped,
+0 otherwise.
+
+=item int dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn, DtpcSAP *dtpcsapPtr)
+
+Establishes the application as the sole authorized client for posting and
+receiving application data items on topic I<topicID> within the local BP
+node.  On success, the service access point for posting and receiving such
+data items is placed in I<*dtpcsapPtr>, the elision callback function
+I<elisionFn> (if not NULL) is associated with this topic, and 0 is returned.
+Returns -1 on any error.
+
+=item int dtpc_send(unsigned int profileID, DtpcSAP sap, char *destEid, unsigned int maxRtx, unsigned int aggrSizeLimit, unsigned int aggrTimeLimit, int lifespan, BpAncillaryData *ancillaryData, unsigned char srrFlags, BpCustodySwitch custodySwitch, char *reportToEid, int classOfService, Object item, unsigned int length)
+
+Inserts an application data item into an outbound DTPC application data unit
+destined for I<destEid>.
+
+Transmission of that outbound ADU will be subject to the profile identified
+by I<profileID>, as asserted by dtpcadmin(1), if I<profileID> is non-zero.  In
+that case, I<maxRtx>, I<aggrSizeLimit>, I<aggrTimeLimit>, I<lifespan>,
+I<ancillaryData>, I<srrFlags>, I<custodySwitch>, I<reportToEid>, and
+I<classOfService> are ignored.
+
+If I<profileID> is zero then the profile asserted by dtpcadmin(1) that matches
+I<maxRtx>, I<aggrSizeLimit>, I<aggrTimeLimit>, I<lifespan>, I<ancillaryData>,
+I<srrFlags>, I<custodySwitch>, I<reportToEid>, and I<classOfService> will
+govern transmission of the ADU, unless no such profile has been asserted,
+in which case dtpc_send() returns 0 indicating user error.
+
+I<maxRtx> is the maximum number of times any single DTPC ADU transmitted
+subject to the indicated profile may be retransmitted by the DTPC entity.  If
+I<maxRtx> is zero, then the DTPC transport service features (in-order delivery,
+end-to-end acknowledgment, etc.) are disabled for this profile.
+
+I<aggrSizeLimit> is the size threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If I<aggrSizeLimit> is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.
+
+I<aggrTimeLimit> is the time threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If I<aggrTimeLimit> is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.
+
+I<lifespan>, I<ancillaryData>, I<srrFlags>, I<custodySwitch>, I<reportToEid>,
+and I<classOfService> are as defined for bp_send (see bp(3)).
+
+I<item> must be an object allocated within ION's SDR "heap", and I<length>
+must be the length of that object.  The item will be inserted into the outbound
+ADU's list of data items posted for the topic associated with I<sap>, and
+the elision callback function declared for I<sap> (if any, and if the
+applicable profile does not disable transmission optimization features)
+will be invoked immediately after insertion of the application data item
+but before DTPC makes any decision on whether or not to initiate transmission
+of the outbound ADU.
+
+The function returns 1 on success, 0 on any user application error, -1 on
+any system error.
+
+=item int dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
+
+Receives a single DTPC application data item, or reports on some failure of
+DTPC reception activity.
+
+The "result" field of the dlvBuffer structure will be used to indicate the
+outcome of the data reception activity.
+
+If at least one application data item on the topic associated with I<sap>
+has not yet been delivered to the SAP, then the payload of the oldest such
+item will be returned in I<dlvBuffer>->I<item> and I<dlvBuffer>->I<result>
+will be set to PayloadPresent.  If there is no such item, dtpc_receive()
+blocks for up to I<timeoutSeconds> while waiting for one to arrive.
+
+If I<timeoutSeconds> is DTPC_POLL (i.e., zero) and no application data item is
+awaiting delivery, or if I<timeoutSeconds> is greater than zero but no item
+arrives before I<timeoutSeconds> have elapsed, then I<dlvBuffer>->I<result>
+will be set to ReceptionTimedOut.  If I<timeoutSeconds> is DTPC_BLOCKING
+(i.e., -1) then bp_receive() blocks until either an item arrives or the
+function is interrupted by an invocation of dtpc_interrupt().
+
+I<dlvBuffer>->I<result> will be set to ReceptionInterrupted in the event
+that the calling process received and handled some signal other than SIGALRM
+while waiting for a bundle.
+
+I<dlvBuffer>->I<result> will be set to DtpcServiceStopped in the event
+that DTPC service has been terminated on the local node.
+
+The application data item delivered in the DTPC delivery structure, if
+any, will be an object allocated within ION's SDR "heap"; the length of
+that object will likewise be provided in the DtpcDelivery structure.
+
+Be sure to call dtpc_release_delivery() after every successful invocation of
+dtpc_receive().
+
+The function returns 0 on success, -1 on any error.
+
+=item void dtpc_interrupt(DtpcSAP sap)
+
+Interrupts a dtpc_receive() invocation that is currently blocked.  This
+function is designed to be called from a signal handler; for this purpose,
+I<sap> may need to be obtained from a static variable.
+
+=item void dtpc_release_delivery(DtpcDelivery *dlvBuffer)
+
+Releases resources allocated to the indicated DTPC delivery.
+
+=item void dtpc_close(DtpcSAP sap)
+
+Removes the application as the sole authorized client for posting and
+receiving application data items on the topic indicated in I<sap> within the
+local BP node.  The application relinquishes its ability to send and
+receive application data items on the indicated topic.
+
+=back
+
+=head1 SEE ALSO
+
+dtpcadmin(1), dtpcrc(5), bp(3)

@@ -1,0 +1,231 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 12, 2010
+
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./5.ipn.ltp/amroc.ltprc \
+./5.ipn.ltp/amroc.bprc \
+./5.ipn.ltp/amroc.ionconfig \
+./5.ipn.ltp/global.ionrc \
+./5.ipn.ltp/amroc.ionrc \
+./5.ipn.ltp/amroc.ionsecrc \
+./5.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test out the functionality of LTP Purge.  Described in issue
+	173, an option is added to cancel all LTP sessions when the contact
+	time period is over.  This allows bundles mid-transfer to be re-inserted
+	into the routing engine, where they can be reforwarded on a different
+	and possibly more-efficient path immediately.  Otherwise bundles would
+	normally sit in the LTP session awaiting completion when the LTP contact
+	is renewed."
+echo
+echo "CONFIG: 3 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Various message bundles are expected to have been received
+	at the end of the test.  There is also a large description of activities
+	mid-test."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1
+rm -f 5.ipn.ltp/testfile2
+rm -f 5.ipn.ltp/testfile3
+rm -f 5.ipn.ltp/testfile4
+rm -f 5.ipn.ltp/testfile5
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../5.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin global.ionrc &
+cd ../3.ipn.ltp
+ionadmin global.ionrc &
+cd ../5.ipn.ltp
+ionadmin global.ionrc &
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../5.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../5.ipn.ltp
+ltpadmin amroc.ltprc &
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc &
+cd ../3.ipn.ltp
+bpadmin amroc.bprc &
+cd ../5.ipn.ltp
+bpadmin amroc.bprc &
+
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 5 not started: Aborting Test"
+	exit 1
+fi
+
+# Start file receiver on node 5.
+echo "Starting bprecvfile..."
+bprecvfile ipn:5.2 &
+sleep 1
+
+# Send three files from node 2.
+cd ../2.ipn.ltp
+echo "Sending three files from node 2 to node 5 (start of watch characters)..."
+bpsendfile ipn:2.2 ipn:5.2 testfilex
+sleep 1
+bpsendfile ipn:2.2 ipn:5.2 testfiley
+sleep 1
+bpsendfile ipn:2.2 ipn:5.2 testfilez
+
+# Wait for all sessions to terminate.
+echo "Waiting for all contacts to terminate..."
+echo "During this time, there are three contact intervals.
+
+Before interval A, all three files sourced at node 2 are queued for
+transmission: files x and y are queued for transmission to node 3
+during interval A (and thence to node 5 during interval B) while file
+z is queued for transmission directly to node 5 during interval C
+because interval A is now fully committed.
+
+During interval A, files x and y are transmitted by node 2 but the
+sessions don't close because the contact between nodes 2 and 3 is
+half-duplex.  So at the end of interval A, the LTP sessions for both
+files are canceled, causing both bundles to be reforwarded.  Both
+are requeued for transmission to node 5 in interval C, and the
+reforwarded files "jump the queue" ahead of file z because transmission
+seniority is honored.  Meanwhile, node 3 receives files x and y; it
+queues them for forwarding to node 5 and queues up two custody signals
+for transmission to node 2.
+
+During interval B, node 3 transmits files x and y to node 5 and receives
+custody acceptances, and it also transmits its own queued custody signals
+to node 2.  The sessions in which the custody signals are transmitted are
+canceled at the end of the contact (they couldn't close because, again,
+communication between nodes 3 and 2 is half-duplex) but the custody signals
+are not reforwarded because they are not, themselves, custodial bundles.
+Node 2 releases custody of files x and y but its pending retransmission of
+those files to node 5 is not affected.
+
+During interval C, node 2 transmits additional copies of files x and y
+to node 5, followed by file z."
+sleep 105
+echo "All contacts have terminated.  Verifying results..."
+
+# Verify bundle arrival.
+cd ../5.ipn.ltp
+RETVAL=0
+
+COUNT=`ls -l testfile* | grep 915 | wc -l`
+if [ $COUNT -eq 2 ]
+then
+	echo "OK: Got both copies of file x."
+else
+	echo "ERROR: Didn't get both copies of file x."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | grep 1070 | wc -l`
+if [ $COUNT -eq 2 ]
+then
+	echo "OK: Got both copies of file y."
+else
+	echo "ERROR: Didn't get both copies of file y."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile* | grep 885 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: Got file z."
+else
+	echo "ERROR: Didn't get file z."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../5.ipn.ltp
+./ionstop &
+
+# Give all three nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "LTP purge test completed."
+exit $RETVAL

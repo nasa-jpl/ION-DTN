@@ -1,0 +1,147 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# adapted from a test written by Sotirios-Angelos Lenas
+# August 23, 2012
+#
+# documentation boilerplate
+CONFIGFILES=" \
+./1.ipn.bssp/amroc.bprc \
+./1.ipn.bssp/amroc.bssprc \
+./1.ipn.bssp/amroc.owltsim \
+./1.ipn.bssp/amroc.ionconfig \
+./1.ipn.bssp/amroc.ionrc \
+./1.ipn.bssp/amroc.ionsecrc \
+./1.ipn.bssp/amroc.ipnrc \
+./2.ipn.bssp/amroc.bprc \
+./2.ipn.bssp/amroc.bssprc \
+./2.ipn.bssp/amroc.ionconfig \
+./2.ipn.bssp/amroc.ionrc \
+./2.ipn.bssp/amroc.ionsecrc \
+./2.ipn.bssp/amroc.ipnrc
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 311: Bundle Streaming Service.
+Tests BSS protocol and BSS API:
+
+Bundle Streaming Service, is an architecture specifically developed to
+support real-time streaming of multimedia content in DTN environments.
+BSS architecture comprises two parts: (a) the Bundle Streaming Service
+Protocol (BSSP) which is responsible for forwarding BSS traffic in a
+specialized manner and (b) the BSS API which provides developer-friendly  
+control over the stream reception procedures by implementing functions 
+that are able to create BSS customized databases, control BSS receiving
+operations and perform several stream parsing tasks.
+
+	a.  Creation of a customized BSS database, to store the received 
+	    frames, by using BSS API functions.
+	    
+	b.  Under normal operation (real-time mode), BSSP forwards data 
+	    through an unreliable link service protocol. In case of frame
+	    losses, BSS reforwards the frames for which it didn't receive
+	    an acknowledgement through a reliable link service protocol.
+
+	c.  Proper operation of stream parsing functions.
+
+This test simulates the streaming of a HD video by sending a stream of
+1000 bundles from node 1 to node 2. The communication channel between
+node 1 and node 2 suffers from severe packet loss  (10%); the playback
+mode of the BSS forwarding mechanism is activated in order for these
+losses to be recovered. At the receiver's end, the frames that arrive
+in-order are counted while the out-of-order frames are stored in the
+BSS database.  Every 5 seconds the receiver checks to see if all 1000
+frames have been received into the database in correct transmission
+order; when this has been accomplished, the total numbers of frames
+received in real time and in replay are printed and the test terminates."
+
+echo
+echo "CONFIG: 2 node custom BSS:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0 
+# Start nodes.
+cd 1.ipn.bssp
+./ionstart >& node1.stdout
+cd ../2.ipn.bssp
+./ionstart >& node2.stdout
+
+cd ../1.ipn.bssp
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../2.ipn.bssp
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+# Start BSS receiver on node 2.
+cd ../2.ipn.bssp
+echo
+echo "Starting bsscounter application..."
+bsscounter 1000 bssDB ../ ipn:2.71 > bsscounter.output &
+sleep 2
+
+cd ../1.ipn.bssp
+echo
+echo "Sending a stream of 1000 bundles from node 1 to node 2..."
+bssdriver ipn:1.2 ipn:2.71 1000
+
+# Allow time for necessary retransmission to be completed.
+sleep 15
+
+echo ""
+cd ../2.ipn.bssp
+COUNT=`grep succeeded bsscounter.output | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "BSS test succeeded."
+else
+	echo "BSS test failed."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo
+echo "Stopping ION..."
+cd ../1.ipn.bssp
+./ionstop &
+cd ../2.ipn.bssp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "BSS test completed."
+exit $RETVAL

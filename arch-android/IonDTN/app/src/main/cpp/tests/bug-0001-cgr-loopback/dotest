@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 11, 2010
+#
+# documentation boilerplate
+CONFIGFILES=" \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Test whether CGR will route bundles over 'loopback' interface.
+Configure a node with connectivity to another node and itself (via LTP
+over loopback)."
+
+echo
+echo "CONFIG: 2 node custom LTP:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION in DIR $PWD..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 3.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../2.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+
+
+# Start bpecho on node 3.
+cd ../3.ipn.ltp
+echo "Starting bpecho on ipn:3.2..."
+bpecho ipn:3.2 &
+sleep 1
+
+# bptrace from node 2.
+cd ../2.ipn.ltp
+echo "Starting bpsink on ipn:2.2..."
+bpsink ipn:2.2 &> bpsink.out &
+sleep 5
+echo "bptrace from 2.1 to 2.2"
+bptrace ipn:2.1 ipn:2.2 ipn:2.0 60 1.0 "TEST ME" "rcv,fwd,dlv" &> bptrace.out &
+sleep 5
+grep "[s].* status*" ion.log > statusReports.txt
+
+# See if we think it was delivered and did NOT go through node 3
+echo ""
+cat statusReports.txt
+
+num2=`grep "[s].* on ipn:2.0" statusReports.txt | grep "status 9" | wc -l`
+num3=`grep "[s].* on ipn:3.0" statusReports.txt | wc -l`
+
+if [ $num2 -ne 1 ]; then
+	echo ""
+	echo "ERROR: bptrace to loopback not received"
+	RETVAL=1
+else
+	if [ $num3 -gt 0 ]; then
+		echo ""
+		echo "ERROR: bptrace to loopback went through another node"
+		RETVAL=1
+	fi
+fi
+
+echo ""
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "bug-0001-cgr-loopback test completed."
+exit $RETVAL

@@ -1,0 +1,223 @@
+=head1 NAME
+
+smlist - shared memory list management library
+
+=head1 SYNOPSIS
+
+    #include "smlist.h"
+
+    typedef int (*SmListCompareFn)
+	(PsmPartition partition, PsmAddress eltData, void *argData);
+    typedef void (*SmListDeleteFn)
+	(PsmPartition partition, PsmAddress elt, void *argument);
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+The smlist library provides functions to create, manipulate
+and destroy doubly-linked lists in shared memory.  As with lyst(3), 
+smlist uses two types of objects, I<list> objects and
+I<element> objects.  However, as these objects are stored in
+shared memory which is managed by psm(3), pointers to these
+objects are carried as PsmAddress values.  A list knows how
+many elements it contains and what its first and last elements are.  
+An element knows what list it belongs to and
+the elements before and after it in its list.  An element
+also knows its content, which is normally the PsmAddress of some
+object in shared memory.
+
+=over 4
+
+=item PsmAddress sm_list_create(PsmPartition partition)
+
+Create a new list object without any elements in it, within the memory
+segment identified by I<partition>.  Returns the PsmAddress of the list,
+or 0 on any error.
+
+=item void sm_list_unwedge(PsmPartition partition, PsmAddress list, int interval)
+
+Unwedge, as necessary, the mutex semaphore protecting shared access to the
+indicated list.  For details, see the explanation of the sm_SemUnwedge()
+function in platform(3).
+
+=item int sm_list_clear(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
+
+Empty a list.  Frees each element of the list.  If the I<delete> function 
+is non-NULL, that function is called once for each freed element; when
+called, that function is passed the PsmAddress of the list element
+and the I<argument> pointer passed to sm_list_clear().  Returns 0 on success,
+-1 on any error.
+
+=item int sm_list_destroy(PsmPartition partition, PsmAddress list, SmListDeleteFn delete, void *argument);
+
+Destroy a list.  Same as sm_list_clear(), but additionally frees the list
+structure itself.  Returns 0 on success, -1 on any error.
+
+=item int sm_list_user_data_set(PsmPartition partition, PsmAddress list, PsmAddress userData);
+
+Set the value of a user data variable associated with the list as a whole.
+This value may be used for any purpose; it is typically used to store the
+PsmAddress of a shared memory block containing data (e.g., state data) which
+the user wishes to associate with the list.  Returns 0 on success, -1 on any
+error.
+
+=item PsmAddress sm_list_user_data(PsmPartition partition, PsmAddress list);
+
+Return the value of the user data variable associated with the list as a
+whole, or 0 on any error.
+
+=item int sm_list_length(PsmPartition partition, PsmAddress list);
+
+Return the number of elements in the list.
+
+=item PsmAddress sm_list_insert(PsmPartition partition, PsmAddress list, PsmAddress data, SmListCompareFn compare, void *dataBuffer);
+
+Create a new list element whose data value is I<data> and insert it
+into the given list.  If the I<compare> function is NULL, the new list element
+is simply appended to the list; otherwise, the new list element is inserted
+after the last element in the list whose data value is "less than or equal to"
+the data value of the new element (in I<dataBuffer>) according to the
+collating sequence established by I<compare>.  Returns the PsmAddress of
+the new element, or 0 on any error.
+
+=item PsmAddress sm_list_insert_first(PsmPartition partition, PsmAddress list, PsmAddress data);
+
+=item PsmAddress sm_list_insert_last(PsmPartition partition, PsmAddress list, PsmAddress data);
+
+Create a new list element and insert it at the start/end of a list.  Returns
+the PsmAddress of the new element on success, or 0 on any
+error.  Disregards any established sort order in the list.
+
+=item PsmAddress sm_list_insert_before(PsmPartition partition, PsmAddress elt, PsmAddress data);
+
+=item PsmAddress sm_list_insert_after(PsmPartition partition, PsmAddress elt, PsmAddress data);
+
+Create a new list element and insert it before/after a given element.
+Returns the PsmAddress of the new element on success, or 0
+on any error.  Disregards any established sort order in the list.
+
+=item int sm_list_delete(PsmPartition partition, PsmAddress elt, SmListDeleteFn delete, void *argument);
+
+Delete an element from a list.  If the I<delete> function is non-NULL, that
+function is called upon deletion of I<elt>; when called, that function is
+passed the PsmAddress of the list element and the I<argument>
+pointer passed to sm_list_delete().  Returns 0 on success, -1 on any error.
+
+=item PsmAddress sm_list_first(PsmPartition partition, PsmAddress list);
+
+=item PsmAddress sm_list_last(PsmPartition partition, PsmAddress list);
+
+Return the PsmAddress of the first/last element in I<list>, or 0 on any error.
+
+=item PsmAddress sm_list_next(PsmPartition partition, PsmAddress elt);
+
+=item PsmAddress sm_list_prev(PsmPartition partition, PsmAddress elt);
+
+Return the PsmAddress of the element following/preceding I<elt> in
+that element's list, or 0 on any error.
+
+=item PsmAddress sm_list_search(PsmPartition partition, PsmAddress elt, SmListCompareFn compare, void *dataBuffer);
+
+Search a list for an element whose data matches the data in I<dataBuffer>.  If
+the I<compare> function is non-NULL, the list is assumed to be sorted
+in the order implied by that function and the function is automatically
+called once for each element of the list until it returns a value that is
+greater than or equal to zero (where zero indicates an exact match and a
+value greater than zero indicates that the list contains no matching
+element); each time I<compare> is called it is passed the PsmAddress that is
+the element's data value and the I<dataBuffer> value passed to sm_list_search().
+If I<compare> is NULL, then the entire list is searched until an element is
+located whose data value is equal to ((PsmAddress) I<dataBuffer>).
+Returns the PsmAddress of the matching element if one is found, 0 otherwise.
+
+=item PsmAddress sm_list_list(PsmPartition partition, PsmAddress elt);
+
+Return the PsmAddress of the list to which I<elt> belongs, or 0
+on any error.
+
+=item PsmAddress sm_list_data(PsmPartition partition, PsmAddress elt);
+
+Return the PsmAddress that is the data value for I<elt>, or 0
+on any error.
+
+=item PsmAddress sm_list_data_set(PsmPartition partition, PsmAddress elt, PsmAddress data);
+
+Set the data value for I<elt> to I<data>, replacing the
+original value.  Returns the original data value for I<elt>, or 0 on any
+error.  The original data value for I<elt> may or may not have
+been the address of an object in memory; even if it was, that object was
+NOT deleted.  
+
+Warning: changing the data value of an element of an ordered list may ruin
+the ordering of the list.
+
+=back
+
+=head1 USAGE
+
+A user normally creates an element and adds it to a list by doing the following:
+
+=over 4
+
+=item C<1>
+
+obtaining a shared memory block to contain the element's data;
+
+=item C<2>
+
+converting the shared memory block's PsmAddress to a character pointer;
+
+=item C<3>
+
+using that pointer to write the data into the shared memory block;
+
+=item C<4>
+
+calling one of the I<sm_list_insert> functions to create the element 
+structure (which will include the shared memory block's PsmAddress) 
+and insert it into the list.
+
+=back
+
+When inserting elements or searching a list, the user may
+optionally provide a compare function of the form:
+
+    int user_comp_name(PsmPartition partition, PsmAddress eltData, 
+                       void *dataBuffer);
+
+When provided, this function is automatically called by the smlist function
+being invoked; when the function is called it is passed the content of a
+list element (I<eltData>, nominally the PsmAddress of an item in shared
+memory) and an argument, I<dataBuffer>, which is nominally the address
+in local memory of some other item in the same format.
+The user-supplied function normally compares some key values of the two
+data items and returns 0 if they are equal, an integer less
+than 0 if I<eltData>'s key value is less than that of I<dataBuffer>, and an
+integer greater than 0 if I<eltData>'s key value is greater than that of
+I<dataBuffer>.  These return values will produce a list in ascending order.  
+If the user desires the list to be in descending
+order, the function must reverse the signs of these return values.
+
+When deleting an element or destroying a list, the user may
+optionally provide a delete function of the form:
+
+    void user_delete_name(PsmPartition partition, PsmAddress elt, void *argData)
+
+When provided, this function is automatically called by the smlist function
+being invoked; when the function is called it is passed the address of a
+list element (I<elt> and an argument, I<argData>, which if non-NULL is
+normally the address
+in local memory of a data item providing context for the list element deletion.
+The user-supplied function performs any application-specific cleanup
+associated with deleting the element, such as freeing the element's content
+data item and/or other memory associated with the element.
+
+=head1 EXAMPLE
+
+For an example of the use of smlist, see the file smlistsh.c
+in the utils directory of ICI.
+
+=head1 SEE ALSO
+
+lyst(3), platform(3), psm(3)

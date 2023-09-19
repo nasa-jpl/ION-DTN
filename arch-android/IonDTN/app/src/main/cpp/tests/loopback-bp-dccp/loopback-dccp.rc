@@ -1,0 +1,106 @@
+# configuration file for the loopback-dccp test.
+#	Command: ionstart -Iloopback-dccp.rc
+#	This command should be run AFTER ionadmin and ltpadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, December 2010
+
+## begin ionadmin 
+# ionrc configuration file for the loopback-dccp test.
+#	This uses ltp as the primary convergence layer.
+#	command: % ionadmin loopback-dccp.ionrc
+# 	This command should be run FIRST.
+#
+#	Ohio University, December 2010
+1 1 ''
+
+# start ion node
+s
+
+# Add a contact.
+# 	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself
+#	It will transmit 100000 bytes/second.
+a contact +1 +3600 1 1 100000
+
+# Add a range. This is the physical distance between nodes.
+#	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself.
+#	Data on the link is expected to take 1 second to reach the other
+#	end (One Way Light Time).
+a range +1 +3600 1 1 1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 1000000
+m consumption 1000000
+## end ionadmin 
+
+## begin bpadmin
+# bprc configuration file for the loopback-dccp test.
+#	Command: % bpadmin loopback-dccp.bprc
+#	This command should be run AFTER ionadmin and ltpadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, December 2010
+
+# Initialization command (command 1). 
+1
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+#	Note that the custodian endpoint ipn:1.0 is automatically generated.
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add a protocol. 
+#	Add the protocol named dccp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
+a protocol dccp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the dccp protocol.
+#	The duct's name is 127.0.0.1:4556
+#	The induct itself is implemented by the 'dccpcli' command.
+a induct dccp 127.0.0.1:4556 dccpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the dccp protocol.
+#	The duct's name is 127.0.0.1:4556
+#	The outduct itself is implemented by the 'dccpclo' command.
+a outduct dccp 127.0.0.1:4556 dccpclo
+
+# Start the daemons
+s
+## end bpadmin 
+
+## begin ipnadmin
+# ipnrc configuration file for the loopback-dccp test.
+#	Essentially, this is the IPN scheme's routing table.
+#	Command: % ipnadmin loopback-dccp.ipnrc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, December 2010
+
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1 (that is, yourself).
+#	The plan is to queue for transmission (x) on protocol 'dccp' using
+#	the outduct identified as '127.0.0.1:4556'
+#	See your bprc file or bpadmin for outducts/protocols you can use. 
+a plan 1 dccp/127.0.0.1:4556
+## end ipnadmin 
+
+## begin ionsecadmin
+1
+## end ionsecadmin

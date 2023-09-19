@@ -1,0 +1,186 @@
+=head1 NAME
+
+lyst - library for manipulating generalized doubly linked lists
+
+=head1 SYNOPSIS
+
+    #include "lyst.h"
+
+    typedef int  (*LystCompareFn)(void *s1, void *s2);
+    typedef void (*LystCallback)(LystElt elt, void *userdata);
+
+    [see description for available functions]
+
+=head1 DESCRIPTION
+
+The "lyst" library uses two types of objects, I<Lyst> objects
+and I<LystElt> objects.  A Lyst knows how many elements it contains, 
+its first and last elements, the memory manager used
+to create/destroy the Lyst and its elements, and how the elements are
+sorted.  A LystElt knows its content (normally a pointer to an item
+in memory), what Lyst it belongs to, and the LystElts before and after
+it in that Lyst.
+
+=over 4
+
+=item Lyst lyst_create(void)
+
+Create and return a new Lyst object without any elements in it.
+All operations performed on this Lyst will use the
+allocation/deallocation functions of the default memory
+manager "std" (see memmgr(3)).  Returns NULL on any failure.
+
+=item Lyst lyst_create_using(unsigned memmgrId)
+
+Create and return a new Lyst object without any elements in it.
+All operations performed on this Lyst will use the
+allocation/deallocation functions of the specified
+memory manager (see memmgr(3)).  Returns NULL on any failure.
+
+=item void lyst_clear(Lyst list)
+
+Clear a Lyst, i.e. free all elements of I<list>, calling the Lyst's
+deletion function if defined, but without destroying the Lyst itself.
+
+=item void lyst_destroy(Lyst list)
+
+Destroy a Lyst.  Will free all elements of I<list>, calling the Lyst's
+deletion function if defined.
+
+=item void lyst_compare_set(Lyst list, LystCompareFn compareFn)
+
+=item LystCompareFn lyst_compare_get(Lyst list)
+
+Set/get comparison function for specified Lyst.  Comparison 
+functions are called with two Lyst element data
+pointers, and must return a negative integer if first
+is less than second, 0 if both are equal, and a positive integer
+if first is greater than second (i.e., same return values as strcmp(3)).
+The comparison function is used by the
+lyst_insert(), lyst_search(), lyst_sort(), and lyst_sorted()
+functions.
+
+=item void lyst_direction_set(Lyst list, LystSortDirection direction)
+
+Set sort direction (either LIST_SORT_ASCENDING or
+LIST_SORT_DESCENDING) for specified Lyst.  If no comparison
+function is set, then this controls whether
+new elements are added to the end or beginning (respectively) 
+of the Lyst when lyst_insert() is called.
+
+=item void lyst_delete_set(Lyst list, LystCallback deleteFn, void *userdata)
+
+Set user deletion function for specified Lyst.  This
+function is automatically called whenever an element of the Lyst is deleted,
+to perform any user-required processing.  When automatically called,
+the deletion function is passed two arguments: the element being deleted
+and the I<userdata> pointer specified in the lyst_delete_set() call.
+
+=item void lyst_insert_set(Lyst list, LystCallback insertFn, void *userdata)
+
+Set user insertion function for specified Lyst.  This
+function is automatically called whenever a Lyst element is
+inserted into the Lyst, to perform any user-required processing.
+When automatically called, the insertion function is passed two arguments:
+the element being inserted and the I<userdata> pointer specified in
+the lyst_insert_set() call.
+
+=item unsigned long lyst_length(Lyst list)
+
+Return the number of elements in the Lyst.
+
+=item LystElt lyst_insert(Lyst list, void *data)
+
+Create a new element whose content is the pointer value I<data>
+and insert it into the Lyst.  Uses the Lyst's comparison
+function to select insertion point, if defined; otherwise
+adds the new element at the beginning or end of the Lyst,
+depending on the Lyst sort direction setting.  Returns a
+pointer to the newly created element, or NULL on any failure.
+
+=item LystElt lyst_insert_first(Lyst list, void *data)
+
+=item LystElt lyst_insert_last(Lyst list, void *data)
+
+Create a new element and insert it at the beginning/end
+of the Lyst.  If these functions are used when inserting elements
+into a Lyst with a defined comparison function, then the Lyst may
+get out of order and future calls to lyst_insert() can put new elements 
+in unpredictable locations.  Returns a pointer to
+the newly created element, or NULL on any failure.
+
+=item LystElt lyst_insert_before(LystElt element, void *data)
+
+=item LystElt lyst_insert_after(LystElt element, void *data)
+
+Create a new element and insert it before/after the
+specified element.  If these functions are used when inserting
+elements into a Lyst with a defined comparison function,
+then the Lyst may get out
+of order and future calls to L<lyst_insert> can put new
+elements in unpredictable locations.  Returns a pointer
+to the newly created element, or NULL on any failure.
+
+=item void lyst_delete(LystElt element)
+
+Delete the specified element from its Lyst and deallocate its memory.  
+Calls the user delete function if defined.
+
+=item LystElt lyst_first(Lyst list)
+
+=item LystElt lyst_last(Lyst list)
+
+Return a pointer to the first/last element of a Lyst.
+
+=item LystElt lyst_next(LystElt element)
+
+=item LystElt lyst_prev(LystElt element)
+
+Return a pointer to the element following/preceding the specified element.
+
+=item LystElt lyst_search(LystElt element, void *searchValue)
+
+Find the first matching element in a Lyst starting with
+the specified element.  Returns NULL if no matches are
+found.  Uses the Lyst's comparison function if defined,
+otherwise searches from the given element to the end of the Lyst.
+
+=item Lyst lyst_lyst(LystElt element)
+
+Return the Lyst to which the specified element belongs.
+
+=item void* lyst_data(LystElt element)
+
+=item void* lyst_data_set(LystElt element, void *data)
+
+Get/set the pointer value content of the specified Lyst element.  The
+set routine returns the element's previous content, and the
+delete function is I<not> called.  If the lyst_data_set()
+function is used on an element of a Lyst with a defined comparison
+function, then the Lyst may get out of order and future calls to
+lyst_insert() can put new elements in unpredictable locations.
+
+=item void lyst_sort(Lyst list)
+
+Sort the Lyst based on the current comparison function
+and sort direction.  A stable insertion sort is used
+that is very fast when the elements are already in order.
+
+=item int lyst_sorted(Lyst list)
+
+Determine whether or not the Lyst is sorted based on
+the current comparison function and sort direction.
+
+=item void lyst_apply(Lyst list, LystCallback applyFn, void *userdata)
+
+Apply the function I<applyFn> automatically to each element
+in the Lyst.  When automatically called, I<applyFn> is passed
+two arguments: a pointer to an element, and the I<userdata>
+argument specified in the call to lyst_apply().  I<applyFn>
+should not delete or reorder the elements in the Lyst.
+
+=back
+
+=head1 SEE ALSO
+
+memmgr(3), psm(3)

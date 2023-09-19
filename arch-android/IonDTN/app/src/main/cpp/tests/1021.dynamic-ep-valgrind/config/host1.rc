@@ -1,0 +1,81 @@
+## begin ionadmin 
+
+# Initialization command (command 1). 
+#	Set this node to be node 1 (as in ipn:1).
+#	Use default sdr configuration (empty configuration file name '').
+1 1 ''
+
+# start ion node
+s
+
+# Add a contact.
+# 	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself
+#	It will transmit 100000 bytes/second.
+a contact +1 +3600 1 1 100000
+a contact +1 +3600 1 2 100000
+a contact +1 +3600 2 1 100000
+
+# Add a range. This is the physical distance between nodes.
+#	It will start at +1 seconds from now, ending +3600 seconds from now.
+#	It will connect node 1 to itself.
+#	Data on the link is expected to take 1 second to reach the other
+#	end (One Way Light Time).
+a range +1 +3600 1 1 1
+a range +1 +3600 1 2 1
+a range +1 +3600 2 1 1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 1000000
+m consumption 1000000
+## end ionadmin 
+
+## begin bpadmin 
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add a protocol. 
+a protocol udp 1400 100
+
+# Add an induct. (listen)
+a induct udp 127.0.0.1:4556 udpcli
+
+# Add an outduct. (since one UDP socket can address any IP, use '*' 
+# for the destination address, then this clo can send to any udp cli)
+a outduct udp * udpclo
+
+s
+## end bpadmin 
+
+## begin ipnadmin 
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1 (that is, yourself).
+#	This element is named 'node1.'
+#	The plan is to queue for transmission (x) on protocol 'udp' using
+#	the outduct identified as '*,127.0.0.1:4556'.  This specification
+#   will match the udpclo '*' and pass it an auxiliary parameter
+#   (destination address) of '127.0.0.1:4556'
+a plan 1 udp/*,127.0.0.1:4556
+## end ipnadmin 
+
+## begin ionsecadmin
+1
+e 1
+## end ionsecadmin

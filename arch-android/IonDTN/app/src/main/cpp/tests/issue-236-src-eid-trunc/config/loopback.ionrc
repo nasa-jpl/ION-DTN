@@ -1,0 +1,15 @@
+# ionrc configuration file for src-eid truncation test.
+#	This uses tcp as the primary convergence layer.
+#	command: % ionadmin loopback.ionrc
+# 	This command should be run FIRST.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1). 
+#	Set this node to be node 1 (as in ipn:1).
+#	Use default sdr configuration (empty configuration file name '').
+1 1 ''
+
+# start ion node
+s
+

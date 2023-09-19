@@ -1,0 +1,97 @@
+=head1 NAME
+
+cfdpadmin - ION's CCSDS File Delivery Protocol (CFDP) administration interface
+
+=head1 SYNOPSIS
+
+B<cfdpadmin> [ I<commands_filename> | . ]
+
+=head1 DESCRIPTION
+
+B<cfdpadmin> configures, starts, manages, and stops CFDP operations for
+the local ION node.
+	
+It operates in response to CFDP configuration commands found in the file
+I<commands_filename>, if provided; if not, B<cfdpadmin> prints
+a simple prompt (:) so that the user may type commands
+directly into standard input.  If I<commands_filename> is a period (.), the
+effect is the same as if a command file containing the single command 'x'
+were passed to B<cfdpadmin> -- that is, the ION node's I<cfdpclock> task 
+and UT layer service task (nominally I<bputa>) are stopped.
+
+The format of commands for I<commands_filename> can be queried from B<cfdpadmin>
+with the 'h' or '?' commands at the prompt.  The commands are documented in
+cfdprc(5).
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Successful completion of CFDP administration.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item cfdpadmin
+
+Enter interactive CFDP configuration command entry mode.
+
+=item cfdpadmin host1.cfdprc
+
+Execute all configuration commands in I<host1.cfdprc>, then terminate
+immediately.
+
+=item cfdpadmin .
+
+Stop all CFDP operations on the local node.
+
+=back
+
+=head1 FILES
+
+See cfdprc(5) for details of the CFDP configuration commands.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+B<Note>: all ION administration utilities expect source file input to be
+lines of ASCII text that are NL-delimited.  If you edit the cfdprc file on
+a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
+before presenting it to B<cfdpadmin>.  Otherwise B<cfdpadmin> will detect syntax
+errors and will not function satisfactorily.
+
+The following diagnostics may be issued to the logfile ion.log:
+
+=over 4
+
+=item cfdpadmin can't attach to ION.
+
+There is no SDR data store for I<cfdpadmin> to use.  You should run ionadmin(1)
+first, to set up an SDR data store for ION.
+
+=item Can't open command file...
+
+The I<commands_filename> specified in the command line doesn't exist.
+
+=back
+
+Various errors that don't cause B<cfdpadmin> to fail but are noted in the
+B<ion.log> log file may be caused by improperly formatted commands
+given at the prompt or in the I<commands_filename> file.
+Please see cfdprc(5) for details.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+cfdprc(5)

@@ -1,0 +1,1 @@
+Test ION behavior using dtn:none eids to ensure that the null eid does not crash the node

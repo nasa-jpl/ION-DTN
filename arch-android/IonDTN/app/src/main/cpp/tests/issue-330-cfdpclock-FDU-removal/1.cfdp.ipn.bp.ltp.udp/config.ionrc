@@ -1,0 +1,18 @@
+# Config file for issue-330-cfdpclock-FDU-removal test
+# Samuel Jero
+# December 15, 2011
+# Initialization command (command 1). 
+1 1 ./mem.conf
+
+# start ion node
+s
+
+# Add a contact.
+a contact  +1 +360		1 1   50000
+
+# Add a range. This is the physical distance between nodes.
+a range    +1 +360		1 1   1
+
+# set this node to consume and produce a mean of 1000000 bytes/second.
+m production 50000
+m consumption 50000

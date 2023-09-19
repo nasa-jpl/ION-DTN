@@ -1,0 +1,76 @@
+=head1 NAME
+
+sdr2file - SDR data extraction test program
+
+=head1 SYNOPSIS
+
+B<sdr2file> I<configFlags>
+
+=head1 DESCRIPTION
+
+B<sdr2file> stress-tests SDR data extraction by retrieving and deleting
+all text file lines inserted into a test SDR data store named
+"testsdrI<configFlags>" by the complementary test program file2sdr(1).
+
+The operation of B<sdr2file> echoes the cyclical operation of B<file2sdr>:
+each linked list created by B<file2sdr> is used to create in the current
+working directory a copy of B<file2sdr>'s original source text file.
+The name of each file written by B<sdr2file> is file_copy_I<cycleNbr>,
+where I<cycleNbr> identifies the linked list from which the file's text
+lines were obtained.
+
+B<sdr2file> may catch up with the data ingestion activity of B<file2sdr>,
+in which case it blocks (taking the B<file2sdr> test semaphore) until
+the linked list it is currently draining is no longer empty.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<sdr2file> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+=over 4
+
+=item Can't use sdr.
+
+ION system error.  Check for diagnostics in the ION log file I<ion.log>.
+
+=item Can't create semaphore.
+
+ION system error.  Check for diagnostics in the ION log file I<ion.log>.
+
+=item SDR transaction failed.
+
+ION system error.  Check for diagnostics in the ION log file I<ion.log>.
+
+=item Can't open output file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item can't write to output file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+file2sdr(1), sdr(3)

@@ -1,0 +1,114 @@
+#This test may fail because the date coded into the signals gets too old.
+#Using the date 2/11/2016 this test will begin to fail around february 2021 for date related reasons.
+
+# Send a bundle with ID 1.
+# This should append to a brand new (succeeded, no reason) ACS
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 1, 1)
+
+# Send that bundle again.
+# This doesn't trigger a duplicate custody signal, because this custody
+# transfer will actually (failed, duplicate).
+sendexpectacs("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 1, cid=1, successful=False, reason=3)
+
+# Send the bundle one more time.
+# This will trigger a dupe (failed, duplicate) ACS.
+send("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 1, cid=1)
+
+# Send a few gobs more bundles.
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 2, 2)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 4, 4)
+# Out of order, fills the "hole" between 2 and 4.
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 3, 3)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 11, 11)
+# Out of order, shrinks the hole between 4 and 11 but doesn't fill.
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 5, 5)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 9, 9)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 14, 14)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 15, 15)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 16, 16)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 17, 17)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 23, 23)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 25, 25)
+
+# Out of order, goes at head of list.
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 0, 0)
+
+receiveall(10.0)
+
+checkcustody()
+
+# Since ION still has custody of 14 bundles, there should be 14 entries in
+# the ACS database.
+checkacslist(verbose = False, expectedCount = 14)
+assertutcid(lowestutcid = 42, highestutcid = 42+14)
+
+# Send an aggregate custody signal to ION telling it to release custody of
+# the 14 bundles.
+clearcustody("ipn:1.0")
+checkcustody()
+
+# Verify that there are no entries in the ACS database, since the 14 bundles
+# have been released from custody.
+checkacslist(expectedCount = 0)
+
+##
+## Send many bundles in a "random" order; we seed the random number generator
+## to a known state so that the random order is repeatable for debugging.
+##
+## In this case, the ACS generator has to handle making big ACS trees with many
+## tiny holes, and then filling all of the holes in.  So, for instance, it may
+## end up with this tree part way through this test:
+##   SACK: ipn:1.3 [{333823688:1(+0),4(+1),8(+1),11(+3),17(+2),22(+0),25(+3),30(+0),
+##   33(+1),37(+1),41(+1),44(+5),51(+2),55(+1),59(+0),61(+0),64(+1),67(+2),71(+5),81(+0),
+##   83(+0),85(+7),94(+1),98(+0)}]
+##
+## (there are "holes" at bundles with sequence numbers 2, 3, 6, 7, 10, 16, ...)
+##
+## But, by the end of this test, all of the "holes" have been filled and the
+## following much simpler tree exists:
+##
+##   SACK: ipn:1.3 [{333823688:0(100)}]
+##
+## So, this test exercises the hole-filling logic.
+##
+import random
+random.seed(123456)
+x = range(0, 50)
+random.shuffle(x)
+print "Sending in this order: %s" % (x)
+for i in x:
+    sendexpectacsandcustody("ipn:2.0", "ipn:1.3", "2/11/2016 16:48:08", i, 1000+i)
+
+receiveall(10.0)
+
+checkcustody()
+checkacslist(expectedCount = 50)
+clearcustody("ipn:1.0")
+checkcustody()
+checkacslist(expectedCount = 0)
+
+##
+## Check for memory leaks by sending a bunch of bundles over and over again.
+##
+## We "perforate" the sequence by shuffling it and then dropping a few from the
+## shuffled output thus creating holes that we never fill.
+##
+## Also, at the end of each round of j, we send an ACS to ION so that it will
+## release custody of the bundles we've thrown at it.
+##
+reference_time = "2/11/2016 12:00:%02d"
+random.seed(654321)
+for k in range(1, 2):
+    for j in range(0,10):
+        x = range(0, 100)
+        random.shuffle(x)
+        x = x[:50]
+        print "Sending at time %s from ipn:13.%d: %s" % (reference_time % j, k, x)
+        for i in x:
+            sendexpectacsandcustody("ipn:2.0", "ipn:13.%d" % k, reference_time % j, i, k*10000*10000 + j*10000 + i)
+        receiveall(10.0)
+        checkcustody()
+        checkacslist(expectedCount = 50)
+        clearcustody("ipn:1.0")
+        checkacslist(expectedCount = 0)
+

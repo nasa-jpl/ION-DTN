@@ -1,0 +1,179 @@
+#!/bin/bash
+#
+# Copyright (c) 2009, Regents of the University of Colorado.
+#
+# Written by Sebastian Kuzminsky, based on loopbacktest.sh by David Young
+#
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
+${CONFIGSROOT}/loopback-ltp/loopback.bprc \
+${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To send a bundle over LTP. Uses the valgrind debugging/profiling
+	tool: http://valgrind.org/"
+echo
+echo "CONFIG: standard ltp loopback:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Various debugging messages associated with the valgrind tool.
+	valgrind output files will follow the pattern:
+	$PWD/out.valgrind..."
+echo
+echo "########################################"
+
+
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+
+if ! which valgrind > /dev/null 2> /dev/null; then
+    echo "valgrind not found, skipping test"
+    exit 2
+fi
+
+
+# uncomment the second line here if you want valgrind to emit suppressions for you
+GEN_SUPPRESSIONS=""
+#GEN_SUPPRESSIONS="--gen-suppressions=all"
+
+
+# clean up any old valgrind output files
+rm -f out.valgrind.*
+
+
+echo "Starting ION..."
+CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
+libtool --mode=execute                             \
+    valgrind                                       \
+    $GEN_SUPPRESSIONS                              \
+    --suppressions=valgrind.suppressions.ionstart  \
+    --quiet                                        \
+    --log-file=out.valgrind.loopback.ionstart.%p   \
+    --num-callers=25                               \
+    --tool=memcheck                                \
+    --trace-children=yes                           \
+    --leak-check=full                              \
+    $IONDIR/ionstart                               \
+        -i $CONFIGDIR/loopback.ionrc               \
+        -l $CONFIGDIR/loopback.ltprc               \
+        -b $CONFIGDIR/loopback.bprc                \
+		-s $CONFIGDIR/loopback.ionsecrc			   \
+        -p $CONFIGDIR/loopback.ipnrc               \
+
+
+# create the test message in a sent file
+# the exclamation point signals the bundle sender to quit
+echo $IONMESSAGE > $IONSENDFILE
+echo "!" >> $IONSENDFILE
+
+# give ION some time to start up
+sleep 9
+
+# receive the message and store it in a file via test bundle sink
+echo "starting bpsink"
+libtool --mode=execute                             \
+    valgrind                                       \
+    $GEN_SUPPRESSIONS                              \
+    --quiet                                        \
+    --log-file=out.valgrind.loopback.bpsink.%p     \
+    --num-callers=25                               \
+    --tool=memcheck                                \
+    --trace-children=yes                           \
+    --leak-check=full                              \
+    $IONDIR/bpsink ipn:1.1 > $IONRECEIVEFILE &
+
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 9
+
+
+# send the message in the file via test bundle source
+echo "Sending message..."
+libtool --mode=execute                             \
+    valgrind                                       \
+    $GEN_SUPPRESSIONS                              \
+    --quiet                                        \
+    --log-file=out.valgrind.loopback.bpsource.%p   \
+    --num-callers=25                               \
+    --tool=memcheck                                \
+    --trace-children=yes                           \
+    --leak-check=full                              \
+    $IONDIR/bpsource ipn:1.1 < $IONSENDFILE &
+
+BPSOURCEPID=$!
+
+# give ION time to send the message
+sleep 15
+
+
+# kill the sender in case it didn't end properly
+echo "stopping bpsource"
+kill -2 $BPSOURCEPID > /dev/null 2> /dev/null
+
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 2
+kill -9 ${BPSINKPID} >/dev/null 2>&1
+
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+
+# compare the sent message to the received one
+if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
+    echo "Oh noes, data corruption!"
+    echo
+    echo "Sent this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONSENDFILE
+    echo "----------------------------------------------------------------------"
+    echo
+    echo "Received this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONRECEIVEFILE
+    echo "----------------------------------------------------------------------"
+    RETVAL=1
+else 
+    echo "bundle transfer successful!"
+    RETVAL=0
+fi
+
+
+# 
+# see if valgrind noticed any problems
+#
+
+for V in out.valgrind.*; do
+    if [ $(cat $V | wc -l) -gt 0 ]; then
+        echo $V
+        cat $V
+        RETVAL=1
+    else
+        rm $V
+    fi
+done
+
+
+exit $RETVAL
+

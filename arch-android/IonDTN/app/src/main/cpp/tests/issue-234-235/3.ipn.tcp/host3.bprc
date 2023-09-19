@@ -1,0 +1,9 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:3.1 q
+a endpoint ipn:3.2 q
+a protocol tcp 1400 100
+a induct tcp 127.0.0.1:3556 tcpcli
+a outduct tcp 127.0.0.1:2556 ''
+r 'ipnadmin host3.ipnrc'
+s

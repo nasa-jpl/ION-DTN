@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 28, 2011
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+rm -f ion_nodes
+rm -f red_driver.output
+rm -f green_driver.output
+rm -f ltpdriverSduFile
+killm

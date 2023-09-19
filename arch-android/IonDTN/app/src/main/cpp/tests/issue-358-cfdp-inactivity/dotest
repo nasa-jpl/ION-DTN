@@ -1,0 +1,108 @@
+#!/bin/bash
+# Issue 358 - CFDP inactivity
+# Samuel Jero
+# June 26, 2012
+
+
+# documentation boilerplate
+CONFIGFILES=" \
+./ipn.cfdp.bp.tcp/host1.ionrc \
+./ipn.cfdp.bp.tcp/host1.ionconfig \
+./ipn.cfdp.bp.tcp/host1.ipnrc \
+./ipn.cfdp.bp.tcp/host1.cfdprc \
+./ipn.cfdp.bp.tcp/host1.bprc \
+./ipn.cfdp.bp.tcp/host1.ionsecrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test that CFDP correctly handles the inactivity deadline"
+echo "           configuration option."
+echo
+echo "CONFIG: 1 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+echo "Starting ION..."
+
+./cleanup
+
+# Start nodes
+cd ipn.cfdp.bp.tcp
+./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+cd ..
+
+#Create file
+echo "Creating file..."
+dd if=/dev/urandom of=./data bs=1024 count=10000
+cd ipn.cfdp.bp.tcp
+
+#Starting cfdptest
+echo "Starting bpcpd..."
+bpcpd -d  >output 2>&1 &
+CT_PID=$!
+
+#Start BPCP
+echo "Starting bpcp..."
+bpcp ../data 1:test &
+BPCP_PID=$!
+
+#End CLO
+sleep 5
+echo
+echo "Killing bpcp..."
+kill -2 $BPCP_PID >/dev/null 2>&1
+echo "Killing stcpcli..."
+pkill -15 stcpcli >/dev/null 2>&1
+
+#Waiting
+echo "Waiting 5 seconds for inactivity deadline trigger..."
+sleep 5
+
+#Killing bpcpd
+echo "Killing bpcpd..."
+kill -2 $CT_PID >/dev/null 2>&1
+sleep 3
+kill -9 $CT_PID >/dev/null 2>&1
+
+#Test
+test=`grep "type 10, 'fault'" output`
+echo $test
+if  [ -e ./output ] && [ -n "$test" ]; then
+	echo "OK: Inactivity deadline trigger fired. SUCCESS!!"
+	cd ..
+	#./cleanup
+	cd ipn.cfdp.bp.tcp
+	RETVAL=0
+else
+	echo "ERROR: Inactivity deadline trigger didn't fire. FAILED!!"
+	RETVAL=1
+fi
+
+sleep 10 
+#End ION
+echo "Killing ION..."
+./ionstop
+killm
+exit $RETVAL

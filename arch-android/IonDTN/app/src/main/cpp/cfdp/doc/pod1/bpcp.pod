@@ -1,0 +1,96 @@
+=head1 NAME
+
+bpcp - A remote copy utility for delay tolerant networks utilizing
+NASA JPL's Interplanetary Overlay Network (ION)
+
+=head1 SYNOPSIS
+
+B<bpcp> [-dqr | -v] [-L I<bundle_lifetime>] [-C I<custody_on/off>] 
+[-S I<class_of_service>] [I<host1>:]I<file1> ... [I<host2>:]I<file2>	
+
+=head1 DESCRIPTION
+
+B<bpcp> copies files between hosts utilizing NASA JPL's Interplanetary
+Overlay Network (ION) to provide a delay tolerant network. File copies
+from local to remote, remote to local, or remote to remote are permitted.
+B<bpcp> depends on ION to do any authentication or encryption of file transfers.
+All covergence layers over which B<bpcp> runs MUST be reliable.
+
+The options are permitted as follows:
+
+=over 5
+
+=item B< -d>	Debug output. Repeat for increased verbosity.
+
+=item B< -q>	Quiet. Do not output status messages.
+
+=item B< -r>	Recursive.
+
+=item B< -v>	Display version information.
+
+=item B< -L> I<bundle_lifetime>
+
+Bundle lifetime in seconds. Default is 86400 seconds (1 day).
+
+=item B< -C> I<BP_custody>
+
+Acceptable values are ON/OFF,YES/NO,1/0. Default is ON.
+
+=item B< -S> I<class_of_service>
+
+Bundle Protocol Class of Service for this transfer. Available options are:
+
+=over 4
+
+=item 0	Bulk Priority
+	
+=item 1	Standard Priority
+
+=item 2	Expedited Priority
+
+=back
+	
+Default is Standard Priority.
+
+=back
+
+B<bpcp> utilizes CFDP to preform the actual file transfers. This has several
+important implications. First, ION's CFDP implementation requires that reliable
+convergence layers be used to transfer the data. Second, file permissions are
+not transferred. Files will be made executable on copy. Third, symbolic links
+are ignored for local to remote transfers and their target is copied for remote
+transfers. Fourth, all hosts must be specified using ION's IPN naming scheme.
+
+In order to preform remote to local transfers or remote to remote transfers,
+B<bpcpd> must be running on the remote hosts. However, B<bpcp> should NOT
+be run simultaneously with B<bpcpd> or B<cfdptest>.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpcp> terminated normally.
+
+=item "1"
+
+B<bpcp> terminated abnormally. Check console and the B<ion.log> file for error messages.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bpcpd(1), ion(3), cfdptest(1)

@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+#	Author: Andrew Jenkins
+#				University of Colorado at Boulder
+#	Copyright (c) 2008-2011, Regents of the University of Colorado.
+#	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
+#	NNC07CB47C.		
+
+# Sends bundles to the local ION node, and then sends an aggregate
+# custody signal (ACS) to the node and verifies that the ACS
+# correctly signalled that custody of those bundles could be released
+# by the local node.
+
+# This test may fail because the timestamp on the canned bundles gets too old.
+# Using the date 2/11/2016 this test will begin to fail around february 2021 for date related reasons.
+
+
+export PYTHONPATH=`pwd`/..:`pwd`/../../pylib:$PYTHONPATH
+echo "Setting PYTHONPATH to $PYTHONPATH"
+
+PASS=1
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+echo "Starting ION..."
+srcdir=`pwd`
+echo "ionstart -I host1.rc"
+"ionstart" -I "host1.rc"
+
+
+
+#
+# OMFG I really hate this... bsd vs gnu netcat
+#
+if `(nc --help 2>&1) | head -n 1 | fgrep GNU > /dev/null`; then
+    NETCAT_VERSION="gnu"
+    echo "Detected GNU netcat"
+else
+    NETCAT_VERSION="bsd"
+    echo "Detected bsd netcat"
+    # osx seems to conform to this as well
+fi
+
+
+# Send it some bundles with "custody transfer requested" set.
+BUNDLESRX=0
+for i in $(ls ../canned-bundles/canned-bundle-*); do
+
+    if [ "$NETCAT_VERSION" == "gnu" ]; then
+        nc -c -u 127.0.0.1 4556 < $i
+        sleep 1
+    else
+        nc -w 1 -u 127.0.0.1 4556 < $i
+    fi
+
+    let BUNDLESRX+=1
+done
+
+# Check that it accepted custody for all these bundles.
+sleep 1
+#BPLISTOUT=`bplist count`
+#NUMBUNDLES="$(echo $BPLISTOUT | sed -e \"s/Count is \([0-9]\+\)\./\1/\")"
+#if [ $NUMBUNDLES != $BUNDLESRX ]; then
+#    echo "ION only accepted custody of $NUMBUNDLES / $BUNDLESRX bundles."
+#    PASS=0
+#fi
+
+NUMBUNDLES=`bplist | fgrep '**** Bundle' | wc -l`
+if [ $NUMBUNDLES != $BUNDLESRX ]; then
+    echo "ION only accepted custody of $NUMBUNDLES / $BUNDLESRX bundles."
+    PASS=0
+else
+    echo "ION accepted custody of $NUMBUNDLES bundles, OK 1 of 2"
+fi
+
+# pidof not present on solaris..  echo "udpcli PID is $(pidof lt-udpcli), ipnadminep is $(pidof lt-ipnadminep)"
+
+# Send it an ACS.
+../makeacs -u 4556 0-7 || ( echo "Couldn't send ACS"; PASS=0)
+
+# See if the ACS worked.
+sleep 2
+#BPLISTOUT=$(bplist --stdout count) || exit 1
+#NUMBUNDLES=$(echo $BPLISTOUT | sed -e "s/Count is \([0-9]\+\)\./\1/")
+#if (( $NUMBUNDLES != 0 )); then
+#    echo "ION thought the ACS didn't cover $NUMBUNDLES bundles."
+#    PASS=0
+#fi
+
+NUMBUNDLES=`bplist | fgrep '**** Bundle' | wc -l`
+if [ $NUMBUNDLES != 0 ]; then
+    echo "ION thought the ACS didn't cover $NUMBUNDLES bundles."
+    PASS=0
+else
+    echo "ION custody xfer acknowledged $NUMBUNDLES bundles, OK 2 of 2"
+fi
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+if [ $PASS -eq 1 ]
+then
+    exit 0
+else
+    exit 1
+fi

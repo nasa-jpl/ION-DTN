@@ -1,0 +1,175 @@
+=head1 NAME
+
+cfdprc - CCSDS File Delivery Protocol management commands file
+
+=head1 DESCRIPTION
+
+CFDP management commands are passed to B<cfdpadmin> either in a file of
+text lines or interactively at B<cfdpadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.  The formats
+and effects of the CFDP management commands are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by cfdpadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<1>
+
+The B<initialize> command.  Until this command is executed, CFDP is not
+in operation on the local ION node and most I<cfdpadmin> commands will fail.
+
+=item B<a entity>> <entity nbr> <UT protocol name> <UT endpoint name> <rtt> <incstype> <outcstype>
+
+The B<add entity> command.  This command will add a new remote CFDP entity to
+the CFDP management information base.  Valid UT protocol names are bp and
+tcp.  Endpoint name is EID for bp, socket spec (I<IP address>:I<port number>)
+for tcp.  RTT is round-trip time, used to set acknowledgement timers. incstype
+is the type of checksum to use when validating data received from this entity;
+valid values are 0 (modular checksum) and 1 (CRC32).  outcstype is the type of
+checksum to use when computing the checksum for transmitting data to this
+entity.
+
+=item B<c entity>> <entity nbr> <UT protocol name> <UT endpoint name> <rtt> <incstype> <outcstype>
+
+The B<change entity> command.  This command will change information associated
+with an existing entity in the CFDP management information base.
+
+=item B<d entity>> <entity nbr>
+
+The B<delete entity> command.  This command will delete an existing entity from
+the CFDP management information base.
+
+=item B<i> [<entity nbr>]
+
+The B<info> command.  When B<entity nbr> is provided, this command will print
+information about the indicate entity.  Otherwise this command will print
+information about the current state of the local CFDP entity, including the
+current settings of all parameters that can be managed as described below.
+
+=item B<s> 'I<UTS command>'
+
+The B<start> command.  This command starts the UT-layer service task
+for the local CFDP entity.
+
+=item B<m discard> { 0 | 1 }
+
+The B<manage discard> command.  This command enables or disables the
+discarding of partially received files upon cancellation of a file reception.
+The default value is 1;
+
+=item B<m requirecrc> { 0 | 1 }
+
+The B<manage CRC data integrity> command.  This command enables or disables the
+attachment of CRCs to all PDUs issued by the local CFDP entity.  The default
+value is 0;
+
+=item B<m fillchar> I<file_fill_character>
+
+The B<manage fill character> command.  This command establishes the fill
+character to use for the portions of an incoming file that have not yet
+been received.  The fill character is normally expressed in hex, e.g., 
+the default value is 0xaa.
+
+=item B<m ckperiod> I<check_cycle_period>
+
+The B<manage check interval> command.  This command establishes the number
+of seconds following reception of the EOF PDU -- or following expiration
+of a prior check cycle -- after which the local CFDP will check for 
+completion of a file that is being received.  Default value is 86400 (i.e.,
+one day).
+
+=item B<m maxtimeouts> I<check_cycle_limit>
+
+The B<manage check limit> command.  This command establishes the number
+of check cycle expirations after which the local CFDP entity will invoke
+the check cycle expiration fault handler upon expiration of a check cycle.
+Default value is 7.
+
+=item B<m maxevents> I<event_queue_limit>
+
+The B<manage event queue limit> command.  This command establishes the
+maximum number of unread service indications (CFDP "events") that may be
+queued up for delivery at any time.  When the events queue length exceeds
+this figure, events are simply deleted (in decreasing age order, oldest
+first) until the the limit is no longer exceeded.  Default value is 20.
+
+=item B<m maxtrnbr> I<max_transaction_number>
+
+The B<manage transaction numbers> command.  This command establishes the
+largest possible transaction number used by the local CFDP entity for file
+transmission transactions.  After this number has been used, the 
+transaction number assigned to the next transaction will be 1.  The
+default value is 999999999.
+
+=item B<m segsize> I<max_bytes_per_file_data_segment>
+
+The B<manage segment size> command.  This command establishes the
+number of bytes of file data in each file data PDU transmitted by the
+local CFDP entity in the absence of an application-supplied reader
+function.  The default value is 65000.
+
+=item B<m inactivity> I<inactivity_period>
+
+The B<manage inactivity period> command. This command establishes the number
+of seconds that a CFDP file transfer is allowed to go idle before being
+canceled for inactivity. The default is one day.
+
+=item B<x>
+
+The B<stop> command.  This command stops the UT-layer service task for
+the local CFDP engine.
+
+=item B<w> { 0 | 1  | <activity_spec> }
+
+The B<CFDP watch> command.  This command enables and disables production of
+a continuous stream of user-selected CFDP activity indication characters.  A
+watch parameter of "1" selects all CFDP activity indication characters; "0"
+de-selects all CFDP activity indication characters; any other I<activity_spec>
+such as "p" selects all activity indication characters in the string,
+de-selecting all others.  CFDP will print each selected activity indication
+character to B<stdout> every time a processing event of the associated type
+occurs:
+
+B<p>	CFDP PDU transmitted
+
+B<q>	CFDP PDU received
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item m requirecrc 1
+
+Initiates attachment of CRCs to all subsequently issued CFDP PDUs.
+
+=back
+
+=head1 SEE ALSO
+
+cfdpadmin(1), bputa(1)

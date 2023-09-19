@@ -1,0 +1,6 @@
+1 10
+a span 1 2 2 1200 100000 1 'udplso localhost:1113 230000'
+a span 3 2 2 1200 100000 1 'udplso localhost:3113 230000'
+a span 4 2 2 1200 100000 1 'udplso localhost:4113 230000'
+w 1
+s 'udplsi localhost:2113'

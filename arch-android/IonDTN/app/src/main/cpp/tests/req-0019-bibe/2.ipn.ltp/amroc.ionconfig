@@ -1,0 +1,6 @@
+wmKey 66236
+sdrName ion2
+wmSize 2000000
+configFlags 1
+heapWords 100000
+pathName /tmp

@@ -1,0 +1,119 @@
+=head1 NAME
+
+ltpmeter - LTP daemon task for aggregating and segmenting transmission blocks
+
+=head1 SYNOPSIS
+
+B<ltpmeter> I<remote_engine_nbr>
+
+=head1 DESCRIPTION
+
+B<ltpmeter> is a background "daemon" task that manages the presentation of
+LTP segments to link service output tasks.  Each "span" of LTP data interchange
+between the local LTP engine and a neighboring LTP engine requires its own
+B<ltpmeter> task.  All B<ltpmeter> tasks are spawned automatically by
+B<ltpadmin> in response to the 's' command that starts operation of the
+LTP protocol, and they are all terminated by B<ltpadmin> in response to an
+'x' (STOP) command.
+
+B<ltpmeter> waits until its span's current transmission block (the data
+to be transmitted during the transmission session that is currently being
+constructed) is ready for transmission, then divides the data in the
+span's block buffer into segments and enqueues the segments for transmission
+by the span's link service output task (giving the segments semaphore to
+unblock the link service output task as necessary), then reinitializes the
+span's block buffer and starts another session (giving the "buffer empty"
+semaphore to unblock the client service task -- nominally B<ltpclo>, the
+LTP convergence layer output task for Bundle Protocol -- as necessary).
+
+B<ltpmeter> determines that the current transmission block is ready for
+transmission by waiting until either (a) the aggregate size of all service
+data units in the block's buffer exceeds the aggregation size limit for
+this span or (b) the length of time that the first service data unit in
+the block's buffer has been awaiting transmission exceeds the aggregation
+time limit for this span.  The "buffer full" semaphore is given when ION
+(either the ltp_send() function or the B<ltpclock> daemon) determines
+that one of these conditions is true; B<ltpmeter> simply waits for this
+semaphore to be given.
+
+The initiation of a new session may also be blocked: the total number of
+transmission sessions that the local LTP engine may have open at a single
+time is limited (this is LTP flow control), and while the engine is at this
+limit no new sessions can be started.  Availability of a session from the
+session pool is signaled by the "session" semaphore, which is given whenever
+a session is completed or canceled.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ltpmeter> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<ltpadmin> to restart B<ltpmeter>.
+
+=item "1"
+
+B<ltpmeter> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<ltpadmin> to restart B<ltpmeter>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item ltpmeter can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item No such engine in database.
+
+I<remote_engine_nbr> is invalid, or the applicable span has not yet
+been added to the LTP database by B<ltpadmin>.
+
+=item ltpmeter task is already started for this engine.
+
+Redundant initiation of B<ltpmeter>.
+
+=item ltpmeter can't start new session.
+
+An unrecoverable database error was encountered.  B<ltpmeter> terminates.
+
+=item Can't take bufClosedSemaphore.
+
+An unrecoverable database error was encountered.  B<ltpmeter> terminates.
+
+=item Can't create extents list.
+
+An unrecoverable database error was encountered.  B<ltpmeter> terminates.
+
+=item Can't post ExportSessionStart notice.
+
+An unrecoverable database error was encountered.  B<ltpmeter> terminates.
+
+=item Can't finish session.
+
+An unrecoverable database error was encountered.  B<ltpmeter> terminates.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltpclock(1)

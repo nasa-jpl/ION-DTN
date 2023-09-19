@@ -1,0 +1,6 @@
+wmKey 66136
+sdrName ion1
+wmSize 4000000
+configFlags 1
+heapWords 4000000
+pathName /usr/ion

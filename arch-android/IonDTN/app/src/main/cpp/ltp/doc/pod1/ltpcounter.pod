@@ -1,0 +1,82 @@
+=head1 NAME
+
+ltpcounter - LTP reception test program
+
+=head1 SYNOPSIS
+
+B<ltpcounter> I<client_ID> [I<max_nbr_of_bytes>]
+
+=head1 DESCRIPTION
+
+B<ltpcounter> uses LTP to receive service data units flagged with client
+service number I<client_ID> from a remote B<ltpdriver> client service
+process.  When the total number of bytes of client service data it has
+received exceeds I<max_nbr_of_bytes>, it terminates and prints reception
+and cancellation statistics.  If I<max_nbr_of_bytes> is omitted, the default
+limit is 2 billion bytes.
+
+While receiving data, B<ltpcounter> prints a 'v' character every 5 seconds
+to indicate that it is still alive.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ltpcounter> has terminated.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=item "1"
+
+B<ltpcounter> was unable to start, because it could not attach to the LTP
+protocol on the local node or could not open access to client service
+I<clientId>.
+
+In the former case, run B<ltpadmin> to start LTP and try again.
+
+In the latter case, some other client service task has already opened
+access to client service I<clientId>.  If no such task is currently running
+(e.g., it crashed while holding the client service open), use B<ltpadmin> to
+stop and restart the LTP protocol.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<ltpcounter> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item ltpcounter can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item ltpcounter can't open client access.
+
+Another task has opened access to service client I<clientId> and has not yet
+relinquished it.
+
+=item Can't get LTP notice.
+
+LTP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltpdriver(1), ltp(3)

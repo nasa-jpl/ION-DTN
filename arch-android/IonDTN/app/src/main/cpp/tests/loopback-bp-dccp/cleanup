@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# cleanup.sh
+# Samuel Jero
+# December 2010
+#
+# Cleanup Script for DCCP convergence layer test
+
+DCCPTEST=./dccptest.txt
+LINUXTEST=./linuxtest.txt
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+rm -f $DCCPTEST $LINUXTEST $IONSENDFILE $IONRECEIVEFILE ion.log
+exit 0

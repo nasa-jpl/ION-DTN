@@ -1,0 +1,194 @@
+#!/bin/bash
+# Samuel Jero <sj323707@ohio.edu>
+# Ohio University
+# November 3, 2012
+#
+# This test verifies that transaction reversibility is functional by triggering
+# a condition where transaction reversibility is needed to correctly recover.
+# Specifically, this test starts two nodes and sends bundles from one to the
+# other until that second node fills up. This triggers a transaction failure and
+# reversal. Afterwards, we check to ensure that ION can still send data between
+# the nodes.
+
+
+function end(){
+# Shut down ION.
+echo "Stopping ION..."
+cd 1.ipn.udp
+./ionstop &
+cd ../2.ipn.udp
+./ionstop &
+sleep 15
+rm -f /tmp/ion*.sdrlong
+exit $RETVAL
+}
+
+
+CONFIGFILES=" \
+./1.ipn.udp/config.ionrc \
+./1.ipn.udp/config.ionconfig \
+./1.ipn.udp/config.ionsecrc \
+./1.ipn.udp/config.bprc \
+./1.ipn.udp/config.ipnrc \
+./2.ipn.udp/config.ionrc \
+./2.ipn.udp/config.ionconfig \
+./2.ipn.udp/config.ionsecrc \
+./2.ipn.udp/config.bprc \
+./2.ipn.udp/config.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Test transaction reversibility by causing a situation where ION"
+echo "            has to use transaction reversibility to recover and ensuring"
+echo "            that ION is able to do that and continue."
+echo "            Specifically, this test starts two nodes and sends bundles"
+echo "            from one to the other until that second node fills up. This"
+echo "            triggers a transaction failure and reversal. Afterwards, we"
+echo "            check to ensure that ION can still send data between the nodes."
+echo
+echo "CONFIG: 2 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+export ION_NODE_LIST_DIR=$PWD
+RETVAL=0
+./cleanup
+rm -f /tmp/ion1.sdrlog
+rm -f /tmp/ion2.sdrlog
+
+#Start node 1
+echo
+echo "Starting node 1..."
+cd 1.ipn.udp/
+./ionstart
+
+#Start node 2
+echo
+echo "Starting node 2..."
+cd ../2.ipn.udp/
+./ionstart
+sleep 5
+bpcounter ipn:2.1 15  > output1 &
+
+#Send Bundles
+cd ../1.ipn.udp/
+echo ""
+echo "Start sending bundles..."
+bpdriver 100 ipn:1.1 ipn:2.1 -1000 t30 >& output1
+sleep 10
+
+#Check that bpdriver terminated after aborting an SDR transaction
+cd ../2.ipn.udp/
+firstAbort=`grep "Transaction aborted" ion.log | wc -l`
+echo ""
+echo -n $firstAbort
+echo " transactions at receiver failed."
+if ! [ $firstAbort -ge 1 ];then
+	echo "Didn't cause SDR exhaustion... Please update test to send more bundles and try again"
+	echo ""
+	RETVAL=2
+	cd ..
+	end
+else
+	echo "SDR exhaustion caused a transaction to abort."
+fi
+
+#Transaction reversibility should recover without an unrecoverable SDR error
+text=`grep "Unrecoverable SDR error" ion.log`
+echo $text
+if ! [ -z "$text" ];then
+	echo "ERROR: Unrecoverable SDR Error! Transaction reversibility Failed!"
+	echo ""
+	RETVAL=1
+	cd ..
+	killm
+	end
+fi
+
+if [ $firstAbort -gt 1 ];then
+#Failed twice, so no daemons are running.  Use delivery to clear out some space
+#because bpclock won't time them out.
+	echo "Delivering queued data to bpcounter to free some heap space..."
+	bpcounter ipn:2.1 > output2 &
+	BPCOUNTER_PID=$!
+	sleep 5
+	kill -2 $BPCOUNTER_PID >/dev/null 2>&1
+	sleep 1
+	kill -9 $BPCOUNTER_PID >/dev/null 2>&1
+#Now restart the daemons.
+	sleep 1
+	echo "Restarting all ION daemons on receiver..."
+	ionadmin restart.ionrc
+	bpadmin restart.bprc
+fi
+
+echo "Waiting for all previously transmitted bundles to expire..."
+sleep 30
+
+#Try to send more bundles to ensure that transaction reversibility healed the
+#system properly
+echo ""
+echo "Now try sending some more bundles..."
+bpcounter ipn:2.1 > output3 &
+BPCOUNTER_PID=$!
+echo ""
+sleep 2
+cd ../1.ipn.udp/
+bpdriver 10 ipn:1.1 ipn:2.1 -100 t30 >& output2
+
+#Check if we caused a transaction to abort or an unrecoverable SDR error
+sleep 2
+cd ../2.ipn.udp/
+secondAbort=`grep "Transaction aborted" ion.log | wc -l`
+echo ""
+echo -n $secondAbort
+echo " transactions have failed at receiver in total."
+if [ $secondAbort -gt $firstAbort ];then
+	echo "Error: Transaction aborted! Transaction reversibility didn't reset something correctly!"
+	echo ""
+	RETVAL=1
+	cd ..
+	end
+fi
+text=`grep "Unrecoverable SDR error" ion.log`
+echo $text
+if ! [ -z "$text" ];then
+	echo "ERROR: unrecoverable SDR error! Transaction reversibility Failed!"
+	echo ""
+	RETVAL=1
+	cd ..
+	killm
+	end
+fi
+
+#Check bpcounter results
+sleep 10
+cd ../2.ipn.udp/
+kill -2 $BPCOUNTER_PID >/dev/null 2>&1
+sleep 1
+kill -9 $BPCOUNTER_PID >/dev/null 2>&1
+
+grep "bundles received: 10" output3
+TESTCOND=$?
+if [ -e output3 ] && [ $TESTCOND -eq 0 ]; then
+	echo
+	echo "Bundles successfully received! SUCCESS"
+	RETVAL=0
+else
+	echo
+	echo "Bundles not received! FAILURE"
+	RETVAL=1
+fi
+cd ..
+
+end

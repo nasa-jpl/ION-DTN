@@ -1,0 +1,36 @@
+# Config file for issue-344-bpsource-ttl test
+# Samuel Jero
+# March 28, 2012
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	The scheme's number is 1.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) schemes ONLY.  All other
+#	schemes (dtn for example) should use number -1.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a endpoint ipn:1.3 q
+
+# Add a protocol. 
+a protocol udp 1400 100
+
+# Add an induct. (listen)
+# (none--that's what netcat is for) a induct udp 127.0.0.1:4556 udpcli
+
+# Add an outduct.
+a outduct udp 127.0.0.1:4556 udpclo
+
+s

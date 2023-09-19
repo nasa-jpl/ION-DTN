@@ -1,0 +1,127 @@
+=head1 NAME
+
+ionadmin - ION node administration interface
+
+=head1 SYNOPSIS
+
+B<ionadmin> [ I<commands_filename> | . ]
+
+=head1 DESCRIPTION
+
+B<ionadmin> configures, starts, manages, and stops the ION node on the local
+computer.
+
+It configures the node and sets (and reports on) global operational
+settings for the DTN protocol stack on the local computer in response
+to ION configuration commands found in I<commands_filename>, if provided;
+if not, B<ionadmin> prints a simple prompt (:) so that the user may type
+commands directly into standard input.  If I<commands_filename> is a
+period (.), the effect is the same as if a command file containing
+the single command 'x' were passed to B<ionadmin> -- that is, the ION
+node's I<rfxclock> task is stopped.
+
+The format of commands for I<commands_filename> can be queried from B<ionadmin>
+by entering the command 'h' or '?' at the prompt.  The commands are documented
+in ionrc(5).
+
+Note that I<ionadmin> always computes a congestion forecast immediately
+before exiting.  The result of this forecast -- maximum projected occupancy
+of the DTN protocol traffic allocation in ION's SDR database -- is retained
+for application flow control purposes: if maximum projected occupancy is the
+entire protocol traffic allocation, then a message to this effect is logged
+and no new bundle origination by any application will be accepted until
+a subsequent forecast that predicts no congestion is computed.  (Congestion
+forecasts are constrained by I<horizon> times, which can be established by
+commands issued to I<ionadmin>.  One way to re-enable data origination
+temporarily while long-term traffic imbalances are being addressed is to
+declare a congestion forecast horizon in the near future, before congestion
+would occur if no adjustments were made.)
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Successful completion of ION node administration.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item ionadmin
+
+Enter interactive ION configuration command entry mode.
+
+=item ionadmin host1.ion
+
+Execute all configuration commands in I<host1.ion>, then terminate immediately.
+
+=back
+
+=head1 FILES
+
+Status and diagnostic messages from B<ionadmin> and from other software that
+utilizes the ION node are nominally written to a log file in the current
+working directory within which B<ionadmin> was run.  The log file is typically
+named B<ion.log>.
+
+See also ionconfig(5) and ionrc(5).
+
+=head1 ENVIRONMENT
+
+Environment variables ION_NODE_LIST_DIR and ION_NODE_WDNAME can be used to
+enable the operation of multiple ION nodes on a single workstation computer.
+See section 2.1.3 of the ION Design and Operations Guide for details.
+
+=head1 DIAGNOSTICS
+
+B<Note>: all ION administration utilities expect source file input to be
+lines of ASCII text that are NL-delimited.  If you edit the ionrc file on
+a Windows machine, be sure to B<use dos2unix to convert it to Unix text format>
+before presenting it to B<ionadmin>.  Otherwise B<ionadmin> will detect syntax
+errors and will not function satisfactorily.
+
+The following diagnostics may be issued to the log file:
+
+=over 4
+
+=item Can't open command file...
+
+The I<commands_filename> specified in the command line doesn't exist.
+
+=item ionadmin SDR definition failed.
+
+A node initialization command was executed, but an SDR database already
+exists for the indicated node.  It is likely that an ION node is already
+running on this computer or that destruction of a previously started the
+previous ION node was incomplete.  For most ION installations, incomplete
+node destruction can be repaired by (a) killing all ION processes that
+are still running and then (b) using B<ipcrm> to remove all SVr4 IPC
+objects owned by ION.
+
+=item ionadmin can't get SDR parms.
+
+A node initialization command was executed, but the I<ion_config_filename>
+passed to that command contains improperly formatted commands.  Please see
+ionconfig(5) for further details.
+
+=back
+
+Various errors that don't cause B<ionadmin> to fail but are noted in the
+log file may be caused by improperly formatted commands given at the prompt
+or in the I<commands_filename>.  Please see ionrc(5) for details.
+
+=head1 BUGS
+
+If the I<ion_config_filename> parameter passed to a node initialization
+command refers to a nonexistent filename, then B<ionadmin> uses default
+values are used rather than reporting an error in the command line argument.
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ionrc(5), ionconfig(5)

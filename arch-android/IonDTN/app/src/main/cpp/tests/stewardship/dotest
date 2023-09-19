@@ -1,0 +1,133 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 8, 2010
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./global.ionrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 175: Stewardship.
+	Tests bundle 'stewardship', i.e., the bug fix that prevents deletion of
+	a non-custodial bundle prior to convergence-layer notification that
+	all transmission procedures for this bundle have been concluded, either
+	successfully or unsuccessfully.  By transmitting a large volume of data
+	at high speeds we swamp the receiving node's UDP buffer; the buffer
+	congestion results in the loss of some subset of the data segments
+	that were transmitted.  This transmission and data loss is cyclical for
+	each block, and in some subset of the transmission sessions the number
+	of iterations exceeds the retransmission request limit; at that point
+	LTP at the receiver simply gives up and cancels those sessions.  The
+	cancellation of a session at the receiver causes the sending LTP
+	engine to signal convergence-layer transmission failure for all the
+	bundles in that block, causing all those bundle to be reforwarded
+	regardless of whether or not custody transfer was requested for them.
+	We detect the reforwarding of these bundles by looking for '#' watch
+	characters in stdout at the sender.  "
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+
+echo "Starting bpcounter on node 3..."
+sleep 1
+bpcounter ipn:3.1 100 &
+BPCOUNTER_PID=$!
+
+cd ../2.ipn.ltp
+echo "Sending bundles to ipn:3.1, should eventually be delivered..."
+bpdriver 100 ipn:2.1 ipn:3.1 -64000 &
+
+# Wait for transmission to finish.
+echo "Waiting for transmission to finish..."
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $BPCOUNTER_PID && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "done running"
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 600 ]
+	then
+		#infinite loop protection
+		echo "10 minutes passed; giving up."
+		RUNNING=0
+	fi
+done
+
+echo "Transmission finished.  Verifying results..."
+
+# Verify segments were retransmitted.
+RETVAL=0
+
+COUNT=`grep "#" node2.stdout | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "No reforwarding of bundles detected."
+	RETVAL=1
+else
+	echo "Bundle(s) reforwarded without custody transfer; stewardship okay."
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Stewardship test completed."
+exit $RETVAL

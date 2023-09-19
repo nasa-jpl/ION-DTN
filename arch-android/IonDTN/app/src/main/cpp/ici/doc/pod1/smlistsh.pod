@@ -1,0 +1,131 @@
+=head1 NAME
+
+smlistsh - shared-memory linked list test shell
+
+=head1 SYNOPSIS
+
+B<smlistsh> I<partition_size>
+
+=head1 DESCRIPTION
+
+B<smlistsh> attaches to a region of system memory (allocating it if
+necessary, and placing it under PSM management as necessary) and offers
+the user an interactive "shell" for testing various shared-memory linked
+list management functions.
+
+B<smlistsh> prints a prompt string (": ") to stdout, accepts a command from 
+stdin, executes the command (possibly printing a diagnostic message), 
+then prints another prompt string and so on.
+
+The following commands are supported:
+
+=over 4
+
+=item B<h>
+
+The B<help> command.  Causes B<smlistsh> to print a summary of available
+commands.  Same effect as the B<?> command.
+
+=item B<?>
+
+Another B<help> command.  Causes B<smlistsh> to print a summary of available
+commands.  Same effect as the B<h> command.
+
+=item B<k>
+
+The B<key> command.  Computes and prints an unused shared-memory key, for
+possible use in attaching to a shared-memory region.
+
+=item B<+> I<key_value> I<size>
+
+The B<attach> command.  Attaches B<smlistsh> to a region of shared memory.
+I<key_value> identifies an existing shared-memory region, in the event
+that you want to attach to an existing shared-memory region (possibly created
+by another B<smlistsh> process running on the same computer).  To create and
+attach to a new shared-memory region that other processes can attach to,
+use a I<key_value> as returned by the B<key> command and supply the I<size>
+of the new region.  If you want to create and attach to a new shared-memory
+region that is for strictly private use, use -1 as key and supply the I<size>
+of the new region.
+
+=item B<->
+
+The B<detach> command.  Detaches B<smlistsh> from the region of shared
+memory it is currently using, but does not free any memory.
+
+=item B<n>
+
+The B<new> command.  Creates a new shared-memory list to operate on, within
+the currently attached shared-memory region.  Prints the address of the list.
+
+=item B<s> I<list_address>
+
+The B<share> command.  Selects an existing shared-memory list to operate on,
+within the currently attached shared-memory region.
+
+=item B<a> I<element_value>
+
+The B<append> command.  Appends a new list element, containing
+I<element_value>, to the list on which B<smlistsh> is currently operating.
+
+=item B<p> I<element_value>
+
+The B<prepend> command.  Prepends a new list element, containing
+I<element_value>, to the list on which B<smlistsh> is currently operating.
+
+=item B<w>
+
+The B<walk> command.  Prints the addresses and contents of all elements of
+the list on which B<smlistsh> is currently operating.
+
+=item B<f> I<element_value>
+
+The B<find> command.  Finds the list element that contains I<element_value>,
+within the list on which B<smlistsh> is currently operating, and prints
+the address of that list element.
+
+=item B<d> I<element_address>
+
+The B<delete> command.  Deletes the list element located at I<element_address>.
+
+=item B<r>
+
+The B<report> command.  Prints a partition usage report, as per psm_report(3).
+
+=item B<q>
+
+The B<quit> command.  Detaches B<smlistsh> from the region of shared
+memory it is currently using (without freeing any memory) and terminates
+B<smlistsh>.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<smlistsh> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+No diagnostics apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+smlist(3)

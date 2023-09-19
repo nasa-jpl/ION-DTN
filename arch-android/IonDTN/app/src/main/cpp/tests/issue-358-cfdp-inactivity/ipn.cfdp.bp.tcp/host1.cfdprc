@@ -1,0 +1,11 @@
+#Issue 358-CFDP-inactivity
+#Samuel Jero
+#June 26,2012
+1
+m discard 1
+m requirecrc 1
+m ckperiod 1
+m maxtimeouts 2
+m inactivity 1
+m segsize 1000
+s 'bputa'

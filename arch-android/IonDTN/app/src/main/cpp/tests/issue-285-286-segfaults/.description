@@ -1,0 +1,1 @@
+Verify that admin command syntax errors which resulted in segfault no longer fail

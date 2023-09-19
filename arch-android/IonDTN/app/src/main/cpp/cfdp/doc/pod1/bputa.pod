@@ -1,0 +1,109 @@
+=head1 NAME
+
+bputa - BP-based CFDP UT-layer adapter
+
+=head1 SYNOPSIS
+
+B<bputa>
+
+=head1 DESCRIPTION
+
+B<bputa> is a background "daemon" task that sends and receives CFDP PDUs
+encapsulated in DTN bundles.
+
+The task is spawned automatically by B<cfdpadmin> in response to the 's'
+command that starts operation of the CFDP protocol; the text of the
+command that is used to spawn the task must be provided
+as a parameter to the 's' command.  The link service input task is
+terminated by B<cfdpadmin> in response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bputa> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<cfdpadmin> to restart B<bputa>.
+
+=item "1"
+
+B<bputa> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<cfdpadmin> to restart B<bputa>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item CFDP can't attach to BP.
+
+B<bpadmin> has not yet initialized BP protocol operations.
+
+=item CFDP can't open own endpoint.
+
+Most likely another bputa task is already running.  Use B<cfdpadmin> to
+stop CFDP and restart.
+
+=item CFDP can't get Bundle Protocol SAP.
+
+Most likely a BP configuration problem.  Use B<bpadmin> to stop BP and restart.
+
+=item bputa can't attach to CFDP.
+
+B<cfdpadmin> has not yet initialized CFDP protocol operations.
+
+=item bputa can't dequeue outbound CFDP PDU; terminating.
+
+Possible system error.  Check ion.log for additional diagnostic messages.
+
+=item bputa can't send PDU in bundle; terminating.
+
+Possible system error.  Check ion.log for additional diagnostic messages.
+
+=item bputa can't track PDU; terminating.
+
+Possible system error.  Check ion.log for additional diagnostic messages.
+
+=item bputa bundle reception failed.
+
+Possible system error; reception thread terminates.  Check ion.log for
+additional diagnostic messages.
+
+=item bputa can't receive bundle ADU.
+
+Possible system error; reception thread terminates.  Check ion.log for
+additional diagnostic messages.
+
+=item bputa can't handle bundle delivery.
+
+Possible system error; reception thread terminates.  Check ion.log for
+additional diagnostic messages.
+
+=item bputa can't handle inbound PDU.
+
+Possible system error; reception thread terminates.  Check ion.log for
+additional diagnostic messages.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+cfdpadmin(1), bpadmin(1)

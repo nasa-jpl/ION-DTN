@@ -1,0 +1,46 @@
+# bprc configuration file for the tcpcl dos loopback test.
+#	Command: % bpadmin loopback.bprc
+#	This command should be run AFTER ionadmin and 
+#	BEFORE ipnadmin or dtnadmin.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1).
+1
+
+# Add an EID scheme.
+#	The scheme's name is ipn.
+#	The scheme's number is 1.  Note that this number is defined for
+#	Compressed Bundle Header Encoding (CBHE) schemes ONLY.  All other
+#	schemes (dtn for example) should use number -1.
+#	This scheme's forwarding engine is handled by the program 'ipnfw.'
+#	This scheme's administration program (acting as the custodian
+#	daemon) is 'ipnadminep.'
+a scheme ipn 'ipnfw' 'ipnadminep'
+
+# Add endpoints.
+#	Establish endpoints ipn:1.1 and ipn:1.2 on the local node.
+#	The behavior for receiving a bundle when there is no application
+#	currently accepting bundles, is to queue them 'q', as opposed to
+#	immediately and silently discarding them (use 'x' instead of 'q' to
+#	discard).
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+
+# Add a protocol. 
+#	Add the protocol named tcp.
+#	Estimate transmission capacity assuming 1400 bytes of each frame (in
+#	this case, udp on ethernet) for payload, and 100 bytes for overhead.
+a protocol tcp 1400 100
+
+# Add an induct. (listen)
+#	Add an induct to accept bundles using the tcp protocol.
+#	The induct itself is implemented by the 'tcpcli' command.
+a induct tcp 0.0.0.0:4556 tcpcli
+
+# Add an outduct. (send to yourself)
+#	Add an outduct to send bundles using the tcp protocol.
+#	The outduct itself is implemented by the 'tcpclo' command.
+a outduct tcp 127.0.0.1:4556 tcpclo
+
+s

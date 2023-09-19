@@ -1,0 +1,94 @@
+=head1 NAME
+
+udplso - UDP-based LTP link service output task
+
+=head1 SYNOPSIS
+
+B<udplso> {I<remote_engine_hostname> | @}[:I<remote_port_nbr>] [I<txbps>] I<remote_engine_nbr>
+
+=head1 DESCRIPTION
+
+B<udplso> is a background "daemon" task that extracts LTP segments from the
+queue of segments bound for the indicated remote LTP engine, encapsulates
+them in UDP datagrams, and sends those datagrams to the indicated UDP port
+on the indicated host.  If not specified, port number defaults to 1113.
+
+UDP congestion can be controlled by setting udplso's rate of UDP datagram
+transmission I<txbps> (transmission rate in bits per second) to the value
+that is supported by the underlying network.
+
+Each "span" of LTP data interchange between the local LTP engine and a
+neighboring LTP engine requires its own link service output task, such
+as B<udplso>.  All link service output tasks are spawned automatically by
+B<ltpadmin> in response to the 's' command that starts operation of the
+LTP protocol, and they are all terminated by B<ltpadmin> in response to an
+'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<udplso> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<ltpadmin> to restart B<udplso>.
+
+=item "1"
+
+B<udplso> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<ltpadmin> to restart B<udplso>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item udplso can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item No such engine in database.
+
+I<remote_engine_nbr> is invalid, or the applicable span has not yet
+been added to the LTP database by B<ltpadmin>.
+
+=item LSO task is already started for this engine.
+
+Redundant initiation of B<udplso>.
+
+=item LSO can't open UDP socket
+
+Operating system error.  Check errtext, correct problem, and restart B<udplso>.
+
+=item LSO can't connect UDP socket
+
+Operating system error.  Check errtext, correct problem, and restart B<udplso>.
+
+=item Segment is too big for UDP LSO.
+
+Configuration error: segments that are too large for UDP transmission (i.e.,
+larger than 65535 bytes) are being enqueued for B<udplso>.  Use B<ltpadmin>
+to change maximum segment size for this span.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltpmeter(1), udplsi(1), owltsim(1)

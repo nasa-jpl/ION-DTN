@@ -1,0 +1,214 @@
+#!/bin/bash
+#
+# David Young, modified from Scott Burleigh
+# April 29, 2010
+
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./5.ipn.ltp/amroc.ltprc \
+./5.ipn.ltp/amroc.bprc \
+./5.ipn.ltp/amroc.ionconfig \
+./5.ipn.ltp/global.ionrc \
+./5.ipn.ltp/amroc.ionrc \
+./5.ipn.ltp/amroc.ionsecrc \
+./5.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test ION behavior using dtn:none eids to ensure that the
+	null eid does not crash the node. Bptrace uses dtn:none as one of
+	the report/custodian eids to test this."
+echo
+echo "CONFIG: 3 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages relay results."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1
+rm -f 5.ipn.ltp/testfile2
+rm -f 5.ipn.ltp/testfile3
+rm -f 5.ipn.ltp/testfile4
+rm -f 5.ipn.ltp/testfile5
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../5.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin global.ionrc &
+cd ../3.ipn.ltp
+ionadmin global.ionrc &
+cd ../5.ipn.ltp
+ionadmin global.ionrc &
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../5.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../5.ipn.ltp
+ltpadmin amroc.ltprc &
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc &
+cd ../3.ipn.ltp
+bpadmin amroc.bprc &
+cd ../5.ipn.ltp
+bpadmin amroc.bprc &
+
+cd ../2.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../5.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 5 not started: Aborting Test"
+	exit 1
+fi
+
+# message sent over ion
+cd ../5.ipn.ltp
+
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+echo "Starting bpsink on node 5..."
+sleep 1
+bpsink ipn:5.1 >$IONRECEIVEFILE &
+BPSINKPID=$!
+
+cd ../2.ipn.ltp
+echo "Sending bptrace to with dtn:none reports..."
+# Bundle is sent to endpoint ipn:5.1, on which bpsink is listening, so
+# it should be delivered.
+bptrace ipn:2.1 ipn:5.1 dtn:none 5 1.1 "Hope this doesn't crash ION" rcv,ct,fwd,dlv,del
+
+sleep 3
+
+# create the test message in a sent file
+# the exclamation point signals the bundle sender to quit
+echo $IONMESSAGE > $IONSENDFILE
+echo "!" >> $IONSENDFILE
+
+# send the message in the file via test bundle source
+echo "Sending message..."
+bpsource ipn:5.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+# Wait for contacts to terminate.
+echo "Waiting a bit..."
+sleep 5
+
+echo "Killing bpsource if it is still running..."
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../5.ipn.ltp
+./ionstop &
+
+# Give all three nodes time to shut down, then clean up.
+sleep 5
+killm
+
+echo "Verifying results..."
+cd ../5.ipn.ltp
+# compare the sent message to the received one
+if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
+    echo "Oh noes, data corruption!"
+    echo
+    echo "Sent this:"
+    echo "----------------------------------------------------------------------"
+    echo $IONMESSAGE
+    echo "----------------------------------------------------------------------"
+    echo
+    echo "Received this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONRECEIVEFILE
+    echo "----------------------------------------------------------------------"
+    RETVAL=1
+else 
+    echo "bundle transfer successful!"
+    RETVAL=0
+fi
+
+echo "Status reports test completed."
+exit $RETVAL

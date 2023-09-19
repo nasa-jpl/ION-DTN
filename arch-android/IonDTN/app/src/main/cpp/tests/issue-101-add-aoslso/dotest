@@ -1,0 +1,128 @@
+#!/bin/bash
+#
+# 101-add-aoslso.sh
+# Greg Menke
+# July 6, 2010
+# copied from 1000.loopback test
+
+# script used in "make test" to ensure ion is functioning properly.
+# script is expected to be run by automake, meaning:
+# 1: Environment variable "srcdir" exists and points to the root directory of
+# the ion source code.
+# 2: The current working directory contains the built programs of ion.
+CONFIGFILES=" \
+./config/ionconfig.nodeconf \
+./config/101-ass-aoslso.bprc \
+./config/101-add-aoslso.ipnrc \
+./config/101-add-aoslso.ionsecrc \
+./config/101-add-aoslso.ionrc \
+./config/101-add-aoslso.ltprc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 101: an AOS link service
+	adapter for ltp.  Beyond the configuration options, this is a simple
+	loopback test."
+echo
+echo "CONFIG: Custom loopback: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+# file sent over ion
+IONSENDFILE=./ionsendfile.dat
+IONRECEIVEFILE=./testfile1
+
+
+echo "Starting ION..."
+CONFIGDIR="./config"
+ionstart                           \
+    -i ${CONFIGDIR}/101-add-aoslso.ionrc \
+    -l ${CONFIGDIR}/101-add-aoslso.ltprc \
+    -b ${CONFIGDIR}/101-add-aoslso.bprc  \
+    -s ${CONFIGDIR}/101-add-aoslso.ionsecrc \
+    -p ${CONFIGDIR}/101-add-aoslso.ipnrc
+
+
+# receive the message and store it in a file via test bundle sink
+echo "Starting File receiver..."
+bprecvfile ipn:1.2 &
+BPRECVFILEPID=$!
+
+# give app some time to start up
+sleep 5
+#
+# create a 1 megabyte file of random data
+#
+echo "Creating 1 megabyte test file..."
+dd if=/dev/urandom of=$IONSENDFILE bs=1024 count=1024
+# send the file to the receiver
+echo "Sending file (includes 45 sec pause)..."
+bpsendfile ipn:1.1 ipn:1.2 $IONSENDFILE &
+BPSENDFILEPID=$!
+
+# wait long enough for file to transfer
+sleep 45
+
+# kill everything in case it didn't finish properly
+echo "Stopping bpsendfile & bprecvfile..."
+kill -2 $BPRECVFILEPID $BPSENDFILEPID >/dev/null 2>&1
+sleep 1
+kill -15 $BPRECVFILEPID $BPSENDFILEPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPRECVFILEPID $BPSENDFILEPID >/dev/null 2>&1
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+echo "Checking files..."
+
+# compare the sent message to the received one
+
+if ! `cmp -s $IONSENDFILE $IONRECEIVEFILE`; then
+
+    echo "Oh noes, data corruption!"
+    echo
+    echo "Send file $IONSENDFILE differs from $IONRECEIVEFILE or $IONRECEIVEFILE was not created"
+    echo
+    RETVAL=1
+
+else
+    #sendfilets=`stat --format='%Z' $IONSENDFILE`
+    #recvfilets=`stat --format='%Z' $IONRECEIVEFILE`
+
+    sendfilets=`perl -le 'print scalar  ((lstat shift)[9])' $IONSENDFILE`
+    recvfilets=`perl -le 'print scalar  ((lstat shift)[9])' $IONRECEIVEFILE`
+
+    tsdiff=$((recvfilets - sendfilets))
+
+    if [ $tsdiff -ge 10 ]; then
+    
+	echo "bundle transfer successful!"
+	RETVAL=0
+    else
+
+	echo "Oh noes, data OK but recv file timestamp not 10secs older than send file!"
+	RETVAL=2
+    fi
+
+fi
+
+
+# clean up
+#rm -f $IONSENDFILE $IONRECEIVEFILE
+
+
+exit $RETVAL
+
