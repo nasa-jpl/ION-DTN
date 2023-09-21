@@ -3431,9 +3431,6 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 /* ---- Semaphore services (POSIX NAMED SEMAPHORES) ---------	*/
 /* for process-based OSs where available - quite a bit faster than SVR4 semaphores */
 
-#ifdef linux
-char *getprogname() {return("");}
-#endif
 
 /* maximum name to store Posix Named Semaphore names */
 #define MAX_NAMED_SEM_KEYLENGTH 100
