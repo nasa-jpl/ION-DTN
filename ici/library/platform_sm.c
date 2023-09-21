@@ -3810,6 +3810,10 @@ int	sm_ipc_init()
 	return 0;
 }
 
+void 	sm_ipc_detach()
+{
+	oK(_ipcSemaphore(-11111));
+}
 
 void	sm_ipc_stop()
 {
