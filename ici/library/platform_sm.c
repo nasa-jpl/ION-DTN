@@ -3757,9 +3757,7 @@ stop, semTbl->semtablegl->sembaseId);
 		_semGenPosixSemname(sem_name,sizeof(sem_name),-1); /* make the semaphore that all ION instances/procs will use */
 
 if (pdebug) {
-	uint64_t tid;
- 	pthread_threadid_np(NULL, &tid);
-	fprintf(stderr,"calling sem_open(%s) to create master sem semaphore for pid %d (%s), tid:%lld\n", sem_name, getpid(), getprogname(), tid);
+	fprintf(stderr,"calling sem_open(%s) to create master sem semaphore for pid %d (%s)\n", sem_name, getpid(), getprogname());
 	fflush(stderr);
 }
 
