@@ -17,6 +17,10 @@ static void	giveIpcLock();
 
 
 
+#ifdef linux
+char *getprogname() {return("");}
+#endif
+
 
 
 /************************* Shared-memory services *****************************/
