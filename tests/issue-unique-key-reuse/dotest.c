@@ -215,9 +215,9 @@ static int check_one_process_many_sems()
 	printf("Process %d completed loop %d times and found %d non-unique semaphores\n",
 	getpid(), iterations, non_unique);
 	if (non_unique == 0)
-		printf("**** PASSED\n");
+		printf("**** PASSED - check_one_process_many_sems\n");
 	else
-		printf("**** FAILED - semaphore key 0x%08x was reused %d times\n", sem_unique_key, non_unique);
+		printf("**** FAILED - check_one_process_many_sems - semaphore key 0x%08x was reused %d times\n", sem_unique_key, non_unique);
 
 	return(non_unique == 0);
 }
@@ -378,13 +378,14 @@ int semaphore_churn()
 	int p, i, s;
 
 	for (p = 0; p < numprocs; ++p) {
-		fprintf(stderr,"Making process %d\n", p);
+		fprintf(stderr,"Making child process %d\n", p);
 		if (fork() == 0) {
 			/* child */
 			int semlist[numsems_each];
 			for (i=0; i < iterations; ++i) {
 				for (s=0; s < numsems_each; ++s) {
 					int sem = sm_SemCreate(-1,0);
+
 					if (sem == SM_SEM_NONE) {
 						fprintf(stderr,"\n!!!!!!!!!! Process %d failed to create semaphore\n", getpid());
 						return(0);
@@ -402,8 +403,9 @@ int semaphore_churn()
 			exit(0);
 		}
 	}
-	while (wait(0) != -1) {
-		fprintf(stderr,"Child finished...\n");
+	fprintf(stderr,"Waiting for children to finish...\n");
+	while ((p=wait(0)) != -1) {
+		fprintf(stderr,"Child %d finished...\n", p);
 	}
 
 	fprintf(stderr,"  no errors seen\n");
@@ -417,9 +419,13 @@ int main(int argc, char **argv)
 {
 	int passed = 1;
 
-	// ionstop();
 
 	printf("\nCompiled for underlying semaphore system: %s\n\n", SEMAPHORE_SYSTEM);
+
+	/* check up first, just in case */
+	system("killm");
+	sleep(2);
+	// ionstop();
 
 	/* Start ION */
 	printf("Starting ION...\n"); fflush(stdout);
@@ -429,6 +435,7 @@ int main(int argc, char **argv)
 			"loopback-ltp/loopback.bprc",
 			"loopback-ltp/loopback.ipnrc",
 			NULL);
+	printf("DONE Starting ION...\n"); fflush(stdout);
 
 	// run each of the scenarios...
 	
@@ -459,10 +466,13 @@ if (0) {
 		passed = 0;
 }
 
+	fprintf(stderr,"Calling ionstop()");
+	ionstop();
+
 	if (passed)
-		printf("**** PASSED\n");
+		printf("**** PASSED - dotest()\n");
 	else
-		printf("**** FAILED\n");
+		printf("**** FAILED - dotest()\n");
 
 	return (passed?0:1);
 }

@@ -33,21 +33,27 @@ void _ionstart(const char* path_prefix, const char *ionrc,
     const char *ionsecrc, const char *ltprc, const char *bprc, 
     const char *ipnrc, const char *dtn2rc)
 {
+fprintf(stderr,"===== Calling _ionadmin(%s,%s)\n", path_prefix, ionrc);
     _ionadmin(path_prefix, ionrc);
 
     sleep(2);
+fprintf(stderr,"===== Calling _ionsecadmin(%s,%s)\n", path_prefix, ionsecrc);
     _ionsecadmin(path_prefix, ionsecrc);
 
     sleep(2);
+fprintf(stderr,"===== Calling _ltpadmin(%s,%s)\n", path_prefix, ltprc);
     _ltpadmin(path_prefix, ltprc);
 
     sleep(2);
+fprintf(stderr,"===== Calling _bpadmin(%s,%s)\n", path_prefix, bprc);
     _bpadmin(path_prefix, bprc);
 
     sleep(2);
+fprintf(stderr,"===== Calling _ipnadmin(%s,%s)\n", path_prefix, ipnrc);
     _ipnadmin(path_prefix, ipnrc);
 
     sleep(2);
+fprintf(stderr,"===== Calling _dtn2admin(%s,%s)\n", path_prefix, dtn2rc);
     _dtn2admin(path_prefix, dtn2rc);
 
 }

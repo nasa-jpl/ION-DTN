@@ -1107,10 +1107,10 @@ void	ionDetach()
 		/*	unregister call back 	*/
 		zco_unregister_callback();
 
-#if defined( SVR4_SEMAPHORES )
+#if defined( SVR4_SEMAPHORES ) || defined( POSIX_NAMED_SEMAPHORES )
 		/* Completes detaching from Ion 				*
 		 * Reset and detach from ipc semaphore set		*
-		 * only implemented for SVR$ platform			*/
+		 * only implemented for SVR4 platform and Posix Named Semaphores			*/
 		sm_ipc_detach();
 #endif
 	}
