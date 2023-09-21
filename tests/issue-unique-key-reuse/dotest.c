@@ -423,7 +423,7 @@ int main(int argc, char **argv)
 	printf("\nCompiled for underlying semaphore system: %s\n\n", SEMAPHORE_SYSTEM);
 
 	/* check up first, just in case */
-	oK(system("killm"));
+	(void) system("killm");
 	sleep(2);
 	// ionstop();
 
