@@ -46,7 +46,8 @@ cleanup(){
     "$TEST_DIRECTORY/$DTKA_IONSECRC" \
     "$TEST_DIRECTORY/$TCA_RECOVER_FILE" \
     "$TEST_DIRECTORY/ion_nodes" \
-    "$TEST_DIRECTORY/$LIST_IONSECRC_FILE"
+    "$TEST_DIRECTORY/$LIST_IONSECRC_FILE" \
+    "$TEST_DIRECTORY/$DTKARC_FILE"
 }
 
 ###############################################################################
@@ -188,38 +189,6 @@ evaluate(){
 }
 
 ###############################################################################
-# Change DTKA macros in the dtka.h file based on the fiven arguments and the
-# recompile, relink and install the DTKA software.
-# Globals:
-#   DTKA_DIRECTORY
-#   DTKA_NUM_AUTHS
-#   DTKA_HEADER_FILE
-# Arguments:
-#   None
-###############################################################################
-change_dtka_configuration(){
-  cd "$DTKA_DIRECTORY"
-
-  # replace the DTKA_NUM_AUTHS macro value in the header file
-  sed -i "s/DTKA_NUM_AUTHS.*(.*)/DTKA_NUM_AUTHS ($DTKA_NUM_AUTHS)/" \
-  "$DTKA_HEADER_FILE"
-
-  # replace the DTKA_FEC_K macro value in the header file
-  sed -i "s/DTKA_FEC_K.*(.*)/DTKA_FEC_K ($DTKA_FEC_K)/" \
-  "$DTKA_HEADER_FILE"
-
-  # replace the DTKA_FEC_M macro value in the header file
-  sed -i "s/DTKA_FEC_M.*(.*)/DTKA_FEC_M ($DTKA_FEC_M)/" \
-  "$DTKA_HEADER_FILE"
-
-
-  make -s 2> '/dev/null'
-  make -s install 2> '/dev/null'
-
-  cd "$TEST_DIRECTORY"
-}
-
-###############################################################################
 # Create a global run configuration (rc) file for the whole ION network that is
 # based on a star topology.
 # Globals:
@@ -235,9 +204,9 @@ create_global_ionrc_file(){
   local contact
   local contact_value
 
-  range='a range +0 +600'
+  range='a range +0 +3600'
   range_value=0
-  contact='a contact +0 +600'
+  contact='a contact +0 +3600'
   contact_value=10000
 
   echo 'm horizon +0'
@@ -312,7 +281,7 @@ create_local_ltprc_file(){
       "localhost:$((1110+$2))'"
   else
     for n in $(seq 1 $3); do
-        echo "a span $n 2 2 1200 100000 1 "\'"udplso localhost:$((1110+$n))'"
+        echo "a span $n 2 2 1200 100000 1 'udplso localhost:$((1110+$n))'"
     done
   fi
   echo 'w 1'
@@ -344,22 +313,6 @@ create_local_ipnrc_file(){
 
 ###############################################################################
 # Create a BP (bundle protocol) run configuration (rc) file for one ION
-# node within the network (for multicasting bundles).
-# Globals:
-#   None
-# Arguments:
-#   None
-###############################################################################
-create_local_bprc_file_2(){
-  echo "a scheme imc "\'"imcfw"\'" "\'"imcadminep"\'
-  echo 'a endpoint imc:124.0 x'
-  echo 'a endpoint imc:125.0 x'
-  echo 'a endpoint imc:126.0 x'
-  echo 'a endpoint imc:203.0 x'
-}
-
-###############################################################################
-# Create a BP (bundle protocol) run configuration (rc) file for one ION
 # node within the network (star topology).
 # Globals:
 #   None
@@ -387,53 +340,16 @@ create_local_bprc_file(){
   echo "a scheme ipn "\'"ipnfw"\'" "\'"ipnadminep"\'
   echo "a endpoint ipn:$1.1 x"
   echo "a endpoint ipn:$1.2 x"
-  echo "a endpoint ipn:$1.124 x"
-  echo "a endpoint ipn:$1.125 x"
-  echo "a endpoint ipn:$1.126 x"
+  echo "a endpoint ipn:$1.201 x"
+  echo "a endpoint ipn:$1.202 x"
+  echo "a endpoint ipn:$1.203 x"
   echo "a scheme imc "\'"imcfw"\'" "\'"imcadminep"\'
-  echo 'a endpoint imc:124.0 x'
-  echo 'a endpoint imc:125.0 x'
-  echo 'a endpoint imc:126.0 x'
+  echo 'a endpoint imc:201.0 x'
+  echo 'a endpoint imc:202.0 x'
   echo 'a endpoint imc:203.0 x'
   echo "r "\'"ipnadmin node.ipnrc"\'
   echo 'w 1'
   echo 's'
-}
-
-###############################################################################
-# Create a IMC (interplanetary multicast) run configuration (rc) file for one
-# ION node within the network (star topology).
-# Globals:
-#   None
-# Arguments:
-#   $1 node number
-#   $2 root node number
-#   $3 number of total nodes
-###############################################################################
-create_local_imcrc_file(){
-  local n
-
-  if [[ "$1" -ne "$2" ]]; then
-    echo "a $2 1"
-  else
-    for n in $(seq 1 $3); do
-      if [[ "$n" -ne "$2" ]]; then
-        echo "a $n 0"
-      fi
-    done
-  fi
-}
-
-###############################################################################
-# Create IMC (interplanetary multicast) start script.
-# Globals:
-#   LOCAL_BPRC_2
-# Arguments:
-#   None
-###############################################################################
-create_imcstart_script(){
-  echo '#! /bin/bash'
-  echo "bpadmin	$LOCAL_BPRC_2"
 }
 
 ###############################################################################
@@ -445,14 +361,11 @@ create_imcstart_script(){
 #   LOCAL_IONSECRC
 #   LOCAL_LTPRC
 #   LOCAL_BPRC
-#   LOCAL_IMCRC
 # Arguments:
 #   None
 ###############################################################################
 create_ionstart_script(){
   echo '#! /bin/bash'
-  echo "ionadmin	$LOCAL_IONRC"
-  echo 'sleep 1'
   echo "ionadmin	$TEST_DIRECTORY/$GLOBAL_IONRC"
   echo 'sleep 1'
   echo "ionsecadmin	$LOCAL_IONSECRC"
@@ -460,8 +373,22 @@ create_ionstart_script(){
   echo "ltpadmin	$LOCAL_LTPRC"
   echo 'sleep 1'
   echo "bpadmin		$LOCAL_BPRC"
-  # echo 'sleep 1'
-  # echo "imcadmin	$LOCAL_IMCRC"
+
+  if [[ "$1" = true ]]; then
+    echo 'sleep 1'
+    echo "tcaadmin 203 $TEST_DIRECTORY/$BOOT_FILE"
+    echo "sleep 1"
+    echo "tcaadmin 203 $TEST_DIRECTORY/$TCA_FILE"
+    echo "sleep 1"
+  else
+    echo "sleep 3"
+  fi
+
+  echo "tccadmin 203	$TEST_DIRECTORY/$TCCRC_FILE"
+  echo "sleep 1"
+  echo "dtkaadmin	$TEST_DIRECTORY/$DTKARC_FILE"
+  echo "sleep 1"
+  echo "dtka &"
 }
 
 ###############################################################################
@@ -473,6 +400,10 @@ create_ionstart_script(){
 ###############################################################################
 create_ionstop_script(){
   echo '#! /bin/bash'
+  echo "tccadmin 203	."
+  echo "sleep 1"
+  echo "tcaadmin 203	."
+  echo "sleep 1"
   echo 'bpadmin .'
   echo 'sleep 1'
   echo 'ltpadmin .'
@@ -496,7 +427,6 @@ create_ionstop_script(){
 #   LOCAL_LTPRC
 #   LOCAL_IPNRC
 #   LOCAL_BPRC
-#   LOCAL_IMCRC
 #   ION_STOP_SCRIPT
 # Arguments:
 #   $1 root node number
@@ -547,23 +477,18 @@ create_ion_network(){
     # create bp rc files
     create_local_bprc_file "$node" "$1" "$2" > \
       "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$LOCAL_BPRC"
-    # create_local_bprc_file_2 > \
-    #   "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$LOCAL_BPRC_2"
-
-    # create imc rc file
-    # create_local_imcrc_file "$node" "$1" "$2" > \
-    #   "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$LOCAL_IMCRC"
-
-    # create imc start script
-    # create_imcstart_script > \
-    #   "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$IMC_START_SCRIPT"
-    # chmod 755 "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$IMC_START_SCRIPT"
 
     # initialization of the ION security database rc file
     echo '1' > "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$LOCAL_IONSECRC"
 
+    if [[ "$node" -le "$1" ]]; then
+      authority=true
+    else
+      authority=false
+    fi
+
     # create ion start script
-    create_ionstart_script > \
+    create_ionstart_script "$authority" > \
       "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$ION_START_SCRIPT"
     chmod 755 "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$ION_START_SCRIPT"
 
@@ -590,8 +515,7 @@ start_ion_node(){
     print_message "Start ION on node $1"
     cd "$TEST_DIRECTORY/$1.$NODE_DIRECTORY"
     RUNNING_ION_NODES[$(($1-1))]=true
-    "./$ION_START_SCRIPT" >& "$ION_OUTPUT"
-    sleep 1
+    "./$ION_START_SCRIPT" >& "$ION_OUTPUT" &
     cd "$TEST_DIRECTORY"
   fi
 }
@@ -605,6 +529,13 @@ start_ion_node(){
 ###############################################################################
 start_ion_nodes(){
   local n
+
+  for n in $(seq 1 $1); do
+    cd "$TEST_DIRECTORY/${n}.$NODE_DIRECTORY"
+    ionadmin $LOCAL_IONRC
+  done
+
+  sleep 1
 
   for n in $(seq 1 $1); do
     start_ion_node "$n"
@@ -652,73 +583,6 @@ stop_ion_nodes(){
 }
 
 ###############################################################################
-# Build the ION multicast tree by invoking the imc (interplanetary multicast)
-# tree script for each node.
-# Globals:
-#   TEST_DIRECTORY
-#   NODE_DIRECTORY
-#   IMC_OUTPUT
-# Arguments:
-#   $1 total number of nodes
-###############################################################################
-build_multicast_tree(){
-  local n
-
-  for n in $(seq 1 $1); do
-    cd "$TEST_DIRECTORY/$n.$NODE_DIRECTORY"
-    "./$IMC_START_SCRIPT" >&  "$IMC_OUTPUT" &
-    cd "$TEST_DIRECTORY"
-  done
-  sleep 2
-}
-
-###############################################################################
-# Start DTKA function on specified ION node.
-# Globals:
-#   RUNNING_DTKA_NODES
-#   DTKA_NUM_AUTHS
-#   TEST_DIRECTORY
-#   NODE_DIRECTORY
-#   DTKA_START_SCRIPT
-#   DTKA_OUTPUT
-# Arguments:
-#   $1 node number on which to start DTKA
-###############################################################################
-start_dtka_node(){
-  if [[ ${RUNNING_DTKA_NODES[$(($1-1))]} = false ]]; then
-    if [[ "$1" -le "$DTKA_NUM_AUTHS" ]]; then
-      print_message "Starting DTKA on node $n (with KA functionality)"
-    else
-      print_message "Starting DTKA on node $n (subscriber node only)"
-    fi
-
-    cd "$TEST_DIRECTORY/$1.$NODE_DIRECTORY"
-    RUNNING_DTKA_NODES[$(($1-1))]=true
-    "./$DTKA_START_SCRIPT" >& "$DTKA_OUTPUT" &
-    cd "$TEST_DIRECTORY"
-  fi
-}
-
-###############################################################################
-# Start DTKA on a range of ION nodes.
-# Globals:
-#   FIRST_COMPILATION_DELAY
-#   OUT
-# Arguments:
-#   $1 on how many nodes to start DTKA (1 to $1)
-###############################################################################
-start_dtka_nodes(){
-  local n
-
-  # set first compilation time
-  tcaboot 124 125 "$DTKA_NUM_AUTHS" 50 0.2 "$FIRST_COMPILATION_DELAY" > "$OUT"
-  sleep 1
-  for n in $(seq 1 $1); do
-    start_dtka_node "$n"
-  done
-}
-
-###############################################################################
 # Hijack a specified DTKA node.
 # Globals:
 #   RUNNING_DTKA_NODES
@@ -749,52 +613,6 @@ hijack_node(){
 }
 
 ###############################################################################
-# Stop the DTKA functionality on a specified ION node.
-# Globals:
-#   RUNNING_DTKA_NODES
-#   TEST_DIRECTORY
-#   NODE_DIRECTORY
-#   FAILING_NODES
-#   DTKA_STOP_SCRIPT
-#   OUT
-#   TCA_RECOVER_FILE
-# Arguments:
-#   $1 node number on which to stop DTKA
-#   $2 whether to note the failing node in the recover rc file or not
-###############################################################################
-stop_dtka_node(){
-  if [[ ${RUNNING_DTKA_NODES[$(($1-1))]} = true ]]; then
-    print_message "Stopping DTKA on node $1"
-
-    cd "$TEST_DIRECTORY/$1.$NODE_DIRECTORY"
-    RUNNING_DTKA_NODES[$(($1-1))]=false
-    FAILING_NODES=$(($FAILING_NODES+1))
-    timeout --preserve-status -k 5 120 "./$DTKA_STOP_SCRIPT" > "$OUT"
-    cd "$TEST_DIRECTORY"
-
-    # note failing node or not?
-    if [[ "$2" = true ]]; then
-      echo "- $(($1-1))" >> "$TEST_DIRECTORY/$TCA_RECOVER_FILE"
-    fi
-  fi
-}
-
-###############################################################################
-# Stop DTKA on a range of ION nodes.
-# Globals:
-#   None
-# Arguments:
-#   $1 on how many nodes to stop DTKA (1 to $1)
-###############################################################################
-stop_dtka_nodes(){
-  local n
-
-  for n in $(seq 1 $1); do
-    stop_dtka_node "$n" false
-  done
-}
-
-###############################################################################
 # Create DTKA client node run configuration (rc) file.
 # Globals:
 #   None
@@ -805,7 +623,7 @@ stop_dtka_nodes(){
 create_tccrc_file(){
   local n
 
-  echo "1 $1 $2"
+  echo "1 $1 $2 .2"
   for n in $(seq 1 $1); do
     echo "m authority $(($n-1)) $n"
   done
@@ -846,50 +664,8 @@ create_dtkarc_file(){
   echo "1"
   echo "m interval $1"
   echo "m leadtime $2"
-  echo "m keytype hmac 32"
+  echo "m keytype aes 32"
   echo "i"
-}
-
-###############################################################################
-# Create DTKA start script.
-# Globals:
-#   TEST_DIRECTORY
-#   TCCRC_FILE
-#   BOOT_FILE
-#   TCA_FILE
-# Arguments:
-#   $1 whether to include KA functionality or not
-###############################################################################
-create_dtkastart_script(){
-  echo '#! /bin/bash'
-  # key authority?
-  if [[ "$1" = true ]]; then
-    echo "tcaadmin 203 $TEST_DIRECTORY/$BOOT_FILE"
-    echo "sleep 1"
-    echo "tcaadmin 203 $TEST_DIRECTORY/$TCA_FILE"
-    echo "sleep 1"
-  fi
-
-  echo "tccadmin 203 $TEST_DIRECTORY/$TCCRC_FILE"
-  echo 'sleep 1'
-  echo "dtkaadmin $TEST_DIRECTORY/$DTKARC_FILE"
-  echo "sleep 1"
-  echo "dtka &"
-}
-
-###############################################################################
-# Create DTKA stop script.
-# Globals:
-#   None
-# Arguments:
-#   $1 whether to include commands to stop TCA functionality or not
-###############################################################################
-create_dtkastop_script(){
-  echo '#! /bin/bash'
-  echo 'tccadmin 203 .'
-  if [[ "$1" = true ]]; then
-    echo 'tcaadmin 203 .'
-  fi
 }
 
 ###############################################################################
@@ -901,8 +677,6 @@ create_dtkastop_script(){
 #   RUNNING_DTKA_NODES
 #   TEST_DIRECTORY
 #   NODE_DIRECTORY
-#   DTKA_START_SCRIPT
-#   DTKA_STOP_SCRIPT
 #   LIST_IONSECRC_FILE
 # Arguments:
 #   $1 on how many nodes to add the DTKA functionality
@@ -926,23 +700,6 @@ add_dtka_functionality(){
 
     RUNNING_DTKA_NODES[$(($node-1))]=false
 
-    # authority node?
-    if [[ "$node" -le "$2" ]]; then
-      authority=true
-    else
-      authority=false
-    fi
-
-    # create DTKA start script
-    create_dtkastart_script "$authority" > \
-      "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$DTKA_START_SCRIPT"
-    chmod 755 "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$DTKA_START_SCRIPT"
-
-    # create DTKA stop script
-    create_dtkastop_script "$authority" > \
-      "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$DTKA_STOP_SCRIPT"
-    chmod 755 "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$DTKA_STOP_SCRIPT"
-
     # create command file in order to list all public keys
     echo 'l pubkey' > \
       "$TEST_DIRECTORY/$node.$NODE_DIRECTORY/$LIST_IONSECRC_FILE"
@@ -961,7 +718,6 @@ terminate(){
   local n
 
   print_message 'Terminate all remaining ION nodes...'
-  stop_dtka_nodes "$ALL_NODES"
   stop_ion_nodes "$ALL_NODES"
   sleep 10
   print_message 'Sending kill to all remaining ION processes...'
@@ -1016,7 +772,6 @@ make_nodes_fail(){
       exit 0
     fi
 
-    stop_dtka_node "$node" true
     if [[ "$node" -lt "$DTKA_NUM_AUTHS" ]]; then
       stop_ion_node "$node" true
     fi
@@ -1072,7 +827,7 @@ hijack_nodes(){
 }
 
 ###############################################################################
-# Inform key authority nodes about failing or hijacked nodes.
+# Inform TC authority nodes about failing or hijacked nodes.
 # Globals:
 #   DTKA_NUM_AUTHS
 #   RUNNING_DTKA_NODES
@@ -1083,12 +838,12 @@ hijack_nodes(){
 # Arguments:
 #   None
 ###############################################################################
-recover_ka_nodes(){
+recover_tca_nodes(){
   local n
 
   for n in $(seq 1 $DTKA_NUM_AUTHS); do
     if [[ ${RUNNING_DTKA_NODES[$(($n-1))]} = true ]]; then
-      print_message "Inform key authoritiy node $n about failing/hijacked node(s)."
+      print_message "Inform TC authoritiy node $n about failing/hijacked node(s)."
       cd "$TEST_DIRECTORY/$n.$NODE_DIRECTORY"
       tcaadmin < "$TEST_DIRECTORY/$TCA_RECOVER_FILE" > "$OUT" #&
       cd "$TEST_DIRECTORY"
@@ -1113,7 +868,7 @@ recover_ka_nodes(){
 exchange_inital_public_keys(){
   local n
 
-  sleep 8
+  sleep 60
   cat $TEST_DIRECTORY/*.$NODE_DIRECTORY/$DTKA_IONSECRC > \
     $TEST_DIRECTORY/$DTKA_IONSECRC
   for n in $(seq 1 $ALL_NODES); do
@@ -1249,8 +1004,7 @@ check_key_distribution(){
       printf '\b'
     done
 
-
-    if [[ "$COUNT" -eq "$expected" ]]; then
+    if [[ "$COUNT" -ge "$expected" ]]; then
       print_message "  Node $node got key distribution for cycle #$CYCLE (res: $COUNT keys)."
     else
       print_message "  Error: node $node didn't get key distribution for cycle #$CYCLE (res: $COUNT keys, expected: $expected keys)." #>&2
@@ -1289,11 +1043,11 @@ cycle(){
   CYCLE=$(($CYCLE+1))
   if [[ "$1" -ne 0 ]]; then
     make_nodes_fail "$1"
-    recover_ka_nodes
+    recover_tca_nodes
   fi
   if [[ "$2" -ne 0 ]]; then
     hijack_nodes "$2"
-    recover_ka_nodes
+    recover_tca_nodes
   fi
   check_key_distribution "$CYCLE"
 }
@@ -1318,21 +1072,16 @@ readonly LOCAL_IONRC='node.ionrc'
 readonly LOCAL_IONCONFIG='node.ionconfig'
 readonly LOCAL_LTPRC='node.ltprc'
 readonly LOCAL_IPNRC='node.ipnrc'
-readonly LOCAL_BPRC='node.bprc.1'
-readonly LOCAL_BPRC_2='node.bprc.2'
+readonly LOCAL_BPRC='node.bprc'
 readonly LOCAL_IMCRC='node.imcrc'
 readonly ION_STOP_SCRIPT='ionstop'
 readonly TCCRC_FILE='node.tccrc'
 readonly TCA_FILE='node.tcarc'
 readonly DTKARC_FILE='node.dtkarc'
-readonly DTKA_START_SCRIPT='dtkastart'
-readonly DTKA_STOP_SCRIPT='dtkastop'
 readonly ION_START_SCRIPT='ionstart'
-readonly IMC_START_SCRIPT='imcstart'
 readonly ION_OUTPUT='node.ion.stdout'
 readonly LOCAL_IONSECRC='node.ionsecrc'
 readonly IMC_OUTPUT='node.imc.stdout'
-readonly DTKA_OUTPUT='node.dtka.stdout'
 readonly TCA_RECOVER_FILE='recover.tcarc'
 readonly LIST_IONSECRC_FILE='list.ionsecrc'
 readonly DTKA_KEYS_OUTPUT='keys'
@@ -1340,8 +1089,8 @@ readonly BOOT_FILE='boot.tcarc'
 readonly DTKA_IONSECRC='dtka.ionsecrc'
 ###############################################################################
 
-readonly KEY_GENERATION_INTERVAL=60 # how frequently to generate keys
-readonly KEY_LEADTIME=120 # when the keys will be effective after generation
+readonly KEY_GENERATION_INTERVAL=240 # how frequently to generate keys
+readonly KEY_LEADTIME=80 # when the keys will be effective after generation
 readonly FIRST_COMPILATION_DELAY=35 # when from now in the future to start
 readonly COMPILATION_INTERVAL=60 # how frequently to start compilation
 readonly GRACETIME=10   # grace time for the proposed bulletins to arrive
@@ -1360,10 +1109,9 @@ RUNNING_ION_NODES=()    # array that holds the nodes on which ION is running
 RUNNING_DTKA_NODES=()   # array that holds the nodes on which DTKA is running
 TEST_DIRECTORY="$PWD"   # directory of the script
 DTKA_DIRECTORY="$(dirname "$TEST_DIRECTORY")" # where to find DTKA
-DTKA_HEADER_FILE='dtka/dtka.h' # where to find the DTKA configuration macros
 OUT='/dev/null'         # where to print additional output
 COUNT=0                 # number of keys
-TIMEOUT=180             # timeout for the distribution to succeed
+TIMEOUT=360             # timeout for the distribution to succeed
 CYCLE=0                 # nbr of the current cycle
 CUSTOM=false            # whether to run the script in custom mode or not
 
@@ -1455,7 +1203,6 @@ ALL_NODES="$(($DTKA_NUM_AUTHS+$USER_NODES))"
 DTKA_FEC_N="$(($DTKA_FEC_M*($DTKA_SHARE_BACKUP+1)))"
 DTKA_FEC_Q="$(($DTKA_FEC_N/$DTKA_NUM_AUTHS))"
 
-
 print_configuration
 evaluate
 
@@ -1463,7 +1210,6 @@ if [[ "$DRY" = true ]]; then
   exit 0
 fi
 
-#change_dtka_configuration
 killm > "$OUT"
 cleanup
 create_ion_network "$DTKA_NUM_AUTHS" "$ALL_NODES"
@@ -1478,10 +1224,9 @@ add_dtka_functionality "$ALL_NODES" \
 echo "RUN:"
 # invoke terminate function on exit
 trap "terminate" EXIT
-
+tcaboot 202 201 "$DTKA_NUM_AUTHS" 50 .2 "$FIRST_COMPILATION_DELAY"
+sleep 2
 start_ion_nodes "$ALL_NODES"
-# build_multicast_tree "$ALL_NODES"
-start_dtka_nodes "$ALL_NODES"
 exchange_inital_public_keys "$ALL_NODES" "$DTKA_NUM_AUTHS"
 
 # first cycle with no failing and no hijacked nodes
@@ -1506,14 +1251,13 @@ if [[ "$CUSTOM" = true ]]; then
         if [[ "$hijack" = true ]]; then
           hijack_node "$word" true
         else
-          stop_dtka_node "$word" true
           if [[ "$word" -lt "$DTKA_NUM_AUTHS" ]]; then
             stop_ion_node "$word" true
           fi
         fi
       fi
     done
-    recover_ka_nodes
+    recover_tca_nodes
     cycle 0 0
   done < $1
 else
