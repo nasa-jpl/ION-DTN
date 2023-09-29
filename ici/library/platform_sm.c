@@ -9,6 +9,8 @@
 /*	Author: Alan Schlutsmeyer, Jet Propulsion Laboratory		*/
 /*	        Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
+/*	Posix Named Semaphore code by Shawn Ostermann, Ohio University, Sept 2023	*/
+
 
 #include <platform.h>
 
@@ -16,16 +18,11 @@ static void	takeIpcLock();
 static void	giveIpcLock();
 
 
-
-
 /* shared action arguments for SVR4 and Posix Named Sems */
 #define IPC_ACTION_LOOKUP	0
 #define IPC_ACTION_STOP		1
 #define IPC_ACTION_DETACH	-111111   /* historic */
-/* debugging code */
-#ifdef linux
-char *getprogname() {return("");}
-#endif
+
 
 
 /************************* Shared-memory services *****************************/
@@ -421,13 +418,9 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	CHKERR(id);
 
     /* if key is not specified, make up one */
-// fprintf(stderr,"sm_ShmAttach: key: %d (0x%08x)    SM_NO_KEY: %d (0x%08x) size: %ld\n", key, key, SM_NO_KEY, SM_NO_KEY, size);
-
 	if (key == SM_NO_KEY)
 	{
 		key = sm_GetUniqueKey();
-// fprintf(stderr,"***** sm_ShmAttach: changed key from SM_NO_KEY to %d (0x%x)\n", key, key);
-
 	}
 
 	if (size != 0)	/*	Want to create region if not present.	*/
@@ -441,8 +434,6 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
     /* create a new shared memory segment, or attach to an existing one */
 	if ((*id = shmget(key, size, IPC_CREAT | 0666)) == -1)
 	{
-fprintf(stderr,"***** FAILED - Called shmget(key:%u (0x%x) size:%lu, mode)\n\n\n", key, key, size);
-
 		putSysErrmsg("Can't get shared memory segment", itoa(size));
 		return -1;
 	}
@@ -477,10 +468,26 @@ fprintf(stderr,"***** FAILED - Called shmget(key:%u (0x%x) size:%lu, mode)\n\n\n
 	return result;
 }
 
+/* Does a SVR4 shared memory block with the keyvalue of key exist? */
+/* But don't open it... */
+static int _shmKeyExists(int key)
+{
+	int id;
+	if ((id = shmget(key, 0, 0)) == -1)
+	{
+		if (errno == ENOENT) { /* doesn't exist */
+			return(0);
+		} else { /* other cases, and they all mean that it exists */
+			return(1);
+		}
+	}
+	/* this will only succeed if the memory already exists and I can attach to it */
+	return(1);
+}	
+
 void
 sm_ShmDetach(char *shmPtr)
 {
-	// fprintf(stderr,"sm_ShmDetach(addr=%p) called by pid %d (%s)\n", shmPtr, getpid(), getprogname());
 
 	if (shmdt(shmPtr) < 0)
 	{
@@ -3398,7 +3405,10 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 #else
 
-	/* ---- Unique IPC key system for "process" architecture ------ */
+#if !defined(POSIX_NAMED_SEMAPHORES)
+
+
+/* ---- Unique IPC key system for "process" architecture ------ */
 
 int	sm_GetUniqueKey()
 {
@@ -3423,6 +3433,7 @@ int	sm_GetUniqueKey()
 if (0) fprintf(stderr,"sm_GetUniqueKey returns key %u (0x%x) to process %d\n", result, result, getpid());
 	return result;
 }
+#endif /* !POSIX_NAMED_SEMAPHORES */
 
 sm_SemId	sm_GetTaskSemaphore(int taskId)
 {
@@ -3447,8 +3458,12 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 #define SEM_ANON_KEY 0xfffffff0
 
 
+/* debugging code */
+#ifdef linux
+char *getprogname() {return("");}
+#endif
 static int pdebug = 0;
-#define DEBUG_PNS
+#undef DEBUG_PNS
 
 
 /* the shared memory key that Posix Named Semaphores uses for the shared semaphore table that */
@@ -3492,6 +3507,11 @@ typedef struct {
 #endif
 	uaddr		sembaseId;	/* the id of the shared memory that maps this structure */
 	SmGlobalSem	gsemtable[SEM_NSEMS_MAX];
+
+	/* global process-side, ION instance wide value for GetUniqueKey() */
+	/* to be protected by the same global semaphore as this table */
+	unsigned long	ipcUniqueKey;
+
 } SmGlobalSemtable;
 
 /* the data structure shared by ALL processes/threads for a single ION Instance */
@@ -3507,6 +3527,7 @@ static sem_t *_ipcSemaphore(int action);
 static void _semEraseNamedSems(void);
 static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum);
 static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum);
+static int _semKeyExists(int key);
 
 void _semPrintTable()  // Only for debugging purposes
 {
@@ -3563,6 +3584,27 @@ void _semPrintTable()  // Only for debugging purposes
 	fprintf(stderr,"===========================================================\n");
 }
 
+/* check if it's already been created by some process */
+static int _semKeyExists(int key) {
+	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
+	int i;
+
+	for (i = 0; i < SEM_NSEMS_MAX; i++)
+	{
+		SmGlobalSem	*gsem = &semTbl->semtablegl->gsemtable[i];
+
+if (pdebug>2) fprintf(stderr,"sm_SemCreate() checking for match in slot %d\n", i);
+
+		if (!gsem->inUse) 
+			continue;
+
+		if (gsem->key == key)
+		{
+			return(1);
+		}
+	}
+	return(0);
+}
 
 
 /* ensure that the process local and shared global semaphores are in sync */
@@ -3712,14 +3754,6 @@ static void _semEraseNamedSems()
 {
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 
-{
-	char *env = getenv("ION_DEBUG");
-	if (env) {
-		pdebug = strlen(env);
-		if (env) fprintf(stderr,"Setting pdebug to %d\n", pdebug);
-	}	
-}
-
 if (pdebug) fprintf(stderr,"_semEraseNamedSems: Deleting all semaphores\n");
 
 	/* MUST unlink all possible named semaphores that could have been created in a previous run */
@@ -3805,6 +3839,9 @@ if (pdebug) fprintf(stderr, "_sembase(): global shared memory for semaphores did
 					memset((char *) psemGlobal, 0, sizeof(SmGlobalSemtable));
 					psemGlobal->sembaseId = sembaseId;
 					_semEraseNamedSems();
+
+					/* initialize global counter for GetUniqueKey as with RtEMS */
+					psemGlobal->ipcUniqueKey = 0x80000000;
 			}
 		}
 
@@ -3953,10 +3990,15 @@ getpid(), getprogname(), ipcsem);
 	}
 #endif
 
-	if (sem_wait(ipcsem) == -1) {
-if (pdebug>3) fprintf(stderr,"  *** takeIpcLock() sem_wait fails for pid %d\n", getpid());
-
-		putSysErrmsg("takeIpcLock failed", NULL);
+	while (sem_wait(ipcsem) == -1) {
+if (pdebug) fprintf(stderr,"  *** takeIpcLock() sem_wait fails for pid %d\n", getpid());
+		if (errno == EINTR) {
+			putSysErrmsg("takeIpcLock() received an interrupt, retrying", NULL);
+			continue;  /* not expected, but not fatal*/
+		} else {
+			putSysErrmsg("takeIpcLock failed", NULL);
+			CHKVOID(0);   /* at least this will show up in the log */
+		}
 	}
 
 #ifdef DEBUG_PNS
@@ -4265,6 +4307,44 @@ if (pdebug) fprintf(stderr,"  sm_SemUnwedge() RETURNS for semId:%d, which maps t
 
 	return 0;
 }
+
+/* This is only for Posix Named Semaphores */
+/*  Because we already have a ION-wide semaphore table shared by all ION instances and processes,
+	We will use that table to store a GLOBAL "unique" key, much like the RTEMS version does.  However
+	Because the ION code uses that number, this code ensures that it will not return a "unique" key
+	that is already the key of an ION semaphore or the key of an SVR4 shared memory region (since)
+	that's what the random keys are used to name.  Note that this is only a heuristic, it's possible
+	that the unique keys that wasn't at the time used by a memory region or semaphore, but that by
+	the time the code gets around to using that key to actually create such a thing, it'll already
+	be in use by some other process.  Note that the ION code won't be able to do that, but some 
+	other process might. */
+int	sm_GetUniqueKey()
+{
+	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
+	unsigned maybeKey;
+
+	takeIpcLock();
+	maybeKey = ++semTbl->semtablegl->ipcUniqueKey;		/*	can wrap around	*/
+	while (1) {
+		if (_semKeyExists(maybeKey)) {
+if (1 || pdebug) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing semaphore\n", maybeKey);
+		} else if (_shmKeyExists(maybeKey)) {
+if (1 || pdebug) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing shared memory block\n", maybeKey);
+		} else {
+			/* we can use this one */
+			break;
+		}
+		/* loop around and keep looking */
+		maybeKey = ++semTbl->semtablegl->ipcUniqueKey;		/*	can wrap around	*/
+	}	
+	giveIpcLock();
+
+if (pdebug) fprintf(stderr,"Posix Named Sems: sm_GetUniqueKey returns key %u (0x%x) to process %d\n", 
+maybeKey, maybeKey, getpid());
+
+	return(maybeKey);
+}
+
 
 #endif /* POSIX_NAMED_SEMAPHORES */
 
