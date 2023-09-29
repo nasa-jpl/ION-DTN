@@ -2114,6 +2114,39 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	return 0;
 }
 
+/* SVR4 version */
+int	sm_GetUniqueKey()
+{
+	static int	ipcUniqueKey = 0;
+	int		result;
+
+	/*	Compose unique key: low-order 16 bits of process ID
+		followed by low-order 16 bits of process-specific
+		sequence count randomized by starting time in seconds	*/
+
+	if (ipcUniqueKey == 0)
+	{
+		ipcUniqueKey = clock()/CLOCKS_PER_SEC;
+	}
+
+	while (1) {
+		ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
+		result = (getpid() << 16) + ipcUniqueKey;
+
+		if (_shmKeyExists(result)) {
+if (1) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing shared memory block\n", result);
+			/* loop around and try another */
+		} else {
+			/* we can use this one */
+			break;
+		}
+	}
+
+if (0) fprintf(stderr,"sm_GetUniqueKey SVR4 returns key %u (0x%x) to process %d\n", result, result, getpid());
+	return result;
+}
+
+
 #endif			/*	End of #ifdef SVR4_SEMAPHORES		*/
 
 /************************* Symbol table services  *****************************/
@@ -3405,7 +3438,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 #else
 
-#if !defined(POSIX_NAMED_SEMAPHORES)
+#if !defined(POSIX_NAMED_SEMAPHORES) && !defined(SVR4_SEMAPHORES)
 
 
 /* ---- Unique IPC key system for "process" architecture ------ */
@@ -3430,7 +3463,7 @@ int	sm_GetUniqueKey()
 #else
 	result = (getpid() << 16) + ipcUniqueKey;
 #endif
-if (0) fprintf(stderr,"sm_GetUniqueKey returns key %u (0x%x) to process %d\n", result, result, getpid());
+if (0) fprintf(stderr,"sm_GetUniqueKey PMN returns key %u (0x%x) to process %d\n", result, result, getpid());
 	return result;
 }
 #endif /* !POSIX_NAMED_SEMAPHORES */
@@ -4328,8 +4361,10 @@ int	sm_GetUniqueKey()
 	while (1) {
 		if (_semKeyExists(maybeKey)) {
 if (1 || pdebug) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing semaphore\n", maybeKey);
+			/* loop around and try another */
 		} else if (_shmKeyExists(maybeKey)) {
 if (1 || pdebug) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing shared memory block\n", maybeKey);
+			/* loop around and try another */
 		} else {
 			/* we can use this one */
 			break;
