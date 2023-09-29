@@ -3486,9 +3486,9 @@ tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transa
 tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(TESTUTILOBJS)
 tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
-tests_issue_unique_key_reuse_dotest_SOURCES = tests/sm_subsystem/dotest.c
-tests_issue_unique_key_reuse_dotest_LDADD = libici.la -lm $(bplib) $(TESTUTILOBJS)
-tests_issue_unique_key_reuse_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(icicflags) 
+tests_issue_sm_subsystem_dotest_SOURCES = tests/sm_subsystem/dotest.c
+tests_issue_sm_subsystem_dotest_LDADD = libici.la -lm $(bplib) $(TESTUTILOBJS)
+tests_issue_sm_subsystem_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS) $(icicflags) 
 
 
 
