@@ -11,7 +11,7 @@
 #include "check.h"
 #include "testutil.h"
 
-static int debug = 1;
+static int debug = 0;
 
 /* if not zero, all test iteration limits are multiplied by this */
 static unsigned exhaustive_test_multiplier = 10;
@@ -124,7 +124,7 @@ static int check_unique_keys()
 	for (p=0; p < nprocs; ++p) {
 		if (fork() == 0) {
 			non_unique_count = check_unique_keys_guts(iterations, sm_unique_key1, sm_unique_key2);
-			exit((non_unique_count) != 0);  
+			_exit((non_unique_count) != 0);  
 		}
 	}
 
@@ -253,7 +253,7 @@ static int multi_process_semtest(void)
 		int sem = sm_SemCreate (-1, 0);
 		if (debug) fprintf(stderr,"I am the child and I created ION semaphore %d\n", sem);
 		pshmemInt->semnum = sem;  // stash semnum in shared memory
-		exit(0); // ION semaphore number is exit value
+		_exit(0); // ION semaphore number is exit value
 	}
 	wait(&exitval);
 	semnum = pshmemInt->semnum;  // pull semnum from shared memory	
@@ -265,7 +265,7 @@ static int multi_process_semtest(void)
             if (fork() == 0) {
 				/* child */
 				thread_adder_guts(&pshmemInt->counter);
-				exit(0);
+				_exit(0);
 			}
         }
 
@@ -350,7 +350,7 @@ int semaphore_churn()
 			if (debug) fprintf(stderr,"I am child %d (pid %d) and my parent is pid %d\n", p, getpid(), getppid());
 			/* child */
 			do_churn(p, iterations);
-			exit(0);			
+			_exit(0);			
 		}
 	}
 
