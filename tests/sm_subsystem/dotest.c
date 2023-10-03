@@ -13,7 +13,7 @@
 static int debug = 0;
 
 /* if not zero, all test iteration limits are multiplied by this */
-static float exhaustive_test_multiplier = 1.100;  /* can be less than 0 */
+static float exhaustive_test_multiplier = 1.000;  /* can be less than 1 */
 
 
 /* signal handler for exited processes */
@@ -32,65 +32,46 @@ static void reaper(int sig)
 }
 
 
-static int check_unique_keys_guts(unsigned iterations, unsigned sm_unique_key1, 
-			unsigned sm_unique_key2, unsigned sm_unique_key3, unsigned sm_unique_key4)
+static int check_unique_keys_guts(unsigned iterations, int sm_unique_key[], int num_uniq_keys)
 {
-	int l;
-	unsigned non_unique1 = 0;
-	unsigned non_unique2 = 0;
+	int l, k;
+	unsigned count_non_unique = 0;
 	unsigned key_min = 0xffffffff;
 	unsigned key_max = 0;
 
 	for (l=0; l < iterations; ++l) {
 		unsigned NEW_unique_key = sm_GetUniqueKey();
 
-		if (debug>1) if (l < 10) { printf("process %d (0x%08x) got unique key %d (0x%08x) (diff 0x%08lx)\n", getpid(), getpid(), NEW_unique_key, NEW_unique_key, (unsigned long) sm_unique_key2 - (unsigned long) NEW_unique_key); fflush(stdout);}
+		if (debug>1) if (l < 10) { printf("process %d (0x%08x) got unique key %d (0x%08x) (diff 0x%08lx)\n", getpid(), getpid(), NEW_unique_key, NEW_unique_key, (unsigned long) sm_unique_key[0] - (unsigned long) NEW_unique_key); fflush(stdout);}
 
-		if (NEW_unique_key == sm_unique_key1) {
-			printf("      ******  on loop iteration %d, process %d got unique key %d (0x%08x) again\n", 
-				l, getpid(), sm_unique_key1, sm_unique_key1);
-			++non_unique1;
-		} 
-		if (NEW_unique_key == sm_unique_key2) {
-			printf("      ******  on loop iteration %d, process %d  got (invented) unique key %d (0x%08x) again\n", 
-				l, getpid(), sm_unique_key2, sm_unique_key2);
-			++non_unique2;
+		for (k=0; k < num_uniq_keys; ++k) {
+			if (NEW_unique_key == sm_unique_key[k]) {
+				printf("      ******  on loop iteration %d, process %d got unique key %u (0x%08x) again\n", 
+					l, getpid(), sm_unique_key[k], sm_unique_key[k]);
+				++count_non_unique;
+			} 
 		}
-		if (NEW_unique_key == sm_unique_key3) {
-			printf("      ******  on loop iteration %d, process %d  got (invented) unique key %d (0x%08x) again\n", 
-				l, getpid(), sm_unique_key3, sm_unique_key3);
-			++non_unique2;
-		}
-		if (NEW_unique_key == sm_unique_key4) {
-			printf("      ******  on loop iteration %d, process %d  got (invented) unique key %d (0x%08x) again\n", 
-				l, getpid(), sm_unique_key4, sm_unique_key4);
-			++non_unique2;
-		}
+
 		if (NEW_unique_key < key_min) key_min = NEW_unique_key;
 		if (NEW_unique_key > key_max) key_max = NEW_unique_key;
 	}
 	printf("\tProcess %d completed %d requests (min:%u max:%u) and received %d non-unique keys\n",
-		getpid(), iterations, key_min, key_max, non_unique1 + non_unique2);
+		getpid(), iterations, key_min, key_max, count_non_unique);
 
-	return(non_unique1 + non_unique2);
+	return(count_non_unique);
 }
 
 static int check_unique_keys()
 {
-	sm_SemId unique_sem1;
-	sm_SemId unique_sem2;
-	sm_SemId unique_sem3;
-	sm_SemId unique_shm4;
-	int sm_unique_key1;
-	int sm_unique_key2;
-	int sm_unique_key3;
-	int sm_unique_key4;
+	int num_uniq_keys = 5;
+	sm_SemId unique_sm_id[num_uniq_keys];
+	int sm_unique_key[num_uniq_keys];
 	int non_unique_count;
-	u_long iterations = 200000;
+	u_long iterations = 500000;
 	int nprocs = 10;
 	int p;
-	uaddr id;
-	char *ptr;
+	static uaddr id;
+	static char *ptr;
 
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
@@ -98,58 +79,70 @@ static int check_unique_keys()
 	printf("  check_unique_keys() Running %lu interations in each of %d processes\n\n", iterations, nprocs);
 
 	// generate 2 'unique' keys to ensure that we never get them again below
-	sm_unique_key1 = sm_GetUniqueKey();
-	sm_unique_key2 = sm_unique_key1 + 0x00001000;   /* not the way it's supposed to work... */
-	sm_unique_key3 = sm_unique_key1 + 0x00a40000;   /* not the way it's supposed to work... */
-	sm_unique_key4 = sm_unique_key1 + 0x00005000;   /* not the way it's supposed to work... */
+	sm_unique_key[0] = sm_GetUniqueKey();
+	sm_unique_key[1] = sm_unique_key[0] + 0x00001000;   /* not the way it's supposed to work... */
+	sm_unique_key[2] = sm_unique_key[0] + 0x00a40000;   /* not the way it's supposed to work... */
+	sm_unique_key[3] = sm_unique_key[0] + 0x00005000;   /* not the way it's supposed to work... */
+	sm_unique_key[4] = sm_unique_key[0] + 0x00005010;   /* not the way it's supposed to work... */
 
 	printf("\tProcessid %d (0x%08x) generated 'unique' key:  %u (0x%08x) (used for a semaphore) \n", 
-	getpid(), getpid(), sm_unique_key1, sm_unique_key1);
+	getpid(), getpid(), sm_unique_key[0], sm_unique_key[0]);
 	printf("\tProcessid %d (0x%08x) \"invented\" 'unique' key: %u (0x%08x) (used for a semaphore) \n", 
-	getpid(), getpid(), sm_unique_key2, sm_unique_key2);
+	getpid(), getpid(), sm_unique_key[1], sm_unique_key[1]);
 	printf("\tProcessid %d (0x%08x) \"invented\" 'unique' key: %u (0x%08x) (used for a semaphore) \n", 
-	getpid(), getpid(), sm_unique_key3, sm_unique_key3);
+	getpid(), getpid(), sm_unique_key[2], sm_unique_key[2]);
 	printf("\tProcessid %d (0x%08x) \"invented\" 'unique' key: %u (0x%08x) (used for a shared memory region) \n", 
-	getpid(), getpid(), sm_unique_key4, sm_unique_key4);
+	getpid(), getpid(), sm_unique_key[3], sm_unique_key[3]);
+	printf("\tProcessid %d (0x%08x) \"invented\" 'unique' key: %u (0x%08x) (used for a semaphore) \n", 
+	getpid(), getpid(), sm_unique_key[4], sm_unique_key[4]);
+	printf("\n");
 
 	// prepare to count exit values
 	reaper_exit_val_total = 0;
 
 	// generate an ION semaphore with that unique key
-	if ((unique_sem1 = sm_SemCreate(sm_unique_key1, SM_SEM_FIFO)) == SM_SEM_NONE) {
+	if ((unique_sm_id[0] = sm_SemCreate(sm_unique_key[0], SM_SEM_FIFO)) == SM_SEM_NONE) {
 		printf("Creation of target semaphore1 failed\n");
 		return(0);
 	}
 
 	// generate an ION semaphore with that unique key Plus a little (cheating - but should check anyway)
-	if ((unique_sem2 = sm_SemCreate(sm_unique_key2, SM_SEM_FIFO)) == SM_SEM_NONE) {
+	if ((unique_sm_id[1] = sm_SemCreate(sm_unique_key[1], SM_SEM_FIFO)) == SM_SEM_NONE) {
 		printf("Creation of target unique_sem2 failed\n");
 		return(0);
 	}
 
 	// generate an ION semaphore with that unique key Plus a little (cheating - but should check anyway)
-	if ((unique_sem3 = sm_SemCreate(sm_unique_key3, SM_SEM_FIFO)) == SM_SEM_NONE) {
+	if ((unique_sm_id[2] = sm_SemCreate(sm_unique_key[2], SM_SEM_FIFO)) == SM_SEM_NONE) {
 		printf("Creation of target unique_sem3 failed\n");
 		return(0);
 	}
 
 	// generate an ION shared memory segment with that unique key Plus a little (cheating - but should check anyway)
-	if ((unique_shm4 = sm_ShmAttach(sm_unique_key4, 1000, &ptr, &id)) == SM_SEM_NONE) {
-		printf("Creation of target shared memory unique_sem4 failed\n");
+	if ((unique_sm_id[3] = sm_ShmAttach(sm_unique_key[3], 1000, &ptr, &id)) == SM_SEM_NONE) {
+		printf("Creation of target shared memory unique_sem4 failed for key %d (0x%x)\n", sm_unique_key[3], sm_unique_key[3]);
 		return(0);
+	}
+
+	// generate an ION semaphore with that unique key Plus a little (cheating - but should check anyway)
+	// for thorough testing, created in a subprocess */
+	if (fork() == 0) {
+		if ((unique_sm_id[4] = sm_SemCreate(sm_unique_key[4], SM_SEM_FIFO)) == SM_SEM_NONE) {
+			printf("Creation of target unique_sem3 failed\n");
+			exit(99);
+		}
+		exit(0);
 	}
 
 	// generate MANY more and see if we ever get the same key back...
 	for (p=0; p < nprocs; ++p) {
 		if (fork() == 0) {
-			non_unique_count = check_unique_keys_guts(iterations, 
-				sm_unique_key1, sm_unique_key2, sm_unique_key3, sm_unique_key4);
+			non_unique_count = check_unique_keys_guts(iterations, sm_unique_key, num_uniq_keys);
 			_exit((non_unique_count) != 0);  
 		}
 	}
 	/* and run it in the CURRENT process, too */
-	non_unique_count = check_unique_keys_guts(iterations, 
-		sm_unique_key1, sm_unique_key2, sm_unique_key3, sm_unique_key4);
+	non_unique_count = check_unique_keys_guts(iterations, sm_unique_key, num_uniq_keys);
 	reaper_exit_val_total += non_unique_count;
 
 	if (debug) fprintf(stderr,"Parent process %d Waiting for children to finish...\n", getpid());
@@ -432,8 +425,6 @@ int main(int argc, char **argv)
 	}
 
 	// run each of the scenarios...
-
-if (0) {
 	printf("\n####################################################\n");
 	printf("Semaphore churn test...\n\n");
 	time(&time_start);
@@ -457,7 +448,6 @@ if (0) {
 		passed = 0;
 	time(&time_stop);
 	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
-}
 
 	printf("\n####################################################\n");
 	printf("Testing get_unique_key()\n\n");
