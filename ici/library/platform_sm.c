@@ -406,6 +406,7 @@ sm_ShmDestroy(uaddr id)
 
 	/* ---- Shared Memory services (Unix) ------------------------- */
 
+
 int
 sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 {
@@ -469,7 +470,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 }
 
 /* Does a SVR4 shared memory block with the keyvalue of key exist? */
-/* But don't open it... */
+/* ION doesn't keep a table of them, so we'll rely on the OS to tell us if it exists */
 static int _shmKeyExists(int key)
 {
 	int id;
@@ -1064,7 +1065,7 @@ int	sm_ipc_init()
 	char	semName[32];
 	HANDLE	ipcSemaphore;
 
-	oK(_semTbl(0));
+	oK(_semTbl(IPC_ACTION_LOOKUP));
 
 	/*	Create the IPC semaphore and preserve it.		*/
 
@@ -1140,7 +1141,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/*	Look through list of all existing ICI semaphores.	*/
 
 	takeIpcLock();
-	semTbl = _semTbl(0);
+	semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	if (semTbl == NULL)
 	{
 		giveIpcLock();
@@ -1209,7 +1210,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 void	sm_SemDelete(sm_SemId i)
 {
-	SemaphoreTable	*semTbl = _semTbl(0);
+	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
@@ -1232,7 +1233,7 @@ void	sm_SemDelete(sm_SemId i)
 
 int	sm_SemTake(sm_SemId i)
 {
-	SemaphoreTable	*semTbl = _semTbl(0);
+	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	HANDLE		semId;
 
@@ -1254,7 +1255,7 @@ int	sm_SemTake(sm_SemId i)
 
 void	sm_SemGive(sm_SemId i)
 {
-	SemaphoreTable	*semTbl = _semTbl(0);
+	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	HANDLE		semId;
 
@@ -1275,7 +1276,7 @@ void	sm_SemGive(sm_SemId i)
 
 void	sm_SemEnd(sm_SemId i)
 {
-	SemaphoreTable	*semTbl = _semTbl(0);
+	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
@@ -1288,7 +1289,7 @@ void	sm_SemEnd(sm_SemId i)
 
 int	sm_SemEnded(sm_SemId i)
 {
-	SemaphoreTable	*semTbl = _semTbl(0);
+	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	int		ended;
 
@@ -1307,7 +1308,7 @@ int	sm_SemEnded(sm_SemId i)
 
 void	sm_SemUnend(sm_SemId i)
 {
-	SemaphoreTable	*semTbl = _semTbl(0);
+	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 
 	CHKVOID(i >= 0);
@@ -1319,7 +1320,7 @@ void	sm_SemUnend(sm_SemId i)
 
 int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
-	SemaphoreTable	*semTbl = _semTbl(0);
+	SemaphoreTable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	HANDLE		semId;
 	DWORD		millisec;
@@ -1653,7 +1654,15 @@ typedef struct
 	int		currSemSet;
 	IciSemaphore	semaphores[SEMMNS];
 	int		idsAllocated;
+
+	/* global process-side, ION instance wide value for GetUniqueKey() */
+	/* to be protected by the same global semaphore as this table */
+	unsigned long	ipcUniqueKey;
+
 } SemaphoreBase;
+
+/* for use internally for semaphore/shm routines called with a request to pick an unused key */
+static int _sm_GetUniqueKey_internal(SemaphoreBase	*semaphoreBase);
 
 static SemaphoreBase	*_sembase(int action)
 {
@@ -1662,6 +1671,8 @@ static SemaphoreBase	*_sembase(int action)
 	int			semSetIdx;
 	IciSemaphoreSet		*semset;
 	int			i;
+
+if (0) fprintf(stderr,"_sembase(%d) called\n", action);
 
 	/* 	detach & reset, but not stopping	*/
 	if (action == IPC_ACTION_DETACH)
@@ -1708,6 +1719,13 @@ static SemaphoreBase	*_sembase(int action)
 			break;		/*	SemaphoreBase exists.	*/
 
 		default:		/*	New SemaphoreBase.	*/
+
+fprintf(stderr,"  _sembase(%d) initializing data structure\n", action);
+
+
+			/* initialize global counter for GetUniqueKey as with RtEMS */
+			semaphoreBase->ipcUniqueKey = 0x80000000;
+
 			semaphoreBase->idsAllocated = 0;
 			semaphoreBase->currSemSet = 0;
 			for (i = 0; i < MAX_SEM_SETS; i++)
@@ -1719,7 +1737,7 @@ static SemaphoreBase	*_sembase(int action)
 
 			semset = semaphoreBase->semSets
 					+ semaphoreBase->currSemSet;
-			semset->semid = semget(sm_GetUniqueKey(), SEMMSL,
+			semset->semid = semget(_sm_GetUniqueKey_internal(semaphoreBase), SEMMSL,
 					IPC_CREAT | 0666);
 			if (semset->semid < 0)
 			{
@@ -1729,11 +1747,14 @@ static SemaphoreBase	*_sembase(int action)
 				semaphoreBase = NULL;
 				break;
 			}
+
 			writeMemoNote("Initializing semaphores to use: SVR4   Pid", itoa(getpid()));
 
 			semset->idsAllocated = 0;
 		}
 	}
+
+if (0) fprintf(stderr,"  _sembase(%d) returns\n", action);
 
 	return semaphoreBase;
 }
@@ -1762,7 +1783,7 @@ static int	_ipcSemaphore(int action)
 
 	if (action == IPC_ACTION_STOP)
 	{
-		oK(_sembase(1));
+		oK(_sembase(IPC_ACTION_STOP));
 		if (ipcSem != -1)
 		{
 			oK(semctl(ipcSem, 0, IPC_RMID, NULL));
@@ -1782,7 +1803,7 @@ static int	_ipcSemaphore(int action)
 		}
 		else
 		{
-			if (_sembase(0) == NULL)
+			if (_sembase(IPC_ACTION_LOOKUP) == NULL)
 			{
 				oK(semctl(ipcSem, 0, IPC_RMID, NULL));
 				ipcSem = -1;
@@ -1828,6 +1849,34 @@ static void	giveIpcLock()
 	oK(semop(_ipcSemaphore(IPC_ACTION_LOOKUP), &sem_op, 1));
 }
 
+/* check if it's already been created by some ION process */
+/* assumes that IpcLock is held */
+static int _semKeyExists(int key) {
+	SemaphoreBase	*sembase;
+	IciSemaphore	*sem;
+	int i;
+
+if (0) fprintf(stderr,"_semKeyExists(0x%x) SVR4 called\n", key);
+	
+	sembase = _sembase(IPC_ACTION_LOOKUP);
+
+	for (i = 0, sem = sembase->semaphores; i < sembase->idsAllocated; i++, sem++)
+	{
+		if (sem->key == key)
+		{
+if (1) fprintf(stderr,"_semKeyExists(0x%x) SVR4 returned YES\n", key);
+
+			return(1);	/*	already exists */
+		}
+	}
+
+if (0) fprintf(stderr,"_semKeyExists(0x%x) SVR4 returned NO\n", key);
+
+	return(0); /* not found */
+}
+	
+
+
 sm_SemId	sm_SemCreate(int key, int semType)
 {
 	SemaphoreBase	*sembase;
@@ -1840,7 +1889,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/*	Look through list of all existing ICI semaphores.	*/
 
 	takeIpcLock();
-	sembase = _sembase(0);
+	sembase = _sembase(IPC_ACTION_LOOKUP);
 	if (sembase == NULL)
 	{
 		giveIpcLock();
@@ -1852,7 +1901,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 	if (key == SM_NO_KEY)
 	{
-		key = sm_GetUniqueKey();
+		key = _sm_GetUniqueKey_internal(sembase);
 	}
 	else   /* If key is specified, check if semaphore already exists */
 	{
@@ -1911,7 +1960,7 @@ manage the new one.", NULL);
 				return SM_SEM_NONE;
 			}
 
-			semid = semget(sm_GetUniqueKey(), SEMMSL,
+			semid = semget(_sm_GetUniqueKey_internal(sembase), SEMMSL,
 					IPC_CREAT | 0666);
 			if (semid < 0)
 			{
@@ -1938,7 +1987,7 @@ manage the new one.", NULL);
 
 void	sm_SemDelete(sm_SemId i)
 {
-	SemaphoreBase	*sembase = _sembase(0);
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 
 	CHKVOID(sembase);
@@ -1959,7 +2008,7 @@ void	sm_SemDelete(sm_SemId i)
 
 int	sm_SemTake(sm_SemId i)
 {
-	SemaphoreBase	*sembase = _sembase(0);
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	IciSemaphoreSet	*semset;
 	struct sembuf	sem_op[2] = { {0,0,0}, {0,1,0} };
@@ -1993,7 +2042,7 @@ int	sm_SemTake(sm_SemId i)
 
 void	sm_SemGive(sm_SemId i)
 {
-	SemaphoreBase	*sembase = _sembase(0);
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	IciSemaphoreSet	*semset;
 	struct sembuf	sem_op = { 0, -1, IPC_NOWAIT };
@@ -2020,7 +2069,7 @@ void	sm_SemGive(sm_SemId i)
 
 void	sm_SemEnd(sm_SemId i)
 {
-	SemaphoreBase	*sembase = _sembase(0);
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 
 	CHKVOID(sembase);
@@ -2033,7 +2082,7 @@ void	sm_SemEnd(sm_SemId i)
 
 int	sm_SemEnded(sm_SemId i)
 {
-	SemaphoreBase	*sembase = _sembase(0);
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	int		ended;
 
@@ -2052,7 +2101,7 @@ int	sm_SemEnded(sm_SemId i)
 
 void	sm_SemUnend(sm_SemId i)
 {
-	SemaphoreBase	*sembase = _sembase(0);
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 
 	CHKVOID(sembase);
@@ -2069,7 +2118,7 @@ static void	handleTimeout(int signum)
 
 int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
-	SemaphoreBase	*sembase = _sembase(0);
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
 	IciSemaphore	*sem;
 	IciSemaphoreSet	*semset;
 	struct sembuf	sem_op[3] = { {0,0,0}, {0,1,0}, {0,-1,IPC_NOWAIT} };
@@ -2113,39 +2162,6 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 
 	return 0;
 }
-
-/* SVR4 version */
-int	sm_GetUniqueKey()
-{
-	static int	ipcUniqueKey = 0;
-	int		result;
-
-	/*	Compose unique key: low-order 16 bits of process ID
-		followed by low-order 16 bits of process-specific
-		sequence count randomized by starting time in seconds	*/
-
-	if (ipcUniqueKey == 0)
-	{
-		ipcUniqueKey = clock()/CLOCKS_PER_SEC;
-	}
-
-	while (1) {
-		ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
-		result = (getpid() << 16) + ipcUniqueKey;
-
-		if (_shmKeyExists(result)) {
-if (1) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing shared memory block\n", result);
-			/* loop around and try another */
-		} else {
-			/* we can use this one */
-			break;
-		}
-	}
-
-if (0) fprintf(stderr,"sm_GetUniqueKey SVR4 returns key %u (0x%x) to process %d\n", result, result, getpid());
-	return result;
-}
-
 
 #endif			/*	End of #ifdef SVR4_SEMAPHORES		*/
 
@@ -3413,68 +3429,6 @@ void	sm_Abort()
 
 #endif	/*	End of #ifdef UNIX_TASKS				*/
 
-/************************ Unique IPC key services *****************************/
-
-#ifdef RTOS_SHM
-
-	/* ----- Unique IPC key system for "task" architecture --------- */
-
-int	sm_GetUniqueKey()
-{
-	static unsigned long	ipcUniqueKey = 0x80000000;
-	int			result;
-
-	takeIpcLock();
-	ipcUniqueKey++;
-	result = ipcUniqueKey;		/*	Truncates as necessary.	*/
-	giveIpcLock();
-	return result;
-}
-
-sm_SemId	sm_GetTaskSemaphore(int taskId)
-{
-	return sm_SemCreate(taskId, SM_SEM_FIFO);
-}
-
-#else
-
-#if !defined(POSIX_NAMED_SEMAPHORES) && !defined(SVR4_SEMAPHORES)
-
-
-/* ---- Unique IPC key system for "process" architecture ------ */
-
-int	sm_GetUniqueKey()
-{
-	static int	ipcUniqueKey = 0;
-	int		result;
-
-	/*	Compose unique key: low-order 16 bits of process ID
-		followed by low-order 16 bits of process-specific
-		sequence count randomized by starting time in seconds	*/
-
-	if (ipcUniqueKey == 0)
-	{
-		ipcUniqueKey = clock()/CLOCKS_PER_SEC;
-	}
-
-	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
-#ifdef mingw
-	result = (_getpid() << 16) + ipcUniqueKey;
-#else
-	result = (getpid() << 16) + ipcUniqueKey;
-#endif
-if (0) fprintf(stderr,"sm_GetUniqueKey PMN returns key %u (0x%x) to process %d\n", result, result, getpid());
-	return result;
-}
-#endif /* !POSIX_NAMED_SEMAPHORES */
-
-sm_SemId	sm_GetTaskSemaphore(int taskId)
-{
-	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
-}
-
-#endif	/*	End of #ifdef RTOS_SHM					*/
-
 
 #ifdef POSIX_NAMED_SEMAPHORES
 /* ---- Semaphore services (POSIX NAMED SEMAPHORES) ---------	*/
@@ -3618,6 +3572,7 @@ void _semPrintTable()  // Only for debugging purposes
 }
 
 /* check if it's already been created by some process */
+/* assumes that IpcLock is held */
 static int _semKeyExists(int key) {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	int i;
@@ -3720,7 +3675,7 @@ if (pdebug) fprintf(stderr,"_semTbl(%d) ordered to stop/detach by process %d (%s
 if (pdebug>1) fprintf(stderr, "_semTbl(): initializing for pid %d (%s)...\n", getpid(), getprogname());
 
 		/* make sure that the global shared structure is set up */
-		psemGlobal = _sembase(0);
+		psemGlobal = _sembase(IPC_ACTION_LOOKUP);
 
 		/* create the process-local version of the global semaphore table */
 		memset((char *) &semStruct, 0, sizeof(SmProcessSemtable));
@@ -4026,7 +3981,7 @@ getpid(), getprogname(), ipcsem);
 	while (sem_wait(ipcsem) == -1) {
 if (pdebug) fprintf(stderr,"  *** takeIpcLock() sem_wait fails for pid %d\n", getpid());
 		if (errno == EINTR) {
-			putSysErrmsg("takeIpcLock() received an interrupt, retrying", NULL);
+//	putSysErrmsg("takeIpcLock() received an interrupt, retrying", NULL);
 			continue;  /* not expected, but not fatal*/
 		} else {
 			putSysErrmsg("takeIpcLock failed", NULL);
@@ -4341,47 +4296,147 @@ if (pdebug) fprintf(stderr,"  sm_SemUnwedge() RETURNS for semId:%d, which maps t
 	return 0;
 }
 
-/* This is only for Posix Named Semaphores */
+
+#endif /* POSIX_NAMED_SEMAPHORES */
+
+
+
+/************************ Unique IPC key services *****************************/
+
+#ifdef RTOS_SHM
+
+	/* ----- Unique IPC key system for "task" architecture --------- */
+
+int	sm_GetUniqueKey()
+{
+	static unsigned long	ipcUniqueKey = 0x80000000;
+	int			result;
+
+	takeIpcLock();
+	ipcUniqueKey++;
+	result = ipcUniqueKey;		/*	Truncates as necessary.	*/
+	giveIpcLock();
+	return result;
+}
+
+sm_SemId	sm_GetTaskSemaphore(int taskId)
+{
+	return sm_SemCreate(taskId, SM_SEM_FIFO);
+}
+
+#else  /* not RTOS_SHM */
+
+/* ---- Unique IPC key system for "process" architectures Linux/Macos/Solaris ------ */
+
+#if defined(POSIX_NAMED_SEMAPHORES) || defined(SVR4_SEMAPHORES)
+/* This is only for SVR4 / Posix Named Semaphores */
 /*  Because we already have a ION-wide semaphore table shared by all ION instances and processes,
 	We will use that table to store a GLOBAL "unique" key, much like the RTEMS version does.  However
 	Because the ION code uses that number, this code ensures that it will not return a "unique" key
 	that is already the key of an ION semaphore or the key of an SVR4 shared memory region (since)
-	that's what the random keys are used to name.  Note that this is only a heuristic, it's possible
-	that the unique keys that wasn't at the time used by a memory region or semaphore, but that by
-	the time the code gets around to using that key to actually create such a thing, it'll already
-	be in use by some other process.  Note that the ION code won't be able to do that, but some 
-	other process might. */
-int	sm_GetUniqueKey()
-{
-	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	unsigned maybeKey;
+	that's what the random keys are used to name.  Note that this is only a heuristic!!! it's possible
+	that the unique key that wasn't in use when returned (by a memory region or semaphore), WILL be in use
+	by the time the code gets around to using that key to actually create such a thing.
+	Note that the ION code won't be able to do that, but some other process (that is NOT part of ION) might. */
 
-	takeIpcLock();
-	maybeKey = ++semTbl->semtablegl->ipcUniqueKey;		/*	can wrap around	*/
+/* internal version - assumes that IpcLock is already held!! */
+static int	_sm_GetUniqueKey_internal(
+#if defined(SVR4_SEMAPHORES)
+	SemaphoreBase	*sembase
+#else
+	SmProcessSemtable *sembase
+#endif
+)
+{
+	unsigned tryKey;
+	unsigned long *p_ipcUniqueKey;
+
+#if defined(SVR4_SEMAPHORES)
+	p_ipcUniqueKey = &sembase->ipcUniqueKey;	/* In semaphore structure for SVR4 */
+#else
+	p_ipcUniqueKey = &sembase->semtablegl->ipcUniqueKey;	/* In semaphore structure for Posix Named Semaphores */
+#endif
+
+if (0) fprintf(stderr,"_sm_GetUniqueKey_internal: called\n");
+
+	tryKey = ++(*p_ipcUniqueKey);		/*	can wrap around	*/
+
 	while (1) {
-		if (_semKeyExists(maybeKey)) {
-if (1 || pdebug) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing semaphore\n", maybeKey);
+		if (_semKeyExists(tryKey)) {
+if (0) fprintf(stderr,"sm_GetUniqueKey: skipping key %u (%x), it's an existing semaphore\n", tryKey, tryKey);
 			/* loop around and try another */
-		} else if (_shmKeyExists(maybeKey)) {
-if (1 || pdebug) fprintf(stderr,"sm_GetUniqueKey: skipping key %u, it's an existing shared memory block\n", maybeKey);
+		} else if (_shmKeyExists(tryKey)) {
+if (0) fprintf(stderr,"sm_GetUniqueKey: skipping key %u (%x), it's an existing shared memory block\n", tryKey, tryKey);
 			/* loop around and try another */
 		} else {
 			/* we can use this one */
 			break;
 		}
 		/* loop around and keep looking */
-		maybeKey = ++semTbl->semtablegl->ipcUniqueKey;		/*	can wrap around	*/
+		tryKey = ++(*p_ipcUniqueKey);		/*	can wrap around	*/
 	}	
+
+if (0) fprintf(stderr,"   sm_GetUniqueKey returns key %u (0x%x) to process %d\n", tryKey, tryKey, getpid());
+
+	return(tryKey);
+}
+/* when called externally, we need to grab the IPC lock */
+int	sm_GetUniqueKey()
+{
+	int ret;
+#if defined(SVR4_SEMAPHORES)
+	SemaphoreBase	*sembase = _sembase(IPC_ACTION_LOOKUP);
+#else
+	SmProcessSemtable *sembase = _semTbl(IPC_ACTION_LOOKUP);
+#endif
+
+	CHKERR(sembase);
+
+	takeIpcLock();
+	ret = _sm_GetUniqueKey_internal(sembase);
 	giveIpcLock();
 
-if (pdebug) fprintf(stderr,"Posix Named Sems: sm_GetUniqueKey returns key %u (0x%x) to process %d\n", 
-maybeKey, maybeKey, getpid());
-
-	return(maybeKey);
+	return(ret);
 }
 
+#else
 
-#endif /* POSIX_NAMED_SEMAPHORES */
+/* ---- Unique IPC key system for other "process" architectures ------ */
+
+int	sm_GetUniqueKey()
+{
+	static int	ipcUniqueKey = 0;
+	int		result;
+
+	/*	Compose unique key: low-order 16 bits of process ID
+		followed by low-order 16 bits of process-specific
+		sequence count randomized by starting time in seconds	*/
+
+	if (ipcUniqueKey == 0)
+	{
+		ipcUniqueKey = clock()/CLOCKS_PER_SEC;
+	}
+
+	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
+#ifdef mingw
+	result = (_getpid() << 16) + ipcUniqueKey;
+#else
+	result = (getpid() << 16) + ipcUniqueKey;
+#endif
+if (0) fprintf(stderr,"sm_GetUniqueKey PMN returns key %u (0x%x) to process %d\n", result, result, getpid());
+	return result;
+}
+#endif /* end of LINUX/MACOS/SOLARIS test */
+
+/* ----- back to NOT STOS_SHM --------- */
+
+sm_SemId	sm_GetTaskSemaphore(int taskId)
+{
+	return sm_SemCreate((taskId << 16), SM_SEM_FIFO);
+}
+
+#endif	/*	End of #ifdef RTOS_SHM					*/
+
 
 
 /******************* platform-independent functions ***************************/
