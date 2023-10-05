@@ -24,6 +24,12 @@ static void	giveIpcLock();
 #define IPC_ACTION_DETACH	-111111   /* historic */
 
 
+/* debugging code */
+/* remove for production */
+#ifdef linux
+char *getprogname() {return("not_supported");}
+#endif
+
 
 /************************* Shared-memory services *****************************/
 
@@ -3446,9 +3452,6 @@ void	sm_Abort()
 
 
 /* debugging code */
-#ifdef linux
-char *getprogname() {return("");}
-#endif
 static int pdebug = 0;
 #undef DEBUG_PNS
 
