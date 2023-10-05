@@ -409,7 +409,7 @@ int main(int argc, char **argv)
 	time_t time_start, time_stop;
 
 	/* check up first, just in case */
-	(void) system("killm");
+	if (system("killm") != 0) fprintf(stderr,"killm failed\n");
 	sleep(2);
 
 	/* Start ION */
