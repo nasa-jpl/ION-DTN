@@ -1876,7 +1876,7 @@ if (0) fprintf(stderr,"_semKeyExists(0x%x) SVR4 called\n", key);
 	{
 		if (sem->key == key)
 		{
-if (1) fprintf(stderr,"_semKeyExists(0x%x) SVR4 returned YES\n", key);
+if (0) fprintf(stderr,"_semKeyExists(0x%x) SVR4 returned YES\n", key);
 
 			return(1);	/*	already exists */
 		}
