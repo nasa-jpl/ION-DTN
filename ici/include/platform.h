@@ -18,6 +18,10 @@
 extern "C" {
 #endif
 
+#if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
+#error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
+#endif
+
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS) || defined (STRSOE)
 #define ION_LWT
 #else
@@ -604,6 +608,33 @@ extern int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sol5)         ****/
 #endif				/****	End of #ifdef (sparc)        ****/
 
+#ifdef solaris			/****	Solaris (SunOS 5+)	     ****/
+
+/* semaphore options */
+#define	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#ifdef FORCE_SVR4_SEMAPHORES
+/* IS the default on solaris */
+#define	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#pragma message("**  NOT Using experimental Posix Named Semaphores on Solaris")
+#elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
+#undef	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#define POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using experimental Posix Named Semaphores on Solaris")
+#endif /* FORCE_SVR4_SEMAPHORES */
+
+#ifndef SEM_NSEMS_MAX
+// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
+#define	SEM_NSEMS_MAX		2048
+#endif
+
+#endif				/****	End of #ifdef solaris	     ****/
+
+
 #else				/****	Not __SVR4 at all (BSD?)     ****/
 
 #define FIFO_READ_MODE          (O_RDWR)
@@ -619,19 +650,18 @@ int pthread_setname_np(pthread_t thread, const char *name);
 
 
 /* semaphore options */
-#if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
-  #error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
-#endif
-#ifdef FORCE_SVR4_SEMAPHORES
-/* NOT the default on darwin/MacOS */
 #define	SVR4_SEMAPHORES
-#undef POSIX_SEMAPHORES
-#undef POSIX_NAMED_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#ifdef FORCE_SVR4_SEMAPHORES
+/* Is the default on Linux */
+#define	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
 #pragma message("**  NOT Using experimental Posix Named Semaphores on Linux")
-#elif FORCE_POSIX_NAMED_SEMAPHORES
- /* FORCE_SVR4_SEMAPHORES */
+#elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
 #undef	SVR4_SEMAPHORES
-#undef POSIX_SEMAPHORES
+#undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
 #pragma message("**  Using experimental Posix Named Semaphores on Linux")
 #endif /* FORCE_SVR4_SEMAPHORES */
@@ -666,7 +696,7 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 /* allow the default to be overwritten */
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		1024
+#define	SEM_NSEMS_MAX		2048
 #endif
 
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
@@ -706,18 +736,14 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #undef	SVR4_SEMAPHORES
 #undef POSIX_SEMAPHORES
 #
-#if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
-  #error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
-#endif
 #ifdef FORCE_SVR4_SEMAPHORES
 /* NOT the default on darwin/MacOS */
 #define	SVR4_SEMAPHORES
-#undef POSIX_SEMAPHORES
-#undef POSIX_NAMED_SEMAPHORES
-#elif FORCE_POSIX_NAMED_SEMAPHORES
- /* FORCE_SVR4_SEMAPHORES */
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
 #undef	SVR4_SEMAPHORES
-#undef POSIX_SEMAPHORES
+#undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
 #pragma message("**  Using experimental Posix Named Semaphores on MacOS")
 #endif /* FORCE_SVR4_SEMAPHORES */
@@ -726,7 +752,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 /* allow the default to be overwritten */
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
-#define	SEM_NSEMS_MAX		1024
+#define	SEM_NSEMS_MAX		2048
 #endif
 
 int pthread_setname_np(const char *name);
