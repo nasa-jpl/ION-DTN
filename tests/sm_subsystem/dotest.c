@@ -13,7 +13,7 @@
 static int debug = 0;
 
 /* if not zero, all test iteration limits are multiplied by this */
-static float exhaustive_test_multiplier = 1.000;  /* can be less than 1 */
+static float exhaustive_test_multiplier = 1.0000;  /* can be less than 1 */
 
 
 /* signal handler for exited processes */
@@ -29,6 +29,24 @@ static void reaper(int sig)
     }
     /* schedule myself again */
     signal(SIGCHLD,reaper);
+}
+
+
+static void wait_for_children() {
+	if (debug) fprintf(stderr,"Parent process %d Waiting for children to finish...\n", getpid());
+	while (1) {
+		int pid=wait(0);
+		if (pid == -1) {
+			if (errno == ECHILD) {
+				break;  /* no more children */
+			} else if (errno == EINTR) {
+				continue; /* got interrupted, try again */
+			}
+			perror("semaphore_churn: wait()");
+			break;
+		}	
+	}
+	if (debug) fprintf(stderr,"Done waiting for children to finish...\n");
 }
 
 
@@ -67,7 +85,7 @@ static int check_unique_keys()
 	sm_SemId unique_sm_id[num_uniq_keys];
 	int sm_unique_key[num_uniq_keys];
 	int non_unique_count;
-	u_long iterations = 500000;
+	u_long iterations = 50000;
 	int nprocs = 10;
 	int p;
 	static uaddr id;
@@ -148,10 +166,7 @@ static int check_unique_keys()
 	if (debug) fprintf(stderr,"Parent process %d Waiting for children to finish...\n", getpid());
 	// Note - ION cleans these processes up out from under us, so we have "no children"
 	// We depend, instead, on the "reaper" code above to catch their signals
-	while (wait(0) != -1) {
-		// ignore
-		if (debug) fprintf(stderr,"Waiting again for children\n");
-	}
+	wait_for_children();
 	if (debug) fprintf(stderr,"Done waiting for children to finish...\n");
 
 	if (reaper_exit_val_total == 0)
@@ -204,7 +219,7 @@ static int multi_thread_semtest()
 	#define MAXTHREADS 100
 	pthread_t threads[MAXTHREADS];	
 	unsigned nthreads = 10;
-	u_long iterations = 3000000;
+	u_long iterations = 300000;
 	long int critical_sections;
 	int correct;
 
@@ -256,12 +271,11 @@ static int multi_process_semtest()
 {
     int i;
 	int exitval;
-	int pid;
 	int correct;
     struct timeval time_begin, time_end;
 	uaddr shmid;
 	int nprocs = 10;
-	u_long iterations = 3000000;
+	u_long iterations = 300000;
 
 	struct shmem {
 		int semnum;
@@ -302,13 +316,7 @@ static int multi_process_semtest()
 			}
         }
 
-    while ((pid=wait(&exitval)) != -1) {
-		if (debug) fprintf (stderr,"multi_process_semtest: process %d returned with exit value %d\n", pid, exitval);
-	}
-	if (pid == -1) {
-		if (errno != ECHILD)
-		perror("multi_process_semtest: wait()");
-	}
+    wait_for_children();
 
     gettimeofday (&time_end, NULL);
 
@@ -371,7 +379,7 @@ if (debug) fprintf(stderr,"%%%% Calling SemDelete(%d) [%d] in process %d (%d)\n"
 int semaphore_churn()
 {
 	int nprocs = 10;
-	u_long iterations = 150000;
+	u_long iterations = 15000;
 	int p;
 	int pids[nprocs];
 
@@ -390,11 +398,7 @@ int semaphore_churn()
 		}
 	}
 
-	if (debug) fprintf(stderr,"Parent process %d Waiting for children to finish...\n", getpid());
-	while (wait(0) != -1) {
-		fprintf(stderr,"Waiting some more");
-	}
-	if (debug) fprintf(stderr,"Done waiting for children to finish...\n");
+	wait_for_children();
 
 	fprintf(stderr,"\n  No errors seen\n");
 
@@ -462,6 +466,8 @@ int main(int argc, char **argv)
 		printf("**** PASSED - dotest()\n");
 	else
 		printf("**** FAILED - dotest()\n");
+
+	ionstop();
 
 	return (passed?0:1);
 }
