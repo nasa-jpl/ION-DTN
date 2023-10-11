@@ -448,6 +448,7 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
 	if ((*id = shmget(key, size, IPC_CREAT | 0666)) == -1)
 	{
 		putSysErrmsg("Can't get shared memory segment", itoa(size));
+fprintf(stderr,"shmget(key:%d(0x%x), size:%ld) failed (minSegSize: %ld)\n", key, key, size, minSegSize);
 		return -1;
 	}
 
@@ -3459,7 +3460,7 @@ void	sm_Abort()
 
 /* debugging code */
 static int pdebug = 1;
-#undef DEBUG_PNS
+#define DEBUG_PNS
 
 
 /* the shared memory key that Posix Named Semaphores uses for the shared semaphore table that */
@@ -3513,6 +3514,8 @@ typedef struct {
 	/* to be protected by the same global semaphore as this table */
 	unsigned int ipcUniqueKey;
 
+	/* is initialization complete for this structure */
+	int initialized;
 } SmGlobalSemtable;
 
 /* the data structure shared by ALL processes/threads for a single ION Instance */
@@ -3779,6 +3782,8 @@ static SmGlobalSemtable	*_sembase(int action)
 	static SmGlobalSemtable *psemGlobal = NULL;
 	static uaddr sembaseId = 0;
 
+if (pdebug>2) fprintf(stderr,"_sembase(%d) called by process %d (%s)\n", action, getpid(), getprogname());
+
 	/* 	detach & reset, but not stopping	*/
 	if (action == IPC_ACTION_DETACH)  	
 	{
@@ -3829,22 +3834,37 @@ if (pdebug>1) fprintf(stderr, "_sembase(): initializing for pid %d (%s)...\n", g
 					break;
 
 				case 0:
+if (pdebug>10) fprintf(stderr,"_sembase - I'm in here and the structure exists and the UniqueKey is %d - I am process %d (%s)", psemGlobal->ipcUniqueKey, getpid(), getprogname());		
+					/* race condition - semaphore and shared memory initialization depend on each other. That */	
+					/* means that there is no access to semaphores to ensure that this structure is initialized yet. */
+					/* If multiple processes get here at the same time, we'll have to do it old-school */
+					while (!psemGlobal->initialized) {
+if (1) fprintf(stderr, "_sembase(): waiting for initialization in process %d (%s)\n", getpid(), getprogname());
+						microsnooze(10000);  /* 10 ms */
+					}
 					break;		/*	Semaphore table exists.	*/
 
 				default:		/*	New SemaphoreTable - clean it up */
-					if (pdebug>1) fprintf(stderr,"Initializing semaphores to use: Posix Named Semaphores - max %d - by Pid %d\n", SEM_NSEMS_MAX, getpid());
-					writeMemoNote("Initializing semaphores to use: Posix Named Semaphores - max ", 
-					itoa(SEM_NSEMS_MAX));
+if (pdebug>1) fprintf(stderr,"Initializing semaphores to use: Posix Named Semaphores - max %d - by Pid %d\n", SEM_NSEMS_MAX, getpid());
+					writeMemoNote("Initializing semaphores to use: Posix Named Semaphores - max ", itoa(SEM_NSEMS_MAX));
 
 if (pdebug>1) fprintf(stderr, "_sembase(): global shared memory for semaphores didn't exist yet..., initializing for pid %d (%s)\n", getpid(), getprogname());
 
 					writeMemo("Initializing Global Posix Named Semaphore Table");
 					memset((char *) psemGlobal, 0, sizeof(SmGlobalSemtable));
+if (pdebug>10) fprintf(stderr, "_sembase(): HERE0\n");
+
 					psemGlobal->sembaseId = sembaseId;
+if (pdebug>10) fprintf(stderr, "_sembase(): HERE1\n");
+
 					_semEraseNamedSems();
+if (pdebug>10) fprintf(stderr, "_sembase(): HERE2\n");
 
 					/* initialize global counter for GetUniqueKey as with RtEMS */
 					psemGlobal->ipcUniqueKey = UNIQUE_KEY_PROCESSES_INITIAL;
+if (pdebug>10) fprintf(stderr, "_sembase(): HERE3 initialized ipcUniqueKey to %d\n", psemGlobal->ipcUniqueKey);
+
+					psemGlobal->initialized = 1;  /* must be the last step */
 			}
 		}
 
@@ -4347,6 +4367,11 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 /* ---- Unique IPC key system for "process" architectures Linux/Macos/Solaris ------ */
 
+#if defined(SVR4_SEMAPHORES) && defined(POSIX_NAMED_SEMAPHORES)
+#error SVR4_SEMAPHORES and POSIX_NAMED_SEMAPHORES defined - pick one
+#endif
+
+
 #if defined(POSIX_NAMED_SEMAPHORES) || defined(SVR4_SEMAPHORES)
 /* This is only for SVR4 / Posix Named Semaphores */
 /*  Because we already have a ION-wide semaphore table shared by all ION instances and processes,
@@ -4373,8 +4398,10 @@ static int	_sm_GetUniqueKey_internal(
 
 #if defined(SVR4_SEMAPHORES)
 	p_ipcUniqueKey = &sembase->ipcUniqueKey;				/* In semaphore structure for SVR4 */
+if (pdebug>10) fprintf(stderr,"   sm_GetUniqueKey: using SVR4_semaphore table, which has key %u (0x%x) for process %d\n", *p_ipcUniqueKey, *p_ipcUniqueKey, getpid());
 #elif defined(POSIX_NAMED_SEMAPHORES)
 	p_ipcUniqueKey = &sembase->semtablegl->ipcUniqueKey;	/* In semaphore structure for Posix Named Semaphores */
+if (pdebug>10) fprintf(stderr,"   sm_GetUniqueKey: using POSIX_semaphore table, which has key %u (0x%x) for process %d\n", *p_ipcUniqueKey, *p_ipcUniqueKey, getpid());
 #else
 #error _sm_GetUniqueKey_internal NOT updated to support this environment
 #endif
@@ -4408,7 +4435,7 @@ if (0) fprintf(stderr,"sm_GetUniqueKey: skipping key %u (%x), it's an existing s
 		/* not reached */
 	}	
 
-if (0) fprintf(stderr,"   sm_GetUniqueKey returns key %u (0x%x) to process %d\n", tryKey, tryKey, getpid());
+if (1) fprintf(stderr,"   sm_GetUniqueKey_internal returns key %u (0x%x) to process %d\n", tryKey, tryKey, getpid());
 
 	return(tryKey);
 }
@@ -4422,11 +4449,15 @@ int	sm_GetUniqueKey()
 	SmProcessSemtable *sembase = _semTbl(IPC_ACTION_LOOKUP);
 #endif
 
+if (1) fprintf(stderr,"   sm_GetUniqueKey: called by process %d\n", getpid());
+
 	CHKERR(sembase);
 
 	takeIpcLock();
 	ret = _sm_GetUniqueKey_internal(sembase);
 	giveIpcLock();
+
+if (1) fprintf(stderr,"   sm_GetUniqueKey returns key %u (0x%x) to process %d\n", ret, ret, getpid());
 
 	return(ret);
 }
