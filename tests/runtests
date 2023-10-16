@@ -20,6 +20,7 @@ echo "# Testing started by $0 `date`" > $PROGRESSFILE
 # RUNTESTS_OUTPUTDIR/results.testname
 # --sdo oct 2023
 # for example: export RUNTESTS_OUTPUTDIR="/tmp"
+# for example: export RUNTESTS_OUTPUTDIR="."
 if [[ -n "${RUNTESTS_OUTPUTDIR}" ]] ; then
     if [[ -d "$RUNTESTS_OUTPUTDIR" ]] ; then
         # it needs to be absolute (script changes directory)
