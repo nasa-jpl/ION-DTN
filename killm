@@ -188,18 +188,14 @@ echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd -KILL 2> /dev/null
 
 sleep 2
 
+
 echo "Checking if all ION processes ended..."
-# Search pattern looks like:
-#   \([^-a-zA-Z]bping$\)
-# note that we're only using BREs (Basic Regular Expressions) now for backward compatibility
-PATTERN_PREFIX='\([^-a-zA-Z]'
-PATTERN_POSTFIX='$\)'
 PSFILE="/tmp/ps.$$"
 # grab all running processes
 ps -e > ${PSFILE}
 # see if any of those still-running processes belong to ION
 for PROC in ${KILLPROCESSLIST}; do
-	grep "${PATTERN_PREFIX}${PROC}${PATTERN_POSTFIX}" ${PSFILE} |\
+	grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
 		 awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
 done 
 
