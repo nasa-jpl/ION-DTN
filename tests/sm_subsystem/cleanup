@@ -1,2 +1,2 @@
 #!/bin/bash
-rm -f ion.log testfile
+#rm -f ion.log testfile
