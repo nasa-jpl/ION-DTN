@@ -165,7 +165,8 @@ function run_a_test () {
 
     # where to save results for THIS test, if requested
     if [[ -n ${RUNTESTS_OUTPUTDIR} ]] ; then
-        RESULTSFILE="${RUNTESTS_OUTPUTDIR}/results.${TEST}"
+        TESTNAME=`basename ${TEST}`
+        RESULTSFILE="${RUNTESTS_OUTPUTDIR}/results.${TESTNAME}"
         if [[ -f ${RESULTSFILE} ]] ; then
             # in case the same test is run multiple times
             RESCOUNTER=$(( $RESCOUNTER + 1))
