@@ -178,7 +178,7 @@ function run_a_test () {
 
     if [ -x "cleanup" ]; then
         if [[ -n "${RESULTSFILE}" ]] ; then
-            ./cleanup $OS_VERSION >> ${RESULTSFILE}
+            ./cleanup $OS_VERSION >> ${RESULTSFILE} 2>&1
         else
             ./cleanup $OS_VERSION
         fi
@@ -192,7 +192,7 @@ function run_a_test () {
 
     # run the driver script for the test
     if [[ -n "${RESULTSFILE}" ]] ; then
-      ./dotest $OS_VERSION >> ${RESULTSFILE}
+      ./dotest $OS_VERSION >> ${RESULTSFILE} 2>&1
     else
       ./dotest $OS_VERSION
     fi
