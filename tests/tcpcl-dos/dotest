@@ -174,15 +174,15 @@ kill -9 $NETCATPID >/dev/null 2>&1
 echo "Stopping ion node 1..."
 cd ../1.ipn.tcp/
 ./ionstop
-killm
-sleep 2
+#killm
+#sleep 2
 
 echo "Stopping ion node 2..."
 cd ../2.ipn.tcp/
 ./ionstop
-killm
-sleep 2
+#killm
 
+sleep 2
 echo "Clean everything..."
 killm
 
