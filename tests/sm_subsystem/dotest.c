@@ -462,12 +462,11 @@ int main(int argc, char **argv)
 	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
 
 	printf("\n####################################################\n");
+
 	if (passed)
 		printf("**** PASSED - dotest()\n");
 	else
 		printf("**** FAILED - dotest()\n");
-
-	ionstop();
 
 	return (passed?0:1);
 }
