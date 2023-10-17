@@ -80,23 +80,23 @@ echo "Finished node initialization, starting all nodes..."
 sleep 2
 
 cd ../1.ipn.ltp
-./ionstart >& node1.stdout &
+./ionstart > node1.stdout 2>&1 &
 cd ../2.ipn.ltp
-./ionstart >& node2.stdout &
+./ionstart > node2.stdout 2>&1 &
 cd ../3.ipn.ltp
-./ionstart >& node3.stdout &
+./ionstart > node3.stdout 2>&1 &
 cd ../4.ipn.ltp
-./ionstart >& node4.stdout &
+./ionstart > node4.stdout 2>&1 &
 cd ../5.ipn.ltp
-./ionstart >& node5.stdout &
+./ionstart > node5.stdout 2>&1 &
 cd ../6.ipn.ltp
-./ionstart >& node6.stdout &
+./ionstart > node6.stdout 2>&1 &
 cd ../7.ipn.ltp
-./ionstart >& node7.stdout &
+./ionstart > node7.stdout 2>&1 &
 cd ../8.ipn.ltp
-./ionstart >& node8.stdout &
+./ionstart > node8.stdout 2>&1 &
 cd ../9.ipn.ltp
-./ionstart >& node9.stdout &
+./ionstart > node9.stdout 2>&1 &
 
 # Sleep to let all nodes finish initializing.
 # Then create all initial keys and load them to each node.
