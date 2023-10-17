@@ -166,25 +166,29 @@ fi
 
 OSNAME=`uname`
 if [ "$OSNAME" == "SunOS" ]; then
-    killcmd="pkill"
+    KILLCMD="pkill"
+	PS="/usr/bin/ps"
+	PS_ARGS="-fe"
+	PROCESS_LIMIT=1
 else
-    killcmd="killall"
-fi
-
-if [[ "$(uname -m)" == "x86_64" ]]; then
-    PROCESS_LIMIT=64
-else
-    PROCESS_LIMIT=32
+    KILLCMD="killall"
+	PS="ps"
+	PS_ARGS="-e"
+	if [[ "$(uname -m)" == "x86_64" ]]; then
+		PROCESS_LIMIT=64
+	else
+    	PROCESS_LIMIT=32
+	fi
 fi
 
 #echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
 echo "Sending TERM to the processes..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd 2> /dev/null
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 
 sleep 2
 
 echo "Sending KILL to the processes..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd -KILL 2> /dev/null
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 
 sleep 2
 
@@ -192,7 +196,7 @@ sleep 2
 echo "Checking if all ION processes ended..."
 PSFILE="/tmp/ps.$$"
 # grab all running processes
-ps -e > ${PSFILE}
+${PS} ${PS_ARGS} > ${PSFILE}
 # see if any of those still-running processes belong to ION
 for PROC in ${KILLPROCESSLIST}; do
 	grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
