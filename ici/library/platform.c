@@ -1764,7 +1764,7 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace()
 {
-#if (defined(bionic) || defined(uClibc) || !(defined(linux)))
+#if (defined(bionic) || defined(uClibc) || !(defined(linux) || defined(darwin)))
 	writeMemo("[?] No stack trace available on this platform.");
 #else
 #define	MAX_TRACE_DEPTH	100

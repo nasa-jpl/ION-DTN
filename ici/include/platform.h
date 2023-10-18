@@ -730,6 +730,8 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
 
+#include <execinfo.h>		/****	...to get backtrace	     ****/
+
 /* semaphore options */
 /* this is the default for MacOS */
 #define POSIX_NAMED_SEMAPHORES
