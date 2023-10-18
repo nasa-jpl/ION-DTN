@@ -205,19 +205,19 @@ function run_a_test () {
         if [ -x "cleanup" ]; then
             ./cleanup
         fi
-        echo "${TEST}: PASSED" >> $PROGRESSFILE
+        echo "PASSED: ${TEST}" >> $PROGRESSFILE
     elif [ $TEST_RETVAL -eq 1 ]; then
         echo "TEST FAILED!"
         fail_test $TEST
-        echo "${TEST}: FAILED" >> $PROGRESSFILE
+        echo "FAILED: ${TEST}" >> $PROGRESSFILE
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test $TEST
-        echo "${TEST}: SKIPPED" >> $PROGRESSFILE
+        echo "SKIPPED: ${TEST}" >> $PROGRESSFILE
     else 
         echo "test returned unknown value $TEST_RETVAL"
         fail_test $TEST
-        echo "${TEST}: bad return value $TEST_RETVAL" >> $PROGRESSFILE
+        echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> $PROGRESSFILE
     fi
 
     if [[ -n "${RESULTSFILE}" ]] ; then
@@ -226,9 +226,8 @@ function run_a_test () {
     fi
 
     # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] 
-    then	
-	sleep 15
+    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] ; then	
+    	sleep 15
     fi
 
     popd > /dev/null
