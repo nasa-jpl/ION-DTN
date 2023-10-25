@@ -625,8 +625,11 @@ extern int getpriority(int, id_t);
 #undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
-#pragma message("**  Using NEW Posix Named Semaphores on Solaris")
 #endif /* FORCE_SVR4_SEMAPHORES */
+#ifdef  POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using NEW Posix Named Semaphores on Solaris")
+#endif  /* POSIX_NAMED_SEMAPHORES */
+
 
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
@@ -665,9 +668,10 @@ int pthread_setname_np(pthread_t thread, const char *name);
 #undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
-#pragma message("**  Using NEW Posix Named Semaphores on Linux")
 #endif /* FORCE_SVR4_SEMAPHORES */
-
+#ifdef  POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using NEW Posix Named Semaphores on Linux")
+#endif  /* POSIX_NAMED_SEMAPHORES */
 
 #ifdef bionic			/****	Bionic subset of Linux      ****/
 
@@ -749,9 +753,10 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
-#pragma message("**  Using NEW Posix Named Semaphores on MacOS")
 #endif /* FORCE_SVR4_SEMAPHORES */
-
+#ifdef  POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using NEW Posix Named Semaphores on MacOS")
+#endif  /* POSIX_NAMED_SEMAPHORES */
 
 /* allow the default to be overwritten */
 #ifndef SEM_NSEMS_MAX
