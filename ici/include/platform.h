@@ -611,20 +611,21 @@ extern int getpriority(int, id_t);
 #ifdef solaris			/****	Solaris (SunOS 5+)	     ****/
 
 /* semaphore options */
+/* SVR4_SEMAPHORES is the default on Solaris */
 #define	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #undef  POSIX_NAMED_SEMAPHORES
 #ifdef FORCE_SVR4_SEMAPHORES
-/* IS the default on solaris */
+/* this is the default on Solaris */
 #define	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #undef  POSIX_NAMED_SEMAPHORES
-#pragma message("**  NOT Using experimental Posix Named Semaphores on Solaris")
 #elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
+/* but POSIX_NAMED_SEMAPHORES are also supported on Solaris */
 #undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
-#pragma message("**  Using experimental Posix Named Semaphores on Solaris")
+#pragma message("**  Using NEW Posix Named Semaphores on Solaris")
 #endif /* FORCE_SVR4_SEMAPHORES */
 
 #ifndef SEM_NSEMS_MAX
@@ -650,20 +651,21 @@ int pthread_setname_np(pthread_t thread, const char *name);
 
 
 /* semaphore options */
-#define	SVR4_SEMAPHORES
+/* POSIX_NAMED_SEMAPHORES is the default on Linux */
+#undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
-#undef  POSIX_NAMED_SEMAPHORES
+#define  POSIX_NAMED_SEMAPHORES
 #ifdef FORCE_SVR4_SEMAPHORES
-/* Is the default on Linux */
+/* not the default, but SVR4_SEMAPHORES are also supported on Linux */
 #define	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #undef  POSIX_NAMED_SEMAPHORES
-#pragma message("**  NOT Using experimental Posix Named Semaphores on Linux")
 #elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
+/* FORCE_POSIX_NAMED_SEMAPHORES is the default on Linux */
 #undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
-#pragma message("**  Using experimental Posix Named Semaphores on Linux")
+#pragma message("**  Using NEW Posix Named Semaphores on Linux")
 #endif /* FORCE_SVR4_SEMAPHORES */
 
 
@@ -733,21 +735,21 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #include <execinfo.h>		/****	...to get backtrace	     ****/
 
 /* semaphore options */
-/* this is the default for MacOS */
+/* POSIX_NAMED_SEMAPHORES is the default on MacOS */
 #define POSIX_NAMED_SEMAPHORES
 #undef	SVR4_SEMAPHORES
 #undef POSIX_SEMAPHORES
-#
 #ifdef FORCE_SVR4_SEMAPHORES
-/* NOT the default on darwin/MacOS */
+/* NOT the default on darwin/MacOS, but FORCE_SVR4_SEMAPHORES are also supported */
 #define	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #undef  POSIX_NAMED_SEMAPHORES
 #elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
+/* POSIX_NAMED_SEMAPHORES is the default on MacOS */
 #undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
-#pragma message("**  Using experimental Posix Named Semaphores on MacOS")
+#pragma message("**  Using NEW Posix Named Semaphores on MacOS")
 #endif /* FORCE_SVR4_SEMAPHORES */
 
 
