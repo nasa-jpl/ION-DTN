@@ -13,6 +13,8 @@ FAILEDFILE="retest"
 # --sdo oct 2023
 PROGRESSFILE="`pwd`/progress"
 echo "# Testing started by $0 `date`" > $PROGRESSFILE
+echo "# testing host: `hostname`" >> $PROGRESSFILE
+echo "# testing environment: `uname -a`" >> $PROGRESSFILE
 
 # If this environment variable is set, and is an existing directory, 
 # then output from each individual tests will go THERE instead 
