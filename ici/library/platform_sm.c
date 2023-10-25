@@ -3465,8 +3465,14 @@ static int pdebug = 0;
 #define SM_SEMTBLKEY	(0xee08)
 #endif
 
-/* for ensuring that the process sem table is in sync with the global sem table */
-/* can overflow - but only check for equivalence */
+/* For ensuring that the per-process sem table is in sync with the global sem table */
+/* This can overflow - but we only check for equivalence */
+/* This number is incremented every time there is a change in ANY semaphore (creation or deletion)  */
+/* across all processes of all ION instances on the computer.  */
+/* Assuming a 64-bit "long int" and one semaphore change per millisecond (unthinkable in production), */
+/* this could wrap in 2**64 / 1000 / 60 / 60 / 24 / 365 == 584 Million years */
+/* Assuming a 32-bit "long int" and one semaphore change per second (unlikely in production), */
+/* this could wrap in 2**32 / 60 / 60 / 24 / 365 == 136 years */
 typedef unsigned long int smSequence;
 
 /* this structure makes up the GLOBAL - all processes - all Ion instances - semaphore table */
@@ -3474,35 +3480,33 @@ typedef struct
 {
 	char		inUse;
 	char		ended;
-	smSequence	gseq;
 	int			key;
-	unsigned	opensems_current;
-	unsigned	opensems_max;
-#ifdef DEBUG_PNS
-	pid_t  LockedBy; /* process holding the lock */
-	time_t LockedAt; /* when the lock was acquired */
-#endif
+	smSequence	gseq;
 } SmGlobalSem;
 
 /* this structure makes up the process-local semaphore table */
 /* needed because the sem_t for semaphore operations is process-local */
 typedef struct
 {
-	smSequence	lseq;
 	sem_t		*id;
 	SmGlobalSem *semgl;  	/* pointer to ION-wide shared master semtable entry (to avoid multiplication)*/
+	smSequence	lseq;
 } SmLocalSem;
 
 /* the data structure shared by ALL processes/threads for all ION Instances */
 /* kept in SVR4 shared memory */
 typedef struct {
 #ifdef DEBUG_PNS
-	int LockedBy;
+	pid_t LockedByProcess;
+	pthread_t LockedByThread;
 	time_t LockedAt;
 #endif
 	uaddr		sembaseId;	/* the id of the shared memory that maps this structure */
+
+	/* the global semaphore table */
 	SmGlobalSem	gsemtable[SEM_NSEMS_MAX];
 
+	/* low-overhead statistics for tuning memory if desired  - reported on shutdown */
 	unsigned opensems_current;
 	unsigned opensems_max;
 
@@ -3510,11 +3514,11 @@ typedef struct {
 	/* to be protected by the same global semaphore as this table */
 	unsigned int ipcUniqueKey;
 
-	/* is initialization complete for this structure */
+	/* is initialization complete for this structure? */
 	int initialized;
 } SmGlobalSemtable;
 
-/* the data structure shared by ALL processes/threads for a single ION Instance */
+/* the data structure shared by ALL threads for a single ION Process */
 typedef struct {
 	SmLocalSem	lsemtable[SEM_NSEMS_MAX];
 	SmGlobalSemtable *semtablegl;  	/* pointer to ION-wide shared master semtable */
@@ -3543,7 +3547,8 @@ void _semPrintTable()  // Only for debugging purposes
 
 	fprintf(stderr,"  Global sem: %p (%s)\n", _ipcSemaphore(IPC_ACTION_LOOKUP), 
 		_semGenPosixSemname(sem_name,sizeof(sem_name),-1));
-	fprintf(stderr,"  Semaphore current usage: %u	max: %u\n", semTbl->semtablegl->opensems_current, semTbl->semtablegl->opensems_max);
+	fprintf(stderr,"  Semaphore current usage: %u	max: %u   configured: %u\n", 
+		semTbl->semtablegl->opensems_current, semTbl->semtablegl->opensems_max, SEM_NSEMS_MAX);
 
 	fprintf(stderr,"  SemNum InUse Key        ID    LocSeq     GloSeq     SemPath\n");
 	fprintf(stderr,"  ------ ----- ---------- ----- ---------- ---------- -----------------------\n");
@@ -3551,7 +3556,7 @@ void _semPrintTable()  // Only for debugging purposes
 	for (i = 0; i < SEM_NSEMS_MAX; i++) {			
 		SmLocalSem *psem  = &semTbl->lsemtable[i];
 
-		if (psem->semgl->inUse || (psem->semgl->gseq>0)) {
+		if (psem->semgl->inUse || (psem->semgl->gseq > 0)) {
 			fprintf(stderr,"  %-6d ", i);
 			fprintf(stderr,"%-5d ", psem->semgl->inUse);
 			if (!psem->semgl->inUse) {
@@ -3574,10 +3579,6 @@ void _semPrintTable()  // Only for debugging purposes
 			if (psem->semgl->inUse) {
 				fprintf(stderr,"%s ", _semGenPosixSemname(sem_name,sizeof(sem_name),i));
 			}
-#ifdef DEBUG_PNS
-			fprintf(stderr,"%10d ",  psem->semgl->LockedBy);
-			fprintf(stderr,"%10ld ", psem->semgl->LockedAt);
-#endif /* DEBUG_PNS */
 
 			fprintf(stderr,"\n");
 		}
@@ -3595,7 +3596,7 @@ static int _semKeyExists(int key) {
 	{
 		SmGlobalSem	*gsem = &semTbl->semtablegl->gsemtable[i];
 
-if (pdebug>2) fprintf(stderr,"sm_SemCreate() checking for match in slot %d\n", i);
+if (pdebug>2) fprintf(stderr,"_semKeyExists() checking for match in slot %d\n", i);
 
 		if (!gsem->inUse) 
 			continue;
@@ -3675,6 +3676,13 @@ static SmProcessSemtable *_semTbl(int action)
 
 	if ((action == IPC_ACTION_STOP) || (action == IPC_ACTION_DETACH)) {
 if (pdebug>1) fprintf(stderr,"_semTbl(%d) ordered to stop/detach by process %d (%s)\n", action, getpid(), getprogname());
+
+		if (semTableInitialized) {
+			/* for memory usage profiling */
+			writeMemoNote("Posix Named Semaphores - Total Configured", itoa(SEM_NSEMS_MAX));
+			writeMemoNote("Posix Named Semaphores - Current Usage", itoa(semStruct.semtablegl->opensems_current));
+			writeMemoNote("Posix Named Semaphores - Maximum Usage", itoa(semStruct.semtablegl->opensems_max));
+		}
 
 		semTableInitialized = 0;
 		return NULL;
@@ -3835,14 +3843,18 @@ if (pdebug>1) fprintf(stderr, "_sembase(): initializing for pid %d (%s)...\n", g
 					/* race condition - semaphore and shared memory initialization depend on each other. That */	
 					/* means that there is no access to semaphores to ensure that this structure is initialized yet. */
 					/* If multiple processes get here at the same time, we'll have to do it old-school */
-					int snooze_usecs = 100000;  /* start at 100ms and back off by powers of 2 */
+					int snooze_usecs = 10000;  /* start at 10ms and back off by powers of 2 */
 	if (pdebug>10) fprintf(stderr,"_sembase - I'm in here and the structure exists and the UniqueKey is %d - I am process %d (%s)", psemGlobal->ipcUniqueKey, getpid(), getprogname());	
-					while (!psemGlobal->initialized) {
-	if (1 || pdebug>1) fprintf(stderr, "_sembase(): waiting for initialization in process %d (%s) (snooze:%d)\n",
-	 getpid(), getprogname(), snooze_usecs);
-						microsnooze(snooze_usecs);
-						snooze_usecs *= 2;
-						CHKNULL(snooze_usecs <= 10000000);  /* max 100 seconds */
+					if (!psemGlobal->initialized) {
+						while (!psemGlobal->initialized) {
+if (pdebug>1) fprintf(stderr, "_sembase(): waiting for initialization in process %d (%s) (snooze:%d)\n",
+		getpid(), getprogname(), snooze_usecs);
+							microsnooze(snooze_usecs);
+							snooze_usecs *= 2;
+							CHKNULL(snooze_usecs <= 10000000);  /* max 10 seconds */
+						}
+if (pdebug>1) fprintf(stderr, "_sembase(): DONE waiting for initialization in process %d (%s) (snooze:%d)\n",
+		getpid(), getprogname(), snooze_usecs);
 					}
 				}
 				break;		/*	Semaphore table exists.	*/
@@ -3884,7 +3896,6 @@ static sem_t	*_ipcSemaphore(int action)
 if (pdebug>1) fprintf(stderr,"_ipcSemaphore(%d) called by pid %d (%s)\n", action, getpid(), getprogname());
 
 	/* 	reset but not stopping	*/
-	/* NOT FINISHED */
 	if (action == IPC_ACTION_DETACH)  	
 	{
 if (pdebug>1) fprintf(stderr,"_ipcSemaphore(%d) ordered to detach by process %d (%s)\n", action, getpid(), getprogname());
@@ -3987,6 +3998,9 @@ int	sm_ipc_init()
 
 void 	sm_ipc_detach()
 {
+
+
+
 	oK(_ipcSemaphore(IPC_ACTION_DETACH));
 }
 
@@ -4007,10 +4021,15 @@ if (pdebug>3) fprintf(stderr,"takeIpcLock() called by pid %d (%s) against semaph
 getpid(), getprogname(), ipcsem);
 
 #ifdef DEBUG_PNS
-	if (semTbl->semtablegl->LockedBy == getpid()) {
-		fprintf(stderr,"  *** SEMAPHORE ERR takeIpcLock() by pid:%d (%s) -- OOPS -- I already have it\n", 
-		getpid(), getprogname());
-		CHKVOID(0);
+	if (semTbl->semtablegl->LockedByProcess == getpid()) {
+		if (semTbl->semtablegl->LockedByThread == pthread_self()) {
+			fprintf(stderr,"  *** SEMAPHORE ERR takeIpcLock() by pid:%d/%lu (%s) -- OOPS -- I already have it\n", 
+				getpid(), (unsigned long)pthread_self(), getprogname());
+			CHKVOID(0); 
+		} else {
+			fprintf(stderr,"  *** SEMAPHORE ERR takeIpcLock() by pid:%d/%lu (%s) -- OOPS -- My thread twin has it, that's OK\n", 
+					getpid(), (unsigned long)pthread_self(), getprogname());
+		}
 	}
 #endif
 
@@ -4020,17 +4039,19 @@ if (pdebug>1) fprintf(stderr,"  *** takeIpcLock() sem_wait fails for pid %d\n", 
 //	putSysErrmsg("takeIpcLock() received an interrupt, retrying", NULL);
 			continue;  /* not expected, but not fatal*/
 		} else {
+if (pdebug>1) fprintf(stderr,"  *** takeIpcLock() sem_wait fails for pid %d\n", getpid());
 			putSysErrmsg("takeIpcLock failed", NULL);
 			CHKVOID(0);   /* at least this will show up in the log */
 		}
 	}
 
 #ifdef DEBUG_PNS
-	if (semTbl->semtablegl->LockedBy != 0) {
-		fprintf(stderr,"  *** SEMAPHORE ERR takeIpcLock() by pid:%d finds it locked by pid:%d\n", 
-		getpid(), semTbl->semtablegl->LockedBy);
+	if (semTbl->semtablegl->LockedByProcess != 0) {
+		fprintf(stderr,"  *** SEMAPHORE ERR takeIpcLock() by pid:%d - I got it, but it's already locked by pid:%d/%lu\n", 
+		getpid(), semTbl->semtablegl->LockedByProcess, (unsigned long)semTbl->semtablegl->LockedByThread);
 	}
-	semTbl->semtablegl->LockedBy = getpid();
+	semTbl->semtablegl->LockedByProcess = getpid();
+	semTbl->semtablegl->LockedByThread = pthread_self();
 	semTbl->semtablegl->LockedAt = time(0);
 #endif
 
@@ -4041,15 +4062,17 @@ if (pdebug>3) fprintf(stderr,"  takeIpcLock() returns to pid %d\n", getpid());
 static void	giveIpcLock()
 {
 #ifdef DEBUG_PNS
-		SmProcessSemtable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
+	SmProcessSemtable	*semTbl = _semTbl(IPC_ACTION_LOOKUP);
 #endif
 if (pdebug>3) fprintf(stderr,"giveIpcLock(%p) called by pid %d (%s)\n", _ipcSemaphore(IPC_ACTION_LOOKUP), getpid(), getprogname());
 #ifdef DEBUG_PNS
-		if (semTbl->semtablegl->LockedBy != getpid()) {
-			fprintf(stderr,"  *** SEMAPHORE ERR giveIpcLock() isn't locked by pid:%d finds it locked by pid:%d\n", 
-			getpid(), semTbl->semtablegl->LockedBy);
-		}
-		semTbl->semtablegl->LockedBy = 0;
+	if ((semTbl->semtablegl->LockedByProcess != getpid()) && (semTbl->semtablegl->LockedByThread != pthread_self())) {
+		fprintf(stderr,"  *** SEMAPHORE ERR giveIpcLock() by pid:%d - it isn't locked by ME, but by pid:%d/%lu\n", 
+		getpid(), semTbl->semtablegl->LockedByProcess, (unsigned long)semTbl->semtablegl->LockedByThread);
+		CHKVOID(0);
+	}
+	semTbl->semtablegl->LockedByProcess = 0;
+	semTbl->semtablegl->LockedByThread = 0;
 #endif
 
 	if (sem_post(_ipcSemaphore(IPC_ACTION_LOOKUP)) == -1) {
@@ -4095,7 +4118,7 @@ if (pdebug>2) fprintf(stderr,"sm_SemCreate() checking for match in slot %d\n", i
 			{
 if (pdebug>1) fprintf(stderr,"     sm_SemCreate: existing semaphore found for key: %d in sem slot %d by pid %d (%s)\n", key, i, getpid(), getprogname());
 				giveIpcLock();
-				sem = _semGetSem(semTbl,i);  /* this will open and sync to local copy */
+				sem = _semGetSem(semTbl,i);  /* this will open and sync to global copy */
 				return i;
 			}
 		}
@@ -4150,12 +4173,22 @@ if (pdebug>1) fprintf(stderr,"sm_SemCreate: created new semaphore with key: %d (
 	sem->semgl->key = key;
 	sem->semgl->inUse = 1;
 	sem->semgl->ended = 0;
-	++sem->semgl->opensems_current;
-	if (sem->semgl->opensems_current > sem->semgl->opensems_max)
-		sem->semgl->opensems_max =  sem->semgl->opensems_current;
+
+	/* gather usage statistics for memory tuning */
+	++semTbl->semtablegl->opensems_current;
+	if (semTbl->semtablegl->opensems_current > semTbl->semtablegl->opensems_max)
+		semTbl->semtablegl->opensems_max = semTbl->semtablegl->opensems_current;
+
+	/* tell other ION processes that their local copy is out of date */
 	sem->lseq = ++sem->semgl->gseq;
+
 	sm_SemGive(freeslot);	/*	(First taker succeeds.)	*/
+
+	if (pdebug>1) fprintf(stderr,"   sm_SemCreate(%d == 0x%x) returns to pid %d (%s)\n", 
+key, key, getpid(), getprogname());
+
 	giveIpcLock();
+	
 	return freeslot;
 }
 
@@ -4191,7 +4224,9 @@ if (pdebug>1) fprintf(stderr,"******* sm_SemDelete call sem_unlink(%s) failed fo
 	sem->id = NULL;
 	sem->semgl->inUse = 0;
 	sem->semgl->key = 0;
-	--sem->semgl->opensems_current;
+	--semTbl->semtablegl->opensems_current;
+
+	/* tell other ION processes processes that their local copy is out of date */
 	sem->lseq = ++sem->semgl->gseq;
 
 	giveIpcLock();
