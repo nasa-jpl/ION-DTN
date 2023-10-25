@@ -344,7 +344,7 @@ else
     fi
 fi
 
-
+(
 echo
 echo "passed: $NUM_PASSED"
 for TEST in $TESTS_PASSED; do
@@ -383,8 +383,10 @@ echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
 for TEST in $TESTS_EXCLUDED_OBSOLETE; do
     echo "    $TEST"
 done
+) | tee -a $PROGRESSFILE
 
 echo "# Testing ended by $0 `date`" >> $PROGRESSFILE
+cp ${PROGRESSFILE} ${PROGRESSFILE}.`date | sed 's/ /_/g'`
 
 if [[ $NUM_FAILED == 0 ]]; then
     exit 0
