@@ -463,6 +463,12 @@ int main(int argc, char **argv)
 
 	printf("\n####################################################\n");
 
+#ifdef POSIX_NAMED_SEMAPHORES
+	void _semPrintTable();
+	_semPrintTable();
+	ionstop();  /* only to put semaphore stats in ion.log */
+#endif /* POSIX_NAMED_SEMAPHORES */
+
 	if (passed)
 		printf("**** PASSED - dotest()\n");
 	else
