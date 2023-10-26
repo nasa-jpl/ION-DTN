@@ -4120,7 +4120,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 	isignal(SIGALRM, handleTimeout);
 	oK(alarm(timeoutSeconds));
 
-	while (sem_wait(sem->id) == -1)
+	if (sem_wait(sem->id) == -1)
 	{
 		switch (errno) {
 			case EINTR:
