@@ -3693,7 +3693,7 @@ static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum)
 	}
 
 	if (!psemLocal->semgl->inUse) {
-		writeMemoNote("Semaphore no longer in use", itoa(semnum));
+		writeMemoNote("Operation attempted on semaphore that is no longer in use", itoa(semnum));
 		return(NULL);
 	}
 	
@@ -4125,7 +4125,7 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 		switch (errno) {
 			case EINTR:
 				/* timeout alarm went off (or another signal that we don't understand) */
-				continue;  /* loop and try again */
+				break;  /* we'll assume it was the timer - can't tell */
 
 			default:
 				putSysErrmsg("Can't unwedge semaphore", itoa(i));
