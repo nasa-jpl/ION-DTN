@@ -342,6 +342,65 @@ static int multi_process_semtest()
 }
 
 
+int sem_errors()
+{
+	int sem;
+	int ret;
+	int correct = 1;
+
+	printf("\n**** NOTE: several of these operations may generate internal errors (from assertions) - that's expected\n\n");
+
+	printf("semerrors(): testing sm_SemCreate\n");
+	sem = sm_SemCreate(-1,0);
+	if (sem == -1) {
+		correct = 0;
+		fprintf(stderr,"semerrors(): sm_SemCreate failed with return value %d\n", sem);
+	}
+	printf("semerrors(): test semaphore is id %d\n", sem);
+
+	printf("semerrors(): deleting that semaphore\n");
+	sm_SemDelete(sem);
+
+	printf("semerrors(): trying to sm_SemTake(%d) that closed semaphore\n", sem);
+	ret = sm_SemTake(sem);
+	if (ret != 0) {
+		printf("    CORRECT: sm_SemTake failed with return value %d\n", ret);
+	} else {
+		correct = 0;
+		printf("    ** ERROR: sm_SemTake did NOT fail but had return value %d\n", ret);
+	}
+
+	printf("semerrors(): trying to sm_SemGive(%d) that closed semaphore\n", sem);
+	sm_SemGive(sem);
+
+	printf("semerrors(): trying to sm_SemEnd(%d) that closed semaphore\n", sem);
+	sm_SemEnd(sem);
+
+	printf("semerrors(): trying to sm_SemEnded(%d) that closed semaphore\n", sem);
+	ret = sm_SemEnded(sem);
+	if (ret == -1) {
+		printf("    CORRECT: sm_SemEnded failed with return value %d\n", ret);
+	} else {
+		correct = 0;
+		printf("    ** ERROR: sm_SemEnded did NOT fail but had return value %d\n", ret);
+	}
+
+	printf("semerrors(): trying to sm_SemUnwedge(%d) that closed semaphore\n", sem);
+	ret = sm_SemUnwedge(sem,1);
+	if (ret != 0) {
+		printf("    CORRECT: sm_SemUnwedge failed with return value %d\n", ret);
+	} else {
+		correct = 0;
+		printf("    ** ERROR: sm_SemUnwedge did NOT fail but had return value %d\n", ret);
+	}
+
+	printf("semerrors(): trying to sm_SemDelete(%d) that closed semaphore\n", sem);
+	sm_SemDelete(sem);
+
+	return(correct);
+}
+
+
 void do_churn(int p, u_long iterations)
 {
 	int numsems_each = 10;
@@ -429,6 +488,14 @@ int main(int argc, char **argv)
 	}
 
 	// run each of the scenarios...
+	printf("\n####################################################\n");
+	printf("Testing semaphore error handling ...\n\n");
+	time(&time_start);
+	if (!sem_errors())
+		passed = 0;
+	time(&time_stop);
+	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
+
 	printf("\n####################################################\n");
 	printf("Semaphore churn test...\n\n");
 	time(&time_start);
