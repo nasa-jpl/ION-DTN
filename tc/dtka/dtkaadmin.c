@@ -224,7 +224,6 @@ static void manageLeadTime(int tokenCount, char **tokens)
 		putErrmsg("Can't change leadtime.", NULL);
 	}
 	sprintf(test, "%u", dtkadb.effectiveLeadTime);
-	writeMemoNote("keytime_w", test);
 }
 
 static void executeManage(int tokenCount, char **tokens)
