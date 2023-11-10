@@ -196,6 +196,12 @@ Object	attachExtensionBlock(BpBlockType type, ExtensionBlock *blk,
 	additionalOverhead = SDR_LIST_ELT_OVERHEAD + sizeof(ExtensionBlock)
 			+ blk->length + blk->size;
 	bundle->dbOverhead += additionalOverhead;
+#if ZCODEBUG
+    char    buf[128];
+    sprintf(buf, "[i] outbound: attachExtensionBlock(): type %d, dbOverhead = %d, increase = %d, suppresed = %d .",
+    (int) type, bundle->dbOverhead, additionalOverhead, blk->suppressed);
+    writeMemo(buf);
+#endif
 	return blkAddr;
 }
 
@@ -576,6 +582,12 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 
 	if (bundle->dbOverhead != oldDbOverhead)
 	{
+#if ZCODEBUG
+    	char    buf[128];
+    	sprintf(buf, "[i] processExtensionBlocks: process id = %d, old dbOverhead = %d, new dbOverhead = %d",
+		fnIdx, oldDbOverhead, bundle->dbOverhead);
+		writeMemo(buf);
+#endif
 		zco_reduce_heap_occupancy(sdr, oldDbOverhead, bundle->acct);
 		zco_increase_heap_occupancy(sdr, bundle->dbOverhead,
 				bundle->acct);
