@@ -87,3 +87,12 @@ This section will outline how to run ionlauncher and what the different paramete
 Once the ION configuration files have been generate. ION will be started using the configuration files for the node passed via `-n`.
 Stopping the node is done via `ionstop` and if that hangs or errors out, `killm` can be used to force stop ION processes.
 To restart ION, `ionlauncher.sh` can be used again, but this will overwrite the configuration files. To bypass this behavior, it is recommended to use the start script in the node's directory, `./start_{node_name}.sh`.
+
+## Dependency
+The ionlaunch script requires that the installation of the [ION Configuration Tool](https://github.com/nasa-jpl/ion-config-tool), which is publically accessible (starting January 2024) from GitHub.
+
+Download the latest release and note the directory of the CLI (command line interface executables). For example, if it is `/home/$USER/ionconfig-4.8.1/cli/bin`, then you don't need to provide the -d option to the ionlauncher. If it is somewhere else, then you should provide the `-d` option.
+
+You also need to install node.js.
+
+Python3
