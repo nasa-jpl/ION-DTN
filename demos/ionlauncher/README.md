@@ -88,11 +88,25 @@ Once the ION configuration files have been generate. ION will be started using t
 Stopping the node is done via `ionstop` and if that hangs or errors out, `killm` can be used to force stop ION processes.
 To restart ION, `ionlauncher.sh` can be used again, but this will overwrite the configuration files. To bypass this behavior, it is recommended to use the start script in the node's directory, `./start_{node_name}.sh`.
 
+## Directory Structure
+The ionlauncher and associated python scripts will be installed in the same install path for ION, therefore making them available for use from any working directory.
+
+For example, say the 3 node simple file is called `3node.json` and it is stored at directory `$WKDIR`. After cd into the working directory and executing the ionlauncher, then you a new directory will be created:
+
+* `$WKDIR/3node-ion` - this folder will contain the following:
+    * _ION model_ file in json format. Its name is the simple model filename + `-ion.json`. In this case, it will be called `3node-ion.json`. This file can be opened and edited by the ION Config Tool's browser-based GUI
+    * _ION network model_ in json format. Its name is the simple model filename + `-net_model.json`. In this case, it will be called `3node-net_model.json`. This file can be opened and edited by the ION Network Model's browser-based GUI.
+    * For details on how to use these files, please download the _ION Config Tool_ and the _ION Network Model_ from GitHub.com. 
+* Each node will have its own subfolder: `$WKDIR/3node/SC`, `$WKDIR/3node/Relay`, and `$WKDIR/3node/GS` 
+* Within each subfolder there will be a set of ION configutration files and a start script called `start_<node name>.sh`, that you can use to launch ION again.
+
+After the initial ionlauncher run, the ION configuration files are generated for you based on the simple model file's description and a set of default settings. To activate additional features, optimize parameters settings, and refine protocol behavior, you will need to edit the ION config files individually. For those changes to take effect, you need to stop ION and restart ION using the start script.
+
+If you run ionlauncher again, the ION configuration files will regenerate and replaces your custom changes.
+
 ## Dependency
-The ionlaunch script requires that the installation of the [ION Configuration Tool](https://github.com/nasa-jpl/ion-config-tool), which is publically accessible (starting January 2024) from GitHub.
+The ionlaunch script requires that the installation of the [ION Config Tool](https://github.com/nasa-jpl/ion-config-tool), which is publically accessible (starting January 2024) from GitHub. A companion tool called [ION Network Model](https://github.com/nasa-jpl/ion-network-model) is also available for download although it is not needed for using ionlauncher.
 
-Download the latest release and note the directory of the CLI (command line interface executables). For example, if it is `/home/$USER/ionconfig-4.8.1/cli/bin`, then you don't need to provide the -d option to the ionlauncher. If it is somewhere else, then you should provide the `-d` option.
+Download the latest release of the `ION Config Tool` and note the directory of the CLI (command line interface executables). For example, if it is `/home/$USER/ionconfig-4.8.1/cli/bin`, then you don't need to provide the `-d` option to ionlauncher. If it is somewhere else, then you should provide the `-d` option.
 
-You also need to install node.js.
-
-Python3
+You also need to install `node.js` and make sure python version 3.6 or higher is available in your system.
