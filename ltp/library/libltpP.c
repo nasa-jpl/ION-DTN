@@ -3522,6 +3522,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 #if defined (EWCHAR)
 	char 	ewchar[256];
+	ewchar[0] = 'g';
+	ewchar[1] = '\0';
 #endif
 
 	CHKERR(vspan);
