@@ -3522,6 +3522,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 #if defined (EWCHAR)
 	char 	ewchar[256];
+	/* initialize as 'g' */
 	ewchar[0] = 'g';
 	ewchar[1] = '\0';
 #endif
@@ -3608,6 +3609,11 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	{
 		sdr_list_delete(sdr, segment.sessionListElt, NULL, NULL);
 		segment.sessionListElt = 0;
+
+#if defined (EWCHAR)
+			/* segment is data only, non-check point */
+			isprintf(ewchar,sizeof(ewchar),"(d%u)g",segment.sessionNbr);
+#endif		
 	}
 
 	/*	Copy segment's content into buffer.			*/
@@ -3687,7 +3693,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			ltpSpanTally(vspan, CKPT_XMIT, 0);
 
 #if defined (EWCHAR)
-			/* spec is for 64 bit, non-Window */
+			/* Initial check point */
 			isprintf(ewchar,sizeof(ewchar),"(c%u)g",segment.sessionNbr);
 #endif
 		}
@@ -3696,7 +3702,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			ltpSpanTally(vspan, CKPT_RE_XMIT, 0);
 
 #if defined (EWCHAR)
-			/* spec is for 64 bit, non-Window */
+			/* Retransmit check point */
 			isprintf(ewchar,sizeof(ewchar),"(cr%u)g",segment.sessionNbr);
 #endif
 
@@ -3704,8 +3710,9 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 		break;
 
-	case 8:
-		event.type = LtpResendReport;
+	case 8:  /* RS - resport segment */
+		/* this is scheduling future retx event */
+		event.type = LtpResendReport;   
 		event.refNbr1 = segment.remoteEngineId;
 		event.refNbr2 = segment.sessionNbr;
 		event.refNbr3 = segment.pdu.rptSerialNbr;
@@ -3730,7 +3737,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			{
 				ltpSpanTally(vspan, POS_RPT_XMIT, 0);
 #if defined (EWCHAR)
-				/* spec is for 64 bit, non-Window */
+				/* a "positive" report */
 				isprintf(ewchar,sizeof(ewchar),"(pr%u)g",segment.sessionNbr);
 #endif
 			}
@@ -3738,7 +3745,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			{
 				ltpSpanTally(vspan, NEG_RPT_XMIT, 0);
 #if defined (EWCHAR)
-				/* spec is for 64 bit, non-Window */
+				/* a "negative" report */
 				isprintf(ewchar,sizeof(ewchar),"(nr%u)g",segment.sessionNbr);
 #endif
 			}
@@ -3747,14 +3754,14 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		{
 			ltpSpanTally(vspan, RPT_RE_XMIT, 0);
 #if defined (EWCHAR)
-			/* spec is for 64 bit, non-Window */
+			/* this is a retransmitted report - either positive or negative */
 			isprintf(ewchar,sizeof(ewchar),"(rr%u)g",segment.sessionNbr);
 #endif
 		}
 
 		break;
 
-	case 12:
+	case 12: /* CA - cancel by LTP block source */
 		getCanceledExport(segment.sessionNbr, &sessionObj, &sessionElt);
 		if (sessionObj == 0)
 		{
@@ -3778,6 +3785,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		}
 
 		ltpSpanTally(vspan, EXPORT_CANCEL_XMIT, 0);
+#if defined (EWCHAR)
+			/* CS - cancel by block source */
+			isprintf(ewchar,sizeof(ewchar),"(cs%u)g",segment.sessionNbr);
+#endif
 		break;
 
 	case 14:
@@ -3815,6 +3826,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		}
 
 		ltpSpanTally(vspan, IMPORT_CANCEL_XMIT, 0);
+#if defined (EWCHAR)
+			/* CR - cancel by block receiver */
+			isprintf(ewchar,sizeof(ewchar),"(cr%u)g",segment.sessionNbr);
+#endif
 		break;
 
 	default:
@@ -3890,6 +3905,9 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	 *	overhead to the content of the segment (if any), and
 	 *	return to link service output process.			*/
 
+	/*  Every segment type priority to 8 (DS), have 
+	 *  additional content other than the header */
+
 	if (segment.pdu.segTypeCode < 8)
 	{
 		ltpSpanTally(vspan, OUT_SEG_POPPED, segment.pdu.length);
@@ -3905,6 +3923,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 			case 9:		/*	Report acknowledgment.	*/
 				serializeReportAckSegment(&segment, *buf);
+#if defined (EWCHAR)
+			/* RA - report ACK */
+			isprintf(ewchar,sizeof(ewchar),"(ra%u)g",segment.sessionNbr);
+#endif
 				break;
 
 			case 12:	/*	Cancel by sender.	*/
@@ -3915,6 +3937,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			case 13:	/*	Cancel acknowledgment.	*/
 			case 15:	/*	Cancel acknowledgment.	*/
 				serializeCancelAckSegment(&segment, *buf);
+#if defined (EWCHAR)
+			/* CAR or CAS - cancel ACK */
+			isprintf(ewchar,sizeof(ewchar),"(ca%u)g",segment.sessionNbr);
+#endif
 				break;
 
 			default:
@@ -3939,8 +3965,6 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	{
 #if defined (EWCHAR)
 		iwatch_str(ewchar);
-		ewchar[0] = 'g';
-		ewchar[1] = '\0';
 #else
 		iwatch('g');
 #endif
