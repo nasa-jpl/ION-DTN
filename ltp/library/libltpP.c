@@ -7812,16 +7812,22 @@ int	ltpHandleInboundSegment(char *buf, int length)
 
 	/*	Handle segment according to its segment type code.	*/
 
-	if ((_ltpvdb(NULL))->watching & WATCH_s)
-	{
-		iwatch('s');
-	}
-
 	CHKERR(sdr_begin_xn((sdr = getIonsdr())));
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, _ltpdbObject(NULL));
 	sdr_exit_xn(sdr);
 	if ((pdu->segTypeCode & LTP_CTRL_FLAG) == 0)	/*	Data.	*/
 	{
+		if ((_ltpvdb(NULL))->watching & WATCH_s)
+		{
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* data segment*/
+				isprintf(ewchar,sizeof(ewchar),"(d%u)s",sessionNbr);
+				iwatch_str(ewchar);
+#else
+				iwatch('s');
+#endif
+		}
 		result = handleDataSegment(sourceEngineId, ltpdb, sessionNbr,
 				&segment, &cursor, &bytesRemaining,
 				headerExtensions, trailerExtensions);
@@ -7833,36 +7839,102 @@ int	ltpHandleInboundSegment(char *buf, int length)
 		switch (pdu->segTypeCode)
 		{
 		case LtpRS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* report segment*/
+					isprintf(ewchar,sizeof(ewchar),"(rs%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleRS(ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpRAS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* report ack segment*/
+					isprintf(ewchar,sizeof(ewchar),"(ras%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleRA(sourceEngineId, ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by source segment*/
+					isprintf(ewchar,sizeof(ewchar),"(cs%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCS(sourceEngineId, ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCAS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by source ack segment*/
+					isprintf(ewchar,sizeof(ewchar),"(cas%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCAS(ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCR:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by receiver segment*/
+					isprintf(ewchar,sizeof(ewchar),"(cr%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCR(ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCAR:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by receiver ack segment*/
+					isprintf(ewchar,sizeof(ewchar),"(car%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCAR(sourceEngineId, ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
