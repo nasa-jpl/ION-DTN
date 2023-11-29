@@ -3612,7 +3612,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 #if defined (EWCHAR)
 			/* segment is data only, non-check point */
-			isprintf(ewchar,sizeof(ewchar),"(d%u)g",segment.sessionNbr);
+			isprintf(ewchar,sizeof(ewchar),"(ds%u)g",segment.sessionNbr);
 #endif		
 	}
 
@@ -3694,7 +3694,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 #if defined (EWCHAR)
 			/* Initial check point */
-			isprintf(ewchar,sizeof(ewchar),"(c%u)g",segment.sessionNbr);
+			isprintf(ewchar,sizeof(ewchar),"(cp%u)g",segment.sessionNbr);
 #endif
 		}
 		else
@@ -3703,7 +3703,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 #if defined (EWCHAR)
 			/* Retransmit check point */
-			isprintf(ewchar,sizeof(ewchar),"(cr%u)g",segment.sessionNbr);
+			isprintf(ewchar,sizeof(ewchar),"(rcp%u)g",segment.sessionNbr);
 #endif
 
 		}
@@ -3738,7 +3738,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 				ltpSpanTally(vspan, POS_RPT_XMIT, 0);
 #if defined (EWCHAR)
 				/* a "positive" report */
-				isprintf(ewchar,sizeof(ewchar),"(pr%u)g",segment.sessionNbr);
+				isprintf(ewchar,sizeof(ewchar),"(prs%u)g",segment.sessionNbr);
 #endif
 			}
 			else
@@ -3746,7 +3746,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 				ltpSpanTally(vspan, NEG_RPT_XMIT, 0);
 #if defined (EWCHAR)
 				/* a "negative" report */
-				isprintf(ewchar,sizeof(ewchar),"(nr%u)g",segment.sessionNbr);
+				isprintf(ewchar,sizeof(ewchar),"(nrs%u)g",segment.sessionNbr);
 #endif
 			}
 		}
@@ -3755,7 +3755,7 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			ltpSpanTally(vspan, RPT_RE_XMIT, 0);
 #if defined (EWCHAR)
 			/* this is a retransmitted report - either positive or negative */
-			isprintf(ewchar,sizeof(ewchar),"(rr%u)g",segment.sessionNbr);
+			isprintf(ewchar,sizeof(ewchar),"(rrs%u)g",segment.sessionNbr);
 #endif
 		}
 
@@ -3924,8 +3924,8 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			case 9:		/*	Report acknowledgment.	*/
 				serializeReportAckSegment(&segment, *buf);
 #if defined (EWCHAR)
-			/* RA - report ACK */
-			isprintf(ewchar,sizeof(ewchar),"(ra%u)g",segment.sessionNbr);
+			/* RAS - report ACK */
+			isprintf(ewchar,sizeof(ewchar),"(ras%u)g",segment.sessionNbr);
 #endif
 				break;
 
