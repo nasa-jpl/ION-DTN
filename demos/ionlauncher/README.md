@@ -74,10 +74,15 @@ This is an example of a three node setup where Relay serves as a relay between S
 
 There are other two examples included with `ionlaucher.sh`. The first is a simple two node setup over TCP. The second is a four node scenario where SC can only uplink to Relay1 and downlink from Relay2, while GS has continuous coverage of the two relays.
 
+## Prototype
+Ionlauncher is currently a prototype and not install globally. To install it, please copy `ionlauncher` and `net_model_gen` to `/usr/local/bin` or where ION was installed.
+
+Ionlauncher's simple model json file current does not handle multi-network interface configuration - this will be updated in future release.
+
 ## Usage
 This section will outline how to run ionlauncher and what the different parameters mean. It is assumed `ionlauncher.sh` will be run on each host independently with the same simple model and the only parameter changing is the node name.
 
-`./ionlauncher.sh [-h] -n <node name> -m <simple model file> [-d <ionconfig cli directory>]`
+`ionlauncher [-h] -n <node name> -m <simple model file> [-d <ionconfig cli directory>]`
 
     -h: display help
     -n: node name that will be used to start ION on the host
