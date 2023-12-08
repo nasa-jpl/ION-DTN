@@ -25,7 +25,7 @@ MAXBUNDLES=100000
 MAXSECONDS=120
 # what bundle sizes do you want to test
 # (list multiple values to cycle through them each)
-BUNDLESIZES="1${KB} 10${KB} 63,800 1${MB} 10${MB}
+BUNDLESIZES="1${KB} 10${KB} 63,800 1${MB} 10${MB}"
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
 THROUGHPUTS="100${MB} 1${GB} 10${GB} 100${GB}"
