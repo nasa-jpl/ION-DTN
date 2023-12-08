@@ -22,7 +22,7 @@ echo
 cat $LOGFILE | sed 's/[:,]//g' | awk '
 BEGIN {
     printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", 
-    "HOSTNAME", "OS", "RELEASE", "CPU", "SEMSYSTEM", "ITER", "TESTNUM", "BUNDLESIZE", "NUMBUNDLES", "TOTALBYTES", "CONTACT_MAX_BW", "THROUGHPUT"); 
+    "HOSTNAME", "OS", "RELEASE", "CPU", "SEMSYSTEM", "ITER", "TESTNUM", "BUNDLESIZE", "NUMBUNDLES", "TOTALBYTES", "CONTACT_MAX_BW", "THROUGHPUT_Mbits_sec"); 
 }
 
 
