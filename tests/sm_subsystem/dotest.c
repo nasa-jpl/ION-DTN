@@ -464,6 +464,30 @@ int semaphore_churn()
 	return(1);
 }
 
+/* need a platform-independant, synchronous version */
+int synch_command(char *cmd, int maxseconds)
+{
+	int pid = pseudoshell(cmd);
+	if (pid == ERROR) {
+		printf("couldn't run command '%s'\n", cmd);
+		return(0);
+	}
+	while (sm_TaskExists(pid)) {
+		if (--maxseconds < 1) {
+			printf("shell command '%s' is taking too long, giving up\n", cmd);
+			sm_TaskDelete(pid);
+			return(0);
+		}
+		printf("Waiting for '%s' to finish...\n", cmd);
+		sm_TaskDelay(1);
+	}
+	return(1);
+}
+
+int do_killm()
+{
+	return(synch_command("killm",60));
+}
 
 
 int main(int argc, char **argv)
@@ -472,8 +496,8 @@ int main(int argc, char **argv)
 	time_t time_start, time_stop;
 
 	/* check up first, just in case */
-	if (system("killm") != 0) fprintf(stderr,"killm failed\n");
-	sleep(2);
+	if (!do_killm())
+		exit(1);
 
 	/* Start ION */
 	printf("Starting ION...\n"); fflush(stdout);
@@ -533,7 +557,8 @@ int main(int argc, char **argv)
 #ifdef POSIX_NAMED_SEMAPHORES
 	void _semPrintTable();
 	_semPrintTable();
-	ionstop();  /* only to put semaphore stats in ion.log */
+	/* only to put final semaphore stats in ion.log */
+	sm_ipc_stop();
 #endif /* POSIX_NAMED_SEMAPHORES */
 
 	if (passed)
