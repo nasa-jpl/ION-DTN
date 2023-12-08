@@ -21,20 +21,17 @@ TOTALBYTES=100${MB}
 # This really only affects really small size bundles
 MAXBUNDLES=100000
 # how many total seconds to allow each individual test to run before giving up
-# 10 minutes is probably plenty
+# 5 minutes is probably plenty
 MAXSECONDS=120
 # what bundle sizes do you want to test
 # (list multiple values to cycle through them each)
-BUNDLESIZES="100 250 500 1000 1400 2500 5${KB} 10${KB} 25${KB} 50${KB} 100${KB} 1${MB} 10${MB} 100${MB}"
-BUNDLESIZES="100 250 500 1000 1400 2500 5${KB} 10${KB} 25${KB} 50${KB} 100${KB} 1${MB} 5${MB} 10${MB} 50${MB} 100${MB}"
-BUNDLESIZES="10 100 1${KB} 10${KB} 100${KB} 1${MB} 10${MB}"
-BUNDLESIZES="10 50 100 250 500 1000 1400 2500 5${KB} 10${KB} 25${KB} 50${KB} 100${KB} 1${MB} 5${MB} 10${MB}"
+BUNDLESIZES="1${KB} 10${KB} 63,800 1${MB} 10${MB}
 # what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
 # (list multiple values to cycle through them each)
 THROUGHPUTS="100${MB} 1${GB} 10${GB} 100${GB}"
 THROUGHPUTS="10${GB}"
 # how many iterations of the test to run?
-ITERATIONS="25"
+ITERATIONS="1"
 
 
 #================================================================
