@@ -10,7 +10,8 @@ CSVFILE="./experiment.$DATE.csv"
 [ -f pretest-script ] && source pretest-script
 #
 echo "=== Running test"
-./dotest 2>&1 | tee ${OUTPUTFILE}
+# note that I've only run these on linux/Mac, so I've hardcoded the OS
+./dotest linux 2>&1 | tee ${OUTPUTFILE}
 echo
 echo
 echo "=== Analyzing output"
