@@ -94,7 +94,7 @@ static int check_unique_keys()
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  check_unique_keys() Running %lu interations in each of %d processes\n\n", iterations, nprocs);
+	printf("  check_unique_keys() Running %lu iterations in each of %d processes\n\n", iterations, nprocs);
 
 	// generate 2 'unique' keys to ensure that we never get them again below
 	sm_unique_key[0] = sm_GetUniqueKey();
@@ -226,7 +226,7 @@ static int multi_thread_semtest()
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  multi_thread_semtest() Running %lu interations in each of %d threads\n", iterations, nthreads);
+	printf("  multi_thread_semtest() Running %lu iterations in each of %d threads\n", iterations, nthreads);
 
 	semnum = sm_SemCreate (-1, 0);
 
@@ -285,7 +285,7 @@ static int multi_process_semtest()
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  multi_process_semtest() Running %lu interations in each of %d processes\n", iterations, nprocs);
+	printf("  multi_process_semtest() Running %lu iterations in each of %d processes\n", iterations, nprocs);
 
 	/* create shared memory to store counter */
 	int fdshm = sm_ShmAttach(-1, sizeof(*pshmemInt), (void *) &pshmemInt, &shmid);
@@ -445,7 +445,7 @@ int semaphore_churn()
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  semaphore_churn() Running %lu interations in each of %d processes\n", iterations, nprocs);
+	printf("  semaphore_churn() Running %lu iterations in each of %d processes\n", iterations, nprocs);
 
 	for (p = 0; p < nprocs; ++p) {
 		if (debug) fprintf(stderr,"Making child process %d\n", p);
