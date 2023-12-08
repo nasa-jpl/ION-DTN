@@ -3,7 +3,7 @@
 # Shawn Ostermann
 # For automatically gathering data using ./dotest
 #
-DATE=`date | sed 's/ /_/g'`
+DATE=`date | sed 's/[ :]/_/g'`
 OUTPUTFILE="./results.$DATE.txt"
 CSVFILE="./experiment.$DATE.csv"
 #
