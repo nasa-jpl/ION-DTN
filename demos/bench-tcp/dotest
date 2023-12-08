@@ -37,6 +37,7 @@ ITERATIONS="1"
 
 # identify the test for later analysis
 echo "Date: `date`"
+echo "Benchmark: `pwd`"
 echo "Hostname: `hostname`"
 echo "UnameOS: `uname -s`"
 echo "UnameProcessor: `uname -p`"

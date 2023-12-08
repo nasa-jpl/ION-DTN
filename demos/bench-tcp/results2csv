@@ -7,6 +7,7 @@ LOGFILE=$1
 echo "Looking at log file $LOGFILE" 1>&2
 egrep '^Date: ' $LOGFILE | sed 's/Date: /Date,/g'
 egrep '^Uname.*: ' $LOGFILE | sed 's/: /,/g'
+egrep '^Benchmark: ' $LOGFILE | sed 's/: /,/g'
 echo
 echo
 
