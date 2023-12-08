@@ -3,7 +3,13 @@
 # Shawn Ostermann
 # For analyzing data from ./runexperiment
 #
-LOGFILE=$1
+if [ $# == 0 ]; then
+    echo "Usage: $0 resultfile [moreresultfiles...]"
+    exit 1
+fi
+#
+for LOGFILE in $*; do
+
 echo "Looking at log file $LOGFILE" 1>&2
 egrep '^Date: ' $LOGFILE | sed 's/Date: /Date,/g'
 egrep '^Uname.*: ' $LOGFILE | sed 's/: /,/g'
@@ -42,3 +48,5 @@ BEGIN {
 HOSTNAME, OS, RELEASE, CPU, SEMSYSTEM, ITER, TESTNUM, BUNDLESIZE, NUMBUNDLES, TOTALBYTES, CONTACT_MAX_BW, THROUGHPUT); next; }
 
 '
+done
+exit 0
