@@ -26,6 +26,7 @@ MAXBUNDLES=100000
 MAXSECONDS=300
 # what bundle sizes do you want to test
 # (list multiple values to cycle through them each)
+# (NUMBUNDLES is calculated from TOTALBYTES and BUNDLESIZE, and will be at least 1 for each iteration)
 BUNDLESIZES="1${KB} 10${KB} 100${KB} 1${MB} 10${MB} 100${MB}"
 # how many iterations of the test to run?
 ITERATIONS="1"
