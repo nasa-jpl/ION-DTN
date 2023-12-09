@@ -2,15 +2,15 @@
 
 The following configurations can be downloaded (see file attachment)
 
-* Two-Node BP over UDP Configuration [download](files/config-templates/bench-udp.tar.gz)
-* Two-Node BP over TCP Configuration [download](files/config-templates/bench-tcp.tar.gz)
-* Two-Node BP over LTP Configuration [download](files/config-templates/bench-ltp.tar.gz)
-* Two-Node BP over BSSP Configuration [download](files/config-templates/bench-bssp.tar.gz)
-* Two-Node BP over STCP Configuration [download](files/config-templates/bench-stcp.tar.gz)
-* Two-Node CFDP over BP over LTP Configuration [download](files/config-templates/bench-cfdp.tar.gz)
+* Two-Node BP over UDP Configuration [download](config-templates/bench-udp.tar.gz)
+* Two-Node BP over TCP Configuration [download](config-templates/bench-tcp.tar.gz)
+* Two-Node BP over LTP Configuration [download](config-templates/bench-ltp.tar.gz)
+* Two-Node BP over BSSP Configuration [download](config-templates/bench-bssp.tar.gz)
+* Two-Node BP over STCP Configuration [download](config-templates/bench-stcp.tar.gz)
+* Two-Node CFDP over BP over LTP Configuration [download](config-templates/bench-cfdp.tar.gz)
   * In this CFDP configuration file, we also included a CFDP command file that can be used with  cfdptest  program to send and receive data. Please use  man cfdptest for information on command syntax and functions. - bench-cfdp.tar.gz
-* Two-Node 'dgr' [download](files/config-templates/bench-dgr.tar.gz)
-* Two-Node 'bibe-ct-udp' - bench-bibect-udp.tar.gz [download](files/config-templates/bench-bibect-udp.tar.gz)
+* Two-Node 'dgr' [download](config-templates/bench-dgr.tar.gz)
+* Two-Node 'bibe-ct-udp' - bench-bibect-udp.tar.gz [download](config-templates/bench-bibect-udp.tar.gz)
   * Check the README.txt file for further instruction on how to use the scenario for simple testing
 
 ## Usage Notes

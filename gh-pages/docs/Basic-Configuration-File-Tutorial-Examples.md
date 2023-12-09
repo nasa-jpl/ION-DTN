@@ -1,25 +1,5 @@
 # Basic Configuration File Tutorial
 
-- [Basic Configuration File Tutorial](#basic-configuration-file-tutorial)
-  - [Programs in ION](#programs-in-ion)
-  - [ION Logging](#ion-logging)
-  - [Starting the ION Daemon](#starting-the-ion-daemon)
-  - [The ION Configuration File](#the-ion-configuration-file)
-  - [The Licklider Transfer Protocol Configuration File](#the-licklider-transfer-protocol-configuration-file)
-  - [IPN Routing Configuration](#ipn-routing-configuration)
-  - [Testing Your Connection](#testing-your-connection)
-  - [Stopping the Daemon](#stopping-the-daemon)
-  - [More Advanced Usage](#more-advanced-usage)
-  - [Example Networks](#example-networks)
-    - [Single Node Loopback](#single-node-loopback)
-    - [Two-Node Ring](#two-node-ring)
-      - [FILE: host1.rc](#file-host1rc)
-    - [Three-Node Network](#three-node-network)
-      - [FILE: host1.rc](#file-host1rc-1)
-      - [FILE: host2.rc](#file-host2rc)
-      - [FILE: host3.rc](#file-host3rc)
-
--------------------
 ## Programs in ION
 
 The following tools are available to you after ION is built:
@@ -82,7 +62,7 @@ The fifth, dtn2admin's configuration file, populates the ION analogue to an ARP
 
 Given to ionadmin either as a file or from the daemon command line, this file configures contacts for the ION node. We will assume that the local node's identification number is 1.
 
-This file specifies contact times and one-way light times between nodes. This is useful in deep-space scenarios: for instance, Mars may be 20 light-minutes away, or 8. Though only some transport protocols make use of this time (currently, only LTP), it must be specified for all links nonetheless. Times may be relative (prefixed with a + from current time) or absolute. Absolute times, are in the format yyyy/mm/dd-hh:mm:ss. By default, the contact-graph routing engine will make bundle routing decisions based on the contact information provided.
+This file specifies contact times and one-way light times between nodes. This is useful in deep-space scenarios: for instance, Mars may be 20 light-minutes away, or 8. Though only some transport protocols make use of this time (currently, only LTP), it must be specified for all links nonetheless. Times may be relative (prefixed with a + from current time) or absolute. Absolute times, are in the format `yyyy/mm/dd-hh:mm:ss`. By default, the contact-graph routing engine will make bundle routing decisions based on the contact information provided.
 
 The configuration file lines are as follows:
 
