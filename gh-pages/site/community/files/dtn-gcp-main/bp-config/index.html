@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/community/files/dtn-gcp-main/bp-config/" />
+      <link rel="shortcut icon" href="../../../../img/favicon.ico" />
+    <title>The Bundle Protocol Configuration File - ION-DTN Open Source Documentation</title>
+    <link rel="stylesheet" href="../../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "The Bundle Protocol Configuration File";
+        var mkdocs_page_input_path = "community/files/dtn-gcp-main/bp-config.md";
+        var mkdocs_page_url = "/ION-DTN/community/files/dtn-gcp-main/bp-config/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../../.." class="icon icon-home"> ION-DTN Open Source Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../..">Interplanetary Overlay Network (ION)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../AMS-Programmer-Guide/">AMS Programmer's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Basic-Configuration-File-Tutorial-Examples/">Basic Configuration File Tutorial</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Configure-Multiple-Network-Interfaces/">Configure ION for Multiple Network Interfaces</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Config-File-Templates/">Available Configuration File Templates</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Deployment-Guide/">ION Deployment Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Guide/">Interplanetary Overlay Network (ION) Design and Operation's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Quick-Start-Guide/">ION Quick Start Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Watch-Characters/">ION Watch Characters</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../License/">License</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../List-of-Papers/">List of Papers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Use-Cases/">Use Cases</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Using-LTP-Config-Tool/">A Guide to Configuring LTP in ION</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Community</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../../../Contributing-Code-to-ION/">Contributing Code to ION</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../ION-One-Node-on-Cloud-Linux-VM/">DTN 101 - Running the Interplanetary Internet on Cloud VM </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../ION-Two-Node-on-Cloud-Linux-VMs/">Running DTN on Cloud VM using a Two-Node Ring </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/">Telemetry Data on Cloud Vms using Pub/Sub and DTN </a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Files</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp 2nodes</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="#">Rc files</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-gcp-2nodes/rc_files/host1-start-script-2node/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-gcp-2nodes/rc_files/host2-start-script-2node/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp iot main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-iot-main/iot-python-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-iot-main/sense-python-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp ltp tcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/">Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-ltp-tcp-main/host3-start-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">Dtn gcp main</a>
+    <ul class="current">
+                <li class="toctree-l3"><a class="reference internal" href="../Running-ION/">Testing your connection</a>
+                </li>
+                <li class="toctree-l3 current"><a class="reference internal current" href="./">The Bundle Protocol Configuration File</a>
+    <ul class="current">
+    <li class="toctree-l4"><a class="reference internal" href="#initialise-the-bundle-protocol">Initialise the bundle protocol</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#begin-bpadmin">begin bpadmin</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#end-bpadmin">end bpadmin</a>
+    </li>
+    </ul>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../host1-start-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../ion-config/">The ION Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../ionsec-config/">ION Security Admin Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../ipn-config/">IPN Routing Configuration</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../ltp-config/">The Licklider Transfer Protocol Configuration File</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn multicasting main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-multicasting-main/Multicasting-over-ION/">Multicasting over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="#">Host1</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/execute/">Execute</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.bprc1/">Host.bprc1</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.bprc2/">Host.bprc2</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ionrc/">Host.ionrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ionsecrc/">Host.ionsecrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ipnrc/">Host.ipnrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ltprc/">Host.ltprc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/ionstart/">Ionstart</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/ionstop/">Ionstop</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn video intelligence main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-video-intelligence-main/Video-Intelligence/">Using GCP Video Intelligence over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-video-intelligence-main/video-processing-script/">Video processing script</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../..">ION-DTN Open Source Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Community</li>
+          <li class="breadcrumb-item">Files</li>
+          <li class="breadcrumb-item">Dtn gcp main</li>
+      <li class="breadcrumb-item active">The Bundle Protocol Configuration File</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="the-bundle-protocol-configuration-file">The Bundle Protocol Configuration File</h1>
+<p>Given to bpadmin either as a file or from the daemon command line, this file configures the endpoints through which this node's Bundle Protocol Agent (BPA) will communicate. We will assume the local BPA's node number is 1; as for LTP, in ION node numbers are used to identify bundle protocol agents.</p>
+<h2 id="initialise-the-bundle-protocol">Initialise the bundle protocol</h2>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>````. 
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>`1` refers to this being the initialization or &#39;&#39;first&#39;&#39; command.
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>## Add support for a new Endpoint Identifier (EID) scheme
+</code></pre></div>
+a scheme ipn 'ipnfw' 'ipnadminep'
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>`a` means that this command will add something.
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>`scheme` means that this command will add a scheme.
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>`ipn` is the name of the scheme to be added.
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>`&#39;ipnfw&#39;` is the name of the IPN scheme&#39;s forwarding engine daemon.
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>`&#39;ipnadminep&#39;` is the name of the IPN scheme&#39;s custody transfer management daemon.
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>## Establishes the BP node&#39;s membership in a BP endpoint
+</code></pre></div>
+a endpoint ipn:1.0 q
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>`a` means that this command will add something.
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>`endpoint` means that this command adds an endpoint.
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>`ipn` is the scheme name of the endpoint.
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>`1.0` is the scheme-specific part of the endpoint. For the IPN scheme the scheme-specific part always has the form nodenumber:servicenumber. Each node must be a member of the endpoint whose node number is the node&#39;s own node number and whose service number is 0, indicating administrative traffic.
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>`q` means that the behavior of the engine, upon receipt of a new bundle for this endpoint, is to queue it until an application accepts the bundle. The alternative is to silently discard the bundle if no application is actively listening; this is specified by replacing q with x.
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>## Specify two more endpoints that will be used for test traffic
+</code></pre></div>
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>## Add support for a convergence-layer protocol
+</code></pre></div>
+a protocol ltp 1400 100
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>`a` means that this command will add something.
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>`protocol` means that this command will add a convergence-layer protocol.
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>`ltp` is the name of the convergence-layer protocol.
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>`1400` is the estimated size of each convergence-layer protocol data unit (in bytes); in this case, the value is based on the size of a UDP/IP packet on Ethernet.
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>`100` is the estimated size of the protocol transmission overhead (in bytes) per convergence-layer procotol data unit sent.
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>## Add an induct, through which incoming bundles can be received from other nodes
+</code></pre></div>
+a induct ltp 1 ltpcli
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>`a` means that this command will add something.
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>`induct` means that this command will add an induct.
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>`ltp` is the convergence layer protocol of the induct.
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>`1` is the identifier of the induct, in this case the ID of the local LTP engine.
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>`ltpcli` is the name of the daemon used to implement the induct.
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>## Add an outduct, through which outgoing bundles can be sent to other nodes
+</code></pre></div>
+a outduct ltp 1 ltpclo
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>`a` means that this command will add something.
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>`outduct` means that this command will add an outduct.
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>`ltp` is the convergence layer protocol of the outduct.
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>`1` is the identifier of the outduct, the ID of the convergence-layer protocol induct of some remote node. 
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>`ltpclo` is the name of the daemon used to implement the outduct.
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>## Start the bundle engine including all daemons for the inducts and outducts
+</code></pre></div>
+s
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>## Final configuration file - `host1.bprc`
+</code></pre></div></p>
+<h2 id="begin-bpadmin">begin bpadmin</h2>
+<p>1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 q
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a protocol ltp 1400 100
+a induct ltp 1 ltpcli
+a outduct ltp 1 ltpclo
+s</p>
+<h2 id="end-bpadmin">end bpadmin</h2>
+<p>````</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../Running-ION/" class="btn btn-neutral float-left" title="Testing your connection"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../host1-start-script/" class="btn btn-neutral float-right" title="ION Start Script Example">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../Running-ION/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../host1-start-script/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../../../..";</script>
+    <script src="../../../../js/theme_extra.js"></script>
+    <script src="../../../../js/theme.js"></script>
+      <script src="../../../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

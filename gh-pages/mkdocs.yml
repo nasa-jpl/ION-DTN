@@ -47,6 +47,25 @@ markdown_extensions:
 copyright:
   Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.  
 
-#nav:
-#  - Home: index.md
-#  - Files: files/config-templates
+nav:
+  - Overview: index.md
+  - Quick Start: ION-Quick-Start-Guide.md
+  - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
+  - Configuration Templates: ION-Config-File-Templates.md
+  - ION Deployment Guide: ION-Deployment-Guide.md
+  - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
+  - ION Design & Operation Manual: ION-Guide.md
+  - Watch Characters: ION-Watch-Characters.md
+  - LTP Configuration Tool: Using-LTP-Config-Tool.md
+  - AMS Programmer's Guide: AMS-Programmer-Guide.md
+  - Use Cases: Use-Cases.md
+  - Publications/Papers: List-of-Papers.md
+  - Community:
+      Running 1 ION Node on Cloud VM: community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md
+      Running 2 ION Node on Cloud VM: community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md
+      ION and IOT: community/dtn-gcp-iot-main/ION-andIOT-on-Linux-VMs-running-on-Cloud-Computing.md
+      LTP and TCP on Azure: community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure.md
+      Multicast: community/dtn-multicasting-main/Multicasting-over-ION.md
+      Video Intelligence: community/dtn-video-intelligence-main/Video-Intelligence.md
+      Contribute Code: community/Contributing-Code-to-ION.md
+      

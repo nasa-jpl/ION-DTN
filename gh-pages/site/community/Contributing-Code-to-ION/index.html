@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/community/Contributing-Code-to-ION/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Contributing Code to ION - ION-DTN Open Source Documentation</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Contributing Code to ION";
+        var mkdocs_page_input_path = "community/Contributing-Code-to-ION.md";
+        var mkdocs_page_url = "/ION-DTN/community/Contributing-Code-to-ION/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> ION-DTN Open Source Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Interplanetary Overlay Network (ION)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../AMS-Programmer-Guide/">AMS Programmer's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Basic-Configuration-File-Tutorial-Examples/">Basic Configuration File Tutorial</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Configure-Multiple-Network-Interfaces/">Configure ION for Multiple Network Interfaces</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Config-File-Templates/">Available Configuration File Templates</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Deployment-Guide/">ION Deployment Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Guide/">Interplanetary Overlay Network (ION) Design and Operation's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Quick-Start-Guide/">ION Quick Start Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Watch-Characters/">ION Watch Characters</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../License/">License</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../List-of-Papers/">List of Papers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Use-Cases/">Use Cases</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Using-LTP-Config-Tool/">A Guide to Configuring LTP in ION</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Community</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Contributing Code to ION</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#expectations">Expectations</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#if-you-want-to-contribute">If you want to contribute...</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ION-One-Node-on-Cloud-Linux-VM/">DTN 101 - Running the Interplanetary Internet on Cloud VM </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ION-Two-Node-on-Cloud-Linux-VMs/">Running DTN on Cloud VM using a Two-Node Ring </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/">Telemetry Data on Cloud Vms using Pub/Sub and DTN </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Files</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp 2nodes</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="#">Rc files</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-gcp-2nodes/rc_files/host1-start-script-2node/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-gcp-2nodes/rc_files/host2-start-script-2node/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp iot main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-iot-main/iot-python-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-iot-main/sense-python-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp ltp tcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/">Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-ltp-tcp-main/host3-start-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/Running-ION/">Testing your connection</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/bp-config/">The Bundle Protocol Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/host1-start-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ion-config/">The ION Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ionsec-config/">ION Security Admin Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ipn-config/">IPN Routing Configuration</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ltp-config/">The Licklider Transfer Protocol Configuration File</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn multicasting main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-multicasting-main/Multicasting-over-ION/">Multicasting over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="#">Host1</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/execute/">Execute</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.bprc1/">Host.bprc1</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.bprc2/">Host.bprc2</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ionrc/">Host.ionrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ionsecrc/">Host.ionsecrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ipnrc/">Host.ipnrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ltprc/">Host.ltprc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/ionstart/">Ionstart</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/ionstop/">Ionstop</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn video intelligence main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-video-intelligence-main/Video-Intelligence/">Using GCP Video Intelligence over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-video-intelligence-main/video-processing-script/">Video processing script</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">ION-DTN Open Source Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Community</li>
+      <li class="breadcrumb-item active">Contributing Code to ION</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="contributing-code-to-ion">Contributing Code to ION</h1>
+<h2 id="expectations">Expectations</h2>
+<p>If you plan to contribute to the ION project, please keep these in mind:</p>
+<ul>
+<li>Submitted code should adhere to the ION coding style found in the current code. We plan to add a more formal coding style guide in the future.</li>
+<li>Provide documentation describing the contributed code’s features, its inputs and outputs, dependencies, behavior (provide a high-level state machine or flowchart if possible), and API description. Please provide a draft of a man page.</li>
+<li>Provide canned tests (ION configuration and script) that can be executed to verify and demonstrate the proper functioning of the features. Ideally it should demonstrate nominal operation and off-nominal scenarios.</li>
+<li>
+<p>The NASA team will review these contributions and determine to either</p>
+</li>
+<li>
+<p>incorporate the code into the baseline, or</p>
+</li>
+<li>not incorporate the code into the baseline but make it available in the /contrib folder (if possible) as experimental modules, or</li>
+<li>not incorporate it at all.</li>
+<li>All baselined features will be supported with at least bug-fixes until removed</li>
+<li>All /contrib folder features are provided ”as is,” and no commitment is made regarding bug-fixes.</li>
+<li>The contributor is expected to help with regression testing</li>
+<li>Due to resource constraints, we cannot make any commitment as to response time. We will do our best to review them on a best effort basis.</li>
+</ul>
+<h2 id="if-you-want-to-contribute">If you want to contribute...</h2>
+<ol>
+<li>Fork this repository</li>
+<li>Starting with the "current" branch, create a named feature or bugfix branch and develop/test your code in this branch</li>
+<li>
+<p>Generate a pull request with</p>
+</li>
+<li>
+<p>Your feature or bugfix branch as the Source branch</p>
+</li>
+<li>"current" as the destination branch</li>
+</ol>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../Using-LTP-Config-Tool/" class="btn btn-neutral float-left" title="A Guide to Configuring LTP in ION"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../ION-One-Node-on-Cloud-Linux-VM/" class="btn btn-neutral float-right" title="DTN 101 - Running the Interplanetary Internet on Cloud VM ">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../../Using-LTP-Config-Tool/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../ION-One-Node-on-Cloud-Linux-VM/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

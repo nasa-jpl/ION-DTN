@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/community/files/dtn-video-intelligence-main/video-processing-script/" />
+      <link rel="shortcut icon" href="../../../../img/favicon.ico" />
+    <title>Video processing script - ION-DTN Open Source Documentation</title>
+    <link rel="stylesheet" href="../../../../css/theme.css" />
+    <link rel="stylesheet" href="../../../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Video processing script";
+        var mkdocs_page_input_path = "community/files/dtn-video-intelligence-main/video-processing-script.md";
+        var mkdocs_page_url = "/ION-DTN/community/files/dtn-video-intelligence-main/video-processing-script/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../../../.." class="icon icon-home"> ION-DTN Open Source Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../..">Interplanetary Overlay Network (ION)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../AMS-Programmer-Guide/">AMS Programmer's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Basic-Configuration-File-Tutorial-Examples/">Basic Configuration File Tutorial</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Configure-Multiple-Network-Interfaces/">Configure ION for Multiple Network Interfaces</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Config-File-Templates/">Available Configuration File Templates</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Deployment-Guide/">ION Deployment Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Guide/">Interplanetary Overlay Network (ION) Design and Operation's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Quick-Start-Guide/">ION Quick Start Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../ION-Watch-Characters/">ION Watch Characters</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../License/">License</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../List-of-Papers/">List of Papers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Use-Cases/">Use Cases</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../../../Using-LTP-Config-Tool/">A Guide to Configuring LTP in ION</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Community</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../../../Contributing-Code-to-ION/">Contributing Code to ION</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../ION-One-Node-on-Cloud-Linux-VM/">DTN 101 - Running the Interplanetary Internet on Cloud VM </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../ION-Two-Node-on-Cloud-Linux-VMs/">Running DTN on Cloud VM using a Two-Node Ring </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../../ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/">Telemetry Data on Cloud Vms using Pub/Sub and DTN </a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Files</a>
+    <ul class="current">
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp 2nodes</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="#">Rc files</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-gcp-2nodes/rc_files/host1-start-script-2node/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-gcp-2nodes/rc_files/host2-start-script-2node/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp iot main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-iot-main/iot-python-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-iot-main/sense-python-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp ltp tcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/">Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-ltp-tcp-main/host3-start-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-main/Running-ION/">Testing your connection</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-main/bp-config/">The Bundle Protocol Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-main/host1-start-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-main/ion-config/">The ION Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-main/ionsec-config/">ION Security Admin Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-main/ipn-config/">IPN Routing Configuration</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-gcp-main/ltp-config/">The Licklider Transfer Protocol Configuration File</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn multicasting main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../../dtn-multicasting-main/Multicasting-over-ION/">Multicasting over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="#">Host1</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/execute/">Execute</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.bprc1/">Host.bprc1</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.bprc2/">Host.bprc2</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ionrc/">Host.ionrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ionsecrc/">Host.ionsecrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ipnrc/">Host.ipnrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/host.ltprc/">Host.ltprc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/ionstart/">Ionstart</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../../dtn-multicasting-main/Host1/ionstop/">Ionstop</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2 current"><a class="reference internal current" href="#">Dtn video intelligence main</a>
+    <ul class="current">
+                <li class="toctree-l3"><a class="reference internal" href="../Video-Intelligence/">Using GCP Video Intelligence over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3 current"><a class="reference internal current" href="./">Video processing script</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../..">ION-DTN Open Source Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Community</li>
+          <li class="breadcrumb-item">Files</li>
+          <li class="breadcrumb-item">Dtn video intelligence main</li>
+      <li class="breadcrumb-item active">Video processing script</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>import argparse
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>from google.cloud import videointelligence
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>video_client = videointelligence.VideoIntelligenceServiceClient()
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>features = [videointelligence.Feature.LABEL_DETECTION]
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>operation = video_client.annotate_video(
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>request={&quot;features&quot;: features, &quot;input_uri&quot;:&#39;gs://test_bucket_pi/video1_pi.mp4&#39;})
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>print(&quot;Processing video for label annotations:&quot;)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>result = operation.result(timeout=90)
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>print(&quot;\nFinished processing.&quot;)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>segment_labels = result.annotation_results[0].segment_label_annotations
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>for i, segment_label in enumerate(segment_labels):
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  print(&quot;Video label description: {}&quot;.format(segment_label.entity.description))
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  for category_entity in segment_label.category_entities:
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    print( &quot;\tLabel category description: {}&quot;.format(category_entity.description)
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>            )
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  for i, segment in enumerate(segment_label.segments):
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    start_time = (
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>      segment.segment.start_time_offset.seconds
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>      + segment.segment.start_time_offset.microseconds / 1e6
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>      )
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>    end_time = (
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>      segment.segment.end_time_offset.seconds
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>      + segment.segment.end_time_offset.microseconds / 1e6
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>      )
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>    positions = &quot;{}s to {}s&quot;.format(start_time, end_time)
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>    confidence = segment.confidence
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>    print(&quot;\tSegment {}: {}&quot;.format(i, positions))
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>    print(&quot;\tConfidence: {}&quot;.format(confidence))
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>    print(&quot;\n&quot;)
+</code></pre></div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../Video-Intelligence/" class="btn btn-neutral float-left" title="Using GCP Video Intelligence over the Interplanetary Internet "><span class="icon icon-circle-arrow-left"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../Video-Intelligence/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+  </span>
+</div>
+    <script src="../../../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../../../..";</script>
+    <script src="../../../../js/theme_extra.js"></script>
+    <script src="../../../../js/theme.js"></script>
+      <script src="../../../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

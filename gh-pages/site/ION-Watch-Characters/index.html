@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/ION-Watch-Characters/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>ION Watch Characters - ION-DTN Open Source Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "ION Watch Characters";
+        var mkdocs_page_input_path = "ION-Watch-Characters.md";
+        var mkdocs_page_url = "/ION-DTN/ION-Watch-Characters/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> ION-DTN Open Source Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Interplanetary Overlay Network (ION)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../AMS-Programmer-Guide/">AMS Programmer's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../Basic-Configuration-File-Tutorial-Examples/">Basic Configuration File Tutorial</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../Configure-Multiple-Network-Interfaces/">Configure ION for Multiple Network Interfaces</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Config-File-Templates/">Available Configuration File Templates</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Deployment-Guide/">ION Deployment Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Guide/">Interplanetary Overlay Network (ION) Design and Operation's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Quick-Start-Guide/">ION Quick Start Guide</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">ION Watch Characters</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#enhanced-watch-characters-ion-413-or-later">Enhanced Watch Characters (ION 4.1.3 or later)</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#logging-and-processing-of-watch-characters">Logging and Processing of Watch Characters</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#bundle-protocol-watch-character">Bundle Protocol Watch Character</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#ltp-watch-characters">LTP Watch Characters</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#bibect-watch-characters">BIBECT Watch Characters</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#bssp-watch-characters">BSSP Watch Characters</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../License/">License</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../List-of-Papers/">List of Papers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../Use-Cases/">Use Cases</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../Using-LTP-Config-Tool/">A Guide to Configuring LTP in ION</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Community</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/Contributing-Code-to-ION/">Contributing Code to ION</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/ION-One-Node-on-Cloud-Linux-VM/">DTN 101 - Running the Interplanetary Internet on Cloud VM </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/ION-Two-Node-on-Cloud-Linux-VMs/">Running DTN on Cloud VM using a Two-Node Ring </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/">Telemetry Data on Cloud Vms using Pub/Sub and DTN </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Files</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp 2nodes</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="#">Rc files</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-gcp-2nodes/rc_files/host1-start-script-2node/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-gcp-2nodes/rc_files/host2-start-script-2node/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp iot main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-iot-main/iot-python-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-iot-main/sense-python-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp ltp tcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/">Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-ltp-tcp-main/host3-start-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/Running-ION/">Testing your connection</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/bp-config/">The Bundle Protocol Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/host1-start-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ion-config/">The ION Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ionsec-config/">ION Security Admin Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ipn-config/">IPN Routing Configuration</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ltp-config/">The Licklider Transfer Protocol Configuration File</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn multicasting main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-multicasting-main/Multicasting-over-ION/">Multicasting over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="#">Host1</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/execute/">Execute</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.bprc1/">Host.bprc1</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.bprc2/">Host.bprc2</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ionrc/">Host.ionrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ionsecrc/">Host.ionsecrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ipnrc/">Host.ipnrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ltprc/">Host.ltprc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/ionstart/">Ionstart</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/ionstop/">Ionstop</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn video intelligence main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-video-intelligence-main/Video-Intelligence/">Using GCP Video Intelligence over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-video-intelligence-main/video-processing-script/">Video processing script</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">ION-DTN Open Source Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">ION Watch Characters</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="ion-watch-characters">ION Watch Characters</h1>
+<p>ION Version: 4.1.3</p>
+<p>Bundle Protocol Version:7</p>
+<ul>
+<li><a href="#ion-watch-characters">ION Watch Characters</a></li>
+<li><a href="#enhanced-watch-characters-ion-413-or-later">Enhanced Watch Characters (ION 4.1.3 or later)</a></li>
+<li><a href="#logging-and-processing-of-watch-characters">Logging and Processing of Watch Characters</a></li>
+<li><a href="#bundle-protocol-watch-character">Bundle Protocol Watch Character</a></li>
+<li><a href="#ltp-watch-characters">LTP Watch Characters</a></li>
+<li><a href="#bibect-watch-characters">BIBECT Watch Characters</a></li>
+<li><a href="#bssp-watch-characters">BSSP Watch Characters</a></li>
+</ul>
+<hr />
+<p>Watch characters, when activated, provide immediate feedback on ION operations by printing various characters standard output (terminal). By examing the watch characters, and the order in which they appear, operators can quickly confirm proper operation or detect configuration or run-time errors.</p>
+<p>This document will list all watch characters currently supported by ION.</p>
+<h2 id="enhanced-watch-characters-ion-413-or-later">Enhanced Watch Characters (ION 4.1.3 or later)</h2>
+<p>Enhanced watch characters were added ION 4.1.3 to provide detailed state information at Bundle Protocol (BP) and LTP levels and can be activated at compile time by:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>./configure<span class="w"> </span>--enable-ewchar
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>or<span class="w"> </span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>./configure<span class="w"> </span><span class="nv">CFLAGS</span><span class="o">=</span>-DEWCHAR
+</code></pre></div>
+<p>Enhanced watch characters prepends additional state information to the standard watch characters inside a pair of parenthesis. In this document, we use the following notion regarding enhanced watch characters information.</p>
+<ul>
+<li><code>nnn</code> = source node number</li>
+<li><code>sss</code> = service number</li>
+<li><code>ttt</code> = bundle creation time in milliseconds Epoch(2000)</li>
+<li><code>ccc</code> = bundle sequence number</li>
+<li><code>xxx</code> (LTP session number)</li>
+</ul>
+<p>Each field can be longer or shorter than 3 digits/characters.</p>
+<h2 id="logging-and-processing-of-watch-characters">Logging and Processing of Watch Characters</h2>
+<p>Besides real-time monitoring of the watch characters on standard out, ION can redirect the watch characters to customized user applications for network monitoring purposes.Prior to and including ION 4.1.2, watch characters are single character. Starting from ION 4.1.3 release, a <em>watch character</em> is now generalized to a string of type <code>char*</code>.</p>
+<p>To activate customized processing, there are two steps:</p>
+<ol>
+<li>Create a C code <code>gdswatcher.c</code> that defines a functions to process watch characters, and pass that function to ION to handle watch character:</li>
+</ol>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">processWatchChar</span><span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="n">token</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="p">{</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="c1">//your code goes here</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">}</span><span class="w"> </span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ionRedirectWatchCharacters</span><span class="p">()</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">{</span><span class="w"> </span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="n">setWatcher</span><span class="p">(</span><span class="n">processWatchChar</span><span class="p">);</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">}</span>
+</code></pre></div>
+2. Then use the following compiler flag to build ION:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./configure<span class="w"> </span><span class="nv">CFLAGS</span><span class="o">=</span><span class="s2">&quot;-DGDSWATCHER -I/&lt;path to the folder holding the gdswatcher.c file&gt;&quot;</span>
+</code></pre></div></p>
+<h2 id="bundle-protocol-watch-character">Bundle Protocol Watch Character</h2>
+<p><code>a</code> - new bundle is queued for forwarding; <code>(nnn,sss,tttt,cccc)a</code></p>
+<p><code>b</code> - bundle is queued for transmission; <code>(nnn,sss,ccc)b</code></p>
+<p><code>c</code> - bundle is popped from its transmission queue; <code>(nnn,sss,ccc)c</code></p>
+<p><code>m</code> - custody acceptance signal is received</p>
+<p><code>w</code> - custody of bundle is accepted</p>
+<p><code>x</code> - custody of bundle is refused</p>
+<p><code>y</code> - bundle is accepted upon arrival; <code>(nnn,sss,ccc)y</code></p>
+<p><code>z</code> - bundle is queued for delivery to an application; <code>(nnn,sss,ccc)z</code></p>
+<p><code>~</code> - bundle is abandoned (discarded) on attempt to forward it</p>
+<p><code>!</code> - bundle is destroyed due to TTL expiration; <code>(nnn,sss,ccc)!</code></p>
+<p><code>&amp;</code> - custody refusal signal is received</p>
+<p><code>#</code> - bundle is queued for re-forwarding due to CL protocol failure</p>
+<p><code>j</code> - bundle is placed in \"limbo\" for possible future re-forwarding</p>
+<p><code>k</code> - bundle is removed from \"limbo\" and queued for re-forwarding</p>
+<h2 id="ltp-watch-characters">LTP Watch Characters</h2>
+<p><code>d</code> - bundle appended to block for next session</p>
+<p><code>e</code> - segment of block is queued for transmission</p>
+<p><code>f</code> - block has been fully segmented for transmission; <code>(xxxx)f</code></p>
+<p><code>g</code> - segment popped from transmission queue; </p>
+<ul>
+<li>
+<p><code>(cpxxx)g</code> -- checkpoint, this could be a data segment or a standalone
+    check point</p>
+</li>
+<li>
+<p><code>(dsxxx)g</code> -- non-check point data segment</p>
+</li>
+<li>
+<p><code>(rcpxxx)g</code> -- retransmitted checkpoint</p>
+</li>
+<li>
+<p><code>(prsxxx)g</code> -- positive report (all segments received)</p>
+</li>
+<li>
+<p><code>(nrsxxx)g</code> -- negative report (gaps)</p>
+</li>
+<li>
+<p><code>(rrsxxx)g</code> -- retransmitted report (either positive or negative)</p>
+</li>
+<li>
+<p><code>(rasxxx)g</code> -- a report ack segment</p>
+</li>
+<li>
+<p><code>(csxxx)g</code> -- cancellation by block source</p>
+</li>
+<li>
+<p><code>(crxxx)g</code> -- cancellation by block receiver</p>
+</li>
+<li>
+<p><code>(caxxx)g</code> -- cancellation ack for either CS or CR</p>
+</li>
+</ul>
+<p><code>h</code> - positive ACK received for block, session ended; <code>(xxx)h</code></p>
+<p><code>s</code> - segment received</p>
+<p><code>t</code> - block has been fully received</p>
+<p><code>@</code> - negative ACK received for block, segments retransmitted; <code>(xxx)@</code></p>
+<p><code>=</code> - unacknowledged checkpoint was retransmitted; <code>(xxx)=</code></p>
+<p><code>+</code> - unacknowledged report segment was retransmitted; <code>(xxx)+</code></p>
+<p><code>{</code> - export session canceled locally (by sender)</p>
+<p><code>}</code> - import session canceled by remote sender</p>
+<p><code>[</code> - import session canceled locally (by receiver)</p>
+<p><code>]</code> - export session canceled by remote receiver</p>
+<h2 id="bibect-watch-characters">BIBECT Watch Characters</h2>
+<p><code>w</code> - custody request is accepted (by receiving entity)</p>
+<p><code>m</code> - custody acceptance signal is received (by requester)</p>
+<p><code>x</code> - custody of bundle has been refused</p>
+<p><code>&amp;</code> - custody refusal signal is received (by requester)</p>
+<p><code>$</code> - bundle retransmitted due to expiration of custody request timer</p>
+<h2 id="bssp-watch-characters">BSSP Watch Characters</h2>
+<p><code>D</code> - bssp send completed</p>
+<p><code>E</code> - bssp block constructed for issuance</p>
+<p><code>F</code> - bssp block issued</p>
+<p><code>G</code> - bssp block popped from best-efforts transmission queue</p>
+<p><code>H</code> - positive ACK received for bssp block, session ended</p>
+<p><code>S</code> - bssp block received</p>
+<p><code>T</code> - bssp block popped from reliable transmission queue</p>
+<p><code>-</code> - unacknowledged best-efforts block requeued for reliable transmission</p>
+<p><code>*</code> - session canceled locally by sender</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../ION-Quick-Start-Guide/" class="btn btn-neutral float-left" title="ION Quick Start Guide"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../License/" class="btn btn-neutral float-right" title="License">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../ION-Quick-Start-Guide/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../License/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
