@@ -69,7 +69,7 @@ extern "C" {
 #define UNDL(x) "\x1B[4m" x RST
 
 
-int   ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg);
+ui_cb_return_values_t  ui_print_agents_cb_fn(int idx, int keypress, void* data, char* status_msg);
 int   ui_print_agents();
 
 #define ui_print_report(rpt) ui_fprint_report(NULL, rpt)
