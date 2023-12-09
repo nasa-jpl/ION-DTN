@@ -47,3 +47,6 @@ markdown_extensions:
 copyright:
   Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.  
 
+#nav:
+#  - Home: index.md
+#  - Files: files/config-templates

@@ -15,71 +15,8 @@ Technology_
 | V4.1.3  | 11/6/2023 | Add LTP Performance Test         | Converted to markd down |
 | V4.1.2  | 1/5/2023  | Added notes on SDR file and CGRM |                |
 
-**Table of Content**
-- [ION Deployment Guide](#ion-deployment-guide)
-- [Overview](#overview)
-  - [Infusion](#infusion)
-  - [Operation](#operation)
-- [Configuration](#configuration)
-    - [Configuring the "ici" module](#configuring-the-ici-module)
-    - [Configuring the "ltp" module](#configuring-the-ltp-module)
-    - [Configuring the "bp" module](#configuring-the-bp-module)
-    - [Configuring the "ams" module](#configuring-the-ams-module)
-    - [Configuring the "cfdp" module](#configuring-the-cfdp-module)
-    - [Initialization](#initialization)
-    - [Runtime Parameters](#runtime-parameters)
-      - [configFlags](#configflags)
-      - [Allocating Working Memory](#allocating-working-memory)
-    - [Multi-node Operation](#multi-node-operation)
-    - [Shutdown](#shutdown)
-    - [Example Configuration Files](#example-configuration-files)
-      - [ION Node Number Cross-reference](#ion-node-number-cross-reference)
-      - [IPN Parameters Cross-reference](#ipn-parameters-cross-reference)
-      - [The bpadmin Add Scheme command](#the-bpadmin-add-scheme-command)
-      - [The ipnadmin Add Plan command](#the-ipnadmin-add-plan-command)
-      - [LTP Parameters Cross-reference](#ltp-parameters-cross-reference)
-      - [The ltpadmin Initialize command](#the-ltpadmin-initialize-command)
-      - [The ltpadmin Add Span command](#the-ltpadmin-add-span-command)
-      - [The ltpadmin Start command](#the-ltpadmin-start-command)
-      - [The bpadmin Add Protocol command](#the-bpadmin-add-protocol-command)
-      - [The bpadmin Add Outduct and Add Induct commands](#the-bpadmin-add-outduct-and-add-induct-commands)
-      - [The ipnadmin Add Exit command](#the-ipnadmin-add-exit-command)
-      - [The ipnadmin Add Plan command](#the-ipnadmin-add-plan-command-1)
-      - [ipnadmin's "plan" commands have been superseded by bpadmin](#ipnadmins-plan-commands-have-been-superseded-by-bpadmin)
-- [Bundle-in-Bundle Encapsulation](#bundle-in-bundle-encapsulation)
-    - [Introduction to BIBE](#introduction-to-bibe)
-    - [Configuring BIBE in ION](#configuring-bibe-in-ion)
-      - [BCLAs](#bclas)
-      - [Ducts](#ducts)
-      - [Plans](#plans)
-      - [Contacts](#contacts)
-      - [Overrides](#overrides)
-- [Adaptations](#adaptations)
-    - [Error Logging](#error-logging)
-    - [Memory Allocation](#memory-allocation)
-- [Operation](#operation-1)
-    - ["Wrong profile for this SDR"](#wrong-profile-for-this-sdr)
-    - [Destroying a node](#destroying-a-node)
-    - ["No such directory; disabling heap residence in file..."](#no-such-directory-disabling-heap-residence-in-file)
-    - ["Can't find ION security database"](#cant-find-ion-security-database)
-    - [Clock sync](#clock-sync)
-    - [Node numbers](#node-numbers)
-    - [Duct names](#duct-names)
-    - [Config file pitfalls to watch for](#config-file-pitfalls-to-watch-for)
-    - [ION hard reset](#ion-hard-reset)
-    - [ION and LTP State Recovery](#ion-and-ltp-state-recovery)
-    - [Configuring "Loopback" Contact](#configuring-loopback-contact)
-- [LTP Performance Assessment (ION 4.1.2)](#ltp-performance-assessment-ion-412)
-  - [Considerations for Configuration](#considerations-for-configuration)
-  - [Test Case 1: Mid-grade Linux Server with Direct Ethernet Connection](#test-case-1-mid-grade-linux-server-with-direct-ethernet-connection)
-  - [Test Case 2: ARM64 Raspberry Pi 4B](#test-case-2-arm64-raspberry-pi-4b)
-  - [Test Case 3: SDR configuration Study (2015 Xeon Skylake)](#test-case-3-sdr-configuration-study-2015-xeon-skylake)
-  - [Test Case 4: 10Gbps Physical Ethernet Study (with 2012 Xeon Sandy Bridge)](#test-case-4-10gbps-physical-ethernet-study-with-2012-xeon-sandy-bridge)
-  - [Impact of variable bundles size](#impact-of-variable-bundles-size)
-  - [Summary of LTP Throughput Test Results](#summary-of-ltp-throughput-test-results)
-- [Acknowledgment](#acknowledgment)
 
-# Overview
+## Overview
 
 The effort required to deploy the Interplanetary Overlay Network (ION)
 software in an operational setting may vary widely depending on the
@@ -132,7 +69,7 @@ or stability problems. Some suggestions for reconfiguration and
 troubleshooting procedures are offered in the ***Operation*** section
 below.
 
-# Configuration
+## Configuration
 
 ### Configuring the "ici" module
 
@@ -1243,7 +1180,7 @@ consumed by bpadmin is DIFFERENT from that of the commands consumed by
 ipnadmin and dtn2admin. Please see the man page for bprc (5) for
 details.
 
-# Bundle-in-Bundle Encapsulation
+### Bundle-in-Bundle Encapsulation
 
 For some purposes it may be helpful to encapsulate a bundle inside
 another bundle -- that is, to let the serialized representation of a
@@ -1253,7 +1190,7 @@ Internet Draft *draft-burleigh-dtn-bibect-00.txt* (which will likely be
 renamed at some point and ideally will become an IETF standards-track
 Request For Comments in due course).
 
-### Introduction to BIBE
+#### Introduction to BIBE
 
 By way of overview, here is an excerpt from that document:
 
@@ -1326,7 +1263,7 @@ Protocol to function in both capacities, offering services to itself at
 two different layers of the protocol stack, requires careful
 configuration.
 
-### Configuring BIBE in ION
+#### Configuring BIBE in ION
 
 Like any convergence-layer protocol, BIBE is used to copy a bundle from
 one BP node (the sending node) to another node (the receiving node),
@@ -1442,7 +1379,7 @@ Under some circumstances, successful forwarding of BIBE bundles requires
 that outduct overrides be applied. See the biberc(5) man page for
 details.
 
-# Adaptations
+## Adaptations
 
 ### Error Logging
 
@@ -1507,7 +1444,7 @@ acquire some block of memory. These would include the Space Management
 Trace features and standalone programs such as "file2sm", "sm2file" and
 "smlistsh".
 
-# Operation
+## Operation
 
 ION is generally optimized for continuous operational use rather than
 research. In practice, this means that a lot more attention, both in the
@@ -1777,7 +1714,7 @@ configuration:
   automatically and is visible when listing contact through ionadmin.
   This is an expected behavior.
 
-# LTP Performance Assessment (ION 4.1.2)
+## LTP Performance Assessment (ION 4.1.2)
 
 In this section, we present LTP throughput measurements collected on
 different computing platforms. The goal of these tests is to provide a
@@ -1800,7 +1737,7 @@ that compete for CPU cycles, etc. We also eliminated the impact of
 round-trip delay and packet error by testing LTP over a high-speed,
 low-error, direct Ethernet connection between two LTP peers.
 
-## Considerations for Configuration
+### Considerations for Configuration
 
 Given that LTP is designed for space links, not terrestrial links, LTP
 segment sizes much larger than typical terrestrial network MTUs
@@ -1840,7 +1777,7 @@ ensure that data storage is not a limiting factor.
 
 Now, we present our test cases.
 
-## Test Case 1: Mid-grade Linux Server with Direct Ethernet Connection
+### Test Case 1: Mid-grade Linux Server with Direct Ethernet Connection
 
 B = byte
 
@@ -1873,7 +1810,7 @@ G = giga
 - 90 Mbps (one-way)
 - 70 Mbps/ 20 Mbps (two-way)
 
-## Test Case 2: ARM64 Raspberry Pi 4B
+### Test Case 2: ARM64 Raspberry Pi 4B
 
 **ION Configuration:**
 
@@ -1894,7 +1831,7 @@ G = giga
 
 - 60 Mbps (one-way)
 
-## Test Case 3: SDR configuration Study (2015 Xeon Skylake)
+### Test Case 3: SDR configuration Study (2015 Xeon Skylake)
 
 In this test case, we considered several SDR configuration combinations
 and assessed their impact.
@@ -1957,7 +1894,7 @@ when the transaction is canceled and must be reversed. Although it is
 possible to store transaction record in ION's working memory, we didn't
 consider this case in our testing due to time constraint.
 
-## Test Case 4: 10Gbps Physical Ethernet Study (with 2012 Xeon Sandy Bridge)
+### Test Case 4: 10Gbps Physical Ethernet Study (with 2012 Xeon Sandy Bridge)
 
 In this 10Gbps case study, we measured LTP performance between two
 machines physically connected by a 10Gbps Ethernet switch. Initial
@@ -2083,7 +2020,7 @@ loss probability. The **key** point here is to illustrate that the
 choice of segment size can impact the processing overhead and speed of
 LTP.
 
-## Impact of variable bundles size
+### Impact of variable bundles size
 
 In real life operation, we expect the users to generate a wide mixture
 of large and small bundles. Although we don't have a commonly agreed on
@@ -2121,7 +2058,7 @@ overhead. The use of LTP block aggregation can maintain a higher
 efficiency under such circumstances. Additional investigation in this
 area will be conducted and reported in the near future.
 
-## Summary of LTP Throughput Test Results
+### Summary of LTP Throughput Test Results
 
 We conducted a series of tests, documenting the performance of BP/LTP
 for a range of hardware and ION configuration options. At the lower end,
@@ -2145,7 +2082,7 @@ conditions and computing the recommended LTP settings, please consult
 the LTP Configuration Tool spreadsheet provided with each ION
 open-source package on SourceForge.
 
-# Acknowledgment
+## Acknowledgment
 
 Some of the technology described in this Deployment Guide was developed
 at the Jet Propulsion Laboratory, California Institute of Technology,
