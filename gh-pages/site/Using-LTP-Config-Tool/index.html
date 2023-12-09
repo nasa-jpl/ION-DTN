@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/Using-LTP-Config-Tool/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>A Guide to Configuring LTP in ION - ION-DTN Open Source Documentation</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "A Guide to Configuring LTP in ION";
+        var mkdocs_page_input_path = "Using-LTP-Config-Tool.md";
+        var mkdocs_page_url = "/ION-DTN/Using-LTP-Config-Tool/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> ION-DTN Open Source Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Interplanetary Overlay Network (ION)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../AMS-Programmer-Guide/">AMS Programmer's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../Basic-Configuration-File-Tutorial-Examples/">Basic Configuration File Tutorial</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../Configure-Multiple-Network-Interfaces/">Configure ION for Multiple Network Interfaces</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Config-File-Templates/">Available Configuration File Templates</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Deployment-Guide/">ION Deployment Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Guide/">Interplanetary Overlay Network (ION) Design and Operation's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Quick-Start-Guide/">ION Quick Start Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../ION-Watch-Characters/">ION Watch Characters</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../License/">License</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../List-of-Papers/">List of Papers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../Use-Cases/">Use Cases</a>
+                </li>
+              </ul>
+              <ul class="current">
+                <li class="toctree-l1 current"><a class="reference internal current" href="./">A Guide to Configuring LTP in ION</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#worksheet-overview">Worksheet overview</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#input-parameters">Input Parameters</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#global-parameters">Global Parameters</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#basic-input-parameters">Basic input Parameters</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#further-guidance">Further Guidance</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#first-order-computed-parameters">First-order Computed Parameters</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#configuration-decision-parameters">Configuration decision parameters</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#ltp-initialization-parameters">LTP Initialization Parameters</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#updated-features-may-2021">Updated Features - May 2021</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#link-worksheet">Link Worksheet</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#enhancements">Enhancements</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#heapword-size-estimate">HeapWord Size Estimate</a>
+        <ul>
+    <li class="toctree-l4"><a class="reference internal" href="#user-input">User Input:</a>
+    </li>
+    <li class="toctree-l4"><a class="reference internal" href="#model-output">Model Output:</a>
+    </li>
+        </ul>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#appendix">Appendix</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#bpltp-memory-usage-analysis-summary">BP/LTP Memory Usage Analysis Summary</a>
+    </li>
+        </ul>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#acknowledgements">Acknowledgements</a>
+    </li>
+    </ul>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Community</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/Contributing-Code-to-ION/">Contributing Code to ION</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/ION-One-Node-on-Cloud-Linux-VM/">DTN 101 - Running the Interplanetary Internet on Cloud VM </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/ION-Two-Node-on-Cloud-Linux-VMs/">Running DTN on Cloud VM using a Two-Node Ring </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../community/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/">Telemetry Data on Cloud Vms using Pub/Sub and DTN </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Files</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp 2nodes</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="#">Rc files</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-gcp-2nodes/rc_files/host1-start-script-2node/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-gcp-2nodes/rc_files/host2-start-script-2node/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp iot main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-iot-main/iot-python-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-iot-main/sense-python-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp ltp tcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/">Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-ltp-tcp-main/host3-start-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/Running-ION/">Testing your connection</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/bp-config/">The Bundle Protocol Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/host1-start-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ion-config/">The ION Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ionsec-config/">ION Security Admin Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ipn-config/">IPN Routing Configuration</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-gcp-main/ltp-config/">The Licklider Transfer Protocol Configuration File</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn multicasting main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-multicasting-main/Multicasting-over-ION/">Multicasting over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="#">Host1</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/execute/">Execute</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.bprc1/">Host.bprc1</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.bprc2/">Host.bprc2</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ionrc/">Host.ionrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ionsecrc/">Host.ionsecrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ipnrc/">Host.ipnrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/host.ltprc/">Host.ltprc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/ionstart/">Ionstart</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../community/files/dtn-multicasting-main/Host1/ionstop/">Ionstop</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn video intelligence main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-video-intelligence-main/Video-Intelligence/">Using GCP Video Intelligence over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../community/files/dtn-video-intelligence-main/video-processing-script/">Video processing script</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">ION-DTN Open Source Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+      <li class="breadcrumb-item active">A Guide to Configuring LTP in ION</li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="a-guide-to-configuring-ltp-in-ion">A Guide to Configuring LTP in ION</h1>
+<p><em>Scott Burleigh, Jay Gao, and Leigh Torgerson</em></p>
+<p><em>Jet Propulsion Laboratory, California Institute of Technology</em></p>
+<p><strong>Version 4.1.3</strong></p>
+<ul>
+<li><a href="#a-guide-to-configuring-ltp-in-ion">A Guide to Configuring LTP in ION</a></li>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#worksheet-overview">Worksheet overview</a></li>
+<li><a href="#input-parameters">Input Parameters</a><ul>
+<li><a href="#global-parameters">Global Parameters</a></li>
+<li><a href="#basic-input-parameters">Basic input Parameters</a></li>
+</ul>
+</li>
+<li><a href="#further-guidance">Further Guidance</a><ul>
+<li><a href="#first-order-computed-parameters">First-order Computed Parameters</a></li>
+<li><a href="#configuration-decision-parameters">Configuration decision parameters</a></li>
+<li><a href="#ltp-initialization-parameters">LTP Initialization Parameters</a></li>
+</ul>
+</li>
+<li><a href="#updated-features---may-2021">Updated Features - May 2021</a><ul>
+<li><a href="#link-worksheet">Link Worksheet</a></li>
+<li><a href="#enhancements">Enhancements</a></li>
+<li><a href="#heapword-size-estimate">HeapWord Size Estimate</a></li>
+<li><a href="#user-input">User Input:</a></li>
+<li><a href="#model-output">Model Output:</a></li>
+</ul>
+</li>
+<li><a href="#appendix">Appendix</a><ul>
+<li><a href="#bpltp-memory-usage-analysis-summary">BP/LTP Memory Usage Analysis Summary</a></li>
+</ul>
+</li>
+<li><a href="#acknowledgements">Acknowledgements</a></li>
+</ul>
+<h2 id="introduction">Introduction</h2>
+<p>ION open source comes with an Excel spreadsheet to help users configure the LTP protocol to optimize performance based on each user's unique use case.</p>
+<p>ION's implementation of LTP is challenging to configure: there are a lot
+of configuration parameters to set, because the design is intended to
+support a very wide variety of deployment scenarios that are optimized
+for a variety of different figures of merit (utility metrics).</p>
+<p>LTP-ION is managed as a collection of "spans", that is,
+transmission/reception relationships between the local LTP engine (the
+engine -- or DTN "node" -- that you are configuring) and each other LTP
+engine with which the local engine can exchange LTP protocol segments.
+Spans are managed using functions defined in libltpP.c that are offered
+to the operator by the ltpadmin program.</p>
+<p>ltpadmin can be used to add a span, update an existing span, delete a
+span, provide current information on a specified span, or list all
+spans. The span configuration parameters that must be set when you add
+or update a span are as follows:</p>
+<ul>
+<li>The <code>remote LTP engine number</code> identifying the span. For ION, this
+  is by convention the same as the BP node number as established when
+  the ION database was initialized.</li>
+<li>The <code>maximum number of export sessions</code> that can be held open on
+  this span at any one time. This implements LTP flow control across
+  the span: since no new data can be transmitted until it is appended
+  to a block -- the data to be conveyed in a single export session --
+  and no new session can be started until the total number of open
+  sessions drops below the maximum, the closure of export sessions
+  regulates the rate at which LTP can be used to transmit data.</li>
+<li>The <code>maximum number of import sessions</code> that will be open on this
+  span at any one time. This value is simply the remote engine's own
+  value for the "maximum number of export sessions" parameter.</li>
+<li><code>Maximum LTP segment size</code>. This value is typically the maximum
+  permitted size of the payload of each link-layer protocol data unit
+  -- nominally a <em>frame</em>.</li>
+<li><code>Aggregation size limit</code>. This is the "nominal" size for blocks to
+  be sent over this span: normally LTP will concatenate multiple
+  service data units (such as BP bundles) into a single block until
+  the aggregate size of those service data units exceeds the
+  aggregation size limit, and only then will it divide the block into
+  segments and use the underlying link service to transmit the
+  segments. (Note that it is normal for the aggregation size limit to
+  be exceeded. In this sense, the word "limit" is really a misnomer;
+  "threshold" would be a better term.)</li>
+<li><code>Aggregation time limit</code>. This parameter establishes an alternate
+  means of terminating block aggregation and initiating segment
+  transmission: in the event that service data units are not being
+  presented to LTP rapidly enough to promptly fill blocks of nominal
+  size, LTP will arbitrarily terminate aggregation when the length of
+  time that the oldest service data units in the block have been
+  waiting for transmission exceeds the aggregation time limit.</li>
+<li><code>The Link Service Output command.</code> This parameter declares the
+  command that will be used to start the link service output task for
+  this span. The value of this parameter is a string, typically
+  enclosed in single quote marks and typically beginning with the name
+  of the executable object for the task. When the "udplso" link
+  service output module is to be used for a given span, the module
+  name is followed by the IPAddress:Port of the remote engine and
+  (optionally) the UDP transmission rate limit in bits per second.</li>
+</ul>
+<p>In addition, at the time you initialize LTP (normally at the start of
+the ltpadmin configuration file) you must set one further configuration
+parameter:</p>
+<ul>
+<li><code>Estimated total number of export sessions</code>, for all spans: this
+  value is used to size the hash table that LTP uses for storing and
+  retrieving export session information.</li>
+</ul>
+<p>In many cases, the best values for these configuration parameters will
+not be obvious to the DTN network administrator. To simplify this task,
+an LTP Configuration Worksheet has been developed.</p>
+<h2 id="worksheet-overview">Worksheet overview</h2>
+<p>The LTP configuration worksheet is designed to aid in the configuration
+of a single span -- that is, the worksheet
+for the span between engines X and Y will provide configuration
+parameter values for use in commanding ltpadmin on both engine X and
+engine Y.</p>
+<p>The cells of the worksheet are of two general types, <code>Input Cells</code> and
+<code>Calculated Cells</code>.</p>
+<ul>
+<li><code>Input Cells</code> are cells in which the network administrator must supply
+  values based on project decisions. These cells are yellow-filled.</li>
+<li><code>Calculated Cells</code> are cells that are computed by the worksheet based
+  on LTP configuration principles. These cells are grey-filled. The
+  cells are protected from modification (though you can unprotect them
+  if you want by selecting "Unprotect Sheet" on the Excel "Review"
+  tab).</li>
+</ul>
+<p>Some of these cells are used as span configuration parameters or are
+figures of merit for network administrators:</p>
+<ul>
+<li>Span configuration parameters are identified by an adjacent dark
+  grey title cell with white text.</li>
+<li>Figures of merit for which the network administrator may want to
+  optimize the span configuration are identified by an adjacent green
+  title cell with red italic text.</li>
+</ul>
+<p><strong>Note:</strong> Configuration parameters that are described in detail in this
+document are numbered. To ease cross referencing between this document
+and the worksheet, the parameter numbers are placed next to the title
+cells in the worksheet.*</p>
+<h2 id="input-parameters">Input Parameters</h2>
+<p>This section provides guidance on the values that must be supplied by
+the network administrator. Global parameters affect calculated values
+and configuration file parameters for all spans involving the local LTP
+engine.</p>
+<h3 id="global-parameters">Global Parameters</h3>
+<p><code>Maximum bit error rate</code> is the maximum bit error rate that the LTP
+should provide for in computing the maximum number of transmission
+efforts to initiate in the course of transmitting a given block. (Note
+that this computation is also sensitive to data segment size and to the
+size of the block that is to be transmitted.) The default value is
+.000001, i.e., 10^-6^, one uncorrected (but detected) bit error per
+million bits transmitted.</p>
+<p>The <code>size</code> - estimated size of an LTP report segment in bytes - may vary
+slightly depending on the sizes of the session numbers in use. 25 bytes
+is a reasonable estimate.</p>
+<h3 id="basic-input-parameters">Basic input Parameters</h3>
+<p>Values for the following parameters must be provided by the network
+administrator in order for the worksheet to guide the configuration.
+Values must be provided for both engine "X" and engine "Y".</p>
+<ol>
+<li>The <code>OWLT</code> between engines (sec) is the maximum one-way light time
+   over this span, i.e., the distance between the engines. (Note that
+   this value is assumed to be symmetrical.)</li>
+<li>A unique <code>engine number</code> for each engine.</li>
+<li>The <code>IP address</code> of each engine. (Assuming udplso will be used as the
+   link service output daemon.)</li>
+<li>The <code>LTP reception port number</code> for each engine. (Again assuming
+   udplso will be used as the link service output daemon.)</li>
+<li>An estimate of the <code>mean size of the LTP service data units</code>
+   (nominally bundles) sent from this engine over this span.</li>
+<li><code>Link service overhead</code>. The expected number of bytes of link service
+   protocol header information per LTP segment.</li>
+<li><code>Aggregation size limit</code> - this is the service data unit aggregation
+   size limit for LTP. Note that a suggested
+   value for this parameter is automatically computed as described
+   below, based on available return channel capacity.</li>
+<li>The <code>scheduled transmission rate</code> (in bytes per second) at which this
+   engine will transmit data over this span when the two engines are in
+   contact.</li>
+<li><code>Maximum percentage of channel capacity that may be consumed by LTP report segments</code>. A warning will be displayed if other configuration
+   parameters cause this limit to be breached. There are no actual
+   mechanism to enforce this limit in ION. This only set in order to
+   check the estimated report traffic for the current configuration.
+   It is provided as an aid to LTP link designer.</li>
+<li>An <code>estimate of the percentage of all data sent over this span that will be red data</code>, i.e., will be subject to positive and negative
+   LTP acknowledgment.</li>
+<li>
+<p><code>Aggregation time limit</code>. The minimum value is 1 second. Increasing
+    this limit can marginally reduce the number of blocks transmitted,
+    and hence protocol overhead, at times of low communication activity.
+    However, it reduces the "responsiveness" of the protocol, increasing
+    the maximum possible delay before transmission of any given service
+    data unit. (This delay is referred to as "data aggregation
+    latency".)</p>
+<ul>
+<li><code>Low communication activity</code> is defined as a rate of
+  presentation of service data to LTP that is less than the
+  aggregation size limit divided by the aggregation time limit.</li>
+<li><code>LTP segment size</code> (bytes) is the maximum LTP segment size sent over
+this span by this engine. Typically, this is the maximum permitted
+size of the payloads of link-layer protocol data units (frames).</li>
+<li><code>The maximum number of export sessions</code>. This implements a form of
+flow control by placing a limit on the number of concurrent LTP
+sessions used to transmit blocks. Smaller numbers will result in
+slower transmission, while higher numbers increase storage resource
+occupancy. Note that a suggested value for this parameter is
+automatically computed as described below, based on transmission
+rate and one-way light time.</li>
+</ul>
+</li>
+</ol>
+<h2 id="further-guidance">Further Guidance</h2>
+<p>This section provides further information on the methods used to compute
+the <code>Calculated Cells</code> and also guidance for <code>Input Cell</code> values.</p>
+<h3 id="first-order-computed-parameters">First-order Computed Parameters</h3>
+<p>The following parameters are automatically computed based on the values
+of the basic input parameters.</p>
+<ol>
+<li><code>Estimated "red" data transmission rate (bytes/sec)</code> is simply the
+    scheduled transmission rate multiplied by the estimated "red" data
+    percentage.</li>
+<li><code>Maximum export data in transit (bytes)</code> is the product of the
+    estimated red data transmission rate and the round-trip light time
+    (which is twice the one-way light time between the engines). This is
+    the maximum amount of red data that cannot yet have been positively
+    acknowledged by the remote engine and therefore must be retained in
+    storage for possible retransmission.</li>
+</ol>
+<h3 id="configuration-decision-parameters">Configuration decision parameters</h3>
+<p>Values for the following parameters must be chosen by the network
+administrator on the basis of (a) known project requirements or
+preferences. (b) the first-order computed parameters, and (c) the
+computed values of figures of merit that result from tentative parameter
+value selections, as noted.</p>
+<ul>
+<li><code>#6 Aggregation size limit</code> (revisited). Reducing this parameter
+  tends to increase the number of blocks transmitted, increasing total
+  protocol overhead. The suggested value for this parameter is
+  computed as follows:</li>
+<li>The maximum number of bytes of LTP report content that the remote
+  engine may transmit per second is given by the product of the remote
+  engine's transmission data rate and the maximum percentage of the
+  remote engine's channel capacity that may be allocated to LTP
+  reports.</li>
+<li>The maximum number of reports per second transmitted by the remote
+  engine is the maximum number of LTP report content bytes transmitted
+  per second divided by the mean report segment size.</li>
+<li>Assuming that normally all blocks are received without error, the
+  maximum number of blocks to be transmitted per second by the local
+  engine should be equal to the maximum number of reports that may be
+  transmitted per second by the remote engine.</li>
+<li>
+<p>The threshold block size, expressed in bytes per block, is then
+  given by dividing the local engine's transmission data rate (in
+  bytes per second) by the maximum number of blocks to be transmitted
+  per second.</p>
+</li>
+<li>
+<p><code>Est. mean export block size</code> is computed as follows:</p>
+<p>a.  If the mean service data unit size is so large that aggregation
+of multiple service data units into a block is never necessary,
+then that mean service data unit size will in effect determine
+the mean export block size (one service data unit per block).</p>
+<p>b.  Otherwise, the mean export block size will be determined by
+aggregation. If the red data transmission rate is so high that
+the aggregation time limit will normally never be reached, then
+the aggregation size limit constitutes the mean export block
+size. Otherwise, block size will be constrained by aggregation
+time limit expiration: the estimated mean export block size will
+be approximated by multiplying the red data transmission rate by
+the number of seconds in the aggregation time limit.</p>
+<p>c.  So estimated mean export block size is computed as larger of
+mean service data unit size and "expected aggregate block size",
+where expected aggregate block size is the lesser of block
+aggregation size limit and the product of red data transmission
+rate and aggregation time limit.
+16. <code>Estimated blocks transmitted per second</code> are computed as <code>Estimated red data xmit rate (bytes/sec)</code> (parameter 13) divided by <code>Est. mean export block size</code> (parameter 15).
+17. <code>Est. Report bytes/sec sent</code> by the remote engine in response to these transmitted blocks is computed as the product of <code>Est. blocks transmitted per second</code> (parameter 16) and <code>Size (mean) of LTP acknowledgment (bytes)</code> (a global parameter). When mean service data unit size is less than the aggregation size limit and the red data transmission rate is high enough to prevent the aggregation time limit from ever being reached, this value will be about the same as the maximum number of bytes of LTP report content that the remote engine may transmit per second as computed above.</p>
+<p><em>Note: increasing the aggregation size limit reduces the block transmission rate at the local engine, reducing the rate of transmission of acknowledgment data at the remote engine; this can be a significant consideration on highly asymmetrical links.</em>
+18. <code>Est. segments per block</code> is computed as <code>Est. mean export block size</code> (parameter 15) divided by <code>LTP segment size (bytes)</code> (parameter 11).
+19. <code>Est. LTP delivery efficiency</code> on the span is calculated by dividing <code>Est. blocks delivered per second</code> by <code>Est blocks transmitted per second</code>. Reducing the aggregation size limit indirectly improves delivery efficiency by reducing block size, thus reducing the percentage of transmitted blocks that will be affected by the loss of a given number of frames.</p>
+<ul>
+<li><code>#12 Maximum number of export sessions (revisited)</code>. Increasing the maximum number of export sessions will tend to improve link bandwidth utilization but will increase the amount of storage space needed for span state retention. The suggested value for this parameter is computed as the <code>maximum export data in transit (bytes)</code> (Parameter 14) divided by <code>Est. mean export block size</code> (parameter 15) as determined above. Configuring the span for a maximum export session count that is less than this limit will make it impossible to fully utilize the link even if all blocks are of estimated mean size.</li>
+<li><code>Nominal export SDU's in transit</code> is computed by dividing
+<code>Nominal export data in transit (bytes)</code> by the <code>Size (mean) of service data units (bytes)</code> (parameter 4).</li>
+<li><code>Expected link utilization</code> is then computed by dividing <code>Nominal export data in transit (bytes)</code> by <code>Maximum export data in transit (bytes)</code> (parameter 14). <strong><em>Note</em></strong> that a low value of expected link utilization indicates that a high percentage of the span's transmission capacity is not being used. Utilization can be improved by increasing estimated mean export block size (e.g., by increasing aggregation size limit) or by increasing the maximum number of export sessions.</li>
+<li><code>Max data aggregation latency (sec)</code> is simply the value supplied
+for <code>Aggregation time limit (sec)</code> (parameter 10) as this time
+limit is never exceeded.</li>
+</ul>
+</li>
+</ul>
+<h3 id="ltp-initialization-parameters">LTP Initialization Parameters</h3>
+<p>Finally, the remaining LTP initialization parameter can be computed when
+all span configuration decisions have been made.</p>
+<ol>
+<li><code>Maximum number of import sessions</code> is automatically taken from
+    the remote engine's maximum number of export sessions.</li>
+</ol>
+<p><em>This research was carried out at the Jet Propulsion Laboratory,
+California Institute of Technology, under a contract with the National
+Aeronautics and Space Administration.</em></p>
+<h2 id="updated-features-may-2021">Updated Features - May 2021</h2>
+<p>This section describes the following features added to the configuration
+tool as of May 2021:</p>
+<ol>
+<li>A "link" worksheet has been added to set space link parameters such
+   as frame size and error rate and to compute parameters such as
+   <em>maxBer</em> and laboratory Ethernet-based frame loss simulation.</li>
+<li>Conditional formatting has been added to a few entries in the <em>main</em>
+   worksheet to provide visual cues for out-of-range parameters and
+   warning messages to guide parameter selection.</li>
+<li>A simple model to estimate the minimum required heapWord size for a
+   one-hop LTP link.</li>
+</ol>
+<h3 id="link-worksheet">Link Worksheet</h3>
+<p>The recommended workflow for using the LTP configuration tool is to
+first establish the space link configuration using the <em>link</em> worksheet
+before attempting to generate a LTP configuration under the <em>main</em>
+worksheet. The <em>link</em> worksheet has the following input and computed
+cells:</p>
+<ul>
+<li><code>Select CCSDS Frame Size (bits) \[user input\]--</code> this cell allows
+  the user to select a standard CCSDS AOS/TM frame size from a drop
+  down list that includes LDPC, Turbo, and Reed-Solomon codes.</li>
+<li><code>CCSDS Frame Size (bytes) \[computed\]</code>-- converts frame size from
+  bits to bytes.</li>
+<li><code>Desired Frame Error Rate \[user input\]</code> -- this parameter sets
+  the expected frame error rate of the LTP link in operation. This
+  parameter could be derived from link budget analysis or a mission
+  requirement document.</li>
+<li><code>Segment size (byte) \[user input\]</code> -- this parameter sets the
+  maximum segment payload size used by LTP. The size of the segment,
+  in relation to the underlying CCSDS frame, will determine the
+  segment error rate and the probability that LTP will need to request
+  retransmission.</li>
+<li><code>Ethernet Frame Size (byte) \[user input\]</code> -- this is the
+  Ethernet frame size used in a laboratory environment to simulate
+  space link frame losses.</li>
+<li><code>Segment Error Rate Computation \[computed\]</code> -- this is the LTP
+  segment error rate derived from the frame error rate and the segment
+  and CCSDS frame size selections.</li>
+<li><code>*maxBER* Computation \[computed\]</code> -- this is the computed
+  <em>maxBER</em> parameter for LTP. The <em>maxBER</em> parameter is what LTP uses
+  to estimate segment error rate, which in turn will affect how LTP
+  handles handshaking failure and repeated retransmission requests. To
+  properly operate LTP, the maxBER value provided must result in the
+  same segment error rate as one expects to encounter in real space
+  link.</li>
+<li><code>Ethernet Error Rate Computation \[computed\]</code> -- this is the
+  recommended setting for using laboratory Ethernet frame error
+  software/hardware to simulate space link loss. This value is
+  translated from the segment error rate to Ethernet frame error to
+  make sure that laboratory testing provides a statistically
+  equivalent impact on LTP.</li>
+</ul>
+<h3 id="enhancements">Enhancements</h3>
+<p>In the <em>main</em> worksheet described in Section 3, we made the following
+enhancements:</p>
+<ul>
+<li>Item 6: <code>Aggregation size limit (bytes)</code> -- a green icon is
+  displayed when the input parameter is greater or equal to the
+  suggested value; a red icon is displayed when this parameter is
+  below the suggested value. The suggested value aggregation size
+  limit upper bounds the LTP block rate such that the acknowledgement
+  traffic (report segments) from the receiver to the sender can be
+  supported.</li>
+<li>Item 10: <code>Aggregation time limit (sec)</code> -- there are two factors
+  affecting LTP block aggregation: time limit and size limit. The
+  aggregation process stops as soon as one of the two limits is
+  reached. A green icon is displayed if the time limit value in this
+  cell is sufficiently large such that the aggregation process will be
+  size limited, i.e., on average the LTP block aggregation process
+  will reach the size limit before the time limit. This is the nominal
+  and desired configuration unless there is a strict latency
+  requirement that forces one to use a very low aggregation time
+  limit. A red icon is displayed if the time limit will be driving,
+  which means the LTP block size will generally be smaller than the
+  aggregation size limit and the block rate will be higher than
+  desired. If a latency requirement forces the use of a low
+  aggregation time limit, one must check to make sure there is still
+  sufficient bandwidth to support the acknowledgement (report segment)
+  traffic.</li>
+<li>Item 17: <code>Est. report bytes/sec sent</code> - this field estimates the
+  bandwidth required to support LTP report segment traffic up to 95
+  percentile of all cases involving retransmission of missing
+  segments. The segment error rate was derived from the <em>link</em>
+  worksheet. The green icon indicates that estimated report bandwidth
+  is feasible based on current configuration.</li>
+</ul>
+<h3 id="heapword-size-estimate">HeapWord Size Estimate</h3>
+<p>A simple HeapWord size estimate calculation is added to the <em>main</em>
+worksheet, based on the following assumptions:</p>
+<ol>
+<li>The only traffic flows in the system are those between node X and Y
+   using LTP.</li>
+<li>Heap is sized to support at least 1 contact session</li>
+<li>Each contact starts with a clean slate. At the beginning of a
+   contact, the heap space is not occupied by bundles/blocks/segments
+   left over from previous contact or other unfinished processes.</li>
+<li>Source user data is file-resident. Most ION test utility programs
+   such as <em>bpsendfile</em> and <em>bpdriver</em> will keep source data (or create
+   simulated data) in a file for as long as possible until just prior
+   to transmission by the underlying convergence layer adaptor when
+   pieces of user data are copied into each out-going convergence
+   layer's PDUs. Please check how your software uses the BP API to
+   determine how source data is handled. If in doubt, you may need to
+   increase the heap space allocation to hold the user's source data.</li>
+<li>Aggregated LTP blocks are size-limited (not time-limited).</li>
+</ol>
+<h4 id="user-input">User Input:</h4>
+<ul>
+<li>Item 24: <code>Longest Expected Period to Buffer Data Period (sec)</code> --
+  this is the expected longest period of time one expects ION will
+  buffer user data. The data accumulation rate is the same as the LTP
+  red data data rate.</li>
+<li>Item 25: <code>(32/64) bit system</code> -- this is platform dependent
+  parameter. Heap space is specified in the number of words. For a
+  32-bit system, each word has 32 bits; for a 64-bit system, each word
+  has 64 bits.</li>
+<li>Item 26: <code>Additional Margin</code> -- adds more margin to the model per
+  user's discretion</li>
+</ul>
+<h4 id="model-output">Model Output:</h4>
+<ul>
+<li>Item 27: <code>Recommended heapWords value (with 40% for ZCO)</code> -- this
+  is the suggested <code>heapWords</code> value for <code>ionconfig</code>.</li>
+<li>Item28: <code>Recommended heapWords value - iif source data completely in memory</code> -- this is the suggested <code>heapWords</code> value for
+  <em>ionconfig</em> assuming the source data is copied into heap space at
+  the time of bundle creation without using file-resident reference.</li>
+<li>Item 29: <code>wmSize recommendation</code> - this is the suggested <code>wmSize</code>
+  parameter to use to support the staging of large quantities of
+  bundles in the heap. This recommended value includes an additional
+  200% margin. The rationale for the calculation is derived from
+  analysis summarized in the <code>ION Deployment Guide</code> and based on
+  previous studies.</li>
+</ul>
+<h2 id="appendix">Appendix</h2>
+<h3 id="bpltp-memory-usage-analysis-summary">BP/LTP Memory Usage Analysis Summary</h3>
+<p>In this section, we summarize the finding documented in a powerpoint
+presentation titled, "ION DTN/LTP Configuration and ION Memory Usage
+Analysis", dated January 2021, that is used as the basis for estimating
+the heap space required for BP/LTP operation in ION:</p>
+<ul>
+<li>When using file-resident data to conduct tests (e.g., bpdriver,
+  bpsendfile, etc) the heap space holds mostly the header information
+  in the data structure.</li>
+<li>
+<p>With 1 bundle in the system that is under active LTP session, the
+  minimum heap space needed can be approximated as: <em>heap space</em> =
+  <em>S</em> + <em>base</em></p>
+</li>
+<li>
+<p><em>S</em> is the bundle size / segment size x segment header size x 10</p>
+</li>
+<li>The segment header is approximated to be 19 bytes</li>
+<li><em>Base</em> is the default usage at initial boot, before any bundles
+    were generated. In our experiment, it is approximately 48
+    Kilobyte.</li>
+<li>Let M equal the number of bundles that fits within TWLT-bandwidth
+  product, and</li>
+<li>Assume that the max_export_session &gt; M so efficiency can be
+  maximized, then</li>
+<li>For a burst of N bundles to be buffered in ION:</li>
+<li>
+<p>If N \&lt;= M, heap space usage is approximately S x N + 1560 bytes x
+  N + base</p>
+</li>
+<li>
+<p>S x N is LTP related heap usage, 1560 x N is bundle level heap
+    usage</p>
+</li>
+<li>"1560 bytes" is an empirical estimate based on test
+    observations. It is the additional heap space needed to
+    accommodate each additional bundle structure and also a small
+    amount of data as determined by the heapmax parameter in .bprc
+    file (default value is 650 bytes).</li>
+<li>
+<p>If N &gt; M, heap space usage is approximately S x M + 1560 bytes x
+  N + base</p>
+</li>
+<li>
+<p>For bundle in LTP transmission, we count both LTP and bundle
+    level heap usage</p>
+</li>
+<li>Apply additional margin on the estimated heap space should
+  accommodate:</li>
+<li>The available heap space for storing inbound and outbound bundle
+  data is only 40% of the total heap space (determined by heapWords in
+  .ionconfig file)</li>
+</ul>
+<h2 id="acknowledgements">Acknowledgements</h2>
+<p>Nik Ansell co-authored/contributed to the 2016 version of this document,
+which has been updated and revised in 2021.</p>
+<p>© 2016 California Institute of Technology. Government sponsorship
+acknowledged.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../Use-Cases/" class="btn btn-neutral float-left" title="Use Cases"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../community/Contributing-Code-to-ION/" class="btn btn-neutral float-right" title="Contributing Code to ION">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../Use-Cases/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../community/Contributing-Code-to-ION/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

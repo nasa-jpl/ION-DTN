@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/community/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Telemetry Data on Cloud Vms using Pub/Sub and DTN  - ION-DTN Open Source Documentation</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Telemetry Data on Cloud Vms using Pub/Sub and DTN ";
+        var mkdocs_page_input_path = "community/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing.md";
+        var mkdocs_page_url = "/ION-DTN/community/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> ION-DTN Open Source Documentation
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Interplanetary Overlay Network (ION)</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../AMS-Programmer-Guide/">AMS Programmer's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Basic-Configuration-File-Tutorial-Examples/">Basic Configuration File Tutorial</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Configure-Multiple-Network-Interfaces/">Configure ION for Multiple Network Interfaces</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Config-File-Templates/">Available Configuration File Templates</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Deployment-Guide/">ION Deployment Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Guide/">Interplanetary Overlay Network (ION) Design and Operation's Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Quick-Start-Guide/">ION Quick Start Guide</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../ION-Watch-Characters/">ION Watch Characters</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../License/">License</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../List-of-Papers/">List of Papers</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Use-Cases/">Use Cases</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../Using-LTP-Config-Tool/">A Guide to Configuring LTP in ION</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Community</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../Contributing-Code-to-ION/">Contributing Code to ION</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ION-One-Node-on-Cloud-Linux-VM/">DTN 101 - Running the Interplanetary Internet on Cloud VM </a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../ION-Two-Node-on-Cloud-Linux-VMs/">Running DTN on Cloud VM using a Two-Node Ring </a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">Telemetry Data on Cloud Vms using Pub/Sub and DTN </a>
+    <ul class="current">
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="#">Files</a>
+    <ul>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp 2nodes</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="#">Rc files</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-gcp-2nodes/rc_files/host1-start-script-2node/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-gcp-2nodes/rc_files/host2-start-script-2node/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp iot main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-iot-main/iot-python-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-iot-main/sense-python-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp ltp tcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/">Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-ltp-tcp-main/host3-start-script/">ION Start Script Example</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn gcp main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/Running-ION/">Testing your connection</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/bp-config/">The Bundle Protocol Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/host1-start-script/">ION Start Script Example</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ion-config/">The ION Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ionsec-config/">ION Security Admin Configuration File</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ipn-config/">IPN Routing Configuration</a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-gcp-main/ltp-config/">The Licklider Transfer Protocol Configuration File</a>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn multicasting main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-multicasting-main/Multicasting-over-ION/">Multicasting over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="#">Host1</a>
+    <ul>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/execute/">Execute</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.bprc1/">Host.bprc1</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.bprc2/">Host.bprc2</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ionrc/">Host.ionrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ionsecrc/">Host.ionsecrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ipnrc/">Host.ipnrc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/host.ltprc/">Host.ltprc</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/ionstart/">Ionstart</a>
+                </li>
+                <li class="toctree-l4"><a class="reference internal" href="../files/dtn-multicasting-main/Host1/ionstop/">Ionstop</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                </li>
+                <li class="toctree-l2"><a class="reference internal" href="#">Dtn video intelligence main</a>
+    <ul>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-video-intelligence-main/Video-Intelligence/">Using GCP Video Intelligence over the Interplanetary Internet </a>
+                </li>
+                <li class="toctree-l3"><a class="reference internal" href="../files/dtn-video-intelligence-main/video-processing-script/">Video processing script</a>
+                </li>
+    </ul>
+                </li>
+    </ul>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">ION-DTN Open Source Documentation</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Community</li>
+      <li class="breadcrumb-item active">Telemetry Data on Cloud Vms using Pub/Sub and DTN </li>
+    <li class="wy-breadcrumbs-aside">
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="telemetry-data-on-cloud-vms-using-pubsub-and-dtn">Telemetry Data on Cloud Vms using Pub/Sub and DTN <img alt="🚀" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f680.svg" title=":rocket:" /></h1>
+<p>This project has been developed by Dr Lara Suzuki <img alt="👩‍💻" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f469-200d-1f4bb.svg" title=":woman_technologist:" /> <a href="https://twitter.com/larasuzuki"><img alt="Twitter" src="https://img.shields.io/twitter/url/https/twitter.com/larasuzuki.svg?style=social&amp;label=Follow%20%40larasuzuki" /></a>, a Visiting Researcher at Nasa JPL.</p>
+<p>In this tutorial we will demonstrate how to connect a Raspberry Pi and Sensor Hat onto Google Cloud using cloud Pub/Sub on <code>host 1</code> and serving the messages over DTN to <code>host 2</code>. This tutorial follows the [Running DTN on Google Cloud using a Two-Node Ring] tutorial and uses the configurations of <code>host 1</code> and <code>host 2</code> as described in the tutorial.</p>
+<h1 id="setting-up-raspbberry-pi-and-the-sense-hat">Setting up Raspbberry Pi and the Sense Hat</h1>
+<p>In this tutorial we use <strong>Raspberry Pi 4 model B (2018)</strong> and <strong>Sense Hat Version 1.0</strong>. </p>
+<p>The first step is to be sure your Pi can connect to the Internet. You can either plug in an ethernet cable, or if you’re using WiFi, scan for networks your Pi can see. Plug your Pi in a monitor, and when it starts, at the top right corner you can find the wifi logo. Select the network you want to connect to. Once that is connected open your browser to check whether you can access the Internet.</p>
+<h2 id="library-dependency-setup">Library dependency setup</h2>
+<p>The first thing to do is to make sure that the places where Raspberry Pi will be getting its libraries from is current. For this, on your Pi's terminal, run the following command:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$ sudo apt-get update
+</code></pre></div>
+The next step is to securely connect to a Pub Sub service running locally or on a cloud provider service. For this we will use JWT to handle authentication (library <code>pyjwt</code>). The meta-model for communication  used on the cloud Pub/Sub is based on publish/subscribe messaging technology provided by the <strong>MQTT (MQ Telemetry Transport) protocol</strong> (library paho-mqtt). MQTT is a topic-based publish/subscribe communications protocol that is designed to be open, simple, lightweight, easy-to-implement, and  efficient in terms of processor, memory, and network resources.   </p>
+<p>On your Pi's terminal run the following commands
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$ sudo apt-get install build-essential
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>$ sudo apt-get install libssl-dev
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>$ sudo apt-get install python-dev
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>$ sudo apt-get install libffi-dev
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>$ sudo pip install paho-mqtt
+</code></pre></div>
+For encryption, run the install the <code>pyjwt</code> library and its dependency, the <code>cryptography</code> library .
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$ sudo pip install pyjwt
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>$ sudo pip install cryptography
+</code></pre></div>
+For telemetry data we are using Sense Hat. Sense Hat is composed by telemetry sensors such as temperature, accelerometer, humidity and pressure. To install the library for Sense Hat, run the command:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$ sudo apt get install sense-hat
+</code></pre></div></p>
+<h2 id="ssl-certificate-rsa-with-x509-wrapper">SSL Certificate - RSA with X509 wrapper</h2>
+<p>In order to authenticate in Google Cloud IoT Core, we need a SSL certificate. We will create an RSA with X509 wrapper. For this, execute the following command on your Pi's terminal:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$ openssl req -x509 -newkey rsa:2048 -keyout sensing_private.pem -nodes -out demo.pub -subj “/CN=unused”
+</code></pre></div>
+<h1 id="setting-up-a-pubsub-servide-on-cloud">Setting up a Pub/Sub servide on Cloud</h1>
+<p>Once your Raspberry Pi is fully set up, follow the instructions of your Cloud provider to create a Registry of your new Pub/Sub service. For your Pub/Sub 'topic', create a topic named: <code>sensing</code></p>
+<p>To connect your device on your cloud provider, you will likely to need to use an authentication method. In our case we use authentication using a Public Key in the format <code>RS256_X509</code>. </p>
+<p>To copy the content of your Pi's public key, on the Pi's terminal run:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$ cat demo.pub
+</code></pre></div></p>
+<p>Copy everything, including the tages, between 
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>-----BEGIN PUBLIC KEY-----
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>-----END PUBLIC KEY-----
+</code></pre></div>
+and paste it in the <code>Public Key Value</code> textbox.</p>
+<h2 id="create-a-subscription-to-listen-to-the-pubsub-topic">Create a Subscription to listen to the Pub/Sub Topic</h2>
+<p>On your cloud provide  Console, create a 'Subscription' to listen to the topic <code>sensing</code> we created in the previous steps. Now you should have all the pieces needed to send telemetry data from your Pi to a Pub/Sub service on a VM instance running on the cloud!</p>
+<h1 id="send-telemetry-data-from-raspberry-pi-to-linux-vm-on-the-cloud">Send telemetry data from Raspberry Pi to Linux VM on the Cloud</h1>
+<p>The code on this repository named <code>sense.py</code> is based on the implementation of <a href="https://github.com/GabeWeiss/GCP_Quick_Starts">GabeWeiss</a>. </p>
+<p>In the code, edit the following fields:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">ssl_private_key_filepath</span> <span class="o">=</span> <span class="s1">&#39;/home/pi/sensing_private.pem&#39;</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">ssl_algorithm</span> <span class="o">=</span> <span class="s1">&#39;RS256&#39;</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">root_cert_filepath</span> <span class="o">=</span> <span class="s1">&#39;/home/pi/roots.pem&#39;</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">project_id</span> <span class="o">=</span> <span class="s1">&#39;if you have to use a project ID identifier in your cloud service&#39;</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">registry_id</span> <span class="o">=</span> <span class="s1">&#39;name of your registry&#39;</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">device_id</span> <span class="o">=</span> <span class="s1">&#39;name of your device&#39;</span>
+</code></pre></div>
+Once you have configured the above parameters in the file sense.py, on your Raspberry Pi run the command:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>$ python3 sense.py
+</code></pre></div></p>
+<h1 id="send-telemetry-data-to-from-host-1-to-host-2-via-dtn">Send telemetry data to from host 1 to host 2 via DTN</h1>
+<p>Log into the VM <code>host 1</code>. In the VM go to the base directory of ION and create a folder named <code>dtn</code>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>$ mkdir dtn
+</code></pre></div>
+CD into dtn directory, and clone the file named <code>iot.py</code>. In this file configure the following parameters:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">subscription_path</span> <span class="o">=</span> <span class="n">subscriber</span><span class="o">.</span><span class="n">subscription_path</span><span class="p">(</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  <span class="s1">&#39;ID_OF_YOUR_CLOUD_PROJECT&#39;</span><span class="p">,</span> <span class="s1">&#39;ID_OF_YOUR_SUBSCRIPTION&#39;</span><span class="p">)</span>
+</code></pre></div>
+And add <code>host 2</code> as the receiver of the telemetry data:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;echo &quot;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&quot; | bpsource ipn:2.1&#39;</span><span class="p">)</span>
+</code></pre></div>
+On the terminal of <code>host 1</code> and <code>host 2</code>, start ion:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>$ ionstart -I hostX.rc #where X is the number of the host
+</code></pre></div>
+On the terminal of <code>host 2</code>, start <code>bpsink</code>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>$ bpsink ipn:2.1 &amp;
+</code></pre></div>
+On the terminal of <code>host 1</code>, start <code>iot.py</code>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>$ python3 iot.py
+</code></pre></div>
+On the terminal of <code>host 1</code> you should see the print out of the telemetry data received as below:</p>
+<p>[[images/host1.png]]</p>
+<p>On the terminal of <code>host 2</code> you should see the payloads delivered. Please note that messages beyond 80 characters are not shown on <code>bpsink</code>:</p>
+<p>[[images/host2.png]]</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../ION-Two-Node-on-Cloud-Linux-VMs/" class="btn btn-neutral float-left" title="Running DTN on Cloud VM using a Two-Node Ring "><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../files/dtn-gcp-2nodes/rc_files/host1-start-script-2node/" class="btn btn-neutral float-right" title="ION Start Script Example">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+    
+      <span><a href="../ION-Two-Node-on-Cloud-Linux-VMs/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../files/dtn-gcp-2nodes/rc_files/host1-start-script-2node/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
