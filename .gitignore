@@ -221,5 +221,7 @@ build*/*
 \.gcno
 \.gcda
 
+# gh pages
+gh-pages/site
 
 build/*
