@@ -1,4 +1,4 @@
-# Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure :rocket:
+# Three-Node Network communication via DTN on Google Cloud Platform and Windows Azure
 
 This project has been developed by Dr Lara Suzuki, a Visiting Researcher at NASA JPL.
 
@@ -9,7 +9,7 @@ This is the third tutorial on a series of DTN on Google Cloud tutorials. In this
 
 
 # Getting Started on Windows Azure
-Sign up for a free account on [Windows Azure](www.azure.microsoft.com). Once your free account is set up, log into the [Azure Portal](https://portal.azure.com/). Under `Azure Services`, click `Virtual Machines`. In the Virtual Machines window, click `Add` and follow the steps below.
+Sign up for a free account on [Windows Azure](http://www.azure.microsoft.com). Once your free account is set up, log into the [Azure Portal](https://portal.azure.com/). Under `Azure Services`, click `Virtual Machines`. In the Virtual Machines window, click `Add` and follow the steps below.
 1. Click `Add` then `Virtual Machine`
 2. Subscription `free trial`
 3. In `Resource Group` select `Create New` and name it `dtn`

@@ -63,7 +63,7 @@ nav:
   - Community:
       Running 1 ION Node on Cloud VM: community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md
       Running 2 ION Node on Cloud VM: community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md
-      ION and IOT: community/dtn-gcp-iot-main/ION-andIOT-on-Linux-VMs-running-on-Cloud-Computing.md
+      ION and IOT: community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing.md
       LTP and TCP on Azure: community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure.md
       Multicast: community/dtn-multicasting-main/Multicasting-over-ION.md
       Video Intelligence: community/dtn-video-intelligence-main/Video-Intelligence.md

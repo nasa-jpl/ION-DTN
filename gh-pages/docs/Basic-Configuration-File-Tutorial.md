@@ -368,8 +368,8 @@ Note that ionstart and ionscript require sed and awk, but those are almos
 
 ## Examples of Network Configurations
 
-For a simple single-node ION configuration - running multiple instances of ION in the same host, see the tutorial [here.](community/ION-One-Node-on-Cloud-Linux-VM.md)
+For a simple single-node ION configuration - running multiple instances of ION in the same host, see the tutorial [here.](community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md)
 
-For a two-node configuration, see the tutorial [here.](community/ION-Two-Node-on-Cloud-Linux-VMs.md)
+For a two-node configuration, see the tutorial [here.](community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md)
 
 For a multi-hop and also multi-network configuration, see this [page.](Configure-Multiple-Network-Interfaces.md)
