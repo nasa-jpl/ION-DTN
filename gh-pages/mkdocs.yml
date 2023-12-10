@@ -48,24 +48,40 @@ copyright:
   Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.  
 
 nav:
-  - Overview: index.md
-  - Quick Start: ION-Quick-Start-Guide.md
-  - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
-  - Configuration Templates: ION-Config-File-Templates.md
-  - ION Deployment Guide: ION-Deployment-Guide.md
-  - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
-  - ION Design & Operation Manual: ION-Guide.md
-  - Watch Characters: ION-Watch-Characters.md
-  - LTP Configuration Tool: Using-LTP-Config-Tool.md
-  - AMS Programmer's Guide: AMS-Programmer-Guide.md
-  - Use Cases: Use-Cases.md
-  - Publications/Papers: List-of-Papers.md
-  - Community:
+  - ION Overview:
+    - Introduction: index.md
+    - Quick Start: ION-Quick-Start-Guide.md
+    - ION Deployment Guide: ION-Deployment-Guide.md
+    - ION Design & Operation Manual: ION-Guide.md
+    - Watch Characters: ION-Watch-Characters.md
+    - AMS Programmer's Guide: AMS-Programmer-Guide.md
+    - Use Cases: Use-Cases.md
+    - Publications/Papers: List-of-Papers.md
+    - Contribute Code: community/Contributing-Code-to-ION.md
+  - Configuration:
+    - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
+    - Configuration Templates: ION-Config-File-Templates.md
+    - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
+    - LTP Configuration Tool: Using-LTP-Config-Tool.md
+  - Man Pages:
+    - Asychronous Messaging System (AMS): man/ams/index.md
+    - Bundle Protocol v6 (BPv6): man/bpv6/index.md
+    - Bundle Protcool v7 (BPv7): man/bpv7/index.md
+    - Bundle Streaming Service (BSS): man/bss/index.md
+    - Bundle Streaming Service (Test Utility) Protocol (BSSP): man/bssp/index.md
+    - CCSDS File Delivery Protocol (CFDP): man/cfdp/index.md
+    - Datagram Retransmission System (DGR): man/dgr/index.md
+    - Interplanetary Communications Infrastructure (ICI): man/ici/index.md
+    - Licklider Transmission Protocol (LTP): man/ltp/index.md
+    - Network Management Agent for Asynchronous Management Protocol (AMP): man/nm/index.md
+    - ION Node Restart Utility: man/restart/ionrestart.md
+    - Delay Tolerant Key Administration: man/tc/index.md
+  - Cloud Deployment:
       Running 1 ION Node on Cloud VM: community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md
       Running 2 ION Node on Cloud VM: community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md
       ION and IOT: community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing.md
       LTP and TCP on Azure: community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure.md
       Multicast: community/dtn-multicasting-main/Multicasting-over-ION.md
       Video Intelligence: community/dtn-video-intelligence-main/Video-Intelligence.md
-      Contribute Code: community/Contributing-Code-to-ION.md
+
       
