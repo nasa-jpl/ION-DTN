@@ -1,4 +1,4 @@
-# Telemetry Data on Cloud Vms using Pub/Sub and DTN :rocket:
+# Telemetry Data on Cloud Vms using Pub/Sub and DTN
 This project has been developed by Dr Lara Suzuki, a visiting Researcher at NASA JPL.
 
 In this tutorial we will demonstrate how to connect a Raspberry Pi and Sensor Hat onto Google Cloud using cloud Pub/Sub on `host 1` and serving the messages over DTN to `host 2`. This tutorial follows the [Running DTN on Google Cloud using a Two-Node Ring] tutorial and uses the configurations of `host 1` and `host 2` as described in the tutorial.
