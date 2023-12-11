@@ -30,7 +30,7 @@ jobs:
         cd gh-pages  # Ensure we're in the right directory
         mkdocs build
 
-    -- name: Deploy to GitHub Pages
+    - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
