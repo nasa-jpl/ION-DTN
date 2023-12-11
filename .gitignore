@@ -221,5 +221,7 @@ build*/*
 \.gcno
 \.gcda
 
+# mkdocs build
+gh-pages/site
 
 build/*
