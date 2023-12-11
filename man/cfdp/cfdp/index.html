@@ -1,0 +1,1567 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/man/cfdp/cfdp/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>NAME - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              NAME
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="name">NAME</h1>
+<p>cfdp - CCSDS File Delivery Protocol (CFDP) communications library</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<div class="highlight"><pre><span></span><code>#include &quot;cfdp.h&quot;
+
+typedef enum
+{
+    CksumTypeUnknown = -1,
+    ModularChecksum = 0,
+    CRC32CChecksum = 2,
+    NullChecksum = 15
+} CfdpCksumType;
+
+typedef int (*CfdpReaderFn)(int fd, unsigned int *checksum, CfdpCksumType ckType);
+
+typedef int (*CfdpMetadataFn)(uvast fileOffset, unsigned int recordOffset, unsigned int length, int sourceFileFD, char *buffer);
+
+typedef enum
+{
+    CfdpCreateFile = 0,
+    CfdpDeleteFile,
+    CfdpRenameFile,
+    CfdpAppendFile,
+    CfdpReplaceFile,
+    CfdpCreateDirectory,
+    CfdpRemoveDirectory,
+    CfdpDenyFile,
+    CfdpDenyDirectory
+} CfdpAction;
+
+typedef enum
+{
+    CfdpNoEvent = 0,
+    CfdpTransactionInd,
+    CfdpEofSentInd,
+    CfdpTransactionFinishedInd,
+    CfdpMetadataRecvInd,
+    CfdpFileSegmentRecvInd,
+    CfdpEofRecvInd,
+    CfdpSuspendedInd,
+    CfdpResumedInd,
+    CfdpReportInd,
+    CfdpFaultInd,
+    CfdpAbandonedInd
+} CfdpEventType;
+
+typedef struct
+{
+    char            *sourceFileName;
+    char            *destFileName;
+    MetadataList    messagesToUser;
+    MetadataList    filestoreRequests;
+    CfdpHandler     *faultHandlers;
+    int             unacknowledged;
+    unsigned int    flowLabelLength;
+    unsigned char   *flowLabel;
+    int             recordBoundsRespected;
+    int             closureRequested;
+} CfdpProxyTask;
+
+typedef struct
+{
+    char            *directoryName;
+    char            *destFileName;
+} CfdpDirListTask;
+
+[see description for available functions]
+</code></pre></div>
+<h1 id="description">DESCRIPTION</h1>
+<p>The cfdp library provides functions enabling application software to use CFDP
+to send and receive files.  It conforms to the Class 1 (Unacknowledged)
+service class defined in the CFDP Blue Book and includes implementations of
+several standard CFDP user operations.</p>
+<p>In the ION implementation of CFDP, the CFDP notion of <strong>entity ID</strong> is taken
+to be identical to the BP (CBHE) notion of DTN <strong>node number</strong>.</p>
+<p>CFDP entity and transaction numbers may be up to 64 bits in length.  For
+portability to 32-bit machines, these numbers are stored in the CFDP state
+machine as structures of type CfdpNumber.</p>
+<p>To simplify the interface between CFDP the user application without risking
+storage leaks, the CFDP-ION API uses MetadataList objects.  A MetadataList is
+a specially formatted SDR list of user messages, filestore requests, or
+filestore responses.  During the time that a MetadataList is pending
+processing via the CFDP API, but is not yet (or is no longer) reachable
+from any FDU object, a pointer to the list is appended to one of the
+lists of MetadataList objects in the CFDP non-volatile database.  This
+assures that any unplanned termination of the CFDP daemons won't leave any
+SDR lists unreachable -- and therefore un-recyclable -- due to the
+absence of references to those lists.  Restarting CFDP automatically
+purges any unused MetadataLists from the CFDP database.  The "user data"
+variable of the MetadataList itself is used to implement this feature:
+while the list is reachable only from the database root, its user data
+variable points to the database root list from which it is referenced;
+while the list is attached to a File Delivery Unit, its user data is null. </p>
+<p>By default, CFDP transmits the data in a source file in segments of fixed size.
+The user application can override this behavior at the time transmission of
+a file is requested, by supplying a file reader callback function that reads
+the file -- one byte at a time -- until it detects the end of a "record" that
+has application significance.  Each time CFDP calls the reader function, the
+function must return the length of one such record (which must be no greater
+than 65535).</p>
+<p>When CFDP is used to transmit a file, a 32-bit checksum must be provided in
+the "EOF" PDU to enable the receiver of the file to assure that it was not
+corrupted in transit.  When an application-specific file reader function
+is supplied, that function is responsible for updating the computed checksum
+as it reads each byte of the file; a CFDP library function is provided for
+this purpose.  Two types of file checksums are supported: a simple modular
+checksum or a 32-bit CRC.  The checksum type must be passed through to the
+CFDP checksum computation function, so it must be provided by (and thus to)
+the file reader function.</p>
+<p>Per-segment metadata may be provided by the user application.  To enable
+this, upon formation of each file data segment, CFDP will invoke the
+user-provided per-segment metadata composition callback function (if
+any), a function conforming to the CfdpMetadataFn type definition.  The
+callback will be passed the offset of the segment within the file, the
+segment's offset within the current record (as applicable), the length
+of the segment, an open file descriptor for the source file (in case
+the data must be read in order to construct the metadata), and a 63-byte
+buffer in which to place the new metadata.  The callback function must
+return the length of metadata to attach to the file data segment PDU
+(may be zero) or -1 in the event of a general system failure.</p>
+<p>The return value for each CFDP "request" function (put, cancel, suspend,
+resume, report) is a reference number that enables "events" obtained by
+calling cfdp_get_event() to be matched to the requests that caused them.
+Events with reference number set to zero are events that were caused by
+autonomous CFDP activity, e.g., the reception of a file data segment.</p>
+<ul>
+<li>
+<p>int cfdp_attach()</p>
+<p>Attaches the application to CFDP functionality on the local computer.  Returns
+0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int cfdp_entity_is_started()</p>
+<p>Returns 1 if the local CFDP entity has been started and not yet stopped,
+0 otherwise.</p>
+</li>
+<li>
+<p>void cfdp_detach()</p>
+<p>Terminates all access to CFDP functionality on the local computer.</p>
+</li>
+<li>
+<p>void cfdp_compress_number(CfdpNumber *toNbr, uvast from)</p>
+<p>Converts an unsigned <strong>vast</strong> number into a CfdpNumber structure, e.g., for
+use when invoking the cfdp_put() function.</p>
+</li>
+<li>
+<p>void cfdp_decompress_number(uvast toNbr, CfdpNumber *from)</p>
+<p>Converts a numeric value in a CfdpNumber structure to an unsigned <strong>vast</strong>
+integer.</p>
+</li>
+<li>
+<p>void cfdp_update_checksum(unsigned char octet, uvast *offset, unsigned int *checksum, CfdpCksumType ckType)</p>
+<p>For use by an application-specific file reader callback function, which must
+pass to cfdp_update_checksum() the value of each byte (octet) it reads.
+<em>offset</em> must be <em>octet</em>'s displacement in bytes from the start of the
+file.  The <em>checksum</em> pointer is provided to the reader function by CFDP.</p>
+</li>
+<li>
+<p>MetadataList cfdp_create_usrmsg_list()</p>
+<p>Creates a non-volatile linked list, suitable for containing messages-to-user
+that are to be presented to cfdp_put().</p>
+</li>
+<li>
+<p>int cfdp_add_usrmsg(MetadataList list, unsigned char *text, int length)</p>
+<p>Appends the indicated message-to-user to <em>list</em>.</p>
+</li>
+<li>
+<p>int cfdp_get_usrmsg(MetadataList list, unsigned char *textBuf, int *length)</p>
+<p>Removes from <em>list</em> the first of the remaining messages-to-user contained in
+the list and delivers its text and length.  When the last message in the
+list is delivered, destroys the list.</p>
+</li>
+<li>
+<p>void cfdp_destroy_usrmsg_list(MetadataList *list)</p>
+<p>Removes and destroys all messages-to-user in <em>list</em> and destroys the list.</p>
+</li>
+<li>
+<p>MetadataList cfdp_create_fsreq_list()</p>
+<p>Creates a non-volatile linked list, suitable for containing filestore requests
+that are to be presented to cfdp_put().</p>
+</li>
+<li>
+<p>int cfdp_add_fsreq(MetadataList list, CfdpAction action, char *firstFileName, char *seconfdFIleName)</p>
+<p>Appends the indicated filestore request to <em>list</em>.</p>
+</li>
+<li>
+<p>int cfdp_get_fsreq(MetadataList list, CfdpAction *action, char *firstFileNameBuf, char *secondFileNameBuf)</p>
+<p>Removes from <em>list</em> the first of the remaining filestore requests contained in
+the list and delivers its action code and file names.  When the last request in
+the list is delivered, destroys the list.</p>
+</li>
+<li>
+<p>void cfdp_destroy_fsreq_list(MetadataList *list)</p>
+<p>Removes and destroys all filestore requests in <em>list</em> and destroys the list.</p>
+</li>
+<li>
+<p>int cfdp_get_fsresp(MetadataList list, CfdpAction *action, int *status, char *firstFileNameBuf, char *secondFileNameBuf, char *messageBuf)</p>
+<p>Removes from <em>list</em> the first of the remaining filestore responses contained
+in the list and delivers its action code, status, file names, and message.
+When the last response in the list is delivered, destroys the list.</p>
+</li>
+<li>
+<p>void cfdp_destroy_fsresp_list(MetadataList *list)</p>
+<p>Removes and destroys all filestore responses in <em>list</em> and destroys the list.</p>
+</li>
+<li>
+<p>int cfdp_read_space_packets(int fd, unsigned int *checksum)</p>
+<p>This is a standard "reader" function that segments the source file on CCSDS
+space packet boundaries.  Multiple small packets may be aggregated into a
+single file data segment.</p>
+</li>
+<li>
+<p>int cfdp_read_text_lines(int fd, unsigned int *checksum)</p>
+<p>This is a standard "reader" function that segments a source file of text lines
+on line boundaries.</p>
+</li>
+<li>
+<p>int cfdp_put(CfdpNumber *destinationEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpMetadataFn metadataFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpTransactionId *transactionId)</p>
+<p>Sends the file identified by <em>sourceFileName</em> to the CFDP entity identified by
+<em>destinationEntityNbr</em>.  <em>destinationFileName</em> is used to indicate the name
+by which the file will be catalogued upon arrival at its final destination; if
+NULL, the destination file name defaults to <em>sourceFileName</em>.  If 
+<em>sourceFileName</em> is NULL, it is assumed that the application is requesting
+transmission of metadata only (as discussed below) and <em>destinationFileName</em>
+is ignored.  Note that both <em>sourceFileName</em> and <em>destinationFileName</em> are
+interpreted as path names, i.e., directory paths may be indicated in either
+or both.  The syntax of path names is opaque to CFDP; the syntax of
+<em>sourceFileName</em> must conform to the path naming syntax of the source
+entity's file system and the syntax of <em>destinationFileName</em> must conform
+to the path naming syntax of the destination entity's file system.</p>
+<p>The byte array identified by <em>utParms</em>, if non-NULL, is interpreted as
+transmission control information that is to be passed on to the UT layer.  The
+nominal UT layer for ION's CFDP being Bundle Protocol, the <em>utParms</em> array is
+normally a pointer to a structure of type BpUtParms; see the <em>bp</em> man page
+for a discussion of the parameters in that structure. </p>
+<p><em>closureLatency</em> is the length of time following transmission of the EOF PDU
+within which a responding Transaction Finish PDU is expected.  If no Finish
+PDU is requested, this parameter value should be zero.</p>
+<p><em>messagesToUser</em> and <em>filestoreRequests</em>, where non-zero, must be the
+addresses of non-volatile linked lists (that is, linked lists in ION's
+SDR database) of CfdpMsgToUser and CfdpFilestoreRequest objects identifying
+metadata that are intended to accompany the transmitted file.  Note that
+this metadata may accompany a file of zero length (as when <em>sourceFileName</em>
+is NULL as noted above) -- a transmission of metadata only.</p>
+<p>On success, the function populates <em>*transactionID</em> with the source entity
+ID and the transaction number assigned to this transmission and returns the
+request number identifying this "put" request.  The transaction ID may be
+used to suspend, resume, cancel, or request a report on the progress of
+this transmission.  cfdp_put() returns -1 on any error.</p>
+</li>
+<li>
+<p>int cfdp_cancel(CfdpTransactionId *transactionId)</p>
+<p>Cancels transmission or reception of the indicated transaction.  Note that,
+since the ION implementation of CFDP is Unacknowledged, cancellation of a
+file transmission may have little effect.  Returns request number on success,
+-1 on any error.</p>
+</li>
+<li>
+<p>int cfdp_suspend(CfdpTransactionId *transactionId)</p>
+<p>Suspends transmission of the indicated transaction.  Note that, since the ION
+implementation of CFDP is Unacknowledged, suspension of a file transmission
+may have little effect.  Returns request number on success, -1 on any error.</p>
+</li>
+<li>
+<p>int cfdp_resume(CfdpTransactionId *transactionId)</p>
+<p>Resumes transmission of the indicated transaction.  Note that, since the ION
+implementation of CFDP is Unacknowledged, resumption of a file transmission
+may have little effect.  Returns request number on success, -1 on any error.</p>
+</li>
+<li>
+<p>int cfdp_report(CfdpTransactionId *transactionId)</p>
+<p>Requests issuance of a report on the transmission or reception progress of
+the indicated transaction.  The report takes the form of a character string
+that is returned in a CfdpEvent structure; use cfdp_get_event() to receive
+the event (which may be matched to the request by request number).  Returns
+request number on success, 0 if transaction is unknown, -1 on any error.</p>
+</li>
+<li>
+<p>int cfdp_get_event(CfdpEventType *type, time_t *time, int *reqNbr, CfdpTransactionId *transactionId, char *sourceFileNameBuf, char *destFileNameBuf, uvast *fileSize, MetadataList *messagesToUser, uvast *offset, unsigned int *length, CfdpCondition *condition, uvast *progress, CfdpFileStatus *fileStatus, CfdpDeliveryCode *deliveryCode, CfdpTransactionId *originatingTransactionId, char *statusReportBuf, MetadataList *filestoreResponses);</p>
+<p>Populates return value fields with data from the oldest CFDP event not yet
+delivered to the application.  </p>
+<p>cfdp_get_event() always blocks indefinitely until an CFDP processing
+event is delivered or the function is interrupted by an invocation of
+cfdp_interrupt().</p>
+<p>On application error, returns zero but sets errno to EINVAL.  Returns -1 on
+system failure, zero otherwise.</p>
+</li>
+<li>
+<p>void cfdp_interrupt()</p>
+<p>Interrupts an cfdp_get_event() invocation.  This function is designed to be
+called from a signal handler.</p>
+</li>
+<li>
+<p>int cfdp_rput(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpNumber *beneficiaryEntityNbr, CfdpProxyTask *proxyTask, CfdpTransactionId *transactionId)</p>
+<p>Sends to the indicated respondent entity a "proxy" request to perform a file
+transmission.  The transmission is to be subject to the configuration values
+in <em>proxyTask</em> and the destination of the file is to be the entity identified
+by <em>beneficiaryEntityNbr</em>.</p>
+</li>
+<li>
+<p>int cfdp_rput_cancel(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpTransactionId *rputTransactionId, CfdpTransactionId *transactionId)</p>
+<p>Sends to the indicated respondent entity a request to cancel a prior "proxy"
+file transmission request as identified by <em>rputTransactionId</em>, which is
+the value of <em>transactionId</em> that was returned by that earlier proxy
+transmission request.</p>
+</li>
+<li>
+<p>int cfdp_get(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpProxyTask *proxyTask, CfdpTransactionId *transactionId)</p>
+<p>Same as <strong>cfdp_rput</strong> except that <em>beneficiaryEntityNbr</em> is omitted; the local
+entity is the implicit beneficiary of the request.</p>
+</li>
+<li>
+<p>int cfdp_rls(CfdpNumber *respondentEntityNbr, unsigned int utParmsLength, unsigned char *utParms, char *sourceFileName, char *destFileName, CfdpReaderFn readerFn, CfdpHandler *faultHandlers, unsigned int flowLabelLength, unsigned char *flowLabel, unsigned int closureLatency, MetadataList messagesToUser, MetadataList filestoreRequests, CfdpDirListTask *dirListTask, CfdpTransactionId *transactionId)</p>
+<p>Sends to the indicated respondent entity a request to prepare a directory
+listing, save that listing in a file, and send it to the local entity.  The
+request is subject to the configuration values in <em>dirListTask</em>. </p>
+</li>
+<li>
+<p>int cfdp_preview(CfdpTransactionId *transactionId, uvast offset, unsigned int length, char *buffer);</p>
+<p>This function is provided to enable the application to get an advance look
+at the content of a file that CFDP has not yet fully received.  Reads <em>length</em>
+bytes starting at <em>offset</em> bytes from the start of the file that is the
+destination file of the transaction identified by <em>transactionID</em>, into
+<em>buffer</em>.  On user error (transaction is nonexistent or is outbound, or
+offset is beyond the end of file) returns 0.  On system failure, returns -1.
+Otherwise returns number of bytes read.</p>
+</li>
+<li>
+<p>int cfdp_map(CfdpTransactionId *transactionId, unsigned int *extentCount, CfdpExtent *extentsArray);</p>
+<p>This function is provided to enable the application to report on the portions
+of a partially-received file that have been received and written.  Lists the
+received continuous data extents in the destination file of the transaction
+identified by <em>transactionID</em>.  The extents (offset and length) are returned
+in the elements of <em>extentsArray</em>; the number of extents returned in the
+array is the total number of continuous extents received so far, or
+<em>extentCount</em>, whichever is less.  The total number of extents received
+so far is returned as the new value of <em>extentCount</em>.  On system failure,
+returns -1.  Otherwise returns 0.</p>
+</li>
+</ul>
+<h1 id="see-also">SEE ALSO</h1>
+<p>cfdpadmin(1), cfdprc(5)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

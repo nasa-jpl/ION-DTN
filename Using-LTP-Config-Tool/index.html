@@ -1,0 +1,1954 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/Using-LTP-Config-Tool/">
+      
+      
+        <link rel="prev" href="../Configure-Multiple-Network-Interfaces/">
+      
+      
+        <link rel="next" href="../man/ams/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>LTP Configuration Tool - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#a-guide-to-configuring-ltp-in-ion" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LTP Configuration Tool
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Introduction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worksheet-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Worksheet overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#input-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Input Parameters
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Input Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#global-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Global Parameters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic-input-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Basic input Parameters
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#further-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Further Guidance
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Further Guidance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#first-order-computed-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      First-order Computed Parameters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configuration-decision-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration decision parameters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ltp-initialization-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      LTP Initialization Parameters
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#updated-features-may-2021" class="md-nav__link">
+    <span class="md-ellipsis">
+      Updated Features - May 2021
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Updated Features - May 2021">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#link-worksheet" class="md-nav__link">
+    <span class="md-ellipsis">
+      Link Worksheet
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#enhancements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enhancements
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heapword-size-estimate" class="md-nav__link">
+    <span class="md-ellipsis">
+      HeapWord Size Estimate
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="HeapWord Size Estimate">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#user-input" class="md-nav__link">
+    <span class="md-ellipsis">
+      User Input:
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#model-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Model Output:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#appendix" class="md-nav__link">
+    <span class="md-ellipsis">
+      Appendix
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Appendix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bpltp-memory-usage-analysis-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      BP/LTP Memory Usage Analysis Summary
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acknowledgements" class="md-nav__link">
+    <span class="md-ellipsis">
+      Acknowledgements
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="a-guide-to-configuring-ltp-in-ion">A Guide to Configuring LTP in ION</h1>
+<p><em>Scott Burleigh, Jay Gao, and Leigh Torgerson</em></p>
+<p><em>Jet Propulsion Laboratory, California Institute of Technology</em></p>
+<p><strong>Version 4.1.3</strong></p>
+<ul>
+<li><a href="#a-guide-to-configuring-ltp-in-ion">A Guide to Configuring LTP in ION</a></li>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#worksheet-overview">Worksheet overview</a></li>
+<li><a href="#input-parameters">Input Parameters</a><ul>
+<li><a href="#global-parameters">Global Parameters</a></li>
+<li><a href="#basic-input-parameters">Basic input Parameters</a></li>
+</ul>
+</li>
+<li><a href="#further-guidance">Further Guidance</a><ul>
+<li><a href="#first-order-computed-parameters">First-order Computed Parameters</a></li>
+<li><a href="#configuration-decision-parameters">Configuration decision parameters</a></li>
+<li><a href="#ltp-initialization-parameters">LTP Initialization Parameters</a></li>
+</ul>
+</li>
+<li><a href="#updated-features---may-2021">Updated Features - May 2021</a><ul>
+<li><a href="#link-worksheet">Link Worksheet</a></li>
+<li><a href="#enhancements">Enhancements</a></li>
+<li><a href="#heapword-size-estimate">HeapWord Size Estimate</a></li>
+<li><a href="#user-input">User Input:</a></li>
+<li><a href="#model-output">Model Output:</a></li>
+</ul>
+</li>
+<li><a href="#appendix">Appendix</a><ul>
+<li><a href="#bpltp-memory-usage-analysis-summary">BP/LTP Memory Usage Analysis Summary</a></li>
+</ul>
+</li>
+<li><a href="#acknowledgements">Acknowledgements</a></li>
+</ul>
+<h2 id="introduction">Introduction</h2>
+<p>ION open source comes with an Excel spreadsheet to help users configure the LTP protocol to optimize performance based on each user's unique use case.</p>
+<p>ION's implementation of LTP is challenging to configure: there are a lot
+of configuration parameters to set, because the design is intended to
+support a very wide variety of deployment scenarios that are optimized
+for a variety of different figures of merit (utility metrics).</p>
+<p>LTP-ION is managed as a collection of "spans", that is,
+transmission/reception relationships between the local LTP engine (the
+engine -- or DTN "node" -- that you are configuring) and each other LTP
+engine with which the local engine can exchange LTP protocol segments.
+Spans are managed using functions defined in libltpP.c that are offered
+to the operator by the ltpadmin program.</p>
+<p>ltpadmin can be used to add a span, update an existing span, delete a
+span, provide current information on a specified span, or list all
+spans. The span configuration parameters that must be set when you add
+or update a span are as follows:</p>
+<ul>
+<li>The <code>remote LTP engine number</code> identifying the span. For ION, this
+  is by convention the same as the BP node number as established when
+  the ION database was initialized.</li>
+<li>The <code>maximum number of export sessions</code> that can be held open on
+  this span at any one time. This implements LTP flow control across
+  the span: since no new data can be transmitted until it is appended
+  to a block -- the data to be conveyed in a single export session --
+  and no new session can be started until the total number of open
+  sessions drops below the maximum, the closure of export sessions
+  regulates the rate at which LTP can be used to transmit data.</li>
+<li>The <code>maximum number of import sessions</code> that will be open on this
+  span at any one time. This value is simply the remote engine's own
+  value for the "maximum number of export sessions" parameter.</li>
+<li><code>Maximum LTP segment size</code>. This value is typically the maximum
+  permitted size of the payload of each link-layer protocol data unit
+  -- nominally a <em>frame</em>.</li>
+<li><code>Aggregation size limit</code>. This is the "nominal" size for blocks to
+  be sent over this span: normally LTP will concatenate multiple
+  service data units (such as BP bundles) into a single block until
+  the aggregate size of those service data units exceeds the
+  aggregation size limit, and only then will it divide the block into
+  segments and use the underlying link service to transmit the
+  segments. (Note that it is normal for the aggregation size limit to
+  be exceeded. In this sense, the word "limit" is really a misnomer;
+  "threshold" would be a better term.)</li>
+<li><code>Aggregation time limit</code>. This parameter establishes an alternate
+  means of terminating block aggregation and initiating segment
+  transmission: in the event that service data units are not being
+  presented to LTP rapidly enough to promptly fill blocks of nominal
+  size, LTP will arbitrarily terminate aggregation when the length of
+  time that the oldest service data units in the block have been
+  waiting for transmission exceeds the aggregation time limit.</li>
+<li><code>The Link Service Output command.</code> This parameter declares the
+  command that will be used to start the link service output task for
+  this span. The value of this parameter is a string, typically
+  enclosed in single quote marks and typically beginning with the name
+  of the executable object for the task. When the "udplso" link
+  service output module is to be used for a given span, the module
+  name is followed by the IPAddress:Port of the remote engine and
+  (optionally) the UDP transmission rate limit in bits per second.</li>
+</ul>
+<p>In addition, at the time you initialize LTP (normally at the start of
+the ltpadmin configuration file) you must set one further configuration
+parameter:</p>
+<ul>
+<li><code>Estimated total number of export sessions</code>, for all spans: this
+  value is used to size the hash table that LTP uses for storing and
+  retrieving export session information.</li>
+</ul>
+<p>In many cases, the best values for these configuration parameters will
+not be obvious to the DTN network administrator. To simplify this task,
+an LTP Configuration Worksheet has been developed.</p>
+<h2 id="worksheet-overview">Worksheet overview</h2>
+<p>The LTP configuration worksheet is designed to aid in the configuration
+of a single span -- that is, the worksheet
+for the span between engines X and Y will provide configuration
+parameter values for use in commanding ltpadmin on both engine X and
+engine Y.</p>
+<p>The cells of the worksheet are of two general types, <code>Input Cells</code> and
+<code>Calculated Cells</code>.</p>
+<ul>
+<li><code>Input Cells</code> are cells in which the network administrator must supply
+  values based on project decisions. These cells are yellow-filled.</li>
+<li><code>Calculated Cells</code> are cells that are computed by the worksheet based
+  on LTP configuration principles. These cells are grey-filled. The
+  cells are protected from modification (though you can unprotect them
+  if you want by selecting "Unprotect Sheet" on the Excel "Review"
+  tab).</li>
+</ul>
+<p>Some of these cells are used as span configuration parameters or are
+figures of merit for network administrators:</p>
+<ul>
+<li>Span configuration parameters are identified by an adjacent dark
+  grey title cell with white text.</li>
+<li>Figures of merit for which the network administrator may want to
+  optimize the span configuration are identified by an adjacent green
+  title cell with red italic text.</li>
+</ul>
+<p><strong>Note:</strong> Configuration parameters that are described in detail in this
+document are numbered. To ease cross referencing between this document
+and the worksheet, the parameter numbers are placed next to the title
+cells in the worksheet.*</p>
+<h2 id="input-parameters">Input Parameters</h2>
+<p>This section provides guidance on the values that must be supplied by
+the network administrator. Global parameters affect calculated values
+and configuration file parameters for all spans involving the local LTP
+engine.</p>
+<h3 id="global-parameters">Global Parameters</h3>
+<p><code>Maximum bit error rate</code> is the maximum bit error rate that the LTP
+should provide for in computing the maximum number of transmission
+efforts to initiate in the course of transmitting a given block. (Note
+that this computation is also sensitive to data segment size and to the
+size of the block that is to be transmitted.) The default value is
+.000001, i.e., 10^-6^, one uncorrected (but detected) bit error per
+million bits transmitted.</p>
+<p>The <code>size</code> - estimated size of an LTP report segment in bytes - may vary
+slightly depending on the sizes of the session numbers in use. 25 bytes
+is a reasonable estimate.</p>
+<h3 id="basic-input-parameters">Basic input Parameters</h3>
+<p>Values for the following parameters must be provided by the network
+administrator in order for the worksheet to guide the configuration.
+Values must be provided for both engine "X" and engine "Y".</p>
+<ol>
+<li>The <code>OWLT</code> between engines (sec) is the maximum one-way light time
+   over this span, i.e., the distance between the engines. (Note that
+   this value is assumed to be symmetrical.)</li>
+<li>A unique <code>engine number</code> for each engine.</li>
+<li>The <code>IP address</code> of each engine. (Assuming udplso will be used as the
+   link service output daemon.)</li>
+<li>The <code>LTP reception port number</code> for each engine. (Again assuming
+   udplso will be used as the link service output daemon.)</li>
+<li>An estimate of the <code>mean size of the LTP service data units</code>
+   (nominally bundles) sent from this engine over this span.</li>
+<li><code>Link service overhead</code>. The expected number of bytes of link service
+   protocol header information per LTP segment.</li>
+<li><code>Aggregation size limit</code> - this is the service data unit aggregation
+   size limit for LTP. Note that a suggested
+   value for this parameter is automatically computed as described
+   below, based on available return channel capacity.</li>
+<li>The <code>scheduled transmission rate</code> (in bytes per second) at which this
+   engine will transmit data over this span when the two engines are in
+   contact.</li>
+<li><code>Maximum percentage of channel capacity that may be consumed by LTP report segments</code>. A warning will be displayed if other configuration
+   parameters cause this limit to be breached. There are no actual
+   mechanism to enforce this limit in ION. This only set in order to
+   check the estimated report traffic for the current configuration.
+   It is provided as an aid to LTP link designer.</li>
+<li>An <code>estimate of the percentage of all data sent over this span that will be red data</code>, i.e., will be subject to positive and negative
+   LTP acknowledgment.</li>
+<li>
+<p><code>Aggregation time limit</code>. The minimum value is 1 second. Increasing
+    this limit can marginally reduce the number of blocks transmitted,
+    and hence protocol overhead, at times of low communication activity.
+    However, it reduces the "responsiveness" of the protocol, increasing
+    the maximum possible delay before transmission of any given service
+    data unit. (This delay is referred to as "data aggregation
+    latency".)</p>
+<ul>
+<li><code>Low communication activity</code> is defined as a rate of
+  presentation of service data to LTP that is less than the
+  aggregation size limit divided by the aggregation time limit.</li>
+<li><code>LTP segment size</code> (bytes) is the maximum LTP segment size sent over
+this span by this engine. Typically, this is the maximum permitted
+size of the payloads of link-layer protocol data units (frames).</li>
+<li><code>The maximum number of export sessions</code>. This implements a form of
+flow control by placing a limit on the number of concurrent LTP
+sessions used to transmit blocks. Smaller numbers will result in
+slower transmission, while higher numbers increase storage resource
+occupancy. Note that a suggested value for this parameter is
+automatically computed as described below, based on transmission
+rate and one-way light time.</li>
+</ul>
+</li>
+</ol>
+<h2 id="further-guidance">Further Guidance</h2>
+<p>This section provides further information on the methods used to compute
+the <code>Calculated Cells</code> and also guidance for <code>Input Cell</code> values.</p>
+<h3 id="first-order-computed-parameters">First-order Computed Parameters</h3>
+<p>The following parameters are automatically computed based on the values
+of the basic input parameters.</p>
+<ol>
+<li><code>Estimated "red" data transmission rate (bytes/sec)</code> is simply the
+    scheduled transmission rate multiplied by the estimated "red" data
+    percentage.</li>
+<li><code>Maximum export data in transit (bytes)</code> is the product of the
+    estimated red data transmission rate and the round-trip light time
+    (which is twice the one-way light time between the engines). This is
+    the maximum amount of red data that cannot yet have been positively
+    acknowledged by the remote engine and therefore must be retained in
+    storage for possible retransmission.</li>
+</ol>
+<h3 id="configuration-decision-parameters">Configuration decision parameters</h3>
+<p>Values for the following parameters must be chosen by the network
+administrator on the basis of (a) known project requirements or
+preferences. (b) the first-order computed parameters, and (c) the
+computed values of figures of merit that result from tentative parameter
+value selections, as noted.</p>
+<ul>
+<li><code>#6 Aggregation size limit</code> (revisited). Reducing this parameter
+  tends to increase the number of blocks transmitted, increasing total
+  protocol overhead. The suggested value for this parameter is
+  computed as follows:</li>
+<li>The maximum number of bytes of LTP report content that the remote
+  engine may transmit per second is given by the product of the remote
+  engine's transmission data rate and the maximum percentage of the
+  remote engine's channel capacity that may be allocated to LTP
+  reports.</li>
+<li>The maximum number of reports per second transmitted by the remote
+  engine is the maximum number of LTP report content bytes transmitted
+  per second divided by the mean report segment size.</li>
+<li>Assuming that normally all blocks are received without error, the
+  maximum number of blocks to be transmitted per second by the local
+  engine should be equal to the maximum number of reports that may be
+  transmitted per second by the remote engine.</li>
+<li>
+<p>The threshold block size, expressed in bytes per block, is then
+  given by dividing the local engine's transmission data rate (in
+  bytes per second) by the maximum number of blocks to be transmitted
+  per second.</p>
+</li>
+<li>
+<p><code>Est. mean export block size</code> is computed as follows:</p>
+<p>a.  If the mean service data unit size is so large that aggregation
+of multiple service data units into a block is never necessary,
+then that mean service data unit size will in effect determine
+the mean export block size (one service data unit per block).</p>
+<p>b.  Otherwise, the mean export block size will be determined by
+aggregation. If the red data transmission rate is so high that
+the aggregation time limit will normally never be reached, then
+the aggregation size limit constitutes the mean export block
+size. Otherwise, block size will be constrained by aggregation
+time limit expiration: the estimated mean export block size will
+be approximated by multiplying the red data transmission rate by
+the number of seconds in the aggregation time limit.</p>
+<p>c.  So estimated mean export block size is computed as larger of
+mean service data unit size and "expected aggregate block size",
+where expected aggregate block size is the lesser of block
+aggregation size limit and the product of red data transmission
+rate and aggregation time limit.
+16. <code>Estimated blocks transmitted per second</code> are computed as <code>Estimated red data xmit rate (bytes/sec)</code> (parameter 13) divided by <code>Est. mean export block size</code> (parameter 15).
+17. <code>Est. Report bytes/sec sent</code> by the remote engine in response to these transmitted blocks is computed as the product of <code>Est. blocks transmitted per second</code> (parameter 16) and <code>Size (mean) of LTP acknowledgment (bytes)</code> (a global parameter). When mean service data unit size is less than the aggregation size limit and the red data transmission rate is high enough to prevent the aggregation time limit from ever being reached, this value will be about the same as the maximum number of bytes of LTP report content that the remote engine may transmit per second as computed above.</p>
+<p><em>Note: increasing the aggregation size limit reduces the block transmission rate at the local engine, reducing the rate of transmission of acknowledgment data at the remote engine; this can be a significant consideration on highly asymmetrical links.</em>
+18. <code>Est. segments per block</code> is computed as <code>Est. mean export block size</code> (parameter 15) divided by <code>LTP segment size (bytes)</code> (parameter 11).
+19. <code>Est. LTP delivery efficiency</code> on the span is calculated by dividing <code>Est. blocks delivered per second</code> by <code>Est blocks transmitted per second</code>. Reducing the aggregation size limit indirectly improves delivery efficiency by reducing block size, thus reducing the percentage of transmitted blocks that will be affected by the loss of a given number of frames.</p>
+<ul>
+<li><code>#12 Maximum number of export sessions (revisited)</code>. Increasing the maximum number of export sessions will tend to improve link bandwidth utilization but will increase the amount of storage space needed for span state retention. The suggested value for this parameter is computed as the <code>maximum export data in transit (bytes)</code> (Parameter 14) divided by <code>Est. mean export block size</code> (parameter 15) as determined above. Configuring the span for a maximum export session count that is less than this limit will make it impossible to fully utilize the link even if all blocks are of estimated mean size.</li>
+<li><code>Nominal export SDU's in transit</code> is computed by dividing
+<code>Nominal export data in transit (bytes)</code> by the <code>Size (mean) of service data units (bytes)</code> (parameter 4).</li>
+<li><code>Expected link utilization</code> is then computed by dividing <code>Nominal export data in transit (bytes)</code> by <code>Maximum export data in transit (bytes)</code> (parameter 14). <strong><em>Note</em></strong> that a low value of expected link utilization indicates that a high percentage of the span's transmission capacity is not being used. Utilization can be improved by increasing estimated mean export block size (e.g., by increasing aggregation size limit) or by increasing the maximum number of export sessions.</li>
+<li><code>Max data aggregation latency (sec)</code> is simply the value supplied
+for <code>Aggregation time limit (sec)</code> (parameter 10) as this time
+limit is never exceeded.</li>
+</ul>
+</li>
+</ul>
+<h3 id="ltp-initialization-parameters">LTP Initialization Parameters</h3>
+<p>Finally, the remaining LTP initialization parameter can be computed when
+all span configuration decisions have been made.</p>
+<ol>
+<li><code>Maximum number of import sessions</code> is automatically taken from
+    the remote engine's maximum number of export sessions.</li>
+</ol>
+<p><em>This research was carried out at the Jet Propulsion Laboratory,
+California Institute of Technology, under a contract with the National
+Aeronautics and Space Administration.</em></p>
+<h2 id="updated-features-may-2021">Updated Features - May 2021</h2>
+<p>This section describes the following features added to the configuration
+tool as of May 2021:</p>
+<ol>
+<li>A "link" worksheet has been added to set space link parameters such
+   as frame size and error rate and to compute parameters such as
+   <em>maxBer</em> and laboratory Ethernet-based frame loss simulation.</li>
+<li>Conditional formatting has been added to a few entries in the <em>main</em>
+   worksheet to provide visual cues for out-of-range parameters and
+   warning messages to guide parameter selection.</li>
+<li>A simple model to estimate the minimum required heapWord size for a
+   one-hop LTP link.</li>
+</ol>
+<h3 id="link-worksheet">Link Worksheet</h3>
+<p>The recommended workflow for using the LTP configuration tool is to
+first establish the space link configuration using the <em>link</em> worksheet
+before attempting to generate a LTP configuration under the <em>main</em>
+worksheet. The <em>link</em> worksheet has the following input and computed
+cells:</p>
+<ul>
+<li><code>Select CCSDS Frame Size (bits) \[user input\]--</code> this cell allows
+  the user to select a standard CCSDS AOS/TM frame size from a drop
+  down list that includes LDPC, Turbo, and Reed-Solomon codes.</li>
+<li><code>CCSDS Frame Size (bytes) \[computed\]</code>-- converts frame size from
+  bits to bytes.</li>
+<li><code>Desired Frame Error Rate \[user input\]</code> -- this parameter sets
+  the expected frame error rate of the LTP link in operation. This
+  parameter could be derived from link budget analysis or a mission
+  requirement document.</li>
+<li><code>Segment size (byte) \[user input\]</code> -- this parameter sets the
+  maximum segment payload size used by LTP. The size of the segment,
+  in relation to the underlying CCSDS frame, will determine the
+  segment error rate and the probability that LTP will need to request
+  retransmission.</li>
+<li><code>Ethernet Frame Size (byte) \[user input\]</code> -- this is the
+  Ethernet frame size used in a laboratory environment to simulate
+  space link frame losses.</li>
+<li><code>Segment Error Rate Computation \[computed\]</code> -- this is the LTP
+  segment error rate derived from the frame error rate and the segment
+  and CCSDS frame size selections.</li>
+<li><code>*maxBER* Computation \[computed\]</code> -- this is the computed
+  <em>maxBER</em> parameter for LTP. The <em>maxBER</em> parameter is what LTP uses
+  to estimate segment error rate, which in turn will affect how LTP
+  handles handshaking failure and repeated retransmission requests. To
+  properly operate LTP, the maxBER value provided must result in the
+  same segment error rate as one expects to encounter in real space
+  link.</li>
+<li><code>Ethernet Error Rate Computation \[computed\]</code> -- this is the
+  recommended setting for using laboratory Ethernet frame error
+  software/hardware to simulate space link loss. This value is
+  translated from the segment error rate to Ethernet frame error to
+  make sure that laboratory testing provides a statistically
+  equivalent impact on LTP.</li>
+</ul>
+<h3 id="enhancements">Enhancements</h3>
+<p>In the <em>main</em> worksheet described in Section 3, we made the following
+enhancements:</p>
+<ul>
+<li>Item 6: <code>Aggregation size limit (bytes)</code> -- a green icon is
+  displayed when the input parameter is greater or equal to the
+  suggested value; a red icon is displayed when this parameter is
+  below the suggested value. The suggested value aggregation size
+  limit upper bounds the LTP block rate such that the acknowledgement
+  traffic (report segments) from the receiver to the sender can be
+  supported.</li>
+<li>Item 10: <code>Aggregation time limit (sec)</code> -- there are two factors
+  affecting LTP block aggregation: time limit and size limit. The
+  aggregation process stops as soon as one of the two limits is
+  reached. A green icon is displayed if the time limit value in this
+  cell is sufficiently large such that the aggregation process will be
+  size limited, i.e., on average the LTP block aggregation process
+  will reach the size limit before the time limit. This is the nominal
+  and desired configuration unless there is a strict latency
+  requirement that forces one to use a very low aggregation time
+  limit. A red icon is displayed if the time limit will be driving,
+  which means the LTP block size will generally be smaller than the
+  aggregation size limit and the block rate will be higher than
+  desired. If a latency requirement forces the use of a low
+  aggregation time limit, one must check to make sure there is still
+  sufficient bandwidth to support the acknowledgement (report segment)
+  traffic.</li>
+<li>Item 17: <code>Est. report bytes/sec sent</code> - this field estimates the
+  bandwidth required to support LTP report segment traffic up to 95
+  percentile of all cases involving retransmission of missing
+  segments. The segment error rate was derived from the <em>link</em>
+  worksheet. The green icon indicates that estimated report bandwidth
+  is feasible based on current configuration.</li>
+</ul>
+<h3 id="heapword-size-estimate">HeapWord Size Estimate</h3>
+<p>A simple HeapWord size estimate calculation is added to the <em>main</em>
+worksheet, based on the following assumptions:</p>
+<ol>
+<li>The only traffic flows in the system are those between node X and Y
+   using LTP.</li>
+<li>Heap is sized to support at least 1 contact session</li>
+<li>Each contact starts with a clean slate. At the beginning of a
+   contact, the heap space is not occupied by bundles/blocks/segments
+   left over from previous contact or other unfinished processes.</li>
+<li>Source user data is file-resident. Most ION test utility programs
+   such as <em>bpsendfile</em> and <em>bpdriver</em> will keep source data (or create
+   simulated data) in a file for as long as possible until just prior
+   to transmission by the underlying convergence layer adaptor when
+   pieces of user data are copied into each out-going convergence
+   layer's PDUs. Please check how your software uses the BP API to
+   determine how source data is handled. If in doubt, you may need to
+   increase the heap space allocation to hold the user's source data.</li>
+<li>Aggregated LTP blocks are size-limited (not time-limited).</li>
+</ol>
+<h4 id="user-input">User Input:</h4>
+<ul>
+<li>Item 24: <code>Longest Expected Period to Buffer Data Period (sec)</code> --
+  this is the expected longest period of time one expects ION will
+  buffer user data. The data accumulation rate is the same as the LTP
+  red data data rate.</li>
+<li>Item 25: <code>(32/64) bit system</code> -- this is platform dependent
+  parameter. Heap space is specified in the number of words. For a
+  32-bit system, each word has 32 bits; for a 64-bit system, each word
+  has 64 bits.</li>
+<li>Item 26: <code>Additional Margin</code> -- adds more margin to the model per
+  user's discretion</li>
+</ul>
+<h4 id="model-output">Model Output:</h4>
+<ul>
+<li>Item 27: <code>Recommended heapWords value (with 40% for ZCO)</code> -- this
+  is the suggested <code>heapWords</code> value for <code>ionconfig</code>.</li>
+<li>Item28: <code>Recommended heapWords value - iif source data completely in memory</code> -- this is the suggested <code>heapWords</code> value for
+  <em>ionconfig</em> assuming the source data is copied into heap space at
+  the time of bundle creation without using file-resident reference.</li>
+<li>Item 29: <code>wmSize recommendation</code> - this is the suggested <code>wmSize</code>
+  parameter to use to support the staging of large quantities of
+  bundles in the heap. This recommended value includes an additional
+  200% margin. The rationale for the calculation is derived from
+  analysis summarized in the <code>ION Deployment Guide</code> and based on
+  previous studies.</li>
+</ul>
+<h2 id="appendix">Appendix</h2>
+<h3 id="bpltp-memory-usage-analysis-summary">BP/LTP Memory Usage Analysis Summary</h3>
+<p>In this section, we summarize the finding documented in a powerpoint
+presentation titled, "ION DTN/LTP Configuration and ION Memory Usage
+Analysis", dated January 2021, that is used as the basis for estimating
+the heap space required for BP/LTP operation in ION:</p>
+<ul>
+<li>When using file-resident data to conduct tests (e.g., bpdriver,
+  bpsendfile, etc) the heap space holds mostly the header information
+  in the data structure.</li>
+<li>
+<p>With 1 bundle in the system that is under active LTP session, the
+  minimum heap space needed can be approximated as: <em>heap space</em> =
+  <em>S</em> + <em>base</em></p>
+</li>
+<li>
+<p><em>S</em> is the bundle size / segment size x segment header size x 10</p>
+</li>
+<li>The segment header is approximated to be 19 bytes</li>
+<li><em>Base</em> is the default usage at initial boot, before any bundles
+    were generated. In our experiment, it is approximately 48
+    Kilobyte.</li>
+<li>Let M equal the number of bundles that fits within TWLT-bandwidth
+  product, and</li>
+<li>Assume that the max_export_session &gt; M so efficiency can be
+  maximized, then</li>
+<li>For a burst of N bundles to be buffered in ION:</li>
+<li>
+<p>If N \&lt;= M, heap space usage is approximately S x N + 1560 bytes x
+  N + base</p>
+</li>
+<li>
+<p>S x N is LTP related heap usage, 1560 x N is bundle level heap
+    usage</p>
+</li>
+<li>"1560 bytes" is an empirical estimate based on test
+    observations. It is the additional heap space needed to
+    accommodate each additional bundle structure and also a small
+    amount of data as determined by the heapmax parameter in .bprc
+    file (default value is 650 bytes).</li>
+<li>
+<p>If N &gt; M, heap space usage is approximately S x M + 1560 bytes x
+  N + base</p>
+</li>
+<li>
+<p>For bundle in LTP transmission, we count both LTP and bundle
+    level heap usage</p>
+</li>
+<li>Apply additional margin on the estimated heap space should
+  accommodate:</li>
+<li>The available heap space for storing inbound and outbound bundle
+  data is only 40% of the total heap space (determined by heapWords in
+  .ionconfig file)</li>
+</ul>
+<h2 id="acknowledgements">Acknowledgements</h2>
+<p>Nik Ansell co-authored/contributed to the 2016 version of this document,
+which has been updated and revised in 2021.</p>
+<p>© 2016 California Institute of Technology. Government sponsorship
+acknowledged.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

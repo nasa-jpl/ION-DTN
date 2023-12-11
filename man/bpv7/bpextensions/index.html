@@ -1,0 +1,1483 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/man/bpv7/bpextensions/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>NAME - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              NAME
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="name">NAME</h1>
+<p>bpextensions - interface for adding extensions to Bundle Protocol</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<div class="highlight"><pre><span></span><code>#include &quot;bpextensions.c&quot;
+</code></pre></div>
+<h1 id="description">DESCRIPTION</h1>
+<p>ION's interface for extending the Bundle Protocol enables the definition
+of external functions that insert <em>extension</em> blocks into outbound bundles
+(either before or after the payload block), parse and record extension
+blocks in inbound bundles, and modify extension blocks at key points in
+bundle processing.  All extension-block handling is statically linked into
+ION at build time, but the addition of an extension never requires that
+any standard ION source code be modified.</p>
+<p>Standard structures for recording extension blocks -- both in transient
+storage [memory] during bundle acquisition (AcqExtBlock) and in persistent
+storage [the ION database] during subsequent bundle processing (ExtensionBlock)
+-- are defined in the <em>bei.h</em> header file.  In each case, the extension
+block structure comprises a block <em>type</em> code, block processing <em>flags</em>,
+possibly a list of <em>EID references</em>, an array of <em>bytes</em> (the
+serialized form of the block, for transmission), the <em>length</em> of that
+array, optionally an extension-specific opaque <em>object</em> whose structure
+is designed to characterize the block in a manner that's convenient for
+the extension processing functions, and the <em>size</em> of that object.</p>
+<p>The definition of each extension is asserted in an ExtensionDef structure,
+also as defined in the <em>bei.h</em> header file.  Each ExtensionDef must supply:</p>
+<blockquote>
+<p>The name of the extension.  (Used in some diagnostic messages.)</p>
+<p>The extension's block type code.</p>
+<p>A pointer to an <strong>offer</strong> function.</p>
+<p>A pointer to a function to be called when <strong>forwarding</strong> a bundle containing
+this sort of block.</p>
+<p>A pointer to a function to be called when <strong>taking custody</strong> of a bundle
+containing this sort of block.</p>
+<p>A pointer to a function to be called when <strong>enqueuing</strong> for transmission a
+bundle containing this sort of block.</p>
+<p>A pointer to a function to be called when a convergence-layer adapter
+<strong>dequeues</strong> a bundle containing this sort of block, before serializing it.</p>
+<p>A pointer to a function to be called immediately before a convergence-layer
+adapter <strong>transmits</strong> a bundle containing this sort of block, after the
+bundle has been serialized.</p>
+<p>A pointer to a <strong>release</strong> function.</p>
+<p>A pointer to a <strong>copy</strong> function.</p>
+<p>A pointer to an <strong>acquire</strong> function.</p>
+<p>A pointer to a <strong>review</strong> function.</p>
+<p>A pointer to a <strong>decrypt</strong> function.</p>
+<p>A pointer to a <strong>parse</strong> function.</p>
+<p>A pointer to a <strong>check</strong> function.</p>
+<p>A pointer to a <strong>record</strong> function.</p>
+<p>A pointer to a <strong>clear</strong> function.</p>
+</blockquote>
+<p>All extension definitions must be coded into an array of ExtensionDef
+structures named <em>extensionDefs</em>.</p>
+<p>An array of ExtensionSpec structures named <em>extensionSpecs</em> is
+also required.  Each ExtensionSpec provides the specification for
+producing an outbound extension block: block definition (identified by
+block type number), three discriminator tags whose semantics are
+block-type-specific, and CRC type indicating what type of CRC must
+be used to protect this extension block.  The order of appearance of
+extension specifications in the extensionSpecs array determines the
+order in which extension blocks will be inserted into locally sourced bundles.</p>
+<p>The standard extensionDefs array -- which is empty -- is in the
+<em>noextensions.c</em> prototype source file.  The procedure for extending
+the Bundle Protocol in ION is as follows:</p>
+<p>1.  Specify -DBP_EXTENDED in the Makefile's compiler command line when
+building the libbpP.c library module.</p>
+<p>2.  Create a copy of the prototype extensions file, named "bpextensions.c",
+in a directory that is made visible to the Makefile's libbpP.c compilation
+command line (by a -I parameter).</p>
+<p>3.  In the "external function declarations" area of "bpextensions.c", add
+"extern" function declarations identifying the functions that will implement
+your extension (or extensions).</p>
+<p>4.  Add one or more ExtensionDef structure initialization lines to the
+extensionDefs array, referencing those declared functions.</p>
+<p>5.  Add one or more ExtensionSpec structure initialization lines to the
+extensionSpecs array, referencing those extension definitions.</p>
+<p>6.  Develop the implementations of the extension implementation functions
+in one or more new source code files.</p>
+<p>7.  Add the object file or files for the new extension implementation source
+file (or files) to the Makefile's command line for linking libbpP.so.</p>
+<p>The function pointers supplied in each ExtensionDef must conform to the
+following specifications.  NOTE that any function that modifies the <em>bytes</em>
+member of an ExtensionBlock or AckExtBlock <strong>must</strong> set the corresponding
+<em>length</em> to the new length of the <em>bytes</em> array, if changed.</p>
+<ul>
+<li>
+<p>int (*BpExtBlkOfferFn)(ExtensionBlock *blk, Bundle *bundle)</p>
+<p>Populates all fields of the indicated ExtensionBlock structure
+for inclusion in the indicated outbound bundle.  This function is
+automatically called when a new bundle is locally sourced or
+upon acquisition of a remotely sourced bundle that does not
+contain an extension block of this type.  The values of the extension
+block are typically expected to be a function of the state of the bundle,
+but this is extension-specific.  If it is not appropriate to offer an
+extension block of this type as part of this bundle, then the <em>size</em>,
+<em>length</em>, <em>object</em>, and <em>bytes</em> members of <em>blk</em> must all be set to
+zero.  If it is appropriate to offer such a block but no internal object
+representing the state of the block is needed, the <em>object</em> and <em>size</em>
+members of <em>blk</em> must be set to zero.  The <em>type</em>, <em>blkProcFlags</em>, and
+<em>dataLength</em> members of <em>blk</em> must be populated by the implementation of
+the "offer" function, but the <em>length</em> and <em>bytes</em> members are typically
+populated by calling the BP library function serializeExtBlk(), which must
+be passed the block to be serialized (with <em>type</em>, <em>blkProcFlags</em> and
+<em>dataLength</em> already set), a Lyst of EID references (two list elements
+-- offsets -- per EID reference, if applicable; otherwise NULL), and a
+pointer to the extension-specific block data.  The block's <em>bytes</em> array
+and <em>object</em> (if present) must occupy space allocated from the ION database
+heap.  Return zero on success, -1 on any system failure.</p>
+</li>
+<li>
+<p>int (*BpExtBlkProcessFn)(ExtensionBlock *blk, Bundle *bundle, void *context)</p>
+<p>Performs some extension-specific transformation of the data encapsulated in
+<em>blk</em> based on the state of <em>bundle</em>.  The transformation to be performed
+will typically vary depending on whether the identified function is the one
+that is automatically invoked upon forwarding the bundle, upon taking custody
+of the bundle, upon enqueuing the bundle for transmission, upon removing
+the bundle from the transmission queue, or upon transmitting the serialized
+bundle.  The <em>context</em> argument may supply useful supplemental information;
+in particular, the context provided to the ON_DEQUEUE function will comprise
+the name of the protocol for the duct from which the bundle has been dequeued,
+together with the EID of the neighboring node endpoint to which the bundle
+will be directly transmitted when serialized.  The block-specific data in <em>blk</em>
+is located within <em>bytes</em> immediately after the header of the extension
+block; the length of the block's header is the difference between <em>length</em>
+and <em>dataLength</em>.  Whenever the block's <em>blkProcFlags</em>, EID extensions,
+and/or block-specific data are altered, the serializeExtBlk() function should
+be called again to recalculate the size of the extension block and rebuild
+the <em>bytes</em> array.  Return zero on success, -1 on any system failure.</p>
+</li>
+<li>
+<p>void (*BpExtBlkReleaseFn)(ExtensionBlock *blk)</p>
+<p>Releases all ION database space occupied by the <em>object</em> member of <em>blk</em>.
+This function is automatically called when a bundle is destroyed.  Note that
+incorrect implementation of this function may result in a database space leak.</p>
+</li>
+<li>
+<p>int (*BpExtBlkCopyFn)(ExtensionBlock *newblk, ExtensionBlock *oldblk)</p>
+<p>Copies the <em>object</em> member of <em>oldblk</em> to ION database heap space and
+places the address of that new non-volatile object in the <em>object</em> member of
+<em>newblk</em>, also sets <em>size</em> in <em>newblk</em>.  This function is automatically
+called when two copies of a bundle are needed, e.g., in the event that it
+must both be delivered to a local client and also fowarded to another node.
+Return zero on success, -1 on any system failure.</p>
+</li>
+<li>
+<p>int (*BpAcqExtBlkAcquireFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</p>
+<p>Populates the indicated AcqExtBlock structure with <em>size</em> and <em>object</em>
+for retention as part of the indicated inbound bundle.  (The <em>type</em>,
+<em>blkProcFlags</em>, EID references (if any), <em>dataLength</em>, <em>length</em>, and
+<em>bytes</em> values of the structure are pre-populated with data as extracted
+from the serialized bundle.)  This function is only to be provided for
+extension blocks that are never encrypted; a extension block that may be
+encrypted should have a BpAcqExtBlkParseFn callback instead.  The function
+is automatically called
+when an extension block of this type is encountered in the course of
+parsing and acquiring a bundle for local delivery and/or forwarding.  If
+no internal object representing the state of the block is needed, the
+<em>object</em> member of <em>acqblk</em> must be set to NULL and the <em>size</em>
+member must be set to zero.  If an <em>object</em> is needed for this block,
+it must occupy space that is allocated from ION working memory using
+<strong>MTAKE</strong> and its <em>size</em> must be indicated in <em>blk</em>.  Return zero if
+the block is malformed (this will cause the bundle to be discarded), 1 if
+the block is successfully parsed, -1 on any system failure.</p>
+</li>
+<li>
+<p>int (*BpAcqExtBlkReviewFn)(AcqWorkArea *work)</p>
+<p>Reviews the extension blocks that have been acquired for this bundle,
+checking to make sure that all blocks of this type that are required
+by policy are present.  Returns 0 if any blocks are missing, 1 if
+all required blocks are present, -1 on any system failure.</p>
+</li>
+<li>
+<p>int (*BpAcqExtBlkDecryptFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</p>
+<p>Decrypts some other extension block that has been acquired but not yet
+parsed, nominally using encapsulated ciphersuite information.  Return
+zero if the block is malformed (this will cause the bundle to be discarded),
+1 if no error in decryption was encountered, -1 on any system failure.</p>
+</li>
+<li>
+<p>int (*BpAcqExtBlkParseFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</p>
+<p>Populates the indicated AcqExtBlock structure with <em>size</em> and <em>object</em>
+for retention as part of the indicated inbound bundle.  (The <em>type</em>,
+<em>blkProcFlags</em>, EID references (if any), <em>dataLength</em>, <em>length</em>, and
+<em>bytes</em> values of the structure are pre-populated with data as extracted
+from the serialized bundle.)  This function is provided for extension
+blocks that may be encrypted; a extension block that can never be
+encrypted should have a BpAcqExtBlkAcquireFn callback instead.  The function
+is automatically called
+when an extension block of this type is encountered in the course of
+parsing and acquiring a bundle for local delivery and/or forwarding.  If
+no internal object representing the state of the block is needed, the
+<em>object</em> member of <em>acqblk</em> must be set to NULL and the <em>size</em>
+member must be set to zero.  If an <em>object</em> is needed for this block,
+it must occupy space that is allocated from ION working memory using
+<strong>MTAKE</strong> and its <em>size</em> must be indicated in <em>blk</em>.  Return zero if
+the block is malformed (this will cause the bundle to be discarded), 1 if
+the block is successfully parsed, -1 on any system failure.</p>
+</li>
+<li>
+<p>int (*BpAcqExtBlkCheckFn)(AcqExtBlock *acqblk, AcqWorkArea *work)</p>
+<p>Examines the bundle in <em>work</em> to determine whether or not it is authentic,
+in the context of the indicated extension block.  Return 1 if the block is
+determined to be inauthentic (this will cause the bundle to be discarded),
+zero if no inauthenticity is detected, -1 on any system failure.</p>
+</li>
+<li>
+<p>int (*BpExtBlkRecordFn)(ExtensionBlock *blk, AcqExtBlock *acqblk)</p>
+<p>Copies the <em>object</em> member of <em>acqblk</em> to ION database heap space and
+places the address of that non-volatile object in the <em>object</em> member of
+<em>blk</em>; also sets <em>size</em> in <em>blk</em>.  This function is automatically called
+when an acquired bundle is accepted for forwarding and/or delivery.  Return
+zero on success, -1 on any system failure.</p>
+</li>
+<li>
+<p>void (*BpAcqExtBlkClearFn)(AcqExtBlock *acqblk)</p>
+<p>Uses <strong>MRELEASE</strong> to release all ION working memory occupied by the <em>object</em>
+member of <em>acqblk</em>.  This function is automatically called when acquisition
+of a bundle is completed, whether or not the bundle is accepted.  Note that
+incorrect implementation of this function may result in a working memory leak.</p>
+</li>
+</ul>
+<h2 id="utility-functions-for-extension-processing">UTILITY FUNCTIONS FOR EXTENSION PROCESSING</h2>
+<ul>
+<li>
+<p>void discardExtensionBlock(AcqExtBlock *blk)</p>
+<p>Deletes this block from the bundle acquisition work area prior to the
+recording of the bundle in the ION database.</p>
+</li>
+<li>
+<p>void scratchExtensionBlock(ExtensionBlock *blk)</p>
+<p>Deletes this block from the bundle after the bundle has been recorded in the
+ION database.</p>
+</li>
+<li>
+<p>Object findExtensionBlock(Bundle *bundle, unsigned int type, unsigned char tag1, unsigned char tag2, unsigned char tag3)</p>
+<p>On success, returns the address of the ExtensionBlock in <em>bundle</em> for the
+indicated <em>type</em> and tag values.  If no such extension block exists, returns
+zero.</p>
+</li>
+<li>
+<p>int serializeExtBlk(ExtensionBlock *blk, char *blockData)</p>
+<p>Constructs a BPv7-conformant serialized representation of this extension
+block in blk-&gt;bytes.  Returns 0 on success, -1 on an unrecoverable system
+error.</p>
+</li>
+<li>
+<p>void suppressExtensionBlock(ExtensionBlock *blk)</p>
+<p>Causes <em>blk</em> to be omitted when the bundle to which it is attached is
+serialized for transmission.  This suppression remains in effect until
+it is reversed by restoreExtensionBlock();</p>
+</li>
+<li>
+<p>void restoreExtensionBlock(ExtensionBlock *blk)</p>
+<p>Reverses the effect of suppressExtensionBlock(), enabling the block to
+be included when the bundle to which it is attached is serialized.</p>
+</li>
+</ul>
+<h1 id="see-also">SEE ALSO</h1>
+<p>bp(3)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1723 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/man/ams/ams/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>NAME - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              NAME
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="name">NAME</h1>
+<p>ams - CCSDS Asynchronous Message Service(AMS) communications library</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<div class="highlight"><pre><span></span><code>#include &quot;ams.h&quot;
+
+typedef void                (*AmsMsgHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int continuumNbr,
+                                    int unitNbr,
+                                    int moduleNbr,
+                                    int subjectNbr,
+                                    int contentLength,
+                                    char *content,
+                                    int context,
+                                    AmsMsgType msgType,
+                                    int priority,
+                                    unsigned char flowLabel);
+
+typedef void                (*AmsRegistrationHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int unitNbr,
+                                    int moduleNbr,
+                                    int roleNbr);
+
+typedef void                (*AmsUnregistrationHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int unitNbr,
+                                    int moduleNbr);
+
+typedef void                (*AmsInvitationHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int unitNbr,
+                                    int moduleNbr,
+                                    int domainRoleNbr,
+                                    int domainContinuumNbr,
+                                    int domainUnitNbr,
+                                    int subjectNbr,
+                                    int priority,
+                                    unsigned char flowLabel,
+                                    AmsSequence sequence,
+                                    AmsDiligence diligence);
+
+typedef void                (*AmsDisinvitationHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int unitNbr,
+                                    int moduleNbr,
+                                    int domainRoleNbr,
+                                    int domainContinuumNbr,
+                                    int domainUnitNbr,
+                                    int subjectNbr);
+
+typedef void                (*AmsSubscriptionHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int unitNbr,
+                                    int moduleNbr,
+                                    int domainRoleNbr,
+                                    int domainContinuumNbr,
+                                    int domainUnitNbr,
+                                    int subjectNbr,
+                                    int priority,
+                                    unsigned char flowLabel,
+                                    AmsSequence sequence,
+                                    AmsDiligence diligence);
+
+typedef void                (*AmsUnsubscriptionHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int unitNbr,
+                                    int moduleNbr,
+                                    int domainRoleNbr,
+                                    int domainContinuumNbr,
+                                    int domainUnitNbr,
+                                    int subjectNbr);
+
+typedef void                (*AmsUserEventHandler)(AmsModule module,
+                                    void *userData,
+                                    AmsEvent *eventRef,
+                                    int code,
+                                    int dataLength,
+                                    char *data);
+
+typedef void                (*AmsMgtErrHandler)(void *userData,
+                                    AmsEvent *eventRef);
+
+typedef struct
+{
+    AmsMsgHandler                   msgHandler;
+    void                            *msgHandlerUserData;
+    AmsRegistrationHandler          registrationHandler;
+    void                            *registrationHandlerUserData;
+    AmsUnregistrationHandler        unregistrationHandler;
+    void                            *unregistrationHandlerUserData;
+    AmsInvitationHandler            invitationHandler;
+    void                            *invitationHandlerUserData;
+    AmsDisinvitationHandler         disinvitationHandler;
+    void                            *disinvitationHandlerUserData;
+    AmsSubscriptionHandler          subscriptionHandler;
+    void                            *subscriptionHandlerUserData;
+    AmsUnsubscriptionHandler        unsubscriptionHandler;
+    void                            *unsubscriptionHandlerUserData;
+    AmsUserEventHandler             userEventHandler;
+    void                            *userEventHandlerUserData;
+    AmsMgtErrHandler                errHandler;
+    void                            *errHandlerUserData;
+} AmsEventMgt;
+
+typedef enum
+{
+    AmsArrivalOrder = 0,
+    AmsTransmissionOrder
+} AmsSequence;
+
+typedef enum
+{
+    AmsBestEffort = 0,
+    AmsAssured
+} AmsDiligence;
+
+typedef enum
+{
+    AmsRegistrationState,
+    AmsInvitationState,
+    AmsSubscriptionState
+} AmsStateType;
+
+typedef enum
+{
+    AmsStateBegins = 1,
+    AmsStateEnds
+} AmsChangeType;
+
+typedef enum
+{
+    AmsMsgUnary = 0,
+    AmsMsgQuery,
+    AmsMsgReply,
+    AmsMsgNone
+} AmsMsgType;
+
+[see description for available functions]
+</code></pre></div>
+<h1 id="description">DESCRIPTION</h1>
+<p>The ams library provides functions enabling application software to use AMS
+to send and receive brief messages, up to 65000 bytes in length.  It conforms
+to AMS Blue Book, including support for Remote AMS (RAMS).</p>
+<p>In the ION implementation of RAMS, the "RAMS network protocol" may be either
+the DTN Bundle Protocol (RFC 5050) or -- mainly for testing purposes -- the
+User Datagram Protocol (RFC 768).  BP is the default.  When BP is used as
+the RAMS network protocol, endpoints are by default assumed to conform to
+the "ipn" endpoint identifier scheme with <strong>node number</strong> set to the AMS
+<strong>continuum number</strong> and <strong>service number</strong> set to the AMS <strong>venture number</strong>.</p>
+<p>Note that RAMS functionality is enabled by instantiating a <strong>ramsgate</strong> daemon,
+which is simply an AMS application program that acts as a gateway between the
+local AMS message space and the RAMS network.</p>
+<p>AMS differs from other ION packages in that there is no utilization of
+non-volatile storage (aside from the BP functionality in RAMS, if applicable).
+Since there is no non-volatile AMS database, there is no AMS administration
+program and there are no library functions for attaching to or detaching
+from such a database.  AMS is instantiated by commencing operation of the
+AMS real-time daemon <strong>amsd</strong>; once <strong>amsd</strong> is running, AMS application
+programs ("modules") can be started.  All management of AMS operational
+state is performed automatically in real time.</p>
+<p>However, <strong>amsd</strong> and the AMS application programs all require
+access to a common store of configuration data at startup in order to load
+their Management Information Bases.  This configuration data must reside in
+a readable file, which may take either of two forms: a file of XML statements
+conforming to the scheme described in the amsxml(5) man page, or a file of
+simple but less powerful configuration statements as described in the amsrc(5)
+man page.  The <strong>amsxml</strong> alternative requires that the <strong>expat</strong> XML parsing
+system be installed; the <strong>amsrc</strong> alternative was developed to simplify
+deployment of AMS in environments in which <strong>expat</strong> is not readily supported.
+Selection of the configuration file format is a compile-time decision,
+implemented by setting (or not setting) the -DNOEXPAT compiler option.</p>
+<p>The path name of the applicable configuration file may be passed as a
+command-line parameter to <strong>amsd</strong> and as a registration function parameter
+by any AMS application program.  Note, though, that <strong>ramsgate</strong> and the
+AMS test and utility programs included in ION always assume that the
+configuration file resides in the current working directory and that it is
+named "mib.amsrc" if AMS was built with -DNOEXPAT, "amsmib.xml" otherwise.</p>
+<p>The transport services that are made available to AMS communicating entities
+are declared by the transportServiceLoaders array in the libams.c source
+file.  This array is fixed at compile time.  The order of preference of the
+transport services in the array is hard-coded, but the inclusion or omission 
+of individual transport services is controlled by setting compiler options.
+The "udp" transport service -- nominally the most preferred because it
+imposes the least processing and transmission overhead -- is included by
+setting the -DUDPTS option.  The "dgr" service is included by setting the
+-DDGRTS option.  The "vmq" (VxWorks message queue) service, supported only
+on VxWorks, is included by setting the -DVMQTS option.  The "tcp" transport
+service -- selected only when its quality of service is required -- is
+included by setting the -DTCPTS option.</p>
+<p>The operating state of any single AMS application program is managed in
+an opaque AmsModule object.  This object is returned when the application
+begins AMS operations (that is, registers) and must be provided as an
+argument to most AMS functions.</p>
+<ul>
+<li>
+<p>int ams_register(char *mibSource, char *tsorder, char *applicationName, char *authorityName, char *unitName, char *roleName, AmsModule *module)</p>
+<p>Registers the application within a cell (identified by <em>unitName</em>) of a
+message space that is that portion of the venture identified by
+<em>applicationName</em> and <em>authorityName</em> that runs within the local AMS
+continuum.  <em>roleName</em> identifies the role that this application will
+perform in this venture.  The operating state of the registered application
+is returned in <em>module</em>.</p>
+<p>The application module's identifying parameters are validated against the
+configuration information in the applicable Management Information Base,
+which is automatically loaded from the file whose pathname is provided
+in <em>mibSource</em>.  If <em>mibSource</em> is the zero-length string ("") then
+the default configuration file name is used as noted above.  If
+<em>mibSource</em> is NULL then a rudimentary hard-coded default MIB, useful
+for basic testing purposes, is loaded.  This default MIB defines a single
+venture for application "amsdemo" and authority "test", using only the
+"dgr" transport service, with the configuration server residing on the
+local host machine; subject "text" and roles "shell", "log", "pitch",
+and "catch" are defined.</p>
+<p>The <em>tsorder</em> argument is normally NULL.  If non-NULL it must be a
+NULL-terminated string of ASCII numeric digits '0' through '9' identifying
+an alternative transport service preference order that overrides the standard
+transport service preference order defined by the hard-coded array of
+transportServiceLoaders in the libams.c source file.  Each character of
+the <em>tsorder</em> string must represent the index position of one of the
+transport services within the array.  For example, if services "udp", "dgr",
+"vmq", and "tcp" are all available in the array, a <em>tsorder</em> string of "32" 
+would indicate that this application will only communicate using the tcp
+and vmq services; services 0 (udp) and 1 (dgr) will not be used, and tcp
+is preferred to vmq when both are candidate services for transmission of
+a given message.</p>
+<p>Returns 0 on success.  On any error, sets <em>module</em> to NULL and returns -1.</p>
+</li>
+<li>
+<p>int ams_unregister(AmsModule module)</p>
+<p>Reverses the operation of ams_unregister(), destroying <em>module</em>.  Returns
+0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_invite(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char flowLabel, AmsSequence sequence, AmsDiligence diligence)</p>
+<p>Announces this module's agreement to receive messages on the subject
+identified by <em>subjectNbr</em>.</p>
+<p>The invitation is extended only to modules registered in the role identified
+by <em>roleNbr</em> (where 0 indicates "all roles"), operating in the continuum
+identifed by <em>continuumNbr</em> (where 0 indicates "all continua"), and
+registered within the unit identified by <em>unitNbr</em> (where 0 indicates
+the venture's root unit) or any of that unit's subunits.  These parameters
+define the "domain" of the invitation.</p>
+<p>Such messages should be sent at the priority indicated by <em>priority</em> with
+flow label as indicated by <em>flowLabel</em> and with quality of service as
+indicated by <em>sequence</em> and <em>diligence</em>.  <em>priority</em> must be an integer
+in the range 1-15, where priority 1 indicates the greatest urgency.  Flow
+labels are passed through to transport services and are opaque to AMS itself;
+in the absence of defined flow labels, a value of 0 is typically used.  These
+parameters define the "class of service" of the invitation.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_disinvite(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr)</p>
+<p>Rescinds the invitation characterized by the indicated subject and
+domain.  Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_subscribe(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char flowLabel, AmsSequence sequence, AmsDiligence diligence)</p>
+<p>Announces this module's subscription to messages on the indicated subject,
+constrained by the indicated domain, and transmitted subject to the indicated
+class of service.  Note that subscriptions differ from invitations in that 
+reception of these messages is actively solicited, not just permitted.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_unsubscribe(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr)</p>
+<p>Cancels the subscription characterized by the indicated subject and
+domain.  Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_publish(AmsModule module, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context)</p>
+<p>Publishes <em>contentLength</em> bytes of data starting at <em>content</em> as the content
+of a message that is sent to all modules whose subscriptions to <em>subjectNbr</em>
+are characterized by a domain that includes this module.  <em>priority</em> and
+<em>flowLabel</em>, if non-zero, override class of service as requested in the
+subscriptions.  <em>context</em> is an opaque "hint" to the receiving modules;
+its use is application-specific.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_send(AmsModule module, int continuumNbr, int unitNbr, int moduleNbr, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context)</p>
+<p>Sends <em>contentLength</em> bytes of data starting at <em>content</em> as the content
+of a message that is transmitted privately to the module in the continuum
+identified by <em>continuumNbr</em> (where 0 indicates "the local continuum") that
+is identified by <em>unitNbr</em> and <em>moduleNbr</em> -- provided that <em>module</em> is
+in the domain of one of that module's invitations on <em>subjectNbr</em>.
+<em>priority</em> and <em>flowLabel</em>, if non-zero, override class of service as
+requested in the invitation.  <em>context</em> is an opaque "hint" to the receiving
+module; its use is application-specific.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_query(AmsModule module, int continuumNbr, int unitNbr, int moduleNbr, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context, int term, AmsEvent *event)</p>
+<p>Sends a message exactly is described above for ams_send(), but additionally
+suspends the delivery and processing of newly received messages until either
+(a) a "reply" message sent in response to this message is received or (b) the
+time interval indicated by <em>term</em>, in seconds, expires.  The event (reply or
+timeout) that ends the suspension of processing is provided in <em>event</em> (as
+if from ams_get_event() when the function returns. </p>
+<p>If <em>term</em> is AMS_BLOCKING then the timeout interval is indefinite; only
+reception of a reply message enables the function to return.  If <em>term</em> is
+AMS_POLL then the function returns immediately, without waiting for a reply
+message.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_reply(AmsModule module, AmsEvent msg, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content)</p>
+<p>Sends a message exactly is described above for ams_send(), except that the
+destination of the message is the sender of the message identified by <em>msg</em>
+and the "context" value included in the message is the context that was
+provided in <em>msg</em>.  This message is identified as a "reply" message that
+will end the processing suspension resulting from transmission of <em>msg</em> if
+that message was issued by means of ams_query() rather than ams_send().</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_announce(AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context)</p>
+<p>Sends a message exactly is described above for ams_send(), except that one
+copy of the message is sent to every module in the domain of this function
+(role, continuum, unit) whose invitation for messages on this subject is
+itself characterized by a domain that includes the the sending module, rather
+than to any specific module.  </p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_get_event(AmsModule module, int term, AmsEvent *event)</p>
+<p>Returns in <em>event</em> the next event in the queue of AMS events pending delivery
+to this module.  If the event queue is empty at the time this function is
+called, processing is suspended until either an event is queued or the time
+interval indicated by <em>term</em>, in seconds, expires.  See ams_query() above
+for the semantics of <em>term</em>.  When the function returns on expiration of
+<em>term</em>, an event of type TIMEOUT_EVT is returned in <em>event</em>.  Otherwise
+the event will be of type AMS_MSG_EVT (indicating arrival of a message),
+NOTICE_EVT (indicating a change in the configuration of the message space),
+or USER_DEFINED_EVT (indicating that application code posted an event).</p>
+<p>The nature of the event returned by ams_get_event() can be determined by
+passing <em>event</em> to ams_get_event_type() as described below.  Event type can
+then be used to determine whether the information content of the event
+must be obtained by calling ams_parse_msg(), ams_parse_notice(), or
+ams_parse_user_event().  </p>
+<p>In any case, the memory occupied by <em>event</em> must be released after the
+event object is no longer needed.  The ams_recycle_event() function is
+invoked for this purpose.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_get_event_type(AmsEvent event)</p>
+<p>Returns the event type of <em>event</em>, or -1 on any error.</p>
+</li>
+<li>
+<p>int ams_parse_msg(AmsEvent event, int *continuumNbr, int *unitNbr, int *moduleNbr, int *subjectNbr, int *contentLength, char **content, int *context, AmsMsgType *msgType, int *priority, unsigned char *flowLabel);</p>
+<p>Extracts all relevant information pertaining to the AMS message encapsulated
+in <em>event</em>, populating the indicated fields.  Must only be called when
+the event type of <em>event</em> is known to be AMS_MSG_EVT.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_parse_notice(AmsEvent event, AmsStateType *state, AmsChangeType *change, int *unitNbr, int *moduleNbr, int *roleNbr, int *domainContinuumNbr, int *domainUnitNbr, int *subjectNbr, int *priority, unsigned char *flowLabel, AmsSequence *sequence, AmsDiligence *diligence)</p>
+<p>Extracts all relevant information pertaining to the AMS configuration change
+notice encapsulated in <em>event</em>, populating the relevant fields.  Must only
+be called when the event type of <em>event</em> is known to be NOTICE_EVT.</p>
+<p>Note that different fields will be populated depending on the nature of the
+notice in <em>event</em>.  <em>state</em> will be set to AmsRegistrationState,
+AmsInvitationState, or AmsSubscription state depending on whether the
+notice pertains to a change in module registration, a change in invitations,
+or a change in subscriptions.  <em>change</em> will be set to AmsStateBegins or
+AmsStateEnds depending on whether the notice pertains to the initiation or
+termination of a registration, invitation, or subscription.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_post_user_event(AmsModule module, int userEventCode, int userEventDataLength, char *userEventData, int priority)</p>
+<p>Posts a "user event" whose content is the <em>userEventDataLength</em> bytes of
+data starting at <em>userEventData</em>.  <em>userEventCode</em> is an application-specific
+value that is opaque to AMS.  <em>priority</em> determines the event's position in
+the queue of events pending delivery to this module; it may be any integer
+in the range 0-15, where 0 indicates the greatest urgency.  (Note that user
+events can be delivered ahead of all message reception events if necessary.)</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_parse_user_event(AmsEvent event, int *code, int *dataLength, char **data)</p>
+<p>Extracts all relevant information pertaining to the user event encapsulated
+in <em>event</em>, populating the indicated fields.  Must only be called when
+the event type of <em>event</em> is known to be USER_DEFINED_EVT.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_recycle_event(AmsEvent event)</p>
+<p>Releases all memory occupied by <em>event</em>.  Returns 0 on success, -1 on any
+error.</p>
+</li>
+<li>
+<p>int ams_set_event_mgr(AmsModule module, AmsEventMgt *rules)</p>
+<p>Starts a background thread that processes events queued for this module,
+handling each event in the manner indicated by <em>rules</em>.  Returns 0 on
+success, -1 on any error.</p>
+</li>
+<li>
+<p>void ams_remove_event_mgr(AmsModule module)</p>
+<p>Terminates the background thread established to process events queued for
+this module.  Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int ams_get_module_nbr(AmsModule module)</p>
+<p>Returns the module number assigned to this module upon registration, or -1
+on any error.</p>
+</li>
+<li>
+<p>int ams_get_unit_nbr(AmsModule module)</p>
+<p>Returns the unit number assigned to the unit within which this module
+registered, or -1 on any error.</p>
+</li>
+<li>
+<p>Lyst ams_list_msgspaces(AmsModule module)</p>
+<p>Returns a dynamically allocated linked list of all message spaces identified
+in the MIB for this module, or -1 on any error.  See lyst(3) for operations
+that can be performed on the returned linked list.</p>
+</li>
+<li>
+<p>int ams_get_continuum_nbr()</p>
+<p>Returns the continuum number assigned to the continuum within which this
+module operates, or -1 on any error.</p>
+</li>
+<li>
+<p>int ams_rams_net_is_tree(AmsModule module)</p>
+<p>Returns 1 if the RAMS net for the venture in which this module is registered
+is configured as a tree, 0 if that RAMS net is configured as a mesh, -1 on
+any error.</p>
+</li>
+<li>
+<p>int ams_continuum_is_neighbor(int continuumNbr)</p>
+<p>Returns 1 if <em>continuumNbr</em> identifies a continuum whose RAMS gateways
+are immediate neighbors (within the applicable RAMS networks) of the
+RAMS gateways in the local continuum.  Returns 0 otherwise.</p>
+</li>
+<li>
+<p>char *ams_get_role_name(AmsModule module, int unitNbr, int moduleNbr)</p>
+<p>Returns the name of the role in which the module identified by <em>unitNbr</em> and
+<em>moduleNbr</em> registered, or NULL on any error.</p>
+</li>
+<li>
+<p>int ams_subunit_of(AmsModule module, int argUnitNbr, int refUnitNbr)</p>
+<p>Returns 1 if <em>argUnitNbr</em> identifies a unit that is wholly contained within
+the unit identified by <em>refUnitNbr</em>, in the venture within which this
+module is registered.  Returns 0 otherwise.</p>
+</li>
+<li>
+<p>int ams_lookup_unit_nbr(AmsModule module, char *unitName)</p>
+<p>Returns the number assigned to the unit identified by <em>unitName</em>, in
+the venture within which this module is registered, or -1 on any error.</p>
+</li>
+<li>
+<p>int ams_lookup_role_nbr(AmsModule module, char *roleName)</p>
+<p>Returns the number assigned to the role identified by <em>roleName</em>, in
+the venture within which this module is registered, or -1 on any error.</p>
+</li>
+<li>
+<p>int ams_lookup_subject_nbr(AmsModule module, char *subjectName)</p>
+<p>Returns the number assigned to the subject identified by <em>subjectName</em>, in
+the venture within which this module is registered, or -1 on any error.</p>
+</li>
+<li>
+<p>int ams_lookup_continuum_nbr(AmsModule module, char *continuumName)</p>
+<p>Returns the number of the continuum identified by <em>continuumName</em>, or -1
+on any error.</p>
+</li>
+<li>
+<p>char *ams_lookup_unit_name(AmsModule module, int unitNbr)</p>
+<p>Returns the name of the unit identified by <em>unitNbr</em>, in
+the venture within which this module is registered, or -1 on any error.</p>
+</li>
+<li>
+<p>char *ams_lookup_role_name(AmsModule module, int roleNbr)</p>
+<p>Returns the name of the role identified by <em>roleNbr</em>, in
+the venture within which this module is registered, or -1 on any error.</p>
+</li>
+<li>
+<p>char *ams_lookup_subject_name(AmsModule module, int subjectNbr)</p>
+<p>Returns the name of the subject identified by <em>subjectNbr</em>, in
+the venture within which this module is registered, or -1 on any error.</p>
+</li>
+<li>
+<p>char *ams_lookup_continuum_name(AmsModule module, int continuumNbr)</p>
+<p>Returns the name of the continuum identified by <em>continuumNbr</em>, or -1
+on any error.</p>
+</li>
+</ul>
+<h1 id="see-also">SEE ALSO</h1>
+<p>amsd(1), ramsgate(1), amsxml(5), amsrc(5)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1631 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/man/ici/ion/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>NAME - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              NAME
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="name">NAME</h1>
+<p>ion - Interplanetary Overlay Network common definitions and functions</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<div class="highlight"><pre><span></span><code>#include &quot;ion.h&quot;
+
+[see description for available functions]
+</code></pre></div>
+<h1 id="description">DESCRIPTION</h1>
+<p>The Interplanetary Overlay Network (ION) software distribution is an
+implementation of Delay-Tolerant Networking (DTN) architecture as described
+in Internet RFC 4838.  It is designed to enable inexpensive insertion of
+DTN functionality into embedded systems such as robotic spacecraft.  The
+intent of ION deployment in space flight mission systems is to reduce
+cost and risk in mission communications by simplifying the construction
+and operation of automated digital data communication networks spanning
+space links, planetary surface links, and terrestrial links.</p>
+<p>The ION distribution comprises the following software packages:</p>
+<blockquote>
+<p><em>ici</em> (Interplanetary Communication Infrastructure), a set of general-purpose
+libraries providing common functionality to the other packages.</p>
+<p><em>ltp</em> (Licklider Transmission Protocol), a core DTN protocol that provides
+transmission reliability based on delay-tolerant acknowledgments, timeouts,
+and retransmissions.</p>
+<p><em>dgr</em> (Datagram Retransmission), a library that enables data to be
+transmitted via UDP with reliability comparable to that provided by TCP.  DGR
+is an alternative implementation of LTP, designed for use within an internet.</p>
+<p><em>bssp</em> (Bundle Streaming Service Protocol), a protocol that supports
+delay-tolerant data streaming.  BSSP delivers data in transmission order
+with minimum latency but possibly with omissions, for immediate display,
+and at the same time it delivers the same data reliably in background so
+that the streamed data can be "rewound" for possibly improved presentation.</p>
+<p><em>bp</em> (Bundle Protocol), a core DTN protocol that provides delay-tolerant
+forwarding of data through a network in which continuous end-to-end
+connectivity is never assured, including support for delay-tolerant
+dynamic routing.  The Bundle Protocol (BP) specification is defined
+in Internet RFC 5050.</p>
+<p><em>ams</em> (Asynchronous Message Service), <em>cfdp</em> (CCSDS File Delivery
+Protocol), <em>dtpc</em> (Delay-Tolerant Payload Conditioning), and <em>bss</em>
+(Bundle Streaming Service), application-layer services that are not part
+of the DTN architecture but utilize underlying DTN protocols.</p>
+</blockquote>
+<p>Taken together, the packages included in the ION software distribution
+constitute a communication capability characterized by the following
+operational features:</p>
+<blockquote>
+<p>Reliable conveyance of data over a DTN, i.e., a network in which it might
+never be possible for any node to have reliable information about the
+detailed current state of any other node.</p>
+<p>Built on this capability, reliable distribution of short messages to multiple
+recipients (subscribers) residing in such a network.</p>
+<p>Management of traffic through such a network.</p>
+<p>Facilities for monitoring the performance of the network.</p>
+<p>Robustness against node failure.</p>
+<p>Portability across heterogeneous computing platforms.</p>
+<p>High speed with low overhead.</p>
+<p>Easy integration with heterogeneous underlying communication infrastructure,
+ranging from Internet to dedicated spacecraft communication links.</p>
+</blockquote>
+<p>While most of the ici package consists of libraries providing functionality
+that may be of general utility in any complex embedded software system,
+the functions and macros described below are specifically designed to support
+operations of ION's delay-tolerant networking protocol stack.</p>
+<ul>
+<li>
+<p>TIMESTAMPBUFSZ</p>
+<p>This macro returns the recommended size of a buffer that is intended to
+contain a timestamp in ION-standard format:</p>
+<blockquote>
+<div class="highlight"><pre><span></span><code>yyyy/mm/dd-hh:mm:ss
+</code></pre></div>
+</blockquote>
+</li>
+<li>
+<p>int ionAttach()</p>
+<p>Attaches the invoking task to ION infrastructure as previously established
+by running the <em>ionadmin</em> utility program.  Returns zero on success, -1 on
+any error.</p>
+</li>
+<li>
+<p>void ionDetach()</p>
+<p>Detaches the invoking task from ION infrastructure.  In particular, releases
+handle allocated for access to ION's non-volatile database.  <strong>NOTE</strong>, though,
+that ionDetach() has no effect when the invoking task is running in a
+non-memory-protected environment, such as VxWorks, where all ION resource
+access variables are shared by all tasks: no single task could detach
+without crashing all other ION tasks.</p>
+</li>
+<li>
+<p>void ionProd(uvast fromNode, uvast toNode, unsigned int xmitRate, unsigned int owlt)</p>
+<p>This function is designed to be called from an operating environment command
+or a fault protection routine, to enable operation of a node to resume when
+all of its scheduled contacts are in the past (making it impossible to use
+a DTN communication contact to assert additional future communication
+contacts).  The function asserts a single new unidirectional contact
+conforming to the arguments provided, including the applicable one-way light
+time, with start time equal to the current time (at the moment of execution
+of the function) and end time equal to the start time plus 2 hours.  The
+result of executing the function is written to the ION log using standard
+ION status message logging functions.</p>
+<p><strong>NOTE</strong> that the ionProd() function must be invoked twice in order
+to establish bidirectional communication.</p>
+</li>
+<li>
+<p>void ionTerminate()</p>
+<p>Shuts down the entire ION node, terminating all daemons.  The state of 
+the node is retained in the node's SDR heap.</p>
+</li>
+<li>
+<p>int ionStartAttendant(ReqAttendant *attendant)</p>
+<p>Initializes the semaphore in <em>attendant</em> so that it can be used for blocking
+ZCO space requisitions by ionRequestZcoSpace().  Returns 0 on success,
+-1 on any error.</p>
+</li>
+<li>
+<p>void ionPauseAttendant(ReqAttendant *attendant)</p>
+<p>"Ends" the semaphore in <em>attendant</em> so that the task that is blocked on
+taking it is interrupted and may respond to an error or shutdown condition.</p>
+</li>
+<li>
+<p>void ionResumeAttendant(ReqAttendant *attendant)</p>
+<p>Reinitializes the semaphore in <em>attendant</em> so that it can again be used
+for blocking ZCO space requisitions.</p>
+</li>
+<li>
+<p>void ionStopAttendant(ReqAttendant *attendant)</p>
+<p>Destroys the semaphore in <em>attendant</em>, preventing a potential resource leak.</p>
+</li>
+<li>
+<p>int ionRequestZcoSpace(ZcoAcct acct, vast fileSpaceNeeded, vast bulkSpaceNeeded, vast heapSpaceNeeded, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant, ReqTicket *ticket)</p>
+<p>Lodges a request for ZCO space in the pool identified by <em>acct</em>.  If the
+requested space can be provided immediately, it is reserved for use by the
+calling task.  Otherwise, if <em>attendant</em> is non-NULL then the request is
+queued for service when space becomes available.  In any case, <em>*ticket</em>
+is set to the address of a "ticket" referencing this request.  The status
+of the request can be interrogated by calling ionSpaceAwarded().  If this
+function returns 1 (True) then ZCO space may be consumed immediately and
+the ticket must then be destroyed by a call to ionShred().  Otherwise, if
+an attendant was provided, then the calling task should pend on the semaphore
+in <em>attendant</em> and upon successfully taking the semaphore it must
+consume the requested ZCO space and then ionShred() the ticket.  Otherwise
+the request for ZCO space has been definitively denied and, as always, the
+ticket must by destroyed by an invocation of ionShred().  Returns 0 on success,
+-1 on any failure.</p>
+</li>
+<li>
+<p>int ionSpaceAwarded(ReqTicket *ticket)</p>
+<p>Returns 1 if <em>ticket</em> is for a ZCO space request that has been serviced
+(ZCO space has been reserved per this request), 0 otherwise.</p>
+</li>
+<li>
+<p>void ionShred(ReqTicket *ticket)</p>
+<p>Dismisses the reservation of ZCO space (if any) requested by the call to
+ionRequestZcoSpace() that returned <em>ticket</em>.  Calling ionShred() indicates
+either that the requested space was reserved (i.e., the request was "serviced")
+and has been claimed (consumed by the appending of a ZCO extent) or that the
+request has been canceled.  Note that failure to promptly (within 3 seconds of
+reception) ionShred() the ticket for a service request will be interpreted as
+refusal of the reserved ZCO space, resulting in that space being made
+available for use by other tasks.</p>
+</li>
+<li>
+<p>Object ionCreateZco(ZcoMedium source, Object location, vast offset, vast length, unsigned char coarsePriority, unsigned char finePriority, ZcoAcct acct, ReqAttendant *attendant)</p>
+<p>This function provides a "blocking" implementation of admission control in
+ION.  Like zco_create(), it constructs a zero-copy object (see zco(3)) that
+contains a single extent of source data residing at <em>location</em> in <em>source</em>,
+of which the first <em>offset</em> bytes are omitted and the next <em>length</em> bytes
+are included.  But unlike zco_create(), ionCreateZco() can be configured to
+block (rather than return an immediate error indication) so long as the total
+amount of space in <em>source</em> that is available for new ZCO formation is less
+than <em>length</em>.  ionCreateZco() operates by calling ionRequestZcoSpace(),
+then pending on the semaphore in <em>attendant</em> as necessary before creating
+the ZCO.  ionCreateZco() returns when either (a) space has become
+available and the ZCO has been created, in which case the location of
+the ZCO is returned, or (b) the function has failed (in which case
+((Object) -1) is returned), or (c) either <em>attendant</em> was null and sufficient
+space for the first extent of the ZCO was not immediately available or else
+the function was interrupted by ionPauseAttendant() before space for the
+ZCO became available (in which case 0 is returned).</p>
+</li>
+<li>
+<p>vast ionAppendZcoExtent(Object zco, ZcoMedium source, Object location, vast offset, vast length, unsigned char coarsePriority, unsigned char finePriority, ReqAttendant *attendant)</p>
+<p>Similar to ionCreateZco() except that instead of creating a new ZCO it appends
+an additional extent to an existing ZCO.  Returns -1 on failure, 0 on
+interruption by ionPauseAttendant() or if <em>attendant</em> was NULL and sufficient
+space for the extent was not immediately available, <em>length</em> on success.</p>
+</li>
+<li>
+<p>char *getIonVersionNbr()</p>
+<p>Returns the name of the ION version installed on the local machine.</p>
+</li>
+<li>
+<p>Sdr getIonsdr()</p>
+<p>Returns a pointer to the SDR management object, previously acquired by calling
+ionAttach(), or zero on any error.</p>
+</li>
+<li>
+<p>PsmPartition getIonwm()</p>
+<p>Returns a pointer to the ION working memory partition, previously acquired
+by calling ionAttach(), or zero on any error.</p>
+</li>
+<li>
+<p>int getIonMemoryMgr()</p>
+<p>Returns the memory manager ID for operations on ION's working memory partition,
+previously acquired by calling ionAttach(), or -1 on any error.</p>
+</li>
+<li>
+<p>int ionLocked();</p>
+<p>Returns 1 if the calling task is the owner of the current SDR transaction.
+Assuring that ION is locked while related critical operations are performed
+is essential to the avoidance of race conditions.</p>
+</li>
+<li>
+<p>uvast getOwnNodeNbr()</p>
+<p>Returns the Bundle Protocol node number identifying this node, as
+declared when ION was initialized by <em>ionadmin</em>.</p>
+</li>
+<li>
+<p>time_t getCtime()</p>
+<p>Returns the current calendar (i.e., Unix epoch) time, as computed from local
+clock time and the computer's current offset from UTC (due to clock drift,
+<strong>not</strong> due to time zone difference; the <strong>utcdelta</strong>) as managed from
+<em>ionadmin</em>.</p>
+</li>
+<li>
+<p>int ionClockIsSynchronized()</p>
+<p>Returns 1 if the computer on which the local ION node is running has a
+synchronized clock , i.e., a clock that reports the current calendar (i.e.,
+Unix epoch) time as a value that differs from the correct calendar time by
+an interval approximately equal to the currently asserted offset from UTC
+due to clock drift; returns zero otherwise.</p>
+<p>If the machine's clock is synchronized then its reported values (as returned
+by getCtime()) can safely be used as the creation times of new bundles and
+the expiration time of such a bundle can accurately be computed as the sum
+of the bundle's creation time and time to live.  If not, then the creation
+timestamp time of new bundles sourced at the local ION node must be zero
+and the creation timestamp sequence numbers must increase monotonically
+forever, never rolling over to zero.</p>
+</li>
+<li>
+<p>void writeTimestampLocal(time_t timestamp, char *timestampBuffer)</p>
+<p>Expresses the time value in <em>timestamp</em> as a local timestamp string in
+ION-standard format, as noted above, in <em>timestampBuffer</em>.</p>
+</li>
+<li>
+<p>void writeTimestampUTC(time_t timestamp, char *timestampBuffer)</p>
+<p>Expresses the time value in <em>timestamp</em> as a UTC timestamp string in
+ION-standard format, as noted above, in <em>timestampBuffer</em>.</p>
+</li>
+<li>
+<p>time_t readTimestampLocal(char *timestampBuffer, time_t referenceTime)</p>
+<p>Parses the local timestamp string in <em>timestampBuffer</em> and returns the
+corresponding calendar (i.e., Unix epoch) time value (as would be returned by
+time(2)), or zero if the timestamp string cannot be parsed successfully.  The
+timestamp string is normally expected to be an absolute expression of local
+time in ION-standard format as noted above.  However, a relative time
+expression variant is also supported: if the first character of
+<em>timestampBuffer</em> is '+' then the remainder of the string is interpreted
+as a count of seconds; the sum of this value and the time value in
+<em>referenceTime</em> is returned.</p>
+</li>
+<li>
+<p>time_t readTimestampUTC(char *timestampBuffer, time_t referenceTime)</p>
+<p>Same as readTimestampLocal() except that if <em>timestampBuffer</em> is not a
+relative time expression then it is interpreted as an absolute expression
+of UTC time in ION-standard format as noted above.</p>
+</li>
+</ul>
+<h1 id="status-messages">STATUS MESSAGES</h1>
+<p>ION uses writeMemo(), putErrmsg(), and putSysErrmsg() to log several different
+types of standardized status messages.</p>
+<ul>
+<li>
+<p>Informational messages</p>
+<p>These messages are generated to inform the user of the occurrence of events
+that are nominal but significant, such as the controlled termination of a
+daemon or the production of a congestion forecast.  Each informational
+message has the following format:</p>
+<blockquote>
+<div class="highlight"><pre><span></span><code>{_yyyy/mm/dd hh:mm:ss_} \[i\] _text_
+</code></pre></div>
+</blockquote>
+</li>
+<li>
+<p>Warning messages</p>
+<p>These messages are generated to inform the user of the occurrence of events
+that are off-nominal but are likely caused by configuration or operational
+errors rather than software failure.  Each warning message has the following
+format:</p>
+<blockquote>
+<div class="highlight"><pre><span></span><code>{_yyyy/mm/dd hh:mm:ss_} \[?\] _text_
+</code></pre></div>
+</blockquote>
+</li>
+<li>
+<p>Diagnostic messages</p>
+<p>These messages are produced by calling putErrmsg() or putSysErrmsg().  They
+are generated to inform the user of the occurrence of events that are
+off-nominal and might be due to errors in software.  The location within
+the ION software at which the off-nominal condition was detected is
+indicated in the message:</p>
+<blockquote>
+<div class="highlight"><pre><span></span><code>{_yyyy/mm/dd hh:mm:ss_} at line _nnn_ of _sourcefilename_, _text_ (_argument_)
+</code></pre></div>
+</blockquote>
+<p>Note that the <em>argument</em> portion of the message (including its enclosing
+parentheses) will be provided only when an argument value seems potentially
+helpful in fault analysis.</p>
+</li>
+<li>
+<p>Bundle Status Report (BSR) messages</p>
+<p>A BSR message informs the user of the arrival of a BSR, a Bundle Protocol
+report on the status of some bundle.  BSRs are issued in the course of
+processing bundles for which one or more status report request flags are set,
+and they are also issued when bundles for which custody transfer is requested
+are destroyed prior to delivery to their destination endpoints.  A BSR message
+is generated by <strong>ipnadminep</strong> upon reception of a BSR.  The time and place
+(node) at which the BSR was issued are indicated in the message:</p>
+<blockquote>
+<div class="highlight"><pre><span></span><code>{_yyyy/mm/dd hh:mm:ss_} \[s\] (_sourceEID_)/_creationTimeSeconds_:_counter_/_fragmentOffset_ status _flagsByte_ at _time_ on _endpointID_, &#39;_reasonString_&#39;.
+</code></pre></div>
+</blockquote>
+</li>
+<li>
+<p>Communication statistics messages</p>
+<p>A network performance report is a set of eight communication statistics
+messages, one for each of eight different types of network activity.  A report
+is issued every time contact transmission or reception starts or stops,
+except when there is no activity of any kind on the local node since the prior
+report.  When a report is issued, statistic messages are generated to summarize
+all network activity detected since the prior report, after which all network
+activity counters and accumulators are reset to zero.</p>
+<p><strong>NOTE</strong> also that the <strong>bpstats</strong> utility program can be invoked to issue an
+interim network performance report at any time.  Issuance of interim status
+reports does <strong>not</strong> cause network activity counters and accumulators to be
+reset to zero.</p>
+<p>Statistics messages have the following format:</p>
+<blockquote>
+<div class="highlight"><pre><span></span><code>{_yyyy/mm/dd hh:mm:ss_} \[x\] _xxx_ from _tttttttt_ to _TTTTTTTT_: (0) _aaaa_ _bbbbbbbbbb_ (1) _cccc_ _dddddddddd_ (2) _eeee_ _ffffffffff_ (+) _gggg_ _hhhhhhhhhh_
+</code></pre></div>
+</blockquote>
+<p><em>xxx</em> indicates the type of network activity that the message is reporting
+on.  Statistics for eight different types of network activity are reported:</p>
+<ul>
+<li>
+<p><strong>src</strong></p>
+<p>This message reports on the bundles sourced at the local node during the
+indicated interval.</p>
+</li>
+<li>
+<p><strong>fwd</strong></p>
+<p>This message is about routing; it reports on the number of bundles queued
+for forwarding to neighboring nodes as selected by the routing procedure.
+When a bundle must be re-forwarded due to convergence-layer transmission
+failure it is counted a second time here.</p>
+</li>
+<li>
+<p><strong>xmt</strong></p>
+<p>This message reports on the bundles passed to the convergence layer protocol(s)
+for transmission from this node.  Again, a re-forwarded bundle that is then
+re-transmitted at the convergence layer is counted a second time here.</p>
+</li>
+<li>
+<p><strong>rcv</strong></p>
+<p>This message reports on the bundles from other nodes that were received at
+the local node.</p>
+</li>
+<li>
+<p><strong>dlv</strong></p>
+<p>This message reports on the bundles delivered to applications via endpoints
+on the local node.</p>
+</li>
+<li>
+<p><strong>ctr</strong></p>
+<p>This message reports on the custody refusal signals received at the local node.</p>
+</li>
+<li>
+<p><strong>rfw</strong></p>
+<p>This message reports on bundles for which convergence-layer transmission
+failed at this node, causing the bundles to be re-forwarded.</p>
+</li>
+<li>
+<p><strong>exp</strong></p>
+<p>This message reports on the bundles destroyed at this node due to TTL
+expiration.</p>
+</li>
+</ul>
+<p><em>tttttttt</em> and <em>TTTTTTTT</em> indicate the start and end times of the interval
+for which statistics are being reported, expressed in <em>yyyy/mm/dd-hh<img alt="🇲🇲" class="twemoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/svg/1f1f2-1f1f2.svg" title=":mm:" />ss</em>
+format.  <em>TTTTTTTT</em> is the current time and <em>tttttttt</em> is the time of the
+prior report.</p>
+<p>Each of the four value pairs following the colon (:) reports on the number
+of bundles counted for the indicated type of network activity, for the
+indicated traffic flow, followed by the sum of the sizes of the payloads
+of all those bundles.  The four traffic flows for which statistics are
+reported are "(0)" the priority-0 or "bulk" traffic, "(1)" the priority-1
+"standard" traffic, "(2)" the priority-2 "expedited" traffic, and "(+)"
+the total for all classes of service.</p>
+</li>
+<li>
+<p>Free-form messages</p>
+<p>Other status messages are free-form, except that date and time are always noted
+just as for the documented status message types.</p>
+</li>
+</ul>
+<h1 id="see-also">SEE ALSO</h1>
+<p>ionadmin(1), rfxclock(1), bpstats(1), llcv(3), lyst(3), memmgr(3), platform(3), psm(3), sdr(3), zco(3), ltp(3), bp(3), cfdp(3), ams(3), bss(3)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1665 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/man/ici/zco/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>NAME - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              NAME
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="name">NAME</h1>
+<p>zco - library for manipulating zero-copy objects</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<div class="highlight"><pre><span></span><code>#include &quot;zco.h&quot;
+
+typedef enum
+{
+    ZcoInbound = 0,
+    ZcoOutbound = 1,
+    ZcoUnknown = 2
+} ZcoAcct;
+
+typedef enum
+{
+    ZcoFileSource = 1,
+    ZcoBulkSource = 2,
+    ZcoObjSource = 3,
+    ZcoSdrSource = 4,
+    ZcoZcoSource = 5
+} ZcoMedium;
+
+typedef void (*ZcoCallback)(ZcoAcct);
+
+[see description for available functions]
+</code></pre></div>
+<h1 id="description">DESCRIPTION</h1>
+<p>"Zero-copy objects" (ZCOs) are abstract data access representations
+designed to minimize I/O in the encapsulation of application source
+data within one or more layers of communication protocol structure.  ZCOs
+are constructed within the heap space of an SDR to which implementations
+of all layers of the stack must have access.  Each ZCO contains information
+enabling access to the source data objects, together with (a) a linked list
+of zero or more "extents" that reference portions of these source data
+objects and (b) linked lists of protocol header and trailer capsules that
+have been explicitly attached to the ZCO since its creation.  The
+concatenation of the headers (in ascending stack sequence), source data
+object extents, and trailers (in descending stack sequence) is what is to
+be transmitted or has been received.</p>
+<p>Each source data object may be either a file (identified by pathname
+stored in a "file reference" object in SDR heap) or an item in mass
+storage (identified by item number, with implementation-specific
+semantics, stored in a "bulk reference" object in SDR heap) or an
+object in SDR heap space (identified by heap address stored in an
+"object reference" object in SDR heap) or an array of bytes in SDR
+heap space (identified by heap address).  Each protocol header or
+trailer capsule indicates the length and the address (within SDR
+heap space) of a single protocol header or trailer at some layer
+of the stack.  Note that the source data object for each ZCO extent
+is specified indirectly, by reference to a content lien reference
+structure that refers to a heap space object, mass storage item, or file;
+the reference structures contain the actual locations of the source data
+together with reference counts, enabling any number of "clones" of a
+given ZCO extent to be constructed without consuming additional resources.
+These reference counts ensure that the reference structures and the
+source data items they refer to are deleted automatically when (and
+only when) all ZCO extents that reference them have been deleted.</p>
+<p>Note that the safety of shared access to a ZCO is protected by the
+fact that the ZCO resides in SDR heap space and therefore cannot be modified
+other than in the course of an SDR transaction, which serializes
+access.  Moreover, extraction of data from a ZCO may entail the reading
+of file-based source data extents, which may cause file progress to
+be updated in one or more file reference objects in the SDR heap.  For
+this reason, all ZCO "transmit" and "receive" functions must be performed
+within SDR transactions.</p>
+<p>Note also that ZCO can more broadly be used as a general-purpose
+reference counting system for non-volatile data objects, where a
+need for such a system is identified.</p>
+<p>The total volume of file system space, mass storage space, and SDR heap
+space that may be occupied by inbound and (separately) outbound ZCO extents
+are system configuration parameters that may be set by ZCO library
+functions.  Those limits are enforced when extents are appended to ZCOs:
+total inbound and outbound ZCO file space, mass storage, and SDR heap
+occupancy are updated continuously as ZCOs are created and destroyed,
+and the formation of a new extent is prohibited when the length of the
+extent exceeds the difference between the applicable limit and the
+corresponding current occupancy total.  Doing separate accounting for
+inbound and outbound ZCOs enables inbound ZCOs to be formed (for data
+reception purposes) even when the total current volume of outbound ZCOs
+has reached its limit, and vice versa.</p>
+<ul>
+<li>
+<p>void zco_register_callback(ZcoCallback notify)</p>
+<p>This function registers the "callback" function that the ZCO system will
+invoke every time a ZCO is destroyed, making ZCO file, bulk, and/or heap space
+available for the formation of new ZCO extents.  This mechanism can be
+used, for example, to notify tasks that are waiting for ZCO space to be
+made available so that they can resume some communication protocol
+procedure.</p>
+</li>
+<li>
+<p>void zco_unregister_callback( )</p>
+<p>This function simply unregisters the currently registered callback function
+for ZCO destruction.</p>
+</li>
+<li>
+<p>Object zco_create_file_ref(Sdr sdr, char *pathName, char *cleanupScript, ZcoAcct acct)</p>
+<p>Creates and returns a new file reference object, which can be used as the
+source data extent location for creating a ZCO whose source data object is
+the file identified by <em>pathName</em>.  <em>cleanupScript</em>, if not NULL, is invoked
+at the moment the last ZCO that cites this file reference is destroyed
+[normally upon delivery either down to the "ZCO transition layer" of the
+protocol stack or up to a ZCO-capable application].  A zero-length string
+is interpreted as implicit direction to delete the referenced file when
+the file reference object is destroyed.  Maximum length of <em>cleanupScript</em>
+is 255.  <em>acct</em> must be ZcoInbound or ZcoOutbound, depending on whether
+the first ZCO that will reference this object will be inbound or outbound.
+Returns SDR location of file reference object on success, 0 on any
+error.</p>
+</li>
+<li>
+<p>Object zco_revise_file_ref(Sdr sdr, Object fileRef, char *pathName, char *cleanupScript)</p>
+<p>Changes the <em>pathName</em> and <em>cleanupScript</em> of the indicated file
+reference.  The new values of these fields are validated as for
+zco_create_file_ref().  Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>char *zco_file_ref_path(Sdr sdr, Object fileRef, char *buffer, int buflen)</p>
+<p>Retrieves the pathName associated with <em>fileRef</em> and stores it in <em>buffer</em>,
+truncating it to fit (as indicated by <em>buflen</em>) and NULL-terminating it.  On
+success, returns <em>buffer</em>; returns NULL on any error.</p>
+</li>
+<li>
+<p>int zco_file_ref_xmit_eof(Sdr sdr, Object fileRef)</p>
+<p>Returns 1 if the last octet of the referenced file (as determined at the
+time the file reference object was created) has been read by ZCO via a
+reader with file offset tracking turned on.  Otherwise returns zero.</p>
+</li>
+<li>
+<p>void zco_destroy_file_ref(Sdr sdr, Object fileRef)</p>
+<p>If the file reference object residing at location <em>fileRef</em> within
+the indicated Sdr is no longer in use (no longer referenced by any ZCO),
+destroys this file reference object immediately.  Otherwise, flags this
+file reference object for destruction as soon as the last reference to
+it is removed.</p>
+</li>
+<li>
+<p>Object zco_create_bulk_ref(Sdr sdr, unsigned long item, vast length, ZcoAcct acct)</p>
+<p>Creates and returns a new bulk reference object, which can be used as the
+source data extent location for creating a ZCO whose source data object is
+the mass storage item of length <em>length</em> identified by <em>item</em> (the semantics
+of which are implementation-dependent).  Note that the referenced item is
+automatically destroyed at the time that the last ZCO that cites this bulk
+reference is destroyed (normally upon delivery either down to the "ZCO
+transition layer" of the protocol stack or up to a ZCO-capable application).
+<em>acct</em> must be ZcoInbound or ZcoOutbound, depending on whether the first
+ZCO that will reference this object will be inbound or outbound.  Returns
+SDR location of bulk reference object on success, 0 on any error.</p>
+</li>
+<li>
+<p>void zco_destroy_bulk_ref(Sdr sdr, Object bulkRef)</p>
+<p>If the bulk reference object residing at location <em>bulkRef</em> within
+the indicated Sdr is no longer in use (no longer referenced by any ZCO),
+destroys this bulk reference object immediately.  Otherwise, flags this
+bulk reference object for destruction as soon as the last reference to
+it is removed.</p>
+</li>
+<li>
+<p>Object zco_create_obj_ref(Sdr sdr, Object object, vast length, ZcoAcct acct)</p>
+<p>Creates and returns a new object reference object, which can be used as the
+source data extent location for creating a ZCO whose source data object is
+the SDR heap object of length <em>length</em> identified by <em>object</em>.  Note that
+the referenced object is automatically freed at the time that the last ZCO
+that cites this object reference is destroyed (normally upon delivery either
+down to the "ZCO transition layer" of the protocol stack or up to a
+ZCO-capable application).  <em>acct</em> must be ZcoInbound or ZcoOutbound,
+depending on whether the first ZCO that will reference this object will
+be inbound or outbound.  Returns SDR location of object reference object
+on success, 0 on any error.</p>
+</li>
+<li>
+<p>void zco_destroy_obj_ref(Sdr sdr, Object objRef)</p>
+<p>If the object reference object residing at location <em>objRef</em> within
+the indicated Sdr is no longer in use (no longer referenced by any ZCO),
+destroys this object reference object immediately.  Otherwise, flags this
+object reference object for destruction as soon as the last reference to
+it is removed.</p>
+</li>
+<li>
+<p>void zco_status(Sdr sdr)</p>
+<p>Uses the ION logging function to write a report of the current contents of
+the ZCO space accounting database.</p>
+</li>
+<li>
+<p>vast zco_get_file_occupancy(Sdr sdr, ZcoAcct acct)</p>
+<p>Returns the total number of file system space bytes occupied by ZCOs (inbound
+or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>void zco_set_max_file_occupancy(Sdr sdr, vast occupancy, ZcoAcct acct)</p>
+<p>Declares the total number of file system space bytes that may be occupied by
+ZCOs (inbound or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>vast zco_get_max_file_occupancy(Sdr sdr, ZcoAcct acct)</p>
+<p>Returns the total number of file system space bytes that may be occupied by
+ZCOs (inbound or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>int zco_enough_file_space(Sdr sdr, vast length, ZcoAcct acct)</p>
+<p>Returns 1 if the total remaining file system space available for ZCOs (inbound
+or outbound) in this Sdr is greater than <em>length</em>.  Returns 0 otherwise.</p>
+</li>
+<li>
+<p>vast zco_get_bulk_occupancy(Sdr sdr, ZcoAcct acct)</p>
+<p>Returns the total number of mass storage space bytes occupied by ZCOs (inbound
+or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>void zco_set_max_bulk_occupancy(Sdr sdr, vast occupancy, ZcoAcct acct)</p>
+<p>Declares the total number of mass storage space bytes that may be occupied by
+ZCOs (inbound or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>vast zco_get_max_bulk_occupancy(Sdr sdr, ZcoAcct acct)</p>
+<p>Returns the total number of mass storage space bytes that may be occupied by
+ZCOs (inbound or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>int zco_enough_bulk_space(Sdr sdr, vast length, ZcoAcct acct)</p>
+<p>Returns 1 if the total remaining mass storage space available for ZCOs (inbound
+or outbound) in this Sdr is greater than <em>length</em>.  Returns 0 otherwise.</p>
+</li>
+<li>
+<p>vast zco_get_heap_occupancy(Sdr sdr, ZcoAcct acct)</p>
+<p>Returns the total number of SDR heap space bytes occupied by ZCOs (inbound or
+outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>void zco_set_max_heap_occupancy(Sdr sdr, vast occupancy, ZcoAcct acct)</p>
+<p>Declares the total number of SDR heap space bytes that may be occupied by
+ZCOs (inbound or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>vast zco_get_max_heap_occupancy(Sdr sdr, ZcoAcct acct)</p>
+<p>Returns the total number of SDR heap space bytes that may be occupied by
+ZCOs (inbound or outbound) created in this Sdr.</p>
+</li>
+<li>
+<p>int zco_enough_heap_space(Sdr sdr, vast length, ZcoAcct acct)</p>
+<p>Returns 1 if the total remaining SDR heap space available for ZCOs (inbound or
+outbound) in this Sdr is greater than <em>length</em>.  Returns 0 otherwise.</p>
+</li>
+<li>
+<p>int zco_extent_too_large(Sdr sdr, ZcoMedium source, vast length, ZcoAcct acct)</p>
+<p>Returns 1 if the total remaining space available for ZCOs (inbound or outbound)
+is NOT enough to contain a new extent of the indicated length in the indicated
+source medium.  Returns 0 otherwise.</p>
+</li>
+<li>
+<p>int zco_get_aggregate_length(Sdr sdr, Object location, vast offset, vast length, vast *fileSpaceOccupied, vast *bulkSpaceOccupied, vast *heapSpaceOccupied)</p>
+<p>Populates <em>*fileSpaceOccupied</em>, <em>*bulkSpaceOccupied</em>, and
+<em>*heapSpaceOccupied</em> with the total number of ZCO space bytes occupied by
+the extents of the zco at <em>location</em>, from <em>offset</em> to <em>offset + length</em>.
+If <em>offset</em> isn't the start of an extent or <em>offset + length</em> isn't the
+end of an extent, returns -1 in all three fields.</p>
+</li>
+<li>
+<p>Object zco_create(Sdr sdr, ZcoMedium firstExtentSourceMedium, Object firstExtentLocation, vast firstExtentOffset, vast firstExtentLength, ZcoAcct acct)</p>
+<p>Creates a new inbound or outbound ZCO.  <em>firstExtentLocation</em> and
+<em>firstExtentLength</em> must either both be zero (indicating that
+zco_append_extent() will be used to insert the first source data extent
+later) or else both be non-zero.  If <em>firstExtentLocation</em> is non-zero,
+then (a) <em>firstExtentLocation</em> must be the SDR location of a file
+reference object, bulk reference object, object reference object, SDR heap
+object, or ZCO, depending on the value of <em>firstExtentSourceMedium</em>, and
+(b) <em>firstExtentOffset</em> indicates how many leading bytes of the source
+data object should be skipped over when adding the initial source data
+extent to the new ZCO.  A negative value for
+<em>firstExtentLength</em> indicates that the extent is already known not to be
+too large for the available ZCO space, and the actual length of the extent
+is the additive inverse of this value.  On success, returns the SDR location
+of the new ZCO.  Returns 0 if there is insufficient ZCO space for creation
+of the new ZCO; returns ((Object) -1) on any error.</p>
+</li>
+<li>
+<p>int zco_append_extent(Sdr sdr, Object zco, ZcoMedium sourceMedium, Object location, vast offset, vast length)</p>
+<p>Appends the indicated source data extent to the indicated ZCO, as described
+for zco_create().  Both the <em>location</em> and <em>length</em> of the source data
+must be non-zero.  A negative value for <em>length</em> indicates that the extent
+is already known not to be too large for the available ZCO space, and the
+actual length of the extent is the additive inverse of this value.  For
+constraints on the value of <em>location</em>, see zco_create().  Returns
+<em>length</em> on success, 0 if there is insufficient ZCO space for creation of
+the new source data extent, -1 on any error.</p>
+</li>
+<li>
+<p>int zco_prepend_header(Sdr sdr, Object zco, char *header, vast length)</p>
+</li>
+<li>int zco_append_trailer(Sdr sdr, Object zco, char *trailer, vast length)</li>
+<li>void zco_discard_first_header(Sdr sdr, Object zco)</li>
+<li>
+<p>void zco_discard_last_trailer(Sdr sdr, Object zco)</p>
+<p>These functions attach and remove the ZCO's headers and trailers.  <em>header</em>
+and <em>trailer</em> are assumed to be arrays of octets, not necessarily text.<br />
+Attaching a header or trailer causes it to be written to the SDR.  The
+prepend and append functions return 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>Object zco_header_text(Sdr sdr, Object zco, int skip, vast *length)</p>
+<p>Skips over the first <em>skip</em> headers of <em>zco</em> and returns the address of
+the text of the next header, placing the length of the header's text in
+<em>*length</em>.  Returns 0 on any error.</p>
+</li>
+<li>
+<p>Object zco_trailer_text(Sdr sdr, Object zco, int skip, vast *length)</p>
+<p>Skips over the first <em>skip</em> trailers of <em>zco</em> and returns the address of
+the text of the next trailer, placing the length of the trailer's text in
+<em>*length</em>.  Returns 0 on any error.</p>
+</li>
+<li>
+<p>void zco_destroy(Sdr sdr, Object zco)</p>
+<p>Destroys the indicated Zco.  This reduces the reference counts for all
+files and SDR objects referenced in the ZCO's extents, resulting in the
+freeing of SDR objects and (optionally) the deletion of files as those
+reference count drop to zero.</p>
+</li>
+<li>
+<p>void zco_bond(Sdr sdr, Object zco)</p>
+<p>Converts all headers and trailers of the indicated Zco to source data extents.
+Use this function to ensure that known header and trailer data are included
+when the ZCO is cloned.</p>
+</li>
+<li>
+<p>int zco_revise(Sdr sdr, Object zco, vast offset, char *buffer, vast length)</p>
+<p>Writes the contents of <em>buffer</em>, for length <em>length</em>, into <em>zco</em> at offset
+<em>offset</em>.  Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>Object zco_clone(Sdr sdr, Object zco, vast offset, vast length)</p>
+<p>Creates a new ZCO whose source data is a copy of a subset of the source
+data of the referenced ZCO.  This procedure is required whenever it is
+necessary to process the ZCO's source data in multiple different ways, for
+different purposes, and therefore the ZCO must be in multiple states at the
+same time.  Portions of the source data extents of the original ZCO are
+copied as necessary, but no header or trailer capsules are copied.  Returns
+SDR location of the new ZCO on success, (Object) -1 on any error.</p>
+</li>
+<li>
+<p>vast zco_clone_source_data(Sdr sdr, Object toZco, Object fromZco, vast offset, vast length)</p>
+<p>Appends to <em>toZco</em> a copy of a subset of the source data of <em>fromZCO</em>.
+Portions of the source data extents of <em>fromZCO</em> are copied as necessary.
+Returns total data length cloned, or -1 on any error.</p>
+</li>
+<li>
+<p>vast zco_length(Sdr sdr, Object zco)</p>
+<p>Returns length of entire ZCO, including all headers and trailers and
+all source data extents.  This is the size of the object that would be
+formed by concatenating the text of all headers, trailers, and source
+data extents into a single serialized object.</p>
+</li>
+<li>
+<p>vast zco_source_data_length(Sdr sdr, Object zco)</p>
+<p>Returns length of entire ZCO minus the lengths of all attached header and
+trailer capsules.  This is the size of the object that would be formed by
+concatenating the text of all source data extents (including those that
+are presumed to contain header or trailer text attached elsewhere) into
+a single serialized object.</p>
+</li>
+<li>
+<p>ZcoAcct zco_acct(Sdr sdr, Object zco)</p>
+<p>Returns an indicator as to whether <em>zco</em> is inbound or outbound.</p>
+</li>
+<li>
+<p>void zco_start_transmitting(Object zco, ZcoReader *reader)</p>
+<p>Used by underlying protocol layer to start extraction of an outbound ZCO's
+bytes (both from header and trailer capsules and from source data extents) for
+"transmission" -- i.e., the copying of bytes into a memory buffer for
+delivery to some non-ZCO-aware protocol implementation.  Initializes
+reading at the first byte of the total concatenated ZCO object.  Populates
+<em>reader</em>, which is used to keep track of "transmission" progress via this
+ZCO reference.</p>
+<p>Note that this function can be called multiple times to restart reading at
+the start of the ZCO.  Note also that multiple ZcoReader objects may be used
+concurrently, by the same task or different tasks, to advance through the
+ZCO independently.</p>
+</li>
+<li>
+<p>void zco_track_file_offset(ZcoReader *reader)</p>
+<p>Turns on file offset tracking for this reader.</p>
+</li>
+<li>
+<p>vast zco_transmit(Sdr sdr, ZcoReader *reader, vast length, char *buffer)</p>
+<p>Copies <em>length</em> as-yet-uncopied bytes of the total concatenated ZCO
+(referenced by <em>reader</em>) into <em>buffer</em>.  If <em>buffer</em> is NULL, skips
+over <em>length</em> bytes without copying.  Returns the number of bytes copied
+(or skipped) on success, 0 on any file access error, -1 on any other error.</p>
+</li>
+<li>
+<p>void zco_start_receiving(Object zco, ZcoReader *reader)</p>
+<p>Used by overlying protocol layer to start extraction of an inbound ZCO's
+bytes for "reception" -- i.e., the copying of bytes into a memory buffer
+for delivery to a protocol header parser, to a protocol trailer parser,
+or to the ultimate recipient (application).  Initializes reading of
+headers, source data, and trailers at the first byte of the concatenated
+ZCO objects.  Populates <em>reader</em>, which is used to keep track of "reception"
+progress via this ZCO reference and is required.</p>
+</li>
+<li>
+<p>vast zco_receive_headers(Sdr sdr, ZcoReader *reader, vast length, char *buffer)</p>
+<p>Copies <em>length</em> as-yet-uncopied bytes of presumptive protocol header text
+from ZCO source data extents into <em>buffer</em>.  If <em>buffer</em> is NULL, skips
+over <em>length</em> bytes without copying.  Returns number of bytes copied (or
+skipped) on success, 0 on any file access error, -1 on any other error.</p>
+</li>
+<li>
+<p>void zco_delimit_source(Sdr sdr, Object zco, vast offset, vast length)</p>
+<p>Sets the computed offset and length of actual source data in the ZCO,
+thereby implicitly establishing the total length of the ZCO's concatenated
+protocol headers as <em>offset</em> and the location of the ZCO's innermost
+protocol trailer as the sum of <em>offset</em> and <em>length</em>.  Offset and length
+are typically determined from the information carried in received presumptive
+protocol header text.</p>
+</li>
+<li>
+<p>vast zco_receive_source(Sdr sdr, ZcoReader *reader, vast length, char *buffer)</p>
+<p>Copies <em>length</em> as-yet-uncopied bytes of source data from ZCO extents into
+<em>buffer</em>.  If <em>buffer</em> is NULL, skips over <em>length</em> bytes without
+copying.  Returns number of bytes copied (or skipped) on success, 0 on any
+file access error, -1 on any other error.</p>
+</li>
+<li>
+<p>vast zco_receive_trailers(Sdr sdr, ZcoReader *reader, vast length, char *buffer)</p>
+<p>Copies <em>length</em> as-yet-uncopied bytes of trailer data from ZCO extents into
+<em>buffer</em>.  If <em>buffer</em> is NULL, skips over <em>length</em> bytes without copying.
+Returns number of bytes copied (or skipped) on success, 0 on any file access
+error, -1 on any other error.</p>
+</li>
+<li>
+<p>void zco_strip(Sdr sdr, Object zco)</p>
+<p>Deletes all source data extents that contain only header or trailer data and
+adjusts the offsets and/or lengths of all remaining extents to exclude any
+known header or trailer data.  This function is useful when handling a ZCO
+that was received from an underlying protocol layer rather than from an
+overlying application or protocol layer; use it before starting the
+transmission of the ZCO to another node or before enqueuing it for
+reception by an overlying application or protocol layer.</p>
+</li>
+</ul>
+<h1 id="see-also">SEE ALSO</h1>
+<p>sdr(3)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

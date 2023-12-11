@@ -1,0 +1,1604 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/Basic-Configuration-File-Tutorial/">
+      
+      
+        <link rel="prev" href="../community/Contributing-Code-to-ION/">
+      
+      
+        <link rel="next" href="../ION-Config-File-Templates/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>Basic Configuration Tutorial - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#basic-configuration-file-tutorial" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Basic Configuration Tutorial
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#programs-in-ion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Programs in ION
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ion-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      ION Logging
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#starting-the-ion-daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      Starting the ION Daemon
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration-files-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration Files Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-ion-configuration-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      The ION Configuration File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-licklider-transfer-protocol-configuration-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      The Licklider Transfer Protocol Configuration File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-bundle-protocol-configuration-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      The Bundle Protocol Configuration File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ipn-routing-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      IPN Routing Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-your-connection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing Your Connection
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#stopping-the-daemon" class="md-nav__link">
+    <span class="md-ellipsis">
+      Stopping the Daemon
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-advanced-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      More Advanced Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ionscript-for-simplified-configuration-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Ionscript for Simplified Configuration Files
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples-of-network-configurations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples of Network Configurations
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="basic-configuration-file-tutorial">Basic Configuration File Tutorial</h1>
+<h2 id="programs-in-ion">Programs in ION</h2>
+<p>The following tools are available to you after ION is built:</p>
+<p>Daemon and Configuration
+- ionadmin is the administration and configuration interface for the local ION node contacts and manages shared memory resources used by ION.
+- ltpadmin is the administration and configuration interface for LTP operations on the local ION node.
+- bsspadmin is the administrative interface for operations of the Bundle Streaming Service Protocol on the local ion node.
+- bpadmin is the administrative interface for bundle protocol operations on the local ion node.
+- ipnadmin is the administration and configuration interface for the IPN addressing system and routing on the ION node. (ipn:)
+- dtn2admin is the administration and configuration interface for the DTN addressing system and routing on the ION node. (dtn://)
+- killm is a script which tears down the daemon and any running ducts on a single machine (use ionstop instead).
+- ionstart is a script which completely configures an ION node with the proper configuration file(s).
+- ionstop is a script which completely tears down the ION node.
+- ionscript is a script which aides in the creation and management of configuration files to be used with ionstart.</p>
+<p>Simple Sending and Receiving
+  - bpsource and bpsink are for testing basic connectivity between endpoints. bpsink listens for and then displays messages sent by bpsource.
+  - bpsendfile and bprecvfile are used to send files between ION nodes.</p>
+<p>Testing and Benchmarking
+  - bpdriver benchmarks a connection by sending bundles in two modes: request-response and streaming.
+  - bpecho issues responses to bpdriver in request-response mode.
+  - bpcounter acts as receiver for streaming mode, outputting markers on receipt of data from bpdriver and computing throughput metrics.</p>
+<h2 id="ion-logging">ION Logging</h2>
+<p>It is important to note that, by default, the administrative programs will all trigger the creation of a log file called ion.log in the directory where the program is called. This means that write-access in your current working directory is required. The log file itself will contain the expected log information from administrative daemons, but it will also contain error reports from simple applications such as bpsink. This is important to note since the BP applications may not be reporting all error information to stdout or stderr.</p>
+<h2 id="starting-the-ion-daemon">Starting the ION Daemon</h2>
+<p>A script has been created which allows a more streamlined configuration and startup of an ION node. This script is called ionstart, and it has the following syntax. Don't run it yet; we still have to configure it!</p>
+<p><code>ionstart -I &lt;filename&gt;</code></p>
+<p>filename: This is the name for configuration file which the script will attempt to use for the various configuration commands. The script will perform a sanity check on the file, splitting it into command sections appropriate for each of the administration programs.</p>
+<p>Configuration information (such as routes, connections, etc) can be specified one of two ways for any of the individual administration programs:</p>
+<p>(Recommended) Creating a configuration file and passing it to ionadmin, bpadmin, ipnadmin... either directly or via the ionstart helper script.
+Manually typing configuration commands into the terminal for each administration program.</p>
+<p>You can find appropriate commands in the following sections.</p>
+<h2 id="configuration-files-overview">Configuration Files Overview</h2>
+<p>There are five configuration files about which you should be aware.</p>
+<p>The first, ionadmin's configuration file, assigns an identity (node number) to the node, optionally configures the resources that will be made available to the node, and specifies contact bandwidths and one-way transmission times. Specifying the "contact plan" is important in deep-space scenarios where the bandwidth must be managed and where acknowledgments must be timed according to propagation delays. It is also vital to the function of contact-graph routing.</p>
+<p>The second, ltpadmin's configuration file, specifies spans, transmission speeds, and resources for the Licklider Transfer Protocol convergence layer.</p>
+<p>The third, ipnadmin's configuration file, maps endpoints at "neighboring" (topologically adjacent, directly reachable) nodes to convergence-layer addresses. Our examples use TCP/IP and LTP (over IP/UDP), so it maps endpoint IDs to IP addresses. This file populates the ION analogue to an ARP cache for the "ipn" naming scheme.</p>
+<p>The fourth, bpadmin's configuration file, specifies all of the open endpoints for delivery on your local end and specifies which convergence layer protocol(s) you intend to use. With the exception of LTP, most convergence layer adapters are fully configured in this file.</p>
+<p>The fifth, dtn2admin's configuration file, populates the ION analogue to an ARP cache for the "dtn" naming scheme.</p>
+<h2 id="the-ion-configuration-file">The ION Configuration File</h2>
+<p>Given to ionadmin either as a file or from the daemon command line, this file configures contacts for the ION node. We will assume that the local node's identification number is 1.</p>
+<p>This file specifies contact times and one-way light times between nodes. This is useful in deep-space scenarios: for instance, Mars may be 20 light-minutes away, or 8. Though only some transport protocols make use of this time (currently, only LTP), it must be specified for all links nonetheless. Times may be relative (prefixed with a + from current time) or absolute. Absolute times, are in the format <code>yyyy/mm/dd-hh:mm:ss</code>. By default, the contact-graph routing engine will make bundle routing decisions based on the contact information provided.</p>
+<p>The configuration file lines are as follows:</p>
+<p><code>1 1 ''</code></p>
+<p>This command will initialize the ion node to be node number 1.</p>
+<p>1 refers to this being the initialization or ''first'' command.
+1 specifies the node number of this ion node. (IPN node 1).
+'' specifies the name of a file of configuration commands for the node's use of shared memory and other resources (suitable defaults are applied if you leave this argument as an empty string).</p>
+<p><code>s</code></p>
+<p>This will start the ION node. It mostly functions to officially "start" the node in a specific instant; it causes all of ION's protocol-independent background daemons to start running.</p>
+<p><code>a contact +1 +3600 1 1 100000</code></p>
+<p>specifies a transmission opportunity for a given time duration between two connected nodes (or, in this case, a loopback transmission opportunity).</p>
+<p>a adds this entry in the configuration table.
+contact specifies that this entry defines a transmission opportunity.
++1 is the start time for the contact (relative to when the s command is issued).
++3600 is the end time for the contact (relative to when the s command is issued).
+1 is the source node number.
+1 is the destination node number.
+100000 is the maximum rate at which data is expected to be transmitted from the source node to the destination node during this time period (here, it is 100000 bytes / second).</p>
+<p><code>a range +1 +3600 1 1 1</code></p>
+<p>specifies a distance between nodes, expressed as a number of light seconds, where each element has the following meaning:</p>
+<p>a adds this entry in the configuration table.
+range declares that what follows is a distance between two nodes.
++1 is the earliest time at which this is expected to be the distance between these two nodes (relative to the time s was issued).
++3600 is the latest time at which this is still expected to be the distance between these two nodes (relative to the time s was issued).
+1 is one of the two nodes in question.
+1 is the other node.
+1 is the distance between the nodes, measured in light seconds, also sometimes called the "one-way light time" (here, one light second is the expected distance).</p>
+<p><code>m production 1000000</code></p>
+<p>specifies the maximum rate at which data will be produced by the node.</p>
+<p>m specifies that this is a management command.
+production declares that this command declares the maximum rate of data production at this ION node.
+1000000 specifies that at most 1000000 bytes/second will be produced by this node.</p>
+<p><code>m consumption 1000000</code></p>
+<p>specifies the maximum rate at which data can be consumed by the node.</p>
+<p>m specifies that this is a management command.
+consumption declares that this command declares the maximum rate of data consumption at this ION node.
+1000000 specifies that at most 1000000 bytes/second will be consumed by this node.</p>
+<p>This will make a final configuration file host1.ionrc which looks like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1 1 &#39;&#39;
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>s
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>a contact +1 +3600 1 1 100000
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>a range +1 +3600 1 1 1
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>m production 1000000
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>m consumption 1000000
+</code></pre></div>
+<h2 id="the-licklider-transfer-protocol-configuration-file">The Licklider Transfer Protocol Configuration File</h2>
+<p>Given to ltpadmin as a file or from the command line, this file configures the LTP engine itself. We will assume the local IPN node number is 1; in ION, node numbers are used as the LTP engine numbers.</p>
+<p><code>1 32</code></p>
+<p>This command will initialize the LTP engine:</p>
+<p>1 refers to this being the initialization or ''first'' command.
+32 is an estimate of the maximum total number of LTP ''block'' transmission sessions - for all spans - that will be concurrently active in this LTP engine. It is used to size a hash table for session lookups.</p>
+<p><code>a span 1 32 32 1400 10000 1 'udplso localhost:1113'</code></p>
+<p>This command defines an LTP engine 'span':</p>
+<p>a indicates that this will add something to the engine.</p>
+<p>span indicates that an LTP span will be added.</p>
+<p>1 is the engine number for the span, the number of the remote engine to which LTP segments will be transmitted via this span. In this case, because the span is being configured for loopback, it is the number of the local engine, i.e., the local node number. This will have to match an outduct in Section 2.6.</p>
+<p>32 specifies the maximum number of LTP ''block'' transmission sessions that may be active on this span. The product of the mean block size and the maximum number of transmission sessions is effectively the LTP flow control ''window'' for this span: if it's less than the bandwidth delay product for traffic between the local LTP engine and this spa's remote LTP engine then you'll be under-utilizing that link. We often try to size each block to be about one second's worth of transmission, so to select a good value for this parameter you can simply divide the span's bandwidth delay product (data rate times distance in light seconds) by your best guess at the mean block size.</p>
+<p>The second 32specifies the maximum number of LTP ''block'' reception sessions that may be active on this span. When data rates in both directions are the same, this is usually the same value as the maximum number of transmission sessions.</p>
+<p>1400 is the number of bytes in a single segment. In this case, LTP runs atop UDP/IP on ethernet, so we account for some packet overhead and use 1400.</p>
+<p>1000 is the LTP aggregation size limit, in bytes. LTP will aggregate multiple bundles into blocks for transmission. This value indicates that the block currently being aggregated will be transmitted as soon as its aggregate size exceeds 10000 bytes.</p>
+<p>1 is the LTP aggregation time limit, in seconds. This value indicates that the block currently being aggregated will be transmitted 1 second after aggregation began, even if its aggregate size is still less than the aggregation size limit.</p>
+<p>'udplso localhost:1113' is the command used to implement the link itself. The link is implemented via UDP, sending segments to the localhost Internet interface on port 1113 (the IANA default port for LTP over UDP).</p>
+<p><code>s 'udplsi localhost:1113'</code></p>
+<p>Starts the ltp engine itself:</p>
+<p>s starts the ltp engine.</p>
+<p>'udplsi localhost:1113' is the link service input task. In this case, the input ''duct' is a UDP listener on the local host using port 1113.</p>
+<p>This means that the entire configuration file host1.ltprc looks like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1 32
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>a span 1 32 32 1400 10000 1 &#39;udplso localhost:1113&#39;
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>s &#39;udplsi localhost:1113&#39;
+</code></pre></div>
+<h2 id="the-bundle-protocol-configuration-file">The Bundle Protocol Configuration File</h2>
+<p>Given to bpadmin either as a file or from the daemon command line, this file configures the endpoints through which this node's Bundle Protocol Agent (BPA) will communicate. We will assume the local BPA's node number is 1; as for LTP, in ION node numbers are used to identify bundle protocol agents.</p>
+<p><code>1</code> </p>
+<p>This initializes the bundle protocol:</p>
+<p>1 refers to this being the initialization or ''first'' command.</p>
+<p><code>a scheme ipn 'ipnfw' 'ipnadminep'</code></p>
+<p>This adds support for a new Endpoint Identifier (EID) scheme:</p>
+<p>a means that this command will add something.</p>
+<p>scheme means that this command will add a scheme.</p>
+<p>ipn is the name of the scheme to be added.</p>
+<p>'ipnfw' is the name of the IPN scheme's forwarding engine daemon.</p>
+<p>'ipnadminep' is the name of the IPN scheme's custody transfer management daemon.</p>
+<p><code>a endpoint ipn:1.0 q</code></p>
+<p>This command establishes this BP node's membership in a BP endpoint:</p>
+<p>a means that this command will add something.</p>
+<p>endpoint means that this command adds an endpoint.</p>
+<p>ipn is the scheme name of the endpoint.</p>
+<p>1.0 is the scheme-specific part of the endpoint. For the IPN scheme the scheme-specific part always has the form nodenumber:servicenumber. Each node must be a member of the endpoint whose node number is the node's own node number and whose service number is 0, indicating administrative traffic.</p>
+<p>q means that the behavior of the engine, upon receipt of a new bundle for this endpoint, is to queue it until an application accepts the bundle. The alternative is to silently discard the bundle if no application is actively listening; this is specified by replacing q with x.</p>
+<p><code>a endpoint ipn:1.1 q</code></p>
+<p><code>a endpoint ipn:1.2 q</code></p>
+<p>These specify two more endpoints that will be used for test traffic.</p>
+<p><code>a protocol ltp 1400 100</code></p>
+<p>This command adds support for a convergence-layer protocol:</p>
+<p>a means that this command will add something.</p>
+<p>protocol means that this command will add a convergence-layer protocol.</p>
+<p>ltp is the name of the convergence-layer protocol.</p>
+<p>1400 is the estimated size of each convergence-layer protocol data unit (in bytes); in this case, the value is based on the size of a UDP/IP packet on Ethernet.</p>
+<p>100 is the estimated size of the protocol transmission overhead (in bytes) per convergence-layer procotol data unit sent.</p>
+<p><code>a induct ltp 1 ltpcli</code></p>
+<p>This command adds an induct, through which incoming bundles can be received from other nodes:</p>
+<p>a means that this command will add something.</p>
+<p>induct means that this command will add an induct.</p>
+<p>ltp is the convergence layer protocol of the induct.</p>
+<p>1 is the identifier of the induct, in this case the ID of the local LTP engine.</p>
+<p>ltpcli is the name of the daemon used to implement the induct.</p>
+<p><code>a outduct ltp 1 ltpclo</code></p>
+<p>This command adds an outduct, through which outgoing bundles can be sent to other nodes:</p>
+<p>a means that this command will add something.</p>
+<p>outduct means that this command will add an outduct.</p>
+<p>ltp is the convergence layer protocol of the outduct.</p>
+<p>1 is the identifier of the outduct, the ID of the convergence-layer protocol induct of some remote node. See Section 2.5 for remote LTP engine IDs.</p>
+<p>ltpclo is the name of the daemon used to implement the outduct.</p>
+<p><code>s</code></p>
+<p>This command starts the bundle engine including all daemons for the inducts and outducts.</p>
+<p>That means that the entire configuration file host1.bprc looks like this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>1
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>a scheme ipn &#39;ipnfw&#39; &#39;ipnadminep&#39;
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>a endpoint ipn:1.0 q
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>a endpoint ipn:1.1 q
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>a endpoint ipn:1.2 q
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>a protocol ltp 1400 100
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>a induct ltp 1 ltpcli
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>a outduct ltp 1 ltpclo
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>s
+</code></pre></div>
+<h2 id="ipn-routing-configuration">IPN Routing Configuration</h2>
+<p>As noted earlier, this file is used to build ION's analogue to an ARP cache, a table of ''egress plans.'' It specifies which outducts to use in order to forward bundles to the local node's neighbors in the network. Since we only have one outduct, for forwarding bundles to one place (the local node), we only have one egress plan.</p>
+<p><code>a plan 1 ltp/1</code></p>
+<p>This command defines an egress plan for bundles to be transmitted to the local node:</p>
+<p>a means this command adds something.</p>
+<p>plan means this command adds an egress plan.</p>
+<p>1 is the node number of the remote node. In this case, that is the local node's own node number; we're configuring for loopback.</p>
+<p>ltp/1 is the identifier of the outduct through which to transmit bundles in order to convey them to this ''remote'' node.</p>
+<p>This means that the entire configuration file host1.ipnrc looks like this:</p>
+<p><code>a plan 1 ltp/1</code></p>
+<h2 id="testing-your-connection">Testing Your Connection</h2>
+<p>Assuming no errors occur with the configuration above, we are now ready to test loopback communications. In one terminal, we have to run the start script (the one we said that you would have to have earlier). It's right here, in case you forgot to write it down:</p>
+<p><code>ionstart -i host1.ionrc -l host1.ltprc -b host1.bprc -p host1.ipnrc</code></p>
+<p>This command will run the appropriate administration programs, in order, with the appropriate configuration files. Don't worry that the command is lengthy and unwieldly; we will show you how to make a more clean single configuration file later.</p>
+<p>Once the daemon is started, run:</p>
+<p><code>bpsink ipn:1.1</code></p>
+<p>This will begin listening on the Endpoint ID with the endpoint_number 1 on service_number 1, which is used for testing.</p>
+<p>Now open another terminal and run the command:</p>
+<p><code>bpsource ipn:1.1</code></p>
+<p>This will begin sending messages you type to the Endpoint ID ipn:1.1, which is currently being listened to by bpsink. Type messages into bpsource, press enter, and see if they are reported by bpsink.</p>
+<p>If so, you're ready for bigger and better things. If not, check the following:</p>
+<p>Do you have write permissions for your current directory? If not, you will not be able to start the daemon as it has to write out to the ion.log file.
+Are your config files exactly as specified, except for IP address changes?
+Are you running it on one of our supported platforms? Currently, those are the only supported distributions.</p>
+<p>If you are still having problems, you can ask for help on the ION users' list or file an ION bug report.</p>
+<h2 id="stopping-the-daemon">Stopping the Daemon</h2>
+<p>As the daemon launches many ducts and helper applications, it can be complicated to turn it all off. To help this, we provided a script. The script similar to ionstart exists called ionstop, which tears down the ion node in one step. You can call it like so:</p>
+<p><code>ionstop</code></p>
+<p>After stopping the daemon, it can be restarted using the same procedures as outlined above. Do remember that the ion.log file is still present, and will just keep growing as you experiment with ION.</p>
+<p>IMPORTANT: The user account that runs ionstart must also run ionstop. If that account does not, no other accounts can successfully start the daemon, as the shared memory vital to ION's functionality will already be occupied.</p>
+<h2 id="more-advanced-usage">More Advanced Usage</h2>
+<p>Detailed documentation of ION and its applications are available via the man pages. It is suggested that you start with man ion , as this is an overview man page listing all available ION packages.</p>
+<h2 id="ionscript-for-simplified-configuration-files">Ionscript for Simplified Configuration Files</h2>
+<p>The most difficult and cumbersome method of starting an ION node is to manually run the various administration programs in order, manually typing configuration commands all the way. It is much more efficient and less error-prone to place the configuration commands into a configuration file and using that as input to the administration program, but this is still cumbersome as you must type in each administration program in order. The ionstart program will automatically execute the appropriate administration programs with their respective configuration files in order. Unfortunately, as seen in the previous sections, the command is lengthy. This is why the ionscript script was added to make things even easier.</p>
+<p>The ionscript will basically concatenate the configuration files into one large file. The format of this large configuration file is simply to bookend configuration sections with the lines: ## begin PROGRAM and ## end PROGRAM, where PROGRAM is the name of the administration program for which the configuration commands should be sent (such as ionadmin, bpadmin, ipnadmin).</p>
+<p>To create a single file host1.rc out of the various configuration files defined in the previous section, run this command:</p>
+<p><code>ionscript -i host1.ionrc -p host1.ipnrc -l host1.ltprc -b host1.bprc -O host1.rc</code></p>
+<p>The command can also be used to split the large host1.rc into the individual configuration files (so long as the large file is formatted correctly). Just run this command to revert the process:</p>
+<p><code>ionscript -i host1.ionrc -p host1.ipnrc -l host1.ltprc -b host1.bprc -I host1.rc</code></p>
+<p>This isn't very practical in this specific case (as you already have the individual files) but if you start with a single configuration file, this can be helpful.</p>
+<p>Once you have a single configuration file, starting the ION node is a single command:</p>
+<p><code>ionstart -I host1.rc</code></p>
+<p>Note that ionstart and ionscript require sed and awk, but those are almost universally available on Unix-based systems. The two scripts will always sanity-check the large configuration file to ensure that it interprets the bookend lines correctly- and it will warn you of any errors you have made in the file. Consult the USAGE for each script for further help, by attempting to run the script with no arguments or the -h argument.</p>
+<h2 id="examples-of-network-configurations">Examples of Network Configurations</h2>
+<p>For a simple single-node ION configuration - running multiple instances of ION in the same host, see the tutorial <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/">here.</a></p>
+<p>For a two-node configuration, see the tutorial <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/">here.</a></p>
+<p>For a multi-hop and also multi-network configuration, see this <a href="../Configure-Multiple-Network-Interfaces/">page.</a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

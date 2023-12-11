@@ -1,0 +1,1617 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/man/ici/ionrc/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>NAME - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              NAME
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="name">NAME</h1>
+<p>ionrc - ION node management commands file</p>
+<h1 id="description">DESCRIPTION</h1>
+<p>ION node management commands are passed to <strong>ionadmin</strong> either in a file of
+text lines or interactively at <strong>ionadmin</strong>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.  The formats
+and effects of the ION node management commands are described below.</p>
+<h1 id="time-representation">TIME REPRESENTATION</h1>
+<p>For many ION node management commands, time values must be passed as
+arguments.  Every time value may be represented in either of two formats.
+Absolute time is expressed as: </p>
+<blockquote>
+<p><em>yyyy</em>/<em>mm</em>/<em>dd</em>-<em>hh</em>:_mm_:<em>ss</em></p>
+</blockquote>
+<p>Relative time (a number of seconds following the current <em>reference time</em>,
+which defaults to the current time at the moment <em>ionadmin</em> began execution
+but which can be overridden by the <strong>at</strong> command described below) is expressed
+as:</p>
+<blockquote>
+<p>+<em>ss</em></p>
+</blockquote>
+<h1 id="commands">COMMANDS</h1>
+<ul>
+<li>
+<p><strong>?</strong></p>
+<p>The <strong>help</strong> command.  This will display a listing of the commands and their
+formats.  It is the same as the <strong>h</strong> command.</p>
+</li>
+<li>
+<p><strong>#</strong></p>
+<p>Comment line.  Lines beginning with <strong>#</strong> are not interpreted.</p>
+</li>
+<li>
+<p><strong>e</strong> { 1 | 0 }</p>
+<p>Echo control.  Setting echo to 1 causes all output printed by ionadmin to
+be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.</p>
+</li>
+<li>
+<p><strong>v</strong> </p>
+<p>Version number.  Prints out the version of ION currently installed.  HINT:
+combine with <strong>e 1</strong> command to log the version number at startup.</p>
+</li>
+<li>
+<p><strong>1</strong> <em>node_number</em> [ { <em>ion_config_filename</em> | '.' | '' } ]</p>
+<p>The <strong>initialize</strong> command.  Until this command is executed, the local ION
+node does not exist and most <em>ionadmin</em> commands will fail.</p>
+<p>The command configures the local node to be identified by <em>node_number</em>, a
+CBHE node number which uniquely identifies the node in the delay-tolerant
+network.  It also configures ION's data space (SDR) and shared working-memory
+region.  For this purpose it uses a set of default settings if no argument
+follows <em>node_number</em> or if the argument following <em>node_number</em> is '';
+otherwise it uses the configuration settings found in a configuration
+file.  If configuration file name '.' is provided, then the configuration
+file's name is implicitly "<em>hostname</em>.ionconfig"; otherwise,
+<em>ion_config_filename</em> is taken to be the explicit configuration file name.
+Please see ionconfig(5) for details of the configuration settings.</p>
+<p>For example:</p>
+<div class="highlight"><pre><span></span><code>    1 19 &#39;&#39;
+</code></pre></div>
+<p>would initialize ION on the local computer, assigning the local ION node the
+node number 19 and using default values to configure the data space and
+shared working-memory region.</p>
+</li>
+<li>
+<p><strong>@</strong> <em>time</em></p>
+<p>The <strong>at</strong> command.  This is used to set the reference time that will be
+used for interpreting relative time values from now until the next revision
+of reference time.  Note that the new reference time can be a relative time,
+i.e., an offset beyond the current reference time.</p>
+</li>
+<li>
+<p><strong>^</strong> <em>region_number</em></p>
+<p>The <strong>region</strong> command.  This is used to select the region to which
+all ensuing "contact" operations (until this execution of ionadmin
+terminates, or until the next <strong>region</strong> command is processed) pertain.
+A <strong>region</strong> is an arbitarily managed set of nodes that customarily are able
+to use contact graph routing to compute forwarding routes among themselves,
+and which consequently share a common contact plan.  As such, there is a
+one-to-one correspondence between regions and contact plans, so in
+effect the <strong>region</strong> command is used to switch between contact plans.
+Regions are notionally quite small sets (on the order of 16-32 nodes)
+because contact graph routing is computationally intensive.</p>
+<p>Information regarding up to two (2) regions may be managed at any single node.</p>
+<p>By default, region number 1 (the "universal" region) is selected.</p>
+</li>
+<li>
+<p><strong>!</strong> [0 | 1]</p>
+<p>"Announce" control.  Setting the announce flag to 1 causes contact plan
+updates (contact add/change/delete, range add/delete) to be multicast to
+all other nodes in the region in addition to being processed at the local
+node.  Setting the announce flag to 0 disables this behavior.</p>
+</li>
+<li>
+<p><strong>a contact</strong> <em>start_time</em> <em>stop_time</em> <em>source_node</em> <em>dest_node</em> <em>xmit_data_rate</em> [<em>confidence</em>]</p>
+<p>The <strong>add contact</strong> command.  This command schedules a period of data
+transmission from <em>source_node</em> to <em>dest_node</em>.  The period of
+transmission will begin at <em>start_time</em> and end at <em>stop_time</em>,
+and the rate of data transmission will be <em>xmit_data_rate</em> bytes/second.
+Our confidence in the contact defaults to 1.0, indicating that the contact
+is scheduled - not that non-occurrence of the contact is impossible, just
+that occurrence of the contact is planned and scheduled rather than merely
+imputed from past node behavior.  In the latter case, <em>confidence</em>
+indicates our estimation of the likelihood of this potential contact.</p>
+<p>The period of time between the start and stop times of a contact is termed
+the contact's "interval".  The intervals of scheduled contacts are not
+allowed to overlap.</p>
+<p>Commands pertaining to three different types of contact can be intermixed
+within an .ionrc file that defines a contact plan.</p>
+<ul>
+<li>
+<p>1  Registration</p>
+<p>When <em>start_time</em> is "-1", the contact signifies the "registration" of a
+node in the region corresponding to the contact plan of which this contact is
+a part.  In this case, <em>source_node</em> and <em>dest_node</em> must be identical and
+non-zero.  A registration contact simply affirms the source node's permanent
+membership in this region, persisting even during periods when the node
+is able neither to send nor to receive data.  When inserted into the
+contact plan, the contact's start and stop times are both automatically
+set to the maximum POSIX time, its data rate is set to zero, and its
+confidence value is set to 1.0.</p>
+</li>
+<li>
+<p>2  Hypothetical</p>
+<p>When <em>stop_time</em> is "0", the contact is "hypothetical".  A hypothetical
+contact is an anticipated opportunity for the local node to transmit data
+to, or receive data from, some potentially neighboring node in the same
+region.  The nature of that contact is completely unknown; if and when
+the contact occurs, the hypothetical contact will be transformed into
+a "discovered" contact for the duration of the opportunity, after which
+it will revert to being hypothetical.  <em>source_node</em> and <em>dest_node</em> must
+<strong>NOT</strong> be identical, and one or the other must identify the local node.  When
+inserted into the contact plan, the contact's start time is automatically
+set to zero, its stop time is set to the maximum POSIX time, its data rate
+is set to zero, and its confidence value is set to 0.0.</p>
+</li>
+<li>
+<p>3  Scheduled</p>
+<p>Otherwise, the contact is "scheduled".  A scheduled contact is a managed
+opportunity to transmit data between nodes, as inferred (for example)
+from a spacecraft or ground station operating plan.  <em>start_time</em> must
+be less than <em>stop_time</em> and <em>data_rate</em> and <em>confidence</em> must both
+be greater than zero.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>c contact</strong> <em>start_time</em> <em>source_node</em> <em>dest_node</em> <em>xmit_data_rate</em> [<em>confidence</em>]</p>
+<p>The <strong>change contact</strong> command.  This command changes the data transmission
+rate and possibly our level of confidence in the scheduled period of data
+transmission from <em>source_node</em> to <em>dest_node</em> starting at <em>start_time</em>.
+Registration and hypothetical contacts cannot be changed.</p>
+</li>
+<li>
+<p><strong>d contact</strong> <em>start_time</em> <em>source_node</em> <em>dest_node</em></p>
+<p>The <strong>delete contact</strong> command.  This command deletes the contact from
+<em>source_node</em> to <em>dest_node</em> starting at <em>start_time</em>.  To delete
+all scheduled contacts between some pair of nodes, use '*' as <em>start_time</em>.
+To delete a registration contact, use "-1" as <em>start_time</em>.  To delete
+a hypothetical contact, use "0" as <em>start_time</em>.</p>
+</li>
+<li>
+<p><strong>i contact</strong> <em>start_time</em> <em>source_node</em> <em>dest_node</em></p>
+<p>This command will print information (stop time, data rate, confidence) about
+the scheduled period of transmission from <em>source_node</em> to <em>dest_node</em>
+that starts at <em>start_time</em>.</p>
+</li>
+<li>
+<p><strong>l contact</strong></p>
+<p>This command lists all contacts in the contact plan for the selected region.</p>
+</li>
+<li>
+<p><strong>b contact</strong></p>
+<p>The <strong>brief contacts</strong> command.  This command writes a file of commands
+that will recreate the current list of contacts, for the selected region,
+in the node's ION database.  The name of the file will be
+"contacts.<em>region_number</em>.ionrc".</p>
+</li>
+<li>
+<p><strong>a range</strong> <em>start_time</em> <em>stop_time</em> <em>one_node</em> <em>the_other_node</em> <em>distance</em></p>
+<p>The <strong>add range</strong> command.  This command predicts a period of time during
+which the distance from <em>one_node</em> to <em>the_other_node</em> will be constant
+to within one light second.  The period will begin at <em>start_time</em> and
+end at <em>stop_time</em>, and the distance between the nodes during that time
+will be <em>distance</em> light seconds.</p>
+<p><strong>NOTE</strong> that the ranges declared by these commands are directional.  ION
+does not automatically assume that the distance from node A to node B is
+the same as the distance from node B to node A.  While this symmetry is
+certainly true of geographic distance, the range that concerns ION is the
+latency in propagating a signal from one node to the other; this latency may
+be different in different directions because (for example) the signal from
+B to A might need to be forwarded along a different convergence-layer network
+path from the one used for the signal from A to B.</p>
+<p>For this reason, the range identification syntax for this command is
+asymmetrical: ION interprets an <strong>add range</strong> command in which the node number
+of the first cited node is numerically less than that of the second cited node
+as implicitly declaring the same distance in the reverse direction (the
+normal case)  <strong>UNLESS</strong> a second range command is present that cites the
+same two nodes in the opposite order, which overrides the implicit
+declaration.  A range command in which the node number of the first
+cited node is numerically greater than that of the second cited node
+implies <strong>ABSOLUTELY NOTHING</strong> about the distance in the reverse direction.</p>
+</li>
+<li>
+<p><strong>d range</strong> <em>start_time</em> <em>one_node</em> <em>the_other_node</em></p>
+<p>The <strong>delete range</strong> command.  This command deletes the predicted period of
+constant distance between <em>one_node</em> and <em>the_other_node</em> starting
+at <em>start_time</em>.  To delete all ranges between some pair of nodes,
+use '*' as <em>start_time</em>.</p>
+<p><strong>NOTE</strong> that the range identification syntax for this command is
+asymmetrical, much as described for the <strong>add range</strong> command described
+above.  ION interprets a <strong>delete range</strong> command in which the node number of
+the first cited node is numerically less than that of the second cited node
+as implicitly requesting deletion of the range in the opposite direction
+as well.  A <strong>delete range</strong> command in which the node number of the first
+cited node is numerically greater than that of the second cited node
+deletes only the range in that direction; the asserted range in the
+opposite direction is unaffected.</p>
+</li>
+<li>
+<p><strong>i range</strong> <em>start_time</em> <em>one_node</em> <em>the_other_node</em></p>
+<p>This command will print information (the stop time and range) about the
+predicted period of constant distance between <em>one_node</em> and <em>the_other_node</em>
+that starts at <em>start_time</em>.</p>
+</li>
+<li>
+<p><strong>l range</strong></p>
+<p>This command lists all predicted periods of constant distance.</p>
+</li>
+<li>
+<p><strong>b range</strong></p>
+<p>The <strong>brief ranges</strong> command.  This command writes a file of commands that
+will recreate the current list of ranges in the node's ION database.  The
+file's name will be "ranges.ionrc".</p>
+</li>
+<li>
+<p><strong>m utcdelta</strong> <em>local_time_sec_after_UTC</em></p>
+<p>This management command sets ION's understanding of the current difference
+between correct UTC time and the localtime equivalent of the current calendar
+(i.e., Unix epoch) time as reported by the clock for the local ION node's
+computer.  This delta is automatically applied to locally
+obtained time values whenever ION needs to know the current time.  For
+machines that are synchronized by NTP, the value of this delta should be 0,
+the default.</p>
+<p>Note that the purpose of the UTC delta is not to correct for time zone
+differences (which operating systems often do natively) but rather to
+compensate for error (drift) in clocks, particularly spacecraft clocks.
+The hardware clock on a spacecraft might gain or lose a few seconds every
+month, to the point at which its understanding of the current time - as
+reported out by the operating system and converted to UTC - might
+differ significantly from the actual value of UTC as reported by authoritative
+clocks on Earth.  To compensate for this difference without correcting the
+clock itself (which can be difficult and dangerous), ION simply adds the UTC
+delta to the calendar time reported by the operating system.</p>
+<p>Note that this means that setting the UTC delta is not a one-time node
+configuration activity but rather an ongoing node administration chore,
+because a drifting clock typically keeps on drifting.</p>
+</li>
+<li>
+<p><strong>m clockerr</strong> <em>known_maximum_clock_error</em></p>
+<p>This management command sets ION's understanding of the accuracy of the
+scheduled start and stop times of planned contacts, in seconds.  The
+default value is 1.  When revising local data transmission and reception
+rates, <em>ionadmin</em> will adjust contact start and stop times by this
+interval to be sure not to send bundles that arrive before the neighbor
+expects data arrival or to discard bundles that arrive slightly before
+they were expected.</p>
+</li>
+<li>
+<p><strong>m clocksync</strong> [ { 1 | 0 } ]</p>
+<p>This management command reports whether or not the computer on which
+the local ION node is running has a synchronized clock, as discussed in
+the description of the ionClockIsSynchronized() function (ion(3)).</p>
+<p>If a Boolean argument is provided when the command is executed, the
+characterization of the machine's clock is revised to conform with
+the asserted value.  The default value is 1.</p>
+</li>
+<li>
+<p><strong>m production</strong> <em>planned_data_production_rate</em></p>
+<p>This management command sets ION's expectation of the mean rate of continuous
+data origination by local BP applications throughout the period of time
+over which congestion forecasts are computed, in bytes per second.  For
+nodes that function only as routers this variable will normally be zero.  A
+value of -1, which is the default, indicates that the rate of local data
+production is unknown; in that case local data production is not considered
+in the computation of congestion forecasts.</p>
+</li>
+<li>
+<p><strong>m consumption</strong> <em>planned_data_consumption_rate</em></p>
+<p>This management command sets ION's expectation of the mean rate of continuous
+data delivery to local BP applications throughout the period of time
+over which congestion forecasts are computed, in bytes per second.  For
+nodes that function only as routers this variable will normally be zero.  A
+value of -1, which is the default, indicates that the rate of local data
+consumption is unknown; in that case local data consumption is not considered
+in the computation of congestion forecasts.</p>
+</li>
+<li>
+<p><strong>m inbound</strong> <em>heap_occupancy_limit</em> [<em>file_system_occupancy_limit</em>]</p>
+<p>This management command sets the maximum number of megabytes of storage space
+in ION's SDR non-volatile heap, and/or in the local file system, that can be
+used for the storage of inbound zero-copy objects.  A value of -1 for either
+limit signifies "leave unchanged".  The default heap limit is 30% of the SDR
+data space's total heap size.  The default file system limit is 1 Terabyte.</p>
+</li>
+<li>
+<p><strong>m outbound</strong> <em>heap_occupancy_limit</em> [<em>file_system_occupancy_limit</em>]</p>
+<p>This management command sets the maximum number of megabytes of storage space
+in ION's SDR non-volatile heap, and/or in the local file system, that can be
+used for the storage of outbound zero-copy objects.  A value of -1 for either
+limit signifies "leave unchanged".  The default heap limit is 30% of the SDR
+data space's total heap size.  The default file system limit is 1 Terabyte.</p>
+</li>
+<li>
+<p><strong>m search</strong> <em>max_free_blocks_to_search_through</em></p>
+<p>This management command sets the limit on the number of free blocks
+the heap space allocation function will search through in the nominal
+free space bucket, looking for a sufficiently large free block, before
+giving up and switching to the next higher non-empty free space bucket.
+The default value is 0, which yields the highest memory management speed
+but may leave heap space under-utilized: data objects may be stored in
+unnecessarily large heap space blocks.  Increasing the value of the heap
+space search limit will manage space more efficiently - with less waste -
+but more slowly.</p>
+</li>
+<li>
+<p><strong>m horizon</strong> { 0 | <em>end_time_for_congestion_forecasts</em> }</p>
+<p>This management command sets the end time for computed congestion
+forecasts.  Setting congestion forecast horizon to zero sets the congestion
+forecast end time to infinite time in the future: if there is any predicted
+net growth in bundle storage space occupancy at all, following the end of
+the last scheduled contact, then eventual congestion will be predicted.  The
+default value is zero, i.e., no end time.</p>
+</li>
+<li>
+<p><strong>m alarm</strong> '<em>congestion_alarm_command</em>'</p>
+<p>This management command establishes a command which will automatically be
+executed whenever <em>ionadmin</em> predicts that the node will become congested
+at some future time.  By default, there is no alarm command.</p>
+</li>
+<li>
+<p><strong>m usage</strong></p>
+<p>This management command simply prints ION's current data space occupancy
+(the number of megabytes of space in the SDR non-volatile heap and file system
+that are occupied by inbound and outbound zero-copy objects), the total
+zero-copy-object space occupancy ceiling, and the maximum level
+of occupancy predicted by the most recent <em>ionadmin</em> congestion forecast
+computation.</p>
+</li>
+<li>
+<p><strong>r</strong> '<em>command_text</em>'</p>
+<p>The <strong>run</strong> command.  This command will execute <em>command_text</em> as if it
+had been typed at a console prompt.  It is used to, for example, run
+another administrative program.</p>
+</li>
+<li>
+<p><strong>s</strong></p>
+<p>The <strong>start</strong> command.  This command starts the <em>rfxclock</em> task on the local
+ION node.</p>
+</li>
+<li>
+<p><strong>x</strong></p>
+<p>The <strong>stop</strong> command.  This command stops the <em>rfxclock</em> task on the local
+ION node.</p>
+</li>
+<li>
+<p><strong>h</strong></p>
+<p>The <strong>help</strong> command.  This will display a listing of the commands and their
+formats.  It is the same as the <strong>?</strong> command.</p>
+</li>
+</ul>
+<h1 id="examples">EXAMPLES</h1>
+<ul>
+<li>
+<p>@ 2008/10/05-11:30:00</p>
+<p>Sets the reference time to 1130 (UTC) on 5 October 2008.</p>
+</li>
+<li>
+<p>a range +1 2009/01/01-00:00:00 1 2 12</p>
+<p>Predicts that the distance between nodes 1 and 2 (endpoint IDs
+ipn:1.0 and ipn:2.0) will remain constant at 12 light seconds over the
+interval that begins 1 second after the reference time and ends at the
+end of calendar year 2009.</p>
+</li>
+<li>
+<p>a contact +60 +7260 1 2 10000</p>
+<p>Schedules a period of transmission at 10,000 bytes/second from node 1 to
+node 2, starting 60 seconds after the reference time and ending exactly
+two hours (7200 seconds) after it starts.</p>
+</li>
+</ul>
+<h1 id="see-also">SEE ALSO</h1>
+<p>ionadmin(1), rfxclock(1), ion(3)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>

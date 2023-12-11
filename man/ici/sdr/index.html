@@ -1,0 +1,1813 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/man/ici/sdr/">
+      
+      
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
+    
+    
+      
+        <title>NAME - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              NAME
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../.." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="name">NAME</h1>
+<p>sdr - Simple Data Recorder library</p>
+<h1 id="synopsis">SYNOPSIS</h1>
+<div class="highlight"><pre><span></span><code>#include &quot;sdr.h&quot;
+
+[see below for available functions]
+</code></pre></div>
+<h1 id="description">DESCRIPTION</h1>
+<p>SDR is a library of functions that support the use of an abstract
+data recording device called an "SDR" ("simple data recorder") for
+persistent storage of data.  The SDR abstraction insulates
+software not only from the specific characteristics of any single
+data storage device but also from some kinds of persistent 
+data storage and retrieval chores.  The underlying
+principle is that an SDR provides standardized support for user
+data organization at object granularity, with direct access to persistent 
+user data objects, rather than supporting user data organization 
+only at "file" granularity and requiring the user to
+implement access to the data objects accreted within those files.</p>
+<p>The SDR library is designed to provide some of the same kinds of
+directory services as a file system together with support for
+complex data structures that provide more operational flexibility
+than files.  (As an example of this flexibility, consider how
+much easier and faster it is to delete a given element from the middle 
+of a linked list than it is to delete a range of bytes from
+the middle of a text file.)  The intent is to enable the software
+developer to take maximum advantage of the high speed and direct
+byte addressability of a non-volatile flat address space
+in the management of persistent data.  The SDR equivalent of a "record"
+of data is simply a block of nominally persistent memory allocated from
+this address space.  The SDR equivalent of a "file" is a <em>collection</em>
+object.  Like files, collections can have names, can be located 
+by name within persistent storage, and can impose structure
+on the data items they encompass.  But, as discussed later, SDR
+collection objects can impose structures other than the strict
+FIFO accretion of records or bytes that characterizes a file.</p>
+<p>The notional data recorder managed by the SDR library takes the
+form of a single array of randomly accessible, contiguous,
+nominally persistent memory locations called a <em>heap</em>.  Physically, the heap
+may be implemented as a region of shared memory, as a single file of
+predefined size, or both -- that is, the heap may be a region of shared
+memory that is automatically mirrored in a file.</p>
+<p>SDR services that manage SDR data are provided in several
+layers, each of which relies on the services implemented at lower levels:</p>
+<blockquote>
+<p>At the highest level, a cataloguing service enables retrieval 
+of persistent objects by name.</p>
+<p>Services that manage three types of persistent data collections are 
+provided for use both by applications and by the cataloguing service:<br />
+linked lists, self-delimiting tables (which function as arrays that
+remember their own dimensions), and self-delimiting strings (short
+character arrays that remember their lengths, for speedier retrieval).</p>
+<p>Basic SDR heap space management services, analogous to malloc() and free(),
+enable the creation and destruction of objects of arbitrary type.</p>
+<p>Farther down the service stack are memcpy-like low-level 
+functions for reading from and writing to the heap.</p>
+<p>Protection of SDR data integrity across a series of reads and writes is 
+provided by a <em>transaction</em> mechanism.</p>
+</blockquote>
+<p>SDR persistent data are referenced in application code by Object
+values and Address values, both of which are simply displacements
+(offsets) within SDR address space.  The difference between the
+two is that an Object is always the address of a block of heap
+space returned by some call to sdr_malloc(), while an Address can
+refer to any byte in the address space.  That is, an Address is
+the SDR functional equivalent of a C pointer in DRAM, and some
+Addresses point to Objects.</p>
+<p>Before using SDR services, the services must be loaded to the
+target machine and initialized by invoking the sdr_initialize()
+function and the management profiles of one or more SDR's must be
+loaded by invoking the sdr_load_profile() function.  These steps
+are normally performed only once, at application load time.</p>
+<p>An application gains access to an SDR by passing the name of the
+SDR to the sdr_start_using() function, which returns an Sdr
+pointer.  Most other SDR library functions take an Sdr pointer
+as first argument.</p>
+<p>All writing to an SDR heap must occur during a <em>transaction</em> that
+was initiated by the task issuing the write.  Transactions are
+single-threaded; if task B wants to start
+a transaction while a transaction begun by task A is still in progress,
+it must wait until A's transaction is either ended or cancelled.  A
+transaction is begun by calling sdr_begin_xn().  The current transaction
+is normally ended by calling the sdr_end_xn() function, which returns an error
+return code value in the event that any serious SDR-related processing error
+was encountered in the course of the transaction.  Transactions may safely
+be nested, provided that every level of transaction activity that is begun
+is properly ended.</p>
+<p>The current transaction may instead be cancelled by calling sdr_cancel_xn(),
+which is normally used to indicate that some sort of serious SDR-related
+processing error has been encountered.  Canceling a transaction reverses
+all SDR update activity performed up to that point within the scope of the
+transaction -- and, if the canceled transaction is an inner, nested
+transaction, all SDR update activity performed within the scope of every
+outer transaction encompassing that transaction <em>and</em> every other transaction
+nested within any of those outer transactions -- provided the SDR was
+configured for transaction <em>reversibility</em>.  When an SDR is
+configured for reversibility, all heap write operations
+performed during a transaction are recorded in a log file that is
+retained until the end of the transaction.  Each log file entry notes
+the location at which the write operation was performed, the length
+of data written, and the content of the overwritten heap bytes prior
+to the write operation.  Canceling the transaction causes the log entries
+to be read and processed in reverse order, restoring all overwritten data.
+Ending the transaction, on the other hand, simply causes the log to be
+discarded.</p>
+<p>If a log file exists at the time that the profile for an SDR is loaded
+(typically during application initialization), the transaction that was
+being logged is automatically canceled and reversed.  This ensures that,
+for example, a power failure that occurs in the middle of a
+transaction will never wreck the SDR's data integrity: either all updates
+issued during a given transaction are reflected in the current dataspace
+content or none are.</p>
+<p>As a further measure to protect SDR data integrity, an SDR may
+additionally be configured for <em>object bounding</em>.  When an SDR is
+configured to be "bounded", every heap write operation is restricted
+to the extent of a single object allocated from heap space; that is,
+it's impossible to overwrite part of one object by writing beyond
+the end of another.  To enable the library to enforce this mechanism,
+application code is prohibited from writing anywhere but within the
+extent of an object that either (a) was allocated from managed heap
+space during the same transaction (directly or indirectly via some
+collection management function) or (b) was <em>staged</em> -- identified
+as an update target -- during the same transaction (again, either
+directly or via some collection management function).</p>
+<p>Note that both transaction reversibility and object bounding consume
+processing cycles and inhibit performance to some degree.  Determining
+the right balance between operational safety and processing speed is
+left to the user.</p>
+<p>Note also that, since SDR transactions are single-threaded, they can
+additionally be used as a general mechanism for simply implementing "critical
+sections" in software that is already using SDR for other purposes: the
+beginning of a transaction marks the start of code that can't be executed
+concurrently by multiple tasks.  To support this use of the SDR transaction
+mechanism, the additional transaction termination function sdr_exit_xn() is
+provided.  sdr_exit_xn() simply ends a transaction without either signaling
+an error or checking for errors.  Like sdr_cancel_xn(), sdr_exit_xn()
+has no return value; unlike sdr_cancel_xn(), it assures that ending an
+inner, nested transaction does not cause the outer transaction to be
+aborted and backed out.  But this capability must be used carefully: the
+protection of SDR data integrity requires that transactions which are
+ended by sdr_exit_xn() must not encompass any SDR update activity whatsoever.</p>
+<p>The heap space management functions of the SDR library are adapted
+directly from the Personal Space Management (<em>psm</em>)
+function library.  The manual page for psm(3) explains
+the algorithms used and the rationale behind them.  The principal
+difference between PSM memory management and SDR heap management
+is that, for performance reasons, SDR reserves the "small pool" for
+its own use only; all user data space is allocated from the "large
+pool", via the sdr_malloc() function.</p>
+<h2 id="return-values-and-error-handling">RETURN VALUES AND ERROR HANDLING</h2>
+<p>Whenever an SDR function call fails, a diagnostic message explaining
+the failure of the function is recorded in the error message pool
+managed by the "platform" system (see the discussion
+of putErrmsg() in platform(3)).</p>
+<p>The failure of any function invoked in the course of an SDR
+transaction causes all subsequent SDR activity in that
+transaction to fail immediately.  This can streamline SDR application
+code somewhat: it may not be necessary to check the return
+value of every SDR function call executed during a transaction.
+If the sdr_end_xn() call returns zero, all updates performed during
+the transaction must have succeeded.</p>
+<h1 id="system-administration-functions">SYSTEM ADMINISTRATION FUNCTIONS</h1>
+<ul>
+<li>
+<p>int sdr_initialize(int wmSize, char *wmPtr, int wmKey, char *wmName)</p>
+<p>Initializes the SDR system.  sdr_initialize() must be
+called once every time the computer on which the system
+runs is rebooted, before any call to any other SDR library function.</p>
+<p>This function attaches to a pool of shared memory, managed by PSM
+(see psm(3), that enables SDR library operations.  If the SDR system
+is to access a common pool of shared memory with one or more other
+systems, the key of that shared memory segment must be provided in
+<em>wmKey</em> and the PSM partition name associated with that memory segment
+must be provided in <em>wmName</em>; otherwise <em>wmKey</em> must be zero and
+<em>wmName</em> must be NULL, causing sdr_initialize() to assign default
+values.  If a shared memory segment identified by the effective
+value of <em>wmKey</em> already exists, then <em>wmSize</em> may be zero and the value of
+<em>wmPtr</em> is ignored.  Otherwise the size of the shared memory pool must
+be provided in <em>wmSize</em> and a new shared memory segment is created in
+a manner that is dependent on <em>wmPtr</em>: if <em>wmPtr</em> is NULL then <em>wmSize</em>
+bytes of shared memory are dynamically acquired, allocated, and assigned
+to the newly created shared memory segment; otherwise the memory located
+at <em>wmPtr</em> is assumed to have been pre-allocated and is merely assigned
+to the newly created shared memory segment.</p>
+<p>sdr_initialize() also creates a semaphore to serialize access to the
+SDR system's private array of SDR profiles.  </p>
+<p>Returns 0 on success, -1 on any failure.</p>
+</li>
+<li>
+<p>void sdr_wm_usage(PsmUsageSummary *summary)</p>
+<p>Loads <em>summary</em> with a snapshot of the usage of the SDR system's private
+working memory.  To print the snapshot, use psm_report().  (See psm(3).)</p>
+</li>
+<li>
+<p>void sdr_shutdown( )</p>
+<p>Ends all access to all SDRs (see sdr_stop_using()), detaches from the
+SDR system's working memory (releasing the memory if it was dynamically
+allocated by sdr_initialize()), and destroys the SDR system's private
+semaphore.  After sdr_shutdown(), sdr_initialize() must be called again
+before any call to any other SDR library function.</p>
+</li>
+</ul>
+<h1 id="database-administration-functions">DATABASE ADMINISTRATION FUNCTIONS</h1>
+<ul>
+<li>
+<p>int sdr_load_profile(char *name, int configFlags, long heapWords, int heapKey, int logSize, int logKey, char *pathName, char *restartCmd, unsigned int restartLatency)</p>
+<p>Loads the profile for an SDR into the system's private list of SDR profiles.
+Although SDRs themselves are persistent, SDR profiles are not: in order
+for an application to access an SDR, sdr_load_profile() must have been called
+to load the profile of the SDR since the last invocation of sdr_initialize(). </p>
+<p><em>name</em> is the name of the SDR, required for any subsequent sdr_start_using()
+call.  </p>
+<p><em>configFlags</em> specifies the configuration of the
+SDR, the bitwise "or" of some combination of the following:</p>
+<ul>
+<li>
+<p>SDR_IN_DRAM</p>
+<p>SDR dataspace is implemented as a region of shared memory.</p>
+</li>
+<li>
+<p>SDR_IN_FILE</p>
+<p>SDR dataspace is implemented as a file.</p>
+</li>
+<li>
+<p>SDR_REVERSIBLE</p>
+<p>SDR transactions are logged and are reversed if canceled.</p>
+</li>
+<li>
+<p>SDR_BOUNDED</p>
+<p>Heap updates are not allowed to cross object boundaries.</p>
+</li>
+</ul>
+<p><em>heapWords</em> specifies the size of the heap in words; word size depends on
+machine architecture, i.e., a word is 4 bytes on a 32-bit machine, 8 bytes on
+a 64-bit machine.  Note that each SDR prepends to the heap a "map" of
+predefined, fixed size.  The total amount of space occupied by an SDR
+dataspace in memory and/or in a file is the sum of the size of the map
+plus the product of word size and <em>heapWords</em>.</p>
+<p><em>heapKey</em> is ignored if <em>configFlags</em> does not include SDR_IN_DRAM.  It
+should normally be SM_NO_KEY, causing the shared memory region for the SDR
+dataspace to be allocated dynamically and shared using a dynamically selected
+shared memory key.  If specified, <em>heapKey</em> must be a shared memory key
+identifying a pre-allocated region of shared memory whose length is equal
+to the total SDR dataspace size, shared via the indicated key.</p>
+<p><em>logSize</em> specifies the maximum size of the transaction log (in bytes) if
+and only if the log is to be written to memory rather than to a file; otherwise
+it must be zero.  <em>logKey</em> is ignored if <em>logSize</em> is zero.  It should
+normally be SM_NO_KEY, causing the shared memory region for the transaction
+log to be allocated dynamically and shared using a dynamically selected
+shared memory key.  If specified, <em>logKey</em> must be a shared memory key
+identifying a pre-allocated region of shared memory whose length is equal
+to <em>logSize</em>, shared via the indicated key.</p>
+<p><em>pathName</em> is ignored if <em>configFlags</em> includes neither SDR_REVERSIBLE nor
+SDR_IN_FILE.  It is the fully qualified name of the directory into which the
+SDR's log file and/or dataspace file will be written.  The name of the log
+file (if any) will be "&lt;sdrname&gt;.sdrlog".  The name of the dataspace file
+(if any) will be "&lt;sdrname&gt;.sdr"; this file will be automatically created
+and filled with zeros if it does not exist at the time the SDR's profile
+is loaded.</p>
+<p>If a cleanup task must be run whenever a transaction is reversed, the command
+to execute this task must be provided in <em>restartCmd</em> and the number of
+seconds to wait for this task to finish before resuming operations must be
+provided in <em>restartLatency</em>.  If <em>restartCmd</em> is NULL or <em>restartLatency</em>
+is zero then no cleanup task will be run upon transaction reversal.</p>
+<p>Returns 0 on success, -1 on any error.</p>
+</li>
+<li>
+<p>int sdr_reload_profile(char *name, int configFlags, long heapWords, int heapKey, int logSize, int logKey, char *pathName, char *restartCmd, unsigned int restartLatency)</p>
+<p>For use when the state of an SDR is thought to be inconsistent, perhaps
+due to crash of a program that had a transaction open.  Unloads the
+profile for the SDR, forcing the reversal of any transaction that is
+currently in progress when the SDR's profile is re-loaded.  Then
+calls sdr_load_profile() to re-load the profile for the SDR.  Same
+return values as sdr_load_profile.</p>
+</li>
+<li>
+<p>Sdr sdr_start_using(char *name)</p>
+<p>Locates SDR profile by <em>name</em> and returns a handle that can be used
+for all functions that operate on that SDR.  On any failure, returns NULL.</p>
+</li>
+<li>
+<p>char *sdr_name(Sdr sdr)</p>
+<p>Returns the name of the sdr.</p>
+</li>
+<li>
+<p>long sdr_heap_size(Sdr sdr)</p>
+<p>Returns the total size of the SDR heap, in bytes.</p>
+</li>
+<li>
+<p>void sdr_stop_using(Sdr sdr)</p>
+<p>Terminates access to the SDR via this handle.  Other users of the SDR are
+not affected.  Frees the Sdr object.</p>
+</li>
+<li>
+<p>void sdr_abort(Sdr sdr)</p>
+<p>Terminates the task.  In flight configuration, also terminates all use
+of the SDR system by all tasks.</p>
+</li>
+<li>
+<p>void sdr_destroy(Sdr sdr)</p>
+<p>Ends all access to this SDR, unloads the SDR's profile, and erases the SDR
+from memory and file system.</p>
+</li>
+</ul>
+<h1 id="database-transaction-functions">DATABASE TRANSACTION FUNCTIONS</h1>
+<ul>
+<li>
+<p>int sdr_begin_xn(Sdr sdr)</p>
+<p>Initiates a transaction.  Returns 1 on success, 0 on any failure.  Note
+that transactions are single-threaded; any task that calls sdr_begin_xn()
+is suspended until all previously requested transactions have been ended
+or canceled.</p>
+</li>
+<li>
+<p>int sdr_in_xn(Sdr sdr)</p>
+<p>Returns 1 if called in the course of a transaction, 0 otherwise.</p>
+</li>
+<li>
+<p>void sdr_exit_xn(Sdr sdr)</p>
+<p>Simply abandons the current transaction, ceasing the calling task's lock on
+ION.  Must <strong>not</strong> be used if any dataspace modifications were performed
+during the transaction; sdr_end_xn() must be called instead, to commit
+those modifications.</p>
+</li>
+<li>
+<p>void sdr_cancel_xn(Sdr sdr)</p>
+<p>Cancels the current transaction.  If reversibility is enabled for
+the SDR, canceling a transaction reverses all heap modifications
+performed during that transaction.</p>
+</li>
+<li>
+<p>int sdr_end_xn(Sdr sdr)</p>
+<p>Ends the current transaction.  Returns 0 if the transaction completed
+without any error; returns -1 if any operation performed in the course
+of the transaction failed, in which case the transaction was automatically
+canceled.</p>
+</li>
+</ul>
+<h1 id="database-io-functions">DATABASE I/O FUNCTIONS</h1>
+<ul>
+<li>
+<p>void sdr_read(Sdr sdr, char *into, Address from, int length)</p>
+<p>Copies <em>length</em> characters at <em>from</em> (a location in the
+indicated SDR) to the memory location given by <em>into</em>.  The data are
+copied from the shared memory region in which the SDR resides, if any;
+otherwise they are read from the file in which the SDR resides.</p>
+</li>
+<li>
+<p>void sdr_peek(sdr, variable, from)</p>
+<p>sdr_peek() is a macro that uses sdr_read() to load <em>variable</em> from
+the indicated address in the SDR dataspace; the size of <em>variable</em> is
+used as the number of bytes to copy.</p>
+</li>
+<li>
+<p>void sdr_write(Sdr sdr, Address into, char *from, int length)</p>
+<p>Copies <em>length</em> characters at <em>from</em> (a location in memory) to the SDR
+heap location given by <em>into</em>.  Can only be performed during a transaction, 
+and if the SDR is configured for object bounding then heap
+locations <em>into</em> through (<em>into</em> + (<em>length</em> - 1)) must be within
+the extent of some object that was either allocated or staged within the
+same transaction.  The data are copied both to the shared memory region
+in which the SDR resides, if any, and also to the file in which the SDR
+resides, if any.</p>
+</li>
+<li>
+<p>void sdr_poke(sdr, into, variable)</p>
+<p>sdr_poke() is a macro that uses sdr_write() to store <em>variable</em> at
+the indicated address in the SDR dataspace; the size of <em>variable</em> is
+used as the number of bytes to copy.</p>
+</li>
+<li>
+<p>char *sdr_pointer(Sdr sdr, Address address)</p>
+<p>Returns a pointer to the indicated location in the heap - a "heap pointer" - or
+NULL if the indicated address is invalid.  NOTE that this
+function <em>cannot be used</em> if the SDR does not reside in a shared memory region.</p>
+<p>Providing an alternative to using sdr_read() to retrieve objects
+into local memory, sdr_pointer() can help make SDR-based
+applications run very quickly, but it must be used WITH GREAT
+CAUTION!  Never use a direct pointer into the heap when not
+within a transaction, because you will have no assurance at
+any time that the object pointed to by that pointer has not changed
+(or is even still there).  And NEVER de-reference a heap 
+pointer in order to write directly into the heap: this makes
+transaction reversal impossible.  Whenever writing to the SDR, always use
+sdr_write().</p>
+</li>
+<li>
+<p>Address sdr_address(Sdr sdr, char *pointer)</p>
+<p>Returns the address within the SDR heap of the indicated location,
+which must be (or be derived from) a heap pointer as returned
+by sdr_pointer().  Returns zero if the indicated location is not
+greater than the start of the heap mirror.  NOTE that this
+function <em>cannot be used</em> if the SDR does not reside in a shared memory region.</p>
+</li>
+<li>
+<p>void sdr_get(sdr, variable, heap_pointer)</p>
+<p>sdr_get() is a macro that uses sdr_read() to load <em>variable</em> from
+the SDR address given by <em>heap_pointer</em>; <em>heap_pointer</em> must be (or
+be derived from) a heap pointer as returned by sdr_pointer().  The size
+of <em>variable</em> is used as the number of bytes to copy.</p>
+</li>
+<li>
+<p>void sdr_set(sdr, heap_pointer, variable)</p>
+<p>sdr_set() is a macro that uses sdr_write() to store <em>variable</em> at
+the SDR address given by <em>heap_pointer</em>; <em>heap_pointer</em> must be (or
+be derived from) a heap pointer as returned by sdr_pointer().  The size
+of <em>variable</em> is used as the number of bytes to copy.</p>
+</li>
+</ul>
+<h1 id="heap-space-management-functions">HEAP SPACE MANAGEMENT FUNCTIONS</h1>
+<ul>
+<li>
+<p>Object sdr_malloc(Sdr sdr, unsigned long size)</p>
+<p>Allocates a block of space from the of the indicated SDR's
+heap.  <em>size</em> is the size of the
+block to allocate; the maximum size is 1/2 of the maximum
+address space size (i.e., 2G for a 32-bit machine).  Returns block address if
+successful, zero if block could not be allocated.</p>
+</li>
+<li>
+<p>Object sdr_insert(Sdr sdr, char *from, unsigned long size)</p>
+<p>Uses sdr_malloc() to obtain a block of space of size <em>size</em> and, if this
+allocation is successful, uses sdr_write() to copy <em>size</em> bytes of data
+from memory at <em>from</em> into the newly allocated block.  Returns block address
+if successful, zero if block could not be allocated.</p>
+</li>
+<li>
+<p>Object sdr_stow(sdr, variable)</p>
+<p>sdr_stow() is a macro that uses sdr_insert() to insert a copy of <em>variable</em>
+into the dataspace.  The size of <em>variable</em> is used as the number of bytes
+to copy.</p>
+</li>
+<li>
+<p>int sdr_object_length(Sdr sdr, Object object)</p>
+<p>Returns the number of bytes of heap space allocated to the application
+data at <em>object</em>.</p>
+</li>
+<li>
+<p>void sdr_free(Sdr sdr, Object object)</p>
+<p>Frees for subsequent re-allocation the heap space occupied by <em>object</em>.</p>
+</li>
+<li>
+<p>void sdr_stage(Sdr sdr, char *into, Object from, int length)</p>
+<p>Like sdr_read(), this function will copy <em>length</em> characters
+at <em>from</em> (a location in the heap of the indicated SDR)
+to the memory location given by <em>into</em>.  Unlike
+sdr_get(), sdr_stage() requires that <em>from</em> be the address of
+some allocated object, not just any location within the
+heap.  sdr_stage(), when called from within a transaction, 
+notifies the SDR library that the indicated object may be 
+updated later in the transaction; this enables the library 
+to retrieve the object's size for
+later reference in validating attempts to write into
+some location within the object.  If <em>length</em> is zero, the
+object's size is privately retrieved by SDR but none of the
+object's content is copied into memory.</p>
+</li>
+<li>
+<p>long sdr_unused(Sdr sdr)</p>
+<p>Returns number of bytes of heap space not yet allocated to either the
+large or small objects pool.</p>
+</li>
+<li>
+<p>void sdr_usage(Sdr sdr, SdrUsageSummary *summary)</p>
+<p>Loads the indicated SdrUsageSummary structure with a snapshot of the SDR's
+usage status.  SdrUsageSummary is defined by:</p>
+<div class="highlight"><pre><span></span><code>typedef struct
+{
+        char            sdrName[MAX_SDR_NAME + 1];
+        unsigned int    dsSize;
+        unsigned int    smallPoolSize;
+        unsigned int    smallPoolFreeBlockCount[SMALL_SIZES];
+        unsigned int    smallPoolFree;
+        unsigned int    smallPoolAllocated;
+        unsigned int    largePoolSize;
+        unsigned int    largePoolFreeBlockCount[LARGE_ORDERS];
+        unsigned int    largePoolFree;
+        unsigned int    largePoolAllocated;
+        unsigned int    unusedSize;
+} SdrUsageSummary;
+</code></pre></div>
+</li>
+<li>
+<p>void sdr_report(SdrUsageSummary *summary)</p>
+<p>Sends to stdout a printed summary of the SDR's usage status.</p>
+</li>
+<li>
+<p>int sdr_heap_depleted(Sdr sdr)</p>
+<p>A Boolean function: returns 1 if the total available space in the SDR's
+heap (small pool free, large pool free, and unused) is less than 1/16
+of the total size of the heap.  Otherwise returns zero.</p>
+</li>
+</ul>
+<h1 id="heap-space-usage-tracing">HEAP SPACE USAGE TRACING</h1>
+<p>If SDR_TRACE is defined at the time the SDR source code is compiled, the
+system includes built-in support for simple tracing of SDR heap space usage:
+heap space allocations are logged, and heap space deallocations are matched
+to logged allocations, "closing" them.  This enables heap space leaks and
+some other kinds of SDR heap access problems to be readily investigated.</p>
+<ul>
+<li>
+<p>int sdr_start_trace(Sdr sdr, int traceLogSize, char *traceLogAddress)</p>
+<p>Begins an episode of SDR heap space usage tracing.  <em>traceLogSize</em> is the
+number of bytes of shared memory to use for trace activity logging; the
+frequency with which "closed" trace log events must be deleted will vary
+inversely with the amount of memory allocated for the trace log.
+<em>traceLogAddress</em> is normally NULL, causing the trace system to allocate
+<em>traceLogSize</em> bytes of shared memory dynamically for trace logging; if
+non-NULL, it must point to <em>traceLogSize</em> bytes of shared memory that
+have been pre-allocated by the application for this purpose.  Returns 0 on
+success, -1 on any failure.</p>
+</li>
+<li>
+<p>void sdr_print_trace(Sdr sdr, int verbose)</p>
+<p>Prints a cumulative trace report and current usage report for 
+<em>sdr</em>.  If <em>verbose</em> is zero, only exceptions (notably, trace
+log events that remain open -- potential SDR heap space leaks) are printed;
+otherwise all activity in the trace log is printed.</p>
+</li>
+<li>
+<p>void sdr_clear_trace(Sdr sdr)</p>
+<p>Deletes all closed trace log events from the log, freeing up memory for
+additional tracing.</p>
+</li>
+<li>
+<p>void sdr_stop_trace(Sdr sdr)</p>
+<p>Ends the current episode of SDR heap space usage tracing.  If the shared
+memory used for the trace log was allocated by sdr_start_trace(), releases
+that shared memory.</p>
+</li>
+</ul>
+<h1 id="catalogue-functions">CATALOGUE FUNCTIONS</h1>
+<p>The SDR catalogue functions are used to maintain the catalogue of the
+names, types, and addresses of objects within an SDR.  The catalogue
+service includes functions for creating, deleting and finding catalogue
+entries and a function for navigating through catalogue entries sequentially.</p>
+<ul>
+<li>
+<p>void sdr_catlg(Sdr sdr, char *name, int type, Object object)</p>
+<p>Associates <em>object</em> with <em>name</em> in the indicated SDR's catalogue and notes 
+the <em>type</em> that was declared for this object.  <em>type</em> is optional and 
+has no significance other than that conferred on it by the application.</p>
+<p>The SDR catalogue is flat, not hierarchical like a directory tree, 
+and all names must be unique.  The length of <em>name</em> is limited to
+15 characters.</p>
+</li>
+<li>
+<p>Object sdr_find(Sdr sdr, char *name, int *type)</p>
+<p>Locates the Object associated with <em>name</em> in the indicated SDR's catalogue 
+and returns its address; also reports the catalogued type of the object in 
+<em>*type</em> if <em>type</em> is non-NULL.  Returns zero if no object is currently
+catalogued under this name.</p>
+</li>
+<li>
+<p>void sdr_uncatlg(Sdr sdr, char *name)</p>
+<p>Dissociates from <em>name</em> whatever object in the indicated
+SDR's catalogue is currently catalogued under that name.</p>
+</li>
+<li>
+<p>Object sdr_read_catlg(Sdr sdr, char *name, int *type, Object *object, Object previous_entry)</p>
+<p>Used to navigate through catalogue entries sequentially.  If
+<em>previous_entry</em> is zero, reads the first entry in the
+indicated SDR's catalogue; otherwise, reads the next catalogue
+entry following the one located at <em>previous_entry</em>.  In either case,
+returns zero if no such catalogue entry exists; otherwise, copies that
+entry's name, type, and catalogued object address into <em>name</em>,
+<em>*type</em>, and <em>*object</em>, and then returns the address of the catalogue
+entry (which may be used as <em>previous_entry</em> in a subsequent call
+to sdr_read_catlg()).</p>
+</li>
+</ul>
+<h1 id="users-guide">USER'S GUIDE</h1>
+<ul>
+<li>
+<p>Compiling an SDR application</p>
+<p>Just be sure to "#include "sdr.h"" at the top of each source
+file that includes any SDR function calls.</p>
+<p>For UNIX applications, link with "-lsdr".</p>
+</li>
+<li>
+<p>Loading an SDR application (VxWorks)</p>
+<div class="highlight"><pre><span></span><code>ld &lt; &quot;libsdr.o&quot;
+</code></pre></div>
+<p>After the library has been loaded, you can begin loading SDR applications.</p>
+</li>
+</ul>
+<h1 id="see-also">SEE ALSO</h1>
+<p>sdrlist(3), sdrstring(3), sdrtable(3)</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
+</html>
