@@ -6,6 +6,7 @@ on:
       - ION-documentation  # Set this to your default branch
     paths:
       - 'gh-pages/**'  # Trigger only when changes in gh-pages directory
+  workflow_dispatch:
 
 jobs:
   build:
