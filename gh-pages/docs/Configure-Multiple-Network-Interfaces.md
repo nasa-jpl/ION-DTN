@@ -25,7 +25,7 @@ The basic topology is illustrated here:
                   +---->+  23   +----+
     +-------+     |     +-------+    |    +-------+
     |       |     |                  |    |       |
-    |  SC1  +-----+                  +--->+  MOC1 |
+    |  SC2  +-----+                  +--->+  MOC2 |
     |  22   |                             |  25   |
     +-------+                             +-------+
 
@@ -115,7 +115,7 @@ a planduct ipn:22.0 ltp 22
 
 # in .ltprc file
 a span 21 100 100 1482 100000 1 'udplso 192.168.100.21:1113'
-a span 22 100 100 1482 100000 1 'udplos 192.168.100.22:1113'
+a span 22 100 100 1482 100000 1 'udplso 192.168.100.22:1113'
 a seat 'udplsi 192.168.100.23:1113'
 
 s
@@ -139,9 +139,9 @@ When running LTP over both networks, the only key difference is that in the `.lt
 
 ```text
 a span 21 100 100 1482 100000 1 'udplso 192.168.100.21:1113'
-a span 22 100 100 1482 100000 1 'udplos 192.168.100.22:1113'
-a span 24 100 100 1482 100000 1 'udplos 192.168.200.24:1113'
-a span 25 100 100 1482 100000 1 'udplos 192.168.200.25:1113'
+a span 22 100 100 1482 100000 1 'udplso 192.168.100.22:1113'
+a span 24 100 100 1482 100000 1 'udplso 192.168.200.24:1113'
+a span 25 100 100 1482 100000 1 'udplso 192.168.200.25:1113'
 a seat 'udplsi 192.168.100.23:1113'
 a seat 'udplsi 192.168.200.23:1113'
 
