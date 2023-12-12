@@ -1309,7 +1309,7 @@
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                  +----&gt;+  23   +----+
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    +-------+     |     +-------+    |    +-------+
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    |       |     |                  |    |       |
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    |  SC1  +-----+                  +---&gt;+  MOC1 |
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    |  SC2  +-----+                  +---&gt;+  MOC2 |
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    |  22   |                             |  25   |
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    +-------+                             +-------+
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
@@ -1379,7 +1379,7 @@
 <a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>
 <a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a># in .ltprc file
 <a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>a span 21 100 100 1482 100000 1 &#39;udplso 192.168.100.21:1113&#39;
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>a span 22 100 100 1482 100000 1 &#39;udplos 192.168.100.22:1113&#39;
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>a span 22 100 100 1482 100000 1 &#39;udplso 192.168.100.22:1113&#39;
 <a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>a seat &#39;udplsi 192.168.100.23:1113&#39;
 <a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>
 <a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>s
@@ -1393,9 +1393,9 @@
 <h2 id="ltp-over-multiple-networks">LTP over multiple networks</h2>
 <p>When running LTP over both networks, the only key difference is that in the <code>.ltprc</code> file for the GS node, two seats are defined:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>a span 21 100 100 1482 100000 1 &#39;udplso 192.168.100.21:1113&#39;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>a span 22 100 100 1482 100000 1 &#39;udplos 192.168.100.22:1113&#39;
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>a span 24 100 100 1482 100000 1 &#39;udplos 192.168.200.24:1113&#39;
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>a span 25 100 100 1482 100000 1 &#39;udplos 192.168.200.25:1113&#39;
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>a span 22 100 100 1482 100000 1 &#39;udplso 192.168.100.22:1113&#39;
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>a span 24 100 100 1482 100000 1 &#39;udplso 192.168.200.24:1113&#39;
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>a span 25 100 100 1482 100000 1 &#39;udplso 192.168.200.25:1113&#39;
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>a seat &#39;udplsi 192.168.100.23:1113&#39;
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>a seat &#39;udplsi 192.168.200.23:1113&#39;
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
