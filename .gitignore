@@ -223,5 +223,6 @@ build*/*
 
 # gh pages
 gh-pages/site
+gh-pages/doc/man/*
 
 build/*
