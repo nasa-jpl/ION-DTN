@@ -1,377 +1,2228 @@
-<!DOCTYPE html>
-<html class="writer-html5" lang="en" >
-<head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/ION-Guide/" />
-      <link rel="shortcut icon" href="../img/favicon.ico" />
-    <title>ION Design & Operation Manual - ION-DTN Open Source Documentation</title>
-    <link rel="stylesheet" href="../css/theme.css" />
-    <link rel="stylesheet" href="../css/theme_extra.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
     
-      <script>
-        // Current page data
-        var mkdocs_page_name = "ION Design \u0026 Operation Manual";
-        var mkdocs_page_input_path = "ION-Guide.md";
-        var mkdocs_page_url = "/ION-DTN/ION-Guide/";
-      </script>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/ION-Guide/">
+      
+      
+        <link rel="prev" href="../ION-Deployment-Guide/">
+      
+      
+        <link rel="next" href="../ION-Watch-Characters/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.2">
     
-    <!--[if lt IE 9]>
-      <script src="../js/html5shiv.min.js"></script>
-    <![endif]-->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
-      <script>hljs.highlightAll();</script> 
-</head>
+    
+      
+        <title>ION Design & Operation Manual - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.50c56a3b.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
 
-<body class="wy-body-for-nav" role="document">
 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
-    <div class="wy-side-scroll">
-      <div class="wy-side-nav-search">
-          <a href=".." class="icon icon-home"> ION-DTN Open Source Documentation
-        </a><div role="search">
-  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
-      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
-  </form>
-</div>
-      </div>
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
 
-      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption"><span class="caption-text">ION Overview</span></p>
-              <ul class="current">
-                  <li class="toctree-l1"><a class="reference internal" href="..">Introduction</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../ION-Quick-Start-Guide/">Quick Start</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../ION-Deployment-Guide/">ION Deployment Guide</a>
-                  </li>
-                  <li class="toctree-l1 current"><a class="reference internal current" href="./">ION Design & Operation Manual</a>
-    <ul class="current">
-    <li class="toctree-l2"><a class="reference internal" href="#design">Design</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#structure-and-function">Structure and function</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#constraints-on-the-design">Constraints on the Design</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#design-principles">Design Principles</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#organizational-overview">Organizational Overview</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#resource-management-in-ion">Resource Management in ION</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#package-overviews">Package Overviews</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#interplanetary-communication-infrastructure-ici">Interplanetary Communication Infrastructure (ICI)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#licklider-transmission-protocol-ltp">Licklider Transmission Protocol (LTP)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#bundle-protocol-bp">Bundle Protocol (BP)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#asynchronous-message-service-ams">Asynchronous Message Service (AMS)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#datagram-retransmission-dgr">Datagram Retransmission (DGR)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#ccsds-file-delivery-protocol-cfdp">CCSDS File Delivery Protocol (CFDP)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#bundle-streaming-service-bss">Bundle Streaming Service (BSS)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#trusted-collective-tc">Trusted Collective (TC)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#acronyms">Acronyms</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#network-operation-concepts">Network Operation Concepts</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#fragmentation-and-reassembly">Fragmentation and Reassembly</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#bandwidth-management">Bandwidth Management</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#contact-plans">Contact Plans</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#route-computation">Route Computation</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#unicast">Unicast</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#multicast">Multicast</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#delivery-assurance">Delivery Assurance</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#rate-control">Rate Control</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#flow-control">Flow Control</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#storage-management">Storage Management</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#optimizing-an-ion-based-network">Optimizing an ION-based network</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#bpltp-detail-how-they-work">BP/LTP Detail -- How They Work</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#databases">Databases</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#control-and-data-flow">Control and data flow</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#contact-graph-routing-cgr">Contact Graph Routing (CGR)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#contact-plan-messages">Contact Plan Messages</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#routing-tables">Routing Tables</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#key-concepts">Key Concepts</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#expiration-time">Expiration time</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#owlt-margin">OWLT margin</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#capacity">Capacity</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#estimated-capacity-consumption">Estimated capacity consumption</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#residual-capacity">Residual capacity</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#excluded-neighbors">Excluded neighbors</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#critical-bundles">Critical bundles</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#dynamic-route-selection-algorithm">Dynamic Route Selection Algorithm</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#exception-handling">Exception Handling</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#contact-failure">Contact Failure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#custody-refusal">Custody refusal</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#remarks">Remarks</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#ltp-timeout-intervals">LTP Timeout Intervals</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#cfdp">CFDP</a>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#additional-figures-for-manual-pages">Additional Figures for Manual Pages</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#list-data-structures-lyst-sdrlist-smlist">list data structures (lyst, sdrlist, smlist)</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#psm-partition-structure">psm partition structure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#psm-and-sdr-block-structures">psm and sdr block structures</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#sdr-heap-structure">sdr heap structure</a>
-    </li>
-        </ul>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l2"><a class="reference internal" href="#operation">Operation</a>
-        <ul>
-    <li class="toctree-l3"><a class="reference internal" href="#interplanetary-communication-infrastructure-ici_1">Interplanetary Communication Infrastructure (ICI)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#compile-time-options">Compile-time options</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#build">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run">Run</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#test">Test</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#licklider-transmission-protocol-ltp_1">Licklider Transmission Protocol (LTP)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#build_1">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure_1">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run_1">Run</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#test_1">Test</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#bundle-streaming-service-protocol-bssp">Bundle Streaming Service Protocol (BSSP)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#build_2">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure_2">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run_2">Run</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#bundle-protocol-bp_1">Bundle Protocol (BP)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#compile-time-options_1">Compile-time options</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#build_3">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure_3">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run_3">Run</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#test_2">Test</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#datagram-retransmission-dgr_1">Datagram Retransmission (DGR)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#build_4">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure_4">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run_4">Run</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#test_3">Test</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#asynchronous-message-service-ams_1">Asynchronous Message Service (AMS)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#compile-time-options_2">Compile-time options</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#build_5">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure_5">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run_5">Run</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#test_4">Test</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#ccsds-file-delivery-protocol-cfdp_1">CCSDS File Delivery Protocol (CFDP)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#compile-time-options_3">Compile-time options</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#build_6">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure_6">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run_6">Run</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#test_5">Test</a>
-    </li>
-        </ul>
-    </li>
-    <li class="toctree-l3"><a class="reference internal" href="#bundle-streaming-service-bss_1">Bundle Streaming Service (BSS)</a>
-        <ul>
-    <li class="toctree-l4"><a class="reference internal" href="#compile-time-options_4">Compile-time options</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#build_7">Build</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#configure_7">Configure</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#run_7">Run</a>
-    </li>
-    <li class="toctree-l4"><a class="reference internal" href="#test_6">Test</a>
-    </li>
-        </ul>
-    </li>
-        </ul>
-    </li>
-    </ul>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../ION-Watch-Characters/">Watch Characters</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../AMS-Programmer-Guide/">AMS Programmer's Guide</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../Use-Cases/">Use Cases</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../List-of-Papers/">Publications/Papers</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../community/Contributing-Code-to-ION/">Contribute Code</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Configuration</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../Basic-Configuration-File-Tutorial/">Basic Configuration Tutorial</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../ION-Config-File-Templates/">Configuration Templates</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../Configure-Multiple-Network-Interfaces/">Multi-network Configuration</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../Using-LTP-Config-Tool/">LTP Configuration Tool</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Man Pages</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/ams/">Asychronous Messaging System (AMS)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/bpv6/">Bundle Protocol v6 (BPv6)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/bpv7/">Bundle Protcool v7 (BPv7)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/bss/">Bundle Streaming Service (BSS)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/bssp/">Bundle Streaming Service (Test Utility) Protocol (BSSP)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/cfdp/">CCSDS File Delivery Protocol (CFDP)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/dgr/">Datagram Retransmission System (DGR)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/ici/">Interplanetary Communications Infrastructure (ICI)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/ltp/">Licklider Transmission Protocol (LTP)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/nm/">Network Management Agent for Asynchronous Management Protocol (AMP)</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/restart/ionrestart/">ION Node Restart Utility</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../man/tc/">Delay Tolerant Key Administration</a>
-                  </li>
-              </ul>
-              <p class="caption"><span class="caption-text">Cloud Deployment</span></p>
-              <ul>
-                  <li class="toctree-l1"><a class="reference internal" href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/">Running 1 ION Node on Cloud VM</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/">Running 2 ION Node on Cloud VM</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/">ION and IOT</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/">LTP and TCP on Azure</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../community/dtn-multicasting-main/Multicasting-over-ION/">Multicast</a>
-                  </li>
-                  <li class="toctree-l1"><a class="reference internal" href="../community/dtn-video-intelligence-main/Video-Intelligence/">Video Intelligence</a>
-                  </li>
-              </ul>
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#interplanetary-overlay-network-ion-design-and-operations-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ION Design & Operation Manual
+            
+          </span>
+        </div>
       </div>
     </div>
-    </nav>
-
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
-      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="..">ION-DTN Open Source Documentation</a>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
         
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
       </nav>
-      <div class="wy-nav-content">
-        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
-  <ul class="wy-breadcrumbs">
-    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
-          <li class="breadcrumb-item">ION Overview</li>
-      <li class="breadcrumb-item active">ION Design & Operation Manual</li>
-    <li class="wy-breadcrumbs-aside">
-    </li>
-  </ul>
-  <hr/>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-            <div class="section" itemprop="articleBody">
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
               
-                <h1 id="interplanetary-overlay-network-ion-design-and-operations-guide">Interplanetary Overlay Network (ION) Design and Operation's Guide</h1>
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Design
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#structure-and-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      Structure and function
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constraints-on-the-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      Constraints on the Design
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Design Principles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#organizational-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Organizational Overview
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resource-management-in-ion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Resource Management in ION
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#package-overviews" class="md-nav__link">
+    <span class="md-ellipsis">
+      Package Overviews
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Package Overviews">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interplanetary-communication-infrastructure-ici" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interplanetary Communication Infrastructure (ICI)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#licklider-transmission-protocol-ltp" class="md-nav__link">
+    <span class="md-ellipsis">
+      Licklider Transmission Protocol (LTP)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bundle-protocol-bp" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Protocol (BP)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asynchronous-message-service-ams" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asynchronous Message Service (AMS)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#datagram-retransmission-dgr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Datagram Retransmission (DGR)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ccsds-file-delivery-protocol-cfdp" class="md-nav__link">
+    <span class="md-ellipsis">
+      CCSDS File Delivery Protocol (CFDP)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bundle-streaming-service-bss" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Streaming Service (BSS)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trusted-collective-tc" class="md-nav__link">
+    <span class="md-ellipsis">
+      Trusted Collective (TC)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#acronyms" class="md-nav__link">
+    <span class="md-ellipsis">
+      Acronyms
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-operation-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Network Operation Concepts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Network Operation Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fragmentation-and-reassembly" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fragmentation and Reassembly
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bandwidth-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bandwidth Management
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contact-plans" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contact Plans
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#route-computation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Route Computation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unicast" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unicast
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multicast" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multicast
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delivery-assurance" class="md-nav__link">
+    <span class="md-ellipsis">
+      Delivery Assurance
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rate-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rate Control
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#flow-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flow Control
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#storage-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Storage Management
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#optimizing-an-ion-based-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      Optimizing an ION-based network
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpltp-detail-how-they-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      BP/LTP Detail -- How They Work
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BP/LTP Detail -- How They Work">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#databases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Databases
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#control-and-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      Control and data flow
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Control and data flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bundle-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Protocol
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ltp" class="md-nav__link">
+    <span class="md-ellipsis">
+      LTP
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#contact-graph-routing-cgr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contact Graph Routing (CGR)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Contact Graph Routing (CGR)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contact-plan-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contact Plan Messages
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#routing-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      Routing Tables
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Key Concepts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#expiration-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      Expiration time
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#owlt-margin" class="md-nav__link">
+    <span class="md-ellipsis">
+      OWLT margin
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#capacity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Capacity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estimated-capacity-consumption" class="md-nav__link">
+    <span class="md-ellipsis">
+      Estimated capacity consumption
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#residual-capacity" class="md-nav__link">
+    <span class="md-ellipsis">
+      Residual capacity
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#excluded-neighbors" class="md-nav__link">
+    <span class="md-ellipsis">
+      Excluded neighbors
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#critical-bundles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Critical bundles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dynamic-route-selection-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dynamic Route Selection Algorithm
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#exception-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Exception Handling
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Exception Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#contact-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Contact Failure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custody-refusal" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custody refusal
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#remarks" class="md-nav__link">
+    <span class="md-ellipsis">
+      Remarks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ltp-timeout-intervals" class="md-nav__link">
+    <span class="md-ellipsis">
+      LTP Timeout Intervals
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp" class="md-nav__link">
+    <span class="md-ellipsis">
+      CFDP
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#additional-figures-for-manual-pages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Figures for Manual Pages
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Additional Figures for Manual Pages">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#list-data-structures-lyst-sdrlist-smlist" class="md-nav__link">
+    <span class="md-ellipsis">
+      list data structures (lyst, sdrlist, smlist)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#psm-partition-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      psm partition structure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#psm-and-sdr-block-structures" class="md-nav__link">
+    <span class="md-ellipsis">
+      psm and sdr block structures
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr-heap-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr heap structure
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Operation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Operation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interplanetary-communication-infrastructure-ici_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Interplanetary Communication Infrastructure (ICI)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Interplanetary Communication Infrastructure (ICI)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compile-time-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compile-time options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#licklider-transmission-protocol-ltp_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Licklider Transmission Protocol (LTP)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Licklider Transmission Protocol (LTP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#build_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bundle-streaming-service-protocol-bssp" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Streaming Service Protocol (BSSP)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bundle Streaming Service Protocol (BSSP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#build_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bundle-protocol-bp_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Protocol (BP)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bundle Protocol (BP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compile-time-options_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compile-time options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#datagram-retransmission-dgr_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Datagram Retransmission (DGR)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Datagram Retransmission (DGR)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#build_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#asynchronous-message-service-ams_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asynchronous Message Service (AMS)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Asynchronous Message Service (AMS)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compile-time-options_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compile-time options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ccsds-file-delivery-protocol-cfdp_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      CCSDS File Delivery Protocol (CFDP)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CCSDS File Delivery Protocol (CFDP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compile-time-options_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compile-time options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bundle-streaming-service-bss_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Streaming Service (BSS)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bundle Streaming Service (BSS)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compile-time-options_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compile-time options
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configure
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="interplanetary-overlay-network-ion-design-and-operations-guide">Interplanetary Overlay Network (ION) Design and Operation's Guide</h1>
 <p><strong>Version 4.1.3</strong>
 <strong>JPL D-48259</strong></p>
 <p><strong>Document Change Log</strong></p>
@@ -3877,52 +5728,69 @@ adjustment doesn't make a lot of sense.&#160;<a class="footnote-backref" href="#
 </li>
 </ol>
 </div>
-              
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
             </div>
-          </div><footer>
-    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
-        <a href="../ION-Deployment-Guide/" class="btn btn-neutral float-left" title="ION Deployment Guide"><span class="icon icon-circle-arrow-left"></span> Previous</a>
-        <a href="../ION-Watch-Characters/" class="btn btn-neutral float-right" title="Watch Characters">Next <span class="icon icon-circle-arrow-right"></span></a>
-    </div>
-
-  <hr/>
-
-  <div role="contentinfo">
-    <!-- Copyright etc -->
-      <p>Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.</p>
-  </div>
-
-  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
-</footer>
           
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
-      </div>
-
-    </section>
-
-  </div>
-
-  <div class="rst-versions" role="note" aria-label="Versions">
-  <span class="rst-current-version" data-toggle="rst-current-version">
-    
-    
-      <span><a href="../ION-Deployment-Guide/" style="color: #fcfcfc">&laquo; Previous</a></span>
-    
-    
-      <span><a href="../ION-Watch-Characters/" style="color: #fcfcfc">Next &raquo;</a></span>
-    
-  </span>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
 </div>
-    <script src="../js/jquery-3.6.0.min.js"></script>
-    <script>var base_url = "..";</script>
-    <script src="../js/theme_extra.js"></script>
-    <script src="../js/theme.js"></script>
-      <script src="../search/main.js"></script>
-    <script>
-        jQuery(function () {
-            SphinxRtdTheme.Navigation.enable(true);
-        });
-    </script>
-
-</body>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7c377c4.min.js"></script>
+      
+    
+  </body>
 </html>
