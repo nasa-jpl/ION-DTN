@@ -20,6 +20,27 @@ jobs:
       with:
         python-version: '3.x'  # Specify the Python version
 
+    - name: Set up Perl environment
+      uses: shogo82148/actions-setup-perl@v1
+      with:
+        perl-version: '5.32'
+
+    - name: Check and Install pod2markdown
+      run: |
+        if ! command -v pod2markdown &> /dev/null
+        then
+          echo "pod2markdown could not be found, installing..."
+          cpanm Pod::Markdown
+        else
+          echo "pod2markdown is already installed."
+        fi
+
+    - name: Run convert ION pod files to MD
+      run: |
+        cd gh-pages/docs
+        chmod +x ./convert-pod-to-md.sh
+        ./convert-pod-to-md.sh
+
     - name: Install dependencies
       run: |
         cd gh-pages  # Change to the MkDocs directory
