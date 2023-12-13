@@ -1,7 +1,7 @@
 site_name: ION-DTN Open Source Documentation
 site_url: https://nasa-jpl.github.io/ION-DTN
 theme:
-  name: material
+  name: readthedocs
   features:
     - navigation.tabs
     - navigation.sections
