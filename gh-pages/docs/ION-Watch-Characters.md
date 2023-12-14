@@ -4,14 +4,6 @@ ION Version: 4.1.3
 
 Bundle Protocol Version:7
 
-- [ION Watch Characters](#ion-watch-characters)
-  - [Enhanced Watch Characters (ION 4.1.3 or later)](#enhanced-watch-characters-ion-413-or-later)
-  - [Logging and Processing of Watch Characters](#logging-and-processing-of-watch-characters)
-  - [Bundle Protocol Watch Character](#bundle-protocol-watch-character)
-  - [LTP Watch Characters](#ltp-watch-characters)
-  - [BIBECT Watch Characters](#bibect-watch-characters)
-  - [BSSP Watch Characters](#bssp-watch-characters)
-
 ----
 
 Watch characters, when activated, provide immediate feedback on ION operations by printing various characters standard output (terminal). By examing the watch characters, and the order in which they appear, operators can quickly confirm proper operation or detect configuration or run-time errors.

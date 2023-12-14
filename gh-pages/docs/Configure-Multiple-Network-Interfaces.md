@@ -1,15 +1,5 @@
 # Configure ION for Multiple Network Interfaces
 
-- [Configure ION for Multiple Network Interfaces](#configure-ion-for-multiple-network-interfaces)
-  - [Induct and Outduct Relationship](#induct-and-outduct-relationship)
-  - [ION Configurations](#ion-configurations)
-    - [LTP/TCP Example](#ltptcp-example)
-  - [LTP/STCP](#ltpstcp)
-  - [TCP and STCP across multiple networks](#tcp-and-stcp-across-multiple-networks)
-  - [LTP over multiple networks](#ltp-over-multiple-networks)
-  - [Use of Contact Graph](#use-of-contact-graph)
-  - [Use of `exit` command](#use-of-exit-command)
-
 Lab testing of ION-based DTN network often uses only a single network. However, during deployment or operational testing, ION network must operate over multiple networks. To clarify how to configure ION, we consider the following hypothetical network configuration.
 
 The basic topology is illustrated here:
