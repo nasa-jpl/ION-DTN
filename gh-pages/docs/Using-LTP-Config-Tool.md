@@ -6,26 +6,7 @@
 
 **Version 4.1.3**
 
-- [A Guide to Configuring LTP in ION](#a-guide-to-configuring-ltp-in-ion)
-  - [Introduction](#introduction)
-  - [Worksheet overview](#worksheet-overview)
-  - [Input Parameters](#input-parameters)
-    - [Global Parameters](#global-parameters)
-    - [Basic input Parameters](#basic-input-parameters)
-  - [Further Guidance](#further-guidance)
-    - [First-order Computed Parameters](#first-order-computed-parameters)
-    - [Configuration decision parameters](#configuration-decision-parameters)
-    - [LTP Initialization Parameters](#ltp-initialization-parameters)
-  - [Updated Features - May 2021](#updated-features---may-2021)
-    - [Link Worksheet](#link-worksheet)
-    - [Enhancements](#enhancements)
-    - [HeapWord Size Estimate](#heapword-size-estimate)
-      - [User Input:](#user-input)
-      - [Model Output:](#model-output)
-  - [Appendix](#appendix)
-    - [BP/LTP Memory Usage Analysis Summary](#bpltp-memory-usage-analysis-summary)
-  - [Acknowledgements](#acknowledgements)
-
+----------------
 
 ## Introduction
 

@@ -747,10 +747,7 @@ It has been pointed out that if you are running ION in a Docker
 container inside a Kubernetes pod, the system is likely to assign
 process ID 1 to one of the ION processes at startup; since process 1
 cannot be killed, the **ionstop** script can't complete and your node
-will not be cleanly destroyed. One solution seems to be to use dumb-init
-for the docker container:
-
-> [[https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html]{.underline}](https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html)
+will not be cleanly destroyed. One solution seems to be to use[dumb-init](https://engineeringblog.yelp.com/2016/01/dumb-init-an-init-for-docker.html) for the docker container.
 
 To make this work, you may have to override your entry point in the
 manifest file used by the Kubectl "apply" command.
@@ -861,7 +858,7 @@ data receiver.
 > a scheme *scheme_name* *forwarder_command* *admin_app_command*
 
 The add scheme command. This command declares an endpoint naming
-\"scheme\" for use in endpoint IDs, which are structured as URIs:
+_scheme_ for use in endpoint IDs, which are structured as URIs:
 *scheme_name*:*scheme-specific_part*. *forwarder_command* will be
 executed when the scheme is started on this node, to initiate operation
 of a forwarding daemon for this scheme. *admin_app_command* will also be
@@ -905,7 +902,7 @@ currently in progress. (For optimum performance,
 of *max_export_sessions* over all spans as discussed below.)
 
 Appropriate values for this parameter and for the parameters configuring
-each \"span\" of potential LTP data exchange between the local LTP and
+each _span_ of potential LTP data exchange between the local LTP and
 neighboring engines are non-trivial to determine. See the ION LTP
 configuration spreadsheet and accompanying documentation for details.
 
@@ -953,7 +950,7 @@ bundles are outbound, they are collected until this time limit is met,
 whereupon the aggregated quantity is sent as a single, larger block.
 
 *max_export_sessions* constitutes the size of the local LTP engine's
-retransmission \"window\" for this span. The retransmission windows of
+retransmission _window_ for this span. The retransmission windows of
 the spans impose flow control on LTP transmission, preventing the
 allocation of all available space in the ION node's data store to LTP
 transmission sessions.
@@ -1095,9 +1092,9 @@ connected with "ltpcli" as the input Convergence Layer function.
 > a outduct *protocol_name* duct_name '*CLO_command*'
 > \[*max_payload_length*\]
 
-The "add outduct" command. This command establishes a \"duct\" for
+The "add outduct" command. This command establishes a _duct_ for
 transmission of bundles via the indicated CL protocol. The duct's data
-transmission structure is serviced by the \"outduct\" task whose
+transmission structure is serviced by the _outduct_ task whose
 operation is initiated by *CLO_command* at the time the duct is started.
 *max_payload_length*, if specified, causes ION to fragment bundles
 issued via this outduct (as necessary) to ensure that all such bundles
@@ -1105,9 +1102,9 @@ have payloads that are no larger than *max_payload_length*.
 
 > a induct *protocol_name* *duct_name* '*CLI_command*'
 
-The "add induct" command. This command establishes a \"duct\" for
+The "add induct" command. This command establishes a _duct_ for
 reception of bundles via the indicated CL protocol. The duct's data
-acquisition structure is used and populated by the \"induct\" task whose
+acquisition structure is used and populated by the _induct_ task whose
 operation is initiated by *CLI_command* at the time the duct is started.
 
 > ***Note*** that *only a single induct is needed for all bundle
@@ -1162,7 +1159,7 @@ bundles that must be transmitted to the neighboring node identified by
 
 Each duct expression is a string of the form
 
-> \"*protocol_name*/*outduct_name*\"
+> *protocol_name* *outduct_name*
 
 signifying that the bundle is to be queued for transmission via the
 indicated convergence layer protocol outduct.

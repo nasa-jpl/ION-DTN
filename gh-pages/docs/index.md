@@ -18,26 +18,23 @@ DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre
 
 ## 📊 Benchmark Tests
 
-- **BP/LTP Throughput Study**: a comprehensive study of BP/LTP performance on various CPU/OS architecture will be provided in the [ION Deployment Guide](https://github.com/nasa-jpl/ION-DTN/blob/current/doc/ION%20Deployment%20Guide.pdf) after ION 4.1.3 is released. (Current estimated time is Fall of 2023)
+- **BP/LTP Throughput Study**: a comprehensive study of BP/LTP performance on various CPU/OS architecture will be provided in the [ION Deployment Guide](ION-Deployment-Guide.md) after ION 4.1.3 is released. (Current estimated time is Fall of 2023)
 
 ## 🛠️ Installation and Configuration
 
 1. Clone the repository:
-
    ```bash
    git clone https://github.com/nasa-jpl/ION-DTN.git
    ```
-2. Follow the steps in the [Quick Start Guide](https://github.com/nasa-jpl/ION-DTN/wiki/ION-Quick-Start-Guide)
-3. A simple tutorial of ION's configuration files can be found [here](https://github.com/nasa-jpl/ION-DTN/wiki/Basic-Configuration-File-Tutorial-%26-Examples)
-4. A set of configuration file templates for various DTN features can be found [here](https://github.com/nasa-jpl/ION-DTN/wiki/ION-Config-File-Templates).
+2. Follow the steps in the [Quick Start Guide](./ION-Quick-Start-Guide.md).
+   
+3. A simple tutorial of ION's configuration files can be found [here](./Basic-Configuration-File-Tutorial.md).
+
+4. A set of configuration file templates for various DTN features can be found [here](./ION-Config-File-Templates.md).
 
 ## 📜 License
 
-ION is licensed under the MIT License. Please see the [LICENSE](LICENSE) file for details.
-
-## 🐛 Known Issues
-
-For a complete list of known issues and solutions, please refer to the [Known-Issues](https://github.com/nasa-jpl/ION-DTN/wiki/Known-Issues) Page.
+ION is licensed under the MIT License. Please see the [LICENSE](./License.md) file for details.
 
 ## 🚀 Current Uses of ION & ION-Integrated Systems
 
@@ -50,4 +47,4 @@ For a complete list of known issues and solutions, please refer to the [Known-Is
 
 ## 📚 Important Papers on ION and DTN
 
-For a list of key DTN and ION papers, refer to the [List-of-Papers](https://github.com/nasa-jpl/ION-DTN/wiki/List-of-Papers) page.
+For a list of key DTN and ION papers, refer to the [List-of-Papers](./List-of-Papers.md) page.
