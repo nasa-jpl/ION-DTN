@@ -10,11 +10,10 @@ Technology_
 
 **Document Change Log**
 
-| Ver No. | Date      | Description                      | Note           |
-| ------- | --------- | -------------------------------- | -------------- |
+| Ver No. | Date      | Description                      | Note                    |
+| ------- | --------- | -------------------------------- | ----------------------- |
 | V4.1.3  | 11/6/2023 | Add LTP Performance Test         | Converted to markd down |
-| V4.1.2  | 1/5/2023  | Added notes on SDR file and CGRM |                |
-
+| V4.1.2  | 1/5/2023  | Added notes on SDR file and CGRM |                         |
 
 ## Overview
 
@@ -587,7 +586,7 @@ not supplied, failed transactions will cause an immediate task failure
 and, where supported, a core dump.  This feature is intended only as an
 aid to debugging; in operations ION should normally be configured with
 reversible transactions.  When transaction reversibility is enabled, ION
-creates & manages a log file in the directory named by \"pathName\"
+creates & manages a log file in the directory named by "pathName"
 which must be writable by ION and which tracks the SDR changes and
 supports rollback to the last consistent state.  The filesystem for this
 directory should be high-performance; a ramdisk is usually ideal.  The
@@ -597,7 +596,7 @@ the largest bundle. NOTE that if the directory named by "pathname" does
 not exist then transaction reversibility will be disabled automatically;
 a message to this effect will be written to the ION log file.
 
-When `SDR_IN_FILE` is specified, ION creates a file in the \"pathName\"
+When `SDR_IN_FILE` is specified, ION creates a file in the "pathName"
 directory, which is maintained as a copy of the SDR heap in DRAM;
 whenever the SDR heap in memory is modified, the changes are also
 written to the sdr heap file.  Thus the heap file is always the same
@@ -698,7 +697,7 @@ option as follows:
   other than the one in which the node resides. To do so, define the
   additional environment variable ION_NODE_WDNAME in the shell from
   which the new process is to be initiated. When ionAttach() is called
-  it will first try to get \"current working directory\" (for ION
+  it will first try to get "current working directory" (for ION
   attachment purposes **only**) from that environment variable; only
   if ION_NODE_WDNAME is undefined will it use the actual cwd that it
   gets from calling igetcwd().
@@ -843,7 +842,7 @@ endpoint IDs of endpoints in an ION deployment. Any transmission using
 endpoints formed in the "ipn" scheme will have endpoints IDs of this
 form:
 
-> ipn:*nodenumber*. *servicenumber*.
+`ipn:nodenumber.servicenumber`
 
 The Add Scheme command on line 51 below specifies that the "ipn"
 endpoint naming scheme is supported; the names of three endpoints formed
@@ -855,7 +854,7 @@ data receiver.
 
 #### The bpadmin Add Scheme command
 
-> a scheme *scheme_name* *forwarder_command* *admin_app_command*
+`a scheme scheme_name forwarder_command admin_app_command`
 
 The add scheme command. This command declares an endpoint naming
 _scheme_ for use in endpoint IDs, which are structured as URIs:
@@ -873,13 +872,13 @@ to the current node in the DTN-based network.
 
 #### The ipnadmin Add Plan command
 
-> a plan *node_nbr* *default_duct_expression*
+`a plan node_nbr default_duct_expression`
 
 The add plan command. This command establishes an egress plan for the
 bundles that must be transmitted to the neighboring node identified by
 node_nbr. Each duct expression is a string of the form
 
-> *protocol_name*/*outduct_name*
+`protocol_name outduct_name`
 
 signifying that the bundle is to be queued for transmission via the
 indicated convergence layer protocol outduct.
@@ -917,9 +916,9 @@ Spans.
 
 #### The ltpadmin Add Span command
 
-a span *peer_engine_nbr* *max_export_sessions* *max_import_sessions*
-*max_segment_size* *aggregation_size_threshold* *aggregation_time_limit*
-'*LSO_command*' \[*queuing_latency*\]
+`a span peer_engine_nbr max_export_sessions max_import_sessions
+max_segment_size aggregation_size_threshold aggregation_time_limit
+'LSO_command' [queuing_latency]`
 
 The "add span" command. This command declares that a span of potential
 LTP data interchange exists between the local LTP engine and the
@@ -1036,7 +1035,7 @@ and/or aggregation size threshold.
 
 #### The ltpadmin Start command
 
-> s '*LSI command*'
+`s 'LSI command'`
 
 This command starts link service output tasks for all LTP spans (to
 remote engines) from the local LTP engine, and it starts the link
@@ -1068,8 +1067,7 @@ Defining a protocol via bpadmin is the first step in that process.
 
 #### The bpadmin Add Protocol command
 
-> a protocol *protocol_name* *payload_bytes_per_frame*
-> *overhead_bytes_per_frame*
+`a protocol protocol_name payload_bytes_per_frame overhead_bytes_per_frame`
 
 The "add protocol" command. This command establishes access to the named
 convergence layer protocol at the local node. As noted earlier, the
@@ -1089,8 +1087,7 @@ connected with "ltpcli" as the input Convergence Layer function.
 
 #### The bpadmin Add Outduct and Add Induct commands
 
-> a outduct *protocol_name* duct_name '*CLO_command*'
-> \[*max_payload_length*\]
+`a outduct protocol_name duct_name 'CLO_command' [max_payload_length]`
 
 The "add outduct" command. This command establishes a _duct_ for
 transmission of bundles via the indicated CL protocol. The duct's data
@@ -1100,7 +1097,7 @@ operation is initiated by *CLO_command* at the time the duct is started.
 issued via this outduct (as necessary) to ensure that all such bundles
 have payloads that are no larger than *max_payload_length*.
 
-> a induct *protocol_name* *duct_name* '*CLI_command*'
+`a induct protocol_name duct_name 'CLI_command'`
 
 The "add induct" command. This command establishes a _duct_ for
 reception of bundles via the indicated CL protocol. The duct's data
@@ -1137,7 +1134,7 @@ For destinations of nodes 101 and 1, the scenario is pretty simple.
 
 #### The ipnadmin Add Exit command
 
-> a exit *first_node_nbr* *last_node_nbr gateway_endpoint_ID*
+`a exit first_node_nbr last_node_nbr gateway_endpoint_ID`
 
 The "add exit" command. This command establishes an "exit" for static
 routing. An exit is an association of some defined routing behavior with
@@ -1151,7 +1148,7 @@ associated with this exit.
 
 #### The ipnadmin Add Plan command
 
-> a plan *node_nbr* *duct_expression* \[*nominal_data_rate*\]
+`a plan node_nbr duct_expression [nominal_data_rate]`
 
 The "add plan" command. This command establishes an egress plan for the
 bundles that must be transmitted to the neighboring node identified by
@@ -1159,7 +1156,7 @@ bundles that must be transmitted to the neighboring node identified by
 
 Each duct expression is a string of the form
 
-> *protocol_name* *outduct_name*
+`protocol_name outduct_name`
 
 signifying that the bundle is to be queued for transmission via the
 indicated convergence layer protocol outduct.
@@ -1193,7 +1190,7 @@ By way of overview, here is an excerpt from that document:
 
 > Each BP node that conforms to the BIBE specification provides a BIBE
 > convergence-layer adapter (CLA) that is implemented within the
-> administrative element of the BP node\'s application agent. Like any
+> administrative element of the BP node's application agent. Like any
 > convergence-layer adapter, the BIBE CLA provides:
 
 - A transmission service that sends an outbound bundle (from the
@@ -1216,16 +1213,16 @@ By way of overview, here is an excerpt from that document:
   encapsulated in delivered BIBE protocol data units.
 
 > Bundle-in-bundle encapsulation may have broad utility, but the
-> principal motivating use case is the deployment of \"cross domain
-> solutions\" in secure communications. Under some circumstances a
+> principal motivating use case is the deployment of "cross domain
+> solutions" in secure communications. Under some circumstances a
 > bundle may arrive at a node that is on the frontier of a region of
 > network topology in which augmented security is required, from which
 > the bundle must egress at some other designated node. In that case,
 > the bundle may be encapsulated within a bundle to which the requisite
 > additional BP Security (BPSEC) extension block(s) can be attached,
 > whose source is the point of entry into the insecure region (the
-> \"security source\") and whose destination is the point of egress from
-> the insecure region (the \"security destination\").
+> "security source") and whose destination is the point of egress from
+> the insecure region (the "security destination").
 >
 > Note that:
 
@@ -1244,14 +1241,14 @@ By way of overview, here is an excerpt from that document:
   egress.
 
 > The protocol includes a mechanism for recovery from loss of an
-> encapsulating bundle, called \"custody transfer\". This mechanism is
+> encapsulating bundle, called "custody transfer". This mechanism is
 > adapted from the custody transfer procedures described in the
 > experimental Bundle Protocol specification developed by the
 > Delay-Tolerant Networking Research group of the Internet Research Task
 > Force and documented in RFC 5050. Custody transfer is a convention by
 > which the loss or corruption of BIBE encapsulating bundles can be
-> mitigated by the exchange of other bundles, which are termed \"custody
-> signals\".
+> mitigated by the exchange of other bundles, which are termed "custody
+> signals".
 
 BIBE is implemented in ION, but configuring ION nodes to employ BIBE is
 not as simple as one might think. That is because BIBE functions as both
@@ -1294,7 +1291,7 @@ use an additional BIBE administration utility program -- **bibeadmin**
 revise, and delete BIBE convergence layer adapter objects (*bclas*) that
 are managed in a BIBE database. For example:
 
-> a bcla ipn:3.0 20 20 300 2 128
+`a bcla ipn:3.0 20 20 300 2 128`
 
 This command adds a bcla identified by "ipn:3.0" -- the ID of the
 destination node of all encapsulating bundles formed according to this
@@ -1317,7 +1314,7 @@ commands; BIBE must be added as a protocol, the local node must be added
 as the BIBE induct, and each supported BIBE tunnel must be added as a
 BIBE outduct. For example:
 
-```
+```text
 a protocol bibe
 a induct bibe \* ''
 a outduct bibe ipn:4.0 'bibeclo ipn:3.0'
@@ -1346,7 +1343,7 @@ In order to cause bundles to be conveyed to a specified receiving node
 via a BIBE outduct, that outduct must be associated with that node in an
 egress plan. For example, in the .ipnrc file:
 
-```
+```text
 a plan ipn:4.0 bibe/ipn:4.0
 a plan ipn:3.0 stcp/91.7.31.134:4546
 ```
@@ -1364,7 +1361,7 @@ Finally, in order for data to flow to receiving node ipn:4.0 via the
 bibe/ipn:4.0 outduct, a contact object must be added to the contact plan
 enabling the transmissions:
 
-> a contact +0 +1000000000 2 4 100000
+`a contact +0 +1000000000 2 4 100000`
 
 This command states that data flow from node 2 (here, the local node) to
 node 4 (the receiving node) is continuously enabled, but the rate of
@@ -1549,11 +1546,11 @@ each host.rc file immediately after the "##end ionadmin" line. They
 should create an empty ION security database on each host, which should
 shut down all those warnings:
 
-> \## begin ionsecadmin
->
-> 1
->
-> \## end ionsecadmin
+```text
+## begin ionsecadmin
+1
+## end ionsecadmin
+```
 
 ### Clock sync
 
@@ -1697,15 +1694,6 @@ configuration:
   all contacts as equally valid and will compute a lowest latency
   routing decision based on the actual delay, data rate, and on-off
   windows assigned to them.
-- For CGR-based multicast, multicast membership petition messages can
-  be issued from a node to itself -- to add itself to a multicast
-  group. Having an appropriately configured loopback link in the
-  contact graph is therefore important to ensure timely delivery of
-  multicast group membership petition messages. In addition to a
-  loopback contact and range, a TCP or UDP convergence layer should be
-  configured from a node to itself. That means having the appropriate
-  set of induct, outduct, plan, and planduct configuration commands in
-  the .bprc configuration files.
 - When a node joins a multicast group, a *registration* contact (a
   contact with zero data rate and a contact time in 2038) is created
   automatically and is visible when listing contact through ionadmin.
@@ -1766,6 +1754,8 @@ utility program with the \'i\' option to control the source data
 injection rate. For some tests, we find data metering unnecessary, and
 ION can buffer and handle local congestion and deliver the maximum
 possible throughput.
+
+***NOTE: The results presented here are based on System V semaphore. Recent upgrade and testing of a POSIX semaphore approach indicated a substantial performance increase to ION, and that result will be published in the next release of this document.***
 
 As stated earlier, our goal is to test the ION processing rate
 limitation, not the host system\'s memory availability. Therefore, we
@@ -2000,7 +1990,7 @@ segment sizes on throughput. The results are in Figure 2 below.
 
 ***Figure 2: Impact of LTP Segment Size on Throughput***
 
-![Chart](./media-ion-deployment/media/image2.png) 
+![Chart](./media-ion-deployment/media/image2.png)
 
 In this test, we looked at bundle sizes that are 1MB or lower, with
 segment sizes ranging from 64KB to 1,500 bytes. Again, we observed that
