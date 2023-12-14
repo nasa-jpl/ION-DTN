@@ -2292,7 +2292,7 @@ Suppose we've got Earth ground station ES that is currently in view of
 Mars but will be rotating out of view ("Mars-set") at some time T1 and
 rotating back into view ("Mars-rise") at time T3. Suppose we've also got
 Mars orbiter MS that is currently out of the shadow of Mars but will
-move behind Mars at time T2, emerging at time T4. Let\'s also suppose
+move behind Mars at time T2, emerging at time T4. Let's also suppose
 that ES and MS are 4 light-minutes apart (Mars is at its closest
 approach to Earth). Finally, for simplicity, let's suppose that both ES
 and MS want to be communicating at every possible moment (maximum link
@@ -2302,20 +2302,20 @@ Neither ES nor MS wants to be wasting power on either transmitting or
 receiving at a time when either Earth or Mars will block the signal.
 
 ES will therefore stop transmitting at either T1 or (T2 - 4 minutes),
-whichever is earlier; call this time T~et0~. It will stop receiving --
+whichever is earlier; call this time Tet0. It will stop receiving --
 that is, power off the receiver -- at either T1 or (T2 + 4 minutes),
-whichever is earlier; call this time T~er0~. It will resume transmitting
-at either T3 or (T4 - 4 minutes), whichever is [later]{.underline}, and
+whichever is earlier; call this time Ter0. It will resume transmitting
+at either T3 or (T4 - 4 minutes), whichever is **late**, and
 it will resume reception at either T3 or (T4 + 4 minutes), whichever is
-later; call these times T~et1~ and T~er1~.
+later; call these times Tet1 and Ter1.
 
 Similarly, MS will stop transmitting at either T2 or (T1 - 4 minutes),
-whichever is earlier; call this time T~mt0~. It will stop receiving --
+whichever is earlier; call this time Tmt0. It will stop receiving --
 that is, power off the receiver -- at either T2 or (T1 + 4 minutes),
-whichever is earlier; call this time T~mr0~. It will resume transmitting
+whichever is earlier; call this time Tmr0. It will resume transmitting
 at either T4 or (T3 - 4 minutes), whichever is later, and it will resume
 reception at either T4 or (T3 + 4 minutes), whichever is later; call
-these times T~mt1~ and T~mr1~.
+these times Tmt1 and Tmr1.
 
 By making sure that we don't transmit when the signal would be blocked,
 we guarantee that anything that is transmitted will arrive at a time
@@ -2340,18 +2340,20 @@ the acknowledgment could be sent, i.e., the moment at which transmission
 is resumed[^7].
 
 So the timeout interval Z computed at ES for a message sent to MS at
-time T~X~ is given by:
+time TX is given by:
 
-Z = QO1 + 8 + QI1 + ((T~A~ = T~X~ + 4) \> T~mt0~ && T~A~ \< T~mt1~) ?
-T~mt1~ -- T~A~: 0) + QI2 +QO2;
+```c
+Z = QO1 + 8 + QI1 + ((TA = TX + 4) > Tmt0 && TA < Tmt1) ?
+Tmt1 - TA: 0) + QI2 + QO2
+```
 
-This can actually be computed in advance (at time T~X~) if T1, T2, T3,
+This can actually be computed in advance (at time TX) if T1, T2, T3,
 and T4 are known and are exposed to the protocol engine.
 
 If they are not exposed, then Z must initially be estimated to be (2 \*
 the one-way light time) + QI + QO. The timer for Z must be dynamically
-suspended at time T~mt0~ in response to a state change as noted by
-**ltpclock**. Finally, the timer must be resumed at time T~mt1~ (in
+suspended at time Tmt0 in response to a state change as noted by
+**ltpclock**. Finally, the timer must be resumed at time Tmt1 (in
 response to another state change as noted by **ltpclock**), at which
 moment the correct value for Z can be computed.
 
@@ -2380,35 +2382,35 @@ minimizes the space needed for the database. In general, file
 transmission via CFDP is the most memory-efficient way to use ION in
 flight operations.
 
-![](./media-ion-guide/media/image17.png)
 **Figure 15 A CFDP-ION entity**
 
-### Additional Figures for Manual Pages
+![](./media-ion-guide/media/image17.png)
 
-#### **list data structures (lyst, sdrlist, smlist)**
-
-![](./media-ion-guide/media/image16.png){width="6.0in"
-height="3.6805555555555554in"}
+### **List data structures (lyst, sdrlist, smlist)**
 
 **Figure 16 ION list data structures**
 
-#### **psm partition structure**
+![](./media-ion-guide/media/image16.png)
 
-![](./media-ion-guide/media/image12.png)
+
+### **PSM Partition Structure**
 
 **Figure 17 psm partition structure**
 
-#### **psm and sdr block structures**
+![](./media-ion-guide/media/image12.png)
 
-![](./media-ion-guide/media/image11.png)
+
+### **PSM and SDR Block Structures**
 
 **Figure 18 psm and sdr block structures**
 
-#### **sdr heap structure**
+![](./media-ion-guide/media/image11.png)
 
-![](./media-ion-guide/media/image19.png)
+### **SDR Heap Structure**
 
 **Figure 19 sdr heap structure**
+
+![](./media-ion-guide/media/image19.png)
 
 ## **Operation**
 
