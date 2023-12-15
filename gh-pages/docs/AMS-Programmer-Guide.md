@@ -86,10 +86,10 @@ Technology_
  that implements some part of the functionality of some AMS venture --
  that is, performs some application role -- by, among other activities,
  exchanging messages with other modules. Associated with each module is
- the name of the role it performs within the application. \[Note that
+ the name of the role it performs within the application. [Note that
  multiple modules may perform the same role in an application, so the
  role name of a module need not uniquely identify the module within its
- message space.\] In order to accomplish AMS message exchange a module
+ message space.] In order to accomplish AMS message exchange a module
  generates AMS service requests and consumes AMS service indications;
  the module that is the origin of a given AMS service request or the
  destination of a given AMS service indication is termed *the operative
@@ -101,10 +101,10 @@ Technology_
  is uniquely identified within that continuum by the combination of the
  name of the application and the name of the authority that is
  responsible for the venture, and by a corresponding venture number
- greater than zero. \[Note that unique naming of continua enables
+ greater than zero. [Note that unique naming of continua enables
  multiple message spaces that are in different continua but are
  identified by the same application and authority names to be
- concatenated via Remote AMS (discussed below) into a single venture.\]
+ concatenated via Remote AMS (discussed below) into a single venture.]
 
  A *unit* (i.e., a unit of organization) is an identified subset of the
  organizational hierarchy of the modules of one AMS venture, declared
@@ -131,10 +131,10 @@ contains some other cell only if its unit contains that other cell's
 unit. A cell may be an empty set; that is, in a given continuum there
 may be no modules that are members of the cell's unit. The *registered
 membership* of a cell is the set of all modules in the cell that are not
-members of any other cell which does not contain that cell^1^. \[Note
+members of any other cell which does not contain that cell^1^. [Note
 that the root cell contains every other cell in the message space, and
 every module in the message space is therefore a member -- though not
-necessarily a registered member -- of the root cell.\]
+necessarily a registered member -- of the root cell.]
 
  The *domain* of an AMS service request is the set of modules to which
  the request pertains. It comprises all of the modules that are members
@@ -503,10 +503,6 @@ b.  When a configuration server crashes, all new registration activity
     configuration server the registration of new modules eventually
     resumes.
 
-```{=html}
-<!-- --
-```
-
 12. **Security**
 
  AMS can be configured to confine service access to application modules
@@ -737,7 +733,7 @@ d.  On receiving a message the RAMS gateway module forwards the message
 
 Figure 3 AMS module structure
 
-![img](./media-ams-program/media/image1.png)
+![](./media-ams-program/media/image1.png)
 
 
  The application program has the option to start another thread to
@@ -798,7 +794,7 @@ Note: if support for the expat XML parsing library is required see 4.3
 2. Move the ION .gz file to a directory in which you want to build the
    system, gunzip the file, and then un-tar it; a number of new
    directories will appear.AMS requires the following packages: ici, dgr, ltp, bp, and ams. For
-   each, in that *specific order*, do the following:cd to directory_namemodify Makefile (as needed):"PLATFORMS = environment_name"\]modify Makefile (as needed):"OPT = desired system path"\]makesudo make installcd ..
+   each, in that *specific order*, do the following:cd to directory_namemodify Makefile (as needed):"PLATFORMS = environment_name"]modify Makefile (as needed):"OPT = desired system path"]makesudo make installcd ..
 3. For additional information see the ION Design and Operations manual
    for dependency details and package build order instructions (see
    ION.pdf in the ION distribution tar)
@@ -858,7 +854,7 @@ Note: if support for the expat XML parsing library is required see 4.3
  When the latter form of the **amsd** command is used, the daemon is
  configured to function as the registrar for the indicated message
  space unit. If the value "." (period character) is supplied for
- *eid_spec*, then the daemon will [only]{.underline} function as a
+ *eid_spec*, then the daemon will [only]  function as a
  registrar. Otherwise the daemon will function as both configuration
  server and registrar; this option can be useful when operating a
  simple, stand-alone message space, such as a demo.
@@ -1060,7 +1056,7 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 
 ```c
  int ams_set_event_mgr(AmsModule module, AmsEventMgt
- \*rules);
+ *rules);
 ```
 
  The function starts a background "event manager" thread that
@@ -1082,7 +1078,7 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 - The event delivered to a callback is recycled automatically when the
   callback returns. If for some reason the application needs to retain
   the event for a while, the callback function can prevent
-  therecycling of the event by simply setting *\*eventRef* to NULL; in
+  therecycling of the event by simply setting **eventRef* to NULL; in
   this case the application assumes responsibility for recycling the
   event at some future time in order to avert memory leakage.
 
@@ -1093,15 +1089,17 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  Only the prime thread may call ams_set_event_mgr. The function returns
  0 on success, -1 on any error.
 
- void [ams_remove_event_mgr]{.underline}(AmsModule module);
-
+```c
+void ams_remove_event_mgr(AmsModule module);
+```
  The function stops the background event manager thread for this
  module, if any is running. Only the prime thread may call
  ams_remove_event_mgr. Following completion of this function the prime
  thread is once again able to receive and process AMS events.
 
- int [ams_unregister]{.underline}(AmsModule module);
-
+```c 
+int ams_unregister(AmsModule module);
+```
  The function terminates the module's registration, ending the ability
  of any thread of the application process to invoke any AMS services;
  it automatically stops the background event manager thread for this
@@ -1112,10 +1110,11 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 
 ## Message Subscription and Invitation
 
- int [ams_invite]{.underline}(AmsModule module, int roleNbr, int
+```c
+ int  ams_invite (AmsModule module, int roleNbr, int
  continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char
  flowLabel, AmsSequence sequence, AmsDiligence diligence);
-
+```
  This function establishes the module's willingness to accept messages
  on a specified subject, under specified conditions, and states the
  quality of service at which the module would prefer those messages to
@@ -1170,8 +1169,9 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  it causes the invitation to be propagated automatically to all modules
  in the inviting module's own message space.
 
- int [ams_disinvite]{.underline}(AmsModule module, int roleNbr, int
- continuumNbr, int unitNbr, int subjectNbr);
+```c
+int  ams_disinvite (AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr);
+```
 
  This function terminates the module's prior invitation for messages on
  a specified subject under specified conditions. *roleNbr*,
@@ -1181,9 +1181,9 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  causes cancellation of the invitation to be propagated automatically
  to all modules in the inviting module's own message space.
 
- int [ams_subscribe]{.underline}(AmsModule module, int roleNbr, int
- continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char
- flowLabel, AmsSequence sequence, AmsDiligence diligence);
+```c
+int  ams_subscribe (AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char flowLabel, AmsSequence sequence, AmsDiligence diligence);
+```
 
  This function establishes the module's request to receive a copy of
  every future message published on a specified subject, under specified
@@ -1241,8 +1241,9 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  it causes the subscription to be propagated automatically to all
  modules in the subscribing module's own message space.
 
- int [ams_unsubscribe]{.underline}(AmsModule module, int roleNbr, int
- continuumNbr, int unitNbr, int subjectNbr);
+```c
+int  ams_unsubscribe (AmsModule module, int roleNbr, int continuumNbr, int unitNbr, int subjectNbr);
+```
 
  This function terminates the module's prior subscription to messages
  on a specified subject under specified conditions. *roleNbr*,
@@ -1254,113 +1255,114 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 
 ## Configuration Lookup
 
- int [ams_lookup_unit_nbr]{.underline}(AmsModule module, char
- \*unitName);
-
+```c
+ int  ams_lookup_unit_nbr (AmsModule module, char
+ *unitName);
+```
  The function returns the unit number corresponding to the indicated
  *unitName*, in the context of the venture encompassing the message
  space in which the invoking module is registered. Returns -1 if this
  *unitName* is undefined in this venture.
-
- int [ams_lookup_role_nbr]{.underline}(AmsModule module, char
- \*roleName);
-
+```c
+ int  ams_lookup_role_nbr (AmsModule module, char
+ *roleName);
+```
  The function returns the role number corresponding to the indicated
  *roleName*, in the context of the application characterizing the
  message space in which the invoking module is registered. Returns -1
  if this *roleName* is undefined in this application.
-
- int [ams_lookup_subject_nbr]{.underline}(AmsModule module, char
- \*subjectName);
-
+```c
+ int  ams_lookup_subject_nbr (AmsModule module, char
+ *subjectName);
+```
  The function returns the subject number corresponding to the indicated
  *subjectName*, in the context of the application characterizing the
  message space in which the invoking module is registered. Returns -1
  if this *subjectName* is undefined in this application.
-
- int [ams_lookup_continuum_nbr]{.underline}(AmsModule module, char
- \*continuumName);
-
+```c
+ int  ams_lookup_continuum_nbr (AmsModule module, char
+ *continuumName);
+```
  The function returns the continuum number corresponding to the
  indicated *continuumName*, Returns -1 if the named continuum is
  unknown.
-
- char \*[ams_lookup_unit_name]{.underline}(AmsModule module, int
+```c
+ char * ams_lookup_unit_name (AmsModule module, int
  unitNbr);
-
+```
  The function returns the unit name corresponding to the indicated
  *unitNbr*, in the context of the venture encompassing the message
  space in which the invoking module is registered. Returns NULL if this
  *unitNbr* is undefined in this venture.
-
- char \*[ams_lookup_role_name]{.underline}(AmsModule module, int
+```c
+ char * ams_lookup_role_name (AmsModule module, int
  roleNbr);
-
+```
  The function returns the role name corresponding to the indicated
  *roleNbr*, in the context of the application characterizing the
  message space in which the invoking module is registered. Returns NULL
  if this *roleNbr* is undefined in this application.
-
- char \*[ams_lookup_subject_name]{.underline}(AmsModule module, int
+```c
+ char * ams_lookup_subject_name (AmsModule module, int
  subjectNbr);
-
+```
  The function returns the subject name corresponding to the indicated
  *subjectNbr*, in the context of the application characterizing the
  message space in which the invoking module is registered. Returns NULL
  if this *subjectNbr* is undefined in this application.
-
- char \*[ams_lookup_continuum_name]{.underline}(AmsModule module, int
+```c
+ char * ams_lookup_continuum_name (AmsModule module, int
  continuumNbr);
-
+```
  The function returns the continuum name corresponding to the indicated
  *continuumNbr*. Returns NULL if the specified continuum is unknown.
-
- char \*[ams_get_role_name]{.underline}(AmsModule module, int unitNbr,
+```c
+ char * ams_get_role_name (AmsModule module, int unitNbr,
  int moduleNbr);
-
+```
  The function returns the name of the role under which the module
  identified by *unitNbr* and moduleNbr is registered, within the
  invoking module's own message space. Returns NULL if no module
  identified by *unitNbr* and *moduleNbr* is known to be currently
  registered within this message space.
-
- Lyst [ams_list_msgspaces]{.underline}(AmsModule module);
-
+```c
+ Lyst  ams_list_msgspaces (AmsModule module);
+```
  The function returns a Lyst (see the documentation for lyst) of the
  numbers of all AMS continua in which there is known to be another
  message space for the venture in which *module* is registered. Returns
  NULL if there is insufficient free memory to create this list. NOTE:
  be sure to use lyst_destroy to release the memory occupied by this
  list when you're done with it.
-
- int [ams_subunit_of]{.underline}(AmsModule module, int argUnitNbr, int
+```c
+ int  ams_subunit_of (AmsModule module, int argUnitNbr, int
  refUnitNbr);
-
+```
  The function returns 1 if the unit identified by *argUnitNbr* is a
  subset of (or is identical to) the unit identified by *refUnitNbr*.
  Otherwise it returns 0.
-
- int [ams_get_continuum_nbr]{.underline}();
-
+```c
+ int  ams_get_continuum_nbr ();
+```
  The function returns the local continuum number.
-
- int [ams_continuum_is_neighbor]{.underline}(int continuumNbr);
-
+```c
+ int  ams_continuum_is_neighbor (int continuumNbr);
+```
  The function returns 1 if the continuum identified by *continuumNbr*
  is a neighbor (within the RAMS network) of the local continuum.
  Otherwise it returns 0.
-
- int [ams_rams_net_is_tree]{.underline}(AmsModule module);
-
+```c
+ int  ams_rams_net_is_tree (AmsModule module);
+```
  The function returns 1 if the RAMS network is configured as a tree.
  Otherwise it returns 0.
 
 ## Message Issuance
-
- int [ams_publish]{.underline}(AmsModule module, int subjectNbr, int
- priority, unsigned char flowLabel, int contentLength, char \*content,
+```c
+ int  ams_publish (AmsModule module, int subjectNbr, int
+ priority, unsigned char flowLabel, int contentLength, char *content,
  int context);
-
+```
  This function causes an AMS message to be constructed on the indicated
  subject, encapsulating the indicated content and characterized by the
  indicated processing context token, and causes one copy of that
@@ -1376,11 +1378,11 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  subscriber's preferred flow label."
 
  The function returns 0 on success, -1 on any error.
-
- int [ams_send]{.underline}(AmsModule module, int continuumNbr, int
+```c
+ int  ams_send (AmsModule module, int continuumNbr, int
  unitNbr, int moduleNbr, int subjectNbr, int priority, unsigned char
- flowLabel, int contentLength, char \*content, int context);
-
+ flowLabel, int contentLength, char *content, int context);
+```
  This function causes an AMS message to be constructed on the indicated
  subject, encapsulating the indicated content and characterized by the
  indicated processing context token, and causes that message to be sent
@@ -1399,12 +1401,9 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  indicating "use the destination module's preferred flow label."
 
  The function returns 0 on success, -1 on any error.
-
- int [ams_query]{.underline}(AmsModule module, int continuumNbr, int
- unitNbr, int moduleNbr, int subjectNbr, int priority, unsigned char
- flowLabel, int contentLength, char \*content, int context, int term,
- AmsEvent \*event);
-
+```c
+int  ams_query (AmsModule module, int continuumNbr, int unitNbr, int moduleNbr, int subjectNbr, int priority, unsigned char flowLabel, int contentLength, char *content, int context, int term, AmsEvent *event);
+```
  This function is identical to ams_send in usage and effect except
  that, following issuance of the message, the function blocks (that is,
  does not return control to the invoking function) until either (a) a
@@ -1414,18 +1413,16 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  referenced by *event* points to the AMS event that caused the return
  of control, either a reply message or a timeout or (possibly) a notice
  of processing error. If term is 0, the function returns control to the
- invoking function immediately and \*event always points to a timeout
+ invoking function immediately and *event always points to a timeout
  event. If term is -1, the function never returns control until a reply
  message is received.
 
  The function returns 0 on success, -1 on any error.
-
- int [ams_reply]{.underline}(AmsModule module, AmsEvent msg, int
+```c
+ int  ams_reply (AmsModule module, AmsEvent msg, int
  subjectNbr, int priority, unsigned char flowLabel, int contentLength,
- char
-
- \*content);
-
+ char *content);
+```
  This function is identical to ams_send in usage and effect except that
  the destination of the reply message is not stated explicitly by the
  invoking function; instead, the invoking function provides a pointer
@@ -1433,11 +1430,11 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  sender is the destination of the reply message.
 
  The function returns 0 on success, -1 on any error.
-
- int [ams_announce]{.underline}(AmsModule module, int roleNbr, int
+```c
+ int  ams_announce (AmsModule module, int roleNbr, int
  continuumNbr, int unitNbr, int subjectNbr, int priority, unsigned char
- flowLabel, int contentLength, char \*content, int context);
-
+ flowLabel, int contentLength, char *content, int context);
+```
  This function causes an AMS message to be constructed on the indicated
  subject, encapsulating the indicated content and characterized by the
  indicated processing context token, and causes one copy of that
@@ -1474,9 +1471,10 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 
 ## Event (Including Message) Reception
 
- int [ams_get_event]{.underline}(AmsModule module, int term, AmsEvent
- \*event);
-
+```c
+int  ams_get_event (AmsModule module, int term, AmsEvent
+ *event);
+```
  This function acquires the next AMS event currently in the queue of
  AMS events that have yet to be handled by the application. The
  function blocks (that is, does not return control to the invoking
@@ -1502,36 +1500,29 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 - Call ams_recycle_event to release the memory occupied by the event,
   in order to prevent memory leakage.
 
- int [ams_get_event_type]{.underline}(AmsEvent event);
-
+```c
+ int  ams_get_event_type (AmsEvent event);
+```
  This function returns the event type of the indicated event, enabling
  the event to be properly parsed by the application program. The
  possible event types are AMS_MSG_EVT, TIMEOUT_EVT, NOTICE_EVT, and
  USER_DEFINED_EVT.
 
- int [ams_parse_msg]{.underline}(AmsEvent event, int \*continuumNbr,
- int \*unitNbr, int
-
- \*moduleNbr, int \*subjectNbr, int \*contentLength, char \*\*content,
- int \*context, AmsMsgType \*msgType, int \*priority, unsigned char
-
- \*flowLabel);
-
+```c
+ int  ams_parse_msg (AmsEvent event, int *continuumNbr,
+ int *unitNbr, int *moduleNbr, int *subjectNbr, int *contentLength, char **content,
+ int *context, AmsMsgType *msgType, int *priority, unsigned char *flowLabel);
+```
  This function extracts the content of an AMS event that is a received
  message, inserting values into the variables that the function's
  arguments point to. *continuumNbr*, *unitNbr*, and *moduleNbr*
  identify the module that sent the message. Returns 0 unless one or
  more of the arguments provided to the function are NULL, in which case
  the function returns -1.
-
- int [ams_parse_notice]{.underline}(AmsEvent event, AmsStateType
- \*state,
-
- AmsChangeType \*change, int \*unitNbr, int \*moduleNbr, int \*roleNbr,
- int \*domainContinuumNbr, int \*domainUnitNbr, int \*subjectNbr, int
- \*priority, unsigned char \*flowLabel, AmsSequence \*sequence,
- AmsDiligence \*diligence);
-
+```c
+int  ams_parse_notice (AmsEvent event, AmsStateType
+ *state, AmsChangeType *change, int *unitNbr, int *moduleNbr, int *roleNbr, int *domainContinuumNbr, int *domainUnitNbr, int *subjectNbr, int *priority, unsigned char *flowLabel, AmsSequence *sequence, AmsDiligence *diligence);
+```
  This function extracts the content of an AMS event that is a notice of
  change in message space configuration, inserting values into the
  variables that the function's arguments point to.
@@ -1563,27 +1554,26 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 
  Returns 0 unless one or more of the arguments provided to the function
  are NULL, in which case the function returns -1.
-
- int [ams_parse_user_event]{.underline}(AmsEvent event, int \*code, int
- \*dataLength, char \*\*data);
-
+```c
+ int  ams_parse_user_event (AmsEvent event, int *code, int *dataLength, char **data);
+```
  This function extracts the content of a user-defined AMS event,
  inserting values into the variables that the function's arguments
  point to. Returns 0 unless one or more of the arguments provided to
  the function are NULL, in which case the function returns -1.
-
- int [ams_recycle_event]{.underline}(AmsEvent event);
-
+```c
+ int  ams_recycle_event (AmsEvent event);
+```
  This function simply releases all memory occupied by the indicated
  event. Returns 0 unless *event* is NULL, in which case the function
  returns -1.
 
 ## User Event Posting
-
- int [ams_post_user_event]{.underline}(AmsModule module, int
- userEventCode, int userEventDataLength, char \*userEventData, int
+```c
+ int  ams_post_user_event (AmsModule module, int
+ userEventCode, int userEventDataLength, char *userEventData, int
  priority);
-
+```
  This function posts a user-defined event into the queue of AMS events
  that have yet to be handled by the application. *userEventCode* is an
  arbitrary, user-defined numeric value; *userEventData*, if not NULL,
@@ -1612,15 +1602,15 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  header file
 
  **rams.h** and comprises just a single function:
-
- int [rams_run]{.underline}(char \*mibSource, char \*tsorder, char
- \*applicationName, char \*authorityName, char \*unitName, char
- \*roleName, int lifetime);
-
+```c
+ int  rams_run (char *mibSource, char *tsorder, char
+ *applicationName, char *authorityName, char *unitName, char
+ *roleName, int lifetime);
+```
  This function initiates a RAMS gateway operations loop. *mibSource*,
  *tsorder*, *mName*, *memory*, *mSize*, *applicationName*,
  *authorityName*, *unitName*, and *roleName* are as discussed in the
- documentation of [ams_register]{.underline} above; they are used to
+ documentation of  ams_register  above; they are used to
  register the RAMS gateway process as an AMS module. *lifetime* is the
  user-specified maximum time to live for all DTN bundles issued by the
  RAMS gateway in the course of its communications over the RAMS
@@ -1651,10 +1641,10 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  The sample RAMS gateway program **ramsgate** provides basic RAMS
  gateway functionality. To run it, enter a command of the following
  form at a terminal window prompt:
-
+```
  ramsgate *application_name authority_name_name lifetime*
- \[*memory_size* \[*memory_manager_name*\]\]
-
+ [*memory_size* [*memory_manager_name*]]
+```
  *application_name*, *authority_name*, *lifetime*,
  *memory_manager_name*, and *memory_size* are as discussed in the
  documentation of ams_register. If not specified, memory size defaults
@@ -1681,22 +1671,22 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 ## MIB file syntax
 
  The elements of the XML files used to load AMS MIBs are as follows:
- [ams_mib_load]{.underline}: contains a series of MIB load commands.
+ [ams_mib_load] : contains a series of MIB load commands.
 
  Attributes: none
 
- [ams_mib_init]{.underline}: command that initializes the MIB.
+ [ams_mib_init] : command that initializes the MIB.
  Attributes:
 
  continuum_nbr: the number identifying the local continuum ptsname: the
  name of the primary transport service
 
- [ams_mib_add]{.underline}: contains a series of elements that add
+ [ams_mib_add] : contains a series of elements that add
  items to the MIB.
 
  Attributes: none
 
- [continuum]{.underline}:
+ [continuum] :
 
  Attributes:
 
@@ -1704,41 +1694,41 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  identifies this continuum
 
  neighbor: a Boolean indication ("1" or "0") of whether or not this is
- a neighboring continuum \[If omitted, the continuum is by default
+ a neighboring continuum [If omitted, the continuum is by default
  assumed to be a neighbor -- that is, an implicit neighbor="1"
- attribute is the default.\]
+ attribute is the default.]
 
  desc: a brief textual description of this continuum
 
- [csendpoint]{.underline}: configuration server endpoint specification
+ [csendpoint] : configuration server endpoint specification
  (i.e., network location of configuration server)
 
  Attributes:
 
  epspec: PTS-specific endpoint specification string (to be more fully
  documented in a later edition of this [Programmer's
- Guide]{.underline})
+ Guide] )
 
- [application]{.underline}: defines an application Attributes:
+ [application] : defines an application Attributes:
 
  name: name of application
 
- [venture]{.underline}: defines a venture (an instance of an
+ [venture] : defines a venture (an instance of an
  application) Attributes:
 
- nbr: the number that identifies this venture
+ [nbr]: the number that identifies this venture
 
- appname: the name of the application served by this venture
+ [appname]: the name of the application served by this venture
 
- authname: the name of the authority responsible for this instance of
+ [authname]: the name of the authority responsible for this instance of
  this application
 
- net_config: the configuration ("mesh" or "tree") of the RAMS network
- comprising all AMS continua that participate in this venture. \[If
+ [net_config]: the configuration ("mesh" or "tree") of the RAMS network
+ comprising all AMS continua that participate in this venture. If
  omitted, the RAMS network configuration is by default assumed to be a
- mesh.\]
+ mesh.
 
- gweid: a string identifying the endpoint for the local continuum's
+ [gweid]: a string identifying the endpoint for the local continuum's
  RAMS gateway within the RAMS network for this venture; default is
  "bp@ipn:*local_continuum_nbr*.*venture_nbr*"
 
@@ -1747,52 +1737,56 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  venture will automatically be resynchronized. If omitted or set to
  zero, automatic resync is disabled within the root unit.
 
- [role]{.underline}: defines a role within a venture Attributes:
+ [role] : defines a role within a venture Attributes:
 
- nbr: the number that identifies this role name: the name that
+ [nbr]: the number that identifies this role 
+ 
+ [name]: the name that
  identifies this role
 
- [subject]{.underline}: defines a message subject within a venture
+ [subject] : defines a message subject within a venture
  Attributes:
 
- nbr: the number that identifies this subject name: the name that
+ [nbr]: the number that identifies this subject 
+ 
+ [name]: the name that
  identifies this subject
 
- desc: a brief textual description of this message subject
+[desc]: a brief textual description of this message subject
 
- [element]{.underline}: defines one of the elements (fields) of a
+ [element] : defines one of the elements (fields) of a
  message on a given subject (note that elements must be defined in the
  order in which they appear in the message, without omission)
 
  Attributes:
 
- type: a number that specifies the data type of this element (1 = long,
+ [type]: a number that specifies the data type of this element (1 = long,
  2 = int, 3 = short, 4 = char, 5 = string)
 
- name: the name that identifies this element
+ [name]: the name that identifies this element
 
- desc: a brief textual description of this message field.
- [unit]{.underline}: defines a unit of a venture
+ [desc]: a brief textual description of this message field.
+ [unit] : defines a unit of a venture
 
  Attributes:
 
- nbr: the number that identifies this unit name: the name that
+ [nbr]: the number that identifies this unit name: the name that
  identifies this unit
 
- resync_period: the period (expressed as a count of registrar
+ [resync_period]: the period (expressed as a count of registrar
  heartbeats) on which the configuration of this unit will automatically
  be resynchronized. If omitted or set to zero, automatic resync is
  disabled within this unit.
 
- [msgspace]{.underline}: identifies a remote continuum that contains a
+ [msgspace] : identifies a remote continuum that contains a
  message space that is part of this venture
 
- Attributes:
+ [Attributes]:
 
- nbr: the number that identifies the continuum containing this message
+ [nbr]: the number that identifies the continuum containing this message
  space
 
- gweid: a string identifying the endpoint for the indicated continuum's
+ [gweid]: a string identifying the endpoint for the indicated continuum's
  RAMS gateway, within the RAMS network for this venture; default is
  "bp@ipn:*continuum_nbr*.*venture_nbr*"
 
@@ -1804,55 +1798,33 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
 
 ## A Sample MIB
 
- \<?xml version="1.0" standalone="yes"?\
+```xml
+<?xml version="1.0" standalone="yes"?>
+<ams_mib_load>
+<ams_mib_init continuum_nbr="1" ptsname="dgr"/>
+<ams_mib_add>
+<continuum nbr="2" name="gsfc"" desc="Goddard Space Flight Center"/>
+<csendpoint epspec="amroc.net:2502"/>
+<application name="demo"/>
+<venture nbr="9" appname="demo" authname="test" >
+<role nbr="2" name="shell"/>
+<role nbr="3" name="log"/>
+<role nbr="4" name="pitch"/>
+<role nbr="5" name="catch"/>
+<role nbr="6" name="benchs"/>
+<role nbr="7" name="benchr"/>
+<subject nbr="1" name="text" desc="ASCII text"/>
+<subject nbr="2" name="noise" desc="more ASCII text"/>
+<subject nbr="3" name="bench" desc="numbered messages"/>
+<unit nbr="1" name="orbiters"/>
+<unit nbr="2" name="orbiters.near"/>
+<unit nbr="3" name="orbiters.far"/>
+<msgspace nbr="2" neighbor=1/>
+</venture>
+</ams_mib_add>
+</ams_mib_load>
 
- \<ams_mib_load\
-
- \<ams_mib_init continuum_nbr="1" ptsname="dgr"/\
-
- \<ams_mib_add\
-
- \<continuum nbr="2" name="gsfc"" desc="Goddard Space Flight
- Center"/\
-
- \<csendpoint epspec="amroc.net:2502"/\
-
- \<application name="demo"/\
-
- \<venture nbr="9" appname="demo" authname="test" \
-
- \<role nbr="2" name="shell"/\
-
- \<role nbr="3" name="log"/\
-
- \<role nbr="4" name="pitch"/\
-
- \<role nbr="5" name="catch"/\
-
- \<role nbr="6" name="benchs"/\
-
- \<role nbr="7" name="benchr"/\
-
- \<subject nbr="1" name="text" desc="ASCII text"/\
-
- \<subject nbr="2" name="noise" desc="more ASCII text"/\
-
- \<subject nbr="3" name="bench" desc="numbered messages"/\
-
- \<unit nbr="1" name="orbiters"/\
-
- \<unit nbr="2" name="orbiters.near"/\
-
- \<unit nbr="3" name="orbiters.far"/\
-
- \<msgspace nbr="2" neighbor=1/\
-
- \</venture\
-
- \</ams_mib_add\
-
- \</ams_mib_load\
-
+```
 # Application Development
 
  AMS applications (i.e. "modules") are custom software built using AMS'
@@ -1876,18 +1848,13 @@ int ams_register(char *mibSource, char *tsorder, char *applicationName, char *au
  Applications created with the API must be compiled with links to ION's
  dynamic libraries.
 
- The following two-step build procedure provides an example of how this
- works (note that the default path for installed ION library files
- (Linux) is used: /usr/local/lib/):
+ The following two-step build procedure provides an example of how this works (note that the default path for installed ION library files (Linux) is used: /usr/local/lib/):
 
-1. *gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT
-   -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams
-   -I/usr/local/include -c \<your_module_name\.c*
-2. *gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT
-   -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams
-   -I/usr/local/include -o \<your_module_name\ \<your_module_name\.o
-   -L./lib -L/usr/local/lib -lams -ldgr -lici -lpthread -lm*
+```bash
+gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams -I/usr/local/include -c your_module_name.c
 
+gcc -g -Wall -Werror -Dlinux -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT -fPIC -DSPACE_ORDER=3 -I../library -I../include -I../rams -I/usr/local/include -o your_module_name your_module_name.o -L./lib -L/usr/local/lib -lams -ldgr -lici -lpthread -lm*
+```
 ## Running the Application
 
 Applications must self-register with an AMS registrar. To facilitate
@@ -1904,9 +1871,9 @@ using the ams_register() function):
 
  An example command to start a custom AMS module might look like the
  following:
-
- *./your_module_name ' ' your_module_mib_role_name amsdemo test*
-
+```
+./your_module_name ' ' your_module_mib_role_name amsdemo test
+```
  Note: the empty quotes (' ') above are used to specify registration
  with the root unit registrar.
 
@@ -1946,195 +1913,120 @@ using the ams_register() function):
 - The "" parameter specifies that the registrar function as the "root
   unit" registrar
 
- /\*
-
- amshello.c
-
- "Hello world" demonstration using AMS - Unix platform (only)
-
- Copyright (c) 2023, California Institute of Technology.
-
- Sky DeBaun, Jet Propulsion Laboratory.
-
- This program assumes the following
- conditions\-\-\-\-\-\-\-\-\-\-\-\-\-\--
-
- 1.) ION is running
-
- 2.) An AMS Registrar is running
-
- 3.) An AMS Configuration Server is running
-
- 4.) An MIB configuration file has been created and is specified for
- use (see note below)
-
- \*NOTE: the following command completes steps 2, 3, and 4 above (run
- this command after other ION processes start, then run the 'amshello'
- command from terminal to run the program):
-
- *amsd @ @ amsdemo test "" &*
-
- \*/
-
- #include "ams.h"
-
- static int runPitcher()
-
- {
-
- AmsModule me;
-
- AmsEvent evt;
-
- AmsStateType state;
-
- AmsChangeType change;
-
- int zn, nn, rn, dcn, dzn, sn, pr, textlen;
-
- unsigned char fl;
-
- AmsSequence sequence;
-
- AmsDiligence diligence;
-
- char buffer\[80\];
-
- isprintf(buffer, sizeof buffer, "Hello from process %d", (int)
- getpid());
-
- textlen = strlen(buffer) + 1;
-
- //register pitch module using default in-memory MIB (i.e. using the @)
-
- oK(ams_register("@", NULL, "amsdemo", "test", "", "pitch",
- &me));
-
- while (1)
-
- {
-
- if (ams_get_event(me, AMS_BLOCKING, &evt) \< 0)
-
- {
-
- return 0;
-
- }
-
- else
-
- {
-
- ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
-
- &dzn, &sn, &pr, &fl, &sequence, &diligence);
-
- ams_recycle_event(evt);
-
- }
-
- if (state == AmsInvitationState && sn == 1)
-
- {
-
- printf("Process %d sending: '%s'\\n", (int) getpid(), buffer);
-
- fflush(stdout);
-
- ams_send(me, -1, zn, nn, 1, 0, 0, textlen, buffer, 0);
-
- ams_unregister(me);
-
- return 0;
-
- }
-
- }
-
- }
-
- static int runCatcher()
-
- {
-
- AmsModule me;
-
- AmsEvent evt;
-
- int cn, zn, nn, sn, len, ct, pr;
-
- unsigned char fl;
-
- AmsMsgType mt;
-
- char \*txt;
-
- //register catch module using default in-memory MIB (i.e. @)
-
- oK(ams_register("@", NULL, "amsdemo", "test", "", "catch",
- &me));
-
- ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
-
- while (1)
-
- {
-
- if (ams_get_event(me, AMS_BLOCKING, &evt) \< 0) return 0;
-
- if (ams_get_event_type(evt) == AMS_MSG_EVT) break;
-
- else ams_recycle_event(evt);
-
- }
-
- ams_parse_msg(evt, &cn, &zn, &nn, &sn, &len, &txt, &ct, &mt, &pr,
- &fl);
-
- printf("Process %d received: '%s'\\n", (int) getpid(), txt);
- fflush(stdout);
-
- ams_recycle_event(evt); ams_unregister(me); return 0;
-
- }
-
- int main(void)
-
- {
-
- pid_t pid = fork();
-
- if (pid == -1) {
-
- fprintf(stderr, "Failed to create child process.\\n");
-
- return EXIT_FAILURE;
-
- }
-
- if (pid == 0)
-
- //child process runs
- transmitter\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\--
-
- runPitcher();
-
- else
-
- {
-
- //parent process runs
- receiver\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\--
-
- runCatcher();
-
- }
-
- return 0;
-
- }
-
+```c++
+/*
+amshello.c
+"Hello world" demonstration using AMS - Unix platform (only)
+
+Copyright (c) 2023, California Institute of Technology.	
+Sky DeBaun, Jet Propulsion Laboratory.
+
+
+This program assumes the following conditions---------------
+1.) ION is running
+2.) An AMS Registrar is running 	
+3.) An AMS Configuration Server is running 
+4.) An MIB configuration file has been created and is specified for use (see note below)
+
+*NOTE: the following command completes steps 2, 3, and 4 above (run this command after other ION processes start, then run the ‘amshello’ command from terminal to run the program):
+
+amsd @ @ amsdemo test "" &
+
+
+*/
+
+#include "ams.h"
+
+static int	runPitcher()
+{
+	AmsModule	    	me;
+	AmsEvent	    	evt;
+	AmsStateType		state;
+	AmsChangeType		change;
+	int		      	zn, nn, rn, dcn, dzn, sn, pr, textlen;
+	unsigned char		fl;
+	AmsSequence	    	sequence;
+	AmsDiligence		diligence;
+	char		    	buffer[80];
+
+	isprintf(buffer, sizeof buffer, "Hello from process %d", (int)     getpid());
+	textlen = strlen(buffer) + 1;
+
+	//register pitch module using default in-memory MIB (i.e. using the @)
+	oK(ams_register("@", NULL, "amsdemo", "test", "", "pitch", &me));
+	
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) 
+{
+return 0;
+}
+else
+{
+			ams_parse_notice(evt, &state, &change, &zn, &nn, &rn, &dcn,
+					&dzn, &sn, &pr, &fl, &sequence, &diligence);
+			ams_recycle_event(evt);
+}
+
+		if (state == AmsInvitationState && sn == 1)
+		{
+			printf("Process %d sending:  '%s'\n", (int) getpid(), buffer);
+			fflush(stdout);
+			ams_send(me, -1, zn, nn, 1, 0, 0, textlen, buffer, 0);
+			ams_unregister(me); 
+return 0;
+		}
+	}
+}
+
+static int	runCatcher()
+{
+	AmsModule	    	me;
+	AmsEvent	    	evt;
+	int		      	cn, zn, nn, sn, len, ct, pr;
+	unsigned char		fl;
+	AmsMsgType	    	mt;
+	char		    	*txt;
+
+	//register catch module using default in-memory MIB (i.e. @)
+	oK(ams_register("@", NULL, "amsdemo", "test", "", "catch", &me));
+	ams_invite(me, 0, 0, 0, 1, 8, 0, AmsArrivalOrder, AmsAssured);
+	
+	while (1)
+	{
+		if (ams_get_event(me, AMS_BLOCKING, &evt) < 0) return 0;
+		if (ams_get_event_type(evt) == AMS_MSG_EVT) break;
+		else ams_recycle_event(evt);
+	}
+
+	ams_parse_msg(evt, &cn, &zn, &nn, &sn, &len, &txt, &ct, &mt, &pr, &fl);
+	printf("Process %d received: '%s'\n", (int) getpid(), txt); fflush(stdout);
+	ams_recycle_event(evt); ams_unregister(me); return 0;
+}
+
+
+int main(void) 
+{
+    pid_t pid = fork();
+
+    if (pid == -1) {
+        fprintf(stderr, "Failed to create child process.\n");
+        return EXIT_FAILURE;
+    }
+
+    if (pid == 0)
+        //child process runs transmitter----------------------
+        runPitcher();
+    else 
+    {
+        //parent process runs receiver------------------------
+        runCatcher();
+    }
+
+	return 0;
+}
+
+```
 # Acknowledgment
 
  The research described in this publication was carried out at the Jet
