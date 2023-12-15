@@ -8579,7 +8579,7 @@ static int	checkPayloadCrc(AcqWorkArea *work, uvast *crcComputed,
 
 	payloadHeaderLength = work->preambleLength - work->headerLength;
 	zco_start_receiving(work->zco, &reader);
-	bytesToSkip = work->headerLength;
+	bytesToSkip = work->zcoBytesConsumed + work->headerLength;
 
 	/*	Skipping this far positions us at the first byte
 	 *	of the payload block.					*/
