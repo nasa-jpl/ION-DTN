@@ -71,7 +71,7 @@ int	main(int argc, char *argv[])
 	db = getLtpConstants();
 	vdb = getLtpVdb();
 	if (ionStartAttendant(&attendant) < 0
-	|| (buffer = MTAKE(db->maxAcqInHeap)) == 0)
+	|| (buffer = MTAKE(LTP_MAX_HEAP_LIMIT)) == 0)
 	{
 		putErrmsg("Can't initialize blocking LTP acquisition.", NULL);
 		return 1;
