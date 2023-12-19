@@ -4876,9 +4876,6 @@ putErrmsg("Cancel by receiver.", utoa(sessionNbr));
 	CHKERR(importBufferElt);
 	importBuffer = sdr_list_data(sdr, importBufferElt);
 	CHKERR(importBuffer);
-	//JG
-	printf("Needed heapmax for new session: " UVAST_FIELDSPEC "\n", heapBufferSize);
-	printf("Actually allocated importBuffers size: %ld bytes", sdr_object_length(sdr, importBuffer));
 
 	/* check reused buffer size in case heapmax increased */
 	if (sdr_object_length(sdr, importBuffer) < db->maxAcqInHeap)
@@ -4906,8 +4903,6 @@ putErrmsg("Cancel by receiver.", utoa(sessionNbr));
 			putErrmsg("Re-allocation of import heap buffer failed.", NULL);
 			return -1;
 		}
-		//JG
-		printf("\nRe-allocate importBuffers size to: %ld bytes",sdr_object_length(sdr,importBuffer));
 	}
 
 	/*	importSessions list element points to the session
@@ -5349,14 +5344,8 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
 
-	//JG
-	printf("===== incoming redpart ======\n");
-
 	if (*sessionObj)	/*	Active import session found.	*/
 	{
-		//JG
-		printf("Active Session Found...\n");
-
 		sdr_stage(sdr, (char *) sessionBuf, *sessionObj,
 				sizeof(LtpImportSession));
 		if (sessionBuf->redSegments == 0)
@@ -5373,9 +5362,6 @@ putErrmsg("Discarded redundant data segment.", itoa(sessionNbr));
 	}
 	else		/*	Active import session not found.	*/
 	{
-		//JG
-		printf("NO Active Session Found...\n");
-
 		getCanceledImport(vspan, sessionNbr, sessionObj, &sessionElt);
 		if (*sessionObj)
 		{
@@ -5407,9 +5393,6 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 			ltpSpanTally(vspan, IN_SEG_SES_CLOSED, pdu->length);
 			return 0;
 		}
-
-		//JG
-		printf("+++++ New Session Started Successfully ++++\n");
 	}
 
 	/* Determine heap and file spaces needed */
@@ -5427,8 +5410,6 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 	{
 		bytesForFile = pdu->length;
 	}
-	//JG 
-	printf("acceptRedContent: %ld bytes \n", sessionBuf->heapBufferSize);
 
 	segment->sessionObj = *sessionObj;
 	*segUpperBound = insertDataSegment(sessionBuf, vsession, segment, pdu,
