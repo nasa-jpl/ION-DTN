@@ -10,6 +10,12 @@
 #include "ltpP.h"
 #include "ion.h"
 
+#ifdef INPUT_HISTORY
+#include <string.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 #ifdef STRSOE
 #include <strsoe_ltpadmin.h>
 #endif
@@ -1189,6 +1195,10 @@ int	main(int argc, char **argv)
 	int	len;
 	int	checkNeeded = 0;
 
+#ifdef INPUT_HISTORY
+	char *input;
+#endif
+
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 #ifdef FSWLOGGER
@@ -1198,6 +1208,51 @@ int	main(int argc, char **argv)
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
+#ifdef INPUT_HISTORY
+			/* add input history */
+			if ((input = readline(": ")) != NULL)
+			{
+				len = strlen(input);
+				
+				if (len == 0)
+				{
+					continue;
+				}
+
+				/* received input */
+				if (len > 0) 
+				{
+            		add_history(input);
+        		}
+				
+				if (len > sizeof(line) - 1 ) 
+				{
+					printf("\nInput is too long. Ignored.\n");
+					fflush(stdout);
+					continue;
+				}
+			}
+			else
+			{
+				/* input error detected */
+				printf("\nInput error detected. Exiting.\n");
+				fflush(stdout);
+				free(input);
+				break;
+			}
+
+			/* copy the input to line for processing
+			 * input sized already checked */
+
+			strcpy(line, input);
+
+			if (processLine(line, len, &checkNeeded, &rc))
+			{
+				free(input);
+				break;		/*	Out of loop.	*/
+			}
+#else
+			/* original input handling*/
 			printf(": ");
 			fflush(stdout);
 			if (igets(cmdFile, line, sizeof line, &len) == NULL)
@@ -1220,6 +1275,7 @@ int	main(int argc, char **argv)
 			{
 				break;		/*	Out of loop.	*/
 			}
+#endif
 		}
 #endif
 	}
