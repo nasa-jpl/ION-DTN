@@ -28,7 +28,8 @@
 #include "ltpP.h"
 #include "ltpei.h"
 
-#define EWCHAR
+/* Enhanced Watch Character
+ * #define EWCHAR */
 
 #define	EST_LINK_OHD		16
 

@@ -11,7 +11,8 @@
 									*/
 #include "bpP.h"
 
-#define EWCHAR
+/* for enhanced watch character
+ * #define EWCHAR */
 
 static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 {

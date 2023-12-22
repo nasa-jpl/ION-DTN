@@ -10,7 +10,8 @@
 									*/
 #include "ltpP.h"
 
-#define EWCHAR
+/* Enhanced Watch Character
+ * #define EWCHAR */
 
 #if defined (ION_LWT)
 int	ltpmeter(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,

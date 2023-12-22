@@ -35,8 +35,8 @@
 #include "bib.h"
 #include "bcb.h"
 
-/* Enhanced Watch Character */
-#define EWCHAR
+/* Enhanced Watch Character
+ * #define EWCHAR */
 
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
