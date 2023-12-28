@@ -8,7 +8,7 @@ Here you will find videos of the Interplanetary Overlay Network [courses and pre
 
 DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre-configured with ION and a GUI virtualization environment. It contains a number of pre-built scenarios (network topologies) to demonstrate various features of ION software. (** currently the DevKit is undergoing upgrade to BPv7, release date is TBD.**)
 
-## 📡 Use Cases for ION
+## 📡 Application Domains of DTN and ION
 
 - **Robotics**: This technology enables us to command and control robotic explorers on distant planets and support timely decision-making despite the limitations imposed by vast distances.
 - **Satellite Communications**: Our protocol enhances satellite constellations by providing a solution tailored to the unique challenges posed by space communications.
@@ -16,35 +16,26 @@ DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre
 - **Interplanetary Internet**: We're laying the foundation for an internet that extends beyond Earth to span across multiple planets, paving the way for universal communication.
 - **Space Station Data Handling**: Our technology efficiently manages data transfer between Earth and Space Station's various science payload and instruments, ensuring timely and reliable communications.
 
-## 📊 Benchmark Tests
+## 📊 Performance Data
 
 - **BP/LTP Throughput Study**: a comprehensive study of BP/LTP performance on various CPU/OS architecture will be provided in the [ION Deployment Guide](ION-Deployment-Guide.md) after ION 4.1.3 is released. (Current estimated time is Fall of 2023)
+- **ION TCPCL Throughput Assessment**: an in-depth study conducted at Ohio University on the performance optimization of ION over the TCP convergence layer is available [here](https://etd.ohiolink.edu/acprod/odb_etd/etd/r/1501/10?clear=10&p10_accession_num=ohiou1619115602389023) and as a [pdf](https://etd.ohiolink.edu/acprod/odb_etd/ws/send_file/send?accession=ohiou1619115602389023&disposition=inline) file.
 
-## 🛠️ Installation and Configuration
+## 🛠️ Installation & Configuration
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/nasa-jpl/ION-DTN.git
    ```
-2. Follow the steps in the [Quick Start Guide](./ION-Quick-Start-Guide.md).
-   
+2. Follow the steps in the [Quick Start Guide](./ION-Quick-Start-Guide.md) to build, install, and run a simple two node example.
 3. A simple tutorial of ION's configuration files can be found [here](./Basic-Configuration-File-Tutorial.md).
-
 4. A set of configuration file templates for various DTN features can be found [here](./ION-Config-File-Templates.md).
 
 ## 📜 License
 
 ION is licensed under the MIT License. Please see the [LICENSE](./License.md) file for details.
 
-## 🚀 Current Uses of ION & ION-Integrated Systems
-
-- **NASA Deep Space Network**: DTN services is currently provided by the DSN.
-- **NASA International Space Station**: Science Payload onboard ISS as well as command/telemetry/science data relay Gateway
-- **KARI: Korean PathFinder Lunar Orbiter (KPLO)**: Operates a DTN-payload (DTNPL)
-- **Morehead State University 21-m Antenna**: operates a ground DTN node using ION
-- **ION Core**: a streamlined packaging of the core DTN features of ION without the experimental features. Customizable for mission infusion. https://github.com/nasa-jpl/ion-core
-- **F Prime Open Source Flight Software**: ION BPv7 has been integrated with F Prime. A prototype is now available to the public at https://github.com/fprime-community/fprime-dtn.
-
 ## 📚 Important Papers on ION and DTN
 
-For a list of key DTN and ION papers, refer to the [List-of-Papers](./List-of-Papers.md) page.
+For a list of key DTN and ION-related publications, please refer to the [List-of-Papers](./List-of-Papers.md) page.

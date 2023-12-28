@@ -4,7 +4,7 @@ This tutorial goes over the basic user APIs for developing application software 
 
 ## Pre-requisite
 
-For a user-developed software to utilize BP services provided by ION, there are two pre-requisite conditions: (1) ION services must be properly configured and already running in a state ready to provide BP services, and (2) BP libraries and header files must be install and linked to the user application. 
+For a user-developed software to utilize BP services provided by ION, there are two pre-requisite conditions: (1) ION services must be properly configured and already running in a state ready to provide BP services, and (2) BP libraries and header files must be installed and linked to the user application.
 
 ## Check ION Installation & BP Version
 
@@ -70,15 +70,15 @@ To further vary that BP service is running, you can check for presence of ION sh
 ```bash
 ------ Shared Memory Segments --------
 key        shmid      owner         perms      bytes      nattch     status   
-0x0000ee02 47         userIon       666        641024     13                      
-0x0000ff00 48         userIon       666        50000000   13                      
-0x93de0005 49         userIon       666        1200002544 13                      
-0x0000ff01 50         userIon       666        500000000  13                      
+0x0000ee02 47         userIon       666        641024     13                    
+0x0000ff00 48         userIon       666        50000000   13                    
+0x93de0005 49         userIon       666        1200002544 13                    
+0x0000ff01 50         userIon       666        500000000  13                    
 
 ------ Semaphore Arrays --------
-key        semid      owner         perms      nsems     
-0x0000ee01 23         userIon       666        1         
-0x18020001 24         userIon       666        250       
+key        semid      owner         perms      nsems   
+0x0000ee01 23         userIon       666        1       
+0x18020001 24         userIon       666        250     
 ```
 
 In this example, the shared memory and semaphore keys for the SDR heap space (shmid 49) and the semaphorebase (semid 24) are created using a random key generated from the process ID of `ionadmin` and they will vary each time ION is instantiated. This is specific to SVR4 semaphore, which is the default for ION 4.1.2. However, starting with ION 4.1.3, the default semaphore will switch to POSIX semaphore and the output will be different. The other memory and semaphore keys listed in this example are typical default values, but they too, can be changed through ionconfig files.
@@ -143,7 +143,6 @@ excluded by BP version: 0
 obsolete tests: 0
 ```
 
-
 ## Locate ION Libraries and Header Files
 
 The standard `./configure; make; sudo make install; sudo ldconfig` process should automatically install the BP libraries under `/usr/local/lib` and the relevant header files under `/usr/local/include` unless ION is specifically configured to a different customized install location through the `./configure` script during the compilation process. Here is a list of libraries and header files you should find there:
@@ -182,21 +181,268 @@ In this document, we assume that ION was build and installed via the `./configur
 
 The location and content of the library and header directories shown above included non-BP modules and may not match exactly with what you have especially if you have built ION with features options enabled via `./configure` or used a manual/custom Makefile, or built ION from the `ion-core` package instead.
 
-
-
-
-
-
-
-
-
+## Launch ION & BP Services
 
 Once you are confidant that a good ION build/install is in the system, you can start BP service. To do this, please consult the various tutorials under _Configuration_ section to launch ION.
-  
+
+After launching ION, you can [verify BP service status](#determine-bp-service-state) in the manner described in previous section.
+
+## BP Service API Reference
+
+### Header
+
+* bp.h
+
+-----------
+
+### bp_attach
+
+Function Prototype
+
+```c
+extern int bp_attach();
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* On success: 0
+* Any error: -1
+
+Example Call
+
+```c
+if (bp_attach() < 0)
+{
+        printf("Can't attach to BP.\n");
+        /* user inser error handling code */
+}
+```
+
+Description
+
+Typically the `bp_attach()` call is made at the beginning of a user's application to attach to BP Service provided by ION in the host machine. This code checks for a negative return value.
+
+------------
+### Sdr bp_get_sdr( )
+
+Function Prototype
+
+```c
+extern Sdr bp_get_sdr();
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* On success: Handle for the SDR data store
+* Any error: `NULL`
+
+Example Call
+
+```c
+/* declare SDR handle */
+Sdr sdr;
+
+/* get SDR handle */
+sdr = bp_get_sdr();
+
+/* user check sdr for NULL 
+ * and handle error */
+```
+
+Description
+
+Returns handle for the SDR data store used for BP, to enable creation and interrogation of bundle payloads (application data units). Since the SDR handle is needed by other , this function is typically executed early in the user's application in order to access other BP services.
+
+---------------
+
+### TBD
+
+Function Prototype
+
+```c
+
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Example Call
+
+
+Description
+
+---------------
+
+### TBD
+
+Function Prototype
+
+```c
+
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Example Call
+
+
+Description
+
+---------------
+
+### TBD
+
+Function Prototype
+
+```c
+
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Example Call
+
+
+Description
+
+---------------
+
+### TBD
+
+Function Prototype
+
+```c
+
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Example Call
+
+
+Description
+
+---------------
+
+### TBD
+
+Function Prototype
+
+```c
+
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Example Call
+
+```c
+
+```
+
+Description
+
+---------------
+
+### TBD
+
+Function Prototype
+
+```c
+
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Example Call
+
+
+Description
+
+---------------
+
+### TBD
+
+Function Prototype
+
+```c
+
+```
+
+Parameters
+
+* None.
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Example Call
+
+```c
+
+```
+
+Description
+
+---------------
 
 
 
 
+
+
+## Code Example
 
 
 ```c++
@@ -254,3 +500,26 @@ int main(int argc, char *argv[])
 }
 
 ```
+
+
+## Compiling and Linking
+
+## Zero-copy Object (ZCO) Types
+
+We have shown that the way to hand user data from an application to BP is via a zero-copy object (ZCO).
+
+In general there are two types of ZCO that is relevant to a user.
+
+* Note A third type of ZCO is called a ZCO ZCO - one consists of multiple other ZCOs. This is used internally by ION to handle concatenation of data but it is not relevant in the context of this topic.
+
+### SDR ZCO
+
+* Used in our example
+* Example in `bpsource.c`
+
+
+### File ZCO
+
+* Can be used if you wish not to make a copy of the data in the ION SDR (possibly to save SDR space)
+* You allow ION to access the original data (file) in the host computer's file system. Need to check if this restriction applies.
+* See example in `bpdriver.c`
