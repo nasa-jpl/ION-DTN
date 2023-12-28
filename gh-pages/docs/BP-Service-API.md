@@ -1,4 +1,4 @@
-# ION User API
+# BP Service API
 
 This tutorial goes over the basic user APIs for developing application software to take advantage of the Bundle Protocol (BP) services provided by ION.
 
