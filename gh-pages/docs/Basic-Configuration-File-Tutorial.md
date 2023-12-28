@@ -5,25 +5,28 @@
 The following tools are available to you after ION is built:
 
 Daemon and Configuration
-- ionadmin is the administration and configuration interface for the local ION node contacts and manages shared memory resources used by ION.
-- ltpadmin is the administration and configuration interface for LTP operations on the local ION node.
-- bsspadmin is the administrative interface for operations of the Bundle Streaming Service Protocol on the local ion node.
-- bpadmin is the administrative interface for bundle protocol operations on the local ion node.
-- ipnadmin is the administration and configuration interface for the IPN addressing system and routing on the ION node. (ipn:)
-- dtn2admin is the administration and configuration interface for the DTN addressing system and routing on the ION node. (dtn://)
-- killm is a script which tears down the daemon and any running ducts on a single machine (use ionstop instead).
-- ionstart is a script which completely configures an ION node with the proper configuration file(s).
-- ionstop is a script which completely tears down the ION node.
-- ionscript is a script which aides in the creation and management of configuration files to be used with ionstart.
+
+* ionadmin is the administration and configuration interface for the local ION node contacts and manages shared memory resources used by ION.
+* ltpadmin is the administration and configuration interface for LTP operations on the local ION node.
+* bsspadmin is the administrative interface for operations of the Bundle Streaming Service Protocol on the local ion node.
+* bpadmin is the administrative interface for bundle protocol operations on the local ion node.
+* ipnadmin is the administration and configuration interface for the IPN addressing system and routing on the ION node. (ipn:)
+* dtn2admin is the administration and configuration interface for the DTN addressing system and routing on the ION node. (dtn://)
+* killm is a script which tears down the daemon and any running ducts on a single machine (use ionstop instead).
+* ionstart is a script which completely configures an ION node with the proper configuration file(s).
+* ionstop is a script which completely tears down the ION node.
+* ionscript is a script which aides in the creation and management of configuration files to be used with ionstart.
 
 Simple Sending and Receiving
-  - bpsource and bpsink are for testing basic connectivity between endpoints. bpsink listens for and then displays messages sent by bpsource.
-  - bpsendfile and bprecvfile are used to send files between ION nodes.
+
+- bpsource and bpsink are for testing basic connectivity between endpoints. bpsink listens for and then displays messages sent by bpsource.
+- bpsendfile and bprecvfile are used to send files between ION nodes.
 
 Testing and Benchmarking
-  - bpdriver benchmarks a connection by sending bundles in two modes: request-response and streaming.
-  - bpecho issues responses to bpdriver in request-response mode.
-  - bpcounter acts as receiver for streaming mode, outputting markers on receipt of data from bpdriver and computing throughput metrics.
+
+- bpdriver benchmarks a connection by sending bundles in two modes: request-response and streaming.
+- bpecho issues responses to bpdriver in request-response mode.
+- bpcounter acts as receiver for streaming mode, outputting markers on receipt of data from bpdriver and computing throughput metrics.
 
 ## ION Logging
 

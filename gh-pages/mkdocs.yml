@@ -62,6 +62,7 @@ nav:
     - LTP Configuration Tool: Using-LTP-Config-Tool.md
     - ION Launcher Script: ION-Launcher.md
   - ION APIs:
+    - ION Infrastructure API: ICI-API.md
     - BP Service API: BP-Service-API.md
     - LTP Underlying Communications API: LTP-UComm-API.md
   - Man Pages:
