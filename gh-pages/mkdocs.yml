@@ -61,6 +61,9 @@ nav:
     - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
     - LTP Configuration Tool: Using-LTP-Config-Tool.md
     - ION Launcher Script: ION-Launcher.md
+  - ION APIs:
+    - User Data API: User-API.md
+    - LTP Underlying Provider API: LTP-Provider-API.md
   - Man Pages:
     - Asychronous Messaging System (AMS): man/ams/index.md
     - Bundle Protocol v6 (BPv6): man/bpv6/index.md
