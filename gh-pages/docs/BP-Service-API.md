@@ -183,9 +183,9 @@ The location and content of the library and header directories shown above inclu
 
 ## Launch ION & BP Services
 
-Once you are confidant that a good ION build/install is in the system, you can start BP service. To do this, please consult the various tutorials under _Configuration_ section to launch ION.
+Once you are confidant that ION has been properly built and installed in the system, you can start BP service by launching ION. To do this, please consult the various tutorials under _Configuration_.
 
-After launching ION, you can [verify BP service status](#determine-bp-service-state) in the manner described in previous section.
+After launching ION, you can [verify BP service status](#determine-bp-service-state) in the same manner as described in previous section.
 
 ## BP Service API Reference
 
@@ -438,12 +438,11 @@ Description
 ---------------
 
 
+## Walk Through of `bpsource.c`
 
+* For this example, it is assumed that the user is already familiar with the [ICI APIs](./ICI-API.md).
 
-
-
-## Code Example
-
+* 
 
 ```c++
 #include <stdio.h>
