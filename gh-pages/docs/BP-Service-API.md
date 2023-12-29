@@ -226,6 +226,8 @@ Description
 
 Typically the `bp_attach()` call is made at the beginning of a user's application to attach to BP Service provided by ION in the host machine. This code checks for a negative return value.
 
+`bp_attach()` automatically calls the ICI API `ion_attach()` when necessary, so there is no need to call them separately. In addition to gaining access to ION's SDR, which is what `ion_attach()` provides, `bp_attach()` also gains access to the Bundle Protocol's state information and database. For user application that interacts with the Bundle Protocol, `bp_attach()` is the entry point to ION.
+
 ------------
 ### Sdr bp_get_sdr( )
 
