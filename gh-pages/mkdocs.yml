@@ -65,6 +65,7 @@ nav:
     - ION Infrastructure API: ICI-API.md
     - BP Service API: BP-Service-API.md
     - LTP Underlying Communications API: LTP-UComm-API.md
+    - ION Utility Programs: ION-Utilities.md
   - Man Pages:
     - Asychronous Messaging System (AMS): man/ams/index.md
     - Bundle Protocol v6 (BPv6): man/bpv6/index.md
