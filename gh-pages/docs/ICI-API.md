@@ -194,7 +194,7 @@ if (ionStartAttendant(&attendant))
 
 Description
 
-Initializes the semaphore in `attendant` so that it can be used for blocking ZCO space requisitions by `ionRequestZcoSpace()`. This is necessary to ensure that the invoking task will not be able to inject data into BP service until SDR space is allocated.
+Initializes the semaphore in `attendant` so that it can be used for blocking a pending ZCO space request. This is necessary to ensure that the invoking task will not be able to inject data into BP service until SDR space is allocated.
 
 ---------------
 
@@ -227,27 +227,53 @@ Destroys the semaphore in `attendant`, preventing a potential resource leak. Thi
 
 ---------------
 
-### TBD
+### ionCreateZco
 
 Function Prototype
 
 ```c
-
+extern Object		ionCreateZco(	ZcoMedium source,
+					Object location,
+					vast offset,
+					vast length,
+					unsigned char coarsePriority,
+					unsigned char finePriority,
+					ZcoAcct acct,
+					ReqAttendant *attendant);
 ```
 
 Parameters
 
-* None.
+* `source`: the type of ZCO to be created. Each source data object may be either a file, a "bulk" item in mass storage, an object in SDR heap space (identified by heap address stored in an "object reference" object in SDR heap), an array of bytes in SDR heap space (identified by heap address), or another ZCO.
+
+```c
+typedef enum
+{
+	ZcoFileSource = 1,
+	ZcoBulkSource = 2,
+	ZcoObjSource = 3,
+	ZcoSdrSource = 4,
+	ZcoZcoSource = 5
+} ZcoMedium;
+```
+* `location`: the location in the heap where a single extent of source data resides. This data is usually placed there by the user application via the `sdr_malloc()` API which will be discussed later.
+* `offset`: the offset within the source data object where the first byte of the ZCO should be placed.
+* `length`: the length of the ZCO to be created.
+* `coarsePriority`:
+* `finePriority`:
+* `acct`: The accounting category for the ZCO, see man page for zco for detailed explanation.
+* `attendant`: the semaphore that blocks return of the function until the necessary resources has been allocated in the SDR for the creation of the ZCO
 
 Return Value
 
-* 0: success
-* -1: Any error
+(a) space has become available and the ZCO has been created, in which case the location of the ZCO is returned, or (b) the function has failed (in which case ((Object) -1) is returned), or (c) either attendant was null and sufficient space for the first extent of the ZCO was not immediately available or else the function was interrupted by ionPauseAttendant() before space for the ZCO became available (in which case 0 is returned).
 
 Example Call
 
 
 Description
+
+This function provides a "blocking" implementation of admission control in ION. Like zco_create(), it constructs a zero-copy object (see zco(3)) that contains a single extent of source data residing at location in source, of which the first offset bytes are omitted and the next length bytes are included. But unlike zco_create(), ionCreateZco() can be configured to block (rather than return an immediate error indication) so long as the total amount of space in source that is available for new ZCO formation is less than length. ionCreateZco() operates by calling ionRequestZcoSpace(), then pending on the semaphore in attendant as necessary before creating the ZCO. ionCreateZco() returns when either (a) space has become available and the ZCO has been created, in which case the location of the ZCO is returned, or (b) the function has failed (in which case ((Object) -1) is returned), or (c) either attendant was null and sufficient space for the first extent of the ZCO was not immediately available or else the function was interrupted by ionPauseAttendant() before space for the ZCO became available (in which case 0 is returned).
 
 ---------------
 
