@@ -56,14 +56,15 @@ For the reader's convenience, the description of the ICI package in the [ION Dep
 >
 >The IONSEC (ION security) system manages information that supports the implementation of security mechanisms in the other packages: security policy rules and computation keys.
 
-In the following section, we will focus on a small subset of ICI APIs that will enable an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION. In order to write a fully functioning BP application, the user will generally need to use a combination of ICI APIs described below and [BP Service APIs](./BP-Service-API.md) described in a separate document.
+In the following section, we will focus on a small subset of all available ICI APIs that will enable an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION. In order to write a fully functioning BP application, the user will generally need to use a combination of ICI APIs described below and [BP Service APIs](./BP-Service-API.md) described in a separate document.
 
-## ICI API Reference
+## ION APIs
 
 ### Header
 
-* ion.h
-* platform.h
+```c
+#include "ion.h"
+```
 
 ---------------
 
@@ -256,105 +257,162 @@ typedef enum
 	ZcoZcoSource = 5
 } ZcoMedium;
 ```
+
 * `location`: the location in the heap where a single extent of source data resides. This data is usually placed there by the user application via the `sdr_malloc()` API which will be discussed later.
 * `offset`: the offset within the source data object where the first byte of the ZCO should be placed.
 * `length`: the length of the ZCO to be created.
-* `coarsePriority`:
-* `finePriority`:
-* `acct`: The accounting category for the ZCO, see man page for zco for detailed explanation.
+* `coarsePriority`: this sets the basic class of service (COS) inherented from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From lowest to the higher priority, it can be set to `BP_BULK_PRIORITY` (value =0), `BP_STD_PRIORITY` (value = 1), or `BP_EXPEDITED_PRIORITY` (value = 2).
+* `finePriority`: this is inherented from BPv6 COS and it is the finer grain priority levels (level 0 to 254) within the class of `BP_STD_PRIORITY`. Typically this is set to the value of 0. 
+* `acct`: The accounting category for the ZCO, it is either `ZcoInbound` (0), `ZcoOutbound` (1), or `ZcoUnknown` (2). If a ZCO is created for the purpose of transmission to another node, this parameter is typically set to `ZcoOutbound`.
 * `attendant`: the semaphore that blocks return of the function until the necessary resources has been allocated in the SDR for the creation of the ZCO
 
 Return Value
 
-(a) space has become available and the ZCO has been created, in which case the location of the ZCO is returned, or (b) the function has failed (in which case ((Object) -1) is returned), or (c) either attendant was null and sufficient space for the first extent of the ZCO was not immediately available or else the function was interrupted by ionPauseAttendant() before space for the ZCO became available (in which case 0 is returned).
+* *location of the ZCO*: success; the requested space has become available and the ZCO has been created to hold the user data
+* `((Object) -1)`: the function has failed
+* `0`: either attendant was `NULL` and sufficient space for the first extent of the ZCO was not immediately available - OR - the function was interrupted by `ionPauseAttendant` before space for the ZCO became available.
 
 Example Call
-
-
-Description
-
-This function provides a "blocking" implementation of admission control in ION. Like zco_create(), it constructs a zero-copy object (see zco(3)) that contains a single extent of source data residing at location in source, of which the first offset bytes are omitted and the next length bytes are included. But unlike zco_create(), ionCreateZco() can be configured to block (rather than return an immediate error indication) so long as the total amount of space in source that is available for new ZCO formation is less than length. ionCreateZco() operates by calling ionRequestZcoSpace(), then pending on the semaphore in attendant as necessary before creating the ZCO. ionCreateZco() returns when either (a) space has become available and the ZCO has been created, in which case the location of the ZCO is returned, or (b) the function has failed (in which case ((Object) -1) is returned), or (c) either attendant was null and sufficient space for the first extent of the ZCO was not immediately available or else the function was interrupted by ionPauseAttendant() before space for the ZCO became available (in which case 0 is returned).
-
----------------
-
-### TBD
-
-Function Prototype
 
 ```c
+SdrObject bundleZco;
 
+bundleZco = ionCreateZco(ZcoSdrSource, extent, 0, lineLength,
+		BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
+if (bundleZco == 0 || bundleZco == (Object) ERROR)
+{
+	putErrmsg("Can't create ZCO extent.", NULL);
+	/* user implemented error handling routine goes here */
+}
 ```
-
-Parameters
-
-* None.
-
-Return Value
-
-* 0: success
-* -1: Any error
-
-Example Call
-
 
 Description
 
----------------
-
-### TBD
-
-Function Prototype
-
-```c
-
-```
-
-Parameters
-
-* None.
-
-Return Value
-
-* 0: success
-* -1: Any error
-
-Example Call
-
-
-Description
+This function provides a "blocking" implementation of admission control in ION. Like zco_create(), it constructs a zero-copy object (see zco(3)) that contains a single extent of source data residing at location in source, of which the initial offset number of bytes are omitted and the next length bytes are included. By providing an attendant semaphore, initialized by `ionStartAttendant`, ionCreateZco() can be execute as a blocking call so long as the total amount of space in `source` that is available for new ZCO formation is less than length. ionCreateZco() operates by calling `ionRequestZcoSpace`, then pending on the semaphore in attendant as necessary before creating the ZCO and then populating it with the user's data.
 
 ---------------
 
-## Logging, Status Message, Value Check APIs
+### Other less used ICI APIs
 
-Log to ion.log, standard way of writing formatted messages, short hand for checking for values such as ZERO, NULL, etc. 
+The following is a list of less-frequently used APIs by an external application. However, they might be valuable if the user wishes to implement or customize some of the behavior of the ION node or the external application requires more detailed control of ION behavior. Please see the manual page for `ion` for more details.
+
+* ionProd
+* ionPauseAttendant
+* ionResumeAttendant
+* ionRequestZcoSpace
+* ionSpaceAwarded
+* ionShred
+* ionAppendZcoExtend
+* char *getIonVersionNbr()
+* getIonsdr()
+* getIonwm()
+* getIonMemoryMgr()
+* ionLocked()
+* getOwnNodeNbr()
+* getCtime()
+* ionClockIsSynchronized()
+* writeTimestampLocal
+* writeTimestampUTC
+* readTimestampLocal
+* readTimestampUTC
+
+---------------
+
+## SDR Heap Space Management APIs
+
+SDR persistent data are referenced in application code by Object values and Address values, both of which are simply displacements (offsets) within SDR address space. The difference between the two is that an Object is always the address of a block of heap space returned by some call to sdr_malloc(), while an Address can refer to any byte in the address space. That is, an Address is the SDR functional equivalent of a C pointer in DRAM, and some Addresses point to Objects.
+
+The number of SDR-related APIs is large. Fortunately, there are only a few APIs that an external application needs to use. The following is a list of the most commonly used APIs drawn from the Heap Space Management category.
 
 ### Header
 
-* platform.h
+```h
+#include "sdr.h"
+```
 
 ---------------
 
-### TBD
+### sdr_malloc
 
 Function Prototype
 
 ```c
-
+Object sdr_malloc(Sdr sdr, unsigned long size)
 ```
 
 Parameters
 
-* None.
+* sdr: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* size: size of the block to allocate
 
 Return Value
 
-* 0: success
-* -1: Any error
+* *address of the allocated space*: success; the requested space has been allocated
+* `0`: unable to allocate
 
 Example Call
 
+```c
+CHKZERO(sdr_begin_xn(sdr));
+extent = sdr_malloc(sdr, lineLength);
+if (extent)
+{
+	sdr_write(sdr, extent, text, lineLength);
+}
+
+if (sdr_end_xn(sdr) < 0)
+{
+	putErrmsg("No space for ZCO extent.", NULL);
+	bp_detach();
+	return 0;
+}
+```
+
+In this example, a 'critical section' has been implemented by a pair of API calls: `sdr_begin_xn` and `sdr_end_xn`. The critical section is used to ensure that the SDR is not altered while the space allocation is in progress. These APIs will be explained later in this document. The `sdr_write` API is used to write data into the space acquired by `sdr_malloc`.
+
+It may seem strange that the failure to allocate space or to write the data into the allocated space relies on checking the return value of `sdr_end_xn` instead sdr_malloc and sdr_write functions. This is because when `sdr_end_xn` returns negative value, it indicates that an SDR transaction was already terminated, which occurs when `sdr_malloc` or `sdr_write` fails. So this is a convenient way to detect the failure of two calls at the same time by checking the `sdr_end_xn` calls return value.
 
 Description
 
+Allocates a block of space from the indicated SDR's heap. The maximum size is 1/2 of the maximum address space size (i.e., 2G for a 32-bit machine). Returns block address if successful, zero if block could not be allocated.
+
 ---------------
+
+### sdr_insert
+
+Function Prototype
+
+```c
+Object sdr_insert(Sdr sdr, char *from, unsigned long size)
+```
+
+Parameters
+
+* sdr: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* from: pointer to the location where size number of bytes of data are to be copied into the allocated space in the SDR
+* size: size of the block to allocate
+
+Return Value
+
+* *address of the allocated space*: success; the requested space has been allocated and populated with the *size* number of bytes from memory location *from* 
+* `0`: unable to allocate
+
+Example Call
+
+```c
+CHKZERO(sdr_begin_xn(sdr));
+extent = sdr_insert(sdr, text, lineLength);
+if (sdr_end_xn(sdr) < 0)
+{
+	putErrmsg("No space for ZCO extent.", NULL);
+	bp_detach();
+	return 0;
+}
+```
+
+Description
+
+This function combines the action of `sdr_malloc` ans `sdr_write`. It first uses `sdr_malloc` to obtain a block of space of size size and, if this allocation is successful, uses `sdr_write` to copy size bytes of data from memory at from into the newly allocated block. 
+
+---------------
+
