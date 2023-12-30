@@ -191,7 +191,9 @@ After launching ION, you can [verify BP service status](#determine-bp-service-st
 
 ### Header
 
-* bp.h
+```c
+#include "bp.h"
+```
 
 -----------
 
@@ -200,7 +202,7 @@ After launching ION, you can [verify BP service status](#determine-bp-service-st
 Function Prototype
 
 ```c
-extern int bp_attach();
+int bp_attach( )
 ```
 
 Parameters
@@ -234,7 +236,7 @@ Typically the `bp_attach()` call is made at the beginning of a user's applicatio
 Function Prototype
 
 ```c
-extern Sdr bp_get_sdr();
+Sdr bp_get_sdr()
 ```
 
 Parameters
@@ -243,8 +245,8 @@ Parameters
 
 Return Value
 
-* On success: Handle for the SDR data store
-* Any error: `NULL`
+* Handle for the SDR data store: success
+* `NULL`: any error
 
 Example Call
 
@@ -261,15 +263,16 @@ sdr = bp_get_sdr();
 
 Description
 
-Returns handle for the SDR data store used for BP, to enable creation and interrogation of bundle payloads (application data units). Since the SDR handle is needed by other , this function is typically executed early in the user's application in order to access other BP services.
+Returns handle for the SDR data store used for BP, to enable creation and interrogation of bundle payloads (application data units). Since the SDR handle is needed by many APIs, this function is typically executed early in the user's application in order to access other BP services.
 
 ---------------
 
-### TBD
+### bp_detach
 
 Function Prototype
 
 ```c
+void bp_detach( )
 
 ```
 
@@ -282,24 +285,66 @@ Return Value
 * 0: success
 * -1: Any error
 
-Example Call
-
-
 Description
+
+Terminates all access to BP functionality for the invoking process.
 
 ---------------
 
-### TBD
+### bp_open
 
 Function Prototype
 
 ```c
-
+int bp_open(char *eid, BpSAP *ionsapPtr)
 ```
 
 Parameters
 
-* None.
+* `*eid`: name of the endpoint
+* `*ionsapPtr`: pointer to variable in which address of BP service access point will be returned
+
+Return Value
+
+* 0: success
+* -1: any error
+
+Example Call
+
+```c
+if (bp_open(ownEid, &sap) < 0)
+{
+        putErrmsg("bptrace can't open own endpoint.", ownEid);
+
+        /* user's error handling function here */
+}
+```
+
+Description
+
+Opens the application's access to the BP endpoint identified by the string at `eid`, so that the application can take delivery of bundles destined for the indicated endpoint. This SAP can also be used for sending bundles whose source is the indicated endpoint.
+
+Please note that all bundles sent via this SAP will be subject to immediate destruction upon transmission, i.e., no bundle addresses will be returned by `bp_send` for use in tracking, suspending/resuming, or cancelling transmission of these bundles. 
+
+On success, places a value in *ionsapPtr that can be supplied to future bp function invocations.
+
+__NOTE:__ To allow for bp_send to return a bundle address for tracking purpose, please use `bp_open_source` instead.
+
+---------------
+
+### bp_open_source
+
+Function Prototype
+
+```c
+int bp_open_source(char *eid, BpSAP *ionsapPtr, int detain)
+```
+
+Parameters
+
+* `*eid`: name of the endpoint
+* `*ionsapPtr`: pointer to variable in which address of BP service access point will be returned
+* `detain`: indicator as to whether or not bundles sourced using this BpSAP should be detained in storage until explicitly released
 
 Return Value
 
@@ -308,56 +353,101 @@ Return Value
 
 Example Call
 
+```c
+if (bp_open_source(ownEid, &txSap, 1) < 0)
+{
+        putErrmsg("can't open own 'send' endpoint.", ownEid);
+        
+        /* user error handling routine here */
+}
+```
 
 Description
 
+Opens the application's access to the BP endpoint identified by eid, so that the application can send bundles whose source is the indicated endpoint. If and only if the value of detain is non-zero, citing this SAP in an invocation of bp_send() will cause the address of the newly issued bundle to be returned for use in tracking, suspending/resuming, or cancelling transmission of this bundle. 
+
+__USE THIS FEATURE WITH GREAT CARE__: such a bundle will continue to occupy storage resources until it is explicitly released by an invocation of bp_release() or until its time to live expires, so bundle detention increases the risk of resource exhaustion. (If the value of detain is zero, all bundles sent via this SAP will be subject to immediate destruction upon transmission.) 
+
+On success, places a value in *ionsapPtr that can be supplied to future bp function invocations and returns 0. Returns -1 on any error.
+
 ---------------
 
-### TBD
+### bp_send
 
 Function Prototype
 
 ```c
-
+int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan, int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags, int ackRequested, BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
 ```
 
 Parameters
 
-* None.
+`sap`: the source endpoint for the bundle, provided by the `bp_open` call.
+
+`*destEid`: identifies the destination endpoint for the bundle. 
+
+`reportToEid`: identifies the endpoint to which any status reports pertaining to this bundle will be sent; if NULL, defaults to the source endpoint.
+
+`lifespan`: is the maximum number of seconds that the bundle can remain in-transit (undelivered) in the network prior to automatic deletion.
+
+`classOfService`: is simply priority for now: BP_BULK_PRIORITY, BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY. If class-of-service flags are defined in a future version of Bundle Protocol, those flags would be OR'd with priority.
+
+`custodySwitch`: indicates whether or not custody transfer is requested for this bundle and, if so, whether or not the source node itself is required to be the initial custodian. The valid values are SourceCustodyRequired, SourceCustodyOptional, NoCustodyRequired. Note that custody transfer is possible only for bundles that are uniquely identified, so it cannot be requested for bundles for which BP_MINIMUM_LATENCY is requested, since BP_MINIMUM_LATENCY may result in the production of multiple identical copies of the same bundle. Similarly, custody transfer should never be requested for a "loopback" bundle, i.e., one whose destination node is the same as the source node: the received bundle will be identical to the source bundle, both residing in the same node, so no custody acceptance signal can be applied to the source bundle and the source bundle will remain in storage until its TTL expires.
+
+`srrFlags`: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT.
+
+`ackRequested`: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.
+
+`ancillaryData`: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:
+
+```
+BP_MINIMUM_LATENCY designates the bundle as "critical" for the
+purposes of Contact Graph Routing.
+
+BP_BEST_EFFORT signifies that non-reliable convergence-layer protocols, as
+available, may be used to transmit the bundle.  Notably, the bundle may be
+sent as "green" data rather than "red" data when issued via LTP.
+
+BP_DATA_LABEL_PRESENT signifies whether or not the value of _dataLabel_
+in _ancillaryData_ must be encoded into the ECOS block when the bundle is
+transmitted.
+```
+
+__NOTE:__ For Bundle Protocol v7, no Extended Class of Service, or equivalent, has been standardized yet. This capability, however, has been retained from BPv6 and is available to BPv7 implementation in ION. 
+
+`adu`: is the "application data unit" that will be conveyed as the payload of the new bundle. adu must be a "zero-copy object" (ZCO). To ensure orderly access to transmission buffer space for all applications, adu must be created by invoking ionCreateZco(), which may be configured either to block so long as insufficient ZCO storage space is available for creation of the requested ZCO or to fail immediately if insufficient ZCO storage space is available.
 
 Return Value
 
-* 0: success
-* -1: Any error
+* 1: success
+* 0: user error
+* -1: any system error.
 
 Example Call
-
-
-Description
-
----------------
-
-### TBD
-
-Function Prototype
 
 ```c
+if (bp_send(sap, destEid, reportToEid, ttl, priority,
+	custodySwitch, srrFlags, 0, &ancillaryData,
+	traceZco, &newBundle) <= 0)
+{
+        putErrmsg("bptrace can't send file in bundle.",
+                        fileName);
 
+        /* user error handling code goes here */
+}
 ```
 
-Parameters
-
-* None.
-
-Return Value
-
-* 0: success
-* -1: Any error
-
-Example Call
-
-
 Description
+
+Sends a bundle to the endpoint identified by destEid, from the source endpoint as provided to the bp_open() call that returned sap. 
+
+When sap is NULL, the transmitted bundle is anonymous, i.e., the source of the bundle is not identified. This is legal, but anonymous bundles cannot be uniquely identified; custody transfer and status reporting therefore cannot be requested for an anonymous bundle.
+
+The function returns 1 on success, 0 on user error, -1 on any system error. 
+
+If 0 is returned, then an invalid argument value was passed to bp_send(); a message to this effect will have been written to the log file. 
+
+If 1 is returned, then either the destination of the bundle was "dtn:none" (the bit bucket) or the ADU has been accepted and queued for transmission in a bundle. In the latter case, if and only if sap was a reference to a BpSAP returned by an invocation of bp_open_source() that had a non-zero value in the detain parameter, then newBundle must be non-NULL and the address of the newly created bundle within the ION database is placed in newBundle. This address can be used to track, suspend/resume, or cancel transmission of the bundle.
 
 ---------------
 
