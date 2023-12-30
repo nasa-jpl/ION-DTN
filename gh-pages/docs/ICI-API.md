@@ -1,62 +1,8 @@
 # Interplanetary Communications Infrasturcutre (ICI) APIs
 
-## Background
+In this section, we will focus on a small subset of all available ICI APIs that will enable an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION. 
 
-For the reader's convenience, the description of the ICI package in the [ION Deployment Guide](./ION-Deployment-Guide.md) is repeated here:
-
->The ICI package in ION provides a number of core services that, from ION's point of view, implement what amounts to an extended POSIX-based operating system. ICI services include the following:
->
->Platform
->
-> The platform system contains operating-system-sensitive code that enables ICI to present a single, consistent programming interface to those common operating system services that multiple ION modules utilize. For example, the platform system implements a standard semaphore abstraction that may invisibly be mapped to underlying POSIX semaphores, SVR4 IPC semaphores, Windows Events, or VxWorks semaphores, depending on which operating system the package is compiled for. The platform system also implements a standard shared-memory abstraction, enabling software running on operating systems both with and without memory protection to participate readily in ION's shared-memory-based computing environment.
->
->Personal Space Management (PSM)
->
-> Although sound flight software design may prohibit the uncontrolled dynamic management of system memory, private management of assigned, fixed blocks of system memory is standard practice. Often that private management amounts to merely controlling the reuse of fixed-size rows in static tables, but such techniques can be awkward and may not make the most efficient use of available memory. The ICI package provides an alternative, called PSM, which performs high-speed dynamic allocation and recovery of variable-size memory objects within an assigned memory block of fixed size. A given PSM-managed memory block may be either private or shared memory.
->
->Memmgr
->
-> The static allocation of privately-managed blocks of system memory for different purposes implies the need for multiple memory management regimes, and in some cases a program that interacts with multiple software elements may need to participate in the private shared-memory management regimes of each. ICI's memmgr system enables multiple memory managers -- for multiple privately-managed blocks of system memory -- to coexist within ION and be concurrently available to ION software elements.
->
->Lyst
->
->The lyst system is a comprehensive, powerful, and efficient system for managing doubly-linked lists in private memory. It is the model for a number of other list management systems supported by ICI; as noted earlier, linked lists are heavily used in ION inter-task communication.
->
->Llcv
->
->The llcv (Linked-List Condition Variables) system is an inter-thread communication abstraction that integrates POSIX thread condition variables (vice semaphores) with doubly-linked lists in private memory.
->
->Smlist
->
->Smlist is another doubly-linked list management service. It differs from lyst in that the lists it manages reside in shared (rather than private) DRAM, so operations on them must be semaphore-protected to prevent race conditions.
->
->SmRbt
->
->The SmRbt service provides mechanisms for populating and navigating "red/black trees" (RBTs) residing in shared DRAM. RBTs offer an alternative to linked lists: like linked lists they can be navigated as queues, but locating a single element of an RBT by its "key" value can be much quicker than the equivalent search through an ordered linked list.
->
->Simple Data Recorder (SDR)
->
->SDR is a system for managing non-volatile storage, built on exactly the same model as PSM. Put another way, SDR is a small and simple "persistent object" system or "object database" management system. It enables straightforward management of linked lists (and other data structures of arbitrary complexity) in non-volatile storage, notionally within a single file whose size is pre-defined and fixed.
->
->SDR includes a transaction mechanism that protects database integrity by ensuring that the failure of any database operation will cause all other operations undertaken within the same transaction to be backed out. The intent of the system is to assure retention of coherent protocol engine state even in the event of an unplanned flight computer reboot in the midst of communication activity.
->
->Sptrace
->
->The sptrace system is an embedded diagnostic facility that monitors the performance of the PSM and SDR space management systems. It can be used, for example, to detect memory "leaks" and other memory management errors.
->
->Zco
->
->ION's zco (zero-copy objects) system leverages the SDR system's storage flexibility to enable user application data to be encapsulated in any number of layers of protocol without copying the successively augmented protocol data unit from one layer to the next. It also implements a reference counting system that enables protocol data to be processed safely by multiple software elements concurrently -- e.g., a bundle may be both delivered to a local endpoint and, at the same time, queued for forwarding to another node -- without requiring that distinct copies of the data be provided to each element.
->
->Rfx
->
->The ION rfx (R/F Contacts) system manages lists of scheduled communication opportunities in support of a number of LTP and BP functions.
->
->Ionsec
->
->The IONSEC (ION security) system manages information that supports the implementation of security mechanisms in the other packages: security policy rules and computation keys.
-
-In the following section, we will focus on a small subset of all available ICI APIs that will enable an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION. In order to write a fully functioning BP application, the user will generally need to use a combination of ICI APIs described below and [BP Service APIs](./BP-Service-API.md) described in a separate document.
+In order to write a fully functioning BP application, the user will generally need to use a combination of ICI APIs described below and [BP Service APIs](./BP-Service-API.md) described in a separate document.
 
 ## ION APIs
 
@@ -168,7 +114,7 @@ extern int	ionStartAttendant(ReqAttendant *attendant);
 
 Parameters
 
-* `attendant`: pointer to a `ReqAttendant` structure that will be initialized by this function.
+* `*attendant`: pointer to a `ReqAttendant` structure that will be initialized by this function.
 
 ```c
 typedef struct
@@ -209,7 +155,7 @@ extern void	ionStopAttendant(ReqAttendant *attendant);
 
 Parameters
 
-* `attendant`: pointer to a `ReqAttendant` structure that will be destroyed by this function.
+* `*attendant`: pointer to a `ReqAttendant` structure that will be destroyed by this function.
 
 Return Value
 
@@ -225,6 +171,34 @@ ionStopAttendant(&attendant);
 Description
 
 Destroys the semaphore in `attendant`, preventing a potential resource leak. This is typically called at the end of a BP application, after all user data have been injected into the SDR.
+
+---------------
+
+### ionPauseAttendent
+
+Function Prototype
+
+```c
+void ionPauseAttendant(ReqAttendant *attendant)
+```
+
+Parameters
+
+* `*attendant`: pointer to a `ReqAttendant` structure.
+
+Return Value
+
+* None
+
+Example Call
+
+```c
+ionStopAttendant(&attendant);
+```
+
+Description
+
+"Ends" the semaphore in attendant so that the task that is blocked on taking it is interrupted and may respond to an error or shutdown condition. This may be required when trying to quitting a user application that is currently being blocked while acquiring ZCO space.
 
 ---------------
 
@@ -264,13 +238,13 @@ typedef enum
 * `coarsePriority`: this sets the basic class of service (COS) inherented from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From lowest to the higher priority, it can be set to `BP_BULK_PRIORITY` (value =0), `BP_STD_PRIORITY` (value = 1), or `BP_EXPEDITED_PRIORITY` (value = 2).
 * `finePriority`: this is inherented from BPv6 COS and it is the finer grain priority levels (level 0 to 254) within the class of `BP_STD_PRIORITY`. Typically this is set to the value of 0. 
 * `acct`: The accounting category for the ZCO, it is either `ZcoInbound` (0), `ZcoOutbound` (1), or `ZcoUnknown` (2). If a ZCO is created for the purpose of transmission to another node, this parameter is typically set to `ZcoOutbound`.
-* `attendant`: the semaphore that blocks return of the function until the necessary resources has been allocated in the SDR for the creation of the ZCO
+* `*attendant`: the semaphore that blocks return of the function until the necessary resources has been allocated in the SDR for the creation of the ZCO
 
 Return Value
 
 * *location of the ZCO*: success; the requested space has become available and the ZCO has been created to hold the user data
-* `((Object) -1)`: the function has failed
-* `0`: either attendant was `NULL` and sufficient space for the first extent of the ZCO was not immediately available - OR - the function was interrupted by `ionPauseAttendant` before space for the ZCO became available.
+* ((Object) -1): the function has failed
+* 0: either attendant was `NULL` and sufficient space for the first extent of the ZCO was not immediately available - OR - the function was interrupted by `ionPauseAttendant` before space for the ZCO became available.
 
 Example Call
 
@@ -292,41 +266,17 @@ This function provides a "blocking" implementation of admission control in ION. 
 
 ---------------
 
-### Other less used ICI APIs
+## SDR Database & Heap APIs
 
-The following is a list of less-frequently used APIs by an external application. However, they might be valuable if the user wishes to implement or customize some of the behavior of the ION node or the external application requires more detailed control of ION behavior. Please see the manual page for `ion` for more details.
+SDR persistent data are referenced in application code by `Object` values and `Address` values, both of which are simply displacements (offsets) within SDR address space. The difference between the two is that an `Object` is always the address of a block of heap space returned by some call to `sdr_malloc`, while an `Address` can refer to any byte in the address space. That is, an `Address` is the SDR functional equivalent of a C pointer in DRAM, and some Addresses point to Objects.
 
-* ionProd
-* ionPauseAttendant
-* ionResumeAttendant
-* ionRequestZcoSpace
-* ionSpaceAwarded
-* ionShred
-* ionAppendZcoExtend
-* char *getIonVersionNbr()
-* getIonsdr()
-* getIonwm()
-* getIonMemoryMgr()
-* ionLocked()
-* getOwnNodeNbr()
-* getCtime()
-* ionClockIsSynchronized()
-* writeTimestampLocal
-* writeTimestampUTC
-* readTimestampLocal
-* readTimestampUTC
+The number of SDR-related APIs is large. Fortunately, there are only a few APIs that an external application will likely needs to use. The following is a list of the most commonly used APIs drawn from the Database I/O and Heap Space Management categories.
 
----------------
-
-## SDR Heap Space Management APIs
-
-SDR persistent data are referenced in application code by Object values and Address values, both of which are simply displacements (offsets) within SDR address space. The difference between the two is that an Object is always the address of a block of heap space returned by some call to sdr_malloc(), while an Address can refer to any byte in the address space. That is, an Address is the SDR functional equivalent of a C pointer in DRAM, and some Addresses point to Objects.
-
-The number of SDR-related APIs is large. Fortunately, there are only a few APIs that an external application needs to use. The following is a list of the most commonly used APIs drawn from the Heap Space Management category.
+------------------
 
 ### Header
 
-```h
+```c
 #include "sdr.h"
 ```
 
@@ -342,13 +292,13 @@ Object sdr_malloc(Sdr sdr, unsigned long size)
 
 Parameters
 
-* sdr: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
-* size: size of the block to allocate
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `size`: size of the block to allocate
 
 Return Value
 
-* *address of the allocated space*: success; the requested space has been allocated
-* `0`: unable to allocate
+* address of the allocated space: success; the requested space has been allocated
+* 0: unable to allocate
 
 Example Call
 
@@ -388,14 +338,14 @@ Object sdr_insert(Sdr sdr, char *from, unsigned long size)
 
 Parameters
 
-* sdr: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
-* from: pointer to the location where size number of bytes of data are to be copied into the allocated space in the SDR
-* size: size of the block to allocate
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `*from`: pointer to the location where size number of bytes of data are to be copied into the allocated space in the SDR
+* `size`: size of the block to allocate
 
 Return Value
 
-* *address of the allocated space*: success; the requested space has been allocated and populated with the *size* number of bytes from memory location *from* 
-* `0`: unable to allocate
+* address of the allocated space: success
+* 0: unable to allocate
 
 Example Call
 
@@ -415,4 +365,163 @@ Description
 This function combines the action of `sdr_malloc` ans `sdr_write`. It first uses `sdr_malloc` to obtain a block of space of size size and, if this allocation is successful, uses `sdr_write` to copy size bytes of data from memory at from into the newly allocated block. 
 
 ---------------
+
+### sdr_stow
+
+Function Prototype
+
+```c
+Object sdr_stow(sdr, variable)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `variable`: the variable whose value is to be inserted into an SDR space
+
+Return Value
+
+* address of the allocated space: success
+* 0: unable to allocate
+
+Description
+
+`sdr_stow` is a macro that uses `sdr_insert` to insert a copy of variable into the dataspace. The size of variable is used as the number of bytes to copy.
+
+---------------
+
+### sdr_object_length
+
+Function Prototype
+
+```c
+int sdr_object_length(Sdr sdr, Object object)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `object`: the location of an application data Object at *object*
+
+Return Value
+
+* address of the allocated space: success
+* 0: unable to allocate
+
+Description
+
+Returns the number of bytes of heap space allocated to the application data at *object*.
+
+------------------
+
+### sdr_free
+
+Function Prototype
+
+```c
+void sdr_free(Sdr sdr, Object object)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `object`: the location of an application data Object at *object*
+
+Return Value
+
+* address of the allocated space: success
+* 0: unable to allocate
+
+Description
+
+Frees the heap space occupied by an object at *object*. The space freed are put back into the SDR memory pool and will become available for subsequent re-allocation.
+
+------------------
+
+### sdr_read
+
+Function Prototype
+
+```c
+void sdr_read(Sdr sdr, char *into, Address from, int length)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `*into`: the location in memory data should be read into
+* `from`: this is a location in the SDR heap
+* `length`: this is the size to be read
+
+Return Value
+
+* address of the allocated space: success
+* 0: unable to allocate
+
+Description
+
+Copies length characters at from (a location in the indicated SDR) to the memory location given by into. The data are copied from the shared memory region in which the SDR resides, if any; otherwise they are read from the file in which the SDR resides.
+
+------------------
+
+### sdr_stage
+
+Function Prototype
+
+```c
+void sdr_stage(Sdr sdr, char *into, Object from, int length)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `*into`: the location in memory data should be read into
+* `from`: this is a location in the SDR heap which is occupied by an allocated object
+* `length`: this is the size to be read
+
+Return Value
+
+* address of the allocated space: success
+* 0: unable to allocate
+
+Description
+
+Like `sdr_read`, this function will copy length characters at from (a location in the heap of the indicated SDR) to the memory location given by into. Unlike `sdr_get`, `sdr_stage` requires that from be the address of some allocated object, not just any location within the heap. `sdr_stage`, when called from within a transaction, notifies the SDR library that the indicated object may be updated later in the transaction; this enables the library to retrieve the object's size for later reference in validating attempts to write into some location within the object. If length is zero, the object's size is privately retrieved by SDR but none of the object's content is copied into memory.
+
+`sdr_get` is a macro that uses `sdr_read` to load variable from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by `sdr_pointer`. The size of variable is used as the number of bytes to copy.
+
+----------------
+
+### sdr_write
+
+Function Prototype
+
+```c
+void sdr_write(Sdr sdr, Address into, char *from, int length)
+
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `*into`: the location in SDR heap where data should be written into
+* `from`: this is a location in memory where data should copied from
+* `length`: this is the size to be written
+
+Return Value
+
+* address of the allocated space: success
+* 0: unable to allocate
+
+Description
+
+Like `sdr_read`, this function will copy length characters at from (a location in the heap of the indicated SDR) to the memory location given by into. Unlike `sdr_get`, `sdr_stage` requires that from be the address of some allocated object, not just any location within the heap. `sdr_stage`, when called from within a transaction, notifies the SDR library that the indicated object may be updated later in the transaction; this enables the library to retrieve the object's size for later reference in validating attempts to write into some location within the object. If length is zero, the object's size is privately retrieved by SDR but none of the object's content is copied into memory.
+
+`sdr_get` is a macro that uses `sdr_read` to load variable from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by `sdr_pointer`. The size of variable is used as the number of bytes to copy.
+
+----------------
+
+## Other less used APIs
+
+See manual pages for `ion` and `sdr` for details on the full set of ICI APIs.
 
