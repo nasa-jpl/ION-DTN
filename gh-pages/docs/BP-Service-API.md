@@ -385,23 +385,23 @@ int bp_send(BpSAP sap, char *destEid, char *reportToEid,
 
 Parameters
 
-`sap`: the source endpoint for the bundle, provided by the `bp_open` call.
+* `sap`: the source endpoint for the bundle, provided by the `bp_open` call.
 
-`*destEid`: identifies the destination endpoint for the bundle. 
+* `*destEid`: identifies the destination endpoint for the bundle. 
 
-`reportToEid`: identifies the endpoint to which any status reports pertaining to this bundle will be sent; if NULL, defaults to the source endpoint.
+* `reportToEid`: identifies the endpoint to which any status reports pertaining to this bundle will be sent; if NULL, defaults to the source endpoint.
 
-`lifespan`: is the maximum number of seconds that the bundle can remain in-transit (undelivered) in the network prior to automatic deletion.
+* `lifespan`: is the maximum number of seconds that the bundle can remain in-transit (undelivered) in the network prior to automatic deletion.
 
-`classOfService`: is simply priority for now: BP_BULK_PRIORITY, BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY. If class-of-service flags are defined in a future version of Bundle Protocol, those flags would be OR'd with priority.
+* `classOfService`: is simply priority for now: BP_BULK_PRIORITY, BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY. If class-of-service flags are defined in a future version of Bundle Protocol, those flags would be OR'd with priority.
 
-`custodySwitch`: indicates whether or not custody transfer is requested for this bundle and, if so, whether or not the source node itself is required to be the initial custodian. The valid values are SourceCustodyRequired, SourceCustodyOptional, NoCustodyRequired. Note that custody transfer is possible only for bundles that are uniquely identified, so it cannot be requested for bundles for which BP_MINIMUM_LATENCY is requested, since BP_MINIMUM_LATENCY may result in the production of multiple identical copies of the same bundle. Similarly, custody transfer should never be requested for a "loopback" bundle, i.e., one whose destination node is the same as the source node: the received bundle will be identical to the source bundle, both residing in the same node, so no custody acceptance signal can be applied to the source bundle and the source bundle will remain in storage until its TTL expires.
+* `custodySwitch`: indicates whether or not custody transfer is requested for this bundle and, if so, whether or not the source node itself is required to be the initial custodian. The valid values are SourceCustodyRequired, SourceCustodyOptional, NoCustodyRequired. Note that custody transfer is possible only for bundles that are uniquely identified, so it cannot be requested for bundles for which BP_MINIMUM_LATENCY is requested, since BP_MINIMUM_LATENCY may result in the production of multiple identical copies of the same bundle. Similarly, custody transfer should never be requested for a "loopback" bundle, i.e., one whose destination node is the same as the source node: the received bundle will be identical to the source bundle, both residing in the same node, so no custody acceptance signal can be applied to the source bundle and the source bundle will remain in storage until its TTL expires.
 
-`srrFlags`: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT.
+* `srrFlags`: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT.
 
-`ackRequested`: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.
+* `ackRequested`: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.
 
-`ancillaryData`: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:
+* `ancillaryData`: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:
 
 ```
 BP_MINIMUM_LATENCY designates the bundle as "critical" for the
@@ -418,7 +418,7 @@ transmitted.
 
 __NOTE:__ For Bundle Protocol v7, no Extended Class of Service, or equivalent, has been standardized yet. This capability, however, has been retained from BPv6 and is available to BPv7 implementation in ION. 
 
-`adu`: is the "application data unit" that will be conveyed as the payload of the new bundle. adu must be a "zero-copy object" (ZCO). To ensure orderly access to transmission buffer space for all applications, adu must be created by invoking ionCreateZco(), which may be configured either to block so long as insufficient ZCO storage space is available for creation of the requested ZCO or to fail immediately if insufficient ZCO storage space is available.
+* `adu`: is the "application data unit" that will be conveyed as the payload of the new bundle. adu must be a "zero-copy object" (ZCO). To ensure orderly access to transmission buffer space for all applications, adu must be created by invoking ionCreateZco(), which may be configured either to block so long as insufficient ZCO storage space is available for creation of the requested ZCO or to fail immediately if insufficient ZCO storage space is available.
 
 Return Value
 
@@ -465,7 +465,7 @@ int bp_track(Object bundle, Object trackingElt)
 Parameters
 
 * `bundle`: the bundle object data structure
-* `trackingElt`: an SDR tracking list Elt managed by the user's application to be associated with the bundle
+* `trackingElt`: an sdrlist element managed by the user's application
 
 Return Value
 
@@ -500,56 +500,246 @@ Adds `trackingElt` to the list of "tracking" references in bundle. `trackingElt`
 
 ---------------
 
-### TBD
+### bp_untrack
 
 Function Prototype
 
 ```c
-
+void bp_untrack(Object bundle, Object trackingElt)
 ```
 
 Parameters
 
-* None.
+* `bundle`: the bundle object data structure
+* `trackingElt`: an sdrlist element managed by the user's application
 
 Return Value
 
 * 0: success
 * -1: Any error
 
-Example Call
-
-
 Description
+
+Removes `trackingElt` from the list of "tracking" references in bundle, if it is in that list. Does not delete `trackingElt` itself.
 
 ---------------
 
-### TBD
+### bp_suspend
 
 Function Prototype
 
 ```c
-
+int bp_suspend(Object bundle)
 ```
 
 Parameters
 
-* None.
+* `bundle`: a bundle object in the SDR
 
 Return Value
 
 * 0: success
 * -1: Any error
 
-Example Call
+Description
+
+Suspends transmission of bundle. Has no effect if bundle is "critical" (i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or if the bundle is already suspended. Otherwise, reverses the enqueuing of the bundle to its selected transmission outduct and places it in the "limbo" queue until the suspension is lifted by calling bp_resume. Returns 0 on success, -1 on any error.
+
+---------------
+
+### bp_resume
+
+Function Prototype
 
 ```c
-
+int bp_resume(Object bundle)
 ```
+
+Parameters
+
+* `bundle`: a bundle object in the SDR
+
+Return Value
+
+* 0: success
+* -1: Any error
 
 Description
 
+Terminates suspension of transmission of bundle. Has no effect if bundle is "critical" (i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or is not suspended. Otherwise, removes the bundle from the "limbo" queue and queues it for route re-computation and re-queuing. Returns 0 on success, -1 on any error.
+
 ---------------
+
+### bp_cancel
+
+Function Prototype
+
+```c
+int bp_cancel(Object bundle)
+```
+
+Parameters
+
+* `bundle`: a bundle object in the SDR
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Description
+
+Cancels transmission of bundle. If the indicated bundle is currently queued for forwarding, transmission, or retransmission, it is removed from the relevant queue and destroyed exactly as if its Time To Live had expired. Returns 0 on success, -1 on any error.
+
+---------------
+
+### bp_release
+
+Function Prototype
+
+```c
+int bp_release(Object bundle)
+```
+
+Parameters
+
+* `bundle`: a bundle object in the SDR
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Description
+
+Releases a detained bundle for destruction when all retention constraints have been removed. After a detained bundle has been released, the application can no longer track, suspend/resume, or cancel its transmission. Returns 0 on success, -1 on any error.
+
+**NOTE**: for bundles sent through an bundle protocol end-point which is opened via `bp_open_source` with `detain` set to non-zero value, they will not be destroyed, even after successful transmissions, until time-to-live has expired or explicitly released via `bp_release`. 
+
+---------------
+
+### bp_receive
+
+Function Prototype
+
+```c
+int bp_receive(BpSAP sap, BpDelivery *dlvBuffer, int timeoutSeconds)
+```
+
+Parameters
+
+* `sap`: the source endpoint for the bundle, provided by the `bp_open` call
+* `*dlvBuffer`: a pointer to a `BpDelivery` structure used to return the received bundle and/or outcome of reception
+* `timoutSeconds`: a reception timer in seconds 
+
+Return Value
+
+* 0: success
+* -1: any error
+
+Example Call
+
+```c
+if (bp_receive(state.sap, &dlv, BP_BLOCKING) < 0)
+{
+        putErrmsg("bpsink bundle reception failed.", NULL);
+
+        /* user code to handle error or timeout*/
+}
+```
+
+In this example, BP_BLOCKING is set to -1, that means that the call will block *forever* until a bundle is received, unless interrupted `bp_interrupt`.
+
+Description
+
+Receives a bundle, or reports on some failure of bundle reception activity.
+
+The "result" field of the dlvBuffer structure will be used to indicate the outcome of the data reception activity.
+
+If at least one bundle destined for the endpoint for which this SAP is opened has not yet been delivered to the SAP, then the payload of the oldest such bundle will be returned in `dlvBuffer->adu` and `dlvBuffer->result` will be set to BpPayloadPresent. If there is no such bundle, bp_receive() blocks for up to timeoutSeconds while waiting for one to arrive.
+
+If timeoutSeconds is BP_POLL (i.e., zero) and no bundle is awaiting delivery, or if timeoutSeconds is greater than zero but no bundle arrives before timeoutSeconds have elapsed, then `dlvBuffer->result` will be set to BpReceptionTimedOut. If timeoutSeconds is BP_BLOCKING (i.e., -1) then bp_receive() blocks until either a bundle arrives or the function is interrupted by an invocation of `bp_interrupt`().
+
+`dlvBuffer->result` will be set to BpReceptionInterrupted in the event that the calling process received and handled some signal other than SIGALRM while waiting for a bundle.
+
+`dlvBuffer->result` will be set to BpEndpointStopped in the event that the operation of the indicated endpoint has been terminated.
+
+The application data unit delivered in the data delivery structure, if any, will be a "zero-copy object" reference. Use zco reception functions (see zco(3)) to read the content of the application data unit.
+
+Be sure to call `bp_release_delivery`() after every successful invocation of `bp_receive`().
+
+The function returns 0 on success, -1 on any error.
+
+---------------
+
+### bp_interrupt
+
+Function Prototype
+
+```c
+void bp_interrupt(BpSAP sap)
+```
+
+Parameters
+
+* `bundle`: a bundle object in the SDR
+
+Return Value
+
+* 0: success
+* -1: Any error
+
+Description
+
+Interrupts a `bp_receive`() invocation that is currently blocked. This function is designed to be called from a signal handler; for this purpose, sap may need to be obtained from a static variable.
+
+---------------
+
+### bp_release_delivery
+
+Function Prototype
+
+```c
+void bp_release_delivery(BpDelivery *dlvBuffer, int releaseAdu)
+```
+
+Parameters
+
+* `*dlvBuffer`: a pointer to a `BpDelivery` structure used to return the received bundle and/or outcome of reception
+* `releaseAdu`: a Boolean parameter: if non-zero, the ADU ZCO reference in dlvBuffer (if any) is destroyed.
+
+Return Value
+
+* none
+
+Description
+
+Releases resources allocated to the indicated delivery by `dlvBuffer`, which is returned by bp_receive. `releaseAdu` is a Boolean parameter: if non-zero, the ADU ZCO reference in `dlvBuffer` (if any) is destroyed, causing the ZCO itself to be destroyed if no other references to it remain.
+
+---------------
+
+### bp_close
+
+Function Prototype
+
+```c
+void bp_close(BpSAP sap)
+```
+
+Parameters
+
+* `sap`: the source endpoint for the bundle, provided by the `bp_open` or `bp_open_source` call
+
+Return Value
+
+* none
+
+Description
+
+Terminates the application's access to the BP endpoint identified by the eid cited by the indicated service access point. The application relinquishes its ability to take delivery of bundles destined for the indicated endpoint and to send bundles whose source is the indicated endpoint.
+
+---------------
+
 
 
 ## Walk Through of `bpsource.c`
