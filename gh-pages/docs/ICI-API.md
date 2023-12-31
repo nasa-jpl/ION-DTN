@@ -298,7 +298,7 @@ Parameters
 Return Value
 
 * address of the allocated space: success; the requested space has been allocated
-* 0: unable to allocate
+* 0: failure
 
 Example Call
 
@@ -345,7 +345,7 @@ Parameters
 Return Value
 
 * address of the allocated space: success
-* 0: unable to allocate
+* 0: failure
 
 Example Call
 
@@ -382,7 +382,7 @@ Parameters
 Return Value
 
 * address of the allocated space: success
-* 0: unable to allocate
+* 0: failure
 
 Description
 
@@ -406,7 +406,7 @@ Parameters
 Return Value
 
 * address of the allocated space: success
-* 0: unable to allocate
+* 0: failure
 
 Description
 
@@ -430,7 +430,7 @@ Parameters
 Return Value
 
 * address of the allocated space: success
-* 0: unable to allocate
+* 0: failure
 
 Description
 
@@ -456,7 +456,7 @@ Parameters
 Return Value
 
 * address of the allocated space: success
-* 0: unable to allocate
+* 0: failure
 
 Description
 
@@ -482,7 +482,7 @@ Parameters
 Return Value
 
 * address of the allocated space: success
-* 0: unable to allocate
+* 0: failure
 
 Description
 
@@ -511,13 +511,329 @@ Parameters
 Return Value
 
 * address of the allocated space: success
-* 0: unable to allocate
+* 0: failure
 
 Description
 
 Like `sdr_read`, this function will copy length characters at from (a location in the heap of the indicated SDR) to the memory location given by into. Unlike `sdr_get`, `sdr_stage` requires that from be the address of some allocated object, not just any location within the heap. `sdr_stage`, when called from within a transaction, notifies the SDR library that the indicated object may be updated later in the transaction; this enables the library to retrieve the object's size for later reference in validating attempts to write into some location within the object. If length is zero, the object's size is privately retrieved by SDR but none of the object's content is copied into memory.
 
 `sdr_get` is a macro that uses `sdr_read` to load variable from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by `sdr_pointer`. The size of variable is used as the number of bytes to copy.
+
+----------------
+
+## SDR Transaction APIs
+
+The following APIs manages transactions by implementing a critical section during which SDR content can be modified. 
+
+### Header
+
+```c
+#include "sdrxn.h"
+```
+
+----------------
+
+### sdr_begin_xn
+
+Function Prototype
+
+```c
+int sdr_begin_xn(Sdr sdr)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+
+Return Value
+
+* 1: success
+* 0: failure
+
+Description
+
+Initiates a transaction. Returns 1 on success, 0 on any failure. Note that transactions are single-threaded; any task that calls `sdr_begin_xn` is suspended until all previously requested transactions have been ended or canceled.
+
+----------------
+
+### sdr_in_xn
+
+Function Prototype
+
+```c
+int sdr_in_xn(Sdr sdr)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+
+Return Value
+
+* 1: transation in progress
+* 0: no transaction in progress
+
+Description
+
+Returns 1 if called in the course of a transaction, 0 otherwise.
+
+----------------
+
+### sdr_exit_xn
+
+Function Prototype
+
+```c
+void sdr_exit_xn(Sdr sdr)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+
+Return Value
+
+* none
+
+Description
+
+Simply abandons the current transaction, ceasing the calling task's lock on ION. __MUST NOT be used if any dataspace modifications were performed during the transaction__; `sdr_end_xn` must be called instead, to commit those modifications.
+
+----------------
+
+### sdr_cancel_xn
+
+Function Prototype
+
+```c
+void sdr_cancel_xn(Sdr sdr)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+
+Return Value
+
+* none
+
+Description
+
+Cancels the current transaction. If reversibility is enabled for the SDR, canceling a transaction reverses all heap modifications performed during that transaction.
+
+----------------
+
+### sdr_end_xn
+
+Function Prototype
+
+```c
+int sdr_end_xn(Sdr sdr)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+
+Return Value
+
+* 0: transaction completed successfully
+* -1: transaction unable to complete due to failued operations, transaction canceled
+
+Description
+
+Ends the current transaction. Returns 0 if the transaction completed without any error; returns -1 if any operation performed in the course of the transaction failed, in which case the transaction was automatically canceled.
+
+----------------
+
+## SDR List management APIs
+
+The SDR list management functions manage doubly-linked lists in managed SDR heap space. The functions manage two kinds of objects: lists and list elements. A list knows how many elements it contains and what its start and end elements are. An element knows what list it belongs to and the elements before and after it in the list. An element also knows its content, which is normally the SDR Address of some object in the SDR heap. A list may be sorted, which speeds the process of searching for a particular element.
+
+### Header
+
+```c
+#include "sdr.h"
+
+typedef int (*SdrListCompareFn)(Sdr sdr, Address eltData, void *argData);
+typedef void (*SdrListDeleteFn)(Sdr sdr, Object elt, void *argument);
+```
+
+-----------------
+
+### sdr_list_insert_first 
+### sdr_list_insert_last
+
+Function Prototype
+
+```c
+Object sdr_list_insert_first(Sdr sdr, Object list, Address data)
+Object sdr_list_insert_last(Sdr sdr, Object list, Address data)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `list`: a list
+* `data`: an address in SDR
+
+Return Value
+
+* `address of newly created element`: success
+* `0`: any error
+
+Description
+
+Creates a new element and inserts it at the front/end of the list. This function should not be used to insert a new element into any **ordered** list; use `sdr_list_insert`() instead.
+
+----------------
+
+### sdr_list_create
+
+Function Prototype
+
+```c
+Object sdr_list_create(Sdr sdr)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+
+Return Value
+
+* `address of newly created list`: success
+* `0`: any error
+
+Description
+
+Creates a new list object in the SDR; the new list object initially contains no list elements. Returns the address of the new list, or zero on any error.
+
+----------------
+
+### sdr_list_length
+
+Function Prototype
+
+```c
+int sdr_list_length(Sdr sdr, Object list)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `list`: a list in SDR
+
+Return Value
+
+* `number of element in the list`: success
+* `-1`: any error
+
+Description
+
+Returns the number of elements in the list, or -1 on any error.
+
+----------------
+
+### sdr_list_destroy
+
+Function Prototype
+
+```c
+void sdr_list_destroy(Sdr sdr, Object list, SdrListDeleteFn fn, void *arg)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `list`: a list in SDR to be destroyed
+* `fn`: a sdrlist delete function pointer
+* `arg`: arguments passed to the delete function
+
+Return Value
+
+* none
+
+Description
+
+Destroys a list, freeing all elements of list. If fn is non-NULL, that function is called once for each freed element; when called, fn is passed the Address that is the element's data and the argument pointer passed to `sdr_list_destroy`. See manual page for `sdrlist` for details on the form of the delete function sdrlist.
+
+Do not use sdr_free to destroy an SDR list, as this would leave the elements of the list allocated yet unreferenced.
+
+----------------
+
+### sdr_list_user_data_set
+
+Function Prototype
+
+```c
+void sdr_list_user_data_set(Sdr sdr, Object list, Address userData)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `list`: a list in SDR to be destroyed
+* `userData`: a single word which is a SDR address
+
+Return Value
+
+* none
+
+Description
+
+Sets the "user data" word of list to userData. Note that userData is nominally an Address but can in fact be any value that occupies a single word. It is typically used to point to an SDR object that somehow characterizes the list as a whole, such as a name.
+
+----------------
+
+### sdr_list_user_data
+
+Function Prototype
+
+```c
+Address sdr_list_user_data(Sdr sdr, Object list)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `list`: a list in SDR to be destroyed
+
+Return Value
+
+* `value of the "user data" word of list`: success
+* `0`: any error
+
+Description
+
+Returns the value of the "user data" word of list, or zero on any error.
+
+----------------
+
+### sdr_list_insert
+
+Function Prototype
+
+```c
+Object sdr_list_insert(Sdr sdr, Object list, Address data, SdrListCompareFn fn, void *dataBuffer)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `list`: a list in SDR to be destroyed
+* `data`: address in SDR
+* `fn`: a sdr list compare function
+* `dataBuffer`: see manual page for `sdrlist` for details.
+
+Return Value
+
+* `value of the "user data" word of list`: success
+* `0`: any error
+
+Description
+
+Creates a new list element whose data value is data and inserts that element into the list. If fn is NULL, the new list element is simply appended to the list; otherwise, the new list element is inserted after the last element in the list whose data value is "less than or equal to" the data value of the new element (in dataBuffer) according to the collating sequence established by fn. Returns the address of the newly created element, or zero on any error.
 
 ----------------
 
