@@ -1,4 +1,4 @@
-# Error Checking and Status Reporting in ION
+# Error Checking and Status Reporting
 
 ION provides set of shorthand macros for error checking and functions for reporting errors and status information resulting in standardized format and capture in the ion.log.
 
