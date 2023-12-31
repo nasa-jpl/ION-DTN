@@ -659,6 +659,28 @@ typedef int (*SdrListCompareFn)(Sdr sdr, Address eltData, void *argData);
 typedef void (*SdrListDeleteFn)(Sdr sdr, Object elt, void *argument);
 ```
 
+### Callback: SdrListCompareFn
+### Callback: SDRListDEleteFn
+
+USAGE
+
+When inserting elements or searching a list, the user may optionally provide a compare function of the form:
+
+```c
+int user_comp_name(Sdr sdr, Address eltData, void *dataBuffer);
+```
+
+When provided, this function is automatically called by the sdrlist function being invoked; when the function is called it is passed the content of a list element (eltData, nominally the Address of an item in the SDR's heap space) and an argument, dataBuffer, which is nominally the address in local memory of some other item in the same format. The user-supplied function normally compares some key values of the two data items and returns 0 if they are equal, an integer less than 0 if eltData's key value is less than that of dataBuffer, and an integer greater than 0 if eltData's key value is greater than that of dataBuffer. These return values will produce a list in ascending order.
+If the user desires the list to be in descending order, the function must reverse the signs of these return values.
+
+When deleting an element or destroying a list, the user may optionally provide a delete function of the form:
+
+```c
+void user_delete_name(Sdr sdr, Address eltData, void *argData)
+```
+
+When provided, this function is automatically called by the sdrlist function being invoked; when the function is called it is passed the content of a list element (eltData, nominally the Address of an item in the SDR's heap space) and an argument, argData, which if non-NULL is normally the address in local memory of a data item providing context for the list element deletion. The user-supplied function performs any application-specific cleanup associated with deleting the element, such as freeing the element's content data item and/or other SDR heap space associated with the element.
+
 -----------------
 
 ### sdr_list_insert_first 
@@ -747,7 +769,7 @@ Parameters
 
 * `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
 * `list`: a list in SDR to be destroyed
-* `fn`: a sdrlist delete function pointer
+* `fn`: a sdrlist [delete function](#callback-sdrlistdeletefn)
 * `arg`: arguments passed to the delete function
 
 Return Value
@@ -823,8 +845,8 @@ Parameters
 * `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
 * `list`: a list in SDR to be destroyed
 * `data`: address in SDR
-* `fn`: a sdr list compare function
-* `dataBuffer`: see manual page for `sdrlist` for details.
+* `fn`: a sdrlist [compare function](#callback-sdrlistcomparefn)
+* `dataBuffer`: data pass to the compare function
 
 Return Value
 
@@ -837,7 +859,221 @@ Creates a new list element whose data value is data and inserts that element int
 
 ----------------
 
-## Other less used APIs
+### sdr_list_insert_before
+### sdr_list_insert_after
 
-See manual pages for `ion` and `sdr` for details on the full set of ICI APIs.
+Function Prototype
+
+```c
+Object sdr_list_insert_before(Sdr sdr, Object elt, Address data)
+Object sdr_list_insert_after(Sdr sdr, Object elt, Address data)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `elt`: an element of a list in the SDR
+* `data`: an address in SDR
+
+Return Value
+
+* `address of the newly created list element`: success
+* `0`: any error
+
+Description
+
+Creates a new element and inserts it before/after the specified list element. This function should not be used to insert a new element into any ordered list; use `sdr_list_insert` instead. Returns the address of the newly created list element, or zero on any error.
+
+-------------------
+
+### sdr_list_delete
+
+Function Prototype
+
+```c
+void sdr_list_delete(Sdr sdr, Object elt, SdrListDeleteFn fn, void *arg)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `elt`: an element of a list in the SDR
+* `fn`: a sdr list [delete function](#callback-sdrlistdeletefn)
+* `*arg`: argument passed to the delete function
+
+Return Value
+
+* none
+
+Description
+
+Delete elt from the list it is in. If fn is non-NULL, that function will be called upon deletion of elt; when called, that function is passed the Address that is the list element's data value and the arg pointer passed to `sdr_list_delete`.
+
+-------------------
+
+### sdr_list_first
+### sdr_list_last
+
+Function Prototype
+
+```c
+Object sdr_list_first(Sdr sdr, Object list)
+Object sdr_list_last(Sdr sdr, Object list)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `list`: address of a list in the SDR
+
+Return Value
+
+* `address to the first/last element`: success
+* `0`: any error
+
+Description
+
+Returns the address of the first/last element of list, or zero on any error.
+
+-------------------
+
+### sdr_list_next
+### sdr_list_prev
+
+Function Prototype
+
+```c
+Object sdr_list_next(Sdr sdr, Object elt)
+Object sdr_list_prev(Sdr sdr, Object elt)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `elt`: address of an element in a sdrlist
+
+Return Value
+
+* `address to the element following/preceding the element provided`: success
+* `0`: any error
+
+Description
+
+Returns the address of the element following/preceding elt in that element's list, or zero on any error.
+
+-------------------
+
+### sdr_list_search
+
+Function Prototype
+
+```c
+Object sdr_list_search(Sdr sdr, Object elt, int reverse, SdrListCompareFn fn, void *dataBuffer);
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `elt`: address of an element in a sdrlist
+* `reverse`: order of search
+* `fn`: a sdrlist [compare function](#callback-sdrlistcomparefn)
+* `*dataBuffer`: address of data to be used for search
+
+Return Value
+
+* `address to the matching element`: success
+* `0`: any error
+
+Description
+
+Search a list for an element whose data matches the data in dataBuffer, starting at the indicated initial list element. 
+
+If the compare function is non-NULL, the list is assumed to be sorted in the order implied by that function and the function is automatically called once for each element of the list until it returns a value that is greater than or equal to zero (where zero indicates an exact match and a value greater than zero indicates that the list contains no matching element); each time compare is called it is passed the Address that is the element's data value and the dataBuffer value passed to sm_list_search(). 
+
+If reverse is non-zero, then the list is searched in reverse order (starting at the indicated initial list element) and the search ends when compare returns a value that is less than or equal to zero. If compare is NULL, then the entire list is searched (in either forward or reverse order, as directed) until an element is located whose data value is equal to ((Address) dataBuffer). Returns the address of the matching element if one is found, 0 otherwise.
+
+-------------------
+
+### sdr_list_list
+
+Function Prototype
+
+```c
+Object sdr_list_list(Sdr sdr, Object elt)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `elt`: address of an element in a sdrlist
+
+Return Value
+
+* `address to the list to which elt belongs`: success
+* `0`: any error
+
+Description
+
+Returns the address of the list to which elt belongs, or 0 on any error.
+
+-------------------
+
+### sdr_list_data
+
+Function Prototype
+
+```c
+Address sdr_list_data(Sdr sdr, Object elt)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `elt`: address of an element in a sdrlist
+
+Return Value
+
+* `address that is the data value of elt`: success
+* `0`: any error
+
+Description
+
+Returns the Address that is the data value of elt, or 0 on any error.
+
+-------------------
+
+### sdr_list_data_set
+
+Function Prototype
+
+```c
+Address sdr_list_data_set(Sdr sdr, Object elt, Address data)
+```
+
+Parameters
+
+* `sdr`: handle to the ION SDR obtained through `ionAttach` or `bp_attach`
+* `elt`: address of an element in a sdrlist
+* `data`: address of data in SDR
+
+Return Value
+
+* `original data value of elt`: success
+* `0`: any error
+
+Description
+
+Sets the data value for elt to data, replacing the original value. Returns the original data value for elt, or 0 on any error. The original data value for elt may or may not have been the address of an object in heap data space; even if it was, that object was NOT deleted.
+
+__Warning__: changing the data value of an element of an ordered list may ruin the ordering of the list.
+
+-------------------
+
+## Other less used ICI APIs
+
+There are many other less frequently used APIs.  
+
+Please see manual pages for the following:
+
+ `ion`, `sdr`, `sdrlist`, `platform`, `lyst`, `psm`, `memmgr`, `sdrstring`, `sdrtable`, and `smlist`.
 
