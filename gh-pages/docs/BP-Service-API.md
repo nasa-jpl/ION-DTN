@@ -377,7 +377,10 @@ On success, places a value in *ionsapPtr that can be supplied to future bp funct
 Function Prototype
 
 ```c
-int bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan, int classOfService, BpCustodySwitch custodySwitch, unsigned char srrFlags, int ackRequested, BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
+int bp_send(BpSAP sap, char *destEid, char *reportToEid, 
+             int lifespan, int classOfService, BpCustodySwitch custodySwitch, 
+             unsigned char srrFlags, int ackRequested, 
+             BpAncillaryData *ancillaryData, Object adu, Object *newBundle)
 ```
 
 Parameters
@@ -421,7 +424,7 @@ Return Value
 
 * 1: success
 * 0: user error
-* -1: any system error.
+* -1: any system error
 
 Example Call
 
@@ -451,30 +454,49 @@ If 1 is returned, then either the destination of the bundle was "dtn:none" (the 
 
 ---------------
 
-### TBD
+### bp_track
 
 Function Prototype
 
 ```c
-
+int bp_track(Object bundle, Object trackingElt)
 ```
 
 Parameters
 
-* None.
+* `bundle`: the bundle object data structure
+* `trackingElt`: an SDR tracking list Elt managed by the user's application to be associated with the bundle
 
 Return Value
 
 * 0: success
-* -1: Any error
+* -1: any error
 
 Example Call
 
 ```c
+/* a lyst of bundles in SDR */
+Object bundleList;
 
+/* a bundle object in SDR */
+Object bundleObject;
+
+bundleElt = sdr_list_insert_last(sdr, bundleList,
+                bundleObject);
+if (bp_track(outAdu.bundleObj, bundleElt) < 0)
+{
+        sdr_cancel_xn(sdr);
+        putErrmsg("Can't track bundle.", NULL);
+        
+        /* user error handling code goes here */
+}
 ```
 
+The bundleList is managed via the [sdr_list](./ICI-API.md#sdr-list-management-apis) library of APIs.
+
 Description
+
+Adds `trackingElt` to the list of "tracking" references in bundle. `trackingElt` must be the address of an SDR list element -- whose data is the address of this same bundle -- within some list of bundles that is privately managed by the application. Upon destruction of the bundle this list element will automatically be deleted, thus removing the bundle from the application's privately managed list of bundles. This enables the application to keep track of bundles that it is operating on without risk of inadvertently de-referencing the address of a nonexistent bundle.
 
 ---------------
 
