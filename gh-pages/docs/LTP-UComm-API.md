@@ -67,11 +67,9 @@ if (ltpInit(0) < 0)
 
 Description
 
-This call attaches to ION and either initializes a new LTP database or loads the LTP database of an existing service. If the value of `estMaxExportSessions` is positive, the LTP service will be initialized with the specified maximum number of export sessions. If the value of `estMaxExportSessions` is zero or negative, then `ltpInit` will quit if no existing LTP service is found. 
+This call attaches to ION and either initializes a new LTP database or loads the LTP database of an existing service. If the value of `estMaxExportSessions` is positive and no existing LTP service are found, then LTP service will be initialized with the specified maximum number of export sessions indicated. If the value of `estMaxExportSessions` is zero or negative, then `ltpInit` will load the LTP database or otherwise quit if no existing LTP service is found. **NOTE**: for the underlying communication protocol implementation, setting `ltpInit(0)` is appropriate since the intention is to load an existing LTP service only.
 
-**NOTE**: for the underlying communication protocol implementation, setting ltpInit(0) is appropriate since the intent is to load an existing LTP service only.
-
-Once a LTP service is found, it loads the address to the LTP database object, as defined by `LtpDB` in `ltpP.h`.
+Once a LTP service is either found or initialized, it loads the address to the LTP database object defined by `LtpDB` in `ltpP.h`, as follows:
 
 #### LtpDB
 
@@ -113,9 +111,7 @@ typedef struct
 } LtpDB;
 ```
 
-This object hold the general information for LTP service in ION.
-
-
+This object hold the general configuration and state information for the LTP service in ION.
 
 -----------------------
 
@@ -124,18 +120,20 @@ This object hold the general information for LTP service in ION.
 Function Prototype
 
 ```c
-extern void	findSpan(uvast engineId, LtpVspan **vspan,
-				PsmAddress *vspanElt);
+void findSpan(uvast engineId, LtpVspan **vspan, PsmAddress *vspanElt);
 ```
+
 Parameters
 
-* `engineId`: The engine number of the peer engine for the given span
-* `vspan`: pointer to the pointer of the volatile LTP span object that encapsulates the current state of the LTP span
-* `vspanElt`: pointer to the address value stored in a list element that points to the volatile span object vspan
+* `engineId`: The engine number of the peer LTP engine
+* `vspan`: pointer to the pointer of the LTP span object in ION working memory that encapsulates the current state of the LTP span
+* `vspanElt`: pointer to the address stored in a list of span in the volatile database defined by `LtpVdb`
 
 Return Value:
 
+* none
 
+Example Code:
 
 ```c
 sdr = getIonsdr();
