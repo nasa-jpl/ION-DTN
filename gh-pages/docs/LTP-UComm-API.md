@@ -25,7 +25,57 @@ There are several steps for an external application to connecting to LTP:
 
 In the following section we will describe the *private* APIs used by the underlying communication protocols. There are other APIs for external processes to use LTP as a reliable point-to-point data transmission service, but they are not described in this document; they are available in the manual pages.
 
-## LTP API - for underlying comm protocol
+## LTP Data Structure
+
+Here is a diagram of the major LTP data structures and their relationships. 
+
+```text
++----------------------------------+----------------------------------+
+|                                  |                                  |
+| non->olatile (SDR heap)          |    volatile (working memory ION) |
+|                                  |                                  |
+|                                  |                                  |
+| LtpDB                            |    LtpVdb                        |
+|   +      (list)                  |     +       (list)               |
+|   +---> spans +--+               |     +-----+ spans+------+        |
+|   |              |               |     |                   |        |
+|   +---> seats +---------+        |     +-----+ seats+---+  |        |
+|                  |      |        |                      |  |        |
+|                  |      |        |                      |  |        |
+| LtpSpan <--------+      |        |     LtpVspan <----------+        |
+|   +                     |        |       +              |           |
+|   +---> importSessions+----+     |       +-> importSessions+--+     |
+|   |       (list)        |  |     |             (list)   |     |     |
+|   +---> exportSessions+------+   |                      |     |     |
+|                         |  | |   |     LtpVseat <-------+     |     |
+| LtpSeat <---------------+  | |   |                            |     |
+|                            | |   |                            |     |
+|                            | |   |                            |     |
+| LtpImportSession <---------+ |   |     LtpVImportSession<-----+     |
+|                              |   |                                  |
+|                              |   |                                  |
+| LtpExportSession <-----------+   |                                  |
+|                                  |                                  |
++----------------------------------+----------------------------------+
+```
+
+* `LtpDB`: The LTP database is a global database that contains the LTP configuration information for the entire system. It is a persistent data stored in the SDR's heap - assuming the SDR is implemented in a non-volatile medium such as a disk or a battery backed RAM.
+
+* `LtpSpan`: A span is a communication channel between two LTP engine peers. A span is defined by a unique span number and a set of communication parameters stored in a non-volatile database. Each instance of `LtpSpan` is tracked as an element in the LTP database under the `LtpDB.spans` list.
+
+* `LtpSeat`: A seat is the reception process for LTP and its parameters are stored under LtpSeat, and its tracked as an element in the list `LtpDB.seats`.
+
+* `LtpImportSession` and `LtpExportSession` are tracked by lists in the `LtpSpan` structure.
+
+* `LtpVdb`: The LTP volatile database is a global database that contains the LTP configuration information for the entire system. It is a volatile data stored in the working memory and not expected to persist through power reset. It tracks, in two lists, each instance of `LtpVspan` and `LtpVseat` that are currently active.
+
+* `LtpVspan`: contains the state information of an active span in the working memory. It is tracked as an element in the list `LtpVdb.spans`.
+
+* `LtpVseat`: contains the state information of an active seat in the working memory. It is tracked as an element in the list `LtpVdb.seats`.
+
+* `LtpVImportSession`: contains the state information of an active import session in the working memory. It is tracked as an element in the list `LtpVspan.importSessions`.
+
+## LTP APIs for implementation of underlying communication protocol
 
 ### Header
 
@@ -69,49 +119,7 @@ Description
 
 This call attaches to ION and either initializes a new LTP database or loads the LTP database of an existing service. If the value of `estMaxExportSessions` is positive and no existing LTP service are found, then LTP service will be initialized with the specified maximum number of export sessions indicated. If the value of `estMaxExportSessions` is zero or negative, then `ltpInit` will load the LTP database or otherwise quit if no existing LTP service is found. **NOTE**: for the underlying communication protocol implementation, setting `ltpInit(0)` is appropriate since the intention is to load an existing LTP service only.
 
-Once a LTP service is either found or initialized, it loads the address to the LTP database object defined by `LtpDB` in `ltpP.h`, as follows:
-
-#### LtpDB
-
-```c
-/* Database structure */
-
-typedef struct
-{
-	uvast		ownEngineId;
-	Sdnv		ownEngineIdSdnv;
-	unsigned int	maxBacklog;
-	Object		deliverables;	/*	SDR list: Deliverable	*/
-
-	/*	estMaxExportSessions is used to compute the number
-	 *	of rows in the export sessions hash table in the LTP
-	 *	database.  If the summation of maxExportSessions over
-	 *	all spans exceeds estMaxExportSessions, LTP export
-	 *	session lookup performance may be compromised.		*/
-
-	int		estMaxExportSessions;
-	unsigned int	ownQtime;
-	unsigned int	enforceSchedule;/*	Boolean.		*/
-	double		maxBER;		/*	Max. bit error rate.	*/
-	LtpClient	clients[LTP_MAX_NBR_OF_CLIENTS];
-	unsigned int	sessionCount;
-	Object		exportSessionsHash;
-#if CLOSED_EXPORTS_ENABLED
-	Object		closedExports;	/*	SDR list: CLosedExport	*/
-#endif
-	Object		deadExports;	/*	SDR list: ExportSession	*/
-	Object		spans;		/*	SDR list: LtpSpan	*/
-	Object		seats;		/*	SDR list: LtpSeat	*/
-	Object		timeline;	/*	SDR list: LtpEvent	*/
-	unsigned int	maxAcqInHeap;
-	unsigned long	heapBytesReserved;
-	unsigned long	heapBytesOccupied;
-	unsigned long	heapSpaceBytesReserved;
-	unsigned long	heapSpaceBytesOccupied;
-} LtpDB;
-```
-
-This object hold the general configuration and state information for the LTP service in ION.
+Once a LTP service is either found or initialized, it loads the address to the LTP database object defined by `LtpDB` in `ltpP.h`.
 
 -----------------------
 
@@ -129,21 +137,21 @@ Parameters
 * `vspan`: pointer to the pointer of the LTP span object in ION working memory that encapsulates the current state of the LTP span
 * `vspanElt`: pointer to the address stored in a list of span in the volatile database defined by `LtpVdb`
 
-Return Value:
+Return Value
 
 * none
 
-Example Code:
+Example Code
 
-```c
+```c++
 sdr = getIonsdr();
-CHKZERO(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+CHKZERO(sdr_begin_xn(sdr));	/*	Lock SDR.	*/
 findSpan(remoteEngineId, &vspan, &vspanElt);
 if (vspanElt == 0)
 {
     sdr_exit_xn(sdr);
     putErrmsg("No such engine in database.", itoa(remoteEngineId));
-    return 1;
+    /* user error handling routine here */
 }
 
 if (vspan->lsoPid != ERROR && vspan->lsoPid != sm_TaskIdSelf())
@@ -151,9 +159,95 @@ if (vspan->lsoPid != ERROR && vspan->lsoPid != sm_TaskIdSelf())
     sdr_exit_xn(sdr);
     putErrmsg("LSO task is already started for this span.",
         itoa(vspan->lsoPid));
-    return 1;
+    /* user error handling routine here */
 }
+
+/* unlock the SDR */
+sdr_exit_xn(sdr);
+```
+
+Description
+
+This function searches the volatile database for the span that corresponds to the specified engine number. If the span is found, then the pointer to the span object is stored in the `vspan` parameter and the address of the span object in the list of spans in the volatile database is stored in the `vspanElt` parameter. If the span is not found, then `vspanElt` parameter is set to 0.
+
+**Note**: In addition to check the value of `vspanElt`, one can also check for the process ID of the LSO task (the LTP output process, i.e., the underlying communication protocol) of the span has not already been serviced by another protocol implementation.
+
+### ltpDequeueOutboundSegment
+
+Function Prototype
+
+```c
+extern int ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf);
+```
+
+Parameters
+
+* `vspan`: address to the volatile LTP span object
+* `buf`: the buffer in which outbound LTP segments are stored
+
+Return Value
+
+* `length of segment`: success
+* `0`: session associated to the dequeued segment has already closed; no need to transmit any data
+* `-1`: any error
+
+Example Code
+
+```c
+segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
+if (segmentLength < 0)
+{
+	/* handle error */
+}
+
+if (segmentLength == 0)
+{
+	/* session is closed, take appropriate action */
+
+}
+
+/* transmit the segment */
+```
+
+Description:
+
+This function dequeues a LTP segment, based on the `segSemaphore` in `vspan` object, into a buffer space for the calling task to process for transmission. The returned value is the length of the LTP segment dequeue; 0 if the segment belongs to a session that already closed (therefore no action is required), and -1 if an error occurred.
+
+If this call is implemented in a loop, then it is suggested that the loop monitors the `segSemaphore` in `vspan` to detect the termination of the semaphore using the `sm_SemEnded(vspan->segSemaphore)` call. If the semaphore has ended, it means the span associated with the underlying communication protocol instance has ended. This is the right time to end the task itself.
+
+After each successful iteration in a loop, it is recommended that you call `sm_TaskYield()` to give other tasks a chance to run. A good example code to read is the `udplso.c` program.
+
+### ltpHandleInboundSegment
+
+Function Prototype
+
+```c
+int	ltpHandleInboundSegment(char *buf, int length)
+```
+
+Parameters
+
+* `buf`: pointer to buffer storing the received LTP segment, to be submitted to LTP engine for processing
+* `length`: the length of the received LTP segment
+
+Return Value
+
+* `0`: segment successfully handled
+* `-1`: any error
+
+Example Code
+
+```c
+if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
+{
+	putErrmsg("Can't handle inbound segment.", NULL);
+	/* handle error here */
+}`
 ```
 
 
+Description
 
+This function submits received LTP segments to LTP engine for processing. The return value is 0 if the segment is successfully handled, and -1 if an error occurred. A successfully handled segment includes cases where the segments are ignored for several possible, non-critial, non-fatal discrepencies such as wrong LTP version number, closed session number, session under cancellation (therefore the segment was not processed) and other conditions are may occur under nominal condition.
+
+To develop one's own underlying communication protocol implementation to support LTP, the `udplsi.c` and `udplso.c` programs are good templates to use.
