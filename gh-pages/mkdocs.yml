@@ -65,6 +65,8 @@ nav:
     - ION Infrastructure API: ICI-API.md
     - BP Service API: BP-Service-API.md
     - LTP Underlying Communications API: LTP-UComm-API.md
+    - CLA API: CLA-API.md
+    - Extension Block Interface: Extension-Block-Interface.md
     - Status Checking & Error Reporting: Status-Checking-and-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
   - Man Pages:
