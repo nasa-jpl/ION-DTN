@@ -1,8 +1,8 @@
-# Interplanetary Communications Infrasturcutre (ICI) APIs
+# ION Infrasturcutre APIs
 
-In this section, we will focus on a small subset of all available ICI APIs that will enable an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION.
+In this section, we will focus on a subset of infrastructure APIs that enables an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION.
 
-In order to write a fully functioning BP application, the user will generally need to use a combination of ICI APIs described below and [BP Service APIs](./BP-Service-API.md) described in a separate document.
+In order to write a fully functioning BP user application, a combination of ICI APIs described below and a set [BP Service APIs](./BP-Service-API.md) described in a separate document will be required.
 
 ## ION APIs
 
@@ -19,7 +19,7 @@ In order to write a fully functioning BP application, the user will generally ne
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
 ```
 
-* __MTAKE__ and __MRELEASE__ provides syntactically terse way of calling allocFromIonMemory and releaseToIonMemory, the functional equivalent of `malloc` and `free`. The allocated memory space comes out of the ION working memory, which has be pre-allocated during the ION configuration.
+* __MTAKE__ and __MRELEASE__ provides syntactically terse way of calling allocFromIonMemory and releaseToIonMemory, the functional equivalent of `malloc` and `free` for ION. The allocated memory space comes out of the ION working memory, which has be pre-allocated during the ION configuration.
 * `__FILE__` and `__LINE__` provides the source file name and line number of the calling function and can assist debugging and tracking down memory leaks.
 
 ---
@@ -278,9 +278,9 @@ This function provides a "blocking" implementation of admission control in ION. 
 
 ## SDR Database & Heap APIs
 
-SDR persistent data are referenced in application code by `Object` values and `Address` values, both of which are simply displacements (offsets) within SDR address space. The difference between the two is that an `Object` is always the address of a block of heap space returned by some call to `sdr_malloc`, while an `Address` can refer to any byte in the address space. That is, an `Address` is the SDR functional equivalent of a C pointer in DRAM, and some Addresses point to Objects.
+SDR persistent data are referenced in application code by `Object` values and `Address` values, both of which are simply displacements (offsets) within SDR address space. The difference between the two is that an `Object` is always the address of a block of heap space returned by some call to `sdr_malloc`, while an `Address` can refer to any byte in the SDR address space. That is, an `Address` is the SDR functional equivalent of a C pointer in DRAM, and some Addresses point to actual Objects.
 
-The number of SDR-related APIs is large. Fortunately, there are only a few APIs that an external application will likely needs to use. The following is a list of the most commonly used APIs drawn from the Database I/O and Heap Space Management categories.
+The number of SDR-related APIs is large and most are used by ION internally. Fortunately, there are only a few APIs that an external application will likely need to use. The following is a list of the most commonly used APIs drawn from the _Database I/O_ and the _Heap Space Management_ categories.
 
 ---
 
