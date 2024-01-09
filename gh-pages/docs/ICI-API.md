@@ -1,6 +1,6 @@
 # Interplanetary Communications Infrasturcutre (ICI) APIs
 
-In this section, we will focus on a small subset of all available ICI APIs that will enable an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION. 
+In this section, we will focus on a small subset of all available ICI APIs that will enable an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION.
 
 In order to write a fully functioning BP application, the user will generally need to use a combination of ICI APIs described below and [BP Service APIs](./BP-Service-API.md) described in a separate document.
 
@@ -12,7 +12,17 @@ In order to write a fully functioning BP application, the user will generally ne
 #include "ion.h"
 ```
 
----------------
+### MTAKE & MRELEASE
+
+```c
+#define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)
+#define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
+```
+
+* __MTAKE__ and __MRELEASE__ provides syntactically terse way of calling allocFromIonMemory and releaseToIonMemory, the functional equivalent of `malloc` and `free`. The allocated memory space comes out of the ION working memory, which has be pre-allocated during the ION configuration.
+* `__FILE__` and `__LINE__` provides the source file name and line number of the calling function and can assist debugging and tracking down memory leaks.
+
+---
 
 ### ionAttach
 
@@ -37,7 +47,7 @@ Example Call
 if (ionAttach() < 0)
 {
     putErrmsg("bpadmin can't attach to ION.", NULL);
-    
+  
     /* User calls error handling routine. */
 }
 ```
@@ -46,7 +56,7 @@ Description
 
 Attaches the invoking task to ION infrastructure as previously established by running the ionadmin utility program. After successful execution, the handle to the ION SDR can be obtained by a separte API call. `putErrmsg` is a ION logging API, which will be described later in this document.
 
----------------
+---
 
 ### ionDetach
 
@@ -74,7 +84,7 @@ Description
 
 Detaches the invoking task from ION infrastructure. In particular, releases handle allocated for access to ION's non-volatile database.
 
----------------
+---
 
 ### ionTerminate
 
@@ -102,7 +112,7 @@ Description
 
 Shuts down the entire ION node, terminating all daemons. The state of the SDR will be destroyed during the termination process, even if the SDR heap is implemented in a non-volatile storage, such as a file.
 
----------------
+---
 
 ### ionStartAttendant
 
@@ -143,7 +153,7 @@ Description
 
 Initializes the semaphore in `attendant` so that it can be used for blocking a pending ZCO space request. This is necessary to ensure that the invoking task will not be able to inject data into BP service until SDR space is allocated.
 
----------------
+---
 
 ### ionStopAttendant
 
@@ -172,7 +182,7 @@ Description
 
 Destroys the semaphore in `attendant`, preventing a potential resource leak. This is typically called at the end of a BP application, after all user data have been injected into the SDR.
 
----------------
+---
 
 ### ionPauseAttendent
 
@@ -200,7 +210,7 @@ Description
 
 "Ends" the semaphore in attendant so that the task that is blocked on taking it is interrupted and may respond to an error or shutdown condition. This may be required when trying to quitting a user application that is currently being blocked while acquiring ZCO space.
 
----------------
+---
 
 ### ionCreateZco
 
@@ -236,7 +246,7 @@ typedef enum
 * `offset`: the offset within the source data object where the first byte of the ZCO should be placed.
 * `length`: the length of the ZCO to be created.
 * `coarsePriority`: this sets the basic class of service (COS) inherented from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From lowest to the higher priority, it can be set to `BP_BULK_PRIORITY` (value =0), `BP_STD_PRIORITY` (value = 1), or `BP_EXPEDITED_PRIORITY` (value = 2).
-* `finePriority`: this is inherented from BPv6 COS and it is the finer grain priority levels (level 0 to 254) within the class of `BP_STD_PRIORITY`. Typically this is set to the value of 0. 
+* `finePriority`: this is inherented from BPv6 COS and it is the finer grain priority levels (level 0 to 254) within the class of `BP_STD_PRIORITY`. Typically this is set to the value of 0.
 * `acct`: The accounting category for the ZCO, it is either `ZcoInbound` (0), `ZcoOutbound` (1), or `ZcoUnknown` (2). If a ZCO is created for the purpose of transmission to another node, this parameter is typically set to `ZcoOutbound`.
 * `*attendant`: the semaphore that blocks return of the function until the necessary resources has been allocated in the SDR for the creation of the ZCO
 
@@ -264,7 +274,7 @@ Description
 
 This function provides a "blocking" implementation of admission control in ION. Like zco_create(), it constructs a zero-copy object (see zco(3)) that contains a single extent of source data residing at location in source, of which the initial offset number of bytes are omitted and the next length bytes are included. By providing an attendant semaphore, initialized by `ionStartAttendant`, ionCreateZco() can be execute as a blocking call so long as the total amount of space in `source` that is available for new ZCO formation is less than length. ionCreateZco() operates by calling `ionRequestZcoSpace`, then pending on the semaphore in attendant as necessary before creating the ZCO and then populating it with the user's data.
 
----------------
+---
 
 ## SDR Database & Heap APIs
 
@@ -272,7 +282,7 @@ SDR persistent data are referenced in application code by `Object` values and `A
 
 The number of SDR-related APIs is large. Fortunately, there are only a few APIs that an external application will likely needs to use. The following is a list of the most commonly used APIs drawn from the Database I/O and Heap Space Management categories.
 
-------------------
+---
 
 ### Header
 
@@ -280,7 +290,7 @@ The number of SDR-related APIs is large. Fortunately, there are only a few APIs 
 #include "sdr.h"
 ```
 
----------------
+---
 
 ### sdr_malloc
 
@@ -326,7 +336,7 @@ Description
 
 Allocates a block of space from the indicated SDR's heap. The maximum size is 1/2 of the maximum address space size (i.e., 2G for a 32-bit machine). Returns block address if successful, zero if block could not be allocated.
 
----------------
+---
 
 ### sdr_insert
 
@@ -362,9 +372,9 @@ if (sdr_end_xn(sdr) < 0)
 
 Description
 
-This function combines the action of `sdr_malloc` ans `sdr_write`. It first uses `sdr_malloc` to obtain a block of space of size size and, if this allocation is successful, uses `sdr_write` to copy size bytes of data from memory at from into the newly allocated block. 
+This function combines the action of `sdr_malloc` ans `sdr_write`. It first uses `sdr_malloc` to obtain a block of space of size size and, if this allocation is successful, uses `sdr_write` to copy size bytes of data from memory at from into the newly allocated block.
 
----------------
+---
 
 ### sdr_stow
 
@@ -388,7 +398,7 @@ Description
 
 `sdr_stow` is a macro that uses `sdr_insert` to insert a copy of variable into the dataspace. The size of variable is used as the number of bytes to copy.
 
----------------
+---
 
 ### sdr_object_length
 
@@ -412,7 +422,7 @@ Description
 
 Returns the number of bytes of heap space allocated to the application data at *object*.
 
-------------------
+---
 
 ### sdr_free
 
@@ -436,7 +446,7 @@ Description
 
 Frees the heap space occupied by an object at *object*. The space freed are put back into the SDR memory pool and will become available for subsequent re-allocation.
 
-------------------
+---
 
 ### sdr_read
 
@@ -462,7 +472,7 @@ Description
 
 Copies length characters at from (a location in the indicated SDR) to the memory location given by into. The data are copied from the shared memory region in which the SDR resides, if any; otherwise they are read from the file in which the SDR resides.
 
-------------------
+---
 
 ### sdr_stage
 
@@ -490,7 +500,7 @@ Like `sdr_read`, this function will copy length characters at from (a location i
 
 `sdr_get` is a macro that uses `sdr_read` to load variable from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by `sdr_pointer`. The size of variable is used as the number of bytes to copy.
 
-----------------
+---
 
 ### sdr_write
 
@@ -519,11 +529,11 @@ Like `sdr_read`, this function will copy length characters at from (a location i
 
 `sdr_get` is a macro that uses `sdr_read` to load variable from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by `sdr_pointer`. The size of variable is used as the number of bytes to copy.
 
-----------------
+---
 
 ## SDR Transaction APIs
 
-The following APIs manages transactions by implementing a critical section during which SDR content can be modified. 
+The following APIs manages transactions by implementing a critical section during which SDR content can be modified.
 
 ### Header
 
@@ -531,7 +541,7 @@ The following APIs manages transactions by implementing a critical section durin
 #include "sdrxn.h"
 ```
 
-----------------
+---
 
 ### sdr_begin_xn
 
@@ -554,7 +564,7 @@ Description
 
 Initiates a transaction. Returns 1 on success, 0 on any failure. Note that transactions are single-threaded; any task that calls `sdr_begin_xn` is suspended until all previously requested transactions have been ended or canceled.
 
-----------------
+---
 
 ### sdr_in_xn
 
@@ -577,7 +587,7 @@ Description
 
 Returns 1 if called in the course of a transaction, 0 otherwise.
 
-----------------
+---
 
 ### sdr_exit_xn
 
@@ -599,7 +609,7 @@ Description
 
 Simply abandons the current transaction, ceasing the calling task's lock on ION. __MUST NOT be used if any dataspace modifications were performed during the transaction__; `sdr_end_xn` must be called instead, to commit those modifications.
 
-----------------
+---
 
 ### sdr_cancel_xn
 
@@ -621,7 +631,7 @@ Description
 
 Cancels the current transaction. If reversibility is enabled for the SDR, canceling a transaction reverses all heap modifications performed during that transaction.
 
-----------------
+---
 
 ### sdr_end_xn
 
@@ -644,7 +654,7 @@ Description
 
 Ends the current transaction. Returns 0 if the transaction completed without any error; returns -1 if any operation performed in the course of the transaction failed, in which case the transaction was automatically canceled.
 
-----------------
+---
 
 ## SDR List management APIs
 
@@ -660,6 +670,7 @@ typedef void (*SdrListDeleteFn)(Sdr sdr, Object elt, void *argument);
 ```
 
 ### Callback: SdrListCompareFn
+
 ### Callback: SDRListDEleteFn
 
 USAGE
@@ -681,9 +692,10 @@ void user_delete_name(Sdr sdr, Address eltData, void *argData)
 
 When provided, this function is automatically called by the sdrlist function being invoked; when the function is called it is passed the content of a list element (eltData, nominally the Address of an item in the SDR's heap space) and an argument, argData, which if non-NULL is normally the address in local memory of a data item providing context for the list element deletion. The user-supplied function performs any application-specific cleanup associated with deleting the element, such as freeing the element's content data item and/or other SDR heap space associated with the element.
 
------------------
+---
 
-### sdr_list_insert_first 
+### sdr_list_insert_first
+
 ### sdr_list_insert_last
 
 Function Prototype
@@ -708,7 +720,7 @@ Description
 
 Creates a new element and inserts it at the front/end of the list. This function should not be used to insert a new element into any **ordered** list; use `sdr_list_insert`() instead.
 
-----------------
+---
 
 ### sdr_list_create
 
@@ -731,7 +743,7 @@ Description
 
 Creates a new list object in the SDR; the new list object initially contains no list elements. Returns the address of the new list, or zero on any error.
 
-----------------
+---
 
 ### sdr_list_length
 
@@ -755,7 +767,7 @@ Description
 
 Returns the number of elements in the list, or -1 on any error.
 
-----------------
+---
 
 ### sdr_list_destroy
 
@@ -782,7 +794,7 @@ Destroys a list, freeing all elements of list. If fn is non-NULL, that function 
 
 Do not use sdr_free to destroy an SDR list, as this would leave the elements of the list allocated yet unreferenced.
 
-----------------
+---
 
 ### sdr_list_user_data_set
 
@@ -806,7 +818,7 @@ Description
 
 Sets the "user data" word of list to userData. Note that userData is nominally an Address but can in fact be any value that occupies a single word. It is typically used to point to an SDR object that somehow characterizes the list as a whole, such as a name.
 
-----------------
+---
 
 ### sdr_list_user_data
 
@@ -830,7 +842,7 @@ Description
 
 Returns the value of the "user data" word of list, or zero on any error.
 
-----------------
+---
 
 ### sdr_list_insert
 
@@ -857,9 +869,10 @@ Description
 
 Creates a new list element whose data value is data and inserts that element into the list. If fn is NULL, the new list element is simply appended to the list; otherwise, the new list element is inserted after the last element in the list whose data value is "less than or equal to" the data value of the new element (in dataBuffer) according to the collating sequence established by fn. Returns the address of the newly created element, or zero on any error.
 
-----------------
+---
 
 ### sdr_list_insert_before
+
 ### sdr_list_insert_after
 
 Function Prototype
@@ -884,7 +897,7 @@ Description
 
 Creates a new element and inserts it before/after the specified list element. This function should not be used to insert a new element into any ordered list; use `sdr_list_insert` instead. Returns the address of the newly created list element, or zero on any error.
 
--------------------
+---
 
 ### sdr_list_delete
 
@@ -909,9 +922,10 @@ Description
 
 Delete elt from the list it is in. If fn is non-NULL, that function will be called upon deletion of elt; when called, that function is passed the Address that is the list element's data value and the arg pointer passed to `sdr_list_delete`.
 
--------------------
+---
 
 ### sdr_list_first
+
 ### sdr_list_last
 
 Function Prototype
@@ -935,9 +949,10 @@ Description
 
 Returns the address of the first/last element of list, or zero on any error.
 
--------------------
+---
 
 ### sdr_list_next
+
 ### sdr_list_prev
 
 Function Prototype
@@ -961,7 +976,7 @@ Description
 
 Returns the address of the element following/preceding elt in that element's list, or zero on any error.
 
--------------------
+---
 
 ### sdr_list_search
 
@@ -986,13 +1001,13 @@ Return Value
 
 Description
 
-Search a list for an element whose data matches the data in dataBuffer, starting at the indicated initial list element. 
+Search a list for an element whose data matches the data in dataBuffer, starting at the indicated initial list element.
 
-If the compare function is non-NULL, the list is assumed to be sorted in the order implied by that function and the function is automatically called once for each element of the list until it returns a value that is greater than or equal to zero (where zero indicates an exact match and a value greater than zero indicates that the list contains no matching element); each time compare is called it is passed the Address that is the element's data value and the dataBuffer value passed to sm_list_search(). 
+If the compare function is non-NULL, the list is assumed to be sorted in the order implied by that function and the function is automatically called once for each element of the list until it returns a value that is greater than or equal to zero (where zero indicates an exact match and a value greater than zero indicates that the list contains no matching element); each time compare is called it is passed the Address that is the element's data value and the dataBuffer value passed to sm_list_search().
 
 If reverse is non-zero, then the list is searched in reverse order (starting at the indicated initial list element) and the search ends when compare returns a value that is less than or equal to zero. If compare is NULL, then the entire list is searched (in either forward or reverse order, as directed) until an element is located whose data value is equal to ((Address) dataBuffer). Returns the address of the matching element if one is found, 0 otherwise.
 
--------------------
+---
 
 ### sdr_list_list
 
@@ -1016,7 +1031,7 @@ Description
 
 Returns the address of the list to which elt belongs, or 0 on any error.
 
--------------------
+---
 
 ### sdr_list_data
 
@@ -1040,7 +1055,7 @@ Description
 
 Returns the Address that is the data value of elt, or 0 on any error.
 
--------------------
+---
 
 ### sdr_list_data_set
 
@@ -1067,13 +1082,12 @@ Sets the data value for elt to data, replacing the original value. Returns the o
 
 __Warning__: changing the data value of an element of an ordered list may ruin the ordering of the list.
 
--------------------
+---
 
 ## Other less used ICI APIs
 
-There are many other less frequently used APIs.  
+There are many other less frequently used APIs.
 
 Please see manual pages for the following:
 
  `ion`, `sdr`, `sdrlist`, `platform`, `lyst`, `psm`, `memmgr`, `sdrstring`, `sdrtable`, and `smlist`.
-
