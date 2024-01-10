@@ -64,6 +64,7 @@ nav:
   - ION APIs:
     - ION Design & API Overview: ION-Design-and-API-Overview.md
     - ION Infrastructure API: ICI-API.md
+    - ION Application Service Interface: ION-Application-Service-Interface.md
     - BP Service API: BP-Service-API.md
     - LTP Underlying Communications API: LTP-UComm-API.md
     - CLA API: CLA-API.md
