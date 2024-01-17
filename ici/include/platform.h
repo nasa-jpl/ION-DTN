@@ -815,10 +815,12 @@ extern void			discardErrmsgs();
 extern int			_iEnd(const char *, int, const char *);
 extern int			_coreFileNeeded(int *);
 
-#define CHKERR(e)    		if (!(e) && iEnd(#e)) return ERROR
-#define CHKZERO(e)    		if (!(e) && iEnd(#e)) return 0
-#define CHKNULL(e)    		if (!(e) && iEnd(#e)) return NULL
-#define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
+/* check arg for NULL and return requested return value.  As side effect,   */
+/* proves to the compiler that the pointer is not NULL afterward. 			*/
+#define CHKERR(e)    		if (!(e) && (iEnd(#e)||1)) return ERROR
+#define CHKZERO(e)    		if (!(e) && (iEnd(#e)||1)) return 0
+#define CHKNULL(e)    		if (!(e) && (iEnd(#e)||1)) return NULL
+#define CHKVOID(e)    		if (!(e) && (iEnd(#e)||1)) return
 
 extern void			printStackTrace();
 
