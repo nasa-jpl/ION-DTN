@@ -23,7 +23,7 @@ int	main(int argc, char **argv)
 	if (bp_attach() < 0)
 	{
 		putErrmsg("Can't attach to BP.", NULL);
-		return 0;
+		return 1;
 	}
 
 	sdr = bp_get_sdr();

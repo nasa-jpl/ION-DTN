@@ -4,7 +4,6 @@
 # shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
 # all related processes" idea
 
-ION_OPEN_SOURCE=1
 OS_VERS=""
 NOT_KILLED=""
 PS_LIST=""
@@ -136,10 +135,6 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	udpclo lt-udpclo \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
-	"
-
-if [ "$ION_OPEN_SOURCE" == "1" ];then
-KILLPROCESSLIST="${KILLPROCESSLIST} \
 	amsbenchr lt-amsbenchr \
 	amsbenchs lt-amsbenchs \
 	amsd lt-amsd \

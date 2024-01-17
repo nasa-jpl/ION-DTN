@@ -139,12 +139,13 @@ local node.
 
 =over 4
 
-=item B<a exit> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
+=item B<a exit> I<first_node_nbr> I<last_node_nbr> I<gateway_node_ID>
 
 The B<add exit> command.  This command establishes an "exit" for static 
-default routing as described above.
+default routing as described above. The node ID, for the ipn scheme, would
+simply be the endpoint ID with service number equal to zero.
 
-=item B<c exit> I<first_node_nbr> I<last_node_nbr> I<gateway_endpoint_ID>
+=item B<c exit> I<first_node_nbr> I<last_node_nbr> I<gateway_node_ID>
 
 The B<change exit> command.  This command changes the gateway node
 number for the exit identified by I<first_node_nbr> and I<last_node_nbr> .
@@ -156,7 +157,7 @@ by I<first_node_nbr> and I<last_node_nbr>.
 
 =item B<i exit> I<first_node_nbr> I<last_node_nbr>
 
-This command will print information (the gateway endpoint ID) about the
+This command will print information (the gateway node ID) about the
 exit identified by I<first_node_nbr> and I<last_node_nbr>.
 
 =item B<l exit>

@@ -1890,9 +1890,12 @@ bpextra = \
 	bpv7/doc/pod1/bpstats2.pod \
 	bpv7/doc/pod1/bptrace.pod \
 	bpv7/doc/pod1/bptransit.pod \
+	bpv7/doc/pod1/bpversion.pod \
+	bpv7/doc/pod1/bpcrash.pod \
 	bpv7/doc/pod1/brsccla.pod \
 	bpv7/doc/pod1/brsscla.pod \
 	bpv7/doc/pod1/cgrfetch.pod \
+	bpv7/doc/pod1/cpsd.pod \
 	bpv7/doc/pod1/dccpcli.pod \
 	bpv7/doc/pod1/dccpclo.pod \
 	bpv7/doc/pod1/dgrcli.pod \
