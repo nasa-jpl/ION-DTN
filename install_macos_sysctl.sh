@@ -2,10 +2,13 @@
 #
 # Shawn Ostermann - Ohio University
 # Version 0.9 - Jan 29, 2021
+# Version 1.1 - Mar 16, 2023
 #
 # Starting with Macos Catalina (10.15), MacOS no longer runs the commands in the /etc/sysctl.conf file
 # This shell script will create a launchtl plist file that will run the 4 sysctl commands needed for ION every
 # time a Mac reboots
+#
+# expanded in 2023 to be big enough that all of the demos/bench* tests pass on a fast M1 Mac
 #
 if [[ -z `uname -a | grep Darwin` ]]; then
     echo "This is only needed on a Mac" 1>&2
@@ -38,9 +41,9 @@ cat > /tmp/${PLISTNAME} <<EOF
 		<string>-c</string>
 		<string>\
 /usr/sbin/sysctl kern.sysv.shmseg=32;  \
-/usr/sbin/sysctl kern.sysv.shmall=65536; \
-/usr/sbin/sysctl net.inet.udp.maxdgram=32000; \
-/usr/sbin/sysctl kern.sysv.shmmax=134217728; \
+/usr/sbin/sysctl kern.sysv.shmall=1048576; \
+/usr/sbin/sysctl net.inet.udp.maxdgram=655360; \
+/usr/sbin/sysctl kern.sysv.shmmax=2147483648; \
 </string>
 	</array>
 	<key>RunAtLoad</key>
