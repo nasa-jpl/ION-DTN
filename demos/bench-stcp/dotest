@@ -35,7 +35,7 @@ echo
 for N in $CONFIGFILES
 do
 	echo "$N:"
-	cat $N
+	cat "$N"
 	echo "# EOF"
 	echo
 done
@@ -77,13 +77,13 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
@@ -132,13 +132,13 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
@@ -187,13 +187,13 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
@@ -242,13 +242,13 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
@@ -297,13 +297,13 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
@@ -352,13 +352,13 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
@@ -407,13 +407,13 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
