@@ -6151,12 +6151,19 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
+
 	discoveryElt = bp_find_discovery(destEidString);
-	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
+
+	//Sky copies string to avoid clobbering destEidString
+	char copy_EID [300]; //matching size of eid string in acquireEid()
+	strcpy(copy_EID, destEidString);
+
+
+	if (parseEidString(copy_EID, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
 		restoreEidString(&destMetaEid);
-		writeMemoNote("[?] Destination EID malformed", destEidString);
+		writeMemoNote("[?] Destination EID malformed", copy_EID);
 		return 0;
 	}
 

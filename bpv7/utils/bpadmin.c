@@ -788,9 +788,12 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 	{
 		SYNTAX_ERROR;
 		return;
-	}
+	}	
+		//Sky copies tokens[2] to avoid clobbering eidString
+		char copy_EID [300]; //matching size of eid string in acquireEid()
+		strcpy(copy_EID, tokens[2]);
 
-	if (parseEidString(tokens[2], &metaEid, &vscheme, &vschemeElt) == 0)
+	if (parseEidString(copy_EID, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
 		restoreEidString(&metaEid);
 		printText("Endpoint ID unintelligible.");
@@ -798,7 +801,7 @@ static void	infoEndpoint(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	findEndpoint(tokens[2], &metaEid, NULL, &vpoint, &elt);
+	findEndpoint(copy_EID, &metaEid, NULL, &vpoint, &elt);
 	if (elt == 0)
 	{
 		printText("Unknown endpoint.");

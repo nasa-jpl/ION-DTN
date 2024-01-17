@@ -111,7 +111,11 @@ int bpsec_util_EIDCopy(EndpointId *toEID, EndpointId *fromEID)
 
 	readEid(fromEID, &eidBuf);
 
-	if(parseEidString(eidBuf, &meid, &vscheme, &schemeElt) <= 0)
+    //Sky copies eidBuf to avoid clobbering original fromEID string
+    char copy_EID [300]; //matching size of eid string in acquireEid()
+    strcpy(copy_EID, eidBuf);
+
+	if(parseEidString(copy_EID, &meid, &vscheme, &schemeElt) <= 0)
 	{
 		MRELEASE(eidBuf);
 		return -1;
