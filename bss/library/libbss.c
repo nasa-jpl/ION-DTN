@@ -23,17 +23,17 @@ void	bssStop()
 	int		recvThreadValid;
 	pthread_t	recvThread;
 
-	if (_datFile(0, 0) == -1)	/*	Must destroy tblIndex.	*/
+	if (_datFile(0, 0) == -1)	/* check if playback mode is there*/
 	{
-		oK(_tblIndex(&destroy));
+		oK(_tblIndex(&destroy));   /* no playback mode, destroy tblIndex.	*/
 		ionDetach();
 	}
 
 	recvThreadValid = _recvThreadId(&recvThread, 0);
-	oK(_running(&stopLoop));
 	if (recvThreadValid)
 	{
 		bp_interrupt(_bpsap(NULL));
+		oK(_running(&stopLoop));
 		oK(_recvThreadId(NULL, -1));
 		oK(pthread_join(recvThread, NULL));
 	}
@@ -52,9 +52,9 @@ void	bssClose()
 {
 	int	destroy = 0;
 
-	if (_recvThreadId(NULL, 0) == 0)/*	No active receiver.	*/
+	if (_recvThreadId(NULL, 0) == 0)/*	Check no active receiver.	*/
 	{
-		oK(_tblIndex(&destroy));/*	Must destroy tblIndex.	*/
+		oK(_tblIndex(&destroy));  /*	We can destroy tblIndex now.	*/
 		ionDetach();
 	}
 
@@ -81,6 +81,8 @@ void	bssExit()
 	fflush(stdout);
 	bssStop();
 	bssClose();
+	/* exiting both real-time and playback modes, detach from ION */
+	ionDetach();
 }
 
 /* Start and terminate BSS receiver operations */
@@ -107,7 +109,6 @@ int	bssOpen(char* bssName, char* path)
 			putErrmsg("BSS library: Failed to read from database.", 
 				   path);
 			bssClose();
-			ionDetach();
 			return -1;
 		}
 	}
@@ -116,7 +117,7 @@ int	bssOpen(char* bssName, char* path)
 		PUTS("An active playback session was detected.  If you \
 wish to initiate a new one, please first close the active playback session.");
 		fflush(stdout);
-		ionDetach();
+		/* do nothing, keep existing database opened */
 		return -2;
 	}
 	
@@ -159,7 +160,6 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 			putErrmsg("BSS library: Database creation failed.", 
 				   path);
 			bssStop();
-			ionDetach();
 			return -1;
 		}
 	}
@@ -168,7 +168,6 @@ int	bssStart(char* bssName, char* path, char* eid, char* buffer,
 		PUTS("Please terminate the already active real-time \
 session in order to initiate a new one.");
 		fflush(stdout);
-		ionDetach();
 		return -1;
 	}
 
@@ -187,7 +186,6 @@ session in order to initiate a new one.");
 	{
 		putSysErrmsg("Can't create recvBundles thread", NULL);
 		bssStop();
-		ionDetach();
 		return -1;
 	}
 
@@ -345,8 +343,10 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 	tblRow		*row;
 	lstEntry 	entry;
 	long		curPosition = nav->curPosition;
+	long		startingPosition = nav->curPosition;
 	int 		i = 0;
 	unsigned long	nextTime;
+	unsigned long 	startingTime;
 
 	CHKERR(nav);
 	CHKERR(curTime); 
@@ -359,10 +359,24 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 		return -1;
 	}
 
+	/* check if current position is within the WINDOW */
+
+	if (curPosition < hdr->oldestRowIndex)
+	{
+		/* table rolled over; reset nav */
+
+		curPosition = hdr->oldestRowIndex;
+		startingPosition = hdr->oldestRowIndex;
+	}
+	
 	if (nav->nextOffset == -1) 
 	{
 		/*	The end of the current doubly-linked list was
 		 *	reached.
+		 * 
+		 *  TO DO: bssNext will jump to next second and skip any
+		 *  new data arriving later that filled in the 
+		 *  rest of the second. This may be fixed
 		 *
 		 *	The following check ensures that bssNext 
 		 *	 function will either break or return.		*/
@@ -373,8 +387,11 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			return -1;
 		}
 
-		/* 	Move to the next position 			*/
+		/* record stating time */
+		startingTime = hdr->oldestTime
+					+ startingPosition - hdr->oldestRowIndex;
 
+		/* moved to next position and search */
 		curPosition = (curPosition + 1) % WINDOW;
 		while (i < WINDOW)
 		{
@@ -392,21 +409,17 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 			 *  hdr->oldestRowIndex value.
 			 */
 
-			if (curPosition >= hdr->oldestRowIndex)
-			{
-				nextTime = hdr->oldestTime
+			nextTime = hdr->oldestTime
 					+ curPosition - hdr->oldestRowIndex;
-			}
-			else
-			{
-				nextTime = hdr->oldestTime + WINDOW
-					- hdr->oldestRowIndex + curPosition;
-			}
-			
-			if (nextTime <= *curTime)
+
+			/* Check reaching end of WINDOW when
+			 * nextTime rolled back to starting 
+			 */
+
+			if (nextTime <= startingTime)
 			{
 				oK(_lockMutex(0));
-				return -2;	/* 	end of list	*/
+				return -2;	/* 	reached end of WINDOW  */
 			}
 
 			row = index->rows + curPosition;
@@ -431,6 +444,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 		|| getLstEntry(_lstFile(0,0), &entry, row->firstEntryOffset)
 				== -1)
 		{
+			writeMemo("[?] bssNext: #1 getLstEntry failed.");
 			oK(_lockMutex(0));
 			return -1;
 		}
@@ -439,6 +453,7 @@ long	bssNext(bssNav *nav, time_t *curTime, unsigned long *count)
 	{
 		if (getLstEntry(_lstFile(0,0), &entry, nav->nextOffset) == -1)
 		{
+			writeMemo("[?] bssNext: #2 getLstEntry failed.");
 			oK(_lockMutex(0));
 			return -1;
 		}

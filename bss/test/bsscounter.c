@@ -28,8 +28,7 @@ static int	_count(int increment)
 static int	display(time_t sec, unsigned long count, char *buf,
 			unsigned long bufLength)
 {
-	static unsigned int	prevDataValue = 0;
-	unsigned int		dataValue;
+	static unsigned int	prevCounter = 0;
 
 	if (bufLength < sizeof(unsigned int))
 	{
@@ -38,40 +37,62 @@ static int	display(time_t sec, unsigned long count, char *buf,
 		return -1;
 	}
 
-	memcpy((char *) &dataValue, buf, sizeof(unsigned int));
-	dataValue = ntohl(dataValue);
-	if (dataValue < prevDataValue)
+	if ((unsigned int) count < prevCounter)
 	{
-		writeMemoNote("[?] Real-time stream out of order",
-				itoa(dataValue));
+		writeMemoNote("[?] bsscounter: Real-time stream out of order per bundle seq. number",
+				itoa((unsigned int) count));
 		return -1;
 	}
 
-	prevDataValue = dataValue;
+	prevCounter = (unsigned int) count;
 	oK(_count(1));
 	return 0;
 }
 
 static int	checkReceptionStatus(char *buffer, int limit)
 {
-	int		dbRecordsCount = 0;
+	static int		dbRecordsCount = 0;
 	bssNav		nav;
-	time_t		bundleIdTime;
-	unsigned long	bundleIdCount;
+	static time_t		bundleIdTime = 0;
+	static unsigned long	bundleIdCount = 0;
+	static unsigned long 	waitForBundleIdCount = 0;
 	long		bytesRead;
-	unsigned int	prevDataValue = 0;
-	unsigned int	dataValue;
 
+	/* reset nav data structure */
 	memset((char *) &nav, 0, sizeof nav);
-	if (bssSeek(&nav, 0, &bundleIdTime, &bundleIdCount) < 0)
+
+	/* 	check for data arrival */
+	if (bundleIdTime == 0)
 	{
-		putErrmsg("Failed in bssSeek.", NULL);
-		return -1;
+		if (bssSeek(&nav, 0, &bundleIdTime, &bundleIdCount) < 0)
+		{
+			puts("Waiting...");
+			fflush(stdout);
+
+			/* not started yet */
+			return 0;
+		}
+		else
+		{
+			puts("Bss data found...");
+			fflush(stdout);
+		}
+	}
+	else 
+	{
+		/* reset nav content by seeking to last know bundle time */
+		if (bssSeek(&nav, bundleIdTime, &bundleIdTime, &bundleIdCount) < 0)
+		{
+			writeMemo("[?] bsscounter: Failed bssSeek");
+			fflush(stdout);
+			return -1;
+		}	
 	}
 
 	while (1)
 	{
 		bytesRead = bssRead(nav, buffer, RCV_LENGTH);
+		
 		if (bytesRead < 0)
 		{
 			putErrmsg("Failed in bssRead.", NULL);
@@ -85,19 +106,29 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			return -1;
 		}
 
-		memcpy((char *) &dataValue, buffer, sizeof(unsigned int));
-		dataValue = ntohl(dataValue);
-		if (dataValue < prevDataValue)
+		/* Check if new real-time bssp bundle(s) were read. 
+		 * Note: bundle sequence number may leap due to multiplexing
+		 * with non-bss traffic. 		*/
+
+		/* TO DO: generalize order checking to accommodate 
+		 * 		  implementation that may reset seq. number
+		 *        on second boundary. Currently ION does 
+		 *        not reset bundle seq. number. 		*/
+
+		if (bundleIdCount >= waitForBundleIdCount)
 		{
-			writeMemoNote("[?] BSS database out of order",
-					itoa(dataValue));
-			return -1;
+			waitForBundleIdCount = bundleIdCount + 1;
+			dbRecordsCount++;
+			if ((dbRecordsCount % 10) == 0)
+			{
+				printf("Received %d bundles...\n", dbRecordsCount);
+				fflush(stdout);
+			}
 		}
 
-		dbRecordsCount++;
-		if (dbRecordsCount == limit)
+		if (dbRecordsCount >= limit)
 		{
-			return limit;
+			return dbRecordsCount;
 		}
 
 		switch (bssNext(&nav, &bundleIdTime, &bundleIdCount))
@@ -139,6 +170,7 @@ int	main(int argc, char **argv)
 	char	*eid = NULL;
 	char	*buffer;
 	int	result;
+	int recv_count = 0;
 
 	if (argc > 5) argc = 5;
 	switch (argc)
@@ -203,7 +235,8 @@ database name> <path for BSS database files> <own endpoint ID>");
 	while (1)
 	{
 		snooze(5);
-		switch (checkReceptionStatus(buffer + RCV_LENGTH, limit))
+		recv_count = checkReceptionStatus(buffer + RCV_LENGTH, limit);
+		switch (recv_count)
 		{
 		case -1:
 			puts("bss test failed.");
@@ -215,10 +248,11 @@ database name> <path for BSS database files> <own endpoint ID>");
 			continue;		/*	Not done yet.	*/
 
 		default:
-			fprintf(stderr, "Received %d real-time frames.\n",
-					_count(0));
-			fprintf(stderr, "Received %d frames in total.\n",
-					limit);
+			/* in-order real-time reception reported by display */
+			fprintf(stderr, "Real-time 'display' callback picked up %d in-order real-time frames.\n", _count(0));
+
+			fprintf(stderr, "Bsscounter terminated after receiving %d frames.\n",
+					recv_count);
 			puts("bss test succeeded.");
 			fflush(stdout);
 			result = 0;		/*	Succeeded.	*/

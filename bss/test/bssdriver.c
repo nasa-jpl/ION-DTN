@@ -30,7 +30,6 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	BpSAP		sap;
 	Sdr		sdr;
 	unsigned int	i = 0;
-	unsigned int	dataValue;
 	Object		bundlePayload;
 	Object		bundleZco;
 	Object		newBundle;
@@ -81,8 +80,6 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	while (bundlesToSend > 0)
 	{
 		i++;
-		dataValue = htonl(i);
-		memcpy(framePayload, (char *) &dataValue, sizeof(unsigned int));
 		CHKZERO(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
 		if (bundlePayload == 0)

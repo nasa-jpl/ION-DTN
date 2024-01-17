@@ -593,7 +593,7 @@ static long	getEntryPosition(int tblFile, BpTimestamp time, long entry)
 	tblRow		*row;
 	long		elapsed;
 	long		relativeTime;
-	long		position;
+	long		position = -1;
 	long		offset;
 	long		newestRow = -1;
 	time_t		newestTime = 0;
@@ -655,7 +655,7 @@ printf("(before calculation) position value: %ld - NewestRowIndex value %ld\n",
 position, hdr->newestRowIndex);
 #endif
 
-	if (seconds <= hdr->newestTime)	/*	Data from past.	*/
+	if (seconds <= hdr->newestTime)	/*	Data within most recent second boundary	*/
 	{
 		/*	No change to either oldest or newest time.	*/
 
@@ -700,6 +700,9 @@ position, hdr->newestRowIndex);
 
 			while (1)
 			{
+				/* check for need to circular rotate
+				 * table 				*/
+
 				if (position == WINDOW)
 				{
 					position = 0;
@@ -757,7 +760,7 @@ position, hdr->newestRowIndex);
 	 *  for this second. If a doubly-linked list already exists,
 	 *  returns the position (offset) of the last entry in the
 	 *  doubly-linked list and updates accordingly the .tbl file.
-	 *  Otherwise, returns a zero value to indicate that a doubly-
+	 *  Otherwise, returns a value of 1 to indicate that a doubly-
 	 *  linked list for this second doesn't exist and updates
 	 *  accordingly the .tbl file.
 	 */
@@ -837,6 +840,12 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 	int		updateStat;
 	int		res = 0;
 
+#if BSSLIBDEBUG
+printf("receiveFrame: received frame with creation time %ld (sec) and \
+	count = %d \n", bundleSeconds, dlv->bundleCreationTime.count);
+#endif
+
+
 	memset(buffer, '\0', bufLength);
 	contentLength = (long) zco_source_data_length(sdr, dlv->adu);
 	if (contentLength <= bufLength)
@@ -872,7 +881,7 @@ static int	receiveFrame(Sdr sdr, BpDelivery *dlv, int datFile, int lstFile,
 			oK(_lockMutex(0));
 			return -1;
 		}
-#if BSSRECVLIBDEBUG
+#if BSSLIBDEBUG
 printf("new Entry Offset returned from seeking to the end of .lst file: %ld\n", 
 newEntryOffset);
 #endif
@@ -917,6 +926,9 @@ newEntryOffset);
 			{
 			case -1:
 				oK(_lockMutex(0));
+#if BSSLIBDEBUG
+printf("UpdateLstEntries failed, return -1 to receiveFrame");
+#endif
 				return -1;	/*	Unsuccessful.	*/
 
 			case 0:
@@ -929,7 +941,7 @@ newEntryOffset);
 				break;
 			}
 		}
-#if BSSRECVLIBDEBUG
+#if BSSLIBDEBUG
 printf(".lst file Entry Offset that was returned from getEntryPosition function: \
 	%ld\n", lstEntryOffset);
 #endif
@@ -960,6 +972,9 @@ printf("from this point on, the execution of the provided display function begin
 			res = display(bundleSeconds,
 				dlv->bundleCreationTime.count, buffer, 
 				contentLength);
+#if BSSLIBDEBUG
+printf("#1 display function returns res value = %d\n",res);
+#endif
 			*lastDis = dlv->bundleCreationTime;
 			displaySeconds = bpSeconds(*lastDis);
 		}
@@ -970,6 +985,9 @@ printf("from this point on, the execution of the provided display function begin
 				res = display(bundleSeconds,
 					dlv->bundleCreationTime.count, buffer, 
 					contentLength);
+#if BSSLIBDEBUG
+printf("#2 display function returns res value = %d\n",res);
+#endif
 				*lastDis = dlv->bundleCreationTime;
 				displaySeconds = bpSeconds(*lastDis);
 			}
@@ -977,6 +995,8 @@ printf("from this point on, the execution of the provided display function begin
 	}
 	else
 	{
+		writeMemo("[?] Bssp content larger than buffer space. Failed to\
+		 receive bss frame.");
 		res = display((time_t) 0, 0, error, sizeof(error));
 	}
 
@@ -1063,7 +1083,10 @@ void	*recvBundles(void *args)
 	bp_close(sap);
 	writeErrmsgMemos();
 	writeMemo("[i] Stopping bss reception thread.");
-	bp_detach();
+
+	/* note: not detaching from ION yet, playback mode may 
+	 *        still be operating    	*/
+	
 	oK(_recvThreadId(NULL, -1));
 	return NULL;
 }
