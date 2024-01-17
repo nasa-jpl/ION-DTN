@@ -1,0 +1,154 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 11, 2010
+#
+# documentation boilerplate
+CONFIGFILES=" \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/noscreen.ltprc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 282: LTP bug fix.
+Tests LTP data screening:
+
+	a.  When screening is turned on, segments received at a time 
+	    when the contact plan indicates no contact are assumed to
+	    be misdirected and are discarded.  Issue 282 bug was an
+	    LTP system crash in this case.
+
+	b.  When screening is turned off, received segments are
+	    processed regardless of the asserted contact state.
+
+This test sends two files via LTP between nodes whose contact plans
+are inconsistent: the sender believes a contact exists, while the
+receiving node believes there is no contact.  The first file is sent
+with screening enable at the receiving node, so it is ignored.  We
+then disble screening at the receiving node and send a second file,
+which is received."
+
+echo
+echo "CONFIG: 2 node custom LTP:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 3.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+cd ../2.ipn.ltp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+# Start file receiver on node 3.
+cd ../3.ipn.ltp
+echo "Starting bprecvfile..."
+bprecvfile ipn:3.1 &
+sleep 1
+
+# Send one file from node 2.
+cd ../2.ipn.ltp
+echo "Sending first file from node 2 to node 3, should be ignored."
+bpsendfile ipn:2.1 ipn:3.1 testfilex
+sleep 60
+
+# Verify that this transmission was ignored due to screening.
+cd ../3.ipn.ltp
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Error: file x was received despite screening."
+	RETVAL=1
+else
+	echo ""
+	echo "Okay: file x was ignored due to screening."
+fi
+
+echo ""
+# Now turn off screening in node 3.
+echo "Turning off segment screening in node 3."
+ltpadmin noscreen.ltprc
+sleep 2
+
+# Send second file from node 2.
+cd ../2.ipn.ltp
+echo "Sending second file from node 2 to node 3, should be received."
+bpsendfile ipn:2.1 ipn:3.1 testfiley
+sleep 2
+
+# Verify that this file has arrived.
+cd ../3.ipn.ltp
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: file y was received."
+else
+	echo ""
+	echo "Error: file y was not received."
+	RETVAL=1
+fi
+
+echo ""
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "issue-282-ltp test completed."
+exit $RETVAL

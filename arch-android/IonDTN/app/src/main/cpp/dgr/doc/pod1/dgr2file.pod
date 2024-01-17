@@ -1,0 +1,76 @@
+=head1 NAME
+
+dgr2file - DGR reception test program
+
+=head1 SYNOPSIS
+
+B<dgr2file>
+
+=head1 DESCRIPTION
+
+B<dgr2file> uses DGR to receive multiple copies of the text of a file
+transmitted by B<file2dgr>, writing each copy of the file to the current
+working directory.  The name of each file written by B<dgr2file> is
+file_copy_I<cycleNbr>, where I<cycleNbr> is initially zero and is increased
+by 1 every time B<dgr2file> closes the file it is currently writing and
+opens a new one.
+
+Upon receiving a DGR datagram from B<file2dgr>, B<dgr2file> extracts the
+content of the datagram (either a line of text from the file that is being
+transmitted by B<file2dgr> or else an EOF string indicating the end of that
+file).  It appends each extracted line of text to the local copy of that
+file that B<dgr2file> is currently writing.  When the extracted datagram
+content is an EOF string (the ASCII text "*** End of the file ***"),
+B<dgr2file> closes the file it is writing, increments I<cycleNbr>, opens
+a new copy of the file for writing, and prints the message "working on cycle
+I<cycleNbr>."
+
+B<dgr2file> always receives datagrams at port 2101.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dgr2file> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+=over 4
+
+=item can't open dgr service
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item can't open output file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item dgr_receive failed
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item can't write to output file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+file2dgr(1), dgr(3)

@@ -1,0 +1,3 @@
+# shell script to get IPND running
+#!/bin/bash
+ipnd		listen.ipndrc >& listen.log &

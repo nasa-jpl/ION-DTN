@@ -1,0 +1,7 @@
+# shell script to get node running
+#!/bin/bash
+ionadmin	node.ionrc
+
+ionsecadmin	node.ionsecrc &
+
+bpadmin		node.bprc &

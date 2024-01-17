@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 21, 2010
+# documentation boilerplate
+CONFIGFILES=" \
+./amroc.ltprc \
+./amroc.bprc \
+./global.ionrc \
+./amroc.ionrc \
+./amroc.ionconfig \
+./amroc.ionsecrc \
+./amroc.ipnrc \
+./mib.amsrc
+"
+#./amsmib.xml
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify basic AMS functionality."
+echo
+echo "CONFIG: A simple AMS message space:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Searching for message reception stats in the amsbenchr output."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+# Start node 9.
+./ionstart
+
+# Start message logger.
+amsbenchr > test_output &
+
+sleep 1
+
+# Start message sender.
+amsbenchs 10 100 &
+
+sleep 2
+
+killall amsbenchs &> /dev/null
+
+# Verify message was received.
+RETVAL=0
+
+# wait for output file to settle
+sleep 5
+echo "Checking test_output for 'Received 10 messages, a total of 1000 bytes'"
+COUNT=`grep "Received 10 messages, a total of 1000 bytes" test_output | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: Messages received."
+else
+	echo "ERROR: Messages not received."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop
+echo "AMS basic functionality test completed."
+exit $RETVAL

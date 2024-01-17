@@ -1,0 +1,5 @@
+# IPN Configuration
+# Transaction Reversibility Test
+# Samuel Jero <sj323707@ohio.edu>
+# Ohio University
+a plan 1 udp/127.0.0.1:4555

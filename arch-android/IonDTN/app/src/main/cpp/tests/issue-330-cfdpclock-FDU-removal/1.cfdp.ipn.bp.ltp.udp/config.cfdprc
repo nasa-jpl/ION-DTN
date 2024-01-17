@@ -1,0 +1,20 @@
+# Config file for issue-330-cfdpclock-FDU-removal test
+# Samuel Jero
+# December 15, 2011
+# Initialize
+1
+
+#echo
+e 1
+
+#discard partially received files
+m discard 1
+
+#require CRCs on PDUs
+m requirecrc 1
+
+#Set max segment size
+m segsize 1000
+
+#Start
+s 'bputa'

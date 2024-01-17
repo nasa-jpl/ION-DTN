@@ -1,0 +1,98 @@
+=head1 NAME
+
+dccplso - DCCP-based LTP link service output task
+
+=head1 SYNOPSIS
+
+B<dccplso> {I<remote_engine_hostname> | @}[:I<remote_port_nbr>] I<remote_engine_nbr>
+
+=head1 DESCRIPTION
+
+B<dccplso> is a background "daemon" task that extracts LTP segments from the
+queue of segments bound for the indicated remote LTP engine, encapsulates
+them in DCCP datagrams, and sends those datagrams to the indicated DCCP port
+on the indicated host.  If not specified, port number defaults to 1113.
+
+Each "span" of LTP data interchange between the local LTP engine and a
+neighboring LTP engine requires its own link service output task, such
+as B<dccplso>.  All link service output tasks are spawned automatically by
+B<ltpadmin> in response to the 's' command that starts operation of the
+LTP protocol, and they are all terminated by B<ltpadmin> in response to an
+'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dccplso> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<ltpadmin> to restart B<dccplso>.
+
+=item "1"
+
+B<dccplso> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<ltpadmin> to restart B<dccplso>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dccplso can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item No such engine in database.
+
+I<remote_engine_nbr> is invalid, or the applicable span has not yet
+been added to the LTP database by B<ltpadmin>.
+
+=item LSO task is already started for this engine.
+
+Redundant initiation of B<dccplso>.
+
+=item LSO can't create idle thread.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccplso>.
+
+=item LSO can't open DCCP socket. This probably means DCCP is not supported on your system.
+
+Operating system error. This probably means that you are not using an
+operating system that supports DCCP. Make sure that you are using a current
+Linux kernel and that the DCCP modules are being compiled. Check errtext,
+correct problem, and restart B<dccplso>.
+
+=item LSO can't connect DCCP socket.
+
+Remote host's B<dccplsi> isn't listening or has terminated. Restart B<dccplsi>
+on the remote host and then restart B<dccplso>.
+
+=item Segment is too big for DCCP LSO.
+
+Configuration error: segments that are too large for DCCP transmission (i.e.,
+larger than 65535 bytes) are being enqueued for B<dccplso>.  Use B<ltpadmin>
+to change maximum segment size for this span.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltpmeter(1), dccplsi(1), owltsim(1)

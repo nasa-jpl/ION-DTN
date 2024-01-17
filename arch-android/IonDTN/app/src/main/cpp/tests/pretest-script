@@ -1,0 +1,4 @@
+export IONDIR="$PWD/.."
+export PATH=$PATH:$IONDIR
+export LD_LIBRARY_PATH=$IONDIR/.libs:$LD_LIBRARY_PATH
+export CONFIGSROOT="$IONDIR/configs"

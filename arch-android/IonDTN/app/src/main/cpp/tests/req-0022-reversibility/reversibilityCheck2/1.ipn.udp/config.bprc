@@ -1,0 +1,16 @@
+# BP Configuration
+# Transaction Reversibility Test
+# Samuel Jero <sj323707@ohio.edu>
+# Ohio University
+1
+e 1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:1.0 q
+a endpoint ipn:1.1 q
+a endpoint ipn:1.2 q
+a protocol udp 1400 100
+a induct udp 127.0.0.1:4555 udpcli
+a outduct udp 127.0.0.1:4556 udpclo
+r 'ipnadmin config.ipnrc'
+w 1
+s

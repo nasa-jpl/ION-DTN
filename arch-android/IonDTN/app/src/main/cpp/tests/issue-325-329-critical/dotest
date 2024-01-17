@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# February 24, 2012
+#
+# Tests critical bundle transmission.  Node 1 sends a file flagged as
+# "critical" to node 4, via two parallel forwarding nodes 2 and 3.
+# Because the file is "critical", copies of the bundle are sent on all
+# (in this case, both) possible paths to the destination, to maximize
+# the likelihood of arrival.  This results in two copies of the file
+# being written at node 4.
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 1.ipn.ltp
+./ionstart >& node1.stdout
+cd ../2.ipn.ltp
+./ionstart >& node2.stdout
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+cd ../4.ipn.ltp
+./ionstart >& node4.stdout
+
+sleep 10
+echo "Starting bprecvfile on node 4..."
+bprecvfile ipn:4.1 &
+
+cd ../1.ipn.ltp
+echo "Sending file from ipn:1.1 to ipn:4.1; two copies should arrive..."
+bpsendfile ipn:1.1 ipn:4.1 testfile 0.1.0.0.1
+sleep 10
+
+# Verify two copies of file were received.
+RETVAL=0
+cd ../4.ipn.ltp
+
+COUNT=`ls -l testfile1 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Okay: copy 1 arrived."
+else
+	echo "Error: copy 1 did not arrive."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile2 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "Okay: copy 2 arrived."
+else
+	echo "Error: copy 2 did not arrive."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+sleep 1
+echo "Stopping ION..."
+cd ../1.ipn.ltp
+./ionstop &
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+cd ../4.ipn.ltp
+./ionstop &
+
+# Give all nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Critical bundle test completed."
+exit $RETVAL

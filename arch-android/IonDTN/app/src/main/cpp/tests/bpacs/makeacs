@@ -1,0 +1,116 @@
+#!/usr/bin/python
+# This is a command-line interface for the bpacs class.
+#
+#	Author: Andrew Jenkins
+#				University of Colorado at Boulder
+#	Copyright (c) 2008-2011, Regents of the University of Colorado.
+#	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
+#	NNC07CB47C.
+usage = """\
+usage: %prog [options] <custody ids>
+    Generates Aggregate Custody Signal (bpacs) bundles.
+
+    [options] are normal flag options, like --output.
+    <custody ids> are Custody IDs of bundles you would like to signal
+     custody of; these can be specified as a list of ranges:
+       1,2-5,9-17
+
+    For example, the command:
+        %prog -u 4556 1-4
+    generates an aggregate custody signal covering bundles with custody
+    IDs 1, 2, 3 and 4, and sends that bundle to port 4556 on the localhost."""
+
+
+from optparse import OptionParser, OptionGroup
+from time import time
+from sys import exit, stdout
+import socket
+from bpacs import BpAcs
+from bundle import Bundle
+import bp
+
+# Our ACS
+acs = BpAcs()
+
+# Holds callbacks for parsing bundle specs.
+class BundleSpecParser:
+    id = 0
+    def setcustodyid(self, option, opt_str, value, parser):
+        self.creationSequence = value
+        self.addbundles()
+    def addbundles(self, cidserieslist):
+        # Try to parse custody ID ranges:
+        # Splits "12-23,45" into [ ["12" "23"] ["45"] ]
+        for cidseries in cidserieslist.split(","):
+            cidrange = map(int,cidseries.split("-"))
+            if len(cidrange) > 2:
+                print "Range has more than start,end: %s" % (str(cidrange))
+                exit(1)
+            elif len(cidrange) == 2:
+                for i in range(cidrange[0], cidrange[1]+1, 1):
+                    acs.add(i)
+            elif len(cidrange) == 1:
+                acs.add(cidrange[0])
+            else:
+                print "No custody id given for %s" % (str(cidseries))
+                exit(1)
+
+parser = OptionParser(usage)
+global options
+
+def sendbundle(serialized_bundle):
+    global options
+    if parser.values.udp != None:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        host="localhost"
+        port="4556"
+        try:
+            (host, port) = parser.values.udp.split(":")
+        except ValueError:
+            (port) = parser.values.udp
+        sock.sendto(serialized_bundle, (host, int(port)))
+    else:
+        stdout.write(serialized_bundle)
+            
+def main():
+    bsp = BundleSpecParser()
+    
+    # Set up the option parser.
+    global parser
+    parser.add_option("-u", "--udp", dest="udp", 
+        help="Send the ACS bundle to this UDP [host:]port.")
+
+    parser.add_option("", "--source", dest="source",
+        help="Use this as the source EID of the SACK bundle itself.",
+        default="ipn:2.0")
+    parser.add_option("", "--dest", dest="dest",
+        help="Use this as the destination EID of the SACK bundle.",
+        default="ipn:1.0")
+    parser.add_option("", "--report-to", dest="rptto",
+        help="Use this as the report-to EID of the SACK bundle.",
+        default="dtn:none")
+
+    # Parse options to set parameters of ACS bundle.
+    (options, args) = parser.parse_args()
+
+    # Append each specified custody ID to the ACS bundle.
+    for i in args:
+        bsp.addbundles(i)
+    
+    # If no bundles added, tell the user how to call us.
+    if len(acs.fills) == 0:
+        parser.print_help()
+        exit(1)
+
+    # Serialize acs bundle.
+    
+    bundle = Bundle(bp.BUNDLE_IS_ADMIN | bp.BUNDLE_SINGLETON_DESTINATION, bp.COS_BULK, 0, parser.values.source, parser.values.dest, parser.values.rptto, "dtn:none", "dtn:none", time() - bp.TIMEVAL_CONVERSION, 0, 86400*7, acs.serialize())
+    serialized_bundle = bp.encode(bundle) 
+    serialized_bundle = serialized_bundle + bp.encode_block_preamble(bp.PAYLOAD_BLOCK, bp.BLOCK_FLAG_LAST_BLOCK, [], len(acs.serialize()))
+    serialized_bundle = serialized_bundle + acs.serialize()
+    
+    # Send bundle.
+    sendbundle(serialized_bundle)
+
+if __name__ == '__main__':
+    main()

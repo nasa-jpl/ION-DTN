@@ -1,0 +1,140 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# April 21, 2010
+# documentation boilerplate
+CONFIGFILES=" \
+./amroc.ltprc \
+./amroc.bprc \
+./global.ionrc \
+./amroc.ionrc \
+./amroc.ionsecrc \
+./amroc.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Test out behavior using asymmetrically configured ranges in the
+	contact graph.  Bundle forwarding, reforwarding, and expiration are
+	expected."
+echo
+echo "CONFIG: A contact graph with asymmetric delay between nodes.
+	Only one node is actually configured and run in this network:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure 
+	that the CGR engine can make correct decisions with asymmetric ranges.
+	The terminal should also contain a variety of 'watch' characters for
+	further debugging."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start node 9, with asymmetric range to node 5.
+./ionstart
+
+echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
+# Send a bundle destined for (nonexistent) node 6 with lifetime = 10.
+echo "Should be put into limbo: no current route, but might be opportunistic."
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 10 0.1 "Hi"
+sleep 1
+echo ""
+echo "Watch characters should be 'aj'."
+
+echo "Sending bundle with 25-second lifetime from ipn:9.1 to ipn:6.1."
+# Send a bundle destined for (nonexistent) node 6 with lifetime = 25
+echo "Should be forwarded and transmitted but never acknowledged."
+echo "Should expire before reaching retransmission limit, so not reforwarded."
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 25 0.1 "Hi"
+sleep 1
+echo ""
+echo "Watch characters should be 'abcdefg'."
+
+echo "Sending bundle with 120-second lifetime from ipn:9.1 to ipn:6.1."
+# Send a bundle destined for (nonexistent) node 6 with lifetime = 120.
+echo "Should be forwarded and transmitted, but never acknowledged."
+echo "So reforwarded upon reaching retransmission limit."
+bptrace ipn:9.1 ipn:6.1 ipn:9.0 120 0.1 "Hi"
+sleep 1
+echo ""
+echo "Watch characters should be 'abcdefg'."
+
+# Wait for retransmission limits to be reached.
+echo "Waiting for 10-second and 25-second bundles to time out."
+sleep 24
+echo ""
+echo "Watch characters should be '=g=g!=g=g=g=g!'."
+
+# Wait for contact to terminate.
+echo "Note: new dynamic computation of retransmission limits affects"
+echo "session cancellation behavior."
+echo "Reforwarding the 120-second bundle; session canceled at end of contact."
+echo "Waiting for contact to terminate..."
+sleep 35
+echo ""
+echo "Contact has terminated.  Verifying results..."
+
+# Verify bundle was forwarded.
+RETVAL=0
+
+echo "Checking ion.log for 'src' message '(+) 3 9'..."
+COUNT=`grep src ion.log | grep "(+) 3 9" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: All bundles sourced."
+else
+	echo "ERROR: Bundles not sourced."
+	RETVAL=1
+fi
+
+echo "Checking ion.log for 'fwd' message '(+) 2 6'..."
+COUNT=`grep fwd ion.log | grep "(+) 2 6" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: Two bundle forwarding attempts."
+else
+	echo "ERROR: Bundles not forwarded."
+	RETVAL=1
+fi
+
+echo "Checking ion.log for 'exp' message '(+) 2 6'..."
+COUNT=`grep exp ion.log | grep "(+) 2 6" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: Two bundles expired."
+else
+	echo "ERROR: Bad bundle expiration count."
+	RETVAL=1
+fi
+
+echo "Checking ion.log for 'rfw' message '(+) 1 3'..."
+COUNT=`grep rfw ion.log | grep "(+) 1 3" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: One bundle presented for reforwarding."
+else
+	echo "ERROR: Bundle not reforwarded."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+ionstop
+killm
+echo "Asymmetric range test completed."
+exit $RETVAL

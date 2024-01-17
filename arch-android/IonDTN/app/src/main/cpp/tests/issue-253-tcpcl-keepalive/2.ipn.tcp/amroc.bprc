@@ -1,0 +1,12 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.1 x
+a endpoint ipn:2.2 x
+a protocol tcp 1400 100
+a induct tcp localhost:5001 tcpcli
+a outduct tcp localhost:5001 tcpclo
+a outduct tcp localhost:5101 tcpclo
+r 'ipnadmin amroc.ipnrc'
+w 1
+s

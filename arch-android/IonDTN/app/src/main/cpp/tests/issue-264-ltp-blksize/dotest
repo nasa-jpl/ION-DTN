@@ -1,0 +1,110 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# September 17, 2011
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ipnrc
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that LTP no longer limits block size."
+echo
+echo "CONFIG: A contact graph that enables a large block to be sent."
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Ensure that block size limit is ignored and large file arrives."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+
+cd ../2.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+echo "Starting bprecvfile on node 3..."
+bprecvfile ipn:3.1 &
+cd ../2.ipn.ltp
+echo "...and node 2..."
+bprecvfile ipn:2.1 &
+
+echo "Sending large file to ipn:3.1, should succeed despite block size limit..."
+bpsendfile ipn:2.2 ipn:3.1 testfile 0.1.0.1.0
+sleep 10
+
+# Verify file was received.
+RETVAL=0
+cd ../3.ipn.ltp
+
+COUNT=`ls -l testfile1 | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "Error: block size limit was applied, somehow."
+else
+	echo "Okay: bundle arrived."
+fi
+
+# Shut down ION processes.
+sleep 1
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "LTP block size limit test completed."
+exit $RETVAL

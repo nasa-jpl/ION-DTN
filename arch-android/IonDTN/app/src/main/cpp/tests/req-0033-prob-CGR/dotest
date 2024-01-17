@@ -1,0 +1,383 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# September 4, 2015
+#
+# A simple initial test of opportunistic forwarding.
+#
+# For this test we set up a network of 5 nodes:
+#	2 - notionally stationary source
+#	3 - notional data mule that contacts nodes 2 and 6
+#	5 - notional data mule that contacts nodes 2 and 7
+#	6 - notionally stationary destination
+#	7 - notionally stationary destination
+#
+# All traffic is by TCP convergence layer.  All contacts are
+# discovered dynamically in the course of simulated movement by nodes
+# 3 and 5.  The contact plan exposed to all nodes contains only
+# probable contacts, so all communication happens only upon contact
+# discovery.
+#
+# The contact plan says that there is a 90% chance of node 3
+# contacting node 2 in 30 seconds, a 90% chance of node 5
+# contacting node 2 in 40 seconds, a 90% chance that node 3
+# will contact node 6 in 50 seconds, and a 10% chance that node
+# 5 will contact node 7 in 60 seconds.  (In practice, all of
+# these contacts will occur.)
+#
+# Note that IPND was designed for the discovery of bundle
+# protocol agents in nodes residing on different IP hosts, not
+# nodes residing on the same IP host as in ION regression
+# testing; since the ipnd daemon that listens on a given port
+# owns that port exclusively, only one IPND listener can be
+# active in this test at any time.
+#
+# So to simulate the movement and discovery of the data mules
+# we control everything by starting and stopping the neighbor
+# discovery protocol daemons:
+#
+#	-	Start all five nodes at the same time without
+#		starting any ipnd tasks.
+#
+#	-	Node 2 issues a bundle destined for node 8, which
+#		is immediately abandoned as unforwardable.
+#
+#	-	Start an ipnd for node 3 that only sends beacons.
+#		Start an ipnd for node 2 that receives beacons.
+#		Node 2 discovers node 3 and creates an outduct
+#		for transmission to node 3.
+#
+#	-	Node 2 issues a bundle destined for node 6, which
+#		is immediately forwarded to node 3.  Because the
+#		net delivery probability of this bundle is now
+#		.9 (which exceeds the threshold), the bundle is
+#		deleted at node 2.
+#
+#	-	Kill all ipnd tasks.
+#
+#	-	Start an ipnd for node 5 that only sends beacons.
+#		Start an ipnd for node 2 that receives beacons.
+#		Node 2 discovers node 5 and creates an outduct
+#		for transmission to node 5.
+#
+#	-	Node 2 issues a bundle destined for node 7, which
+#		is immediately forwarded to node 5.  Because the
+#		net delivery probability of this bundle is only
+#		.1 at this point, a copy of the bundle remains in
+#		limbo at node 2.  
+#
+#	-	Kill all ipnd tasks.
+#
+#	-	Start an ipnd for node 6 that only sends beacons.
+#		Start an ipnd for node 3 that receives beacons.
+#		Node 3 discovers node 6 and creates an outduct
+#		for transmission to node 6.
+#
+#	-	Node 3 forwards the bundle destined for node 6,
+#		where it is delivered.
+#
+#	-	Kill all ipnd tasks.
+#
+#	-	Start an ipnd for node 7 that only sends beacons.
+#		Start an ipnd for node 5 that receives beacons.
+#		Node 5 discovers node 7 and creates an outduct
+#		for transmission to node 7.
+#
+#	-	Node 5 forwards the bundle destined for node 7,
+#		where it is delivered.
+#
+#	-	Kill all ipnd tasks.
+#
+#	-	Verify: node 2 should still have one outbound
+#		bundle (destined for node 7) in limbo, while
+#		all other nodes have no bundles buffered; nodes
+#		6 and 7 should each have received one file.
+#
+#	-	All nodes shut down.
+
+./cleanup
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start all nodes, but don't load contact plans yet.
+sleep 1
+echo "Starting all nodes..."
+
+cd 2.ipn.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../5.ipn.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 5 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../6.ipn.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 6 not started: Aborting Test"
+	exit 1
+fi
+
+bprecvfile ipn:6.1 &
+
+cd ../7.ipn.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 7 not started: Aborting Test"
+	exit 1
+fi
+
+bprecvfile ipn:7.1 &
+
+# After 5 seconds, issue file from node 2 to node 8.
+sleep 5
+cd ../2.ipn.tcp
+echo "Sending file z (885 bytes) from node 2 destined for node 8..."
+bpsendfile ipn:2.2 ipn:8.1 testfilez
+sleep 1
+echo "File should have been abandoned as unroutable."
+
+# After 5 seconds, start ipnd for nodes 2 and 3 so that the file
+# destined for node 6 will be forwarded to node 3.
+sleep 5
+echo ""
+echo "Starting ipnd for nodes 2 and 3..."
+cd ../3.ipn.tcp
+./startbeacon
+sleep 1
+cd ../2.ipn.tcp
+./startlisten
+
+sleep 2
+echo "Sending file x (915 bytes) from node 2 destined for node 6..."
+bpsendfile ipn:2.2 ipn:6.1 testfilex
+sleep 1
+echo "File should have been forwarded from 2 to 3 with copy saved in limbo."
+
+# After 5 seconds, stop all ipnd tasks.
+sleep 5
+echo ""
+echo "Killing all ipnd tasks..."
+killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
+
+# After 5 seconds, start ipnd for nodes 2 and 5 so that the file
+# destined for node 7 will be forwarded to node 5.
+sleep 5
+echo ""
+echo "Starting ipnd for nodes 2 and 5..."
+cd ../5.ipn.tcp
+./startbeacon
+sleep 1
+cd ../2.ipn.tcp
+./startlisten
+
+sleep 2
+echo "Sending file y (1070 bytes) from node 2 destined for node 7..."
+bpsendfile ipn:2.2 ipn:7.1 testfiley
+sleep 1
+echo "File should have been forwarded from 2 to 5, no copy in limbo."
+
+# After 5 seconds, stop all ipnd tasks.
+sleep 5
+echo ""
+echo "Killing all ipnd tasks..."
+killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
+
+# After 5 seconds, start ipnd for nodes 3 and 6 so that the file
+# destined for node 6 will be forwarded to node 6.
+sleep 5
+echo ""
+echo "Starting ipnd for nodes 3 and 6..."
+cd ../6.ipn.tcp
+./startbeacon
+sleep 1
+cd ../3.ipn.tcp
+./startlisten
+
+sleep 2
+echo "File x (915 bytes) in 3 destined for 6 should be forwarded to 6."
+
+# After 5 seconds, stop all ipnd tasks.
+sleep 5
+echo ""
+echo "Killing all ipnd tasks..."
+killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
+
+# After 5 seconds, start ipnd for nodes 5 and 7 so that the file
+# destined for node 7 will be forwarded to node 7.
+sleep 5
+echo ""
+echo "Starting ipnd for nodes 5 and 7..."
+cd ../7.ipn.tcp
+./startbeacon
+sleep 1
+cd ../5.ipn.tcp
+./startlisten
+
+sleep 2
+echo "File y (1070 bytes) in 5 destined for 7 should be forwarded to 7."
+
+# After 5 seconds, stop all ipnd tasks.
+sleep 5
+echo ""
+echo "Killing all ipnd tasks..."
+killall ipnd
+echo "Killing all lt-ipnd tasks..."
+killall lt-ipnd
+
+# After 5 seconds, check all results.
+sleep 5
+echo ""
+echo "Checking results..."
+cd ../2.ipn.tcp
+bplist >& node.bplist
+COUNT=`egrep Bundle node.bplist | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: one bundle left in limbo at node 2."
+else
+	echo ""
+	echo "Error: limbo bundle count incorrect at node 2."
+	RETVAL=1
+fi
+
+cd ../3.ipn.tcp
+bplist >& node.bplist
+COUNT=`egrep Bundle node.bplist | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo ""
+	echo "Okay: no bundles buffered at node 3."
+else
+	echo ""
+	echo "Error: bundles still buffered at node 3."
+	RETVAL=1
+fi
+
+cd ../5.ipn.tcp
+bplist >& node.bplist
+COUNT=`egrep Bundle node.bplist | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo ""
+	echo "Okay: no bundles buffered at node 5."
+else
+	echo ""
+	echo "Error: bundles still buffered at node 5."
+	RETVAL=1
+fi
+
+cd ../6.ipn.tcp
+bplist >& node.bplist
+COUNT=`egrep Bundle node.bplist | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo ""
+	echo "Okay: no bundles buffered at node 6."
+else
+	echo ""
+	echo "Error: bundles still buffered at node 6."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 6 got file x."
+else
+	echo ""
+	echo "Error: node 6 didn't get file x."
+	RETVAL=1
+fi
+
+cd ../7.ipn.tcp
+bplist >& node.bplist
+COUNT=`egrep Bundle node.bplist | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo ""
+	echo "Okay: no bundles buffered at node 7."
+else
+	echo ""
+	echo "Error: bundles still buffered at node 7."
+	RETVAL=1
+fi
+
+COUNT=`ls -l testfile1 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: node 7 got file y."
+else
+	echo ""
+	echo "Error: node 7 didn't get file y."
+	RETVAL=1
+fi
+
+# After 2 seconds, shut down all nodes.
+sleep 2
+echo ""
+echo "Stopping ION..."
+cd ../2.ipn.tcp
+./ionstop &
+cd ../3.ipn.tcp
+./ionstop &
+cd ../5.ipn.tcp
+./ionstop &
+cd ../6.ipn.tcp
+./ionstop &
+cd ../7.ipn.tcp
+./ionstop &
+
+# Give the nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "IPND test completed."
+exit $RETVAL

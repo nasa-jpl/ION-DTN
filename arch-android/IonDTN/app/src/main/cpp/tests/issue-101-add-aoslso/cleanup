@@ -1,0 +1,4 @@
+#!/bin/bash
+rm -f ion.log ionsendfile.dat testfile1 ion.sdr ion.sdrlog
+
+killm

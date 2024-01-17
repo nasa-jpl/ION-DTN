@@ -1,0 +1,5 @@
+#!/bin/bash
+# Samuel Jero <sj323707@ohio.edu>
+# bug-0009-tcpclo-fixes cleanup script
+killm
+rm -f ./ion_nodes ./1.ipn.tcp/ion.log ./2.ipn.tcp/ion.log ./1.ipn.tcp/bpdriverAduFile ./2.ipn.tcp/output

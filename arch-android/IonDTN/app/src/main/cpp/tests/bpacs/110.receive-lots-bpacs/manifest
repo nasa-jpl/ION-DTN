@@ -1,0 +1,25 @@
+#This test may fail because the date coded into the signals gets too old.
+#Using the date 2/11/2016 this test will begin to fail around february 2021 for date related reasons.
+
+# Send bundles with ID 1-4,6-9 that ION should accept custody of.
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 1, 1)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 2, 2)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 3, 3)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 4, 4)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 6, 6)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 7, 7)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 8, 8)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 9, 9)
+
+# Get the CTEBs that ION assigned to these bundles when it forwarded them.
+receiveuntil(2.0)
+
+# Verify that ION accepted custody of these bundles
+checkcustody()
+
+# Send ION an ACS that covers those bundles.
+clearcustody("ipn:1.0")
+sleep(0.25)
+
+# Verify that ION released custody of those bundles.
+checkcustody()

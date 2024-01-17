@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# October 2, 2012
+#
+# This test verifies that transaction reversibility is functional by triggering
+# a condition where transaction reversibility is needed to correctly recover.
+# Specifically, we tell ION that we're going to send bundles to a second node and
+# define a tcpclo, but don't actually have a second node. This causes ION to fill
+# up all available SDR space with bundles queued to this second node. Eventually,
+# ION will attempt to queue a bundle for which it doesn't have enough space.
+# Transaction reversibility is required to handle this situation. Without it, ION
+# will crash because it can't undo the current transaction.
+# This test is extremely sensitive to changes in congestion forecasting. Ideally,
+# we'd like to turn off congestion forecasting completely in order to prevent it
+# from interfering.
+
+
+function end(){
+# Shut down ION.
+echo "Stopping ION..."
+bpadmin .
+sleep 1
+ionadmin .
+sleep 1
+killm
+rm -f /tmp/ion.sdrlog
+exit $RETVAL
+}
+
+
+CONFIGFILES=" \
+./config.ionrc \
+./config.ionconfig \
+./config.bprc \
+./config.ipnrc"
+
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Test transaction reversibility by causing a situation where ION"
+echo "            has to use transaction reversibility to recover and ensuring"
+echo "            that ION is able to do that and continue."
+echo
+echo "CONFIG: 1 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+./cleanup
+RETVAL=0
+
+
+#Start ION
+echo ""
+echo "Starting ION..."
+ionadmin config.ionrc
+sleep 1
+ionsecadmin config.ionsecrc
+sleep 1
+bpadmin config.bprc
+sleep 1
+ipnadmin config.ipnrc
+sleep 1
+
+#Send Bundles
+echo ""
+echo "Start sending bundles..."
+bpdriver 100000 ipn:1.1 ipn:2.1 -1000 t30
+sleep 10
+
+#Check that bpdriver terminated after aborting an SDR transaction
+text=`grep "Transaction aborted" ion.log | wc -l`
+echo $text
+if [ $text -lt 1 ];then
+	echo "Didn't cause SDR exhaustion... Please update test to send more bundles and try again"
+	echo ""
+	RETVAL=2
+	end
+else
+	echo "SDR exhaustion caused a transaction to abort"
+fi
+
+#Transaction reversibility should recover without an unrecoverable SDR error
+text=`grep "Unrecoverable SDR error" ion.log`
+echo $text
+if ! [ -z "$text" ];then
+	echo "ERROR: Unrecoverable SDR Error! Transaction reversibility Failed!"
+	echo ""
+	RETVAL=1
+	killm
+	end
+fi
+
+echo ""
+echo "Wait for currently queued bundles to expire..."
+sleep 40
+
+#Try to send more bundles to ensure that transaction reversibility healed the system properly
+echo ""
+echo "Now try sending some more bundles..."
+bpdriver 10 ipn:1.1 ipn:2.1 -100 t30
+
+#Check if we caused a transaction to abort or an unrecoverable SDR error
+text=`grep "Transaction aborted" ion.log | wc -l`
+echo $text
+if [ $text -gt 1 ];then
+	echo "Error: Transaction aborted! Transaction reversibility didn't reset something correctly!"
+	echo ""
+	RETVAL=1
+	end
+fi
+text=`grep "Unrecoverable SDR error" ion.log`
+echo $text
+if ! [ -z "$text" ];then
+	echo "ERROR: unrecoverable SDR error! Transaction reversibility Failed!"
+	echo ""
+	RETVAL=1
+	killm
+	end
+fi
+
+
+#if We Get here, the test succeeded
+echo ""
+echo "Test passed!"
+echo ""
+
+end

@@ -1,0 +1,189 @@
+=head1 NAME
+
+bssprc - Bundle Streaming Service Protocol management commands file
+
+=head1 DESCRIPTION
+
+BSSP management commands are passed to B<bsspadmin> either in a file of
+text lines or interactively at B<bsspadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.  The formats
+and effects of the BSSP management commands are described below.
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by bsspadmin to be
+logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<1> I<est_max_nbr_of_sessions>
+
+The B<initialize> command.  Until this command is executed, BSSP is not
+in operation on the local ION node and most I<bsspadmin> commands will fail.
+
+The command uses I<est_max_nbr_of_sessions> to configure the hashtable it
+will use to manage access to transmission sessions that are currently
+in progress.  For optimum performance, I<est_max_nbr_of_sessions> should
+normally equal or exceed the summation of I<max_nbr_of_sessions> over all
+spans as discussed below.
+
+=item B<a span> I<peer_engine_nbr> I<max_nbr_of_sessions> I<max_block_size> 'I<BE-BSO_command>' 'I<RL-BSO_command> [I<queuing_latency>]
+
+The B<add span> command.  This command declares that a I<span> of potential
+BSSP data interchange exists between the local BSSP engine and the indicated
+(neighboring) BSSP engine.
+
+The I<max_block_size> is expressed as a number of bytes of data.
+I<max_block_size> is used to configure transmission buffer sizes; as such, it
+limits client data item size.
+
+I<max_nbr_of__sessions> constitutes, in effect, the local BSSP engine's
+retransmission "window" for this span.  The retransmission windows of the
+spans impose flow control on BSSP transmission, reducing the chance ofx
+allocation of all available space in the ION node's data store to BSSP
+transmission sessions.
+
+I<BE-BSO_command> is script text that will be executed when BSSP is started on
+this node, to initiate operation of the best-efforts transmission channel task
+for this span.  Note that " I<peer_engine_nbr>" will automatically be
+appended to I<BE-BSO_command> by B<bsspadmin> before the command is executed,
+so only the link-service-specific portion of the command should be provided
+in the I<LSO_command> string itself.
+
+I<RL-BSO_command> is script text that will be executed when BSSP is started on
+this node, to initiate operation of the reliable transmission channel task
+for this span.  Note that " I<peer_engine_nbr>" will automatically be
+appended to I<RL-BSO_command> by B<bsspadmin> before the command is executed,
+so only the link-service-specific portion of the command should be provided
+in the I<LSO_command> string itself.
+
+I<queuing_latency> is the estimated number of seconds that we expect to lapse
+between reception of a segment at this node and transmission of an
+acknowledging segment, due to processing delay in the node.  (See the
+'m ownqtime' command below.)  The default value is 1.
+
+If I<queuing latency> a negative number, the absolute value of this number
+is used as the actual queuing latency and session purging is enabled;
+otherwise session purging is disabled.  If session purging is enabled
+for a span then at the end of any period of transmission over this span
+all of the span's export sessions that are currently in progress are
+automatically canceled.  Notionally this forces re-forwarding of the DTN
+bundles in each session's block, to avoid having to wait for the restart
+of transmission on this span before those bundles can be successfully
+transmitted.
+
+=item B<c span> I<peer_engine_nbr> I<max_nbr_of_sessions> I<max_block_size> 'I<BE-BSO_command>' 'I<RL-BSO_command> [I<queuing_latency>]
+
+The B<change span> command.  This command sets the indicated span's 
+configuration parameters to the values provided as arguments.
+
+=item B<d span> I<peer_engine_nbr>
+
+The B<delete span> command.  This command deletes the span identified
+by I<peer_engine_nbr>.  The command will fail if any outbound segments
+for this span are pending transmission or any inbound blocks from the
+peer engine are incomplete.
+
+=item B<i span> I<peer_engine_nbr>
+
+This command will print information (all configuration parameters)
+about the span identified by I<peer_engine_nbr>.
+
+=item B<l span>
+
+This command lists all declared BSSP data interchange spans.
+
+=item B<s> 'I<BE-BSI_command>' 'I<RL-BSI_command>'
+
+The B<start> command.  This command starts reliable and best-efforts link
+service output tasks for all BSSP spans (to remote engines) from the local
+BSSP engine, and it starts the reliable and best-efforts link service input
+tasks for the local engine.
+
+=item B<m ownqtime> I<own_queuing_latency>
+
+The B<manage own queuing time> command.  This command sets the number of
+seconds of predicted additional latency attributable to processing delay
+within the local engine itself that should be included whenever BSSP computes
+the nominal round-trip time for an exchange of data with any remote engine.
+The default value is 1.
+
+=item B<x>
+
+The B<stop> command.  This command stops all link service input and output
+tasks for the local BSSP engine.
+
+=item B<w> { 0 | 1 | <activity_spec> }
+
+The B<BSSP watch> command.  This command enables and disables production of
+a continuous stream of user-selected BSSP activity indication characters.  A
+watch parameter of "1" selects all BSSP activity indication characters; "0"
+de-selects all BSSP activity indication characters; any other I<activity_spec>
+such as "df=" selects all activity indication characters in the string,
+de-selecting all others.  BSSP will print each selected activity indication
+character to B<stdout> every time a processing event of the associated type
+occurs:
+
+B<d>	bssp send completed
+
+B<e>	bssp block constructed for issuance
+
+B<f>	bssp block issued
+
+B<g>	bssp block popped from best-efforts transmission queue
+
+B<h>	positive ACK received for bssp block, session ended
+
+B<s>	bssp block received
+
+B<t>	bssp block popped from reliable transmission queue
+
+B<=>	unacknowledged best-efforts block requeued for reliable transmission
+
+B<{>	session canceled locally by sender
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item a span 19 20 4096 'udpbso node19.ohio.edu:5001' 'tcpbso node19.ohio.edu:5001'
+
+Declares a data interchange span between the local BSSP engine and the remote
+engine (ION node) numbered 19.  There can be at most 20 concurrent sessions
+of BSSP transmission activity to this node.  Maximum block size for this span
+is set to 4096 bytes, and the best-efforts and reliable link service
+output tasks that are initiated when BSSP is started on the local ION node
+will execute the I<udpbso> and I<tcpbso> programs as indicated.
+
+=item m ownqtime 2
+
+Sets local queuing delay allowance to 2 seconds.
+
+=back
+
+=head1 SEE ALSO
+
+bsspadmin(1), udpbsi(1), udpbso(1), tcpbsi(1), tcpbso(1)

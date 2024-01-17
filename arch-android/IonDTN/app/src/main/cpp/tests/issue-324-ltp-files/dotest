@@ -1,0 +1,197 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 11, 2010
+#
+# documentation boilerplate
+CONFIGFILES=" \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc 
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the issue 324 bug fix: leftover LTP acquisition files.
+
+This test sends four large files via LTP and a one-way light time
+simulator configured to drop a high percentage (5%) of LTP segments,
+resulting in heavy retransmission.  All files should be received at
+node 3, and no residual partial LTP acquisition files should remain
+in the working directory of node 3 at the conclusion of the test."
+
+echo
+echo "CONFIG: 2 node custom LTP:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: counts of delivered files and residual acquisition files."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+ITERCOUNT=1
+GAVEUP=1
+while [ $ITERCOUNT -le 4 ] && [ $GAVEUP -eq 1 ]
+do
+	echo "Starting channel simulator (owltsim)..."
+	owltsim owlt.rc &
+
+	# Start nodes.
+	cd 3.ipn.ltp
+	./ionstart
+	../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+	if [ $? -eq 3 ]
+	then
+		echo ""
+	else
+		echo "Node 3 not started: Aborting Test"
+		exit 1
+	fi
+
+	cd ../2.ipn.ltp
+	./ionstart > output
+	../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+	if [ $? -eq 3 ]
+	then
+		echo ""
+	else
+		echo "Node 2 not started: Aborting Test"
+		exit 1
+	fi
+
+	#Load contacts
+	cd ../2.ipn.ltp
+	ionadmin global.ionrc
+	cd ../3.ipn.ltp
+	ionadmin global.ionrc
+	sleep 1
+
+	# Start file receiver on node 3.
+	echo "Starting bprecvfile..."
+	bprecvfile ipn:3.1 &
+	RCVPID=$!
+	sleep 1
+
+	# Send files from node 2.
+	cd ../2.ipn.ltp
+	echo "Sending four files from node 2 to node 3:"
+	echo "  shakespeare1"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare1
+	echo "  shakespeare2"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare2
+	echo "  shakespeare3"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare3
+	echo "  shakespeare4"
+	bpsendfile ipn:2.1 ipn:3.1 shakespeare4
+
+#	sleep 420
+	sleep 60
+	cd ../3.ipn.ltp
+
+	# Verify that all four files arrived.
+	COUNT=`ls -l testfile4 | wc -l`
+	if [ $COUNT -eq 1 ]
+	then
+		echo ""
+		echo "Okay: 4 files received."
+		RETVAL=0
+	else
+		echo ""
+		echo "Error: files not received."
+		RETVAL=1
+	fi
+
+	echo ""
+
+	# Verify that no leftover files remain.
+	COUNT=`ls -l *ltpblock* | wc -l`
+	if [ $COUNT -eq 0 ]
+	then
+		echo ""
+		echo "Okay: no leftover acquisition files."
+	else
+		echo ""
+		echo "Error: acquisition files left over."
+		RETVAL=1
+	fi
+
+	#Kill file receiver
+	kill -2 $RCVPID
+	sleep 2
+	kill -9 $RCVPID
+	sleep 2
+	rm testfile*
+
+	#adjust loop condition
+	cd ../2.ipn.ltp
+	let  ITERCOUNT++
+	COUNT=`grep "!" output | wc -l`
+	if [ $RETVAL -eq 1 ]; then
+		if [ $COUNT -eq 0 ]
+		then
+			echo ""
+			echo "No Bundles Expired"
+			GAVEUP=0
+		else
+			echo ""
+			echo "Bundles Expired. Retry"
+			GAVEUP=1
+		fi
+	else
+		GAVEUP=0		
+	fi
+
+	echo ""
+
+	# Shut down channel simulator.
+	OSNAME=`uname`
+	if [ "$OSNAME" == "SunOS" ]; then
+	    killcmd="pkill"
+	else
+	    killcmd="killall"
+	fi
+
+	$killcmd -KILL "owltsim" &> /dev/null
+
+	# Shut down ION processes.
+	echo "Stopping ION..."
+	cd ../2.ipn.ltp
+	./ionstop &
+	cd ../3.ipn.ltp
+	./ionstop &
+	cd ..
+
+	# Give both nodes time to shut down, then clean up.
+	sleep 5
+	killm
+done
+
+echo "issue-324-ltp-files test completed."
+exit $RETVAL

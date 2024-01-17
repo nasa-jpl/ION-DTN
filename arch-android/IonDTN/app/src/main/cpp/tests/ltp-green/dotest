@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# December 8, 2010
+#
+# Tests LTP unacknowledged (green) transmission.  This test is the
+# counterpart to ltp-retransmission: there is no retransmission of
+# data in "green" blocks, so data loss due to UDP congestion will be
+# reflected in incomplete delivery.  However, in the absence of data
+# loss even large bundles may be sent in "green" blocks.  We force
+# data lost on the path from node 2 to node 3 by interposing a owltsim
+# task that discards 1/4 of the UDP datagrams it receives; on the
+# path from node 3 to node 2 there is no such artificial data loss
+# and therefore the bundle we send on this path should arrive.
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+echo "Starting bprecvfile on node 3..."
+bprecvfile ipn:3.1 &
+cd ../2.ipn.ltp
+echo "...and node 2..."
+bprecvfile ipn:2.1 &
+
+echo "Sending multi-segment file to ipn:3.1, should fail due to data loss..."
+bpsendfile ipn:2.2 ipn:3.1 testfile 0.1.0.1.0
+sleep 10
+
+# Verify file was not received.
+RETVAL=0
+cd ../3.ipn.ltp
+
+COUNT=`ls -l testfile1 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	if diff testfile testfile1 > /dev/null;
+	then
+		echo "Error: Weird, all data arrived."
+		RETVAL=1
+	else
+		echo "Okay: bundle arrived but is corrupt."
+	fi
+else
+	echo "Okay: bundle didn't arrive."
+fi
+
+echo "Now sending multi-segment file to ipn:2.1, should succeed..."
+bpsendfile ipn:3.2 ipn:2.1 testfile 0.1.0.1.0
+sleep 10
+
+# Verify file was received.
+RETVAL=0
+cd ../2.ipn.ltp
+
+COUNT=`ls -l testfile1 | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "Error: bundle didn't arrive."
+	RETVAL=1
+else
+	if  ! diff testfile testfile1 > /dev/null;
+	then
+		echo "Error: file not completely received."
+	else
+		echo "Okay: bundle arrived."
+	fi
+fi
+
+# Shut down ION processes.
+sleep 1
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "LTP retransmission test completed."
+exit $RETVAL

@@ -1,0 +1,14 @@
+# ipnrc configuration file for the tcpcl dos loopback test.
+#	Essentially, this is the IPN scheme's routing table.
+#	Command: % ipnadmin loopback.ipnrc
+#	This command should be run AFTER bpadmin (likely to be run last).
+#
+#	Ohio University, Oct 2008
+
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1 (that is, yourself).
+#	This element is named 'node1.'
+#	The plan is to queue for transmission (x) on protocol 'tcp' using
+#	the outduct identified by IP address 127.0.0.1
+#	See your bprc file or bpadmin for outducts/protocols you can use.
+a plan 1 tcp/127.0.0.1:4556

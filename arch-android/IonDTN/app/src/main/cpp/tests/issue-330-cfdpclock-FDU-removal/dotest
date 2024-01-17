@@ -1,0 +1,140 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# December 30, 2011
+#
+# This test pertains to issue #330 "cfdpclock will remove unsent FDUs without 
+# file data". This test confirms that cfdpclock will no longer remove these FDUs
+# without file data.
+
+
+function end(){
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop &
+cd ../
+sleep 5
+killm
+
+echo "cfdpclock unsent FDU removal test done."
+exit $RETVAL
+}
+
+CONFIGFILES=" \
+./1.cfdp.ipn.bp.ltp.udp/mem.conf \
+./1.cfdp.ipn.bp.ltp.udp/config.ionrc \
+./1.cfdp.ipn.bp.ltp.udp/config.ltprc \
+./1.cfdp.ipn.bp.ltp.udp/config.bprc \
+./1.cfdp.ipn.bp.ltp.udp/config.ipnrc \
+./1.cfdp.ipn.bp.ltp.udp/config.cfdprc"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 330.
+        Confirms that that cfdpclock will no longer remove these FDUs without file data."
+echo
+echo "CONFIG: 1 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+#Start ION
+echo "Starting ion node..."
+export ION_NODE_LIST_DIR=$PWD
+cd 1.cfdp.ipn.bp.ltp.udp
+./ionstart
+../../../system_up -i "p 30" -l "p 30" -b "p 30" -c "p 30"
+
+if [ $? -eq 4 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+
+#Create large file to send
+echo "Creating test file..."
+dd if=/dev/zero of=./testfile bs=1024 count=512
+
+#Starting Listener
+echo "Starting CFDP message listener..."
+../cfdplisten > output &
+CFDPLISTEN_PID=$!
+
+#End bputa to hold transfers in queue
+echo "Stopping bputa..."
+ps -e | grep "bputa" | grep -v "grep" | awk '{print $1}' | xargs kill
+
+#Start transfer 1
+echo "Starting transfer of large file..."
+cfdptest ../cfdp_cmds1
+
+#Start transfer 2
+echo "Starting transfer of User Message FDU..."
+cfdptest ../cfdp_cmds2
+
+#Give cfdpclock time to process the queue
+echo "Waiting for cfdpclock to run..."
+sleep 3
+
+#Now restart bputa and allow transfers to be sent
+echo "Starting bputa again..."
+bputa &
+
+#Wait for transfer to complete
+echo "Waiting 60 seconds for transfers to complete..."
+sleep 60
+
+#Kill cfdptest
+kill -2 $CFDPLISTEN_PID >/dev/null 2>&1
+sleep 1 
+kill -9 $CFDPLISTEN_PID >/dev/null 2>&1
+
+#Test for User Message
+RESULTS=`grep "samueljero" output`
+if [ -n "$RESULTS" ]; then
+	echo "The FDU was sent. Yay!"
+	echo ""
+	RETVAL=0
+else
+	echo "The FDU was not sent.  FAILURE!"
+	echo ""
+	echo `ls -al`
+	cat ion.log
+	cat output
+	RETVAL=1
+	end
+fi
+
+#Test for EOF sent messages
+RESULTS=`grep "type 2" output | wc -l`
+if [ $RESULTS -eq 2 ]; then
+	echo "EOF Sent Message was logged. SUCCESS!"
+	echo ""
+	RETVAL=0
+else
+	echo "EOF Sent Message was not logged.  FAILURE!"
+	echo ""
+	echo `ls -al`
+	cat ion.log
+	cat output
+	RETVAL=1
+	end
+fi
+
+end

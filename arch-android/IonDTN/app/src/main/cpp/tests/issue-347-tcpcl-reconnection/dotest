@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+# James Swaro
+# April 25, 2012
+#
+# Read the README
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+
+env >> ~/postscript
+# Start nodes.
+# Setup node 1
+cd 1.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 1
+fi
+
+#Set up node 2
+cd ../2.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+# Start file receiver on node 2.
+cd ../2.ipn.tcp/
+echo "Starting bprecvfile..."
+bprecvfile ipn:2.1 &
+sleep 10
+
+# Send one file from node 1 to node 2.
+cd ../1.ipn.tcp/
+echo "Sending first file from node 1 to node 2..."
+bpsendfile ipn:1.1 ipn:2.1 testfilex
+sleep 10
+
+# Verify that this file arrived.
+cd ../2.ipn.tcp
+COUNT=`ls -l testfile1 | egrep 915 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: got a copy of file x. SUCCESS"
+else
+	echo ""
+	echo "Error: didn't get a copy of file x. FAIL"
+	RETVAL=1
+fi
+
+echo ""
+# Now to send shutdown from node 1 to node 2.
+echo "Breaking TCP connection to node 2..."
+cd ../1.ipn.tcp/
+./ionstop
+echo "Node 1 is stopped."
+sleep 30
+
+echo ""
+# Now to restart node 1
+echo "Restarting node 1"
+cd ../1.ipn.tcp/
+./ionrestart
+sleep 30
+
+# Send second file from node 1 to node 2.
+cd ../1.ipn.tcp/
+echo "Attempting to send a second file from node 1 to node 2..."
+bpsendfile ipn:1.1 ipn:2.1 testfiley
+sleep 5
+
+# Verify that this file has also arrived.
+cd ../2.ipn.tcp
+COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo ""
+	echo "Okay: got a copy of file y. SUCCESS" 
+else
+	echo ""
+	echo "Error: did not get a copy of file y. FAIL"
+	RETVAL=1
+fi
+
+echo ""
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../1.ipn.tcp
+./ionstop &
+cd ../2.ipn.tcp
+./ionstop &
+
+# Give nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "TCPCL restart test complete."
+exit $RETVAL
+

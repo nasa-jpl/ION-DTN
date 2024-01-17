@@ -1,0 +1,111 @@
+=head1 NAME
+
+psmshell - PSM memory management test shell
+
+=head1 SYNOPSIS
+
+B<psmshell> I<partition_size>
+
+=head1 DESCRIPTION
+
+B<psmshell> allocates a region of I<partition_size> bytes of system memory,
+places it under PSM management, and offers the user an interactive "shell"
+for testing various PSM management functions.
+
+B<psmshell> prints a prompt string (": ") to stdout, accepts a command from 
+stdin, executes the command (possibly printing a diagnostic message), 
+then prints another prompt string and so on.
+
+The locations of objects allocated from the PSM-managed region of memory
+are referred to as "cells" in psmshell operations.  That is, when an object
+is to be allocated, a cell number in the range 0-99 must be specified as
+the notional "handle" for that object, for use in future commands.
+	
+The following commands are supported:
+
+=over 4
+
+=item B<h>
+
+The B<help> command.  Causes B<psmshell> to print a summary of available
+commands.  Same effect as the B<?> command.
+
+=item B<?>
+
+Another B<help> command.  Causes B<psmshell> to print a summary of available
+commands.  Same effect as the B<h> command.
+
+=item B<m> I<cell_nbr> I<size>
+
+The B<malloc> command.  Allocates a large-pool object of the indicated size and
+associates that object with I<cell_nbr>.
+
+=item B<z> I<cell_nbr> I<size>
+
+The B<zalloc> command.  Allocates a small-pool object of the indicated size and
+associates that object with I<cell_nbr>.
+
+=item B<p> I<cell_nbr>
+
+The B<print> command.  Prints the address (i.e., the offset within the
+managed block of memory) of the object associated with I<cell_nbr>.
+
+=item B<f> I<cell_nbr>
+
+The B<free> command.  Frees the object associated with I<cell_nbr>, returning
+the space formerly occupied by that object to the appropriate free block list.
+
+=item B<u>
+
+The B<usage> command.  Prints a partition usage report, as per psm_report(3).
+
+=item B<q>
+
+The B<quit> command.  Frees the allocated system memory in the managed
+block and terminates B<psmshell>.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<psmshell> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+=over 4
+
+=item IPC initialization failed.
+
+ION system error.  Investigate, correct problem, and try again.
+
+=item psmshell: can't allocate space; quitting.
+
+Insufficient available system memory for selected partition size.
+
+=item psmshell: can't allocate test variables; quitting.
+
+Insufficient available system memory for selected partition size.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+psm(3)

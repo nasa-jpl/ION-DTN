@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 28, 2011
+# documentation boilerplate
+CONFIGFILES=" \
+./amroc.ltprc \
+./global.ionrc \
+./amroc.ionrc
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that LTP 'green' data can continue to flow even when the 'red' session limit has been reached."
+echo
+echo "CONFIG: A single LTP engine transmitting to a nonexistent peer engine:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Searching for ltpdriver output indicating that transmission of all-green service data units was unimpeded by session limit."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+./cleanup
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+# Start LTP engine 9.
+./ionstart
+../../system_up -i "p 30" -l "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+# Start ltpdriver sending 10 red blocks to nonexistent engine 5.
+# OWLT to 5 is 10 seconds, so session limit (8) should immediately be
+# reached and further red transmission blocked for several minutes.
+echo "Sending 10 red blocks of 10000 bytes each to nonexistent engine 5."
+ltpdriver 5 7 10 0 10000 > red_driver.output &
+
+sleep 1
+
+# Start 2nd ltpdriver sending 10 green blocks to nonexistent engine 5.
+# Should finish immediately despite red transmission being blocked.
+echo "Sending 10 green blocks of 10000 bytes each to nonexistent engine 5."
+ltpdriver 5 7 10 10000 10000 > green_driver.output
+
+sleep 1
+
+# Verify green data were transmitted.
+RETVAL=0
+
+echo "Checking red_driver.output for completion message..."
+COUNT=`grep "Bytes: 100000" red_driver.output | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "ERROR: Red transmission not blocked."
+	RETVAL=1
+else
+	echo "OK: Red transmission blocked."
+fi
+
+echo "Checking green_driver.output for completion message..."
+COUNT=`grep "Bytes: 100000" green_driver.output | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: Green data sent."
+else
+	echo "ERROR: Green data not sent."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop
+echo "Unlimited green LTP sessions test completed."
+exit $RETVAL

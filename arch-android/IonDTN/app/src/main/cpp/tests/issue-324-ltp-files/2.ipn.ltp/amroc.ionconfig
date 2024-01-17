@@ -1,0 +1,5 @@
+wmKey 1
+sdrName ion2
+wmSize 10000000
+configFlags 1
+heapWords 1000000

@@ -1,0 +1,122 @@
+=head1 NAME
+
+bssrecv - Bundle Streaming Service reception test program
+
+=head1 SYNOPSIS
+
+B<bssrecv>
+
+=head1 DESCRIPTION
+
+B<bssrecv> uses BSS to acquire streaming data from B<bssStreamingApp>.
+
+B<bssrecv> is a menu-driven interactive test program, run from the operating
+system shell prompt.  The program enables the user to begin and end a session
+of BSS data acquisition from B<bssStreamingApp>, displaying the data as it
+arrives in real time; to replay data acquired during the current session;
+and to replay data acquired during a prior session.
+
+The user must provide values for three parameters in order to initiate the
+acquisition or replay of data from B<bssStreamingApp>:
+
+=over 4
+
+=item BSS database name
+
+All data acquired by the BSS session thread will be written to a BSS "database"
+comprising three files: table, list, and data.  The name of the database
+is the root name that is common to the three files, e.g., I<db3>.tbl,
+I<db3>.lst, I<db3>.dat would be the three files making up the I<db3> BSS
+database.
+
+=item path name
+
+All three files of the selected BSS database must reside in the same
+directory of the file system; the path name of that directory is required.
+
+=item endpoint ID
+
+In order to acquire streaming data issued by B<bssStreamingApp>, the B<bssrecv>
+session thread must open the BP endpoint to which that data is directed.  For
+this purpose, the ID of that endpoint is needed.
+
+=back
+
+B<bssrecv> offers the following menu options:
+
+=over 4
+
+=item 1. Open BSS Receiver in playback mode
+
+B<bssrecv> prompts the user for the three parameter values noted above, then
+opens the indicated BSS database for replay of the data in that database.
+
+=item 2. Start BSS receiving thread
+
+B<bssrecv> prompts the user for the three parameter values noted above, then
+starts a background session thread to acquire data into the indicated database.
+Each bundle that is acquired is passed to a display function that prints a
+single line consisting of N consecutive '*' characters, where N is computed
+as the data number at the start of the bundle's payload data, modulo 150.
+Note that the database is B<not> open for replay at this time.
+
+=item 3. Run BSS receiver thread
+
+B<bssrecv> prompts the user for the three parameter values noted above, then
+starts a background session thread to acquire data into the indicated database
+(displaying the data as described for option 2 above) and also opens the
+database for replay.
+
+=item 4. Close current playback session
+
+B<bssrecv> closes the indicated BSS database, terminating replay access.
+
+=item 5. Stop BSS receiving thread
+
+B<bssrecv> terminates the current background session thread.  Replay access
+to the BSS database, if currently open, is B<not> terminated.
+
+=item 6. Stop BSS Receiver
+
+B<bssrecv> terminates the current background session thread.  Replay access
+to the BSS database, if currently open, is also terminated.
+
+=item 7. Replay session
+
+B<bssrecv> prompts the user for the start and end times bounding the
+reception interval that is to be replayed, then displays all data within that
+interval in both forward and reverse time order.  The display function
+performed for this purpose is the same one that is exercised during
+real-time acquisition of streaming data.
+
+=item 8. Exit
+
+B<bssrecv> terminates.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bssrecv> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bssStreamingApp(1), bss(3)

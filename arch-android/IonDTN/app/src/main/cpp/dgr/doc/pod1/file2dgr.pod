@@ -1,0 +1,85 @@
+=head1 NAME
+
+file2dgr - DGR transmission test program
+
+=head1 SYNOPSIS
+
+B<file2dgr> I<remoteHostName> I<fileName> [I<nbrOfCycles>]
+
+=head1 DESCRIPTION
+
+B<file2dgr> uses DGR to send I<nbrOfCycles> copies of the text of the file
+named I<fileName> to the B<dgr2file> process running on the computer identified
+by I<remoteHostName>.  If not specified (or if less than 1), I<nbrOfCycles>
+defaults to 1.  After sending all lines of the file, B<file2dgr> sends a
+datagram containing an EOF string (the ASCII text "*** End of the file ***")
+before reopening the file and starting transmission of the next copy.
+
+When all copies of the file have been sent, B<file2dgr> prints a performance
+report:
+
+	Bytes sent = I<byteCount>, usec elapsed = I<elapsedTime>.
+
+	Sending I<dataRate> bits per second.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<file2dgr> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<file2dgr> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item Can't open dgr service.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't open input file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item Can't acquire DGR working memory.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item Can't reopen input file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item Can't read from input file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item dgr_send failed.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+file2dgr(1), dgr(3)

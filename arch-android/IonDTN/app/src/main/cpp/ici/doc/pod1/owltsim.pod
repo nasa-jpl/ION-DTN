@@ -1,0 +1,188 @@
+=head1 NAME
+
+owltsim - one-way light time transmission delay simulator
+
+=head1 SYNOPSIS
+
+B<owltsim> I<config_filename> [-v]
+
+=head1 DESCRIPTION
+
+B<owltsim> delays delivery of data between pairs of ION nodes by specified
+lengths of time, simulating the signal propagation delay imposed by distance
+between the nodes.
+
+Its operation is configured by delay simulation configuration lines in the
+file identified by I<config_filename>.  A pair of threads is created for
+each line in the file: one that receives UDP datagrams on a specified port
+and queues them in a linked list, and a second that later removes queued
+datagrams from the linked list and sends them on to a specified UDP port
+on a specified network host.
+
+Each configuration line must be of the following form:
+
+=over 4
+
+I<to> I<from> I<my_port#> I<dest_host> I<dest_port#> I<owlt> I<modulus>
+
+=back
+
+=over 4
+
+=item I<to> identifies the receiving node.
+
+This parameter is purely informational, intended to make B<owltsim>'s
+printed messages more helpful to the user.
+
+=item I<from> identifies the sending node.
+
+A value of '*' may be used to indicate "all nodes".  Again, this parameter
+is purely informational, intended to make B<owltsim>'s printed messages
+more helpful to the user.
+
+=item I<my_port#> identifies B<owltsim>'s receiving port for this traffic.
+
+=item I<dest_host> is a hostname identifying the computer to which B<owltsim>
+will transmit this traffic.
+
+=item I<dest_port#> identifies the port to which B<owltsim> will transmit
+this traffic.
+
+=item I<owlt> specifies the number of seconds to wait before forwarding each
+received datagram.
+
+=item I<modulus> controls the artificial random data loss imposed on this traffic by B<owltsim>.
+
+A value of '0' specifies "no random data loss".  Any other modulus value N
+causes B<owltsim> to randomly drop (i.e., not transmit upon expiration of the
+delay interval) one out of every N packets.
+
+=back
+
+The optional B<-v> ("verbose") parameter causes B<owltsim> to print a
+message whenever it receives, sends, or drops (due to artificial random
+data loss) a datagram.
+
+Note that error conditions may cause one delay simulation (a pair of threads)
+to terminate without terminating any others.
+
+B<owltsim> is designed to run indefinitely.  To terminate the program, just
+use control-C to kill it.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+Nominal termination.
+
+=item "1"
+Termination due to an error condition, as noted in printed messages.
+
+=back
+
+=head1 EXAMPLES
+
+Here is a sample owltsim configuration file:
+
+=over 4
+
+=item 2 7 5502 ptl07.jpl.nasa.gov 5001 75 0
+
+=item 7 2 5507 ptl02.jpl.nasa.gov 5001 75 16
+
+=back
+
+This file indicates that B<owltsim> will receive on port 5502 the ION
+traffic from node 2 that is destined for node 7, which will receive it at
+port 5001 on the computer named ptl07.jpl.nasa.gov; 75 seconds of delay
+(simulating a distance of 75 light seconds) will be imposed on this
+transmission activity, and B<owltsim> will not simulate any random data loss.
+
+In the reverse direction, B<owltsim> will receive on port 5507 the ION
+traffic from node 7 that is destined for node 2, which will receive it at
+port 5001 on the computer named ptl02.jpl.nasa.gov; 75 seconds of delay
+will again be imposed on this transmission activity, and B<owltsim> will
+randomly discard (i.e., not transmit upon expiration of the transmission
+delay interval) one datagram out of every 16 received at this port.
+
+=head1 FILES
+
+Not applicable.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be printed to stdout:
+
+=over 4
+
+=item owltsim can't open configuration file
+
+The program terminates.
+
+=item owltsim failed on fscanf
+
+Failure on reading the configuration file.  The program terminates.
+
+=item owltsim stopped malformed config file line I<line_number>.
+
+Failure on parsing the configuration file.  The program terminates.
+
+=item owltsim can't spawn receiver thread
+
+The program terminates.
+
+=item owltsim out of memory.
+
+The program terminates.
+
+=item owltsim can't open reception socket
+
+The program terminates.
+
+=item owltsim can't initialize reception socket
+
+The program terminates.
+
+=item owltsim can't open transmission socket
+
+The program terminates.
+
+=item owltsim can't initialize transmission socket
+
+The program terminates.
+
+=item owltsim can't spawn timer thread
+
+The program terminates.
+
+=item owltsim can't acquire datagram
+
+Datagram transmission failed.  This causes the threads for the affected
+delay simulation to terminate, without terminating any other threads.
+
+=item owltsim failed on send
+
+Datagram transmission failed.  This causes the threads for the affected
+delay simulation to terminate, without terminating any other threads.
+
+=item at I<time> owltsim LOST a dg of length I<length> from I<sending node> destined for I<receiving node> due to ECONNREFUSED.
+
+This is an informational message.  Due to an apparent bug in Internet
+protocol implementation, transmission of a datagram on a connected UDP
+socket occasionally fails.  B<owltsim> does not attempt to retransmit the
+affected datagram.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+udplsi(1), udplso(1)

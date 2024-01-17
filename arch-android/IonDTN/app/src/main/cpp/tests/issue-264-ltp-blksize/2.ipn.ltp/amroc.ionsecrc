@@ -1,0 +1,6 @@
+1
+a bspbabrule ipn:2.* ipn:2.* '' ''
+a bspbabrule ipn:3.* ipn:2.* '' ''
+a bspbabrule ipn:2.* ipn:3.* '' ''
+a key myKey key1.hmk
+a key myKey2 key2.hmk

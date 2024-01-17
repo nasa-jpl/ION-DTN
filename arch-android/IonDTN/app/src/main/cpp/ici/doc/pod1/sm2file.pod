@@ -1,0 +1,83 @@
+=head1 NAME
+
+sm2file - shared-memory linked list data extraction test program
+
+=head1 SYNOPSIS
+
+B<sm2file>
+
+=head1 DESCRIPTION
+
+B<sm2file> stress-tests shared-memory linked list data extraction by
+retrieving and deleting all text file lines inserted into a shared-memory
+linked list that is the root object of a PSM partition named "file2sm".
+
+The operation of B<sm2file> echoes the cyclical operation of B<file2sm>:
+the EOF lines inserted into the linked list by B<file2sm> punctuate the
+writing of files that are copies of B<file2sm>'s original source text file.
+The name of each file written by B<sm2file> is file_copy_I<cycleNbr>,
+where I<cycleNbr> is, in effect, the count of EOF lines encountered in the
+linked list up to the point at which the writing of this file began.
+
+B<sm2file> may catch up with the data ingestion activity of B<file2sm>,
+in which case it blocks (taking the B<file2sm> test semaphore) until
+the linked list is no longer empty.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<sm2file> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+=over 4
+
+=item can't attach to shared memory
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item Can't manage shared memory.
+
+PSM error.  Check for earlier diagnostics describing the cause of the
+error; correct problem and rerun.
+
+=item Can't create shared memory list.
+
+PSM error.  Check for earlier diagnostics describing the cause of the
+error; correct problem and rerun.
+
+=item Can't create semaphore.
+
+ION system error.  Check for earlier diagnostics describing the cause of the
+error; correct problem and rerun.
+
+=item Can't open output file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item can't write to output file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+file2sm(1), smlist(3), psm(3)

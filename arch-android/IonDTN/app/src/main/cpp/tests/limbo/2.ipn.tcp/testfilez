@@ -1,0 +1,46 @@
+/*
+	smpipe.h:	definitions supporting portable pipe
+			functions.
+
+	Copyright (c) 2009, California Institute of Technology.
+	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
+	acknowledged.
+	
+	Modification History:
+	Date	  Who	What
+	05-18-09  SCB   Initial delivery.
+*/
+
+#ifndef _SMPIPE_H_
+#define _SMPIPE_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef int	sm_Pipe;
+
+extern int	sm_ipcx_init();
+extern int	sm_ipcx_stop();
+extern sm_Pipe	sm_POpen(char *appName, char *pathName, unsigned short sinkNbr,
+			int recordLen);
+extern int	sm_PipeFd(sm_Pipe smp);
+extern int	sm_PRead(sm_Pipe smp, void *buffer);
+extern int	sm_PWrite(sm_Pipe smp, void *buffer);
+extern void	sm_PClose(sm_Pipe smp);
+extern void	sm_PDestroy(sm_Pipe smp);
+
+#define nPipes		(50)
+
+typedef struct
+{
+	int		fd;
+	int		recordLength;
+	char		pipeName[75];
+} SmPipe;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* _SMPIPE_H_ */

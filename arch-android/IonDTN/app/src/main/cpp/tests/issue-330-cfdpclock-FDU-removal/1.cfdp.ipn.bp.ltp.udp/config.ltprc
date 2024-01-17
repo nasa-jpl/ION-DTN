@@ -1,0 +1,11 @@
+# Config file for issue-330-cfdpclock-FDU-removal test
+# Samuel Jero
+# December 15, 2011
+#Initialize
+1 5
+
+#Add Span
+a span 1 2 2 1024 2000 1 'udplso localhost:2113'
+
+#Start
+s 'udplsi localhost:2113'

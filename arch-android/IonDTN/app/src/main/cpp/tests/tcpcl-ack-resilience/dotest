@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# Derived from James Swaro's test, April 25, 2012
+
+SENDER_PORT=4555
+RECEIVER_PORT=4556
+
+echo "Cleaning up old ION ..."
+rm ion_nodes 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/testfile1
+killm
+sudo tc qdisc del dev lo root
+sudo iptables -F -t filter
+
+sleep 1
+
+# Decrease TCP timeout time (defaults 3, 15, 7200)
+echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries1
+echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries2
+echo 5 | sudo tee /proc/sys/net/ipv4/tcp_keepalive_time
+
+# Slow things down so we can kill the connection mid-tranfer.
+sudo tc qdisc add dev lo root netem delay 1000ms
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+# Set up node 1
+cd 1.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -ne 2 ]; then
+    echo "Node 1 not started: Aborting Test"
+    exit 1
+fi
+
+# Set up node 2
+cd ../2.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -ne 2 ]; then
+    echo "Node 2 not started: Aborting Test"
+    exit 1
+fi
+
+# Start file receiver on node 2.
+cd ../2.ipn.tcp/
+echo "Starting bprecvfile..."
+bprecvfile ipn:2.1 &
+sleep 10
+
+# Send one file from node 1 to node 2.
+cd ../1.ipn.tcp/
+echo "Sending file from node 1 to node 2..."
+bpsendfile ipn:1.1 ipn:2.1 testfile
+
+# Allow partial sending of data.
+sleep 1
+
+echo "Blocking traffic..."
+sudo iptables -A INPUT -i lo -p tcp --destination-port $SENDER_PORT -j DROP
+sudo iptables -A INPUT -i lo -p tcp --destination-port $RECEIVER_PORT -j DROP
+
+echo "Waiting for TCP timeout..."
+sleep 5m
+
+echo "Unblocking traffic..."
+sudo iptables -F -t filter
+
+echo "Waiting for send to finish..."
+sleep 5m
+
+# Verify that this file arrived.
+cd ../2.ipn.tcp
+COUNT=`ls -l testfile1 | egrep 117700 | wc -l`
+
+if [[ $COUNT -eq 1 ]]; then
+    RETVAL=0
+else
+    RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../1.ipn.tcp
+./ionstop &
+cd ../2.ipn.tcp
+./ionstop &
+
+# Give nodes time to shut down, then clean up.
+sleep 5
+killm
+
+if [[ $RETVAL -eq 0 ]]; then
+    echo "TCPCL ACK test succeeded"
+else
+    echo "TCPCL ACK test failed"
+fi
+
+exit $RETVAL

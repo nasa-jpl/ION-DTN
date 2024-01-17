@@ -1,0 +1,15 @@
+# ionrc configuration file for tcpcl dos loopback test.
+#	This uses tcp as the primary convergence layer.
+#	command: % ionadmin loopback.ionrc
+# 	This command should be run FIRST.
+#
+#	Ohio University, Oct 2008
+
+# Initialization command (command 1). 
+#	Set this node to be node 1 (as in ipn:1).
+#	Use sdr configuration in file 'loopback.ionconfig'.
+1 1 loopback.ionconfig
+
+# start ion node
+s
+

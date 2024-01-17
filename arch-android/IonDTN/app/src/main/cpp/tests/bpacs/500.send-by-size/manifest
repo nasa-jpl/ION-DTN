@@ -1,0 +1,38 @@
+#This test may fail because the date coded into the signals gets too old.
+#Using the date 2/11/2016 this test will begin to fail around february 2021 for date related reasons.
+
+# Send a bundle with ID 1.
+# This should append to a brand new (succeeded, no reason) ACS
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 1, 1)
+
+# Send bundles until we exceed the serialized size limit.
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 2, 2)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 4, 4)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 3, 3)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 11, 11)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 9, 9)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 14, 14)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 17, 17)
+sendexpectacsandcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 23, 23)
+
+# This one should trigger sending by size, so it won't appear in the ACS
+# bundle that we receive; it'll appear in the next one.
+sendexpectcustody("ipn:2.0", "ipn:1.2", "2/11/2016 16:47:08", 25, 25)
+
+# Verify that we receive an SCS by size-trigger, not time-trigger.
+receiveall(3.0, sizelimit = 36)
+
+# Add the bundle that we sent just before checking the size-triggered
+# custody signal.
+expectacs("ipn:1.2", "2/11/2016 16:47:08", 25, cid = 25)
+
+# Verify that ION has custody of the bundles we expect.
+checkcustody()
+
+# Verify that the time-triggered custody signal still works.
+receiveall(10.0, sizelimit = 36)
+
+# Clear custody with an ACS.
+clearcustody("ipn:1.0")
+checkcustody()
+

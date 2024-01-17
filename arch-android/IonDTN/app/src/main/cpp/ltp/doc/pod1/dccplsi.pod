@@ -1,0 +1,87 @@
+=head1 NAME
+
+dccplsi - DCCP-based LTP link service input task
+
+=head1 SYNOPSIS
+
+B<dccplsi> {I<local_hostname> | @}[:I<local_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<dccplsi> is a background "daemon" task that receives DCCP datagrams via a
+DCCP socket bound to I<local_hostname> and I<local_port_nbr>, extracts LTP
+segments from those datagrams, and passes them to the local LTP engine.
+Host name "@" signifies that the host name returned by hostname(1) is to
+be used as the socket's host name.  If not specified, port number defaults
+to 1113.
+
+The link service input task is spawned automatically by B<ltpadmin> in
+response to the 's' command that starts operation of the LTP protocol;
+the text of the command that is used to spawn the task must be provided
+as a parameter to the 's' command.  The link service input task is
+terminated by B<ltpadmin> in response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<dccplsi> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<ltpadmin> to restart B<dccplsi>.
+
+=item "1"
+
+B<dccplsi> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<ltpadmin> to restart B<dccplsi>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dccplsi can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item LSI task is already started.
+
+Redundant initiation of B<dccplsi>.
+
+=item LSI can't open DCCP socket. This probably means DCCP is not supported on your system.
+
+Operating system error. This probably means that you are not using an
+operating system that supports DCCP. Make sure that you are using a current
+Linux kernel and that the DCCP modules are being compiled. Check errtext,
+correct problem, and restart B<dccplsi>.
+
+=item LSI can't initialize socket.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccplsi>.
+
+=item LSI can't create listener thread.
+
+Operating system error.  Check errtext, correct problem, and restart B<dccplsi>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ltpadmin(1), dccplso(1), owltsim(1)

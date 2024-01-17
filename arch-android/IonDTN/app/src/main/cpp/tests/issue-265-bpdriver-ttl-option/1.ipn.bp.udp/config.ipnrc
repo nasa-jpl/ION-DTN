@@ -1,0 +1,9 @@
+# Config file for issue-265-bpdriver-ttl-option test
+# Samuel Jero
+# September 10, 2011
+# Add an egress plan.
+#	Bundles to be transmitted to element number 1 (that is, yourself).
+#	This element is named 'node1.'
+#	The plan is to queue for transmission (x) on protocol 'udp' using
+#	the outduct identified as '127.0.0.1:4556'.
+a plan 1 udp/127.0.0.1:4556

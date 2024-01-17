@@ -1,0 +1,11 @@
+m horizon  +0
+a range    +0  +240		2 3   0
+a range    +0  +240		3 5   0
+a range    +0  +240		2 5   0
+a contact  +20 +40		2 3   120
+a contact  +45 +65		3 2   120
+#  Note half-duplex comm: 2/3 return traffic occurs after end of fwd contact.
+a contact  +45 +65		3 5   120
+a contact  +45 +65		5 3   120
+a contact  +70 +100		2 5   120
+a contact  +70 +100		5 2   120

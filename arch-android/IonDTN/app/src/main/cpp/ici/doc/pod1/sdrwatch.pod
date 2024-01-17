@@ -1,0 +1,68 @@
+=head1 NAME
+
+sdrwatch - SDR non-volatile data store activity monitor
+
+=head1 SYNOPSIS
+
+B<sdrwatch> I<sdr_name> I<interval> I<count> [ verbose ]
+
+=head1 DESCRIPTION
+
+For I<count> interations, B<sdrwatch> sleeps I<interval> seconds and then
+invokes the sdr_print_trace() function (see sdr(3)) to report on SDR data
+storage management activity in the SDR data store identified
+by I<sdr_name> during that interval.  If the optional B<verbose>
+parameter is specified, the printed SDR activity trace will be verbose
+as described in sdr(3).
+
+If I<interval> is zero, B<sdrwatch> merely prints a current usage summary
+for the indicated data store and terminates.
+
+B<sdrwatch> is helpful for detecting and diagnosing storage space leaks.  For
+debugging the ION protocol stack, I<sdr_name> is normally "ion" but might be
+overridden by the value of sdrName in the .ionconfig file used to configure
+the node under study.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<sdrwatch> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to sdr.
+
+ION system error.  One possible cause is that ION has not yet been
+initialized on the local computer; run ionadmin(1) to correct this.
+
+=item Can't start trace.
+
+Insufficient ION working memory to contain trace information.  Reinitialize
+ION with more memory.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+sdr(3), psmwatch(1)

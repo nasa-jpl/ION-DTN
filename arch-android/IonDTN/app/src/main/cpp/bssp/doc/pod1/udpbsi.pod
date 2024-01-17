@@ -1,0 +1,84 @@
+=head1 NAME
+
+udpbsi - UDP-based best-effort link service input task for BSSP
+
+=head1 SYNOPSIS
+
+B<udpbsi> {I<local_hostname> | @}[:I<local_port_nbr>]
+
+=head1 DESCRIPTION
+
+B<udpbsi> is a background "daemon" task that receives UDP datagrams via a
+UDP socket bound to I<local_hostname> and I<local_port_nbr>, extracts BSSP
+segments from those datagrams, and passes them to the local BSSP engine.
+Host name "@" signifies that the host name returned by hostname(1) is to
+be used as the socket's host name.  If not specified, port number defaults
+to 6001.
+
+The link service input task is spawned automatically by B<bsspadmin> in
+response to the 's' command that starts operation of the BSSP protocol;
+the text of the command that is used to spawn the task must be provided
+as a parameter to the 's' command.  The link service input task is
+terminated by B<bsspadmin> in response to an 'x' (STOP) command.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<udpbsi> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bsspadmin> to restart B<udpbsi>.
+
+=item "1"
+
+B<udpbsi> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bsspadmin> to restart B<udpbsi>.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item udpbsi can't initialize BSSP.
+
+B<bsspadmin> has not yet initialized BSSP protocol operations.
+
+=item BE-BSI task is already started.
+
+Redundant initiation of B<udpbsi>.
+
+=item BE-BSI can't open UDP socket
+
+Operating system error.  Check errtext, correct problem, and restart B<udpbsi>.
+
+=item BE-BSI can't initialize socket
+
+Operating system error.  Check errtext, correct problem, and restart B<udpbsi>.
+
+=item udpbsi can't create receiver thread
+
+Operating system error.  Check errtext, correct problem, and restart B<udpbsi>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bsspadmin(1), tcpbsi(1), udpbso(1)

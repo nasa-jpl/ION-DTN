@@ -1,0 +1,263 @@
+=head1 NAME
+
+cfdptest - CFDP test shell for ION
+
+=head1 SYNOPSIS
+
+B<cfdptest> [ I<commands_filename> ]
+
+=head1 DESCRIPTION
+
+B<cfdptest> provides a mechanism for testing CFDP file transmission.  It can
+be used in either scripted or interactive mode.  All bundles containing CFDP
+PDUs are sent with custody transfer requested and with all bundle status
+reporting disabled.
+
+When scripted with I<commands_filename>, B<cfdptest> operates in response to
+CFDP management commands contained in the provided commands file.  Each line
+of text in the file is interpreted as a single command comprising several
+tokens: a one-character command code and, in most cases, one or more command
+arguments of one or more characters.  The commands configure and initiate
+CFDP file transmission operations.
+
+If no file is specified, B<cfdptest> instead offers the user an interactive
+"shell" for command entry.  B<cfdptest> prints a prompt string (": ") to
+stdout, accepts strings of text from stdin, and interprets each string as
+a command.
+
+The supported B<cfdptest> commands (whether interactive or scripted) are as
+follows:
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<h>
+
+An alternate form of the B<help> command.
+
+=item B<z> [<number of seconds to pause>]
+
+The B<pause> command.  When B<cfdptest> is running in interactive mode,
+this command causes the console input processing thread to pause the
+indicated number of seconds (defaulting to 1) before processing the next
+command.  This is provided for use in test scripting.
+
+=item B<d> <destination CFDP entity ID number>
+
+The B<destination> command.  This command establishes the CFDP entity
+to which the next file transmission operation will be directed.  CFDP entity
+numbers in ION are, by convention, the same as BP node numbers.
+
+=item B<f> <source file path name>
+
+The B<from> command.  This command identifies the file that will be
+transmitted when the next file transmission operation is commanded.
+
+=item B<t> <destination file path name>
+
+The B<to> command.  This command provides the name for the file that will be
+created at the receiving entity when the next file transmission operation
+is commanded.
+
+=item B<l> <lifetime in seconds>
+
+The B<time-to-live> command.  This command establishes the time-to-live for
+all subsequently issued bundles containing CFDP PDUs.  If not specified, the
+default value 86400 (1 day) is used.
+
+=item B<p> <priority>
+
+The B<priority> command.  This command establishes the priority (class of
+service) for all subsequently issued bundles containing CFDP PDUs.  Valid
+values are 0, 1, and 2.  If not specified, priority is 1.
+
+=item B<o> <ordinal>
+
+The B<ordinal> command.  This command establishes the "ordinal" (sub-priority
+within priority 2) for all subsequently issued bundles containing CFDP PDUs.
+Valid values are 0-254.  If not specified, ordinal is 0.
+
+=item B<m> <mode>
+
+The B<mode> command.  This command establishes the transmission mode
+("best-effort" or assured) for all subsequently issued bundles containing
+CFDP PDUs.  Valid values are 0 (assured, reliable, with reliability
+provided by a reliable DTN convergence layer protocol), 1 (best-effort,
+unreliable), and 2 (assured, reliable, but with reliability provided by BP
+custody transfer).  If not specified, transmission mode is 0.
+
+=item B<a> <latency in seconds>
+
+The B<closure latency> command.  This command establishes the transaction
+closure latency for all subsequent file transmission operations.  When it is
+set to zero, the file transmission is "open loop" and the CFDP transaction
+at the sending entity finishes when the EOF is sent.  Otherwise, the
+receiving CFDP entity is being asked to send a "Finished" PDU back to the
+sending CFDP entity when the transaction finishes at the receiving entity.
+Normally the transaction finishes at the sending entity only when that
+Finished PDU is received.  However, when I<closure latency> seconds elapse
+following transmission of the EOF PDU prior to receipt of the Finished PDU,
+the transaction finishes immediately with a Check Timer fault.
+
+=item B<n> { 0 | 1 }
+
+The B<segment metadata> command.  This command controls the insertion of
+sample segment metadata -- a string representation of the current time --
+in every file data segment PDU.  A value of 1 enables segment metadata
+insertion, while a value of 0 disables it.
+
+=item B<g> <srrflags>
+
+The B<srrflags> command.  This command establishes the BP status reporting
+that will be requested for all subsequently issued bundles containing
+CFDP PDUs.  I<srrflags> must be a status reporting flags string as defined
+for bptrace(1): a sequence of status report flags, separated by commas,
+with no embedded whitespace.  Each status report flag must be one of the
+following: rcv, ct, fwd, dlv, del.
+
+=item B<c> <criticality>
+
+The B<criticality> command.  This command establishes the criticality
+for all subsequently issued bundles containing CFDP PDUs.  Valid values
+are 0 (not critical) and 1 (critical).  If not specified, criticality is 0.
+
+=item B<r> <action code nbr> <first path name> <second path name>
+
+The B<filestore request> command.  This command adds a filestore request to
+the metadata that will be issued when the next file transmission operation
+is commanded.  Action code numbers are:
+
+=over 4
+
+=item 0 = create file
+
+=item 1 = delete file
+
+=item 2 = rename file
+
+=item 3 = append file
+
+=item 4 = replace file
+
+=item 5 = create directory
+
+=item 6 = remove directory
+
+=item 7 = deny file
+
+=item 8 = deny directory
+
+=back
+
+=item B<u> '<message text>'
+
+The B<user message> command.  This command adds a user message to the
+metadata that will be issued when the next file transmission operation
+is commanded.
+
+=item B<&>
+
+The B<send> command.  This command initiates file transmission as configured
+by the most recent preceding B<d>, B<f>, B<t>, and B<a> commands.
+
+=item B<|>
+
+The B<get> command.  This command causes a request for file transmission to
+the local node, subject to the parameters provided by the most recent preceding
+B<f>, B<t>, and B<a> commands, to be sent to the entity identified by the
+most recent preceding B<d> command.
+
+=item B<^>
+
+The B<cancel> command.  This command cancels the most recently initiated
+file transmission.
+
+=item B<%>
+
+The B<suspend> command.  This command suspends the most recently initiated
+file transmission.
+
+=item B<$>
+
+The B<resume> command.  This command resumes the most recently initiated
+file transmission.
+
+=item B<#>
+
+The B<report> command.  This command reports on the most recently initiated
+file transmission.
+
+=item B<q>
+
+The B<quit> command.  Terminates the cfdptest program.
+
+=back
+
+B<cfdptest> in interactive mode also spawns a CFDP event handling thread.  The
+event thread receives CFDP service indications and simply prints lines of
+text to stdout to announce them.
+
+B<NOTE> that when B<cfdptest> runs in scripted mode it does B<not> spawn an
+event handling thread, which makes it possible for the CFDP events queue to
+grow indefinitely unless some other task consumes and reports on the events.
+One simple solution is to run an interactive B<cfdptest> task in background,
+simply to keep the event queue cleared, while scripted non-interactive
+B<cfdptest> tasks are run in the foreground.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<cfdptest> has terminated.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=back
+
+=head1 FILES
+
+See above for details on valid I<commands_filename> commands.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<cfdptest> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item Can't open command file...
+
+The file identified by I<commands_filename> doesn't exist.
+
+=item cfdptest can't initialize CFDP.
+
+B<cfdpadmin> has not yet initialized CFDP operations.
+
+=item Can't put FDU.
+
+The attempt to initiate file transmission failed.  See the ION log for
+additional diagnostic messages from the CFDP library.
+
+=item Failed getting CFDP event.
+
+The attempt to retrieve a CFDP service indication failed.  See the ION log for
+additional diagnostic messages from the CFDP library.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+cfdpadmin(1), cfdp(3)

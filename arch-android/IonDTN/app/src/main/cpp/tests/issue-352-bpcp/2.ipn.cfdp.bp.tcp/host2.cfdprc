@@ -1,0 +1,9 @@
+#Issue 352-BPCP
+#Samuel Jero
+#April 15, 2012
+#Host 2
+1
+m discard 1
+m requirecrc 1
+m segsize 1000
+s 'bputa'

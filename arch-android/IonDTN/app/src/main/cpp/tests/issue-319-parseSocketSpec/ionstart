@@ -1,0 +1,31 @@
+# shell script to get node running
+#!/bin/bash
+ionadmin	amroc.ionrc
+
+ionadmin	global.ionrc &
+
+ionsecadmin	amroc.ionsecrc &
+
+ltpadmin	amroc.ltprc &
+
+bpadmin		amroc.bprc &
+
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+amsd mib.amsrc @ amsdemo test "" &
+echo "Waiting for AMS cell census (90 seconds left)..."
+sleep 30
+echo "Waiting for AMS cell census (60 seconds left)..."
+sleep 30
+echo "Waiting for AMS cell census (30 seconds left)..."
+sleep 30
+cp init.petition.log petition.log
+ramsgate amsdemo test 2592000 &

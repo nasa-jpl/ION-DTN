@@ -1,0 +1,58 @@
+=head1 NAME
+
+bpcpd - ION Delay Tolerant Networking remote file copy daemon
+
+=head1 SYNOPSIS
+
+B<bpcpd> [-d | -v]
+
+=head1 DESCRIPTION
+
+B<bpcpd> is the daemon for B<bpcp>. Together these programs copy files between
+hosts utilizing NASA JPL's Interplanetary Overlay Network (ION) to provide a
+delay tolerant network.
+
+The options are permitted as follows:
+
+=over 4
+
+B< -d>	Debug output. Repeat for increased verbosity.
+
+B< -v>	Display version information.
+
+=back
+
+B<bpcpd> must be running in order to copy files from this host to another host
+(i.e. remote to local). Copies in the other direction (local to remote) do not
+require B<bpcpd>. Further, B<bpcpd> should NOT be run simultaneously with B<bpcp>
+or B<cfdptest>.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpcpd> terminated normally.
+
+=item "1"
+
+B<bpcpd> terminated abnormally. Check console and the B<ion.log> file for error messages.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+bpcp(1), ion(3), cfdptest(1)

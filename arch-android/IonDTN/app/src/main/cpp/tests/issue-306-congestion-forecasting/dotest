@@ -1,0 +1,166 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# May 23, 2012
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.node.tcp/node.bprc \
+./2.node.tcp/node.ionconfig \
+./2.node.tcp/node.ionrc \
+./2.node.tcp/node.ionsecrc \
+./2.node.tcp/node.ipnrc \
+./2.node.tcp/config1 \
+./2.node.tcp/config2 \
+./2.node.tcp/config3 \
+./2.node.tcp/config4 \
+./2.node.tcp/config5 \
+./2.node.tcp/config6 \
+./2.node.tcp/config7
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: exercise congestion forecasting in various configurations
+	to demonstrate that it is working properly."
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0
+
+# Start nodes.
+cd 2.node.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+echo ""
+ionadmin config1
+echo "Initial state: no horizon, but huge capacity (default), growth rate zero."
+sleep 1
+
+COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: no congestion in initial configuration."
+else
+	echo "ERROR: initially congested."
+	RETVAL=1
+fi
+
+echo ""
+echo "We limit occupancy, but still no problem since net growth is zero."
+ionadmin config2
+sleep 1
+
+COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+if [ $COUNT -eq 2 ]
+then
+	echo "OK: still no congestion."
+else
+	echo "ERROR: congested on occupancy limit."
+	RETVAL=1
+fi
+
+echo ""
+echo "Now we add imbalanced contacts, resulting in growth rate 100000."
+ionadmin config3
+sleep 1
+
+COUNT=`grep "Congestion collapse forecast" ion.log | wc -l`
+if [ $COUNT -eq 1 ]
+then
+	echo "OK: imbalanced contacts result in congestion."
+else
+	echo "ERROR: no congestion predicted."
+	RETVAL=1
+fi
+
+echo ""
+echo "So we resolve the congestion by limiting the horizon (to current time)."
+ionadmin config4
+sleep 1
+
+COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+if [ $COUNT -eq 3 ]
+then
+	echo "OK: congestion occurs after horizon of forecast."
+else
+	echo "ERROR: horizon change doesn't revise forecast."
+	RETVAL=1
+fi
+
+echo ""
+echo "Even when we extend the forecast horizon out 1000 seconds we are okay."
+ionadmin config5
+sleep 1
+
+COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+if [ $COUNT -eq 4 ]
+then
+	echo "OK: congestion still occurs after horizon of forecast."
+else
+	echo "ERROR: horizon change not handled as expected."
+	RETVAL=1
+fi
+
+echo ""
+echo "But when horizon is extended to 200000 sec in future, congestion alarm."
+ionadmin config6
+sleep 1
+
+COUNT=`grep "Congestion collapse forecast" ion.log | wc -l`
+if [ $COUNT -eq 2 ]
+then
+	echo "OK: congestion now occurs before forecast horizon."
+else
+	echo "ERROR: no congestion predicted."
+	RETVAL=1
+fi
+
+echo ""
+echo "We turn off that alarm by increasing filesystem occupancy limit."
+ionadmin config7
+sleep 1
+
+COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+if [ $COUNT -eq 5 ]
+then
+	echo "OK: increased occupancy limit delays congestion failure."
+else
+	echo "ERROR: increasing occupancy limit didn't postpone collapse."
+	RETVAL=1
+fi
+
+echo "Stopping ION..."
+./ionstop &
+sleep 5
+killm
+echo "...congestion forecasting test terminated."
+exit $RETVAL

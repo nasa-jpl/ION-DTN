@@ -1,0 +1,253 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# September 10, 2011
+#
+# This test pertains to issue #265 "Create Bpdriver commandline option for ttl".
+# This test confirms that bpdriver can now send bundles with varying ttl values.
+# The test uses netcat to receive BP bundles.
+
+
+function end(){
+# Shut down ION processes.
+echo "Stopping ION..."
+cd 1.ipn.bp.udp
+./ionstop &
+cd ../
+sleep 5
+killm
+
+echo "bpdriver ttl option test complete."
+exit $RETVAL	
+}
+
+CONFIGFILES=" \
+./1.ipn.bp.udp/config.ionrc \
+./1.ipn.bp.udp/config.bprc \
+./1.ipn.bp.udp/config.ipnrc"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 265.
+        Confirms that bpdriver can now send bundles with varying ttl values.
+        This test uses netcat to receive BP bundles."
+echo
+echo "CONFIG: 1 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+# Check that prerequisite software for the test is installed
+PROGRAMTEST="netcat"
+OS=`uname`
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no netcat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+	echo "${PROGRAMTEST} is not present in this system; skipping..."
+	exit 2
+elif [ "$OS" = "SunOS" ]; then
+	echo "Using SunOS netcat at `which netcat`."
+else
+	echo "Using standard netcat at `which netcat`."
+
+fi
+
+sleep 1
+RETVAL=1
+
+
+#Start ION
+echo "Starting ion node..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+cd 1.ipn.bp.udp
+./ionstart > node.stdout
+
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+cd ../
+
+# Run the platform-specific netcat server
+run_netcat() {
+	if [ "$OS" = "SunOS" ]; then
+		netcat -u -l -p 4556 -s localhost > response.bpseg &
+		NETCAT_SVR_PID=$!
+	# GNU netcat has a -V (version) flag, so test for that.
+	elif netcat -V 2>/dev/null; then
+		netcat -u -l -p 4556 > response.bpseg &
+		NETCAT_SVR_PID=$!
+	# Fall back to BSD netcat
+	else
+		netcat -u -l 4556 > response.bpseg &
+		NETCAT_SVR_PID=$!
+	fi
+}
+
+#Test 1---default TTL (300sec)
+echo "Test 1---Check bpdriver default TTL (300 sec)"
+echo "Starting netcat server for test..."
+cd netcat_files/
+run_netcat
+cd ../
+
+echo "Using bpdriver to send bundles with default ttl..."
+cd 1.ipn.bp.udp
+bpdriver 1 ipn:1.1 ipn:1.2 -100
+cd ../
+
+echo "Waiting 2 seconds for netcat server to receive bundle..."
+sleep 2
+
+echo "Stopping netcat server..."
+kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
+sleep 1 
+kill -9 $NETCAT_SVR_PID >/dev/null 2>&1
+
+# assemble the packet to be readable by wireshark
+# 1.) Copy the lower layers of a precorded bundle
+# 2.) Append the BP layer from netcat
+cd netcat_files/
+cp lowerlayers response.cap
+cat response.bpseg >> response.cap
+
+# Now we analyze the TTL value from the BP header of the bundle. We measure
+# from the end of the bundle to avoid the SDNV timestamp field which will have
+# a constantly changing length.
+RESULTS=`cat response.cap | tail  -c121 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+echo "Expected value: 822c"
+echo "  Actual value: $RESULTS"
+if [ "$RESULTS" = "822c" ]; then
+	echo "The Bundle set by ION had the correct default TTL."
+	echo ""
+	RETVAL=0
+else
+	# We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
+	echo "The Bundle sent by ION did not have the correct default TTL.  FAILURE!"
+	echo ""
+	RETVAL=1
+	cd ..
+	end
+fi
+cd ..
+
+
+#Test 2---Larger TTL (3000sec)
+echo "Test 2---Try Increasing bpdriver TTL (3000sec)"
+echo "Starting netcat server for test..."
+cd netcat_files/
+run_netcat
+cd ../
+
+echo "Using bpdriver to send bundles with ttl of 3000 sec..."
+cd 1.ipn.bp.udp
+bpdriver 1 ipn:1.1 ipn:1.2 -100 t3000
+cd ../
+
+echo "Waiting 2 seconds for netcat server to receive bundle..."
+sleep 2
+
+echo "Stopping netcat server..."
+kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
+sleep 1 
+kill -9 $NETCAT_SVR_PID >/dev/null 2>&1
+
+# assemble the packet to be readable by wireshark
+# 1.) Copy the lower layers of a precorded bundle
+# 2.) Append the BP layer from netcat
+cd netcat_files/
+cp lowerlayers response.cap
+cat response.bpseg >> response.cap
+
+# Now we analyze the TTL value from the BP header of the bundle. We measure
+# from the end of the bundle to avoid the SDNV timestamp field which will have
+# a constantly changing length.
+RESULTS=`cat response.cap | tail  -c121 | xxd -p -c 256 | cut -c 1-4 | tr -d '\n'`
+echo "Expected value: 9738"
+echo "  Actual value: $RESULTS"
+if [ "$RESULTS" = "9738" ]; then
+	echo "The Bundle set by ION had the correct TTL."
+	echo ""
+	RETVAL=0
+else
+	# We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
+	echo "The Bundle sent by ION did not have the correct TTL.  FAILURE!"
+	echo ""
+	RETVAL=1
+	cd ..
+	end
+fi
+cd ..
+
+
+#Test 3---Smaller TTL (30sec)
+echo "Test 3--Try Decreasing bpdriver TTL (30sec)"
+echo "Starting netcat server for test..."
+cd netcat_files/
+run_netcat
+cd ../
+
+echo "Using bpdriver to send bundles with ttl of 30 sec..."
+cd 1.ipn.bp.udp
+bpdriver 1 ipn:1.1 ipn:1.2 -100 t30
+cd ../
+
+echo "Waiting 2 seconds for netcat server to receive bundle..."
+sleep 2
+
+echo "Stopping netcat server..."
+kill -2 $NETCAT_SVR_PID >/dev/null 2>&1
+sleep 1 
+kill -9 $NETCAT_SVR_PID >/dev/null 2>&1
+
+# assemble the packet to be readable by wireshark
+# 1.) Copy the lower layers of a precorded bundle
+# 2.) Append the BP layer from netcat
+cd netcat_files/
+cp lowerlayers response.cap
+cat response.bpseg >> response.cap
+
+# Now we analyze the TTL value from the BP header of the bundle. We measure
+# from the end of the bundle to avoid the SDNV timestamp field which will have
+# a constantly changing length.
+RESULTS=`cat response.cap | tail  -c120 | xxd -p -c 256 | cut -c 1-2 | tr -d '\n'`
+echo "Expected value: 1e"
+echo "  Actual value: $RESULTS"
+if [ "$RESULTS" = "1e" ]; then
+	echo "The Bundle set by ION had the correct TTL. SUCCESS!"
+	echo ""
+	RETVAL=0
+else
+	# We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
+	echo "The Bundle sent by ION did not have the correct TTL.  FAILURE!"
+	echo ""
+	RETVAL=1
+fi
+cd ..
+
+end
+

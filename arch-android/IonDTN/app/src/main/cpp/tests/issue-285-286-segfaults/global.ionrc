@@ -1,0 +1,9 @@
+m horizon  +0
+a range    +0 +3600		5 6   20
+a range    +0 +3600		9 5   1
+a range    +0 +3600		5 9   5
+a contact  +0 +3600		9 9   16384
+a contact  +0 +60		9 5   16384
+a contact  +0 +60		5 9   16384
+a contact  +0 +3600		5 6   16384
+a contact  +0 +3600		6 5   16384

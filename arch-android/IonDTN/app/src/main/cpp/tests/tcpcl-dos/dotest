@@ -1,0 +1,148 @@
+#!/bin/bash
+#
+# Mithun Roy(Mostly Dave's loopback test script)
+# March 10, 2010
+
+# script runs netcat on local port 4556, this will make tcpcl
+# on the local machine to send a contact header and wait for
+# a contact header. 
+# while tcpcl is waiting for a contact header, open a new connection
+# and send a bundle. If we can receive the bundle successfully,
+# then the dos bug has been fixed
+
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-tcp/loopback.ionrc \
+${CONFIGSROOT}/loopback-tcp/loopback.bprc  \
+${CONFIGSROOT}/loopback-tcp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-tcp/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To ensure that tcpcli doesn't have a denial-of-service type bug.
+	The bug, described in issue 146, is that tcpcli will not accept any new
+	connections if it is waiting on a contact header initialization from
+	the other end.  Tcpcli should still accept more incoming connections
+	even if one is improperly initialized."
+echo
+echo "CONFIG: The standard configuration loopback-tcp: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: While running a single node loopback configuration, we will
+	use netcat to connect to the node.  This connection will not function
+	properly- netcat will not respond with any initialization header.  This
+	leaves the netcat-initialized tcp connection in a bad state with ION.
+	During this process, a single bundle is sent to the node via loopback.
+	Messages below will confirm if the bundle was successfully sent (PASS)
+	or if the bad tcp connection has halted the tcpcl, prohibiting bundle
+	transmission (FAIL)."
+echo
+echo "########################################"
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+
+PROGRAMTEST="netcat"
+RESULTS=`which ${PROGRAMTEST}`
+WHICHRETURN=$?
+echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
+WHICHFAILMESSAGE=$?
+# which could return the proper fail condition, or the results could be
+# empty, or you're on solaris and your results will be "no netcat in $PATH".
+if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
+	echo "${PROGRAMTEST} is not present in this system; skipping..."
+	exit 2
+fi
+
+echo "Starting ION..."
+CONFIGDIR="${CONFIGSROOT}/loopback-tcp"
+ionstart                           \
+    -i ${CONFIGDIR}/loopback.ionrc \
+    -b ${CONFIGDIR}/loopback.bprc  \
+    -s ${CONFIGDIR}/loopback.ionsecrc \
+    -p ${CONFIGDIR}/loopback.ipnrc
+
+# starting a bogus connection
+echo "starting netcat..."
+netcat 127.0.0.1 4556 >/dev/null &
+NETCATPID=$!
+
+# create the test message in a sent file
+# the exclamation point signals the bundle sender to quit
+echo $IONMESSAGE > $IONSENDFILE
+echo "!" >> $IONSENDFILE
+
+
+# receive the message and store it in a file via test bundle sink
+echo "Starting Message Listener..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 5
+
+
+# send the message in the file via test bundle source
+echo "Sending message..."
+bpsource ipn:1.1 < $IONSENDFILE &
+BPSOURCEPID=$!
+
+# sleep and kill process in case it didn't end properly
+sleep 5
+echo "Killing bpsource if it is still running..."
+kill -9 $BPSOURCEPID >/dev/null 2>&1
+
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+# stop netcat
+echo "Stopping netcat..."
+kill -2 $NETCATPID >/dev/null 2>&1
+sleep 1 
+kill -9 $NETCATPID >/dev/null 2>&1
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+
+# compare the sent message to the received one
+if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
+    echo "Oh noes, data corruption!"
+    echo
+    echo "Sent this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONSENDFILE
+    echo "----------------------------------------------------------------------"
+    echo
+    echo "Received this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONRECEIVEFILE
+    echo "----------------------------------------------------------------------"
+    RETVAL=1
+else 
+    echo "bundle transfer successful!"
+    RETVAL=0
+fi
+
+
+# clean up
+#rm -f $IONSENDFILE $IONRECEIVEFILE
+
+
+exit $RETVAL
+

@@ -1,0 +1,70 @@
+=head1 NAME
+
+sdrmend - SDR corruption repair utility
+
+=head1 SYNOPSIS
+
+B<sdrmend> I<sdr_name> I<config_flags> I<heap_words> I<heap_key> I<path_name> [I<restartCmd> I<restartLatency>]
+
+=head1 DESCRIPTION
+
+The B<sdrmend> program simply invokes the sdr_reload_profile() function (see
+sdr(3)) to effect necessary repairs in a potentially corrupt SDR, e.g., due to
+the demise of a program that had an SDR transaction in progress at the moment
+it crashed.
+
+Note that B<sdrmend> need not be run to repair ION's data store in the event
+of a hardware reboot: restarting ION will automatically reload the data
+store's profile.  B<sdrmend> is needed only when it is desired to repair
+the data store without requiring all ION software to terminate and restart.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<sdrmend> has terminated successfully.
+
+=item "1"
+
+B<sdrmend> has terminated unsuccessfully.  See diagnostic messages in the
+B<ion.log> log file for details.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't initialize the SDR system.
+
+Probable operations error: ION appears not to be initialized, in which case
+there is no point in running B<sdrmend>.
+
+=item Can't reload profile for SDR.
+
+ION system error.  See earlier diagnostic messages posted to B<ion.log>
+for details.  In this event it is unlikely that B<sdrmend> can be run
+successfully, and it is also unlikely that it would have any effect if it
+did run successfully.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+sdr(3), ionadmin(1)

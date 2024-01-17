@@ -1,0 +1,11 @@
+1
+a bspbabrule ipn:9.* ipn:5.* HMAC-SHA1 myKey
+a bspbabrule ipn:5.* ipn:9.* HMAC-SHA1 myKey
+a bspbabrule ipn:9.* ipn:6.* HMAC-SHA1 myKey
+a bspbabrule ipn:6.* ipn:9.* HMAC-SHA1 myKey
+a bspbabrule ipn:9.* ipn:7.* HMAC-SHA1 myKey
+a bspbabrule ipn:7.* ipn:9.* HMAC-SHA1 myKey
+# a bspbabrule ipn:5.* ipn:9.* '' ''
+# a bspbabrule ipn:9.* ipn:5.* '' ''
+a key myKey key1.hmk
+a key myKey2 key2.hmk

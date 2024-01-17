@@ -1,0 +1,93 @@
+=head1 NAME
+
+dtpcclock - DTPC daemon task for managing scheduled events
+
+=head1 SYNOPSIS
+
+B<dtpcclock>
+
+=head1 DESCRIPTION
+
+B<dtpcclock> is a background "daemon" task that periodically performs
+scheduled DTPC activities.  It is spawned automatically by B<dtpcadmin> in
+response to the 's' command that starts operation of the DTPC protocol, and
+it is terminated by B<dtpcadmin> in response to an 'x' (STOP) command.
+
+Once per second, B<dtpcclock> takes the following action:
+
+=over 4
+
+First it executes all DTPC events scheduled to occur at any time up to the
+current moment:
+
+=over 4
+
+DTPC ADUs for which an expected positive acknowledgment has not yet arrived
+are retransmitted.
+
+Received DTPC ADUs whose time to live has elapsed are deleted.
+
+=back
+
+Then B<dtpcclock> increases the ages of all DTPC ADUs pending transmission
+and initiates transmission of each such ADU whose age now equals or exceeds
+its aggregation time limit.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item C<0>
+
+B<dtpcclock> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<dtpcadmin> to restart B<dtpcclock>.
+
+=item C<1>
+
+B<dtpcclock> was unable to attach to DTPC protocol operations, probably because
+B<dtpcadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item dtpcclock can't initialize DTPC.
+
+B<dtpcadmin> has not yet initialized DTPC protocol operations.
+
+=item Can't send finished adu.
+
+An unrecoverable database error was encountered.  B<dtpcclock> terminates.
+
+=item Can't stop aggregation for adu.
+
+An unrecoverable database error was encountered.  B<dtpcclock> terminates.
+
+=item Could not scan outbound Adus
+
+An unrecoverable database error was encountered.  B<dtpcclock> terminates.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+dtpcadmin(1)

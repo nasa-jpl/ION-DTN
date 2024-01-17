@@ -1,0 +1,97 @@
+=head1 NAME
+
+ltpdriver - LTP transmission test program
+
+=head1 SYNOPSIS
+
+B<ltpdriver> I<remoteEngineNbr> I<clientId> I<nbrOfCycles> I<greenLength> [I< totalLength>]
+
+=head1 DESCRIPTION
+
+B<ltpdriver> uses LTP to send I<nbrOfCycles> service data units of length
+indicated by I<totalLength>, of which the trailing I<greenLength> bytes are
+sent unreliably, to the B<ltpcounter> client service process for
+client service number I<clientId> attached to the remote LTP engine
+identified by I<remoteEngineNbr>.  If omitted, I<length> defaults to
+60000.  If I<length> is 1, the sizes of the transmitted service data units
+will be randomly selected multiples of 1024 in the range 1024 to 62464.
+
+Whenever the size of the transmitted service data unit is less than or equal
+to I<greenLength>, the entire SDU is sent unreliably.
+
+When all copies of the file have been sent, B<ltpdriver> prints a performance
+report.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<ltpdriver> has terminated.  Any problems encountered during operation
+will be noted in the B<ion.log> log file.
+
+=item "1"
+
+B<ltpdriver> was unable to start, because it could not attach to the LTP
+protocol on the local node.  Run B<ltpadmin> to start LTP, then try again.
+
+=back
+
+=head1 FILES
+
+The service data units transmitted by B<ltpdriver> are sequences of text
+obtained from a file in the current working directory named "ltpdriverAduFile",
+which B<ltpdriver> creates automatically.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages produced by B<ltpdriver> are written to the ION log
+file I<ion.log>.
+
+=over 4
+
+=item ltpdriver can't initialize LTP.
+
+B<ltpadmin> has not yet initialized LTP protocol operations.
+
+=item Can't create ADU file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item Error writing to ADU file
+
+Operating system error.  Check errtext, correct problem, and rerun.
+
+=item ltpdriver can't create file ref.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item ltpdriver can't create ZCO.
+
+ION system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=item ltpdriver can't send message.
+
+LTP span to the remote engine has been stopped.
+
+=item ltp_send failed.
+
+LTP system error.  Check for earlier diagnostic messages describing
+the cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+ltpadmin(1), ltpcounter(1), ltp(3)

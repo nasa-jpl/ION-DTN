@@ -1,0 +1,2 @@
+Disabled on Windows because the killall command does not exist on windows.
+

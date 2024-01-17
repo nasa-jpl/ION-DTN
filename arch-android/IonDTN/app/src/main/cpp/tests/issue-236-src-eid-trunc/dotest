@@ -1,0 +1,100 @@
+#!/bin/bash
+#
+# Mithun Roy
+# Nov 9, 2010
+# documentation boilerplate
+CONFIGFILES=" \
+./config/loopback.bprc \
+./config/loopback.ionsecrc \
+./config/loopback.dtn2rc \
+./config/loopback.ionrc \
+./config/loopback.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test the elimination of bug issue 236. The script runs
+	bpdriver and bpecho, if the src-eid gets truncated bpecho will not
+	respond back to bpdriver. Bpdriver will send one bundle at a time,
+	only after bpecho responds to one bundle, will it send the next one.
+	This test will try to send 10 bundles and only if bpdriver 
+	successfully sends 10 bundles, the test succeeds."
+echo
+echo "CONFIG: custom configuration with dtn eids:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: This test will try to send 10 bundles and only if bpdriver 
+	successfully sends 10 bundles, the test succeeds."
+echo
+echo "########################################"
+
+# message sent over ion
+BUNDLEMESSAGE="Total bundles: 10"
+BPDRIVERFILE=./bpdriver.txt
+BPECHOFILE=./bpecho.txt
+
+echo "Starting ION..."
+CONFIGDIR="./config"
+ionstart                           \
+    -i ${CONFIGDIR}/loopback.ionrc \
+    -b ${CONFIGDIR}/loopback.bprc  \
+    -s ${CONFIGDIR}/loopback.ionsecrc \
+    -p ${CONFIGDIR}/loopback.ipnrc \
+    -d ${CONFIGDIR}/loopback.dtn2rc 
+
+# starting bpecho on dtn://host1.dtn/b
+echo "Starting bpecho on dtn://host1.dtn/b ..."
+bpecho dtn://host1.dtn/b > $BPECHOFILE &
+BPECHOPID=$!
+sleep 1
+
+# starting bpdriver on dtn://host1.dtn/a to send 10 bundles
+echo "Starting bpdriver on dtn://host1.dtn/a ..."
+bpdriver 10 dtn://host1.dtn/a dtn://host1.dtn/b > $BPDRIVERFILE &
+BPDRIVERPID=$!
+
+# sleep and kill bpdriver
+sleep 30
+echo "Killing bpdriver if it is still running..."
+kill -2 $BPDRIVERPID > /dev/null 2>&1
+sleep 1
+kill -9 $BPDRIVERPID > /dev/null 2>&1
+
+# kill bpecho
+echo "stopping bpecho..."
+kill -2 $BPECHOPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPECHOPID >/dev/null 2>&1
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+
+# compare the bpdriver message to see if all 10 bundles were sent
+echo ""
+echo "bpdriver output:"
+cat $BPDRIVERFILE
+echo ""
+echo "bpecho output:"
+cat $BPECHOFILE
+echo ""
+echo ""
+echo "result:"
+if ! grep -q "$BUNDLEMESSAGE" $BPDRIVERFILE; then
+    echo "ERROR: bpdriver didn't transfer all 10 bundles!"
+    RETVAL=1
+else 
+    echo "OK: bpdriver-bpecho successful!!"
+    RETVAL=0
+fi
+
+exit $RETVAL

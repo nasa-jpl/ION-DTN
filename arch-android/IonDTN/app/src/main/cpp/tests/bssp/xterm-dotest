@@ -1,0 +1,130 @@
+#!/bin/bash
+#
+# Sotirios-Angelos Lenas
+# February 14, 2012
+#
+# documentation boilerplate
+CONFIGFILES=" \
+./1.ipn.bssp/amroc.bprc \
+./1.ipn.bssp/amroc.bssprc \
+./1.ipn.bssp/amroc.owltsim \
+./1.ipn.bssp/amroc.ionconfig \
+./1.ipn.bssp/amroc.ionrc \
+./1.ipn.bssp/amroc.ionsecrc \
+./1.ipn.bssp/amroc.ipnrc \
+./2.ipn.bssp/amroc.bprc \
+./2.ipn.bssp/amroc.bssprc \
+./2.ipn.bssp/amroc.ionconfig \
+./2.ipn.bssp/amroc.ionrc \
+./2.ipn.bssp/amroc.ionsecrc \
+./2.ipn.bssp/amroc.ipnrc
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue XX: Bundle Streaming Service.
+Tests BSS protocol and BSS API:
+
+Bundle Streaming Service, is an architecture specifically developed to 
+support real-time streaming of multimedia content in DTN environments.
+BSS architecture is consisted of two parts. The BSS forwarding mechanism
+which is responsible for forwarding BSS traffic in a specialized manner
+and the BSS API which provides, a developer-friendly, overall control over 
+the stream reception procedures by implementing functions that are able 
+to create BSS customized databases, control BSS receiving operations and 
+perform several stream parsing tasks.
+
+	a.  Creation of a customized BSS database, to store the received 
+	    frames, by using BSS API functions.
+	    
+	b.  Under normal operation (real-time mode), BSS forwards data 
+	    through an unreliable duct. In case of frame losses, BSS 
+	    reforwards the frames for which it didn't receive a custody 
+	    acceptance signal through a reliable duct.
+
+	c.  Proper operation of stream parsing functions.
+
+This test simulates the streaming of a HD video by sending a stream 
+of bundles from node 1 to node 2 for 30 seconds. The communication
+channel between node 1 and node 2 presents packet losses (in the order 
+of 10%); the playback mode of the BSS forwarding mechanism is activated in order
+for these losses to be recovered. At the receiver's end, only the frames
+that arrive in-order get immediately displayed while the out-of-order 
+frames are stored in database for later processing. After the period 
+of 30 seconds the stream can be replayed in its entirety by using the
+playback-mode functionality of BSS receiving application, a fact that 
+proves the proper operation of BSS mechanism."
+
+echo
+echo "CONFIG: 2 node custom BSS:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+RETVAL=0 
+# Start nodes.
+cd 1.ipn.bssp
+./ionstart >& node1.stdout
+cd ../2.ipn.bssp
+./ionstart >& node2.stdout
+
+# Start BSS receiver on node 2.
+cd ../2.ipn.bssp
+echo
+echo "Starting bssrecv application..."
+xterm -geom 160x40 -e bssrecv 3 bssDB ../ ipn:2.71 &
+sleep 2
+
+cd ../1.ipn.bssp
+echo
+echo "Sending a stream of bundles from node 1 to node 2 for 30 seconds..."
+echo "bssStreamingApp started at $(date +"%Y/%m/%d-%T")"
+xterm -geom 160x40 -e bssStreamingApp ipn:1.2 ipn:2.71 &
+sleep 20
+pkill -SIGINT bssStreamingApp
+TOTIME=$(date +"%Y/%m/%d-%T")
+echo
+
+# Give node 2 enough time to receive all the reforwarded frames from node 1.
+echo "Wait 15 seconds to ensure the complete reception of the stream from node 2..."
+sleep 15
+pkill bssrecv
+sleep 5
+echo
+echo "Replaying the received stream."
+cd ../2.ipn.bssp
+xterm -geom 160x40 -e bssrecv 1 bssDB ../ ipn:2.71 0 $TOTIME &
+echo
+sleep 70
+pkill bssrecv
+
+RETVAL=0
+
+# Shut down ION processes.
+echo
+echo "Stopping ION..."
+cd ../1.ipn.bssp
+./ionstop &
+cd ../2.ipn.bssp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "BSS test completed."
+exit $RETVAL

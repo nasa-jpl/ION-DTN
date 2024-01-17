@@ -1,0 +1,58 @@
+
+Directory layout
+~~~~~~~~~~~~~~~~
+
+This directory contains the test suite.  Each test lives in its own
+subdirectory of this directory.  Each test is implemented by a script
+named "$TESTNAME/dotest".
+
+
+Running the tests
+~~~~~~~~~~~~~~~~~
+
+The tests are run by running "make test" in the top-level directory,
+or by running "runtests" in this directory.
+
+A subset of the tests can also be run:
+
+	./runtests xyz a*
+
+A file defining a set of tests can be run with runtestset.  The arguments
+to runtestset are files that contain globs of tests to run:
+
+    ./runtestset quicktests
+
+
+Writing new tests
+~~~~~~~~~~~~~~~~~
+
+A test directory must contain an executable file named "dotest".  If a
+directory does not contain this, then the test directory is ignored.
+
+The dotest program should execute the test, possibly reporting runtime
+information on stdout and stderr, and indicate by its return value the
+status of the test:
+
+    0: Success
+
+    1: Failure
+
+    2: Skip this test
+
+The test program starts without the ION stack running.  The test program
+is responsible for starting the ION stack in the way it wants to test.
+The test program *must* stop the ION stack before returning.
+
+
+The test environment
+~~~~~~~~~~~~~~~~~~~~
+
+The tests' dotest scripts are run in their test directory.
+
+The following environment variables are set as indicated:
+
+    IONDIR is the root of the local ION source directory
+
+    PATH begins with IONDIR (this is where the local executables are
+    found)
+

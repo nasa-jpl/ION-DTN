@@ -1,0 +1,38 @@
+#!/bin/bash
+# Sends bundles to the local ION node with custody transfer requested,
+# and then verifies that ION emits properly-formatted ACS bundles.
+#
+#	Author: Andrew Jenkins
+#				University of Colorado at Boulder
+#	Copyright (c) 2008-2011, Regents of the University of Colorado.
+#	This work was supported by NASA contracts NNJ05HE10G, NNC06CB40C, and
+#	NNC07CB47C.
+
+export PYTHONPATH=`pwd`/..:`pwd`/../../pylib:$PYTHONPATH
+echo "Setting PYTHONPATH to $PYTHONPATH"
+
+FAIL=0
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+echo "Starting ION..."
+srcdir=`pwd`
+echo "ionstart -I host1.rc"
+"ionstart" -I "host1.rc"
+
+echo "l\nq" | acsadmin
+
+# give ION some time to start up
+sleep 1
+
+# Run the test manifest.
+../test-acs manifest
+FAIL=$?
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+exit $FAIL

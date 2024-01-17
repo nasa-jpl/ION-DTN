@@ -1,0 +1,234 @@
+#!/bin/bash
+#
+# Copyright (c) 2009, Regents of the University of Colorado.
+#
+# Written by Andrew Jenkins and Sebastian Kuzminsky, based on loopbacktest.sh by David Young
+#
+
+# Ping pongs bundles with custody transfer from one BP endpoint to another
+# over UDP.
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-ltp/loopback.ionrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ltprc \
+${CONFIGSROOT}/loopback-ltp/loopback.bprc \
+${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
+${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To ping-pong 5 bundles with custody transfer from one BP endpoint
+	to another over UDP.  Uses the valgrind debugging/profiling tool:
+	http://valgrind.org/"
+echo
+echo "CONFIG: custom loopback:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Various debugging messages associated with the valgrind tool.
+	valgrind output files will follow the pattern:
+	$PWD/out.valgrind..."
+echo
+echo "########################################"
+
+if [ -z $1 ]; then
+    ITERATIONGOAL=5
+else
+    ITERATIONGOAL=$1
+fi
+
+# Guess what ION will say if a bundle containing $1 is received.
+# The extra byte in the length is because bptrace adds a null terminator at 
+# the end (but bpsource does not).  How lame is that?
+predictreceived () {
+    EXLENGTH=`expr ${#1} + 1`
+    echo "ION event: Payload delivered."
+    echo "	payload length is ${EXLENGTH}."
+    echo "	'${1}'"
+}
+
+# Try 10 times to see if the bundle has been received.
+tryreceive () {
+    X=0
+
+    while [ $X -lt 200 ]
+    do
+        # sleep and kill process in case it didn't end properly
+        sleep 0.04 
+
+        # Check if bpsink got the file.
+        if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
+        then
+            X=`expr $X + 1`
+        else
+            # We received it.  Hooray.
+            return 0
+        fi
+    done
+    # We didn't receive it, even after 10 tries; bummer.
+    diff $IONRECEIVEFILE $IONEXPECTEDFILE
+    return 1
+}
+
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONSENDFILE=./ionsendfile.txt
+IONRECEIVEFILE=./ionreceivefile.txt
+IONEXPECTEDFILE=./ionexpectedfile.txt
+
+echo "Killing old ION..."
+killm
+sleep 1
+
+if ! which valgrind > /dev/null 2> /dev/null; then
+    echo "valgrind not found, skipping test"
+    exit 2
+fi
+
+
+# uncomment the second line here if you want valgrind to emit suppressions for you
+GEN_SUPPRESSIONS=""
+#GEN_SUPPRESSIONS="--gen-suppressions=all"
+
+
+# clean up any old valgrind output files
+rm -f out.valgrind.* 2>/dev/null
+
+#clean up any old test i/o files
+rm $IONSENDFILE $IONRECEIVEFILE $IONEXPECTEDFILE 2>/dev/null
+
+echo "Starting ION..."
+CONFIGDIR="./config"
+libtool --mode=execute                             \
+    valgrind                                       \
+    $GEN_SUPPRESSIONS                              \
+    --suppressions=valgrind.suppressions.ionstart  \
+    --quiet                                        \
+    --log-file=out.valgrind.loopback.ionstart.%p   \
+    --num-callers=25                               \
+    --tool=memcheck                                \
+    --trace-children=yes                           \
+    --leak-check=full                              \
+    $IONDIR/ionstart                               \
+        -I $CONFIGDIR/host1.rc                     \
+
+
+# Send a bundle to an endpoint that hasn't been created.  This bundle
+# should be discarded.
+echo "Sending initial discard bundle..."
+echo "$( date )" > $IONSENDFILE
+echo "!" >> $IONSENDFILE
+libtool --mode=execute                             \
+    valgrind                                       \
+    $GEN_SUPPRESSIONS                              \
+    --quiet                                        \
+    --log-file=out.valgrind.loopback.bpsink.%p     \
+    --num-callers=25                               \
+    --tool=memcheck                                \
+    --trace-children=yes                           \
+    --leak-check=full                              \
+    $IONDIR/bpsource ipn:1.4 < $IONSENDFILE
+sleep 5
+
+# Start the listener that will receive all the bundles.  This listener
+# should listen on an endpoint that hasn't been created.
+echo "Starting Message Listener..."
+libtool --mode=execute                             \
+    valgrind                                       \
+    $GEN_SUPPRESSIONS                              \
+    --quiet                                        \
+    --log-file=out.valgrind.loopback.bpsink.%p     \
+    --num-callers=25                               \
+    --tool=memcheck                                \
+    --trace-children=yes                           \
+    --leak-check=full                              \
+    $IONDIR/bpsink ipn:1.4 > $IONRECEIVEFILE &
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 5
+
+ITERATION=0
+PASS=1
+
+while [ ${PASS} -eq 1 ] && [ ! $ITERATION -gt $ITERATIONGOAL ]
+do
+    IONMESSAGE=$( date )
+    
+    # create the test message in a sent file
+    # the exclamation point signals the bundle sender to quit
+    # send the message in the file via test bundle source
+libtool --mode=execute                             \
+    valgrind                                       \
+    $GEN_SUPPRESSIONS                              \
+    --quiet                                        \
+    --log-file=out.valgrind.loopback.bpsink.%p     \
+    --num-callers=25                               \
+    --tool=memcheck                                \
+    --trace-children=yes                           \
+    --leak-check=full                              \
+    $IONDIR/bptrace ipn:1.2 ipn:1.4 ipn:1.2 60 1.0 "$IONMESSAGE" 31
+
+    # Predict what should come out the other end.
+    predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
+
+    sleep 2
+
+    if tryreceive 
+    then
+        echo -n "."
+        if [ `expr $ITERATION % 80` -eq 0 ]
+        then
+            echo $ITERATION
+        fi
+        ITERATION=`expr $ITERATION + 1`
+    else
+        PASS=0
+        echo "FAILED on ITERATION $ITERATION at `date`."
+    fi
+done
+
+echo
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "Stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+
+if [ $ITERATION -eq `expr $ITERATIONGOAL + 1` ]
+then
+    echo Completed `expr $ITERATION - 1` iterations successfully
+	RETVAL=0
+else
+    RETVAL=1
+fi
+# 
+# see if valgrind noticed any problems
+#
+
+for V in out.valgrind.*; do
+    if [ $(cat $V | wc -l) -gt 0 ]; then
+        echo $V
+        cat $V
+        RETVAL=1
+    else
+        rm $V
+    fi
+done
+
+
+exit $RETVAL
+

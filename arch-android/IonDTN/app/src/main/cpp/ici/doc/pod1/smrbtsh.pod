@@ -1,0 +1,127 @@
+=head1 NAME
+
+smrbtsh - shared-memory red-black tree test shell
+
+=head1 SYNOPSIS
+
+B<smrbtsh> [I<command_file_name>]
+
+=head1 DESCRIPTION
+
+B<smrbtsh> allocates a region of shared system memory, attaches to that
+region, places it under PSM management, creates a temporary "test" red-black
+tree in that memory region, and executes a series of shared-memory red-black
+tree commands that exercise various tree access and management functions.
+
+If I<command_file_name> is provided, then the commands in the indicated file
+are executed and the program then terminates.  Upon termination, the shared
+memory region allocated to B<smrbtsh> is detached and destroyed.
+
+Otherwise, B<smrbtsh> offers the user an interactive "shell" for testing the
+smrbt functions in a conversational manner: B<smrbtsh> prints a prompt string
+(": ") to stdout, accepts a command from stdin, executes the command (possibly
+printing a diagnostic message), then prints another prompt string and so on.
+Upon execution of the 'q' command, the program terminates.
+
+The following commands are supported:
+
+=over 4
+
+=item B<h>
+
+The B<help> command.  Causes B<smrbtsh> to print a summary of available
+commands.  Same effect as the B<?> command.
+
+=item B<?>
+
+Another B<help> command.  Causes B<smrbtsh> to print a summary of available
+commands.  Same effect as the B<h> command.
+
+=item B<s> [I<seed_value>]
+
+The B<seed> command.  Seeds random data value generator, which is used to
+generate node values when the B<r> command is used.  If I<seed_value> is
+omitted, uses current time (as returned by time(1)) as seed value.
+
+=item B<r> [I<count>]
+
+The B<random> command.  Inserts I<count> new nodes into the red-black tree,
+using randomly selected unsigned long integers as the data values of the
+nodes; I<count> defaults to 1 if omitted.
+
+=item B<i> I<data_value>
+
+The B<insert> command.  Inserts a single new node into the red-black tree,
+using I<data_value> as the data value of the node.
+
+=item B<f> I<data_value>
+
+The B<find> command.  Finds the rbt node whose value is I<data_value>,
+within the red-black tree, and prints the address of that node.  If the 
+node is not found, prints address zero and prints the address of the
+successor node in the tree.
+
+=item B<d> I<data_value>
+
+The B<delete> command.  Deletes the rbt node whose data value is
+I<data_value>.
+
+=item B<p>
+
+The B<print> command.  Prints the red-black tree, using indentation to
+indicate descent along paths of the tree.
+
+Note: this function is supported only if the B<smrbt> library was built
+with compilation flag -DSMRBT_DEBUG=1.
+
+=item B<k>
+
+The B<check> command.  Examines the red-black tree, noting the first
+violation of red-black structure rules, if any.
+
+Note: this function is supported only if the B<smrbt> library was built
+with compilation flag -DSMRBT_DEBUG=1.
+
+=item B<l>
+
+The B<list> command.  Lists all nodes in the red-black tree in traversal
+order, noting any nodes whose data values are not in ascending numerical
+order.
+
+=item B<q>
+
+The B<quit> command.  Detaches B<smrbtsh> from the region of shared
+memory it is currently using, destroys that shared memory region, and
+terminates B<smrbtsh>.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<smrbtsh> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+No diagnostics apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+smrbt(3)

@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# September 25, 2011
+# documentation boilerplate
+CONFIGFILES=" \
+./test.ionrc \
+./test.ionsecrc \
+./test.ltprc \
+./test.bprc \
+./test.ipnrc \
+./global.ionrc
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Verify that 'invincible' timeline events are no longer produced."
+echo
+echo "CONFIG: A contact plan with two nodes, only one of which runs:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Searching for bundle forwarding messages in ion.log to ensure
+	that the test bundle issued by driver is reforwarded just once (a
+	single custody acceptance expiration, even though bpMemo is called
+	twice)."
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f ion.log
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start node 1.
+./ionstart
+../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+echo "Sending bundle with 60-second lifetime from ipn:1.1 to ipn:2.1.  Should
+be reforwarded upon expiration of 2nd timeout, 6 seconds after origination."
+./driver
+
+echo "Waiting for contact to terminate..."
+sleep 30
+echo "Contact has terminated.  Verifying results..."
+
+# Verify bundle was forwarded.
+RETVAL=0
+
+echo "Checking ion.log for 'src' message '(+) 1 6'..."
+COUNT=`grep src ion.log | grep "(+) 1 6" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: Bundle was sourced."
+else
+	echo "ERROR: Bundle not sourced."
+	RETVAL=1
+fi
+
+echo "Checking ion.log for 'fwd' message '(+) 2 12'..."
+COUNT=`grep fwd ion.log | grep "(+) 2 12" | wc -l`
+if [ $COUNT -gt 0 ]
+then
+	echo "OK: Bundle was reforwarded exactly once."
+else
+	echo "ERROR: Bundle not reforwarded on custodial timeout."
+	RETVAL=1
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./ionstop
+killm
+echo "bpMemo timeline test completed."
+exit $RETVAL

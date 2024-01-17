@@ -1,0 +1,84 @@
+=head1 NAME
+
+cfdpclock - CFDP daemon task for managing scheduled events
+
+=head1 SYNOPSIS
+
+B<cfdpclock>
+
+=head1 DESCRIPTION
+
+B<cfdpclock> is a background "daemon" task that periodically performs
+scheduled CFDP activities.  It is spawned automatically by B<cfdpadmin> in
+response to the 's' command that starts operation of the CFDP protocol, and
+it is terminated by B<cfdpadmin> in response to an 'x' (STOP) command.
+
+Once per second, B<cfdpclock> takes the following action:
+
+=over 4
+
+First it scans all inbound file delivery units (FDUs).  For each one
+whose check timeout deadline has passed, it increments the check timeout
+count and resets the check timeout deadline.  For each one whose check
+timeout count exceeds the limit configured for this node, it invokes
+the Check Limit Reached fault handling procedure.
+
+Then it scans all outbound FDUs.  For each one that has been Canceled, it
+cancels all extant PDU bundles and sets transmission progress to the size
+of the file, simulating the completion of transmission.  It destroys each
+outbound FDU whose transmission is completed.
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<cfdpclock> terminated, for reasons noted in the B<ion.log> file.  If this
+termination was not commanded, investigate and solve the problem identified
+in the log file and use B<cfdpadmin> to restart B<cfdpclock>.
+
+=item "1"
+
+B<cfdpclock> was unable to attach to CFDP protocol operations, probably because
+B<cfdpadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item cfdpclock can't initialize CFDP.
+
+B<cfdpadmin> has not yet initialized CFDP protocol operations.
+
+=item Can't dispatch events.
+
+An unrecoverable database error was encountered.  B<cfdpclock> terminates.
+
+=item Can't manage links.
+
+An unrecoverable database error was encountered.  B<cfdpclock> terminates.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+cfdpadmin(1)

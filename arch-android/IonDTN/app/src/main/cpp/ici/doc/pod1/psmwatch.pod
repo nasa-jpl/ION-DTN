@@ -1,0 +1,89 @@
+=head1 NAME
+
+psmwatch - PSM memory partition activity monitor
+
+=head1 SYNOPSIS
+
+B<psmwatch> I<shared_memory_key> I<memory_size> I<partition_name> I<interval> I<count> [ verbose ]
+
+=head1 DESCRIPTION
+
+For I<count> interations, B<psmwatch> sleeps I<interval> seconds and then
+invokes the psm_print_trace() function (see psm(3)) to report on PSM dynamic
+memory management activity in the PSM-managed shared memory partition
+identified by I<shared_memory_key> during that interval.  If the optional
+B<verbose> parameter is specified, the printed PSM activity trace will be
+verbose as described in psm(3).
+
+To prevent confusion, the specified I<memory_size> and I<partition_name> are
+compared to those declared when this shared memory partition was initially
+managed; if they don't match, B<psmwatch> immediately terminates.
+
+If I<interval> is zero, B<psmwatch> merely prints a current usage summary
+for the indicated shared-memory partition and terminates.
+
+B<psmwatch> is helpful for detecting and diagnosing memory leaks.  For
+debugging the ION protocol stack:
+
+=over 8
+
+=item I<shared_memory_key>
+
+Normally "65281", but might be overridden by the value of wmKey in the
+.ionconfig file used to configure the node under study.
+
+=item I<memory_size>
+
+As given by the value of wmKey in the .ionconfig file used to configure the
+node under study.  If this value is not stated in the .ionconfig file, the
+default value is "5000000".
+
+=item I<partition_name>
+
+Always "ionwm".
+
+=back
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<psmwatch> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to psm.
+
+ION system error.  One possible cause is that ION has not yet been
+initialized on the local computer; run ionadmin(1) to correct this.
+
+=item Can't start trace.
+
+Insufficient ION working memory to contain trace information.  Reinitialize
+ION with more memory.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+psm(3), sdrwatch(1)

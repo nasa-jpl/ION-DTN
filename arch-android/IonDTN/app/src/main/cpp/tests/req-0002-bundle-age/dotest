@@ -1,0 +1,150 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# February 26, 2012
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.bench.tcp/bench.bprc \
+./2.bench.tcp/unblock.bprc \
+./2.bench.tcp/bench.ionconfig \
+./2.bench.tcp/bench.ionrc \
+./2.bench.tcp/bench.ionsecrc \
+./2.bench.tcp/bench.ipnrc \
+./3.bench.tcp/bench.bprc \
+./3.bench.tcp/unblock.bprc \
+./3.bench.tcp/bench.ionconfig \
+./3.bench.tcp/bench.ionrc \
+./3.bench.tcp/bench.ionsecrc \
+./3.bench.tcp/bench.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: demonstrate correct bundle expiration time computations
+	for nodes both with and without synchronized clocks.  Node 2
+	is configured as a node with a synchronized clock, while node
+	3 is configured as a node with no synchronized clock.  Transmission
+	between nodes 2 and 3 is blocked after initial connection;
+	then bundles are issued by both nodes and 3 seconds later the
+	plans are unblocked.
+	First bundle sent by 2 and second bundle sent by 3 expire at node 2.
+	First bundle sent by 3 and second bundle sent by 2 expire at node 3.
+	Third bundle sent by each node is still alive at end of test."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.bench.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.bench.tcp
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+sleep 3
+echo ""
+echo "Blocking transmission between nodes 2 and 3."
+cd ../2.bench.tcp
+bpadmin block.bprc
+cd ../3.bench.tcp
+bpadmin block.bprc
+
+sleep 3
+echo ""
+echo "Sending three bundles from node 2 to (nonexistent) node 4 via node 3."
+echo "Time-to-live is 5 sec for bundle 1, 15 for bundle 2, 60 for bundle 3."
+cd ../2.bench.tcp
+bptrace ipn:2.1 ipn:4.1 dtn:none  5 0.1 "Bundle 1."
+bptrace ipn:2.1 ipn:4.1 dtn:none 15 0.1 "Bundle 02."
+bptrace ipn:2.1 ipn:4.1 dtn:none 60 0.1 "Bundle 003."
+echo ""
+echo "Sending three bundles from node 3 to (nonexistent) node 1 via node 2."
+echo "Time-to-live is 5 sec for bundle 1, 15 for bundle 2, 60 for bundle 3."
+cd ../3.bench.tcp
+bptrace ipn:3.1 ipn:1.1 dtn:none  5 0.1 "First bundle."
+bptrace ipn:3.1 ipn:1.1 dtn:none 15 0.1 "Second bundle."
+bptrace ipn:3.1 ipn:1.1 dtn:none 60 0.1 "Thirdly bundle."
+
+sleep 10
+
+echo ""
+echo "Unblocking transmission between nodes 2 and 3."
+cd ../2.bench.tcp
+bpadmin unblock.bprc
+cd ../3.bench.tcp
+bpadmin unblock.bprc
+
+sleep 20
+
+RETVAL=0
+
+cd ../2.bench.tcp
+bpstats
+COUNT=`grep "(+) 2 25" ion.log | egrep "exp" | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "Expirations wrong on node 2."
+	RETVAL=1
+else
+	echo "Expirations okay on node 2."
+fi
+
+cd ../3.bench.tcp
+bpstats
+COUNT=`grep "(+) 2 25" ion.log | egrep "exp" | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "Expirations wrong on node 3."
+	RETVAL=1
+else
+	echo "Expirations okay on node 3."
+fi
+
+echo "Stopping ION..."
+cd ../2.bench.tcp
+./ionstop &
+cd ../3.bench.tcp
+./ionstop &
+sleep 5
+killm
+echo "Bundle age test completed."
+exit $RETVAL

@@ -1,0 +1,204 @@
+#!/bin/bash
+# Issue 352 - BPCP
+# Samuel Jero
+# April 15, 2012
+
+
+# documentation boilerplate
+CONFIGFILES=" \
+./1.ipn.cfdp.bp.tcp/host1.ionrc \
+./1.ipn.cfdp.bp.tcp/host1.ionconfig \
+./1.ipn.cfdp.bp.tcp/host1.ipnrc \
+./1.ipn.cfdp.bp.tcp/host1.cfdprc \
+./1.ipn.cfdp.bp.tcp/host1.bprc \
+./1.ipn.cfdp.bp.tcp/host1.ionsecrc \
+./3.ipn.cfdp.bp.tcp/host3.ipnrc \
+./3.ipn.cfdp.bp.tcp/host3.bprc \
+./3.ipn.cfdp.bp.tcp/host3.ionsecrc \
+./3.ipn.cfdp.bp.tcp/host3.ionrc \
+./3.ipn.cfdp.bp.tcp/host3.cfdprc \
+./3.ipn.cfdp.bp.tcp/host3.ionconfig \
+./2.ipn.cfdp.bp.tcp/host2.ionrc \
+./2.ipn.cfdp.bp.tcp/host2.ionsecrc \
+./2.ipn.cfdp.bp.tcp/host2.ionconfig \
+./2.ipn.cfdp.bp.tcp/host2.ipnrc \
+./2.ipn.cfdp.bp.tcp/host2.bprc \
+./2.ipn.cfdp.bp.tcp/host2.cfdprc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test that bpcp works correctly in local to remote,"
+echo "           remote to local, and remote to remote copies."
+echo
+echo "CONFIG: 3 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -rf ./ion_nodes
+
+# Start nodes.
+cd 1.ipn.cfdp.bp.tcp
+./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 1
+fi
+cd ../2.ipn.cfdp.bp.tcp
+./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+cd ../3.ipn.cfdp.bp.tcp
+./ionstart
+../../../system_up -i "p 30" -c "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+cd ..
+
+#Test 1 L2R
+sleep 12
+echo "Test 1 --- Local to Remote Copy"
+cd 1.ipn.cfdp.bp.tcp
+echo "Starting bpcp..."
+bpcp ../dotest 3:test1
+sleep 3
+cd ../3.ipn.cfdp.bp.tcp
+TEST=`diff ../dotest test1`
+echo $TEST
+if  [ ! -e ./test1 ] || [ -n "$TEST" ]; then
+	echo "ERROR: Local to Remote Copy Failed. FAILED!!"
+	cd ../1.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ../2.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ../3.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ..
+	killm
+	RETVAL=1
+	exit $RETVAL
+else
+	echo "OK: Local to Remote Copy Sucessful"
+fi
+
+#Test 2 R2L
+echo "Test 2 --- Remote to Local Copy"
+sleep 1
+echo "Starting bpcpd..."
+cd ../3.ipn.cfdp.bp.tcp
+bpcpd &
+BPCPD3_PID=$!
+sleep 3
+cd ../1.ipn.cfdp.bp.tcp
+echo "Starting bpcp..."
+bpcp 3:../dotest test2
+sleep 3
+TEST=`diff ../dotest test2`
+echo $TEST
+if [ ! -e ./test2 ] || [ -n "$TEST" ]; then
+	echo "ERROR: Remote to Local Copy Failed. FAILED!!"
+	echo "Stopping bpcpd..."
+	kill -2 $BPCPD3_PID >/dev/null 2>&1
+	sleep 1 
+	kill -9 $BPCPD3_PID >/dev/null 2>&1
+	cd ../1.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ../2.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ../3.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ..
+	killm
+	RETVAL=1
+	exit $RETVAL
+else
+	echo "OK: Remote to Local Copy Sucessful"
+fi
+
+#Test 3 R2R
+echo "Test 3 --- Remote to Remote Copy"
+sleep 1
+echo "Starting bpcpd..."
+cd ../2.ipn.cfdp.bp.tcp
+bpcpd &
+BPCPD2_PID=$!
+sleep 3
+cd ../1.ipn.cfdp.bp.tcp
+echo "Starting bpcp..."
+bpcp 3:../dotest 2:./test3
+sleep 3
+cd ../2.ipn.cfdp.bp.tcp
+TEST=`diff ../dotest test3`
+echo $TEST
+if  [ ! -e ./test3 ] || [ -n "$TEST" ]; then
+	echo "ERROR: Remote to Remote Copy Failed. FAILED!!"
+	echo "Stopping bpcpd..."
+	kill -2 $BPCPD2_PID >/dev/null 2>&1
+	kill -2 $BPCPD3_PID >/dev/null 2>&1
+	sleep 1 
+	kill -9 $BPCPD2_PID >/dev/null 2>&1
+	kill -9 $BPCPD3_PID >/dev/null 2>&1
+	cd ../1.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ../2.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ../3.ipn.cfdp.bp.tcp
+	./ionstop
+	cd ..
+	killm
+	RETVAL=1
+	exit $RETVAL
+else
+	echo "OK: Remote to Remote Copy Sucessful. SUCESS!"
+fi
+
+RETVAL=0
+
+echo "Stopping bpcpd..."
+kill -2 $BPCPD2_PID >/dev/null 2>&1
+kill -2 $BPCPD3_PID >/dev/null 2>&1
+sleep 1 
+kill -9 $BPCPD2_PID >/dev/null 2>&1
+kill -9 $BPCPD3_PID >/dev/null 2>&1
+
+cd ../1.ipn.cfdp.bp.tcp
+./ionstop
+cd ../2.ipn.cfdp.bp.tcp
+./ionstop
+cd ../3.ipn.cfdp.bp.tcp
+./ionstop
+cd ..
+killm
+exit $RETVAL

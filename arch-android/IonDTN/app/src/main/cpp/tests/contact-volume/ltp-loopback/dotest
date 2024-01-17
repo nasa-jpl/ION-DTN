@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+# Copyright (c) 2009, Regents of the University of Colorado.
+#
+# Written by Sebastian Kuzminsky, based on loopbacktest.sh by David Young
+#
+# documentation boilerplate
+CONFIGFILES=" \
+${CONFIGSROOT}/loopback-ltp/loopback.rc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Test a variety of contact volume behavior on an ltp-loopback."
+echo
+echo "CONFIG: Standard loopback-ltp: "
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: A variety of contact volumes are configured while a test bundle
+	is sent on loopback.  If the expected bundle contents are received,
+	the test passed.
+NOTE: contact-volume/volume_functions.sh provides functions in this script."
+echo
+echo "########################################"
+
+source ../volume_functions.sh
+
+# message sent over ion
+IONMESSAGE="iontestmessage"
+IONRECEIVEFILE=./ionreceivefile.txt
+EXPECTEDCOUNT=3
+
+echo "Starting ION..."
+ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc
+
+#The sample config adds contacts we don't care about
+deleteallvolumes
+
+# receive the message and store it in a file via test bundle sink
+echo "Starting Message Listener..."
+bpsink ipn:1.1 > $IONRECEIVEFILE &
+BPSINKPID=$!
+
+# give bpsink some time to start up
+sleep 1
+
+echo "Create test contact volume 1: 2e5 seconds * 1e5 B/s = 2e10 B"
+testvolume 200000 100000
+
+echo "Create test contact volume 2: 2e8 seconds * 1e5 B/s = 2e13 B"
+testvolume 200000000 100000
+
+echo "Create test contact volume 3: 2e8 seconds * 1e6 B/s = 2e14 B"
+testvolume 200000000 1000000
+
+# bpsink does not self-terminate, so send it SIGINT
+echo "stopping bpsink"
+kill -2 $BPSINKPID >/dev/null 2>&1
+sleep 1
+kill -9 $BPSINKPID >/dev/null 2>&1
+
+
+# shut down ion processes
+echo "Stopping ion..."
+ionstop
+killm
+
+
+echo "Compare the sent message to the received one."
+RECEIVEDCOUNT=$(grep "$IONMESSAGE" $IONRECEIVEFILE | wc -l)
+if ! (( $RECEIVEDCOUNT == $EXPECTEDCOUNT )); then
+    echo "Didn't receive $EXPECTEDCOUNT copies of the message!"
+    echo
+    echo "Received this:"
+    echo "----------------------------------------------------------------------"
+    cat $IONRECEIVEFILE
+    echo "----------------------------------------------------------------------"
+    RETVAL=1
+else 
+    echo "bundle transfer successful!"
+    RETVAL=0
+fi
+
+exit $RETVAL

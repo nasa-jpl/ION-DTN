@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# December 6, 2011
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 302, fast data structures.
+	We transmit 100 small bundles from node 2 to node 3, with custody
+	transfer requested and TTL = 30 seconds.  Within 1 minute we expect
+	all bundles to have been successfully received with custody
+	acknowledged, so that the statistics printed at end of contact
+	show no bundles expiring at the sender.  This exercises both the
+	new red-black trees used for release of stewardship and the new
+	bundles hash table used for acknowledgment of custody transfer."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+echo "Starting bpcounter on node 3..."
+sleep 1
+bpcounter ipn:3.1 100 &
+BPCOUNTER_PID=$!
+
+cd ../2.ipn.ltp
+echo "Sending bundles to ipn:3.1, should eventually be delivered..."
+bpdriver -100 ipn:2.1 ipn:3.1 -10000 t30 &
+
+# Wait for transmission to finish.
+echo "Waiting for end of contact (60 seconds)..."
+sleep 60
+echo "Contact ended.  Verifying results..."
+
+# Verify no bundles expired at the sender.
+RETVAL=0
+
+COUNT=`grep "(1) 0 0" ion.log | egrep "exp" | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "Lack of bundle expiration not detected."
+	RETVAL=1
+else
+	echo "No bundle expiration at node 2."
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Fast data structures test completed."
+exit $RETVAL

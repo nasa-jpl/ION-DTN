@@ -125,11 +125,6 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_sendBundleION(JNIEnv *env,
     // Ensure that there is actual payload to send
     if (payloadLength == 0)
     {
-        free(destEID);
-
-        (*env)->ReleaseStringUTFChars(env, dest_eid_, dest_EID);
-        (*env)->ReleaseByteArrayElements(env, payload_, (jbyte*)payload, 0);
-
         return -1;
     }
 
@@ -340,9 +335,8 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_sendBundleFileION(JNIEnv *env,
 
         return -1;
     }
-
-    __android_log_print(ANDROID_LOG_DEBUG, "tag", "adu length is %lld",
-                        aduLength);
+    // Jay L. Gao: change from %lld to %ld for 64 bits
+    __android_log_print(ANDROID_LOG_DEBUG, "tag", "adu length is " VAST_FIELDSPEC, aduLength);
 
     bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
                              (unsigned char)qos, ancillaryData.ordinal,
@@ -392,9 +386,9 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_sendBundleFileION(JNIEnv *env,
     ionStopAttendant(&attendant);
 
     bp_detach();
-
+    // Jay L. Gao: change %lld to %ld for 64 bits
     __android_log_print(ANDROID_LOG_DEBUG, "JNI_T", "Sent bundle with payload"
-            " length of %llu", aduLength);
+            " length of " VAST_FIELDSPEC, aduLength);
 
     // Properly free all temporarily allocated resources
     free(destEID);
@@ -463,7 +457,6 @@ Java_gov_nasa_jpl_iondtn_backend_ReceiverRunnable_waitForBundle(JNIEnv *env,
     {
         putErrmsg("Can't handle delivery.",
                   NULL);
-	free(content);
         return NULL;
     }
 
@@ -541,8 +534,6 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_openEndpointION(JNIEnv *env,
     if (src_eid == NULL)
     {
         // empty EID, no initialization possible
-	free(data);
-	free(eidm);
         return 0;
     }
 
@@ -550,7 +541,6 @@ Java_gov_nasa_jpl_iondtn_services_BundleService_openEndpointION(JNIEnv *env,
     if (bp_open(eidm, &data->sap) < 0)
     {
         putErrmsg("Can't open own endpoint.", eidm);
-	free(eidm);
         return 0;
     }
 

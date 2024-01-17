@@ -1,0 +1,124 @@
+#!/bin/bash
+#
+# Samuel Jero
+# Ohio University
+# December 1, 2011
+#
+# This test pertains to issue #323 "Congestion Forecasting Overflow Error".
+#Confirms that issue 323 correctly fixed the overflow in congestion forecasting
+#by ensuring that bundles can stillbe sent and received using a configuration
+#that would have caused the overflow.
+
+CONFIGFILES=" \
+./1.ipn.bp.udp/config.ionconfig \
+./1.ipn.bp.udp/config.ionrc \
+./1.ipn.bp.udp/config.bprc \
+./1.ipn.bp.udp/config.ipnrc"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of issue 323.
+        Confirms that issue 323 correctly fixed the overflow in
+	congestion forecasting by ensuring that bundles can still
+	be sent and received using a configuration that would
+	have caused the overflow."
+echo
+echo "CONFIG: 1 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+
+#Start ION
+echo "Starting ion node..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+cd 1.ipn.bp.udp
+./ionstart
+
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node not started: Aborting Test"
+	exit 1
+fi
+
+cd ../
+
+echo "Starting bpsink.."
+
+cd 1.ipn.bp.udp
+bpsink ipn:1.1  > testfile &
+BPSINK_PID=$!
+cd ..
+sleep 5
+
+echo "Sending bundles with bpsource..."
+cd 1.ipn.bp.udp
+bpsource ipn:1.1 "test1" &
+BPSOURCE_PID=$!
+cd ..
+
+echo "Waiting 10 seconds for bpsink to receive bundle..."
+sleep 10
+
+#Check if bpsource is still running
+kill -0 $BPSOURCE_PID
+TEST=$?
+if [ $TEST -eq 0 ]; then
+	echo "Bundles were not sent. ION believed to be locked! FAILURE!"
+	echo ""
+	RETVAL=1
+else
+	RETVAL=0
+fi
+
+
+echo "Stopping bpsink and bpsource..."
+kill -2 $BPSOURCE_PID >/dev/null 2>&1
+kill -2 $BPSINK_PID >/dev/null 2>&1
+sleep 1 
+kill -9 $BPSOURCE_PID >/dev/null 2>&1
+kill -9 $BPSINK_PID >/dev/null 2>&1
+
+# Now we analyze the TTL value from the BP header of the bundle. We measure
+# from the end of the bundle to avoid the SDNV timestamp field which will have
+# a constantly changing length.
+cd 1.ipn.bp.udp
+RESULTS=`cat testfile | grep "Payload delivered"`
+if [ "$RESULTS" != "" ] && [ $RETVAL -eq 0 ]; then
+	echo "Bundles were sent and received! SUCCESS!"
+	echo ""
+	RETVAL=0
+else
+	# We have a problem.  The BP response doesn't have the ttl we expect it to have.  Test failed.
+	echo "Bundles were not received.  FAILURE!"
+	echo ""
+	RETVAL=1
+fi
+cd ..
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd 1.ipn.bp.udp
+./ionstop &
+cd ../
+sleep 5
+killm
+
+echo "Congestion Forecasting Overflow test complete."
+exit $RETVAL

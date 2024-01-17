@@ -15,13 +15,31 @@ android {
                 cppFlags ""
             }
         }
-        ndk { abiFilters 'armeabi-v7a' }
+        // Jay L. Gao: for 32 bit use armeabi-v7a, set SPACE_ORDER=2 in Android.mk
+        //             for 64 bit use arm64-v8a, set SPACE_ORDER=3
+        //  20210227: currently trying to compile 64 bits will result in crash immediate after launch
+        //            use 32 bits for now
+        //  20200311: start 64 build branch, try to debug 64 bits
+        //ndk { abiFilters 'armeabi-v7a' }
+        ndk { abiFilters 'arm64-v8a' }
+        // Jay L. Gao: if artlib.so crash, comment it out but must use armeabi-v7a 32bit
         vectorDrawables.useSupportLibrary = true
+        // Jay L. Gao: set default symbol level for ndk
+        // after syncing for dependency, you get the
+        // implementation 'com.android.support:support-annotations:28.0.0' line in the
+        // dependency section.
+        ndk{
+            debugSymbolLevel 'FULL'
+        }
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // Jay L. Gao: set symbol level for debugging
+            ndk{
+                debugSymbolLevel 'FULL'
+            }
         }
     }
     externalNativeBuild {
@@ -34,12 +52,14 @@ android {
     }
 }
 
+
 dependencies {
+    implementation 'com.android.support:support-annotations:28.0.0'
     compile fileTree(include: ['*.jar'], dir: 'libs')
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
-    compile 'com.android.support:appcompat-v7:26.1.0'
+    debugImplementation 'com.android.support:appcompat-v7:26.1.0'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
     compile 'com.android.support:design:26.1.0'
     compile 'com.android.support:support-v4:26.1.0'
@@ -48,3 +68,4 @@ dependencies {
     compile 'commons-io:commons-io:2.5'
     testCompile 'junit:junit:4.12'
 }
+

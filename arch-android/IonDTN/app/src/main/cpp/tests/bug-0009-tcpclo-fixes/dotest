@@ -1,0 +1,116 @@
+#!/bin/bash
+# Samuel Jero <sj323707@ohio.edu>
+# November 12, 2012
+# bug-0009-tcpclo-fixes test
+# This test ensures that tcpclo correctly handles neighbors being unavailable
+# at startup.
+
+CONFIGFILES=" \
+./1.ipn.tcp/config.ionrc \
+./1.ipn.tcp/config.ionconfig \
+./1.ipn.tcp/config.ionsecrc \
+./1.ipn.tcp/config.bprc \
+./1.ipn.tcp/config.ipnrc \
+./2.ipn.tcp/config.ionrc \
+./2.ipn.tcp/config.ionconfig \
+./2.ipn.tcp/config.ionsecrc \
+./2.ipn.tcp/config.bprc \
+./2.ipn.tcp/config.ipnrc \
+"
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To test that tcpclo correctly handles neighbors"
+echo "         being unavailable at startup."
+echo
+echo "CONFIG: 2 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+export ION_NODE_LIST_DIR=$PWD
+./cleanup
+
+#Start node 1
+echo
+echo "Starting node 1..."
+cd 1.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 1 not started: Aborting Test"
+	exit 1
+fi
+
+#Start bpdriver
+echo
+echo "Send data to node 2 with bpdriver..."
+cd ../1.ipn.tcp/
+bpdriver -100 ipn:1.1 ipn:2.1 -100 t120
+
+echo
+echo "Give tcpclo time to try to send data..."
+sleep 5
+
+#Start node 2
+echo
+echo "Starting node 2..."
+cd ../2.ipn.tcp/
+./ionstart
+../../../system_up -i "p 30" -b "p 30"
+
+if [ $? -eq 2 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+#Start bpcounter
+echo
+echo
+echo "Receiving data with bpcounter..."
+cd ../2.ipn.tcp/
+bpcounter ipn:2.1 100  > output &
+BPCOUNTER_PID=$!
+
+sleep 30
+kill -2 $BPCOUNTER_PID >/dev/null 2>&1
+sleep 1
+kill -9 $BPCOUNTER_PID >/dev/null 2>&1
+
+grep "bundles received: 100" output
+TESTCOND=$?
+if [ -e output ] && [ $TESTCOND -eq 0 ]; then
+	echo
+	echo "Bundles successfully received! SUCCESS"
+	RET=0
+else
+	echo
+	echo "Bundles not received! FAILURE"
+	RET=1
+fi
+
+# Shut down ION processes.
+echo
+echo "Stopping ION nodes..."
+cd ../1.ipn.tcp
+./ionstop &
+cd ../2.ipn.tcp
+./ionstop &
+sleep 5
+
+exit $RET

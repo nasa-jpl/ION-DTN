@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# August 21, 2013
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+./global.ionrc \
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Testing the functionality of the Service Data Aggregation
+	(SDA) client operation defined in section 7 of the CCSDS LTP spec.
+	Two instances of sdatest are instantiated, on nodes 2 and 3; the
+	sdatest on node 2 sends all lines of a large file to the sdatest
+	on node 3.  Each line of text is a single SDA service data item.
+	Because LTP is configured to aggregate service data items into
+	blocks of up to 100K, using SDA to send the file should cause the
+	number of sessions initiated to be far less than the number of
+	lines in the file.  The sender obtains its input file from stdin,
+	which is redirected from the test data file, and the receiver
+	handles the received data items by writing them to stdout, which
+	is redirected to a verification file.  The test passes if the
+	verification file and test data file are identical."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+
+echo "Starting reception sdatest on node 3..."
+sleep 1
+sdatest > verify.text &
+
+cd ../2.ipn.ltp
+echo "Sending text lines to node 3..."
+TESTCOUNT=`wc -l < test.text`
+sdatest 3 < test.text &
+
+sleep 10
+echo ""
+echo "Transmission finished. Stopping ION..."
+
+# Shut down ION processes.
+./ionstop &
+cd ../3.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "Verifying results..."
+
+# Verify aggregation occurred.
+
+sleep 1
+RETVAL=0
+
+cd ../2.ipn.ltp
+BLOCKCOUNT=`grep "e" node2.stdout | wc -l`
+if [[ $BLOCKCOUNT -lt $TESTCOUNT ]]
+then
+	echo "SDA aggregated lines of text into blocks."
+else
+	echo "SDA did not aggregate lines of text into blocks."
+	RETVAL=1
+fi
+
+# Verify all lines were sent.
+
+cd ../3.ipn.ltp
+VERIFYCOUNT=`wc -l < verify.text`
+if [[ $TESTCOUNT -eq $VERIFYCOUNT ]]
+then
+	echo "All service data items were received."
+else
+	echo "Not all service data items were received."
+	RETVAL=1
+fi
+echo "SDA test completed."
+exit $RETVAL

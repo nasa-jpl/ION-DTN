@@ -1,0 +1,325 @@
+=head1 NAME
+
+ionrc - ION node management commands file
+
+=head1 DESCRIPTION
+
+ION node management commands are passed to B<ionadmin> either in a file of
+text lines or interactively at B<ionadmin>'s command prompt (:).  Commands
+are interpreted line-by line, with exactly one command per line.  The formats
+and effects of the ION node management commands are described below.
+
+=head1 TIME REPRESENTATION
+
+For many ION node management commands, time values must be passed as
+arguments.  Every time value may be represented in either of two formats.
+Absolute time is expressed as: 
+
+=over 4
+
+I<yyyy>/I<mm>/I<dd>-I<hh>:I<mm>:I<ss>
+
+=back
+
+Relative time (a number of seconds following the current I<reference time>,
+which defaults to the current time at the moment I<ionadmin> began execution
+but which can be overridden by the B<at> command described below) is expressed
+as:
+
+=over 4
+
++I<ss>
+
+=back
+
+=head1 COMMANDS
+
+=over 4
+
+=item B<?>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<h> command.
+
+=item B<#>
+
+Comment line.  Lines beginning with B<#> are not interpreted.
+
+=item B<e> { 1 | 0 }
+
+Echo control.  Setting echo to 1 causes all output printed by ionadmin to
+be logged as well as sent to stdout.  Setting echo to 0 disables this behavior.
+
+=item B<v> 
+
+Version number.  Prints out the version of ION currently installed.  HINT:
+combine with B<e 1> command to log the version number at startup.
+
+=item B<1> I<node_number> [ { I<ion_config_filename> | '.' | '' } ]
+
+The B<initialize> command.  Until this command is executed, the local ION
+node does not exist and most I<ionadmin> commands will fail.
+
+The command configures the local node to be identified by I<node_number>, a
+CBHE node number which uniquely identifies the node in the delay-tolerant
+network.  It also configures ION's data space (SDR) and shared working-memory
+region.  For this purpose it uses a set of default settings if no argument
+follows I<node_number> or if the argument following I<node_number> is '';
+otherwise it uses the configuration settings found in a configuration
+file.  If configuration file name '.' is provided, then the configuration
+file's name is implicitly "I<hostname>.ionconfig"; otherwise,
+I<ion_config_filename> is taken to be the explicit configuration file name.
+Please see ionconfig(5) for details of the configuration settings.
+
+For example:
+
+	1 19 ''
+
+would initialize ION on the local computer, assigning the local ION node the
+node number 19 and using default values to configure the data space and
+shared working-memory region.
+
+=item B<@> I<time>
+
+The B<at> command.  This is used to set the reference time that will be
+used for interpreting relative time values from now until the next revision
+of reference time.  Note that the new reference time can be a relative time,
+i.e., an offset beyond the current reference time.
+
+=item B<a contact> I<start_time> I<stop_time> I<source_node> I<dest_node> I<xmit_data_rate> [I<confidence>]
+
+The B<add contact> command.  This command schedules a period of data
+transmission from I<source_node> to I<dest_node>.  The period of
+transmission will begin at I<start_time> and end at I<stop_time>,
+and the rate of data transmission will be I<xmit_data_rate> bytes/second.
+Our confidence in the contact defaults to 1.0, indicating that the contact
+is scheduled - not that non-occurrence of the contact is impossible, just
+that occurrence of the contact is planned and scheduled rather than merely
+imputed from past node behavior.  In the latter case, I<confidence>
+indicates our estimation of the likelihood of this potential contact.
+
+=item B<d contact> I<start_time> I<source_node> I<dest_node>
+
+The B<delete contact> command.  This command deletes the scheduled
+period of data transmission from I<source_node> to I<dest_node> starting
+at I<start_time>.  To delete all contacts between some pair of nodes,
+use '*' as I<start_time>.
+
+=item B<i contact> I<start_time> I<source_node> I<dest_node>
+
+This command will print information (the stop time and data rate) about
+the scheduled period of transmission from I<source_node> to I<dest_node>
+that starts at I<start_time>.
+
+=item B<l contact>
+
+This command lists all scheduled periods of data transmission.
+
+=item B<a range> I<start_time> I<stop_time> I<one_node> I<the_other_node> I<distance>
+
+The B<add range> command.  This command predicts a period of time during
+which the distance from I<one_node> to I<the_other_node> will be constant
+to within one light second.  The period will begin at I<start_time> and
+end at I<stop_time>, and the distance between the nodes during that time
+will be I<distance> light seconds.
+
+B<NOTE> that the ranges declared by these commands are directional.  ION
+does not automatically assume that the distance from node A to node B is
+the same as the distance from node B to node A.  While this symmetry is
+certainly true of geographic distance, the range that concerns ION is the
+latency in propagating a signal from one node to the other; this latency may
+be different in different directions because (for example) the signal from
+B to A might need to be forwarded along a different convergence-layer network
+path from the one used for the signal from A to B.
+
+As a convenience, ION interprets a range command in which the node number of
+the first cited node is numerically less than that of the second cited node
+as implicitly declaring the same distance in the reverse direction B<UNLESS>
+a second range command is present that cites the same two nodes in the opposite
+order, which overrides the implicit declaration.  A range command in which
+the node number of the first cited node is numerically greater than that of
+the second cited node implies B<ABSOLUTELY NOTHING> about the distance in the
+reverse direction.
+
+=item B<d range> I<start_time> I<one_node> I<the_other_node>
+
+The B<delete range> command.  This command deletes the predicted period of
+constant distance between I<one_node> and I<the_other_node> starting
+at I<start_time>.  To delete all ranges between some pair of nodes,
+use '*' as I<start_time>.
+
+=item B<i range> I<start_time> I<one_node> I<the_other_node>
+
+This command will print information (the stop time and range) about the
+predicted period of constant distance between I<one_node> and I<the_other_node>
+that starts at I<start_time>.
+
+=item B<l range>
+
+This command lists all predicted periods of constant distance.
+
+=item B<m utcdelta> I<local_time_sec_after_UTC>
+
+This management command sets ION's understanding of the current difference
+between correct UTC time and the time values reported by the clock for the
+local ION node's computer.  This delta is automatically applied to locally
+obtained time values whenever ION needs to know the current time.  For
+machines that use UTC natively and are synchronized by NTP, the value
+of this delta should be 0, the default.
+
+Note that the purpose of the UTC delta is not to correct for time zone
+differences (which operating systems often do natively) but rather to
+compensate for error (drift) in clocks, particularly spacecraft clocks.
+The hardware clock on a spacecraft might gain or lose a few seconds every
+month, to the point at which its understanding of the current time - as
+reported out by the operating system - might differ significantly from the
+actual value of UTC as reported by authoritative clocks on Earth.  To
+compensate for this difference without correcting the clock itself (which
+can be difficult and dangerous), ION simply adds the UTC delta to the
+UTC reported by the operating system.
+
+Note that this means that setting the UTC delta is not a one-time node
+configuration activity but rather an ongoing node administration chore,
+because a drifting clock typically keeps on drifting.
+
+=item B<m clockerr> I<known_maximum_clock_error>
+
+This management command sets ION's understanding of the accuracy of the
+scheduled start and stop times of planned contacts, in seconds.  The
+default value is 1.  When revising local data transmission and reception
+rates, I<ionadmin> will adjust contact start and stop times by this
+interval to be sure not to send bundles that arrive before the neighbor
+expects data arrival or to discard bundles that arrive slightly before
+they were expected.
+
+=item B<m clocksync> [ { 1 | 0 } ]
+
+This management command reports whether or not the computer on which
+the local ION node is running has a synchronized clock, as discussed in
+the description of the ionClockIsSynchronized() function (ion(3)).
+
+If a Boolean argument is provided when the command is executed, the
+characterization of the machine's clock is revised to conform with
+the asserted value.  The default value is 1.
+
+=item B<m production> I<planned_data_production_rate>
+
+This management command sets ION's expectation of the mean rate of continuous
+data origination by local BP applications throughout the period of time
+over which congestion forecasts are computed.  For nodes that function only
+as routers this variable will normally be zero.  A value of -1, which is the
+default, indicates that the rate of local data production is unknown; in that
+case local data production is not considered in the computation of congestion
+forecasts.
+
+=item B<m consumption> I<planned_data_consumption_rate>
+
+This management command sets ION's expectation of the mean rate of continuous
+data delivery to local BP applications throughout the period of time
+over which congestion forecasts are computed.  For nodes that function only
+as routers this variable will normally be zero.  A value of -1, which is the
+default, indicates that the rate of local data consumption is unknown; in
+that case local data consumption is not considered in the computation of
+congestion forecasts.
+
+=item B<m inbound> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
+
+This management command sets the maximum number of megabytes of storage space
+in ION's SDR non-volatile heap, and/or in the local file system, that can be
+used for the storage of inbound zero-copy objects.  A value of -1 for either
+limit signifies "leave unchanged".  The default heap limit is 30% of the SDR
+data space's total heap size.  The default file system limit is 1 Terabyte.
+
+=item B<m outbound> I<heap_occupancy_limit> [I<file_system_occupancy_limit>]
+
+This management command sets the maximum number of megabytes of storage space
+in ION's SDR non-volatile heap, and/or in the local file system, that can be
+used for the storage of outbound zero-copy objects.  A value of -1 for either
+limit signifies "leave unchanged".  The default heap limit is 30% of the SDR
+data space's total heap size.  The default file system limit is 1 Terabyte.
+
+=item B<m search> I<max_free_blocks_to_search_through>
+
+This management command sets the limit on the number of free blocks
+the heap space allocation function will search through in the nominal
+free space bucket, looking for a sufficiently large free block, before
+giving up and switching to the next higher non-empty free space bucket.
+The default value is 0, which yields the highest memory management speed
+but may leave heap space under-utilized: data objects may be stored in
+unnecessarily large heap space blocks.  Increasing the value of the heap
+space search limit will manage space more efficiently - with less waste -
+but more slowly.
+
+=item B<m horizon> { 0 | I<end_time_for_congestion_forecasts> }
+
+This management command sets the end time for computed congestion
+forecasts.  Setting congestion forecast horizon to zero sets the congestion
+forecast end time to infinite time in the future: if there is any predicted
+net growth in bundle storage space occupancy at all, following the end of
+the last scheduled contact, then eventual congestion will be predicted.  The
+default value is zero, i.e., no end time.
+
+=item B<m alarm> 'I<congestion_alarm_command>'
+
+This management command establishes a command which will automatically be
+executed whenever I<ionadmin> predicts that the node will become congested
+at some future time.  By default, there is no alarm command.
+
+=item B<m usage>
+
+This management command simply prints ION's current data space occupancy
+(the number of megabytes of space in the SDR non-volatile heap and file system
+that are occupied by inbound and outbound zero-copy objects), the total
+zero-copy-object space occupancy ceiling, and the maximum level
+of occupancy predicted by the most recent I<ionadmin> congestion forecast
+computation.
+
+=item B<r> 'I<command_text>'
+
+The B<run> command.  This command will execute I<command_text> as if it
+had been typed at a console prompt.  It is used to, for example, run
+another administrative program.
+
+=item B<s>
+
+The B<start> command.  This command starts the I<rfxclock> task on the local
+ION node.
+
+=item B<x>
+
+The B<stop> command.  This command stops the I<rfxclock> task on the local
+ION node.
+
+=item B<h>
+
+The B<help> command.  This will display a listing of the commands and their
+formats.  It is the same as the B<?> command.
+
+=back
+
+=head1 EXAMPLES
+
+=over 4
+
+=item @ 2008/10/05-11:30:00
+
+Sets the reference time to 1130 (UTC) on 5 October 2008.
+
+=item a range +1 2009/01/01-00:00:00 1 2 12
+
+Predicts that the distance between nodes 1 and 2 (endpoint IDs
+ipn:1.0 and ipn:2.0) will remain constant at 12 light seconds over the
+interval that begins 1 second after the reference time and ends at the
+end of calendar year 2009.
+
+=item a contact +60 +7260 1 2 10000
+
+Schedules a period of transmission at 10,000 bytes/second from node 1 to
+node 2, starting 60 seconds after the reference time and ending exactly
+two hours (7200 seconds) after it starts.
+
+=back
+
+=head1 SEE ALSO
+
+ionadmin(1), rfxclock(1), ion(3)

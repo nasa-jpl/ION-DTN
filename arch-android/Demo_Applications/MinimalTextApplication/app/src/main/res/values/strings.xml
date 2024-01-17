@@ -15,4 +15,5 @@
     <string name="button_label_administration">Administration</string>
     <string name="button_label_open">Open Endpoint</string>
     <string name="button_label_close">Close Endpoint</string>
+    <string name="Prompt_Num_Payload">Number of Payloads to Send</string>
 </resources>

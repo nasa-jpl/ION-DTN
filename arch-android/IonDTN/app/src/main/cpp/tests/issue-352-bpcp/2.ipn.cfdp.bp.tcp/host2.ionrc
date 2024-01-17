@@ -1,0 +1,20 @@
+#Issue 352-BPCP
+#Samuel Jero
+#April 15, 2012
+#Host 2
+1 2 host2.ionconfig
+a contact +1 +36000 1 2 100000
+a contact +1 +36000 1 3 100000
+a contact +1 +36000 2 1 100000
+a contact +1 +36000 2 3 100000
+a contact +1 +36000 3 1 100000
+a contact +1 +36000 3 2 100000
+a range +1 +36000 1 2 1
+a range +1 +36000 1 3 1
+a range +1 +36000 2 1 1
+a range +1 +36000 2 3 1
+a range +1 +36000 3 1 1
+a range +1 +36000 3 2 1
+m production 1000000
+m consumption 1000000
+s

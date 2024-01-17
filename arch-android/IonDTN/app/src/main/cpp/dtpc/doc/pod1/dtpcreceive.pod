@@ -1,0 +1,42 @@
+=head1 NAME
+
+dtpcreceive - Delay-Tolerant Payload Conditioning reception test program
+
+=head1 SYNOPSIS
+
+B<dtpcreceive> I<topic_ID>
+
+=head1 DESCRIPTION
+
+B<dtpcreceive> uses DTPC to acquire application data items on topic I<topic_ID>
+sent by B<dtpcsend>.  Upon termination it prints the total number of
+application data items received and the mean rate of application data
+transmission.
+
+Use CTRL-C to terminate the program.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item C<0>
+
+B<dtpcreceive> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 BUGS
+
+Report bugs to <ion-bugs@korgano.eecs.ohiou.edu>
+
+=head1 SEE ALSO
+
+dtpcsend(1), dtpc(3)

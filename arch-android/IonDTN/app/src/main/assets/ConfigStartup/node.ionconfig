@@ -1,3 +1,4 @@
-wmSize 10000000
-configFlags 6
-heapWords 1000000
+configFlags  1
+heapWords 150000000
+sdrWmSize 150000000
+wmSize 50000000
