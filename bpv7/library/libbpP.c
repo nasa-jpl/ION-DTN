@@ -11228,6 +11228,9 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	 *	BIB rules and we then encrypt blocks per all
 	 *	applicable BCB rules.					*/
 
+	/* track current to bundle overhead */
+    int     oldDbOverhead = bundle.dbOverhead;
+
 	if (bpsec_sign(&bundle) < 0)
 	{
 		putErrmsg("Failed signing bundle blocks.", NULL);
@@ -11241,6 +11244,20 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
+
+    /* check for changes to bundle overhead */
+    if (bundle.dbOverhead != oldDbOverhead)
+    {
+#if ZCODEBUG
+        char    buf[128];
+        sprintf(buf, "[i] bpDequeu: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
+        oldDbOverhead, bundle.dbOverhead);
+        writeMemo(buf);
+#endif
+        zco_reduce_heap_occupancy(sdr, oldDbOverhead, bundle.acct);
+        zco_increase_heap_occupancy(sdr, bundle.dbOverhead,
+                        bundle.acct);
+    }
 
 	/*	We now serialize the bundle header and prepend that
 	 *	header to the payload of the bundle.  This transforms
