@@ -69,7 +69,7 @@ nav:
     - LTP Underlying Communications API: LTP-UComm-API.md
     - CLA API: CLA-API.md
     - Extension Block Interface: Extension-Block-Interface.md
-    - Status Checking & Error Reporting: Status-Checking-and-Error-Reporting.md
+    - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
   - Man Pages:
     - Asychronous Messaging System (AMS): man/ams/index.md
