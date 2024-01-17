@@ -2,9 +2,9 @@
 
 _From manual page for "platform"_
 
-## PLATFORM COMPATIBILITY PATCHES
+## Platform Compatibility
 
-The platform library "patches" the APIs of supported O/S's to guarantee that all of the following items may be utilized by application software:
+The platform library "patches" the APIs of supported OS's to guarantee that all of the following items may be utilized by application software:
 
 
     The strchr(), strrchr(), strcasecmp(), and strncasecmp() functions.
@@ -21,7 +21,7 @@ The platform library "patches" the APIs of supported O/S's to guarantee that all
 
     The timer_t type definition.
 
-## PLATFORM GENERIC MACROS AND FUNCTIONS
+## Platform Generic Macros & Functions
 
 The generic macros and functions in this section may be used in place of comparable O/S-specific functions, to enhance the portability of code. (The implementations of these macros and functions are no-ops in environments in which they are inapplicable, so they're always safe to call.)
 
@@ -160,87 +160,159 @@ ifopen() is a portable function for opening "regular" files. It operates in exac
 
 NOTE that ION also provides iopen() which is nothing more than a portable wrapper for open(). iopen() can be used to open a directory, for example.
 
---RESUME HERE!-------------------------------------------------------------------------
+### igets
 
+```c
 char *igets(int fd, char *buffer, int buflen, int *lineLen)
+```
 
 igets() reads a line of text, delimited by a newline character, from fd into buffer and writes a NULL character at the end of the string. The newline character itself is omitted from the NULL-terminated text line in buffer; if the newline is immediately preceded by a carriage return character (i.e., the line is from a DOS text file), then the carriage return character is likewise omitted from the NULL-terminated text line in buffer. End of file is interpreted as an implicit newline, terminating the line. If the number of characters preceding the newline is greater than or equal to buflen, only the first (buflen - 1) characters of the line are written into buffer. On error the function sets *lineLen to -1 and returns NULL. On reading end-of-file, the function sets *lineLen to zero and returns NULL. Otherwise the function sets *lineLen to the length of the text line in buffer, as if from strlen(3), and returns buffer.
 
+### iputs
+
+```c
 int iputs(int fd, char *string)
+```
 
 iputs() writes to fd the NULL-terminated character string at string. No terminating newline character is appended to string by iputs(). On error the function returns -1; otherwise the function returns the length of the character string written to fd, as if from strlen(3).
 
+### strtovast
+
+```c
 vast strtovast(char *string)
+```
 
 Converts the leading characters of string, skipping leading white space and ending at the first subsequent character that can't be interpreted as contributing to a numeric value, to a vast integer and returns that integer.
 
+### strtouvast
+
+```c
 uvast strtouvast(char *string)
+```
 
 Same as strtovast() except the result is an unsigned vast integer value.
 
+### findToken
+
+```c
 void findToken(char **cursorPtr, char **token)
+```
 
 Locates the next non-whitespace lexical token in a character array, starting at *cursorPtr. The function NULL-terminates that token within the array and places a pointer to the token in *token. Also accommodates tokens enclosed within matching single quotes, which may contain embedded spaces and escaped single-quote characters. If no token is found, *token contains NULL on return from this function.
 
+### acquireSystemMemory
+
+```c
 void *acquireSystemMemory(size_t size)
+```
 
 Uses memalign() to allocate a block of system memory of length size, starting at an address that is guaranteed to be an integral multiple of the size of a pointer to void, and initializes the entire block to binary zeroes. Returns the starting address of the allocated block on success; returns NULL on any error.
 
+### createFile
+
+```c
 int createFile(const char *name, int flags)
+```
 
 Creates a file of the indicated name, using the indicated file creation flags. This function provides common file creation functionality across VxWorks and Unix platforms, invoking creat() under VxWorks and open() elsewhere. For return values, see creat(2) and open(2).
 
+### getInternetAddress
+
+```c
 unsigned int getInternetAddress(char *hostName)
+```
 
 Returns the IP address of the indicated host machine, or zero if the address cannot be determined.
 
+### getInternetHostName
+
+```c
 char *getInternetHostName(unsigned int hostNbr, char *buffer)
+```
 
 Writes the host name of the indicated host machine into buffer and returns buffer, or returns NULL on any error. The size of buffer should be (MAXHOSTNAMELEN + 1).
 
+### getNameOfHost
+
+```c
 int getNameOfHost(char *buffer, int bufferLength)
+```
 
 Writes the first (bufferLength - 1) characters of the host name of the local machine into buffer. Returns 0 on success, -1 on any error.
 
+### getAddressOfHost
+
+```c
 unsigned int getAddressOfHost()
+```
 
 Returns the IP address for the host name of the local machine, or 0 on any error.
 
+### parseSocketSpec
+
+```c
 void parseSocketSpec(char *socketSpec, unsigned short *portNbr, unsigned int *hostNbr)
+```
 
 Parses socketSpec, extracting host number (IP address) and port number from the string. socketSpec is expected to be of the form "{ @ | hostname }[:<portnbr>]", where @ signifies "the host name of the local machine". If host number can be determined, writes it into *hostNbr; otherwise writes 0 into *hostNbr. If port number is supplied and is in the range 1024 to 65535, writes it into *portNbr; otherwise writes 0 into *portNbr.
 
+### printDottedString
+
+```c
 void printDottedString(unsigned int hostNbr, char *buffer)
+```
 
 Composes a dotted-string (xxx.xxx.xxx.xxx) representation of the IPv4 address in hostNbr and writes that string into buffer. The length of buffer must be at least 16.
 
+### getNameOfUser
+
+```c
 char *getNameOfUser(char *buffer)
+```
 
 Writes the user name of the invoking task or process into buffer and returns buffer. The size of buffer must be at least L_cuserid, a constant defined in the stdio.h header file. Returns buffer.
 
+### reUseAddress
+
+```c
 int reUseAddress(int fd)
+```
 
 Makes the address that is bound to the socket identified by fd reusable, so that the socket can be closed and immediately reopened and re-bound to the same port number. Returns 0 on success, -1 on any error.
 
+### makeIoNonBlocking
+
+```c
 int makeIoNonBlocking(int fd)
+```
 
 Makes I/O on the socket identified by fd non-blocking; returns -1 on failure. An attempt to read on a non-blocking socket when no data are pending, or to write on it when its output buffer is full, will not block; it will instead return -1 and cause errno to be set to EWOULDBLOCK.
 
+### watchSocket
+
+```c
 int watchSocket(int fd)
+```
 
 Turns on the "linger" and "keepalive" options for the socket identified by fd. See socket(2) for details. Returns 0 on success, -1 on any failure.
 
+### closeOnExec
+
+```c
 void closeOnExec(int fd)
+```
 
 Ensures that fd will NOT be open in any child process fork()ed from the invoking process. Has no effect on a VxWorks platform.
 
-## EXCEPTION REPORTING
+-------------------
+
+## Exception Reporting
 
 The functions in this section offer platform-independent capabilities for reporting on processing exceptions.
 
-The underlying mechanism for ICI's exception reporting is a pair of functions that record error messages in a privately managed pool of static memory. These functions -- postErrmsg() and postSysErrmsg() -- are designed to return very rapidly with no possibility of failing, themselves. Nonetheless they are not safe to call from an interrupt service routing (ISR). Although each merely copies its text to the next available location in the error message memory pool, that pool is protected by a mutex; multiple processes might be queued up to take that mutex, so the total time to execute the function is non-deterministic.
+The underlying mechanism for ICI's exception reporting is a pair of functions that record error messages in a privately managed pool of static memory. These functions -- `postErrmsg()` and `postSysErrmsg()` -- are designed to return very rapidly with no possibility of failing, themselves. Nonetheless they are not safe to call from an interrupt service routing (ISR). Although each merely copies its text to the next available location in the error message memory pool, that pool is protected by a mutex; multiple processes might be queued up to take that mutex, so the total time to execute the function is non-deterministic.
 
-Built on top of postErrmsg() and postSysErrmsg() are the putErrmsg() and putSysErrmsg() functions, which may take longer to return. Each one simply calls the corresponding "post" function but then calls the writeErrmsgMemos() function, which calls writeMemo() to print (or otherwise deliver) each message currently posted to the pool and then destroys all of those posted messages, emptying the pool.
+Built on top of `postErrmsg()` and `postSysErrmsg()` are the `putErrmsg()` and `putSysErrmsg()` functions, which may take longer to return. Each one simply calls the corresponding "post" function but then calls the `writeErrmsgMemos()` function, which calls `writeMemo()` to print (or otherwise deliver) each message currently posted to the pool and then destroys all of those posted messages, emptying the pool.
 
 Recommended general policy on using the ICI exception reporting functions (which the functions in the ION distribution libraries are supposed to adhere to) is as follows:
 
@@ -342,7 +414,7 @@ The default Logger function simply writes the message to standard output.
 void writeMemo(char *msg)
 ```
 
-Writes one log message, using the currently defined message logging function.
+Writes one log message, using the currently defined message logging function. To construct a more complex string, it is customary and safer to use the isprintf function to build a message string first, and then pass that string as an argument to writeMemo.
 
 ### writeMemoNote ###
 
@@ -350,7 +422,7 @@ Writes one log message, using the currently defined message logging function.
 void writeMemoNote(char *msg, char *note)
 ```
 
-Writes a log message like writeMemo(), accompanied by the user-supplied context-specific text in note.
+Writes a log message like writeMemo(), accompanied by the user-supplied context-specific text string in note. The text string can also be build separately using isprintf().
 
 ### writeErrMemo ###
 
@@ -451,5 +523,5 @@ Note that (a) printStackTrace() is only implemented for Linux platforms at this 
 
 For more complete information about the state of the executable at the time the stack trace snapshot was taken, use the Linux addr2line tool. To do this, cd into a directory in which the executable file resides (such as /opt/bin) and submit an addr2line command as follows:
 
-addr2line -e _name\_of\_executable_ _stack\_frame\_address_
+`addr2line -e name_of_executable stack_frame_address`
 where both name_of_executable and stack_frame_address are taken from one of the lines of the printed stack trace. addr2line will print the source file name and line number for that stack frame.
