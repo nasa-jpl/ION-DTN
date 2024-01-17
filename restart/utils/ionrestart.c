@@ -81,6 +81,7 @@ static void	restartION(Sdr sdrv)
 	}
 	else
 	{
+		cgr_stop();
 		bpStop();
 		for (i = 0; i < 5; i++)
 		{
@@ -167,7 +168,6 @@ static void	restartION(Sdr sdrv)
 		writeMemo("[i] ionrestart: CFDP volatile database dropped.");
 	}
 #endif
-	cgr_stop();
 	if (restart_bp)
 	{
 		bpDropVdb();
