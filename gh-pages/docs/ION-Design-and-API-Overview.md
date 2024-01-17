@@ -10,24 +10,23 @@ ION began its development in the early 2000's focusing on flight system running 
 
 **Efficient Resource Utilization**: ION is optimized for environments with limited memory, storage, and processing resources. It avoids duplicate data copies during multi-stage processing by utilizing Zero-Copy Objects (ZCO) in shared-memory for fast hand-off between modules. This method, while more complex, ensures rapid data handling. Additionally, BP and CLA services operate as background daemons to minimize competition with critical spacecraft functions during nominal, high-stress operation and off-nominal events.
 
-**Independence from Native IP Socket Support**: ION employs software abstraction to decouple socket-based programming from its core functionalities. This allows ION to interface the Bundle Protocol and CLAs with various underlying communication systems, such as CCSDS space links or radio communications systems or customized processing chains that are not IP-based.
+**Independence from Native IP Socket Support**: ION employs software abstraction to decouple socket-based programming from its core functionalities. This allows ION to interface the Bundle Protocol and CLAs with various underlying communication systems, such as CCSDS space links or, radio communications systems, or customized processing chains that are not IP-based.
 
-**Portability and Minimal Footprint for Static Linking**: ION prioritizes portability and minimal resource footprint by building its own function libraries. This approach supports static linking through the ION-core package for specific set of modules and reduces dependency on external libraries, thereby mitigating the risk of interference from unexercised or non-required code that cannot be removed from the libraries. This design also avoids potential compatibility issues between the target system’s build environment and those of externally-sourced libraries.
+**Portability and Minimal Footprint for Static Linking**: ION prioritizes portability and minimal resource footprint by building its function libraries. This approach supports static linking through the ION-core package for a specific set of modules. It reduces dependency on external libraries, thereby mitigating the risk of interference from unexercised or non-required code that cannot be removed from the libraries. This design also avoids potential compatibility issues between the target system’s build environment and those of externally sourced libraries.
 
 ## ION Modules
-
-In the [BP Service API document](./BP-Service-API.md) we shown the default installation location of various libraries and daemons. Interactions with these daemons relies on the use of various ION APIs available in the libraries. The following diagram shows ION's modular architecture:
+The [BP Service API document](./BP-Service-API.md) shows the default installation location of various libraries and daemons. Interactions with these daemons rely on various ION APIs available in the libraries. The following diagram shows ION's modular architecture:
 
 ![ION Modules](images/ION-Design-and-API-Overview/ion-modules.png)
 
-ION provides four application-layer services that utilizes the underlying DTN protocols. These services are:
+ION provides four application-layer services that utilize the underlying DTN protocols. These services are:
 
 1. **AMS**: Asynchronous Message Service
 2. **DTPC**: Delay-Tolerant Payload Conditioning
 3. **CFDP**: CCSDS File Delivery Protocol
 4. **BSS**: Bundle Streaming Service
 
-ION provides BP services based on Bundle Protocol v6 and Bundle Protocol v7, BPSec (Bundle Protocol Security), and the Interplanetary Internet (IPN) naming scheme, etc. In addition, it offers several standardized convergence layer adaptors, namely:
+ION provides BP services based on Bundle Protocol v6 and Bundle Protocol v7, BPSec (Bundle Protocol Security), and the Interplanetary Internet (IPN) naming scheme. In addition, it offers several standardized convergence layer adaptors, namely:
 
 1. LTP: Licklider Transmission Protocol
 2. TCPCL: TCP Convergence Layer
@@ -37,11 +36,11 @@ ION provides BP services based on Bundle Protocol v6 and Bundle Protocol v7, BPS
 
 ION also provides UDP-based Underlying Communication Protocol (UCP) to support testing of the LTP CLA in terrestrial systems.
 
-ION also has supports the AMS (Asynchronous Management Architecture) by implementing both an Asynchronous Management Protocol (AMP) Agent and Manager and the associated Application Data Model (ADM) that describes both common and ION-specific DTN network management state information and commands.
+ION also supports the AMS (Asynchronous Management Architecture) by implementing both an Asynchronous Management Protocol (AMP) Agent and Manager and the associated Application Data Model (ADM) that describes both common and ION-specific DTN network management state information and commands.
 
-The entire ION software suite is administered and operating within a host-specified memory space and privately managed by ION's ICI infrastructure library functions for space allocation/deallocation, data I/O, and linked list and zero-copy object (ZCO) management. There are two types of data storage, one is working memory to facilitate data processing and the other is heap in the SDR that is designed to store non-volatile state information and data that should persist through power cycle when implemented on non-volatile storage medium. 
+The entire ION software suite operates within a prescribed memory space. It is privately managed by ION's ICI infrastructure library functions for space allocation/deallocation, data I/O, and linked list and zero-copy object (ZCO) management. There are two types of data storage: working memory to facilitate data processing and heap in the SDR designed to store state information and data that should persist through a power cycle when implemented on a non-volatile storage medium. 
 
-ION's API functions are exposed to the user through a set of C header files associated with each modules' library.
+ION's API functions are exposed to the user through a set of C header files associated with each module's library.
 
 ![ION Libraries](images/ION-Design-and-API-Overview/ion-libraries.png)
 
@@ -49,7 +48,7 @@ ION's API functions are exposed to the user through a set of C header files asso
 
 For software development, ION provides several sets of APIs for interacting with services/daemons of the underlying DTN protocols as shown below.
 
-![ION APIs](images/ION-Design-and-API-Overview/ion-apis.png)
+![ION APIs](image/ION-Design-and-API-Overview/ion-apis.png)
 
 ION APIs can be roughly categoried as follows:
 

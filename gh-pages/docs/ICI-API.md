@@ -1,8 +1,8 @@
-# ION Infrasturcutre APIs
+# ION Infrastructure APIs
 
-In this section, we will focus on a subset of infrastructure APIs that enables an external application to access and create data objects inside ION's SDR in the process of requesting and receiving BP services from ION.
+In this section, we will focus on a subset of infrastructure APIs that enables an external application to access and create data objects inside ION's SDR while requesting and receiving BP services from ION.
 
-In order to write a fully functioning BP user application, a combination of ICI APIs described below and a set [BP Service APIs](./BP-Service-API.md) described in a separate document will be required.
+To write a fully functioning BP user application, a combination of ICI APIs described below and a set [BP Service APIs](./BP-Service-API.md) described in a separate document will be required.
 
 ## ION APIs
 
@@ -53,8 +53,7 @@ if (ionAttach() < 0)
 ```
 
 Description
-
-Attaches the invoking task to ION infrastructure as previously established by running the ionadmin utility program. After successful execution, the handle to the ION SDR can be obtained by a separte API call. `putErrmsg` is a ION logging API, which will be described later in this document.
+Attached is the invoking task to ION infrastructure as previously established by running the ionadmin utility program. After successful execution, the handle to the ION SDR can be obtained by a separate API call. `putErrmsg` is an ION logging API, which will be described later in this document.
 
 ---
 
