@@ -4,34 +4,11 @@
 # David Young
 # Aug 20, 2008
 #
+# Modified Apr 17, 2023, perform killm only, gitlab issue #212
+#
 # will quickly and completely stop an ion node.
 
 ION_OPEN_SOURCE=1
-
-echo "IONSTOP will now stop ion and clean up the node for you..."
-if [ "$ION_OPEN_SOURCE" == "1" ]; then
-echo "cfdpadmin ."
-cfdpadmin .
-sleep 1
-fi
-bpversion
-if [ $? -eq 6 ]; then
-echo "acsadmin ."
-acsadmin .
-sleep 1
-fi
-echo "bpadmin ."
-bpadmin .
-sleep 1
-echo "ltpadmin ."
-ltpadmin .
-sleep 1
-echo "ionadmin ."
-ionadmin .
-sleep 1
-echo "bsspadmin ."
-bsspadmin .
-sleep 1
 
 # Check for multi-ION instances
 if [ -z "${ION_NODE_LIST_DIR}" ];
@@ -41,8 +18,48 @@ then
     echo "killm"
     killm
 else
-    echo "This is a multi-ION instance configuration. Killm not used."
-    echo "You can execute 'killm' to mannually to clear all shared memory segments if necessary."
-fi
+    echo "This is a multi-ION instance configuration. Killm not invoked."
+    echo "Each moduels will shutdown individually. You may want to use a customized script."
+    if [[ -z "${ION_NODE_WDNAME}" ]]; then
+        echo "ION_NODE_WDNAME not defined. Assume we are already in the proper working directory."
+        CURRENT_WD=$(pwd)
+        echo "Shutdown ION instances associated with the current directory $CURRENT_WD"
+    else
+        CURRENT_WD=${ION_NODE_WDNAME}
+        echo "Shutdown ION instances associated with the specified directory: $ION_NODE_WDNAME"
+    fi
 
+    if [ "$ION_OPEN_SOURCE" == "1" ]; then
+    echo "cfdpadmin ."
+    cfdpadmin .
+    sleep 1
+    fi
+    bpversion
+    if [ $? -eq 6 ]; then
+    echo "acsadmin ."
+    acsadmin .
+    sleep 1
+    echo "imcadmin ."
+    imcadmin .
+    sleep 1
+    fi
+    echo "bpadmin ."
+    bpadmin .
+    sleep 1
+    echo "ipndmin ."
+    bpadmin .
+    sleep 1
+    echo "ltpadmin ."
+    ltpadmin .
+    sleep 1
+    echo "ionadmin ."
+    ionadmin .
+    sleep 1
+    echo "bsspadmin ."
+    bsspadmin .
+    sleep 1
+    echo "ION instance in $CURRENT_WD ended, please double-check that all processes were terminated."
+    echo "Use killm to clear out all remaining shared memory allocations and semaphore if needed."
+fi
 echo "ION node ended. Log file: ion.log"
+echo ""
