@@ -35,6 +35,9 @@
 #include "bib.h"
 #include "bcb.h"
 
+/* Enhanced Watch Character
+ * #define EWCHAR */
+
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
@@ -2928,7 +2931,16 @@ incomplete bundle.", NULL);
 			bpDbTally(BP_DB_EXPIRED, bundle.payload.length);
 			if ((_bpvdb(NULL))->watching & WATCH_expire)
 			{
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)!",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+				iwatch_str(ewchar);
+#else
 				iwatch('!');
+#endif
+
 			}
 
 			if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
@@ -6546,7 +6558,16 @@ when asking for status reports.");
 	bpSourceTally(bundle.classOfService, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%llu,%u)a",bundle.id.source.ssp.ipn.nodeNbr,
+		   bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.msec, bundle.id.creationTime.count);
+		iwatch_str(ewchar);
+#else
 		iwatch('a');
+#endif
+		
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -6904,7 +6925,15 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+				iwatch_str(ewchar);
+#else
 				iwatch('z');
+#endif
 			}
 
 			if (bundle->destination.schemeCodeNbr != imc ||
@@ -9221,7 +9250,16 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bpRecvTally(bundle->classOfService, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)y",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+		iwatch_str(ewchar);
+#else
 		iwatch('y');
+#endif
+
 	}
 
 	/*	Other decisions and reporting are left to the
@@ -10720,7 +10758,15 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)b",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+		iwatch_str(ewchar);
+#else
 		iwatch('b');
+#endif
 	}
 
 	bpPlanTally(vplan, BP_PLAN_ENQUEUED, bundle->payload.length);

@@ -11,6 +11,9 @@
 									*/
 #include "bpP.h"
 
+/* for enhanced watch character
+ * #define EWCHAR */
+
 static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 {
 	uaddr		temp;
@@ -627,7 +630,16 @@ int	main(int argc, char *argv[])
 		bpXmitTally(bundle.priority, bundle.payload.length);
 		if ((getBpVdb())->watching & WATCH_c)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)c",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+			iwatch_str(ewchar);
+#else
 			iwatch('c');
+#endif
+
 		}
 
 		/*	Consume estimated transmission capacity.	*/
