@@ -1,8 +1,6 @@
 # ION Infrastructure APIs
 
-In this section, we will focus on a subset of infrastructure APIs that enables an external application to access and create data objects inside ION's SDR while requesting and receiving BP services from ION.
-
-To write a fully functioning BP user application, a combination of ICI APIs described below and a set [BP Service APIs](./BP-Service-API.md) described in a separate document will be required.
+This section will focus on a subset of ICI APIs that enables an external application to create, manipulate, and access data objects inside ION's SDR.
 
 ## ION APIs
 
@@ -19,12 +17,12 @@ To write a fully functioning BP user application, a combination of ICI APIs desc
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
 ```
 
-* __MTAKE__ and __MRELEASE__ provides syntactically terse way of calling allocFromIonMemory and releaseToIonMemory, the functional equivalent of `malloc` and `free` for ION. The allocated memory space comes out of the ION working memory, which has be pre-allocated during the ION configuration.
-* `__FILE__` and `__LINE__` provides the source file name and line number of the calling function and can assist debugging and tracking down memory leaks.
+* __MTAKE__ and __MRELEASE__ provide syntactically terse ways of calling `allocFromIonMemory` and `releaseToIonMemory`, the functional equivalent of `malloc` and `free` for ION. The allocated memory space comes from the ION working memory, which has been pre-allocated during the ION configuration.
+* __FILE__ and __LINE__ provide the source file name and line number of the calling function and can assist in debugging and tracking down memory leaks.
 
----
+-----------------
 
-### ionAttach
+### ionAttach ###
 
 Function Prototype
 
@@ -53,11 +51,12 @@ if (ionAttach() < 0)
 ```
 
 Description
+
 Attached is the invoking task to ION infrastructure as previously established by running the ionadmin utility program. After successful execution, the handle to the ION SDR can be obtained by a separate API call. `putErrmsg` is an ION logging API, which will be described later in this document.
 
----
+---------------
 
-### ionDetach
+### ionDetach ###
 
 Function Prototype
 
@@ -83,9 +82,9 @@ Description
 
 Detaches the invoking task from ION infrastructure. In particular, releases handle allocated for access to ION's non-volatile database.
 
----
+-------------
 
-### ionTerminate
+### ionTerminate ###
 
 Function Prototype
 
@@ -111,9 +110,9 @@ Description
 
 Shuts down the entire ION node, terminating all daemons. The state of the SDR will be destroyed during the termination process, even if the SDR heap is implemented in a non-volatile storage, such as a file.
 
----
+-------------
 
-### ionStartAttendant
+### ionStartAttendant ###
 
 Function Prototype
 
@@ -152,7 +151,7 @@ Description
 
 Initializes the semaphore in `attendant` so that it can be used for blocking a pending ZCO space request. This is necessary to ensure that the invoking task will not be able to inject data into BP service until SDR space is allocated.
 
----
+------------------
 
 ### ionStopAttendant
 
@@ -179,9 +178,9 @@ ionStopAttendant(&attendant);
 
 Description
 
-Destroys the semaphore in `attendant`, preventing a potential resource leak. This is typically called at the end of a BP application, after all user data have been injected into the SDR.
+Destroys the semaphore in `attendant`, preventing a potential resource leak. This is typically called at the end of a BP application after all user data have been injected into the SDR.
 
----
+---------------
 
 ### ionPauseAttendent
 
@@ -207,28 +206,28 @@ ionStopAttendant(&attendant);
 
 Description
 
-"Ends" the semaphore in attendant so that the task that is blocked on taking it is interrupted and may respond to an error or shutdown condition. This may be required when trying to quitting a user application that is currently being blocked while acquiring ZCO space.
+"Ends" the semaphore in attendant so that the task blocked on taking it is interrupted and may respond to an error or shutdown condition. This may be required when trying to quit a blocked user application while acquiring ZCO space.
 
----
+------------------
 
 ### ionCreateZco
 
 Function Prototype
 
 ```c
-extern Object		ionCreateZco(	ZcoMedium source,
-					Object location,
-					vast offset,
-					vast length,
-					unsigned char coarsePriority,
-					unsigned char finePriority,
-					ZcoAcct acct,
-					ReqAttendant *attendant);
+extern Object ionCreateZco(	ZcoMedium source,
+			Object location,
+			vast offset,
+			vast length,
+			unsigned char coarsePriority,
+			unsigned char finePriority,
+			ZcoAcct acct,
+			ReqAttendant *attendant);
 ```
 
 Parameters
 
-* `source`: the type of ZCO to be created. Each source data object may be either a file, a "bulk" item in mass storage, an object in SDR heap space (identified by heap address stored in an "object reference" object in SDR heap), an array of bytes in SDR heap space (identified by heap address), or another ZCO.
+Source: the type of ZCO to be created. Each source data object may be either a file, a "bulk" item in mass storage, an object in SDR heap space (identified by heap address stored in an "object reference" object in SDR heap), an array of bytes in SDR heap space (identified by heap address), or another ZCO.
 
 ```c
 typedef enum
@@ -241,10 +240,10 @@ typedef enum
 } ZcoMedium;
 ```
 
-* `location`: the location in the heap where a single extent of source data resides. This data is usually placed there by the user application via the `sdr_malloc()` API which will be discussed later.
+* `location`: the location in the heap where a single extent of source data resides. The user application usually places this data via `sdr_malloc()`, which will be discussed later.
 * `offset`: the offset within the source data object where the first byte of the ZCO should be placed.
 * `length`: the length of the ZCO to be created.
-* `coarsePriority`: this sets the basic class of service (COS) inherented from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From lowest to the higher priority, it can be set to `BP_BULK_PRIORITY` (value =0), `BP_STD_PRIORITY` (value = 1), or `BP_EXPEDITED_PRIORITY` (value = 2).
+* `coarsePriority`: this sets the Class of Service (COS) for the bundle as an inherited feature from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From lowest to the higher priority, it can be set to `BP_BULK_PRIORITY` (value =0), `BP_STD_PRIORITY` (value = 1), or `BP_EXPEDITED_PRIORITY` (value = 2).
 * `finePriority`: this is inherented from BPv6 COS and it is the finer grain priority levels (level 0 to 254) within the class of `BP_STD_PRIORITY`. Typically this is set to the value of 0.
 * `acct`: The accounting category for the ZCO, it is either `ZcoInbound` (0), `ZcoOutbound` (1), or `ZcoUnknown` (2). If a ZCO is created for the purpose of transmission to another node, this parameter is typically set to `ZcoOutbound`.
 * `*attendant`: the semaphore that blocks return of the function until the necessary resources has been allocated in the SDR for the creation of the ZCO
