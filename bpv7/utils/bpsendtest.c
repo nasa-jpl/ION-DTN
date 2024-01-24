@@ -2,10 +2,12 @@
 	bpsendtest.c:	test program to send a file as a bundle repeatedly to bprecvtest.c.
 		also sends a pilot bundle at the beginning of transmission to inform bprecvtest 
 		to start its clock
-													*/
-/*													*/
-/*	Modified from bpsendfile.c by Silas Springer 	*/
-/*													*/
+														*/
+/*														*/
+/*	Modified from bpsendfile.c by Silas Springer 		*/
+/*	Random file generation modified from garbage.c 
+	Which was originally writen by Dr. Shawn Ostermann	*/
+
 
 #include <bp.h>
 
@@ -223,13 +225,37 @@ usage(
     }
     va_end(ap);
 
-	fprintf(stderr, "usage: %s [-rep <repetitions>] [-ttl <ttl>] [-qos <qos>] <srcEid> <destEid> <fileName>\n", progname);
+	fprintf(stderr, "usage: %s [-rep <repetitions>] [-ttl <ttl>] [-qos <qos>] [-nofile] <srcEid> <destEid> <file>\n", progname);
 	fprintf(stderr, "-rep <repetitions>  \tSpecifies the number of times to send the given file as a bundle.\n");
 	fprintf(stderr, "-ttl <ttl>  \tInteger number of seconds after which bundle should expire. Default: 100\n");
 	fprintf(stderr, "-qos <qos>  \tQuality of service. Default: 0.1 \n\t\t" BP_PARSE_QUALITY_OF_SERVICE_USAGE "\n");
+	fprintf(stderr, "-nofile <qos>  \tspecify to interpret <file> as a bundle length in bytes instead of as a filename.\n");
+
+	fprintf(stderr, "<srcEid>  \tSource endpoint to send from. e.g. 'ipn:2.4' \n");
+	fprintf(stderr, "<destEid> \tDestination endpoint to send to. e.g. 'ipn:3.2' \n");
+	fprintf(stderr, "<file>    \tPath to file to send as a bundle. If -nofile is specified, will instead be interpreted as a number of bytes defining the length of random data to generate for the bundle. Random data generated for the bundle will be saved in file 'bpsendtestRandFile'. WILL OVERWRITE files of the same name.\n");
     exit(-1);
 }
 
+#define FILENAME "bpsendtestRandFile"
+
+void makegarbagefile(int len) {
+	FILE* f;
+	int i, ch;
+	if ((f = fopen(FILENAME,"w+")) == NULL) {
+		perror(FILENAME);
+		exit(-1);
+    }
+
+	for (i = 1; i <= len; ++i) {
+	    ch = rand()%256; // get random byte
+	    if (fputc(ch,f) != ch) {
+			perror("fputc");
+			exit(-2);
+	    }
+	}
+	fclose(f);
+}
 
 int	main(int argc, char **argv)
 {
@@ -237,8 +263,10 @@ int	main(int argc, char **argv)
 	char	*destEid = NULL;
 	char	*fileName = NULL;
 	char	*classOfService = "0.1";
+	int 	numbytes = 0;
 	int		ttl = 300;
 	int 	repetitions = 1;
+	int		isfilename = 1; // true
 
 	if (argc < 4)
 		usage(argv[0], "too few arguments.");
@@ -264,6 +292,10 @@ int	main(int argc, char **argv)
 				if (repetitions < 1) usage(argv[0], "-rep requires a positive integer argument");
 				continue;	/* iterate back to for (i=1... loop */
 	    	}
+			else if (strcmp(argv[i], "-nofile") == 0) {
+				isfilename = 0; // false 
+				continue;
+			}
 			else if (strcmp(argv[i],"-h") == 0) {
 				usage(argv[0], "");
 	    	}
@@ -277,7 +309,21 @@ int	main(int argc, char **argv)
 	}
 	ownEid = argv[i];
 	destEid = argv[++i];
-	fileName = argv[++i];
+	if(!isfilename){
+		numbytes = atoi(argv[++i]);
+		if(numbytes < 1) usage(argv[0], "<file> must be positive integer when using -nofile option.");
+		makegarbagefile(numbytes);
+		char file[PATH_MAX];
+		if(getcwd(file, sizeof(file))) {
+			if(*(file + strlen(file)-1) != '/') strcat(file, "/");
+			fileName = strcat(file, FILENAME);
+		} else {
+			perror("getcwd");
+			exit(-1);
+		}
+	} else {
+		fileName = argv[++i];
+	}
 
 	if (!(ownEid && destEid && fileName))
 	{
