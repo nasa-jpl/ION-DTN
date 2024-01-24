@@ -56,7 +56,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 	int		testFile = -1;
 	ZcoReader	reader;
 	int		recvLength;
-	char		progressText[80];
+
 
 	fileCount++;
 
@@ -84,10 +84,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 
 		remainingLength -= recvLength;
 	}
-	// Commented since this would fil lthe logfile with 1000s of messages when runnign with small files/bundles.
-	// isprintf(progressText, sizeof progressText, "[i] bprecvtest has recieved a file, size %d.", fileName, contentLength);
-	// writeMemo(progressText);
-	// close(testFile);
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		return -1;
