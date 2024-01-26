@@ -81,7 +81,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 			oK(sdr_end_xn(sdr));
 			return -1;
 		}
-
+		/* count number of bytes recieved, but do not store them */
 		remainingLength -= recvLength;
 	}
 
@@ -156,18 +156,17 @@ int	main(int argc, char **argv)
 			if(!pilotReceived){
 				pilotReceived = 1;
 				getCurrentTime(&startt);
-				printf("Recieved pilot bundle, timer started.");
-				// printf("clock: %li, files received: %d", t, filesReceived);
+				printf("Recieved pilot bundle, timer started.\n");
 				break;
 			}
 			filesReceived++;
-			int tmp = receiveFile(sdr, &dlv);
-			if (tmp < 0)
+			int filelength = receiveFile(sdr, &dlv);
+			if (filelength < 0)
 			{
 				putErrmsg("bprecvtest cannot continue.", NULL);
 				state.running = 0;
 			}else{
-				bytesReceived += tmp;
+				bytesReceived += filelength;
 			}
 
 			/*	Intentional fall-through to default.	*/
@@ -197,9 +196,6 @@ int	main(int argc, char **argv)
 	interval /= 1e6;
 	
 	printf("Recieved %d bytes in %lf seconds: %f Mbps\n", bytesReceived, interval, (((double)bytesReceived)/interval)/125000 );
-
-	// float time_s = ((float)t)/CLOCKS_PER_SEC;
-	// printf("Recieved %d bytes in %f seconds: %f Mbps\n", bytesReceived, time_s, (((float)bytesReceived)/time_s)/125000 );
 
 	bp_close(state.sap);
 	PUTS("Stopping bprecvtest.");
