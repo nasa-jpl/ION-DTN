@@ -195,7 +195,7 @@ int	main(int argc, char **argv)
 	+ (1e6 * (endt.tv_sec - startt.tv_sec));
 	interval /= 1e6;
 	
-	printf("Recieved %d bytes in %lf seconds: %f Mbps\n", bytesReceived, interval, (((double)bytesReceived)/interval)/125000 );
+	printf("Received %d bytes in %lf seconds: %f Mbps\n", bytesReceived, interval, (((double)bytesReceived)/interval)/125000 );
 
 	bp_close(state.sap);
 	PUTS("Stopping bprecvtest.");
