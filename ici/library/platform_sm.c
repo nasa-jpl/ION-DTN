@@ -4081,9 +4081,9 @@ int	sm_SemEnded(sm_SemId i)
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
 	// we don't check for that, only that the semphore index is valid.
-	// CHKERR(sem);
 	CHKZERO(i >= 0);
 	CHKZERO(i < SEM_NSEMS_MAX);
+	sem  = &semTbl->lsemtable[i]; // semGetSem() will have returned NULL if semaphore is not open
 
 	ended = sem->semgl->ended;
 	if (ended)
@@ -4099,7 +4099,11 @@ void	sm_SemUnend(sm_SemId i)
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	SmLocalSem *sem = _semGetSem(semTbl,i);
 
-	CHKVOID(sem);
+	// to match semantics of SVR4 code when calling this on a closed semaphore,
+	// we don't check for that, only that the semphore index is valid.
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
+	sem  = &semTbl->lsemtable[i]; // semGetSem() will have returned NULL if semaphore is not open
 
 	sem->semgl->ended = 0;
 }
