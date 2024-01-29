@@ -13,7 +13,7 @@
 static int debug = 0;
 
 /* if not zero, all test iteration limits are multiplied by this */
-static float exhaustive_test_multiplier = 1.0000;  /* can be less than 1 */
+static float exhaustive_test_multiplier = 5.0000;  /* can be less than 1 */
 
 
 /* signal handler for exited processes */
@@ -377,7 +377,7 @@ int sem_errors()
 	sm_SemEnd(sem);
 
 	printf("semerrors(): trying to sm_SemEnded(%d) that closed semaphore\n", sem);
-	ret = sm_SemEnded(sem);
+	ret = sm_SemEnded(sem); // return value ignored on purpose
 
 	printf("semerrors(): trying to sm_SemUnwedge(%d) that closed semaphore\n", sem);
 	ret = sm_SemUnwedge(sem,1);
