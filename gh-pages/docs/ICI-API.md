@@ -1,8 +1,8 @@
-# ION Infrastructure APIs
+# Interplanetary Communications Infrastructure (ICI) APIs
 
 This section will focus on a subset of ICI APIs that enables an external application to create, manipulate, and access data objects inside ION's SDR.
 
-## ION APIs
+## ICI APIs
 
 ### Header
 
@@ -243,16 +243,19 @@ typedef enum
 * `location`: the location in the heap where a single extent of source data resides. The user application usually places this data via `sdr_malloc()`, which will be discussed later.
 * `offset`: the offset within the source data object where the first byte of the ZCO should be placed.
 * `length`: the length of the ZCO to be created.
-* `coarsePriority`: this sets the Class of Service (COS) for the bundle as an inherited feature from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From lowest to the higher priority, it can be set to `BP_BULK_PRIORITY` (value =0), `BP_STD_PRIORITY` (value = 1), or `BP_EXPEDITED_PRIORITY` (value = 2).
-* `finePriority`: this is inherented from BPv6 COS and it is the finer grain priority levels (level 0 to 254) within the class of `BP_STD_PRIORITY`. Typically this is set to the value of 0.
-* `acct`: The accounting category for the ZCO, it is either `ZcoInbound` (0), `ZcoOutbound` (1), or `ZcoUnknown` (2). If a ZCO is created for the purpose of transmission to another node, this parameter is typically set to `ZcoOutbound`.
-* `*attendant`: the semaphore that blocks return of the function until the necessary resources has been allocated in the SDR for the creation of the ZCO
+* `coarsePriority`: this sets the bundle's Class of Service (COS) as an inherited feature from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From the lowest to the highest priorities, it can be set to the following values:
+	- `BP_BULK_PRIORITY` (value =0)
+	- `BP_STD_PRIORITY` (value = 1), or 
+	- `BP_EXPEDITED_PRIORITY` (value = 2)
+* `finePriority`: this is inherited from BPv6 COS and is the finer grain priority level (level 0 to 254) within the `BP_STD_PRIORITY` class. The default value is 0.
+* `acct`: The accounting category for the ZCO, which is either `ZcoInbound` (0), `ZcoOutbound` (1), or `ZcoUnknown` (2). If a ZCO is created for transmission to another node, this parameter is typically set to `ZcoOutbound`.
+* `*attendant`: the semaphore that blocks the return of the function until the necessary resources have been allocated in the SDR for the creation of the ZCO
 
 Return Value
 
-* *location of the ZCO*: success; the requested space has become available and the ZCO has been created to hold the user data
-* ((Object) -1): the function has failed
-* 0: either attendant was `NULL` and sufficient space for the first extent of the ZCO was not immediately available - OR - the function was interrupted by `ionPauseAttendant` before space for the ZCO became available.
+* Location of the ZCO: on success, the requested space has become available, and the ZCO has been created to hold the user data
+* `((Object) -1)`: the function has failed
+* `0`: either the attendant was `NULL` and sufficient space for the first extent of the ZCO was not immediately available, or the function was interrupted by `ionPauseAttendant` before space for the ZCO became available.
 
 Example Call
 
@@ -270,15 +273,15 @@ if (bundleZco == 0 || bundleZco == (Object) ERROR)
 
 Description
 
-This function provides a "blocking" implementation of admission control in ION. Like zco_create(), it constructs a zero-copy object (see zco(3)) that contains a single extent of source data residing at location in source, of which the initial offset number of bytes are omitted and the next length bytes are included. By providing an attendant semaphore, initialized by `ionStartAttendant`, ionCreateZco() can be execute as a blocking call so long as the total amount of space in `source` that is available for new ZCO formation is less than length. ionCreateZco() operates by calling `ionRequestZcoSpace`, then pending on the semaphore in attendant as necessary before creating the ZCO and then populating it with the user's data.
+This function provides a "blocking" implementation of admission control in ION. Like zco_create(), it constructs a zero-copy object (see zco(3)) that contains a single extent of source data residing at a location in the source, of which the initial offset number of bytes are omitted and the subsequent `length` bytes are included. By providing an attendant semaphore, initialized by `ionStartAttendant`, `ionCreateZco()` can be executed as a blocking call so long as the total amount of space in the `source` available for new ZCO formation is less than the length. `ionCreateZco()` operates by calling `ionRequestZcoSpace`, then pending on the semaphore in attendant as necessary before creating the ZCO and then populating it with the user's data.
 
 ---
 
 ## SDR Database & Heap APIs
 
-SDR persistent data are referenced in application code by `Object` values and `Address` values, both of which are simply displacements (offsets) within SDR address space. The difference between the two is that an `Object` is always the address of a block of heap space returned by some call to `sdr_malloc`, while an `Address` can refer to any byte in the SDR address space. That is, an `Address` is the SDR functional equivalent of a C pointer in DRAM, and some Addresses point to actual Objects.
+SDR persistent data are referenced in application code by `Object` values and `Address` values, both are simply displacements (offsets) within SDR address space. The difference between the two is that an `Object` is always the address of a block of heap space returned by some call to `sdr_malloc`, while an `Address` can refer to any byte in the SDR address space. An `Address` is the SDR functional equivalent of a C pointer; some Addresses point to actual Objects.
 
-The number of SDR-related APIs is large and most are used by ION internally. Fortunately, there are only a few APIs that an external application will likely need to use. The following is a list of the most commonly used APIs drawn from the _Database I/O_ and the _Heap Space Management_ categories.
+The number of SDR-related APIs is significant, and most are used by ION internally. Fortunately, there are only a few APIs that an external application will likely need to use. The following list of the most commonly used APIs is drawn from the _Database I/O_ and the _Heap Space Management_ API categories.
 
 ---
 
@@ -1084,8 +1087,6 @@ __Warning__: changing the data value of an element of an ordered list may ruin t
 
 ## Other less used ICI APIs
 
-There are many other less frequently used APIs.
-
-Please see manual pages for the following:
+There are many other less frequently used APIs. Please see the manual pages for the following:
 
  `ion`, `sdr`, `sdrlist`, `platform`, `lyst`, `psm`, `memmgr`, `sdrstring`, `sdrtable`, and `smlist`.
