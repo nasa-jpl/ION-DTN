@@ -135,8 +135,9 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 
 	/* end pilot bundle shenanigans */
 
-	isprintf(progressText, sizeof progressText, "[i] bpsendtest \
-	is sending '%s', size %d, %d times.", fileName, aduLength, repetitions);
+	isprintf(progressText, sizeof progressText, 
+		"[i] bpsendtest is sending '%s', size %d, %d times.", 
+		fileName, aduLength, repetitions);
 	writeMemo(progressText);
 
 	int i;
@@ -257,7 +258,7 @@ int	main(int argc, char **argv)
 {
 	char	*ownEid = NULL;
 	char	*destEid = NULL;
-	char	*fileName = NULL;
+	char	fileName[PATH_MAX];
 	char	*classOfService = "0.1";
 	int 	numbytes = 0;
 	int		ttl = 300;
@@ -309,19 +310,18 @@ int	main(int argc, char **argv)
 		numbytes = atoi(argv[++i]);
 		if(numbytes < 1) usage(argv[0], "<file> must be positive integer when using -nofile option.");
 		makegarbagefile(numbytes);
-		char file[PATH_MAX];
-		if(getcwd(file, sizeof(file))) {
-			if(*(file + strlen(file)-1) != '/') strcat(file, "/");
-			fileName = strcat(file, FILENAME);
+		if(getcwd(fileName, sizeof(fileName))) {
+			if(*(fileName + strlen(fileName)-1) != '/') strcat(fileName, "/");
+			strcat(fileName, FILENAME);
 		} else {
 			perror("getcwd");
 			exit(-1);
 		}
 	} else {
-		fileName = argv[++i];
+		strcpy(fileName, argv[++i]);
 	}
 
-	if (!(ownEid && destEid && fileName))
+	if (!(ownEid && destEid && strlen(fileName)))
 	{
 		usage(argv[0], "insufficient arguments.");
 	}
