@@ -4185,7 +4185,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 #if defined(POSIX_NAMED_SEMAPHORES) || defined(SVR4_SEMAPHORES)
 /* This is only for SVR4 / Posix Named Semaphores */
-/*  Because we already have a ION-wide semaphore table shared by all ION instances and processes,
+/*  Because we already have an ION-wide semaphore table shared by all ION instances and processes,
 	We will use that table to store a GLOBAL "unique" key, much like the RTEMS version does.  However
 	Because the ION code uses that key, this code ensures that it will not return a "unique" key
 	that is already the key of an ION semaphore or the key of an SVR4 shared memory region (since)
@@ -4237,7 +4237,6 @@ static int	_sm_GetUniqueKey_internal(
 			/* we can use this one */
 			break;
 		}
-		/* not reached */
 	}	
 
 	return(tryKey);
