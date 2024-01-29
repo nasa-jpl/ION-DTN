@@ -4079,7 +4079,11 @@ int	sm_SemEnded(sm_SemId i)
 	SmLocalSem *sem = _semGetSem(semTbl,i);
 	int	ended;
 
-	CHKERR(sem);
+	// to match semantics of SVR4 code when calling this on a closed semaphore,
+	// we don't check for that, only that the semphore index is valid.
+	// CHKERR(sem);
+	CHKZERO(i >= 0);
+	CHKZERO(i < SEM_NSEMS_MAX);
 
 	ended = sem->semgl->ended;
 	if (ended)
