@@ -135,41 +135,37 @@ static int	run_bpsendtest(char *ownEid, char *destEid, char *fileName,
 
 	/* end pilot bundle shenanigans */
 
-	for (int i = repetitions; i > 0; --i){
+	isprintf(progressText, sizeof progressText, "[i] bpsendtest \
+	is sending '%s', size %d, %d times.", fileName, aduLength, repetitions);
+	writeMemo(progressText);
+
+	int i;
+	for (i = repetitions; i > 0; --i){
 		bundleZco = ionCreateZco(ZcoFileSource, fileRef, 0, aduLength,
 				priority, ancillaryData.ordinal, ZcoOutbound, NULL);
-		if (bundleZco == 0 || bundleZco == (Object) ERROR)
-		{
+		if (bundleZco == 0 || bundleZco == (Object) ERROR) {
 			putErrmsg("bpsendtest can't create ZCO.", NULL);
 		}
 		else
 		{
-			isprintf(progressText, sizeof progressText, "[i] bpsendtest \
-	is sending '%s', size %d.", fileName, aduLength);
-			writeMemo(progressText);
 			if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
-				0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
-			{
+				0, 0, &ancillaryData, bundleZco, &newBundle) <= 0) {
 				putErrmsg("bpsendtest can't send file in bundle.",
 						itoa(aduLength));
-			}
-			else
-			{
-				isprintf(progressText, sizeof progressText,
-						"[i] bpsendtest sent '%s', size %d.",
-						fileName, aduLength);
-				writeMemo(progressText);
 			}
 		}
 
 		CHKZERO(sdr_begin_xn(sdr));
 		zco_destroy_file_ref(sdr, fileRef);
-		if (sdr_end_xn(sdr) < 0)
-		{
+		if (sdr_end_xn(sdr) < 0) {
 			putErrmsg("bpsendtest can't destroy file reference.", NULL);
 		}
 
 	}
+	isprintf(progressText, sizeof progressText,
+		"[i] bpsendtest sent '%s', size %d, %d times.",
+		fileName, aduLength, repetitions);
+	writeMemo(progressText);
 
 	if (sap)
 	{
