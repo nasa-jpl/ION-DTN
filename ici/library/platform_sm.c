@@ -24,13 +24,6 @@ static void	giveIpcLock();
 #define IPC_ACTION_DETACH	-111111   /* historic */
 
 
-/* debugging code */
-/* remove for production */
-#ifdef linux
-char *getprogname() {return("");}
-#endif
-
-
 /* bounds for the GetUniqueKey for process architectures */
 /* can't be zero and can't be negative as a signed 32-bit number */
 #define UNIQUE_KEY_PROCESSES_INITIAL	0x00001000
@@ -3520,7 +3513,7 @@ void _semPrintTable()  // Only for debugging purposes
 		return;
 	}
 
-	fprintf(stderr,"=========== Semaphore Table - pid %d (%s) =================\n", getpid(), getprogname());
+	fprintf(stderr,"=========== Semaphore Table - pid %d =================\n", getpid());
 
 	fprintf(stderr,"  Global sem: %p (%s)\n", _ipcSemaphore(IPC_ACTION_LOOKUP), 
 		_semGenPosixSemname(sem_name,sizeof(sem_name),-1));
