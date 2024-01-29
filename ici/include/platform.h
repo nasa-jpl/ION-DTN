@@ -611,17 +611,17 @@ extern int getpriority(int, id_t);
 #ifdef solaris			/****	Solaris (SunOS 5+)	     ****/
 
 /* semaphore options */
-/* SVR4_SEMAPHORES is the default on Solaris */
-#define	SVR4_SEMAPHORES
+/* POSIX_NAMED_SEMAPHORES are the default on Solaris */
+#undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
-#undef  POSIX_NAMED_SEMAPHORES
+#define  POSIX_NAMED_SEMAPHORES
 #ifdef FORCE_SVR4_SEMAPHORES
-/* this is the default on Solaris */
+/* but SVR4_SEMAPHORES are also still supported on Solaris */
 #define	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #undef  POSIX_NAMED_SEMAPHORES
 #elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
-/* but POSIX_NAMED_SEMAPHORES are also supported on Solaris */
+/* but POSIX_NAMED_SEMAPHORES have been tested to be faster on Solaris */
 #undef	SVR4_SEMAPHORES
 #undef  POSIX_SEMAPHORES
 #define POSIX_NAMED_SEMAPHORES
