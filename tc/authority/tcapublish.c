@@ -7,7 +7,7 @@
 	Copyright (c) 2020, California Institute of Technology.
 	ALL RIGHTS RESERVED.  U.S. Government Sponsorship
 	acknowledged.
-	
+
 									*/
 #include "tcaP.h"
 #include "crypto.h"
@@ -26,7 +26,7 @@ static TcaPublishState	*_tcapublishState(TcaPublishState *newState)
 {
 	void		*value;
 	TcaPublishState	*state;
-	
+
 	if (newState)			/*	Add task variable.	*/
 	{
 		value = (void *) (newState);
@@ -181,6 +181,17 @@ bulletin ID incorrect: '%s', s/b '%s'.", timestamp1, timestamp2);
 		return 0;
 	}
 
+	if (bulletinLength == 4)
+	{
+#ifdef TC_DEBUG
+		writeTimestampUTC(bulletinId, timestamp1);
+		isprintf(msgBuffer, sizeof msgBuffer, "tcapublish: TCA \
+bulletin only contains bulletin ID: %s.", timestamp1);
+		writeMemo(msgBuffer);
+#endif
+		return 0;
+	}
+
 	/*	Match records in bulletin against pending records.	*/
 
 	acknowledged = MTAKE(auths);
@@ -207,7 +218,7 @@ bulletin ID incorrect: '%s', s/b '%s'.", timestamp1, timestamp2);
 				(char *) (buffer + residualBytesBuffered));
 		cursor = buffer;
 		len = bytesBuffered;
-		recordLength = tc_deserialize(&cursor, &len, TC_MAX_DATLEN, 
+		recordLength = tc_deserialize(&cursor, &len, TC_MAX_DATLEN,
 				&nodeNbr, &effectiveTime, &assertionTime,
 				&datLength, datValue);
 		if (recordLength == 0)
