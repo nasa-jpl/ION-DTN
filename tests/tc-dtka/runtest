@@ -42,10 +42,6 @@ rm -f ./ion_nodes
 export ION_NODE_LIST_DIR=$PWD
 
 # Start all nodes, build multicast distribution tree, start DTKA.
-
-sleep 2
-tcaboot 202 201 6 50 .2 20
-
 echo "Initializing all nodes..."
 sleep 2
 
@@ -79,24 +75,74 @@ ionadmin node.ionrc
 echo "Finished node initialization, starting all nodes..."
 sleep 2
 
-cd ../1.ipn.ltp
-./ionstart >& node1.stdout &
-cd ../2.ipn.ltp
-./ionstart >& node2.stdout &
-cd ../3.ipn.ltp
-./ionstart >& node3.stdout &
-cd ../4.ipn.ltp
-./ionstart >& node4.stdout &
-cd ../5.ipn.ltp
-./ionstart >& node5.stdout &
+# Starting 6 first to ensure bundles are distributed correctly
+# Things break if done otherwise
+# Starting nodes sequentially to represent nodes not starting at the same time
 cd ../6.ipn.ltp
-./ionstart >& node6.stdout &
+./ionstart >& node6.stdout
+cd ../1.ipn.ltp
+./ionstart >& node1.stdout
+cd ../2.ipn.ltp
+./ionstart >& node2.stdout
+cd ../3.ipn.ltp
+./ionstart >& node3.stdout
+cd ../4.ipn.ltp
+./ionstart >& node4.stdout
+cd ../5.ipn.ltp
+./ionstart >& node5.stdout
 cd ../7.ipn.ltp
-./ionstart >& node7.stdout &
+./ionstart >& node7.stdout
 cd ../8.ipn.ltp
-./ionstart >& node8.stdout &
+./ionstart >& node8.stdout
 cd ../9.ipn.ltp
-./ionstart >& node9.stdout &
+./ionstart >& node9.stdout
+
+# Need to start multicast separately otherwise, petitioning doesn't work correctly
+# Node 6 needs to be started first otherwise petitions of nodes started
+# first will be missed by subsequent nodes
+echo "Setting up multicast"
+cd ../6.ipn.ltp
+bpadmin node.bprc.2
+cd ../1.ipn.ltp
+bpadmin node.bprc.2
+cd ../2.ipn.ltp
+bpadmin node.bprc.2
+cd ../3.ipn.ltp
+bpadmin node.bprc.2
+cd ../4.ipn.ltp
+bpadmin node.bprc.2
+cd ../5.ipn.ltp
+bpadmin node.bprc.2
+cd ../7.ipn.ltp
+bpadmin node.bprc.2
+cd ../8.ipn.ltp
+bpadmin node.bprc.2
+cd ../9.ipn.ltp
+bpadmin node.bprc.2
+
+# Can't start DTKA until mutlicast is running, so starting here
+echo "Starting TC & DTKA..."
+cd ..
+# start first compilation after all nodes are confirmed to be started
+tcaboot 202 201 6 50 .2 90
+cd 6.ipn.ltp
+./dtkastart >& node6.stdout.dtka
+cd ../1.ipn.ltp
+./dtkastart >& node1.stdout.dtka
+cd ../2.ipn.ltp
+./dtkastart >& node2.stdout.dtka
+cd ../3.ipn.ltp
+./dtkastart >& node3.stdout.dtka
+cd ../4.ipn.ltp
+./dtkastart >& node4.stdout.dtka
+cd ../5.ipn.ltp
+./dtkastart >& node5.stdout.dtka
+cd ../7.ipn.ltp
+./dtkastart >& node7.stdout.dtka
+cd ../8.ipn.ltp
+./dtkastart >& node8.stdout.dtka
+cd ../9.ipn.ltp
+./dtkastart >& node9.stdout.dtka
 
 # Sleep to let all nodes finish initializing.
 # Then create all initial keys and load them to each node.
@@ -153,7 +199,7 @@ ionsecadmin list.ionsecrc > revised.keys
 # cycle), then shut down node 4 and compromise nodes 1 and 6.
 
 sleep 5
-echo "Taking three key authority nodes out of service..."
+echo "Hijacking 2 key authority nodes and taking 1 out of service..."
 cd ../1.ipn.ltp
 tcaadmin 203 hijack.tcarc
 cd ../4.ipn.ltp
@@ -167,8 +213,8 @@ tcaadmin 203 recover.tcarc
 cd ../5.ipn.ltp
 tcaadmin 203 recover.tcarc
 
-# Sleep another 6 minutes, note that second re-keying cycle should be done.
-sleep 360
+# Sleep another 7 minutes, note that second re-keying cycle should be done.
+sleep 480
 echo "Second re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
 ionsecadmin list.ionsecrc > final.keys
