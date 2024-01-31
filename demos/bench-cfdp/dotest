@@ -30,10 +30,10 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.ltp
-./ionstart &
+./ionstart
 sleep 1
 cd ../2.ipn.ltp
-./ionstart &
+./ionstart
 
 sleep 10
 echo "Starting cfdptest on each node..."

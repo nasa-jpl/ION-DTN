@@ -13,16 +13,10 @@ CONFIGFILES=" \
 ./1.ipn.cfdp.bp.tcp/host1.bprc \
 ./1.ipn.cfdp.bp.tcp/host1.ionsecrc \
 "
+source ../setacs.sh
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./1.ipn.cfdp.bp.tcp/host1.acsrc \
-		"
-	fi
+if [ $ACS = "found" ] ; then
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.cfdp.bp.tcp/host1.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -34,7 +28,7 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.cfdp.bp.tcp/host3.ionconfig \
 "
 
-if [[ "$ACS" == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./2.ipn.cfdp.bp.tcp/host2.acsrc \
 	"
 fi
@@ -48,7 +42,7 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.cfdp.bp.tcp/host2.cfdprc \
 "
 
-if [[ "$ACS" == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./3.ipn.cfdp.bp.tcp/host3.acsrc \
 	"
 fi
@@ -81,7 +75,7 @@ rm -rf ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.cfdp.bp.tcp
-if [[ "$ACS" == "found" ]] ; then
+if [ $ACS == "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -96,7 +90,7 @@ else
 	exit 1
 fi
 cd ../2.ipn.cfdp.bp.tcp
-if [[ "$ACS" == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -111,7 +105,7 @@ else
 	exit 1
 fi
 cd ../3.ipn.cfdp.bp.tcp
-if [[ "$ACS" == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -141,11 +135,11 @@ echo $TEST
 if  [ ! -e ./test1 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Local to Remote Copy Failed. FAILED!!"
 	cd ../1.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ../2.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ../3.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ..
 	killm
 	RETVAL=1
@@ -175,11 +169,11 @@ if [ ! -e ./test2 ] || [ -n "$TEST" ]; then
 	sleep 1 
 	kill -9 $BPCPD3_PID >/dev/null 2>&1
 	cd ../1.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ../2.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ../3.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ..
 	killm
 	RETVAL=1
@@ -212,11 +206,11 @@ if  [ ! -e ./test3 ] || [ -n "$TEST" ]; then
 	kill -9 $BPCPD2_PID >/dev/null 2>&1
 	kill -9 $BPCPD3_PID >/dev/null 2>&1
 	cd ../1.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ../2.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ../3.ipn.cfdp.bp.tcp
-	./ionstop
+	./ionstop &
 	cd ..
 	killm
 	RETVAL=1
@@ -235,11 +229,11 @@ kill -9 $BPCPD2_PID >/dev/null 2>&1
 kill -9 $BPCPD3_PID >/dev/null 2>&1
 
 cd ../1.ipn.cfdp.bp.tcp
-./ionstop
+./ionstop &
 cd ../2.ipn.cfdp.bp.tcp
-./ionstop
+./ionstop &
 cd ../3.ipn.cfdp.bp.tcp
-./ionstop
+./ionstop &
 cd ..
 killm
 exit $RETVAL

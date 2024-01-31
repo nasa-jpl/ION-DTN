@@ -79,6 +79,11 @@ install:
 	cp build/*.so $(ROOT)/lib
 	cp build/test-libbloom $(ROOT)/bin
 
+uninstall:		
+		rm $(ROOT)/lib/libbloom.so
+		rm $(ROOT)/include/bloom.h
+		rm $(ROOT)/bin/test-libbloom
+
 lint:
 	lint -x -errfmt=simple $(INC) $(LIB) *.c murmur2/*.c
 

@@ -11,17 +11,12 @@ CONFIGFILES=" \
 ./test.ipnrc \
 ./global.ionrc
 "
+source ../setacs.sh
 
-
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./test.acsrc"
-else
-	echo "acsadmin not found"
-	ACS="missing"
 fi
+
 
 echo "########################################"
 echo
@@ -103,7 +98,7 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop
+./ionstop &
 killm
 echo "bpMemo timeline test completed."
 exit $RETVAL

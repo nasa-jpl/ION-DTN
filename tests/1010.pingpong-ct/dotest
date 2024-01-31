@@ -5,16 +5,14 @@
 # Written by Andrew Jenkins, based on loopbacktest.sh by David Young
 #
 echo "Looking for acsadmin"
+source ../setacs.sh
+
 which acsadmin
-if [ $? -eq 0 ] ; then
-	echo "Found acsadmin"
-	ACS="found"
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-udp/loopback-acs.rc \
 	"
 else
-	echo "acsadmin not found"
-	ACS="missing"
 	CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-udp/loopback.rc \
 	"
@@ -66,7 +64,7 @@ tryreceive () {
     while [ $X -lt 200 ]
     do
         # sleep and kill process in case it didn't end properly
-        sleep 0.04 
+        sleep 1 
 
         # Check if bpsink got the file.
         if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
@@ -101,7 +99,7 @@ ITERATION=1
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-udp"
-if [ $ACS == "found" ] ; then
+if [ $ACS = "found" ] ; then
 	echo "ionstart -I ${CONFIGDIR}/loopback-acs.rc"
 	"ionstart" -I "${CONFIGDIR}/loopback-acs.rc"
 else

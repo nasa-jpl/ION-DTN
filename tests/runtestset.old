@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+
+# set -x
+
+function usage () {
+    echo "$(basename $0)   <testset 1> [<testset 2> ... <testset N>]"
+    echo ""
+    echo "  Runs a set of tests identified in one or more testset files."
+    echo "  Each testset file named on the command line should contain a list"
+    echo "  of tests (or test globs) to run.  These are used as arguments"
+    echo "  to the runtests script to execute the tests.  Test set files can"
+    echo "  contain comments (lines starting with '#') and blank lines."
+}
+
+if [ $# -eq 0 ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
+    usage
+    exit 1
+fi
+
+while [ $# -gt 0 ]; do
+    # If the user passed a bad file name, check filename.
+    if ! [ -e $1 ]; then
+        # We only error if filename is not "retest"
+        if ! [ $1 = "retest" ]; then
+            echo "Testset file $1 doesn't exist"
+            usage
+            exit 1  
+        fi
+        
+        # We looked for, but did not find retest. We should do all tests
+        echo "No retests file found. Running full test suite."
+        TESTS="."
+        break
+    fi
+
+    # Iterate over non-comment lines, adding them to the TESTS string
+    while read LINE; do
+        # Append this test name/glob to the list of tests to run.
+        TESTS="${TESTS+$TESTS }$LINE"
+    done <<< $(grep -v "^#" $1)
+    shift 1
+done
+
+# This restricts an emptry string from being passed to runtests
+if [ -z ${TESTS} ]; then
+    echo "$0 has an empty test set. No tests run."
+    exit 0;
+fi
+
+# Run all the tests specified in all of the testset files.
+exec $(dirname $0)/runtests $TESTS

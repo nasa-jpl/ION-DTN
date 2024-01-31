@@ -4,8 +4,8 @@ ionadmin	amroc.ionrc
 
 acsadmin	amroc.acsrc
 
-ionadmin	../global.ionrc &
+ionadmin	../global.ionrc 
 
-ionsecadmin	amroc.ionsecrc &
+ionsecadmin	amroc.ionsecrc
 
-bpadmin		amroc.bprc &
+bpadmin		amroc.bprc

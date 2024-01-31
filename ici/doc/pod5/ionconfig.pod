@@ -138,7 +138,7 @@ heapWords 2500000
 
 heapKey -1
 
-pathName /usr/ion
+pathName /tmp
 
 wmSize 5000000
 

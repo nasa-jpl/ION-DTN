@@ -67,7 +67,8 @@ PUBINCLS = \
 	$(INCL)/sdrlist.h \
 	$(INCL)/sdrtable.h \
 	$(INCL)/sdrhash.h \
-	$(INCL)/sdr.h
+	$(INCL)/sdr.h \
+	$(INCL)/icinm.h 
 
 ICIINCLS = \
 	$(SRC)/radixP.h \
@@ -97,6 +98,15 @@ install:
 		cp ../include/*.h $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libici.so
+		rm $(ROOT)/lib/libicinm.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		rm $(ROOT)/bin/rfxclock
+		for file in $(UTILITIES) $(TESTPGMS); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
 
 #	-	-	Utility executables	-	-	-	-
 

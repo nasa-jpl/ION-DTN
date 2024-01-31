@@ -7,26 +7,17 @@
 
 function doTestConfig
 {
-	ACS=""
-	if [[ $BP_VERSION == "bpv6" ]] ; then
-		echo "Looking for acsadmin"
-		which acsadmin
-		if [ $? -eq 0 ] ; then
-			ACS="found"
-			CONFIGFILES=" \
-			./node1/host_1-acs.rc \
-			./node2/host_2-acs.rc \
-			./node3/host_3-acs.rc \
-			./node4/host_4-acs.rc \
-			"
-		else
-			CONFIGFILES=" \
-			./node1/host_1.rc \
-			./node2/host_2.rc \
-			./node3/host_3.rc \
-			./node4/host_4.rc \
-			"
-		fi
+	source ../setacs.sh
+
+	if [ $ACS = "found" ] ; then
+		
+		CONFIGFILES=" \
+		./node1/host_1-acs.rc \
+		./node2/host_2-acs.rc \
+		./node3/host_3-acs.rc \
+		./node4/host_4-acs.rc \
+		"
+
 	else
 		CONFIGFILES=" \
 		./node1/host_1.rc \
@@ -99,10 +90,10 @@ function startNodes
 {
 	for i in {1..4}; do
 		cd node$i
-		if [[ $ACS == "found" ]] ; then
-			ionstart -I host_$i-acs.rc &
+		if [ $ACS = "found" ] ; then
+			ionstart -I host_$i-acs.rc 
 		else
-			ionstart -I host_$i.rc &
+			ionstart -I host_$i.rc 
 		fi
 		cd ..
 		sleep 1
@@ -114,7 +105,7 @@ function finishSetup
 {
 	for i in {1..4}; do
 		cd node$i
-		ionadmin ../global.ionrc &
+		ionadmin ../global.ionrc 
 		sleep 1
 		echo "l contact" | ionadmin | sed -e "s/^: //" | grep "From" &> ion_contacts.txt
 		bpecho ipn:$i.2 &

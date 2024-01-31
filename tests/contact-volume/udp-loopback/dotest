@@ -4,24 +4,18 @@
 #
 # Written by Sebastian Kuzminsky, based on loopbacktest.sh by David Young
 #
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		echo "Found acsadmin"
-		ACS="found"
-		CONFIGFILES=" \
-		${CONFIGSROOT}/loopback-udp/loopback-acs.rc \
-		"
-	else
-		echo "acsadmin not found"
-		ACS="missing"
-		CONFIGFILES=" \
-		${CONFIGSROOT}/loopback-udp/loopback.rc \
-		"
-	fi
+source ../../setacs.sh
+
+if [ $ACS = "found" ] ; then
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-udp/loopback-acs.rc \
+	"
+else
+	CONFIGFILES=" \
+	${CONFIGSROOT}/loopback-udp/loopback.rc \
+	"
 fi
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -52,7 +46,7 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=9
 
 echo "Starting ION..."
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	echo "ionstart -I ${CONFIGSROOT}/loopback-udp/loopback-acs.rc"
 	"ionstart" -I "${CONFIGSROOT}/loopback-udp/loopback-acs.rc"
 else

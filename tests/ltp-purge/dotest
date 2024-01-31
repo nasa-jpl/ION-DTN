@@ -14,14 +14,10 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ipnrc \
 "
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
-	fi
+source ../setacs.sh
+
+if [ $ACS = "found" ] ; then
+	CONFIGFILES=$CONFIGFILES"  ./2.ipn.ltp/amroc.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -33,7 +29,7 @@ CONFIGFILES=$CONFIGFILES"
 ./5.ipn.ltp/amroc.ipnrc \
 "
 
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./5.ipn.ltp/amroc.acsrc"
 fi
 
@@ -46,7 +42,7 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ipnrc \
 "
 
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
 fi
 
@@ -96,7 +92,7 @@ ionadmin amroc.ionrc
 cd ../5.ipn.ltp
 ionadmin amroc.ionrc
 
-if [[ $ACS == "found" ]] ; then
+if [ $ACS = "found" ] ; then
 	cd ../2.ipn.ltp
 	acsadmin amroc.acsrc
 	cd ../3.ipn.ltp
@@ -106,32 +102,32 @@ if [[ $ACS == "found" ]] ; then
 fi
 
 cd ../2.ipn.ltp
-ionadmin ../global.ionrc &
+ionadmin ../global.ionrc 
 cd ../3.ipn.ltp
-ionadmin ../global.ionrc &
+ionadmin ../global.ionrc 
 cd ../5.ipn.ltp
-ionadmin ../global.ionrc &
+ionadmin ../global.ionrc 
 
 cd ../2.ipn.ltp
-ionsecadmin amroc.ionsecrc &
+ionsecadmin amroc.ionsecrc 
 cd ../3.ipn.ltp
-ionsecadmin amroc.ionsecrc &
+ionsecadmin amroc.ionsecrc 
 cd ../5.ipn.ltp
-ionsecadmin amroc.ionsecrc &
+ionsecadmin amroc.ionsecrc 
 
 cd ../2.ipn.ltp
-ltpadmin amroc.ltprc &
+ltpadmin amroc.ltprc 
 cd ../3.ipn.ltp
-ltpadmin amroc.ltprc &
+ltpadmin amroc.ltprc 
 cd ../5.ipn.ltp
-ltpadmin amroc.ltprc &
+ltpadmin amroc.ltprc 
 
 cd ../2.ipn.ltp
-bpadmin amroc.bprc &
+bpadmin amroc.bprc 
 cd ../3.ipn.ltp
-bpadmin amroc.bprc &
+bpadmin amroc.bprc 
 cd ../5.ipn.ltp
-bpadmin amroc.bprc &
+bpadmin amroc.bprc 
 
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 

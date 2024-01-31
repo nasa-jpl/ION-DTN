@@ -1,13 +1,15 @@
 API = ../library
 INCL = ../include
+ICI_INCL = ../../ici/include
 UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
 TCP = ../tcp
+ICI_LIB = ../../ici/i86_64-fedora/lib
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(UDP) -I$(TCP) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(UDP) -I$(TCP) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -L$(ICI_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -40,6 +42,15 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libbsspP.so
+		rm $(ROOT)/lib/libbssp.so
+		rm $(ROOT)/lib/libtcpbsa.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
 
 #	-	-	Daemon executables	-	-	-	-
 

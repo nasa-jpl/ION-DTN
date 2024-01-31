@@ -69,7 +69,7 @@ echo ""
 # Now to send shutdown from node 1 to node 2.
 echo "Breaking TCP connection to node 2..."
 cd ../1.ipn.tcp/
-./ionstop
+./ionstop &
 echo "Node 1 is stopped."
 sleep 30
 

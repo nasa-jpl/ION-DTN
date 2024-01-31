@@ -395,4 +395,3 @@ if [[ $NUM_FAILED == 0 ]]; then
 else
     exit 1
 fi
-

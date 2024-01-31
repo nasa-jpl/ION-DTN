@@ -1,11 +1,15 @@
 INCL = ../include
+BP_INCL = ../../bpv7/include
+ICI_INCL = ../../ici/include
+ICI_LIB = ../../ici/i86_64-fedora/lib
+BP_LIB = ../../bpv7/i86_64-fedora/lib
 API = ../library
 TEST = ../test
 DAEMON = ../daemon
 UTILS = ../utils
 
 OPT = -g -Wall -Werror -Dlinux -fPIC
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(INCL) -I$(ROOT)/include -I$(BP_INCL) -I$(ICI_INCL) -I../../ici/library -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -39,6 +43,13 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libdtpc.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
 
 #	-	-	Daemon executables	-	-	-	-
 
