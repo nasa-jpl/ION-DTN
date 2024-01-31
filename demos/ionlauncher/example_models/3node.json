@@ -1,0 +1,47 @@
+{
+    "SC": {
+        "IP": "192.168.1.115",
+        "NODE": 21,
+        "SERVICES": [],
+        "DEST": [
+            "Relay"
+        ],
+        "PROTOCOL": [
+            "ltp"
+        ],
+        "RATE": [
+            2500000
+        ]
+    },
+    "Relay": {
+        "IP": "192.168.1.114",
+        "NODE": 22,
+        "SERVICES": [],
+        "DEST": [
+            "SC",
+            "GS"
+        ],
+        "PROTOCOL": [
+            "ltp",
+            "tcp"
+        ],
+        "RATE": [
+            2500000,
+            2500000
+        ]
+    },
+    "GS": {
+        "IP": "192.168.1.113",
+        "NODE": 23,
+        "SERVICES": [],
+        "DEST": [
+            "Relay"
+        ],
+        "PROTOCOL": [
+            "tcp"
+        ],
+        "RATE": [
+            2500000
+        ]
+    }
+}
