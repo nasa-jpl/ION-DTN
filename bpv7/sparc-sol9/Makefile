@@ -41,7 +41,7 @@ LFW = -lipnfw -ldtn2fw
 
 LBP = -lbp -lbpP
 
-RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
+RUNTIMES = bpadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bpsendtest bprecvfile bprecvtest bpclock ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcla ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat
 
 ALL = check $(BPLIBS) libcgr.so libipnfw.so libdtn2fw.so libstcpcla.so libudpcla.so $(RUNTIMES)
 
@@ -224,9 +224,17 @@ bpsendfile:	bpsendfile.o libbp.so $(BPLIBS)
 		$(CC) -o bpsendfile bpsendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
 		cp bpsendfile ./bin
 
+bpsendtest:	bpsendtest.o libbp.so $(BPLIBS)
+		$(CC) -o bpsendtest bpsendtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
+		cp bpsendtest ./bin
+
 bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
 		$(CC) -o bprecvfile bprecvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
 		cp bprecvfile ./bin
+
+bprecvtest:	bprecvtest.o libbp.so $(BPLIBS)
+		$(CC) -o bprecvtest bprecvtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lrt -lsocket
+		cp bprecvtest ./bin
 
 #	-	-	Libraries	-	-	-	-	-
 
