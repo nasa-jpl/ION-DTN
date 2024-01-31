@@ -377,13 +377,10 @@ int sem_errors()
 	sm_SemEnd(sem);
 
 	printf("semerrors(): trying to sm_SemEnded(%d) that closed semaphore\n", sem);
-	ret = sm_SemEnded(sem);
-	if (ret == -1) {
-		printf("    CORRECT: sm_SemEnded failed with return value %d\n", ret);
-	} else {
-		correct = 0;
-		printf("    ** ERROR: sm_SemEnded did NOT fail but had return value %d\n", ret);
-	}
+	ret = sm_SemEnded(sem); // return value ignored on purpose 
+
+	printf("semerrors(): trying to sm_SemUnend(%d) that closed semaphore\n", sem);
+	sm_SemUnend(sem); 
 
 	printf("semerrors(): trying to sm_SemUnwedge(%d) that closed semaphore\n", sem);
 	ret = sm_SemUnwedge(sem,1);
@@ -393,6 +390,7 @@ int sem_errors()
 		correct = 0;
 		printf("    ** ERROR: sm_SemUnwedge did NOT fail but had return value %d\n", ret);
 	}
+
 
 	printf("semerrors(): trying to sm_SemDelete(%d) that closed semaphore\n", sem);
 	sm_SemDelete(sem);

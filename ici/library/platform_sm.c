@@ -24,13 +24,6 @@ static void	giveIpcLock();
 #define IPC_ACTION_DETACH	-111111   /* historic */
 
 
-/* debugging code */
-/* remove for production */
-#ifdef linux
-char *getprogname() {return("");}
-#endif
-
-
 /* bounds for the GetUniqueKey for process architectures */
 /* can't be zero and can't be negative as a signed 32-bit number */
 #define UNIQUE_KEY_PROCESSES_INITIAL	0x00001000
@@ -3520,7 +3513,7 @@ void _semPrintTable()  // Only for debugging purposes
 		return;
 	}
 
-	fprintf(stderr,"=========== Semaphore Table - pid %d (%s) =================\n", getpid(), getprogname());
+	fprintf(stderr,"=========== Semaphore Table - pid %d =================\n", getpid());
 
 	fprintf(stderr,"  Global sem: %p (%s)\n", _ipcSemaphore(IPC_ACTION_LOOKUP), 
 		_semGenPosixSemname(sem_name,sizeof(sem_name),-1));
@@ -4079,7 +4072,11 @@ int	sm_SemEnded(sm_SemId i)
 	SmLocalSem *sem = _semGetSem(semTbl,i);
 	int	ended;
 
-	CHKERR(sem);
+	// to match semantics of SVR4 code when calling this on a closed semaphore,
+	// we don't check for that, only that the semphore index is valid.
+	CHKZERO(i >= 0);
+	CHKZERO(i < SEM_NSEMS_MAX);
+	sem  = &semTbl->lsemtable[i]; // semGetSem() will have returned NULL if semaphore is not open
 
 	ended = sem->semgl->ended;
 	if (ended)
@@ -4095,7 +4092,11 @@ void	sm_SemUnend(sm_SemId i)
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
 	SmLocalSem *sem = _semGetSem(semTbl,i);
 
-	CHKVOID(sem);
+	// to match semantics of SVR4 code when calling this on a closed semaphore,
+	// we don't check for that, only that the semphore index is valid.
+	CHKVOID(i >= 0);
+	CHKVOID(i < SEM_NSEMS_MAX);
+	sem  = &semTbl->lsemtable[i]; // semGetSem() will have returned NULL if semaphore is not open
 
 	sem->semgl->ended = 0;
 }
@@ -4184,7 +4185,7 @@ sm_SemId	sm_GetTaskSemaphore(int taskId)
 
 #if defined(POSIX_NAMED_SEMAPHORES) || defined(SVR4_SEMAPHORES)
 /* This is only for SVR4 / Posix Named Semaphores */
-/*  Because we already have a ION-wide semaphore table shared by all ION instances and processes,
+/*  Because we already have an ION-wide semaphore table shared by all ION instances and processes,
 	We will use that table to store a GLOBAL "unique" key, much like the RTEMS version does.  However
 	Because the ION code uses that key, this code ensures that it will not return a "unique" key
 	that is already the key of an ION semaphore or the key of an SVR4 shared memory region (since)
@@ -4236,7 +4237,6 @@ static int	_sm_GetUniqueKey_internal(
 			/* we can use this one */
 			break;
 		}
-		/* not reached */
 	}	
 
 	return(tryKey);
