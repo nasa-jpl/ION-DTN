@@ -4939,6 +4939,34 @@ putErrmsg("Cancel by receiver.", utoa(sessionNbr));
 	importBuffer = sdr_list_data(sdr, importBufferElt);
 	CHKERR(importBuffer);
 
+	/* check reused buffer size in case heapmax increased */
+	if (sdr_object_length(sdr, importBuffer) < db->maxAcqInHeap)
+	{
+
+		/* We don't search the entire list but just 
+		 * increase allocation from the head of the list
+		 * until eventually the list is flushed to new
+		 * allocation. This might be slower but we don't
+		 * anticipate frequent revision to heapmax
+		 * Please note: LTP does not re-allocate heap buffer 
+		 * down. This can be modified to do so but for
+		 * now we assume modification is rare and users
+		 * are warned of increasing heapmax consequences. */
+
+		/* Free the buffer first and remove from list */
+		sdr_free(sdr,importBuffer);
+		sdr_list_delete(sdr,importBufferElt,NULL,NULL);
+		importBufferElt = 0;
+
+		/* new allocation */
+		importBuffer = sdr_malloc(sdr, db->maxAcqInHeap);
+		if (importBuffer == 0)
+		{
+			putErrmsg("Re-allocation of import heap buffer failed.", NULL);
+			return -1;
+		}
+	}
+
 	/*	importSessions list element points to the session
 	 *	structure.  importSessionsHash entry points to the
 	 *	list element.						*/
@@ -5374,20 +5402,6 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 	int		fd;
 
 	*segUpperBound = -1;	/*	Default: discard segment and immediate end transaction. */
-	bytesForHeap = pdu->offset < ltpdb->maxAcqInHeap ?
-			ltpdb->maxAcqInHeap - pdu->offset : 0;
-	if (bytesForHeap > pdu->length)
-	{
-		bytesForHeap = pdu->length;
-	}
-
-	endOfSegment = pdu->offset + pdu->length;
-	bytesForFile = endOfSegment > ltpdb->maxAcqInHeap ?
-			endOfSegment - ltpdb->maxAcqInHeap : 0;
-	if (bytesForFile > pdu->length)
-	{
-		bytesForFile = pdu->length;
-	}
 
 	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
@@ -5441,6 +5455,22 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 			ltpSpanTally(vspan, IN_SEG_SES_CLOSED, pdu->length);
 			return 0;
 		}
+	}
+
+	/* Determine heap and file spaces needed */
+	bytesForHeap = pdu->offset < sessionBuf->heapBufferSize ? \
+			sessionBuf->heapBufferSize - pdu->offset : 0;
+	if (bytesForHeap > pdu->length)
+	{
+		bytesForHeap = pdu->length;
+	}
+
+	endOfSegment = pdu->offset + pdu->length;
+	bytesForFile = endOfSegment > sessionBuf->heapBufferSize ? \
+			endOfSegment - sessionBuf->heapBufferSize : 0;
+	if (bytesForFile > pdu->length)
+	{
+		bytesForFile = pdu->length;
 	}
 
 	segment->sessionObj = *sessionObj;

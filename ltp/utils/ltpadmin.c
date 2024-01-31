@@ -591,9 +591,9 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	}
 
 	heapmax = strtoul(tokens[2], NULL, 0);
-	if (heapmax < 560)
+	if (heapmax < 560 || heapmax > LTP_MAX_HEAP_LIMIT)
 	{
-		writeMemoNote("[?] heapmax must be at least 560", tokens[2]);
+		writeMemoNote("[?] heapmax must be at least 560 and no more than 65536", tokens[2]);
 		return;
 	}
 
