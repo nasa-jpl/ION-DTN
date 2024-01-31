@@ -256,6 +256,48 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 
 #
+# allow the user running configure to enable AMS_INDUSTRIAL
+#
+AC_ARG_ENABLE(
+    ams-industrial,
+    [AC_HELP_STRING([--enable-ams-industrial], [enable AMS_INDUSTRIAL])],
+    [ENABLE_AMS_INDUSTRIAL=yes
+	 AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"],
+    [ENABLE_AMS_INDUSTRIAL=no])
+AM_CONDITIONAL(ENABLE_AMS_INDUSTRIAL, test "x$ENABLE_AMS_INDUSTRIAL" = "xyes")
+
+#
+# allow the user running configure to enable the enhanced watch character option
+#
+AC_ARG_ENABLE(
+    ewchar,
+    [AC_HELP_STRING([--enable-ewchar], [enable enhanced watch characters])],
+    [ENABLE_EWCHAR=yes
+	 AM_CFLAGS="$AM_CFLAGS -DEWCHAR"],
+    [ENABLE_EWCHAR=no])
+AM_CONDITIONAL(ENABLE_EWCHAR, test "x$ENABLE_EWCHAR" = "xyes")
+
+#
+# allow the user running configure to enable the command line history option
+#
+AC_ARG_ENABLE(
+    commandline-history,
+    [AC_HELP_STRING([--enable-commandline-history], [enable command line history])],
+    [AC_CHECK_PROG([readline_present], [readline], [1], [0])
+	 if test "$readline_present" = 1; then
+		ENABLE_CMD_HIST=yes
+	 	AM_CFLAGS="$AM_CFLAGS -DINPUT_HISTORY"
+	 else
+	 	ENABLE_CMD_HIST=no
+	 	AC_MSG_ERROR([You need to have the readline executable installed to use this option.])
+	 fi
+	],
+    [ENABLE_CMD_HIST=no
+	 echo "Command line history disabled."
+	])
+AM_CONDITIONAL(ENABLE_CMD_HIST, test "x$ENABLE_CMD_HIST" = "xyes")
+
+#
 # allow the user running configure to enable high-speed ION 
 #
 AC_ARG_ENABLE(
