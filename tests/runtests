@@ -5,12 +5,38 @@
 # This script is released into the public domain.
 #
 
-
-#set -x
-
 # This file will contain the tests that failed.
 # --dyoung oct 2010
 FAILEDFILE="retest"
+
+# This file will contain intermediate progress.
+# --sdo oct 2023
+PROGRESSFILE="`pwd`/progress"
+echo "# Testing started by $0 `date`" > $PROGRESSFILE
+echo "# testing host: `hostname`" >> $PROGRESSFILE
+echo "# testing environment: `uname -a`" >> $PROGRESSFILE
+
+# If this environment variable is set, and is an existing directory, 
+# then output from each individual tests will go THERE instead 
+# of to the screen.  File names are of the form:
+# RUNTESTS_OUTPUTDIR/results.testname
+# --sdo oct 2023
+# for example: export RUNTESTS_OUTPUTDIR="/tmp"
+# for example: export RUNTESTS_OUTPUTDIR="."
+if [[ -n "${RUNTESTS_OUTPUTDIR}" ]] ; then
+    if [[ -d "$RUNTESTS_OUTPUTDIR" ]] ; then
+        # it needs to be absolute (script changes directory)
+        if [[ "${RUNTESTS_OUTPUTDIR:0:1}" != "/" ]] ; then
+            RUNTESTS_OUTPUTDIR="`pwd`/${RUNTESTS_OUTPUTDIR}"
+        fi
+        echo "Saving individual results in directory ${RUNTESTS_OUTPUTDIR}/results..." 1>&2
+        echo "   To disable, type: unset RUNTESTS_OUTPUTDIR" 1>&2
+        rm -f ${RUNTESTS_OUTPUTDIR}/results.* > /dev/null 2>&1
+    else
+        echo "Ignoring envariable RUNTESTS_OUTPUTDIR, ${RUNTESTS_OUTPUTDIR} is not a directory" 1>&2
+        unset RUNTESTS_OUTPUTDIR
+    fi
+fi
 
 
 [ -f pretest-script ] && source pretest-script
@@ -69,18 +95,20 @@ function run_a_test () {
     echo "*** ${TEST}"
     echo "***"
 
+    echo "=== Processing $TEST at time `date`" >> $PROGRESSFILE
+
     # check if test is excluded because it is obsolete
     if [ -f "$TEST/.exclude_obsolete" ]; then
-    	echo "Test excluded because it is obsolete, skipping $TEST"
-	cat $TEST/.exclude_obsolete
+    	echo "Test excluded because it is obsolete, skipping $TEST" | tee -a $PROGRESSFILE
+	    cat $TEST/.exclude_obsolete
     	excludeObsolete_test $TEST
     	return
     fi
 
     # check if test is excluded on all platforms
     if [ -f "$TEST/.exclude_all" ]; then
-    	echo "Test universally excluded, skipping $TEST"
-	cat $TEST/.exclude_all
+    	echo "Test universally excluded, skipping $TEST" | tee -a $PROGRESSFILE
+	    cat $TEST/.exclude_all
     	skip_test $TEST
     	return
     fi
@@ -88,7 +116,7 @@ function run_a_test () {
     # check for environment variable to skip these	
     if [ -f "$TEST/.exclude_expert" ]; then
 	    if [ -z "$ION_RUN_EXPERT" ]; then
-		echo "Test excluded by expertise class, skipping $TEST"
+		echo "Test excluded by expertise class, skipping $TEST" | tee -a $PROGRESSFILE
 		cat $TEST/.exclude_expert
 		skip_test $TEST
 		return
@@ -98,7 +126,7 @@ function run_a_test () {
     # check for environment variable to skip these	
     if [ -f "$TEST/.exclude_cbased" ]; then
 	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
-		echo "Test excluded because of C code, skipping $TEST"
+		echo "Test excluded because of C code, skipping $TEST" | tee -a $PROGRESSFILE
 		cat $TEST/.exclude_cbased
 		skip_test $TEST
 		return
@@ -107,23 +135,23 @@ function run_a_test () {
 
     # check if test is excluded by OS version
     if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
-    	echo "Test excluded by OS type, skipping $TEST"
-	cat $TEST/.exclude_$OS_VERSION
+    	echo "Test excluded by OS type, skipping $TEST" | tee -a $PROGRESSFILE
+	    cat $TEST/.exclude_$OS_VERSION
     	excludeOS_test $TEST
     	return
     fi
 
     # check if test is excluded by BP version
     if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
-    	echo "Test excluded by BP version, skipping $TEST"
-	cat $TEST/.exclude_$BP_VERSION
+    	echo "Test excluded by BP version, skipping $TEST" | tee -a $PROGRESSFILE
+	    cat $TEST/.exclude_$BP_VERSION
     	excludeBPv_test $TEST
     	return
     fi
 
     # check for existance of dotest script
     if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
-        echo "test $TEST does not exist!"
+        echo "test $TEST does not exist!" | tee -a $PROGRESSFILE
         NUM_FAILED=$((NUM_FAILED + 1))
         TESTS_FAILED="$TESTS_FAILED $TEST"
         return
@@ -131,16 +159,32 @@ function run_a_test () {
 
     # make sure dotest script is executable
     if [ ! -x "$TEST/dotest" ]; then
-        echo "dotest script not executable, skipping"
+        echo "dotest script $TEST/dotest not executable, skipping" | tee -a $PROGRESSFILE
         NUM_SKIPPED=$((NUM_SKIPPED + 1))
         TESTS_SKIPPED="$TESTS_SKIPPED $TEST"
         return
     fi
 
+    # where to save results for THIS test, if requested
+    if [[ -n ${RUNTESTS_OUTPUTDIR} ]] ; then
+        TESTNAME=`basename ${TEST}`
+        RESULTSFILE="${RUNTESTS_OUTPUTDIR}/results.${TESTNAME}"
+        if [[ -f ${RESULTSFILE} ]] ; then
+            # in case the same test is run multiple times
+            RESCOUNTER=$(( $RESCOUNTER + 1))
+            RESULTSFILE="${RESULTSFILE}.${RESCOUNTER}"
+        fi
+        echo "start time: `date`" > ${RESULTSFILE}
+    fi
+
     pushd "$TEST" > /dev/null
 
     if [ -x "cleanup" ]; then
-        ./cleanup
+        if [[ -n "${RESULTSFILE}" ]] ; then
+            ./cleanup $OS_VERSION >> ${RESULTSFILE} 2>&1
+        else
+            ./cleanup $OS_VERSION
+        fi
     fi
 
     # Prefer X/Open Portable tools if Solaris
@@ -148,7 +192,14 @@ function run_a_test () {
         PATH="/usr/xpg4/bin:$PATH"
     fi    
         
-    ./dotest $OS_VERSION
+
+    # run the driver script for the test
+    if [[ -n "${RESULTSFILE}" ]] ; then
+      ./dotest $OS_VERSION >> ${RESULTSFILE} 2>&1
+    else
+      ./dotest $OS_VERSION
+    fi
+
     TEST_RETVAL=$?
     if [ $TEST_RETVAL -eq 0 ]; then
         echo "TEST PASSED!"
@@ -156,21 +207,29 @@ function run_a_test () {
         if [ -x "cleanup" ]; then
             ./cleanup
         fi
+        echo "PASSED: ${TEST}" >> $PROGRESSFILE
     elif [ $TEST_RETVAL -eq 1 ]; then
         echo "TEST FAILED!"
         fail_test $TEST
+        echo "FAILED: ${TEST}" >> $PROGRESSFILE
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
         skip_test $TEST
+        echo "SKIPPED: ${TEST}" >> $PROGRESSFILE
     else 
         echo "test returned unknown value $TEST_RETVAL"
         fail_test $TEST
+        echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> $PROGRESSFILE
+    fi
+
+    if [[ -n "${RESULTSFILE}" ]] ; then
+        echo "dotest exit value: $TEST_RETVAL" >> ${RESULTSFILE}
+        echo "end time: `date`" >> ${RESULTSFILE}
     fi
 
     # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] 
-    then	
-	sleep 15
+    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] ; then	
+    	sleep 15
     fi
 
     popd > /dev/null
@@ -287,7 +346,7 @@ else
     fi
 fi
 
-
+(
 echo
 echo "passed: $NUM_PASSED"
 for TEST in $TESTS_PASSED; do
@@ -326,7 +385,10 @@ echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
 for TEST in $TESTS_EXCLUDED_OBSOLETE; do
     echo "    $TEST"
 done
+) | tee -a $PROGRESSFILE
 
+echo "# Testing ended by $0 `date`" >> $PROGRESSFILE
+cp ${PROGRESSFILE} ${PROGRESSFILE}.`date | sed 's/ /_/g'`
 
 if [[ $NUM_FAILED == 0 ]]; then
     exit 0

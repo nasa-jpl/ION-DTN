@@ -3,10 +3,10 @@
 # Modified by Robert Martin to work on Mac 10.4, due to IPCS requiring sudo to list any 
 # shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
 # all related processes" idea
+# Simplified by Shawn Ostermann in October, 2023 to remove Enhanced Regular Expressions, "grep -E", and "sed -E"
+# to make it more portable (to Solaris in particular).  Also quieted down the output a little.
 
 OS_VERS=""
-NOT_KILLED=""
-PS_LIST=""
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
 # Since ipcs truncates usernames to 10 characters, we need to match against a
@@ -161,50 +161,54 @@ fi
 
 OSNAME=`uname`
 if [ "$OSNAME" == "SunOS" ]; then
-    killcmd="pkill"
+    KILLCMD="pkill"
+	PS="/usr/bin/ps"
+	PS_ARGS="-fe"
+	PROCESS_LIMIT=1
 else
-    killcmd="killall"
+    KILLCMD="killall"
+	PS="ps"
+	PS_ARGS="-e"
+	if [[ "$(uname -m)" == "x86_64" ]]; then
+		PROCESS_LIMIT=64
+	else
+    	PROCESS_LIMIT=32
+	fi
 fi
 
-if [[ "$(uname -m)" == "x86_64" ]]; then
-    PROCESS_LIMIT=64
-else
-    PROCESS_LIMIT=32
-fi
-
-echo "Sending TERM to ${KILLPROCESSLIST}..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd 2> /dev/null
+#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
+echo "Sending TERM to the processes..."
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 
 sleep 2
 
 echo "Sending KILL to the processes..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd -KILL 2> /dev/null
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 
 sleep 2
 
-echo "Checking if all processes ended..."
-# Creates a long regex search pattern that matches any process name
-# Search pattern looks like:
-#   ([^-a-zA-Z]bping$)|([^-a-zA-Z]bpecho$)|...
-PATTERN_PREFIX='([^-a-zA-Z]'
-PATTERN_POSTFIX='$)'
 
+echo "Checking if all ION processes ended..."
 # check if OS is SunOS
 if [ "$(uname -s)" == "SunOS" ]; then
+	# Creates a long regex search pattern that matches any process name
+	# Search pattern looks like:
+	#   ([^-a-zA-Z]bping$)|([^-a-zA-Z]bpecho$)|...
+	PATTERN_PREFIX='([^-a-zA-Z]'
+	PATTERN_POSTFIX='$)'
 	PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | /usr/gnu/bin/sed 's/\s*$//' | /usr/gnu/bin/sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
 	NOT_KILLED="$(ps -e | /usr/gnu/bin/grep -E "${PATTERN}" | /usr/gnu/bin/grep -v grep)"	
 else
-	PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | sed 's/\s*$//' | sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
-	NOT_KILLED="$(ps -e | grep -E "${PATTERN}" | grep -v grep)"
-fi
+	PSFILE="/tmp/ps.$$"
+	# grab all running processes
+	${PS} ${PS_ARGS} > ${PSFILE}
+	# see if any of those still-running processes belong to ION
+	for PROC in ${KILLPROCESSLIST}; do
+		grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
+			awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+	done 
 
-if [[ "$(echo -n "${NOT_KILLED}" | wc -l)" -gt 0  ]]; then
-    echo "${NOT_KILLED}"
-    PROCESSES="$(echo "${NOT_KILLED}" | awk '{print $NF}')"
-    while read -r PROCESS; do
-        echo "Unknown error: process '${PROCESS}' not killed...try rebooting?"
-    done <<< "${PROCESSES}"
-fi
+	rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
@@ -222,3 +226,4 @@ else
 fi
 
 echo "Killm completed."	
+exit 0
