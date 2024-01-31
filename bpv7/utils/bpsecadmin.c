@@ -21,6 +21,12 @@ TODO: Implement support for anonymous event sets in policyrules.
 
 */
 
+#ifdef INPUT_HISTORY
+#include <stdio.h>
+#include <string.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
 
 /*****************************************************************************
  *                              FILE INCLUSIONS                              *
@@ -2734,6 +2740,7 @@ int bpsec_admin_json_validateCmd(SecPolCmd cmdType, jsonObject job){
  * @retval -1 - Error
  * @retval	0 - Command could not be executed.
  * @retval	1 - Command successfully executed.
+ * @retval  2 - Command for nominal exit
  *****************************************************************************/
 
 int bpsec_admin_executeCmd(char *line)
@@ -2788,23 +2795,23 @@ int bpsec_admin_executeCmd(char *line)
 	{
 		case 0:			/*	Empty line.		*/
 		case '#':		/*	Comment.		*/
-			return 0;
+			return 1;
 		case '?':		/*  Help command.   */
 		case 'h':
 			bpsec_admin_printUsage();
-			return 0;
+			return 1;
 		case '1':		/*  Init command    */
 			if(bpsec_admin_init() < 0)
 			{
 				return -1;
 			}
-			return 0;
+			return 1;
 		case 'v':		/*  Version command. */
 			isprintf(buffer, sizeof(buffer), "%s", IONVERSIONNUMBER);
 			bpsec_admin_printText(buffer);
-			return 0;
+			return 1;
 		case 'q':       /* Quit command.     */
-			return 0;
+			return 2;
 	}
 
 	/* Step 3: If the command code provided requires additional data, it is
@@ -2941,9 +2948,14 @@ int	main(int argc, char **argv)
 	int		len;
 	char	line[USER_TEXT_LEN];
 	char 	jsonStr[JSON_CMD_LEN];
+	int 	result = 0;
 
 	memset(jsonStr, '\0', sizeof(jsonStr));
 	memset(line, '\0', sizeof(line));
+
+#ifdef INPUT_HISTORY
+	char *input;
+#endif
 
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
@@ -2960,6 +2972,60 @@ int	main(int argc, char **argv)
 
 		while (1)
 		{
+#ifdef INPUT_HISTORY
+			/* add input history */
+			if ((input = readline(": ")) != NULL)
+			{
+				len = strlen(input);
+				
+				if (len == 0)
+				{
+					continue;
+				}
+
+				/* received input */
+				if (len > 0) 
+				{
+            		add_history(input);
+        		}
+				
+				if (len > sizeof(line) - 1 ) 
+				{
+					printf("\nInput is too long. Ignored.\n");
+					fflush(stdout);
+					continue;
+				}
+			}
+			else
+			{
+				/* input error detected */
+				printf("\nInput error detected. Exiting.\n");
+				fflush(stdout);
+				free(input);
+				break;
+			}
+
+			/* copy the input to line for processing
+			 * input sized already checked */
+
+			strcpy(line, input);
+
+			result = bpsec_admin_executeCmd(line);
+
+			if (result == -1) 
+			{
+				printf("\nCommand execution error. Exiting.\n");
+				fflush(stdout);
+				free(input);
+				break;
+			}
+			else if (result == 2)
+			{
+				free(input);
+				break;
+			}
+#else
+			/* original input handling*/
 			printf(": ");
 			fflush(stdout);
 			if (igets(cmdFile, line, sizeof(line), &len) == NULL)
@@ -2978,7 +3044,19 @@ int	main(int argc, char **argv)
 				continue;
 			}
 
-			bpsec_admin_executeCmd(line);
+			result = bpsec_admin_executeCmd(line);
+
+			if (result == -1) 
+			{
+				printf("\nCommand execution error. Exiting.\n");
+				fflush(stdout);
+				break;
+			}
+			else if (result == 2)
+			{
+				break;
+			}
+#endif
 		}
 #endif
 	}
