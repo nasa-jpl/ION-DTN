@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# Shawn Ostermann
+# For automatically gathering data using ./dotest
+#
+DATE=`date | sed 's/[ :]/_/g'`
+OUTPUTFILE="./results.$DATE.txt"
+CSVFILE="./experiment.$DATE.csv"
+#
+[ -f pretest-script ] && source pretest-script
+#
+echo "=== Running test"
+# note that I've only run these on linux/Mac, so I've hardcoded the OS
+./dotest linux 2>&1 | tee ${OUTPUTFILE}
+echo
+echo
+echo "=== Analyzing output"
+./results2csv ${OUTPUTFILE} > ${CSVFILE}
+echo "Results saved in file: ${CSVFILE}"
+exit 0

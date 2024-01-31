@@ -119,7 +119,6 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
 {
     Sdr            	sdr = getIonsdr();
     Object         	sdrElt;
-    int            	eltLoop;
     Object         	spanObj;
     LtpSpan        	span;
     LtpSpanStats   	stats;
@@ -137,9 +136,9 @@ void ltpnm_span_get (unsigned int   engineIdWanted,
         return;
     }
 
-    for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
+    for (sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
-         eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))
+         sdrElt = sdr_list_next(sdr, sdrElt))
     {
         spanObj = sdr_list_data(sdr, sdrElt);
         sdr_read(sdr, (char *) & span, spanObj, sizeof(LtpSpan));
@@ -221,7 +220,6 @@ void ltpnm_span_reset (unsigned int engineIdWanted, int * success)
 {
     Sdr             sdr = getIonsdr();
     Object          sdrElt;
-    int             eltLoop;
     Object          spanObj;
     LtpSpan         span;
     LtpSpanStats    stats;
@@ -238,9 +236,9 @@ void ltpnm_span_reset (unsigned int engineIdWanted, int * success)
         return;
     }
 
-    for (eltLoop = 0, sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
+    for (sdrElt = sdr_list_first(sdr, (getLtpConstants())->spans);
          sdrElt; 
-         eltLoop++, sdrElt = sdr_list_next(sdr, sdrElt))
+         sdrElt = sdr_list_next(sdr, sdrElt))
     {
         spanObj = sdr_list_data(sdr, sdrElt);
         sdr_read(sdr, (char *) &span, spanObj, sizeof(LtpSpan));

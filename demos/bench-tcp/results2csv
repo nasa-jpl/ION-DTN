@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# Shawn Ostermann
+# For analyzing data from ./runexperiment
+#
+if [ $# == 0 ]; then
+    echo "Usage: $0 resultfile [moreresultfiles...]"
+    exit 1
+fi
+#
+for LOGFILE in $*; do
+
+echo "Looking at log file $LOGFILE" 1>&2
+egrep '^Date: ' $LOGFILE | sed 's/Date: /Date,/g'
+egrep '^Uname.*: ' $LOGFILE | sed 's/: /,/g'
+egrep '^Benchmark: ' $LOGFILE | sed 's/: /,/g'
+echo
+echo
+
+# ouTHROUGHPUT format:
+# RUNNING: Iteration 3: Test 14: 1 bundles of 100000000 bytes each - 100000000 total bytes - Contact Plan MaxThroughput: 100000000 
+cat $LOGFILE | sed 's/[:,]//g' | awk '
+BEGIN {
+    printf("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", 
+    "HOSTNAME", "OS", "RELEASE", "CPU", "SEMSYSTEM", "ITER", "TESTNUM", "BUNDLESIZE", "NUMBUNDLES", "TOTALBYTES", "CONTACT_MAX_BW", "THROUGHPUT_Mbits_sec"); 
+}
+
+
+/^Hostname /       { HOSTNAME = $2; next; }
+/^UnameOS /        { OS = $2; next; }
+/^UnameMachine /   { CPU = $2; next; }
+/^UnameRelease /   { RELEASE = $2; next; }
+
+/^RUNNING / { 
+    ITER=$3
+    TESTNUM=$5
+    NUMBUNDLES=$6
+    BUNDLESIZE=$9
+    TOTALBYTES=$13   
+    CONTACT_MAX_BW=$20     
+    }
+
+/^Throughput \(Mbps\)/     { THROUGHPUT = $3; next; }
+/^Initializing semaphores to use Posix/  { SEMSYSTEM = "Posix"; next; }
+/^Initializing semaphores to use SVR4/   { SEMSYSTEM = "SVR4"; next; }
+
+/...transmission finished./ {     printf("%s,%s,%s,%s,%s,%s,%s,%.1f,%.1f,%.1f,%.1f,%.3f\n", 
+HOSTNAME, OS, RELEASE, CPU, SEMSYSTEM, ITER, TESTNUM, BUNDLESIZE, NUMBUNDLES, TOTALBYTES, CONTACT_MAX_BW, THROUGHPUT); next; }
+
+'
+done
+exit 0

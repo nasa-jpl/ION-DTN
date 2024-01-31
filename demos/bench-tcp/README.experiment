@@ -1,0 +1,21 @@
+This demo benchmark has been updated to make it much easier to run benchmark
+tests and collect a lot of data, while still running as before as a regression test.
+
+To do more data collect, you can just 'cd' to this directory and run:
+ ./runexperiment
+
+ That will run the ./dotest script (same as the regression tests) and then collect 
+ the stats into a CSV file.
+
+ For best results, tweak the variables at the beginning of dotest to add additional
+ data point, repeat the experiments (ITERATIONS), make the tests longer (TOTALBYTE), etc.
+
+ Note, if you greatly increase the TOTALBYTES (or other parameters), bpdriver might abort
+ because there isn't enough room in the SDR.  You can see that by checking in the ion.log file
+ in that subdirectory.  If that happens, just update the constants in bench.ionconfig, as in:
+        wmSize 50000000
+        heapWords 50000000
+
+ Have fun!
+
+ Shawn Ostermann

@@ -185,7 +185,7 @@ extern void		releaseSdr(SdrState *sdr);
 
 extern void		joinTrace(Sdr, const char *, int);
 
-extern SdrMap		*_mapImage();
+extern SdrMap		*_mapImage(Sdr sdrv);
 
 #ifndef SDR_TRACE
 extern char		*_noTraceMsg();
