@@ -105,8 +105,13 @@ sleep 20
 #Count aborted SDR transactions
 firstAbort=`grep "finished restarting ION" ion.log | wc -l`
 echo ""
-echo -n $firstAbort
-echo " transactions at receiver canceled, ION restarted."
+if [[ $firstAbor != 0 ]];then
+	echo "No restarting occurred."
+else
+	echo -n $firstAbort
+	echo " transactions at receiver canceled, caused transaction reversal, ION restarted."
+fi
+
 if ! [ $firstAbort -ge 1 ];then
 	echo "Didn't cause transaction crash!"
 	echo ""
