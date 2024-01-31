@@ -809,6 +809,16 @@ static void	terminateXn(Sdr sdrv)
 		return;
 	}
 
+	/*  Check if need to reverse modification.		 */
+	if (!(sdrv->modified))
+	{
+		/* no modifications made, no need to reverse */
+		
+		clearTransaction(sdrv);
+		unlockSdr(sdr);
+		return;
+	}
+
 	/*	Transaction must be reversed as necessary.		*/
 
 	if (reverseTransaction(sdr, sdrv->logfile, sdrv->logsm, sdrv->dsfile,
