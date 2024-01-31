@@ -222,7 +222,9 @@ stuffdir = $(bindir)
 stuff_SCRIPTS =	$(srcdir)/killm \
 		$(srcdir)/ionstart \
 		$(srcdir)/ionstop \
-		$(srcdir)/ionscript
+		$(srcdir)/ionscript \
+		$(srcdir)/demos/ionlauncher/ionlauncher \
+		$(srcdir)/demos/ionlauncher/net_model_gen
 
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
