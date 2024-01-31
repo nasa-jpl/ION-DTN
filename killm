@@ -150,7 +150,6 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpcp lt-bpcp\
 	bpcpd lt-bpcpd\
 	"
-fi
 
 sw_vers 2> /dev/null > /dev/null
 
@@ -209,6 +208,7 @@ else
 	done 
 
 	rm -f ${PSFILE}
+fi
 
 echo "Deleting shared memory to remove SDR..."
 
