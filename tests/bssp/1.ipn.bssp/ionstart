@@ -6,7 +6,7 @@ ionadmin	../global.ionrc
 
 ionsecadmin	amroc.ionsecrc 
 
-owltsim		amroc.owltsim 
+owltsim		amroc.owltsim &
 
 bsspadmin	amroc.bssprc 
 

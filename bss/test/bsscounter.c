@@ -118,12 +118,12 @@ static int	checkReceptionStatus(char *buffer, int limit)
 		if (bundleIdCount >= waitForBundleIdCount)
 		{
 			waitForBundleIdCount = bundleIdCount + 1;
-			dbRecordsCount++;
-			if ((dbRecordsCount % 10) == 0)
-			{
-				printf("Received %d bundles...\n", dbRecordsCount);
-				fflush(stdout);
-			}
+		}
+		dbRecordsCount++;
+		if ((dbRecordsCount % 10) == 0)
+		{
+			printf("Received %d bundles...\n", dbRecordsCount);
+			fflush(stdout);
 		}
 
 		if (dbRecordsCount >= limit)
