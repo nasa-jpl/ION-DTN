@@ -1,0 +1,261 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# August 9, 2012
+#
+# Shawn Ostermann
+# Made it more flexible for testing
+# October 11, 2023
+#
+
+#
+# testing configuration
+# (to make the numbers more readable)
+KB="000"
+MB="${KB}000"
+GB="${MB}000"
+# how many total bytes to transfer for each test
+TOTALBYTES=1${MB}
+TOTALBYTES=100${MB}
+# MAX number of bundles for any test (too many causes non-ION losses)
+# This really only affects really small size bundles
+MAXBUNDLES=100000
+# how many total seconds to allow each individual test to run before giving up
+# 5 minutes is probably plenty
+MAXSECONDS=120
+# what bundle sizes do you want to test
+# (list multiple values to cycle through them each)
+BUNDLESIZES="1${KB} 10${KB} 63,800 1${MB} 10${MB}"
+# what THROUGHPUT to list in the contact plans (in ___BYTES___ per second)
+# (list multiple values to cycle through them each)
+THROUGHPUTS="100${MB} 1${GB} 10${GB} 100${GB}"
+THROUGHPUTS="10${GB}"
+# how many iterations of the test to run?
+ITERATIONS="1"
+
+
+#================================================================
+# You shouldn't need to adjust anything below this point 
+#================================================================
+
+# identify the test for later analysis
+echo "Date: `date`"
+echo "Hostname: `hostname`"
+echo "UnameOS: `uname -s`"
+echo "UnameProcessor: `uname -p`"
+echo "UnameMachine: `uname -m`"
+echo "UnameRelease: `uname -r`"
+echo "UnameAll: `uname -a`"
+
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.bench.ltp/bench.ltprc \
+./2.bench.ltp/bench.bprc \
+./2.bench.ltp/bench.ionconfig \
+./2.bench.ltp/bench.ionrc \
+./2.bench.ltp/bench.ionsecrc \
+./2.bench.ltp/bench.ipnrc \
+./3.bench.ltp/bench.ltprc \
+./3.bench.ltp/bench.bprc \
+./3.bench.ltp/bench.ionconfig \
+./3.bench.ltp/bench.ionrc \
+./3.bench.ltp/bench.ionsecrc \
+./3.bench.ltp/bench.ipnrc \
+"
+
+TOPDIR=`pwd`
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: produce simple throughput benchmark results, for direct
+	comparison among computing platforms running ION.  All tests are
+	performed using the DTNRG-standard LTP convergence-layer protocol
+	between neighboring nodes residing on the same computer.  So
+	the results exercise BP and LTP in a non-loopback configuration,
+	over loopback UDP/IP; the results are therefore unaffected by network
+	traffic, router performance, or network interface card performance."
+
+if [ -n "$DEBUG" ]; then
+	echo
+	echo "CONFIG: 2 node custom:"
+	echo
+	for N in $CONFIGFILES
+	do
+		echo "$N:"
+		cat $N
+		echo "# EOF"
+		echo
+	done
+fi
+
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+
+echo "Checking for additional memory needed for this demo..."
+./check_memory 
+if [ $? != 0 ]; then
+	echo "Can't run, need additional system resources"
+	exit 1
+fi
+
+ITERNUM=0
+while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
+	let "++ITERNUM"
+	echo "#########################################################################"
+	echo "##   Starting Iteration ${ITERNUM}"
+	echo "#########################################################################"
+	echo
+
+for THROUGHPUT in ${THROUGHPUTS}; do
+	echo "#########################################################################"
+	echo "##   Creating Contact Plan for max throughput: ${THROUGHPUT}"
+	echo "#########################################################################"
+	echo
+
+	export ION_NODE_LIST_DIR=$PWD
+	rm -f ./ion_nodes
+	RETVAL=0
+
+	# Adjust the contact plan
+	cat > ./global.ionrc << EOF
+m horizon  +0
+a range    +0 +600		2 3   1
+a contact  +0 +420		2 3   ${THROUGHPUT}
+a contact  +0 +600		3 2   ${THROUGHPUT}
+EOF
+
+	echo "#########################################################################"
+	echo "##  Starting ION Nodes"
+	echo "#########################################################################"
+	echo
+
+	# Start nodes.
+	(cd 2.bench.ltp; ./ionstart)
+	(cd 3.bench.ltp; ./ionstart)
+
+	TESTNUM=0
+	for BUNDLESIZE in ${BUNDLESIZES}; do
+		let "++TESTNUM"
+		let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
+		if [ $NUMBUNDLES -lt 1 ]; then
+			NUMBUNDLES=1
+			echo "Adjusting to $NUMBUNDLES of size $BUNDLESIZE"
+		elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
+			echo "Truncating to $MAXBUNDLES of size $BUNDLESIZE (instead of $NUMBUNDLES)"
+			NUMBUNDLES=$MAXBUNDLES
+		fi
+		let "ACTUALBYTES = NUMBUNDLES*BUNDLESIZE"
+
+		sleep 1
+
+		cat << ==EOF==
+===============================================================================================================================
+RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDLESIZE} bytes each - ${ACTUALBYTES} total bytes - Contact Plan MaxThroughput: ${THROUGHPUT} 
+===============================================================================================================================
+==EOF==
+		
+		cd 3.bench.ltp
+		bprecvtest ipn:3.1 ${NUMBUNDLES} &
+		BPRECVTEST_PID=$!
+		cd ..
+		sleep 1
+
+		# if bprecvtest didn't start, then something went wrong and we definitely haven't passsed!
+		# some ps don't like -p syntax, most do.
+		if [ "$1" == "windows" ]
+		then
+				ps | grep "$BPRECVTEST_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+		else
+				ps $BPRECVTEST_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPRECVTEST_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+		fi
+		if [ $RETURN_VALUE -eq 0 ]
+		then
+			echo "bprecvtest couldn't be started."
+			echo "...benchmarking terminated."
+			exit 1
+		fi
+
+		# bpsendtest sends the bundles in the background
+		(cd 2.bench.ltp; bpsendtest -rep ${NUMBUNDLES} -nofile ipn:2.1 ipn:3.1 ${BUNDLESIZE} > /dev/null) &
+		BPSENDTEST_PID=$!
+
+		# Wait for transmission to finish.
+		echo "Waiting for transmission to finish..."
+		RUNNING=1
+		TIMER=0
+		while [ $RUNNING -eq 1 ]
+		do
+			TIMER=$((++TIMER))
+			sleep 1
+			echo "...receiving..."
+			# some ps don't like -p syntax, most do.
+			if [ "$1" == "windows" ]
+			then
+				ps | grep "$BPRECVTEST_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+			else
+				ps $BPRECVTEST_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPRECVTEST_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+			fi
+			if [ $RETURN_VALUE -eq 0 ]
+			then
+				echo "...transmission finished."
+				RUNNING=0
+			fi
+			if [ $TIMER -gt $MAXSECONDS ]
+			then
+				#infinite loop protection
+				echo "...$MAXSECONDS seconds passed; giving up."
+				RUNNING=0
+				RETVAL=1
+			fi
+		done
+
+		if [ $RETVAL -eq 1 ]
+		then
+			echo "Test did not complete."
+			echo "Killing bprecvtest..."
+			kill -9 $BPRECVTEST_PID $BPSENDTEST_PID
+			sleep 10
+			echo "Stopping ION..."
+			(cd 2.bench.ltp; ./ionstop) &
+			(cd 3.bench.ltp; ./ionstop) &
+			sleep 10
+			killm
+			sleep 10
+			echo "Re-starting ION..."
+			(cd 2.bench.ltp; ./ionstart)
+			(cd 3.bench.ltp; ./ionstart)
+			RETVAL=0;   # allow next test to proceed
+		fi
+
+	# loop to next bundle size
+	done
+
+	# loop to next contact plan throughput
+	done
+
+	# loop to next iteration
+	done
+
+	echo "#########################################################################"
+	echo "  Test has completed"
+	echo "#########################################################################"
+	if [ $RETVAL -eq 1 ]
+	then
+		echo "Test did not complete correctly."
+	fi
+
+	echo "Stopping ION..."
+	(cd 2.bench.ltp; ./ionstop) &
+	(cd 3.bench.ltp; ./ionstop) &
+	wait
+	wait
+killm
+
+echo "...benchmarking terminated."
+exit $RETVAL
