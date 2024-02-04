@@ -390,7 +390,9 @@ Return Value
 
 _this section is work-in-progress_
 
-## Bundle Streaming Service (BSS) APIs
+------------------------
+
+## Bundle Streaming Service (BSS)
 
 The BSS library supports the streaming of data over delay-tolerant networking (DTN) bundles. The intent of the library is to enable applications that pass streaming data received in transmission time order (i.e., without time regressions) to an application-specific "display" function -- notionally for immediate real-time display -- but to store all received data (including out-of-order data) in a private database for playback under user control. The reception and real-time display of in-order data is performed by a background thread, leaving the application's main (foreground) thread free to respond to user commands controlling playback or other application-specific functions.
 
@@ -400,17 +402,21 @@ All data acquired by the BSS background thread is written to a BSS database comp
 
 Several replay navigation functions in the BSS library require that the application provide a navigation state structure of type bssNav as defined in the bss.h header file. The application is not reponsible for populating this structure; it's strictly for the private use of the BSS library.
 
-### Distinctions between the Bundle Streaming Service (BSS) and the Bundle Streaming Service Protocol (BSSP CLA)
+### Bundle Streaming Service (BSS) & Bundle Streaming Service Protocol (BSSP CLA)
 
-The Bundle Streaming Service (BSS) is distinct from the Bundle Streaming Service Protocol (BSSP) CLA. They are not mutually dependent on each other.
+The Bundle Streaming Service (BSS) and the Bundle Streaming Service Protocol (BSSP) CLA are independent modules.
 
-The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by UDP (with a timer mechanism added) and the reliable channel is emulated via TCP. The reason for using BSSP is primarily to emulate a space link while the actual downlink mechanism is not yet determined for a mission or a DTN scenario. 
+The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by transpot UDP (with a timer mechanism added) and the reliable channel is emulated via TCP transport. 
 
-For example, a mission can decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol underneath, which is assumed to be implemented by the mission's avionic system or the actual radio. 
+A DTN user mission may decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol which could be implemented by the mission's avionic system or the radio. 
 
-However, it is also possible that a mission may utilize different types of downlinks (S, X, Ka-band or optical) with possibly customized reliability mechanisms or procure from vendors downlink services with differentiated QoS in terms of delay and reliability. In such case, BSSP provides the capability to approximate these configuration in a lab environment for prototyping and testing the impact on streaming data delivery, until the actual CLA is implemented and integrated with ION by a mission.
+However, it is also possible that a mission may utilize different types of transports, for example, using multiple downlinks via  S, X, Ka-band or optical, each with different reliability mechanism (or not). Alternatively, a flight system may also use commercial communications services with differentiated delays and levels of reliability. In such case, BSSP can be used to approximate such configuration in a lab environment for prototyping and testing the impact on streaming data delivery, until the actual CLAs are implemented and tested.
 
-The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle streaming data types including video, audio, and telemetry.
+The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle both realtime and delayed, in-order playback of streaming data including video, audio, and telemetry. When the user scenario is appropriate, BSS can certainly be used over BSSP CLA, but that is not a requirement. 
+
+## BSS APIs
+
+The following section describes the BSS library APIs.
 
 ### bssOpen
 
@@ -518,6 +524,167 @@ long bssPrev_read(bssNav *nav, time_t *curTime, unsigned long *count, char *data
 
 A convenience function that performs bssPrev() followed by an immediate bssRead() to return the data at the new playback position. Returns the length of data read, -2 on reaching end of list, or -1 on any error
 
+----------------------
 
 ## Asynchronous Messaging Service (AMS) APIs
 
+_This section is under construction._
+
+----------------------
+
+## Delay-Tolerant Payload Conditioning (DTPC) communications library
+
+### Description
+
+The dtpc library provides functions enabling application software to use
+Delay-Tolerant Payload Conditioning (DTPC) when exchanging information over a
+delay-tolerant network.  DTPC is an application service protocol, running in
+a layer immediately above Bundle Protocol, that offers delay-tolerant support
+for several end-to-end services to applications that may require them.  These
+services include delivery of application data items in transmission (rather
+than reception) order; detection of reception gaps in the sequence of
+transmitted application data items, with end-to-end negative acknowledgment
+of the missing data; end-to-end positive acknowledgment of successfully
+received data; end-to-end retransmission of missing data, driven either by
+negative acknowledgment or timer expiration; suppression of duplicate
+application data items; aggregation of small application data items into
+large bundle payloads, to reduce bundle protocol overhead; and
+application-controlled elision of redundant data items in aggregated payloads,
+to improve link utiliization.
+
+### DTPC APIs
+
+```c
+int dptc_attach( )
+```
+Attaches the application to DTPC functionality on the local computer.  Returns
+0 on success, -1 on any error.
+
+```c
+void dptc_detach( )
+```
+
+Terminates all access to DTPC functionality on the local computer.
+
+```c
+int dtpc_entity_is_started( )
+```
+Returns 1 if the local DTPC entity has been started and not yet stopped,
+0 otherwise.
+
+```c
+int dtpc_open(unsigned int topicID, DtpcElisionFn elisionFn, DtpcSAP *dtpcsapPtr)
+```
+
+Establishes the application as the sole authorized client for posting and
+receiving application data items on topic _topicID_ within the local BP
+node.  On success, the service access point for posting and receiving such
+data items is placed in _*dtpcsapPtr_, the elision callback function
+_elisionFn_ (if not NULL) is associated with this topic, and 0 is returned.
+Returns -1 on any error.
+
+```c
+int dtpc_send(unsigned int profileID, DtpcSAP sap, char *destEid, unsigned int maxRtx, unsigned int aggrSizeLimit, unsigned int aggrTimeLimit, int lifespan, BpAncillaryData *ancillaryData, unsigned char srrFlags, BpCustodySwitch custodySwitch, char *reportToEid, int classOfService, Object item, unsigned int length)
+```
+Inserts an application data item into an outbound DTPC application data unit
+destined for _destEid_.
+
+Transmission of that outbound ADU will be subject to the profile identified
+by _profileID_, as asserted by dtpcadmin(1), if _profileID_ is non-zero.  In
+that case, _maxRtx_, _aggrSizeLimit_, _aggrTimeLimit_, _lifespan_,
+_ancillaryData_, _srrFlags_, _custodySwitch_, _reportToEid_, and
+_classOfService_ are ignored.
+
+If _profileID_ is zero then the profile asserted by dtpcadmin(1) that matches
+_maxRtx_, _aggrSizeLimit_, _aggrTimeLimit_, _lifespan_, _ancillaryData_,
+_srrFlags_, _custodySwitch_, _reportToEid_, and _classOfService_ will
+govern transmission of the ADU, unless no such profile has been asserted,
+in which case dtpc_send() returns 0 indicating user error.
+
+_maxRtx_ is the maximum number of times any single DTPC ADU transmitted
+subject to the indicated profile may be retransmitted by the DTPC entity.  If
+_maxRtx_ is zero, then the DTPC transport service features (in-order delivery,
+end-to-end acknowledgment, etc.) are disabled for this profile.
+
+_aggrSizeLimit_ is the size threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If _aggrSizeLimit_ is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.
+
+_aggrTimeLimit_ is the time threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If _aggrTimeLimit_ is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.
+
+_lifespan_, _ancillaryData_, _srrFlags_, _custodySwitch_, _reportToEid_,
+and _classOfService_ are as defined for bp_send (see bp(3)).
+
+_item_ must be an object allocated within ION's SDR "heap", and _length_
+must be the length of that object.  The item will be inserted into the outbound
+ADU's list of data items posted for the topic associated with _sap_, and
+the elision callback function declared for _sap_ (if any, and if the
+applicable profile does not disable transmission optimization features)
+will be invoked immediately after insertion of the application data item
+but before DTPC makes any decision on whether or not to initiate transmission
+of the outbound ADU.
+
+The function returns 1 on success, 0 on any user application error, -1 on
+any system error.
+
+```c
+int dtpc_receive(DtpcSAP sap, DtpcDelivery *dlvBuffer, int timeoutSeconds)
+```
+Receives a single DTPC application data item, or reports on some failure of
+DTPC reception activity.
+
+The "result" field of the dlvBuffer structure will be used to indicate the
+outcome of the data reception activity.
+
+If at least one application data item on the topic associated with _sap_
+has not yet been delivered to the SAP, then the payload of the oldest such
+item will be returned in _dlvBuffer_-__item_ and _dlvBuffer_-__result_
+will be set to PayloadPresent.  If there is no such item, dtpc_receive()
+blocks for up to _timeoutSeconds_ while waiting for one to arrive.
+
+If _timeoutSeconds_ is DTPC_POLL (i.e., zero) and no application data item is
+awaiting delivery, or if _timeoutSeconds_ is greater than zero but no item
+arrives before _timeoutSeconds_ have elapsed, then _dlvBuffer_-__result_
+will be set to ReceptionTimedOut.  If _timeoutSeconds_ is DTPC_BLOCKING
+(i.e., -1) then bp_receive() blocks until either an item arrives or the
+function is interrupted by an invocation of dtpc_interrupt().
+
+_dlvBuffer_-__result_ will be set to ReceptionInterrupted in the event
+that the calling process received and handled some signal other than SIGALRM
+while waiting for a bundle.
+
+_dlvBuffer_-__result_ will be set to DtpcServiceStopped in the event
+that DTPC service has been terminated on the local node.
+
+The application data item delivered in the DTPC delivery structure, if
+any, will be an object allocated within ION's SDR "heap"; the length of
+that object will likewise be provided in the DtpcDelivery structure.
+
+Be sure to call dtpc_release_delivery() after every successful invocation of
+dtpc_receive().
+
+The function returns 0 on success, -1 on any error.
+
+```c
+void dtpc_interrupt(DtpcSAP sap)
+```
+Interrupts a dtpc_receive() invocation that is currently blocked.  This
+function is designed to be called from a signal handler; for this purpose,
+_sap_ may need to be obtained from a static variable.
+
+```c
+void dtpc_release_delivery(DtpcDelivery *dlvBuffer)
+```
+Releases resources allocated to the indicated DTPC delivery.
+
+```c
+void dtpc_close(DtpcSAP sap)
+```
+Removes the application as the sole authorized client for posting and
+receiving application data items on the topic indicated in _sap_ within the
+local BP node.  The application relinquishes its ability to send and
+receive application data items on the indicated topic.
