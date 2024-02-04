@@ -7,7 +7,7 @@
 
 | Ver No. | Date      | Description                      | Note           |
 | ------- | --------- | -------------------------------- | -------------- |
-| V4.1.3    | 12/08 /2023 | update to MarkDown    |    |
+| V4.1.3    | 12/08 /2023 | converted to MarkDown    |       |
 | V4.0.1    |   11/20/2020  |  ION 4.0.1 |    |
 | V3.6.2    | 11/19/2018    | ION 3.6.2 release features    | Skipped V3.6.1.  |
 | V3.6      | 12/31/2017    | ION 3.6 release features      | Skipped V3.5.    |
@@ -857,8 +857,7 @@ in a manner that is simple to use, highly automated, flexible, robust,
 scalable, and efficient.
 
 A detailed discussion of AMS is beyond the scope of this Design Guide.
-For more information, please see the [AMS Programmer's
-Guide]{.underline}.
+For more information, please see the [AMS Programmer's Guide.](AMS-Programmer-Guide.md)
 
 #### **Datagram Retransmission (DGR)**
 
@@ -979,15 +978,15 @@ related key concepts in the ION design.
 To minimize transmission overhead and accommodate asymmetric links
 (i.e., limited "uplink" data rate from a ground data system to a
 spacecraft) in an interplanetary network, we ideally want to send
-"downlink" data in the largest possible aggregations -- [coarse-grained
-transmission]{.underline}.
+"downlink" data in the largest possible aggregations -- coarse-grained
+transmission.
 
 But to minimize head-of-line blocking (i.e., delay in transmission of a
 newly presented high-priority item) and minimize data delivery latency
 by using parallel paths (i.e., to provide fine-grained partial data
 delivery, and to minimize the impact of unexpected link termination), we
 want to send "downlink" data in the smallest possible aggregations --
-[fine-grained transmission]{.underline}.
+fine-grained transmission.
 
 We reconcile these impulses by doing both, but at different layers of
 the ION protocol stack.
@@ -1500,7 +1499,7 @@ refusing to enqueue additional data that would cause it.
 However, a BP router's refusal to enqueue received data for forwarding
 could result in costly retransmission, data loss, and/or the "upstream"
 propagation of resource exhaustion to other nodes. Therefore the ION
-design additionally attempts to prevent [potential]{.underline} resource
+design additionally attempts to prevent potential resource
 exhaustion by forecasting levels of queuing resource occupancy and
 reporting on any congestion that is predicted. Network operators, upon
 reviewing these forecasts, may revise contact plans to avert the
@@ -1605,11 +1604,11 @@ protocol traffic allocation.
 
 *Congestion control* in ION, then, has two components:
 
-First, ION's congestion [detection]{.underline} is anticipatory (via
+First, ION's congestion detection is anticipatory (via
 congestion forecasting) rather than reactive as in the Internet.
 
 Anticipatory congestion detection is important because the second
-component -- congestion [mitigation]{.underline} -- must also be
+component -- congestion mitigation -- must also be
 anticipatory: it is the adjustment of communication contact plans by
 network management, via the propagation of revised schedules for future
 contacts.
@@ -2048,7 +2047,7 @@ neighbor had been selected, or it might not even arrive at all.
 
 For Critical bundles, the CGR dynamic route computation algorithm causes
 the bundle to be inserted into the outbound transmission queues for
-transmission to [all]{.underline} neighboring nodes that can plausibly
+transmission to all neighboring nodes that can plausibly
 forward the bundle to its final destination. The bundle is therefore
 guaranteed to travel over the most successful route, as well as over all
 other plausible routes. Note that this may result in multiple copies of
@@ -2071,12 +2070,12 @@ We create an empty list of Proximate Nodes (network neighbors) to send
 the bundle to.
 
 We create a list of Excluded Nodes, i.e., nodes through which we will
-[not]{.underline} compute a route for this bundle. The list of Excluded
+not compute a route for this bundle. The list of Excluded
 Nodes is initially populated with:
 
 -   the node from which the bundle was directly received (so that we
     avoid cycling the bundle between that node and the local node) --
-    [unless]{.underline} the Dynamic Route Selection Algorithm is being
+    unless the Dynamic Route Selection Algorithm is being
     re-applied due to custody refusal as discussed later;
 
 -   all excluded neighbors for the bundle's final destination node.
@@ -2954,7 +2953,7 @@ Declaring values for the following variables, by setting parameters that
 are provided to the C compiler (for example, --DION_NOSTATS or
 --DBRSTERM=60), will alter the functionality of BP as noted below.
 
-[TargetFFS]{.underline}
+#### TargetFFS
 
 Setting this option adapts BP for use with the TargetFFS flash file
 system on the VxWorks operating system. TargetFFS apparently locks one
@@ -2971,7 +2970,7 @@ after each access when running on a VxWorks platform that uses the
 TargetFFS flash file system. The TargetFFS compile-time option ensures
 that they do so.
 
-[BRSTERM=*xx*]{.underline}
+#### BRSTERM=*xx*
 
 This option sets the maximum number of seconds by which the current time
 at the BRS server may exceed the time tag in a BRS authentication
@@ -2980,32 +2979,32 @@ message is presumed to be a replay attack and is rejected. Small values
 of BRSTERM are safer than large ones, but they require that clocks be
 more closely synchronized. The default value is 5.
 
-[ION_NOSTATS]{.underline}
+#### ION_NOSTATS
 
 Setting this option prevents the logging of bundle processing statistics
 in status messages.
 
-[KEEPALIVE_PERIOD=*xx*]{.underline}
+#### KEEPALIVE_PERIOD=*xx*
 
 This option sets the number of seconds between transmission of
 keep-alive messages over any TCP or BRS convergence-layer protocol
 connection. The default value is 15.
 
-[ION_BANDWIDTH_RESERVED]{.underline}
+#### ION_BANDWIDTH_RESERVED
 
 Setting this option overrides strict priority order in bundle
 transmission, which is the default. Instead, bandwidth is shared between
 the priority-1 and priority-0 queues on a 2:1 ratio whenever there is no
 priority-2 traffic.
 
-[ENABLE_BPACS]{.underline}
+#### ENABLE_BPACS
 
 This option causes Aggregate Custody Signaling source code to be
 included in the build. ACS is alternative custody transfer signaling
 mechanism that sharply reduces the volume of custody acknowledgment
 traffic.
 
-[ENABLE_IMC]{.underline}
+#### ENABLE_IMC
 
 This option causes IPN Multicast source code to be included in the
 build. IMC is discussed in section 1.8.4 above.
@@ -3298,7 +3297,7 @@ amshello(1), amsshell(1), amslog(1), amslogprt(1), amspub(1), and
 amssub(1) in Appendix A.
 
 For further operational details of the AMS system, please see sections 4
-and 5 of the [AMS Programmer's Guide]{.underline}.
+and 5 of the [AMS Programmer's Guide.](./AMS-Programmer-Guide.md)
 
 ###  CCSDS File Delivery Protocol (CFDP)
 
@@ -3308,7 +3307,7 @@ Defining the following macro, by setting a parameter that is provided to
 the C compiler (i.e., --DTargetFFS), will alter the functionality of
 CFDP as noted below.
 
-[TargetFFS]{.underline}
+#### TargetFFS
 
 Setting this option adapts CFDP for use with the TargetFFS flash file
 system on the VxWorks operating system. TargetFFS apparently locks one
@@ -3391,7 +3390,7 @@ Defining the following macro, by setting a parameter that is provided to
 the C compiler (e.g., --DWINDOW=10000), will alter the functionality of
 BSS as noted below.
 
-[WINDOW=*xx*]{.underline}
+#### WINDOW=*xx*
 
 Setting this option changes the maximum number of seconds by which the
 BSS database for a BSS application may be "rewound" for replay. The
@@ -3480,7 +3479,7 @@ bssStreamingApp(1), and bssrecv(1) in Appendix A.
     supported by other BP implementations at the time of this writing.
 
 [^7]: If we wanted to be extremely accurate we could also
-    [subtract]{.underline} from the timeout interval the imputed inbound
+    subtract from the timeout interval the imputed inbound
     queuing delay QI, since inbound queuing would presumably be
     completed during the interval in which transmission was suspended.
     But since we're guessing at the queuing delays anyway, this
