@@ -79,6 +79,7 @@ nav:
     - Bundle Streaming Service (Test Utility) Protocol (BSSP): man/bssp/index.md
     - CCSDS File Delivery Protocol (CFDP): man/cfdp/index.md
     - Datagram Retransmission System (DGR): man/dgr/index.md
+    - Delay Tolerant Payload Conditioning (DTPC): man/dtpc/index.md
     - Interplanetary Communications Infrastructure (ICI): man/ici/index.md
     - Licklider Transmission Protocol (LTP): man/ltp/index.md
     - Network Management Agent for Asynchronous Management Protocol (AMP): man/nm/index.md
