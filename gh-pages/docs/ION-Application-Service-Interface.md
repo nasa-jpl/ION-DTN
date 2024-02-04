@@ -400,6 +400,18 @@ All data acquired by the BSS background thread is written to a BSS database comp
 
 Several replay navigation functions in the BSS library require that the application provide a navigation state structure of type bssNav as defined in the bss.h header file. The application is not reponsible for populating this structure; it's strictly for the private use of the BSS library.
 
+### Distinctions between the Bundle Streaming Service (BSS) and the Bundle Streaming Service Protocol (BSSP CLA)
+
+The Bundle Streaming Service (BSS) is distinct from the Bundle Streaming Service Protocol (BSSP) CLA. They are not mutually dependent on each other.
+
+The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by UDP (with a timer mechanism added) and the reliable channel is emulated via TCP. The reason for using BSSP is primarily to emulate a space link while the actual downlink mechanism is not yet determined for a mission or a DTN scenario. 
+
+For example, a mission can decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol underneath, which is assumed to be implemented by the mission's avionic system or the actual radio. 
+
+However, it is also possible that a mission may utilize different types of downlinks (S, X, Ka-band or optical) with possibly customized reliability mechanisms or procure from vendors downlink services with differentiated QoS in terms of delay and reliability. In such case, BSSP provides the capability to approximate these configuration in a lab environment for prototyping and testing the impact on streaming data delivery, until the actual CLA is implemented and integrated with ION by a mission.
+
+The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle streaming data types including video, audio, and telemetry.
+
 ### bssOpen
 
 ```c
