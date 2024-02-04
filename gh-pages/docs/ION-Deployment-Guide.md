@@ -1169,7 +1169,7 @@ name and 101 and 1 being the outduct names.
 **As of ION 4.1.0,** bprc's "plan" and "planduct" commands supersede and
 generalize the egress plan commands documented in the ipnrc(5) and
 dtn2rc(5) man pages, which are [retained for backward
-compatibility]{.underline}. The syntax of the egress plan commands
+compatibility]. The syntax of the egress plan commands
 consumed by bpadmin is DIFFERENT from that of the commands consumed by
 ipnadmin and dtn2admin. Please see the man page for bprc (5) for
 details.
@@ -2053,9 +2053,9 @@ we tested two stock Raspberry Pi 4B single-board computers running ION
 4.1.2 and achieved 60 Mbps one-way data transfer without any hardware or
 OS optimization. At the higher end of our tests, we measured ION
 performance between two Linux servers (see spec in Test Case 4; 2012 era
-Xeon Sandy Bridge Processors) and showed that [ION\'s BP/LTP
+Xeon Sandy Bridge Processors) and showed that ION's BP/LTP
 implementation can support up to 3.7Gbps throughput over a 10Gbps
-Ethernet physical connection]{.underline}. We also presented a
+Ethernet physical connection. We also presented a
 discussion on the performance trades regarding various LTP configuration
 parameters.
 
