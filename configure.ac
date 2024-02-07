@@ -156,7 +156,7 @@ case $host_os in
 	solaris*)
 		PLATFORM="solaris"
 		build_solaris=yes
-		AM_CFLAGS="$AM_CFLAGS -std=c99"
+		AM_CFLAGS="$AM_CFLAGS -std=gnu99"
 		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
 			if test "$CC" = "gcc"; then
 				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
