@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 4, 2014
+#
+# Test case for CFDP over TCP
+# CFDP is started at node 2 using TCP interface instead of LTP.
+# IP address and tcp port number are configurable at the node.cfdprc file.
+# CFDP instance at node 2 can be configured as transmitting, receiving or
+# both at cfdp_cmds file.
+# For detail. refer cfdptest part in ION.pdf
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart &
+
+sleep 10
+echo "Starting cfdptest on each node..."
+cd ../2.ipn.ltp
+cfdptest < cfdp_cmds >& node2.stdout &
+
+sleep 35
+echo ""
+echo "Checking for file arrivals...."
+RETVAL=0
+
+cd ../2.ipn.ltp
+
+COUNT=`ls -al receivedFile | wc -l`
+if [ $COUNT -ne 1 ]
+then
+	echo ""
+	echo "Error: node 2 did not receive file from node 1."
+	RETVAL=1
+else
+	echo ""
+	echo "Okay: node 2 received file from node 1."
+fi
+
+echo ""
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+
+sleep 15
+killm
+echo ""
+echo "CFDPv1-TCP test completed."
+exit $RETVAL

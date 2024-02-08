@@ -1,0 +1,172 @@
+Examples of ION Configurations for Interoperability Testing
+
+Acknowledgements from the ION Team
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dr. Cheol Hea Koo provided the following ION configurations that he used for testing CFDP between ION and another DTN implementation. These configurations allow non-ION users to quickly standup ION instances to connect with their DTN software and can serve as a template for other users who may wish to conduct interoperability testing between their system and ION. Therefore, these configurations are provided as tempalate so the public may utilize or modify to fit their individual needs. We thank Dr. Cheol Hea Koo for providing these configurations and making them available.
+
+Contact
+~~~~~~~~~~~~~~~~~
+
+Dr. Cheol Hea Koo
+Korea Aerospace Research Institute (KARI)
+Email: chkoo@kari.re.kr
+
+Purposes
+~~~~~~~~~~~~~~~~
+
+This directory contains the test suites for interoperability for anyone
+testing their software with ION.
+
+This package supports the following test cases:
+1) LTP
+   - ltp-pure      : ION's LTP instance directly connects to your LTP
+                     software.
+2) BP
+   - bpchat-single : ION's BP instance directly connects to your BP
+                     software via ION's LTP CLA.
+   - bpchat-relay  : ION's BP instance connects to your BP
+                     software via another ION's BP node.
+3) CFDP
+   - cfdpv1-single : ION's CFDP instance over BP/LTP for your CFDP
+                     software.
+   - cfdpv1-tcp    : ION's CFDP instance over TCP/IP for your CFDP
+                     software. It is useful to test CFDP application
+                     alone without BP/LTP layer.
+
+
+License & Warranty
+~~~~~~~~~~~~~~~~~~~~~~
+License and warranty for all contents of this test suites follows the same
+license and warranty policy of ION.
+
+
+Valuable Notes
+~~~~~~~~~~~~~~~~
+
+To provide a function as the counterpart's role among DTN protocol functions,
+each test suite provides only a single instance(i.e., single node) of the
+requested function in ION.
+
+node number         : ION provides a node numbering 2 as the counterpart's
+                      role of target DTN function of yours.
+		      * the node number is easily changeable by adjusting
+		        some configuration files
+front-end
+port number         : Conventionally, a LTP node in ION interfaces with each
+                      other via node number*1000 + 113 according to CCSDS
+		      734.1-R-3 3.3.2 and www.iana.org(https://www.iana.org
+		      /assignments/service-names-port-numbers/service-names
+		      -port-numbers.xml).
+		      In default, UDP 2113 port is the front-end port number
+		      of any LTP single or BP/LTP instances of ION node 2.
+		      If you want to communicate with ION via LTP over UDP,
+		      2113 port is the destination port of ION for sending
+		      any DTN transaction packet.
+		      Conversely, ION will transmit LTP segmentation data
+		      to (your node number*1000 + 113) port for talking to
+		      you. If your LTP node number is 3, then the front-end
+		      port number of your DTN software shall be 3113.
+
+                            Node 3                      Node 2
+                      +---------------+           +---------------+
+                      |               |           |               |
+                      +-> 3113        |           +-> 2113        |
+                      |               |    UDP    |               |
+                      |     YOUR      |  <=====>  |      ION      |
+                      |      SUT      |           |               |
+                      |               |           |               |
+                      +---------------+           +---------------+
+                      
+                      * NOTE: ION also provides TCP interface for CFDP
+                              transaction test without LTP/BP
+
+
+All the tests in interoperability directory only provides skeleton structure
+of instantiating single ION instance for counterpart's role of your DTN
+software under the context of cross support in CCSDS and IRTF.
+
+You are free to evolve this basic test suite to meet the purpose and criteria
+of the experiment as you perceive them.
+
+Moreover, if you discover a valuable method or way to improve these test suites,
+we kindly request you to share it with us. This will enable other DTN developers
+to benefit from the enhancements.
+
+
+Running the tests
+~~~~~~~~~~~~~~~~~~~~
+
+Very simple! To perform a test with ION, simply navigate to the desired
+test directory and run the "dotest" command to prepare ION for your use.
+
+To run a test, enter the "dotest" command in the test directory.
+Upon executing "dotest," ION will enter a state of transmitting or receiving
+DTN transaction data, based on the parameters and commands configured in the
+"dotest" script.
+
+You need to devise a test plan in ION in order to perform the test you want,
+so that an invoked ION instance behaves exactly as you want it to.
+
+Before or after instantiating ION by running "dotest", you can freely
+invoke your instance of SUT (Software Under Test) to start an interoperability
+test between ION and yours.
+
+
+During the tests
+~~~~~~~~~~~~~~~~~~~
+
+The "dotest" script can be used to configure all of ION's run-time actions.
+Some example use cases are provided within the script for reference.
+You are free to read and modify the script as needed. You can refer to the
+'./tests' directory in ION for more detailed information about using 'dotest'.
+
+However, it is important to configure the script properly in order to effectively
+use ION for performing interoperability tests with your DTN software.
+Use your imagination and creativity to tailor the script to your specific needs.
+
+In most cases, signaling or scripting methods in your SUT are necessary to ensure
+that your software runs according to your intentions and the required timing
+sequences.
+
+
+Finishing the tests
+~~~~~~~~~~~~~~~~~~~~~~
+
+A test can be terminated either by an intended time-out or by the user's
+Ctrl + C keystroke, which will exit the current "dotest" script actions.
+Residual ION processes can be removed by running the "cleanup" script, 
+which will clean up any processes of ION that may remain in case of an abrupt
+exit from the normal execution stream.
+
+Generally, each "dotest" script ends with the execution of the "killm" script
+to activate the clean-up function at the end of the script.
+
+Make sure to execute the "killm" script at the end of each test. In the event
+of an abnormal test, you can explicitly run the "cleanup" script within the
+ION test cases to restore the test environment to its initial state.
+
+
+Verifying the tests
+~~~~~~~~~~~~~~~~~~~~~~
+
+Results of the tests can be verified in various ways.
+For example, the following methods can be suggested:
+
+1) Record all transactions through Wireshark and examine the captured transaction
+   data to check whether the current test was successful or not.
+   
+   You can see a detailed protocol dissection via Wireshark display filter with
+   "udp.port == 2113 || udp.port == 3113" and so on.
+   
+   You may want to find and configure current LTP/Bundle transaction, then try
+   Wireshark's menu->Analyze->Decode As->add UDP 2113 and 3113 port as LTP
+
+2) Modify the "dotest" script to report runtime information on stdout and stderr
+   which provides its return value and the status of the test:
+   
+   For example, each test can be configured to provide below result status
+   as a return value.
+    0: Success
+    1: Failure
+    2: Skip this test

@@ -1,0 +1,68 @@
+: : : : : : 
+Event: type 1 'transaction started'.
+: : 
+Event: type 2 'EOF sent'.
+: 
+Event: type 3 'transaction finished'.
+: : : : : : : : : : 
+Event: type 1 'transaction started'.
+: 
+Event: type 4 'metadata received'.
+	Message to user: originating transaction ID
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 5 'file data segment received'.
+: 
+Event: type 6 'EOF received'.
+: 
+Event: type 3 'transaction finished'.
+: 
+Event: type 4 'metadata received'.
+	Message to user: proxy put response
+	Message to user: originating transaction ID
+: 
+Event: type 6 'EOF received'.
+: 
+Event: type 3 'transaction finished'.
+: 
+Event: type 2 'EOF sent'.
+: 
+Event: type 3 'transaction finished'.
+: : Stopping cfdptest.

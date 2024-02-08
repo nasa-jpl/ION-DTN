@@ -1,0 +1,30 @@
+z 2
+d 3
+f sourceFile
+t /cf/receivedFile
+a 10
+&
+z 20
+
+
+
+# Get via cfdp message-to-user
+z 10
+d 5
+f sourceFile
+t receivedFile
+a 10
+|
+z 18
+
+
+
+
+
+a 10
+z 30
+q
+
+
+
+
