@@ -4,7 +4,7 @@ ION Version: 4.1.3
 
 Bundle Protocol Version:7
 
-----
+---
 
 Watch characters, when activated, provide immediate feedback on ION operations by printing various characters standard output (terminal). By examing the watch characters, and the order in which they appear, operators can quickly confirm proper operation or detect configuration or run-time errors.
 
@@ -49,7 +49,9 @@ static void ionRedirectWatchCharacters()
     setWatcher(processWatchChar);
 }
 ```
+
 2. Then use the following compiler flag to build ION:
+
 ```bash
 ./configure CFLAGS="-DGDSWATCHER -I/<path to the folder holding the gdswatcher.c file>"
 ```
@@ -72,17 +74,17 @@ static void ionRedirectWatchCharacters()
 
 `z` - bundle is queued for delivery to an application; `(nnn,sss,ccc)z`
 
-`~` - bundle is abandoned (discarded) on attempt to forward it
+`~` - bundle is abandoned (discarded) on attempt to forward it; `(nnn,sss,ccc)`~
 
 `!` - bundle is destroyed due to TTL expiration; `(nnn,sss,ccc)!`
 
 `&` - custody refusal signal is received
 
-`#` - bundle is queued for re-forwarding due to CL protocol failure
+`#` - bundle is queued for re-forwarding due to CL protocol failure; `(nnn,sss,ccc)`#
 
-`j` - bundle is placed in \"limbo\" for possible future re-forwarding
+`j` - bundle is placed in \"limbo\" for possible future re-forwarding; `(nnn,sss,ccc)`j
 
-`k` - bundle is removed from \"limbo\" and queued for re-forwarding
+`k` - bundle is removed from \"limbo\" and queued for re-forwarding; `(nnn,sss,ccc)`k
 
 ## LTP Watch Characters
 
@@ -92,28 +94,20 @@ static void ionRedirectWatchCharacters()
 
 `f` - block has been fully segmented for transmission; `(xxxx)f`
 
-`g` - segment popped from transmission queue; 
+`g` - segment popped from transmission queue;
 
-   * `(cpxxx)g` -- checkpoint, this could be a data segment or a standalone
-    check point
-    
--   `(dsxxx)g` -- non-check point data segment
+* `(cpxxx)g` -- checkpoint, this could be a data segment or a standalone
+  check point
 
--   `(rcpxxx)g` -- retransmitted checkpoint
-
--   `(prsxxx)g` -- positive report (all segments received)
-
--   `(nrsxxx)g` -- negative report (gaps)
-
--   `(rrsxxx)g` -- retransmitted report (either positive or negative)
-
--   `(rasxxx)g` -- a report ack segment
-
--   `(csxxx)g` -- cancellation by block source
-
--   `(crxxx)g` -- cancellation by block receiver
-
--   `(caxxx)g` -- cancellation ack for either CS or CR
+- `(dsxxx)g` -- non-check point data segment
+- `(rcpxxx)g` -- retransmitted checkpoint
+- `(prsxxx)g` -- positive report (all segments received)
+- `(nrsxxx)g` -- negative report (gaps)
+- `(rrsxxx)g` -- retransmitted report (either positive or negative)
+- `(rasxxx)g` -- a report ack segment
+- `(csxxx)g` -- cancellation by block source
+- `(crxxx)g` -- cancellation by block receiver
+- `(caxxx)g` -- cancellation ack for either CS or CR
 
 `h` - positive ACK received for block, session ended; `(xxx)h`
 
