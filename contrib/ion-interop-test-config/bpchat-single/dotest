@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 4, 2014
+#
+# bpchat invocation on a single ION node for sending and receiving
+# bundles with another DTN implementation for performing an
+# interoperability test with different DTN implementations
+#
+# ION node 2 will be created and ready for sending or receiving
+# bp messages from your DTN BP node 3
+#
+# For more detail, refer below configuration
+#
+#         Node 2 (ION)                     Node 3 (your)
+#      +---------------+                 +---------------+
+#      |               |                 |               |
+#      +-> 2113        |                 +-> 3113        |
+#      |    Ext I/F    |  <===========>  |    Ext I/F    |
+#      |               |                 |               |
+#      |               |                 |               |
+#      +---------------+                 +---------------+
+#      |               |                 |               |
+#      +->  bpchat     |                 |     bpchat  <-+
+#      |    Int I/F    |                 |    Int I/F    |
+#      <--             |                 |             -->
+#      +---------------+                 +---------------+
+#
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	cd ./2.ipn.ltp
+	./ionstart-acs &
+else
+	cd ./2.ipn.ltp
+	./ionstart &
+fi
+
+
+sleep 10
+echo "Starting bpchat on IOn node 2..."
+echo "Make sure your DTN node and bpchat S/W are initialized"
+echo ""
+echo "Type a message to your node or wait some messages from your node..."
+echo "press CTRL + C to exit from running bpchat..."
+bpchat ipn:2.1 ipn:3.1
+
+echo ""
+echo "bpchat has been ended..."
+sleep 5
+RETVAL=0
+
+cd ../2.ipn.ltp
+
+echo ""
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+
+sleep 15
+killm
+echo ""
+echo "BP-Chat test completed."
+exit $RETVAL
+

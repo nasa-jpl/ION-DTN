@@ -1,0 +1,42 @@
+# use this command if you want to wait CFDP transaction start from remote CFDP entity
+# ION becoming receiving role
+z 30
+q
+
+
+# use this command to send a file to remote CFDP entity
+# ION becoming sending role
+z 2
+d 3
+f sourceFile
+t /cf/receivedFile
+a 10
+&
+z 10
+
+
+# use this command to request a file transmission from remote CFDP entity to ION via proxy operation
+# ION becoming receiving role & your remote CFDP entity becomes sending role
+d 3
+f sourceFile
+t receivedFile
+a 10
+|
+z 18
+q
+
+
+
+
+# .cfdprc reference
+1
+e 1
+w 1
+a entity 2 tcp 192.168.157.133:6002 7 0 0
+a entity 3 tcp 192.168.157.133:6001 7 0 0
+m discard 1
+m segsize 1000
+s 'tcputa'
+
+
+
