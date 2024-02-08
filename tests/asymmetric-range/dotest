@@ -61,7 +61,7 @@ fi
 echo "Sending bundle with 10-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 10.
 echo "Should be put into limbo: no current route, but might be opportunistic."
-bptrace ipn:9.1 ipn:6.1 ipn:9.0 10 0.1 "Hi"
+bptrace ipn:9.1 ipn:6.1 dtn:none 10 0.1 "Hi"
 sleep 1
 echo ""
 echo "Watch characters should be 'aj'."
@@ -70,7 +70,7 @@ echo "Sending bundle with 25-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 25
 echo "Should be forwarded and transmitted but never acknowledged."
 echo "Should expire before reaching retransmission limit, so not reforwarded."
-bptrace ipn:9.1 ipn:6.1 ipn:9.0 25 0.1 "Hi"
+bptrace ipn:9.1 ipn:6.1 dtn:none 25 0.1 "Hi"
 # Wait 3 seconds for LTP block aggregation to time out, generating 'efg' chars."
 sleep 3
 echo ""
@@ -80,7 +80,7 @@ echo "Sending bundle with 120-second lifetime from ipn:9.1 to ipn:6.1."
 # Send a bundle destined for (nonexistent) node 6 with lifetime = 120.
 echo "Should be forwarded and transmitted, but never acknowledged."
 echo "So reforwarded upon reaching retransmission limit."
-bptrace ipn:9.1 ipn:6.1 ipn:9.0 120 0.1 "Hi"
+bptrace ipn:9.1 ipn:6.1 dtn:none 120 0.1 "Hi"
 sleep 1
 echo ""
 echo "Watch characters should be 'abcdefg'."
