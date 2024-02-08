@@ -2934,7 +2934,7 @@ incomplete bundle.", NULL);
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)!",bundle.id.source.ssp.ipn.nodeNbr, 
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)!",bundle.id.source.ssp.ipn.nodeNbr, 
 		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
 				iwatch_str(ewchar);
 #else
@@ -6568,7 +6568,7 @@ when asking for status reports.");
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%llu,%u)a",bundle.id.source.ssp.ipn.nodeNbr,
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)a",bundle.id.source.ssp.ipn.nodeNbr,
 		   bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.msec, bundle.id.creationTime.count);
 		iwatch_str(ewchar);
 #else
@@ -6935,7 +6935,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
 		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
 				iwatch_str(ewchar);
 #else
@@ -9260,7 +9260,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)y",bundle->id.source.ssp.ipn.nodeNbr, 
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)y",bundle->id.source.ssp.ipn.nodeNbr, 
 		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
@@ -10768,7 +10768,7 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)b",bundle->id.source.ssp.ipn.nodeNbr, 
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)b",bundle->id.source.ssp.ipn.nodeNbr, 
 		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
@@ -10821,7 +10821,15 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	bpDbTally(BP_DB_TO_LIMBO, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_limbo)
 	{
-		iwatch('j');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)j", bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('j');
+#endif
 	}
 
 	return 0;
@@ -10987,7 +10995,15 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	bpDbTally(BP_DB_FROM_LIMBO, bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
 	{
-		iwatch('k');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)k",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('k');
+#endif
 	}
 
 	/*	Now see if the bundle can finally be transmitted.	*/
@@ -11106,7 +11122,15 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 
 	if ((_bpvdb(NULL))->watching & WATCH_abandon)
 	{
-		iwatch('~');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)~", bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('~');
+#endif
 	}
 
 	return ((result1 + result2) == 0 ? 0 : -1);
@@ -11938,7 +11962,15 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if ((_bpvdb(NULL))->watching & WATCH_clfail)
 	{
-		iwatch('#');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)#",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('#');
+#endif
 	}
 
 	bpDbTally(BP_DB_REQUEUED_FOR_FWD, bundle.payload.length);

@@ -633,7 +633,7 @@ int	main(int argc, char *argv[])
 #if defined (EWCHAR)
 			char ewchar[256];
 			/* spec is for 64 bit, non-Window */
-			isprintf(ewchar,sizeof(ewchar),"(%llu,%u,%u)c",bundle.id.source.ssp.ipn.nodeNbr, 
+			isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)c",bundle.id.source.ssp.ipn.nodeNbr, 
 		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
 			iwatch_str(ewchar);
 #else
