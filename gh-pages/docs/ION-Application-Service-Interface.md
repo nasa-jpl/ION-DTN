@@ -386,7 +386,31 @@ Return Value
 * 0: on success, the total number of extents received so far is reported through `extentCount`
 * -1: on system failure, returns -1
 
-### CFDP Code Example
+### CFDP Shell Test Program: `cfdptest`
+
+ION provides application CFDP test program called `cfdptest`, which installed as part of regular ION build/install process and can be invoked from terminal this way:
+
+```bash
+cfdptest
+```
+
+The shell program present a ':' prompt for interactive mode commanding. You can type 'h' to see a list of available commands.
+
+One can also feed a sequence of commands to `cfdptest` non-interactively such that you will not see the stdout of the program. This is useful for running automated tests.
+
+```bash
+cfdptest [file_containing_cfdptest_commands]
+```
+
+A third way to use cfdptest is to feed command scripts but allows the interactive responses to be displayed in stdout:
+
+```bash
+cfdptest < [file_containing_cfdptest_commands]
+```
+
+The `cfdptest.c` source code is also provided as a code examples on how write applications using the CFDP APIs. The cfdptest command set can be found in the manual pages [here.](https://nasa-jpl.github.io/ION-DTN/man/cfdp/cfdptest/?h=cfdptest)
+
+### CFDP Application Code Example
 
 _this section is work-in-progress_
 
