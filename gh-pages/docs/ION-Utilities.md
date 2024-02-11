@@ -17,3 +17,5 @@ Normally, when ION was shut down by calling `ionstop`,  issuing the command '.' 
 * killm
 * runtests
 * bptrace
+* owltsim
+* cfdptest
