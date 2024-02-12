@@ -13,7 +13,7 @@ a protocol udp 1400 100
 a induct udp 127.0.0.1:5003 udpcli
 a protocol bibe 1400 100
 a induct bibe * ''
-a outduct bibe ipn:2.0 'bibeclo ipn:2.0'
+a outduct bibe ipn:2.0 bibeclo
 r 'ipnadmin amroc.ipnrc'
 w 1
 s

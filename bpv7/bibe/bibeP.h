@@ -57,14 +57,11 @@ typedef struct
 
 	unsigned int	fwdLatency;	/*	seconds			*/
 	unsigned int	rtnLatency;	/*	seconds			*/
-	int		lifespan;
-	unsigned char	classOfService;
-	BpAncillaryData	ancillaryData;	/*	Ordinal, label, flags.	*/
-
-	/*	For possible future use in BPDU transmission.		*/
-
 	Object		reportTo;	/*	EID, an sdrstring.	*/
-	unsigned int	srrFlags;
+	unsigned int	bsrFlags;	/*	For status reporting.	*/
+	int		lifespan;	/*	A.k.a. TTL.		*/
+	unsigned char	classOfService;	/*	Priority.		*/
+	BpAncillaryData	ancillaryData;	/*	Ordinal, QoS, label.	*/
 
 	/*	Parameters of pending outbound CT signals.		*/
 

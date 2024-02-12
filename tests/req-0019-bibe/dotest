@@ -24,7 +24,7 @@
 # We send 4 bundles from 1: to destinations 4, 5, 6, and 7, one bundle each.
 # The bundle destined for 4 should be delivered; bundles destined for nodes
 # 6 and 7 should be received at 4 and abandoned there, while the bundle
-# destined for node 5 should be received and abandoned at node 3.
+# destined for node 5 should be received and forwarded to oblivion at node 3.
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=2
@@ -150,7 +150,7 @@ echo ""
 ############################################################
 #   END OF TESTS                ........
 
-sleep 1
+sleep 5
 
 cd ../1.ipn.ltp
 bpstats

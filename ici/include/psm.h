@@ -42,11 +42,10 @@ typedef struct psm_str		/*	Local view of managed memory.	*/
 	long		freeNeeded;	/*	Free PsmView?  Boolean.	*/
 	struct psm_str	*trace;		/*	For sptrace.		*/
 	long		traceArea[3];	/*	psm_str for sptrace.	*/
-	int			traceCount; 	/* track trace episode */
 } PsmView, *PsmPartition;
 
 typedef enum { Okay, Redundant, Refused } PsmMgtOutcome;
-typedef uaddr		PsmAddress;
+typedef size_t		PsmAddress;
 
 extern int		psm_manage(char *, size_t, char *, PsmPartition *psmp,
 					PsmMgtOutcome *outcome);
@@ -212,6 +211,10 @@ extern int		psm_locate(PsmPartition, char *objName,
 				entry; if name is not found in catalog,
 				sets entryElt to zero.  Returns 0 on
 				success, -1 on any failure.		*/
+
+extern void		psm_audit(PsmPartition);
+			/*	Steps through all free lists of the
+			 *	small pool, aborting on any error.	*/
 
 extern void		psm_usage(PsmPartition, PsmUsageSummary *);
 			/*	Loads PsmUsageSummary structure with

@@ -29,9 +29,10 @@ static void	getSchemeName(char *eid, char *schemeNameBuf)
 }
 
 void	bibeAdd(char *peerEid, unsigned int fwdLatency,
-		unsigned int rtnLatency, int lifespan,
+		unsigned int rtnLatency, char *reportToEid,
+		unsigned char bsrFlags, int lifespan,
 		unsigned char priority, unsigned char ordinal,
-		unsigned int label, unsigned char flags)
+		unsigned char qosFlags, unsigned int label)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
@@ -74,15 +75,21 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 	bcla.signals[CT_ACCEPTED].sequences = sdr_list_create(sdr);
 	bcla.fwdLatency = fwdLatency;
 	bcla.rtnLatency = rtnLatency;
-	bcla.lifespan = lifespan;
-	bcla.classOfService = priority;
-	if (flags & BP_DATA_LABEL_PRESENT)
+	if (reportToEid == NULL || strlen(reportToEid) == 0)
 	{
-		bcla.ancillaryData.dataLabel = label;
+		bcla.reportTo = 0;
+	}
+	else
+	{
+		bcla.reportTo = sdr_string_create(sdr, reportToEid);
 	}
 
-	bcla.ancillaryData.flags = flags;
+	bcla.bsrFlags = bsrFlags;
+	bcla.lifespan = lifespan;
+	bcla.classOfService = priority;
 	bcla.ancillaryData.ordinal = ordinal;
+	bcla.ancillaryData.flags = qosFlags;
+	bcla.ancillaryData.dataLabel = label;
 	bclaAddr = sdr_malloc(sdr, sizeof(Bcla));
 	if (bclaAddr)
 	{
@@ -97,9 +104,10 @@ void	bibeAdd(char *peerEid, unsigned int fwdLatency,
 }
 
 void	bibeChange(char *peerEid, unsigned int fwdLatency,
-		unsigned int rtnLatency, int lifespan,
+		unsigned int rtnLatency, char *reportToEid,
+		unsigned char bsrFlags, int lifespan,
 		unsigned char priority, unsigned char ordinal,
-		unsigned int label, unsigned char flags)
+		unsigned char qosFlags, unsigned int label)
 {
 	Sdr		sdr = getIonsdr();
 	Object		bclaAddr;
@@ -117,15 +125,23 @@ void	bibeChange(char *peerEid, unsigned int fwdLatency,
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
 	bcla.fwdLatency = fwdLatency;
 	bcla.rtnLatency = rtnLatency;
-	bcla.lifespan = lifespan;
-	bcla.classOfService = priority;
-	if (flags & BP_DATA_LABEL_PRESENT)
+	if (bcla.reportTo)
 	{
-		bcla.ancillaryData.dataLabel = label;
+		sdr_free(sdr, bcla.reportTo);
+		bcla.reportTo = 0;
 	}
 
-	bcla.ancillaryData.flags = flags;
+	if (reportToEid != NULL && strlen(reportToEid) > 0)
+	{
+		bcla.reportTo = sdr_string_create(sdr, reportToEid);
+	}
+
+	bcla.bsrFlags = bsrFlags;
+	bcla.lifespan = lifespan;
+	bcla.classOfService = priority;
 	bcla.ancillaryData.ordinal = ordinal;
+	bcla.ancillaryData.flags = qosFlags;
+	bcla.ancillaryData.dataLabel = label;
 	sdr_write(sdr, bclaAddr, (char *) &bcla, sizeof(Bcla));
 	if (sdr_end_xn(sdr) < 0)
 	{
@@ -153,6 +169,11 @@ void	bibeDelete(char *peerEid)
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
 	sdr_free(sdr, bcla.dest);
+	if (bcla.reportTo)
+	{
+		sdr_free(sdr, bcla.reportTo);
+	}
+
 	while ((elt = sdr_list_first(sdr, bcla.bpdus)))
 	{
 		addr = sdr_list_data(sdr, elt);

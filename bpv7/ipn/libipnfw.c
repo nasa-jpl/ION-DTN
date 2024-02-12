@@ -309,7 +309,8 @@ static Object	locateOvrd(unsigned int dataLabel, uvast destNodeNbr,
 }
 
 int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
-		uvast sourceNodeNbr, uvast neighbor, unsigned char priority,
+		uvast sourceNodeNbr, uvast neighbor,
+		char *ovrdDuctExpression, unsigned char priority,
 		unsigned char ordinal, unsigned char qosFlags)
 {
 	Sdr		sdr = getIonsdr();
@@ -384,6 +385,22 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	if (neighbor != (uvast) -2)
 	{
 		ovrd.neighbor = neighbor;
+		if (ovrdDuctExpression)
+		{
+			if (ovrd.ductExpression)
+			{
+				sdr_free(sdr, ovrd.ductExpression);
+				ovrd.ductExpression = 0;
+			}
+
+			/*	Expression "" just erases.		*/
+
+			if (strlen(ovrdDuctExpression) > 0)
+			{
+				ovrd.ductExpression = sdr_string_create(sdr,
+						ovrdDuctExpression);
+			}
+		}
 	}
 
 	if (priority != (unsigned char) -2)
@@ -397,6 +414,11 @@ int	ipn_setOvrd(unsigned int dataLabel, uvast destNodeNbr,
 	&& ovrd.priority == (unsigned char) -1)
 	{
 		/*	Override is moot, so delete it.		*/
+
+		if (ovrd.ductExpression)
+		{
+			sdr_free(sdr, ovrd.ductExpression);
+		}
 
 		sdr_list_delete(sdr, elt, NULL, NULL);
 		sdr_free(sdr, addr);
@@ -443,9 +465,10 @@ int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
 			continue;
 		}
 
-		if (ovrd->dataLabel > dataLabel)
+		if (ovrd->dataLabel != dataLabel
+		&& ovrd->dataLabel != (unsigned int) -1)
 		{
-			return 0;	/*	No matching override.	*/
+			continue;
 		}
 
 		/*	Data label matches.				*/
@@ -458,7 +481,6 @@ int	ipn_lookupOvrd(unsigned int dataLabel, uvast destNodeNbr,
 		if (ovrd->destNodeNbr != destNodeNbr
 		&& ovrd->destNodeNbr != (uvast) -1)
 		{
-
 			continue;
 		}
 

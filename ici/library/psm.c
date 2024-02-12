@@ -36,16 +36,17 @@
 
 /*
  * The overhead on a small block is WORD_SIZE bytes.  When the block is
- * free, these bytes contain a pointer to the next free block, which must be
- * an integral multiple of WORD_SIZE.  When the block is in use, the low-order
- * byte is set to the size of the block's user data (expressed as an integer
- * 1 through SMALL_SIZES: the total block size minus overhead, divided by
- * WORD_SIZE) and the three high-order bytes are all set to 0xff.
+ * free, these bytes contain the PsmAddress (i.e., offset from start
+ * of partition) of the next free block, which must be an integral
+ * multiple of WORD_SIZE.  When the block is in use, the low-order
+ * byte is set to the size of the block's user data (expressed as an
+ * integer 1 through SMALL_SIZES: the total block size minus overhead,
+ * divided by WORD_SIZE) and all higher-order bytes are set to 0xff.
  *
- * NOTE: since any address in excess of 0xffffff00 will be interpreted as
- * indicating that the block is in use, the maximum size of the small pool
- * is 0xffffff00; the address of any free block at a higher address would
- * be unrecognizable as such.
+ * NOTE: since any PsmAddress in excess of SMALL_IN_USE will be
+ * interpreted as indicating that the block is in use, the maximum
+ * size of the small pool is SMALL_IN_USE; the address of any free
+ * block at a higher address would be unrecognizable as such.
  */
 struct small_ohd
 {
@@ -85,7 +86,7 @@ struct big_ohd2				/*	Trailing overhead.	*/
 #define BIG2(x)		((struct big_ohd2 *)(((char *) map) + x))
 #define PTR(x)		(((char *) map) + x)
 
-#define	LG_OHD_SIZE	(1 << LARGE_ORDER1)   /* double word	*/
+#define	LG_OHD_SIZE	(1 << LARGE_ORDER1)	/*	double word	*/
 #define	LARGE_BLOCK_OHD	(2 * LG_OHD_SIZE)
 #define	MIN_LARGE_BLOCK	(3 * LG_OHD_SIZE)
 #define	LARGE_BLK_LIMIT	(LARGE1 << LARGE_ORDERn)
@@ -119,7 +120,6 @@ typedef struct			/*	Global view in shared memory.	*/
 	char		name[32];
 	int		traceKey;	/*	For sptrace.		*/
 	size_t		traceSize;	/*	0 = trace disabled.	*/
-	int		traceCount; 	/* track trace episode */
 	PsmAddress	startOfSmallPool;
 	PsmAddress	endOfSmallPool;
 	SmallFreeBucket	smallPoolFree[SMALL_SIZES];
@@ -239,7 +239,6 @@ int	psm_manage(char *start, size_t length, char *name, PsmPartition *psmp,
 
 	partition->space = start;
 	partition->trace = NULL;
-
 	map = (PartitionMap *) (partition->space);
 	if (map->status == MANAGED)
 	{
@@ -313,8 +312,6 @@ actual name.", map->name);
 		map->unassignedSpace = map->startOfLargePool -
 				map->endOfSmallPool;
 		map->traceKey = sm_GetUniqueKey();
-		map->traceSize = 0; /* default to disable trace */
-		map->traceCount = 0; /* no trace yet */
 	}
 
 	map->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -389,8 +386,18 @@ void    *psp(PsmPartition partition, PsmAddress address)
 
 PsmAddress	psa(PsmPartition partition, void *pointer)
 {
+	PartitionMap	*map;
+	char		*ptr = (char *) pointer;
+
 	CHKZERO(partition);
-	return (((char *) pointer) - (partition->space));
+	map = (PartitionMap *) (partition->space);
+	if (ptr < partition->space + sizeof(PartitionMap)
+	|| ptr > partition->space + map->partitionSize)
+	{
+		return 0;
+	}
+
+	return (ptr - partition->space);
 }
 
 void	psm_panic(PsmPartition partition)
@@ -461,10 +468,11 @@ PsmAddress	psm_get_root(PsmPartition partition)
 
 	CHKZERO(partition);
 	map = (PartitionMap *) (partition->space);
-
-	if (map->status == 0) //catch before assert in lockPartition()
+	if (map->status == 0)
 	{
-		writeMemo("[i] psm_get_root(): map->status == NULL, returning 0");
+		/*	Catch before assert in lockPartition().		*/
+
+		writeMemo("[i] psm_get_root(): map->status == NULL, returns 0");
 		return 0; //sky resolves "Assertion failed" issue (psmwatch)
 	}
 
@@ -812,10 +820,14 @@ static int	traceInProgress(PsmPartition partition)
 
 	if (partition->trace == NULL)
 	{
+		/*	Task not yet attached to any enabled trace.	*/
+
 		if (map->traceSize < 1)	/*	Trace is disabled.	*/
 		{
 			return 0;	/*	Don't trace.		*/
 		}
+
+		/*	Attach this task to the enabled trace.		*/
 
 		if (psm_start_trace(partition, map->traceSize, NULL) < 0)
 		{
@@ -826,23 +838,8 @@ static int	traceInProgress(PsmPartition partition)
 	{
 		if (map->traceSize < 1)	/*	Trace is now disabled.	*/
 		{
-			sptrace_stop(partition->trace);
 			partition->trace = NULL;
 			return 0;	/*	Don't trace.		*/
-		}
-		else
-		{
-			if (partition->traceCount != map->traceCount)
-			{
-				/* there is a new trace episode */
-				sptrace_stop(partition->trace);
-				partition->trace = NULL;
-					
-				if (psm_start_trace(partition, map->traceSize, NULL) < 0)
-				{
-					return 0;	/*	Fail silently.		*/
-				}
-			}
 		}
 	}
 
@@ -897,6 +894,14 @@ void	Psm_free(const char *file, int line, PsmPartition partition,
 	}
 
 	map = (PartitionMap *) (partition->space);
+	if (address >= map->partitionSize
+	|| ((address / WORD_SIZE) * WORD_SIZE) != address)
+	{
+		writeMemo("Illegal psm_free.");
+		oK(_iEnd(file, line, "partition"));
+		return;
+	}
+
 	lockPartition(map);
 	if (address >= map->startOfSmallPool
 	&& address < map->endOfSmallPool)
@@ -1217,7 +1222,7 @@ block size %lu", nbytes);
 				block += SMALL_BLOCK_OHD;
 			}
 		}
-		else	/*	Found a free block.			*/
+		else	/*	There is at least one free block.	*/
 		{
 			block = map->smallPoolFree[i].firstFreeBlock;
 			map->smallPoolFree[i].freeBlocks--;
@@ -1233,6 +1238,49 @@ block size %lu", nbytes);
 #endif
 	unlockPartition(map);
 	return block;
+}
+
+void	psm_audit(PsmPartition partition)
+{
+	PartitionMap		*map;
+	int			i;
+	int			blockCount;
+	PsmAddress		block;
+	struct small_ohd	*blk;
+
+	CHKVOID(partition);
+	map = (PartitionMap *) (partition->space);
+	lockPartition(map);
+	for (i = 0; i < SMALL_SIZES; i++)
+	{
+		blockCount = 0;
+		block = map->smallPoolFree[i].firstFreeBlock;
+		while (block)
+		{
+			blockCount++;
+			blk = SMALL(block);
+			block = blk->next;
+			if (block == 0)		/*	End of list.	*/
+			{
+				continue;
+			}
+
+			if (block < sizeof(PartitionMap)
+			|| block > map->partitionSize)
+			{
+				writeMemo("Small pool audit failed: next.");
+				abort();
+			}
+		}
+
+		if (blockCount != map->smallPoolFree[i].freeBlocks)
+		{
+			writeMemo("Small pool audit failed: count.");
+			abort();
+		}
+	}
+
+	unlockPartition(map);
 }
 
 void	psm_usage(PsmPartition partition, PsmUsageSummary *usage)
@@ -1366,11 +1414,9 @@ actual.", itoa(map->traceSize));
 	else			/*	Trace is not currently enabled.	*/
 	{
 		map->traceSize = shmSize;	/*	Enable trace.	*/
-		map->traceCount++;
 	}
 
 	partition->trace = (PsmView *) (partition->traceArea);
-	partition->traceCount = map->traceCount;
 
 	/*	(To prevent dynamic allocation of the trace episode's
 	 *	space management structure.)				*/
