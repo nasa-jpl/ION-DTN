@@ -1,5 +1,5 @@
 /**
- * @file entropy_src.h
+ * @file entropy_gen.h
  * @brief Header file for Cryptographically Secure Random Number Generation
  *
  * This header file provides declarations for functions to generate
@@ -8,8 +8,8 @@
  * respective APIs and filesystems for entropy generation.
  */
 
-#ifndef ENTROPY_GEN_H
-#define ENTROPY_GEN_H
+#ifndef ENTROPY_SRC_H
+#define ENTROPY_SRC_H
 
 #include <stdlib.h> // For size_t definition
 
@@ -53,4 +53,4 @@ int entropy_gen(unsigned char *output, size_t ilen, size_t *olen);
 }
 #endif
 
-#endif // ENTROPY_GEN_H
+#endif // ENTROPY_SRC_H
