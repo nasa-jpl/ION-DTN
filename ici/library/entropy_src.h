@@ -1,5 +1,5 @@
 /**
- * @file entropy_gen.h
+ * @file entropy_src.h
  * @brief Header file for Cryptographically Secure Random Number Generation
  *
  * This header file provides declarations for functions to generate
@@ -47,7 +47,7 @@ int open_entropy_source(void);
  *         -1 for invalid arguments, -2 for error generating random bytes (Windows only),
  *         -3 for error opening the entropy source, and -4 for error reading from the entropy source.
  */
-int entropy_gen(unsigned char *output, size_t ilen, size_t *olen);
+int entropy_src(unsigned char *output, size_t ilen, size_t *olen);
 
 #ifdef __cplusplus
 }
