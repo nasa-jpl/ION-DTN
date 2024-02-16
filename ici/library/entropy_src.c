@@ -16,7 +16,7 @@
  * cryptographic operations, such as key generation, nonces, or salt values.
  *
  * ## Usage
- * To use these functions, include `entropy_gen.h` in your project and link
+ * To use these functions, include `entropy_src.h` in your project and link
  * against the corresponding system libraries if necessary.
  *
  * ## Supported Platforms
@@ -100,7 +100,7 @@ int open_entropy_source()
  *         -3: Error opening the entropy source.
  *         -4: Error reading from the entropy source.
  */
-int entropy_gen(unsigned char *output, size_t ilen, size_t *olen)
+int entropy_src(unsigned char *output, size_t ilen, size_t *olen)
 {
     if (!output || !olen) 
     {
