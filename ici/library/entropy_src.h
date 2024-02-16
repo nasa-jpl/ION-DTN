@@ -1,5 +1,5 @@
 /**
- * @file entropy_gen.h
+ * @file entropy_src.h
  * @brief Header file for Cryptographically Secure Random Number Generation
  *
  * This header file provides declarations for functions to generate
