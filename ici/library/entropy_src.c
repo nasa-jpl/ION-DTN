@@ -1,5 +1,5 @@
 /**
- * @file entropy_gen.c
+ * @file entropy_src.c
  * @brief Cryptographically Secure Random Number Generation
  *
  * This file provides functions to generate cryptographically secure random
@@ -44,6 +44,7 @@
  */
 
 #include <stdlib.h>
+#inlude "entropy_src.h"
 
 #if defined(_WIN32) || defined(_WIN64)
     #include <Windows.h>
