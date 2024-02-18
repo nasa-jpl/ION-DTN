@@ -1,0 +1,2377 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/Platform-Macros-Error-Reporting/">
+      
+      
+        <link rel="prev" href="../Extension-Block-Interface/">
+      
+      
+        <link rel="next" href="../ION-Utilities/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.9">
+    
+    
+      
+        <title>Platform Macros & Error Reporting - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.f2e4d321.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#platform-macros-error-reporting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Platform Macros & Error Reporting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ION-Design-and-API-Overview/" class="md-tabs__link">
+          
+  
+  ION APIs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Launcher/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Launcher Script
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION APIs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            ION APIs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Design-and-API-Overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & API Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ICI-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Infrastructure API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Application-Service-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Application Service Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../BP-Service-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    BP Service API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LTP-UComm-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Underlying Communications API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLA-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLA API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Extension-Block-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extension Block Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Platform Macros & Error Reporting
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Platform Macros & Error Reporting
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#platform-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      Platform Compatibility
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#platform-generic-macros-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Platform Generic Macros &amp; Functions
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Platform Generic Macros & Functions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fdtable_size" class="md-nav__link">
+    <span class="md-ellipsis">
+      FDTABLE_SIZE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ion_path_delimiter" class="md-nav__link">
+    <span class="md-ellipsis">
+      ION_PATH_DELIMITER
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ok" class="md-nav__link">
+    <span class="md-ellipsis">
+      oK
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chkerr" class="md-nav__link">
+    <span class="md-ellipsis">
+      CHKERR
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chkzero" class="md-nav__link">
+    <span class="md-ellipsis">
+      CHKZERO
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chknull" class="md-nav__link">
+    <span class="md-ellipsis">
+      CHKNULL
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#chkvoid" class="md-nav__link">
+    <span class="md-ellipsis">
+      CHKVOID
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#snooze" class="md-nav__link">
+    <span class="md-ellipsis">
+      snooze
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#microsnooze" class="md-nav__link">
+    <span class="md-ellipsis">
+      microsnooze
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getcurrenttime" class="md-nav__link">
+    <span class="md-ellipsis">
+      getCurrentTime
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isprintf" class="md-nav__link">
+    <span class="md-ellipsis">
+      isprintf
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#istrlen" class="md-nav__link">
+    <span class="md-ellipsis">
+      istrlen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#istrcpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      istrcpy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#istrcat" class="md-nav__link">
+    <span class="md-ellipsis">
+      istrcat
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#igetcwd" class="md-nav__link">
+    <span class="md-ellipsis">
+      igetcwd
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#isignal" class="md-nav__link">
+    <span class="md-ellipsis">
+      isignal
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iblock" class="md-nav__link">
+    <span class="md-ellipsis">
+      iblock
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ifopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      ifopen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#igets" class="md-nav__link">
+    <span class="md-ellipsis">
+      igets
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      iputs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strtovast" class="md-nav__link">
+    <span class="md-ellipsis">
+      strtovast
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strtouvast" class="md-nav__link">
+    <span class="md-ellipsis">
+      strtouvast
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#findtoken" class="md-nav__link">
+    <span class="md-ellipsis">
+      findToken
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#acquiresystemmemory" class="md-nav__link">
+    <span class="md-ellipsis">
+      acquireSystemMemory
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#createfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      createFile
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getinternetaddress" class="md-nav__link">
+    <span class="md-ellipsis">
+      getInternetAddress
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getinternethostname" class="md-nav__link">
+    <span class="md-ellipsis">
+      getInternetHostName
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getnameofhost" class="md-nav__link">
+    <span class="md-ellipsis">
+      getNameOfHost
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getaddressofhost" class="md-nav__link">
+    <span class="md-ellipsis">
+      getAddressOfHost
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parsesocketspec" class="md-nav__link">
+    <span class="md-ellipsis">
+      parseSocketSpec
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#printdottedstring" class="md-nav__link">
+    <span class="md-ellipsis">
+      printDottedString
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getnameofuser" class="md-nav__link">
+    <span class="md-ellipsis">
+      getNameOfUser
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reuseaddress" class="md-nav__link">
+    <span class="md-ellipsis">
+      reUseAddress
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#makeiononblocking" class="md-nav__link">
+    <span class="md-ellipsis">
+      makeIoNonBlocking
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#watchsocket" class="md-nav__link">
+    <span class="md-ellipsis">
+      watchSocket
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#closeonexec" class="md-nav__link">
+    <span class="md-ellipsis">
+      closeOnExec
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exception-reporting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Exception Reporting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Exception Reporting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#system_error_msg" class="md-nav__link">
+    <span class="md-ellipsis">
+      system_error_msg()
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setlogger" class="md-nav__link">
+    <span class="md-ellipsis">
+      setLogger
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writememo" class="md-nav__link">
+    <span class="md-ellipsis">
+      writeMemo
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writememonote" class="md-nav__link">
+    <span class="md-ellipsis">
+      writeMemoNote
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writeerrmemo" class="md-nav__link">
+    <span class="md-ellipsis">
+      writeErrMemo
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#itoa" class="md-nav__link">
+    <span class="md-ellipsis">
+      itoa
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#utoa" class="md-nav__link">
+    <span class="md-ellipsis">
+      utoa
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#posterrmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      postErrmsg
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#postsyserrmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      postSysErrmsg
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#geterrmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      getErrmsg
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#writeerrmsgmemos" class="md-nav__link">
+    <span class="md-ellipsis">
+      writeErrmsgMemos
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#puterrmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      putErrmsg
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#putsyserrmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      putSysErrmsg
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#discarderrmsgs" class="md-nav__link">
+    <span class="md-ellipsis">
+      discardErrmsgs
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#printstacktrace" class="md-nav__link">
+    <span class="md-ellipsis">
+      printStackTrace
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Utilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Utility Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dtpc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Payload Conditioning (DTPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="platform-macros-error-reporting">Platform Macros &amp; Error Reporting</h1>
+<p><em>From manual page for "platform"</em></p>
+<h2 id="platform-compatibility">Platform Compatibility</h2>
+<p>The platform library "patches" the APIs of supported OS's to guarantee that all of the following items may be utilized by application software:</p>
+<div class="highlight"><pre><span></span><code>The strchr(), strrchr(), strcasecmp(), and strncasecmp() functions.
+
+The unlink(), getpid(), and gettimeofday() functions.
+
+The select() function.
+
+The FD_BITMAP macro (used by select()).
+
+The MAXHOSTNAMELEN macro.
+
+The NULL macro.
+
+The timer_t type definition.
+</code></pre></div>
+<h2 id="platform-generic-macros-functions">Platform Generic Macros &amp; Functions</h2>
+<p>The generic macros and functions in this section may be used in place of comparable O/S-specific functions, to enhance the portability of code. (The implementations of these macros and functions are no-ops in environments in which they are inapplicable, so they're always safe to call.)</p>
+<h3 id="fdtable_size">FDTABLE_SIZE</h3>
+<p>The <strong>FDTABLE_SIZE</strong> macro returns the total number of file descriptors defined for the process (or VxWorks target).</p>
+<h3 id="ion_path_delimiter">ION_PATH_DELIMITER</h3>
+<p>The <strong>ION_PATH_DELIMITER</strong> macro returns the ASCII character -- either '/' or '\' -- that is used as a directory name delimiter in path names for the file system used by the local platform.</p>
+<h3 id="ok">oK</h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">oK</span><span class="p">(</span><span class="n">expression</span><span class="p">)</span>
+</code></pre></div>
+The oK macro simply casts the value of expression to void, a way of handling function return codes that are not meaningful in this context.</p>
+<h3 id="chkerr">CHKERR</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">CHKERR</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+</code></pre></div>
+<p>The CHKERR macro is an "assert" mechanism. It causes the calling function to return -1 immediately if condition is false.</p>
+<h3 id="chkzero">CHKZERO</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">CHKZERO</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+</code></pre></div>
+<p>The CHKZERO macro is an "assert" mechanism. It causes the calling function to return 0 immediately if condition is false.</p>
+<h3 id="chknull">CHKNULL</h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">CHKNULL</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+</code></pre></div>
+The CHKNULL macro is an "assert" mechanism. It causes the calling function to return NULL immediately if condition is false.</p>
+<h3 id="chkvoid">CHKVOID</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">CHKVOID</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+</code></pre></div>
+<p>The CHKVOID macro is an "assert" mechanism. It causes the calling function to return immediately if condition is false.</p>
+<h3 id="snooze">snooze</h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">snooze</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">seconds</span><span class="p">)</span>
+</code></pre></div>
+Suspends execution of the invoking task or process for the indicated number of seconds.</p>
+<h3 id="microsnooze">microsnooze</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">microsnooze</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">microseconds</span><span class="p">)</span>
+</code></pre></div>
+<p>Suspends execution of the invoking task or process for the indicated number of microseconds.</p>
+<h3 id="getcurrenttime">getCurrentTime</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">getCurrentTime</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">timeval</span><span class="w"> </span><span class="o">*</span><span class="n">time</span><span class="p">)</span>
+</code></pre></div>
+<p>Returns the current local time (ctime, i.e., Unix epoch time) in a timeval structure (see gettimeofday(3C)).</p>
+<h3 id="isprintf">isprintf</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">isprintf</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">bufSize</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">format</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span>
+</code></pre></div>
+<p>isprintf() is a safe, portable implementation of snprintf(); see the snprintf(P) man page for details. isprintf() differs from snprintf() in that it always NULL-terminates the string in buffer, even if the length of the composed string would equal or exceed bufSize. Buffer overruns are reported by log message; unlike snprintf(), isprintf() returns void.</p>
+<h3 id="istrlen">istrlen</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kt">size_t</span><span class="w"> </span><span class="n">istrlen</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceString</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">maxlen</span><span class="p">)</span>
+</code></pre></div>
+<p>istrlen() is a safe implementation of strlen(); see the strlen(3) man page for details. istrlen() differs from strlen() in that it takes a second argument, the maximum valid length of sourceString. The function returns the number of non-NULL characters in sourceString preceding the first NULL character in sourceString, provided that a NULL character appears somewhere within the first maxlen characters of sourceString; otherwise it returns maxlen.</p>
+<h3 id="istrcpy">istrcpy</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">istrcpy</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceString</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">bufSize</span><span class="p">)</span>
+</code></pre></div>
+<p>istrcpy() is a safe implementation of strcpy(); see the strcpy(3) man page for details. istrcpy() differs from strcpy() in that it takes a third argument, the total size of the buffer into which sourceString is to be copied. istrcpy() always NULL-terminates the string in buffer, even if the length of sourceString string would equal or exceed bufSize (in which case sourceString is truncated to fit within the buffer).</p>
+<h3 id="istrcat">istrcat</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">istrcat</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceString</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">bufSize</span><span class="p">)</span>
+</code></pre></div>
+<p>istrcat() is a safe implementation of strcat(); see the strcat(3) man page for details. istrcat() differs from strcat() in that it takes a third argument, the total size of the buffer for the string that is being aggregated. istrcat() always NULL-terminates the string in buffer, even if the length of sourceString string would equal or exceed the sum of bufSize and the length of the string currently occupying the buffer (in which case sourceString is truncated to fit within the buffer).</p>
+<h3 id="igetcwd">igetcwd</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">igetcwd</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">size</span><span class="p">)</span>
+</code></pre></div>
+<p>igetcwd() is normally just a wrapper around getcwd(3). It differs from getcwd(3) only when FSWWDNAME is defined, in which case the implementation of igetcwd() must be supplied in an included file named "wdname.c"; this adaptation option accommodates flight software environments in which the current working directory name must be configured rather than discovered at run time.</p>
+<h3 id="isignal">isignal</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">isignal</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">signbr</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">handler</span><span class="p">)(</span><span class="kt">int</span><span class="p">))</span>
+</code></pre></div>
+<p>isignal() is a portable, simplified interface to signal handling that is functionally indistinguishable from signal(P). It assures that reception of the indicated signal will interrupt system calls in SVR4 fashion, even when running on a FreeBSD platform.</p>
+<h3 id="iblock">iblock</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">iblock</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">signbr</span><span class="p">)</span>
+</code></pre></div>
+<p>iblock() simply prevents reception of the indicated signal by the calling thread. It provides a means of controlling which of the threads in a process will receive the signal cited in an invocation of isignal().</p>
+<h3 id="ifopen">ifopen</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">ifopen</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">fileName</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flags</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">pmode</span><span class="p">)</span>
+</code></pre></div>
+<p>ifopen() is a portable function for opening "regular" files. It operates in exactly the same way as open() except that it fails (returning -1) if fileName does not identify a regular file, i.e., it's a directory, a named pipe, etc.</p>
+<p>NOTE that ION also provides iopen() which is nothing more than a portable wrapper for open(). iopen() can be used to open a directory, for example.</p>
+<h3 id="igets">igets</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">igets</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">buflen</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">lineLen</span><span class="p">)</span>
+</code></pre></div>
+<p>igets() reads a line of text, delimited by a newline character, from fd into buffer and writes a NULL character at the end of the string. The newline character itself is omitted from the NULL-terminated text line in buffer; if the newline is immediately preceded by a carriage return character (i.e., the line is from a DOS text file), then the carriage return character is likewise omitted from the NULL-terminated text line in buffer. End of file is interpreted as an implicit newline, terminating the line. If the number of characters preceding the newline is greater than or equal to buflen, only the first (buflen - 1) characters of the line are written into buffer. On error the function sets <em>lineLen to -1 and returns NULL. On reading end-of-file, the function sets </em>lineLen to zero and returns NULL. Otherwise the function sets *lineLen to the length of the text line in buffer, as if from strlen(3), and returns buffer.</p>
+<h3 id="iputs">iputs</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">iputs</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">string</span><span class="p">)</span>
+</code></pre></div>
+<p>iputs() writes to fd the NULL-terminated character string at string. No terminating newline character is appended to string by iputs(). On error the function returns -1; otherwise the function returns the length of the character string written to fd, as if from strlen(3).</p>
+<h3 id="strtovast">strtovast</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">vast</span><span class="w"> </span><span class="n">strtovast</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">string</span><span class="p">)</span>
+</code></pre></div>
+<p>Converts the leading characters of string, skipping leading white space and ending at the first subsequent character that can't be interpreted as contributing to a numeric value, to a vast integer and returns that integer.</p>
+<h3 id="strtouvast">strtouvast</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">uvast</span><span class="w"> </span><span class="n">strtouvast</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">string</span><span class="p">)</span>
+</code></pre></div>
+<p>Same as strtovast() except the result is an unsigned vast integer value.</p>
+<h3 id="findtoken">findToken</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">findToken</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">cursorPtr</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">token</span><span class="p">)</span>
+</code></pre></div>
+<p>Locates the next non-whitespace lexical token in a character array, starting at <em>cursorPtr. The function NULL-terminates that token within the array and places a pointer to the token in </em>token. Also accommodates tokens enclosed within matching single quotes, which may contain embedded spaces and escaped single-quote characters. If no token is found, *token contains NULL on return from this function.</p>
+<h3 id="acquiresystemmemory">acquireSystemMemory</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">acquireSystemMemory</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">size</span><span class="p">)</span>
+</code></pre></div>
+<p>Uses memalign() to allocate a block of system memory of length size, starting at an address that is guaranteed to be an integral multiple of the size of a pointer to void, and initializes the entire block to binary zeroes. Returns the starting address of the allocated block on success; returns NULL on any error.</p>
+<h3 id="createfile">createFile</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">createFile</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flags</span><span class="p">)</span>
+</code></pre></div>
+<p>Creates a file of the indicated name, using the indicated file creation flags. This function provides common file creation functionality across VxWorks and Unix platforms, invoking creat() under VxWorks and open() elsewhere. For return values, see creat(2) and open(2).</p>
+<h3 id="getinternetaddress">getInternetAddress</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">getInternetAddress</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">hostName</span><span class="p">)</span>
+</code></pre></div>
+<p>Returns the IP address of the indicated host machine, or zero if the address cannot be determined.</p>
+<h3 id="getinternethostname">getInternetHostName</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">getInternetHostName</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">hostNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">)</span>
+</code></pre></div>
+<p>Writes the host name of the indicated host machine into buffer and returns buffer, or returns NULL on any error. The size of buffer should be (MAXHOSTNAMELEN + 1).</p>
+<h3 id="getnameofhost">getNameOfHost</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">getNameOfHost</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">bufferLength</span><span class="p">)</span>
+</code></pre></div>
+<p>Writes the first (bufferLength - 1) characters of the host name of the local machine into buffer. Returns 0 on success, -1 on any error.</p>
+<h3 id="getaddressofhost">getAddressOfHost</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">getAddressOfHost</span><span class="p">()</span>
+</code></pre></div>
+<p>Returns the IP address for the host name of the local machine, or 0 on any error.</p>
+<h3 id="parsesocketspec">parseSocketSpec</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">parseSocketSpec</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">socketSpec</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">short</span><span class="w"> </span><span class="o">*</span><span class="n">portNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">hostNbr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parses socketSpec, extracting host number (IP address) and port number from the string. socketSpec is expected to be of the form "{ @ | hostname }[:<portnbr>]", where @ signifies "the host name of the local machine". If host number can be determined, writes it into <em>hostNbr; otherwise writes 0 into </em>hostNbr. If port number is supplied and is in the range 1024 to 65535, writes it into <em>portNbr; otherwise writes 0 into </em>portNbr.</p>
+<h3 id="printdottedstring">printDottedString</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">printDottedString</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">hostNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">)</span>
+</code></pre></div>
+<p>Composes a dotted-string (xxx.xxx.xxx.xxx) representation of the IPv4 address in hostNbr and writes that string into buffer. The length of buffer must be at least 16.</p>
+<h3 id="getnameofuser">getNameOfUser</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">getNameOfUser</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">)</span>
+</code></pre></div>
+<p>Writes the user name of the invoking task or process into buffer and returns buffer. The size of buffer must be at least L_cuserid, a constant defined in the stdio.h header file. Returns buffer.</p>
+<h3 id="reuseaddress">reUseAddress</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">reUseAddress</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">)</span>
+</code></pre></div>
+<p>Makes the address that is bound to the socket identified by fd reusable, so that the socket can be closed and immediately reopened and re-bound to the same port number. Returns 0 on success, -1 on any error.</p>
+<h3 id="makeiononblocking">makeIoNonBlocking</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">makeIoNonBlocking</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">)</span>
+</code></pre></div>
+<p>Makes I/O on the socket identified by fd non-blocking; returns -1 on failure. An attempt to read on a non-blocking socket when no data are pending, or to write on it when its output buffer is full, will not block; it will instead return -1 and cause errno to be set to EWOULDBLOCK.</p>
+<h3 id="watchsocket">watchSocket</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">watchSocket</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">)</span>
+</code></pre></div>
+<p>Turns on the "linger" and "keepalive" options for the socket identified by fd. See socket(2) for details. Returns 0 on success, -1 on any failure.</p>
+<h3 id="closeonexec">closeOnExec</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">closeOnExec</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">)</span>
+</code></pre></div>
+<p>Ensures that fd will NOT be open in any child process fork()ed from the invoking process. Has no effect on a VxWorks platform.</p>
+<hr />
+<h2 id="exception-reporting">Exception Reporting</h2>
+<p>The functions in this section offer platform-independent capabilities for reporting on processing exceptions.</p>
+<p>The underlying mechanism for ICI's exception reporting is a pair of functions that record error messages in a privately managed pool of static memory. These functions -- <code>postErrmsg()</code> and <code>postSysErrmsg()</code> -- are designed to return very rapidly with no possibility of failing, themselves. Nonetheless they are not safe to call from an interrupt service routing (ISR). Although each merely copies its text to the next available location in the error message memory pool, that pool is protected by a mutex; multiple processes might be queued up to take that mutex, so the total time to execute the function is non-deterministic.</p>
+<p>Built on top of <code>postErrmsg()</code> and <code>postSysErrmsg()</code> are the <code>putErrmsg()</code> and <code>putSysErrmsg()</code> functions, which may take longer to return. Each one simply calls the corresponding "post" function but then calls the <code>writeErrmsgMemos()</code> function, which calls <code>writeMemo()</code> to print (or otherwise deliver) each message currently posted to the pool and then destroys all of those posted messages, emptying the pool.</p>
+<p>Recommended general policy on using the ICI exception reporting functions (which the functions in the ION distribution libraries are supposed to adhere to) is as follows:</p>
+<div class="highlight"><pre><span></span><code>In the implementation of any ION library function or any ION
+task&#39;s top-level driver function, any condition that prevents
+the function from continuing execution toward producing the
+effect it is designed to produce is considered an &quot;error&quot;.
+
+Detection of an error should result in the printing of an
+error message and, normally, the immediate return of whatever
+return value is used to indicate the failure of the function
+in which the error was detected.  By convention this value
+is usually -1, but both zero and NULL are appropriate
+failure indications under some circumstances such as object
+creation.
+
+The CHKERR, CHKZERO, CHKNULL, and CHKVOID macros are used to
+implement this behavior in a standard and lexically terse
+manner.  Use of these macros offers an additional feature:
+for debugging purposes, they can easily be configured to
+call sm_Abort() to terminate immediately with a core dump
+instead of returning a error indication.  This option is
+enabled by setting the compiler parameter CORE_FILE_NEEDED
+to 1 at compilation time.
+
+In the absence of either any error, the function returns a
+value that indicates nominal completion.  By convention this
+value is usually zero, but under some circumstances other
+values (such as pointers or addresses) are appropriate
+indications of nominal completion.  Any additional information
+produced by the function, such as an indication of &quot;success&quot;,
+is usually returned as the value of a reference argument.
+[Note, though, that database management functions and the
+SDR hash table management functions deviate from this rule:
+most return 0 to indicate nominal completion but functional
+failure (e.g., duplicate key or object not found) and return
+1 to indicate functional success.]
+
+So when returning a value that indicates nominal completion
+of the function -- even if the result might be interpreted
+as a failure at a higher level (e.g., an object identified
+by a given string is not found, through no failure of the
+search function) -- do NOT invoke putErrmsg().
+
+Use putErrmsg() and putSysErrmsg() only when functions are
+unable to proceed to nominal completion.  Use writeMemo()
+or writeMemoNote() if you just want to log a message.
+
+Whenever returning a value that indicates an error:
+
+        If the failure is due to the failure of a system call
+        or some other non-ION function, assume that errno
+        has already been set by the function at the lowest
+        layer of the call stack; use putSysErrmsg (or
+        postSysErrmsg if in a hurry) to describe the nature
+        of the activity that failed.  The text of the error
+        message should normally start with a capital letter
+        and should NOT end with a period.
+
+        Otherwise -- i.e., the failure is due to a condition
+        that was detected within ION -- use putErrmsg (or
+        postErrmg if pressed for time) to describe the nature
+        of the failure condition.  This will aid in tracing
+        the failure through the function stack in which the
+        failure was detected.  The text of the error message
+        should normally start with a capital letter and should
+        end with a period.
+
+When a failure in a called function is reported to &quot;driver&quot;
+code in an application program, before continuing or exiting
+use writeErrmsgMemos() to empty the message pool and print a
+simple stack trace identifying the failure.
+</code></pre></div>
+<h3 id="system_error_msg">system_error_msg()</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">system_error_msg</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+<p>Returns a brief text string describing the current system error, as identified by the current value of errno.</p>
+<h3 id="setlogger">setLogger</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">setLogger</span><span class="p">(</span><span class="n">Logger</span><span class="w"> </span><span class="n">usersLoggerName</span><span class="p">)</span>
+</code></pre></div>
+<p>Sets the user function to be used for writing messages to a user-defined "log" medium. The logger function's calling sequence must match the following prototype:</p>
+<div class="highlight"><pre><span></span><code>void    usersLoggerName(char *msg);
+</code></pre></div>
+<p>The default Logger function simply writes the message to standard output.</p>
+<h3 id="writememo">writeMemo</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">writeMemo</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">msg</span><span class="p">)</span>
+</code></pre></div>
+<p>Writes one log message, using the currently defined message logging function. To construct a more complex string, it is customary and safer to use the isprintf function to build a message string first, and then pass that string as an argument to writeMemo.</p>
+<h3 id="writememonote">writeMemoNote</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">writeMemoNote</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">msg</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">note</span><span class="p">)</span>
+</code></pre></div>
+<p>Writes a log message like writeMemo(), accompanied by the user-supplied context-specific text string in note. The text string can also be build separately using isprintf().</p>
+<h3 id="writeerrmemo">writeErrMemo</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">writeErrMemo</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">msg</span><span class="p">)</span>
+</code></pre></div>
+<p>Writes a log message like writeMemo(), accompanied by text describing the current system error.</p>
+<h3 id="itoa">itoa</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">itoa</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="p">)</span>
+</code></pre></div>
+<p>Returns a string representation of the signed integer in value, nominally for immediate use as an argument to putErrmsg(). [Note that the string is constructed in a static buffer; this function is not thread-safe.]</p>
+<h3 id="utoa">utoa</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">utoa</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">value</span><span class="p">)</span>
+</code></pre></div>
+<p>Returns a string representation of the unsigned integer in value, nominally for immediate use as an argument to putErrmsg(). [Note that the string is constructed in a static buffer; this function is not thread-safe.]</p>
+<h3 id="posterrmsg">postErrmsg</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">postErrmsg</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argument</span><span class="p">)</span>
+</code></pre></div>
+<p>Constructs an error message noting the name of the source file containing the line at which this function was called, the line number, the text of the message, and -- if not NULL -- a single textual argument that can be used to give more specific information about the nature of the reported failure (such as the value of one of the arguments to the failed function). The error message is appended to the list of messages in a privately managed pool of static memory, ERRMSGS_BUFSIZE bytes in length.</p>
+<p>If text is NULL or is a string of zero length or begins with a newline character (i.e., *text == '\0' or '\n'), the function returns immediately and no error message is recorded.</p>
+<p>The errmsgs pool is designed to be large enough to contain error messages from all levels of the calling stack at the time that an error is encountered. If the remaining unused space in the pool is less than the size of the new error message, however, the error message is silently omitted. In this case, provided at least two bytes of unused space remain in the pool, a message comprising a single newline character is appended to the list to indicate that a message was omitted due to excessive length.</p>
+<h3 id="postsyserrmsg">postSysErrmsg</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">postSysErrmsg</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</code></pre></div>
+<p>Like postErrmsg() except that the error message constructed by the function additionally contains text describing the current system error. text is truncated as necessary to assure that the sum of its length and that of the description of the current system error does not exceed 1021 bytes.</p>
+<h3 id="geterrmsg">getErrmsg</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">getErrmsg</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">)</span>
+</code></pre></div>
+<p>Copies the oldest error message in the message pool into buffer and removes that message from the pool, making room for new messages. Returns zero if the message pool cannot be locked for update or there are no more messages in the pool; otherwise returns the length of the message copied into buffer. Note that, for safety, the size of buffer should be ERRMSGS_BUFSIZE.</p>
+<p>Note that a returned error message comprising only a single newline character always signifies an error message that was silently omitted because there wasn't enough space left on the message pool to contain it.</p>
+<h3 id="writeerrmsgmemos">writeErrmsgMemos</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">writeErrmsgMemos</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+<p>Calls getErrmsg() repeatedly until the message pool is empty, using writeMemo() to log all the messages in the pool. Messages that were omitted due to excessive length are indicated by logged lines of the form "[message omitted due to excessive length]".</p>
+<h3 id="puterrmsg">putErrmsg</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">putErrmsg</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argument</span><span class="p">)</span>
+</code></pre></div>
+<p>The putErrmsg() function merely calls postErrmsg() and then writeErrmsgMemos().</p>
+<h3 id="putsyserrmsg">putSysErrmsg</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">putSysErrmsg</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</code></pre></div>
+<p>The putSysErrmsg() function merely calls postSysErrmsg() and then writeErrmsgMemos().</p>
+<h3 id="discarderrmsgs">discardErrmsgs</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">discardErrmsgs</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+<p>Calls getErrmsg() repeatedly until the message pool is empty, discarding all of the messages.</p>
+<h3 id="printstacktrace">printStackTrace</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">printStackTrace</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+<p>On Linux machines only, uses writeMemo() to print a trace of the process's current execution stack, starting with the lowest level of the stack and proceeding to the main() function of the executable.</p>
+<p>Note that (a) printStackTrace() is only implemented for Linux platforms at this time; (b) symbolic names of functions can only be printed if the -rdynamic flag was enabled when the executable was linked; (c) only the names of non-static functions will appear in the stack trace.</p>
+<p>For more complete information about the state of the executable at the time the stack trace snapshot was taken, use the Linux addr2line tool. To do this, cd into a directory in which the executable file resides (such as /opt/bin) and submit an addr2line command as follows:</p>
+<p><code>addr2line -e name_of_executable stack_frame_address</code>
+where both name_of_executable and stack_frame_address are taken from one of the lines of the printed stack trace. addr2line will print the source file name and line number for that stack frame.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      
+    
+  </body>
+</html>

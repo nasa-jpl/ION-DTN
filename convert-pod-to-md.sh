@@ -12,6 +12,7 @@ DIR_PAIRS=(
   "../../bssp man/bssp"
   "../../cfdp man/cfdp"
   "../../dgr man/dgr"
+  "../../dtpc man/dtpc"
   "../../ici man/ici"
   "../../ltp man/ltp"
   "../../nm man/nm"

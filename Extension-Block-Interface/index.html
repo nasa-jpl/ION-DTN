@@ -1,0 +1,1810 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/Extension-Block-Interface/">
+      
+      
+        <link rel="prev" href="../CLA-API/">
+      
+      
+        <link rel="next" href="../Platform-Macros-Error-Reporting/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.9">
+    
+    
+      
+        <title>Extension Block Interface - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.f2e4d321.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bp-extension-interface" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Extension Block Interface
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ION-Design-and-API-Overview/" class="md-tabs__link">
+          
+  
+  ION APIs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Launcher/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Launcher Script
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION APIs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            ION APIs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Design-and-API-Overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & API Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ICI-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Infrastructure API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Application-Service-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Application Service Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../BP-Service-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    BP Service API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LTP-UComm-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Underlying Communications API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLA-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLA API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Extension Block Interface
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Extension Block Interface
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#extension-definition-extesniondef-extensiondefs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extension Definition: ExtesnionDef &amp; extensionDefs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extensionspec-specification-for-producing-an-extension-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      ExtensionSpec - specification for producing an extension block
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#procedure-to-extend-the-bundle-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      Procedure to Extend the Bundle Protocol
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extension-implementation-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      Extension Implementation Functions
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#utility-functions-for-extension-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Utility Functions for Extension Processing
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Platform-Macros-Error-Reporting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Platform Macros & Error Reporting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Utilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Utility Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dtpc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Payload Conditioning (DTPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="bp-extension-interface">BP Extension Interface</h1>
+<p>ION offers software developer a set of standard interface for adding extensions to Bundle Protocol without modifying the core BP source code. This capability can be used to implement both standardized bundle extension blocks or user-specific extension blocks.</p>
+<p>ION's interface for extending the Bundle Protocol enables the definition of external functions that insert extension blocks into outbound bundles (either before or after the payload block), parse and record extension blocks in inbound bundles, and modify extension blocks at key points in bundle processing. All extension-block handling is statically linked into ION at build time, but the addition of an extension never requires that any standard ION source code be modified.</p>
+<p>Standard structures for recording extension blocks -- both in transient storage memory during bundle acquisition (AcqExtBlock) and in persistent storage [the ION database] during subsequent bundle processing (ExtensionBlock) -- are defined in the bei.h header file. In each case, the extension block structure comprises a block type code, block processing flags, possibly a list of EID references, an array of bytes (the serialized form of the block, for transmission), the length of that array, optionally an extension-specific opaque object whose structure is designed to characterize the block in a manner that's convenient for the extension processing functions, and the size of that object.</p>
+<h2 id="extension-definition-extesniondef-extensiondefs">Extension Definition: <code>ExtesnionDef</code> &amp; <code>extensionDefs</code></h2>
+<p>The definition of each extension is asserted in an ExtensionDef structure, also as defined in the <code>bei.h</code> header file. </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cm">/**</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="cm"> *  \struct ExtensionDef</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="cm"> *  \brief Defines the callbacks used to process extension blocks.</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="cm"> *</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="cm"> * ExtensionDef defines the callbacks for production and acquisition</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="cm"> * of a single type of extension block, identified by block type name</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="cm"> * and number.</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="cm"> */</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">{</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="kt">char</span><span class="w">            </span><span class="n">name</span><span class="p">[</span><span class="mi">32</span><span class="p">];</span><span class="w">   </span><span class="cm">/** Name of extension   */</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">    </span><span class="n">BpBlockType</span><span class="w">     </span><span class="n">type</span><span class="p">;</span><span class="w">       </span><span class="cm">/** Block type      */</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">    </span><span class="cm">/*  Production callbacks.                   */</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">    </span><span class="n">BpExtBlkOfferFn</span><span class="w">     </span><span class="n">offer</span><span class="p">;</span><span class="w">      </span><span class="cm">/** Offer       */</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="n">BpExtBlkSerializeFn</span><span class="w"> </span><span class="n">serialize</span><span class="p">;</span><span class="w">  </span><span class="cm">/** Serialize       */</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="n">BpExtBlkProcessFn</span><span class="w">   </span><span class="n">process</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span><span class="w"> </span><span class="cm">/** Process     */</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="n">BpExtBlkReleaseFn</span><span class="w">   </span><span class="n">release</span><span class="p">;</span><span class="w">    </span><span class="cm">/** Release         */</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span><span class="n">BpExtBlkCopyFn</span><span class="w">      </span><span class="n">copy</span><span class="p">;</span><span class="w">       </span><span class="cm">/** Copy        */</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span><span class="cm">/*  Acquisition callbacks.                  */</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="n">BpAcqExtBlkAcquireFn</span><span class="w">    </span><span class="n">acquire</span><span class="p">;</span><span class="w">    </span><span class="cm">/** Acquire         */</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="n">BpAcqExtReviewFn</span><span class="w">    </span><span class="n">review</span><span class="p">;</span><span class="w">     </span><span class="cm">/** Review      */</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">    </span><span class="n">BpAcqExtBlkDecryptFn</span><span class="w">    </span><span class="n">decrypt</span><span class="p">;</span><span class="w">    </span><span class="cm">/** Decrypt         */</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">    </span><span class="n">BpAcqExtBlkParseFn</span><span class="w">  </span><span class="n">parse</span><span class="p">;</span><span class="w">      </span><span class="cm">/** Parse       */</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">    </span><span class="n">BpAcqExtBlkCheckFn</span><span class="w">  </span><span class="n">check</span><span class="p">;</span><span class="w">      </span><span class="cm">/** Check       */</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">    </span><span class="n">BpExtBlkRecordFn</span><span class="w">    </span><span class="n">record</span><span class="p">;</span><span class="w">     </span><span class="cm">/** Record      */</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">    </span><span class="n">BpAcqExtBlkClearFn</span><span class="w">  </span><span class="n">clear</span><span class="p">;</span><span class="w">      </span><span class="cm">/** Clear       */</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="p">}</span><span class="w"> </span><span class="n">ExtensionDef</span><span class="p">;</span>
+</code></pre></div>
+<p>Each ExtensionDef must supply:</p>
+<ul>
+<li>
+<p>The name of the extension. (Used in some diagnostic messages.)</p>
+</li>
+<li>
+<p>The extension's block type code.</p>
+</li>
+<li>
+<p>A pointer to an offer function.</p>
+</li>
+<li>
+<p>A pointer to a function to be called when forwarding a bundle containing this sort of block.</p>
+</li>
+<li>
+<p>A pointer to a function to be called when taking custody of a bundle containing this sort of block.</p>
+</li>
+<li>
+<p>A pointer to a function to be called when enqueuing for transmission a bundle containing this sort of block.</p>
+</li>
+<li>
+<p>A pointer to a function to be called when a convergence-layer adapter dequeues a bundle containing this sort of block, before serializing it.</p>
+</li>
+<li>
+<p>A pointer to a function to be called immediately before a convergence-layer adapter transmits a bundle containing this sort of block, after the bundle has been serialized.</p>
+</li>
+<li>
+<p>A pointer to a release function.</p>
+</li>
+<li>
+<p>A pointer to a copy function.</p>
+</li>
+<li>
+<p>A pointer to an acquire function.</p>
+</li>
+<li>
+<p>A pointer to a review function.</p>
+</li>
+<li>
+<p>A pointer to a decrypt function.</p>
+</li>
+<li>
+<p>A pointer to a parse function.</p>
+</li>
+<li>
+<p>A pointer to a check function.</p>
+</li>
+<li>
+<p>A pointer to a record function.</p>
+</li>
+<li>
+<p>A pointer to a clear function.</p>
+</li>
+</ul>
+<p>All extension definitions must be coded into an array of ExtensionDef structures named extensionDefs.</p>
+<h2 id="extensionspec-specification-for-producing-an-extension-block">ExtensionSpec - specification for producing an extension block</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="cm">/*  ExtensionSpec provides the specification for producing an</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="cm"> *  outbound extension block: block definition (identified by</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="cm"> *  block type number), a formulation tag whose semantics are</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="cm"> *  block-type-specific, and applicable CRC type.           */</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">{</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="n">BpBlockType</span><span class="w"> </span><span class="n">type</span><span class="p">;</span><span class="w">       </span><span class="cm">/*  Block type      */</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w">   </span><span class="n">tag</span><span class="p">;</span><span class="w">        </span><span class="cm">/*  Extension-specific  */</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="n">BpCrcType</span><span class="w">   </span><span class="n">crcType</span><span class="p">;</span><span class="w">    </span><span class="cm">/*  Type of CRC on block    */</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">}</span><span class="w"> </span><span class="n">ExtensionSpec</span><span class="p">;</span>
+</code></pre></div>
+<p>An array of ExtensionSpec structures named extensionSpecs is also required. Each ExtensionSpec provides the specification for producing an outbound extension block: </p>
+<ol>
+<li>block definition (identified by block type number), </li>
+<li>three discriminator tags whose semantics are block-type-specific, and </li>
+<li>CRC type indicating what type of CRC must be used to protect this extension block. </li>
+</ol>
+<p>The order of appearance of extension specifications in the extensionSpecs array determines the order in which extension blocks will be inserted into locally sourced bundles.</p>
+<h2 id="procedure-to-extend-the-bundle-protocol">Procedure to Extend the Bundle Protocol</h2>
+<p>The standard extensionDefs array -- which is empty -- is in the <code>noextensions.c</code> prototype source file. The procedure for extending the Bundle Protocol in ION is as follows:</p>
+<ol>
+<li>
+<p>Specify -DBP_EXTENDED in the Makefile's compiler command line when building the libbpP.c library module.</p>
+</li>
+<li>
+<p>Create a copy of the prototype extensions file, named "bpextensions.c", in a directory that is made visible to the Makefile's libbpP.c compilation command line (by a -I parameter).</p>
+</li>
+<li>
+<p>In the "external function declarations" area of "bpextensions.c", add "extern" function declarations identifying the functions that will implement your extension (or extensions).</p>
+</li>
+<li>
+<p>Add one or more ExtensionDef structure initialization lines to the extensionDefs array, referencing those declared functions.</p>
+</li>
+<li>
+<p>Add one or more ExtensionSpec structure initialization lines to the extensionSpecs array, referencing those extension definitions.</p>
+</li>
+<li>
+<p>Develop the implementations of the extension implementation functions in one or more new source code files.</p>
+</li>
+<li>
+<p>Add the object file or files for the new extension implementation source file (or files) to the Makefile's command line for linking libbpP.so.</p>
+</li>
+</ol>
+<h2 id="extension-implementation-functions">Extension Implementation Functions</h2>
+<p>The function pointers supplied in each ExtensionDef must conform to the following specifications. </p>
+<p>NOTE that any function that modifies the bytes member of an ExtensionBlock or AckExtBlock must set the corresponding length to the new length of the bytes array, if changed.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpExtBlkOfferFn</span><span class="p">)(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">,</span><span class="w"> </span><span class="n">Bundle</span><span class="w"> </span><span class="o">*</span><span class="n">bundle</span><span class="p">)</span>
+</code></pre></div>
+<p>Populates all fields of the indicated ExtensionBlock structure for inclusion in the indicated outbound bundle. This function is automatically called when a new bundle is locally sourced or upon acquisition of a remotely sourced bundle that does not contain an extension block of this type. The values of the extension block are typically expected to be a function of the state of the bundle, but this is extension-specific. If it is not appropriate to offer an extension block of this type as part of this bundle, then the size, length, object, and bytes members of blk must all be set to zero. If it is appropriate to offer such a block but no internal object representing the state of the block is needed, the object and size members of blk must be set to zero. The type, blkProcFlags, and dataLength members of blk must be populated by the implementation of the "offer" function, but the length and bytes members are typically populated by calling the BP library function serializeExtBlk(), which must be passed the block to be serialized (with type, blkProcFlags and dataLength already set), a Lyst of EID references (two list elements -- offsets -- per EID reference, if applicable; otherwise NULL), and a pointer to the extension-specific block data. The block's bytes array and object (if present) must occupy space allocated from the ION database heap. Return zero on success, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpExtBlkProcessFn</span><span class="p">)(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">,</span><span class="w"> </span><span class="n">Bundle</span><span class="w"> </span><span class="o">*</span><span class="n">bundle</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">context</span><span class="p">)</span>
+</code></pre></div>
+<p>Performs some extension-specific transformation of the data encapsulated in blk based on the state of bundle. The transformation to be performed will typically vary depending on whether the identified function is the one that is automatically invoked upon forwarding the bundle, upon taking custody of the bundle, upon enqueuing the bundle for transmission, upon removing the bundle from the transmission queue, or upon transmitting the serialized bundle. The context argument may supply useful supplemental information; in particular, the context provided to the ON_DEQUEUE function will comprise the name of the protocol for the duct from which the bundle has been dequeued, together with the EID of the neighboring node endpoint to which the bundle will be directly transmitted when serialized. The block-specific data in blk is located within bytes immediately after the header of the extension block; the length of the block's header is the difference between length and dataLength. Whenever the block's blkProcFlags, EID extensions, and/or block-specific data are altered, the serializeExtBlk() function should be called again to recalculate the size of the extension block and rebuild the bytes array. Return zero on success, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kt">void</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpExtBlkReleaseFn</span><span class="p">)(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">)</span>
+</code></pre></div>
+<p>Releases all ION database space occupied by the object member of blk. This function is automatically called when a bundle is destroyed. Note that incorrect implementation of this function may result in a database space leak.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpExtBlkCopyFn</span><span class="p">)(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">newblk</span><span class="p">,</span><span class="w"> </span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">oldblk</span><span class="p">)</span>
+</code></pre></div>
+<p>Copies the object member of oldblk to ION database heap space and places the address of that new non-volatile object in the object member of newblk, also sets size in newblk. This function is automatically called when two copies of a bundle are needed, e.g., in the event that it must both be delivered to a local client and also fowarded to another node. Return zero on success, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpAcqExtBlkAcquireFn</span><span class="p">)(</span><span class="n">AcqExtBlock</span><span class="w"> </span><span class="o">*</span><span class="n">acqblk</span><span class="p">,</span><span class="w"> </span><span class="n">AcqWorkArea</span><span class="w"> </span><span class="o">*</span><span class="n">work</span><span class="p">)</span>
+</code></pre></div>
+<p>Populates the indicated AcqExtBlock structure with size and object for retention as part of the indicated inbound bundle. (The type, blkProcFlags, EID references (if any), dataLength, length, and bytes values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is only to be provided for extension blocks that are never encrypted; a extension block that may be encrypted should have a BpAcqExtBlkParseFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the object member of acqblk must be set to NULL and the size member must be set to zero. If an object is needed for this block, it must occupy space that is allocated from ION working memory using MTAKE and its size must be indicated in blk. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpAcqExtBlkReviewFn</span><span class="p">)(</span><span class="n">AcqWorkArea</span><span class="w"> </span><span class="o">*</span><span class="n">work</span><span class="p">)</span>
+</code></pre></div>
+<p>Reviews the extension blocks that have been acquired for this bundle, checking to make sure that all blocks of this type that are required by policy are present. Returns 0 if any blocks are missing, 1 if all required blocks are present, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpAcqExtBlkDecryptFn</span><span class="p">)(</span><span class="n">AcqExtBlock</span><span class="w"> </span><span class="o">*</span><span class="n">acqblk</span><span class="p">,</span><span class="w"> </span><span class="n">AcqWorkArea</span><span class="w"> </span><span class="o">*</span><span class="n">work</span><span class="p">)</span>
+</code></pre></div>
+<p>Decrypts some other extension block that has been acquired but not yet parsed, nominally using encapsulated ciphersuite information. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if no error in decryption was encountered, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpAcqExtBlkParseFn</span><span class="p">)(</span><span class="n">AcqExtBlock</span><span class="w"> </span><span class="o">*</span><span class="n">acqblk</span><span class="p">,</span><span class="w"> </span><span class="n">AcqWorkArea</span><span class="w"> </span><span class="o">*</span><span class="n">work</span><span class="p">)</span>
+</code></pre></div>
+<p>Populates the indicated AcqExtBlock structure with size and object for retention as part of the indicated inbound bundle. (The type, blkProcFlags, EID references (if any), dataLength, length, and bytes values of the structure are pre-populated with data as extracted from the serialized bundle.) This function is provided for extension blocks that may be encrypted; a extension block that can never be encrypted should have a BpAcqExtBlkAcquireFn callback instead. The function is automatically called when an extension block of this type is encountered in the course of parsing and acquiring a bundle for local delivery and/or forwarding. If no internal object representing the state of the block is needed, the object member of acqblk must be set to NULL and the size member must be set to zero. If an object is needed for this block, it must occupy space that is allocated from ION working memory using MTAKE and its size must be indicated in blk. Return zero if the block is malformed (this will cause the bundle to be discarded), 1 if the block is successfully parsed, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpAcqExtBlkCheckFn</span><span class="p">)(</span><span class="n">AcqExtBlock</span><span class="w"> </span><span class="o">*</span><span class="n">acqblk</span><span class="p">,</span><span class="w"> </span><span class="n">AcqWorkArea</span><span class="w"> </span><span class="o">*</span><span class="n">work</span><span class="p">)</span>
+</code></pre></div>
+<p>Examines the bundle in work to determine whether or not it is authentic, in the context of the indicated extension block. Return 1 if the block is determined to be inauthentic (this will cause the bundle to be discarded), zero if no inauthenticity is detected, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpExtBlkRecordFn</span><span class="p">)(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">,</span><span class="w"> </span><span class="n">AcqExtBlock</span><span class="w"> </span><span class="o">*</span><span class="n">acqblk</span><span class="p">)</span>
+</code></pre></div>
+<p>Copies the object member of acqblk to ION database heap space and places the address of that non-volatile object in the object member of blk; also sets size in blk. This function is automatically called when an acquired bundle is accepted for forwarding and/or delivery. Return zero on success, -1 on any system failure.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kt">void</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">BpAcqExtBlkClearFn</span><span class="p">)(</span><span class="n">AcqExtBlock</span><span class="w"> </span><span class="o">*</span><span class="n">acqblk</span><span class="p">)</span>
+</code></pre></div>
+<p>Uses MRELEASE to release all ION working memory occupied by the object member of acqblk. This function is automatically called when acquisition of a bundle is completed, whether or not the bundle is accepted. Note that incorrect implementation of this function may result in a working memory leak.</p>
+<h2 id="utility-functions-for-extension-processing">Utility Functions for Extension Processing</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">discardExtensionBlock</span><span class="p">(</span><span class="n">AcqExtBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">)</span>
+</code></pre></div>
+<p>Deletes this block from the bundle acquisition work area prior to the recording of the bundle in the ION database.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">scratchExtensionBlock</span><span class="p">(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">)</span>
+</code></pre></div>
+<p>Deletes this block from the bundle after the bundle has been recorded in the ION database.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">findExtensionBlock</span><span class="p">(</span><span class="n">Bundle</span><span class="w"> </span><span class="o">*</span><span class="n">bundle</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">tag1</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">tag2</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">tag3</span><span class="p">)</span>
+</code></pre></div>
+<p>On success, returns the address of the ExtensionBlock in bundle for the indicated type and tag values. If no such extension block exists, returns zero.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">serializeExtBlk</span><span class="p">(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">blockData</span><span class="p">)</span>
+</code></pre></div>
+<p>Constructs a BPv7-conformant serialized representation of this extension block in blk-&gt;bytes. Returns 0 on success, -1 on an unrecoverable system error.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">suppressExtensionBlock</span><span class="p">(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">)</span>
+</code></pre></div>
+<p>Causes blk to be omitted when the bundle to which it is attached is serialized for transmission. This suppression remains in effect until it is reversed by restoreExtensionBlock();</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">restoreExtensionBlock</span><span class="p">(</span><span class="n">ExtensionBlock</span><span class="w"> </span><span class="o">*</span><span class="n">blk</span><span class="p">)</span>
+</code></pre></div>
+<p>Reverses the effect of suppressExtensionBlock(), enabling the block to be included when the bundle to which it is attached is serialized.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      
+    
+  </body>
+</html>

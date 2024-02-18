@@ -1,0 +1,1856 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/LTP-UComm-API/">
+      
+      
+        <link rel="prev" href="../BP-Service-API/">
+      
+      
+        <link rel="next" href="../CLA-API/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.9">
+    
+    
+      
+        <title>LTP Underlying Communications API - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.f2e4d321.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ltp-underlying-communications-api" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              LTP Underlying Communications API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ION-Design-and-API-Overview/" class="md-tabs__link">
+          
+  
+  ION APIs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Launcher/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Launcher Script
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION APIs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            ION APIs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Design-and-API-Overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & API Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ICI-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Infrastructure API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Application-Service-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Application Service Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../BP-Service-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    BP Service API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    LTP Underlying Communications API
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    LTP Underlying Communications API
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#connecting-to-the-ltp-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connecting to the LTP Engine
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ltp-data-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      LTP Data Structure
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ltp-apis-for-implementation-of-underlying-communication-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      LTP APIs for implementation of underlying communication protocol
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LTP APIs for implementation of underlying communication protocol">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header" class="md-nav__link">
+    <span class="md-ellipsis">
+      Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ltpinit" class="md-nav__link">
+    <span class="md-ellipsis">
+      ltpInit
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#findspan" class="md-nav__link">
+    <span class="md-ellipsis">
+      findSpan
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ltpdequeueoutboundsegment" class="md-nav__link">
+    <span class="md-ellipsis">
+      ltpDequeueOutboundSegment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ltphandleinboundsegment" class="md-nav__link">
+    <span class="md-ellipsis">
+      ltpHandleInboundSegment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLA-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLA API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Extension-Block-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extension Block Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Platform-Macros-Error-Reporting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Platform Macros & Error Reporting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Utilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Utility Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dtpc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Payload Conditioning (DTPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="ltp-underlying-communications-api">LTP Underlying Communications API</h1>
+<p>In the Licklider Transmission Protocol (LTP) Specification issued by <a href="https://public.ccsds.org/Pubs/734x1b1.pdf">CCSDS 734.1-B-1</a>, the elements of a LTP architecture is shown as follows:</p>
+<p><img alt="LTP Architecture" src="../images/LTP-Architecture-CCSDS.png" /></p>
+<p>The <code>LTP Engine</code> and <code>MIB</code> is implemented and configured by ION, and the <code>Client Service Instance</code> is either BPv6 or BPv7. The storage is provided by the host system through the ICI APIs.</p>
+<p>The <code>Underlying Communication Protocol</code> element is responsible for data and control message exchanges between two peered LTP Engines. It is not responsible for flow control, error correction/detection, and in-ordered delivery.</p>
+<p>For a spacecraft, the LTP Engine will execute the LTP protocol logic and handing the LTP segments to the underlying communication services provided in the form of a simple UDP socket or a radio frequency/optical telecommunication system. In ION, the standard underlying communications protocol is UDP since it is widely available in terrestrial computer systems. In actual deployment, the UDP protocol may need to be substituted by a different ground-based or flight communications system.</p>
+<p>In the document we describe a few essential APIs for any externally implemented underlying communication protocols to interface with LTP engine and perform the most basic tasks of (a) submitting a received LTP segments to the LTP Engine for processing and (b) acquiring an LTP segment from the LTP Engine for transmission to its peer.</p>
+<h2 id="connecting-to-the-ltp-engine">Connecting to the LTP Engine</h2>
+<p>There are several steps for an external application to connecting to LTP:</p>
+<ol>
+<li>The ltp service must be running on the host system. The ltp service is started by the ION system and is configured by the <code>.ltprc</code> file processed <code>ltpadmin</code>. See the <a href="../Basic-Configuration-File-Tutorial/">Configuration File Tutorial</a> to understand how BP and LTP services are instantiated.<ul>
+<li>Typically, to ensure that the ltp service is running before the communications protocols try to connect to it, the underlying communication protocol service is invoked as part of LTP instantiation. See manual page for <code>ltprc</code> for more details.</li>
+</ul>
+</li>
+<li>The external application must make sure LTP is initialized by calling the <code>ltpInit()</code> API.</li>
+<li>Once <code>ltpInit</code> called returned successfully, it must obtain access to ION SDR and detemine the associated LTP <code>span</code> (based on a peer engine number) for which communication service will be provisioned.  This is done by using the <code>findSpan()</code> API. A <code>span</code> defines the communication parameters between two LTP engine peers.</li>
+<li>Acquire the semaphore used by the associated LTP engines - for the span - to indicate the availability of a segment for transmission. The presences of a valid semaphore is also indication that the span is currently active.</li>
+<li>Use the <code>ltpDequeueOUtboundSegment</code> API to acquire each available segment from the LTP Engine for transmission to the peer entity.</li>
+</ol>
+<p>In the following section we will describe the <em>private</em> APIs used by the underlying communication protocols. There are other APIs for external processes to use LTP as a reliable point-to-point data transmission service, but they are not described in this document; they are available in the manual pages.</p>
+<h2 id="ltp-data-structure">LTP Data Structure</h2>
+<p>Here is a diagram of the major LTP data structures and their relationships. </p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>+----------------------------------+----------------------------------+
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>|                                  |                                  |
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>| non-&gt;olatile (SDR heap)          |    volatile (working memory ION) |
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>|                                  |                                  |
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>|                                  |                                  |
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>| LtpDB                            |    LtpVdb                        |
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>|   +      (list)                  |     +       (list)               |
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>|   +---&gt; spans +--+               |     +-----+ spans+------+        |
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>|   |              |               |     |                   |        |
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>|   +---&gt; seats +---------+        |     +-----+ seats+---+  |        |
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>|                  |      |        |                      |  |        |
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>|                  |      |        |                      |  |        |
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>| LtpSpan &lt;--------+      |        |     LtpVspan &lt;----------+        |
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>|   +                     |        |       +              |           |
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>|   +---&gt; importSessions+----+     |       +-&gt; importSessions+--+     |
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>|   |       (list)        |  |     |             (list)   |     |     |
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>|   +---&gt; exportSessions+------+   |                      |     |     |
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>|                         |  | |   |     LtpVseat &lt;-------+     |     |
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>| LtpSeat &lt;---------------+  | |   |                            |     |
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>|                            | |   |                            |     |
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>|                            | |   |                            |     |
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>| LtpImportSession &lt;---------+ |   |     LtpVImportSession&lt;-----+     |
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>|                              |   |                                  |
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>|                              |   |                                  |
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>| LtpExportSession &lt;-----------+   |                                  |
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>|                                  |                                  |
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>+----------------------------------+----------------------------------+
+</code></pre></div>
+<ul>
+<li>
+<p><code>LtpDB</code>: The LTP database is a global database that contains the LTP configuration information for the entire system. It is a persistent data stored in the SDR's heap - assuming the SDR is implemented in a non-volatile medium such as a disk or a battery backed RAM.</p>
+</li>
+<li>
+<p><code>LtpSpan</code>: A span is a communication channel between two LTP engine peers. A span is defined by a unique span number and a set of communication parameters stored in a non-volatile database. Each instance of <code>LtpSpan</code> is tracked as an element in the LTP database under the <code>LtpDB.spans</code> list.</p>
+</li>
+<li>
+<p><code>LtpSeat</code>: A seat is the reception process for LTP and its parameters are stored under LtpSeat, and its tracked as an element in the list <code>LtpDB.seats</code>.</p>
+</li>
+<li>
+<p><code>LtpImportSession</code> and <code>LtpExportSession</code> are tracked by lists in the <code>LtpSpan</code> structure.</p>
+</li>
+<li>
+<p><code>LtpVdb</code>: The LTP volatile database is a global database that contains the LTP configuration information for the entire system. It is a volatile data stored in the working memory and not expected to persist through power reset. It tracks, in two lists, each instance of <code>LtpVspan</code> and <code>LtpVseat</code> that are currently active.</p>
+</li>
+<li>
+<p><code>LtpVspan</code>: contains the state information of an active span in the working memory. It is tracked as an element in the list <code>LtpVdb.spans</code>.</p>
+</li>
+<li>
+<p><code>LtpVseat</code>: contains the state information of an active seat in the working memory. It is tracked as an element in the list <code>LtpVdb.seats</code>.</p>
+</li>
+<li>
+<p><code>LtpVImportSession</code>: contains the state information of an active import session in the working memory. It is tracked as an element in the list <code>LtpVspan.importSessions</code>.</p>
+</li>
+</ul>
+<h2 id="ltp-apis-for-implementation-of-underlying-communication-protocol">LTP APIs for implementation of underlying communication protocol</h2>
+<h3 id="header">Header</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ltpP.h&quot;</span>
+</code></pre></div>
+<h3 id="ltpinit">ltpInit</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">extern</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="nf">ltpInit</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">estMaxExportSessions</span><span class="p">);</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>estMaxExportSessions</code>: name of the endpoint</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="cm">/*  Note that ltpadmin must be run before the first</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="cm"> *  invocation of ltplso, to initialize the LTP database</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="cm"> *  (as necessary) and dynamic database.*/</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltpInit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">{</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;aoslso can&#39;t initialize LTP.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="cm">/* user error handling routine here */</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>This call attaches to ION and either initializes a new LTP database or loads the LTP database of an existing service. If the value of <code>estMaxExportSessions</code> is positive and no existing LTP service are found, then LTP service will be initialized with the specified maximum number of export sessions indicated. If the value of <code>estMaxExportSessions</code> is zero or negative, then <code>ltpInit</code> will load the LTP database or otherwise quit if no existing LTP service is found. <strong>NOTE</strong>: for the underlying communication protocol implementation, setting <code>ltpInit(0)</code> is appropriate since the intention is to load an existing LTP service only.</p>
+<p>Once a LTP service is either found or initialized, it loads the address to the LTP database object defined by <code>LtpDB</code> in <code>ltpP.h</code>.</p>
+<hr />
+<h3 id="findspan">findSpan</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kt">void</span><span class="w"> </span><span class="nf">findSpan</span><span class="p">(</span><span class="n">uvast</span><span class="w"> </span><span class="n">engineId</span><span class="p">,</span><span class="w"> </span><span class="n">LtpVspan</span><span class="w"> </span><span class="o">**</span><span class="n">vspan</span><span class="p">,</span><span class="w"> </span><span class="n">PsmAddress</span><span class="w"> </span><span class="o">*</span><span class="n">vspanElt</span><span class="p">);</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>engineId</code>: The engine number of the peer LTP engine</li>
+<li><code>vspan</code>: pointer to the pointer of the LTP span object in ION working memory that encapsulates the current state of the LTP span</li>
+<li><code>vspanElt</code>: pointer to the address stored in a list of span in the volatile database defined by <code>LtpVdb</code></li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Example Code</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">sdr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">getIonsdr</span><span class="p">();</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">CHKZERO</span><span class="p">(</span><span class="n">sdr_begin_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">));</span><span class="w"> </span><span class="cm">/*  Lock SDR.   */</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">findSpan</span><span class="p">(</span><span class="n">remoteEngineId</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">vspan</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">vspanElt</span><span class="p">);</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">vspanElt</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">{</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="n">sdr_exit_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">);</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;No such engine in database.&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">itoa</span><span class="p">(</span><span class="n">remoteEngineId</span><span class="p">));</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="cm">/* user error handling routine here */</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">vspan</span><span class="o">-&gt;</span><span class="n">lsoPid</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ERROR</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">vspan</span><span class="o">-&gt;</span><span class="n">lsoPid</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">sm_TaskIdSelf</span><span class="p">())</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="p">{</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">    </span><span class="n">sdr_exit_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">);</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;LSO task is already started for this span.&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">        </span><span class="n">itoa</span><span class="p">(</span><span class="n">vspan</span><span class="o">-&gt;</span><span class="n">lsoPid</span><span class="p">));</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">    </span><span class="cm">/* user error handling routine here */</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="p">}</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="cm">/* unlock the SDR */</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="n">sdr_exit_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">);</span>
+</code></pre></div>
+<p>Description</p>
+<p>This function searches the volatile database for the span that corresponds to the specified engine number. If the span is found, then the pointer to the span object is stored in the <code>vspan</code> parameter and the address of the span object in the list of spans in the volatile database is stored in the <code>vspanElt</code> parameter. If the span is not found, then <code>vspanElt</code> parameter is set to 0.</p>
+<p><strong>Note</strong>: In addition to check the value of <code>vspanElt</code>, one can also check for the process ID of the LSO task (the LTP output process, i.e., the underlying communication protocol) of the span has not already been serviced by another protocol implementation.</p>
+<h3 id="ltpdequeueoutboundsegment">ltpDequeueOutboundSegment</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">extern</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="nf">ltpDequeueOutboundSegment</span><span class="p">(</span><span class="n">LtpVspan</span><span class="w"> </span><span class="o">*</span><span class="n">vspan</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">buf</span><span class="p">);</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>vspan</code>: address to the volatile LTP span object</li>
+<li><code>buf</code>: the buffer in which outbound LTP segments are stored</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>length of segment</code>: success</li>
+<li><code>0</code>: session associated to the dequeued segment has already closed; no need to transmit any data</li>
+<li><code>-1</code>: any error</li>
+</ul>
+<p>Example Code</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">segmentLength</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ltpDequeueOutboundSegment</span><span class="p">(</span><span class="n">vspan</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">segment</span><span class="p">);</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">segmentLength</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p">{</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span><span class="cm">/* handle error */</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p">}</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">segmentLength</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">{</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="cm">/* session is closed, take appropriate action */</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="p">}</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="cm">/* transmit the segment */</span>
+</code></pre></div>
+<p>Description:</p>
+<p>This function dequeues a LTP segment, based on the <code>segSemaphore</code> in <code>vspan</code> object, into a buffer space for the calling task to process for transmission. The returned value is the length of the LTP segment dequeue; 0 if the segment belongs to a session that already closed (therefore no action is required), and -1 if an error occurred.</p>
+<p>If this call is implemented in a loop, then it is suggested that the loop monitors the <code>segSemaphore</code> in <code>vspan</code> to detect the termination of the semaphore using the <code>sm_SemEnded(vspan-&gt;segSemaphore)</code> call. If the semaphore has ended, it means the span associated with the underlying communication protocol instance has ended. This is the right time to end the task itself.</p>
+<p>After each successful iteration in a loop, it is recommended that you call <code>sm_TaskYield()</code> to give other tasks a chance to run. A good example code to read is the <code>udplso.c</code> program.</p>
+<h3 id="ltphandleinboundsegment">ltpHandleInboundSegment</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">ltpHandleInboundSegment</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>buf</code>: pointer to buffer storing the received LTP segment, to be submitted to LTP engine for processing</li>
+<li><code>length</code>: the length of the received LTP segment</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>0</code>: segment successfully handled</li>
+<li><code>-1</code>: any error</li>
+</ul>
+<p>Example Code</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltpHandleInboundSegment</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="n">segmentLength</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="p">{</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;Can&#39;t handle inbound segment.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="cm">/* handle error here */</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">}</span><span class="err">`</span>
+</code></pre></div>
+<p>Description</p>
+<p>This function submits received LTP segments to LTP engine for processing. The return value is 0 if the segment is successfully handled, and -1 if an error occurred. A successfully handled segment includes cases where the segments are ignored for several possible, non-critial, non-fatal discrepencies such as wrong LTP version number, closed session number, session under cancellation (therefore the segment was not processed) and other conditions are may occur under nominal condition.</p>
+<p>To develop one's own underlying communication protocol implementation to support LTP, the <code>udplsi.c</code> and <code>udplso.c</code> programs are good templates to use.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      
+    
+  </body>
+</html>

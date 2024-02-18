@@ -1,0 +1,2527 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/ION-Application-Service-Interface/">
+      
+      
+        <link rel="prev" href="../ICI-API/">
+      
+      
+        <link rel="next" href="../BP-Service-API/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.9">
+    
+    
+      
+        <title>ION Application Service Interface - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.f2e4d321.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ion-application-services" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ION Application Service Interface
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ION-Design-and-API-Overview/" class="md-tabs__link">
+          
+  
+  ION APIs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Launcher/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Launcher Script
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION APIs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            ION APIs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Design-and-API-Overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & API Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ICI-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Infrastructure API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    ION Application Service Interface
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    ION Application Service Interface
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ccsds-file-delivery-protocol-cfdp-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      CCSDS File Delivery Protocol (CFDP) APIs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CCSDS File Delivery Protocol (CFDP) APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_attach" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_attach
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_entity_is_started" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_entity_is_started
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_detach" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_detach
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_compress_number" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_compress_number
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_decompress_number" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_decompress_number
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_update_checksum" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_update_checksum
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_create_usrmsg_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_create_usrmsg_list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_add_usrmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_add_usrmsg
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_get_usrmsg" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_get_usrmsg
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_destroy_usrmsg_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_destroy_usrmsg_list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_create_fsreq_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_create_fsreq_list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_add_fsreq" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_add_fsreq
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_get_fsreq" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_get_fsreq
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_destroy_fsreq_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_destroy_fsreq_list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_get_fsresp" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_get_fsresp
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_destroy_fsresp_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_destroy_fsresp_list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_read_space_packets" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_read_space_packets
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_read_text_lines" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_read_text_lines
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_put" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_put
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_cancel" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_cancel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_suspend" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_suspend
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_resume
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_report" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_report
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_get_event" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_get_event
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_interrupt" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_interrupt
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_rput" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_rput
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_rput_cancel" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_rput_cancel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_get" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_get
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_rls" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_rls
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_preview" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_preview
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp_map" class="md-nav__link">
+    <span class="md-ellipsis">
+      cfdp_map
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp-shell-test-program-cfdptest" class="md-nav__link">
+    <span class="md-ellipsis">
+      CFDP Shell Test Program: cfdptest
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cfdp-application-code-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      CFDP Application Code Example
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bundle-streaming-service-bss" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Streaming Service (BSS)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bundle Streaming Service (BSS)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bundle-streaming-service-bss-bundle-streaming-service-protocol-bssp-cla" class="md-nav__link">
+    <span class="md-ellipsis">
+      Bundle Streaming Service (BSS) &amp; Bundle Streaming Service Protocol (BSSP CLA)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bss-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      BSS APIs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BSS APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bssopen" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssOpen
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssstart" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssStart
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssrun" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssRun
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssclose" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssClose
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssstop" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssStop
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssexit" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssExit
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssread" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssRead
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssseek" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssSeek
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssseek_read" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssSeek_read
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssnext" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssNext
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssnext_read" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssNext_read
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssprev" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssPrev
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bssprev_read" class="md-nav__link">
+    <span class="md-ellipsis">
+      bssPrev_read
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#asynchronous-messaging-service-ams-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Asynchronous Messaging Service (AMS) APIs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delay-tolerant-payload-conditioning-dtpc-communications-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      Delay-Tolerant Payload Conditioning (DTPC) communications library
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Delay-Tolerant Payload Conditioning (DTPC) communications library">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#description" class="md-nav__link">
+    <span class="md-ellipsis">
+      Description
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dtpc-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      DTPC APIs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../BP-Service-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    BP Service API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LTP-UComm-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Underlying Communications API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLA-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLA API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Extension-Block-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extension Block Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Platform-Macros-Error-Reporting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Platform Macros & Error Reporting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Utilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Utility Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dtpc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Payload Conditioning (DTPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="ion-application-services">ION Application Services</h1>
+<p>This section covers interfaces for users to access the following four DTN application-level services provided by ION:</p>
+<ul>
+<li><em>CFDP</em> (CCSDS File Delivery Protocol) - CCSDS Bluebook CCSDS 727.0-B-4</li>
+<li><em>BSS</em> (Bundle Streaming Service)</li>
+<li><em>AMS</em> (Asynchronous Message Service) - CCSDS Bluebook CCSDS 735.1-B-1, Greenbook CCSDS 735.0-G-1</li>
+<li><em>DTPC</em> (Delay-Tolerant Payload Conditioning)</li>
+</ul>
+<h2 id="ccsds-file-delivery-protocol-cfdp-apis">CCSDS File Delivery Protocol (CFDP) APIs</h2>
+<p>The CFDP library provides functions enabling application software to use CFDP to send and receive files. It conforms to the Class 1 (Unacknowledged) service class defined in the CFDP Blue Book and includes several standard CFDP user operations implementations.</p>
+<p>In the ION implementation of CFDP, the CFDP notion of entity ID is identical to the BP (CBHE) notion of DTN node number used in ION.</p>
+<p>CFDP entity and transaction numbers may be up to 64 bits in length. For portability to 32-bit machines, these numbers are stored in the CFDP state machine as structures of type <code>CfdpNumber</code>.</p>
+<p>To simplify the interface between CFDP and the user application without risking storage leaks, the CFDP-ION API uses <code>MetadataList</code> objects. A MetadataList is a specially formatted SDR list of user messages, filestore requests, or filestore responses. During the time that a MetadataList is pending processing via the CFDP APIs, but is not yet (or is no longer) reachable from any FDU object, a pointer to the list is appended to one of the lists of MetadataList objects in the CFDP non-volatile database. This assures that any unplanned termination of the CFDP daemons won't leave any SDR lists unreachable - and therefore un-recyclable - due to the absence of references to those lists. Restarting CFDP will automatically purge any unused MetadataLists from the CFDP database. The "user data" variable of the MetadataList itself is used to implement this feature: while the list is reachable only from the database root, its user data variable points to the database root list from which it is referenced. In contrast, the list is attached to a File Delivery Unit; its user data is NULL.</p>
+<p>CFDP transmits the data in a source file in fixed-sized segments by default. The user application can override this behavior at the time transmission of a file is requested by supplying a file reader callback function that reads the file - one byte at a time - until it detects the end of a "record" that has application significance. Each time CFDP calls the reader function, the function must return the length of one such record (not greater than 65535).</p>
+<p>When CFDP is used to transmit a file, a 32-bit checksum must be provided in the "EOF" PDU to enable the receiver of the file to ensure that it was not corrupted in transit. When supplied with an application-specific file reader function, it updates the computed checksum as it reads each file byte; a CFDP library function is provided. Two types of file checksums are supported: a simple modular checksum or a 32-bit CRC. The checksum type must be passed through to the CFDP checksum computation function, so it must be provided by (and thus to) the file reader function.</p>
+<p>The user application may provide per-segment metadata. To enable this, upon formation of each file data segment, CFDP will invoke the user-provided per-segment metadata composition callback function (if any), a function conforming to the CfdpMetadataFn type definition. The callback will be passed the offset of the segment within the file, the segment's offset within the current record (as applicable), the length of the segment, an open file descriptor for the source file (in case the data must be read to construct the metadata), and a 63-byte buffer in which to place the new metadata. The callback function must return the metadata length to attach to the file data segment PDU (may be zero) or -1 in case of a general system failure.</p>
+<p>The return value for each CFDP "request" function (put, cancel, suspend, resume, report) is a reference number that enables "events" obtained by calling cfdp_get_event() to be matched to the requests that caused them. Events with a reference number set to zero were caused by autonomous CFDP activity, e.g., the reception of a file data segment.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;cfdp.h&quot;</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">typedef</span><span class="w"> </span><span class="k">enum</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">{</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">    </span><span class="n">CksumTypeUnknown</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">    </span><span class="n">ModularChecksum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="n">CRC32CChecksum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">    </span><span class="n">NullChecksum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">15</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">}</span><span class="w"> </span><span class="n">CfdpCksumType</span><span class="p">;</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">typedef</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">CfdpReaderFn</span><span class="p">)(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">checksum</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpCksumType</span><span class="w"> </span><span class="n">ckType</span><span class="p">);</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="k">typedef</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">CfdpMetadataFn</span><span class="p">)(</span><span class="n">uvast</span><span class="w"> </span><span class="n">fileOffset</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">recordOffset</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">sourceFileFD</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">);</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">typedef</span><span class="w"> </span><span class="k">enum</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">{</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">    </span><span class="n">CfdpCreateFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">    </span><span class="n">CfdpDeleteFile</span><span class="p">,</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="w">    </span><span class="n">CfdpRenameFile</span><span class="p">,</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">    </span><span class="n">CfdpAppendFile</span><span class="p">,</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">    </span><span class="n">CfdpReplaceFile</span><span class="p">,</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">    </span><span class="n">CfdpCreateDirectory</span><span class="p">,</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">    </span><span class="n">CfdpRemoveDirectory</span><span class="p">,</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">    </span><span class="n">CfdpDenyFile</span><span class="p">,</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">    </span><span class="n">CfdpDenyDirectory</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="p">}</span><span class="w"> </span><span class="n">CfdpAction</span><span class="p">;</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="k">typedef</span><span class="w"> </span><span class="k">enum</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="p">{</span>
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">    </span><span class="n">CfdpNoEvent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">    </span><span class="n">CfdpTransactionInd</span><span class="p">,</span>
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">    </span><span class="n">CfdpEofSentInd</span><span class="p">,</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">    </span><span class="n">CfdpTransactionFinishedInd</span><span class="p">,</span>
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="w">    </span><span class="n">CfdpMetadataRecvInd</span><span class="p">,</span>
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a><span class="w">    </span><span class="n">CfdpFileSegmentRecvInd</span><span class="p">,</span>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="w">    </span><span class="n">CfdpEofRecvInd</span><span class="p">,</span>
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="w">    </span><span class="n">CfdpSuspendedInd</span><span class="p">,</span>
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="w">    </span><span class="n">CfdpResumedInd</span><span class="p">,</span>
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="w">    </span><span class="n">CfdpReportInd</span><span class="p">,</span>
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="w">    </span><span class="n">CfdpFaultInd</span><span class="p">,</span>
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="w">    </span><span class="n">CfdpAbandonedInd</span>
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="p">}</span><span class="w"> </span><span class="n">CfdpEventType</span><span class="p">;</span>
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="p">{</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="w">    </span><span class="kt">char</span><span class="w">            </span><span class="o">*</span><span class="n">sourceFileName</span><span class="p">;</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="w">    </span><span class="kt">char</span><span class="w">            </span><span class="o">*</span><span class="n">destFileName</span><span class="p">;</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="w">    </span><span class="n">MetadataList</span><span class="w">    </span><span class="n">messagesToUser</span><span class="p">;</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="w">    </span><span class="n">MetadataList</span><span class="w">    </span><span class="n">filestoreRequests</span><span class="p">;</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="w">    </span><span class="n">CfdpHandler</span><span class="w">     </span><span class="o">*</span><span class="n">faultHandlers</span><span class="p">;</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="w">    </span><span class="kt">int</span><span class="w">             </span><span class="n">unacknowledged</span><span class="p">;</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w">    </span><span class="n">flowLabelLength</span><span class="p">;</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w">   </span><span class="o">*</span><span class="n">flowLabel</span><span class="p">;</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="w">    </span><span class="kt">int</span><span class="w">             </span><span class="n">recordBoundsRespected</span><span class="p">;</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a><span class="w">    </span><span class="kt">int</span><span class="w">             </span><span class="n">closureRequested</span><span class="p">;</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="p">}</span><span class="w"> </span><span class="n">CfdpProxyTask</span><span class="p">;</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a>
+<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span>
+<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a><span class="p">{</span>
+<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a><span class="w">    </span><span class="kt">char</span><span class="w">            </span><span class="o">*</span><span class="n">directoryName</span><span class="p">;</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="w">    </span><span class="kt">char</span><span class="w">            </span><span class="o">*</span><span class="n">destFileName</span><span class="p">;</span>
+<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a><span class="p">}</span><span class="w"> </span><span class="n">CfdpDirListTask</span><span class="p">;</span>
+</code></pre></div>
+<h3 id="cfdp_attach">cfdp_attach</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_attach</span><span class="p">()</span>
+</code></pre></div>
+<p>Attaches the application to CFDP functionality on the local computer. </p>
+<p>Return Value</p>
+<ul>
+<li>0: on success</li>
+<li>-1: on any error</li>
+</ul>
+<h3 id="cfdp_entity_is_started">cfdp_entity_is_started</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_entity_is_started</span><span class="p">()</span>
+</code></pre></div>
+<p>Return Value
+* 1: if the local CFDP entity has been started and not yet stopped
+* 0: otherwise</p>
+<h3 id="cfdp_detach">cfdp_detach</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_detach</span><span class="p">()</span>
+</code></pre></div>
+<p>Terminates all access to CFDP functionality on the local computer.</p>
+<h3 id="cfdp_compress_number">cfdp_compress_number</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_compress_number</span><span class="p">(</span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">toNbr</span><span class="p">,</span><span class="w"> </span><span class="n">uvast</span><span class="w"> </span><span class="n">from</span><span class="p">)</span>
+</code></pre></div>
+<p>Converts an unsigned vast number into a CfdpNumber structure, e.g., for use when invoking the cfdp_put() function.</p>
+<h3 id="cfdp_decompress_number">cfdp_decompress_number</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_decompress_number</span><span class="p">(</span><span class="n">uvast</span><span class="w"> </span><span class="n">toNbr</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">from</span><span class="p">)</span>
+</code></pre></div>
+<p>Converts a numeric value in a CfdpNumber structure to an unsigned vast integer.</p>
+<h3 id="cfdp_update_checksum">cfdp_update_checksum</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_update_checksum</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">octet</span><span class="p">,</span><span class="w"> </span><span class="n">uvast</span><span class="w"> </span><span class="o">*</span><span class="n">offset</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">checksum</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpCksumType</span><span class="w"> </span><span class="n">ckType</span><span class="p">)</span>
+</code></pre></div>
+<p>For use by an application-specific file reader callback function, which must pass to cfdp_update_checksum() the value of each byte (octet) it reads. offset must be octet's displacement in bytes from the start of the file. The checksum pointer is provided to the reader function by CFDP.</p>
+<h3 id="cfdp_create_usrmsg_list">cfdp_create_usrmsg_list</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">MetadataList</span><span class="w"> </span><span class="n">cfdp_create_usrmsg_list</span><span class="p">()</span>
+</code></pre></div>
+<p>Creates a non-volatile linked list, suitable for containing messages-to-user that are to be presented to cfdp_put().</p>
+<h3 id="cfdp_add_usrmsg">cfdp_add_usrmsg</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_add_usrmsg</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">)</span>
+</code></pre></div>
+<p>Appends the indicated message-to-user to list.</p>
+<h3 id="cfdp_get_usrmsg">cfdp_get_usrmsg</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_get_usrmsg</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">textBuf</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">length</span><span class="p">)</span>
+</code></pre></div>
+<p>Removes from list the first of the remaining messages-to-user contained in the list and delivers its text and length. When the last message in the list is delivered, destroys the list.</p>
+<h3 id="cfdp_destroy_usrmsg_list">cfdp_destroy_usrmsg_list</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_destroy_usrmsg_list</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="o">*</span><span class="n">list</span><span class="p">)</span>
+</code></pre></div>
+<p>Removes and destroys all messages-to-user in list and destroys the list.</p>
+<h3 id="cfdp_create_fsreq_list">cfdp_create_fsreq_list</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">MetadataList</span><span class="w"> </span><span class="n">cfdp_create_fsreq_list</span><span class="p">()</span>
+</code></pre></div>
+<p>Creates a non-volatile linked list, suitable for containing filestore requests that are to be presented to cfdp_put().</p>
+<h3 id="cfdp_add_fsreq">cfdp_add_fsreq</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_add_fsreq</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpAction</span><span class="w"> </span><span class="n">action</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">firstFileName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">seconfdFIleName</span><span class="p">)</span>
+</code></pre></div>
+<p>Appends the indicated filestore request to list.</p>
+<h3 id="cfdp_get_fsreq">cfdp_get_fsreq</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_get_fsreq</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpAction</span><span class="w"> </span><span class="o">*</span><span class="n">action</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">firstFileNameBuf</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">secondFileNameBuf</span><span class="p">)</span>
+</code></pre></div>
+<p>Removes from list the first of the remaining filestore requests contained in the list and delivers its action code and file names. When the last request in the list is delivered, destroys the list.</p>
+<h3 id="cfdp_destroy_fsreq_list">cfdp_destroy_fsreq_list</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_destroy_fsreq_list</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="o">*</span><span class="n">list</span><span class="p">)</span>
+</code></pre></div>
+<p>Removes and destroys all filestore requests in list and destroys the list.</p>
+<h3 id="cfdp_get_fsresp">cfdp_get_fsresp</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_get_fsresp</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpAction</span><span class="w"> </span><span class="o">*</span><span class="n">action</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">firstFileNameBuf</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">secondFileNameBuf</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">messageBuf</span><span class="p">)</span>
+</code></pre></div>
+<p>Removes from list the first of the remaining filestore responses contained in the list and delivers its action code, status, file names, and message. When the last response in the list is delivered, it destroys the list.</p>
+<h3 id="cfdp_destroy_fsresp_list">cfdp_destroy_fsresp_list</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_destroy_fsresp_list</span><span class="p">(</span><span class="n">MetadataList</span><span class="w"> </span><span class="o">*</span><span class="n">list</span><span class="p">)</span>
+</code></pre></div>
+<p>Removes and destroys all filestore responses in list and destroys the list.</p>
+<h3 id="cfdp_read_space_packets">cfdp_read_space_packets</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_read_space_packets</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">checksum</span><span class="p">)</span>
+</code></pre></div>
+<p>This is a standard "reader" function that segments the source file on CCSDS space packet boundaries. Multiple small packets may be aggregated into a single file data segment.</p>
+<h3 id="cfdp_read_text_lines">cfdp_read_text_lines</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_read_text_lines</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">checksum</span><span class="p">)</span>
+</code></pre></div>
+<p>This is a standard "reader" function that segments a source file of text lines on line boundaries.</p>
+<h3 id="cfdp_put">cfdp_put</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_put</span><span class="p">(</span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">destinationEntityNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">utParmsLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">utParms</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceFileName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destFileName</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpReaderFn</span><span class="w"> </span><span class="n">readerFn</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpMetadataFn</span><span class="w"> </span><span class="n">metadataFn</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpHandler</span><span class="w"> </span><span class="o">*</span><span class="n">faultHandlers</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flowLabelLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">flowLabel</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">closureLatency</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">messagesToUser</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">filestoreRequests</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Sends the file identified by <code>sourceFileName</code> to the CFDP entity identified by <code>destinationEntityNbr</code>. destinationFileName is used to indicate the name by which the file will be catalogued upon arrival at its final destination; if NULL, the destination file name defaults to sourceFileName. If sourceFileName is NULL, it is assumed that the application is requesting transmission of metadata only (as discussed below) and destinationFileName is ignored. Note that both sourceFileName and destinationFileName are interpreted as path names, i.e., directory paths may be indicated in either or both. The syntax of path names is opaque to CFDP; the syntax of sourceFileName must conform to the path naming syntax of the source entity's file system and the syntax of destinationFileName must conform to the path naming syntax of the destination entity's file system.</p>
+<p>The byte array identified by <code>utParms</code>, if non-NULL, is interpreted as transmission control information that is to be passed on to the UT layer. The nominal UT layer for ION's CFDP being Bundle Protocol, the utParms array is normally a pointer to a structure of type BpUtParms; see the bp man page for a discussion of the parameters in that structure.</p>
+<p><code>closureLatency</code> is the length of time following transmission of the EOF PDU within which a responding Transaction Finish PDU is expected. If no Finish PDU is requested, this parameter value should be zero.</p>
+<p><code>messagesToUser</code> and <code>filestoreRequests</code>, where non-zero, must be the addresses of non-volatile linked lists (that is, linked lists in ION's SDR database) of <code>CfdpMsgToUser</code> and <code>CfdpFilestoreRequest</code> objects identifying metadata that are intended to accompany the transmitted file. Note that this metadata may accompany a file of zero length (as when sourceFileName is NULL as noted above) -- a transmission of metadata only.</p>
+<p>Return Value</p>
+<ul>
+<li>request number of this "put" request: On success, the function populates <code>*transactionID</code> with the source entity ID and the transaction number assigned to this transmission and returns the request number identifying this "put" request. The transaction ID may be used to suspend, resume, cancel, or request a report on the progress of this transmission. </li>
+<li>-1: on any error</li>
+</ul>
+<h3 id="cfdp_cancel">cfdp_cancel</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_cancel</span><span class="p">(</span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Cancels transmission or reception of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, cancellation of a file transmission may have little effect. </p>
+<p>Return Value
+* request number: on success
+* -1: on any error</p>
+<h3 id="cfdp_suspend">cfdp_suspend</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_suspend</span><span class="p">(</span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Suspends transmission of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, suspension of a file transmission may have little effect. </p>
+<p>Return Value
+* request number: on success
+* -1: on any error</p>
+<h3 id="cfdp_resume">cfdp_resume</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_resume</span><span class="p">(</span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Resumes transmission of the indicated transaction. Note that, since the ION implementation of CFDP is Unacknowledged, resumption of a file transmission may have little effect. </p>
+<p>Return Value
+* request number: on success
+* -1: on any error</p>
+<h3 id="cfdp_report">cfdp_report</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_report</span><span class="p">(</span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Requests issuance of a report on the transmission or reception progress of the indicated transaction. The report takes the form of a character string that is returned in a CfdpEvent structure; use cfdp_get_event() to receive the event (which may be matched to the request by request number). </p>
+<p>Return Value
+* request number: on success
+* 0: if the transaction ID is unknown
+* -1: on any error</p>
+<h3 id="cfdp_get_event">cfdp_get_event</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kt">int</span><span class="w"> </span><span class="nf">cfdp_get_event</span><span class="p">(</span><span class="n">CfdpEventType</span><span class="w"> </span><span class="o">*</span><span class="n">type</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="o">*</span><span class="n">time</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">reqNbr</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceFileNameBuf</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destFileNameBuf</span><span class="p">,</span><span class="w"> </span><span class="n">uvast</span><span class="w"> </span><span class="o">*</span><span class="n">fileSize</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="o">*</span><span class="n">messagesToUser</span><span class="p">,</span><span class="w"> </span><span class="n">uvast</span><span class="w"> </span><span class="o">*</span><span class="n">offset</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">length</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpCondition</span><span class="w"> </span><span class="o">*</span><span class="n">condition</span><span class="p">,</span><span class="w"> </span><span class="n">uvast</span><span class="w"> </span><span class="o">*</span><span class="n">progress</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpFileStatus</span><span class="w"> </span><span class="o">*</span><span class="n">fileStatus</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpDeliveryCode</span><span class="w"> </span><span class="o">*</span><span class="n">deliveryCode</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">originatingTransactionId</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">statusReportBuf</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="o">*</span><span class="n">filestoreResponses</span><span class="p">);</span>
+</code></pre></div>
+<p>Populates return value fields with data from the oldest CFDP event not yet delivered to the application. cfdp_get_event() blocks indefinitely until a CFDP processing event is delivered or the function is interrupted by an invocation of cfdp_interrupt().</p>
+<p>Return Value
+* 0: on success -OR- on application error, returns zero but sets errno to EINVAL. 
+* -1: on system failure</p>
+<h3 id="cfdp_interrupt">cfdp_interrupt</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">cfdp_interrupt</span><span class="p">()</span>
+</code></pre></div>
+<p>Interrupts an cfdp_get_event() invocation. This function is designed to be called from a signal handler.</p>
+<h3 id="cfdp_rput">cfdp_rput</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_rput</span><span class="p">(</span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">respondentEntityNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">utParmsLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">utParms</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceFileName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destFileName</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpReaderFn</span><span class="w"> </span><span class="n">readerFn</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpHandler</span><span class="w"> </span><span class="o">*</span><span class="n">faultHandlers</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flowLabelLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">flowLabel</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">closureLatency</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">messagesToUser</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">filestoreRequests</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">beneficiaryEntityNbr</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpProxyTask</span><span class="w"> </span><span class="o">*</span><span class="n">proxyTask</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Sends to the indicated respondent entity a "proxy" request to perform a file transmission. The transmission is to be subject to the configuration values in proxyTask and the destination of the file is to be the entity identified by <code>beneficiaryEntityNbr</code>.</p>
+<h3 id="cfdp_rput_cancel">cfdp_rput_cancel</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_rput_cancel</span><span class="p">(</span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">respondentEntityNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">utParmsLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">utParms</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceFileName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destFileName</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpReaderFn</span><span class="w"> </span><span class="n">readerFn</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpHandler</span><span class="w"> </span><span class="o">*</span><span class="n">faultHandlers</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flowLabelLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">flowLabel</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">closureLatency</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">messagesToUser</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">filestoreRequests</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">rputTransactionId</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Sends to the indicated respondent entity a request to cancel a prior "proxy" file transmission request as identified by rputTransactionId, which is the value of transactionId that was returned by that earlier proxy transmission request.</p>
+<h3 id="cfdp_get">cfdp_get</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_get</span><span class="p">(</span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">respondentEntityNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">utParmsLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">utParms</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceFileName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destFileName</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpReaderFn</span><span class="w"> </span><span class="n">readerFn</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpHandler</span><span class="w"> </span><span class="o">*</span><span class="n">faultHandlers</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flowLabelLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">flowLabel</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">closureLatency</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">messagesToUser</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">filestoreRequests</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpProxyTask</span><span class="w"> </span><span class="o">*</span><span class="n">proxyTask</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Same as cfdp_rput except that beneficiaryEntityNbr is omitted; the local entity is the implicit beneficiary of the request.</p>
+<h3 id="cfdp_rls">cfdp_rls</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">cfdp_rls</span><span class="p">(</span><span class="n">CfdpNumber</span><span class="w"> </span><span class="o">*</span><span class="n">respondentEntityNbr</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">utParmsLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">utParms</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">sourceFileName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destFileName</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpReaderFn</span><span class="w"> </span><span class="n">readerFn</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpHandler</span><span class="w"> </span><span class="o">*</span><span class="n">faultHandlers</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flowLabelLength</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">flowLabel</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">closureLatency</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">messagesToUser</span><span class="p">,</span><span class="w"> </span><span class="n">MetadataList</span><span class="w"> </span><span class="n">filestoreRequests</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpDirListTask</span><span class="w"> </span><span class="o">*</span><span class="n">dirListTask</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">)</span>
+</code></pre></div>
+<p>Sends to the indicated respondent entity a request to prepare a directory listing, save that listing in a file, and send it to the local entity. The request is subject to the configuration values in <code>dirListTask</code>.</p>
+<h3 id="cfdp_preview">cfdp_preview</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kt">int</span><span class="w"> </span><span class="nf">cfdp_preview</span><span class="p">(</span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">,</span><span class="w"> </span><span class="n">uvast</span><span class="w"> </span><span class="n">offset</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">);</span>
+</code></pre></div>
+<p>This function enables the application to get an advanced look at the content of a file that CFDP has not yet fully received. Reads length bytes starting at offset bytes from the start of the file that is the destination file of the transaction identified by <code>transactionID</code>, into <code>buffer</code>. </p>
+<p>Return Value
+* number of bytes read: on success
+* 0: on user error (transaction is nonexistent or is outbound, or offset is beyond the end of file) 
+* -1: on system failure </p>
+<h3 id="cfdp_map">cfdp_map</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kt">int</span><span class="w"> </span><span class="nf">cfdp_map</span><span class="p">(</span><span class="n">CfdpTransactionId</span><span class="w"> </span><span class="o">*</span><span class="n">transactionId</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">extentCount</span><span class="p">,</span><span class="w"> </span><span class="n">CfdpExtent</span><span class="w"> </span><span class="o">*</span><span class="n">extentsArray</span><span class="p">);</span>
+</code></pre></div>
+<p>This function enables the application to report on the portions of a partially-received file that have been received and written. Lists the received continuous data extents in the destination file of the transaction identified by <code>transactionID</code>. The extents (offset and length) are returned in the elements of <code>extentsArray</code>; the number of extents returned in the array is the total number of continuous extents received so far, or <code>extentCount</code>, whichever is less. </p>
+<p>Return Value
+* 0: on success, the total number of extents received so far is reported through <code>extentCount</code>
+* -1: on system failure, returns -1</p>
+<h3 id="cfdp-shell-test-program-cfdptest">CFDP Shell Test Program: <code>cfdptest</code></h3>
+<p>ION provides application CFDP test program called <code>cfdptest</code>, which installed as part of regular ION build/install process and can be invoked from terminal this way:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>cfdptest
+</code></pre></div>
+<p>The shell program present a ':' prompt for interactive mode commanding. You can type 'h' to see a list of available commands.</p>
+<p>One can also feed a sequence of commands to <code>cfdptest</code> non-interactively such that you will not see the stdout of the program. This is useful for running automated tests.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a>cfdptest<span class="w"> </span><span class="o">[</span>file_containing_cfdptest_commands<span class="o">]</span>
+</code></pre></div>
+<p>A third way to use cfdptest is to feed command scripts but allows the interactive responses to be displayed in stdout:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>cfdptest<span class="w"> </span>&lt;<span class="w"> </span><span class="o">[</span>file_containing_cfdptest_commands<span class="o">]</span>
+</code></pre></div>
+<p>The <code>cfdptest.c</code> source code is also provided as a code examples on how write applications using the CFDP APIs. The cfdptest command set can be found in the manual pages <a href="https://nasa-jpl.github.io/ION-DTN/man/cfdp/cfdptest/?h=cfdptest">here.</a></p>
+<h3 id="cfdp-application-code-example">CFDP Application Code Example</h3>
+<p><em>this section is work-in-progress</em></p>
+<hr />
+<h2 id="bundle-streaming-service-bss">Bundle Streaming Service (BSS)</h2>
+<p>The BSS library supports the streaming of data over delay-tolerant networking (DTN) bundles. The intent of the library is to enable applications that pass streaming data received in transmission time order (i.e., without time regressions) to an application-specific "display" function -- notionally for immediate real-time display -- but to store all received data (including out-of-order data) in a private database for playback under user control. The reception and real-time display of in-order data is performed by a background thread, leaving the application's main (foreground) thread free to respond to user commands controlling playback or other application-specific functions.</p>
+<p>The application-specific "display" function invoked by the background thread must conform to the RTBHandler type definition. It must return 0 on success, -1 on any error that should terminate the background thread. Only on return from this function will the background thread proceed to acquire the next BSS payload.</p>
+<p>All data acquired by the BSS background thread is written to a BSS database comprising three files: table, list, and data. The name of the database is the root name that is common to the three files, e.g., db3.tbl, db3.lst, db3.dat would be the three files making up the db3 BSS database. All three files of the selected BSS database must reside in the same directory of the file system.</p>
+<p>Several replay navigation functions in the BSS library require that the application provide a navigation state structure of type bssNav as defined in the bss.h header file. The application is not reponsible for populating this structure; it's strictly for the private use of the BSS library.</p>
+<h3 id="bundle-streaming-service-bss-bundle-streaming-service-protocol-bssp-cla">Bundle Streaming Service (BSS) &amp; Bundle Streaming Service Protocol (BSSP CLA)</h3>
+<p>The Bundle Streaming Service (BSS) and the Bundle Streaming Service Protocol (BSSP) CLA are independent modules.</p>
+<p>The BSSP CLA is designed to emulate a connection between two DTN neighboring nodes characterized by two delivery mechanisms: (a) a minimal delay, unreliable channel (physical or logical), and (b) a potentially delayed, but reliable channel. The minimal delay channel is emulated by transpot UDP (with a timer mechanism added) and the reliable channel is emulated via TCP transport. </p>
+<p>A DTN user mission may decide to use a single CCSDS AOS or TM downlink with LTP CLA running on top as its reliability mechanism. In that case, it can directly use the LTP CLA in ION and interface it with the CCSDS framing protocol which could be implemented by the mission's avionic system or the radio. </p>
+<p>However, it is also possible that a mission may utilize different types of transports, for example, using multiple downlinks via  S, X, Ka-band or optical, each with different reliability mechanism (or not). Alternatively, a flight system may also use commercial communications services with differentiated delays and levels of reliability. In such case, BSSP can be used to approximate such configuration in a lab environment for prototyping and testing the impact on streaming data delivery, until the actual CLAs are implemented and tested.</p>
+<p>The Bundle Streaming Service, on the other hand, is an application-level service that can be used with any underlying CLAs to handle both realtime and delayed, in-order playback of streaming data including video, audio, and telemetry. When the user scenario is appropriate, BSS can certainly be used over BSSP CLA, but that is not a requirement. </p>
+<h2 id="bss-apis">BSS APIs</h2>
+<p>The following section describes the BSS library APIs.</p>
+<h3 id="bssopen">bssOpen</h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bssOpen</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">bssName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">eid</span><span class="p">)</span>
+</code></pre></div>
+Opens access to a BSS database, to enable data playback. bssName identifies the specific BSS database that is to be opened. path identifies the directory in which the database resides. eid is ignored. On any failure, returns -1. On success, returns zero.</p>
+<h3 id="bssstart">bssStart</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bssStart</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">bssName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">eid</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">bufLen</span><span class="p">,</span><span class="w"> </span><span class="n">RTBHandler</span><span class="w"> </span><span class="n">handler</span><span class="p">)</span>
+</code></pre></div>
+<p>Starts a BSS data acquisition background thread. bssName identifies the BSS database into which data will be acquired. path identifies the directory in which that database resides. eid is used to open the BP endpoint at which the delivered BSS bundle payload contents will be acquired. buffer identifies a data acquisition buffer, which must be provided by the application, and bufLen indicates the length of that buffer; received bundle payloads in excess of this length will be discarded.</p>
+<p>handler identifies the display function to which each in-order bundle payload will be passed. The time and count parameters passed to this function identify the received bundle, indicating the bundle's creation timestamp time (in seconds) and counter value. The buffer and bufLength parameters indicate the location into which the bundle's payload was acquired and the length of the acquired payload. handler must return -1 on any unrecoverable system error, 0 otherwise. A return value of -1 from handler will terminate the BSS data acquisition background thread.</p>
+<p>On any failure, returns -1. On success, returns zero.</p>
+<h3 id="bssrun">bssRun</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bssRun</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">bssName</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">path</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">eid</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">bufLen</span><span class="p">,</span><span class="w"> </span><span class="n">RTBHandler</span><span class="w"> </span><span class="n">handler</span><span class="p">)</span>
+</code></pre></div>
+<p>A convenience function that performs both bssOpen() and bssStart(). On any failure, returns -1. On success, returns zero.</p>
+<h3 id="bssclose">bssClose</h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bssClose</span><span class="p">()</span>
+</code></pre></div>
+Terminates data playback access to the most recently opened BSS database.</p>
+<h3 id="bssstop">bssStop</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bssStop</span><span class="p">()</span>
+</code></pre></div>
+<p>Terminates the most recently initiated BSS data acquisition background thread.</p>
+<h3 id="bssexit">bssExit</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bssExit</span><span class="p">()</span>
+</code></pre></div>
+<p>A convenience function that performs both bssClose() and bssStop().</p>
+<h3 id="bssread">bssRead</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kt">long</span><span class="w"> </span><span class="n">bssRead</span><span class="p">(</span><span class="n">bssNav</span><span class="w"> </span><span class="n">nav</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">dataLen</span><span class="p">)</span>
+</code></pre></div>
+<p>Copies the data at the current playback position in the database, as indicated by nav, into data; if the length of the data is in excess of dataLen then an error condition is asserted (i.e., -1 is returned). Note that bssRead() cannot be successfully called until nav has been populated, nominally by a preceding call to bssSeek(), bssNext(), or bssPrev(). Returns the length of data read, or -1 on any error.</p>
+<h3 id="bssseek">bssSeek</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kt">long</span><span class="w"> </span><span class="n">bssSeek</span><span class="p">(</span><span class="n">bssNav</span><span class="w"> </span><span class="o">*</span><span class="n">nav</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="n">time</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="o">*</span><span class="n">curTime</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">count</span><span class="p">)</span>
+</code></pre></div>
+<p>Sets the current playback position in the database, in nav, to the data received in the bundle with the earliest creation time that was greater than or equal to time. Populates nav and also returns the creation time and bundle ID count of that bundle in curTime and count. Returns the length of data at this location, or -1 on any error.</p>
+<h3 id="bssseek_read">bssSeek_read</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="kt">long</span><span class="w"> </span><span class="n">bssSeek_read</span><span class="p">(</span><span class="n">bssNav</span><span class="w"> </span><span class="o">*</span><span class="n">nav</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="n">time</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="o">*</span><span class="n">curTime</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">dataLen</span><span class="p">)</span>
+</code></pre></div>
+<p>A convenience function that performs bssSeek() followed by an immediate bssRead() to return the data at the new playback position. Returns the length of data read, or -1 on any error.</p>
+<h3 id="bssnext">bssNext</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="kt">long</span><span class="w"> </span><span class="n">bssNext</span><span class="p">(</span><span class="n">bssNav</span><span class="w"> </span><span class="o">*</span><span class="n">nav</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="o">*</span><span class="n">curTime</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">count</span><span class="p">)</span>
+</code></pre></div>
+<p>Sets the playback position in the database, in nav, to the data received in the bundle with the earliest creation time and ID count greater than that of the bundle at the current playback position. Populates nav and also returns the creation time and bundle ID count of that bundle in curTime and count. Returns the length of data at this location (if any), -2 on reaching end of list, or -1 on any error.</p>
+<h3 id="bssnext_read">bssNext_read</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="kt">long</span><span class="w"> </span><span class="n">bssNext_read</span><span class="p">(</span><span class="n">bssNav</span><span class="w"> </span><span class="o">*</span><span class="n">nav</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="o">*</span><span class="n">curTime</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">dataLen</span><span class="p">)</span>
+</code></pre></div>
+<p>A convenience function that performs bssNext() followed by an immediate bssRead() to return the data at the new playback position. Returns the length of data read, -2 on reaching end of list, or -1 on any error.</p>
+<h3 id="bssprev">bssPrev</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kt">long</span><span class="w"> </span><span class="n">bssPrev</span><span class="p">(</span><span class="n">bssNav</span><span class="w"> </span><span class="o">*</span><span class="n">nav</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="o">*</span><span class="n">curTime</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">count</span><span class="p">)</span>
+</code></pre></div>
+<p>Sets the playback position in the database, in nav, to the data received in the bundle with the latest creation time and ID count earlier than that of the bundle at the current playback position. Populates nav and also returns the creation time and bundle ID count of that bundle in curTime and count. Returns the length of data at this location (if any), -2 on reaching end of list, or -1 on any error.</p>
+<h3 id="bssprev_read">bssPrev_read</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="kt">long</span><span class="w"> </span><span class="n">bssPrev_read</span><span class="p">(</span><span class="n">bssNav</span><span class="w"> </span><span class="o">*</span><span class="n">nav</span><span class="p">,</span><span class="w"> </span><span class="kt">time_t</span><span class="w"> </span><span class="o">*</span><span class="n">curTime</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">dataLen</span><span class="p">)</span>
+</code></pre></div>
+<p>A convenience function that performs bssPrev() followed by an immediate bssRead() to return the data at the new playback position. Returns the length of data read, -2 on reaching end of list, or -1 on any error</p>
+<hr />
+<h2 id="asynchronous-messaging-service-ams-apis">Asynchronous Messaging Service (AMS) APIs</h2>
+<p><em>This section is under construction.</em></p>
+<hr />
+<h2 id="delay-tolerant-payload-conditioning-dtpc-communications-library">Delay-Tolerant Payload Conditioning (DTPC) communications library</h2>
+<h3 id="description">Description</h3>
+<p>The dtpc library provides functions enabling application software to use
+Delay-Tolerant Payload Conditioning (DTPC) when exchanging information over a
+delay-tolerant network.  DTPC is an application service protocol, running in
+a layer immediately above Bundle Protocol, that offers delay-tolerant support
+for several end-to-end services to applications that may require them.  These
+services include delivery of application data items in transmission (rather
+than reception) order; detection of reception gaps in the sequence of
+transmitted application data items, with end-to-end negative acknowledgment
+of the missing data; end-to-end positive acknowledgment of successfully
+received data; end-to-end retransmission of missing data, driven either by
+negative acknowledgment or timer expiration; suppression of duplicate
+application data items; aggregation of small application data items into
+large bundle payloads, to reduce bundle protocol overhead; and
+application-controlled elision of redundant data items in aggregated payloads,
+to improve link utiliization.</p>
+<h3 id="dtpc-apis">DTPC APIs</h3>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">dptc_attach</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+Attaches the application to DTPC functionality on the local computer.  Returns
+0 on success, -1 on any error.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">dptc_detach</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+<p>Terminates all access to DTPC functionality on the local computer.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">dtpc_entity_is_started</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+Returns 1 if the local DTPC entity has been started and not yet stopped,
+0 otherwise.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">dtpc_open</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">topicID</span><span class="p">,</span><span class="w"> </span><span class="n">DtpcElisionFn</span><span class="w"> </span><span class="n">elisionFn</span><span class="p">,</span><span class="w"> </span><span class="n">DtpcSAP</span><span class="w"> </span><span class="o">*</span><span class="n">dtpcsapPtr</span><span class="p">)</span>
+</code></pre></div>
+<p>Establishes the application as the sole authorized client for posting and
+receiving application data items on topic <em>topicID</em> within the local BP
+node.  On success, the service access point for posting and receiving such
+data items is placed in <em>*dtpcsapPtr</em>, the elision callback function
+<em>elisionFn</em> (if not NULL) is associated with this topic, and 0 is returned.
+Returns -1 on any error.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">dtpc_send</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">profileID</span><span class="p">,</span><span class="w"> </span><span class="n">DtpcSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destEid</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">maxRtx</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">aggrSizeLimit</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">aggrTimeLimit</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">lifespan</span><span class="p">,</span><span class="w"> </span><span class="n">BpAncillaryData</span><span class="w"> </span><span class="o">*</span><span class="n">ancillaryData</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">srrFlags</span><span class="p">,</span><span class="w"> </span><span class="n">BpCustodySwitch</span><span class="w"> </span><span class="n">custodySwitch</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">reportToEid</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">classOfService</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">item</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">)</span>
+</code></pre></div>
+Inserts an application data item into an outbound DTPC application data unit
+destined for <em>destEid</em>.</p>
+<p>Transmission of that outbound ADU will be subject to the profile identified
+by <em>profileID</em>, as asserted by dtpcadmin(1), if <em>profileID</em> is non-zero.  In
+that case, <em>maxRtx</em>, <em>aggrSizeLimit</em>, <em>aggrTimeLimit</em>, <em>lifespan</em>,
+<em>ancillaryData</em>, <em>srrFlags</em>, <em>custodySwitch</em>, <em>reportToEid</em>, and
+<em>classOfService</em> are ignored.</p>
+<p>If <em>profileID</em> is zero then the profile asserted by dtpcadmin(1) that matches
+<em>maxRtx</em>, <em>aggrSizeLimit</em>, <em>aggrTimeLimit</em>, <em>lifespan</em>, <em>ancillaryData</em>,
+<em>srrFlags</em>, <em>custodySwitch</em>, <em>reportToEid</em>, and <em>classOfService</em> will
+govern transmission of the ADU, unless no such profile has been asserted,
+in which case dtpc_send() returns 0 indicating user error.</p>
+<p><em>maxRtx</em> is the maximum number of times any single DTPC ADU transmitted
+subject to the indicated profile may be retransmitted by the DTPC entity.  If
+<em>maxRtx</em> is zero, then the DTPC transport service features (in-order delivery,
+end-to-end acknowledgment, etc.) are disabled for this profile.</p>
+<p><em>aggrSizeLimit</em> is the size threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If <em>aggrSizeLimit</em> is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.</p>
+<p><em>aggrTimeLimit</em> is the time threshold for concluding aggregation of an
+outbound ADU and requesting transmission of that ADU.  If <em>aggrTimeLimit</em> is
+zero, then the DTPC transmission optimization features (aggregation and
+elision) are disabled for this profile.</p>
+<p><em>lifespan</em>, <em>ancillaryData</em>, <em>srrFlags</em>, <em>custodySwitch</em>, <em>reportToEid</em>,
+and <em>classOfService</em> are as defined for bp_send (see bp(3)).</p>
+<p><em>item</em> must be an object allocated within ION's SDR "heap", and <em>length</em>
+must be the length of that object.  The item will be inserted into the outbound
+ADU's list of data items posted for the topic associated with <em>sap</em>, and
+the elision callback function declared for <em>sap</em> (if any, and if the
+applicable profile does not disable transmission optimization features)
+will be invoked immediately after insertion of the application data item
+but before DTPC makes any decision on whether or not to initiate transmission
+of the outbound ADU.</p>
+<p>The function returns 1 on success, 0 on any user application error, -1 on
+any system error.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">dtpc_receive</span><span class="p">(</span><span class="n">DtpcSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">,</span><span class="w"> </span><span class="n">DtpcDelivery</span><span class="w"> </span><span class="o">*</span><span class="n">dlvBuffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">timeoutSeconds</span><span class="p">)</span>
+</code></pre></div>
+Receives a single DTPC application data item, or reports on some failure of
+DTPC reception activity.</p>
+<p>The "result" field of the dlvBuffer structure will be used to indicate the
+outcome of the data reception activity.</p>
+<p>If at least one application data item on the topic associated with <em>sap</em>
+has not yet been delivered to the SAP, then the payload of the oldest such
+item will be returned in <em>dlvBuffer</em>-__item_ and <em>dlvBuffer</em>-__result_
+will be set to PayloadPresent.  If there is no such item, dtpc_receive()
+blocks for up to <em>timeoutSeconds</em> while waiting for one to arrive.</p>
+<p>If <em>timeoutSeconds</em> is DTPC_POLL (i.e., zero) and no application data item is
+awaiting delivery, or if <em>timeoutSeconds</em> is greater than zero but no item
+arrives before <em>timeoutSeconds</em> have elapsed, then <em>dlvBuffer</em>-__result_
+will be set to ReceptionTimedOut.  If <em>timeoutSeconds</em> is DTPC_BLOCKING
+(i.e., -1) then bp_receive() blocks until either an item arrives or the
+function is interrupted by an invocation of dtpc_interrupt().</p>
+<p><em>dlvBuffer</em>-__result_ will be set to ReceptionInterrupted in the event
+that the calling process received and handled some signal other than SIGALRM
+while waiting for a bundle.</p>
+<p><em>dlvBuffer</em>-__result_ will be set to DtpcServiceStopped in the event
+that DTPC service has been terminated on the local node.</p>
+<p>The application data item delivered in the DTPC delivery structure, if
+any, will be an object allocated within ION's SDR "heap"; the length of
+that object will likewise be provided in the DtpcDelivery structure.</p>
+<p>Be sure to call dtpc_release_delivery() after every successful invocation of
+dtpc_receive().</p>
+<p>The function returns 0 on success, -1 on any error.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-54-1" name="__codelineno-54-1" href="#__codelineno-54-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">dtpc_interrupt</span><span class="p">(</span><span class="n">DtpcSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">)</span>
+</code></pre></div>
+Interrupts a dtpc_receive() invocation that is currently blocked.  This
+function is designed to be called from a signal handler; for this purpose,
+<em>sap</em> may need to be obtained from a static variable.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-55-1" name="__codelineno-55-1" href="#__codelineno-55-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">dtpc_release_delivery</span><span class="p">(</span><span class="n">DtpcDelivery</span><span class="w"> </span><span class="o">*</span><span class="n">dlvBuffer</span><span class="p">)</span>
+</code></pre></div>
+Releases resources allocated to the indicated DTPC delivery.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-56-1" name="__codelineno-56-1" href="#__codelineno-56-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">dtpc_close</span><span class="p">(</span><span class="n">DtpcSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">)</span>
+</code></pre></div>
+Removes the application as the sole authorized client for posting and
+receiving application data items on the topic indicated in <em>sap</em> within the
+local BP node.  The application relinquishes its ability to send and
+receive application data items on the indicated topic.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,2815 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/ICI-API/">
+      
+      
+        <link rel="prev" href="../ION-Design-and-API-Overview/">
+      
+      
+        <link rel="next" href="../ION-Application-Service-Interface/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.9">
+    
+    
+      
+        <title>ION Infrastructure API - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.f2e4d321.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#interplanetary-communications-infrastructure-ici-apis" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              ION Infrastructure API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ION-Design-and-API-Overview/" class="md-tabs__link">
+          
+  
+  ION APIs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Launcher/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Launcher Script
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION APIs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            ION APIs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Design-and-API-Overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & API Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    ION Infrastructure API
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    ION Infrastructure API
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ici-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      ICI APIs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="ICI APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header" class="md-nav__link">
+    <span class="md-ellipsis">
+      Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mtake-mrelease" class="md-nav__link">
+    <span class="md-ellipsis">
+      MTAKE &amp; MRELEASE
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ionattach" class="md-nav__link">
+    <span class="md-ellipsis">
+      ionAttach
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iondetach" class="md-nav__link">
+    <span class="md-ellipsis">
+      ionDetach
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ionterminate" class="md-nav__link">
+    <span class="md-ellipsis">
+      ionTerminate
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ionstartattendant" class="md-nav__link">
+    <span class="md-ellipsis">
+      ionStartAttendant
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ionstopattendant" class="md-nav__link">
+    <span class="md-ellipsis">
+      ionStopAttendant
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ionpauseattendent" class="md-nav__link">
+    <span class="md-ellipsis">
+      ionPauseAttendent
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ioncreatezco" class="md-nav__link">
+    <span class="md-ellipsis">
+      ionCreateZco
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdr-database-heap-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      SDR Database &amp; Heap APIs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SDR Database & Heap APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_malloc" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_malloc
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_insert" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_insert
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_stow" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_stow
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_object_length" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_object_length
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_free" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_free
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_read" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_read
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_stage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_write" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_write
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdr-transaction-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      SDR Transaction APIs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SDR Transaction APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_begin_xn" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_begin_xn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_in_xn" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_in_xn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_exit_xn" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_exit_xn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_cancel_xn" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_cancel_xn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_end_xn" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_end_xn
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sdr-list-management-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      SDR List management APIs
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SDR List management APIs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#callback-sdrlistcomparefn" class="md-nav__link">
+    <span class="md-ellipsis">
+      Callback: SdrListCompareFn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#callback-sdrlistdeletefn" class="md-nav__link">
+    <span class="md-ellipsis">
+      Callback: SDRListDEleteFn
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_insert_first" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_insert_first
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_insert_last" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_insert_last
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_create" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_create
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_length" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_length
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_destroy" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_destroy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_user_data_set" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_user_data_set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_user_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_user_data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_insert" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_insert
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_insert_before" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_insert_before
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_insert_after" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_insert_after
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_delete
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_first" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_first
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_last" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_last
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_next" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_next
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_prev" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_prev
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_search" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_search
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_list
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_data
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr_list_data_set" class="md-nav__link">
+    <span class="md-ellipsis">
+      sdr_list_data_set
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#other-less-used-ici-apis" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other less used ICI APIs
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Application-Service-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Application Service Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../BP-Service-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    BP Service API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LTP-UComm-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Underlying Communications API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLA-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLA API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Extension-Block-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extension Block Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Platform-Macros-Error-Reporting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Platform Macros & Error Reporting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Utilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Utility Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dtpc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Payload Conditioning (DTPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="interplanetary-communications-infrastructure-ici-apis">Interplanetary Communications Infrastructure (ICI) APIs</h1>
+<p>This section will focus on a subset of ICI APIs that enables an external application to create, manipulate, and access data objects inside ION's SDR.</p>
+<h2 id="ici-apis">ICI APIs</h2>
+<h3 id="header">Header</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ion.h&quot;</span>
+</code></pre></div>
+<h3 id="mtake-mrelease">MTAKE &amp; MRELEASE</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="cp">#define MTAKE(size) allocFromIonMemory(__FILE__, __LINE__, size)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="cp">#define MRELEASE(addr)  releaseToIonMemory(__FILE__, __LINE__, addr)</span>
+</code></pre></div>
+<ul>
+<li><strong>MTAKE</strong> and <strong>MRELEASE</strong> provide syntactically terse ways of calling <code>allocFromIonMemory</code> and <code>releaseToIonMemory</code>, the functional equivalent of <code>malloc</code> and <code>free</code> for ION. The allocated memory space comes from the ION working memory, which has been pre-allocated during the ION configuration.</li>
+<li><strong>FILE</strong> and <strong>LINE</strong> provide the source file name and line number of the calling function and can assist in debugging and tracking down memory leaks.</li>
+</ul>
+<hr />
+<h3 id="ionattach">ionAttach</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">extern</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="nf">ionAttach</span><span class="p">();</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li>None.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ionAttach</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="p">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;bpadmin can&#39;t attach to ION.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">    </span><span class="cm">/* User calls error handling routine. */</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>Attached is the invoking task to ION infrastructure as previously established by running the ionadmin utility program. After successful execution, the handle to the ION SDR can be obtained by a separate API call. <code>putErrmsg</code> is an ION logging API, which will be described later in this document.</p>
+<hr />
+<h3 id="iondetach">ionDetach</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">extern</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ionDetach</span><span class="p">();</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li>None</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>None</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">ionDetach</span><span class="p">();</span>
+</code></pre></div>
+<p>Description</p>
+<p>Detaches the invoking task from ION infrastructure. In particular, releases handle allocated for access to ION's non-volatile database.</p>
+<hr />
+<h3 id="ionterminate">ionTerminate</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">extern</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ionTerminate</span><span class="p">();</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li>None</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>None</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">ionTerminate</span><span class="p">();</span>
+</code></pre></div>
+<p>Description</p>
+<p>Shuts down the entire ION node, terminating all daemons. The state of the SDR will be destroyed during the termination process, even if the SDR heap is implemented in a non-volatile storage, such as a file.</p>
+<hr />
+<h3 id="ionstartattendant">ionStartAttendant</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">extern</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="nf">ionStartAttendant</span><span class="p">(</span><span class="n">ReqAttendant</span><span class="w"> </span><span class="o">*</span><span class="n">attendant</span><span class="p">);</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>*attendant</code>: pointer to a <code>ReqAttendant</code> structure that will be initialized by this function.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="p">{</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="n">sm_SemId</span><span class="w">    </span><span class="n">semaphore</span><span class="p">;</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="p">}</span><span class="w"> </span><span class="n">ReqAttendant</span><span class="p">;</span>
+</code></pre></div>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ionStartAttendant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">attendant</span><span class="p">))</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="p">{</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;Can&#39;t initialize blocking transmission.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="cm">/* user implemented error handling routine */</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>Initializes the semaphore in <code>attendant</code> to block a pending ZCO space request. This is necessary to ensure that the invoking task cannot inject data into the Bundle Protocol Agent until SDR space has been allocated.</p>
+<hr />
+<h3 id="ionstopattendant">ionStopAttendant</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">extern</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">ionStopAttendant</span><span class="p">(</span><span class="n">ReqAttendant</span><span class="w"> </span><span class="o">*</span><span class="n">attendant</span><span class="p">);</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>*attendant</code>: pointer to a <code>ReqAttendant</code> structure that will be destroyed by this function.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: Success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">ionStopAttendant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">attendant</span><span class="p">);</span>
+</code></pre></div>
+<p>Description</p>
+<p>Destroys the semaphore in <code>attendant</code>, preventing a potential resource leak. This is typically called at the end of a BP application after all user data have been injected into the SDR.</p>
+<hr />
+<h3 id="ionpauseattendent">ionPauseAttendent</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">ionPauseAttendant</span><span class="p">(</span><span class="n">ReqAttendant</span><span class="w"> </span><span class="o">*</span><span class="n">attendant</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>*attendant</code>: pointer to a <code>ReqAttendant</code> structure.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>None</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">ionStopAttendant</span><span class="p">(</span><span class="o">&amp;</span><span class="n">attendant</span><span class="p">);</span>
+</code></pre></div>
+<p>Description</p>
+<p>"Ends" the semaphore in attendant so that the task blocked on taking it is interrupted and may respond to an error or shutdown condition. This may be required when trying to quit a blocked user application while acquiring ZCO space.</p>
+<hr />
+<h3 id="ioncreatezco">ionCreateZco</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">extern</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="nf">ionCreateZco</span><span class="p">(</span><span class="w"> </span><span class="n">ZcoMedium</span><span class="w"> </span><span class="n">source</span><span class="p">,</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">            </span><span class="n">Object</span><span class="w"> </span><span class="n">location</span><span class="p">,</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">            </span><span class="n">vast</span><span class="w"> </span><span class="n">offset</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">            </span><span class="n">vast</span><span class="w"> </span><span class="n">length</span><span class="p">,</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">            </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">coarsePriority</span><span class="p">,</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">            </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">finePriority</span><span class="p">,</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">            </span><span class="n">ZcoAcct</span><span class="w"> </span><span class="n">acct</span><span class="p">,</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">            </span><span class="n">ReqAttendant</span><span class="w"> </span><span class="o">*</span><span class="n">attendant</span><span class="p">);</span>
+</code></pre></div>
+<p>Parameters</p>
+<p>Source: the type of ZCO to be created. Each source data object may be either a file, a "bulk" item in mass storage, an object in SDR heap space (identified by heap address stored in an "object reference" object in SDR heap), an array of bytes in SDR heap space (identified by heap address), or another ZCO.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">typedef</span><span class="w"> </span><span class="k">enum</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="p">{</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="n">ZcoFileSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">    </span><span class="n">ZcoBulkSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">    </span><span class="n">ZcoObjSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">    </span><span class="n">ZcoSdrSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">    </span><span class="n">ZcoZcoSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="p">}</span><span class="w"> </span><span class="n">ZcoMedium</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li><code>location</code>: the location in the heap where a single extent of source data resides. The user application usually places this data via <code>sdr_malloc()</code>, which will be discussed later.</li>
+<li><code>offset</code>: the offset within the source data object where the first byte of the ZCO should be placed.</li>
+<li><code>length</code>: the length of the ZCO to be created.</li>
+<li><code>coarsePriority</code>: this sets the bundle's Class of Service (COS) as an inherited feature from BPv6. Although COS is not specified in BPv7, ION API supports this feature when creating ZCOs. From the lowest to the highest priorities, it can be set to the following values:<ul>
+<li><code>BP_BULK_PRIORITY</code> (value =0)</li>
+<li><code>BP_STD_PRIORITY</code> (value = 1), or </li>
+<li><code>BP_EXPEDITED_PRIORITY</code> (value = 2)</li>
+</ul>
+</li>
+<li><code>finePriority</code>: this is inherited from BPv6 COS and is the finer grain priority level (level 0 to 254) within the <code>BP_STD_PRIORITY</code> class. The default value is 0.</li>
+<li><code>acct</code>: The accounting category for the ZCO, which is either <code>ZcoInbound</code> (0), <code>ZcoOutbound</code> (1), or <code>ZcoUnknown</code> (2). If a ZCO is created for transmission to another node, this parameter is typically set to <code>ZcoOutbound</code>.</li>
+<li><code>*attendant</code>: the semaphore that blocks the return of the function until the necessary resources have been allocated in the SDR for the ZCO</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>Location of the ZCO: on success, the requested space has become available, and the ZCO has been created to hold the user data</li>
+<li><code>((Object) -1)</code>: the function has failed</li>
+<li><code>0</code>: either the attendant was <code>NULL</code> and sufficient space for the first extent of the ZCO was not immediately available, or the function was interrupted by <code>ionPauseAttendant</code> before space for the ZCO became available.</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">SdrObject</span><span class="w"> </span><span class="n">bundleZco</span><span class="p">;</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">bundleZco</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ionCreateZco</span><span class="p">(</span><span class="n">ZcoSdrSource</span><span class="p">,</span><span class="w"> </span><span class="n">extent</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">lineLength</span><span class="p">,</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="w">        </span><span class="n">BP_STD_PRIORITY</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ZcoOutbound</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">attendant</span><span class="p">);</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bundleZco</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">bundleZco</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="p">(</span><span class="n">Object</span><span class="p">)</span><span class="w"> </span><span class="n">ERROR</span><span class="p">)</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="p">{</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;Can&#39;t create ZCO extent.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="w">    </span><span class="cm">/* user implemented error handling routine goes here */</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>This function provides a "blocking" implementation of admission control in ION. Like zco_create(), it constructs a zero-copy object (see zco(3)) that contains a single extent of source data residing at a location in the source, of which the initial offset number of bytes are omitted and the subsequent <code>length</code> bytes are included. By providing an attendant semaphore, initialized by <code>ionStartAttendant</code>, <code>ionCreateZco()</code> can be executed as a blocking call so long as the total amount of space in the <code>source</code> available for new ZCO formation is less than the length. <code>ionCreateZco()</code> operates by calling <code>ionRequestZcoSpace</code>, then pending on the semaphore in attendant as necessary before creating the ZCO and then populating it with the user's data.</p>
+<hr />
+<h2 id="sdr-database-heap-apis">SDR Database &amp; Heap APIs</h2>
+<p>SDR persistent data are referenced by object and address values in the application code, simply displacements (offsets) within the SDR address space. The difference between the two is that an <code>Object</code> is always the address of a block of heap space returned by some call to <code>sdr_malloc</code>, while an <code>Address</code> can refer to any byte in the SDR address space. An <code>Address</code> is the SDR functional equivalent of a C pointer; some Addresses point to actual Objects.</p>
+<p>The number of SDR-related APIs is significant, and most are used by ION internally. Fortunately, there are only a few APIs that an external application will likely need to use. The following list of the most commonly used APIs is drawn from the <em>Database I/O</em> and the <em>Heap Space Management</em> API categories.</p>
+<hr />
+<h3 id="header_1">Header</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;sdr.h&quot;</span>
+</code></pre></div>
+<hr />
+<h3 id="sdr_malloc">sdr_malloc</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_malloc</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">size</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>size</code>: size of the block to allocate</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: Success. The requested space has been allocated</li>
+<li>0: Failure</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">CHKZERO</span><span class="p">(</span><span class="n">sdr_begin_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">));</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="n">extent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sdr_malloc</span><span class="p">(</span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">lineLength</span><span class="p">);</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">extent</span><span class="p">)</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="p">{</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">    </span><span class="n">sdr_write</span><span class="p">(</span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">extent</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">lineLength</span><span class="p">);</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="p">}</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sdr_end_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="p">{</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;No space for ZCO extent.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="w">    </span><span class="n">bp_detach</span><span class="p">();</span>
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a><span class="p">}</span>
+</code></pre></div>
+<p>In this example, a 'critical section' has been implemented by API calls: <code>sdr_begin_xn</code> and <code>sdr_end_xn</code>. The critical section ensures that the SDR is not altered while the space allocation is in progress. These APIs will be explained later in this document. The <code>sdr_write</code> API is used to write data into the space acquired by <code>sdr_malloc</code>.</p>
+<p>It may seem strange that failing to allocate space or write the data into the allocated space relies on checking the return value of <code>sdr_end_xn</code> instead of sdr_malloc and sdr_write functions. This is because when <code>sdr_end_xn</code> returns a negative value, it indicates that an SDR transaction was already terminated, which occurs when <code>sdr_malloc</code> or <code>sdr_write</code> fails. So, this is a convenient way to detect the failure of two calls simultaneously by checking the <code>sdr_end_xn</code> call return value.</p>
+<p>Description</p>
+<p>Allocates a block of space from the indicated SDR's heap. The maximum size is 1/2 of the maximum address space size (i.e., 2G for a 32-bit machine). Returns block address if successful, zero if block could not be allocated.</p>
+<hr />
+<h3 id="sdr_insert">sdr_insert</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_insert</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">size</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>*from</code>: pointer to the location where several bytes (specified by <code>size</code>) of data are to be copied into the allocated space in the SDR</li>
+<li><code>size</code>: size of the block to allocate</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: success</li>
+<li>0: Failure</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">CHKZERO</span><span class="p">(</span><span class="n">sdr_begin_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">));</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="n">extent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sdr_insert</span><span class="p">(</span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="n">lineLength</span><span class="p">);</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">sdr_end_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="p">{</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="w">    </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;No space for ZCO extent.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="w">    </span><span class="n">bp_detach</span><span class="p">();</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>This function combines the action of <code>sdr_malloc</code> and <code>sdr_write</code>. It first uses <code>sdr_malloc</code> to obtain a block of space, and if this allocation is successful, it uses <code>sdr_write</code> to copy size bytes of data from memory into the newly allocated block.</p>
+<hr />
+<h3 id="sdr_stow">sdr_stow</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_stow</span><span class="p">(</span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">variable</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>variable</code>: the variable whose value is to be inserted into an SDR space</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: success</li>
+<li>0: Failure</li>
+</ul>
+<p>Description</p>
+<p><code>sdr_stow</code> is a macro that uses <code>sdr_insert</code> to insert a copy of a variable into the dataspace. The size of the variable is used as the number of bytes to copy.</p>
+<hr />
+<h3 id="sdr_object_length">sdr_object_length</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">sdr_object_length</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">object</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>object</code>: the location of an application data object</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: success</li>
+<li>0: Failure</li>
+</ul>
+<p>Description</p>
+<p>Returns the number of bytes of heap space allocated to the application data at <em>object</em>.</p>
+<hr />
+<h3 id="sdr_free">sdr_free</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_free</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">object</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>object</code>: the location of an application data Object</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: success</li>
+<li>0: failure</li>
+</ul>
+<p>Description</p>
+<p>Frees the heap space occupied by an object at <em>object</em>. The space freed are put back into the SDR memory pool and will become available for subsequent re-allocation.</p>
+<hr />
+<h3 id="sdr_read">sdr_read</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_read</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">into</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>*into</code>: the location in memory data should be read into</li>
+<li><code>from</code>: this is a location in the SDR heap</li>
+<li><code>length</code>: this is the size to be read</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: success</li>
+<li>0: Failure</li>
+</ul>
+<p>Description</p>
+<p>Copies length characters from (a location in the indicated SDR) to the memory location given by into. The data are copied from the shared memory region in which the SDR resides, if any; otherwise, they are read from the file in which the SDR resides.</p>
+<hr />
+<h3 id="sdr_stage">sdr_stage</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_stage</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">into</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>*into</code>: the location in memory data should be read into</li>
+<li><code>from</code>: this is a location in the SDR heap which is occupied by an allocated object</li>
+<li><code>length</code>: this is the size to be read</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: success</li>
+<li>0: Failure</li>
+</ul>
+<p>Description</p>
+<p>Like <code>sdr_read</code>, this function will copy length characters from (a location in the heap of the indicated SDR) to the memory location given by into. Unlike <code>sdr_get</code>, <code>sdr_stage</code> requires that from be the address of some allocated object, not just any location within the heap. <code>sdr_stage</code>, when called from within a transaction, notifies the SDR library that the indicated object may be updated later in the transaction; this enables the library to retrieve the object's size for later reference in validating attempts to write into some location within the object. If the length is zero, the object's size is privately retrieved by SDR, but none of the object's content is copied into memory.</p>
+<p><code>sdr_get</code> is a macro that uses <code>sdr_read</code> to load variables from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by <code>sdr_pointer</code>. The size of the variable is used as the number of bytes to copy.</p>
+<hr />
+<h3 id="sdr_write">sdr_write</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_write</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">into</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">length</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>*into</code>: the location in the SDR heap where data should be written into</li>
+<li><code>from</code>: this is a location in memory where data should copied from</li>
+<li><code>length</code>: this is the size to be written</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>address of the allocated space: success</li>
+<li>0: Failure</li>
+</ul>
+<p>Description</p>
+<p>Like <code>sdr_read</code>, this function will copy length characters from (a location in the heap of the indicated SDR) to the memory location given by into. Unlike <code>sdr_get</code>, <code>sdr_stage</code> requires that from be the address of some allocated object, not just any location within the heap. <code>sdr_stage</code>, when called from within a transaction, notifies the SDR library that the indicated object may be updated later in the transaction; this enables the library to retrieve the object's size for later reference in validating attempts to write into some location within the object. If length is zero, the object's size is privately retrieved by SDR but none of the object's content is copied into memory.</p>
+<p><code>sdr_get</code> is a macro that uses <code>sdr_read</code> to load variables from the SDR address given by heap_pointer; heap_pointer must be (or be derived from) a heap pointer as returned by <code>sdr_pointer</code>. The size of the variable is used as the number of bytes to copy.</p>
+<hr />
+<h2 id="sdr-transaction-apis">SDR Transaction APIs</h2>
+<p>The following APIs manage transactions by implementing a critical section in which SDR content cannot be modified.</p>
+<h3 id="header_2">Header</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;sdrxn.h&quot;</span>
+</code></pre></div>
+<hr />
+<h3 id="sdr_begin_xn">sdr_begin_xn</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">sdr_begin_xn</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>1: Success</li>
+<li>0: Failure</li>
+</ul>
+<p>Description</p>
+<p>Initiates a transaction. Returns 1 on success, 0 on any failure. Note that transactions are single-threaded; any task that calls <code>sdr_begin_xn</code> is suspended until all previously requested transactions have been ended or canceled.</p>
+<hr />
+<h3 id="sdr_in_xn">sdr_in_xn</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">sdr_in_xn</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>1: transaction in progress</li>
+<li>0: no transaction in progress</li>
+</ul>
+<p>Description</p>
+<p>Returns 1 if called in the course of a transaction, 0 otherwise.</p>
+<hr />
+<h3 id="sdr_exit_xn">sdr_exit_xn</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_exit_xn</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Description</p>
+<p>Simply abandons the current transaction, ceasing the calling task's lock on ION. <strong>MUST NOT be used if any dataspace modifications were performed during the transaction</strong>; <code>sdr_end_xn</code> must be called instead to commit those modifications.</p>
+<hr />
+<h3 id="sdr_cancel_xn">sdr_cancel_xn</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_cancel_xn</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Description</p>
+<p>Cancels the current transaction. If reversibility is enabled for the SDR, canceling a transaction reverses all heap modifications performed during that transaction.</p>
+<hr />
+<h3 id="sdr_end_xn">sdr_end_xn</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">sdr_end_xn</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: transaction completed successfully</li>
+<li>-1: transaction unable to complete due to failed operations; transaction canceled</li>
+</ul>
+<p>Description</p>
+<p>Ends the current transaction. Returns 0 if the transaction was completed without any error; returns -1 if any operation performed in the course of the transaction failed, in which case the transaction was automatically canceled.</p>
+<hr />
+<h2 id="sdr-list-management-apis">SDR List management APIs</h2>
+<p>The SDR list management functions manage doubly-linked lists in managed SDR heap space. The functions manage two kinds of objects: lists and list elements. A list knows how many elements it contains and what its start and end elements are. An element knows what list it belongs to and the elements before and after it in the list. An element also knows its content, which is normally the SDR Address of some object in the SDR heap. A list may be sorted, which speeds the process of searching for a particular element.</p>
+<h3 id="header_3">Header</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;sdr.h&quot;</span>
+<a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>
+<a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="k">typedef</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">SdrListCompareFn</span><span class="p">)(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">eltData</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">argData</span><span class="p">);</span>
+<a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="k">typedef</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">SdrListDeleteFn</span><span class="p">)(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">argument</span><span class="p">);</span>
+</code></pre></div>
+<h3 id="callback-sdrlistcomparefn">Callback: SdrListCompareFn</h3>
+<h3 id="callback-sdrlistdeletefn">Callback: SDRListDEleteFn</h3>
+<p>USAGE</p>
+<p>When inserting elements or searching a list, the user may optionally provide a compare function of the form:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="kt">int</span><span class="w"> </span><span class="nf">user_comp_name</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">eltData</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">dataBuffer</span><span class="p">);</span>
+</code></pre></div>
+<p>When provided, this function is automatically called by the sdrlist function being invoked; when the function is called, it is passed the content of a list element (eltData, nominally the Address of an item in the SDR's heap space) and an argument, dataBuffer, which is nominally the address in the local memory of some other item in the same format. The user-supplied function normally compares some key values of the two data items. It returns 0 if they are equal, an integer less than 0 if eltData's key value is less than that of dataBuffer, and an integer greater than 0 if eltData's key value is greater than that of dataBuffer. These return values will produce a list in ascending order.
+If the user desires the list to be in descending order, the function must reverse the signs of these return values.</p>
+<p>When deleting an element or destroying a list, the user may optionally provide a delete function of the form:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">user_delete_name</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">eltData</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">argData</span><span class="p">)</span>
+</code></pre></div>
+<p>When provided, this function is automatically called by the sdrlist function being invoked; when the function is called, it is passed the content of a list element (eltData, nominally the Address of an item in the SDR's heap space) and an argument, argData, which if non-NULL is normally the address in the local memory of a data item providing context for the list element deletion. The user-supplied function performs any application-specific cleanup associated with deleting the element, such as freeing the element's content data item and/or other SDR heap space associated with the element.</p>
+<hr />
+<h3 id="sdr_list_insert_first">sdr_list_insert_first</h3>
+<h3 id="sdr_list_insert_last">sdr_list_insert_last</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_insert_first</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">data</span><span class="p">)</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_insert_last</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>list</code>: a list</li>
+<li><code>data</code>: an address in SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address of newly created element</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Creates a new element and inserts it at the front/end of the list. This function should not be used to insert a new element into any <strong>ordered</strong> list; use <code>sdr_list_insert</code>() instead.</p>
+<hr />
+<h3 id="sdr_list_create">sdr_list_create</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_create</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address of newly created list</code>: Success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Creates a new list object in the SDR; the new list object initially contains no list elements. Returns the address of the new list or zero on any error.</p>
+<hr />
+<h3 id="sdr_list_length">sdr_list_length</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">sdr_list_length</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>list</code>: a list in SDR</li>
+</ul>
+<p>Return Value
+<code>number of elements in the</code> list<code>: Success
+*</code>-1`: any error</p>
+<p>Description</p>
+<p>Returns the number of elements in the list, or -1 on any error.</p>
+<hr />
+<h3 id="sdr_list_destroy">sdr_list_destroy</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_list_destroy</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">SdrListDeleteFn</span><span class="w"> </span><span class="n">fn</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>list</code>: a list in SDR to be destroyed</li>
+<li><code>fn</code>: a sdrlist <a href="#callback-sdrlistdeletefn">delete function</a></li>
+<li><code>arg</code>: arguments passed to the delete function</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Description</p>
+<p>Destroys a list, freeing all elements of the list. If fn is non-NULL, that function is called once for each freed element; when called, fn is passed the Address that is the element's data, and the argument pointer is passed to <code>sdr_list_destroy</code>. See the manual page for <code>sdrlist</code> for details on the form of the delete function sdrlist.</p>
+<p>Do not use sdr_free to destroy an SDR list, as this would leave the elements of the list allocated yet unreferenced.</p>
+<hr />
+<h3 id="sdr_list_user_data_set">sdr_list_user_data_set</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_list_user_data_set</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">userData</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>list</code>: a list in SDR to be destroyed</li>
+<li><code>userData</code>: a single word which is a SDR address</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Description</p>
+<p>Sets the "user data" word of list to userData. Note that userData is nominally an Address but can be any value that occupies a single word. It is typically used to point to an SDR object that somehow characterizes the list as a whole, such as a name.</p>
+<hr />
+<h3 id="sdr_list_user_data">sdr_list_user_data</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="n">Address</span><span class="w"> </span><span class="n">sdr_list_user_data</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>list</code>: a list in SDR to be destroyed</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>value of the "user data" word of list</code>: Success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Returns the value of the "user data" word of list, or zero on any error.</p>
+<hr />
+<h3 id="sdr_list_insert">sdr_list_insert</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_insert</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">SdrListCompareFn</span><span class="w"> </span><span class="n">fn</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">dataBuffer</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>list</code>: a list in SDR to be destroyed</li>
+<li><code>data</code>: address in SDR</li>
+<li><code>fn</code>: a sdrlist <a href="#callback-sdrlistcomparefn">compare function</a></li>
+<li><code>dataBuffer</code>: data pass to the compare function</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>value of the "user data" word of list</code>: Success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Creates a new list element whose data value is data and inserts that element into the list. If fn is NULL, the new list element is simply appended to the list; otherwise, the new list element is inserted after the last element in the list whose data value is "less than or equal to" the data value of the new element (in dataBuffer) according to the collating sequence established by fn. Returns the address of the newly created element or zero on any error.</p>
+<hr />
+<h3 id="sdr_list_insert_before">sdr_list_insert_before</h3>
+<h3 id="sdr_list_insert_after">sdr_list_insert_after</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_insert_before</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">data</span><span class="p">)</span>
+<a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_insert_after</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>elt</code>: an element of a list in the SDR</li>
+<li><code>data</code>: an address in SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address of the newly created list element</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Creates a new element and inserts it before/after the specified list element. This function should not be used to insert a new element into an ordered list; use <code>sdr_list_insert</code> instead. Returns the address of the newly created list element or zero on any error.</p>
+<hr />
+<h3 id="sdr_list_delete">sdr_list_delete</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">sdr_list_delete</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">,</span><span class="w"> </span><span class="n">SdrListDeleteFn</span><span class="w"> </span><span class="n">fn</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>elt</code>: an element of a list in the SDR</li>
+<li><code>fn</code>: a sdr list <a href="#callback-sdrlistdeletefn">delete function</a></li>
+<li><code>*arg</code>: argument passed to the delete function</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Description</p>
+<p>Delete elt from the list it is in. If fn is non-NULL, that function will be called upon deletion of elt; when called, that function is passed the Address that is the list element's data value and the arg pointer passed to <code>sdr_list_delete</code>.</p>
+<hr />
+<h3 id="sdr_list_first">sdr_list_first</h3>
+<h3 id="sdr_list_last">sdr_list_last</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-47-1" name="__codelineno-47-1" href="#__codelineno-47-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_first</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">)</span>
+<a id="__codelineno-47-2" name="__codelineno-47-2" href="#__codelineno-47-2"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_last</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">list</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>list</code>: address of a list in the SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address to the first/last element</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Returns the address of the first/last element of the list, or zero on any error.</p>
+<hr />
+<h3 id="sdr_list_next">sdr_list_next</h3>
+<h3 id="sdr_list_prev">sdr_list_prev</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-48-1" name="__codelineno-48-1" href="#__codelineno-48-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_next</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">)</span>
+<a id="__codelineno-48-2" name="__codelineno-48-2" href="#__codelineno-48-2"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_prev</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>elt</code>: address of an element in a sdrlist</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address to the element following/preceding the element provided</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Returns the address of the element following/preceding elt in that element's list or zero on any error.</p>
+<hr />
+<h3 id="sdr_list_search">sdr_list_search</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-49-1" name="__codelineno-49-1" href="#__codelineno-49-1"></a><span class="n">Object</span><span class="w"> </span><span class="nf">sdr_list_search</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">reverse</span><span class="p">,</span><span class="w"> </span><span class="n">SdrListCompareFn</span><span class="w"> </span><span class="n">fn</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">dataBuffer</span><span class="p">);</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>elt</code>: address of an element in a sdrlist</li>
+<li><code>reverse</code>: order of search</li>
+<li><code>fn</code>: a sdrlist <a href="#callback-sdrlistcomparefn">compare function</a></li>
+<li><code>*dataBuffer</code>: address of data to be used for search</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address to the matching element</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Search a list for an element whose data matches the data in dataBuffer, starting at the indicated initial list element.</p>
+<p>If the compare function is non-NULL, the list is assumed to be sorted in the order implied by that function, and the function is automatically called once for each element of the list until it returns a value that is greater than or equal to zero (where zero indicates an exact match and a value greater than zero indicates that the list contains no matching element); each time compare is called it is passed the Address that is the element's data value and the dataBuffer value passed to sm_list_search().
+If the reverse is non-zero, then the list is searched in reverse order (starting at the indicated initial list element), and the search ends when the compare function returns a value that is less than or equal to zero. If the compare function is NULL, then the entire list is searched (in either forward or reverse order, as directed) until an element is located whose data value is equal to ((Address) dataBuffer). Returns the address of the matching element if one is found, 0 otherwise.</p>
+<hr />
+<h3 id="sdr_list_list">sdr_list_list</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-50-1" name="__codelineno-50-1" href="#__codelineno-50-1"></a><span class="n">Object</span><span class="w"> </span><span class="n">sdr_list_list</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>elt</code>: address of an element in a sdrlist</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address to the list to which elt belongs</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Returns the address of the list to which elt belongs, or 0 on any error.</p>
+<hr />
+<h3 id="sdr_list_data">sdr_list_data</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="n">Address</span><span class="w"> </span><span class="n">sdr_list_data</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>elt</code>: address of an element in a sdrlist</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>address that is the data value of elt</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Returns the Address that is the data value of elt, or 0 on any error.</p>
+<hr />
+<h3 id="sdr_list_data_set">sdr_list_data_set</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="n">Address</span><span class="w"> </span><span class="n">sdr_list_data_set</span><span class="p">(</span><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">elt</span><span class="p">,</span><span class="w"> </span><span class="n">Address</span><span class="w"> </span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sdr</code>: handle to the ION SDR obtained through <code>ionAttach</code> or <code>bp_attach</code></li>
+<li><code>elt</code>: address of an element in a sdrlist</li>
+<li><code>data</code>: address of data in SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li><code>original data value of elt</code>: success</li>
+<li><code>0</code>: any error</li>
+</ul>
+<p>Description</p>
+<p>Sets the data value for elt to data, replacing the original value. Returns the original data value for elt, or 0 on any error. The original data value for elt may or may not have been the address of an object in heap data space; even if it was, that object was NOT deleted.</p>
+<p><strong>Warning</strong>: changing the data value of an element of an ordered list may ruin the ordering of the list.</p>
+<hr />
+<h2 id="other-less-used-ici-apis">Other less used ICI APIs</h2>
+<p>There are many other less frequently used APIs. Please see the manual pages for the following:</p>
+<p><code>ion</code>, <code>sdr</code>, <code>sdrlist</code>, <code>platform</code>, <code>lyst</code>, <code>psm</code>, <code>memmgr</code>, <code>sdrstring</code>, <code>sdrtable</code>, and <code>smlist</code>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      
+    
+  </body>
+</html>

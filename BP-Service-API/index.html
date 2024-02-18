@@ -1,0 +1,2484 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://nasa-jpl.github.io/ION-DTN/BP-Service-API/">
+      
+      
+        <link rel="prev" href="../ION-Application-Service-Interface/">
+      
+      
+        <link rel="next" href="../LTP-UComm-API/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.9">
+    
+    
+      
+        <title>BP Service API - ION-DTN Open Source Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.f2e4d321.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bp-service-api" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-header__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ION-DTN Open Source Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              BP Service API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6zm0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4zM7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="lime"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href=".." class="md-tabs__link">
+          
+  
+  ION Overview
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Basic-Configuration-File-Tutorial/" class="md-tabs__link">
+          
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../ION-Design-and-API-Overview/" class="md-tabs__link">
+          
+  
+  ION APIs
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../man/ams/" class="md-tabs__link">
+          
+  
+  Man Pages
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-tabs__link">
+          
+  
+  Cloud Deployment
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="ION-DTN Open Source Documentation" class="md-nav__button md-logo" aria-label="ION-DTN Open Source Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    ION-DTN Open Source Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    ION Overview
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            ION Overview
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Quick-Start-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Deployment-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Deployment Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & Operation Manual
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Watch-Characters/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Watch Characters
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../AMS-Programmer-Guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AMS Programmer's Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Use-Cases/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Use Cases
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../List-of-Papers/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Publications/Papers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/Contributing-Code-to-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contribute Code
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Configuration
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Basic-Configuration-File-Tutorial/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Basic Configuration Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Config-File-Templates/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration Templates
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Configure-Multiple-Network-Interfaces/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multi-network Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Using-LTP-Config-Tool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Configuration Tool
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Launcher/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Launcher Script
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    ION APIs
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            ION APIs
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Design-and-API-Overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Design & API Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ICI-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Infrastructure API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Application-Service-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Application Service Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    BP Service API
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    BP Service API
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pre-requisite" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pre-requisite
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#check-ion-installation-bp-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check ION Installation &amp; BP Version
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#determine-bp-service-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      Determine BP Service State
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Determine BP Service State">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#if-ion-is-installed-but-not-running" class="md-nav__link">
+    <span class="md-ellipsis">
+      If ION is installed but not running
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#simple-ion-installation-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      Simple ION Installation Test
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#locate-ion-libraries-and-header-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Locate ION Libraries and Header Files
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#launch-ion-bp-services" class="md-nav__link">
+    <span class="md-ellipsis">
+      Launch ION &amp; BP Services
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bp-service-api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      BP Service API Reference
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BP Service API Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#header" class="md-nav__link">
+    <span class="md-ellipsis">
+      Header
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_attach" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_attach
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sdr-bp_get_sdr" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sdr bp_get_sdr( )
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_detach" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_detach
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_open" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_open
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_open_source" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_open_source
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_send" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_send
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_track" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_track
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_untrack" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_untrack
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_suspend" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_suspend
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_resume
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_cancel" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_cancel
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_release" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_release
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_receive" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_receive
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_interrupt" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_interrupt
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_release_delivery" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_release_delivery
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bp_close" class="md-nav__link">
+    <span class="md-ellipsis">
+      bp_close
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#walk-through-of-bpsourcec" class="md-nav__link">
+    <span class="md-ellipsis">
+      Walk Through of bpsource.c
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiling-and-linking" class="md-nav__link">
+    <span class="md-ellipsis">
+      Compiling and Linking
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zero-copy-object-zco-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      Zero-copy Object (ZCO) Types
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Zero-copy Object (ZCO) Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sdr-zco" class="md-nav__link">
+    <span class="md-ellipsis">
+      SDR ZCO
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#file-zco" class="md-nav__link">
+    <span class="md-ellipsis">
+      File ZCO
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../LTP-UComm-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP Underlying Communications API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CLA-API/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLA API
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Extension-Block-Interface/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Extension Block Interface
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Platform-Macros-Error-Reporting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Platform Macros & Error Reporting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ION-Utilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Utility Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Man Pages
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Man Pages
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ams/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Asychronous Messaging System (AMS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv6/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protocol v6 (BPv6)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bpv7/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Protcool v7 (BPv7)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bss/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (BSS)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/bssp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Bundle Streaming Service (Test Utility) Protocol (BSSP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/cfdp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CCSDS File Delivery Protocol (CFDP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dgr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Datagram Retransmission System (DGR)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/dtpc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Payload Conditioning (DTPC)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ici/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Interplanetary Communications Infrastructure (ICI)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/ltp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Licklider Transmission Protocol (LTP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/nm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Network Management Agent for Asynchronous Management Protocol (AMP)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/restart/ionrestart/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION Node Restart Utility
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../man/tc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Delay Tolerant Key Administration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Cloud Deployment
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Cloud Deployment
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 1 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running 2 ION Node on Cloud VM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ION and IOT
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    LTP and TCP on Azure
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-multicasting-main/Multicasting-over-ION/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Multicast
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../community/dtn-video-intelligence-main/Video-Intelligence/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Video Intelligence
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="bp-service-api">BP Service API</h1>
+<p>This tutorial goes over the basic user APIs for developing application software to take advantage of the Bundle Protocol (BP) services provided by ION.</p>
+<h2 id="pre-requisite">Pre-requisite</h2>
+<p>For a user-developed software to utilize BP services provided by ION, there are two pre-requisite conditions: (1) ION services must be properly configured and already running in a state ready to provide BP services, and (2) BP libraries and header files must be installed and linked to the user application.</p>
+<h2 id="check-ion-installation-bp-version">Check ION Installation &amp; BP Version</h2>
+<p>A simple way to check if ION is installed in the host is to determine the installation location of ION, one can execute <code>which ionadmin</code> and it will show the directory where ionadmin is currently located:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>which<span class="w"> </span>ionadmin
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>/usr/local/bin/ionadmin
+</code></pre></div>
+<p>If ionadmin is not found, it means either ION was not built or not properly installed in the execution path. If ionadmin is found, run it and provide the command <code>v</code> at the <code>:</code> prompt to determine the installed ION software version. For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>$<span class="w"> </span>ionadmin
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>:<span class="w"> </span>v
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>ION-OPEN-SOURCE-4.1.2
+</code></pre></div>
+<p>Quit ionadmin by command <code>q</code>. Quitting <code>ionadmin</code> will not terminate any ION and BP services, it simply ends ION's user interface for configuration query and management. If you see warning messages such as those shown below when quitting <code>ionadmin</code>, then it confirms that ION is actually not running at the moment. There are no software error:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>:<span class="w"> </span>q
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>at<span class="w"> </span>line<span class="w"> </span><span class="m">427</span><span class="w"> </span>of<span class="w"> </span>ici/library/platform_sm.c,<span class="w"> </span>Can<span class="s1">&#39;t get shared memory segment: Invalid argument (0)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="s1">at line 312 of ici/library/memmgr.c, Can&#39;</span>t<span class="w"> </span>open<span class="w"> </span>memory<span class="w"> </span>region.
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>at<span class="w"> </span>line<span class="w"> </span><span class="m">367</span><span class="w"> </span>of<span class="w"> </span>ici/sdr/sdrxn.c,<span class="w"> </span>Can<span class="s1">&#39;t open SDR working memory.</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="s1">at line 513 of ici/sdr/sdrxn.c, Can&#39;</span>t<span class="w"> </span>open<span class="w"> </span>SDR<span class="w"> </span>working<span class="w"> </span>memory.
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>at<span class="w"> </span>line<span class="w"> </span><span class="m">963</span><span class="w"> </span>of<span class="w"> </span>ici/library/ion.c,<span class="w"> </span>Can<span class="err">&#39;</span>t<span class="w"> </span>initialize<span class="w"> </span>the<span class="w"> </span>SDR<span class="w"> </span>system.
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>Stopping<span class="w"> </span>ionadmin.
+</code></pre></div>
+<p>You can also run <code>bpversion</code> to determine the version of Bundle Protocol built in the host:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>bpversion
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>bpv7
+</code></pre></div>
+<h2 id="determine-bp-service-state">Determine BP Service State</h2>
+<p>Once it is determined that ION has been installed, a user may want to determine whether BP service is running by checking for the presence of various BP daemons and shared memory/semaphores, which are created by ION for interprocess communications among the various the BP service daemons.</p>
+<p>To check if BP service is running, you can list current running processes using <code>ps -aux</code> command and inspect if you see the following BP service daemons:</p>
+<ul>
+<li><code>rfxclock</code> - background daemon that schedules ION network configuration events</li>
+<li><code>bpclm</code> - background daemon that selects and meters data transmission to outbound convergence layers</li>
+<li><code>bpclock</code> - background daemon that schedule BP level events</li>
+<li><code>bptransit</code> - daemon to move inbound traffic to outbound queue for forwarding</li>
+<li><code>ipnfw</code> - BP IPN scheme-specific bundle routing daemon</li>
+<li><code>ipnadminep</code> - IPN scheme-specific administrative end-point daemon</li>
+</ul>
+<p>You can find more details about these daemons in the manual pages. You may also see  daemons related to other activate modules. For example, if the LTP engine is active in the system, you will see the following daemons:</p>
+<ul>
+<li><code>ltpclock</code></li>
+<li><code>ltpdeliv</code></li>
+<li><code>ltpmeter</code></li>
+<li><code>udplso</code></li>
+<li><code>udplsi</code></li>
+<li><code>ltpcli</code></li>
+<li><code>ltpclo</code></li>
+</ul>
+<p>To further vary that BP service is running, you can check for presence of ION shared memory and semaphores:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>------<span class="w"> </span>Shared<span class="w"> </span>Memory<span class="w"> </span>Segments<span class="w"> </span>--------
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>key<span class="w">        </span>shmid<span class="w">      </span>owner<span class="w">         </span>perms<span class="w">      </span>bytes<span class="w">      </span>nattch<span class="w">     </span>status<span class="w">   </span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>0x0000ee02<span class="w"> </span><span class="m">47</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">641024</span><span class="w">     </span><span class="m">13</span><span class="w">                    </span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>0x0000ff00<span class="w"> </span><span class="m">48</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">50000000</span><span class="w">   </span><span class="m">13</span><span class="w">                    </span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>0x93de0005<span class="w"> </span><span class="m">49</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">1200002544</span><span class="w"> </span><span class="m">13</span><span class="w">                    </span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>0x0000ff01<span class="w"> </span><span class="m">50</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">500000000</span><span class="w">  </span><span class="m">13</span><span class="w">                    </span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>------<span class="w"> </span>Semaphore<span class="w"> </span>Arrays<span class="w"> </span>--------
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>key<span class="w">        </span>semid<span class="w">      </span>owner<span class="w">         </span>perms<span class="w">      </span>nsems<span class="w">   </span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>0x0000ee01<span class="w"> </span><span class="m">23</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">1</span><span class="w">       </span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>0x18020001<span class="w"> </span><span class="m">24</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">250</span><span class="w">     </span>
+</code></pre></div>
+<p>In this example, the shared memory and semaphore keys for the SDR heap space (shmid 49) and the semaphorebase (semid 24) are created using a random key generated from the process ID of <code>ionadmin</code> and they will vary each time ION is instantiated. This is specific to SVR4 semaphore, which is the default for ION 4.1.2. However, starting with ION 4.1.3, the default semaphore will switch to POSIX semaphore and the output will be different. The other memory and semaphore keys listed in this example are typical default values, but they too, can be changed through ionconfig files.</p>
+<h3 id="if-ion-is-installed-but-not-running">If ION is installed but not running</h3>
+<p>If ION is installed but not running (either you see no shared memory or don't see the BP service daemons) you can restart ION. Before restarting ION, run <code>ionstop</code> to clear all remaining orphaned processes/shared memory allocations in case the previous instance of BP service was not properly shutdown or has suffered a crash. Here is an example of the output you may see:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span>ionstop
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>IONSTOP<span class="w"> </span>will<span class="w"> </span>now<span class="w"> </span>stop<span class="w"> </span>ion<span class="w"> </span>and<span class="w"> </span>clean<span class="w"> </span>up<span class="w"> </span>the<span class="w"> </span>node<span class="w"> </span><span class="k">for</span><span class="w"> </span>you...
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>cfdpadmin<span class="w"> </span>.
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>Stopping<span class="w"> </span>cfdpadmin.
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>bpv7
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>bpadmin<span class="w"> </span>.
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>Stopping<span class="w"> </span>bpadmin.
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>ltpadmin<span class="w"> </span>.
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>Stopping<span class="w"> </span>ltpadmin.
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>ionadmin<span class="w"> </span>.
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>Stopping<span class="w"> </span>ionadmin.
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>bsspadmin<span class="w"> </span>.
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>BSSP<span class="w"> </span>not<span class="w"> </span>initialized<span class="w"> </span>yet.
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>Stopping<span class="w"> </span>bsspadmin.
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>This<span class="w"> </span>is<span class="w"> </span>a<span class="w"> </span>single-ION<span class="w"> </span>instance<span class="w"> </span>configuration.<span class="w"> </span>Run<span class="w"> </span>killm.
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>killm
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>Sending<span class="w"> </span>TERM<span class="w"> </span>to<span class="w"> </span>acsadmin<span class="w"> </span>lt-acsadmin<span class="w">    </span>acslist<span class="w"> </span>lt-acslist<span class="w">      </span>aoslsi<span class="w"> </span>lt-aoslsi<span class="w">        </span>aoslso<span class="w"> </span>lt-aoslso<span class="w">        </span>bibeadmin<span class="w"> </span>lt-bibeadmin<span class="w">  </span>bibeclo<span class="w"> </span>lt-bibeclo<span class="w">     </span>bpadmin<span class="w"> </span>lt-bpadmin<span class="w">      </span>bpcancel<span class="w"> </span>lt-bpcancel<span class="w">    </span>bpchat<span class="w"> </span>lt-bpchat<span class="w">        </span>bpclm<span class="w"> </span>lt-bpclm<span class="w">  </span>bpclock<span class="w"> </span>lt-bpclock<span class="w">      </span>bpcounter<span class="w"> </span>lt-bpcounter<span class="w">         </span>bpdriver<span class="w"> </span>lt-bpdriver<span class="w">    </span>bpecho<span class="w"> </span>lt-bpecho<span class="w">        </span>bping<span class="w"> </span>lt-bping<span class="w">  </span>bplist<span class="w"> </span>lt-bplist<span class="w">        </span>bpnmtest<span class="w"> </span>lt-bpnmtest<span class="w">    </span>bprecvfile<span class="w"> </span>lt-bprecvfile<span class="w">       </span>bpsecadmin<span class="w"> </span>lt-bpsecadmin<span class="w">        </span>bpsendfile<span class="w"> </span>lt-bpsendfile<span class="w">        </span>bpsink<span class="w"> </span>lt-bpsink<span class="w">        </span>bpsource<span class="w"> </span>lt-bpsource<span class="w">    </span>bpstats<span class="w"> </span>lt-bpstats<span class="w">     </span>bpstats2<span class="w"> </span>lt-bpstats2<span class="w">    </span>bptrace<span class="w"> </span>lt-bptrace<span class="w">      </span>bptransit<span class="w"> </span>lt-bptransit<span class="w">  </span>brsccla<span class="w"> </span>lt-brsccla<span class="w">      </span>brsscla<span class="w"> </span>lt-brsscla<span class="w">      </span>bsscounter<span class="w"> </span>lt-bsscounter<span class="w">       </span>bssdriver<span class="w"> </span>lt-bssdriver<span class="w">  </span>bsspadmin<span class="w"> </span>lt-bsspadmin<span class="w">  </span>bsspcli<span class="w"> </span>lt-bsspcli<span class="w">      </span>bsspclo<span class="w"> </span>lt-bsspclo<span class="w">      </span>bsspclock<span class="w"> </span>lt-bsspclock<span class="w">  </span>bssrecv<span class="w"> </span>lt-bssrecv<span class="w">     </span>bssStreamingApp<span class="w"> </span>lt-bssStreamingApp<span class="w">      </span>cgrfetch<span class="w"> </span>lt-cgrfetch<span class="w">    </span>cpsd<span class="w"> </span>lt-cpsd<span class="w">    </span>dccpcli<span class="w"> </span>lt-dccpcli<span class="w">      </span>dccpclo<span class="w"> </span>lt-dccpclo<span class="w">    </span>dccplsi<span class="w"> </span>lt-dccplsi<span class="w">       </span>dccplso<span class="w"> </span>lt-dccplso<span class="w">      </span>dgr2file<span class="w"> </span>lt-dgr2file<span class="w">    </span>dgrcli<span class="w"> </span>lt-dgrcli<span class="w">        </span>dgrclo<span class="w"> </span>lt-dgrclo<span class="w">        </span>dtka<span class="w"> </span>lt-dtka<span class="w">    </span>dtkaadmin<span class="w"> </span>lt-dtkaadmin<span class="w">         </span>dtn2admin<span class="w"> </span>lt-dtn2admin<span class="w">  </span>dtn2adminep<span class="w"> </span>lt-dtn2adminep<span class="w">      </span>dtn2fw<span class="w"> </span>lt-dtn2fw<span class="w">        </span>dtpcadmin<span class="w"> </span>lt-dtpcadmin<span class="w">  </span>dtpcclock<span class="w"> </span>lt-dtpcclock<span class="w">         </span>dtpcd<span class="w"> </span>lt-dtpcd<span class="w">  </span>dtpcreceive<span class="w"> </span>lt-dtpcreceive<span class="w">      </span>dtpcsend<span class="w"> </span>lt-dtpcsend<span class="w">    </span>file2dgr<span class="w"> </span>lt-file2dgr<span class="w">    </span>file2sdr<span class="w"> </span>lt-file2sdr<span class="w">    </span>file2sm<span class="w"> </span>lt-file2sm<span class="w">     </span>file2tcp<span class="w"> </span>lt-file2tcp<span class="w">    </span>file2udp<span class="w"> </span>lt-file2udp<span class="w">    </span>hmackeys<span class="w"> </span>lt-hmackeys<span class="w">    </span>imcadmin<span class="w"> </span>lt-imcadmin<span class="w">    </span>imcadminep<span class="w"> </span>lt-imcadminep<span class="w">      </span>imcfw<span class="w"> </span>lt-imcfw<span class="w">   </span>ionadmin<span class="w"> </span>lt-ionadmin<span class="w">    </span>ionexit<span class="w"> </span>lt-ionexit<span class="w">      </span>ionrestart<span class="w"> </span>lt-ionrestart<span class="w">        </span>ionsecadmin<span class="w"> </span>lt-ionsecadmin<span class="w">      </span>ionunlock<span class="w"> </span>lt-ionunlock<span class="w">         </span>ionwarn<span class="w"> </span>lt-ionwarn<span class="w">      </span>ipnadmin<span class="w"> </span>lt-ipnadmin<span class="w">    </span>ipnadminep<span class="w"> </span>lt-ipnadminep<span class="w">        </span>ipnd<span class="w"> </span>lt-ipnd<span class="w">    </span>ipnfw<span class="w"> </span>lt-ipnfw<span class="w">  </span>lgagent<span class="w"> </span>lt-lgagent<span class="w">     </span>lgsend<span class="w"> </span>lt-lgsend<span class="w">        </span>ltpadmin<span class="w"> </span>lt-ltpadmin<span class="w">    </span>ltpcli<span class="w"> </span>lt-ltpcli<span class="w">        </span>ltpclo<span class="w"> </span>lt-ltpclo<span class="w">        </span>ltpclock<span class="w"> </span>lt-ltpclock<span class="w">    </span>ltpcounter<span class="w"> </span>lt-ltpcounter<span class="w">       </span>ltpdeliv<span class="w"> </span>lt-ltpdeliv<span class="w">    </span>ltpdriver<span class="w"> </span>lt-ltpdriver<span class="w">  </span>ltpmeter<span class="w"> </span>lt-ltpmeter<span class="w">    </span>ltpsecadmin<span class="w"> </span>lt-ltpsecadmin<span class="w">      </span>nm_agent<span class="w"> </span>lt-nm_agent<span class="w">  </span>nm_mgr<span class="w"> </span>lt-nm_mgr<span class="w">         </span>owltsim<span class="w"> </span>lt-owltsim<span class="w">      </span>owlttb<span class="w"> </span>lt-owlttb<span class="w">        </span>psmshell<span class="w"> </span>lt-psmshell<span class="w">    </span>psmwatch<span class="w"> </span>lt-psmwatch<span class="w">    </span>ramsgate<span class="w"> </span>lt-ramsgate<span class="w">  </span>rfxclock<span class="w"> </span>lt-rfxclock<span class="w">     </span>sdatest<span class="w"> </span>lt-sdatest<span class="w">      </span>sdr2file<span class="w"> </span>lt-sdr2file<span class="w">    </span>sdrmend<span class="w"> </span>lt-sdrmend<span class="w">      </span>sdrwatch<span class="w"> </span>lt-sdrwatch<span class="w">    </span>sm2file<span class="w"> </span>lt-sm2file<span class="w">    </span>smlistsh<span class="w"> </span>lt-smlistsh<span class="w">     </span>smrbtsh<span class="w"> </span>lt-smrbtsh<span class="w">      </span>stcpcli<span class="w"> </span>lt-stcpcli<span class="w">      </span>stcpclo<span class="w"> </span>lt-stcpclo<span class="w">      </span>tcaadmin<span class="w"> </span>lt-tcaadmin<span class="w">    </span>tcaboot<span class="w"> </span>lt-tcaboot<span class="w">    </span>tcacompile<span class="w"> </span>lt-tcacompile<span class="w"> </span>tcapublish<span class="w"> </span>lt-tcapublish<span class="w">        </span>tcarecv<span class="w"> </span>lt-tcarecv<span class="w">      </span>tcc<span class="w"> </span>lt-tcc<span class="w">      </span>tccadmin<span class="w"> </span>lt-tccadmin<span class="w">    </span>tcp2file<span class="w"> </span>lt-tcp2file<span class="w">  </span>tcpbsi<span class="w"> </span>lt-tcpbsi<span class="w">         </span>tcpbso<span class="w"> </span>lt-tcpbso<span class="w">        </span>tcpcli<span class="w"> </span>lt-tcpcli<span class="w">        </span>tcpclo<span class="w"> </span>lt-tcpclo<span class="w">        </span>udp2file<span class="w"> </span>lt-udp2file<span class="w">    </span>udpbsi<span class="w"> </span>lt-udpbsi<span class="w">      </span>udpbso<span class="w"> </span>lt-udpbso<span class="w">         </span>udpcli<span class="w"> </span>lt-udpcli<span class="w">        </span>udpclo<span class="w"> </span>lt-udpclo<span class="w">        </span>udplsi<span class="w"> </span>lt-udplsi<span class="w">        </span>udplso<span class="w"> </span>lt-udplso<span class="w">                </span>amsbenchr<span class="w"> </span>lt-amsbenchr<span class="w">         </span>amsbenchs<span class="w"> </span>lt-amsbenchs<span class="w">  </span>amsd<span class="w"> </span>lt-amsd<span class="w">    </span>amshello<span class="w"> </span>lt-amshello<span class="w">    </span>amslog<span class="w"> </span>lt-amslog<span class="w">        </span>amslogprt<span class="w"> </span>lt-amslogprt<span class="w">  </span>amsshell<span class="w"> </span>lt-amsshell<span class="w">   </span>amsstop<span class="w"> </span>lt-amsstop<span class="w">      </span>bputa<span class="w"> </span>lt-bputa<span class="w">  </span>cfdpadmin<span class="w"> </span>lt-cfdpadmin<span class="w">  </span>cfdpclock<span class="w"> </span>lt-cfdpclock<span class="w">  </span>cfdptest<span class="w"> </span>lt-cfdptest<span class="w">    </span>bpcp<span class="w"> </span>lt-bpcp<span class="w">    </span>bpcpd<span class="w"> </span>lt-bpcpd<span class="w"> </span>...
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>Sending<span class="w"> </span>KILL<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>processes...
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>Checking<span class="w"> </span><span class="k">if</span><span class="w"> </span>all<span class="w"> </span>processes<span class="w"> </span>ended...
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>Deleting<span class="w"> </span>shared<span class="w"> </span>memory<span class="w"> </span>to<span class="w"> </span>remove<span class="w"> </span>SDR...
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>Killm<span class="w"> </span>completed.
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>ION<span class="w"> </span>node<span class="w"> </span>ended.<span class="w"> </span>Log<span class="w"> </span>file:<span class="w"> </span>ion.log
+</code></pre></div>
+<p>At this point run <code>ps -aux</code> or <code>ipcs</code> to verify that ION has terminated completely.</p>
+<h3 id="simple-ion-installation-test">Simple ION Installation Test</h3>
+<p>When ION is not running, you can performance a simple unit test to verify ION is build properly.</p>
+<p>Navigate to the root directory of the ION source code, <code>cd</code> into the <code>tests</code> folder and then execute a <code>bping</code> test using the command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>./runtest<span class="w"> </span>bping
+</code></pre></div>
+<p>You can watch the terminal output ION restarting itself and executing a loopback ping. When successful it will indicate at the end of the test:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>TEST<span class="w"> </span>PASSED!
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>passed:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">    </span>bping
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>failed:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>skipped:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>excluded<span class="w"> </span>by<span class="w"> </span>OS<span class="w"> </span>type:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>excluded<span class="w"> </span>by<span class="w"> </span>BP<span class="w"> </span>version:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>obsolete<span class="w"> </span>tests:<span class="w"> </span><span class="m">0</span>
+</code></pre></div>
+<h2 id="locate-ion-libraries-and-header-files">Locate ION Libraries and Header Files</h2>
+<p>The standard <code>./configure; make; sudo make install; sudo ldconfig</code> process should automatically install the BP libraries under <code>/usr/local/lib</code> and the relevant header files under <code>/usr/local/include</code> unless ION is specifically configured to a different customized install location through the <code>./configure</code> script during the compilation process. Here is a list of libraries and header files you should find there:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/usr/local/lib
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>$<span class="w"> </span>ls
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>libamp.a<span class="w">                 </span>libbp.so.0.0.0<span class="w">    </span>libcgr.a<span class="w">          </span>libdtpc.la<span class="w">        </span>libmbedcrypto.so.7<span class="w">   </span>libtc.so.0.0.0<span class="w">      </span>libudpcla.a
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>libamp.la<span class="w">                </span>libbss.a<span class="w">          </span>libcgr.la<span class="w">         </span>libdtpc.so<span class="w">        </span>libmbedtls.a<span class="w">         </span>libtcaP.a<span class="w">           </span>libudpcla.la
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>libamp.so<span class="w">                </span>libbss.la<span class="w">         </span>libcgr.so<span class="w">         </span>libdtpc.so.0<span class="w">      </span>libmbedtls.so<span class="w">        </span>libtcaP.la<span class="w">          </span>libudpcla.so
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>libamp.so.0<span class="w">              </span>libbss.so<span class="w">         </span>libcgr.so.0<span class="w">       </span>libdtpc.so.0.0.0<span class="w">  </span>libmbedtls.so.14<span class="w">     </span>libtcaP.so<span class="w">          </span>libudpcla.so.0
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>libamp.so.0.0.0<span class="w">          </span>libbss.so.0<span class="w">       </span>libcgr.so.0.0.0<span class="w">   </span>libici.a<span class="w">          </span>libmbedx509.a<span class="w">        </span>libtcaP.so.0<span class="w">        </span>libudpcla.so.0.0.0
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>libampAgentADM.a<span class="w">         </span>libbss.so.0.0.0<span class="w">   </span>libdgr.a<span class="w">          </span>libici.la<span class="w">         </span>libmbedx509.so<span class="w">       </span>libtcaP.so.0.0.0<span class="w">    </span>libudplsa.a
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>libampAgentADM.la<span class="w">        </span>libbssp.a<span class="w">         </span>libdgr.la<span class="w">         </span>libici.so<span class="w">         </span>libmbedx509.so.1<span class="w">     </span>libtcc.a<span class="w">            </span>libudplsa.la
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>libampAgentADM.so<span class="w">        </span>libbssp.la<span class="w">        </span>libdgr.so<span class="w">         </span>libici.so.0<span class="w">       </span>libstcpcla.a<span class="w">         </span>libtcc.la<span class="w">           </span>libudplsa.so
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>libampAgentADM.so.0<span class="w">      </span>libbssp.so<span class="w">        </span>libdgr.so.0<span class="w">       </span>libici.so.0.0.0<span class="w">   </span>libstcpcla.la<span class="w">        </span>libtcc.so<span class="w">           </span>libudplsa.so.0
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>libampAgentADM.so.0.0.0<span class="w">  </span>libbssp.so.0<span class="w">      </span>libdgr.so.0.0.0<span class="w">   </span>libltp.a<span class="w">          </span>libstcpcla.so<span class="w">        </span>libtcc.so.0<span class="w">         </span>libudplsa.so.0.0.0
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>libams.a<span class="w">                 </span>libbssp.so.0.0.0<span class="w">  </span>libdtka.a<span class="w">         </span>libltp.la<span class="w">         </span>libstcpcla.so.0<span class="w">      </span>libtcc.so.0.0.0<span class="w">     </span>libzfec.a
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>libams.la<span class="w">                </span>libcfdp.a<span class="w">         </span>libdtka.la<span class="w">        </span>libltp.so<span class="w">         </span>libstcpcla.so.0.0.0<span class="w">  </span>libtcpbsa.a<span class="w">         </span>libzfec.la
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>libbp.a<span class="w">                  </span>libcfdp.la<span class="w">        </span>libdtka.so<span class="w">        </span>libltp.so.0<span class="w">       </span>libtc.a<span class="w">              </span>libtcpbsa.la<span class="w">        </span>libzfec.so
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>libbp.la<span class="w">                 </span>libcfdp.so<span class="w">        </span>libdtka.so.0<span class="w">      </span>libltp.so.0.0.0<span class="w">   </span>libtc.la<span class="w">             </span>libtcpbsa.so<span class="w">        </span>libzfec.so.0
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>libbp.so<span class="w">                 </span>libcfdp.so.0<span class="w">      </span>libdtka.so.0.0.0<span class="w">  </span>libmbedcrypto.a<span class="w">   </span>libtc.so<span class="w">             </span>libtcpbsa.so.0<span class="w">      </span>libzfec.so.0.0.0
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>libbp.so.0<span class="w">               </span>libcfdp.so.0.0.0<span class="w">  </span>libdtpc.a<span class="w">         </span>libmbedcrypto.so<span class="w">  </span>libtc.so.0<span class="w">           </span>libtcpbsa.so.0.0.0
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>
+<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>
+<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/usr/local/include
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>$<span class="w"> </span>ls
+<a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>ams.h<span class="w">               </span>bpsec_instr.h<span class="w">  </span>cfdpops.h<span class="w">  </span>eureka.h<span class="w">       </span>llcv.h<span class="w">    </span>platform.h<span class="w">     </span>rfc9173_utils.h<span class="w">  </span>sdrhash.h<span class="w">    </span>sdrxn.h<span class="w">    </span>tcaP.h
+<a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>bcb_aes_gcm_sc.h<span class="w">    </span>bpsec_util.h<span class="w">   </span>crypto.h<span class="w">   </span>icinm.h<span class="w">        </span>ltp.h<span class="w">     </span>platform_sm.h<span class="w">  </span>rfx.h<span class="w">            </span>sdrlist.h<span class="w">    </span>smlist.h<span class="w">   </span>tcc.h
+<a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>bib_hmac_sha2_sc.h<span class="w">  </span>bss.h<span class="w">          </span>dgr.h<span class="w">      </span>ion.h<span class="w">          </span>lyst.h<span class="w">    </span>psa<span class="w">            </span>sci.h<span class="w">            </span>sdrmgt.h<span class="w">     </span>smrbt.h<span class="w">    </span>tccP.h
+<a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>bp.h<span class="w">                </span>bssp.h<span class="w">         </span>dtka.h<span class="w">     </span>ion_test_sc.h<span class="w">  </span>mbedtls<span class="w">   </span>psm.h<span class="w">          </span>sda.h<span class="w">            </span>sdrstring.h<span class="w">  </span>sptrace.h<span class="w">  </span>zco.h
+<a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>bpsec_asb.h<span class="w">         </span>cfdp.h<span class="w">         </span>dtpc.h<span class="w">     </span>ionsec.h<span class="w">       </span>memmgr.h<span class="w">  </span>radix.h<span class="w">        </span>sdr.h<span class="w">            </span>sdrtable.h<span class="w">   </span>tc.h
+</code></pre></div>
+<p>In this document, we assume that ION was build and installed via the <code>./configure</code> installation process using the full open-source codebase and with the standard set of options.</p>
+<p>The location and content of the library and header directories shown above included non-BP modules and may not match exactly with what you have especially if you have built ION with features options enabled via <code>./configure</code> or used a manual/custom Makefile, or built ION from the <code>ion-core</code> package instead.</p>
+<h2 id="launch-ion-bp-services">Launch ION &amp; BP Services</h2>
+<p>Once you are confidant that ION has been properly built and installed in the system, you can start BP service by launching ION. To do this, please consult the various tutorials under <em>Configuration</em>.</p>
+<p>After launching ION, you can <a href="#determine-bp-service-state">verify BP service status</a> in the same manner as described in previous section.</p>
+<h2 id="bp-service-api-reference">BP Service API Reference</h2>
+<h3 id="header">Header</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;bp.h&quot;</span>
+</code></pre></div>
+<hr />
+<h3 id="bp_attach">bp_attach</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_attach</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li>None.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>On success: 0</li>
+<li>Any error: -1</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bp_attach</span><span class="p">()</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="p">{</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">        </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Can&#39;t attach to BP.</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">        </span><span class="cm">/* user inser error handling code */</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>Typically the <code>bp_attach()</code> call is made at the beginning of a user's application to attach to BP Service provided by ION in the host machine. This code checks for a negative return value.</p>
+<p><code>bp_attach()</code> automatically calls the ICI API <code>ion_attach()</code> when necessary, so there is no need to call them separately. In addition to gaining access to ION's SDR, which is what <code>ion_attach()</code> provides, <code>bp_attach()</code> also gains access to the Bundle Protocol's state information and database. For user application that interacts with the Bundle Protocol, <code>bp_attach()</code> is the entry point to ION.</p>
+<hr />
+<h3 id="sdr-bp_get_sdr">Sdr bp_get_sdr( )</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">Sdr</span><span class="w"> </span><span class="n">bp_get_sdr</span><span class="p">()</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li>None.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>Handle for the SDR data store: success</li>
+<li><code>NULL</code>: any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="cm">/* declare SDR handle */</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">Sdr</span><span class="w"> </span><span class="n">sdr</span><span class="p">;</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="cm">/* get SDR handle */</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="n">sdr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bp_get_sdr</span><span class="p">();</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="cm">/* user check sdr for NULL </span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="cm"> * and handle error */</span>
+</code></pre></div>
+<p>Description</p>
+<p>Returns handle for the SDR data store used for BP, to enable creation and interrogation of bundle payloads (application data units). Since the SDR handle is needed by many APIs, this function is typically executed early in the user's application in order to access other BP services.</p>
+<hr />
+<h3 id="bp_detach">bp_detach</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bp_detach</span><span class="p">(</span><span class="w"> </span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li>None.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Description</p>
+<p>Terminates all access to BP functionality for the invoking process.</p>
+<hr />
+<h3 id="bp_open">bp_open</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_open</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">eid</span><span class="p">,</span><span class="w"> </span><span class="n">BpSAP</span><span class="w"> </span><span class="o">*</span><span class="n">ionsapPtr</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>*eid</code>: name of the endpoint</li>
+<li><code>*ionsapPtr</code>: pointer to variable in which address of BP service access point will be returned</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bp_open</span><span class="p">(</span><span class="n">ownEid</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">sap</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="p">{</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">        </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;bptrace can&#39;t open own endpoint.&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ownEid</span><span class="p">);</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">        </span><span class="cm">/* user&#39;s error handling function here */</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>Opens the application's access to the BP endpoint identified by the string at <code>eid</code>, so that the application can take delivery of bundles destined for the indicated endpoint. This SAP can also be used for sending bundles whose source is the indicated endpoint.</p>
+<p>Please note that all bundles sent via this SAP will be subject to immediate destruction upon transmission, i.e., no bundle addresses will be returned by <code>bp_send</code> for use in tracking, suspending/resuming, or cancelling transmission of these bundles. </p>
+<p>On success, places a value in *ionsapPtr that can be supplied to future bp function invocations.</p>
+<p><strong>NOTE:</strong> To allow for bp_send to return a bundle address for tracking purpose, please use <code>bp_open_source</code> instead.</p>
+<hr />
+<h3 id="bp_open_source">bp_open_source</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_open_source</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">eid</span><span class="p">,</span><span class="w"> </span><span class="n">BpSAP</span><span class="w"> </span><span class="o">*</span><span class="n">ionsapPtr</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">detain</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>*eid</code>: name of the endpoint</li>
+<li><code>*ionsapPtr</code>: pointer to variable in which address of BP service access point will be returned</li>
+<li><code>detain</code>: indicator as to whether or not bundles sourced using this BpSAP should be detained in storage until explicitly released</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bp_open_source</span><span class="p">(</span><span class="n">ownEid</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">txSap</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="p">{</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">        </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;can&#39;t open own &#39;send&#39; endpoint.&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ownEid</span><span class="p">);</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">        </span><span class="cm">/* user error handling routine here */</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>Opens the application's access to the BP endpoint identified by eid, so that the application can send bundles whose source is the indicated endpoint. If and only if the value of detain is non-zero, citing this SAP in an invocation of bp_send() will cause the address of the newly issued bundle to be returned for use in tracking, suspending/resuming, or cancelling transmission of this bundle. </p>
+<p><strong>USE THIS FEATURE WITH GREAT CARE</strong>: such a bundle will continue to occupy storage resources until it is explicitly released by an invocation of bp_release() or until its time to live expires, so bundle detention increases the risk of resource exhaustion. (If the value of detain is zero, all bundles sent via this SAP will be subject to immediate destruction upon transmission.) </p>
+<p>On success, places a value in *ionsapPtr that can be supplied to future bp function invocations and returns 0. Returns -1 on any error.</p>
+<hr />
+<h3 id="bp_send">bp_send</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_send</span><span class="p">(</span><span class="n">BpSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">destEid</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">reportToEid</span><span class="p">,</span><span class="w"> </span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">             </span><span class="kt">int</span><span class="w"> </span><span class="n">lifespan</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">classOfService</span><span class="p">,</span><span class="w"> </span><span class="n">BpCustodySwitch</span><span class="w"> </span><span class="n">custodySwitch</span><span class="p">,</span><span class="w"> </span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">             </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">srrFlags</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ackRequested</span><span class="p">,</span><span class="w"> </span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">             </span><span class="n">BpAncillaryData</span><span class="w"> </span><span class="o">*</span><span class="n">ancillaryData</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">adu</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="o">*</span><span class="n">newBundle</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li>
+<p><code>sap</code>: the source endpoint for the bundle, provided by the <code>bp_open</code> call.</p>
+</li>
+<li>
+<p><code>*destEid</code>: identifies the destination endpoint for the bundle. </p>
+</li>
+<li>
+<p><code>reportToEid</code>: identifies the endpoint to which any status reports pertaining to this bundle will be sent; if NULL, defaults to the source endpoint.</p>
+</li>
+<li>
+<p><code>lifespan</code>: is the maximum number of seconds that the bundle can remain in-transit (undelivered) in the network prior to automatic deletion.</p>
+</li>
+<li>
+<p><code>classOfService</code>: is simply priority for now: BP_BULK_PRIORITY, BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY. If class-of-service flags are defined in a future version of Bundle Protocol, those flags would be OR'd with priority.</p>
+</li>
+<li>
+<p><code>custodySwitch</code>: indicates whether or not custody transfer is requested for this bundle and, if so, whether or not the source node itself is required to be the initial custodian. The valid values are SourceCustodyRequired, SourceCustodyOptional, NoCustodyRequired. Note that custody transfer is possible only for bundles that are uniquely identified, so it cannot be requested for bundles for which BP_MINIMUM_LATENCY is requested, since BP_MINIMUM_LATENCY may result in the production of multiple identical copies of the same bundle. Similarly, custody transfer should never be requested for a "loopback" bundle, i.e., one whose destination node is the same as the source node: the received bundle will be identical to the source bundle, both residing in the same node, so no custody acceptance signal can be applied to the source bundle and the source bundle will remain in storage until its TTL expires.</p>
+</li>
+<li>
+<p><code>srrFlags</code>: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT.</p>
+</li>
+<li>
+<p><code>ackRequested</code>: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.</p>
+</li>
+<li>
+<p><code>ancillaryData</code>: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:</p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>BP_MINIMUM_LATENCY designates the bundle as &quot;critical&quot; for the
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>purposes of Contact Graph Routing.
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>BP_BEST_EFFORT signifies that non-reliable convergence-layer protocols, as
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>available, may be used to transmit the bundle.  Notably, the bundle may be
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>sent as &quot;green&quot; data rather than &quot;red&quot; data when issued via LTP.
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>BP_DATA_LABEL_PRESENT signifies whether or not the value of _dataLabel_
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>in _ancillaryData_ must be encoded into the ECOS block when the bundle is
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>transmitted.
+</code></pre></div>
+<p><strong>NOTE:</strong> For Bundle Protocol v7, no Extended Class of Service, or equivalent, has been standardized yet. This capability, however, has been retained from BPv6 and is available to BPv7 implementation in ION. </p>
+<ul>
+<li><code>adu</code>: is the "application data unit" that will be conveyed as the payload of the new bundle. adu must be a "zero-copy object" (ZCO). To ensure orderly access to transmission buffer space for all applications, adu must be created by invoking ionCreateZco(), which may be configured either to block so long as insufficient ZCO storage space is available for creation of the requested ZCO or to fail immediately if insufficient ZCO storage space is available.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>1: success</li>
+<li>0: user error</li>
+<li>-1: any system error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bp_send</span><span class="p">(</span><span class="n">sap</span><span class="p">,</span><span class="w"> </span><span class="n">destEid</span><span class="p">,</span><span class="w"> </span><span class="n">reportToEid</span><span class="p">,</span><span class="w"> </span><span class="n">ttl</span><span class="p">,</span><span class="w"> </span><span class="n">priority</span><span class="p">,</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span><span class="n">custodySwitch</span><span class="p">,</span><span class="w"> </span><span class="n">srrFlags</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ancillaryData</span><span class="p">,</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">    </span><span class="n">traceZco</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">newBundle</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="p">{</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="w">        </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;bptrace can&#39;t send file in bundle.&quot;</span><span class="p">,</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="w">                        </span><span class="n">fileName</span><span class="p">);</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="w">        </span><span class="cm">/* user error handling code goes here */</span>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="p">}</span>
+</code></pre></div>
+<p>Description</p>
+<p>Sends a bundle to the endpoint identified by destEid, from the source endpoint as provided to the bp_open() call that returned sap. </p>
+<p>When sap is NULL, the transmitted bundle is anonymous, i.e., the source of the bundle is not identified. This is legal, but anonymous bundles cannot be uniquely identified; custody transfer and status reporting therefore cannot be requested for an anonymous bundle.</p>
+<p>The function returns 1 on success, 0 on user error, -1 on any system error. </p>
+<p>If 0 is returned, then an invalid argument value was passed to bp_send(); a message to this effect will have been written to the log file. </p>
+<p>If 1 is returned, then either the destination of the bundle was "dtn:none" (the bit bucket) or the ADU has been accepted and queued for transmission in a bundle. In the latter case, if and only if sap was a reference to a BpSAP returned by an invocation of bp_open_source() that had a non-zero value in the detain parameter, then newBundle must be non-NULL and the address of the newly created bundle within the ION database is placed in newBundle. This address can be used to track, suspend/resume, or cancel transmission of the bundle.</p>
+<hr />
+<h3 id="bp_track">bp_track</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_track</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">bundle</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">trackingElt</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>bundle</code>: the bundle object data structure</li>
+<li><code>trackingElt</code>: an sdrlist element managed by the user's application</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="cm">/* a lyst of bundles in SDR */</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">Object</span><span class="w"> </span><span class="n">bundleList</span><span class="p">;</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="cm">/* a bundle object in SDR */</span>
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="n">Object</span><span class="w"> </span><span class="n">bundleObject</span><span class="p">;</span>
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="n">bundleElt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sdr_list_insert_last</span><span class="p">(</span><span class="n">sdr</span><span class="p">,</span><span class="w"> </span><span class="n">bundleList</span><span class="p">,</span>
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="w">                </span><span class="n">bundleObject</span><span class="p">);</span>
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bp_track</span><span class="p">(</span><span class="n">outAdu</span><span class="p">.</span><span class="n">bundleObj</span><span class="p">,</span><span class="w"> </span><span class="n">bundleElt</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="p">{</span>
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="w">        </span><span class="n">sdr_cancel_xn</span><span class="p">(</span><span class="n">sdr</span><span class="p">);</span>
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a><span class="w">        </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;Can&#39;t track bundle.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>
+<a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="w">        </span><span class="cm">/* user error handling code goes here */</span>
+<a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a><span class="p">}</span>
+</code></pre></div>
+<p>The bundleList is managed via the <a href="../ICI-API/#sdr-list-management-apis">sdr_list</a> library of APIs.</p>
+<p>Description</p>
+<p>Adds <code>trackingElt</code> to the list of "tracking" references in bundle. <code>trackingElt</code> must be the address of an SDR list element -- whose data is the address of this same bundle -- within some list of bundles that is privately managed by the application. Upon destruction of the bundle this list element will automatically be deleted, thus removing the bundle from the application's privately managed list of bundles. This enables the application to keep track of bundles that it is operating on without risk of inadvertently de-referencing the address of a nonexistent bundle.</p>
+<hr />
+<h3 id="bp_untrack">bp_untrack</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bp_untrack</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">bundle</span><span class="p">,</span><span class="w"> </span><span class="n">Object</span><span class="w"> </span><span class="n">trackingElt</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>bundle</code>: the bundle object data structure</li>
+<li><code>trackingElt</code>: an sdrlist element managed by the user's application</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Description</p>
+<p>Removes <code>trackingElt</code> from the list of "tracking" references in bundle, if it is in that list. Does not delete <code>trackingElt</code> itself.</p>
+<hr />
+<h3 id="bp_suspend">bp_suspend</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_suspend</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">bundle</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>bundle</code>: a bundle object in the SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Description</p>
+<p>Suspends transmission of bundle. Has no effect if bundle is "critical" (i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or if the bundle is already suspended. Otherwise, reverses the enqueuing of the bundle to its selected transmission outduct and places it in the "limbo" queue until the suspension is lifted by calling bp_resume. Returns 0 on success, -1 on any error.</p>
+<hr />
+<h3 id="bp_resume">bp_resume</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_resume</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">bundle</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>bundle</code>: a bundle object in the SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Description</p>
+<p>Terminates suspension of transmission of bundle. Has no effect if bundle is "critical" (i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or is not suspended. Otherwise, removes the bundle from the "limbo" queue and queues it for route re-computation and re-queuing. Returns 0 on success, -1 on any error.</p>
+<hr />
+<h3 id="bp_cancel">bp_cancel</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_cancel</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">bundle</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>bundle</code>: a bundle object in the SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Description</p>
+<p>Cancels transmission of bundle. If the indicated bundle is currently queued for forwarding, transmission, or retransmission, it is removed from the relevant queue and destroyed exactly as if its Time To Live had expired. Returns 0 on success, -1 on any error.</p>
+<hr />
+<h3 id="bp_release">bp_release</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_release</span><span class="p">(</span><span class="n">Object</span><span class="w"> </span><span class="n">bundle</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>bundle</code>: a bundle object in the SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Description</p>
+<p>Releases a detained bundle for destruction when all retention constraints have been removed. After a detained bundle has been released, the application can no longer track, suspend/resume, or cancel its transmission. Returns 0 on success, -1 on any error.</p>
+<p><strong>NOTE</strong>: for bundles sent through an bundle protocol end-point which is opened via <code>bp_open_source</code> with <code>detain</code> set to non-zero value, they will not be destroyed, even after successful transmissions, until time-to-live has expired or explicitly released via <code>bp_release</code>. </p>
+<hr />
+<h3 id="bp_receive">bp_receive</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kt">int</span><span class="w"> </span><span class="n">bp_receive</span><span class="p">(</span><span class="n">BpSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">,</span><span class="w"> </span><span class="n">BpDelivery</span><span class="w"> </span><span class="o">*</span><span class="n">dlvBuffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">timeoutSeconds</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sap</code>: the source endpoint for the bundle, provided by the <code>bp_open</code> call</li>
+<li><code>*dlvBuffer</code>: a pointer to a <code>BpDelivery</code> structure used to return the received bundle and/or outcome of reception</li>
+<li><code>timoutSeconds</code>: a reception timer in seconds </li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: any error</li>
+</ul>
+<p>Example Call</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">bp_receive</span><span class="p">(</span><span class="n">state</span><span class="p">.</span><span class="n">sap</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dlv</span><span class="p">,</span><span class="w"> </span><span class="n">BP_BLOCKING</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="p">{</span>
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">        </span><span class="n">putErrmsg</span><span class="p">(</span><span class="s">&quot;bpsink bundle reception failed.&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="w">        </span><span class="cm">/* user code to handle error or timeout*/</span>
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>In this example, BP_BLOCKING is set to -1, that means that the call will block <em>forever</em> until a bundle is received, unless interrupted <code>bp_interrupt</code>.</p>
+<p>Description</p>
+<p>Receives a bundle, or reports on some failure of bundle reception activity.</p>
+<p>The "result" field of the dlvBuffer structure will be used to indicate the outcome of the data reception activity.</p>
+<p>If at least one bundle destined for the endpoint for which this SAP is opened has not yet been delivered to the SAP, then the payload of the oldest such bundle will be returned in <code>dlvBuffer-&gt;adu</code> and <code>dlvBuffer-&gt;result</code> will be set to BpPayloadPresent. If there is no such bundle, bp_receive() blocks for up to timeoutSeconds while waiting for one to arrive.</p>
+<p>If timeoutSeconds is BP_POLL (i.e., zero) and no bundle is awaiting delivery, or if timeoutSeconds is greater than zero but no bundle arrives before timeoutSeconds have elapsed, then <code>dlvBuffer-&gt;result</code> will be set to BpReceptionTimedOut. If timeoutSeconds is BP_BLOCKING (i.e., -1) then bp_receive() blocks until either a bundle arrives or the function is interrupted by an invocation of <code>bp_interrupt</code>().</p>
+<p><code>dlvBuffer-&gt;result</code> will be set to BpReceptionInterrupted in the event that the calling process received and handled some signal other than SIGALRM while waiting for a bundle.</p>
+<p><code>dlvBuffer-&gt;result</code> will be set to BpEndpointStopped in the event that the operation of the indicated endpoint has been terminated.</p>
+<p>The application data unit delivered in the data delivery structure, if any, will be a "zero-copy object" reference. Use zco reception functions (see zco(3)) to read the content of the application data unit.</p>
+<p>Be sure to call <code>bp_release_delivery</code>() after every successful invocation of <code>bp_receive</code>().</p>
+<p>The function returns 0 on success, -1 on any error.</p>
+<hr />
+<h3 id="bp_interrupt">bp_interrupt</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bp_interrupt</span><span class="p">(</span><span class="n">BpSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>bundle</code>: a bundle object in the SDR</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>0: success</li>
+<li>-1: Any error</li>
+</ul>
+<p>Description</p>
+<p>Interrupts a <code>bp_receive</code>() invocation that is currently blocked. This function is designed to be called from a signal handler; for this purpose, sap may need to be obtained from a static variable.</p>
+<hr />
+<h3 id="bp_release_delivery">bp_release_delivery</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bp_release_delivery</span><span class="p">(</span><span class="n">BpDelivery</span><span class="w"> </span><span class="o">*</span><span class="n">dlvBuffer</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">releaseAdu</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>*dlvBuffer</code>: a pointer to a <code>BpDelivery</code> structure used to return the received bundle and/or outcome of reception</li>
+<li><code>releaseAdu</code>: a Boolean parameter: if non-zero, the ADU ZCO reference in dlvBuffer (if any) is destroyed.</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Description</p>
+<p>Releases resources allocated to the indicated delivery by <code>dlvBuffer</code>, which is returned by bp_receive. <code>releaseAdu</code> is a Boolean parameter: if non-zero, the ADU ZCO reference in <code>dlvBuffer</code> (if any) is destroyed, causing the ZCO itself to be destroyed if no other references to it remain.</p>
+<hr />
+<h3 id="bp_close">bp_close</h3>
+<p>Function Prototype</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kt">void</span><span class="w"> </span><span class="n">bp_close</span><span class="p">(</span><span class="n">BpSAP</span><span class="w"> </span><span class="n">sap</span><span class="p">)</span>
+</code></pre></div>
+<p>Parameters</p>
+<ul>
+<li><code>sap</code>: the source endpoint for the bundle, provided by the <code>bp_open</code> or <code>bp_open_source</code> call</li>
+</ul>
+<p>Return Value</p>
+<ul>
+<li>none</li>
+</ul>
+<p>Description</p>
+<p>Terminates the application's access to the BP endpoint identified by the eid cited by the indicated service access point. The application relinquishes its ability to take delivery of bundles destined for the indicated endpoint and to send bundles whose source is the indicated endpoint.</p>
+<hr />
+<h2 id="walk-through-of-bpsourcec">Walk Through of <code>bpsource.c</code></h2>
+<ul>
+<li>
+<p>For this example, it is assumed that the user is already familiar with the <a href="../ICI-API/">ICI APIs</a>.</p>
+</li>
+<li></li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
+<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;bp.h&quot;</span>
+<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;sdr.h&quot;</span>
+<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ion.h&quot;</span>
+<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>
+<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
+<a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="p">{</span>
+<a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="w">        </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">choice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">ret_value</span><span class="p">;</span>
+<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>
+<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="w">        </span><span class="k">do</span>
+<a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="w">        </span><span class="p">{</span>
+<a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;0 - Exit</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;1 - BP Attach</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;2 - BP Detach</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;3 - SDR Shutdown</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;4 - ION Detach</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;Option:  &quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a><span class="w">                </span><span class="n">scanf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;%u&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">choice</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a>
+<a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a><span class="w">                </span><span class="k">switch</span><span class="p">(</span><span class="w"> </span><span class="n">choice</span><span class="w"> </span><span class="p">)</span>
+<a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a><span class="w">                </span><span class="p">{</span>
+<a id="__codelineno-34-23" name="__codelineno-34-23" href="#__codelineno-34-23"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-34-24" name="__codelineno-34-24" href="#__codelineno-34-24"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-34-25" name="__codelineno-34-25" href="#__codelineno-34-25"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-34-26" name="__codelineno-34-26" href="#__codelineno-34-26"></a><span class="w">                                </span><span class="n">ret_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bp_attach</span><span class="p">();</span>
+<a id="__codelineno-34-27" name="__codelineno-34-27" href="#__codelineno-34-27"></a>
+<a id="__codelineno-34-28" name="__codelineno-34-28" href="#__codelineno-34-28"></a><span class="w">                                </span><span class="k">if</span><span class="p">(</span><span class="w"> </span><span class="n">ret_value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">)</span>
+<a id="__codelineno-34-29" name="__codelineno-34-29" href="#__codelineno-34-29"></a><span class="w">                                        </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;Attached</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-30" name="__codelineno-34-30" href="#__codelineno-34-30"></a><span class="w">                                </span><span class="k">else</span>
+<a id="__codelineno-34-31" name="__codelineno-34-31" href="#__codelineno-34-31"></a><span class="w">                                </span><span class="p">{</span>
+<a id="__codelineno-34-32" name="__codelineno-34-32" href="#__codelineno-34-32"></a><span class="w">                                        </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;Error %d returned from bp_attach().</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ret_value</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-33" name="__codelineno-34-33" href="#__codelineno-34-33"></a><span class="w">                                        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="__codelineno-34-34" name="__codelineno-34-34" href="#__codelineno-34-34"></a><span class="w">                                </span><span class="p">}</span>
+<a id="__codelineno-34-35" name="__codelineno-34-35" href="#__codelineno-34-35"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-34-36" name="__codelineno-34-36" href="#__codelineno-34-36"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">2</span><span class="p">:</span>
+<a id="__codelineno-34-37" name="__codelineno-34-37" href="#__codelineno-34-37"></a><span class="w">                                </span><span class="n">bp_detach</span><span class="p">();</span>
+<a id="__codelineno-34-38" name="__codelineno-34-38" href="#__codelineno-34-38"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-34-39" name="__codelineno-34-39" href="#__codelineno-34-39"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">3</span><span class="p">:</span>
+<a id="__codelineno-34-40" name="__codelineno-34-40" href="#__codelineno-34-40"></a><span class="w">                                </span><span class="n">sdr_shutdown</span><span class="p">();</span>
+<a id="__codelineno-34-41" name="__codelineno-34-41" href="#__codelineno-34-41"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-34-42" name="__codelineno-34-42" href="#__codelineno-34-42"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">4</span><span class="p">:</span>
+<a id="__codelineno-34-43" name="__codelineno-34-43" href="#__codelineno-34-43"></a><span class="w">                                </span><span class="n">ionDetach</span><span class="p">();</span>
+<a id="__codelineno-34-44" name="__codelineno-34-44" href="#__codelineno-34-44"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-34-45" name="__codelineno-34-45" href="#__codelineno-34-45"></a><span class="w">                        </span><span class="k">default</span><span class="o">:</span>
+<a id="__codelineno-34-46" name="__codelineno-34-46" href="#__codelineno-34-46"></a><span class="w">                                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;That&#39;s not a choice you should make...</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-47" name="__codelineno-34-47" href="#__codelineno-34-47"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
+<a id="__codelineno-34-48" name="__codelineno-34-48" href="#__codelineno-34-48"></a><span class="w">                </span><span class="p">};</span>
+<a id="__codelineno-34-49" name="__codelineno-34-49" href="#__codelineno-34-49"></a><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="p">(</span><span class="w"> </span><span class="n">choice</span><span class="w"> </span><span class="p">);</span>
+<a id="__codelineno-34-50" name="__codelineno-34-50" href="#__codelineno-34-50"></a>
+<a id="__codelineno-34-51" name="__codelineno-34-51" href="#__codelineno-34-51"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="__codelineno-34-52" name="__codelineno-34-52" href="#__codelineno-34-52"></a><span class="p">}</span>
+</code></pre></div>
+<h2 id="compiling-and-linking">Compiling and Linking</h2>
+<h2 id="zero-copy-object-zco-types">Zero-copy Object (ZCO) Types</h2>
+<p>We have shown that the way to hand user data from an application to BP is via a zero-copy object (ZCO).</p>
+<p>In general there are two types of ZCO that is relevant to a user.</p>
+<ul>
+<li>Note A third type of ZCO is called a ZCO ZCO - one consists of multiple other ZCOs. This is used internally by ION to handle concatenation of data but it is not relevant in the context of this topic.</li>
+</ul>
+<h3 id="sdr-zco">SDR ZCO</h3>
+<ul>
+<li>Used in our example</li>
+<li>Example in <code>bpsource.c</code></li>
+</ul>
+<h3 id="file-zco">File ZCO</h3>
+<ul>
+<li>Can be used if you wish not to make a copy of the data in the ION SDR (possibly to save SDR space)</li>
+<li>You allow ION to access the original data (file) in the host computer's file system. Need to check if this restriction applies.</li>
+<li>See example in <code>bpdriver.c</code></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var tab,labels=set.querySelector(".tabbed-labels");for(tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.8fd75fb4.min.js"></script>
+      
+    
+  </body>
+</html>
