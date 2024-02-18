@@ -306,19 +306,20 @@ Sometimes shutting down ION does not go smoothly and you can't seem to relaunch 
 ### ION Configuration File Tutorial
 
 To learn about the configuration files and the basic set of command syntax and functions:
-[ION Config File Tutorial](https://sourceforge.net/p/ion-dtn/wiki/ION%20Configuration%20File%20Tutorial/)
+[ION Config File Tutorial](./Basic-Configuration-File-Tutorial.md)
 
 ### ION Configuration File Template
 
-[ION Config File Template](https://sourceforge.net/p/ion-dtn/wiki/ION%20Configuration%20File%20Templates/)
+[ION Config File Template](./ION-Config-File-Templates.md)
 
 ### ION NASA Course
 
 To learn more about the design principle of ION and how to use it, a complete series of tutorials is available here:
 [NASA ION Course](https://www.nasa.gov/directorates/heo/scan/engineering/technology/disruption_tolerant_networking_software_options_ion)
 
-If you use the ION Dev Kit mentioned in the NASA ION Course, you can find some additional helpful files here:
+The ION Dev Kit mentioned in the NASA ION Course had been deprecated. However, some additional helpful files can be found here to complete the examples:
 [Additional DevKit Files](https://sourceforge.net/p/ion-dtn/wiki/DevKit%20-%20additional%20materials/)
+
 
 ---
 

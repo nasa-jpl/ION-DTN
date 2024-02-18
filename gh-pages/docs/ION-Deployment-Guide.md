@@ -2067,7 +2067,7 @@ emulate specific flight configurations, nor do they cover long
 round-trip delay and high error rate space links. For specific link
 conditions and computing the recommended LTP settings, please consult
 the LTP Configuration Tool spreadsheet provided with each ION
-open-source package on SourceForge.
+open-source package.
 
 ## Acknowledgment
 

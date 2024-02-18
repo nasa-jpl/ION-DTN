@@ -2414,8 +2414,8 @@ flight operations.
 ## **Operation**
 
 The ION source distribution contains a README.TXT file with details on
-building ION from source. For installations starting with the
-Sourceforge distribution, the standard sequence of
+building ION from source. For installations starts with the
+open source distribution ION-DTN, using the standard sequence of
 
 -   ./configure
 
