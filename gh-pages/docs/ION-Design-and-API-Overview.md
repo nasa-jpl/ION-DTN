@@ -44,7 +44,7 @@ The entire ION software suite operates within a prescribed memory space. It is p
 
 ## Modular Packaging - ION Core
 
-Due to the highly modular design of ION, it is possible to build a streamlined package that contains only the modules required for a specific system to maximize resource efficiency and reduce V&V costs. For example, in response to a particular JPL mission's requirement, the [ION-Core](https://github.com/nasa-jpl/ion-core) 4.1.2a package delivered a significantly streamlined package containing only three modules, namely BPv7, STCP CLA, and UDP CLA. This package delivered DTN capabilities to a highly resource-constrained platform, minimizing both processing and storage footprints of all statically linked daemons and DTN applications.
+Due to the highly modular design of ION, it is possible to build a streamlined package that contains only the modules required for a specific system to maximize resource efficiency and reduce V&V costs. [ION-Core](https://github.com/nasa-jpl/ion-core) 4.1.2b package offers the ability to selectively build different sets of CLAs and bundle extensions blocks, targeting either 32-bit or 64-bit operating systems. 
 
 ## ION APIs
 
