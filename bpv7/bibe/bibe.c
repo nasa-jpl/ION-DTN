@@ -567,7 +567,7 @@ int	bibeHandleBpdu(BpDelivery *dlv)
 		}
 		else
 		{
-			writeMemoNote("No such BIBE duct; no custody transfer.",
+			writeMemoNote("No such bcla; no custody transfer",
 					dlv->bundleSourceEid);
 		}
 	}
@@ -656,7 +656,7 @@ int	bibeHandleSignal(BpDelivery *dlv, unsigned char *cursor,
 	bibeFind(dlv->bundleSourceEid, &bclaObj, &bclaElt);
 	if (bclaElt == 0)
 	{
-		writeMemoNote("No such BIBE duct; ignoring custody signal.",
+		writeMemoNote("No such BIBE duct; ignoring custody signal",
 				dlv->bundleSourceEid);
 		return 0;
 	}
