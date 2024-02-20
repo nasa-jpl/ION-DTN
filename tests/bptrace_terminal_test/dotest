@@ -170,7 +170,7 @@ cd ../2.ipn.ltp
 # bash
 
 # trace from node 2 to node 5 with all flags enabled, and a rtt of 4 seconds (so bptrace stops listening after 4 seconds)
-OUTPUT=`bptrace -qos 0.1 -flags all -msg "test message 1" -ttl 10 -rtt 12 ipn:2.1 ipn:5.1 ipn:2.420`
+OUTPUT=`bptrace -qos 0.1 -flags "fwd,rcv,dlv,del" -msg "test message 1" -ttl 10 -rtt 12 ipn:2.1 ipn:5.1 ipn:2.420`
 echo "$OUTPUT"
 # count the number of reports that had 'okay' status message, should have 4
 # fwd from node 2
