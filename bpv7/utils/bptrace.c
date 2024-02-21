@@ -152,11 +152,6 @@ void sighandler(int signum)	{
 
 static void	setFlag(int *srrFlags, char *arg)
 {
-	if (strcmp(arg, "all") == 0)
-	{
-		(*srrFlags) = BP_RECEIVED_RPT | BP_FORWARDED_RPT | BP_DELIVERED_RPT | BP_DELETED_RPT;
-	}
-
 	if (strcmp(arg, "rcv") == 0)
 	{
 		(*srrFlags) |= BP_RECEIVED_RPT;
@@ -706,9 +701,9 @@ usage(
 	fprintf(stderr, "-ttl <ttl>  \tInteger number of seconds after which bundle should expire. Default: 10\n");
 	fprintf(stderr, "-rtt <rtt>  \tInteger number of seconds to wait for status reports. Default: 2 * ttl\n");
 	fprintf(stderr, "-qos <qos>  \tQuality of service. Default: 0.1 \n\t\t" BP_PARSE_QUALITY_OF_SERVICE_USAGE "\n");
-	fprintf(stderr, "-flags <flags>\tStatus report flags. Default: all\n");
+	fprintf(stderr, "-flags <flags>\tStatus report flags. Default: none\n");
 	fprintf(stderr, "\tStatus report flag string is a sequence of status report flags separated by commas, with no embedded whitespace.\n");
-	fprintf(stderr, "\tEach status report flag must be one of the following: rcv, fwd, dlv, del, all.\n");
+	fprintf(stderr, "\tEach status report flag must be one of the following: rcv, fwd, dlv, del.\n");
 	fprintf(stderr, "\tThe status reported in each bundle status report message will be the sum of the applicable status flags:\n");
 	fprintf(stderr, "\t\t 1 = bundle received (rcv)\n");
 	fprintf(stderr, "\t\t 4 = bundle forwarded (fwd)\n");
@@ -803,8 +798,6 @@ int	main(int argc, char **argv)
 		trace = "No message supplied.";
 	if(!ttl)
 		ttl = 10;
-	if(!flagString)
-		flagString = "all";
 	if(!(ownEid && destEid && traceEid)){
 		usage(argv[0], "insufficient arguments.");
 	}
