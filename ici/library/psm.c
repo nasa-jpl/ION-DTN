@@ -120,6 +120,7 @@ typedef struct			/*	Global view in shared memory.	*/
 	char		name[32];
 	int		traceKey;	/*	For sptrace.		*/
 	size_t		traceSize;	/*	0 = trace disabled.	*/
+	int		traceCount; 	/* track trace episode */
 	PsmAddress	startOfSmallPool;
 	PsmAddress	endOfSmallPool;
 	SmallFreeBucket	smallPoolFree[SMALL_SIZES];
@@ -312,6 +313,8 @@ actual name.", map->name);
 		map->unassignedSpace = map->startOfLargePool -
 				map->endOfSmallPool;
 		map->traceKey = sm_GetUniqueKey();
+		map->traceSize = 0; /* default to disable trace */
+		map->traceCount = 0; /* no trace yet */
 	}
 
 	map->semaphore = sm_SemCreate(SM_NO_KEY, SM_SEM_FIFO);
@@ -838,8 +841,23 @@ static int	traceInProgress(PsmPartition partition)
 	{
 		if (map->traceSize < 1)	/*	Trace is now disabled.	*/
 		{
+			sptrace_stop(partition->trace);
 			partition->trace = NULL;
 			return 0;	/*	Don't trace.		*/
+		}
+		else
+		{
+			if (partition->traceCount != map->traceCount)
+			{
+				/* there is a new trace episode */
+				sptrace_stop(partition->trace);
+				partition->trace = NULL;
+					
+				if (psm_start_trace(partition, map->traceSize, NULL) < 0)
+				{
+					return 0;	/*	Fail silently.		*/
+				}
+			}
 		}
 	}
 
@@ -1414,9 +1432,11 @@ actual.", itoa(map->traceSize));
 	else			/*	Trace is not currently enabled.	*/
 	{
 		map->traceSize = shmSize;	/*	Enable trace.	*/
+		map->traceCount++;
 	}
 
 	partition->trace = (PsmView *) (partition->traceArea);
+	partition->traceCount = map->traceCount;
 
 	/*	(To prevent dynamic allocation of the trace episode's
 	 *	space management structure.)				*/
