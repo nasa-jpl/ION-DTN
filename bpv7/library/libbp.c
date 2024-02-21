@@ -240,7 +240,7 @@ int	bp_parse_quality_of_service(const char *token,
 	unsigned int myOrdinal;
 	unsigned int myUnreliable;
 	unsigned int myCritical;
-	unsigned int myDataLabel;
+	unsigned int myDataLabel = 0;
 
 	count = sscanf(token, "%11u.%11u.%11u.%11u.%11u.%11u",
 			&myCustodyRequested, &myPriority, &myOrdinal,
@@ -283,16 +283,7 @@ int	bp_parse_quality_of_service(const char *token,
 	/*	Syntax and bounds-checking passed; assign to outputs.	*/
 
 	ancillaryData->flags = 0;
-	if (count >= 6)
-	{
-		ancillaryData->dataLabel = myDataLabel;
-		ancillaryData->flags |= BP_DATA_LABEL_PRESENT;
-	}
-	else
-	{
-		ancillaryData->dataLabel = 0;
-	}
-
+	ancillaryData->dataLabel = myDataLabel;
 	if (count >= 5)
 	{
 		ancillaryData->flags |= ((myUnreliable ? BP_BEST_EFFORT : 0)
@@ -373,8 +364,9 @@ int	bp_send(BpSAP sap, char *destEid, char *reportToEid, int lifespan,
 	/*	Note: lifespan must be converted from seconds to
 	 *	millisecnods for BP processing.				*/
 
-	return bpSend(sourceMetaEid, destEid, reportToEid, (uvast) lifespan * 1000,
-			classOfService, custodySwitch, srrFlags, ackRequested,
+	return bpSend(sourceMetaEid, destEid, reportToEid,
+			(uvast) lifespan * 1000, classOfService,
+			custodySwitch, srrFlags, ackRequested,
 			ancillaryData, adu, bundleObj, 0);
 }
 

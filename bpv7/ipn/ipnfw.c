@@ -101,37 +101,20 @@ static int	applyRoutingOverride(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
 {
 	Sdr		sdr = getIonsdr();
-	Object		addr;
-			OBJ_POINTER(IpnOverride, ovrd);
 	char		eid[MAX_EID_LEN + 1];
 	VPlan		*vplan;
 	PsmAddress	vplanElt;
 	BpPlan		plan;
 
-	if (ipn_lookupOvrd(bundle->ancillaryData.dataLabel,
-			bundle->id.source.ssp.ipn.nodeNbr,
-			bundle->destination.ssp.ipn.nodeNbr, &addr) == 0)
+	if (bundle->ovrdNeighbor == 0)
 	{
-		/*	No applicable routing override.			*/
-
-		return 0;
-	}
-
-	/*	Routing override found.					*/
-
-	GET_OBJ_POINTER(sdr, IpnOverride, ovrd, addr);
-	if (ovrd->neighbor == 0)
-	{
-		/*	Override neighbor not yet determined.		*/
-
-		bundle->ovrdPending = 1;
-		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return 0;
 	}
 
 	/*	Must forward to override neighbor.			*/
 
-	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0", ovrd->neighbor);
+	isprintf(eid, sizeof eid, "ipn:" UVAST_FIELDSPEC ".0",
+			bundle->ovrdNeighbor);
 	findPlan(eid, &vplan, &vplanElt);
 	if (vplanElt == 0)	/*	Not a usable override.		*/
 	{
@@ -158,7 +141,7 @@ an egress plan that redirects to another EID; potential forwarding loop", eid);
 		return 0;
 	}
 
-	/*	Invoke the routing override.				*/
+	/*	Forward per the neighbor override.			*/
 
 	if (bpEnqueue(vplan, bundle, bundleObj) < 0)
 	{
@@ -167,29 +150,6 @@ an egress plan that redirects to another EID; potential forwarding loop", eid);
 	}
 
 	return 0;
-}
-
-static void	bindOverride(Bundle *bundle, Object bundleObj, uvast nodeNbr)
-{
-	Sdr		sdr = getIonsdr();
-	Object		ovrdAddr;
-	IpnOverride	ovrd;
-
-	bundle->ovrdPending = 0;
-	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
-	if (ipn_lookupOvrd(bundle->ancillaryData.dataLabel,
-			bundle->id.source.ssp.ipn.nodeNbr,
-			bundle->destination.ssp.ipn.nodeNbr, &ovrdAddr) == 0)
-	{
-		return;		/*	No pending override to bind.	*/
-	}
-
-	sdr_stage(sdr, (char *) &ovrd, ovrdAddr, sizeof(IpnOverride));
-	if (ovrd.neighbor == 0)
-	{
-		ovrd.neighbor = nodeNbr;
-		sdr_write(sdr, ovrdAddr, (char *) &ovrd, sizeof(IpnOverride));
-	}
 }
 
 /*		HIRR invocation functions.				*/
@@ -398,11 +358,6 @@ static int	enqueueToEntryNode(CgrRoute *route, Bundle *bundle,
 	Object		contactObj;
 	IonContact	contactBuf;
 	int		i;
-
-	if (bundle->ovrdPending)
-	{
-		bindOverride(bundle, bundleObj, route->toNodeNbr);
-	}
 
 	/*	Note that a copy is being sent on the route through
 	 *	this neighbor.						*/
@@ -868,15 +823,15 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	 *
 	 *	Note that CGR can be used to compute a route to an
 	 *	intermediate "station" node selected by another
-	 *	routing mechanism (such as static routing), not
-	 *	only to the bundle's final destination node.  In
-	 *	the simplest case, the bundle's destination is the
-	 *	only "station" selected for the bundle.  To avoid
-	 *	confusion, we here use the term "terminus" to refer
-	 *	to the node to which a route is being computed,
-	 *	regardless of whether that node is the bundle's
-	 *	final destination or an intermediate forwarding
-	 *	station.			 			*/
+	 *	routing mechanism (such as static routing or IRF),
+	 *	not only to the bundle's final destination node.
+	 *	In the simplest case, the bundle's destination is
+	 *	the only "station" selected for the bundle.  To
+	 *	avoid confusion, we here use the term "terminus"
+	 *	to refer to the node to which a route is being
+	 *	computed, regardless of whether that node is the
+	 *	bundle's final destination or an intermediate
+	 *	forwarding station.		 			*/
 
 	CHKERR(bundle && bundleObj && terminusNode);
 	TRACE(CgrBuildRoutes, terminusNode->nodeNbr, bundle->payload.length,
@@ -1027,7 +982,7 @@ static int 	tryCGR(Bundle *bundle, Object bundleObj, IonNode *terminusNode,
 	return 0;
 }
 
-/*		Contingency functions for when CGR and HIRR don't work.	*/
+/*		Contingency functions for when CGR and IRF don't work.	*/
 
 static int	enqueueToNeighbor(Bundle *bundle, Object bundleObj,
 			uvast nodeNbr)
@@ -1105,12 +1060,12 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	Object		elt;
 	char		eid[SDRSTRING_BUFSZ];
 	MetaEid		metaEid;
-	uvast		nodeNbr;
 	VScheme		*vscheme;
 	PsmAddress	vschemeElt;
+	uvast		nodeNbr;
 	IonNode		*node;
-	uint32_t	regionNbr;
 	PsmAddress	nextNode;
+	uint32_t	regionNbr;
 #if CGR_DEBUG == 1
 	CgrTrace	*trace = &(CgrTrace) { .fn = printCgrTraceLine };
 #else
@@ -1174,7 +1129,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 
 	if (ionRegionOf(nodeNbr, 0, &regionNbr) < 0)
 	{
-		/*	Destination node is not in any region that
+		/*	Terminus node is not in any region that
 		 *	the local node is in.  Send via passageway(s).	*/
 
 		if (tryHIRR(bundle, bundleObj, node, getCtime()))
@@ -1200,7 +1155,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 
 	if (bundle->planXmitElt)
 	{
-		/*	Enqueued.					*/
+		/*	Enqueued.				*/
 
 		return bpAccept(bundleObj, bundle);
 	}
@@ -1341,14 +1296,15 @@ int	main(int argc, char *argv[])
 		bundleAddr = (Object) sdr_list_data(sdr, elt);
 		sdr_stage(sdr, (char *) &bundle, bundleAddr, sizeof(Bundle));
 
-		/*	Note any applicable class of service override.	*/
+		/*	Note any applicable overrides for routing
+		 *	and/or class of service.			*/
 
 		bundle.priority = bundle.classOfService;
 		bundle.ordinal = bundle.ancillaryData.ordinal;
 		bundle.qosFlags = bundle.ancillaryData.flags;
 		if (ipn_lookupOvrd(bundle.ancillaryData.dataLabel,
-				bundle.id.source.ssp.ipn.nodeNbr,
-				bundle.destination.ssp.ipn.nodeNbr, &ovrdAddr))
+				bundle.destination.ssp.ipn.nodeNbr, 
+				bundle.id.source.ssp.ipn.nodeNbr, &ovrdAddr))
 		{
 			sdr_read(sdr, (char *) &ovrd, ovrdAddr,
 					sizeof(IpnOverride));
@@ -1358,7 +1314,30 @@ int	main(int argc, char *argv[])
 
 				bundle.priority = ovrd.priority;
 				bundle.ordinal = ovrd.ordinal;
-				bundle.qosFlags |= ovrd.qosFlags;
+				bundle.qosFlags = ovrd.qosFlags;
+			}
+
+			if (ovrd.neighbor)
+			{
+				bundle.ovrdNeighbor = ovrd.neighbor;
+				if (bundle.ovrdDuctExpr)
+				{
+					sdr_free(sdr, bundle.ovrdDuctExpr);
+					bundle.ovrdDuctExpr = 0;
+				}
+
+				if (ovrd.ductExpression)
+				{
+					bundle.ovrdDuctExpr =
+							sdr_string_dup(sdr,
+							ovrd.ductExpression);
+					if (bundle.ovrdDuctExpr == 0)
+					{
+						putErrmsg("Can't copy override \
+duct expression.", NULL);
+						return -1;
+					}
+				}
 			}
 		}
 

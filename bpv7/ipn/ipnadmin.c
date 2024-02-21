@@ -74,7 +74,7 @@ static void	printUsage()
 	PUTS("\t   a plan <node nbr> <duct expression> [<xmit rate>]");
 	PUTS("\t   a exit <first node nbr> <last node nbr> <endpoint ID>");
 	PUTS("\t   a rtovrd <data label> <dest node#> <src node#> <neighbor \
-node#>");
+node#> [<ductExpression>]");
 	PUTS("\t\tFor all destinations or all sources use node number 0.");
 	PUTS("\t   a cosovrd <data label> <dest node> <src node> <p#> <o#> \
 [<QoS flags>]");
@@ -85,7 +85,7 @@ node#>");
 	PUTS("\t   c plan <node nbr> <xmit rate>");
 	PUTS("\t   c exit <first node nbr> <last node nbr> <endpoint ID>");
 	PUTS("\t   c rtovrd <data label> <dest node#> <src node#> <neighbor \
-node#>");
+node#> [<ductExpression>]");
 	PUTS("\t   c cosovrd <data label> <dest node> <src node> <p#> <o#> \
 [<QoS flags>]");
 	PUTS("\td\tDelete");
@@ -107,9 +107,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	unsigned int	nominalRate = 0;
 	char		*spec;
+	char		*ovrdDuctExpression;
+	unsigned int	dataLabel;
 	uvast		destNodeNbr;
 	uvast		sourceNodeNbr;
 	uvast		neighbor;
+	int		maxQosFlags =  (BP_MINIMUM_LATENCY |
+					BP_BEST_EFFORT |
+					BP_RELIABLE);
 	int		flags;
 	unsigned char	priority;
 	unsigned char	ordinal;
@@ -158,10 +163,27 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "rtovrd") == 0)
 	{
-		if (tokenCount != 6)
+		if (tokenCount == 7)
 		{
-			SYNTAX_ERROR;
-			return;
+			ovrdDuctExpression = tokens[6];
+		}
+		else
+		{
+			if (tokenCount == 6)
+			{
+				ovrdDuctExpression = NULL;
+			}
+			else
+			{
+				SYNTAX_ERROR;
+				return;
+			}
+		}
+
+		dataLabel = strtoul(tokens[2], NULL, 0);
+		if (dataLabel == 0)
+		{
+			dataLabel = (unsigned int) -1;
 		}
 
 		destNodeNbr = strtouvast(tokens[3]);
@@ -177,8 +199,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 		}
 
 		neighbor = strtouvast(tokens[5]);
-		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				neighbor, (unsigned char) -2, 0, 0);
+		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr, neighbor,
+				ovrdDuctExpression, (unsigned char) -2, 0, 0);
 		return;
 	}
 
@@ -188,9 +210,9 @@ static void	executeAdd(int tokenCount, char **tokens)
 		{
 			flags = atoi(tokens[7]);
 
-			/*	Limit QoS flag augmentations.		*/
+			/*	Limit QoS configuration.		*/
 
-			flags &= (BP_BIBE_REQUESTED | BP_CT_REQUESTED);
+			flags &= maxQosFlags;
 		}
 		else
 		{
@@ -203,6 +225,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 				SYNTAX_ERROR;
 				return;
 			}
+		}
+
+		dataLabel = strtoul(tokens[2], NULL, 0);
+		if (dataLabel == 0)
+		{
+			dataLabel = (unsigned int) -1;
 		}
 
 		destNodeNbr = strtouvast(tokens[3]);
@@ -219,8 +247,8 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		priority = atoi(tokens[5]);
 		ordinal = atoi(tokens[6]);
-		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				(uvast) -2, priority, ordinal, flags);
+		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr, (uvast) -2,
+				NULL, priority, ordinal, flags);
 		return;
 	}
 
@@ -230,9 +258,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 static void	executeChange(int tokenCount, char **tokens)
 {
 	unsigned int	nominalRate = 0;
+	char		*ovrdDuctExpression;
+	unsigned int	dataLabel;
 	uvast		destNodeNbr;
 	uvast		sourceNodeNbr;
 	uvast		neighbor;
+	int		maxQosFlags =  (BP_MINIMUM_LATENCY |
+					BP_BEST_EFFORT |
+					BP_RELIABLE);
 	int		flags;
 	unsigned char	priority;
 	unsigned char	ordinal;
@@ -272,10 +305,27 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "rtovrd") == 0)
 	{
-		if (tokenCount != 6)
+		if (tokenCount == 7)
 		{
-			SYNTAX_ERROR;
-			return;
+			ovrdDuctExpression = tokens[6];
+		}
+		else
+		{
+			if (tokenCount == 6)
+			{
+				ovrdDuctExpression = NULL;
+			}
+			else
+			{
+				SYNTAX_ERROR;
+				return;
+			}
+		}
+
+		dataLabel = strtoul(tokens[2], NULL, 0);
+		if (dataLabel == 0)
+		{
+			dataLabel = (unsigned int) -1;
 		}
 
 		destNodeNbr = strtouvast(tokens[3]);
@@ -291,8 +341,8 @@ static void	executeChange(int tokenCount, char **tokens)
 		}
 
 		neighbor = strtouvast(tokens[5]);
-		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				neighbor, (unsigned char) -2, 0, 0);
+		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr, neighbor,
+				ovrdDuctExpression, (unsigned char) -2, 0, 0);
 		return;
 	}
 
@@ -302,9 +352,9 @@ static void	executeChange(int tokenCount, char **tokens)
 		{
 			flags = atoi(tokens[7]);
 
-			/*	Limit QoS flag augmentations.		*/
+			/*	Limit QoS configuration.		*/
 
-			flags &= (BP_BIBE_REQUESTED | BP_CT_REQUESTED);
+			flags &= maxQosFlags;
 		}
 		else
 		{
@@ -317,6 +367,12 @@ static void	executeChange(int tokenCount, char **tokens)
 				SYNTAX_ERROR;
 				return;
 			}
+		}
+
+		dataLabel = strtoul(tokens[2], NULL, 0);
+		if (dataLabel == 0)
+		{
+			dataLabel = (unsigned int) -1;
 		}
 
 		destNodeNbr = strtouvast(tokens[3]);
@@ -333,8 +389,8 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		priority = atoi(tokens[5]);
 		ordinal = atoi(tokens[6]);
-		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				(uvast) -2, priority, ordinal, flags);
+		ipn_setOvrd(dataLabel, destNodeNbr, sourceNodeNbr,
+				(uvast) -2, NULL, priority, ordinal, flags);
 		return;
 	}
 
@@ -343,6 +399,7 @@ static void	executeChange(int tokenCount, char **tokens)
 
 static void	executeDelete(int tokenCount, char **tokens)
 {
+	unsigned int	dataLabel;
 	uvast		destNodeNbr;
 	uvast		sourceNodeNbr;
 	uvast		neighbor = (uvast) -1;;
@@ -387,6 +444,12 @@ static void	executeDelete(int tokenCount, char **tokens)
 			return;
 		}
 
+		dataLabel = strtoul(tokens[2], NULL, 0);
+		if (dataLabel == 0)
+		{
+			dataLabel = (unsigned int) -1;
+		}
+
 		destNodeNbr = strtouvast(tokens[3]);
 		if (destNodeNbr == 0)
 		{
@@ -400,7 +463,7 @@ static void	executeDelete(int tokenCount, char **tokens)
 		}
 
 		ipn_setOvrd(strtouvast(tokens[2]), destNodeNbr, sourceNodeNbr,
-				neighbor, priority, 0, 0);
+				neighbor, NULL, priority, 0, 0);
 		return;
 	}
 

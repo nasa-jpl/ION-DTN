@@ -3057,6 +3057,11 @@ incomplete bundle.", NULL);
 	 *	free space occupied by the bundle itself.		*/
 
 	eraseEid(&bundle.clDossier.senderEid);
+	if (bundle.ovrdDuctExpr)
+	{
+		sdr_free(sdr, bundle.ovrdDuctExpr);
+	}
+
 	if (bundle.destinations)	/*	For IMC multicast.	*/
 	{
 		sdr_list_destroy(sdr, bundle.destinations, NULL, NULL);
@@ -4956,8 +4961,7 @@ static int	flushOutduct(Outduct *outduct)
 				& BP_PROTOCOL_ANY;
 		protocolClassApplied = protocolClassReqd
 				& protocol.protocolClass;
-		if (protocolClassApplied & BP_RELIABLE
-		|| protocolClassApplied & BP_RELIABLE_STREAMING)
+		if (protocolClassApplied & BP_RELIABLE)
 		{
 			if (bpReforwardBundle(bundleObj) < 0)
 			{
@@ -6510,8 +6514,7 @@ when asking for status reports.");
 		/*	Custody transfer is only provided by
 		 *	bundle-in-bundle encapsulation.			*/
 
-		bundle.ancillaryData.flags |=
-				(BP_BIBE_REQUESTED | BP_CT_REQUESTED);
+		bundle.ancillaryData.flags |= BP_CT_REQUESTED;
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/

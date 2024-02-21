@@ -392,6 +392,8 @@ typedef struct
 	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
+	uvast		ovrdNeighbor;	/*	Node number.		*/
+	Object		ovrdDuctExpr;	/*	protocol/ductName.	*/
 
 	/*	Stuff for opportunistic forwarding.  A "copy" is the
 	 *	ID of a node to which CGR has decided to forward a
@@ -698,7 +700,7 @@ typedef struct
 
 /*	*	*	Protocol structures	*	*	*	*/
 
-#define	BP_PROTOCOL_ANY	(BP_BEST_EFFORT | BP_RELIABLE | BP_RELIABLE_STREAMING)
+#define	BP_PROTOCOL_ANY	(BP_BEST_EFFORT | BP_RELIABLE)
 
 typedef struct
 {

@@ -1,3 +1,1 @@
-a plan 3 udp/127.0.0.1:5003
-a rtovrd 13 0 0 3
-a cosovrd 13 0 0 0 0 96
+a rtovrd 0 4 0 3 bibe/ipn:3.0
