@@ -80,6 +80,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	while (bundlesToSend > 0)
 	{
 		i++;
+		istrcpy(framePayload, itoa(i), sizeof(framePayload));
 		CHKZERO(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
 		if (bundlePayload == 0)

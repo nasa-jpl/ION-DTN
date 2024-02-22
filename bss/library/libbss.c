@@ -23,12 +23,6 @@ void	bssStop()
 	int		recvThreadValid;
 	pthread_t	recvThread;
 
-	if (_datFile(0, 0) == -1)	/* check if playback mode is there*/
-	{
-		oK(_tblIndex(&destroy));   /* no playback mode, destroy tblIndex.	*/
-		ionDetach();
-	}
-
 	recvThreadValid = _recvThreadId(&recvThread, 0);
 	if (recvThreadValid)
 	{
@@ -42,6 +36,12 @@ void	bssStop()
 		PUTS("No active thread detected");
 		fflush(stdout);
 		return;
+	}
+
+	if (_datFile(0, 0) == -1)	/* check if playback mode is there*/
+	{
+		oK(_tblIndex(&destroy));   /* no playback mode, destroy tblIndex.	*/
+		ionDetach();
 	}
 
 	PUTS("BSS receiving thread has been stopped");
