@@ -46,10 +46,11 @@ static int	display(time_t sec, unsigned long count, char *buf,
 
 	prevCount = (unsigned int) count;
 	oK(_count(1));
+	printf("Real-time in-order bundle count: %d\n",_count(0));
 	return 0;
 }
 
-static int	checkReceptionStatus(char *buffer, int limit)
+static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 {
 	static int		dbRecordsCount = 0;
 	bssNav		nav;
@@ -76,12 +77,12 @@ static int	checkReceptionStatus(char *buffer, int limit)
 		{
 			puts("Bss data found...");
 			fflush(stdout);
-			sleep(10);
+			snooze(playback_wait);
 		}
 	}
 	else 
 	{
-		/* reset nav content by seeking to last know bundle time */
+		/* reset nav content by seeking to last known bundle time */
 		if (bssSeek(&nav, bundleIdTime, &bundleIdTime, &bundleIdCount) < 0)
 		{
 			writeMemo("[?] bsscounter: Failed bssSeek");
@@ -122,7 +123,7 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			dbRecordsCount++;
 			if ((dbRecordsCount % 10) == 0)
 			{
-				printf("Received %d bundles...\n", dbRecordsCount);
+				printf("Playback Databased: Received %d bundles...\n", dbRecordsCount);
 				fflush(stdout);
 			}
 		}
@@ -162,6 +163,7 @@ int	bsscounter(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	int	cmdFile = fileno(stdin);
 	char	*buffer;
 	int	result;
+	long playback_wait = strtol((char *) a5, NULL, 0);
 #else
 int	main(int argc, char **argv)
 {
@@ -172,10 +174,14 @@ int	main(int argc, char **argv)
 	char	*buffer;
 	int	result;
 	int recv_count = 0;
+	long playback_wait = 0;
 
-	if (argc > 5) argc = 5;
+	if (argc > 6) argc = 6;
 	switch (argc)
 	{
+	case 6:
+		playback_wait = strtol(argv[5], NULL, 0);
+	
 	case 5:
 		eid = argv[4];
 
@@ -205,7 +211,9 @@ int	main(int argc, char **argv)
 	if (eid == NULL || limit < 1)
 	{
 		puts("Usage: bsscounter <number of bundles to receive> <BSS \
-database name> <path for BSS database files> <own endpoint ID>");
+database name> <path for BSS database files> <own endpoint ID> \
+<optional: playback delay in seconds> - adding playback delay allows \
+for complete accounting of out-or-order delivery.");
 		fflush(stdout);
 		return 1;
 	}
@@ -236,7 +244,7 @@ database name> <path for BSS database files> <own endpoint ID>");
 	while (1)
 	{
 		snooze(5);
-		recv_count = checkReceptionStatus(buffer + RCV_LENGTH, limit);
+		recv_count = checkReceptionStatus(buffer + RCV_LENGTH, limit, playback_wait);
 		switch (recv_count)
 		{
 		case -1:
@@ -252,7 +260,7 @@ database name> <path for BSS database files> <own endpoint ID>");
 			/* in-order real-time reception reported by display */
 			fprintf(stderr, "Real-time 'display' callback picked up %d in-order real-time frames.\n", _count(0));
 
-			fprintf(stderr, "Bsscounter terminated after receiving %d frames.\n",
+			fprintf(stderr, "Bsscounter terminated after receiving total of %d frames.\n",
 					recv_count);
 			puts("bss test succeeded.");
 			fflush(stdout);
