@@ -23,9 +23,11 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 			char *svcClass)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 10, 0 };
-			/*	Note: flag value 10 directs BP to send
-			 *	bundles using a streaming protocol.	*/
+	BpAncillaryData	ancillaryData = { 0, 8, 0 };
+			/*	Note: flag value 8 directs BP to send
+			 *	bundles using a reliable CL protocol.  
+			 *  This setting was changed from 10, which 
+			 *  allows for unreliable deliver. */
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;

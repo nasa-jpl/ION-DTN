@@ -28,7 +28,7 @@ static int	_count(int increment)
 static int	display(time_t sec, unsigned long count, char *buf,
 			unsigned long bufLength)
 {
-	static unsigned int	prevCounter = 0;
+	static unsigned int	prevCount = 0;
 
 	if (bufLength < sizeof(unsigned int))
 	{
@@ -37,14 +37,14 @@ static int	display(time_t sec, unsigned long count, char *buf,
 		return -1;
 	}
 
-	if ((unsigned int) count < prevCounter)
+	if ((unsigned int) count < prevCount)
 	{
 		writeMemoNote("[?] bsscounter: Real-time stream out of order per bundle seq. number",
 				itoa((unsigned int) count));
 		return -1;
 	}
 
-	prevCounter = (unsigned int) count;
+	prevCount = (unsigned int) count;
 	oK(_count(1));
 	return 0;
 }
@@ -76,6 +76,7 @@ static int	checkReceptionStatus(char *buffer, int limit)
 		{
 			puts("Bss data found...");
 			fflush(stdout);
+			sleep(10);
 		}
 	}
 	else 
@@ -126,9 +127,9 @@ static int	checkReceptionStatus(char *buffer, int limit)
 			}
 		}
 
-		if (dbRecordsCount >= limit)
+		if (dbRecordsCount == limit)
 		{
-			return dbRecordsCount;
+			return limit;
 		}
 
 		switch (bssNext(&nav, &bundleIdTime, &bundleIdCount))
