@@ -682,7 +682,15 @@ int	main(int argc, char *argv[])
 
 		case 0:		/*	Malformed request.		*/
 			writeMemo("[?] Encapsulating bundle not sent.");
+			CHKZERO(sdr_begin_xn(sdr));
 			zco_destroy(sdr, bpduZco);
+			if (sdr_end_xn(sdr))
+			{
+				putErrmsg("Can't recover; CLO stopping.", NULL);
+				shutDownClo();
+				continue;
+			}
+
 			if (bpHandleXmitFailure(bundleZco) < 0)
 			{
 				putErrmsg("Can't handle xmit failure.", NULL);
