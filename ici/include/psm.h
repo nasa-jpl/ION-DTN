@@ -42,6 +42,7 @@ typedef struct psm_str		/*	Local view of managed memory.	*/
 	long		freeNeeded;	/*	Free PsmView?  Boolean.	*/
 	struct psm_str	*trace;		/*	For sptrace.		*/
 	long		traceArea[3];	/*	psm_str for sptrace.	*/
+	int			traceCount; 	/* track trace episode */
 } PsmView, *PsmPartition;
 
 typedef enum { Okay, Redundant, Refused } PsmMgtOutcome;
