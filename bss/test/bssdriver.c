@@ -23,9 +23,9 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 			char *svcClass)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 10, 0 };
-			/*	Note: flag value 10 directs BP to send
-			 *	bundles using a streaming protocol.	*/
+	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+			/*	Note: flag value changed from 10 (previous) to 0.
+			 *  Does not require streaming protocol. */
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap;
 	Sdr		sdr;
@@ -47,7 +47,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 		if (!bp_parse_quality_of_service(svcClass, &ancillaryData,
 				&custodySwitch, &priority))
 		{
-			putErrmsg("Invalid class of service for bpsendfile.",
+			putErrmsg("Invalid class of service for bssdriver.",
 					svcClass);
 			return 0;
 		}
@@ -80,6 +80,7 @@ static int	run_bssdriver(char *ownEid, char *destEid, long bundlesToSend,
 	while (bundlesToSend > 0)
 	{
 		i++;
+		istrcpy(framePayload, itoa(i), sizeof(framePayload));
 		CHKZERO(sdr_begin_xn(sdr));
 		bundlePayload = sdr_malloc(sdr, sizeof(framePayload));
 		if (bundlePayload == 0)
