@@ -2943,7 +2943,8 @@ incomplete bundle.", NULL);
 
 			}
 
-			if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
+			if ((bundle.bundleProcFlags & BDL_IS_BIBE
+				|| (bundle.bundleProcFlags & BDL_IS_ADMIN) == 0)
 			&& (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
 			{
 				bundle.statusRpt.flags |= BP_DELETED_RPT;
@@ -6223,9 +6224,9 @@ for status reports.");
 		}
 
 		/*	Also can't get status reports for
-		 *	administrative records.				*/
+		 *	administrative records except BIBE.		*/
 
-		if (adminRecordType != 0)
+		if (adminRecordType != 0 && adminRecordType != BP_BIBE_PDU)
 		{
 			restoreEidString(&destMetaEid);
 			writeMemo("[?] Can't ask for status reports for admin \
@@ -6278,6 +6279,10 @@ when asking for status reports.");
 	if (adminRecordType != 0)
 	{
 		bundleProcFlags |= BDL_IS_ADMIN;
+		if (adminRecordType == BP_BIBE_PDU)
+		{
+			bundleProcFlags |= BDL_IS_BIBE;
+		}
 
 		/*	Administrative bundles must not be anonymous.
 		 *	Recipient needs to know source of the status
@@ -8000,7 +8005,8 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Check for processing flags conflicts.			*/
 
-	if (bundle->bundleProcFlags & BDL_IS_ADMIN)
+	if (bundle->bundleProcFlags & BDL_IS_ADMIN
+	&& (bundle->bundleProcFlags & BDL_IS_BIBE) == 0)
 	{
 		if (SRR_FLAGS(bundle->bundleProcFlags) != 0)
 		{
@@ -8374,7 +8380,9 @@ static int	acquireBlock(AcqWorkArea *work)
 
 	/*	Check for processing flags conflicts.			*/
 
-	if (bundle->anonymous || bundle->bundleProcFlags & BDL_IS_ADMIN)
+	if (bundle->anonymous
+	|| ((bundle->bundleProcFlags & BDL_IS_ADMIN) > 0
+		&& (bundle->bundleProcFlags & BDL_IS_BIBE) == 0))
 	{
 			/*	RFC BPbis 5.6 Step 4	*/
 
