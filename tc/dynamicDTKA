@@ -572,12 +572,12 @@ start_ion_nodes(){
 #   $2 start process in background
 ###############################################################################
 stop_ion_node(){
+  echo "- $((${1}-1))" >> "$TEST_DIRECTORY/$TCA_RECOVER_FILE"
   if [[ ${RUNNING_ION_NODES[$(($1-1))]} = true ]]; then
     print_message "Stopping ION on node $1"
     cd "$TEST_DIRECTORY/$1.$NODE_DIRECTORY"
     RUNNING_ION_NODES[$(($1-1))]=false
     if [[ "$2" = true ]]; then
-      echo "- $((${1}-1))" >> "$TEST_DIRECTORY/$TCA_RECOVER_FILE"
       timeout --preserve-status -k 5 120 "./$ION_STOP_SCRIPT" > "$OUT" &
     else
       timeout --preserve-status -k 5 120 "./$ION_STOP_SCRIPT" > "$OUT"
