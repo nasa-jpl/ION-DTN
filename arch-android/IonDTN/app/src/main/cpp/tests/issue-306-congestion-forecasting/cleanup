@@ -1,8 +1,0 @@
-#!/bin/bash
-#
-# Scott Burleigh
-# May 23, 2012
-
-echo "Cleaning up old ION..."
-killm
-rm -f ion_nodes 2.node.tcp/ion.log

@@ -1,5 +1,0 @@
-# shell script take node down
-#!/bin/bash
-bpadmin		.
-sleep 1
-ionadmin	.

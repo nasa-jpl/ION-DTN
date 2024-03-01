@@ -1,9 +1,0 @@
-# shell script to get node running
-#!/bin/bash
-amsstop amsdemo test
-sleep 1
-bpadmin		.
-sleep 1
-ltpadmin	.
-sleep 1
-ionadmin	.

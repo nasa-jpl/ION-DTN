@@ -1,3 +1,0 @@
-# shell script to get IPND running
-#!/bin/bash
-ipnd		beacon.ipndrc >& beacon.log &

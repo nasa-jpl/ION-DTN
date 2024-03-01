@@ -1,5 +1,0 @@
-# shell script to get node running
-#!/bin/bash
-ltpadmin	.
-sleep 1
-ionadmin	.
