@@ -29,18 +29,11 @@
  * conditional compilation might be required to handle platform-specific
  * dependencies and headers.
  *
- * ## Testing
- * It's recommended to perform thorough testing on each target platform to
- * ensure the functionality meets the cryptographic standards and requirements
- * of your application.
+ * @author Sky DeBaun - Jet Propulsion Laboratory
  *
- * ## License
- * Specify the license under which this code is made available, such as MIT or
- * GPL.
+ * Copyright (c) 2024, California Institute of Technology.
+ * ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  *
- * @author Your Name
- * @version 1.0
- * @date YYYY-MM-DD
  */
 
 #include <stdlib.h>
