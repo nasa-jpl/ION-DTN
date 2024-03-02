@@ -1,13 +1,13 @@
 /**
  * @file entropy_src.c
- * @brief Cryptographically Secure Random Number Generation
+ * @brief Cryptographic Random Number Source
  *
- * This file provides functions to generate cryptographically secure random
- * bytes using platform-specific sources. It supports Windows, macOS, and
- * Unix-like systems by abstracting their respective APIs and filesystems
- * for entropy generation.
+ * This file provides functions to generate a cryptographic-grade source
+ * of random bytes using platform-specific sources. It supports Windows, 
+ * macOS, and Unix-like systems by abstracting their respective APIs and 
+ * filesystems for entropy generation.
  *
- * @mainpage Cryptographically Secure Random Number Generator
+ * @mainpage Cryptographic Random Number Source
  *
  * ## Overview
  * This module offers a cross-platform solution to generate cryptographically
