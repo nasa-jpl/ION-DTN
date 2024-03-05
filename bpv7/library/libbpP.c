@@ -9260,8 +9260,8 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 #if defined (EWCHAR)
 		char ewchar[256];
 		/* spec is for 64 bit, non-Window */
-		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)y",bundle->id.source.ssp.ipn.nodeNbr, 
-		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)y",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 		iwatch_str(ewchar);
 #else
 		iwatch('y');
