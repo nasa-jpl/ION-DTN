@@ -365,7 +365,7 @@ PsmAddress bsles_get_addr(PsmPartition wm, char *name)
 
 Lyst bsles_get_all(PsmPartition wm)
 {
-	Lyst eventsets = lyst_create();
+	Lyst eventsets = lyst_create_using(getIonMemoryMgr());
 	PsmAddress elt = 0;
 	PsmAddress esAddr = 0;
 	BpSecEventSet *esPtr = NULL;

@@ -780,7 +780,7 @@ Lyst bslpol_rule_get_all_match(PsmPartition partition, BpSecPolRuleSearchTag tag
 			/* Step 2.1.1: Create the list, if this is the first matched rule. */
 			if(rules == NULL)
 			{
-				rules = lyst_create();
+				rules = lyst_create_using(getIonMemoryMgr());
 				lyst_direction_set(rules, LIST_SORT_DESCENDING);
 				lyst_compare_set(rules, (LystCompareFn)bslpol_cb_rulelyst_compare_score);
 			}
@@ -1390,6 +1390,8 @@ BpSecPolRule* bslpol_get_receiver_rule(AcqWorkArea *work, unsigned char tgtNum, 
 		else
 		{
 			BPSEC_DEBUG_INFO("Target %d does not exist in bundle.", tgtNum);
+			MRELEASE(tag.bsrc);
+			MRELEASE(tag.bdest);
 			return NULL;
 		}
 	}
@@ -1403,7 +1405,9 @@ BpSecPolRule* bslpol_get_receiver_rule(AcqWorkArea *work, unsigned char tgtNum, 
 	return polRule;
 }
 
+#if 0
 
+		/*	Currently not used.	*/
 
 PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, void *value)
 {
@@ -1439,6 +1443,7 @@ PsmAddress bslpol_scparm_create(PsmPartition partition, int type, int length, vo
 
 
 
+		/*	Currently not used.	*/
 
 PsmAddress bslpol_scparm_find(PsmPartition partition, PsmAddress parms, int type)
 {
@@ -1462,7 +1467,7 @@ PsmAddress bslpol_scparm_find(PsmPartition partition, PsmAddress parms, int type
 }
 
 
-
+		/*	Currently not used.	*/
 
 void bslpol_scparms_destroy(PsmPartition partition, PsmAddress addr)
 {
@@ -1478,6 +1483,9 @@ void bslpol_scparms_destroy(PsmPartition partition, PsmAddress addr)
         psm_free(partition, addr);
     }
 }
+
+
+		/*	Currently not used.	*/
 
 /******************************************************************************
  * @brief Serialize a security context parameter into a buffer.
@@ -1529,6 +1537,7 @@ Address bslpol_scparms_persist(PsmPartition partition, char *buffer, PsmAddress 
 }
 
 
+		/*	Currently not used.	*/
 
 /******************************************************************************
  * @brief Deserialize a security context parameter from a buffer
@@ -1589,6 +1598,8 @@ Address bslpol_scparms_restore(PsmPartition partition, PsmAddress *parms, char *
 }
 
 
+		/*	Currently not used.	*/
+
 int bslpol_scparms_size(PsmPartition partition, PsmAddress parms)
 {
     int size = 0;
@@ -1610,7 +1621,7 @@ int bslpol_scparms_size(PsmPartition partition, PsmAddress parms)
     return size;
 }
 
-
+#endif
 
 
 /******************************************************************************
@@ -1788,7 +1799,16 @@ int bslpol_sdr_rule_persist(PsmPartition wm, PsmAddress ruleAddr)
 		cursor += bsl_bufwrite(cursor, &(rule->filter.scid), sizeof(rule->filter.scid), &bytes_left);
 	}
 
+#if 0
+
+	/*	Security policy rule parameters cannot currently be
+	 *	persisted.  The entries in the list of parameters
+	 *	are objects of type sc_value, not of type BpSecCtxParm
+	 *	as expected by the bslpol_scparms_persist() function.	*/
+
 	cursor += bslpol_scparms_persist(wm, cursor, rule->sc_parms, &bytes_left);
+
+#endif
 
 	BpSecEventSet *esPtr = (BpSecEventSet *) psp(wm, rule->eventSet);
 
@@ -1946,7 +1966,18 @@ int bslpol_sdr_rule_restore(PsmPartition wm, BpSecPolicyDbEntry entry)
 		cursor += bsl_bufread(&(rulePtr->filter.scid), cursor, sizeof(rulePtr->filter.scid), &bytes_left);
 	}
 
+#if 0
+
+	/*	Security policy rule parameters cannot currently be
+	 *	restored, because they cannot be persisted.  The
+	 *	entries in the list of parameters passed to the
+	 *	bslpol_scparms_persist() function are objects of
+	 *	type sc_value, not of type BpSecCtxParm as expected
+	 *	by that function.					*/
+
 	cursor += bslpol_scparms_restore(wm, &(rulePtr->sc_parms), cursor, &bytes_left);
+
+#endif
 
 	cursor += bsl_bufread(&len, cursor, 1, &bytes_left);
 	if(len > 0)
@@ -2044,7 +2075,16 @@ int bslpol_sdr_rule_size(PsmPartition wm, PsmAddress ruleAddr)
 		size += strlen(rulePtr->desc) + 1; /* The NULL-terminated rule description. */
 	}
 
+#if 0
+
+	/*	Security policy rule parameters cannot currently be
+	 *	sized.  The entries in the list of parameters are
+	 *	objects of type sc_value, not of type BpSecCtxParm
+	 *	as expected by the bslpol_scparms_size() function.	*/
+
 	size += bslpol_scparms_size(wm, rulePtr->sc_parms);
+
+#endif
 
 	size += 1; // Event set name.
 
