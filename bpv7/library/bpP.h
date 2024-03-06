@@ -384,6 +384,7 @@ typedef struct
 	char		returnToSender;	/*	Boolean.		*/
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
+	char		insecure;	/*	Boolean.		*/
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
@@ -1072,10 +1073,10 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	On obtaining a bundle, bpDequeue
 			 *	does DEQUEUE processing on the bundle's
 			 *	extension blocks; if this processing
-			 *	determines that the bundle is corrupt,
-			 *	the function returns zero while
-			 *	providing 1 (a nonsense address) in
-			 *	*bundleZco as the address of the
+			 *	determines that the bundle is corrupt
+			 *	or insecure, the function returns zero
+			 *	while providing 1 (a nonsense address)
+			 *	in *bundleZco as the address of the
 			 *	outbound bundle ZCO.  The CLO should
 			 *	handle this result by simply calling
 			 *	bpDequeue again.
@@ -1338,8 +1339,8 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	the bundle was in an outduct buffer
 			 *	that was flushed, and a value of 5
 			 *	indicates that the bundle was found
-			 *	to be corrupt when dequeued for
-			 *	transmission.  Returns 1 if bundle
+			 *	to be corrupt or insecure when dequeued
+			 *	for transmission.  Returns 1 if bundle
 			 *	is actually destroyed, 0 if bundle is
 			 *	retained because not all constraints
 			 *	have been removed, -1 on any error.	*/

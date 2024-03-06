@@ -25,9 +25,6 @@
 #include "shared/primitives/table.h"
 
 #include "adm_bpsec.h"
-// TODO EJB#include "profiles.h"
-/*   STOP CUSTOM INCLUDES HERE  */
-
 
 #include "shared/adm/adm.h"
 #include "adm_bpsec_impl.h"

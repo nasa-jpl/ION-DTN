@@ -111,7 +111,8 @@ int    bpsec_encrypt(Bundle *bundle)
             bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, 1);
             BCB_TEST_POINT("sop_misconf_at_src", bundle, PayloadBlk);
 
-            return -1;
+	    bundle->insecure = 1;
+	    return 0;
         }
         BCB_TEST_POINT("sop_added_at_src", bundle, PayloadBlk);
     }
@@ -136,7 +137,8 @@ int    bpsec_encrypt(Bundle *bundle)
                 BPSEC_DEBUG_ERR("Failed applying rule %d (ext blk type %d).", curRule->user_id, block.type);
                 bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, block.number);
                 BCB_TEST_POINT("sop_misconf_at_src", bundle, block.type);
-                return -1;
+		bundle->insecure = 1;
+		return 0;
             }
             BCB_TEST_POINT("sop_added_at_src", bundle, block.type);
             curRule = NULL;
@@ -152,7 +154,7 @@ int    bpsec_encrypt(Bundle *bundle)
     if (bpsec_util_attachSecurityBlocks(bundle, BlockConfidentialityBlk, SC_ACT_ENCRYPT) < 0)
     {
         BCB_DEBUG_ERR("Unable to attach all BCB blocks.", NULL);
-        return -1;
+	bundle->insecure = 1;
     }
 
     return 0;
@@ -166,7 +168,8 @@ int    bpsec_encrypt(Bundle *bundle)
 
 // TODO document function
 void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt,
-                         AcqExtBlock *tgtBlk, int tgtId, int result, size_t tgtBlkOrigLen)
+                         AcqExtBlock *tgtBlk, int tgtId, int result, size_t tgtBlkOrigLen,
+                         uint8_t tgtBlkType)
 {
 
     switch(result)
@@ -181,15 +184,15 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
 
             /* Handle sop_corrupt_at_acceptor event */
             bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_corrupt_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
-            BCB_TEST_POINT("sop_corrupt_at_acceptor", (&(work->bundle)), (tgtBlk) ? tgtBlk->type : -1);
+            BCB_TEST_POINT("sop_corrupt_at_acceptor", (&(work->bundle)), tgtBlkType);
             break;
 
         case -2: /* Misconfiguration of BCB. */
-        default: /* Anything else is treat as a misconfiguration. */
+        default: /* Anything else is treated as a misconfiguration. */
             
             /* Handle sop_misconf_at_acceptor event */
             bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_misconf_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
-            BCB_TEST_POINT("sop_misconf_at_acceptor", (&(work->bundle)), (tgtBlk) ? tgtBlk->type : -1);
+            BCB_TEST_POINT("sop_misconf_at_acceptor", (&(work->bundle)), tgtBlkType);
             break;
     }
 
@@ -215,19 +218,21 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
 // TODO we must become default security acceptor if we are bundle destination.
 int    bpsec_decrypt(AcqWorkArea *work)
 {
-    Bundle                *bundle = &(work->bundle);
-    LystElt                bcbBlkElt;
-    AcqExtBlock            *bcbBlk;
-    BpsecInboundASB    *asb;
+    Bundle			*bundle = &(work->bundle);
+    LystElt			bcbBlkElt;
+    LystElt			nextBcbBlkElt;
+    AcqExtBlock			*bcbBlk;
+    BpsecInboundASB		*asb;
     BpsecInboundTargetResult    *tgtResult;
-    LystElt             tgtResultElt;
-    LystElt             tgtBlkElt;
-    size_t tgtBlkOrigLen = 0;
-    sc_Def def;
-    int result = 0;
-    int secBlkMisconf = 0;
-    char fromEid[MAX_EID_LEN];
-    AcqExtBlock *tgtBlk = NULL;
+    LystElt			tgtResultElt;
+    LystElt			nextTgtResultElt;
+    LystElt			tgtBlkElt;
+    size_t			tgtBlkOrigLen = 0;
+    sc_Def			def;
+    int				result = 0;
+    int				secBlkMisconf = 0;
+    char			fromEid[MAX_EID_LEN];
+    AcqExtBlock			*tgtBlk = NULL;
 
     BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr) work);
 
@@ -236,8 +241,9 @@ int    bpsec_decrypt(AcqWorkArea *work)
     BpSecPolRule *polRule = NULL;
 
     /* For each BCB in the bundle */
-    for (bcbBlkElt = lyst_first(work->extBlocks); bcbBlkElt; bcbBlkElt = lyst_next(bcbBlkElt))
+    for (bcbBlkElt = lyst_first(work->extBlocks); bcbBlkElt; bcbBlkElt = nextBcbBlkElt)
     {
+	nextBcbBlkElt = lyst_next(bcbBlkElt);
         /* Grab the block and see if it is a BCB. */
         bcbBlk = (AcqExtBlock *) lyst_data(bcbBlkElt);
         if ((bcbBlk != NULL) && (bcbBlk->type == BlockConfidentialityBlk))
@@ -252,8 +258,9 @@ int    bpsec_decrypt(AcqWorkArea *work)
             secBlkMisconf = (bpsec_sci_defFind(asb->scId, &def) != 1) ? 1 : 0;
 
             /* Check each target block for applicable rule */
-            for (tgtResultElt = lyst_first(asb->scResults); tgtResultElt; tgtResultElt = lyst_next(tgtResultElt))
+            for (tgtResultElt = lyst_first(asb->scResults); tgtResultElt; tgtResultElt = nextTgtResultElt)
             {
+		nextTgtResultElt = lyst_next(tgtResultElt);
                 tgtResult = (BpsecInboundTargetResult *) lyst_data(tgtResultElt);
                 polRule = bslpol_get_receiver_rule(work, tgtResult->scTargetId, asb->scId);
 
@@ -277,12 +284,13 @@ int    bpsec_decrypt(AcqWorkArea *work)
                         BCB_DEBUG_ERR("Rule %d failed to process block %d. Error: %d", polRule->user_id, tgtResult->scTargetId, result);
                         ADD_BCB_RX_FAIL(fromEid, 1, tgtBlkOrigLen);
 
-                        bcb_handle_rx_error(work, bcbBlkElt, tgtBlkElt, tgtBlk, tgtResult->scTargetId, result, tgtBlkOrigLen);
+                        bcb_handle_rx_error(work, bcbBlkElt, tgtBlkElt, tgtBlk, tgtResult->scTargetId, result, tgtBlkOrigLen, polRule->filter.blk_type);
 
                         // TODO do we remove block from bundle here?
                         if(result == -1)
                         {
-                            return -1;
+			    bundle->insecure = 1;
+                            return 0;
                         }
                     }
                     else

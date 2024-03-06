@@ -9018,22 +9018,28 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (bpsec_decrypt(work) < 0)
 	{
-		putErrmsg("Failed decrypting extension blocks.", NULL);
-
-		/* check non-critical error flags */
-		
-		/* check for corruption */
-		if (work->malformed == 1)
-		{
-			writeMemo("[?] Malformed Bundle: Failed decryption.");
-			bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-			return abortBundleAcq(work);
-		}
-
 		/* system error */
+		putErrmsg("Failed decrypting extension blocks.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+	}
+
+	/* check non-critical error flags */
+
+	if (bundle->insecure == 1)
+	{
+		writeMemo("[?] Decryption failed for bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+			bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (work->malformed == 1)
+	{
+		writeMemo("[?] Malformed Bundle: Failed decryption.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+			bundle->payload.length);
+		return abortBundleAcq(work);
 	}
 
 	/*	Can now finish block acquisition for any blocks
@@ -9086,27 +9092,34 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	initAuthenticity(work);	/*	Set default.			*/
 	if (bpsec_verify(work) < 0)
 	{
-		/* first check for non-critical error */
-		if (bundle->corrupt == 1)
-		{
-			writeMemo("[?] security verification failed for target primary block.");
-			bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-			return abortBundleAcq(work);
-		}
-
-		if (bundle->altered == 1)
-		{
-			writeMemo("[?] security verification failed for target extension block.");
-			bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
-				bundle->payload.length);
-			return abortBundleAcq(work);	
-		}
-
 		/* system error */
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+	}
+
+	if (bundle->corrupt == 1)
+	{
+		writeMemo("[?] security verification failed for target primary block.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+			bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (bundle->altered == 1)
+	{
+		writeMemo("[?] security verification failed for target extension block.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+			bundle->payload.length);
+		return abortBundleAcq(work);	
+	}
+
+	if (bundle->insecure == 1)
+	{
+		writeMemo("[?] security verification failed for bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+			bundle->payload.length);
+		return abortBundleAcq(work);
 	}
 
 	/* check additional error codes after security verification */
@@ -9117,16 +9130,6 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
 		return abortBundleAcq(work);	
-	}
-
-	/* To be confirmed: would bpsec_verify return 0 but set 
-		bundle->corrupt to 1? This might be a redundant test case. */
-	if (bundle->corrupt)
-	{
-		writeMemo("[?] Corrupt bundle.");
-		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-		return abortBundleAcq(work);
 	}
 
 	if (bundle->clDossier.authentic == 0)
@@ -11280,11 +11283,39 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		return -1;
 	}
 
+	if (bundle.insecure)	/*	Not signed, can't be sent.	*/
+	{
+		*bundleZco = 1;		/*	Client need not stop.	*/
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 5) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		return sdr_end_xn(sdr);
+	}
+
 	if (bpsec_encrypt(&bundle) < 0)
 	{
 		putErrmsg("Failed encrypting bundle blocks.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+	}
+
+	if (bundle.insecure)	/*	Not encrypted, can't be sent.	*/
+	{
+		*bundleZco = 1;		/*	Client need not stop.	*/
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 5) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		return sdr_end_xn(sdr);
 	}
 
     /* check for changes to bundle overhead */

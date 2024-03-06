@@ -138,6 +138,9 @@ typedef struct
 } BpSecFilter;
 
 
+#if 0
+
+		/*	This structure is now deprecated.	*/
 
 /**
  * BPSec Security Context Configuration
@@ -162,7 +165,7 @@ typedef struct
 	PsmAddress addr;
 } BpSecCtxParm;
 
-
+#endif
 
 /**
  * BPSec Policy Rules
