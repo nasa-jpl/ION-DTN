@@ -120,12 +120,12 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 		if (bundleIdCount >= waitForBundleIdCount)
 		{
 			waitForBundleIdCount = bundleIdCount + 1;
-			dbRecordsCount++;
-			if ((dbRecordsCount % 10) == 0)
-			{
-				printf("Playback Databased: Received %d bundles...\n", dbRecordsCount);
-				fflush(stdout);
-			}
+		}
+		dbRecordsCount++;
+		if ((dbRecordsCount % 10) == 0)
+		{
+			printf("Playback Databased: Received %d bundles...\n", dbRecordsCount);
+			fflush(stdout);
 		}
 
 		if (dbRecordsCount == limit)
