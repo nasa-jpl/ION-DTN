@@ -202,7 +202,11 @@ Similarly for outduct, you want to change the ip address from `127.0.0.1:3113` t
 
 You can make similar modifications to the ipnrc file as well.
 
-In the ionconfig file, you want to comment out or delete the `wmKey` entry. Since we are running these two nodes on different hosts, we recommend not specifying any IPC key values but let ION use the default value.
+
+
+In the ionconfig file, you want to comment out or delete the `wmKey` and `sdrName` entries. Since we are running these two nodes on different hosts, we always let ION use the default values for these parameters.
+
+If you don’t do this you get an error on startup.
 
 Repeat the same updates for host B by appropriately substituting old IP address to that of the new hosts.
 
@@ -319,7 +323,6 @@ To learn more about the design principle of ION and how to use it, a complete se
 
 The ION Dev Kit mentioned in the NASA ION Course had been deprecated. However, some additional helpful files can be found here to complete the examples:
 [Additional DevKit Files](https://sourceforge.net/p/ion-dtn/wiki/DevKit%20-%20additional%20materials/)
-
 
 ---
 
