@@ -70,15 +70,15 @@ To further vary that BP service is running, you can check for presence of ION sh
 ```bash
 ------ Shared Memory Segments --------
 key        shmid      owner         perms      bytes      nattch     status   
-0x0000ee02 47         userIon       666        641024     13                    
-0x0000ff00 48         userIon       666        50000000   13                    
-0x93de0005 49         userIon       666        1200002544 13                    
-0x0000ff01 50         userIon       666        500000000  13                    
+0x0000ee02 47         userIon       666        641024     13                  
+0x0000ff00 48         userIon       666        50000000   13                  
+0x93de0005 49         userIon       666        1200002544 13                  
+0x0000ff01 50         userIon       666        500000000  13                  
 
 ------ Semaphore Arrays --------
 key        semid      owner         perms      nsems   
-0x0000ee01 23         userIon       666        1       
-0x18020001 24         userIon       666        250     
+0x0000ee01 23         userIon       666        1     
+0x18020001 24         userIon       666        250   
 ```
 
 In this example, the shared memory and semaphore keys for the SDR heap space (shmid 49) and the semaphorebase (semid 24) are created using a random key generated from the process ID of `ionadmin` and they will vary each time ION is instantiated. This is specific to SVR4 semaphore, which is the default for ION 4.1.2. However, starting with ION 4.1.3, the default semaphore will switch to POSIX semaphore and the output will be different. The other memory and semaphore keys listed in this example are typical default values, but they too, can be changed through ionconfig files.
@@ -195,7 +195,7 @@ After launching ION, you can [verify BP service status](#determine-bp-service-st
 #include "bp.h"
 ```
 
------------
+---
 
 ### bp_attach
 
@@ -230,7 +230,8 @@ Typically the `bp_attach()` call is made at the beginning of a user's applicatio
 
 `bp_attach()` automatically calls the ICI API `ion_attach()` when necessary, so there is no need to call them separately. In addition to gaining access to ION's SDR, which is what `ion_attach()` provides, `bp_attach()` also gains access to the Bundle Protocol's state information and database. For user application that interacts with the Bundle Protocol, `bp_attach()` is the entry point to ION.
 
-------------
+---
+
 ### Sdr bp_get_sdr( )
 
 Function Prototype
@@ -265,7 +266,7 @@ Description
 
 Returns handle for the SDR data store used for BP, to enable creation and interrogation of bundle payloads (application data units). Since the SDR handle is needed by many APIs, this function is typically executed early in the user's application in order to access other BP services.
 
----------------
+---
 
 ### bp_detach
 
@@ -289,7 +290,7 @@ Description
 
 Terminates all access to BP functionality for the invoking process.
 
----------------
+---
 
 ### bp_open
 
@@ -324,13 +325,13 @@ Description
 
 Opens the application's access to the BP endpoint identified by the string at `eid`, so that the application can take delivery of bundles destined for the indicated endpoint. This SAP can also be used for sending bundles whose source is the indicated endpoint.
 
-Please note that all bundles sent via this SAP will be subject to immediate destruction upon transmission, i.e., no bundle addresses will be returned by `bp_send` for use in tracking, suspending/resuming, or cancelling transmission of these bundles. 
+Please note that all bundles sent via this SAP will be subject to immediate destruction upon transmission, i.e., no bundle addresses will be returned by `bp_send` for use in tracking, suspending/resuming, or cancelling transmission of these bundles.
 
 On success, places a value in *ionsapPtr that can be supplied to future bp function invocations.
 
 __NOTE:__ To allow for bp_send to return a bundle address for tracking purpose, please use `bp_open_source` instead.
 
----------------
+---
 
 ### bp_open_source
 
@@ -357,20 +358,20 @@ Example Call
 if (bp_open_source(ownEid, &txSap, 1) < 0)
 {
         putErrmsg("can't open own 'send' endpoint.", ownEid);
-        
+      
         /* user error handling routine here */
 }
 ```
 
 Description
 
-Opens the application's access to the BP endpoint identified by eid, so that the application can send bundles whose source is the indicated endpoint. If and only if the value of detain is non-zero, citing this SAP in an invocation of bp_send() will cause the address of the newly issued bundle to be returned for use in tracking, suspending/resuming, or cancelling transmission of this bundle. 
+Opens the application's access to the BP endpoint identified by eid, so that the application can send bundles whose source is the indicated endpoint. If and only if the value of detain is non-zero, citing this SAP in an invocation of bp_send() will cause the address of the newly issued bundle to be returned for use in tracking, suspending/resuming, or cancelling transmission of this bundle.
 
-__USE THIS FEATURE WITH GREAT CARE__: such a bundle will continue to occupy storage resources until it is explicitly released by an invocation of bp_release() or until its time to live expires, so bundle detention increases the risk of resource exhaustion. (If the value of detain is zero, all bundles sent via this SAP will be subject to immediate destruction upon transmission.) 
+__USE THIS FEATURE WITH GREAT CARE__: such a bundle will continue to occupy storage resources until it is explicitly released by an invocation of bp_release() or until its time to live expires, so bundle detention increases the risk of resource exhaustion. (If the value of detain is zero, all bundles sent via this SAP will be subject to immediate destruction upon transmission.)
 
 On success, places a value in *ionsapPtr that can be supplied to future bp function invocations and returns 0. Returns -1 on any error.
 
----------------
+---
 
 ### bp_send
 
@@ -386,21 +387,13 @@ int bp_send(BpSAP sap, char *destEid, char *reportToEid,
 Parameters
 
 * `sap`: the source endpoint for the bundle, provided by the `bp_open` call.
-
-* `*destEid`: identifies the destination endpoint for the bundle. 
-
+* `*destEid`: identifies the destination endpoint for the bundle.
 * `reportToEid`: identifies the endpoint to which any status reports pertaining to this bundle will be sent; if NULL, defaults to the source endpoint.
-
 * `lifespan`: is the maximum number of seconds that the bundle can remain in-transit (undelivered) in the network prior to automatic deletion.
-
 * `classOfService`: is simply priority for now: BP_BULK_PRIORITY, BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY. If class-of-service flags are defined in a future version of Bundle Protocol, those flags would be OR'd with priority.
-
 * `custodySwitch`: indicates whether or not custody transfer is requested for this bundle and, if so, whether or not the source node itself is required to be the initial custodian. The valid values are SourceCustodyRequired, SourceCustodyOptional, NoCustodyRequired. Note that custody transfer is possible only for bundles that are uniquely identified, so it cannot be requested for bundles for which BP_MINIMUM_LATENCY is requested, since BP_MINIMUM_LATENCY may result in the production of multiple identical copies of the same bundle. Similarly, custody transfer should never be requested for a "loopback" bundle, i.e., one whose destination node is the same as the source node: the received bundle will be identical to the source bundle, both residing in the same node, so no custody acceptance signal can be applied to the source bundle and the source bundle will remain in storage until its TTL expires.
-
 * `srrFlags`: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT.
-
 * `ackRequested`: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.
-
 * `ancillaryData`: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:
 
 ```
@@ -416,7 +409,7 @@ in _ancillaryData_ must be encoded into the ECOS block when the bundle is
 transmitted.
 ```
 
-__NOTE:__ For Bundle Protocol v7, no Extended Class of Service, or equivalent, has been standardized yet. This capability, however, has been retained from BPv6 and is available to BPv7 implementation in ION. 
+__NOTE:__ For Bundle Protocol v7, no Extended Class of Service, or equivalent, has been standardized yet. This capability, however, has been retained from BPv6 and is available to BPv7 implementation in ION.
 
 * `adu`: is the "application data unit" that will be conveyed as the payload of the new bundle. adu must be a "zero-copy object" (ZCO). To ensure orderly access to transmission buffer space for all applications, adu must be created by invoking ionCreateZco(), which may be configured either to block so long as insufficient ZCO storage space is available for creation of the requested ZCO or to fail immediately if insufficient ZCO storage space is available.
 
@@ -442,17 +435,17 @@ if (bp_send(sap, destEid, reportToEid, ttl, priority,
 
 Description
 
-Sends a bundle to the endpoint identified by destEid, from the source endpoint as provided to the bp_open() call that returned sap. 
+Sends a bundle to the endpoint identified by destEid, from the source endpoint as provided to the bp_open() call that returned sap.
 
 When sap is NULL, the transmitted bundle is anonymous, i.e., the source of the bundle is not identified. This is legal, but anonymous bundles cannot be uniquely identified; custody transfer and status reporting therefore cannot be requested for an anonymous bundle.
 
-The function returns 1 on success, 0 on user error, -1 on any system error. 
+The function returns 1 on success, 0 on user error, -1 on any system error.
 
-If 0 is returned, then an invalid argument value was passed to bp_send(); a message to this effect will have been written to the log file. 
+If 0 is returned, then an invalid argument value was passed to bp_send(); a message to this effect will have been written to the log file.
 
 If 1 is returned, then either the destination of the bundle was "dtn:none" (the bit bucket) or the ADU has been accepted and queued for transmission in a bundle. In the latter case, if and only if sap was a reference to a BpSAP returned by an invocation of bp_open_source() that had a non-zero value in the detain parameter, then newBundle must be non-NULL and the address of the newly created bundle within the ION database is placed in newBundle. This address can be used to track, suspend/resume, or cancel transmission of the bundle.
 
----------------
+---
 
 ### bp_track
 
@@ -487,7 +480,7 @@ if (bp_track(outAdu.bundleObj, bundleElt) < 0)
 {
         sdr_cancel_xn(sdr);
         putErrmsg("Can't track bundle.", NULL);
-        
+      
         /* user error handling code goes here */
 }
 ```
@@ -498,7 +491,7 @@ Description
 
 Adds `trackingElt` to the list of "tracking" references in bundle. `trackingElt` must be the address of an SDR list element -- whose data is the address of this same bundle -- within some list of bundles that is privately managed by the application. Upon destruction of the bundle this list element will automatically be deleted, thus removing the bundle from the application's privately managed list of bundles. This enables the application to keep track of bundles that it is operating on without risk of inadvertently de-referencing the address of a nonexistent bundle.
 
----------------
+---
 
 ### bp_untrack
 
@@ -522,7 +515,7 @@ Description
 
 Removes `trackingElt` from the list of "tracking" references in bundle, if it is in that list. Does not delete `trackingElt` itself.
 
----------------
+---
 
 ### bp_suspend
 
@@ -545,7 +538,7 @@ Description
 
 Suspends transmission of bundle. Has no effect if bundle is "critical" (i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or if the bundle is already suspended. Otherwise, reverses the enqueuing of the bundle to its selected transmission outduct and places it in the "limbo" queue until the suspension is lifted by calling bp_resume. Returns 0 on success, -1 on any error.
 
----------------
+---
 
 ### bp_resume
 
@@ -568,7 +561,7 @@ Description
 
 Terminates suspension of transmission of bundle. Has no effect if bundle is "critical" (i.e., has got extended class of service BP_MINIMUM_LATENCY flag set) or is not suspended. Otherwise, removes the bundle from the "limbo" queue and queues it for route re-computation and re-queuing. Returns 0 on success, -1 on any error.
 
----------------
+---
 
 ### bp_cancel
 
@@ -591,7 +584,7 @@ Description
 
 Cancels transmission of bundle. If the indicated bundle is currently queued for forwarding, transmission, or retransmission, it is removed from the relevant queue and destroyed exactly as if its Time To Live had expired. Returns 0 on success, -1 on any error.
 
----------------
+---
 
 ### bp_release
 
@@ -614,9 +607,9 @@ Description
 
 Releases a detained bundle for destruction when all retention constraints have been removed. After a detained bundle has been released, the application can no longer track, suspend/resume, or cancel its transmission. Returns 0 on success, -1 on any error.
 
-**NOTE**: for bundles sent through an bundle protocol end-point which is opened via `bp_open_source` with `detain` set to non-zero value, they will not be destroyed, even after successful transmissions, until time-to-live has expired or explicitly released via `bp_release`. 
+**NOTE**: for bundles sent through an bundle protocol end-point which is opened via `bp_open_source` with `detain` set to non-zero value, they will not be destroyed, even after successful transmissions, until time-to-live has expired or explicitly released via `bp_release`.
 
----------------
+---
 
 ### bp_receive
 
@@ -630,7 +623,7 @@ Parameters
 
 * `sap`: the source endpoint for the bundle, provided by the `bp_open` call
 * `*dlvBuffer`: a pointer to a `BpDelivery` structure used to return the received bundle and/or outcome of reception
-* `timoutSeconds`: a reception timer in seconds 
+* `timoutSeconds`: a reception timer in seconds
 
 Return Value
 
@@ -670,7 +663,7 @@ Be sure to call `bp_release_delivery`() after every successful invocation of `bp
 
 The function returns 0 on success, -1 on any error.
 
----------------
+---
 
 ### bp_interrupt
 
@@ -693,7 +686,7 @@ Description
 
 Interrupts a `bp_receive`() invocation that is currently blocked. This function is designed to be called from a signal handler; for this purpose, sap may need to be obtained from a static variable.
 
----------------
+---
 
 ### bp_release_delivery
 
@@ -716,7 +709,7 @@ Description
 
 Releases resources allocated to the indicated delivery by `dlvBuffer`, which is returned by bp_receive. `releaseAdu` is a Boolean parameter: if non-zero, the ADU ZCO reference in `dlvBuffer` (if any) is destroyed, causing the ZCO itself to be destroyed if no other references to it remain.
 
----------------
+---
 
 ### bp_close
 
@@ -738,72 +731,13 @@ Description
 
 Terminates the application's access to the BP endpoint identified by the eid cited by the indicated service access point. The application relinquishes its ability to take delivery of bundles destined for the indicated endpoint and to send bundles whose source is the indicated endpoint.
 
----------------
-
-
+---
 
 ## Walk Through of `bpsource.c`
 
 * For this example, it is assumed that the user is already familiar with the [ICI APIs](./ICI-API.md).
 
-* 
-
-```c++
-#include <stdio.h>
-#include "bp.h"
-#include "sdr.h"
-#include "ion.h"
-
-int main(int argc, char *argv[])
-{
-        unsigned int choice = 0;
-        int ret_value;
-
-        do
-        {
-                printf( "0 - Exit\n" );
-                printf( "1 - BP Attach\n" );
-                printf( "2 - BP Detach\n" );
-                printf( "3 - SDR Shutdown\n" );
-                printf( "4 - ION Detach\n" );
-                printf( "Option:  " );
-                scanf( "%u", &choice );
-
-                switch( choice )
-                {
-                        case 0:
-                                break;
-                        case 1:
-                                ret_value = bp_attach();
-
-                                if( ret_value == 0 )
-                                        printf( "Attached\n" );
-                                else
-                                {
-                                        printf( "Error %d returned from bp_attach().\n", ret_value );
-                                        return 0;
-                                }
-                                break;
-                        case 2:
-                                bp_detach();
-                                break;
-                        case 3:
-                                sdr_shutdown();
-                                break;
-                        case 4:
-                                ionDetach();
-                                break;
-                        default:
-                                printf( "That's not a choice you should make...\n" );
-                                break;
-                };
-        } while( choice );
-
-        return 0;
-}
-
-```
-
+**TO BE UPDATED.**
 
 ## Compiling and Linking
 
@@ -819,7 +753,6 @@ In general there are two types of ZCO that is relevant to a user.
 
 * Used in our example
 * Example in `bpsource.c`
-
 
 ### File ZCO
 
