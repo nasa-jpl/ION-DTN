@@ -1843,15 +1843,15 @@
 <p>To further vary that BP service is running, you can check for presence of ION shared memory and semaphores:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>------<span class="w"> </span>Shared<span class="w"> </span>Memory<span class="w"> </span>Segments<span class="w"> </span>--------
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>key<span class="w">        </span>shmid<span class="w">      </span>owner<span class="w">         </span>perms<span class="w">      </span>bytes<span class="w">      </span>nattch<span class="w">     </span>status<span class="w">   </span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>0x0000ee02<span class="w"> </span><span class="m">47</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">641024</span><span class="w">     </span><span class="m">13</span><span class="w">                    </span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>0x0000ff00<span class="w"> </span><span class="m">48</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">50000000</span><span class="w">   </span><span class="m">13</span><span class="w">                    </span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>0x93de0005<span class="w"> </span><span class="m">49</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">1200002544</span><span class="w"> </span><span class="m">13</span><span class="w">                    </span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>0x0000ff01<span class="w"> </span><span class="m">50</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">500000000</span><span class="w">  </span><span class="m">13</span><span class="w">                    </span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>0x0000ee02<span class="w"> </span><span class="m">47</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">641024</span><span class="w">     </span><span class="m">13</span><span class="w">                  </span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>0x0000ff00<span class="w"> </span><span class="m">48</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">50000000</span><span class="w">   </span><span class="m">13</span><span class="w">                  </span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>0x93de0005<span class="w"> </span><span class="m">49</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">1200002544</span><span class="w"> </span><span class="m">13</span><span class="w">                  </span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>0x0000ff01<span class="w"> </span><span class="m">50</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">500000000</span><span class="w">  </span><span class="m">13</span><span class="w">                  </span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>------<span class="w"> </span>Semaphore<span class="w"> </span>Arrays<span class="w"> </span>--------
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>key<span class="w">        </span>semid<span class="w">      </span>owner<span class="w">         </span>perms<span class="w">      </span>nsems<span class="w">   </span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>0x0000ee01<span class="w"> </span><span class="m">23</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">1</span><span class="w">       </span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>0x18020001<span class="w"> </span><span class="m">24</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">250</span><span class="w">     </span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>0x0000ee01<span class="w"> </span><span class="m">23</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">1</span><span class="w">     </span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>0x18020001<span class="w"> </span><span class="m">24</span><span class="w">         </span>userIon<span class="w">       </span><span class="m">666</span><span class="w">        </span><span class="m">250</span><span class="w">   </span>
 </code></pre></div>
 <p>In this example, the shared memory and semaphore keys for the SDR heap space (shmid 49) and the semaphorebase (semid 24) are created using a random key generated from the process ID of <code>ionadmin</code> and they will vary each time ION is instantiated. This is specific to SVR4 semaphore, which is the default for ION 4.1.2. However, starting with ION 4.1.3, the default semaphore will switch to POSIX semaphore and the output will be different. The other memory and semaphore keys listed in this example are typical default values, but they too, can be changed through ionconfig files.</p>
 <h3 id="if-ion-is-installed-but-not-running">If ION is installed but not running</h3>
@@ -2031,7 +2031,7 @@
 </code></pre></div>
 <p>Description</p>
 <p>Opens the application's access to the BP endpoint identified by the string at <code>eid</code>, so that the application can take delivery of bundles destined for the indicated endpoint. This SAP can also be used for sending bundles whose source is the indicated endpoint.</p>
-<p>Please note that all bundles sent via this SAP will be subject to immediate destruction upon transmission, i.e., no bundle addresses will be returned by <code>bp_send</code> for use in tracking, suspending/resuming, or cancelling transmission of these bundles. </p>
+<p>Please note that all bundles sent via this SAP will be subject to immediate destruction upon transmission, i.e., no bundle addresses will be returned by <code>bp_send</code> for use in tracking, suspending/resuming, or cancelling transmission of these bundles.</p>
 <p>On success, places a value in *ionsapPtr that can be supplied to future bp function invocations.</p>
 <p><strong>NOTE:</strong> To allow for bp_send to return a bundle address for tracking purpose, please use <code>bp_open_source</code> instead.</p>
 <hr />
@@ -2059,8 +2059,8 @@
 <a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="p">}</span>
 </code></pre></div>
 <p>Description</p>
-<p>Opens the application's access to the BP endpoint identified by eid, so that the application can send bundles whose source is the indicated endpoint. If and only if the value of detain is non-zero, citing this SAP in an invocation of bp_send() will cause the address of the newly issued bundle to be returned for use in tracking, suspending/resuming, or cancelling transmission of this bundle. </p>
-<p><strong>USE THIS FEATURE WITH GREAT CARE</strong>: such a bundle will continue to occupy storage resources until it is explicitly released by an invocation of bp_release() or until its time to live expires, so bundle detention increases the risk of resource exhaustion. (If the value of detain is zero, all bundles sent via this SAP will be subject to immediate destruction upon transmission.) </p>
+<p>Opens the application's access to the BP endpoint identified by eid, so that the application can send bundles whose source is the indicated endpoint. If and only if the value of detain is non-zero, citing this SAP in an invocation of bp_send() will cause the address of the newly issued bundle to be returned for use in tracking, suspending/resuming, or cancelling transmission of this bundle.</p>
+<p><strong>USE THIS FEATURE WITH GREAT CARE</strong>: such a bundle will continue to occupy storage resources until it is explicitly released by an invocation of bp_release() or until its time to live expires, so bundle detention increases the risk of resource exhaustion. (If the value of detain is zero, all bundles sent via this SAP will be subject to immediate destruction upon transmission.)</p>
 <p>On success, places a value in *ionsapPtr that can be supplied to future bp function invocations and returns 0. Returns -1 on any error.</p>
 <hr />
 <h3 id="bp_send">bp_send</h3>
@@ -2072,33 +2072,15 @@
 </code></pre></div>
 <p>Parameters</p>
 <ul>
-<li>
-<p><code>sap</code>: the source endpoint for the bundle, provided by the <code>bp_open</code> call.</p>
-</li>
-<li>
-<p><code>*destEid</code>: identifies the destination endpoint for the bundle. </p>
-</li>
-<li>
-<p><code>reportToEid</code>: identifies the endpoint to which any status reports pertaining to this bundle will be sent; if NULL, defaults to the source endpoint.</p>
-</li>
-<li>
-<p><code>lifespan</code>: is the maximum number of seconds that the bundle can remain in-transit (undelivered) in the network prior to automatic deletion.</p>
-</li>
-<li>
-<p><code>classOfService</code>: is simply priority for now: BP_BULK_PRIORITY, BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY. If class-of-service flags are defined in a future version of Bundle Protocol, those flags would be OR'd with priority.</p>
-</li>
-<li>
-<p><code>custodySwitch</code>: indicates whether or not custody transfer is requested for this bundle and, if so, whether or not the source node itself is required to be the initial custodian. The valid values are SourceCustodyRequired, SourceCustodyOptional, NoCustodyRequired. Note that custody transfer is possible only for bundles that are uniquely identified, so it cannot be requested for bundles for which BP_MINIMUM_LATENCY is requested, since BP_MINIMUM_LATENCY may result in the production of multiple identical copies of the same bundle. Similarly, custody transfer should never be requested for a "loopback" bundle, i.e., one whose destination node is the same as the source node: the received bundle will be identical to the source bundle, both residing in the same node, so no custody acceptance signal can be applied to the source bundle and the source bundle will remain in storage until its TTL expires.</p>
-</li>
-<li>
-<p><code>srrFlags</code>: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT.</p>
-</li>
-<li>
-<p><code>ackRequested</code>: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.</p>
-</li>
-<li>
-<p><code>ancillaryData</code>: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:</p>
-</li>
+<li><code>sap</code>: the source endpoint for the bundle, provided by the <code>bp_open</code> call.</li>
+<li><code>*destEid</code>: identifies the destination endpoint for the bundle.</li>
+<li><code>reportToEid</code>: identifies the endpoint to which any status reports pertaining to this bundle will be sent; if NULL, defaults to the source endpoint.</li>
+<li><code>lifespan</code>: is the maximum number of seconds that the bundle can remain in-transit (undelivered) in the network prior to automatic deletion.</li>
+<li><code>classOfService</code>: is simply priority for now: BP_BULK_PRIORITY, BP_STD_PRIORITY, or BP_EXPEDITED_PRIORITY. If class-of-service flags are defined in a future version of Bundle Protocol, those flags would be OR'd with priority.</li>
+<li><code>custodySwitch</code>: indicates whether or not custody transfer is requested for this bundle and, if so, whether or not the source node itself is required to be the initial custodian. The valid values are SourceCustodyRequired, SourceCustodyOptional, NoCustodyRequired. Note that custody transfer is possible only for bundles that are uniquely identified, so it cannot be requested for bundles for which BP_MINIMUM_LATENCY is requested, since BP_MINIMUM_LATENCY may result in the production of multiple identical copies of the same bundle. Similarly, custody transfer should never be requested for a "loopback" bundle, i.e., one whose destination node is the same as the source node: the received bundle will be identical to the source bundle, both residing in the same node, so no custody acceptance signal can be applied to the source bundle and the source bundle will remain in storage until its TTL expires.</li>
+<li><code>srrFlags</code>: if non-zero, is the logical OR of the status reporting behaviors requested for this bundle: BP_RECEIVED_RPT, BP_CUSTODY_RPT, BP_FORWARDED_RPT, BP_DELIVERED_RPT, BP_DELETED_RPT.</li>
+<li><code>ackRequested</code>: is a Boolean parameter indicating whether or not the recipient application should be notified that the source application requests some sort of application-specific end-to-end acknowledgment upon receipt of the bundle.</li>
+<li><code>ancillaryData</code>: if not NULL, is used to populate the Extended Class Of Service block for this bundle. The block's ordinal value is used to provide fine-grained ordering within "expedited" traffic: ordinal values from 0 (the default) to 254 (used to designate the most urgent traffic) are valid, with 255 reserved for custody signals. The value of the block's flags is the logical OR of the applicable extended class-of-service flags:</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>BP_MINIMUM_LATENCY designates the bundle as &quot;critical&quot; for the
 <a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>purposes of Contact Graph Routing.
@@ -2111,7 +2093,7 @@
 <a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>in _ancillaryData_ must be encoded into the ECOS block when the bundle is
 <a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>transmitted.
 </code></pre></div>
-<p><strong>NOTE:</strong> For Bundle Protocol v7, no Extended Class of Service, or equivalent, has been standardized yet. This capability, however, has been retained from BPv6 and is available to BPv7 implementation in ION. </p>
+<p><strong>NOTE:</strong> For Bundle Protocol v7, no Extended Class of Service, or equivalent, has been standardized yet. This capability, however, has been retained from BPv6 and is available to BPv7 implementation in ION.</p>
 <ul>
 <li><code>adu</code>: is the "application data unit" that will be conveyed as the payload of the new bundle. adu must be a "zero-copy object" (ZCO). To ensure orderly access to transmission buffer space for all applications, adu must be created by invoking ionCreateZco(), which may be configured either to block so long as insufficient ZCO storage space is available for creation of the requested ZCO or to fail immediately if insufficient ZCO storage space is available.</li>
 </ul>
@@ -2133,10 +2115,10 @@
 <a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="p">}</span>
 </code></pre></div>
 <p>Description</p>
-<p>Sends a bundle to the endpoint identified by destEid, from the source endpoint as provided to the bp_open() call that returned sap. </p>
+<p>Sends a bundle to the endpoint identified by destEid, from the source endpoint as provided to the bp_open() call that returned sap.</p>
 <p>When sap is NULL, the transmitted bundle is anonymous, i.e., the source of the bundle is not identified. This is legal, but anonymous bundles cannot be uniquely identified; custody transfer and status reporting therefore cannot be requested for an anonymous bundle.</p>
-<p>The function returns 1 on success, 0 on user error, -1 on any system error. </p>
-<p>If 0 is returned, then an invalid argument value was passed to bp_send(); a message to this effect will have been written to the log file. </p>
+<p>The function returns 1 on success, 0 on user error, -1 on any system error.</p>
+<p>If 0 is returned, then an invalid argument value was passed to bp_send(); a message to this effect will have been written to the log file.</p>
 <p>If 1 is returned, then either the destination of the bundle was "dtn:none" (the bit bucket) or the ADU has been accepted and queued for transmission in a bundle. In the latter case, if and only if sap was a reference to a BpSAP returned by an invocation of bp_open_source() that had a non-zero value in the detain parameter, then newBundle must be non-NULL and the address of the newly created bundle within the ION database is placed in newBundle. This address can be used to track, suspend/resume, or cancel transmission of the bundle.</p>
 <hr />
 <h3 id="bp_track">bp_track</h3>
@@ -2254,7 +2236,7 @@
 </ul>
 <p>Description</p>
 <p>Releases a detained bundle for destruction when all retention constraints have been removed. After a detained bundle has been released, the application can no longer track, suspend/resume, or cancel its transmission. Returns 0 on success, -1 on any error.</p>
-<p><strong>NOTE</strong>: for bundles sent through an bundle protocol end-point which is opened via <code>bp_open_source</code> with <code>detain</code> set to non-zero value, they will not be destroyed, even after successful transmissions, until time-to-live has expired or explicitly released via <code>bp_release</code>. </p>
+<p><strong>NOTE</strong>: for bundles sent through an bundle protocol end-point which is opened via <code>bp_open_source</code> with <code>detain</code> set to non-zero value, they will not be destroyed, even after successful transmissions, until time-to-live has expired or explicitly released via <code>bp_release</code>.</p>
 <hr />
 <h3 id="bp_receive">bp_receive</h3>
 <p>Function Prototype</p>
@@ -2264,7 +2246,7 @@
 <ul>
 <li><code>sap</code>: the source endpoint for the bundle, provided by the <code>bp_open</code> call</li>
 <li><code>*dlvBuffer</code>: a pointer to a <code>BpDelivery</code> structure used to return the received bundle and/or outcome of reception</li>
-<li><code>timoutSeconds</code>: a reception timer in seconds </li>
+<li><code>timoutSeconds</code>: a reception timer in seconds</li>
 </ul>
 <p>Return Value</p>
 <ul>
@@ -2340,64 +2322,9 @@
 <hr />
 <h2 id="walk-through-of-bpsourcec">Walk Through of <code>bpsource.c</code></h2>
 <ul>
-<li>
-<p>For this example, it is assumed that the user is already familiar with the <a href="../ICI-API/">ICI APIs</a>.</p>
-</li>
-<li></li>
+<li>For this example, it is assumed that the user is already familiar with the <a href="../ICI-API/">ICI APIs</a>.</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;stdio.h&gt;</span>
-<a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;bp.h&quot;</span>
-<a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;sdr.h&quot;</span>
-<a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;ion.h&quot;</span>
-<a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>
-<a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">argv</span><span class="p">[])</span>
-<a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="p">{</span>
-<a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a><span class="w">        </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">choice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a><span class="w">        </span><span class="kt">int</span><span class="w"> </span><span class="n">ret_value</span><span class="p">;</span>
-<a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>
-<a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a><span class="w">        </span><span class="k">do</span>
-<a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a><span class="w">        </span><span class="p">{</span>
-<a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;0 - Exit</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;1 - BP Attach</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;2 - BP Detach</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;3 - SDR Shutdown</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;4 - ION Detach</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a><span class="w">                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;Option:  &quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a><span class="w">                </span><span class="n">scanf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;%u&quot;</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">choice</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a>
-<a id="__codelineno-34-21" name="__codelineno-34-21" href="#__codelineno-34-21"></a><span class="w">                </span><span class="k">switch</span><span class="p">(</span><span class="w"> </span><span class="n">choice</span><span class="w"> </span><span class="p">)</span>
-<a id="__codelineno-34-22" name="__codelineno-34-22" href="#__codelineno-34-22"></a><span class="w">                </span><span class="p">{</span>
-<a id="__codelineno-34-23" name="__codelineno-34-23" href="#__codelineno-34-23"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-34-24" name="__codelineno-34-24" href="#__codelineno-34-24"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
-<a id="__codelineno-34-25" name="__codelineno-34-25" href="#__codelineno-34-25"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-34-26" name="__codelineno-34-26" href="#__codelineno-34-26"></a><span class="w">                                </span><span class="n">ret_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bp_attach</span><span class="p">();</span>
-<a id="__codelineno-34-27" name="__codelineno-34-27" href="#__codelineno-34-27"></a>
-<a id="__codelineno-34-28" name="__codelineno-34-28" href="#__codelineno-34-28"></a><span class="w">                                </span><span class="k">if</span><span class="p">(</span><span class="w"> </span><span class="n">ret_value</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">)</span>
-<a id="__codelineno-34-29" name="__codelineno-34-29" href="#__codelineno-34-29"></a><span class="w">                                        </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;Attached</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-30" name="__codelineno-34-30" href="#__codelineno-34-30"></a><span class="w">                                </span><span class="k">else</span>
-<a id="__codelineno-34-31" name="__codelineno-34-31" href="#__codelineno-34-31"></a><span class="w">                                </span><span class="p">{</span>
-<a id="__codelineno-34-32" name="__codelineno-34-32" href="#__codelineno-34-32"></a><span class="w">                                        </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;Error %d returned from bp_attach().</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">ret_value</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-33" name="__codelineno-34-33" href="#__codelineno-34-33"></a><span class="w">                                        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<a id="__codelineno-34-34" name="__codelineno-34-34" href="#__codelineno-34-34"></a><span class="w">                                </span><span class="p">}</span>
-<a id="__codelineno-34-35" name="__codelineno-34-35" href="#__codelineno-34-35"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
-<a id="__codelineno-34-36" name="__codelineno-34-36" href="#__codelineno-34-36"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">2</span><span class="p">:</span>
-<a id="__codelineno-34-37" name="__codelineno-34-37" href="#__codelineno-34-37"></a><span class="w">                                </span><span class="n">bp_detach</span><span class="p">();</span>
-<a id="__codelineno-34-38" name="__codelineno-34-38" href="#__codelineno-34-38"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
-<a id="__codelineno-34-39" name="__codelineno-34-39" href="#__codelineno-34-39"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">3</span><span class="p">:</span>
-<a id="__codelineno-34-40" name="__codelineno-34-40" href="#__codelineno-34-40"></a><span class="w">                                </span><span class="n">sdr_shutdown</span><span class="p">();</span>
-<a id="__codelineno-34-41" name="__codelineno-34-41" href="#__codelineno-34-41"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
-<a id="__codelineno-34-42" name="__codelineno-34-42" href="#__codelineno-34-42"></a><span class="w">                        </span><span class="k">case</span><span class="w"> </span><span class="mi">4</span><span class="p">:</span>
-<a id="__codelineno-34-43" name="__codelineno-34-43" href="#__codelineno-34-43"></a><span class="w">                                </span><span class="n">ionDetach</span><span class="p">();</span>
-<a id="__codelineno-34-44" name="__codelineno-34-44" href="#__codelineno-34-44"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
-<a id="__codelineno-34-45" name="__codelineno-34-45" href="#__codelineno-34-45"></a><span class="w">                        </span><span class="k">default</span><span class="o">:</span>
-<a id="__codelineno-34-46" name="__codelineno-34-46" href="#__codelineno-34-46"></a><span class="w">                                </span><span class="n">printf</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;That&#39;s not a choice you should make...</span><span class="se">\n</span><span class="s">&quot;</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-47" name="__codelineno-34-47" href="#__codelineno-34-47"></a><span class="w">                                </span><span class="k">break</span><span class="p">;</span>
-<a id="__codelineno-34-48" name="__codelineno-34-48" href="#__codelineno-34-48"></a><span class="w">                </span><span class="p">};</span>
-<a id="__codelineno-34-49" name="__codelineno-34-49" href="#__codelineno-34-49"></a><span class="w">        </span><span class="p">}</span><span class="w"> </span><span class="k">while</span><span class="p">(</span><span class="w"> </span><span class="n">choice</span><span class="w"> </span><span class="p">);</span>
-<a id="__codelineno-34-50" name="__codelineno-34-50" href="#__codelineno-34-50"></a>
-<a id="__codelineno-34-51" name="__codelineno-34-51" href="#__codelineno-34-51"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
-<a id="__codelineno-34-52" name="__codelineno-34-52" href="#__codelineno-34-52"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>TO BE UPDATED.</strong></p>
 <h2 id="compiling-and-linking">Compiling and Linking</h2>
 <h2 id="zero-copy-object-zco-types">Zero-copy Object (ZCO) Types</h2>
 <p>We have shown that the way to hand user data from an application to BP is via a zero-copy object (ZCO).</p>
