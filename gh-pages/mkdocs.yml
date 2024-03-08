@@ -55,6 +55,7 @@ nav:
     - Use Cases: Use-Cases.md
     - Publications/Papers: List-of-Papers.md
     - Contribute Code: community/Contributing-Code-to-ION.md
+    - ION Test Set: ION-TestSet-Readme.md
   - Configuration:
     - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
     - Configuration Templates: ION-Config-File-Templates.md
