@@ -977,6 +977,18 @@ int      bpsec_asb_outboundAsbCopy(ExtensionBlock *newBlk, ExtensionBlock *oldBl
  * We
  */
 
+static void	releaseTmpData(BpsecSerializeData *tmpData, int limit)
+{
+	int i;
+
+	for (i = 0; i < limit; i++)
+	{
+		MRELEASE(tmpData[i].scSerializedText);
+	}
+
+	MRELEASE(tmpData);
+}
+
 int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSerializeData *tgtIds, BpsecSerializeData *tgtResults)
 {
     Object elt = 0;
@@ -996,6 +1008,7 @@ int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSeria
     CHKERR(tgtIds);
     CHKERR(tgtResults);
 
+    tgtIds->scSerializedLength = 0;
     tgtResults->scSerializedLength = 0;
 
     /*
@@ -1056,7 +1069,7 @@ int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSeria
         {
             BPSEC_DEBUG_ERR("Cannot serialize list.", NULL);
             MRELEASE(tgtIds->scSerializedText);
-            MRELEASE(tmpData);
+	    releaseTmpData(tmpData, i);
             return -1;
         }
         tgtResults->scSerializedLength += tmpData[i].scSerializedLength;
@@ -1085,7 +1098,7 @@ int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSeria
     {
         BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", tgtResults->scSerializedLength);
         MRELEASE(tgtIds->scSerializedText);
-        MRELEASE(tmpData);
+	releaseTmpData(tmpData, i);
         return -1;
     }
     cursor = tgtResults->scSerializedText;
@@ -1101,6 +1114,7 @@ int bslasb_encodeTargets(Sdr sdr, BpsecOutboundASB *asb, sc_Def *def, BpsecSeria
     {
         memcpy(cursor, tmpData[i].scSerializedText, tmpData[i].scSerializedLength);
         cursor += tmpData[i].scSerializedLength;
+	MRELEASE(tmpData[i].scSerializedText);	/*	SB 12/20/2023	*/
     }
 
     MRELEASE(tmpData);

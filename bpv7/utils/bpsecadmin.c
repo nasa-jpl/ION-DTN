@@ -3101,7 +3101,10 @@ int	main(int argc, char **argv)
 				 * process that command to execute it. */
 				else if (strchr(singleCmdCodes, line[0]) != NULL)
 				{
-					bpsec_admin_executeCmd(line);
+					if (bpsec_admin_executeCmd(line) == 2)
+					{
+						break;		/*	Out of loop and quit. */
+					}
 				}
 
 				/* Otherwise, the line is *added* to the JSON command. The

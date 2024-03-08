@@ -1017,7 +1017,7 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
  Lyst bpsec_scv_sdrListRead(Sdr sdr, Object sdr_list)
  {
  	Object listElt;
- 	Lyst result = lyst_create();
+ 	Lyst result = lyst_create_using(getIonMemoryMgr());
 
  	BPSEC_DEBUG_PROC("(sdr, %d)", sdr_list);
 

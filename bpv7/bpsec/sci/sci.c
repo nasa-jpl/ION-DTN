@@ -462,7 +462,9 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
     PsmAddress eltAddr = 0;
     int found = 0;
     sc_value *val = NULL;
+    PsmAddress polAddr = 0;
     sc_value *polval = NULL;
+    sc_value *polvalCopy = NULL;
 
     BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC","ADDR_FIELDSPEC",wm,%d,"ADDR_FIELDSPEC")",
                     (uaddr)state, (uaddr)def, pol_parms, (uaddr)blk_parms);
@@ -495,7 +497,7 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
     {
         for(eltAddr = sm_list_first(wm, pol_parms); eltAddr; eltAddr = sm_list_next(wm, eltAddr))
         {
-            PsmAddress polAddr = sm_list_data(wm, eltAddr);
+            polAddr = sm_list_data(wm, eltAddr);
             found = 0;
 
             if((polval = psp(wm, polAddr)) == NULL)
@@ -516,7 +518,10 @@ int bpsec_sci_parmFilter(sc_state *state, sc_Def *def, PsmPartition wm, PsmAddre
 
             if(found == 0)
             {
-                lyst_insert_last(state->scStParms, polval);
+		if ((polvalCopy = bpsec_scv_memCopy(polval)) != NULL)
+		{
+			lyst_insert_last(state->scStParms, polvalCopy);
+		}
             }
         }
     }
@@ -607,8 +612,10 @@ void bpsec_sci_stateClear(sc_state *state)
 {
     CHKVOID(state);
 
-    /* Destroy the parameters - there is a delete callback on this Lyst. */
-  // TODO Do not destroy parms.   lyst_destroy(state->scStParms);
+    /* There are delete callbacks on these Lysts. */
+ 
+    /* Destroy the parameters list. */
+    lyst_destroy(state->scStParms);	/*	SB 12/20/2023		*/
 
     /* Delete the results list and DO destroy its deep-copy results. */
     lyst_destroy(state->scStResults);
@@ -693,7 +700,7 @@ int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNu
     CHKERR(state);
     CHKERR(sc_def);
 
-    if((state->scStResults = lyst_create()) == NULL)
+    if((state->scStResults = lyst_create_using(getIonMemoryMgr())) == NULL)
     {
         BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
         bpsec_sci_stateClear(state);
@@ -703,7 +710,7 @@ int bpsec_sci_stateInit(PsmPartition wm, sc_state *state, unsigned char secBlkNu
     lyst_delete_set(state->scStResults, bpsec_scv_lystCbDel, NULL);
 
 
-    if((state->scStParms = lyst_create()) == NULL)
+    if((state->scStParms = lyst_create_using(getIonMemoryMgr())) == NULL)
     {
         BPSEC_DEBUG_ERR("Unable to create lyst.", NULL);
         bpsec_sci_stateClear(state);
