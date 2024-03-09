@@ -701,6 +701,7 @@ option as follows:
   attachment purposes **only**) from that environment variable; only
   if ION_NODE_WDNAME is undefined will it use the actual cwd that it
   gets from calling igetcwd().
+- When running multiple ION instances, the first ION instance must have the largest sdr working memory specified by `sdrWmSize` or default. If any later ION instance launched with `sdrWmSize` exceeding the first ION instance, it will result in crash upon launch. It is further recommended that all ION instances running simultaneously on a single host should set their `sdrWmSize` the same.
 
 ### Shutdown
 
@@ -916,9 +917,7 @@ Spans.
 
 #### The ltpadmin Add Span command
 
-`a span peer_engine_nbr max_export_sessions max_import_sessions
-max_segment_size aggregation_size_threshold aggregation_time_limit
-'LSO_command' [queuing_latency]`
+`a span peer_engine_nbr max_export_sessions max_import_sessions max_segment_size aggregation_size_threshold aggregation_time_limit 'LSO_command' [queuing_latency]`
 
 The "add span" command. This command declares that a span of potential
 LTP data interchange exists between the local LTP engine and the
