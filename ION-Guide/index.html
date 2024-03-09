@@ -2823,15 +2823,9 @@ number</em>: in the ION architecture there is a natural one-to-one mapping
 not only between node numbers and BP endpoint node numbers but also
 between node numbers and:</p>
 <ul>
-<li>
-<p>LTP engine IDs</p>
-</li>
-<li>
-<p>AMS continuum numbers</p>
-</li>
-<li>
-<p>CFDP entity numbers</p>
-</li>
+<li>LTP engine IDs</li>
+<li>AMS continuum numbers</li>
+<li>CFDP entity numbers</li>
 </ul>
 <p>Starting with version 3.1 of ION, this endpoint naming rule is
 experimentally extended to accommodate <em>bundle multicast</em>, i.e., the
@@ -2853,146 +2847,100 @@ chiefly, the <strong>imcadmin</strong> utility is deprecated.)</p>
 <h3 id="structure-and-function">Structure and function</h3>
 <p>The ION distribution comprises the following software packages:</p>
 <ul>
-<li>
-<p>ici (Interplanetary Communication Infrastructure), a set of
-    general-purpose libraries providing common functionality to the
-    other packages. The ici package includes a security policy component
-    that supports the implementation of security mechanisms at multiple
-    layers of the protocol stack.</p>
-</li>
-<li>
-<p>ltp (Licklider Transmission Protocol), a core DTN protocol that
-    provides transmission reliability based on delay-tolerant
-    acknowledgments, timeouts, and retransmissions. The LTP
-    specification is defined in Internet RFC 5326.</p>
-</li>
-<li>
-<p>bp (Bundle Protocol), a core DTN protocol that provides
-    delay-tolerant forwarding of data through a network in which
-    continuous end-to-end connectivity is never assured, including
-    support for delay-tolerant dynamic routing. The BP specification is
-    defined in Internet RFC 5050.</p>
-</li>
-<li>
-<p>dgr (Datagram Retransmission), an alternative implementation of LTP
-    that is designed for use on the Internet. Equipped with algorithms
-    for TCP-like congestion control, DGR enables data to be transmitted
-    via UDP with reliability comparable to that provided by TCP. The dgr
-    system is provided primarily for the conveyance of Meta-AMS (see
-    below) protocol traffic in an Internet-like environment.</p>
-</li>
+<li>ici (Interplanetary Communication Infrastructure), a set of
+  general-purpose libraries providing common functionality to the
+  other packages. The ici package includes a security policy component
+  that supports the implementation of security mechanisms at multiple
+  layers of the protocol stack.</li>
+<li>ltp (Licklider Transmission Protocol), a core DTN protocol that
+  provides transmission reliability based on delay-tolerant
+  acknowledgments, timeouts, and retransmissions. The LTP
+  specification is defined in Internet RFC 5326.</li>
+<li>bp (Bundle Protocol), a core DTN protocol that provides
+  delay-tolerant forwarding of data through a network in which
+  continuous end-to-end connectivity is never assured, including
+  support for delay-tolerant dynamic routing. The BP specification is
+  defined in Internet RFC 5050.</li>
+<li>dgr (Datagram Retransmission), an alternative implementation of LTP
+  that is designed for use on the Internet. Equipped with algorithms
+  for TCP-like congestion control, DGR enables data to be transmitted
+  via UDP with reliability comparable to that provided by TCP. The dgr
+  system is provided primarily for the conveyance of Meta-AMS (see
+  below) protocol traffic in an Internet-like environment.</li>
 <li>
 <p>ams (Asynchronous Message Service), an application-layer service
-    that is not part of the DTN architecture but utilizes underlying DTN
-    protocols. AMS comprises three protocols supporting the distribution
-    of brief messages within a network:</p>
-<ul>
+  that is not part of the DTN architecture but utilizes underlying DTN
+  protocols. AMS comprises three protocols supporting the distribution
+  of brief messages within a network:</p>
+</li>
 <li>
 <p>The core AAMS (Application AMS) protocol, which does message
     distribution on both the publish/subscribe model and the
     client/server model, as required by the application.</p>
 </li>
-<li>
-<p>The MAMS (Meta-AMS) protocol, which distributes control
+<li>The MAMS (Meta-AMS) protocol, which distributes control
     information enabling the operation of the Application AMS
-    protocol.</p>
-</li>
-<li>
-<p>The RAMS (Remote AMS) protocol, which performs aggregated
+    protocol.</li>
+<li>The RAMS (Remote AMS) protocol, which performs aggregated
     message distribution to end nodes that may be numerous and/or
     accessible only over very expensive links, using an aggregation
     tree structure similar to the distribution trees used by
-    Internet multicast technologies.</p>
-</li>
-</ul>
-</li>
-<li>
-<p>cfdp (CCSDS File Delivery Protocol), another application-layer
-    service that is not part of the DTN architecture but utilizes
-    underlying DTN protocols. CFDP performs the segmentation,
-    transmission, reception, reassembly, and delivery of files in a
-    delay-tolerant manner. ION's implementation of CFDP conforms to the
-    "class 1" definition of the protocol in the CFDP standard, utilizing
-    DTN (BP, nominally over LTP) as its "unitdata transport" layer.</p>
-</li>
-<li>
-<p>bss (Bundle Streaming Service), a system for efficient data
-    streaming over a delay-tolerant network. The bss package
-    includes (a) a convergence-layer protocol (bssp) that preserves
-    in-order arrival of all data that were never lost en route, yet
-    ensures that all data arrive at the destination eventually, and (b)
-    a library for building delay-tolerant streaming applications, which
-    enables low-latency presentation of streamed data received in real
-    time while offering rewind/playback capability for the entire stream
-    including late-arriving retransmitted data.</p>
-</li>
-<li>
-<p>tc (Trusted Collective), a system for propagating critical yet
-    non-confidential information in a trustworthy manner. tc can be
-    thought of as a delay-tolerant functional analog to the servers in
-    client/server architectures. Multiple applications may make use of
-    the tc system, but currently only one tc application is bundled with
-    ION: dtka (delay-tolerant key administration), which provides
-    delay-tolerant public key infrastructure.</p>
-</li>
+    Internet multicast technologies.</li>
+<li>cfdp (CCSDS File Delivery Protocol), another application-layer
+  service that is not part of the DTN architecture but utilizes
+  underlying DTN protocols. CFDP performs the segmentation,
+  transmission, reception, reassembly, and delivery of files in a
+  delay-tolerant manner. ION's implementation of CFDP conforms to the
+  "class 1" definition of the protocol in the CFDP standard, utilizing
+  DTN (BP, nominally over LTP) as its "unitdata transport" layer.</li>
+<li>bss (Bundle Streaming Service), a system for efficient data
+  streaming over a delay-tolerant network. The bss package
+  includes (a) a convergence-layer protocol (bssp) that preserves
+  in-order arrival of all data that were never lost en route, yet
+  ensures that all data arrive at the destination eventually, and (b)
+  a library for building delay-tolerant streaming applications, which
+  enables low-latency presentation of streamed data received in real
+  time while offering rewind/playback capability for the entire stream
+  including late-arriving retransmitted data.</li>
+<li>tc (Trusted Collective), a system for propagating critical yet
+  non-confidential information in a trustworthy manner. tc can be
+  thought of as a delay-tolerant functional analog to the servers in
+  client/server architectures. Multiple applications may make use of
+  the tc system, but currently only one tc application is bundled with
+  ION: dtka (delay-tolerant key administration), which provides
+  delay-tolerant public key infrastructure.</li>
 </ul>
 <p>Taken together, the packages included in the ION software distribution
 constitute a communication capability characterized by the following
 operational features:</p>
 <ul>
-<li>
-<p>Reliable conveyance of data over a delay-tolerant network (<em>dtnet</em>),
-    i.e., a network in which it might never be possible for any node to
-    have reliable information about the detailed current state of any
-    other node.</p>
-</li>
-<li>
-<p>Built on this capability, reliable data streaming, reliable file
-    delivery, and reliable distribution of short messages to multiple
-    recipients (subscribers) residing in such a network.</p>
-</li>
+<li>Reliable conveyance of data over a delay-tolerant network (<em>dtnet</em>),
+  i.e., a network in which it might never be possible for any node to
+  have reliable information about the detailed current state of any
+  other node.</li>
+<li>Built on this capability, reliable data streaming, reliable file
+  delivery, and reliable distribution of short messages to multiple
+  recipients (subscribers) residing in such a network.</li>
 <li>
 <p>Management of traffic through such a network, taking into
-    consideration:</p>
-<ul>
+  consideration:</p>
+</li>
 <li>
 <p>requirements for data security</p>
 </li>
-<li>
-<p>scheduled times and durations of communication opportunities</p>
-</li>
-<li>
-<p>fluctuating limits on data storage and transmission resources</p>
-</li>
-<li>
-<p>data rate asymmetry</p>
-</li>
-<li>
-<p>the sizes of application data units</p>
-</li>
-<li>
-<p>and user-specified final destination, priority, and useful
-    lifetime for those data units.</p>
-</li>
-</ul>
-</li>
-<li>
-<p>Facilities for monitoring the performance of the network.</p>
-</li>
-<li>
-<p>Robustness against node failure.</p>
-</li>
-<li>
-<p>Portability across heterogeneous computing platforms.</p>
-</li>
-<li>
-<p>High speed with low overhead.</p>
-</li>
-<li>
-<p>Easy integration with heterogeneous underlying communication
-    infrastructure, ranging from Internet to dedicated spacecraft
-    communication links.</p>
-</li>
+<li>scheduled times and durations of communication opportunities</li>
+<li>fluctuating limits on data storage and transmission resources</li>
+<li>data rate asymmetry</li>
+<li>the sizes of application data units</li>
+<li>and user-specified final destination, priority, and useful
+    lifetime for those data units.</li>
+<li>Facilities for monitoring the performance of the network.</li>
+<li>Robustness against node failure.</li>
+<li>Portability across heterogeneous computing platforms.</li>
+<li>High speed with low overhead.</li>
+<li>Easy integration with heterogeneous underlying communication
+  infrastructure, ranging from Internet to dedicated spacecraft
+  communication links.</li>
 </ul>
 <h3 id="constraints-on-the-design">Constraints on the Design</h3>
 <p>A DTN implementation intended to function in an interplanetary network
@@ -3086,20 +3034,16 @@ task to another.</p>
 particular, virtually all inter-task data interchange in ION follows the
 model shown in Figure 2:</p>
 <ul>
-<li>
-<p>The sending task takes a mutual exclusion semaphore (mutex)
-    protecting a linked list in shared memory (either DRAM or
-    non-volatile memory), appends a data item to the list, releases the
-    mutex, and gives a "signal" semaphore associated with the list to
-    announce that the list is now non-empty.</p>
-</li>
-<li>
-<p>The receiving task, which is already pending on the linked list's
-    associated signal semaphore, resumes execution when the semaphore is
-    given. It takes the associated mutex, extracts the next data item
-    from the list, releases the mutex, and proceeds to operate on the
-    data item from the sending task.</p>
-</li>
+<li>The sending task takes a mutual exclusion semaphore (mutex)
+  protecting a linked list in shared memory (either DRAM or
+  non-volatile memory), appends a data item to the list, releases the
+  mutex, and gives a "signal" semaphore associated with the list to
+  announce that the list is now non-empty.</li>
+<li>The receiving task, which is already pending on the linked list's
+  associated signal semaphore, resumes execution when the semaphore is
+  given. It takes the associated mutex, extracts the next data item
+  from the list, releases the mutex, and proceeds to operate on the
+  data item from the sending task.</li>
 </ul>
 <p>Semaphore operations are typically extremely fast, as is the storage and
 retrieval of data in memory, so this inter-task data interchange model
@@ -3127,26 +3071,22 @@ it practical to distribute ION processing among multiple relatively
 simple pipelined tasks rather than localize it in a single, somewhat
 more complex daemon. This strategy has a number of advantages:</p>
 <ul>
-<li>
-<p>The simplicity of each task reduces the sizes of the software
-    modules, making them easier to understand and maintain, and thus it
-    can somewhat reduce the incidence of errors.</p>
-</li>
-<li>
-<p>The scope of the ION operating stack can be adjusted incrementally
-    at run time, by spawning or terminating instances of configurable
-    software elements, without increasing the size or complexity of any
-    single task and without requiring that the stack as a whole be
-    halted and restarted in a new configuration. In theory, a module
-    could even be upgraded with new functionality and integrated into
-    the stack without interrupting operations.</p>
-</li>
+<li>The simplicity of each task reduces the sizes of the software
+  modules, making them easier to understand and maintain, and thus it
+  can somewhat reduce the incidence of errors.</li>
+<li>The scope of the ION operating stack can be adjusted incrementally
+  at run time, by spawning or terminating instances of configurable
+  software elements, without increasing the size or complexity of any
+  single task and without requiring that the stack as a whole be
+  halted and restarted in a new configuration. In theory, a module
+  could even be upgraded with new functionality and integrated into
+  the stack without interrupting operations.</li>
 <li>
 <p>The clear interfaces between tasks simplify the implementation of
-    flow control measures to prevent uncontrolled resource consumption.</p>
-<ol>
-<li><strong>Portability</strong></li>
-</ol>
+  flow control measures to prevent uncontrolled resource consumption.</p>
+</li>
+<li>
+<p><strong>Portability</strong></p>
 </li>
 </ul>
 <p>Designs based on these kinds of principles are foreign to many software
@@ -3184,98 +3124,74 @@ nominally non-volatile SDR data store, constitute the central organizing
 principle of the design. Here as in other diagrams showing data flow in
 this document:</p>
 <ul>
-<li>
-<p>Ordered collections of data objects are shown as cylinders.</p>
-</li>
-<li>
-<p>Darker greyscale data entities indicate data that are managed in the
-    SDR data store, while lighter greyscale data entities indicate data
-    that are managed in volatile DRAM to improve performance.</p>
-</li>
-<li>
-<p>Rectangles indicate processing elements (tasks, processes, threads),
-    sometimes with library references specifically identified.</p>
-</li>
+<li>Ordered collections of data objects are shown as cylinders.</li>
+<li>Darker greyscale data entities indicate data that are managed in the
+  SDR data store, while lighter greyscale data entities indicate data
+  that are managed in volatile DRAM to improve performance.</li>
+<li>Rectangles indicate processing elements (tasks, processes, threads),
+  sometimes with library references specifically identified.</li>
 </ul>
 <p>A few notes on this main line data flow:</p>
 <ul>
-<li>
-<p>For simplicity, the data flow depicted here is a "loopback" flow in
-    which a single BP "node" is shown sending data to itself (a useful
-    configuration for test purposes). To depict typical operations over
-    a network we would need two instances of this node diagram, such
-    that the \&lt;LSO&gt; task of one node is shown sending data to the
-    \&lt;LSI&gt; task of the other and vice versa.</p>
-</li>
-<li>
-<p>A BP application or application service (such as Remote AMS) that
-    has access to the local BP node -- for our purposes, the "sender" --
-    invokes the bp_send function to send a unit of application data to a
-    remote counterpart. The destination of the application data unit is
-    expressed as a BP endpoint ID (EID). The application data unit is
-    encapsulated in a bundle and is queued for forwarding.</p>
-</li>
-<li>
-<p>The forwarder task identified by the "scheme" portion of the
-    bundle's destination EID removes the bundle from the forwarding
-    queue and computes a route to the destination EID. The first node on
-    the route is termed the "proximate node" for the computed route. The
-    forwarder appends the bundle to the transmission queue for the
-    convergence-layer manager (CLM) daemon that is responsible for
-    transmission to the proximate node.</p>
-</li>
-<li>
-<p>The CLM daemon removes the bundle from the transmission queue and
-    imposes rate control, fragments the bundle as necessary, and appends
-    the bundle to the transmission buffer for some underlying
-    "convergence layer" (CL) protocol interface to the proximate node,
-    termed an <em>outduct</em>. In the event that multiple outducts are
-    available for transmission to that node (e.g., multiple radio
-    frequency bands), the CLM invokes mission-supplied code to select
-    the appropriate duct. Each outduct is serviced by some CL-specific
-    output task that communicates with the proximate node -- in this
-    case, the LTP output task <strong>ltpclo</strong>. (Other CL protocols supported
-    by ION include TCP and UDP.)</p>
-</li>
-<li>
-<p>The output task for LTP transmission to the selected proximate node
-    removes the bundle from the transmission buffer and invokes the
-    ltp_send function to append it to a <em>block</em> that is being assembled
-    for transmission to the proximate node. (Because LTP acknowledgement
-    traffic is issued on a per-block basis, we can limit the amount of
-    acknowledgement traffic on the network by aggregating multiple
-    bundles into a single block rather than transmitting each bundle in
-    its own block.)</p>
-</li>
-<li>
-<p>The <strong>ltpmeter</strong> task for the selected proximate node divides the
-    aggregated block into multiple segments and enqueues them for
-    transmission by underlying link-layer transmission software, such as
-    an implementation of the CCSDS AOS protocol.</p>
-</li>
-<li>
-<p>Underlying link-layer software at the sending node transmits the
-    segments to its counterpart at the proximate node (the receiver),
-    where they are used to reassemble the transmission block.</p>
-</li>
-<li>
-<p>The receiving node's input task for LTP reception extracts the
-    bundles from the reassembled block and dispatches them: each bundle
-    whose final destination is some other node is queued for forwarding,
-    just like bundles created by local applications, while each bundle
-    whose final destination is the local node is queued for delivery to
-    whatever application "opens" the BP endpoint identified by the
-    bundle's final destination endpoint ID. (Note that a multicast
-    bundle may be both queued for forwarding, possibly to multiple
-    neighboring nodes, and also queued for delivery.)</p>
-</li>
-<li>
-<p>The destination application or application service at the receiving
-    node opens the appropriate BP endpoint and invokes the bp_receive
-    function to remove the bundle from the associated delivery queue and
-    extract the original application data unit, which it can then
-    process.</p>
-</li>
+<li>For simplicity, the data flow depicted here is a "loopback" flow in
+  which a single BP "node" is shown sending data to itself (a useful
+  configuration for test purposes). To depict typical operations over
+  a network we would need two instances of this node diagram, such
+  that the \&lt;LSO&gt; task of one node is shown sending data to the
+  \&lt;LSI&gt; task of the other and vice versa.</li>
+<li>A BP application or application service (such as Remote AMS) that
+  has access to the local BP node -- for our purposes, the "sender" --
+  invokes the bp_send function to send a unit of application data to a
+  remote counterpart. The destination of the application data unit is
+  expressed as a BP endpoint ID (EID). The application data unit is
+  encapsulated in a bundle and is queued for forwarding.</li>
+<li>The forwarder task identified by the "scheme" portion of the
+  bundle's destination EID removes the bundle from the forwarding
+  queue and computes a route to the destination EID. The first node on
+  the route is termed the "proximate node" for the computed route. The
+  forwarder appends the bundle to the transmission queue for the
+  convergence-layer manager (CLM) daemon that is responsible for
+  transmission to the proximate node.</li>
+<li>The CLM daemon removes the bundle from the transmission queue and
+  imposes rate control, fragments the bundle as necessary, and appends
+  the bundle to the transmission buffer for some underlying
+  "convergence layer" (CL) protocol interface to the proximate node,
+  termed an <em>outduct</em>. In the event that multiple outducts are
+  available for transmission to that node (e.g., multiple radio
+  frequency bands), the CLM invokes mission-supplied code to select
+  the appropriate duct. Each outduct is serviced by some CL-specific
+  output task that communicates with the proximate node -- in this
+  case, the LTP output task <strong>ltpclo</strong>. (Other CL protocols supported
+  by ION include TCP and UDP.)</li>
+<li>The output task for LTP transmission to the selected proximate node
+  removes the bundle from the transmission buffer and invokes the
+  ltp_send function to append it to a <em>block</em> that is being assembled
+  for transmission to the proximate node. (Because LTP acknowledgement
+  traffic is issued on a per-block basis, we can limit the amount of
+  acknowledgement traffic on the network by aggregating multiple
+  bundles into a single block rather than transmitting each bundle in
+  its own block.)</li>
+<li>The <strong>ltpmeter</strong> task for the selected proximate node divides the
+  aggregated block into multiple segments and enqueues them for
+  transmission by underlying link-layer transmission software, such as
+  an implementation of the CCSDS AOS protocol.</li>
+<li>Underlying link-layer software at the sending node transmits the
+  segments to its counterpart at the proximate node (the receiver),
+  where they are used to reassemble the transmission block.</li>
+<li>The receiving node's input task for LTP reception extracts the
+  bundles from the reassembled block and dispatches them: each bundle
+  whose final destination is some other node is queued for forwarding,
+  just like bundles created by local applications, while each bundle
+  whose final destination is the local node is queued for delivery to
+  whatever application "opens" the BP endpoint identified by the
+  bundle's final destination endpoint ID. (Note that a multicast
+  bundle may be both queued for forwarding, possibly to multiple
+  neighboring nodes, and also queued for delivery.)</li>
+<li>The destination application or application service at the receiving
+  node opens the appropriate BP endpoint and invokes the bp_receive
+  function to remove the bundle from the associated delivery queue and
+  extract the original application data unit, which it can then
+  process.</li>
 </ul>
 <p>Finally, note that the data flow shown here represents the sustained
 operational configuration of a node that has been successfully
@@ -3479,19 +3395,15 @@ policy rules and computation keys.</p>
 provides two additional features that enhance functionality without
 affecting interoperability with other implementations:</p>
 <ul>
-<li>
-<p>The service data units -- nominally bundles -- passed to LTP for
-    transmission may be aggregated into larger blocks before
-    segmentation. By controlling block size we can control the volume of
-    acknowledgement traffic generated as blocks are received, for
-    improved accommodation of highly asynchronous data rates.</p>
-</li>
-<li>
-<p>The maximum number of transmission sessions that may be concurrently
-    managed by LTP (a protocol control parameter) constitutes a
-    transmission "window" -- the basis for a delay-tolerant,
-    non-conversational flow control service over interplanetary links.</p>
-</li>
+<li>The service data units -- nominally bundles -- passed to LTP for
+  transmission may be aggregated into larger blocks before
+  segmentation. By controlling block size we can control the volume of
+  acknowledgement traffic generated as blocks are received, for
+  improved accommodation of highly asynchronous data rates.</li>
+<li>The maximum number of transmission sessions that may be concurrently
+  managed by LTP (a protocol control parameter) constitutes a
+  transmission "window" -- the basis for a delay-tolerant,
+  non-conversational flow control service over interplanetary links.</li>
 </ul>
 <p>In the ION stack, LTP serves effectively the same role that is performed
 by an LLC protocol (such as IEEE 802.2) in the Internet architecture,
@@ -3503,41 +3415,25 @@ recovery from a spacecraft or software fault.</p>
 <p>The ION implementation of BP conforms fully to RFC 5050, including
 support for the following standard capabilities:</p>
 <ul>
-<li>
-<p>Prioritization of data flows</p>
-</li>
-<li>
-<p>Proactive bundle fragmentation</p>
-</li>
-<li>
-<p>Bundle reassembly from fragments</p>
-</li>
-<li>
-<p>Flexible status reporting</p>
-</li>
-<li>
-<p>Custody transfer, including re-forwarding of custodial bundles upon
-    timeout interval expiration or failure of nominally reliable
-    convergence-layer transmission</p>
-</li>
+<li>Prioritization of data flows</li>
+<li>Proactive bundle fragmentation</li>
+<li>Bundle reassembly from fragments</li>
+<li>Flexible status reporting</li>
+<li>Custody transfer, including re-forwarding of custodial bundles upon
+  timeout interval expiration or failure of nominally reliable
+  convergence-layer transmission</li>
 </ul>
 <p>The system also provides three additional features that enhance
 functionality without affecting interoperability with other
 implementations:</p>
 <ul>
-<li>
-<p>Rate control provides support for congestion forecasting and
-    avoidance.</p>
-</li>
-<li>
-<p>Bundle headers are encoded into compressed form (CBHE, as noted
-    earlier) before issuance, to reduce protocol overhead and improve
-    link utilization.</p>
-</li>
-<li>
-<p>Bundles may be "multicast" to all nodes that have registered within
-    a given multicast group endpoint.</p>
-</li>
+<li>Rate control provides support for congestion forecasting and
+  avoidance.</li>
+<li>Bundle headers are encoded into compressed form (CBHE, as noted
+  earlier) before issuance, to reduce protocol overhead and improve
+  link utilization.</li>
+<li>Bundles may be "multicast" to all nodes that have registered within
+  a given multicast group endpoint.</li>
 </ul>
 <p>In addition, ION BP includes a system for computing dynamic routes
 through time-varying network topology assembled from scheduled, bounded
@@ -3566,7 +3462,7 @@ infrastructure for the exchange of information among data system modules
 in a manner that is simple to use, highly automated, flexible, robust,
 scalable, and efficient.</p>
 <p>A detailed discussion of AMS is beyond the scope of this Design Guide.
-For more information, please see the <a href="../AMS-Programmer-Guide/">AMS Programmer's Guide.</a></p>
+For more information, please see the <a href="../AMS-Programmer-Guide/">AMS Programmer&#39;s Guide.</a></p>
 <h4 id="datagram-retransmission-dgr"><strong>Datagram Retransmission (DGR)</strong></h4>
 <p>The DGR package in ION is an alternative implementation of LTP that is
 designed to operate responsibly -- i.e., with built-in congestion
@@ -3581,30 +3477,20 @@ from TCP.</p>
 (Unreliable Transfer) of CCSDS 727.0-B-4, including support for the
 following standard capabilities:</p>
 <ul>
-<li>
-<p>Segmentation of files on user-specified record boundaries.</p>
-</li>
-<li>
-<p>Transmission of file segments in protocol data units that are
-    conveyed by an underlying Unitdata Transfer service, in this case
-    the DTN protocol stack. File data segments may optionally be
-    protected by CRCs. When the DTN protocol stack is configured for
-    reliable data delivery (i.e., with BP custody transfer running over
-    a reliable convergence-layer protocol such as LTP), file delivery is
-    reliable; CFDP need not perform retransmission of lost data itself.</p>
-</li>
-<li>
-<p>Reassembly of files from received segments, possibly arriving over a
-    variety of routes through the delay-tolerant network. The integrity
-    of the delivered files is protected by checksums.</p>
-</li>
-<li>
-<p>User-specified fault handling procedures.</p>
-</li>
-<li>
-<p>Operations (e.g., directory creation, file renaming) on remote file
-    systems.</p>
-</li>
+<li>Segmentation of files on user-specified record boundaries.</li>
+<li>Transmission of file segments in protocol data units that are
+  conveyed by an underlying Unitdata Transfer service, in this case
+  the DTN protocol stack. File data segments may optionally be
+  protected by CRCs. When the DTN protocol stack is configured for
+  reliable data delivery (i.e., with BP custody transfer running over
+  a reliable convergence-layer protocol such as LTP), file delivery is
+  reliable; CFDP need not perform retransmission of lost data itself.</li>
+<li>Reassembly of files from received segments, possibly arriving over a
+  variety of routes through the delay-tolerant network. The integrity
+  of the delivered files is protected by checksums.</li>
+<li>User-specified fault handling procedures.</li>
+<li>Operations (e.g., directory creation, file renaming) on remote file
+  systems.</li>
 </ul>
 <p>All CFDP transaction state is safely retained in the ION heap for rapid
 recovery from a spacecraft or software fault.</p>
@@ -3614,17 +3500,13 @@ other continuously generated application data units, transmitted over a
 delay-tolerant network, to be presented to a destination application in
 two useful modes concurrently:</p>
 <ul>
-<li>
-<p>In the order in which the data units were generated, with the least
-    possible end-to-end delivery latency, but possibly with some gaps
-    due to transient data loss or corruption.</p>
-</li>
-<li>
-<p>In the order in which the data units were generated, without gaps
-    (i.e., including lost or corrupt data units which were omitted from
-    the real-time presentation but were subsequently retransmitted), but
-    in a non-real-time "playback" mode.</p>
-</li>
+<li>In the order in which the data units were generated, with the least
+  possible end-to-end delivery latency, but possibly with some gaps
+  due to transient data loss or corruption.</li>
+<li>In the order in which the data units were generated, without gaps
+  (i.e., including lost or corrupt data units which were omitted from
+  the real-time presentation but were subsequently retransmitted), but
+  in a non-real-time "playback" mode.</li>
 </ul>
 <h4 id="trusted-collective-tc"><strong>Trusted Collective (TC)</strong></h4>
 <p>The TC service provided in ION enables critical but non-confidential
@@ -3632,24 +3514,18 @@ information (such as public keys, for asymmetric cryptography) to be
 provided in a delay-tolerant, trustworthy manner. An instance of TC
 comprises:</p>
 <ul>
-<li>
-<p>A distributed Authority, the members of which must reach consensus
-    on database content and must collaborate on the proactive
-    distribution of that content.</p>
-</li>
+<li>A distributed Authority, the members of which must reach consensus
+  on database content and must collaborate on the proactive
+  distribution of that content.</li>
 <li>
 <p>Any number of Clients, which:</p>
-<ul>
+</li>
 <li>
 <p>Announce new content to the Authority via authenticated bundle
     multicast, and/or</p>
 </li>
-<li>
-<p>Receive trustworthy bulletins multicast by the members of the
-    Authority.</p>
-</li>
-</ul>
-</li>
+<li>Receive trustworthy bulletins multicast by the members of the
+    Authority.</li>
 </ul>
 <h4 id="acronyms">Acronyms</h4>
 <table>
@@ -3849,16 +3725,12 @@ the time ION is built, the convergence-layer manager task servicing a
 given proximate node extracts bundles in interleaved fashion from the
 heads of the node's three queues:</p>
 <ul>
-<li>
-<p>Whenever the priority-2 ("express") queue is non-empty, the bundle
-    at the head of that queue is the next one extracted.</p>
-</li>
-<li>
-<p>At all other times, bundles from both the priority-1 queue and the
-    priority-0 queue are extracted, but over a given period of time
-    twice as many bytes of priority-1 bundles will be extracted as bytes
-    of priority-0 bundles.</p>
-</li>
+<li>Whenever the priority-2 ("express") queue is non-empty, the bundle
+  at the head of that queue is the next one extracted.</li>
+<li>At all other times, bundles from both the priority-1 queue and the
+  priority-0 queue are extracted, but over a given period of time
+  twice as many bytes of priority-1 bundles will be extracted as bytes
+  of priority-0 bundles.</li>
 </ul>
 <p>Following insertion of the extracted bundles into transmission buffers,
 CLO tasks other than <strong>ltpclo</strong> simply segment the buffered bundles as
@@ -3894,24 +3766,16 @@ discussion later in this document.)</p>
 <p>To clarify the notation of this diagram, which is also used in other
 database structure diagrams in this document:</p>
 <ul>
-<li>
-<p>Data objects of defined structure are shown as circles. Dark
-    greyscale indicates notionally non-volatile data retained in "heap"
-    storage, while lighter greyscale indicates volatile data retained in
-    dynamic random access memory.</p>
-</li>
-<li>
-<p>Solid arrows connecting circles indicate one-to-many cardinality.</p>
-</li>
-<li>
-<p>A dashed arrow between circles indicates a potentially many-to-one
-    reference mapping.</p>
-</li>
-<li>
-<p>Arrows from processing elements (rectangles) to data entities
-    indicate data production, while arrows from data entities to
-    processing elements indicate data retrieval.</p>
-</li>
+<li>Data objects of defined structure are shown as circles. Dark
+  greyscale indicates notionally non-volatile data retained in "heap"
+  storage, while lighter greyscale indicates volatile data retained in
+  dynamic random access memory.</li>
+<li>Solid arrows connecting circles indicate one-to-many cardinality.</li>
+<li>A dashed arrow between circles indicates a potentially many-to-one
+  reference mapping.</li>
+<li>Arrows from processing elements (rectangles) to data entities
+  indicate data production, while arrows from data entities to
+  processing elements indicate data retrieval.</li>
 </ul>
 <p>A <em>contact</em> is here defined as an interval during which it is expected
 that data will be transmitted by DTN node A (the contact's transmitting
@@ -4059,35 +3923,29 @@ current custodian; in any case, we discard the bundle.</p>
 <h4 id="multicast">Multicast</h4>
 <p>Multicast route computation is much simpler.</p>
 <ul>
-<li>
-<p>When an endpoint for the "imc" scheme is added on an ION node --
-    that is, when the node joins that multicast endpoint -- BP
-    administrative records noting the node's new interest in the
-    application topic corresponding to the endpoint's group number are
-    multicast to other network nodes as needed, using a "built-in"
-    multicast group of which all nodes of the network are implicitly
-    members. On receipt of such a record, each node notes the sending
-    relative's interest and forwards the record to other nodes as
-    necessary, and so on. (Deletion of endpoints results in similar
-    propagation of cancelling administrative records.)</p>
-</li>
+<li>When an endpoint for the "imc" scheme is added on an ION node --
+  that is, when the node joins that multicast endpoint -- BP
+  administrative records noting the node's new interest in the
+  application topic corresponding to the endpoint's group number are
+  multicast to other network nodes as needed, using a "built-in"
+  multicast group of which all nodes of the network are implicitly
+  members. On receipt of such a record, each node notes the sending
+  relative's interest and forwards the record to other nodes as
+  necessary, and so on. (Deletion of endpoints results in similar
+  propagation of cancelling administrative records.)</li>
 <li>
 <p>A bundle whose destination endpoint cites a multicast group, whether
-    locally sourced or received from another node:</p>
-<ul>
+  locally sourced or received from another node:</p>
+</li>
 <li>
 <p>Is delivered immediately, if the local node is a member of the
     indicated endpoint.</p>
 </li>
-<li>
-<p>Is queued for direct transmission to all other nodes in the
+<li>Is queued for direct transmission to all other nodes in the
     local "region" of network topology that are members of the
     multicast group. Passageway nodes forward the bundle as
     necessary into other regions that are topologically adjacent to
-    the local region.</p>
-</li>
-</ul>
-</li>
+    the local region.</li>
 </ul>
 <h4 id="delivery-assurance"><strong>Delivery Assurance</strong></h4>
 <p>End-to-end delivery of data can fail in many ways, at different layers
@@ -4259,22 +4117,16 @@ safety-critical communication.</p>
 <p>So the ION data management design combines these two approaches (see 1.5
 above for additional discussion of this topic):</p>
 <ul>
-<li>
-<p>A fixed percentage of the total SDR data store heap size (by
-    default, 40%) is statically allocated to the storage of protocol
-    operational state information, which is critical to the operation of
-    ION.</p>
-</li>
-<li>
-<p>Another fixed percentage of the total SDR data store heap size (by
-    default, 20%) is statically allocated to "margin", a reserve that
-    helps to insulate node management from errors in resource allocation
-    estimates.</p>
-</li>
-<li>
-<p>The remainder of the heap, plus all pre-allocated file system space,
-    is allocated to protocol traffic<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup>.</p>
-</li>
+<li>A fixed percentage of the total SDR data store heap size (by
+  default, 40%) is statically allocated to the storage of protocol
+  operational state information, which is critical to the operation of
+  ION.</li>
+<li>Another fixed percentage of the total SDR data store heap size (by
+  default, 20%) is statically allocated to "margin", a reserve that
+  helps to insulate node management from errors in resource allocation
+  estimates.</li>
+<li>The remainder of the heap, plus all pre-allocated file system space,
+  is allocated to protocol traffic<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup>.</li>
 </ul>
 <p>The maximum projected occupancy of the node is the result of computing a
 <em>congestion forecast</em> for the node, by adding to the current occupancy
@@ -4286,23 +4138,15 @@ program. The difference between the horizon and the current time is
 termed the <em>interval</em> of the forecast.</p>
 <p>Net occupancy increases and decreases are of four types:</p>
 <ol>
-<li>
-<p>Bundles that are originated locally by some application on the node,
-    which are enqueued for forwarding to some other node.</p>
-</li>
-<li>
-<p>Bundles that are received from some other node, which are enqueued
-    either for forwarding to some other node or for local delivery to an
-    application.</p>
-</li>
-<li>
-<p>Bundles that are transmitted to some other node, which are dequeued
-    from some forwarding queue.</p>
-</li>
-<li>
-<p>Bundles that are delivered locally to an application, which are
-    dequeued from some delivery queue.</p>
-</li>
+<li>Bundles that are originated locally by some application on the node,
+   which are enqueued for forwarding to some other node.</li>
+<li>Bundles that are received from some other node, which are enqueued
+   either for forwarding to some other node or for local delivery to an
+   application.</li>
+<li>Bundles that are transmitted to some other node, which are dequeued
+   from some forwarding queue.</li>
+<li>Bundles that are delivered locally to an application, which are
+   dequeued from some delivery queue.</li>
 </ol>
 <p>The type-1 anticipated net increase (total data origination) is computed
 by multiplying the node's projected rate of local data production, as
@@ -4397,19 +4241,15 @@ underlying stack -- that encapsulate those bundles: packet headers,
 frame headers, etc. This means that the accuracy of this overhead
 estimate will affect the aggressiveness of ION's proactive data triage:</p>
 <ul>
-<li>
-<p>If CL overhead is overestimated, the size of the bundle transmission
-    backlog for planned contacts will be overstated, unnecessarily
-    preventing the enqueuing of additional bundles -- a potential
-    under-utilization of available transmission capacity in the network.</p>
-</li>
-<li>
-<p>If CL overhead is underestimated, the size of the bundle
-    transmission backlog for planned contacts will be understated,
-    enabling the enqueuing of bundles whose transmission cannot in fact
-    be accomplished by the network within the constraints of the current
-    contact plan. This will eventually result in reactive data triage.</p>
-</li>
+<li>If CL overhead is overestimated, the size of the bundle transmission
+  backlog for planned contacts will be overstated, unnecessarily
+  preventing the enqueuing of additional bundles -- a potential
+  under-utilization of available transmission capacity in the network.</li>
+<li>If CL overhead is underestimated, the size of the bundle
+  transmission backlog for planned contacts will be understated,
+  enabling the enqueuing of bundles whose transmission cannot in fact
+  be accomplished by the network within the constraints of the current
+  contact plan. This will eventually result in reactive data triage.</li>
 </ul>
 <p>Essentially, all <code>reactive data triage</code> -- the destruction
 of bundles due to TTL expiration prior to successful delivery to the
@@ -4417,61 +4257,49 @@ final destination -- occurs when the network conveys bundles at lower
 net rates than were projected during route computation. These
 performance shortfalls can have a variety of causes:</p>
 <ul>
-<li>
-<p>As noted above, underestimating CL overhead causes CL overhead to
-    consume a larger fraction of contact capacity than was anticipated,
-    leaving less capacity for bundle transmission.</p>
-</li>
-<li>
-<p>Conversely, the total volume of traffic offered may have been
-    accurately estimated but the amount of contact capacity may be less
-    than was promised: a contact might be started late, stopped early,
-    or omitted altogether, or the actual data rate on the link might be
-    less than was advertised.</p>
-</li>
-<li>
-<p>Contacts may be more subtly shortened by the configuration of ION
-    itself. If the clocks on nodes are known not to be closely
-    synchronized then a "maximum clock error" of N seconds may be
-    declared, causing reception episodes to be started locally N seconds
-    earlier and stopped N seconds later than scheduled, to avoid missing
-    some transmitted data because it arrived earlier or later than
-    anticipated. But this mechanism also causes transmission episodes to
-    be started N seconds later and stopped N seconds earlier than
-    scheduled, to avoid transmitting to a neighbor before it is ready to
-    receive data, and this contact truncation ensures transmission of
-    fewer bundles than planned.</p>
-</li>
-<li>
-<p>Flow control within the convergence layer underlying the bundle
-    protocol may constrain the effective rate of data flow over a link
-    to a rate that's lower than the link's configured maximum data rate.
-    In particular, mis-configuration of the LTP flow control window can
-    leave transmission capacity unused while LTP engines are awaiting
-    acknowledgments.</p>
-</li>
-<li>
-<p>Even if all nodes are correctly configured, a high rate of data loss
-    or corruption due to unexpectedly high R/F interference or
-    underestimated acknowledgment round-trip times may cause an
-    unexpectedly high volume of retransmission traffic. This will
-    displace original bundle transmission, reducing the effective
-    "goodput" data rate on the link.</p>
-</li>
-<li>
-<p>Finally, custody transfer may propagate operational problems from
-    one part of the network to other nodes. One result of reduced
-    effective transmission rates is the accumulation of bundles for
-    which nodes have taken custody: the custodial nodes can't destroy
-    those bundles and reclaim the storage space they occupy until
-    custody has been accepted by "downstream" nodes, so abbreviated
-    contacts that prevent the flow of custody acceptances can increase
-    local congestion. This reduces nodes' own ability to take custody of
-    bundles transmitted by "upstream" custodians, increasing queue sizes
-    on those nodes, and so on. In short, custody transfer may itself
-    ultimately impose reactive data triage simply by propagating
-    congestion.</p>
-</li>
+<li>As noted above, underestimating CL overhead causes CL overhead to
+  consume a larger fraction of contact capacity than was anticipated,
+  leaving less capacity for bundle transmission.</li>
+<li>Conversely, the total volume of traffic offered may have been
+  accurately estimated but the amount of contact capacity may be less
+  than was promised: a contact might be started late, stopped early,
+  or omitted altogether, or the actual data rate on the link might be
+  less than was advertised.</li>
+<li>Contacts may be more subtly shortened by the configuration of ION
+  itself. If the clocks on nodes are known not to be closely
+  synchronized then a "maximum clock error" of N seconds may be
+  declared, causing reception episodes to be started locally N seconds
+  earlier and stopped N seconds later than scheduled, to avoid missing
+  some transmitted data because it arrived earlier or later than
+  anticipated. But this mechanism also causes transmission episodes to
+  be started N seconds later and stopped N seconds earlier than
+  scheduled, to avoid transmitting to a neighbor before it is ready to
+  receive data, and this contact truncation ensures transmission of
+  fewer bundles than planned.</li>
+<li>Flow control within the convergence layer underlying the bundle
+  protocol may constrain the effective rate of data flow over a link
+  to a rate that's lower than the link's configured maximum data rate.
+  In particular, mis-configuration of the LTP flow control window can
+  leave transmission capacity unused while LTP engines are awaiting
+  acknowledgments.</li>
+<li>Even if all nodes are correctly configured, a high rate of data loss
+  or corruption due to unexpectedly high R/F interference or
+  underestimated acknowledgment round-trip times may cause an
+  unexpectedly high volume of retransmission traffic. This will
+  displace original bundle transmission, reducing the effective
+  "goodput" data rate on the link.</li>
+<li>Finally, custody transfer may propagate operational problems from
+  one part of the network to other nodes. One result of reduced
+  effective transmission rates is the accumulation of bundles for
+  which nodes have taken custody: the custodial nodes can't destroy
+  those bundles and reclaim the storage space they occupy until
+  custody has been accepted by "downstream" nodes, so abbreviated
+  contacts that prevent the flow of custody acceptances can increase
+  local congestion. This reduces nodes' own ability to take custody of
+  bundles transmitted by "upstream" custodians, increasing queue sizes
+  on those nodes, and so on. In short, custody transfer may itself
+  ultimately impose reactive data triage simply by propagating
+  congestion.</li>
 </ul>
 <p>Some level of data triage is essential to cost-effective network
 utilization, and proactive triage is preferable because its effects can
@@ -4480,54 +4308,42 @@ use of the network. Optimizing an ION-based network therefore amounts to
 managing for a modicum of proactive data triage and as little reactive
 data triage as possible. It entails the following:</p>
 <ol>
-<li>
-<p>Estimating convergence-layer protocol overhead as accurately as
-    possible, erring (if necessary) on the side of optimism -- that is,
-    underestimating a little.</p>
-<p>As an example, suppose the local node uses LTP over CCSDS Telemetry to
-send bundles. The immediate convergence-layer protocol is LTP, but the
-total overhead per CL "frame" (in this case, per LTP segment) will
-include not only the size of the LTP header (nominally 5 bytes) but also
-the size of the encapsulating space packet header (nominally 6 bytes)
-and the overhead imposed by the outer encapsulating TM frame.</p>
-<p>Suppose each LTP segment is to be wrapped in a single space packet,
-which is in turn wrapped in a single TM frame, and Reed-Solomon encoding
-is applied. An efficient TM frame size is 1115 bytes, with an additional
-160 bytes of trailing Reed-Solomon encoding and another 4 bytes of
-leading pseudo-noise code. The frame would contain a 6-byte TM frame
-header, a 6-byte space packet header, a 5-byte LTP segment header, and
-1098 bytes of some LTP transmission block.</p>
-<p>So the number of "payload bytes per frame" in this case would be 1098
-and the number of "overhead bytes per frame" would be 4 + 6 + 6 + 5 +
-160 = 181. Nominal total transmission overhead on the link would be 181
-/ 1279 = about 14%.</p>
-</li>
-<li>
-<p>Synchronizing nodes' clocks as accurately as possible, so that
-    timing margins configured to accommodate clock error can be kept as
-    close to zero as possible.</p>
-</li>
-<li>
-<p>Setting the LTP session limit and block size limit as generously as
-    possible (whenever LTP is at the convergence layer), to assure that
-    LTP flow control does not constrain data flow to rates below those
-    supported by BP rate control.</p>
-</li>
-<li>
-<p>Setting ranges (one-way light times) and queuing delays as
-    accurately as possible, to prevent unnecessary retransmission. Err
-    on the side of pessimism -- that is, overestimate a little.</p>
-</li>
-<li>
-<p>Communicating changes in configuration -- especially contact plans
-    -- to all nodes as far in advance of the time they take effect as
-    possible.</p>
-</li>
-<li>
-<p>Providing all nodes with as much storage capacity as possible for
-    queues of bundles awaiting transmission.</p>
-</li>
+<li>Estimating convergence-layer protocol overhead as accurately as
+   possible, erring (if necessary) on the side of optimism -- that is,
+   underestimating a little.</li>
 </ol>
+<p>As an example, suppose the local node uses LTP over CCSDS Telemetry to
+   send bundles. The immediate convergence-layer protocol is LTP, but the
+   total overhead per CL "frame" (in this case, per LTP segment) will
+   include not only the size of the LTP header (nominally 5 bytes) but also
+   the size of the encapsulating space packet header (nominally 6 bytes)
+   and the overhead imposed by the outer encapsulating TM frame.</p>
+<p>Suppose each LTP segment is to be wrapped in a single space packet,
+   which is in turn wrapped in a single TM frame, and Reed-Solomon encoding
+   is applied. An efficient TM frame size is 1115 bytes, with an additional
+   160 bytes of trailing Reed-Solomon encoding and another 4 bytes of
+   leading pseudo-noise code. The frame would contain a 6-byte TM frame
+   header, a 6-byte space packet header, a 5-byte LTP segment header, and
+   1098 bytes of some LTP transmission block.</p>
+<p>So the number of "payload bytes per frame" in this case would be 1098
+   and the number of "overhead bytes per frame" would be 4 + 6 + 6 + 5 +
+   160 = 181. Nominal total transmission overhead on the link would be 181
+   / 1279 = about 14%.
+2. Synchronizing nodes' clocks as accurately as possible, so that
+   timing margins configured to accommodate clock error can be kept as
+   close to zero as possible.
+3. Setting the LTP session limit and block size limit as generously as
+   possible (whenever LTP is at the convergence layer), to assure that
+   LTP flow control does not constrain data flow to rates below those
+   supported by BP rate control.
+4. Setting ranges (one-way light times) and queuing delays as
+   accurately as possible, to prevent unnecessary retransmission. Err
+   on the side of pessimism -- that is, overestimate a little.
+5. Communicating changes in configuration -- especially contact plans
+   -- to all nodes as far in advance of the time they take effect as
+   possible.
+6. Providing all nodes with as much storage capacity as possible for
+   queues of bundles awaiting transmission.</p>
 <h3 id="bpltp-detail-how-they-work">BP/LTP Detail -- How They Work</h3>
 <p>Although the operation of BP/LTP in ION is complex in some ways,
 virtually the entire system can be represented in a single diagram. The
@@ -4587,41 +4403,21 @@ contact plan in the RFX database, in ION's SDR data store.</p>
 messages</em>.</p>
 <p>Each contact message has the following content:</p>
 <ul>
-<li>
-<p>The starting UTC time of the interval to which the message pertains.</p>
-</li>
-<li>
-<p>The stop time of this interval, again in UTC.</p>
-</li>
-<li>
-<p>The Transmitting node number.</p>
-</li>
-<li>
-<p>The Receiving node number.</p>
-</li>
-<li>
-<p>The planned rate of transmission from node A to node B over this
-    interval, in bytes per second.</p>
-</li>
+<li>The starting UTC time of the interval to which the message pertains.</li>
+<li>The stop time of this interval, again in UTC.</li>
+<li>The Transmitting node number.</li>
+<li>The Receiving node number.</li>
+<li>The planned rate of transmission from node A to node B over this
+  interval, in bytes per second.</li>
 </ul>
 <p>Each range message has the following content:</p>
 <ul>
-<li>
-<p>The starting UTC time of the interval to which the message pertains.</p>
-</li>
-<li>
-<p>The stop time of this interval, again in UTC.</p>
-</li>
-<li>
-<p>Node number A.</p>
-</li>
-<li>
-<p>Node number B.</p>
-</li>
-<li>
-<p>The anticipated distance between A and B over this interval, in
-    light seconds.</p>
-</li>
+<li>The starting UTC time of the interval to which the message pertains.</li>
+<li>The stop time of this interval, again in UTC.</li>
+<li>Node number A.</li>
+<li>Node number B.</li>
+<li>The anticipated distance between A and B over this interval, in
+  light seconds.</li>
 </ul>
 <p>Note that range messages may be used to declare that the "distance" in
 light seconds between nodes A and B is <strong>different</strong> in the B🡪A
@@ -4753,39 +4549,33 @@ the bundle to.</p>
 not compute a route for this bundle. The list of Excluded
 Nodes is initially populated with:</p>
 <ul>
-<li>
-<p>the node from which the bundle was directly received (so that we
-    avoid cycling the bundle between that node and the local node) --
-    unless the Dynamic Route Selection Algorithm is being
-    re-applied due to custody refusal as discussed later;</p>
-</li>
-<li>
-<p>all excluded neighbors for the bundle's final destination node.</p>
-</li>
+<li>the node from which the bundle was directly received (so that we
+  avoid cycling the bundle between that node and the local node) --
+  unless the Dynamic Route Selection Algorithm is being
+  re-applied due to custody refusal as discussed later;</li>
+<li>all excluded neighbors for the bundle's final destination node.</li>
 </ul>
 <p>If all routes computed for node D have been discarded due to contact
 plan modification, then we must compute a new list of all routes from
 the local node to D. To do so:</p>
 <ul>
-<li>
-<p>We construct an abstract contact graph, a directed acyclic graph
-    whose root is a notional contact from the local node to itself and
-    whose other vertices are all other contacts representing
-    transmission "from" some node such that a contact "to" that node
-    already exists in the graph, excluding contacts representing
-    transmission "to" some node such that a contact "from" that node
-    already exists in the graph. A terminal vertex is also included in
-    the graph, constituting a notional contact from node D to itself.</p>
-</li>
+<li>We construct an abstract contact graph, a directed acyclic graph
+  whose root is a notional contact from the local node to itself and
+  whose other vertices are all other contacts representing
+  transmission "from" some node such that a contact "to" that node
+  already exists in the graph, excluding contacts representing
+  transmission "to" some node such that a contact "from" that node
+  already exists in the graph. A terminal vertex is also included in
+  the graph, constituting a notional contact from node D to itself.</li>
 <li>
 <p>We perform several Dijkstra searches within this graph, one search
-    for each of the local node's neighbors. On each search we find the
-    lowest-cost route that begins at the root of the graph and ends at
-    the terminal vertex. Each time a route is computed, we add it to the
-    list of routes for that route's entry node and then remove from
-    further consideration all contacts from the local node to the entry
-    node of that route.</p>
-<ul>
+  for each of the local node's neighbors. On each search we find the
+  lowest-cost route that begins at the root of the graph and ends at
+  the terminal vertex. Each time a route is computed, we add it to the
+  list of routes for that route's entry node and then remove from
+  further consideration all contacts from the local node to the entry
+  node of that route.</p>
+</li>
 <li>
 <p>The lowest-cost route computed during a search is the one that
     is found to have the earliest best-case delivery time, where the
@@ -4794,56 +4584,40 @@ the local node to D. To do so:</p>
     the earliest possible moment of the last contact in the route
     prior to the terminal vertex.</p>
 </li>
-<li>
-<p>Any contact whose end time is before the earliest possible time
+<li>Any contact whose end time is before the earliest possible time
     that the bundle could arrive at the contact's sending node is
-    ignored.</p>
-</li>
-<li>
-<p>The earliest possible arrival time for the bundle on a given
+    ignored.</li>
+<li>The earliest possible arrival time for the bundle on a given
     contact is pessimistically computed as the sum of the bundle's
     earliest possible transmission time plus the range in light
     seconds from the contact's sending node to its receiving node,
-    plus the applicable one-way light time margin.</p>
-</li>
-<li>
-<p>The earliest possible transmission time for the bundle on a
+    plus the applicable one-way light time margin.</li>
+<li>The earliest possible transmission time for the bundle on a
     given contact is the start time of the contact or bundle's
     earliest possible arrival time at the contact's sending node,
-    whichever is later.</p>
-</li>
-</ul>
-</li>
-<li>
-<p>If node D's list of entry nodes (route lists) is still empty, then
-    we cannot use CGR to find a route for this bundle; CGR route
-    selection is abandoned.</p>
-</li>
+    whichever is later.</li>
+<li>If node D's list of entry nodes (route lists) is still empty, then
+  we cannot use CGR to find a route for this bundle; CGR route
+  selection is abandoned.</li>
 </ul>
 <p>We next examine all of the routes that are currently computed for
 transmission of bundles to node D.</p>
 <ul>
-<li>
-<p>Any route whose termination time is in the past is deleted from the
-    list, and all contacts in that route whose termination time is in
-    the past are also deleted. But we then run another Dijkstra search
-    to compute the best route through the affected entry node given the
-    remaining contacts; if this search finds a route, the new route is
-    inserted into the appropriate location in the list.</p>
-</li>
-<li>
-<p>Any route whose best-case final delivery time is after the bundle's
-    expiration time is ignored, as is any route whose entry node is in
-    the list of Excluded Nodes. Loopback routes are also ignored unless
-    the local node is the bundle's final destination.</p>
-</li>
-<li>
-<p>For each route, the aggregate radiation time for this bundle on this
-    route is computed by summing the product of payload size and contact
-    transmission rate over all contacts in the route. Any route for
-    which the sum of best-case delivery time and aggregate radiation
-    time is after the bundle's expiration time is ignored.</p>
-</li>
+<li>Any route whose termination time is in the past is deleted from the
+  list, and all contacts in that route whose termination time is in
+  the past are also deleted. But we then run another Dijkstra search
+  to compute the best route through the affected entry node given the
+  remaining contacts; if this search finds a route, the new route is
+  inserted into the appropriate location in the list.</li>
+<li>Any route whose best-case final delivery time is after the bundle's
+  expiration time is ignored, as is any route whose entry node is in
+  the list of Excluded Nodes. Loopback routes are also ignored unless
+  the local node is the bundle's final destination.</li>
+<li>For each route, the aggregate radiation time for this bundle on this
+  route is computed by summing the product of payload size and contact
+  transmission rate over all contacts in the route. Any route for
+  which the sum of best-case delivery time and aggregate radiation
+  time is after the bundle's expiration time is ignored.</li>
 </ul>
 <p>For each route that is not ignored, the route's entry node is added to
 the list of Proximate Nodes for this bundle. Associated with the entry
@@ -4858,33 +4632,25 @@ then we have been unable to use CGR to find a route for this bundle; CGR
 route selection is abandoned.</p>
 <p>Otherwise:</p>
 <ul>
-<li>
-<p>If the bundle is flagged as a critical bundle, then a cloned copy of
-    this bundle is enqueued for transmission to every node in the
-    Proximate Nodes list.</p>
-</li>
+<li>If the bundle is flagged as a critical bundle, then a cloned copy of
+  this bundle is enqueued for transmission to every node in the
+  Proximate Nodes list.</li>
 <li>
 <p>Otherwise, the bundle is enqueued for transmission on the outduct to
-    the most preferred neighbor in the Proximate Nodes list:</p>
-<ul>
+  the most preferred neighbor in the Proximate Nodes list:</p>
+</li>
 <li>
 <p>If one of the nodes in this list is associated with a best-case
     delivery time that is earlier than that of all other nodes in
     the list, then it is the most preferred neighbor.</p>
 </li>
-<li>
-<p>Otherwise, if one of the nodes with the earliest best-case
+<li>Otherwise, if one of the nodes with the earliest best-case
     delivery time is associated with a smaller hop count than every
     other node with the same best-case delivery time, then it is the
-    most preferred neighbor.</p>
-</li>
-<li>
-<p>Otherwise, the node with the smallest node number among all
+    most preferred neighbor.</li>
+<li>Otherwise, the node with the smallest node number among all
     nodes with the earliest best-case delivery time and smallest hop
-    count is arbitrarily chosen as the most preferred neighbor.</p>
-</li>
-</ul>
-</li>
+    count is arbitrarily chosen as the most preferred neighbor.</li>
 </ul>
 <h3 id="exception-handling"><strong>Exception Handling</strong></h3>
 <p>Conveyance of a bundle from source to destination through a DTN can fail
@@ -4947,37 +4713,27 @@ same time reducing mission operations cost and risk.</p>
 <p>Note that the non-Critical forwarding load across multiple parallel
 paths should be balanced automatically:</p>
 <ul>
-<li>
-<p>Initially all traffic will be forwarded to the node(s) on what is
-    computed to be the best path from source to destination.</p>
-</li>
-<li>
-<p>At some point, however, a node on that preferred path may have so
-    much outbound traffic queued up that no contacts scheduled within
-    bundles' lifetimes have any residual capacity. This can cause
-    forwarding to fail, resulting in custody refusal.</p>
-</li>
-<li>
-<p>Custody refusal causes the refusing node to be temporarily added to
-    the current custodian's excluded neighbors list for the affected
-    final destination node. If the refusing node is the only one on the
-    path to the destination, then the custodian may end up sending the
-    bundle back to its upstream neighbor. Moreover, that custodian node
-    too may begin refusing custody of bundles subsequently sent to it,
-    since it can no longer compute a forwarding path.</p>
-</li>
-<li>
-<p>The upstream propagation of custody refusals directs bundles over
-    alternate paths that would otherwise be considered suboptimal,
-    balancing the queuing load across the parallel paths.</p>
-</li>
-<li>
-<p>Eventually, transmission and/or bundle expiration at the
-    oversubscribed node relieves queue pressure at that node and enables
-    acceptance of custody of a "probe" bundle from the upstream node.
-    This eventually returns the routing fabric to its original
-    configuration.</p>
-</li>
+<li>Initially all traffic will be forwarded to the node(s) on what is
+  computed to be the best path from source to destination.</li>
+<li>At some point, however, a node on that preferred path may have so
+  much outbound traffic queued up that no contacts scheduled within
+  bundles' lifetimes have any residual capacity. This can cause
+  forwarding to fail, resulting in custody refusal.</li>
+<li>Custody refusal causes the refusing node to be temporarily added to
+  the current custodian's excluded neighbors list for the affected
+  final destination node. If the refusing node is the only one on the
+  path to the destination, then the custodian may end up sending the
+  bundle back to its upstream neighbor. Moreover, that custodian node
+  too may begin refusing custody of bundles subsequently sent to it,
+  since it can no longer compute a forwarding path.</li>
+<li>The upstream propagation of custody refusals directs bundles over
+  alternate paths that would otherwise be considered suboptimal,
+  balancing the queuing load across the parallel paths.</li>
+<li>Eventually, transmission and/or bundle expiration at the
+  oversubscribed node relieves queue pressure at that node and enables
+  acceptance of custody of a "probe" bundle from the upstream node.
+  This eventually returns the routing fabric to its original
+  configuration.</li>
 </ul>
 <p>Although the route computation procedures are relatively complex they
 are not computationally difficult. The impact on computation resources
@@ -5084,20 +4840,16 @@ open source distribution ION-DTN, using the standard sequence of</p>
 <ul>
 <li>
 <p>./configure</p>
-<ul>
-<li>Note: the user needs to clear all errors reported by the
+</li>
+<li>
+<p>Note: the user needs to clear all errors reported by the
     configure script before proceeding. The distribution contains a
     default "Makefile" at the top level of the distribution for
     developer use. The configure script must complete successfully
-    to produce an updated Makefile.</li>
-</ul>
+    to produce an updated Makefile.</p>
 </li>
-<li>
-<p>make</p>
-</li>
-<li>
-<p>sudo make install</p>
-</li>
+<li>make</li>
+<li>sudo make install</li>
 </ul>
 <p>will build ION and install it under <strong>/usr/local</strong>.</p>
 <p>Users building from a clone of the repository need to use the command</p>
@@ -5290,35 +5042,31 @@ is '/' (forward slash, as is used in Unix-like operating systems).</p>
 <ol>
 <li>
 <p>Decide where you want ION's executables, libraries, header files,
-    etc. to be installed. The ION makefiles all install their build
-    products to subdirectories (named <strong>bin</strong>, <strong>lib</strong>, <strong>include</strong>,
-    <strong>man</strong>, <strong>man/man1</strong>, <strong>man/man3</strong>, <strong>man/man5</strong>) of an ION root
-    directory, which by default is the directory named <strong>/opt</strong>. If you
-    wish to use the default build configuration, be sure that the
-    default directories (<strong>/opt/bin</strong>, etc.) exist; if not, select
-    another ION root directory name -- this document will refer to it as
-    <strong>$OPT</strong> -- and create the subdirectories as needed. In any case,
-    make sure that you have read, write, and execute permission for all
-    of the ION installation directories and that:</p>
-<ul>
+   etc. to be installed. The ION makefiles all install their build
+   products to subdirectories (named <strong>bin</strong>, <strong>lib</strong>, <strong>include</strong>,
+   <strong>man</strong>, <strong>man/man1</strong>, <strong>man/man3</strong>, <strong>man/man5</strong>) of an ION root
+   directory, which by default is the directory named <strong>/opt</strong>. If you
+   wish to use the default build configuration, be sure that the
+   default directories (<strong>/opt/bin</strong>, etc.) exist; if not, select
+   another ION root directory name -- this document will refer to it as
+   <strong>$OPT</strong> -- and create the subdirectories as needed. In any case,
+   make sure that you have read, write, and execute permission for all
+   of the ION installation directories and that:</p>
+</li>
 <li>
 <p>The directory <strong>/$OPT/bin</strong> is in your execution path.</p>
 </li>
-<li>
-<p>The directory <strong>/$OPT/lib</strong> is in your $LD_LOADLIB_PATH.</p>
-</li>
-</ul>
-</li>
+<li>The directory <strong>/$OPT/lib</strong> is in your $LD_LOADLIB_PATH.</li>
 <li>
 <p>Edit the Makefile in <strong>ion/ici</strong>:</p>
 </li>
 <li>
 <p>Make sure PLATFORMS is set to the appropriate platform name, e.g.,
-    x86-redhat, sparc-sol9, etc.</p>
+  x86-redhat, sparc-sol9, etc.</p>
 </li>
 <li>
 <p>Set OPT to the directory where you want to install the ici packages
-    you build, if other than "/opt" (for example: /usr/local).</p>
+  you build, if other than "/opt" (for example: /usr/local).</p>
 </li>
 <li>
 <p>Then:</p>
@@ -5345,66 +5093,51 @@ an entire self-contained DTN network on a single machine may simplify
 some kinds of regression testing.) ION supports this configuration
 option as follows:</p>
 <ul>
-<li>
-<p>Multi-node operation on a given computer is enabled if and only if
-    the environment variable ION_NODE_LIST_DIR is defined in the
-    environment of every participating ION process. Moreover, the value
-    assigned to this variable must be the same text string in the
-    environments of all participating ION processes. That value must be
-    the name (preferably, fully qualified) of the directory in which the
-    ION multi-node database file "ion_nodes" will reside.</p>
-</li>
-<li>
-<p>The definition of ION_NODE_LIST_DIR makes it possible to establish
-    up to one ION node per directory rather than just one ION node on
-    the computer. When <strong>ionadmin</strong> is used to establish a node, the
-    ionInitialize() function will get that node's wmKey and sdrName from
-    the .ionconfig file, use them to allocate working memory and create
-    the SDR database, and then write a line to the ion_nodes file noting
-    the nodeNbr, wmKey, sdrName, and wdName for the node it just
-    initialized. wdName is the current working directory in which
-    <strong>ionadmin</strong> was running at the time ionInitialize()is called; it is
-    the directory within which the node resides.</p>
-</li>
-<li>
-<p>This makes it easy to connect all the node\'s daemon processes --
-    running within the same current working directory -- to the correct
-    working memory partition and SDR database: the ionAttach() function
-    simply searches the ion_nodes file for a line whose wdName matches
-    the current working directory of the process that is trying to
-    attach, then uses that line\'s wmKey and sdrName to link up.</p>
-</li>
-<li>
-<p>It is also possible to initiate a process from within a directory
-    other than the one in which the node resides. To do so, define the
-    additional environment variable ION_NODE_WDNAME in the shell from
-    which the new process is to be initiated. When ionAttach() is called
-    it will first try to get \"current working directory\" (for ION
-    attachment purposes <strong>only</strong>) from that environment variable; only
-    if ION_NODE_WDNAME is undefined will it use the actual cwd that it
-    gets from calling igetcwd().</p>
-</li>
+<li>Multi-node operation on a given computer is enabled if and only if
+  the environment variable ION_NODE_LIST_DIR is defined in the
+  environment of every participating ION process. Moreover, the value
+  assigned to this variable must be the same text string in the
+  environments of all participating ION processes. That value must be
+  the name (preferably, fully qualified) of the directory in which the
+  ION multi-node database file "ion_nodes" will reside.</li>
+<li>The definition of ION_NODE_LIST_DIR makes it possible to establish
+  up to one ION node per directory rather than just one ION node on
+  the computer. When <strong>ionadmin</strong> is used to establish a node, the
+  ionInitialize() function will get that node's wmKey and sdrName from
+  the .ionconfig file, use them to allocate working memory and create
+  the SDR database, and then write a line to the ion_nodes file noting
+  the nodeNbr, wmKey, sdrName, and wdName for the node it just
+  initialized. wdName is the current working directory in which
+  <strong>ionadmin</strong> was running at the time ionInitialize()is called; it is
+  the directory within which the node resides.</li>
+<li>This makes it easy to connect all the node\'s daemon processes --
+  running within the same current working directory -- to the correct
+  working memory partition and SDR database: the ionAttach() function
+  simply searches the ion_nodes file for a line whose wdName matches
+  the current working directory of the process that is trying to
+  attach, then uses that line\'s wmKey and sdrName to link up.</li>
+<li>It is also possible to initiate a process from within a directory
+  other than the one in which the node resides. To do so, define the
+  additional environment variable ION_NODE_WDNAME in the shell from
+  which the new process is to be initiated. When ionAttach() is called
+  it will first try to get \"current working directory\" (for ION
+  attachment purposes <strong>only</strong>) from that environment variable; only
+  if ION_NODE_WDNAME is undefined will it use the actual cwd that it
+  gets from calling igetcwd().</li>
+<li>When running multiple ION instances, the first ION instance must have the largest sdr working memory specified by <code>sdrWmSize</code> or default. If any later ION instance launched with <code>sdrWmSize</code> exceeding the first ION instance, it will result in crash upon launch. It is further recommended that all ION instances running simultaneously on a single host should set their <code>sdrWmSize</code> the same.</li>
 </ul>
 <h4 id="run"><strong>Run</strong></h4>
 <p>The executable programs used in operation of the ici component of ION
 include:</p>
 <ul>
-<li>
-<p>The <strong>ionadmin</strong> system configuration utility and <strong>ionsecadmin</strong>
-    security configuration utility, invoked at node startup time and as
-    needed thereafter.</p>
-</li>
-<li>
-<p>The <strong>rfxclock</strong> background daemon, which affects scheduled network
-    configuration events.</p>
-</li>
-<li>
-<p>The <strong>sdrmend</strong> system repair utility, invoked as needed.</p>
-</li>
-<li>
-<p>The <strong>sdrwatch</strong> and <strong>psmwatch</strong> utilities for resource utilization
-    monitoring, invoked as needed.</p>
-</li>
+<li>The <strong>ionadmin</strong> system configuration utility and <strong>ionsecadmin</strong>
+  security configuration utility, invoked at node startup time and as
+  needed thereafter.</li>
+<li>The <strong>rfxclock</strong> background daemon, which affects scheduled network
+  configuration events.</li>
+<li>The <strong>sdrmend</strong> system repair utility, invoked as needed.</li>
+<li>The <strong>sdrwatch</strong> and <strong>psmwatch</strong> utilities for resource utilization
+  monitoring, invoked as needed.</li>
 </ul>
 <p>Each time it is executed, <strong>ionadmin</strong> computes a new congestion
 forecast and, if a congestion collapse is predicted, invokes the node's
@@ -5417,16 +5150,10 @@ Appendix A.</p>
 <p>Six test executables are provided to support testing and debugging of
 the ICI component of ION:</p>
 <ul>
-<li>
-<p>The <strong>file2sdr</strong> and <strong>sdr2file</strong> programs exercise the SDR system.</p>
-</li>
-<li>
-<p>The <strong>psmshell</strong> program exercises the PSM system.</p>
-</li>
-<li>
-<p>The <strong>file2sm</strong>, <strong>sm2file</strong>, and <strong>smlistsh</strong> programs exercise the
-    shared-memory linked list system.</p>
-</li>
+<li>The <strong>file2sdr</strong> and <strong>sdr2file</strong> programs exercise the SDR system.</li>
+<li>The <strong>psmshell</strong> program exercises the PSM system.</li>
+<li>The <strong>file2sm</strong>, <strong>sm2file</strong>, and <strong>smlistsh</strong> programs exercise the
+  shared-memory linked list system.</li>
 </ul>
 <p>For details, see the man pages for file2sdr(1), sdr2file(1),
 psmshell(1), file2sm(1), sm2file(1), and smlistsh(1) in Appendix A.</p>
@@ -5434,21 +5161,19 @@ psmshell(1), file2sm(1), sm2file(1), and smlistsh(1) in Appendix A.</p>
 <h4 id="build_1"><strong>Build</strong></h4>
 <p>To build LTP:</p>
 <ol>
-<li>
-<p>Make sure that the "ici" component of ION has been built for the
-    platform on which you plan to run LTP.</p>
-</li>
+<li>Make sure that the "ici" component of ION has been built for the
+   platform on which you plan to run LTP.</li>
 <li>
 <p>Edit the Makefile in <strong>ion/ltp</strong>:</p>
 </li>
 <li>
 <p>As for ici, make sure PLATFORMS is set to the name of the platform
-    on which you plan to run LTP.</p>
+  on which you plan to run LTP.</p>
 </li>
 <li>
 <p>Set OPT to the directory containing the bin, lib, include, etc.
-    directories where the ici package is installed (for example:
-    /usr/local).</p>
+  directories where the ici package is installed (for example:
+  /usr/local).</p>
 </li>
 <li>
 <p>Then:</p>
@@ -5466,23 +5191,15 @@ page for ltprc(5) in Appendix A.</p>
 <p>The executable programs used in operation of the ltp component of ION
 include:</p>
 <ul>
-<li>
-<p>The <strong>ltpadmin</strong> protocol configuration utility, invoked at node
-    startup time and as needed thereafter.</p>
-</li>
-<li>
-<p>The <strong>ltpclock</strong> background daemon, which affects scheduled LTP
-    events such as segment retransmissions.</p>
-</li>
-<li>
-<p>The <strong>ltpmeter</strong> block management daemon, which segments blocks and
-    effects LTP flow control.</p>
-</li>
-<li>
-<p>The <strong>udplsi</strong> and <strong>udplso</strong> link service input and output tasks,
-    which handle transmission of LTP segments encapsulated in UDP
-    datagrams (mainly for testing purposes).</p>
-</li>
+<li>The <strong>ltpadmin</strong> protocol configuration utility, invoked at node
+  startup time and as needed thereafter.</li>
+<li>The <strong>ltpclock</strong> background daemon, which affects scheduled LTP
+  events such as segment retransmissions.</li>
+<li>The <strong>ltpmeter</strong> block management daemon, which segments blocks and
+  effects LTP flow control.</li>
+<li>The <strong>udplsi</strong> and <strong>udplso</strong> link service input and output tasks,
+  which handle transmission of LTP segments encapsulated in UDP
+  datagrams (mainly for testing purposes).</li>
 </ul>
 <p><strong>ltpadmin</strong> starts/stops the <strong>ltpclock</strong> and ltpmeter tasks and, as
 mandated by configuration, the <strong>udplsi</strong> and <strong>udplso</strong> tasks.</p>
@@ -5492,13 +5209,9 @@ ltpmeter(1), udplsi(1), and udplso(1) in Appendix A.</p>
 <p>Two test executables are provided to support testing and debugging of
 the LTP component of ION:</p>
 <ul>
-<li>
-<p><strong>ltpdriver</strong> is a continuous source of LTP segments.</p>
-</li>
-<li>
-<p><strong>ltpcounter</strong> is an LTP block receiver that counts blocks as they
-    arrive.</p>
-</li>
+<li><strong>ltpdriver</strong> is a continuous source of LTP segments.</li>
+<li><strong>ltpcounter</strong> is an LTP block receiver that counts blocks as they
+  arrive.</li>
 </ul>
 <p>For details, see the man pages for ltpdriver(1) and ltpcounter(1) in
 Appendix A.</p>
@@ -5506,30 +5219,28 @@ Appendix A.</p>
 <h4 id="build_2"><strong>Build</strong></h4>
 <p>To build BSSP:</p>
 <ol>
-<li>
-<p>Make sure that the "ici" component of ION has been built for the
-    platform on which you plan to run BSSP.</p>
-</li>
+<li>Make sure that the "ici" component of ION has been built for the
+   platform on which you plan to run BSSP.</li>
 <li>
 <p>Edit the Makefile in <strong>ion/bssp</strong>:</p>
 </li>
 <li>
 <p>As for ici, make sure PLATFORMS is set to the name of the platform
-    on which you plan to run BSSP.</p>
+  on which you plan to run BSSP.</p>
 </li>
 <li>
 <p>Set OPT to the directory containing the bin, lib, include, etc.
-    directories where the ici package is installed (for example:
-    /usr/local).</p>
+  directories where the ici package is installed (for example:
+  /usr/local).</p>
 </li>
 <li>
-<p>Then:
+<p>Then:</p>
+</li>
+</ol>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>ion/bssp
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>make
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>sudo<span class="w"> </span>make<span class="w"> </span>install
-</code></pre></div></p>
-</li>
-</ol>
+</code></pre></div>
 <h4 id="configure_2"><strong>Configure</strong></h4>
 <p>The BSSP administration command (<strong>bssprc</strong>) file provides the
 information needed to configure BSSP on a given ION node. For details,
@@ -5549,20 +5260,14 @@ byte.</p>
 <p>The executable programs used in operation of the bssp component of ION
 include:</p>
 <ul>
-<li>
-<p>The <strong>bsspadmin</strong> protocol configuration utility, invoked at node
-    startup time and as needed thereafter.</p>
-</li>
-<li>
-<p>The <strong>bsspclock</strong> background daemon, which affects scheduled BSSP
-    events such as segment retransmissions.</p>
-</li>
-<li>
-<p>The <strong>udpbsi</strong> and <strong>udpbso</strong> link service input and output tasks,
-    which handle transmission of BSSP segments encapsulated in UDP
-    datagrams (mainly for testing purposes; in space domain, the
-    appropriate CCSDS link layer will be used instead of UDP).</p>
-</li>
+<li>The <strong>bsspadmin</strong> protocol configuration utility, invoked at node
+  startup time and as needed thereafter.</li>
+<li>The <strong>bsspclock</strong> background daemon, which affects scheduled BSSP
+  events such as segment retransmissions.</li>
+<li>The <strong>udpbsi</strong> and <strong>udpbso</strong> link service input and output tasks,
+  which handle transmission of BSSP segments encapsulated in UDP
+  datagrams (mainly for testing purposes; in space domain, the
+  appropriate CCSDS link layer will be used instead of UDP).</li>
 </ul>
 <p><strong>bsspadmin</strong> starts/stops the <strong>bsspclock</strong> task and, as mandated by
 configuration, the <strong>udpbsi</strong> and <strong>udblso</strong> tasks.</p>
@@ -5618,30 +5323,28 @@ build. IMC is discussed in section 1.8.4 above.</p>
 <h4 id="build_3"><strong>Build</strong></h4>
 <p>To build BP:</p>
 <ol>
-<li>
-<p>Make sure that the "ici", "ltp", "dgr", and "bssp" components of ION
-    have been built for the platform on which you plan to run BP.</p>
-</li>
+<li>Make sure that the "ici", "ltp", "dgr", and "bssp" components of ION
+   have been built for the platform on which you plan to run BP.</li>
 <li>
 <p>Edit the Makefile in <strong>ion/bp</strong>:</p>
 </li>
 <li>
 <p>As for ici, make sure PLATFORMS is set to the name of the platform
-    on which you plan to run BP.</p>
+  on which you plan to run BP.</p>
 </li>
 <li>
 <p>Set OPT to the directory containing the bin, lib, include, etc.
-    directories where the ici package is installed (for example:
-    /usr/local).</p>
+  directories where the ici package is installed (for example:
+  /usr/local).</p>
 </li>
 <li>
-<p>Then:
+<p>Then:</p>
+</li>
+</ol>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>ion/bp
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>make
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>sudo<span class="w"> </span>make<span class="w"> </span>install
-</code></pre></div></p>
-</li>
-</ol>
+</code></pre></div>
 <h4 id="configure_3"><strong>Configure</strong></h4>
 <p>The BP administration command (<strong>bprc</strong>) file provides the information
 needed to configure generic BP on a given ION node. The IPN scheme
@@ -5656,72 +5359,40 @@ bprc(5), ipnrc(5), and dtn2rc(5) in Appendix A.</p>
 <p>The executable programs used in operation of the bp component of ION
 include:</p>
 <ul>
-<li>
-<p>The <strong>bpadmin, ipnadmin,</strong> and <strong>dtn2admin</strong> protocol configuration
-    utilities, invoked at node startup time and as needed thereafter.</p>
-</li>
-<li>
-<p>The <strong>bpclock</strong> background daemon, which effects scheduled BP events
-    such as TTL expirations and which also implements rate control.</p>
-</li>
-<li>
-<p>The <strong>ipnfw</strong> and <strong>dtn2fw</strong> forwarding daemons, which compute
-    routes for bundles addressed to "ipn"-scheme and "dtn"-scheme
-    endpoints, respectively.</p>
-</li>
-<li>
-<p>The <strong>ipnadminep</strong> and <strong>dtn2adminep</strong> administrative endpoint
-    daemons, which handle custody acceptances, custody refusals, and
-    status messages.</p>
-</li>
-<li>
-<p>The <strong>bpclm</strong> background daemon, which selects convergence-layer
-    outducts by which bundles are transmitted to neighboring nodes.</p>
-</li>
-<li>
-<p>The <strong>brsscla</strong> (server) and <strong>brsccla</strong> (client) Bundle Relay
-    Service convergence-layer adapters.</p>
-</li>
-<li>
-<p>The <strong>tcpcli</strong> (input) TCP convergence-layer adapter, which includes
-    convergence-layer output functionality in privately managed threads.</p>
-</li>
-<li>
-<p>The s<strong>tcpcli</strong> (input) and s<strong>tcpclo</strong> (output) simplified TCP
-    convergence-layer adapters.</p>
-</li>
-<li>
-<p>The <strong>udpcli</strong> (input) and <strong>udpclo</strong> (output) UDP convergence-layer
-    adapters.</p>
-</li>
-<li>
-<p>The <strong>ltpcli</strong> (input) and <strong>ltpclo</strong> (output) LTP convergence-layer
-    adapters.</p>
-</li>
-<li>
-<p>The <strong>dgrcla</strong> Datagram Retransmission convergence-layer adapter.</p>
-</li>
-<li>
-<p>The <strong>bpsendfile</strong> utility, which sends a file of arbitrary size,
-    encapsulated in a single bundle, to a specified BP endpoint.</p>
-</li>
-<li>
-<p>The <strong>bpstats</strong> utility, which prints a snapshot of currently
-    accumulated BP processing statistics on the local node.</p>
-</li>
-<li>
-<p>The <strong>bptrace</strong> utility, which sends a bundle through the network to
-    enable a forwarding trace based on bundle status reports.</p>
-</li>
-<li>
-<p>The <strong>lgsend</strong> and <strong>lgagent</strong> utilities, which are used for remote
-    administration of ION nodes.</p>
-</li>
-<li>
-<p>The <strong>hmackeys</strong> utility, which can be used to create hash keys
-    suitable for use in bundle authentication blocks and BRS
-    convergence-layer protocol connections.</p>
-</li>
+<li>The <strong>bpadmin, ipnadmin,</strong> and <strong>dtn2admin</strong> protocol configuration
+  utilities, invoked at node startup time and as needed thereafter.</li>
+<li>The <strong>bpclock</strong> background daemon, which effects scheduled BP events
+  such as TTL expirations and which also implements rate control.</li>
+<li>The <strong>ipnfw</strong> and <strong>dtn2fw</strong> forwarding daemons, which compute
+  routes for bundles addressed to "ipn"-scheme and "dtn"-scheme
+  endpoints, respectively.</li>
+<li>The <strong>ipnadminep</strong> and <strong>dtn2adminep</strong> administrative endpoint
+  daemons, which handle custody acceptances, custody refusals, and
+  status messages.</li>
+<li>The <strong>bpclm</strong> background daemon, which selects convergence-layer
+  outducts by which bundles are transmitted to neighboring nodes.</li>
+<li>The <strong>brsscla</strong> (server) and <strong>brsccla</strong> (client) Bundle Relay
+  Service convergence-layer adapters.</li>
+<li>The <strong>tcpcli</strong> (input) TCP convergence-layer adapter, which includes
+  convergence-layer output functionality in privately managed threads.</li>
+<li>The s<strong>tcpcli</strong> (input) and s<strong>tcpclo</strong> (output) simplified TCP
+  convergence-layer adapters.</li>
+<li>The <strong>udpcli</strong> (input) and <strong>udpclo</strong> (output) UDP convergence-layer
+  adapters.</li>
+<li>The <strong>ltpcli</strong> (input) and <strong>ltpclo</strong> (output) LTP convergence-layer
+  adapters.</li>
+<li>The <strong>dgrcla</strong> Datagram Retransmission convergence-layer adapter.</li>
+<li>The <strong>bpsendfile</strong> utility, which sends a file of arbitrary size,
+  encapsulated in a single bundle, to a specified BP endpoint.</li>
+<li>The <strong>bpstats</strong> utility, which prints a snapshot of currently
+  accumulated BP processing statistics on the local node.</li>
+<li>The <strong>bptrace</strong> utility, which sends a bundle through the network to
+  enable a forwarding trace based on bundle status reports.</li>
+<li>The <strong>lgsend</strong> and <strong>lgagent</strong> utilities, which are used for remote
+  administration of ION nodes.</li>
+<li>The <strong>hmackeys</strong> utility, which can be used to create hash keys
+  suitable for use in bundle authentication blocks and BRS
+  convergence-layer protocol connections.</li>
 </ul>
 <p><strong>bpadmin</strong> starts/stops the <strong>bpclock</strong> task and, as mandated by
 configuration, the <strong>ipnfw</strong>, <strong>dtn2fw</strong>, <strong>ipnadminep</strong>,
@@ -5738,26 +5409,16 @@ hmackeys(1) in Appendix A.</p>
 <p>Five test executables are provided to support testing and debugging of
 the BP component of ION:</p>
 <ul>
-<li>
-<p><strong>bpdriver</strong> is a continuous source of bundles.</p>
-</li>
-<li>
-<p><strong>bpcounter</strong> is a bundle receiver that counts bundles as they
-    arrive.</p>
-</li>
-<li>
-<p><strong>bpecho</strong> is a bundle receiver that sends an "echo" acknowledgment
-    bundle back to bpdriver upon reception of each bundle.</p>
-</li>
-<li>
-<p><strong>bpsource</strong> is a simple console-like application for interactively
-    sending text strings in bundles to a specified DTN endpoint,
-    nominally a <strong>bpsink</strong> task.</p>
-</li>
-<li>
-<p><strong>bpsink</strong> is a simple console-like application for receiving
-    bundles and printing their contents.</p>
-</li>
+<li><strong>bpdriver</strong> is a continuous source of bundles.</li>
+<li><strong>bpcounter</strong> is a bundle receiver that counts bundles as they
+  arrive.</li>
+<li><strong>bpecho</strong> is a bundle receiver that sends an "echo" acknowledgment
+  bundle back to bpdriver upon reception of each bundle.</li>
+<li><strong>bpsource</strong> is a simple console-like application for interactively
+  sending text strings in bundles to a specified DTN endpoint,
+  nominally a <strong>bpsink</strong> task.</li>
+<li><strong>bpsink</strong> is a simple console-like application for receiving
+  bundles and printing their contents.</li>
 </ul>
 <p>For details, see the man pages for bpdriver(1), bpcounter(1), bpecho(1),
 bpsource(1), and bpsink(1) in Appendix A.</p>
@@ -5765,21 +5426,19 @@ bpsource(1), and bpsink(1) in Appendix A.</p>
 <h4 id="build_4"><strong>Build</strong></h4>
 <p>To build DGR:</p>
 <ol>
-<li>
-<p>Make sure that the "ici" component of ION has been built for the
-    platform on which you plan to run DGR.</p>
-</li>
+<li>Make sure that the "ici" component of ION has been built for the
+   platform on which you plan to run DGR.</li>
 <li>
 <p>Edit the Makefile in <strong>ion/dgr</strong>:</p>
 </li>
 <li>
 <p>As for ici, make sure PLATFORMS is set to the name of the platform
-    on which you plan to run DGR.</p>
+  on which you plan to run DGR.</p>
 </li>
 <li>
 <p>Set OPT to the directory containing the bin, lib, include, etc.
-    directories where the ici package is installed (for example:
-    /usr/local).</p>
+  directories where the ici package is installed (for example:
+  /usr/local).</p>
 </li>
 <li>
 <p>Then:</p>
@@ -5800,8 +5459,8 @@ component of ION.</p>
 the DGR component of ION:</p>
 <ul>
 <li><strong>file2dgr</strong> repeatedly reads a file of text lines and sends copies
-    of those text lines via DGR to <strong>dgr2file</strong>, which writes them to a
-    copy of the original file.</li>
+  of those text lines via DGR to <strong>dgr2file</strong>, which writes them to a
+  copy of the original file.</li>
 </ul>
 <p>For details, see the man pages for file2dgr(1) and dgr2file(1) in
 Appendix A.</p>
@@ -5830,21 +5489,19 @@ machines with abundant system memory.</p>
 <h4 id="build_5"><strong>Build</strong></h4>
 <p>To build AMS:</p>
 <ol>
-<li>
-<p>Make sure that the "bp" component of ION has been built for the
-    platform on which you plan to run AMS.</p>
-</li>
+<li>Make sure that the "bp" component of ION has been built for the
+   platform on which you plan to run AMS.</li>
 <li>
 <p>Edit the Makefile in <strong>ion/cfdp</strong>:</p>
 </li>
 <li>
 <p>Just as for bp, make sure PLATFORMS is set to the name of the
-    platform on which you plan to run AMS.</p>
+  platform on which you plan to run AMS.</p>
 </li>
 <li>
 <p>Set OPT to the directory containing the bin, lib, include, etc.
-    directories where the ici package is installed (for example:
-    /usr/local).</p>
+  directories where the ici package is installed (for example:
+  /usr/local).</p>
 </li>
 <li>
 <p>Then:</p>
@@ -5865,23 +5522,15 @@ amsxml(5) in Appendix A.</p>
 <p>The executable programs used in operation of the AMS component of ION
 include:</p>
 <ul>
-<li>
-<p>The <strong>amsd</strong> background daemon, which serves as configuration server
-    and/or as the registrar for a single application cell.</p>
-</li>
-<li>
-<p>The <strong>ramsgate</strong> application module, which serves as the Remote AMS
-    gateway for a single message space.</p>
-</li>
-<li>
-<p>The <strong>amsstop</strong> utility, which terminates all AMS operation
-    throughout a single message space.</p>
-</li>
-<li>
-<p>The <strong>amsmib</strong> utility, which announces supplementary MIB
-    information to selected subsets of AMS entities without interrupting
-    the operation of the message space.</p>
-</li>
+<li>The <strong>amsd</strong> background daemon, which serves as configuration server
+  and/or as the registrar for a single application cell.</li>
+<li>The <strong>ramsgate</strong> application module, which serves as the Remote AMS
+  gateway for a single message space.</li>
+<li>The <strong>amsstop</strong> utility, which terminates all AMS operation
+  throughout a single message space.</li>
+<li>The <strong>amsmib</strong> utility, which announces supplementary MIB
+  information to selected subsets of AMS entities without interrupting
+  the operation of the message space.</li>
 </ul>
 <p>For details, see the man pages for amsd(1), ramsgate(1), amsstop(1), and
 amsmib(1) in Appendix A.</p>
@@ -5889,40 +5538,26 @@ amsmib(1) in Appendix A.</p>
 <p>Seven test executables are provided to support testing and debugging of
 the AMS component of ION:</p>
 <ul>
-<li>
-<p><strong>amsbenchs</strong> is a continuous source of messages.</p>
-</li>
-<li>
-<p><strong>amsbenchr</strong> is a message receiver that calculates bundle
-    transmission performance statistics.</p>
-</li>
-<li>
-<p><strong>amshello</strong> is an extremely simple AMS "hello, world" demo program
-    -- a self-contained distributed application in a single source file
-    of about seventy lines.</p>
-</li>
-<li>
-<p><strong>amsshell</strong> is a simple console-like application for interactively
-    publishing, sending, and announcing text strings in messages.</p>
-</li>
-<li>
-<p><strong>amslog</strong> is a simple console-like application for receiving
-    messages and piping their contents to stdout.</p>
-</li>
-<li>
-<p><strong>amslogprt</strong> is a pipeline program that simply prints AMS message
-    contents piped to it from amslog.</p>
-</li>
-<li>
-<p><strong>amspubsub</strong> is a pair of functions for rudimentary testing of AMS
-    functionality in a VxWorks environment.</p>
-</li>
+<li><strong>amsbenchs</strong> is a continuous source of messages.</li>
+<li><strong>amsbenchr</strong> is a message receiver that calculates bundle
+  transmission performance statistics.</li>
+<li><strong>amshello</strong> is an extremely simple AMS "hello, world" demo program
+  -- a self-contained distributed application in a single source file
+  of about seventy lines.</li>
+<li><strong>amsshell</strong> is a simple console-like application for interactively
+  publishing, sending, and announcing text strings in messages.</li>
+<li><strong>amslog</strong> is a simple console-like application for receiving
+  messages and piping their contents to stdout.</li>
+<li><strong>amslogprt</strong> is a pipeline program that simply prints AMS message
+  contents piped to it from amslog.</li>
+<li><strong>amspubsub</strong> is a pair of functions for rudimentary testing of AMS
+  functionality in a VxWorks environment.</li>
 </ul>
 <p>For details, see the man pages for amsbenchs(1), amsbenchr(1),
 amshello(1), amsshell(1), amslog(1), amslogprt(1), amspub(1), and
 amssub(1) in Appendix A.</p>
 <p>For further operational details of the AMS system, please see sections 4
-and 5 of the <a href="../AMS-Programmer-Guide/">AMS Programmer's Guide.</a></p>
+and 5 of the <a href="../AMS-Programmer-Guide/">AMS Programmer&#39;s Guide.</a></p>
 <h3 id="ccsds-file-delivery-protocol-cfdp_1">CCSDS File Delivery Protocol (CFDP)</h3>
 <h4 id="compile-time-options_3"><strong>Compile-time options</strong></h4>
 <p>Defining the following macro, by setting a parameter that is provided to
@@ -5946,20 +5581,18 @@ ensures that they do so.</p>
 <h4 id="build_6"><strong>Build</strong></h4>
 <p>To build CFDP:</p>
 <ol>
-<li>
-<p>Make sure that the "bp" component of ION has been built for the
-    platform on which you plan to run CFDP.</p>
-</li>
+<li>Make sure that the "bp" component of ION has been built for the
+   platform on which you plan to run CFDP.</li>
 <li>
 <p>Edit the Makefile in <strong>ion/cfdp</strong>:</p>
 </li>
 <li>
 <p>Just as for bp, make sure PLATFORMS is set to the name of the
-    platform on which you plan to run CFDP.</p>
+  platform on which you plan to run CFDP.</p>
 </li>
 <li>
 <p>Set OPT to the directory containing the bin, lib, include, etc.
-    directories where the ici package is installed.</p>
+  directories where the ici package is installed.</p>
 </li>
 <li>
 <p>Then:</p>
@@ -5979,20 +5612,14 @@ see the man page for cfdprc(5) in Appendix A.</p>
 <p>The executable programs used in operation of the CFDP component of ION
 include:</p>
 <ul>
-<li>
-<p>The <strong>cfdpadmin</strong> protocol configuration utility, invoked at node
-    startup time and as needed thereafter.</p>
-</li>
-<li>
-<p>The <strong>cfdpclock</strong> background daemon, which affects scheduled CFDP
-    events such as check timer expirations. The <strong>cfdpclock</strong> task also
-    affects CFDP transaction cancellations, by canceling the bundles
-    encapsulating the transaction's protocol data units.</p>
-</li>
-<li>
-<p>The <strong>bputa</strong> UT-layer input/output task, which handles transmission
-    of CFDP PDUs encapsulated in bundles.</p>
-</li>
+<li>The <strong>cfdpadmin</strong> protocol configuration utility, invoked at node
+  startup time and as needed thereafter.</li>
+<li>The <strong>cfdpclock</strong> background daemon, which affects scheduled CFDP
+  events such as check timer expirations. The <strong>cfdpclock</strong> task also
+  affects CFDP transaction cancellations, by canceling the bundles
+  encapsulating the transaction's protocol data units.</li>
+<li>The <strong>bputa</strong> UT-layer input/output task, which handles transmission
+  of CFDP PDUs encapsulated in bundles.</li>
 </ul>
 <p><strong>cfdpadmin</strong> starts/stops the <strong>cfdpclock</strong> task and, as mandated by
 configuration, the <strong>bputa</strong> task.</p>
@@ -6014,25 +5641,15 @@ default value is 86400 seconds, which is 24 hours.</p>
 <h4 id="build_7"><strong>Build</strong></h4>
 <p>To build BSS:</p>
 <ul>
-<li>
-<p>Make sure that the "bp" component of ION has been built for the
-    platform on which you plan to run BSS.</p>
-</li>
-<li>
-<p>Edit the Makefile in <strong>ion/bss</strong>:</p>
-</li>
-<li>
-<p>As for ici, make sure PLATFORMS is set to the name of the platform
-    on which you plan to run BSS.</p>
-</li>
-<li>
-<p>Set OPT to the directory containing the bin, lib, include, etc.
-    directories where the ici package is installed (for example:
-    /usr/local).</p>
-</li>
-<li>
-<p>Then:</p>
-</li>
+<li>Make sure that the "bp" component of ION has been built for the
+  platform on which you plan to run BSS.</li>
+<li>Edit the Makefile in <strong>ion/bss</strong>:</li>
+<li>As for ici, make sure PLATFORMS is set to the name of the platform
+  on which you plan to run BSS.</li>
+<li>Set OPT to the directory containing the bin, lib, include, etc.
+  directories where the ici package is installed (for example:
+  /usr/local).</li>
+<li>Then:</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>ion/bss
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
@@ -6050,14 +5667,10 @@ component of ION.</p>
 <p>Four test executables are provided to support testing and debugging of
 the BSS component of ION:</p>
 <ul>
-<li>
-<p><strong>bssdriver</strong> sends a stream of data to <strong>bsscounter</strong> for
-    non-interactive testing.</p>
-</li>
-<li>
-<p><strong>bssStreamingApp</strong> sends a stream of data to <strong>bssrecv</strong> for
-    graphical, interactive testing.</p>
-</li>
+<li><strong>bssdriver</strong> sends a stream of data to <strong>bsscounter</strong> for
+  non-interactive testing.</li>
+<li><strong>bssStreamingApp</strong> sends a stream of data to <strong>bssrecv</strong> for
+  graphical, interactive testing.</li>
 </ul>
 <p>For details, see the man pages for bssdriver(1), bsscounter(1),
 bssStreamingApp(1), and bssrecv(1) in Appendix A.</p>
@@ -6066,49 +5679,49 @@ bssStreamingApp(1), and bssrecv(1) in Appendix A.</p>
 <ol>
 <li id="fn:1">
 <p>In ION, reliable convergence-layer protocols (where available) are
-by default used for every bundle. The application can instead
-mandate selection of "best-effort" service at the convergence layer
-by setting the BP_BEST_EFFORT flag in the "extended class of service
-flags" parameter, but this feature is an ION extension that is not
-supported by other BP implementations at the time of this writing.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
+   by default used for every bundle. The application can instead
+   mandate selection of "best-effort" service at the convergence layer
+   by setting the BP_BEST_EFFORT flag in the "extended class of service
+   flags" parameter, but this feature is an ION extension that is not
+   supported by other BP implementations at the time of this writing.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
 </li>
 <li id="fn:2">
 <p>Note that, in all occupancy figures, ION data management accounts
-not only for the sizes of the payloads of all queued bundles but
-also for the sizes of their headers.&#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
+   not only for the sizes of the payloads of all queued bundles but
+   also for the sizes of their headers.&#160;<a class="footnote-backref" href="#fnref:2" title="Jump back to footnote 2 in the text">&#8617;</a></p>
 </li>
 <li id="fn:3">
 <p>Barring data loss or corruption for which the various
-retransmission mechanisms in ION cannot compensate.&#160;<a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
+   retransmission mechanisms in ION cannot compensate.&#160;<a class="footnote-backref" href="#fnref:3" title="Jump back to footnote 3 in the text">&#8617;</a></p>
 </li>
 <li id="fn:4">
 <p>Note that ION may indeed block the offering of a message to the
-network, but this is local admission control -- assuring that the
-node's local buffer space for queuing outbound bundles is not
-oversubscribed -- rather than end-to-end flow control. It is always
-possible for there to be ample local buffer space yet insufficient
-network capacity to convey the offered data to their final
-destination, and vice versa.&#160;<a class="footnote-backref" href="#fnref:4" title="Jump back to footnote 4 in the text">&#8617;</a></p>
+   network, but this is local admission control -- assuring that the
+   node's local buffer space for queuing outbound bundles is not
+   oversubscribed -- rather than end-to-end flow control. It is always
+   possible for there to be ample local buffer space yet insufficient
+   network capacity to convey the offered data to their final
+   destination, and vice versa.&#160;<a class="footnote-backref" href="#fnref:4" title="Jump back to footnote 4 in the text">&#8617;</a></p>
 </li>
 <li id="fn:5">
 <p>The minimum size of an ION bundle header is 26 bytes. Adding
-extension blocks (such as those that effect the Bundle Security
-Protocol) will increase this figure.&#160;<a class="footnote-backref" href="#fnref:5" title="Jump back to footnote 5 in the text">&#8617;</a></p>
+   extension blocks (such as those that effect the Bundle Security
+   Protocol) will increase this figure.&#160;<a class="footnote-backref" href="#fnref:5" title="Jump back to footnote 5 in the text">&#8617;</a></p>
 </li>
 <li id="fn:6">
 <p>In ION, all bundles are by default non-critical. The application
-can indicate that data should be sent in a Critical bundle by
-setting the BP_MINIMUM_LATENCY flag in the "extended class of
-service" parameter, but this feature is an ION extension that is not
-supported by other BP implementations at the time of this writing.&#160;<a class="footnote-backref" href="#fnref:6" title="Jump back to footnote 6 in the text">&#8617;</a></p>
+   can indicate that data should be sent in a Critical bundle by
+   setting the BP_MINIMUM_LATENCY flag in the "extended class of
+   service" parameter, but this feature is an ION extension that is not
+   supported by other BP implementations at the time of this writing.&#160;<a class="footnote-backref" href="#fnref:6" title="Jump back to footnote 6 in the text">&#8617;</a></p>
 </li>
 <li id="fn:7">
 <p>If we wanted to be extremely accurate we could also
-subtract from the timeout interval the imputed inbound
-queuing delay QI, since inbound queuing would presumably be
-completed during the interval in which transmission was suspended.
-But since we're guessing at the queuing delays anyway, this
-adjustment doesn't make a lot of sense.&#160;<a class="footnote-backref" href="#fnref:7" title="Jump back to footnote 7 in the text">&#8617;</a></p>
+   subtract from the timeout interval the imputed inbound
+   queuing delay QI, since inbound queuing would presumably be
+   completed during the interval in which transmission was suspended.
+   But since we're guessing at the queuing delays anyway, this
+   adjustment doesn't make a lot of sense.&#160;<a class="footnote-backref" href="#fnref:7" title="Jump back to footnote 7 in the text">&#8617;</a></p>
 </li>
 </ol>
 </div>

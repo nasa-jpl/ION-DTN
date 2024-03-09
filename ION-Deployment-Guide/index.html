@@ -2693,6 +2693,7 @@ option as follows:</p>
   attachment purposes <strong>only</strong>) from that environment variable; only
   if ION_NODE_WDNAME is undefined will it use the actual cwd that it
   gets from calling igetcwd().</li>
+<li>When running multiple ION instances, the first ION instance must have the largest sdr working memory specified by <code>sdrWmSize</code> or default. If any later ION instance launched with <code>sdrWmSize</code> exceeding the first ION instance, it will result in crash upon launch. It is further recommended that all ION instances running simultaneously on a single host should set their <code>sdrWmSize</code> the same.</li>
 </ul>
 <h3 id="shutdown">Shutdown</h3>
 <p>Included in the root directory of the ION distribution is a bash script
@@ -2872,9 +2873,7 @@ should be large enough to cover the maximum # of sessions possible.</p>
 between two LTP engines. There are many parameters associated with the
 Spans.</p>
 <h4 id="the-ltpadmin-add-span-command">The ltpadmin Add Span command</h4>
-<p><code>a span peer_engine_nbr max_export_sessions max_import_sessions
-max_segment_size aggregation_size_threshold aggregation_time_limit
-'LSO_command' [queuing_latency]</code></p>
+<p><code>a span peer_engine_nbr max_export_sessions max_import_sessions max_segment_size aggregation_size_threshold aggregation_time_limit 'LSO_command' [queuing_latency]</code></p>
 <p>The "add span" command. This command declares that a span of potential
 LTP data interchange exists between the local LTP engine and the
 indicated (neighboring) LTP engine.</p>
