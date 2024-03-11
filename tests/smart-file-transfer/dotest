@@ -35,12 +35,11 @@ if [ "$1" = "crypto" ] || [ "$1" = "encryption" ] || [ "$1" = "1" ]; then
 fi
 
 # Check if the CRYPTO environment variable is set 
-# ION-IOS may set this true, commenting out for now
 if [ ! -z "$CRYPTO" ]; then
     echo -e "CRYPTO flag set true\n"
-#    if [ "$CRYPTO" = "1" ]; then
-#        ENCRYPTION_ENABLED=1
-#   fi
+    if [ "$CRYPTO" = "1" ]; then
+        ENCRYPTION_ENABLED=1
+   fi
 fi
 
 
