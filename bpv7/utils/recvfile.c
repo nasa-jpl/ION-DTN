@@ -291,15 +291,12 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 			decryption_failure = 1;			
 		}
 		else
-		{
-			/* clean memory of encrypted data */
-			memset(metadata.fileContent, 0, metadata.fileContentLength);
-			
+		{			
 			/* update with decrypted data*/
 			if (metadata.fileContent)
 			{
+				memset(metadata.fileContent, 0, metadata.fileContentLength);
 				free(metadata.fileContent); //free me first (avoid memory leak)!
-
 			}
 			metadata.fileContent = decrypted_fileContent; //free in Exit;
 			metadata.fileContentLength = decrypted_fileContentLength;
