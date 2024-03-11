@@ -288,7 +288,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 		result = crypt_and_hash_buffer(1, metadata.aux_command, metadata.fileContent, &metadata.fileContentLength, &decrypted_fileContent, &decrypted_fileContentLength, CIPHER, MD, keyInput);
 		if(result != 0)
 		{				
-			decryption_failure = 1;
+			decryption_failure = 1;			
 		}
 		else
 		{
@@ -296,6 +296,11 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 			memset(metadata.fileContent, 0, metadata.fileContentLength);
 			
 			/* update with decrypted data*/
+			if (metadata.fileContent)
+			{
+				free(metadata.fileContent); //free me first (avoid memory leak)!
+
+			}
 			metadata.fileContent = decrypted_fileContent; //free in Exit;
 			metadata.fileContentLength = decrypted_fileContentLength;
 		}
@@ -365,11 +370,11 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 exit:
 
-	/* MEMORY OBFUSCATION AND CLEANUP*/		
+	/* MEMORY OBFUSCATION AND CLEANUP*/	
 	if (metadata.filename) 
 	{
 		free(metadata.filename);
-		metadata.filename = NULL; // Prevent dangling pointer
+		metadata.filename = NULL;
 	}
 
 	if(metadata.fileContent)
