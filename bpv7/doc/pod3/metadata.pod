@@ -1,0 +1,170 @@
+=head1 NAME
+
+metadata - File handling and metadata processing library for smart file transfers.
+
+=head1 SYNOPSIS
+
+#include "metadata.h"
+
+Usage of core functions and utilities for handling file metadata, including encryption flags, time, versioning, file name, file content, and auxiliary command strings.
+
+=head1 DESCRIPTION
+
+This library provides functionalities for handling file metadata, encompassing encryption flags, timestamp, versioning, file name, and auxiliary command strings. It facilitates the serialization and deserialization of metadata, generating unique filenames, checking file existence, and writing data to files, among other operations.
+
+=head2 Data Structures
+
+=over 4
+
+=item B<Metadata>
+
+Stores information about a file, including encryption status, version number, timestamp, auxiliary commands, file type, name, and content. Designed for handling metadata in file transfer operations, ensuring all information is structured together.
+
+Fields:
+
+=over 4
+
+=item B<eFlag>
+
+Encryption flag indicating file content encryption status. 1 indicates encrypted, other values indicate not encrypted.
+
+=item B<versionNumber>
+
+Version number of the metadata format for versioning control and backward compatibility.
+
+=item B<timestamp>
+
+Timestamp of file creation or last modification, as a 64-bit unsigned integer in milliseconds since the Unix Epoch.
+
+=item B<aux_command_length>
+
+Length of the auxiliary command in this metadata, indicating the `aux_command` array size.
+
+=item B<aux_command>
+
+Pointer to an array of unsigned characters for an auxiliary command associated with the file.
+
+=item B<filetypeLength>
+
+Length of the file type information in this metadata, indicating the `filetype` array size.
+
+=item B<filetype>
+
+Pointer to an array of unsigned characters for the file type (e.g., "text/plain", "image/jpeg").
+
+=item B<fileNameLength>
+
+Length of the file name in this metadata, indicating the `filename` array size.
+
+=item B<filename>
+
+Pointer to an array of unsigned characters for the file name, including directory path if necessary.
+
+=item B<fileContentLength>
+
+Length of the file content in this metadata, indicating the `fileContent` array size.
+
+=item B<fileContent>
+
+Pointer to an array of unsigned characters for the file content.
+
+=back
+
+=back
+
+=head2 Core Functions
+
+=over 4
+
+=item B<createBufferFromMetadata>(Metadata *meta, size_t *offset)
+
+Serializes metadata into a buffer for storage or transmission. Returns a pointer to the buffer.
+
+=item B<extractMetadataFromFile>(const char *filename, Metadata *meta)
+
+Extracts metadata from a file and populates a Metadata structure with the file's details.
+
+=item B<writeMetaDataContentToFile>(const Metadata* metaData, const char* tempFilename)
+
+Writes metadata content to a specified file, ensuring data integrity and correct serialization.
+
+=item B<writeBufferToFile>(unsigned char* buffer, size_t bufferSize, const char* filename)
+
+Writes a buffer to a file, suitable for binary data transfer with precise control over data layout.
+
+=back
+
+=head2 Metadata and Buffer Processing
+
+=over 4
+
+=item B<htonll>(uint64_t val)
+
+Converts a 64-bit value from host to network byte order, ensuring data consistency across different platforms.
+
+=item B<ntohll>(uint64_t val)
+
+Converts a 64-bit value from network to host byte order, critical for interpreting network-received data correctly.
+
+=item B<getCurrentTimeMs>(void)
+
+Retrieves the current system time in milliseconds, facilitating accurate timestamping for metadata.
+
+=item B<calculateTimeDifference>(uint64_t transmitted_time_ms)
+
+Calculates the time difference in milliseconds, useful for timing operations and delay measurements.
+
+=back
+
+=head2 File and String Utilities
+
+=over 4
+
+=item B<fileExists>(const char *filename)
+
+Checks if a specified file exists, an essential check before file operations to avoid overwriting.
+
+=item B<generateNewFilename>(Metadata *metadata)
+
+Generates a new, unique filename, preventing naming conflicts in file storage.
+
+=item B<generateRandomString>(char *str, size_t size)
+
+Produces a random string, aiding in creating unique identifiers or filenames.
+
+=item B<appendNullChar>(unsigned char* array, size_t currentSize)
+
+Appends a null character to an array, ensuring proper string termination in C.
+
+=item B<stripLeadingWhiteSpace>(char *str)
+
+Removes leading whitespace from a string, useful for cleaning up user or system input.
+
+=item B<isOnlyWhitespace>(const char* str)
+
+Determines if a string consists solely of whitespace, helpful for validation checks.
+
+=item B<parseCommandString>(const char* inputString, int* count)
+
+Splits a command string into tokens, simplifying command processing or execution.
+
+=item B<executeAndFreeCommands>(char** commands, int commandCount)
+
+Demonstrates command execution and memory cleanup, although actual execution is not implemented.
+
+=item B<myStrdup>(const char* s)
+
+Duplicates a string with dynamic memory allocation, ensuring compliance with POSIX standards.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>.
+
+=head1 SEE ALSO
+
+bp(3), sendfile(1), recvfile(1), libmetadata(3), libsecrypt(3)
+
+=cut
+

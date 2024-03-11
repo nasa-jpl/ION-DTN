@@ -1,0 +1,259 @@
+#!/bin/bash
+
+# Description: Automates testing of file transfer utilities for both
+# non-encrypted and encrypted transmissions between two nodes (node01
+# and node02). It transfers files, verifies integrity, and performs an
+# additional encrypt/decrypt test if the initial transfer succeeds. This
+# script is for testing scenarios with ION (Interplanetary Overlay Network)
+# in a multi-node setup, simulating real-world conditions.
+
+# Assumptions:
+# 1. ION is installed and configured for multi-node operation.
+# 2. The environment is prepared with ION nodes (node01 and node02),
+#    necessary executables (ionstart, ionstop, recvfile, sendfile), and
+#    configuration files.
+# 3. External scripts and utilities (e.g., cleanup) are present and
+#    executable.
+
+# Author: Sky DeBaun, Jet Propulsion Laboratory
+# Copyright 2023, California Institute of Technology. All rights reserved.
+
+
+# Initialize failure check flag
+FAILCHECK=0
+
+# Specify the test file name and number of files to send
+TEST_FILE_NAME="some_rather_really_long_file_name_test_for_extra_extenuating_circumstances.txt"
+ITERATIONS=10
+TEST_FILE_CONTENT="Hello world, this is a test file transmitted from node01 to node02"
+ENCRYPTION_ENABLED=0
+
+
+# Check if the command line argument enables encryption
+if [ "$1" = "crypto" ] || [ "$1" = "encryption" ] || [ "$1" = "1" ]; then
+    ENCRYPTION_ENABLED=1
+fi
+
+# Check if the CRYPTO environment variable is set 
+if [ ! -z "$CRYPTO" ]; then
+    echo -e "CRYPTO flag set true\n"
+    if [ "$CRYPTO" = "1" ]; then
+        ENCRYPTION_ENABLED=1
+   fi
+fi
+
+
+# FUNCTIONS    FUNCTIONS    FUNCTIONS    FUNCTIONS    FUNCTIONS    FUNCTIONS
+stop_and_exit() 
+{
+    if [ "$1" -eq 0 ]; then
+        echo -e "\nTEST SUCCESSFUL!!!\n"
+    else
+        echo -e "\nTEST FAILURE!!!\n"
+    fi
+    exit $1
+}
+
+
+# BEGIN TEST       BEGIN TEST      BEGIN TEST      BEGIN TEST      BEGIN TEST
+
+echo -e "\nSTARTING FILE TRANSFER TEST--------------------------------- "
+
+# Prepare for ION multi-node operation
+rm -f ./ion_nodes
+export ION_NODE_LIST_DIR=$PWD
+
+# Start ion in node02, wait, then start ion in node01
+cd node02
+./ionstart
+sleep 1
+
+cd ../node01
+./ionstart
+sleep 1
+
+# Start receiver in node02
+cd ../node02
+echo -e "Starting node02 receiver--------------------"
+recvfile ipn:2.4  &
+RECVFILE_PID=$!
+sleep 1
+
+# Go to node01, create a test file, and send it $ITERATIONS times
+cd ../node01
+
+echo -e "Starting non-encrypted file transmission from node01--->>>\n"
+echo "$TEST_FILE_CONTENT" > $TEST_FILE_NAME
+for i in $(seq 1 $ITERATIONS); do
+    sendfile ipn:1.4 ipn:2.4 $TEST_FILE_NAME
+    sleep 0.25
+done
+sleep 1
+echo -e "\n"
+
+#clean test file
+rm -f $TEST_FILE_NAME  
+
+# Check for the presence of $ITERATIONS files in node02
+cd ../node02
+for i in $(seq 0 $((ITERATIONS - 1))); do
+    if [ $i -eq 0 ]; then
+        file=$TEST_FILE_NAME
+    else
+            file="${TEST_FILE_NAME%.*}_$i.${TEST_FILE_NAME##*.}"
+    fi
+    echo "Checking for: $file"
+    
+    if [ ! -f "$file" ]; then
+        echo "File $file not found."
+        FAILCHECK=1
+        break
+    fi
+    # Verify file content
+    if ! grep -q "$TEST_FILE_CONTENT" "$file"; then
+        echo "Content check failed for $file."
+        FAILCHECK=1
+        break
+    fi
+done
+
+# Clean up: remove test files and stop ion in node02
+for i in $(seq 0 $((ITERATIONS - 1))); do
+    if [ $i -eq 0 ]; then
+        rm -f $TEST_FILE_NAME
+    else
+        rm -f "${TEST_FILE_NAME%.*}_$i.${TEST_FILE_NAME##*.}"
+    fi
+done
+
+# File transfer and content integrity test complete: exit non-crypt receiver
+echo -e "\nShutting down receiver now..."
+kill -SIGINT $RECVFILE_PID
+wait $RECVFILE_PID
+
+
+
+# Begin encryption/decryption test (if encryption library installed)
+if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
+    echo -e "\nSTARTING ENCRYPT/DECRYPT TEST -------------------------- "
+    TEST_FILE_NAME="crypt_testfile.txt"
+
+    # Start receiver with decryption key in node02
+    echo -e "Starting node02 receiver--------------------"
+    recvfile ipn:2.4 "testkey.hmk" &
+    RECVFILE_PID=$!
+    sleep 1
+
+    # Go to node01, create a test file, and send it $ITERATIONS times
+    cd ../node01
+    echo -e "Starting encrypted file transmission from node01------->>>\n"
+
+    echo "$TEST_FILE_CONTENT" > $TEST_FILE_NAME
+    for i in $(seq 1 $ITERATIONS); do
+        sendfile ipn:1.4 ipn:2.4 $TEST_FILE_NAME "testkey.hmk"
+        sleep 0.25
+    done
+    sleep 1
+    echo -e "\n"  
+
+    # Check for the presence of $ITERATIONS files in node02
+    cd ../node02
+    for i in $(seq 0 $((ITERATIONS - 1))); do
+        if [ $i -eq 0 ]; then
+            file=$TEST_FILE_NAME
+        else
+            file="${TEST_FILE_NAME%.*}_$i.${TEST_FILE_NAME##*.}"
+        fi
+        echo "Checking for: $file"
+        
+        if [ ! -f "$file" ]; then
+            echo "File $file not found."
+            FAILCHECK=1
+            break
+        fi
+        # Verify file content
+        if ! grep -q "$TEST_FILE_CONTENT" "$file"; then
+            echo "Content check failed for $file."
+            FAILCHECK=1
+            break
+        else
+            echo -e "Decryption succesful"
+        fi
+    done
+
+    echo -e "\nShutting down receiver now..."
+    kill -SIGINT $RECVFILE_PID
+    wait $RECVFILE_PID
+
+    # Clean up: remove test files and stop ion in node02
+    for i in $(seq 0 $((ITERATIONS - 1))); do
+        if [ $i -eq 0 ]; then
+            rm -f $TEST_FILE_NAME
+        else
+        rm -f "${TEST_FILE_NAME%.*}_$i.${TEST_FILE_NAME##*.}"
+        fi
+    done
+
+    # Restart receiver with bad decryption key in node02
+    echo -e "Starting node02 receiver--------------------"
+    recvfile ipn:2.4 "badkey.hmk" &
+    RECVFILE_PID=$!
+    sleep 1
+
+    # check for positive failure condition (mismatched keys)
+    cd ../node01
+    echo -e "Starting bad key file transmission from node01--------->>>\n"
+
+    for i in $(seq 1 $ITERATIONS); do
+        sendfile ipn:1.4 ipn:2.4 $TEST_FILE_NAME "testkey.hmk"
+        sleep 0.25
+    done
+    sleep 1
+    echo -e "\n"  
+
+    # Check for the presence of $ITERATIONS files in node02
+    cd ../node02
+    for i in $(seq 0 $((ITERATIONS - 1))); do
+        if [ $i -eq 0 ]; then
+            file=$TEST_FILE_NAME
+        else
+            file="${TEST_FILE_NAME%.*}_$i.${TEST_FILE_NAME##*.}"
+        fi
+        echo "Decryption check for: $file"
+        
+        if [ ! -f "$file" ]; then
+            echo "$file not found (Positive result)."
+            FAILCHECK=0
+            break
+        else
+        #file found: set fail flag
+            FAILCHECK=1
+        fi
+        
+    done
+
+    # Clean up: remove test files and stop ion in node02
+    for i in $(seq 0 $((ITERATIONS - 1))); do
+        if [ $i -eq 0 ]; then
+            rm -f $TEST_FILE_NAME
+        else
+        rm -f "${TEST_FILE_NAME%.*}_$i.${TEST_FILE_NAME##*.}"
+        fi
+    done
+
+
+    echo -e "\nShutting down receiver now..."
+    kill -SIGINT $RECVFILE_PID
+    wait $RECVFILE_PID
+fi
+
+# Return to test directory
+cd $ION_NODE_LIST_DIR
+
+# Shut down and cleanup
+./cleanup
+cd node01
+rm -f $TEST_FILE_NAME
+
+# Return results
+stop_and_exit $FAILCHECK
