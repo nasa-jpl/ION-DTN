@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo -e "\nShutting ION down now...\n"
+killm
+rm -f ion_nodes
+

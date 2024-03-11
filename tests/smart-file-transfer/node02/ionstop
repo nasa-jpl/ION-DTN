@@ -1,0 +1,7 @@
+# shell script to shut down ION
+#!/bin/bash
+
+echo "Stopping ION-DTN..."
+bpadmin  .
+sleep 1
+ionadmin .
