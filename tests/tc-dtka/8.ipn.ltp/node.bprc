@@ -10,9 +10,6 @@ a endpoint ipn:8.2 x
 #a endpoint ipn:8.202 x
 #a endpoint ipn:8.203 x
 a scheme imc 'imcfw' 'imcadminep'
-a endpoint imc:201.0 x
-a endpoint imc:202.0 x
-a endpoint imc:203.0 x
 r 'ipnadmin node.ipnrc'
 w 1
 s
