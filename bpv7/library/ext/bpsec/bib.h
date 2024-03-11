@@ -82,7 +82,9 @@
 #define BIB_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BIB_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
+#ifndef BIB_DEBUG_LVL
 #define BIB_DEBUG_LVL   BIB_DEBUG_LVL_ERR
+#endif
 
 #define GMSG_BUFLEN     256
 #if (BIB_DEBUGGING == 1)

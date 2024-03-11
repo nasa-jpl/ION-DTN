@@ -69,7 +69,9 @@
 #define BPSEC_DEBUG_LVL_WARN 3 /** Warning and above debugging */
 #define BPSEC_DEBUG_LVL_ERR  4 /** Error and above debugging */
 
+#ifndef BPSEC_DEBUG_LVL
 #define BPSEC_DEBUG_LVL	BPSEC_DEBUG_LVL_ERR
+#endif
 
 #define	GMSG_BUFLEN	256
 
