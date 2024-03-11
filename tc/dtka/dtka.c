@@ -115,6 +115,7 @@ static int writeAddPubKeyCmd(time_t effectiveTime,
 	return 0;
 }
 
+#ifdef CRYPTO_SOFTWARE_INSTALLED
 int generateAESKey(int keysize, unsigned char *buf)
 {
 	mbedtls_ctr_drbg_context ctr_drbg;
@@ -216,6 +217,7 @@ int generateECDSAKey(int keysize, unsigned char *buf, unsigned char *private_buf
 	mbedtls_ecdsa_free(&ecdsa_context);
 	return result;
 }
+#endif
 
 static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 {
