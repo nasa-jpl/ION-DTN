@@ -560,8 +560,8 @@ int createUniqueFile(char *buffer, size_t bufferSize)
 
     time_t now = time(NULL);
     srand(now);
-    char randomPart[9]; 
-    generateRandomString(randomPart, sizeof(randomPart)); // this null-terminates 
+    char randomPart[10] = {0}; 
+    generateRandomString(randomPart, sizeof(randomPart)-1); // this null-terminates 
 
     /* Construct the filename with the time and random component */
     /* Example: "12345678abcdefgh" */
