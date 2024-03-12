@@ -137,7 +137,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		}
 
 		putSysErrmsg("Can't stat the file", fileName);
-		printf("Error: %s not found\n", fileName);
+		fprintf(stderr,"Error: %s not found\n", fileName);
 		return -1;
 	}
 
@@ -146,7 +146,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	{
 		writeMemoNote("[?] sendfile can't send file of length zero",
 				fileName);
-		printf("\nError: can't send file of length zero --> %s\n", fileName);
+		fprintf(stderr,"\nError: can't send file of length zero --> %s\n", fileName);
 		if (sap)
 		{
 			bp_close(sap);
@@ -175,7 +175,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	FILE *file = fopen(fileName, "rb");
 	if (!file) 
 	{
-		perror("Error opening file.");
+		fprintf(stderr, "Error opening file.");
 		goto exit;
 	}
 
@@ -237,7 +237,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	name = malloc(nameSize);
 	if (!name)
 	{
-		printf("Error creating file name\n");
+		fprintf(stderr,"Error creating file name\n");
 		goto exit;
 	}
 
@@ -256,7 +256,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyInput);			
 		if(result != 0)
 		{				
-			printf("Encryption error.\n");
+			fprintf(stderr,"Encryption error.\n");
 			goto exit;
 		}			
 		metadata.fileContent = encrypted_content_buffer;
@@ -275,7 +275,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	/* write  buffer to file */
 	if (writeBufferToFile(metadata_buffer, metabuffer_size, randInitializer) != 0)		
 	{			
-		printf("Error writing meta data to file.\n");
+		fprintf(stderr,"Error writing meta data to file.\n");
 		goto exit;
 	}
 
@@ -511,7 +511,7 @@ int	main(int argc, char **argv)
 		{
 			if (i + 1 >= argc) 
 			{
-				PUTS("Error: Missing value after aux flag.");
+				fprintf(stderr,"Error: Missing value after aux flag.");
 				return 0;
 			}
 			aux = argv[++i];
@@ -522,7 +522,7 @@ int	main(int argc, char **argv)
 		{
 			if (i + 1 >= argc) 
 			{
-				PUTS("Error: Missing TTL value after TTL flag.");
+				fprintf(stderr,"Error: Missing TTL value after TTL flag.");
 				return 0;
 			}
 			ttl = atoi(argv[++i]);
