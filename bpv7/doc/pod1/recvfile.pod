@@ -94,4 +94,4 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-sendfile(1), bp(3), libmetadata(3), libsecrypt(3)
+sendfile(1), bp(3), metadata(3), secrypt(3)
