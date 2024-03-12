@@ -72,6 +72,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	Object		bundleZco;
 	char		progressText[300];
 	Object		newBundle;
+	size_t		readResult = 0;
 
 
 	/*metadata vars*/
@@ -183,7 +184,12 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	fseek(file, 0, SEEK_SET);
 
 	input_buffer = (unsigned char*)malloc(fileSize);
-	fread(input_buffer, 1, fileSize, file);
+	readResult = fread(input_buffer, 1, fileSize, file);
+	if (readResult != fileSize)
+	{
+		fprintf(stderr, "Error reading from %s.\nExpected %zu, got %zu.\n",
+				fileName, fileSize, readResult);
+	}
 	fclose(file);
 
 
