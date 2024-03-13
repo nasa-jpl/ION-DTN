@@ -1437,6 +1437,31 @@ acquire some block of memory. These would include the Space Management
 Trace features and standalone programs such as "file2sm", "sm2file" and
 "smlistsh".
 
+## Testing & Known Issues
+
+### Factors Affecting LTP Testing Over UDP
+
+Terrestrial testing of LTP during the prototype and initial system integration phases often relies on using the UDP protocol because it is readily available on most terrestrial computing systems. ION's udplso and udplsi programs provide the basic capability to flow LTP traffic between two hosts on the internet. To increase the fidelity of LTP testing, short of directly utilizing actual radio systems, customized software or hardware can be added to the data path. This addition aims to introduce longer delays and data corruption/loss in a controlled manner.
+
+However, testing LTP over UDP can yield unpredictable results due to several factors. Understanding these factors is essential for accurate analysis and troubleshooting:
+
+#### UDP's Inherent Unreliability
+
+UDP lacks a built-in mechanism for retransmitting lost packets. Consequently, the rate at which packets are lost can fluctuate significantly. This inherent unreliability of UDP may affect the performance and reliability tests of LTP, as LTP relies on UDP for transport.
+
+#### Kernel Buffering and IP Fragment Reassembly
+
+  The ability of the operating system kernel to buffer and reassemble IP fragments plays a critical role, especially if an LTP segment exceeds the Maximum Transmission Unit (MTU) size. The efficiency of this process can vary based on:
+
+  - The default configuration of the kernel's IP protocol stack.
+  - The rate at which UDP traffic is injected by the user.
+  - Differences in these aspects can introduce variability in test outcomes, as they affect how well the underlying system can handle large LTP segments transmitted over UDP.
+
+#### External Factors: Link Simulator 
+
+External testing tools, either customized software or WAN emulators, are often used to simulate network conditions or impairments but may also impact the fidelity of testing by exaggerating the delay differences between different traffic streams, including UDP fragments, when improperly configured, and further complicate the interpretation of LTP performance results over UDP.
+
+
 ## Operation
 
 ION is generally optimized for continuous operational use rather than
