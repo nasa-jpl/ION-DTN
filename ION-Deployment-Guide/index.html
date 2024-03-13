@@ -857,6 +857,63 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#testing-known-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing &amp; Known Issues
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testing & Known Issues">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#factors-affecting-ltp-testing-over-udp" class="md-nav__link">
+    <span class="md-ellipsis">
+      Factors Affecting LTP Testing Over UDP
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Factors Affecting LTP Testing Over UDP">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#udps-inherent-unreliability" class="md-nav__link">
+    <span class="md-ellipsis">
+      UDP's Inherent Unreliability
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kernel-buffering-and-ip-fragment-reassembly" class="md-nav__link">
+    <span class="md-ellipsis">
+      Kernel Buffering and IP Fragment Reassembly
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#external-factors-link-simulator" class="md-nav__link">
+    <span class="md-ellipsis">
+      External Factors: Link Simulator
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#operation_1" class="md-nav__link">
     <span class="md-ellipsis">
       Operation
@@ -3310,6 +3367,21 @@ shared-memory key values to ION at startup, in the "heapKey" and/or
 acquire some block of memory. These would include the Space Management
 Trace features and standalone programs such as "file2sm", "sm2file" and
 "smlistsh".</p>
+<h2 id="testing-known-issues">Testing &amp; Known Issues</h2>
+<h3 id="factors-affecting-ltp-testing-over-udp">Factors Affecting LTP Testing Over UDP</h3>
+<p>Terrestrial testing of LTP during the prototype and initial system integration phases often relies on using the UDP protocol because it is readily available on most terrestrial computing systems. ION's udplso and udplsi programs provide the basic capability to flow LTP traffic between two hosts on the internet. To increase the fidelity of LTP testing, short of directly utilizing actual radio systems, customized software or hardware can be added to the data path. This addition aims to introduce longer delays and data corruption/loss in a controlled manner.</p>
+<p>However, testing LTP over UDP can yield unpredictable results due to several factors. Understanding these factors is essential for accurate analysis and troubleshooting:</p>
+<h4 id="udps-inherent-unreliability">UDP's Inherent Unreliability</h4>
+<p>UDP lacks a built-in mechanism for retransmitting lost packets. Consequently, the rate at which packets are lost can fluctuate significantly. This inherent unreliability of UDP may affect the performance and reliability tests of LTP, as LTP relies on UDP for transport.</p>
+<h4 id="kernel-buffering-and-ip-fragment-reassembly">Kernel Buffering and IP Fragment Reassembly</h4>
+<p>The ability of the operating system kernel to buffer and reassemble IP fragments plays a critical role, especially if an LTP segment exceeds the Maximum Transmission Unit (MTU) size. The efficiency of this process can vary based on:</p>
+<ul>
+<li>The default configuration of the kernel's IP protocol stack.</li>
+<li>The rate at which UDP traffic is injected by the user.</li>
+<li>Differences in these aspects can introduce variability in test outcomes, as they affect how well the underlying system can handle large LTP segments transmitted over UDP.</li>
+</ul>
+<h4 id="external-factors-link-simulator">External Factors: Link Simulator</h4>
+<p>External testing tools, either customized software or WAN emulators, are often used to simulate network conditions or impairments but may also impact the fidelity of testing by exaggerating the delay differences between different traffic streams, including UDP fragments, when improperly configured, and further complicate the interpretation of LTP performance results over UDP.</p>
 <h2 id="operation_1">Operation</h2>
 <p>ION is generally optimized for continuous operational use rather than
 research. In practice, this means that a lot more attention, both in the
