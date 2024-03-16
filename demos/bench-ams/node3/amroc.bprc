@@ -6,9 +6,6 @@ a endpoint ipn:3.2 x
 a endpoint ipn:3.9 q
 a protocol stcp 1400 100 100000
 a induct stcp 127.0.0.1:5101 stcpcli
-a outduct stcp 127.0.0.1:5101 stcpclo
 a outduct stcp 127.0.0.1:5001 stcpclo
-#	m heapmax 20000
 r 'ipnadmin amroc.ipnrc'
-#w 1
 s
