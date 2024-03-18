@@ -1,0 +1,31 @@
+# shell script to get node running
+#!/bin/bash
+
+echo > ion.log
+echo -e "\nStarting ION Node 2 on localhost"
+
+#normally you wouldn't do this on every startup
+cp init.petition.log 9.petition.log
+
+ionadmin amroc.ionrc
+sleep 1
+
+ionsecadmin amroc.ionsecrc
+sleep 1
+
+bpadmin amroc.bprc
+sleep 1
+
+#start ams daemon as config server and registrar
+amsd mib.amsrc 127.0.0.1:2502 amsdemo test "" &
+
+#observe the MANDATORY cell census period here!!!
+echo "Waiting for AMS cell census (9 seconds left)..."
+sleep 3
+echo "Waiting for AMS cell census (6 seconds left)..."
+sleep 3
+echo "Waiting for AMS cell census (3 seconds left)..."
+sleep 3
+
+#start ramsgate daemon
+ramsgate amsdemo test 300 &
