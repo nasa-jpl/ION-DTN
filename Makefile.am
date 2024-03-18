@@ -1746,11 +1746,11 @@ bpPODM5 = pod2man -s 5 -c "BP configuration files"
 if UNIBO_CGR
 ### UNIBO CGR EXTENSIONS RGR AND CGRR ###
 
-bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(BP_SRC_DIR)/library/ext/rgr -I$(BP_SRC_DIR)/library/ext/cgrr
+bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(BP_SRC_DIR)/library/ext/rgr -I$(BP_SRC_DIR)/library/ext/cgrr -I$(srcdir)/bpv7/metadata  -I$(srcdir)/ici/crypto/NULL_SUITES
 
 #########################################
 else
-bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq
+bpcflags = -I$(BP_SRC_DIR)/bpsec/instr -I$(BP_SRC_DIR)/bpsec/policy -I$(BP_SRC_DIR)/bpsec/sci -I$(BP_SRC_DIR)/bpsec/utils -I$(BP_SRC_DIR)/library -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)/library/ext/meb -I$(BP_SRC_DIR)/library/ext/bae -I$(BP_SRC_DIR)/include -I$(BP_SRC_DIR)/ipn -I$(BP_SRC_DIR)/ipnd -I$(srcdir)/ici/libbloom-master -I$(srcdir)/ici/libbloom-master/murmur2 -I$(BP_SRC_DIR)/dtn2 -I$(BP_SRC_DIR)/library/crypto -I$(BP_SRC_DIR)/tcp -I$(BP_SRC_DIR)/udp -I$(srcdir)/ici/include -I$(srcdir)/ici/library -I$(BP_SRC_DIR)/library/ext/snw -I$(BP_SRC_DIR)/bibe -I$(BP_SRC_DIR)/imc -DBP_EXTENDED -I$(BP_SRC_DIR)/saga -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library/ext/hcb -I$(BP_SRC_DIR)/library/ext/pnb -I$(BP_SRC_DIR)/library/ext/bpq -I$(srcdir)/bpv7/metadata  -I$(srcdir)/ici/crypto/NULL_SUITES
 endif
 
 if ENABLE_IMC
@@ -1802,6 +1802,8 @@ bpbin = \
 	lgsend \
 	ltpcli \
 	ltpclo \
+	recvfile \
+	sendfile \
 	stcpcli \
 	stcpclo \
 	tcpcli \
@@ -1826,6 +1828,8 @@ endif # end ENABLE_IMC
 bplib = \
 	libbp.la \
 	libcgr.la \
+	libmetadata.la \
+	libsecrypt.la \
 	libstcpcla.la \
 	libudpcla.la
 
@@ -1840,6 +1844,7 @@ bpinclude = \
 	bpv7/bpsec/utils/bpsec_util.h \
 	bpv7/bpsec/utils/bpsec_asb.h \
 	bpv7/bpsec/instr/bpsec_instr.h
+
 
 bpnoinst = \
 	bpv7/brs/brscla.h \
@@ -1918,6 +1923,8 @@ bpextra = \
 	bpv7/doc/pod1/lgsend.pod \
 	bpv7/doc/pod1/ltpcli.pod \
 	bpv7/doc/pod1/ltpclo.pod \
+	bpv7/doc/pod1/recvfile.pod \
+	bpv7/doc/pod1/sendfile.pod \
 	bpv7/doc/pod1/stcpcli.pod \
 	bpv7/doc/pod1/stcpclo.pod \
 	bpv7/doc/pod1/tcpcli.pod \
@@ -1926,6 +1933,8 @@ bpextra = \
 	bpv7/doc/pod1/udpclo.pod \
 	bpv7/doc/pod3/bp.pod \
 	bpv7/doc/pod3/bpextensions.pod \
+	bpv7/doc/pod3/metadata.pod \
+	bpv7/doc/pod3/secrypt.pod \
 	bpv7/doc/pod5/biberc.pod \
 	bpv7/doc/pod5/bprc.pod \
 	bpv7/doc/pod5/bpsecrc.pod \
@@ -1998,6 +2007,8 @@ bpmans = \
 	$(top_builddir)/bpv7/doc/lgsend.1 \
 	$(top_builddir)/bpv7/doc/ltpcli.1 \
 	$(top_builddir)/bpv7/doc/ltpclo.1 \
+	$(top_builddir)/bpv7/doc/recvfile.1 \
+	$(top_builddir)/bpv7/doc/sendfile.1 \
 	$(top_builddir)/bpv7/doc/stcpcli.1 \
 	$(top_builddir)/bpv7/doc/stcpclo.1 \
 	$(top_builddir)/bpv7/doc/tcpcli.1 \
@@ -2189,6 +2200,14 @@ libstcpcla_la_LIBADD = libbp.la libici.la
 libudpcla_la_SOURCES = bpv7/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
+
+libmetadata_la_SOURCES = bpv7/metadata/metadata.c
+libmetadata_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libmetadata_la_LIBADD = libbp.la libici.la
+
+libsecrypt_la_SOURCES = ici/crypto/NULL_SUITES/secrypt.c
+libsecrypt_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+#libsecrypt_la_LIBADD = libbp.la libici.la
 
 # --- Utility Programs --- #
 
@@ -2412,7 +2431,6 @@ bpsendfile_SOURCES = bpv7/utils/bpsendfile.c
 bpsendfile_LDADD = libici.la $(bplib)
 bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-
 bpsendtest_SOURCES = bpv7/utils/bpsendtest.c
 bpsendtest_LDADD = libici.la $(bplib)
 bpsendtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
@@ -2432,6 +2450,14 @@ bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 cgrfetch_SOURCES = bpv7/utils/cgrfetch.c
 cgrfetch_LDADD = libici.la $(bplib)
 cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+recvfile_SOURCES = bpv7/utils/recvfile.c
+recvfile_LDADD = libici.la $(bplib) libsecrypt.la libmetadata.la
+recvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+sendfile_SOURCES = bpv7/utils/sendfile.c
+sendfile_LDADD = libici.la $(bplib) libsecrypt.la libmetadata.la
+sendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
