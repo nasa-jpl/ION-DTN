@@ -77,7 +77,7 @@ char* dtnTimeToDate(uvast time){
 	return buffer;
 }
 
-char* statusToString(int statusFlags){
+char* statusToString(int statusFlags, char* buf, unsigned buflen){
 	char* buffer = malloc(32);
 	strcpy(buffer, "");
 	// note that BP_CUSTODY_RPT is ignored here, as that is not appliccable in bpv7
@@ -89,7 +89,10 @@ char* statusToString(int statusFlags){
 		strcat(buffer, strlen(buffer) != 0 ? ", dlv" : "dlv");
 	if(statusFlags & BP_DELETED_RPT)
 		strcat(buffer, strlen(buffer) != 0 ? ", del" : "del");
-	return buffer;
+
+	strncpy(buf, buffer, buflen);
+	free(buffer);
+	return buf;
 }
 
 void print(statusReport *rpt){
@@ -97,9 +100,11 @@ void print(statusReport *rpt){
 	tmbuffer = dtnTimeToDate(rpt->statusTime);
 	if (rpt->creationCount > 0)
 		printf("%u/%u ", rpt->creationCount, rpt->fragmentOffset);
+	char* buffer = malloc(32);
 	printf("%8s at %s on %s, '%s'.\n", 
-		statusToString(rpt->statusFlags), tmbuffer, rpt->bundleSourceEid,
+		statusToString(rpt->statusFlags, buffer, sizeof(buffer)), tmbuffer, rpt->bundleSourceEid,
 		rpt->reasonString);
+	free(buffer);
 	printDBG(3, "statusTime: " UVAST_FIELDSPEC "<=> %s\n", rpt->statusTime, tmbuffer);
 }
 
