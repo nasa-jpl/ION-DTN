@@ -620,7 +620,10 @@ void bpsec_sci_stateClear(sc_state *state)
     /* Delete the results list and DO destroy its deep-copy results. */
     lyst_destroy(state->scStResults);
 
-    bpsec_scv_clear(0, &(state->scRawKey));
+    if (state->scRawKey.scValLoc != 0)	/*	Must clear copy of key.	*/
+    {
+	bpsec_scv_clear(0, &(state->scRawKey));
+    }
 
     memset(state, 0, sizeof(sc_state));
 }
