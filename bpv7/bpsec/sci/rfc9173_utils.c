@@ -254,6 +254,7 @@ uint8_t *bpsec_rfc9173utl_outExtBlkDataGet(Bundle *bundle, uint8_t blkNbr, int *
 {
     ExtensionBlock blk;
     Sdr    sdr = getIonsdr();
+    Object blkElt;
     Object blkObj = 0;
     uint8_t *result = NULL;
     uint8_t *data = NULL;
@@ -279,13 +280,15 @@ uint8_t *bpsec_rfc9173utl_outExtBlkDataGet(Bundle *bundle, uint8_t blkNbr, int *
      *               object instead of getting Obj and doing
      *               the read?
      */
-    if((blkObj = getExtensionBlock(bundle, blkNbr)) == 0)
+
+    if((blkElt = getExtensionBlock(bundle, blkNbr)) == 0)
     {
     	BPSEC_DEBUG_ERR("Cannot find block number %d.", blkNbr);
     	return NULL;
-	}
-    sdr_read(sdr, (char *) &blk, blkObj, sizeof(ExtensionBlock));
+    }
 
+    blkObj = sdr_list_data(sdr, blkElt);
+    sdr_read(sdr, (char *) &blk, blkObj, sizeof(ExtensionBlock));
 
     /*
      * Step 2: The Extension Block structure holds the SDR location

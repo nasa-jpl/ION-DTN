@@ -1,0 +1,8 @@
+This test imposes the following requirements:
+
+1. You must have Python >= 3.7 installed.
+2. You must build ION using the --enable-bpsec-debugging configure option:
+	autoreconf -fi
+	./configure --enable-bpsec-debugging
+	make
+3. You must set the ION_RUN_EXPERT environment variable to "yes" for your shell.

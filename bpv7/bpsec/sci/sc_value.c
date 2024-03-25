@@ -145,12 +145,13 @@ void bpsec_scv_clear(PsmPartition wm, sc_value *val)
 			break;
 
 		case SC_VAL_STORE_MEM:
-	        MRELEASE(val->scRawValue.asPtr);
-	        val->scRawValue.asPtr = NULL;
-	        break;
+		        MRELEASE(val->scRawValue.asPtr);
+		        val->scRawValue.asPtr = NULL;
+		        break;
 
 		default:
-			BPSEC_DEBUG_ERR("Cannot clear values stores in %d", val->scValLoc);
+			BPSEC_DEBUG_ERR("Cannot clear values stored in %d",
+					val->scValLoc);
 			return;
     }
 
@@ -319,7 +320,7 @@ void *bpsec_scv_rawAlloc(PsmPartition wm, sc_value *val, int length)
   *
   * @param[in] oldVal  The value being copied
   *
-  * This is a deep copy of the vale.
+  * This is a deep copy of the value.
   *
   * @todo
   *  1. Consider using this for all types of function (SM, SDR, and MEM).
@@ -328,15 +329,26 @@ void *bpsec_scv_rawAlloc(PsmPartition wm, sc_value *val, int length)
 
 sc_value* bpsec_scv_memCopy(sc_value *oldVal)
 {
-    sc_value *result = NULL;
+    sc_value	*result = NULL;
+    void	*valuePtr = NULL;
 
     BPSEC_DEBUG_PROC("("ADDR_FIELDSPEC")", (uaddr)oldVal);
 
     CHKNULL(oldVal);
 
-    CHKNULL(oldVal->scValLoc == SC_VAL_STORE_MEM);
-    CHKNULL(oldVal->scRawValue.asPtr != NULL);
+    if (oldVal->scValLoc == SC_VAL_STORE_MEM)
+    {
+	valuePtr = oldVal->scRawValue.asPtr;
+    }
+    else
+    {
+	if (oldVal->scValLoc == SC_VAL_STORE_SM)
+	{
+		valuePtr = psp(getIonwm(), oldVal->scRawValue.asAddr);
+	}
+    }
 
+    CHKNULL(valuePtr);
     if((result = MTAKE(sizeof(sc_value))) == NULL)
     {
         BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", sizeof(sc_value));
@@ -345,17 +357,17 @@ sc_value* bpsec_scv_memCopy(sc_value *oldVal)
 
     result->scValId = oldVal->scValId;
     result->scValLength = oldVal->scValLength;
-    result->scValLoc = oldVal->scValLoc;
+    result->scValLoc = SC_VAL_STORE_MEM;
     result->scValType = oldVal->scValType;
-
     if((result->scRawValue.asPtr = MTAKE(result->scValLength)) == NULL)
     {
-        BPSEC_DEBUG_ERR("Cannot allocate raw ptr of %d bytes.", result->scValLength);
+        BPSEC_DEBUG_ERR("Cannot allocate raw ptr of %d bytes.",
+			result->scValLength);
         MRELEASE(result);
         return NULL;
     }
 
-    memcpy(result->scRawValue.asPtr, oldVal->scRawValue.asPtr, result->scValLength);
+    memcpy(result->scRawValue.asPtr, valuePtr, result->scValLength);
 
     BPSEC_DEBUG_PROC("-->"ADDR_FIELDSPEC, (uaddr)result);
 
