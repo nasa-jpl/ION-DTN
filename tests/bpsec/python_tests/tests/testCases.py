@@ -1090,7 +1090,7 @@ def test11(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibPr
                   "a BIB on the Primary Block. Omit security source rule at ipn:2.1\n"
                   "and expect to see the sop_missing_at_acceptor test event.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1\n\n"
-                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -1153,7 +1153,7 @@ def test12(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
                   "a BCB on the Payload Block. Omit security source rule at ipn:2.1\n"
                   "and expect to see the sop_missing_at_acceptor test event.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1\n\n"
-                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -1575,13 +1575,13 @@ def test20(inputScId=testUtils.BCB_AES_GCM_SCID, inputSourceScParams=testUtils.b
                   "Verifier to use bcb_key_2_32bytes (bcb_key_2_32bytes.hmk). Check that the Security Verifier \n"
                   "acknowledges the BCB misconfiguration.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                  "NOTE: The Security Verifier role for bcb-confidentiality is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: The Security Verifier role for bcb-confidentiality is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
 
         time.sleep(testUtils.TIME_DISPLAYTEXT)
            
         '''
-        This test is not needed for IOS 4.1.2 testing as the Security Verifier role
+        This test is not needed for IOS 4.1.3 testing as the Security Verifier role
         for bcb-confidentiality has not been implemented yet. 
         '''
 
@@ -1991,7 +1991,7 @@ def test24(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
                   "Expect to see a BCB on the Payload Block only, as a BCB targeting\n"
                   "another BCB is prohibited by BPSec.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1\n\n"
-                  "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
 
         time.sleep(testUtils.TIME_DISPLAYTEXT)
@@ -2103,7 +2103,7 @@ inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
                   "the same node requiring a BIB targeting the Payload Block as well.\n"
                   "Add security acceptor rules at ipn:3.1 for both the BIB and BCB.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1\n\n"
-                  "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
 
         time.sleep(testUtils.TIME_DISPLAYTEXT)
@@ -2227,7 +2227,7 @@ inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
                   "encrypted by a BCB. The BIB should NOT be added to the bundle. \n"
                   "Add a security acceptor rule at ipn:4.1 for the BCB.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                  "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -2355,7 +2355,7 @@ def test27(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibSc
                   "Expect to see a BIB on the Payload Block only, as a BIB targeting\n"
                   "another BIB is prohibited by BPSec.\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1\n"
-                  "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -2456,7 +2456,7 @@ inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
                   "Designate a waypoint node as the security source for a BCB whose target\n"
                   "is that BIB.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                  "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -2572,7 +2572,7 @@ inputBcbScParams=testUtils.bcbScParms, inputBibScParams=testUtils.bibScParms):
                   "BIB and BCB. Both of these security blocks share the same target: the Payload Block.\n"
                   "Node 3.1 serves as the security acceptor for both security operations.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1 \n\n"
-                  "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -2694,7 +2694,7 @@ inputScParams=testUtils.bibScParms):
                 "targeting the same Bundle Age Block and Payload Block. ipn:4.1 \n"
                 "serves as the Security Acceptor for all four security operations.\n\n"
                 "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                 "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -2874,7 +2874,7 @@ inputBcbScParams=testUtils.bcbPrimaryScParms, inputBibScParams=testUtils.bibPrim
                   "Node ipn:4.1 is configured to be the Security Acceptor for all three \n"
                   "security operations.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                  "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -3032,7 +3032,7 @@ inputScParams=testUtils.bibScParms):
                 "Age Block and Payload Block. ipn:4.1 serves as the Security \n"
                 "Acceptor for all three security operations.\n\n"
                 "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                "NOTE: This security block interaction is not supported in the IOS 4.1.2 release.\n"
+                "NOTE: This security block interaction is not supported in the IOS 4.1.3 release.\n"
                 "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -3189,7 +3189,7 @@ def test33(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibPr
                   "the Payload and Primary blocks. Node ipn:3.1 serves as the security acceptor for both \n"
                   "security operations.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1\n\n"
-                  "NOTE: Target multiplicity is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: Target multiplicity is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -3300,7 +3300,7 @@ def test34(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
                  "Age Block at Security Source ipn:2.1 and process that BCB at \n"
                  "Security Acceptor ipn:3.1\n\n"
                  "Bundle Path: ipn:2.1 -> ipn:3.1\n\n"
-                 "NOTE: Target multiplicity is not supported in the IOS 4.1.2 release.\n"
+                 "NOTE: Target multiplicity is not supported in the IOS 4.1.3 release.\n"
                  "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -3438,7 +3438,7 @@ def test38(inputScId=testUtils.BIB_HMAC_SHA2_SCID, inputScParams=testUtils.bibPr
                   "BIB on the Primary Block. Omit security source rule at ipn:2.1 and \n"
                   "expect to see the sop_missing_at_verifier test event.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 
@@ -3502,7 +3502,7 @@ def test39(inputScId=testUtils.BCB_AES_GCM_SCID, inputScParams=testUtils.bcbScPa
                   "BCB on the Payload Block. Omit security source rule at ipn:2.1 and \n"
                   "expect to see the sop_missing_at_verifier test event.\n\n"
                   "Bundle Path: ipn:2.1 -> ipn:3.1 -> ipn:4.1\n\n"
-                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.2 release.\n"
+                  "NOTE: Identification of missing security operations is not supported in the IOS 4.1.3 release.\n"
                   "Skipping test case.\n\n")
         time.sleep(testUtils.TIME_DISPLAYTEXT)
 

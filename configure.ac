@@ -331,7 +331,15 @@ AC_ARG_ENABLE(
 		ENABLE_FORCE_SVR4_SEMAPHORES=yes],
     [])
 
-
+#
+# allow the user running configure to enable bpsec debugging 
+#
+AC_ARG_ENABLE(
+    bpsec-debugging,
+    [AC_HELP_STRING([--enable-bpsec-debugging], [Enable bpsec debugging])],
+    [AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_DEBUG_LVL=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_DEBUG_LVL=1 -DBIB_TEST_LOGGING=1"
+     ENABLE_BPSEC_DEBUGGING=yes],
+    [])
 
 #
 # Try to enable DCCP support
