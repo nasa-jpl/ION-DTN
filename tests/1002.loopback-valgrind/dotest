@@ -174,7 +174,7 @@ pids=$(pgrep -f "$pattern")
 
 # Check if any PIDs were found
 if [ -z "$pids" ]; then
-    echo "All Valgrind processes ended..."
+    echo "No Valgrind processes found."
 else
     # If PIDs were found, loop through each PID and kill the process
     for pid in $pids; do
@@ -189,6 +189,7 @@ for V in out.valgrind.*; do
     if [ $(cat $V | wc -l) -gt 0 ]; then
         echo $V
         cat $V
+        #RETVAL=1
         #RETVAL=1
     else
         rm $V
