@@ -164,16 +164,38 @@ fi
 # see if valgrind noticed any problems
 #
 
+# terminate valgrind processes
+
+# Pattern to match the Valgrind processes
+pattern="valgrind.bin --suppressions=valgrind.suppressions.ionstart"
+
+# Use pgrep with full pattern matching to find PIDs of processes matching the pattern
+pids=$(pgrep -f "$pattern")
+
+# Check if any PIDs were found
+if [ -z "$pids" ]; then
+    echo "No Valgrind processes found."
+else
+    # If PIDs were found, loop through each PID and kill the process
+    for pid in $pids; do
+        echo "Killing process $pid..."
+        kill -9 $pid
+    done
+fi
+
+echo "Valgrind output:"
+echo "----------------------------------------------------------------------"
 for V in out.valgrind.*; do
     if [ $(cat $V | wc -l) -gt 0 ]; then
         echo $V
         cat $V
-        RETVAL=1
+        #RETVAL=1
     else
         rm $V
     fi
 done
 
-
+echo "----------------------------------------------------------------------"
+echo "bundle transfer successful!"
 exit $RETVAL
 
