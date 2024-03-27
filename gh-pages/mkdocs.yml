@@ -27,6 +27,9 @@ theme:
       primary: blue
       accent: lime
 
+extra_css:
+  - assets/css/custom.css
+
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
@@ -72,6 +75,7 @@ nav:
     - Extension Block Interface: Extension-Block-Interface.md
     - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
+    - ION Coding Guide: ION-Coding-Guide.md
   - Man Pages:
     - Asychronous Messaging System (AMS): man/ams/index.md
     - Bundle Protocol v6 (BPv6): man/bpv6/index.md
