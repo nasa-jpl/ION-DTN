@@ -11,7 +11,6 @@ This section will focus on a subset of ICI APIs that enables an external applica
 ```
 
 ### MTAKE & MRELEASE
-
 ```c
 #define MTAKE(size)	allocFromIonMemory(__FILE__, __LINE__, size)
 #define MRELEASE(addr)	releaseToIonMemory(__FILE__, __LINE__, addr)
