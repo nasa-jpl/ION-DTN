@@ -54,8 +54,7 @@ else
 fi
 
 # Shut down ION processes.
-echo "Stopping ION..."
-ionadmin .
+echo "Shutting down ION processes..."
 killm
 
 echo "ionadmin duplicate contacts test complete."
