@@ -493,7 +493,7 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 
 static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 			int ttl, char *classOfService, char *trace, char *flagString, int rtt){
-	signal(SIGQUIT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
+	signal(SIGABRT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
 	signal(SIGINT, sighandler);
 	reports = (statusReport **)malloc(sizeof(statusReport)*128); // allow storage of up to 128 reports.
 
@@ -580,7 +580,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		CHKERR(sdr_begin_xn(sdr));
 		
 		recordLen = zco_source_data_length(sdr, dlv.adu);
-		printDBG(2, "data length: %ld\n", recordLen);
+		printDBG(2, "data length: " UVAST_FIELDSPEC "\n", recordLen);
 		zco_start_receiving(dlv.adu, &reader);
 		bytesToParse = zco_receive_source(sdr, &reader, 10,
 				(char *) headerBuf);
