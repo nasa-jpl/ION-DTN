@@ -46,6 +46,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://nasa-jpl.github.io/ION-DTN/ION-Coding-Guide/</loc>
+         <lastmod>2024-03-27</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://nasa-jpl.github.io/ION-DTN/ION-Config-File-Templates/</loc>
          <lastmod>2024-03-27</lastmod>
          <changefreq>daily</changefreq>
