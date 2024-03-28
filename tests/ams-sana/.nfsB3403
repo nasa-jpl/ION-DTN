@@ -1,0 +1,171 @@
+[2024/03/28-04:17:01] [i] rfxclock is running.
+[2024/03/28-04:17:01] [i] No congestion forecast; horizon reached.
+[2024/03/28-04:17:01] [i] ionwarn finished.
+[2024/03/28-04:17:01] [i] Span to engine 9999 (max BER 0.000001, max xmit segment size 1500, max recv segment size 1): xmit segment loss rate 0.012086, recv segment loss rate 0.000008, max timeouts 4.
+[2024/03/28-04:17:01] [i] Span to engine 32767 (max BER 0.000001, max xmit segment size 1500, max recv segment size 1): xmit segment loss rate 0.012086, recv segment loss rate 0.000008, max timeouts 4.
+[2024/03/28-04:17:01] [?] Total max export sessions exceeds estimate.  Session lookup speed may be degraded: -10
+[2024/03/28-04:17:01] [i] This node deploys bundle protocol version 7.
+[2024/03/28-04:17:01] [i] Bundle security is enabled.
+[2024/03/28-04:17:01] [i] No congestion forecast; horizon reached.
+[2024/03/28-04:17:01] [i] ionwarn finished.
+[2024/03/28-04:17:01] [i] ltpdeliv is running.
+[2024/03/28-04:17:01] [i] ltpmeter is running.
+[2024/03/28-04:17:01] [i] ltpclock is running.
+[2024/03/28-04:17:01] [i] ltpmeter is running.
+[2024/03/28-04:17:01] [i] udplso is running, spec=[127.0.0.1:0], rengine=32767.
+[2024/03/28-04:17:01] [i] udplsi is running, spec=[127.0.0.1:9118].
+[2024/03/28-04:17:01] [i] udplso is running, spec=[127.0.0.1:0], rengine=9999.
+[2024/03/28-04:17:01] [i] bpclm is running: ipn:32767.0
+[2024/03/28-04:17:01] [i] bpclm is running: ipn:9999.0
+[2024/03/28-04:17:02] [i] No congestion forecast; horizon reached.
+[2024/03/28-04:17:02] [i] ionwarn finished.
+[2024/03/28-04:17:02] [i] bptransit is running.
+[2024/03/28-04:17:02] [i] bpclock is running.
+[2024/03/28-04:17:02] [i] ipnadminep is running.
+[2024/03/28-04:17:02] [i] Not configured for multicast; cpsd stopping.
+[2024/03/28-04:17:02] [i] ipnfw is running.
+[2024/03/28-04:17:02] [i] ltpcli is running.
+[2024/03/28-04:17:02] [i] ltpclo is running.
+[2024/03/28-04:17:02] [i] ltpclo is running.
+[2024/03/28-04:17:03] [x] src from 1970/01/01-00:00:00 to 2024/03/28-04:17:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2024/03/28-04:17:03] [x] fwd from 1970/01/01-00:00:00 to 2024/03/28-04:17:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2024/03/28-04:17:03] [x] xmt from 1970/01/01-00:00:00 to 2024/03/28-04:17:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2024/03/28-04:17:03] [x] rcv from 1970/01/01-00:00:00 to 2024/03/28-04:17:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2024/03/28-04:17:03] [x] dlv from 1970/01/01-00:00:00 to 2024/03/28-04:17:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2024/03/28-04:17:03] [x] rfw from 1970/01/01-00:00:00 to 2024/03/28-04:17:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2024/03/28-04:17:03] [x] exp from 1970/01/01-00:00:00 to 2024/03/28-04:17:03: (0) 0 0 (1) 0 0 (2) 0 0 (+) 0 0
+[2024/03/28-04:17:04] [i] Starting configuration server.
+[2024/03/28-04:17:04] [i] Starting registration server.
+[2024/03/28-04:17:04] [i] Configuration server is running.
+[2024/03/28-04:17:04] [i] Starting daemon's AAMS module.
+[2024/03/28-04:17:04] [i] Registrar is running.
+[2024/03/28-04:17:04] [?] Registration refused: no cell census
+[2024/03/28-04:17:05] [?] Registration refused: no cell census
+[2024/03/28-04:17:06] [?] Registration refused: no cell census
+[2024/03/28-04:17:07] [?] Registration refused: no cell census
+[2024/03/28-04:17:08] [?] Registration refused: no cell census
+[2024/03/28-04:17:09] [?] Registration refused: no cell census
+[2024/03/28-04:17:10] [?] Registration refused: no cell census
+[2024/03/28-04:17:11] [?] Registration refused: no cell census
+[2024/03/28-04:17:12] [i] Daemon AAMS module is running.
+[2024/03/28-04:17:17] [i] DGR access point has been closed.
+[2024/03/28-04:17:17] [i] DGR access point has been closed.
+[2024/03/28-04:17:17] [i] AMS service terminated.
+[2024/03/28-04:17:21] [i] DGR access point has been closed.
+[2024/03/28-04:17:21] [i] DGR access point has been closed.
+[2024/03/28-04:17:21] [i] AMS service terminated.
+[2024/03/28-04:17:21] [i] Stopping RAMS gateway.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (69)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (57)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (35)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (65)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (36)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (56)
+[2024/03/28-04:17:29] at line 708 of bpv7/library/libbp.c, Can't take endpoint semaphore.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (67)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (64)
+[2024/03/28-04:17:29] at line 100 of ltp/daemon/ltpmeter.c, Can't take bufClosedSemaphore. (9999)
+[2024/03/28-04:17:29] at line 3537 of ltp/library/libltpP.c, LSO can't take segment semaphore. (9999)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (41)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (68)
+[2024/03/28-04:17:29] at line 12050 of bpv7/library/libbpP.c, Admin bundle reception failed.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (42)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (24)
+[2024/03/28-04:17:29] at line 11091 of bpv7/library/libbpP.c, CLO failed taking duct semaphore. (9999)
+[2024/03/28-04:17:29] at line 100 of ltp/daemon/ltpmeter.c, Can't take bufClosedSemaphore. (32767)
+[2024/03/28-04:17:29] at line 3537 of ltp/library/libltpP.c, LSO can't take segment semaphore. (32767)
+[2024/03/28-04:17:29] at line 250 of bpv7/daemon/bpclm.c, bpclm can't take plan semaphore. (ipn:9999.0)
+[2024/03/28-04:17:29] at line 11091 of bpv7/library/libbpP.c, CLO failed taking duct semaphore. (32767)
+[2024/03/28-04:17:29] at line 152 of bpv7/daemon/bptransit.c, Can't take transit semaphore.
+[2024/03/28-04:17:29] at line 490 of bpv7/daemon/bpclm.c, bpclm can't get outbound bundle.
+[2024/03/28-04:17:29] at line 250 of bpv7/daemon/bpclm.c, bpclm can't take plan semaphore. (ipn:32767.0)
+[2024/03/28-04:17:29] at line 120 of bpv7/ltp/ltpclo.c, Can't dequeue bundle.
+[2024/03/28-04:17:29] [i] ltpmeter has ended.
+[2024/03/28-04:17:29] at line 120 of bpv7/ltp/ltpclo.c, Can't dequeue bundle.
+[2024/03/28-04:17:29] at line 327 of ltp/library/libltp.c, LTP client can't take semaphore.
+[2024/03/28-04:17:29] [i] Administrative endpoint terminated.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1333 of bpv7/ipn/ipnfw.c, Can't take forwarder semaphore.
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (69)
+[2024/03/28-04:17:29] [i] ltpmeter has ended.
+[2024/03/28-04:17:29] [i] ltpclo duct has ended.
+[2024/03/28-04:17:29] at line 490 of bpv7/daemon/bpclm.c, bpclm can't get outbound bundle.
+[2024/03/28-04:17:29] [i] ltpclo duct has ended.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 278 of bpv7/ltp/ltpcli.c, Can't get LTP notice.
+[2024/03/28-04:17:29] [i] bpclm has ended: ipn:9999.0
+[2024/03/28-04:17:29] [i] bpclm has ended: ipn:32767.0
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (70)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (70)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] [i] ltpcli receiver thread has ended.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] [i] ipnadminep has ended.
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Identifier removed (20)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] [i] ipnfw forwarder has ended.
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 96 of ltp/daemon/ltpdeliv.c, Can't take delivery semaphore.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (20)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (66)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (66)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (7)
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2024/03/28-04:17:29] at line 2147 of ltp/library/libltpP.c, Assertion failed. (sdr_begin_xn(sdr))
+[2024/03/28-04:17:29] [?] No stack trace available on this platform.
+[2024/03/28-04:17:29] [i] ltpcli duct has ended.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] [i] udplsa receiver thread has ended.
+[2024/03/28-04:17:29] [i] udplso has ended.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] [i] udplsa receiver thread has ended.
+[2024/03/28-04:17:29] [i] udplso has ended.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] [i] bptransit has ended.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] [i] ltpdeliv has ended.
+[2024/03/28-04:17:29] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:29] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:30] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2024/03/28-04:17:30] at line 478 of ici/daemon/rfxclock.c, rfxclock failed to begin new transaction.
+[2024/03/28-04:17:30] [i] rfxclock has ended.
+[2024/03/28-04:17:30] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:30] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:30] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2024/03/28-04:17:30] at line 131 of ltp/daemon/ltpclock.c, Assertion failed. (sdr_begin_xn(sdr))
+[2024/03/28-04:17:30] [?] No stack trace available on this platform.
+[2024/03/28-04:17:30] at line 265 of ltp/daemon/ltpclock.c, Can't manage links.
+[2024/03/28-04:17:30] [i] ltpclock has ended.
+[2024/03/28-04:17:30] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:30] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
+[2024/03/28-04:17:30] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (5)
+[2024/03/28-04:17:30] at line 54 of bpv7/daemon/bpclock.c, Assertion failed. (sdr_begin_xn(sdr))
+[2024/03/28-04:17:30] [?] No stack trace available on this platform.
+[2024/03/28-04:17:30] at line 556 of bpv7/daemon/bpclock.c, Can't dispatch events.
+[2024/03/28-04:17:30] [i] bpclock has ended.
+[2024/03/28-04:17:30] at line 1954 of ici/library/platform_sm.c, Can't take semaphore: Invalid argument (2)
+[2024/03/28-04:17:30] at line 1984 of ici/library/platform_sm.c, Can't give semaphore: Invalid argument (2)
