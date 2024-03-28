@@ -77,7 +77,7 @@ char* dtnTimeToDate(uvast time){
 	return buffer;
 }
 
-char* statusToString(int statusFlags){
+char* statusToString(int statusFlags, char* buf, unsigned buflen){
 	char* buffer = malloc(32);
 	strcpy(buffer, "");
 	// note that BP_CUSTODY_RPT is ignored here, as that is not appliccable in bpv7
@@ -89,7 +89,10 @@ char* statusToString(int statusFlags){
 		strcat(buffer, strlen(buffer) != 0 ? ", dlv" : "dlv");
 	if(statusFlags & BP_DELETED_RPT)
 		strcat(buffer, strlen(buffer) != 0 ? ", del" : "del");
-	return buffer;
+
+	strncpy(buf, buffer, buflen);
+	free(buffer);
+	return buf;
 }
 
 void print(statusReport *rpt){
@@ -97,9 +100,11 @@ void print(statusReport *rpt){
 	tmbuffer = dtnTimeToDate(rpt->statusTime);
 	if (rpt->creationCount > 0)
 		printf("%u/%u ", rpt->creationCount, rpt->fragmentOffset);
+	char* buffer = malloc(32);
 	printf("%8s at %s on %s, '%s'.\n", 
-		statusToString(rpt->statusFlags), tmbuffer, rpt->bundleSourceEid,
+		statusToString(rpt->statusFlags, buffer, sizeof(buffer)), tmbuffer, rpt->bundleSourceEid,
 		rpt->reasonString);
+	free(buffer);
 	printDBG(3, "statusTime: " UVAST_FIELDSPEC "<=> %s\n", rpt->statusTime, tmbuffer);
 }
 
@@ -488,7 +493,7 @@ static int	handleStatusRpt(BpDelivery *dlv, unsigned char *cursor,
 
 static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 			int ttl, char *classOfService, char *trace, char *flagString, int rtt){
-	signal(SIGQUIT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
+	signal(SIGABRT, sighandler); // ensure that quit and interrupt signals still output trace as of that moment.
 	signal(SIGINT, sighandler);
 	reports = (statusReport **)malloc(sizeof(statusReport)*128); // allow storage of up to 128 reports.
 
@@ -575,7 +580,7 @@ static int run_terminal_bptrace(char *ownEid, char *destEid, char *traceEid,
 		CHKERR(sdr_begin_xn(sdr));
 		
 		recordLen = zco_source_data_length(sdr, dlv.adu);
-		printDBG(2, "data length: %ld\n", recordLen);
+		printDBG(2, "data length: " UVAST_FIELDSPEC "\n", recordLen);
 		zco_start_receiving(dlv.adu, &reader);
 		bytesToParse = zco_receive_source(sdr, &reader, 10,
 				(char *) headerBuf);
