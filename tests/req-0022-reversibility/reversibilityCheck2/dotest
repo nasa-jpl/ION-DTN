@@ -81,7 +81,7 @@ sleep 5
 bpcounter ipn:2.1 15  > output1 &
 
 # Pause for debug
-read -n1 -p "Both ION nodes started. Press any key to continue..."
+#read -n1 -p "Both ION nodes started. Press any key to continue..."
 
 #Send Bundles
 cd ../1.ipn.udp/
@@ -93,7 +93,7 @@ sleep 30
 bpstats
 
 # Pause for debug
-read -n1 -p "Bundles sent from node 1 to 2. Press any key to continue..."
+#read -n1 -p "Bundles sent from node 1 to 2. Press any key to continue..."
 
 sleep 4
 echo ""
@@ -109,7 +109,7 @@ else
 fi
 
 # Pause for debug
-read -n1 -p "Used bpcrash to crash node 2. Press any key to continue..."
+#read -n1 -p "Used bpcrash to crash node 2. Press any key to continue..."
 
 sleep 10
 echo ""
@@ -124,7 +124,7 @@ else
 	echo "$text"
 fi
 # Pause for debug
-read -n1 -p "Use bpcrash to crash node 2 again. Press any key to continue..."
+#read -n1 -p "Use bpcrash to crash node 2 again. Press any key to continue..."
 
 sleep 20
 
@@ -177,7 +177,7 @@ if [ "$firstAbort" -gt 1 ];then
 fi
 
 # Pause for debug
-read -n1 -p "Completed first crash test. Press any key to continue..."
+#read -n1 -p "Completed first crash test. Press any key to continue..."
 
 echo "Waiting for all previously transmitted bundles to expire..."
 sleep 5
