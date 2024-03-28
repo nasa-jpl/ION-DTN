@@ -34,4 +34,4 @@ shutdown_process "amsd"
 echo "Shutting down ION..."
 sleep 1
 ./cleanup
-./kill_udplis
+./kill_udplsi
