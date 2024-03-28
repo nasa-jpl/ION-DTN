@@ -4216,7 +4216,8 @@ static int	_sm_GetUniqueKey_internal(
 #endif
 
 	for (int retries=0; ; ++retries) {
-		/*	In the expected case, only one iteration is required.  In the worst case, you retry for a number of iterations
+		/*	In the expected case, only one iteration is required.
+			In the worst case, you retry for a number of iterations
 			whose max is the sum of the number of shared memory segments and total semaphores. 
 			In the fatal case, some new ION function does something really wrong
 			and we'll check just so there's a record in the log that we're looping 'a lot' */
@@ -4263,6 +4264,8 @@ int	sm_GetUniqueKey()
 #else
 
 /* ---- Unique IPC key system for other "process" architectures ------ */
+/* as of Mar 2024, this code is only known to be used on Windows systems using the
+  mingw shim layer */
 
 int	sm_GetUniqueKey()
 {
@@ -4280,16 +4283,10 @@ int	sm_GetUniqueKey()
 
 	ipcUniqueKey = (ipcUniqueKey + 1) & 0x0000ffff;
 #ifdef mingw
-	result = (_getpid() << 16) + ipcUniqueKey;
+	result = ((_getpid() & 0x00007fff) << 16) + ipcUniqueKey;
 #else
-	result = (getpid() << 16) + ipcUniqueKey;
+	result = (( getpid() & 0x00007fff) << 16) + ipcUniqueKey;
 #endif
-	/* keep it to 31 bits and not zero during wrap around */
-	if ((result > UNIQUE_KEY_PROCESSES_MAX) || (result == 0)) { /* zero test is redundant given code logic, but clearer */
-		result = ipcUniqueKey = UNIQUE_KEY_PROCESSES_INITIAL;
-	} 
-#error NOT DONE
-
 	return result;
 }
 #endif /* end of LINUX/MACOS/SOLARIS test */
