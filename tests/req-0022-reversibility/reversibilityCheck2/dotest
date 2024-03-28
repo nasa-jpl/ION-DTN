@@ -80,53 +80,73 @@ cd ../2.ipn.udp/
 sleep 5
 bpcounter ipn:2.1 15  > output1 &
 
+# Pause for debug
+read -n1 -p "Both ION nodes started. Press any key to continue..."
+
 #Send Bundles
 cd ../1.ipn.udp/
 echo ""
 echo "Start sending bundles..."
-bpdriver 100 ipn:1.1 ipn:2.1 -1000 t30 >& output1
+bpdriver 10000 ipn:1.1 ipn:2.1 -1000 t30 >& output1
 cd ../2.ipn.udp/
+sleep 30
+bpstats
 
-
+# Pause for debug
+read -n1 -p "Bundles sent from node 1 to 2. Press any key to continue..."
 
 sleep 4
 echo ""
-echo "Now crashing ION..."
+echo "Now crashing node 2 with bpcrash..."
 bpcrash
+sleep 5
+echo "SDR transaction & ionrestart activities reported:"
+text=$(grep "ionrestart\|Transaction\|transaction" ion.log)
+if [ -z "$text" ];then
+	echo "No activities reported."
+else
+	echo "$text"
+fi
+
+# Pause for debug
+read -n1 -p "Used bpcrash to crash node 2. Press any key to continue..."
+
 sleep 10
 echo ""
 echo "Crashing ION again after restart..."
 bpcrash
-
-
+sleep 5
+echo "SDR transaction & ionrestart activities reported:"
+text=$(grep "ionrestart\|Transaction\|transaction" ion.log)
+if [ -z "$text" ];then
+	echo "No activities reported."
+else
+	echo "$text"
+fi
+# Pause for debug
+read -n1 -p "Use bpcrash to crash node 2 again. Press any key to continue..."
 
 sleep 20
 
 #Count aborted SDR transactions
-firstAbort=`grep "finished restarting ION" ion.log | wc -l`
+firstAbort=$(grep "Transaction aborted" ion.log | wc -l)
 echo ""
-if [[ $firstAbor != 0 ]];then
-	echo "No restarting occurred."
-else
-	echo -n $firstAbort
-	echo " transactions at receiver canceled, caused transaction reversal, ION restarted."
-fi
-
-if ! [ $firstAbort -ge 1 ];then
-	echo "Didn't cause transaction crash!"
+if [[ $firstAbort == 0 ]];then
+	echo "No transaction abort occurred. Test cannot proceed."
 	echo ""
 	RETVAL=2
 	cd ..
 	end
 else
-	echo "Transaction crashes occurred."
+	echo -n $firstAbort
+	echo " transaction(s) aborted in first crash test."
 fi
 
-#Transaction reversibility should recover without an unrecoverable SDR error
-text=`grep "Unrecoverable SDR error" ion.log`
-echo $text
+# Transaction should recover without an unrecoverable SDR error
+text=$(grep "Unrecoverable SDR error" ion.log)
+echo "$text"
 if ! [ -z "$text" ];then
-	echo "ERROR: Unrecoverable SDR Error! Transaction reversibility Failed!"
+	echo "ERROR: Unrecoverable SDR Error! Transaction abort failed to recover!"
 	echo ""
 	RETVAL=1
 	cd ..
@@ -134,9 +154,14 @@ if ! [ -z "$text" ];then
 	end
 fi
 
-if [ $firstAbort -gt 1 ];then
+echo ""
+echo "ION recovered from first crash test."
+echo ""
+
+if [ "$firstAbort" -gt 1 ];then
 #Failed twice, so no daemons are running.  Run bpcounter to clear the
 #delivery queue.
+	echo "Flush out the delivery queue in node 2..."
 	echo "Delivering queued data to bpcounter..."
 	bpcounter ipn:2.1 > output2 &
 	BPCOUNTER_PID=$!
@@ -150,6 +175,9 @@ if [ $firstAbort -gt 1 ];then
 	ionadmin restart.ionrc
 	bpadmin restart.bprc
 fi
+
+# Pause for debug
+read -n1 -p "Completed first crash test. Press any key to continue..."
 
 echo "Waiting for all previously transmitted bundles to expire..."
 sleep 5
@@ -168,7 +196,7 @@ bpdriver 10 ipn:1.1 ipn:2.1 -100 t30 >& output2
 #Check if we caused a transaction to abort or an unrecoverable SDR error
 sleep 2
 cd ../2.ipn.udp/
-secondAbort=`grep "finished restarting ION" ion.log | wc -l`
+secondAbort=$(grep "finished restarting ION" ion.log | wc -l)
 echo ""
 if [ $secondAbort -gt $firstAbort ];then
 	echo "Error: Transaction aborted! Transaction reversibility didn't reset something correctly!"

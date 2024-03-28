@@ -803,21 +803,13 @@ static void	terminateXn(Sdr sdrv)
 	if (!(sdrv->modified))
 	{
 		/* no modifications made, no need to reverse */
-		
+		putErrmsg("Transaction reversal not necessary, clear transaction...", NULL);
 		clearTransaction(sdrv);
 		unlockSdr(sdr);
 		return;
 	}
 
-	/*  Check if need to reverse modification.		 */
-	if (!(sdrv->modified))
-	{
-		/* no modifications made, no need to reverse */
-		
-		clearTransaction(sdrv);
-		unlockSdr(sdr);
-		return;
-	}
+	putErrmsg("Attempting transaction reversal...", NULL);
 
 	/*	Transaction must be reversed as necessary.		*/
 
@@ -885,7 +877,7 @@ void	crashXn(Sdr sdrv)
 				sdrv->currentSourceFileLine);
 #endif
 		putErrmsg("Transaction aborted.", NULL);
-		sdr->xnCanceled = 1;	/*	Force reversal.		*/
+		sdr->xnCanceled = 1; /*	 Force reversal, if applicable. */
 		sdr->xnDepth = 0;	/*	Unlock is immediate.	*/
 		terminateXn(sdrv);
 	}
