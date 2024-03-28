@@ -14,10 +14,9 @@ function stop_and_exit() {
 
     echo "Stopping ION..."
     cd ../node2
-    ./ionstop &
+    ./ionstop
     cd ../node3
-    ./ionstop &
-    sleep 8
+    ./ionstop
     killm
 
 	# Success-----------------------
@@ -106,9 +105,10 @@ echo -e "Subscribing to 'bench' messages. \n"
 sleep 2
 
 # Subscribe to and count $COUNT messages-----------------------------
-amsbenchr $COUNT > bench.log &
+amsbenchr  > bench.log &
+#amsbenchr $COUNT > bench.log 2> amsbenchr_errors.log &
 BENCHR_PID=$!
-sleep 1
+sleep 3
 
 # Process check for amsbenchr based on OS
 if [[  $1 == "windows" ]]
@@ -135,6 +135,7 @@ echo -e "Publishing $COUNT messages of $MESSAGE_SIZE bytes each. \n"
 
 # Publish $COUNT messages of length 1024 bytes-----------------------
 amsbenchs $COUNT $MESSAGE_SIZE > /dev/null &
+
 BENCHS_PID=$!
 sleep 1
 
@@ -181,6 +182,7 @@ do
         fi
         sleep 2
     fi
+
 
     # Infinite loop protection: If 2 minutes have passed, stop the process
     if [[ $TIMER -ge 120 ]]

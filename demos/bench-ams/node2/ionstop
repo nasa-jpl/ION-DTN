@@ -1,26 +1,31 @@
-# shell script to shut down ION
 #!/bin/bash
+# shell script to shut down ION processes
 
-echo "Stopping RAMS..."
+shutdown_process() {
+    local process_name=$1
+    echo "Stopping $process_name..."
+    local pids=$(ps | awk '/'"$process_name"'/ {print $1}')
+    for pid in $pids; do
+        if [[ -n $pid ]]; then
+            kill $pid
+            # Wait for the process to exit with a timeout
+            local count=0
+            local timeout=30 # 30 seconds timeout
+            while kill -0 $pid 2>/dev/null; do
+                sleep 1
+                ((count++))
+                if ((count >= timeout)); then
+                    echo "Timeout reached, forcefully killing $process_name..."
+                    kill -9 $pid
+                    break
+                fi
+            done
+        fi
+    done
+}
 
-PID=$(ps | egrep ramsgate | awk '{ print $1 }')
+shutdown_process "ramsgate"
+shutdown_process "amsd"
 
-# If the PID variable is not empty, then we have a process to kill
-if [[ -n $PID ]]; then
-    kill $PID
-fi
-sleep 2
-
-echo "Stopping AMS..."
-PID=$(ps | egrep amsd | awk '{ print $1 }')
-
-# If the PID variable is not empty, then we have a process to kill
-if [[ -n $PID ]]; then
-    kill $PID
-fi
-sleep 2
-
-echo "Stopping DTN..."
-bpadmin  .
-sleep 1
-ionadmin .
+shutdown_process "amsbenchs"
+shutdown_process "amsbenchr"
