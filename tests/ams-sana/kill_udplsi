@@ -2,7 +2,6 @@
 
 
 #Note: I am seeing rogue udplsi process on port 9118 after test (on Solaris). 
-#This should do the trick..
 #pgrep -fl 'udplsi localhost:9118' | xargs kill -9
 
 
