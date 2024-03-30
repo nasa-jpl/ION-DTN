@@ -155,7 +155,7 @@ else
 fi
 
 #Stopping CFDP
-cfdpadmin .
-sleep 1
+#cfdpadmin .
+#sleep 1
 
 end
