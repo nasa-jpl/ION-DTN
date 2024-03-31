@@ -1,4 +1,3 @@
-# shell script to shut down ION
 #!/bin/bash
 
 echo "Stopping ION-DTN..."

@@ -1,4 +1,3 @@
-# shell script to stop node
 #!/bin/bash
 tccadmin 203	.
 sleep 1

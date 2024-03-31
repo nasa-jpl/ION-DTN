@@ -1,4 +1,3 @@
-# shell script take node down
 #!/bin/bash
 cfdpadmin	.
 sleep 1
