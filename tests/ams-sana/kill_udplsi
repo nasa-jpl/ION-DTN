@@ -1,0 +1,29 @@
+#!/bin/bash
+
+
+#Note: I am seeing rogue udplsi process on port 9118 after test (on Solaris). 
+#pgrep -fl 'udplsi localhost:9118' | xargs kill -9
+
+
+
+# Define the pattern to search for
+PATTERN='udplsi localhost:9118'
+
+# Search for processes matching the pattern
+PIDS=$(pgrep -f "$PATTERN")
+
+# Check if any PIDs were found
+if [ -z "$PIDS" ]; then
+    echo "No processes found matching pattern '$PATTERN'."
+else
+    # Processes found, attempt to kill them
+    echo "Killing processes with PIDs: $PIDS"
+    echo $PIDS | xargs kill -9
+
+    # Optional: Check if the kill command was successful
+    if [ $? -eq 0 ]; then
+        echo "Processes successfully terminated."
+    else
+        echo "Failed to terminate some or all processes."
+    fi
+fi

@@ -21,6 +21,7 @@ IPND = ../ipnd
 ICI = ../../ici
 SAGA = ../saga
 BPSEC = ../bpsec
+METADATA = ../metadata
 
 OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC
 # -Werror
@@ -77,13 +78,13 @@ BPPOBJS = libbpP.o eureka.o bei.o bibe.o imc.o saga.o snw.o pnb.o hcb.o bpq.o me
 IPNDOBJS = ipnd.o beacon.o helper.o bpa.o
 LBP = -lbp -limcfw -lipnfw -ldtn2fw -lcgr
 
-RUNTIMES = bibeadmin bibeclo bpadmin bpsecadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch cpsd dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadminep imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo stcpcli stcpclo tcpcli tcpclo udpcli udpclo
+RUNTIMES = bibeadmin bibeclo bpadmin bpsecadmin bpcancel bpchat bpclm bpclock bpcounter bpcrash bpdriver bpecho bping bplist bpnmtest bprecvfile bpsendfile bpsink bpsource bpstats bptrace bptransit bpversion brsccla brsscla bsspcli bsspclo cgrfetch cpsd dgrcli dgrclo dtn2admin dtn2adminep dtn2fw hmackeys imcadminep imcfw ipnadmin ipnadminep ipnd ipnfw lgagent lgsend ltpcli ltpclo recvfile sendfile stcpcli stcpclo tcpcli tcpclo udpcli udpclo
 # bpstats2 - needs SIGUSR1 which is not implemented in mingw
 # bpchat - executable will build but the standard test relies on mkfifo which is not implemented for mingw
 # dccpcli dccpclo - need dccplsi and dccplso that cannot be built in ltp
 
 
-ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libstcpcla.dll libudpcla.dll $(RUNTIMES)
+ALL = check $(BPLIBS) libcgr.dll libipnfw.dll libimcfw.dll libdtn2fw.dll libstcpcla.dll libudpcla.dll libmetadata.dll $(RUNTIMES)
 
 all:		$(ALL)
 
@@ -360,6 +361,13 @@ cgrfetch:	cgrfetch.o $(BPLIBS)
 		$(CC) -o cgrfetch cgrfetch.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp cgrfetch ./bin
 
+sendfile:	sendfile.o libbp.dll $(BPLIBS)
+		$(CC) -o sendfile sendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
+		cp sendfile ./bin
+
+recvfile:	recvfile.o libbp.dll $(BPLIBS)
+		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
+		cp recvfile ./bin
 #	-	-	Libraries	-	-	-	-	-
 
 libbp.dll:	libbp.o $(BPPOBJS) libbpnm.o libimcfw.o libipnfw.o libdtn2fw.o
@@ -389,6 +397,10 @@ libstcpcla.dll:	libstcpcla.o
 libudpcla.dll:	libudpcla.o
 		$(LD) -o libudpcla.dll libudpcla.o -Wl,--output-def,libudpcla.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
 		cp libudpcla.dll ./lib
+
+libmetadata.dll:	libmetadata.o
+		$(LD) -o libmetadata.dll libmetadata.o -Wl,--output-def,libmetadata.def -L./lib -L$(ROOT)/lib -lws2_32
+		cp libmetadata.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
@@ -484,3 +496,6 @@ libudpcla.dll:	libudpcla.o
 
 %.o:		$(IPND)/%.c
 		$(CC) -I$(IPND) -c $<
+
+%.o:		$(METADATA)/%.c
+		$(CC) -I$(METADATA) -c $<

@@ -4,8 +4,8 @@ a endpoint ipn:3.0 x
 a endpoint ipn:3.1 x
 a endpoint ipn:3.2 x
 a endpoint ipn:3.9 q
-a protocol stcp 1400 100 100000
-a induct stcp 127.0.0.1:5101 stcpcli
-a outduct stcp 127.0.0.1:5001 stcpclo
+a protocol tcp 1400 100 100000
+a induct tcp 127.0.0.1:5101 tcpcli
+a outduct tcp 127.0.0.1:5001 ''
 r 'ipnadmin amroc.ipnrc'
 s

@@ -23,8 +23,6 @@
 *subject nbr=88 name=amsstop desc='shutdown cmd'
 *subject nbr=89 name=amsmib desc='reconfig cmd'
 *unit nbr=1 name=orbiters
-*unit nbr=2 name=orbiters.near
-*unit nbr=3 name=orbiters.far
 *msgspace nbr=32767
 -venture
 -ams_mib_add

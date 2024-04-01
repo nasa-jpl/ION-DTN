@@ -1,4 +1,3 @@
-# shell script to populate RTEMS build directory with sym links to source files.
 #!/bin/bash
 ION_OPEN_SOURCE=1
 CRYPTO=crypto/NULL_SUITES

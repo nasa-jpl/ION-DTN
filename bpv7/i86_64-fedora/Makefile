@@ -28,6 +28,7 @@ BIBE = ../bibe
 IPND = ../ipnd
 SAGA = ../saga
 BPSEC = ../bpsec
+METADATA = ../metadata
 UNIBO_CGR = 0
 # UNIBO_CGR = 1
 
@@ -71,7 +72,8 @@ BPLIBS = \
 	libbp.so \
 	libcgr.so \
 	libstcpcla.so \
-	libudpcla.so
+	libudpcla.so \
+	libmetadata.so
 
 BPPOBJS = libbpP.o libipnfw.o libimcfw.o libdtn2fw.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o snw.o imc.o bpsec_util.o bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o bpsec_asb.o
 
@@ -82,7 +84,7 @@ CGROBJS = libcgr.o
 
 LBP = -lbp
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion bpcrash cpsd
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion bpcrash cpsd sendfile recvfile
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) $(RUNTIMES)
@@ -372,6 +374,13 @@ bpnmtest:	bpnmtest.o libbp.so $(BPLIBS)
 		$(CC) -o bpnmtest bpnmtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpnmtest ./bin
 
+sendfile:	sendfile.o libbp.so $(BPLIBS)
+		$(CC) -o sendfile sendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp sendfile ./bin
+
+recvfile:	recvfile.o libbp.so $(BPLIBS)
+		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp recvfile ./bin
 #	-	-	Libraries	-	-	-	-	-
 
 libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
@@ -389,6 +398,10 @@ libstcpcla.so:	libstcpcla.o
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o
 		cp libudpcla.so ./lib
+
+libmetadata.so:	libmetadata.o
+		$(LD) -o libmetadata.so libmetadata.o
+		cp libmetadata.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
@@ -534,3 +547,6 @@ endif
 
 %.o:		$(SAGA)/%.c
 		$(CC) -I$(SAGA) -c $<
+
+%.o:		$(METADATA)/%.c
+		$(CC) -I$(METADATA) -c $<
