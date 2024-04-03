@@ -122,14 +122,25 @@ else
 	else
 		echo "$text"
 	fi
-	echo "Transaction cancellation recovered properly!"
+	echo "First round of ionrestart completed after transaction reversal."
 fi
 
 echo ""
 echo "Wait for currently queued bundles to expire..."
 sleep 40
 
-# Pause for debug
+# print bpstats to verify bundle expiration
+bpstats
+echo "Print bpstats to verity expiration, check the ion.log..."
+#read -n1 -p "All bundles should expire now. If not, will catch on second round. Press any key to continue..."
+
+# On some platforms, need to force one round of ionretart so TCPCL can restart properly
+echo "Wait another 5 seconds for second ionrestart cycle. No transaction reversal, just restart daemons and reload volatiles."
+sleep 20
+ionrestart
+sleep 10
+echo "Print 2nd bpstats report to verity expiration. Check the ion.log..."
+bpstats
 #read -n1 -p "All bundles should expire now. Press any key to continue..."
 
 #Try to send more bundles to ensure that transaction reversibility healed the system properly
