@@ -16,10 +16,7 @@
 #	of maximum round-trip times (in seconds) for all "spans."
 #	Suggest throwing 20% higher number of sessions to account for extra-
 #	long sessions which contain an actual retransmission.
-#	Set a total LTP memory space usage limit as the sum of the memory
-#	space usage of all spans (more or less the number of bytes in transit
-#	on all links for their duration).
-1 2 5000000
+1 2
 
 # Add a span. (a connection) 
 #	Identify the span as engine number 1.  That is the ipn node number

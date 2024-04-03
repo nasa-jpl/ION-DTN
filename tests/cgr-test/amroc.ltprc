@@ -1,4 +1,4 @@
-1 9 45000
+1 9
 # a span 2 2 1000000 2 1000000 1200 1000000 1 'udplso localhost:1113'
 a span 9 2 2000 2 2000 1084 60 1 'udplso localhost:1113'
 a span 5 2 2000 2 2000 1084 60 1 'udplso localhost:1513'
