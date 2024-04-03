@@ -9561,7 +9561,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->receiptTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9570,7 +9570,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9578,7 +9578,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	Forwarded.						*/
@@ -9590,7 +9590,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->forwardTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9599,7 +9599,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9607,7 +9607,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	Delivered.						*/
@@ -9619,7 +9619,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->deliveryTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9628,7 +9628,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9636,7 +9636,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	Deleted.						*/
@@ -9648,7 +9648,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->deletionTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9657,7 +9657,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9665,7 +9665,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	The second item is the reason code.			*/
@@ -9857,10 +9857,16 @@ int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 
 		/*	Decode status switch.				*/
 
-		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+		if (cbor_decode_boolean(&uvtemp, &cursor,
 					&unparsedBytes) < 1)
 		{
+			/* Give specific error message in the case that the decoded value
+			for the status assertion switch is not a CBOR boolean. Suggest that
+			the sender of these status reports may be out of date. */
+
 			writeMemo("[?] Can't decode status assertion switch.");
+			writeMemo("[?] The sender might be using a pre 4.1.3 version of ION, status assertion indicator encoding format updated in ION 4.1.3, with patch available for 4.1.2, to be compliant with CBOR boolean constants detailed in RFC8949 Appendix B.");
+
 			return 0;
 		}
 
