@@ -293,6 +293,9 @@ int writeBufferToFile(unsigned char* buffer, size_t bufferSize, const char* file
  * @warning Ensure the system's `htonl` function behaves as expected, especially
  *          in environments or compilers where its implementation might vary.
  */
+/* macos/darwin includes htonll, but as a nested macro, so we turn that off
+   and use the ION version for compatibility */
+#undef htonll
 uint64_t htonll(uint64_t val);
 
 
@@ -317,6 +320,9 @@ uint64_t htonll(uint64_t val);
  * @warning Relies on correct implementation of `htonll`. Incorrect behavior in
  *          `htonll` affects `ntohll`.
  */
+ /* macos/darwin includes ntohll, but as a nested macro, so we turn that off
+   and use the ION version for compatibility */
+#undef ntohll
 uint64_t ntohll(uint64_t val);
 
 
