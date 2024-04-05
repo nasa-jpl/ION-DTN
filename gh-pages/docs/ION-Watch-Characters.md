@@ -53,7 +53,12 @@ static void ionRedirectWatchCharacters()
 2. Then use the following compiler flag to build ION:
 
 ```bash
-./configure CFLAGS="-DGDSWATCHER -I/<path to the folder holding the gdswatcher.c file>"
+./configure --enable-ewchar CFLAGS="-DGDSWATCHER -I/<path to the folder holding the gdswatcher.c file>"
+```
+
+3. You can also include the GDSLOGGER program, then
+```bash
+./configure --enable-ewchar CFLAGS="-DGDSWATCHER -DGDSLOGGER -I/<path to the folder holding the gdswatcher.c file>"
 ```
 
 ## Bundle Protocol Watch Character
