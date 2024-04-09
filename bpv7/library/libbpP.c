@@ -6943,8 +6943,8 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 #if defined (EWCHAR)
 				char ewchar[256];
 				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
-		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
+		    		bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
 				iwatch_str(ewchar);
 #else
 				iwatch('z');
