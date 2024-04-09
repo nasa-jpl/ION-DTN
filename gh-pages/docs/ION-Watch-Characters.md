@@ -75,9 +75,9 @@ static void ionRedirectWatchCharacters()
 
 `x` - custody of bundle is refused
 
-`y` - bundle is accepted upon arrival; `(nnn,sss,ccc)y`
+`y` - bundle is accepted upon arrival; `(nnn,sss,tttt,ccc)y`
 
-`z` - bundle is queued for delivery to an application; `(nnn,sss,ccc)z`
+`z` - bundle is queued for delivery to an application; `(nnn,sss,tttt,ccc)z`
 
 `~` - bundle is abandoned (discarded) on attempt to forward it; `(nnn,sss,ccc)`~
 
