@@ -50,7 +50,7 @@ RETVAL=0
 cd ../1.ipn.ltp
 
 COUNT=`ls -al receivedFile | wc -l`
-if [ "$COUNT" -ne 1 ]
+if [[  "$COUNT" -ne 1  ]]
 then
 	echo ""
 	echo "Error: node 1 did not receive file from node 2."
@@ -63,7 +63,7 @@ fi
 cd ../2.ipn.ltp
 
 COUNT=`ls -al receivedFile | wc -l`
-if [ "$COUNT" -ne 1 ]
+if [[  "$COUNT" -ne 1  ]]
 then
 	echo ""
 	echo "Error: node 2 did not receive file from node 1."
