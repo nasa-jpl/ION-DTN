@@ -80,7 +80,7 @@ echo "Checking for additional memory required for this demo..."
 ./check_memory 
 
 # If check_memory returns non-zero, resources are insufficient
-if [ $? != 0 ]; then
+if [[  $? != 0  ]]; then
     echo -e "Can't run, need additional system resources!\n"
     exit 1
 fi
@@ -121,7 +121,7 @@ else
 fi
 
 # If amsbenchr process check fails, terminate the script
-if [ $RETURN_VALUE -eq 0 ]
+if [[  $RETURN_VALUE -eq 0  ]]
 then
     echo -e "Error: amsbenchr could not be started!"
 	RETVAL=1
