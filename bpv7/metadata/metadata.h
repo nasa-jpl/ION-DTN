@@ -58,20 +58,21 @@
 #ifndef METADATA_H
 #define METADATA_H
 
-#define TIMEOUT_SECONDS 5 //safeguard against infinit loop in generateNewFilename
+#define TIMEOUT_SECONDS 5 //safeguard against infinite loop in generateNewFilename
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>  //htonl, ntohl
 #include <sys/stat.h>
 #include <ctype.h>
 #include <time.h>
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>  //htonl, ntohl
 #endif
 
 

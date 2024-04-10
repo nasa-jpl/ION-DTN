@@ -25,7 +25,7 @@ METADATA = ../metadata
 
 OPT = -g -Wall -Dmingw -DENABLE_IMC -DBPSEC
 # -Werror
-CC = gcc $(OPT) -I$(ICI)/incude -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(API)/ext/imc -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) -I$(ICI)/include -I$(ICI)/crypto/NULL_SUITES -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(IPN) -I$(IMC) -I$(DTN2) -I$(SAGA) -I$(BIBE) -I$(API) -I$(API)/ext -I$(API)/ext/bpq -I$(API)/ext/snw -I$(API)/ext/hcb -I$(API)/ext/pnb -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/bpsec -I$(API)/ext/imc -I$(STCP) -I$(UDP) -I$(INCL) -I $(DGR_MAIN)/include -I$(ROOT)/include -I$(METADATA) -DBP_EXTENDED
 
 
 LDFLAGS = -fPIC -shared
@@ -398,8 +398,8 @@ libudpcla.dll:	libudpcla.o
 		$(LD) -o libudpcla.dll libudpcla.o -Wl,--output-def,libudpcla.def -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lws2_32 -lm
 		cp libudpcla.dll ./lib
 
-libmetadata.dll:	libmetadata.o
-		$(LD) -o libmetadata.dll libmetadata.o -Wl,--output-def,libmetadata.def -L./lib -L$(ROOT)/lib -lws2_32
+libmetadata.dll:	metadata.o
+		$(LD) -o libmetadata.dll metadata.o -Wl,--output-def,libmetadata.def -L./lib -L$(ROOT)/lib -lws2_32
 		cp libmetadata.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
