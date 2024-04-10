@@ -71,7 +71,7 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
 	loopback TCP/IP; the results are therefore unaffected by network
 	traffic, router performance, or network interface card performance."
 
-if [ -n "$DEBUG" ]; then
+if [[  -n "$DEBUG"  ]]; then
 	echo
 	echo "CONFIG: 2 node custom:"
 	echo
@@ -96,7 +96,7 @@ rm -f ./ion_nodes
 RETVAL=0
 
 ITERNUM=0
-while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
+while [[  "${ITERNUM}" -lt ${ITERATIONS}  ]]; do
 	let "++ITERNUM"
 	echo "#########################################################################"
 	echo "##   Starting Iteration ${ITERNUM}"
@@ -118,10 +118,10 @@ while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
 	for BUNDLESIZE in ${BUNDLESIZES}; do
 		let "++TESTNUM"
 		let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
-		if [ $NUMBUNDLES -lt 1 ]; then
+		if [[  $NUMBUNDLES -lt 1  ]]; then
 			NUMBUNDLES=1
 			echo "Adjusting to $NUMBUNDLES of size $BUNDLESIZE"
-		elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
+		elif [[  $NUMBUNDLES -gt $MAXBUNDLES  ]]; then
 			echo "Truncating to $MAXBUNDLES of size $BUNDLESIZE (instead of $NUMBUNDLES)"
 			NUMBUNDLES=$MAXBUNDLES
 		fi
@@ -149,24 +149,24 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 	echo "Waiting for transmission to finish..."
 	RUNNING=1
 	TIMER=0
-	while [ $RUNNING -eq 1 ]
+	while [[  $RUNNING -eq 1  ]]
 	do
 		TIMER=$((++TIMER))
 		sleep 1
 		echo "...receiving..."
 		# some ps don't like -p syntax, most do.
-		if [ "$1" == "windows" ]
+		if [[  "$1" == "windows"  ]]
 		then
 			ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 		else
 			ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 		fi
-		if [ "$RETURN_VALUE" -eq 0 ]
+		if [[  "$RETURN_VALUE" -eq 0  ]]
 		then
 			echo "...transmission finished."
 			RUNNING=0
 		fi
-		if [ $TIMER -gt 300 ]
+		if [[  $TIMER -gt 300  ]]
 		then
 			#infinite loop protection
 			echo "...5 minutes passed; giving up."
@@ -175,7 +175,7 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 		fi
 	done
 
-	if [ "$RETVAL" -eq 1 ]
+	if [[  "$RETVAL" -eq 1  ]]
 	then
 		echo "Test did not complete."
 		echo "Killing bpcounter..."
@@ -199,7 +199,7 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 	# loop to next iteration
 	done
 
-if [ "$RETVAL" -eq 1 ]
+if [[  "$RETVAL" -eq 1  ]]
 then
 	echo "Test did not complete correctly."
 fi
