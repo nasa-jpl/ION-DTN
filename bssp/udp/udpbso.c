@@ -282,8 +282,7 @@ compatibility, but it is ignored.");
 
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
+		ipAddress = getAddressOfHost();
 	}
 
 	portNbr = htons(portNbr);

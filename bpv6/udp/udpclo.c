@@ -102,8 +102,7 @@ node's host name> | @} [:<its port number>]");
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		hostNbr = getInternetAddress(ownHostName);
+		hostNbr = getAddressOfHost();
 	}
 
 	hostNbr = htonl(hostNbr);

@@ -110,8 +110,7 @@ int	main(int argc, char *argv[])
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		hostNbr = getInternetAddress(ownHostName);
+		hostNbr = getAddressOfHost();
 	}
 
 	hostNbr = htonl(hostNbr);
