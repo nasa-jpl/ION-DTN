@@ -53,7 +53,6 @@ int	main(int argc, char *argv[])
 #endif
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
-	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
 	unsigned char		*buffer;
