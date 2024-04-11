@@ -5,7 +5,7 @@
 # June 2023
 
 # Benchtest variables-------------------------------------------------
-COUNT=10
+COUNT=100
 MESSAGE_SIZE=1024
 
 # Shut down routine---------------------------------------------------
@@ -20,7 +20,7 @@ function stop_and_exit() {
     killm
 
 	# Success-----------------------
-    if [[ $retval -eq 0 ]]
+    if [ "$retval" -eq 0 ]
     then
 		echo -e "All ION processes stopped."
         echo -e "AMS benchtest successfully completed."
@@ -80,7 +80,7 @@ echo "Checking for additional memory required for this demo..."
 ./check_memory 
 
 # If check_memory returns non-zero, resources are insufficient
-if [[  $? != 0  ]]; then
+if [ "$?" != 0 ]; then
     echo -e "Can't run, need additional system resources!\n"
     exit 1
 fi
@@ -111,7 +111,7 @@ BENCHR_PID=$!
 sleep 3
 
 # Process check for amsbenchr based on OS
-if [[  $1 == "windows" ]]
+if [  "$1" == "windows" ]
 then
     # Windows ps does not support -p option, use grep instead
     ps | grep "$BENCHR_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
@@ -121,7 +121,7 @@ else
 fi
 
 # If amsbenchr process check fails, terminate the script
-if [[  $RETURN_VALUE -eq 0  ]]
+if [ "$RETURN_VALUE" -eq 0 ]
 then
     echo -e "Error: amsbenchr could not be started!"
 	RETVAL=1
@@ -134,7 +134,7 @@ sleep 1
 echo -e "Publishing $COUNT messages of $MESSAGE_SIZE bytes each. \n"
 
 # Publish $COUNT messages of length 1024 bytes-----------------------
-amsbenchs $COUNT $MESSAGE_SIZE > /dev/null &
+amsbenchs $COUNT $MESSAGE_SIZE 2>/dev/null &
 
 BENCHS_PID=$!
 sleep 1
@@ -144,14 +144,13 @@ RUNNING=1
 TIMER=0
 
 # Continues while amsbenchr is running or until 2 minutes have passed
-while [[ $RUNNING -eq 1 && $TIMER -lt 120 ]]
-do
+while [ "$RUNNING" -eq 1 ] && [ "$TIMER" -lt 120 ]; do
     TIMER=$((++TIMER))
     sleep 1
     echo -e "Listening for published AMS messages..."
     
     # Process check for amsbenchr based on OS
-    if [[ $1 == "windows" ]]
+    if [ "$1" == "windows" ]
     then
         # Windows ps does not support -p option, use grep instead
         ps | grep "$BENCHR_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
@@ -161,7 +160,7 @@ do
     fi
 
     # If amsbenchr process check fails, assume messages have been received (amsbenchr terminates on completion!)
-    if [[ $RETURN_VALUE -eq 0 ]]
+    if [ "$RETURN_VALUE" -eq 0 ]
     then
         
         RUNNING=0
@@ -185,7 +184,7 @@ do
 
 
     # Infinite loop protection: If 2 minutes have passed, stop the process
-    if [[ $TIMER -ge 120 ]]
+    if [ "$TIMER" -ge 120 ]
     then
         echo -e "2 minutes passed: giving up now... \n"
         RUNNING=0

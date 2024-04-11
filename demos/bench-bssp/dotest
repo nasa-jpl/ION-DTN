@@ -75,24 +75,24 @@ bpdriver 10000 ipn:2.1 ipn:3.1 -1000 &
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [[  $RUNNING -eq 1  ]]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [[  "$1" == "windows"  ]]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [[  "$RETURN_VALUE" -eq 0  ]]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [[  $TIMER -gt 300  ]]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
@@ -101,7 +101,7 @@ do
 	fi
 done
 
-if [[  $RETVAL -eq 1  ]]
+if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
@@ -132,24 +132,24 @@ bpdriver 10000 ipn:2.1 ipn:3.1 -10000 i10000000 &
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [[  $RUNNING -eq 1  ]]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [[  "$1" == "windows"  ]]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [[  "$RETURN_VALUE" -eq 0  ]]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [[  $TIMER -gt 300  ]]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
@@ -158,7 +158,7 @@ do
 	fi
 done
 
-if [[  $RETVAL -eq 1  ]]
+if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
@@ -172,7 +172,7 @@ then
 	exit $RETVAL
 fi
 
-if [[  $RETVAL -eq 1  ]]
+if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 fi
