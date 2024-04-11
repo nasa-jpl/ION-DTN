@@ -31,6 +31,13 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
         network interface card performance. Since UDP is no reliable, many more
 		bundles were sent than need to be received for throughput calculation."
 
+echo -e "\n\tNOTE: various factors may contribute to UDP packet loss, but rate control and 
+	kernel buffer size are critical factors to consider when configuring networks
+	for UDP-based communications. If this bench test fails please consider increasing
+	the kernel buffer size to accomodate: the 208 KB default may not be sufficient!"
+
+sleep 3
+
 echo
 echo "CONFIG: 2 node custom:"
 echo
