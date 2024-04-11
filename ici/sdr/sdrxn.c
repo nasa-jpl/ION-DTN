@@ -422,6 +422,7 @@ static int	lockSdr(SdrState *sdr)
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
+	sdr->modified = 0;
 	return 0;
 }
 
@@ -789,7 +790,7 @@ static void	terminateXn(Sdr sdrv)
 	{
 		/*	Can't back out; if data modified, bail.	*/
 
-		if (sdrv->modified)
+		if (sdr->modified)
 		{
 			handleUnrecoverableError(sdrv);
 		}
@@ -800,14 +801,14 @@ static void	terminateXn(Sdr sdrv)
 	}
 
 	/*  Check if need to reverse modification.		 */
-	if (!(sdrv->modified))
-	{
+	//if (!(sdr->modified))
+	//{
 		/* no modifications made, no need to reverse */
-		putErrmsg("Transaction reversal not necessary, clear transaction...", NULL);
-		clearTransaction(sdrv);
-		unlockSdr(sdr);
-		return;
-	}
+	//	putErrmsg("Transaction reversal not necessary, clear transaction...", NULL);
+	//	clearTransaction(sdrv);
+	//	unlockSdr(sdr);
+	//	return;
+	//}
 
 	putErrmsg("Attempting transaction reversal...", NULL);
 
@@ -1817,8 +1818,7 @@ int	sdr_begin_xn(Sdr sdrv)
 	{
 		return 0;	/*	Failed to begin transaction.	*/
 	}
-
-	sdrv->modified = 0;
+	
 	return 1;		/*	Began transaction.		*/
 }
 
@@ -1852,7 +1852,7 @@ void	sdr_exit_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
-			if (sdrv->modified)
+			if (sdr->modified)
 			{
 				/*	Can't simply exit from a
 				 *	transaction during which
@@ -2138,7 +2138,7 @@ entry.", NULL);
 		memcpy(sdrv->dssm + into, from, length);
 	}
 
-	sdrv->modified = 1;
+	sdr->modified = 1;
 }
 
 void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,

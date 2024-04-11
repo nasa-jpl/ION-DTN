@@ -363,7 +363,7 @@ int	main(int argc, char **argv)
 	/*	Close out the hijacked transaction.			*/
 
 	sdrv->sdr->xnDepth = 1;
-	sdrv->modified = 0;
+	sdrv->sdr->modified = 0;
 	sdr_exit_xn(sdrv);
 
 	/*	Terminate.						*/
