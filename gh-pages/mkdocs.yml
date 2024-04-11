@@ -65,6 +65,7 @@ nav:
     - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
     - LTP Configuration Tool: Using-LTP-Config-Tool.md
     - ION Launcher Script: ION-Launcher.md
+    - Known Issues: Known-Issues.md
   - ION APIs:
     - ION Design & API Overview: ION-Design-and-API-Overview.md
     - ION Infrastructure API: ICI-API.md
