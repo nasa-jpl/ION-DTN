@@ -1,5 +1,5 @@
-# shell script to get node running
 #!/bin/bash
+# shell script to get node running
 bpadmin		.
 sleep 1
 ltpadmin	.

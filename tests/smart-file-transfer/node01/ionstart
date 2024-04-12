@@ -1,5 +1,5 @@
-# shell script to get node running
 #!/bin/bash
+# shell script to get node running
 
 echo > ion.log
 echo -e "\nStarting ION Node 1 on localhost"
