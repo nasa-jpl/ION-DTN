@@ -801,26 +801,29 @@ static void	terminateXn(Sdr sdrv)
 	}
 
 	/*  Check if need to reverse modification.		 */
-	if (!(sdr->modified))
+	if (sdr->modified)
+	{
+		/* there are changes to reverse, call reverseTransaction */
+		putErrmsg("Attempting transaction reversal...", NULL);
+
+		/*	Transaction must be reversed as necessary.		*/
+
+		if (reverseTransaction(sdr, sdrv->logfile, sdrv->logsm, sdrv->dsfile,
+				sdrv->dssm) < 0)
+		{
+			handleUnrecoverableError(sdrv);
+
+			/*	In case not aborted....				*/
+
+			clearTransaction(sdrv);
+			unlockSdr(sdr);
+			return;
+		}
+	}
+	else
 	{
 		/* no modifications made, no need to reverse */
 		putErrmsg("Transaction reversal not necessary, clear transaction...", NULL);
-		clearTransaction(sdrv);
-		unlockSdr(sdr);
-		return;
-	}
-
-	putErrmsg("Attempting transaction reversal...", NULL);
-
-	/*	Transaction must be reversed as necessary.		*/
-
-	if (reverseTransaction(sdr, sdrv->logfile, sdrv->logsm, sdrv->dsfile,
-			sdrv->dssm) < 0)
-	{
-		handleUnrecoverableError(sdrv);
-
-		/*	In case not aborted....				*/
-
 		clearTransaction(sdrv);
 		unlockSdr(sdr);
 		return;
