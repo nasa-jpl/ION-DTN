@@ -1866,7 +1866,7 @@ void	sdr_exit_xn(Sdr sdrv)
 				/* Print error message to record implementation error */
 				putErrmsg("A critical section ended with SDR modification, should not use sdr_exit_xn. Compile with CORE_FILE_NEEDED=1 to get core for stack trace.", NULL);
 				/* Trigger coredump for tracing */
-				CHKVOID(0);
+				/* CHKVOID(0); */
 
 				handleUnrecoverableError(sdrv);
 			}
