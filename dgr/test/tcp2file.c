@@ -133,7 +133,6 @@ static FILE	*openFile()
 
 int	main(int argc, char **argv)
 {
-	char			ownHostName[MAXHOSTNAMELEN + 1];
 	unsigned long		ownIpAddress;
 	unsigned short		portNbr = TEST_PORT_NBR;
 	unsigned long		hostNbr;
@@ -146,8 +145,7 @@ int	main(int argc, char **argv)
 	char			line[256];
 	int			lineSize;
 
-	getNameOfHost(ownHostName, sizeof ownHostName);
-	ownIpAddress = getInternetAddress(ownHostName);
+	ownIpAddress = getAddressOfHost();
 
 	/*	Open dial-up socket to accept connections on.		*/
 
