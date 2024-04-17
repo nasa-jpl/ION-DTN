@@ -867,6 +867,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#testing-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing &amp; Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#reporting-issues" class="md-nav__link">
     <span class="md-ellipsis">
       Reporting Issues
@@ -1675,7 +1684,11 @@
 <h2 id="bundle-protocol">Bundle Protocol</h2>
 <h3 id="crc">CRC</h3>
 <ul>
-<li>ION implementation currently default will apply CRC to Primary Block but not the Payload Block. To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC without recompiling ION.</li>
+<li>ION implementation currently default will apply CRC16 to Primary Block but not the Payload Block. To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC without recompiling ION.</li>
+</ul>
+<h2 id="testing-configuration">Testing &amp; Configuration</h2>
+<ul>
+<li>When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to <code>root</code>. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the <code>make clean</code> and <code>git stash</code> command to remove all build and testing artifacts from ION 's source directory before exiting the container.</li>
 </ul>
 <h2 id="reporting-issues">Reporting Issues</h2>
 <ul>
