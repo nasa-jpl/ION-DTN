@@ -347,6 +347,7 @@ int sem_errors()
 	int sem;
 	int ret;
 	int correct = 1;
+	int ended = 0;
 
 	printf("\n**** NOTE: several of these operations may generate internal errors (from assertions) - that's expected\n\n");
 
@@ -371,16 +372,28 @@ int sem_errors()
 	}
 
 	printf("semerrors(): trying to sm_SemGive(%d) that closed semaphore\n", sem);
-	sm_SemGive(sem);
+	sm_SemGive(sem);  /* this will fail, but there is no return value (only an assertion failure) */
 
-	printf("semerrors(): trying to sm_SemEnd(%d) that closed semaphore\n", sem);
+	printf("semerrors(): trying to sm_SemUnend(%d) that closed semaphore, then check with sm_SemEnded()\n", sem);
+	sm_SemUnend(sem);
+	ended = sm_SemEnded(sem);
+	if (ended != 0) {
+		correct = 0;
+		printf("    ** ERROR: after sm_SemUnend() on closed sem, sm_SemEnded() did NOT return 0 (but returned %d)\n",
+			 ended);
+	}
+
+	printf("semerrors(): trying to sm_SemEnd(%d) that closed semaphore, then check with sm_SemEnded()\n", sem);
 	sm_SemEnd(sem);
+	ended = sm_SemEnded(sem);
+	if (ended != 1) {
+		correct = 0;
+		printf("    ** ERROR: after sm_SemEnd() on closed sem, sm_SemEnded() did NOT return 1 (but returned %d)\n",
+			 ended);
+	}
 
 	printf("semerrors(): trying to sm_SemEnded(%d) that closed semaphore\n", sem);
 	ret = sm_SemEnded(sem); // return value ignored on purpose 
-
-	printf("semerrors(): trying to sm_SemUnend(%d) that closed semaphore\n", sem);
-	sm_SemUnend(sem); 
 
 	printf("semerrors(): trying to sm_SemUnwedge(%d) that closed semaphore\n", sem);
 	ret = sm_SemUnwedge(sem,1);
