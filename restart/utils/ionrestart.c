@@ -357,13 +357,17 @@ int	main(int argc, char **argv)
 	 *	transactions and perform the restart.			*/
 
 	snooze(RESTART_GRACE_PERIOD);
-     	sdrv->sdr->sdrSemaphore = sdrSemaphore;
+    sdrv->sdr->sdrSemaphore = sdrSemaphore;
+
+	/* Given transaction reversal was successful, set the 
+	 * modified flag to 0 from this point on ward */
+	sdrv->sdr->modified = 0;
 	restartION(sdrv);
 
 	/*	Close out the hijacked transaction.			*/
 
 	sdrv->sdr->xnDepth = 1;
-	sdrv->modified = 0;
+	sdrv->sdr->modified = 0;
 	sdr_exit_xn(sdrv);
 
 	/*	Terminate.						*/

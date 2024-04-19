@@ -80,40 +80,16 @@ cd ../2.ipn.udp/
 sleep 5
 bpcounter ipn:2.1 15  > output1 &
 
-# Pause for debug
-#read -n1 -p "Both ION nodes started. Press any key to continue..."
-
 #Send Bundles
 cd ../1.ipn.udp/
 echo ""
 echo "Start sending bundles..."
-bpdriver 10000 ipn:1.1 ipn:2.1 -1000 t90 >& output1
+bpdriver 5000 ipn:1.1 ipn:2.1 -1000 t90 >& output1
 cd ../2.ipn.udp/
-sleep 30
-bpstats
-
-# Pause for debug
-#read -n1 -p "Bundles sent from node 1 to 2. Press any key to continue..."
-
-sleep 4
-echo ""
-echo "Now crashing node 2 with bpcrash..."
-bpcrash
-sleep 5
-echo "SDR transaction & ionrestart activities reported:"
-text=$(grep "ionrestart\|Transaction\|transaction" ion.log)
-if [ -z "$text" ];then
-	echo "No activities reported."
-else
-	echo "$text"
-fi
-
-# Pause for debug
-#read -n1 -p "Used bpcrash to crash node 2. Press any key to continue..."
 
 sleep 10
 echo ""
-echo "Crashing node 2 now...."
+echo "Now force a restart with on node 2 with bpcrash..."
 bpcrash
 sleep 5
 echo "SDR transaction & ionrestart activities reported:"
@@ -123,10 +99,6 @@ if [ -z "$text" ];then
 else
 	echo "$text"
 fi
-# Pause for debug
-#read -n1 -p "Use bpcrash to crash node 2 again. Press any key to continue..."
-
-sleep 20
 
 #Count aborted SDR transactions
 firstAbort=$(grep "Transaction aborted" ion.log | wc -l)
@@ -158,9 +130,7 @@ echo ""
 echo "Node 2 recovered from first crash."
 echo ""
 
-if [ "$firstAbort" -gt 0 ];then
-#Failed twice, so no daemons are running.  Run bpcounter to clear the
-#delivery queue.
+if [ "$firstAbort" -gt 0 ]; then
 	echo "Flush out the delivery queue in node 2..."
 	echo "Delivering queued data to bpcounter..."
 	bpcounter ipn:2.1 > output2 &
@@ -171,13 +141,10 @@ if [ "$firstAbort" -gt 0 ];then
 	kill -9 $BPCOUNTER_PID >/dev/null 2>&1
 #Now restart the daemons.
 	sleep 1
-#	echo "Restarting all ION daemons on receiver..."
+	echo "Restarting all ION daemons on receiver..."
 	ionadmin restart.ionrc
 	bpadmin restart.bprc
 fi
-
-# Pause for debug
-#read -n1 -p "Completed first crash test. Press any key to continue..."
 
 echo "Waiting for all previously transmitted bundles to expire..."
 sleep 5
@@ -233,6 +200,7 @@ else
 	echo
 	echo "Bundles not received! FAILURE"
 	RETVAL=1
+	cd ..
 	end
 fi
 

@@ -422,6 +422,7 @@ static int	lockSdr(SdrState *sdr)
 	sdr->sdrOwnerThread = pthread_self();
 	sdr->sdrOwnerTask = sm_TaskIdSelf();
 	sdr->xnDepth = 1;
+	sdr->modified = 0;
 	return 0;
 }
 
@@ -789,7 +790,7 @@ static void	terminateXn(Sdr sdrv)
 	{
 		/*	Can't back out; if data modified, bail.	*/
 
-		if (sdrv->modified)
+		if (sdr->modified)
 		{
 			handleUnrecoverableError(sdrv);
 		}
@@ -800,26 +801,29 @@ static void	terminateXn(Sdr sdrv)
 	}
 
 	/*  Check if need to reverse modification.		 */
-	if (!(sdrv->modified))
+	if (sdr->modified)
+	{
+		/* there are changes to reverse, call reverseTransaction */
+		putErrmsg("Attempting transaction reversal...", NULL);
+
+		/*	Transaction must be reversed as necessary.		*/
+
+		if (reverseTransaction(sdr, sdrv->logfile, sdrv->logsm, sdrv->dsfile,
+				sdrv->dssm) < 0)
+		{
+			handleUnrecoverableError(sdrv);
+
+			/*	In case not aborted....				*/
+
+			clearTransaction(sdrv);
+			unlockSdr(sdr);
+			return;
+		}
+	}
+	else
 	{
 		/* no modifications made, no need to reverse */
 		putErrmsg("Transaction reversal not necessary, clear transaction...", NULL);
-		clearTransaction(sdrv);
-		unlockSdr(sdr);
-		return;
-	}
-
-	putErrmsg("Attempting transaction reversal...", NULL);
-
-	/*	Transaction must be reversed as necessary.		*/
-
-	if (reverseTransaction(sdr, sdrv->logfile, sdrv->logsm, sdrv->dsfile,
-			sdrv->dssm) < 0)
-	{
-		handleUnrecoverableError(sdrv);
-
-		/*	In case not aborted....				*/
-
 		clearTransaction(sdrv);
 		unlockSdr(sdr);
 		return;
@@ -1817,8 +1821,7 @@ int	sdr_begin_xn(Sdr sdrv)
 	{
 		return 0;	/*	Failed to begin transaction.	*/
 	}
-
-	sdrv->modified = 0;
+	
 	return 1;		/*	Began transaction.		*/
 }
 
@@ -1852,13 +1855,18 @@ void	sdr_exit_xn(Sdr sdrv)
 		sdr->xnDepth--;
 		if (sdr->xnDepth == 0)
 		{
-			if (sdrv->modified)
+			if (sdr->modified)
 			{
 				/*	Can't simply exit from a
 				 *	transaction during which
 				 *	data were modified - must
 				 *	either end or cancel.  This
 				 *	is an implementation error.	*/
+				
+				/* Print error message to record implementation error */
+				putErrmsg("A critical section ended with SDR modification, should not use sdr_exit_xn. Compile with CORE_FILE_NEEDED=1 to get core for stack trace.", NULL);
+				/* Trigger coredump for tracing */
+				/* CHKVOID(0); */
 
 				handleUnrecoverableError(sdrv);
 			}
@@ -2138,7 +2146,7 @@ entry.", NULL);
 		memcpy(sdrv->dssm + into, from, length);
 	}
 
-	sdrv->modified = 1;
+	sdr->modified = 1;
 }
 
 void	Sdr_write(const char *file, int line, Sdr sdrv, Address into,
