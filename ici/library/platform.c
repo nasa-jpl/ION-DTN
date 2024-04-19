@@ -2488,6 +2488,7 @@ char	*addressToString(struct in_addr address, char *buffer)
 unsigned int	getAddressOfHost()
 {
 	char	hostnameBuf[MAXHOSTNAMELEN + 1];
+	getNameOfHost(hostnameBuf, sizeof(hostnameBuf));
 	unsigned int inetaddr = getInternetAddress(hostnameBuf);
 	if(inetaddr == 0){
 			putErrmsg("Couldn't look up own IP, defaulting to 127.0.0.1", NULL);
