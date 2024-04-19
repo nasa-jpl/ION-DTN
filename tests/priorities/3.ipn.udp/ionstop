@@ -1,5 +1,5 @@
-# shell script to stop all daemons
 #!/bin/bash
+# shell script to stop all daemons
 bpadmin		.
 sleep 1
 ionadmin	.

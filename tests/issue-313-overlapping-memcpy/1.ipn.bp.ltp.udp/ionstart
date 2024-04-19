@@ -1,5 +1,5 @@
-# shell script to get node running
 #!/bin/bash
+# shell script to get node running
 ionadmin	config.ionrc
 sleep		1
 ionsecadmin 	config.ionsecrc 

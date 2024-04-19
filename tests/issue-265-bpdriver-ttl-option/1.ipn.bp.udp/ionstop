@@ -1,5 +1,5 @@
-# shell script take node down
 #!/bin/bash
+# shell script take node down
 bpadmin		.
 sleep 1
 ionadmin	.
