@@ -44,7 +44,6 @@ int	dgr2file(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 int	main(int argc, char **argv)
 #endif
 {
-	char		ownHostName[MAXHOSTNAMELEN + 1];
 	unsigned int	ownIpAddress;
 	unsigned short	portNbr = TEST_PORT_NBR;
 	DgrRC		rc;
@@ -55,8 +54,7 @@ int	main(int argc, char **argv)
 	int		lineSize;
 	int		errnbr;
 
-	getNameOfHost(ownHostName, sizeof ownHostName);
-	ownIpAddress = getInternetAddress(ownHostName);
+	ownIpAddress = getAddressOfHost();
 	if (dgr_open(ownIpAddress, 2, portNbr, ownIpAddress, NULL,
 			&dgr2file_dgr, &rc) < 0)
 	{
