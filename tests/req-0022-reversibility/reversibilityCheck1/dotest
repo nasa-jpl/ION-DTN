@@ -4,14 +4,23 @@
 # Ohio University
 # October 2, 2012
 #
+# Updated 4/20/2024, Jay L. Gao
+#
 # This test verifies that transaction reversibility is functional by triggering
 # a condition where transaction reversibility is needed to correctly recover.
 # Specifically, we tell ION that we're going to send bundles to a second node and
-# define a tcpclo, but don't actually have a second node. This causes ION to fill
-# up all available SDR space with bundles queued to this second node. Eventually,
-# ION will attempt to queue a bundle for which it doesn't have enough space.
+# define a tcpclo, but don't actually have a second node. We use a non-block application 
+# (bpdriver) to forcefully inject too much data into ION causing SDR space exhaustion. 
+# Eventually, ION will attempt to queue a bundle for which it doesn't have enough space,
+# which will trigger a transaction cancellation and reversal.
+#
 # Transaction reversibility is required to handle this situation. Without it, ION
-# will crash because it can't undo the current transaction.
+# will crash because it can't undo the current transaction. After the transaction
+# reseveral, the ionrestart utility reloaded the volatile state of ION and BP protocols,
+# and the daemons were restarted. We let all the previously buffered bundles expire to 
+# clear the system, and then confirm that ION is able to continue taking bundles to queue
+# for transmission.
+#
 # This test is extremely sensitive to changes in congestion forecasting. Ideally,
 # we'd like to turn off congestion forecasting completely in order to prevent it
 # from interfering.
