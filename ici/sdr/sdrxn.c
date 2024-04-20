@@ -823,10 +823,7 @@ static void	terminateXn(Sdr sdrv)
 	else
 	{
 		/* no modifications made, no need to reverse */
-		putErrmsg("Transaction reversal not necessary, clear transaction...", NULL);
-		clearTransaction(sdrv);
-		unlockSdr(sdr);
-		return;
+		putErrmsg("Transaction reversal not necessary.", NULL);
 	}
 
 	/*	Reversal succeeded, so try to reboot volatiles.		*/

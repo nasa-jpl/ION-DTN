@@ -129,6 +129,14 @@ echo ""
 echo "Wait for currently queued bundles to expire..."
 sleep 40
 
+echo "Restart ION daemons to ensure system is fully recovered..."
+ionadmin restart.ionrc
+sleep 1
+bpadmin restart.bprc
+# allow time for processing
+
+sleep 10
+
 #Try to send more bundles to ensure that transaction reversibility healed the system properly
 echo ""
 echo "Now try sending some more bundles..."
