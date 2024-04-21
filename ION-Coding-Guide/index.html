@@ -1162,6 +1162,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#sdr-transaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      SDR Transaction
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1927,6 +1936,32 @@ Next comes the beginning of the C++ guard. This allows the header to be included
 <a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="cp">#endif</span>
 </code></pre></div></p>
 <p>Nothing should go after the "#endif" of the include guard. </p>
+<h2 id="sdr-transaction">SDR Transaction</h2>
+<p>All writing to an SDR heap must occur during a transaction that was initiated by the task issuing the write.  Transactions are single-threaded; if task B wants to start a transaction while a transaction begun by task A is still in progress, it must wait until A's transaction is either ended or cancelled.  </p>
+<p>A transaction is begun by calling <code>sdr_begin_xn()</code>, and the current transaction is normally ended by calling the <code>sdr_end_xn()</code> function, which returns an error code in the event that any serious SDR-related processing error was encountered in the course of the transaction Transactions may safely be nested, provided that every level of transaction activity that is begun
+is properly ended.</p>
+<p>Another way to terminate a transaction is using the <code>sdr_exit_xn()</code> call, as a way to implement a critical section within which SDR data is read while no data modifications occurred. Using the <code>sdr_exit_xn()</code> to end a transaction indicates that no SDR modification should have occurred during the critical section. Therefore the <code>sdr_exit_xn</code> function will check whether any SDR modifications were made during the transaction and if the current transaction is the outer most layer (depth = 1) then it will result in a unrecoverable SDR error.</p>
+<p>Given that <code>sdr_end_xn()</code> is designed to handle transaction with SDR modification while <code>sdr_exit_xn()</code> does not, why would one want to use <code>sdr_exit_xn()</code> to end a transaction? This is useful as a way to detect SDR changes that is not supposed to occur but does occur - it catches both logical error and implementation error in the code. It is a useful "check" whether the SDR behavior is as expected. In case  <code>sdr_exit_xn()</code> detected a SDR modification as the outer most layer of transaction, an error message will be loggedin ion.log file to document a potential issue with the implementation logic. This is usedul for debugging and improving the overall SDR transaction management software.</p>
+<p>The choice between <code>sdr_end_xn()</code> and <code>sdr_exit_xn()</code> depends on the intent of the transaction and the outcome of a transaction:</p>
+<ul>
+<li>
+<p>Situation A: If a fault occurred that requires reverting SDR modifications (including those made by all nested layers) leading up to the fault event, then one should call sdr_cancel_xn to trigger SDR reversibility, if configured, and allow ion to reload the volatile protocol state to restore the SDR heap and working memory state.</p>
+</li>
+<li>
+<p>Situation B: If a fault occurred but the implementation has the proper procedure and logic to handle handling it such as:</p>
+</li>
+<li>
+<p>The fault did not result in any SDR heap changes, or</p>
+</li>
+<li>The modifications that occurred before the fault and as part of fault handling afterward do not require reversal. For example, if the SDR modifications made before the fault may still be valid despite the occurrence of the fault, and the SDR modifications made after the fault, intentionally as part of fault handling procedure such as updating bundle error counters are successful, <strong>AND</strong></li>
+<li>
+<p>In either case, the integrity of the protocol state is not affected or can be resotred. For example, an invalid bundle was detected and can be safety removed from ION by making appropriate updates to the heap and the working memory. Then one can still call <code>sdr_end_xn</code> since the failure was handled nominally.</p>
+</li>
+<li>
+<p>Situation C: All transactions and modifications are nominal. In this case, call <code>sdr_end_xn.</code></p>
+</li>
+</ul>
+<p>The implementation must be able to discern between situations A and B. When one cannot make certain that the SDR will be in operation state due to a complex transaction failure case, or due to system errors, one one should default to A and issue transaction cancellation and rely on reversibility in order to avoid leaving the SDR in an inconsistent state.</p>
 
 
 
