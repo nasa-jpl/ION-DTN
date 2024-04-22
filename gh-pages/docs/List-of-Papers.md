@@ -1,5 +1,6 @@
-# List of Papers
+# Publications
 
+## Papers
 * Burleigh, S., Fall, K., and E. Birrane, III, "Bundle Protocol Version 7", RFC 9171, DOI 10.17487/RFC9171, January 2022, <https://www.rfc-editor.org/info/rfc9171>.
 * Birrane, III, E. and K. McKeever, "Bundle Protocol Security (BPSec)", RFC 9172, DOI 10.17487/RFC9172, January 2022, <https://www.rfc-editor.org/info/rfc9172>.
 * Birrane, III, E., White, A, and Heiner, S., "Default Security Contexts for Bundle Protocol Security (BPSec)", RFC 9173, January 2022, <https://datatracker.ietf.org/doc/rfc9173/>.
@@ -20,3 +21,11 @@
 * Huff, John D. Performance Characteristics of the Interplanetary Overlay Network in 10 Gbps Networks. Ohio University, 2021, http://rave.ohiolink.edu/etdc/view?acc_num=ohiou1619115602389023.
 * Kim, Inkyu, et al. “The Performance Analysis of Multi-Hop Relay DTN Communication System in Interplanetary Network.” 2020 International Conference on Information and Communication Technology Convergence (ICTC), 2020, pp. 1136–41, https://doi.org/10.1109/ICTC49870.2020.9289238.
 * CCSDS. Concepts and Rationale for Streaming Services over Bundle Protocol. Informational Report, CCSDS 730.2-G-1, CCSDS, Sept. 2018, https://public.ccsds.org/Pubs/730x2g1.pdf
+* Paul Rosemurgy, Jay Gao, Sky DeBaun, Michael Starch, Jeffrey Levison, and Rebecca Castano, "Enabling DTN in Spaceflight Systems: Integration of ION with the F Prime Flight Software Framework," Proceedings of the 2024 IEEE Aerospace Conference, Big Sky, MT, March 2024.
+
+## Reference Documents
+
+* [BPSec Security Policy User Manual (ION 4.0.2, archive)](./bpsec/Security_Policy_User_Manual-ION-4.0.2.pdf)
+* [BPSec Security Policy User Manual (ION 4.1.2)](./bpsec/Security_Policy_User_Manual-ION-4.1.2.pdf)
+* [BpSec release notes for ION 4.1.2](./bpsec/IOS_4.1.2_BPSec_release_notes.pdf)
+* [Building ION from source on Windows.pdf](./windows/Building%20ION%20from%20source%20on%20Windows.pdf)
