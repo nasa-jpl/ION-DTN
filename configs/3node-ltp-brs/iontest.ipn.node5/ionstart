@@ -1,4 +1,3 @@
-# shell script to get node running
 #!/bin/bash
 ionadmin	node5.ionrc
 sleep 1

@@ -1,4 +1,4 @@
-# shell script to get node running
+
 #!/bin/bash
 ionadmin	amroc.restart.ionrc
 sleep 1
