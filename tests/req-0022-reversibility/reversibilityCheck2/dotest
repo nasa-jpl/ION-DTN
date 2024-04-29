@@ -3,13 +3,17 @@
 # Ohio University
 # November 3, 2012
 #
-# This test verifies that transaction reversibility is functional by triggering
-# a condition where transaction reversibility is needed to correctly recover.
-# Specifically, this test starts two nodes and sends bundles from one to the
-# other until that second node fills up. This triggers a transaction failure and
-# reversal. Afterwards, we check to ensure that ION can still send data between
-# the nodes.
-
+#
+# Updated 4/20/2024, Jay L. Gao
+# This test verifies that ion recovery is functional. This test starts two nodes
+# and sends bundles from one to the other until that second node fills up. Then  
+# bpcrash is used to simulate a crash on the second node by forcing a transaction
+# cancellation. This is likely not to require transaction reversal. But it will trigger
+# a reloading of ION and BP protocol volatile state information to be reloaded. Then
+# the ion and bp daemons will be restarted. After allowing for bundles prior to the crash
+# to expire - one could also actually drain them by using bpcounter - then we confirm
+# the receiving node (node 2) is again back in a state where it can receive bundles.
+# The test is a success if the new bundles sent from node 1 is received in node 2.
 
 function end(){
 # Shut down ION.
@@ -84,7 +88,7 @@ bpcounter ipn:2.1 15  > output1 &
 cd ../1.ipn.udp/
 echo ""
 echo "Start sending bundles..."
-bpdriver 5000 ipn:1.1 ipn:2.1 -1000 t90 >& output1
+bpdriver 5000 ipn:1.1 ipn:2.1 -1000 t40 >& output1
 cd ../2.ipn.udp/
 
 sleep 10
@@ -130,39 +134,40 @@ echo ""
 echo "Node 2 recovered from first crash."
 echo ""
 
-if [ "$firstAbort" -gt 0 ]; then
-	echo "Flush out the delivery queue in node 2..."
-	echo "Delivering queued data to bpcounter..."
-	bpcounter ipn:2.1 > output2 &
-	BPCOUNTER_PID=$!
-	sleep 20
-	kill -2 $BPCOUNTER_PID >/dev/null 2>&1
-	sleep 1
-	kill -9 $BPCOUNTER_PID >/dev/null 2>&1
-#Now restart the daemons.
-	sleep 1
-	echo "Restarting all ION daemons on receiver..."
-	ionadmin restart.ionrc
-	bpadmin restart.bprc
-fi
+echo "After restoring volatile state, now restart the daemons...."
+sleep 1
+echo "Restarting all ION daemons on receiver..."
+ionadmin restart.ionrc
+bpadmin restart.bprc
 
-echo "Waiting for all previously transmitted bundles to expire..."
-sleep 5
+echo "Waiting for any remaining bundles to expire..."
+sleep 40
+
+# Pause for debug
+bpstats
+echo "Issued bpstats to check for bundles in the system expiration. See ion.log."
+echo ""
 
 #Try to send more bundles to ensure that transaction reversibility healed the
 #system properly
 echo ""
-echo "Now try sending some more bundles..."
+echo "Now try receiving 10 new bundles..."
+cd ../1.ipn.udp/
+bpdriver 10 ipn:1.1 ipn:2.1 -100 t50 >& output2
+# Pause for debug
+bpstats
+echo ""
+echo "Issued bpstats to check for new bundles in the system. See ion.log."
+echo ""
+
+# Now pick up the bundles
+cd ../2.ipn.udp/
 bpcounter ipn:2.1 > output3 &
 BPCOUNTER_PID=$!
 echo ""
-sleep 2
-cd ../1.ipn.udp/
-bpdriver 10 ipn:1.1 ipn:2.1 -100 t30 >& output2
+sleep 10
 
-#Check if we caused a transaction to abort or an unrecoverable SDR error
-sleep 2
-cd ../2.ipn.udp/
+#Check if we caused a second transaction abort or an unrecoverable SDR error
 secondAbort=$(grep "finished restarting ION" ion.log | wc -l)
 echo ""
 if [ $secondAbort -gt $firstAbort ];then

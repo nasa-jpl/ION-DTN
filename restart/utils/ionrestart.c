@@ -372,7 +372,7 @@ int	main(int argc, char **argv)
 
 	/*	Terminate.						*/
 
-	ionDetach();
 	writeMemo("[i] ionrestart: finished restarting ION.");
+	ionDetach();
 	return 0;
 }
