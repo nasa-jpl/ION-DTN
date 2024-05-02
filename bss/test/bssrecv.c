@@ -266,7 +266,13 @@ int	main(int argc, char **argv)
 	time_t	to = 0;
 	time_t	refTime = 0;
 	char	*buffer;
-	int	reqArgs = 0;		/*	Boolean		*/
+	/*  
+     * reqArgs - required argements include bss
+     *           data base name, path, and EID
+     * 0: required arguments not available
+     * 1: required arguments are already set
+     */
+	int	reqArgs = 0;
 
 	if (argc > 7) argc = 7;
 	switch (argc)
@@ -394,11 +400,12 @@ int	main(int argc, char **argv)
 
 				if (aFromTime == NULL || aToTime == NULL)
 				{			
-					PUTS("Pls provide replay period: \
-fromTime toTime ");
-					PUTS("fromTime and toTime format: \
-yyyy/mm/dd-hh:mm:ss");
+					PUTS("Please provide replay period: fromTime toTime ");
+          			PUTS("fromTime and toTime format can be: ");
+          			PUTS("(1) 'yyyy/mm/dd-hh:mm:ss'");
+          			PUTS("(2) '+t1 +t2'  where t2 > t1 are positive integers in seconds.");
 					fflush(stdout);
+
 					if (igets(cmdFile, menuNav,
 							sizeof(menuNav),
 							&navLen) == NULL)
@@ -412,14 +419,13 @@ arguments");
 					if (sscanf(menuNav, "%19s %19s",
 							fromTime, toTime) != 2)
 					{
-						PUTS("Wrong nbr of arguments");
+						PUTS("Wrong number of arguments");
 						fflush(stdout);
 						break;
 					}
 
 					from = readTimestampLocal(fromTime,
 						refTime) - EPOCH_2000_SEC;
-					if (from < 0) from = 0;
 					to = readTimestampLocal(toTime, refTime)
 						- EPOCH_2000_SEC;
 				}
@@ -427,11 +433,23 @@ arguments");
 				{
 					from = readTimestampLocal(aFromTime,
 						refTime) - EPOCH_2000_SEC;
-					if (from < 0) from = 0;
 					to = readTimestampLocal(aToTime,
 						refTime) - EPOCH_2000_SEC;
 				}
-				
+
+				/* Check returned 'from' and 'to' time */
+				if (from <= 0){
+					PUTS("'From' time set to 0 due to possible parsing error; check format \
+						if this is not expected.");
+					from = 0;
+				}
+
+				if (to <= 0){
+					PUTS("'To' time set to one second after 'From' due to possible parsing error; check format if \
+						this is not intentional.");
+					to = from + 1;
+				}
+
 				/*	Call the replay function      */
 				if(replay(from, to) == -1)
 				{
@@ -545,12 +563,12 @@ arguments");
 				break;
 
 			case 7: 
-                		PUTS("Quitting program!\n");
+                PUTS("Quitting program!\n");
 				fflush(stdout);
 				break;
 
 			default:
-                		PUTS("Invalid choice!\n");
+                PUTS("Invalid choice!\n");
 				fflush(stdout);
 				break;
 		}

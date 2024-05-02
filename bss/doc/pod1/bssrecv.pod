@@ -68,7 +68,7 @@ B<bssrecv> offers the following menu options:
 B<bssrecv> prompts the user for the three parameter values noted above, then
 opens the indicated BSS database for replay of the data in that database.
 
-=item 2. Start BSS receiving thread
+=item 2. Start BSS receiving thread in realtime mode
 
 B<bssrecv> prompts the user for the three parameter values noted above, then
 starts a background session thread to acquire data into the indicated database.
@@ -77,36 +77,28 @@ single line consisting of N consecutive '*' characters, where N is computed
 as the data number at the start of the bundle's payload data, modulo 150.
 Note that the database is B<not> open for replay at this time.
 
-=item 3. Run BSS receiver thread
+=item 3. Run BSS receiver thread in both playback and realtime mode
 
 B<bssrecv> prompts the user for the three parameter values noted above, then
 starts a background session thread to acquire data into the indicated database
 (displaying the data as described for option 2 above) and also opens the
 database for replay.
 
-=item 4. Close current playback session
+=item 4. Close current playback mode session
 
 B<bssrecv> closes the indicated BSS database, terminating replay access.
 
-=item 5. Stop BSS receiving thread
+=item 5. Stop BSS receiving thread in realtime mode
 
 B<bssrecv> terminates the current background session thread.  Replay access
 to the BSS database, if currently open, is B<not> terminated.
 
-=item 6. Stop BSS Receiver
+=item 6. Stop BSS Receiver in both realtime and playback mode
 
 B<bssrecv> terminates the current background session thread.  Replay access
 to the BSS database, if currently open, is also terminated.
 
-=item 7. Replay session
-
-B<bssrecv> prompts the user for the start and end times bounding the
-reception interval that is to be replayed, then displays all data within that
-interval in both forward and reverse time order.  The display function
-performed for this purpose is the same one that is exercised during
-real-time acquisition of streaming data.
-
-=item 8. Exit
+=item 7. Exit
 
 B<bssrecv> terminates.
 
