@@ -6,6 +6,7 @@
 # Simplified by Shawn Ostermann in October, 2023 to remove Enhanced Regular Expressions, "grep -E", and "sed -E"
 # to make it more portable (to Solaris in particular).  Also quieted down the output a little.
 
+ION_OPEN_SOURCE=1
 OS_VERS=""
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
@@ -135,6 +136,10 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	udpclo lt-udpclo \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
+	"
+
+if [ "$ION_OPEN_SOURCE" == "1" ];then
+KILLPROCESSLIST="${KILLPROCESSLIST} \
 	amsbenchr lt-amsbenchr \
 	amsbenchs lt-amsbenchs \
 	amsd lt-amsd \
@@ -150,6 +155,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpcp lt-bpcp\
 	bpcpd lt-bpcpd\
 	"
+fi
 
 sw_vers 2> /dev/null > /dev/null
 
@@ -188,27 +194,16 @@ sleep 2
 
 
 echo "Checking if all ION processes ended..."
-# check if OS is SunOS
-if [ "$(uname -s)" == "SunOS" ]; then
-	# Creates a long regex search pattern that matches any process name
-	# Search pattern looks like:
-	#   ([^-a-zA-Z]bping$)|([^-a-zA-Z]bpecho$)|...
-	PATTERN_PREFIX='([^-a-zA-Z]'
-	PATTERN_POSTFIX='$)'
-	PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | /usr/gnu/bin/sed 's/\s*$//' | /usr/gnu/bin/sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
-	NOT_KILLED="$(ps -e | /usr/gnu/bin/grep -E "${PATTERN}" | /usr/gnu/bin/grep -v grep)"	
-else
-	PSFILE="/tmp/ps.$$"
-	# grab all running processes
-	${PS} ${PS_ARGS} > ${PSFILE}
-	# see if any of those still-running processes belong to ION
-	for PROC in ${KILLPROCESSLIST}; do
-		grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
-			awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-	done 
+PSFILE="/tmp/ps.$$"
+# grab all running processes
+${PS} ${PS_ARGS} > ${PSFILE}
+# see if any of those still-running processes belong to ION
+for PROC in ${KILLPROCESSLIST}; do
+	grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
+		 awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+done 
 
-	rm -f ${PSFILE}
-fi
+rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
