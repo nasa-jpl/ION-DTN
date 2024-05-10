@@ -107,11 +107,13 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	psmshell lt-psmshell \
 	psmwatch lt-psmwatch \
 	ramsgate lt-ramsgate \
+	recvfile lt-recvfile \
 	rfxclock lt-rfxclock \
 	sdatest lt-sdatest \
 	sdr2file lt-sdr2file \
 	sdrmend lt-sdrmend \
 	sdrwatch lt-sdrwatch \
+	sendfile lt-sendfile \
 	sm2file lt-sm2file \
 	smlistsh lt-smlistsh \
 	smrbtsh lt-smrbtsh \
