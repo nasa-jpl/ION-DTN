@@ -18,6 +18,16 @@
 # Author: Sky DeBaun, Jet Propulsion Laboratory
 # Copyright 2023, California Institute of Technology. All rights reserved.
 
+# set timeouts based on OS type
+if [[ "$OSTYPE" == "mingw" ]] || [[ "OSTYPE" == "msys" ]] ; then
+	TIMETOWAIT1=4
+	TIMETOWAIT2=1
+	KILL_CMD="taskkill //F //PID"
+else
+	TIMETOWAIT1=1
+	TIMETOWAIT2=0.25
+	KILL_CMD="kill -SIGTERM"
+fi
 
 # Initialize failure check flag
 FAILCHECK=0
@@ -66,18 +76,18 @@ export ION_NODE_LIST_DIR=$PWD
 # Start ion in node02, wait, then start ion in node01
 cd node02
 ./ionstart
-sleep 1
+sleep $TIMETOWAIT1
 
 cd ../node01
 ./ionstart
-sleep 1
+sleep $TIMETOWAIT1
 
 # Start receiver in node02
 cd ../node02
 echo -e "Starting node02 receiver--------------------"
 recvfile ipn:2.4  &
 RECVFILE_PID=$!
-sleep 1
+sleep $TIMETOWAIT1
 
 # Go to node01, create a test file, and send it $ITERATIONS times
 cd ../node01
@@ -86,9 +96,9 @@ echo -e "Starting non-encrypted file transmission from node01--->>>\n"
 echo "$TEST_FILE_CONTENT" > $TEST_FILE_NAME
 for i in $(seq 1 $ITERATIONS); do
     sendfile ipn:1.4 ipn:2.4 $TEST_FILE_NAME
-    sleep 0.25
+    sleep $TIMETOWAIT2
 done
-sleep 1
+sleep $TIMETOWAIT1
 echo -e "\n"
 
 #clean test file
@@ -128,7 +138,7 @@ done
 
 # File transfer and content integrity test complete: exit non-crypt receiver
 echo -e "\nShutting down receiver now..."
-kill -SIGINT $RECVFILE_PID
+$KILL_CMD $RECVFILE_PID
 wait $RECVFILE_PID
 
 
@@ -142,7 +152,7 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
     echo -e "Starting node02 receiver--------------------"
     recvfile ipn:2.4 "testkey.hmk" &
     RECVFILE_PID=$!
-    sleep 1
+    sleep $TIMETOWAIT1
 
     # Go to node01, create a test file, and send it $ITERATIONS times
     cd ../node01
@@ -151,9 +161,9 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
     echo "$TEST_FILE_CONTENT" > $TEST_FILE_NAME
     for i in $(seq 1 $ITERATIONS); do
         sendfile ipn:1.4 ipn:2.4 $TEST_FILE_NAME "testkey.hmk"
-        sleep 0.25
+        sleep $TIMETOWAIT2
     done
-    sleep 1
+    sleep $TIMETOWAIT1
     echo -e "\n"  
 
     # Check for the presence of $ITERATIONS files in node02
@@ -182,7 +192,7 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
     done
 
     echo -e "\nShutting down receiver now..."
-    kill -SIGINT $RECVFILE_PID
+    $KILL_CMD $RECVFILE_PID
     wait $RECVFILE_PID
 
     # Clean up: remove test files and stop ion in node02
@@ -198,7 +208,7 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
     echo -e "Starting node02 receiver--------------------"
     recvfile ipn:2.4 "badkey.hmk" &
     RECVFILE_PID=$!
-    sleep 1
+    sleep $TIMETOWAIT1
 
     # check for positive failure condition (mismatched keys)
     cd ../node01
@@ -206,9 +216,9 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
 
     for i in $(seq 1 $ITERATIONS); do
         sendfile ipn:1.4 ipn:2.4 $TEST_FILE_NAME "testkey.hmk"
-        sleep 0.25
+        sleep $TIMETOWAIT2
     done
-    sleep 1
+    sleep $TIMETOWAIT1
     echo -e "\n"  
 
     # Check for the presence of $ITERATIONS files in node02
@@ -243,7 +253,7 @@ if [ $FAILCHECK -eq 0 ] && [ $ENCRYPTION_ENABLED -eq 1 ]; then
 
 
     echo -e "\nShutting down receiver now..."
-    kill -SIGINT $RECVFILE_PID
+    $KILL_CMD $RECVFILE_PID
     wait $RECVFILE_PID
 fi
 
