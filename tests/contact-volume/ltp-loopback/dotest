@@ -8,7 +8,7 @@
 
 source ../../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-ltp/loopback-acs.rc \
 	"
@@ -49,7 +49,7 @@ IONRECEIVEFILE=./ionreceivefile.txt
 EXPECTEDCOUNT=3
 
 echo "Starting ION..."
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback-acs.rc
 else
 	ionstart -I ${CONFIGSROOT}/loopback-ltp/loopback.rc

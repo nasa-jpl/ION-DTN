@@ -9,7 +9,7 @@ function doTestConfig
 {
 	source ../setacs.sh
 
-	if [ $ACS = "found" ] ; then
+	if [[ "$ACS" == "found" ]] ; then
 		
 		CONFIGFILES=" \
 		./node1/host_1-acs.rc \
@@ -90,7 +90,7 @@ function startNodes
 {
 	for i in {1..4}; do
 		cd node$i
-		if [ $ACS = "found" ] ; then
+		if [[ "$ACS" == "found" ]] ; then
 			ionstart -I host_$i-acs.rc 
 		else
 			ionstart -I host_$i.rc 

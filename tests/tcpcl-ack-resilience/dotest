@@ -28,7 +28,7 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -42,7 +42,7 @@ fi
 
 # Set up node 2
 cd ../2.ipn.tcp/
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

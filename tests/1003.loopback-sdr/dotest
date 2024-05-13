@@ -14,7 +14,7 @@ ${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
 
 source ../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
     CONFIGFILES=$CONFIGFILES" ${CONFIGSROOT}/loopback-ltp/loopback.acsrc"
 fi
 
@@ -109,7 +109,7 @@ echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	echo "Running ionstart..."
 	"ionstart" -i "${CONFIGDIR}/loopback.ionrc"  -a "${CONFIGDIR}/loopback.acsrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
 	echo "...finished ionstart script"

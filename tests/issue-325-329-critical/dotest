@@ -17,7 +17,7 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start nodes.
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	cd 1.ipn.ltp
 	./ionstart-acs >& node1.stdout
 	cd ../2.ipn.ltp

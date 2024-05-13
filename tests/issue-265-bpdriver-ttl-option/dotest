@@ -29,7 +29,7 @@ CONFIGFILES=" \
 
 source ../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./1.ipn.bp.udp/config.acsrc "
 fi
 
@@ -84,7 +84,7 @@ echo "Starting ion node..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 cd 1.ipn.bp.udp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs > node.stdout
 else
 	./ionstart > node.stdout

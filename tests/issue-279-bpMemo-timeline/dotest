@@ -13,7 +13,7 @@ CONFIGFILES=" \
 "
 source ../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./test.acsrc"
 fi
 

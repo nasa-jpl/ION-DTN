@@ -21,7 +21,7 @@ CONFIGFILES=" \
 
 source ../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./config/132-udplso-tx-rate-limit.acsrc"
 fi
 
@@ -53,7 +53,7 @@ IONRECEIVEFILE=./testfile1
 
 echo "Starting ION..."
 CONFIGDIR="./config"
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 ionstart                           \
     -i ${CONFIGDIR}/132-udplso-tx-rate-limit.ionrc \
     -a ${CONFIGDIR}/132-udplso-tx-rate-limit.acsrc \

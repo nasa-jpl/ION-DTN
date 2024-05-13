@@ -17,7 +17,7 @@ CONFIGFILES=" \
 
 source ../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./config.acsrc"
 fi
 
@@ -54,7 +54,7 @@ ionadmin config.ionrc
 
 ionsecadmin config.ionsecrc
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	acsadmin config.acsrc
 fi
 

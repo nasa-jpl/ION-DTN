@@ -17,7 +17,7 @@ CONFIGFILES=" \
 
 source ../../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./configs/loopback.acsrc"
 fi
 
@@ -46,7 +46,7 @@ echo "########################################"
 
 echo "Starting ION..."
 cd ./configs
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart

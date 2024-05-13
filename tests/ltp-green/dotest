@@ -23,7 +23,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 2.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs > node2.stdout 
 else
 	./ionstart > node2.stdout 
@@ -39,7 +39,7 @@ else
 fi
 
 cd ../3.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs > node3.stdout 
 else
 	./ionstart > node3.stdout 

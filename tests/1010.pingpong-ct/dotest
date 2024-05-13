@@ -8,7 +8,7 @@ echo "Looking for acsadmin"
 source ../setacs.sh
 
 which acsadmin
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=" \
 	${CONFIGSROOT}/loopback-udp/loopback-acs.rc \
 	"
@@ -99,7 +99,7 @@ ITERATION=1
 echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-udp"
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	echo "ionstart -I ${CONFIGDIR}/loopback-acs.rc"
 	"ionstart" -I "${CONFIGDIR}/loopback-acs.rc"
 else

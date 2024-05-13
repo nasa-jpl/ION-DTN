@@ -64,7 +64,7 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs >& node1.stdout
 else
 	./ionstart >& node1.stdout
@@ -72,7 +72,7 @@ fi
 
 sleep 1
 cd ../2.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs >& node2.stdout
 else
 	./ionstart >& node2.stdout
@@ -80,7 +80,7 @@ fi
 
 sleep 1
 cd ../3.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs >& node3.stdout
 else
 	./ionstart >& node3.stdout
@@ -88,7 +88,7 @@ fi
 
 sleep 1
 cd ../4.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs >& node4.stdout
 else
 	./ionstart >& node4.stdout

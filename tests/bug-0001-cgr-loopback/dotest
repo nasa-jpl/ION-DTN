@@ -16,7 +16,7 @@ CONFIGFILES=" \
 
 source ../setacs.sh
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 
 	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
 fi
@@ -31,7 +31,7 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.ltp/amroc.ipnrc \
 "
 
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
 fi
 
@@ -66,7 +66,7 @@ RETVAL=0
 
 # Start nodes.
 cd 3.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -82,7 +82,7 @@ else
 fi
 
 cd ../2.ipn.ltp
-if [ $ACS = "found" ] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
