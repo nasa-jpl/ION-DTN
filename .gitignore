@@ -226,18 +226,12 @@ build*/*
 \.gcno
 \.gcda
 
-<<<<<<< HEAD
 # Contrib Folder
 contrib/Makefile
 
 # Ignore mkdocs build
 gh-pages/site/*
 gh-pages/docs/man/*
-=======
-# gh pages
-gh-pages/site
-gh-pages/doc/man/*
->>>>>>> 186b66f0 (update man script and remove man dir)
 
 build/*
 ams/doc/html/man1/amsbenchr.html
