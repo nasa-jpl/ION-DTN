@@ -222,7 +222,5 @@ build*/*
 \.gcda
 
 # gh pages
-gh-pages/site
-gh-pages/docs/man/*
 
 build/*
