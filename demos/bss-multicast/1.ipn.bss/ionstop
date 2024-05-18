@@ -3,8 +3,8 @@
 
 bpadmin		.
 sleep 1
-bsspadmin	.
-sleep 1
 ionadmin	.
 sleep 1
+ltpadmin    .
 killall		owltsim
+
