@@ -266,6 +266,7 @@ int	main(int argc, char **argv)
 	time_t	to = 0;
 	time_t	refTime = 0;
 	char	*buffer;
+	struct timeval currentTime;
 	/*  
      * reqArgs - required argements include bss
      *           data base name, path, and EID
@@ -403,8 +404,9 @@ int	main(int argc, char **argv)
 					PUTS("Please provide replay period: fromTime toTime ");
           			PUTS("fromTime and toTime format can be: ");
           			PUTS("(1) 'yyyy/mm/dd-hh:mm:ss'");
-          			PUTS("(2) '+t1 +t2'  where t2 > t1 are positive integers in seconds.");
-					fflush(stdout);
+          			PUTS("(2) '+t1 +t2'  where t2 > t1 are positive relative" 
+            			"times in seconds per UNIX Epoch Time, 1970");
+          			fflush(stdout);
 
 					if (igets(cmdFile, menuNav,
 							sizeof(menuNav),
@@ -445,9 +447,16 @@ arguments");
 				}
 
 				if (to <= 0){
-					PUTS("'To' time set to one second after 'From' due to possible parsing error; check format if \
-						this is not intentional.");
-					to = from + 1;
+					PUTS("'To' time set to current local time or at least 1 second "
+            			"after from time due to possible parsing "
+            			"error or time specified being earlier than EPOCH 2000. "
+            			"Check format if unexpected.");
+					getCurrentTime(&currentTime);
+					to = currentTime.tv_sec;
+					if ( to <= from)
+					{
+						to = from + 1;
+					}
 				}
 
 				/*	Call the replay function      */
