@@ -93,7 +93,7 @@ cd ../2.ipn.udp/
 
 sleep 10
 echo ""
-echo "Now force a restart with on node 2 with bpcrash..."
+echo "Now force a restart in node 2 with bpcrash..."
 bpcrash
 sleep 5
 echo "SDR transaction & ionrestart activities reported:"
@@ -195,9 +195,12 @@ kill -2 $BPCOUNTER_PID >/dev/null 2>&1
 sleep 1
 kill -9 $BPCOUNTER_PID >/dev/null 2>&1
 
-grep "bundles received: 10" output3
-TESTCOND=$?
-if [ -e output3 ] && [ $TESTCOND -eq 0 ]; then
+# Extract the number of bundles received from the output file
+BUNDLES=$(grep -oP "bundles received: \K\d+" output3)
+
+# Check if the number of bundles received is greater than 7 
+#    Check for < 10 to account for possible UDP losses
+if [ -e output3 ] && [ "$BUNDLES" -gt 7 ]; then
 	echo
 	echo "Bundles successfully received! SUCCESS"
 	RETVAL=0

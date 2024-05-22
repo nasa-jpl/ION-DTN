@@ -432,7 +432,7 @@ typedef struct
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
-#define SRR_FLAGS(bundleProcFlags)	((bundleProcFlags >> 8) & 0xff)
+#define SRR_FLAGS(bundleProcFlags)	((bundleProcFlags >> 14) & 0x7f)
 
 typedef struct
 {

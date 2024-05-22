@@ -6252,7 +6252,7 @@ when asking for status reports.");
 	/*	Set bundle processing flags.				*/
 
 	bundleProcFlags = srrFlags;
-	bundleProcFlags <<= 8;	/*	Other flags in low-order byte.	*/
+	bundleProcFlags <<= 14;	/*	Other flags in low-order byte.	*/
 	bundleProcFlags |= BDL_STATUS_TIME_REQ;
 	if (sourceMetaEid == NULL)
 	{
