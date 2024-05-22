@@ -3475,7 +3475,7 @@ typedef struct {
 	/* the global semaphore table */
 	SmGlobalSem	gsemtable[SEM_NSEMS_MAX];
 
-	/* low-overhead statistics for tuning memory if desired  - reported on shutdown */
+	/* low-overhead statistics for tuning memory if desired  - reported on shutdown (if DEBUG_POSIX_NAMED_SEMAPHORES is set)*/
 	unsigned opensems_current;
 	unsigned opensems_max;
 
@@ -3630,12 +3630,14 @@ static SmProcessSemtable *_semTbl(int action)
 	static int	semTableInitialized = 0;
 
 	if ((action == IPC_ACTION_STOP) || (action == IPC_ACTION_DETACH)) {
+#ifdef DEBUG_POSIX_NAMED_SEMAPHORES
 		if (semTableInitialized) {
 			/* for memory usage profiling */
 			writeMemoNote("Posix Named Semaphores - Total Configured", itoa(SEM_NSEMS_MAX));
 			writeMemoNote("Posix Named Semaphores - Current Usage", itoa(semStruct.semtablegl->opensems_current));
 			writeMemoNote("Posix Named Semaphores - Maximum Usage", itoa(semStruct.semtablegl->opensems_max));
 		}
+#endif /* DEBUG_POSIX_NAMED_SEMAPHORES */
 
 		semTableInitialized = 0;
 		return NULL;
