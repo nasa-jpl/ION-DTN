@@ -196,11 +196,12 @@ sleep 1
 kill -9 $BPCOUNTER_PID >/dev/null 2>&1
 
 # Extract the number of bundles received from the output file
-BUNDLES=$(grep -oP "bundles received: \K\d+" output3)
+# target line is of the form: Stopping bpcounter; bundles received: 10
+BUNDLES=$(egrep -o "bundles received: [0-9]+" output3 | egrep -o '[0-9]+')
 
 # Check if the number of bundles received is greater than 7 
 #    Check for < 10 to account for possible UDP losses
-if [ -e output3 ] && [ "$BUNDLES" -gt 7 ]; then
+if [ -e output3 ] && [ -n "$BUNDLES" ] && [ "$BUNDLES" -gt 7 ]; then
 	echo
 	echo "Bundles successfully received! SUCCESS"
 	RETVAL=0
