@@ -627,7 +627,9 @@ extern int getpriority(int, id_t);
 #define POSIX_NAMED_SEMAPHORES
 #endif /* FORCE_SVR4_SEMAPHORES */
 #ifdef  POSIX_NAMED_SEMAPHORES
+#ifdef  DEBUG_POSIX_NAMED_SEMAPHORES
 #pragma message("**  Using NEW Posix Named Semaphores on Solaris")
+#endif  /* DEBUG_POSIX_NAMED_SEMAPHORES */
 #endif  /* POSIX_NAMED_SEMAPHORES */
 
 
@@ -670,7 +672,9 @@ int pthread_setname_np(pthread_t thread, const char *name);
 #define POSIX_NAMED_SEMAPHORES
 #endif /* FORCE_SVR4_SEMAPHORES */
 #ifdef  POSIX_NAMED_SEMAPHORES
+#ifdef  DEBUG_POSIX_NAMED_SEMAPHORES
 #pragma message("**  Using NEW Posix Named Semaphores on Linux")
+#endif  /* DEBUG_POSIX_NAMED_SEMAPHORES */
 #endif  /* POSIX_NAMED_SEMAPHORES */
 
 #ifdef bionic			/****	Bionic subset of Linux      ****/
@@ -755,7 +759,9 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #define POSIX_NAMED_SEMAPHORES
 #endif /* FORCE_SVR4_SEMAPHORES */
 #ifdef  POSIX_NAMED_SEMAPHORES
+#ifdef  DEBUG_POSIX_NAMED_SEMAPHORES
 #pragma message("**  Using NEW Posix Named Semaphores on MacOS")
+#endif  /* DEBUG_POSIX_NAMED_SEMAPHORES */
 #endif  /* POSIX_NAMED_SEMAPHORES */
 
 /* allow the default to be overwritten */
