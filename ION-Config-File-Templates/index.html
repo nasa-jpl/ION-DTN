@@ -726,9 +726,27 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#usage-notes" class="md-nav__link">
+  <a href="#two-node-ion-configurations" class="md-nav__link">
     <span class="md-ellipsis">
-      Usage Notes
+      Two-node ION configurations:
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#three-node-ion-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Three-node ION Configuration
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes
     </span>
   </a>
   
@@ -1600,41 +1618,28 @@
 
 
 <h1 id="available-configuration-file-templates">Available Configuration File Templates</h1>
-<p>The following configurations can be downloaded (see file attachment)</p>
+<h2 id="two-node-ion-configurations">Two-node ION configurations:</h2>
 <ul>
 <li>Two-Node BP over UDP Configuration <a href="../config-templates/bench-udp.tar.gz">download</a></li>
 <li>Two-Node BP over TCP Configuration <a href="../config-templates/bench-tcp.tar.gz">download</a></li>
 <li>Two-Node BP over LTP Configuration <a href="../config-templates/bench-ltp.tar.gz">download</a></li>
 <li>Two-Node BP over BSSP Configuration <a href="../config-templates/bench-bssp.tar.gz">download</a></li>
 <li>Two-Node BP over STCP Configuration <a href="../config-templates/bench-stcp.tar.gz">download</a></li>
-<li>Two-Node CFDP over BP over LTP Configuration <a href="../config-templates/bench-cfdp.tar.gz">download</a></li>
-<li>In this CFDP configuration file, we also included a CFDP command file that can be used with  cfdptest  program to send and receive data. Please use  man cfdptest for information on command syntax and functions. - bench-cfdp.tar.gz</li>
-<li>Two-Node 'dgr' <a href="../config-templates/bench-dgr.tar.gz">download</a></li>
-<li>Two-Node 'bibe-ct-udp' - bench-bibect-udp.tar.gz <a href="../config-templates/bench-bibect-udp.tar.gz">download</a></li>
-<li>Check the README.txt file for further instruction on how to use the scenario for simple testing</li>
+<li>Two-Node CFDP over BP over LTP Configuration <a href="../config-templates/bench-cfdp.tar.gz">download</a> - in this CFDP configuration file, we also included a CFDP command file that can be used with  cfdptest  program to send and receive data. Please use <code>man cfdptest</code> to get information on command syntax and functions.</li>
+<li>Two-Node Datagram Retransmission (DGR) <a href="../config-templates/bench-dgr.tar.gz">download</a></li>
+<li>Two-Node Bundle-In-Bundle Encapsulation with Custody Transfer (BIBE-CT) <a href="../config-templates/bench-bibect-udp.tar.gz">download</a></li>
 </ul>
-<h2 id="usage-notes">Usage Notes</h2>
+<h2 id="three-node-ion-configuration">Three-node ION Configuration</h2>
 <ul>
-<li>All ION nodes are placed in a subnetwork 192.168.3.0/24.</li>
-<li>Node number x, will be given IP address of 192.168.3.y where y = 20 + x. So node 2 will have address of 192.168.3.22.</li>
-<li>Some configurations uses specific port ID; there are no consistent patterns in the selection of port IDs. You may need to modify the port ID to work with your firewall settings.</li>
-<li>ION is configured with</li>
-<li>50MB of ION working memory</li>
-<li>20M words (1 word is 8 bytes for 64 bit OS, and 4 bytes for 32 bit OS) of heap space</li>
-<li>SDR is implemented in DRAM only</li>
-<li>SDR working memory is not specified, therefore default to 1MB only. This may not be sufficient when you have large quantity of data staged in ION. Please update based on your operational scenario.</li>
-<li>The communications link is configured for a minimal of 1 second delay but with varying data rates. Again, there are no right or wrong values. They should be updated according to your target test environment.</li>
-<li>To launch each ION node, enter the configuration folder and execute ./ionstart</li>
-<li>To terminate each ION node, please utilize the killm  command</li>
-<li>After each run there might be artifact left over in the working directory such as</li>
-<li>Temporary ltp and bp acquisition files (if the shutdown occurs while data acquisition did not complete),</li>
-<li>Temporary file created by bpdriver as bundle data payload</li>
-<li>BSSP database files with extension such as .tbl , .dat , and .lst , etc.</li>
-<li>ion.log</li>
-<li>You may consider clearing (deleting) these files before your next run.</li>
-<li>The number of end-points defined are limited. If you need more, please update .bprc file.</li>
+<li>Three-Node 'spacecraft-relay-ground' scenario with BPv7 and LTP <a href="../config-templates/3-node-GS-Relay-SC-LTP.zip">download</a></li>
 </ul>
-<p>These configuration files are provided to give you a basic functional setup; they may not be sufficient to support all features and throughput performance you want to achieve for your network. So please use them as a template and apply update as necessary.</p>
+<h2 id="notes">Notes</h2>
+<p>The choice of IP addresses, port IDs, contact delay ('range') and data rate, and memory/storage for 'heap', 'SDR working memory', 'ION working memory', etc, do not indicate a recommended setting. The approproiate setting for ION must be tailored to your specific use case.</p>
+<p>To understand the full range of configuration parameters, please consult the appropriate man pages for more details: for memory configuration, see <code>man ionconfig</code>, for ION and contact graph configurations, see <code>man ionrc</code>, For bundle protocol and LTP protocol configurations options, see <code>man bprc</code>, <code>man ltprc</code>, etc.</p>
+<p>To launch each ION node, cd into the configuration folder and execute the appropriate shell script that will launch ION by running a series of administration programs. This script is   called <code>./ionstart</code> or <code>./start_&lt;name name&gt;</code> in these examples but they can be called anything.</p>
+<p>To terminate each ION node, please utilize a globall installed <code>killm</code> or <code>ionstop</code> script.</p>
+<p>You can write and use your own script to shutdown ION from the local directory. The advantage of using your own script is that you can also clean up, and post-process data generated during the ION execution such as removing unwanted files and storing/copying the <code>ion.log</code> to a different location.</p>
+<p>These configuration files are provided to give you a basic functional setup; they may not be sufficient to support all features and achieve the throughput performance needed by your applications. Please use them as a template and modify/optimize as necessary.</p>
 
 
 

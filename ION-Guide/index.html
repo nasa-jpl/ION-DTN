@@ -2689,7 +2689,7 @@
 <tbody>
 <tr>
 <td>V4.1.3</td>
-<td>12/08 /2023</td>
+<td>12/08/2023</td>
 <td>converted to MarkDown</td>
 <td></td>
 </tr>
@@ -3531,12 +3531,21 @@ For more information, please see the <a href="../AMS-Programmer-Guide/">AMS Prog
 <h4 id="datagram-retransmission-dgr"><strong>Datagram Retransmission (DGR)</strong></h4>
 <p>The DGR package in ION is an alternative implementation of LTP that is
 designed to operate responsibly -- i.e., with built-in congestion
-control -- in the Internet or other IP-based networks. It is provided as
+control -- in the Internet or other IP-based networks running UDP. It is provided as
 a candidate "primary transfer service" in support of AMS operations in
 an Internet-like (non-delay-tolerant) environment. The DGR design
 combines LTP's concept of concurrent transmission transactions with
 congestion control and timeout interval computation algorithms adapted
-from TCP.</p>
+from TCP. DGR includes an adaptive timeout-interval-computing component that provides
+maximum opportunity for reception of acknowledgements, minimizing retransmission. 
+By monitoring changes in the rate at which message-transmission transactions 
+are completed, DGR detects changes in the level of congestion and 
+responds by imposing varying degrees of delay on the transmission of 
+new messages. In addition, DGR maximizes throughput by not waiting 
+for acknowledgement of a message before sending the next message. All 
+DGR communication is asynchronous, to maximize efficient utilization of 
+network connections. DGR manages multiple concurrent datagram transmission 
+and acknowledgement conversations.</p>
 <h4 id="ccsds-file-delivery-protocol-cfdp"><strong>CCSDS File Delivery Protocol (CFDP)</strong></h4>
 <p>The ION implementation of CFDP conforms fully to Service Class 1
 (Unreliable Transfer) of CCSDS 727.0-B-4, including support for the
