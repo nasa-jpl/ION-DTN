@@ -30,7 +30,7 @@ stamp-h1
 *.la
 
 # Ignore renamed Makefiles
-#*.dev
+*.dev
 
 # Binaries or their equiv libtool wrappers
 amsbenchr
@@ -199,6 +199,8 @@ doc/appendix-a-contents.txt
 
 # Test output
 ion.log
+ion_nodes
+*.stdout
 
 # Produced test support
 tests/retest
@@ -220,6 +222,9 @@ build*/*
 # Coverage Files
 \.gcno
 \.gcda
+
+# Contrib Folder
+contrib/Makefile
 
 # Ignore mkdocs build
 gh-pages/site/*
@@ -397,3 +402,4 @@ ltp/doc/html/man5/ltprc.html
 ltp/doc/html/man5/ltpsecrc.html
 ltp/i86_64-fedora/lib/libltp.so
 restart/doc/html/man1/ionrestart.html
+
