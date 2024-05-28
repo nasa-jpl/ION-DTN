@@ -9108,7 +9108,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (bundle->altered == 1)
 	{
-		writeMemo("[?] security verification failed for target extension block.");
+		writeMemo("[?] security verification failed for target block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
 		return abortBundleAcq(work);	
@@ -9124,6 +9124,12 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	/* check additional error codes after security verification */
 
+#if 0
+	/*	Note: this check is unnecessary, as bpsec_verify()
+	 *	has already inspected the value of work->authentic
+	 *	and set the value of bundle->clDossier.authentic
+	 *	accordingly.			SB 5/26/2024		*/
+
 	if (work->authentic == 0)
 	{
 		writeMemo("[?] security block misconfigured for target payload block.");
@@ -9131,18 +9137,11 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 			bundle->payload.length);
 		return abortBundleAcq(work);	
 	}
+#endif
 
 	if (bundle->clDossier.authentic == 0)
 	{
 		writeMemo("[?] Bundle judged inauthentic.");
-		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
-				bundle->payload.length);
-		return abortBundleAcq(work);
-	}
-
-	if (bundle->altered)
-	{
-		writeMemo("[?] Altered bundle: target payload block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
 		return abortBundleAcq(work);
