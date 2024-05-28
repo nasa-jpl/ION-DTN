@@ -7,7 +7,7 @@
 
 | Ver No. | Date        | Description                                                             | Note            |
 | ------- | ----------- | ----------------------------------------------------------------------- | --------------- |
-| V4.1.3  | 12/08 /2023 | converted to MarkDown                                                   |                 |
+| V4.1.3  | 12/08/2023  | converted to MarkDown                                                   |                 |
 | V4.0.1  | 11/20/2020  | ION 4.0.1                                                               |                 |
 | V3.6.2  | 11/19/2018  | ION 3.6.2 release features                                              | Skipped V3.6.1. |
 | V3.6    | 12/31/2017  | ION 3.6 release features                                                | Skipped V3.5.   |
@@ -820,12 +820,21 @@ For more information, please see the [AMS Programmer&#39;s Guide.](AMS-Programme
 
 The DGR package in ION is an alternative implementation of LTP that is
 designed to operate responsibly -- i.e., with built-in congestion
-control -- in the Internet or other IP-based networks. It is provided as
+control -- in the Internet or other IP-based networks running UDP. It is provided as
 a candidate "primary transfer service" in support of AMS operations in
 an Internet-like (non-delay-tolerant) environment. The DGR design
 combines LTP's concept of concurrent transmission transactions with
 congestion control and timeout interval computation algorithms adapted
-from TCP.
+from TCP. DGR includes an adaptive timeout-interval-computing component that provides
+maximum opportunity for reception of acknowledgements, minimizing retransmission. 
+By monitoring changes in the rate at which message-transmission transactions 
+are completed, DGR detects changes in the level of congestion and 
+responds by imposing varying degrees of delay on the transmission of 
+new messages. In addition, DGR maximizes throughput by not waiting 
+for acknowledgement of a message before sending the next message. All 
+DGR communication is asynchronous, to maximize efficient utilization of 
+network connections. DGR manages multiple concurrent datagram transmission 
+and acknowledgement conversations.
 
 #### **CCSDS File Delivery Protocol (CFDP)**
 
