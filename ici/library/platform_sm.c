@@ -3438,6 +3438,21 @@ void	sm_Abort()
 #define SM_SEMTBLKEY	(0xee08)
 #endif
 
+/* file mode to use for ION posix named semaphores */
+/* Note that the ION Posix Named Semaphores are global to the computer, being used by */
+/* ALL ION instances on the computer.  That can cause problems if multiple USERS are creating */
+/* ION instances on a single computer because ION can't clean up the semaphores of another */
+/* user unless those semaphores are 'world deletable' */
+
+/* this file mode is the safest - meaning that other users on the computer can't */
+/* manipulate/delete the ION shared semaphores, but it will fail if multuple users */
+/* run ION after one-another because they can't clean up the global semaphores */
+// #define POSIX_NAMED_SEMAPHORES_FILEMODE 	(S_IRUSR | S_IWUSR)
+
+/* this file mode is easier to use if multiple _FRIENDLY_ users are using ION at the same time */
+#define POSIX_NAMED_SEMAPHORES_FILEMODE 	(S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
+
+
 /* For ensuring that the per-process sem table is in sync with the global sem table */
 /* This can overflow - but we only check for equivalence */
 /* This number is incremented every time there is a change in ANY semaphore (creation or deletion)  */
@@ -3585,6 +3600,7 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum)
 {
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 	sem_t *psem;
+	mode_t oldmask;  /* save current umode() mask so we can restore it after open() */
 
 	SmLocalSem 	*plocalSem  = &plocal->lsemtable[semnum];
 	SmGlobalSem *pglobalSem = plocalSem->semgl;
@@ -3603,13 +3619,20 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum)
 		/* MUST already exist */
 		/* we might have it open locally, so close that first, it may have changed */
 		oK(sem_close(plocalSem->id));
+
+		/* ensure that we're using EXACTLY the mode bits in POSIX_NAMED_SEMAPHORES_FILEMODE regardless */
+		/* of the account's setting of umask() */
+		oldmask = umask(0);
+
 		_semGenPosixSemname(sem_name,sizeof(sem_name),semnum);
-		if ((psem = sem_open(sem_name, O_CREAT, S_IRUSR | S_IWUSR, 0 )) == SEM_FAILED) {
+		if ((psem = sem_open(sem_name, O_CREAT, POSIX_NAMED_SEMAPHORES_FILEMODE, 0 )) == SEM_FAILED) {
 			perror("sem_open");
 			putSysErrmsg("Can't initialize IPC semaphore", sem_name);
+			umask(oldmask);  /* restore previous umask() */
 			giveIpcLock();  
 			return 0;
 		}
+		umask(oldmask);  /* restore previous umask() */
 		plocalSem->id = psem;
 	} else {
 		/* NOT (or no longer) in use globally, remove our version */
@@ -3828,19 +3851,24 @@ static sem_t	*_ipcSemaphore(int action)
 	if (ipcSemInitialized == 0) {
 		char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 		sem_t *psem;
+		mode_t oldmask;  /* save current umode() mask so we can restore it after open() */
 
 		oK(_semTbl(IPC_ACTION_LOOKUP));  /* create the shared memory if not already done */
 
-		_semGenPosixSemname(sem_name,sizeof(sem_name),-1); /* make the semaphore that all ION instances/procs will use */
+		/* ensure that we're using EXACTLY the mode bits in POSIX_NAMED_SEMAPHORES_FILEMODE regardless */
+		/* of the account's setting of umask() */
+		oldmask = umask(0);
 
-		if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0 )) != SEM_FAILED)
+		_semGenPosixSemname(sem_name,sizeof(sem_name),-1); /* make the semaphore that all ION instances/procs will use */
+		if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0 )) != SEM_FAILED)
 		{
 			/* specified '| O_EXCL', so we are the first to open it */
 			if (sem_post(psem) == -1) {
 				putSysErrmsg("Can't initialize IPC semaphore as mutex", sem_name);
+				umask(oldmask);  /* restore umask() */
 				return NULL;
 			}
-		} else if ((psem = sem_open(sem_name, O_CREAT, S_IRUSR | S_IWUSR, 0 )) != SEM_FAILED) {
+		} else if ((psem = sem_open(sem_name, O_CREAT, POSIX_NAMED_SEMAPHORES_FILEMODE, 0 )) != SEM_FAILED) {
 			/* we joined a semaphore that already exists */
 			/* Note that there's a race condition of sorts here, but it's OK... */
 			/* the previous block might NOT have been done yet (which will set the */
@@ -3850,8 +3878,11 @@ static sem_t	*_ipcSemaphore(int action)
 		} else {
 			/* failed, can't open it at all - shouldn't happen */
 			putSysErrmsg("Can't initialize IPC semaphore", sem_name);
+			umask(oldmask);  /* restore umask() */
 			return NULL;
 		}
+
+		umask(oldmask);  /* restore umask() */
 
 		ipcSemPtr = psem;
 
@@ -3917,6 +3948,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	SmLocalSem	*sem;
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 	sem_t *psem;
+	mode_t oldmask;  /* save current umode() mask so we can restore it after open() */
 
 	takeIpcLock();  /* lock global table across ALL Ion instances */\
 	/*	If key was specified, try to find it  */
@@ -3961,13 +3993,20 @@ sm_SemId	sm_SemCreate(int key, int semType)
 		key = SEM_ANON_KEY; 
 	}
 	_semGenPosixSemname(sem_name,sizeof(sem_name),freeslot);
-	
+
+	/* ensure that we're using EXACTLY the mode bits in POSIX_NAMED_SEMAPHORES_FILEMODE regardless */
+	/* of the account's setting of umask() */
+    oldmask = umask(0);
+
 	/* at this point, it's a new key and the name "sem_name" shouldn't be in use */
-	if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 0 )) == SEM_FAILED) {
+	if ((psem = sem_open(sem_name, O_CREAT | O_EXCL, POSIX_NAMED_SEMAPHORES_FILEMODE, 0 )) == SEM_FAILED) {
 		putSysErrmsg("Semaphore open failed for sem file ", sem_name);
+		umask(oldmask);  /* restore umask() */
 		giveIpcLock();
 		return SM_SEM_NONE;
 	}
+
+	umask(oldmask);  /* restore umask() */
 
 	/* semaphore named key didn't already exist, but now it does */
 	sem->id = psem;
