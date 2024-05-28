@@ -2,6 +2,8 @@
 
 ## Installing ION on Linux, MacOS, Solaris
 
+To build ION on Linux system, make sure install and update the `automake`, `autoconf`, and `libtool` packages.
+
 To build and install the entire ION system on a Linux, MacOS, or Solaris platform, cd into ion-open-source and enter the following commands:
 
 `./configure`
@@ -42,7 +44,7 @@ To install ION for Windows, please download the Windows installer.
 
 ## Build Individual Packages
 
-It's also possible to build the individual packages of ION, using platform-specific Makefiles in the package subdirectories.  Currently  the only actively maintained platform-specific Makefile is for 64-bits Linux under the "i86_48-fedora" folder. If you choose this option, be aware of the dependencies among the packages:
+It's also possible to build the individual packages of ION, using a set of platform-specific _development_ Makefiles in the package subdirectories. Currently  the only actively maintained platform-specific Makefile is for 64-bits Linux under the "i86_48-fedora" folder. If you choose this option, be aware of the dependencies among the packages:
 
 * The "ici" package must be built (run `make` and `make install`) before any other package.
 * The "bp" package is dependent on "dgr" and "ltp" and "bssp" as well as "ici"
@@ -51,11 +53,13 @@ It's also possible to build the individual packages of ION, using platform-speci
 
 For more detailed instruction on building ION, see section 2 of the "ION Design and Operation Guide" document that is distributed with this package.
 
-Also, be aware that these Makefiles install everything into subdirectories of /usr/local.  To override this behavior, change the value of `OPT` in the top-level Makefile of each package.
+If you have executed `./configure` already, the development `Makefile` in each individual modules as well as the top-level `Makefile` in the ION root directory will be renamed as `Makefile.dev`. Because the automake system and the manual build systems organize the libraries differently, it is important that if you plan to switch from the automake system back to the manual build using the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo. 
 
-Additional details are provided in the README.txt files in the root directories of some of the subsystems.
+Also, be aware that these development Makefiles install everything into subdirectories of `/usr/local`, so make sure they are part of your execution and libary paths. To override this behavior, change the value of `OPT` in the top-level Makefile of each package.
 
-Note that all Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake before trying to build ION.
+Additional details are provided in the README.txt files in the root directories of the subsystems.
+
+All Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake before trying to build ION.
 
 ## Running ION
 
