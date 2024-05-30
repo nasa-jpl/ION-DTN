@@ -85,7 +85,7 @@ static int check_unique_keys()
 	sm_SemId unique_sm_id[num_uniq_keys];
 	int sm_unique_key[num_uniq_keys];
 	int non_unique_count;
-	u_long iterations = 50000;
+	unsigned iterations = 50000;
 	int nprocs = 10;
 	int p;
 	static uaddr id;
@@ -94,7 +94,7 @@ static int check_unique_keys()
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  check_unique_keys() Running %lu iterations in each of %d processes\n\n", iterations, nprocs);
+	printf("  check_unique_keys() Running %u iterations in each of %d processes\n\n", iterations, nprocs);
 
 	// generate 2 'unique' keys to ensure that we never get them again below
 	sm_unique_key[0] = sm_GetUniqueKey();
@@ -185,7 +185,7 @@ int counter = 0;
 
 
 static int
-thread_adder_guts (int *pcounter, u_long iterations)
+thread_adder_guts (int *pcounter, unsigned iterations)
 {
 	int iter;
 	if (debug) fprintf (stderr,"I am a worker adding to shared variable at address %p (protected by semaphore %d)\n", pcounter, semnum);
@@ -204,7 +204,7 @@ thread_adder_guts (int *pcounter, u_long iterations)
 static void *
 thread_adder (void *parg)
 {
-	u_long iterations = *((int *)parg);
+	unsigned iterations = *((int *)parg);
 
 	thread_adder_guts(&counter, iterations);
     pthread_exit (NULL);
@@ -219,14 +219,14 @@ static int multi_thread_semtest()
 	#define MAXTHREADS 100
 	pthread_t threads[MAXTHREADS];	
 	unsigned nthreads = 10;
-	u_long iterations = 300000;
+	unsigned iterations = 300000;
 	long int critical_sections;
 	int correct;
 
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  multi_thread_semtest() Running %lu iterations in each of %d threads\n", iterations, nthreads);
+	printf("  multi_thread_semtest() Running %u iterations in each of %d threads\n", iterations, nthreads);
 
 	semnum = sm_SemCreate (-1, 0);
 
@@ -234,7 +234,9 @@ static int multi_thread_semtest()
 
     for (i = 0; i < nthreads; i++)
         {
-            pthread_create (&threads[i], NULL, thread_adder, (void *)&iterations);
+            if (pthread_create (&threads[i], NULL, thread_adder, (void *)&iterations) != 0) {
+				perror("pthread_create");
+			}
         }
 
     for (i = 0; i < nthreads; i++)
@@ -275,7 +277,7 @@ static int multi_process_semtest()
     struct timeval time_begin, time_end;
 	uaddr shmid;
 	int nprocs = 10;
-	u_long iterations = 300000;
+	unsigned iterations = 300000;
 
 	struct shmem {
 		int semnum;
@@ -285,7 +287,7 @@ static int multi_process_semtest()
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  multi_process_semtest() Running %lu iterations in each of %d processes\n", iterations, nprocs);
+	printf("  multi_process_semtest() Running %u iterations in each of %d processes\n", iterations, nprocs);
 
 	/* create shared memory to store counter */
 	int fdshm = sm_ShmAttach(-1, sizeof(*pshmemInt), (void *) &pshmemInt, &shmid);
@@ -412,7 +414,7 @@ int sem_errors()
 }
 
 
-void do_churn(int p, u_long iterations)
+void do_churn(int p, unsigned iterations)
 {
 	int numsems_each = 10;
 	int i, s;
@@ -449,14 +451,14 @@ if (debug) fprintf(stderr,"%%%% Calling SemDelete(%d) [%d] in process %d (%d)\n"
 int semaphore_churn()
 {
 	int nprocs = 10;
-	u_long iterations = 15000;
+	unsigned iterations = 15000;
 	int p;
 	int pids[nprocs];
 
 	if (exhaustive_test_multiplier > 0)
 		iterations *= exhaustive_test_multiplier;
 
-	printf("  semaphore_churn() Running %lu iterations in each of %d processes\n", iterations, nprocs);
+	printf("  semaphore_churn() Running %u iterations in each of %d processes\n", iterations, nprocs);
 
 	for (p = 0; p < nprocs; ++p) {
 		if (debug) fprintf(stderr,"Making child process %d\n", p);
