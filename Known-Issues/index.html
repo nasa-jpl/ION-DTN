@@ -888,7 +888,7 @@
           <li class="md-nav__item">
   <a href="#sdr-transaction-reversal" class="md-nav__link">
     <span class="md-ellipsis">
-      SDR transaction reversal ###
+      SDR transaction reversal
     </span>
   </a>
   
@@ -898,6 +898,15 @@
   <a href="#init-process-pid-1" class="md-nav__link">
     <span class="md-ellipsis">
       'Init' Process PID 1
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permission-issue-with-named-semaphore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Permission Issue with named semaphore
     </span>
   </a>
   
@@ -1724,7 +1733,7 @@
 <li>When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to <code>root</code>. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the <code>make clean</code> and <code>git stash</code> command to remove all build and testing artifacts from ION 's source directory before exiting the container.</li>
 </ul>
 <h2 id="sdr-transaction">SDR transaction</h2>
-<h3 id="sdr-transaction-reversal">SDR transaction reversal ###</h3>
+<h3 id="sdr-transaction-reversal">SDR transaction reversal</h3>
 <p>When SDR transaction is canceled due to anomaly, ION will attempt automatically try the following:</p>
 <ol>
 <li>Reverse transaction - if it is configured - to revert modifications to the SDR's heap space which contains both user and protocol data units. This action rolls back a series of operations on the SDR's data of the cancelled the transaction. </li>
@@ -1734,6 +1743,15 @@
 <h3 id="init-process-pid-1">'Init' Process PID 1</h3>
 <p>The reloading of the volatile state and restarting of daemons is necessary to ensure the ION system is in a consistent state before resuming normal operations. </p>
 <p>During the reloading of the volatile state, the bundle protocol schemes, inducts, and outducts are stopped by terminating the associated daemons. The restart process will wait for the daemon's to be terminated before restarting them. When running ION inside a docker container, the <code>init</code> process (PID 1) should be properly configured to reap all zombie processes because the restart process cannot proceed if a terminated daemon remains a zombie. Typically to ensure the proper <code>init</code> process, one should use the <code>--init</code> option for <code>docker run</code> command.</p>
+<h3 id="permission-issue-with-named-semaphore">Permission Issue with named semaphore</h3>
+<p>If you encounter an error reported in ion.log file such as this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>at line 3850 of ici/library/platform_sm.c, Can&#39;t initialize IPC semaphore: Permission denied (/ion:GLOBAL:ipcSem)
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>at line 3868 of ici/library/platform_sm.c, Can&#39;t initialize IPC.
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>at line 481 of ici/sdr/sdrxn.c, Can&#39;t initialize IPC system.
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>at line 695 of ici/library/ion.c, Can&#39;t initialize the SDR system.
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>at line 216 of ici/utils/ionadmin.c, ionadmin can&#39;t initialize ION.
+</code></pre></div>
+<p>It indicates that ION is unable to clean out previously left behind semaphore files. This typically occurs when the previous ION run was launched by a different user, and ION was not properly shutdown via a shutdown script - instead, the global <code>ionstop</code> or <code>killm</code> script was used. The semaphore files used by POSIX named semaphore typically only allows the owner to delete it. The work around is to clear these files out. ION-related semaphore files have the name pattern of <code>sem.ion:GLOBAL:&lt;integer&gt;</code>. For Ubuntu, it is usually found in the <code>/dev/shm</code> directory; for other Linux distribution, the location can be different.</p>
 <h2 id="reporting-issues">Reporting Issues</h2>
 <ul>
 <li>ION related issues can be reported to the public GitHub page for ION-DTN or ion-core.</li>
