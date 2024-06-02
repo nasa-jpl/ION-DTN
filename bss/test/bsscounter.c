@@ -80,10 +80,10 @@ static int	display(time_t sec, unsigned long count, char *buf,
 
 static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 {
-	static int		dbRecordsCount = 0;
+	int		dbRecordsCount = 0;
 	bssNav		nav;
 	static time_t		bundleSec = 0;
-	static unsigned long	bundleCount = 0;
+	unsigned long	bundleCount = 0;
 	long		bytesRead;
 
 	/* This function performs a database read.
@@ -124,6 +124,9 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 		writeMemo("[?] BSS database is missing data...");
 		return -1;
 	}
+
+	printf("Recheck Database reception total count....");
+	fflush(stdout);
 
 	while (1)
 	{
@@ -197,7 +200,7 @@ int	main(int argc, char **argv)
 	char	*buffer;
 	int	result;
 	int recv_count = 0;
-	long playback_wait = 0;
+	long playback_wait = 5;
 
 	if (argc > 6) argc = 6;
 	switch (argc)
@@ -236,7 +239,7 @@ int	main(int argc, char **argv)
 		puts("Usage: bsscounter <number of bundles to receive> <BSS \
 database name> <path for BSS database files> <own endpoint ID> \
 <optional: playback delay in seconds> - adding playback delay allows \
-for complete accounting of out-or-order delivery.");
+for complete accounting of out-or-order delivery, default 5 seconds.");
 		fflush(stdout);
 		return 1;
 	}
@@ -278,6 +281,8 @@ for complete accounting of out-or-order delivery.");
 			break;
 
 		case 0:
+			puts("reception no complete yet...");
+			fflush(stdout);
 			continue;		/*	Not done yet.	*/
 
 		default:
