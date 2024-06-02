@@ -81,7 +81,7 @@ static int	display(time_t sec, unsigned long count, char *buf,
 static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 {
 	static int		dbRecordsCount = 0;
-	static bssNav		nav;
+	bssNav		nav;
 	static time_t		bundleSec = 0;
 	static unsigned long	bundleCount = 0;
 	long		bytesRead;
@@ -96,7 +96,9 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 	/* reset nav data structure */
 	memset((char *) &nav, 0, sizeof nav);
 
-	/* 	wait for initial data arrival */
+	/* 	Wait for initial data arrival, we 
+	 *  assume database is empty, otherwise
+	 *  we will pick up previous data stream. */
 	if (bundleSec == 0)
 	{
 		puts("Waiting for stream...");
@@ -113,6 +115,14 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 			fflush(stdout);
 			snooze(playback_wait);
 		}
+	}
+
+	/* Now we reset nav in case the first arrival is 
+	 * not the actual first bundle in the stream */
+	if (bssSeek(&nav, 0, &bundleSec, &bundleCount) < 0)
+	{
+		writeMemo("[?] BSS database is missing data...");
+		return -1;
 	}
 
 	while (1)
