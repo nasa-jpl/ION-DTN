@@ -4040,6 +4040,12 @@ void	sm_SemDelete(sm_SemId i)
 
 	takeIpcLock();
 
+	if (!sem->semgl->inUse) {
+		/* might have been deleted by somebody else since we looked it up above... */
+		/* in which case, there's nothing for us to do */
+		giveIpcLock();
+	}
+
 	_semGenPosixSemname(sem_name, sizeof(sem_name), i);
 
 	if (sem_close(sem->id) == -1) {
