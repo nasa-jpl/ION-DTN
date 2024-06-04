@@ -205,7 +205,7 @@ int bpsec_util_eidIsLocalCheck(EndpointId eid);
 extern int      bpsec_util_destIsLocalCheck(Bundle *bundle);
 extern char     *bpsec_util_localAdminEIDGet(char *eid);
 extern void     bpsec_util_outboundItemGet(uint8_t itemNeeded, Object items, Object *tvp);
-extern int      bpsec_util_zcoFileSourceTransferTo(Sdr sdr,
+extern int      bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
                 Object *resultZco, Object *acqFileRef,
                 char *fname, char *bytes, uvast length);
 Object        bspsec_util_findOutboundBpsecTargetBlock(Bundle *bundle, int tgtBlkNum, BpBlockType sopType);
