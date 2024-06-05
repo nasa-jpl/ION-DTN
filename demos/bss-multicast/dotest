@@ -124,15 +124,47 @@ echo "Wait 15 seconds to ensure the complete reception of the stream from node 2
 sleep 15
 pkill bssrecv
 
+# Check that data was actually received in the database
+cd ../3.ipn.bss
+if [ ! -s bssDB.dat ]; then
+    echo "Node 3 did not receive data, test failed."
+	exit 1
+fi
+
+cd ../4.ipn.bss
+if [ ! -s bssDB.dat ]; then
+    echo "Node 4 did not receive data, test failed."
+	exit 1
+fi
+
 echo
 echo "Replaying the received stream."
 cd ../3.ipn.bss
-xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" &
+xterm -geom 160x40 -e "bssrecv 1 bssDB ./ imc:19.0 +0 \"$TOTIME\" | tee node3_replay.stdout" &
 cd ../4.ipn.bss
-xterm -geom 160x40 -e bssrecv 1 bssDB ./ imc:19.0 +0 "$TOTIME" &
+xterm -geom 160x40 -e "bssrecv 1 bssDB ./ imc:19.0 +0 \"$TOTIME\" | tee node4_replay.stdout" &
 echo
 sleep 70
 pkill bssrecv
+
+# Check that data was replayed
+# This checks that the 10th bundle was replayed, which we expect.
+cd ../3.ipn.bss
+if ! grep -q "**********10" node3_replay.stdout ; then
+    echo "Relay failed in node 3."
+	exit 1
+fi
+cd ../4.ipn.bss
+if ! grep -q "**********10" node4_replay.stdout ; then
+    echo "Replay failed in node 4."
+	exit 1
+fi
+
+cd ../4.ipn.bss
+if [ ! -s bssDB.dat ]; then
+    echo "Node 4 did not receive data, test failed."
+	exit 1
+fi
 
 # Shut down ION processes
 echo
@@ -150,4 +182,4 @@ cd ../4.ipn.bss
 sleep 15
 killm
 echo "BSS multicast demo completed."
-echo "Please monitor real-time display for node 3 and 4 to verify demonstration was actually successful."
+echo "Please verify playback on the real-time bssrecv terminal windows."
