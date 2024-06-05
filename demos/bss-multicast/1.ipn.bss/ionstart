@@ -13,5 +13,4 @@ sleep 1
 #sleep 1
 bpadmin		node.bprc.1
 sleep 5
-bpadmin		node.bprc.2
-sleep 1
+

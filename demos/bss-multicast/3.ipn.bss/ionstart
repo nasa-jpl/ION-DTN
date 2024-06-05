@@ -11,4 +11,3 @@ ltpadmin    node.ltprc
 sleep 1
 bpadmin		node.bprc.1
 sleep 1
-bpadmin		node.bprc.2
