@@ -8,7 +8,7 @@
 
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 4.1.2, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 4.1.3, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -221,7 +221,7 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 AC_ARG_ENABLE(
     bpv6,
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
-    [VER="4.1.2"
+    [VER="4.1.3"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
      BUILD_BPv6=true
@@ -233,7 +233,7 @@ AC_ARG_ENABLE(
 		no)  ENABLE_BPACS=no;;
      esac
      echo "Building ION with BP version 6"],
-    [VER="4.1.2"
+    [VER="4.1.3"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
      BUILD_BPv7=true
