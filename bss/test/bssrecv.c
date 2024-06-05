@@ -335,8 +335,9 @@ int	main(int argc, char **argv)
 			PUTS("\n");
 			PUTS("---------------Menu-----------------");
 			PUTS("1. Open BSS Receiver in playback mode");
-			PUTS("2. Start BSS receiving thread in realtime mode");
-			PUTS("3. Start BSS Receiver in both playback and realtime modes");
+			PUTS("2. Start BSS receiving thread in realtime mode only");
+			PUTS("3. Start BSS Receiver in realtime mode with capability for concurrent playback");
+			PUTS("   (note: playback trigger is not implemented in this bssrecv.c demo program)");
 			PUTS("4. Close current playback mode session");
 			PUTS("5. Stop BSS receiving thread in realtime mode");
 			PUTS("6. Stop BSS Receiver in both realtime and playback modes");

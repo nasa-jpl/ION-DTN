@@ -68,21 +68,24 @@ B<bssrecv> offers the following menu options:
 B<bssrecv> prompts the user for the three parameter values noted above, then
 opens the indicated BSS database for replay of the data in that database.
 
-=item 2. Start BSS receiving thread in realtime mode
+=item 2. Start BSS receiving thread in realtime mode only
 
 B<bssrecv> prompts the user for the three parameter values noted above, then
 starts a background session thread to acquire data into the indicated database.
 Each bundle that is acquired is passed to a display function that prints a
 single line consisting of N consecutive '*' characters, where N is computed
 as the data number at the start of the bundle's payload data, modulo 150.
-Note that the database is B<not> open for replay at this time.
+Note that the database is B<not> open for replay at this time. To replay
+the database, one should switch to mode 1 or mode 3.
 
-=item 3. Run BSS receiver thread in both playback and realtime mode
+=item 3. Run BSS receiver thread in realtime mode (concurrently replay-capable)
 
 B<bssrecv> prompts the user for the three parameter values noted above, then
 starts a background session thread to acquire data into the indicated database
 (displaying the data as described for option 2 above) and also opens the
-database for replay.
+database so it is capable for replay. However, in the bssrecv.c program currently 
+replay is not triggered. The user can modify bssrecv.c program to add a 
+concurrent replay session.
 
 =item 4. Close current playback mode session
 
