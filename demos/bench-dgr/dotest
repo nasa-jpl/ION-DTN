@@ -76,7 +76,7 @@ sleep 1
 
 # if bpcounter didn't start, then something went wrong and we definitely haven't passsed!
 # some ps don't like -p syntax, most do.
-if [ $1 == "windows" ]
+if [ "$1" == "windows" ]
 then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 else
@@ -102,7 +102,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
@@ -157,7 +157,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
@@ -212,7 +212,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
@@ -267,7 +267,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
@@ -322,7 +322,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
@@ -377,7 +377,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
@@ -432,7 +432,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else
