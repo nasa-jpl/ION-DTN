@@ -28,6 +28,7 @@ static int	_count(int increment)
 static int	display(time_t sec, unsigned long count, char *buf,
 			unsigned long bufLength)
 {
+	static time_t prevSec = 0;
 	static unsigned int	prevCount = 0;
 
 	if (bufLength < sizeof(unsigned int))
@@ -37,13 +38,40 @@ static int	display(time_t sec, unsigned long count, char *buf,
 		return -1;
 	}
 
-	if ((unsigned int) count < prevCount)
-	{
-		writeMemoNote("[?] bsscounter: Real-time stream out of order per bundle seq. number",
+	/*  Debugging only: we check realtime bundles are in-order. 
+	 *  BSS callback for realtime bundles already perform this 
+	 *  check. 
+	 *  Such check can be turned-off to reduce overhead.     */
+	if (sec < prevSec)
+	{	
+		writeMemoNote("[?] bsscounter: Real-time stream out of order, prev bundle time second",
+				itoa((unsigned int) prevSec));
+		writeMemoNote("[?] bsscounter: Real-time stream out of order, prev bundle seq. number",
+				itoa((unsigned int) prevCount));
+		writeMemoNote("[?] bsscounter: Real-time stream out of order, received bundle time seccond",
+				itoa((unsigned int) sec));
+		writeMemoNote("[?] bsscounter: Real-time stream out of order, received bundle seq. number",
 				itoa((unsigned int) count));
 		return -1;
 	}
+	else
+	{
+		if ((sec == prevSec) && ((unsigned int) count < prevCount))
+		{
+			writeMemoNote("[?] bsscounter: Real-time stream out of order, prev bundle time second",
+					itoa((unsigned int) prevSec));
+			writeMemoNote("[?] bsscounter: Real-time stream out of order, prev bundle seq. number",
+					itoa((unsigned int) prevCount));
+			writeMemoNote("[?] bsscounter: Real-time stream out of order, received bundle time seccond",
+					itoa((unsigned int) sec));
+			writeMemoNote("[?] bsscounter: Real-time stream out of order, received bundle seq. number",
+					itoa((unsigned int) count));
+			return -1;
+		}
+	}
 
+	/* received bundle is in-order */
+	prevSec = sec;
 	prevCount = (unsigned int) count;
 	oK(_count(1));
 	printf("Real-time in-order bundle count: %d\n",_count(0));
@@ -52,25 +80,33 @@ static int	display(time_t sec, unsigned long count, char *buf,
 
 static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 {
-	static int		dbRecordsCount = 0;
+	int		dbRecordsCount = 0;
 	bssNav		nav;
-	static time_t		bundleIdTime = 0;
-	static unsigned long	bundleIdCount = 0;
-	static unsigned long 	waitForBundleIdCount = 0;
+	static time_t		bundleSec = 0;
+	unsigned long	bundleCount = 0;
 	long		bytesRead;
+
+	/* This function performs a database read.
+	 * NOTE: it reads "forward" and will not
+	 * pick up any delayed bundled. Therefore
+	 * to make sure *all* bundles are read, 
+	 * the "playback_wait" should be set
+	 * sufficiently long. */ 
 
 	/* reset nav data structure */
 	memset((char *) &nav, 0, sizeof nav);
 
-	/* 	check for data arrival */
-	if (bundleIdTime == 0)
+	/* 	Wait for initial data arrival, we 
+	 *  assume database is empty, otherwise
+	 *  we will pick up previous data stream. */
+	if (bundleSec == 0)
 	{
-		if (bssSeek(&nav, 0, &bundleIdTime, &bundleIdCount) < 0)
+		puts("Waiting for stream...");
+		fflush(stdout);
+		if (bssSeek(&nav, 0, &bundleSec, &bundleCount) < 0)
 		{
-			puts("Waiting...");
-			fflush(stdout);
-
 			/* not started yet */
+			snooze(1);
 			return 0;
 		}
 		else
@@ -80,16 +116,17 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 			snooze(playback_wait);
 		}
 	}
-	else 
+
+	/* Now we reset nav in case the first arrival is 
+	 * not the actual first bundle in the stream */
+	if (bssSeek(&nav, 0, &bundleSec, &bundleCount) < 0)
 	{
-		/* reset nav content by seeking to last known bundle time */
-		if (bssSeek(&nav, bundleIdTime, &bundleIdTime, &bundleIdCount) < 0)
-		{
-			writeMemo("[?] bsscounter: Failed bssSeek");
-			fflush(stdout);
-			return -1;
-		}	
+		writeMemo("[?] BSS database is missing data...");
+		return -1;
 	}
+
+	printf("Recheck Database reception total count....");
+	fflush(stdout);
 
 	while (1)
 	{
@@ -108,23 +145,12 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 			return -1;
 		}
 
-		/* Check if new real-time bssp bundle(s) were read. 
-		 * Note: bundle sequence number may leap due to multiplexing
-		 * with non-bss traffic. 		*/
-
-		/* TO DO: generalize order checking to accommodate 
-		 * 		  implementation that may reset seq. number
-		 *        on second boundary. Currently ION does 
-		 *        not reset bundle seq. number. 		*/
-
-		if (bundleIdCount >= waitForBundleIdCount)
-		{
-			waitForBundleIdCount = bundleIdCount + 1;
-		}
+		/* increment the database read counter */
 		dbRecordsCount++;
+
 		if ((dbRecordsCount % 10) == 0)
 		{
-			printf("Playback Databased: Received %d bundles...\n", dbRecordsCount);
+			printf("Playback Database: Received %d bundles...\n", dbRecordsCount);
 			fflush(stdout);
 		}
 
@@ -133,7 +159,7 @@ static int	checkReceptionStatus(char *buffer, int limit, long playback_wait)
 			return limit;
 		}
 
-		switch (bssNext(&nav, &bundleIdTime, &bundleIdCount))
+		switch (bssNext(&nav, &bundleSec, &bundleCount))
 		{
 		case -2:		/*	End of database.	*/
 			break;		/*	Out of switch.		*/
@@ -174,7 +200,7 @@ int	main(int argc, char **argv)
 	char	*buffer;
 	int	result;
 	int recv_count = 0;
-	long playback_wait = 0;
+	long playback_wait = 5;
 
 	if (argc > 6) argc = 6;
 	switch (argc)
@@ -213,18 +239,18 @@ int	main(int argc, char **argv)
 		puts("Usage: bsscounter <number of bundles to receive> <BSS \
 database name> <path for BSS database files> <own endpoint ID> \
 <optional: playback delay in seconds> - adding playback delay allows \
-for complete accounting of out-or-order delivery.");
+for complete accounting of out-or-order delivery, default 5 seconds.");
 		fflush(stdout);
 		return 1;
 	}
 #endif
 	/*
-         * ********************************************************
+     * ********************************************************
 	 * In order for the BSS receiving thread to work properly,
 	 * the receiving application must always allocate a buffer
 	 * of a certain size and provide its address and its length 
 	 * to bssRun or bssStart function.
-         * ********************************************************
+     * ********************************************************
 	 */ 
 
 	buffer = calloc(2 * RCV_LENGTH, sizeof(char));
@@ -244,6 +270,7 @@ for complete accounting of out-or-order delivery.");
 	while (1)
 	{
 		snooze(5);
+		
 		recv_count = checkReceptionStatus(buffer + RCV_LENGTH, limit, playback_wait);
 		switch (recv_count)
 		{
@@ -254,6 +281,8 @@ for complete accounting of out-or-order delivery.");
 			break;
 
 		case 0:
+			puts("reception no complete yet...");
+			fflush(stdout);
 			continue;		/*	Not done yet.	*/
 
 		default:
