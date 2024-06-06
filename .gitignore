@@ -204,6 +204,9 @@ ion_nodes
 
 # Produced test support
 tests/retest
+tests/progress
+tests/progress\.*
+tests/results\.*
 
 # Compiled test binaries (or libtool wrappers)
 tests/1000.loopback/dotest
