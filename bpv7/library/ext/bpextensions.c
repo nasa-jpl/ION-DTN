@@ -238,16 +238,16 @@ static ExtensionDef	extensionDefs[] =
 
 static ExtensionSpec		extensionSpecs[] =
 				{
-					{ PreviousNodeBlk, 0, NoCRC },
-					{ QualityOfServiceBlk, 0, NoCRC },
-					{ BundleAgeBlk, 0, NoCRC },
-					{ SnwPermitsBlk, 0, NoCRC },
-					{ ImcDestinationsBlk, 0, NoCRC },
+					{ PreviousNodeBlk, 0, X25CRC16 },
+					{ QualityOfServiceBlk, 0, X25CRC16 },
+					{ BundleAgeBlk, 0, X25CRC16 },
+					{ SnwPermitsBlk, 0, X25CRC16 },
+					{ ImcDestinationsBlk, 0, X25CRC16 },
 #if RGREB
-					{ RGRBlk, 0, NoCRC },
+					{ RGRBlk, 0, X25CRC16 },
 #endif
 #if CGRREB
-					{ CGRRBlk, 0, NoCRC },
+					{ CGRRBlk, 0, X25CRC16 },
 #endif
-					{ UnknownBlk, 0, NoCRC }
+					{ UnknownBlk, 0, X25CRC16 }
 				};

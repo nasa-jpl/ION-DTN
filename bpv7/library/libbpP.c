@@ -63,7 +63,7 @@
 #endif
 
 #ifndef	PAYLOAD_BLOCK_CRC_TYPE
-#define	PAYLOAD_BLOCK_CRC_TYPE	0
+#define	PAYLOAD_BLOCK_CRC_TYPE	1
 #endif
 
 /*	We hitchhike on the ZCO heap space management system to 
