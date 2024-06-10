@@ -8590,7 +8590,10 @@ undefined block.");
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
-			writeMemo("[?] CRC check failed for extension block.");
+			writeMemoNote("[?] CRC check failed for extension "
+				"block, blkType",itoa((int) blkType));
+			writeMemoNote("[?] CRC check failed for extension "
+				"block, crcType",itoa((int) crcType));
 			bundle->altered = 1;
 		}
 
