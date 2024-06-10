@@ -13,7 +13,7 @@
 static int debug = 0;
 
 /* if not zero, all test iteration limits are multiplied by this */
-static float exhaustive_test_multiplier = 10.0000;  /* can be less than 1 */
+static float exhaustive_test_multiplier = 1.0000;  /* can be less than 1 */
 
 
 /* signal handler for exited processes */
@@ -35,7 +35,8 @@ static void reaper(int sig)
 static void wait_for_children() {
 	if (debug) fprintf(stderr,"Parent process %d Waiting for children to finish...\n", getpid());
 	while (1) {
-		int pid=wait(0);
+		int status;
+		int pid=wait(&status);
 		if (pid == -1) {
 			if (errno == ECHILD) {
 				break;  /* no more children */
@@ -47,6 +48,7 @@ static void wait_for_children() {
 		}	
 	}
 	if (debug) fprintf(stderr,"Done waiting for children to finish...\n");
+	return;
 }
 
 
@@ -412,41 +414,42 @@ int sem_errors()
 	printf("semerrors(): trying to sm_SemDelete(%d) that closed semaphore\n", sem);
 	sm_SemDelete(sem);
 
+	fprintf(stderr,"\n  %s errors seen\n", correct?"NO":"SOME");
+
 	return(correct);
 }
 
 
-void do_churn(int p, unsigned iterations)
+int do_churn(int p, unsigned iterations)
 {
 	int numsems_each = 10;
-	int i, s;
+	int i, s, d;
 	int semlist[numsems_each];
 
 	for (i=0; i < iterations; ++i) {
 		for (s=0; s < numsems_each; ++s) {
-if (debug) fprintf(stderr,"%%%% Calling sm_SemCreate() [%d] in process %d (%d)\n", s, p, getpid());
 			int sem = sm_SemCreate(-1,0);
-if (debug) fprintf(stderr,"%%%%     sm_SemCreate() [%d] returns to process %d (%d)\n", s, p, getpid());
 
 			if (sem == SM_SEM_NONE) {
-				fprintf(stderr,"\n!!!!!!!!!! Process %d failed to create semaphore\n", getpid());
-				return;
+				fprintf(stderr,"\n!!!!!!!!!! Process %d failed to create semaphore in do_churn()\n", getpid());
+				for (d=0; d < s; ++d) {
+					sm_SemDelete(semlist[d]);
+				}
+				return(1);
 			}
 			semlist[s] = sem;
 		}
 		for (s=0; s < numsems_each; ++s) {
-if (debug) fprintf(stderr,"%%%% Calling SemTake(%d) [%d] in process %d (%d)\n", semlist[s], s, p, getpid());
 			sm_SemTake(semlist[s]);
-if (debug) fprintf(stderr,"%%%% Calling SemGive(%d) [%d] in process %d (%d)\n", semlist[s], s, p, getpid());
 			sm_SemGive(semlist[s]);
 		}
 		for (s=0; s < numsems_each; ++s) {
-if (debug) fprintf(stderr,"%%%% Calling SemDelete(%d) [%d] in process %d (%d)\n", semlist[s], s, p, getpid());
 			sm_SemDelete(semlist[s]);
 		}
 	}
 	if (debug) fprintf(stderr,"Child %d exits\n", getpid());
 	fflush(stderr);
+	return(0);
 }
 
 
@@ -462,21 +465,24 @@ int semaphore_churn()
 
 	printf("  semaphore_churn() Running %u iterations in each of %d processes\n", iterations, nprocs);
 
+	reaper_exit_val_total = 0; /* watch child process exit values */
 	for (p = 0; p < nprocs; ++p) {
 		if (debug) fprintf(stderr,"Making child process %d\n", p);
+		fflush(stdout); fflush(stderr);
 		if ((pids[p] = fork()) == 0) {
+			int ret;
 			if (debug) fprintf(stderr,"I am child %d (pid %d) and my parent is pid %d\n", p, getpid(), getppid());
 			/* child */
-			do_churn(p, iterations);
-			_exit(0);			
+			ret = do_churn(p, iterations);
+			_exit(ret);
 		}
 	}
 
 	wait_for_children();
 
-	fprintf(stderr,"\n  No errors seen\n");
+	fprintf(stderr,"\n  %d errors seen\n", reaper_exit_val_total);
 
-	return(1);
+	return(reaper_exit_val_total == 0);
 }
 
 /* need a platform-independant, synchronous version */
@@ -528,14 +534,6 @@ int main(int argc, char **argv)
 
 	// run each of the scenarios...
 	printf("\n####################################################\n");
-	printf("Testing semaphore error handling ...\n\n");
-	time(&time_start);
-	if (!sem_errors())
-		passed = 0;
-	time(&time_stop);
-	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
-
-	printf("\n####################################################\n");
 	printf("Semaphore churn test...\n\n");
 	time(&time_start);
 	if (!semaphore_churn())
@@ -568,12 +566,19 @@ int main(int argc, char **argv)
 	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
 
 	printf("\n####################################################\n");
+	printf("Testing semaphore error handling ...\n\n");
+	printf("Warning - may leave semaphore table inconsistent \n\n");
+	time(&time_start);
+	if (!sem_errors())
+		passed = 0;
+	time(&time_stop);
+	printf("\nElapsed time: %ld seconds\n", time_stop - time_start);
+
+	printf("\n####################################################\n");
 
 #ifdef POSIX_NAMED_SEMAPHORES
 	void _semPrintTable();
 	_semPrintTable();
-	/* only to put final semaphore stats in ion.log */
-	sm_ipc_stop();
 #endif /* POSIX_NAMED_SEMAPHORES */
 
 	if (passed)
