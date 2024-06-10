@@ -3513,7 +3513,7 @@ static SmProcessSemtable *_semTbl(int action);
 static SmGlobalSemtable	*_sembase(int action);
 static sem_t *_ipcSemaphore(int action);
 static void _semEraseNamedSems(void);
-static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum);
+static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int semlocked);
 static char *_semGenPosixSemname(char *namebuf, unsigned bufsize, int semnum);
 static int _semKeyExists(int key);
 
@@ -3595,8 +3595,8 @@ static int _semKeyExists(int key) {
 
 
 /* ensure that the process local and shared global semaphores are in sync */
-/* NB: assumes global semaphore table semaphore is NOT held */
-static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum)
+/* N.B.: assumes global semaphore table semaphore is NOT held (unless semlocked is true) */
+static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum, int semlocked)
 {
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
 	sem_t *psem;
@@ -3612,7 +3612,8 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum)
 
 	/* above is the expected case, and it needs to be fast... */
 
-	takeIpcLock();  /* lock global table across ALL Ion instances */
+	if (!semlocked)
+		takeIpcLock();  /* lock global table across ALL Ion instances */
 
 	/* open the global semaphore locally */
 	if (pglobalSem->inUse) {
@@ -3629,7 +3630,8 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum)
 			perror("sem_open");
 			putSysErrmsg("Can't initialize IPC semaphore", sem_name);
 			umask(oldmask);  /* restore previous umask() */
-			giveIpcLock();  
+			if (!semlocked)
+				giveIpcLock();
 			return 0;
 		}
 		umask(oldmask);  /* restore previous umask() */
@@ -3642,7 +3644,8 @@ static int _semSync(SmProcessSemtable *plocal, sm_SemId semnum)
 	}
 
 	plocalSem->lseq = pglobalSem->gseq;  /* now up to date */
-	giveIpcLock();  
+	if (!semlocked)
+		giveIpcLock();
 	return(1);
 }
 
@@ -3694,8 +3697,8 @@ static SmProcessSemtable *_semTbl(int action)
 }
 
 /* return the Local semaphore structure that goes with ION semaphore number "semnum" */
-/* N.B. Assumes that global semaphore is NOT held */
-static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum)
+/* N.B. Assumes that global semaphore is NOT held (unless semlocked is true) */
+static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum, int semlocked)
 {
 	SmLocalSem *psemLocal;
 
@@ -3705,7 +3708,7 @@ static SmLocalSem *_semGetSem(SmProcessSemtable *psemtable, sm_SemId semnum)
 
 	psemLocal  = &psemtable->lsemtable[semnum];
 
-	if (!_semSync(psemtable, semnum)) {
+	if (!_semSync(psemtable, semnum, semlocked)) {
 		writeMemoNote("Couldn't sync local semaphore", itoa(semnum));
 		return(NULL);
 	}
@@ -3963,7 +3966,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 
 			if (gsem->key == key) {
 				giveIpcLock();
-				sem = _semGetSem(semTbl,i);  /* this will open and sync to global copy */
+				sem = _semGetSem(semTbl,i,0);  /* this will open and sync to global copy */
 				return i;
 			}
 		}
@@ -3989,7 +3992,7 @@ sm_SemId	sm_SemCreate(int key, int semType)
 	/* at this point, it's a new semaphore and it goes in "freeslot" */
 	sem  = &semTbl->lsemtable[freeslot];
 
-	if (key == -1) {
+	if (key == SM_NO_KEY) {
 		key = SEM_ANON_KEY; 
 	}
 	_semGenPosixSemname(sem_name,sizeof(sem_name),freeslot);
@@ -4033,17 +4036,18 @@ sm_SemId	sm_SemCreate(int key, int semType)
 void	sm_SemDelete(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i);
+	SmLocalSem *sem;   /* MUST be looked up inside IpcLock() for Semaphore Deletion */
 	char sem_name[MAX_NAMED_SEM_KEYLENGTH];
-
-	CHKVOID(sem);  
 
 	takeIpcLock();
 
-	if (!sem->semgl->inUse) {
-		/* might have been deleted by somebody else since we looked it up above... */
-		/* in which case, there's nothing for us to do */
+	/* look up the semaphore (sem is locked) */
+	sem = _semGetSem(semTbl,i,1);
+
+	if (sem == NULL) {
+		/* not currently in use - nothing to do */
 		giveIpcLock();
+		return;
 	}
 
 	_semGenPosixSemname(sem_name, sizeof(sem_name), i);
@@ -4073,7 +4077,7 @@ void	sm_SemDelete(sm_SemId i)
 int	sm_SemTake(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i);
+	SmLocalSem *sem = _semGetSem(semTbl,i,0);
 
 	CHKERR(sem);
 
@@ -4092,7 +4096,7 @@ int	sm_SemTake(sm_SemId i)
 void	sm_SemGive(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i);
+	SmLocalSem *sem = _semGetSem(semTbl,i,0);
 
 	CHKVOID(sem);
 
@@ -4104,7 +4108,7 @@ void	sm_SemGive(sm_SemId i)
 void	sm_SemEnd(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i);
+	SmLocalSem *sem = _semGetSem(semTbl,i,0);
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
 	// we don't check for that, only that the semphore index is valid.
@@ -4119,7 +4123,7 @@ void	sm_SemEnd(sm_SemId i)
 int	sm_SemEnded(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i);
+	SmLocalSem *sem = _semGetSem(semTbl,i,0);
 	int	ended;
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
@@ -4140,7 +4144,7 @@ int	sm_SemEnded(sm_SemId i)
 void	sm_SemUnend(sm_SemId i)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i);
+	SmLocalSem *sem = _semGetSem(semTbl,i,0);
 
 	// to match semantics of SVR4 code when calling this on a closed semaphore,
 	// we don't check for that, only that the semphore index is valid.
@@ -4161,7 +4165,7 @@ static void	handleTimeout(int signum)
 int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 {
 	SmProcessSemtable *semTbl = _semTbl(IPC_ACTION_LOOKUP);
-	SmLocalSem *sem = _semGetSem(semTbl,i);
+	SmLocalSem *sem = _semGetSem(semTbl,i,0);
 
 	CHKERR(sem);
 
@@ -4180,6 +4184,8 @@ int	sm_SemUnwedge(sm_SemId i, int timeoutSeconds)
 
 			default:
 				putSysErrmsg("Can't unwedge semaphore", itoa(i));
+				oK(alarm(0)); 
+				isignal(SIGALRM, SIG_DFL);
 				return -1;
 		}
 	}
