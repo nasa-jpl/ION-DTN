@@ -105,6 +105,9 @@ if [ "$ION_OPEN_SOURCE" == "1" ]; then
 fi
 }
 
+# Declare an array to hold multiple ionrc files
+declare -a IONRC_FILES=()
+
 # check for all the options
 while getopts ":i:d:D:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 	case $options in
@@ -188,7 +191,7 @@ OPTIND=1
 options=""
 while getopts ":i:d:D:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 	case $options in
-		i ) IONRC="${OPTARG}";;
+		i ) IONRC_FILES+=("${OPTARG}");;
 		d ) DTN2RC="${OPTARG}";;
 		D ) DTPCRC="${OPTARG}";;
 		p ) IPNRC="${OPTARG}";;
@@ -258,14 +261,17 @@ else
 		echo "## Run the following command to start ION node:" >>"${OUTPUTFILE}"
 		echo "##	% ionstart -I \"${OUTPUTFILE}\"" >>"${OUTPUTFILE}"
 	fi
-	if [[ -r "${IONRC}" ]] ; then
-		echo
-		echo "Appending ${IONRC} into ${OUTPUTFILE}."
-		echo >>"${OUTPUTFILE}"
-		echo "## begin ionadmin ${TAG}" >>"${OUTPUTFILE}"
-		cat "${IONRC}" >>"${OUTPUTFILE}"
-		echo "## end ionadmin ${TAG}" >>"${OUTPUTFILE}"
-	fi
+    # Process each IONRC file in the order provided
+    for IONRC in "${IONRC_FILES[@]}"; do
+        if [[ -r "${IONRC}" ]] ; then
+            echo
+            echo "Appending ${IONRC} into ${OUTPUTFILE}."
+            echo >>"${OUTPUTFILE}"
+            echo "## begin ionadmin ${TAG}" >>"${OUTPUTFILE}"
+            cat "${IONRC}" >>"${OUTPUTFILE}"
+            echo "## end ionadmin ${TAG}" >>"${OUTPUTFILE}"
+        fi
+    done
 	if [[ -r "${IONSECRC}" ]] ; then
 		echo
 		echo "Appending ${IONSECRC} into ${OUTPUTFILE}."
