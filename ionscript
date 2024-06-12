@@ -266,7 +266,7 @@ else
 	if [[ -r "${IONRC_FILES[0]}" ]]; then
 		# add header
 		echo
-		echo "Appending ${IONRC} into ${OUTPUTFILE}."
+		echo "Appending ${IONRC_FILES[@]} into ${OUTPUTFILE}."
 		echo >>"${OUTPUTFILE}"
 		echo "## begin ionadmin ${TAG}" >>"${OUTPUTFILE}"
 		# 
@@ -286,6 +286,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin ionsecadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${IONSECRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end ionsecadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${LTPRC}" ]] ; then
@@ -294,6 +295,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin ltpadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${LTPRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end ltpadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 
@@ -301,7 +303,7 @@ else
 	if [[ -r "${BPRC_FILES[0]}" ]]; then
 		# add header
 		echo
-		echo "Appending ${BPRC} into ${OUTPUTFILE}."
+		echo "Appending ${BPRC_FILES[@]} into ${OUTPUTFILE}."
 		echo >>"${OUTPUTFILE}"
 		echo "## begin bpadmin ${TAG}" >>"${OUTPUTFILE}"
 		# 
@@ -312,6 +314,7 @@ else
 			fi
 		done
 		# add trailer
+		echo >>"${OUTPUTFILE}"
 		echo "## end bpadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 
@@ -322,6 +325,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin cfdpadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${CFDPRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end cfdpadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${IPNRC}" ]] ; then
@@ -330,6 +334,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin ipnadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${IPNRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end ipnadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${DTN2RC}" ]] ; then
@@ -338,6 +343,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin dtn2admin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${DTN2RC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end dtn2admin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${DTPCRC}" ]] ; then
@@ -346,6 +352,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin dtpcadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${DTPCRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end dtpcadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${ACSRC}" ]] ; then
@@ -354,6 +361,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin acsadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${ACSRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end acsadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${BSSRC}" ]] ; then
@@ -362,6 +370,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin bssadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${BSSRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end bssadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${IMCRC}" ]] ; then
@@ -370,6 +379,7 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## begin imcadmin ${TAG}" >>"${OUTPUTFILE}"
 		cat "${IMCRC}" >>"${OUTPUTFILE}"
+		echo >>"${OUTPUTFILE}"
 		echo "## end imcadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 fi
