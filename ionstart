@@ -63,14 +63,14 @@ fi
 	echo "			in config file.  If unspecified, sections with no tag"
 	echo "			are used."
 	echo
-        echo "  -a acsrc        Specifies file acsrc to be used to configure acsadmin."
+        echo "  -a acsrc        Specifies file acsrc to be used to configure acsadmin. (BPv6 only)"
 	echo "	-b bprc		Specifies file bprc to be used to configure bpadmin."
 	echo "	-B bssrc	Specifies file bssrc to be used to configure bssadmin."
 	echo "	-d dtn2rc	Specifies file dtn2rc to be used to configure dtn2admin."
 	echo "	-e biberc	Specifies file biberc to be used to configure bibeadmin."
 	echo "	-i ionrc	Specifies file ionrc to be used to configure ionadmin."
 	echo "	-l ltprc	Specifies file ltprc to be used to configure ltpadmin."
-	echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin."
+	echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin. (BPv6 only)"
 	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
 	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
 	echo "	-S bpsecrc	Specifies file bpsecrc to be used to configure bpsecadmin."
@@ -80,8 +80,17 @@ if [ "$ION_OPEN_SOURCE" == "1" ]; then
 fi
 }
 
+# Check the bundle protocol version
+BP_VERSION=$(bpversion)
+if [[ "${BP_VERSION}" != "bpv6" ]]; then
+	BP_V6_ONLY=true
+else
+	BP_V6_ONLY=false
+fi
+
 # Declare an array to hold multiple ionrc files
 declare -a IONRC_FILES=()
+declare -a BPRC_FILES=()
 
 # check for all the options
 
@@ -147,13 +156,17 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 				echo
 				echo "The acsrc file ${OPTARG} can't be read."
 				failure="TRUE"
+			fi
+			if [[ "$BP_V6_ONLY" == true ]]; then
+				echo "Error: ACSRC is not supported by bpv7. Stopping ionstart."
+				exit 1
 			fi;;
-		b ) BPRC="${OPTARG}"
+		b ) BPRC_FILES+=("${OPTARG}")
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
 				echo "The bprc file ${OPTARG} can't be read."
 				failure="TRUE"
-			fi;;
+			fi;; 
 		B ) BSSRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
@@ -165,6 +178,10 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 				echo
 				echo "The imcrc file ${OPTARG} can't be read."
 				failure="TRUE"
+			fi
+			if [[ "$BP_V6_ONLY" == true ]]; then
+				echo "Error: IMCRC is not supported by bpv7. Stopping ionstart."
+				exit 1
 			fi;;
 		l ) LTPRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
@@ -249,11 +266,14 @@ if [[ ! -z "${LTPRC}" ]] ; then
 	ltpadmin "${LTPRC}"
 fi
 
-if [[ ! -z "${BPRC}" ]] ; then
-	echo
-	echo "Now running bpadmin using ${BPRC}"
-	bpadmin "${BPRC}"
-fi
+# Process each BPRC file in the order provided
+for BPRC in "${BPRC_FILES[@]}"; do
+	if [[ ! -z "${BPRC}" ]] ; then
+		echo
+		echo "Now running bpadmin using ${BPRC}"
+		bpadmin "${BPRC}"
+	fi
+done
 
 if [[ ! -z "${IPNRC}" ]] ; then
 	echo
@@ -301,3 +321,5 @@ echo "ION startup script completed."
 echo "You may find that the ION node has not started. If this is the case,"
 echo "some errors may have been reported to the console."
 echo "Further errors may be found in the file ion.log"
+
+# Add the "delayed" execution here....
