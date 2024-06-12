@@ -107,6 +107,7 @@ fi
 
 # Declare an array to hold multiple ionrc files
 declare -a IONRC_FILES=()
+declare -a BPRC_FILES=()
 
 # check for all the options
 while getopts ":i:d:D:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
@@ -196,7 +197,7 @@ while getopts ":i:d:D:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 		D ) DTPCRC="${OPTARG}";;
 		p ) IPNRC="${OPTARG}";;
 		a ) ACSRC="${OPTARG}";;
-		b ) BPRC="${OPTARG}";;
+		b ) BPRC_FILES+=("${OPTARG}");;
 		B ) BSSRC="${OPTARG}";;
 		c ) CFDPRC="${OPTARG}"
 		    if [ "$ION_OPEN_SOURCE" == "0" ]; then
@@ -262,16 +263,23 @@ else
 		echo "##	% ionstart -I \"${OUTPUTFILE}\"" >>"${OUTPUTFILE}"
 	fi
     # Process each IONRC file in the order provided
-    for IONRC in "${IONRC_FILES[@]}"; do
-        if [[ -r "${IONRC}" ]] ; then
-            echo
-            echo "Appending ${IONRC} into ${OUTPUTFILE}."
-            echo >>"${OUTPUTFILE}"
-            echo "## begin ionadmin ${TAG}" >>"${OUTPUTFILE}"
-            cat "${IONRC}" >>"${OUTPUTFILE}"
-            echo "## end ionadmin ${TAG}" >>"${OUTPUTFILE}"
-        fi
-    done
+	if [[ -r "${IONRC_FILES[0]}" ]]; then
+		# add header
+		echo
+		echo "Appending ${IONRC} into ${OUTPUTFILE}."
+		echo >>"${OUTPUTFILE}"
+		echo "## begin ionadmin ${TAG}" >>"${OUTPUTFILE}"
+		# 
+		for IONRC in "${IONRC_FILES[@]}"; do
+			if [[ -r "${IONRC}" ]] ; then
+				echo >>"${OUTPUTFILE}"
+				cat "${IONRC}" >>"${OUTPUTFILE}"
+			fi
+		done
+		# add trailer
+		echo "## end ionadmin ${TAG}" >>"${OUTPUTFILE}"
+	fi
+
 	if [[ -r "${IONSECRC}" ]] ; then
 		echo
 		echo "Appending ${IONSECRC} into ${OUTPUTFILE}."
@@ -288,14 +296,26 @@ else
 		cat "${LTPRC}" >>"${OUTPUTFILE}"
 		echo "## end ltpadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
-	if [[ -r "${BPRC}" ]] ; then
+
+    # Process each BPRC file in the order provided
+	if [[ -r "${BPRC_FILES[0]}" ]]; then
+		# add header
 		echo
 		echo "Appending ${BPRC} into ${OUTPUTFILE}."
 		echo >>"${OUTPUTFILE}"
 		echo "## begin bpadmin ${TAG}" >>"${OUTPUTFILE}"
-		cat "${BPRC}" >>"${OUTPUTFILE}"
+		# 
+		for BPRC in "${BPRC_FILES[@]}"; do
+			if [[ -r "${BPRC}" ]] ; then
+				echo >>"${OUTPUTFILE}"
+				cat "${BPRC}" >>"${OUTPUTFILE}"
+			fi
+		done
+		# add trailer
 		echo "## end bpadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
+
+
 	if [[ -r "${CFDPRC}" ]]  && [ "$ION_OPEN_SOURCE" == "1" ]; then
 		echo
 		echo "Appending ${CFDPRC} into ${OUTPUTFILE}."
