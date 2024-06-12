@@ -81,6 +81,9 @@ if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo "  NOTE: <second>	Option for -i and -b. Admin program will run these files after initial launch"
 	echo "	                of non-delayed rc files. If delay is set as 0 explicitly, file will launch"
 	echo "					immediately after all non-delayed rc files were executed."
+	echo "					multiple ionrc files with delay will execute in the order they are provided"
+	echo "					on the command line. The delay will add to each execution."
+	echo "					delay files for ionrc will execute first before bprc.
 fi
 }
 
