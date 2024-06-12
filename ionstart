@@ -80,12 +80,15 @@ if [ "$ION_OPEN_SOURCE" == "1" ]; then
 fi
 }
 
+# Declare an array to hold multiple ionrc files
+declare -a IONRC_FILES=()
+
 # check for all the options
 
 while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 	case $options in
 		t ) TAG="${OPTARG}";;
-		i ) IONRC="${OPTARG}"
+		i ) IONRC_FILES+=("${OPTARG}")
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
 				echo "The ionrc file ${OPTARG} can't be read."
@@ -184,7 +187,7 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 	esac
 done
 
-if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${BPSECRC}" && -z "${LTPSECRC}" && -z "${DTN2RC}" && -z "${BIBERC}" && -z "${ACSRC}" && -z "${BSSRC}" && -z "${IMCRC}" ]] ; then
+if [[ -z "${CONFIGFILE}" && -z "${IONRC_FILES}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${BPSECRC}" && -z "${LTPSECRC}" && -z "${DTN2RC}" && -z "${BIBERC}" && -z "${ACSRC}" && -z "${BSSRC}" && -z "${IMCRC}" ]] ; then
 	echo
 	echo "You must define some configuration files for input, use any combination of the"
 	echo "-b -B -c -d -e -i -I -l -L -m -p -s -S -a options to define them."
@@ -207,11 +210,14 @@ if [[ ! -z "${CONFIGFILE}" ]] ; then
 	awk -f "${AWKSCRIPT}" -v configfile="${CONFIGFILE}" -v tag="${TAG}" "${CONFIGFILE}"
 fi
 
-if [[ ! -z "${IONRC}" ]] ; then
-	echo
-	echo "Now running ionadmin using ${IONRC}"
-	ionadmin "${IONRC}"
-fi
+# Process each IONRC file in the order provided
+for IONRC in "${IONRC_FILES[@]}"; do
+	if [[ ! -z "${IONRC}" ]] ; then
+		echo
+		echo "Now running ionadmin using ${IONRC}"
+		ionadmin "${IONRC}"
+	fi
+done
 
 if [[ ! -z "${ACSRC}" ]] ; then
         echo
