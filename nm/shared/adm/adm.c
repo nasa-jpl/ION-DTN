@@ -26,7 +26,7 @@
  **  08/21/16  E. Birrane     Updated to Agent ADM v0.2 (Secure DTN - NASA: NNX14CS58P)
  **  01/10/18  E. Birrane     CLean up reports, added report parameter maps. (JHU/APL)
  *****************************************************************************/
-
+#define _GNU_SOURCE
 #include "ion.h"
 #include "platform.h"
 

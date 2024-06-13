@@ -162,11 +162,11 @@ typedef long long		vast;
 typedef unsigned long long	uvast;
 typedef long long		saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
-#define	VAST_FIELDSPEC		"%I64d"
-#define	UVAST_FIELDSPEC		"%I64u"
-#define UVAST_HEX_FIELDSPEC	"%I64x"
-#define	ADDR_FIELDSPEC		"%#I64x"
-#define	ADDR_FIELDSPEC_INT	"%I64u"
+#define	VAST_FIELDSPEC		"%lld"
+#define	UVAST_FIELDSPEC		"%llu"
+#define UVAST_HEX_FIELDSPEC	"%llx"
+#define	ADDR_FIELDSPEC		"%#llx"
+#define	ADDR_FIELDSPEC_INT	"%lu"
 #define ilseek(a, b, c)		lseek64(a, b, c)
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)

@@ -24,7 +24,7 @@ void ionstop()
 	sleep(1);
 
 #if ! defined (VXWORKS) && ! defined (RTEMS)
-	pid = pseudoshell("killm");
+	pid = pseudoshell("killm.exe");
 	fail_unless(pid != ERROR);
 #endif
 }

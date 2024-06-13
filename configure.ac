@@ -19,7 +19,7 @@ AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 
 # some source file that will ensure that you are in the right directory.
 AC_CONFIG_SRCDIR([ici/include/ion.h])
-AC_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 
@@ -209,7 +209,7 @@ esac
 #
 AC_ARG_ENABLE(
     acs,
-    [AC_HELP_STRING([--enable-acs], [enable Aggregate Custody Signals])],
+    [AS_HELP_STRING([--enable-acs],[enable Aggregate Custody Signals])],
     [ENABLE_BPACS=yes],
     [ENABLE_BPACS=no])
 AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
@@ -221,7 +221,7 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 AC_ARG_ENABLE(
     bpv6,
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
-    [VER="4.1.3"
+    [VER="4.1.2"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
      BUILD_BPv6=true
@@ -250,7 +250,7 @@ AM_CONDITIONAL(BUILD_BPv6, test x$BUILD_BPv6 = xtrue)
 #
 AC_ARG_ENABLE(
     imc,
-    [AC_HELP_STRING([--disable-imc], [disable Interplanetary Multicast])],
+    [AS_HELP_STRING([--disable-imc],[disable Interplanetary Multicast])],
     [],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_IMC"
      ENABLE_IMC=yes])
@@ -303,7 +303,7 @@ AM_CONDITIONAL(ENABLE_CMD_HIST, test "x$ENABLE_CMD_HIST" = "xyes")
 #
 AC_ARG_ENABLE(
     high-speed,
-    [AC_HELP_STRING([--enable-high-speed], [Enable high-speed ION, increases memory usage.])],
+    [AS_HELP_STRING([--enable-high-speed],[Enable high-speed ION, increases memory usage.])],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_HIGH_SPEED"
      ENABLE_HIGH_SPEED=yes],
     [])
@@ -346,7 +346,7 @@ AC_ARG_ENABLE(
 #
 AC_ARG_ENABLE(
     dccp,
-    [AC_HELP_STRING([--enable-dccp], [Enable Support for DCCP as a convergence layer])],
+    [AS_HELP_STRING([--enable-dccp],[Enable Support for DCCP as a convergence layer])],
     [AC_DEFINE([build_dccp],[1],[DCCP only supported on Linux >=3.2.0])],
     [])
 
@@ -355,7 +355,7 @@ AC_ARG_ENABLE(
 #
 AC_ARG_ENABLE(
     unibo-cgr,
-    [AC_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
+    [AS_HELP_STRING([--enable-unibo-cgr],[enable University of Bologna CGR])],
     [if test "$BUILD_BPv7" == "true" ; then
 	UNIBO_CGR=yes
 	AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])
@@ -374,7 +374,7 @@ AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
 #
 AC_ARG_ENABLE(
     manpages,
-    [AC_HELP_STRING([--disable-manpages], [disable manpage creation])],
+    [AS_HELP_STRING([--disable-manpages],[disable manpage creation])],
     [],
     [AM_CFLAGS="$AM_CFLAGS -DENABLE_MANPAGES"
      ENABLE_MANPAGES=yes])
@@ -385,7 +385,7 @@ AM_CONDITIONAL(ENABLE_MANPAGES, test "x$ENABLE_MANPAGES" = "xyes")
 #
 AC_ARG_ENABLE(
 	contrib,
-	[AC_HELP_STRING([--disable-contrib],[Disable building third-party contributed utilities])],
+	[AS_HELP_STRING([--disable-contrib],[Disable building third-party contributed utilities])],
 	[case "${enableval}" in
 		yes) BUILD_CONTRIB=yes;;
 		no)  BUILD_CONTRIB=no;;
@@ -480,7 +480,7 @@ AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
-AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--disable-valgrind],[Do not enable valgrind debugging [default=check]]),
+AC_ARG_ENABLE([valgrind], AS_HELP_STRING([--disable-valgrind],[Do not enable valgrind debugging [default=check]]),
               [ ], [ enable_valgrind=check ])
 
 if test "x$enable_valgrind" != xno; then
@@ -517,8 +517,7 @@ if test "x$enable_valgrind" != xno; then
   fi
 fi
 
-AC_ARG_ENABLE([sysctl-check], AC_HELP_STRING([--disable-sysctl-check],
-                  [Disable checking sysctl configuration on OSX and FreeBSD]),
+AC_ARG_ENABLE([sysctl-check], AS_HELP_STRING([--disable-sysctl-check],[Disable checking sysctl configuration on OSX and FreeBSD]),
               [], [enable_sysctl_check=yes])
 
 if test "x$enable_sysctl_check" = xyes; then
@@ -559,7 +558,7 @@ AM_CONDITIONAL([ENABLE_NCURSES], [test "x$ncurses" = "xyes"])
 
 AC_ARG_ENABLE(
         nmrest,
-        [AC_HELP_STRING([--enable-nmrest], [Enable REST API for NM Mgr])],
+        [AS_HELP_STRING([--enable-nmrest],[Enable REST API for NM Mgr])],
         [BUILD_NM_REST=true],
         [BUILD_NM_REST=false]
         )
@@ -570,7 +569,7 @@ AM_CONDITIONAL([BUILD_NM_REST], [test "x$BUILD_NM_REST" = "xtrue"])
 #
 AC_ARG_ENABLE(
 	musl,
-	[AC_HELP_STRING([--enable-musl], [declare that the platform is MUSL])],
+	[AS_HELP_STRING([--enable-musl],[declare that the platform is MUSL])],
 	[AM_CFLAGS="$AM_CFLAGS -DMUSL"
 	 MUSL=yes],
 	[]
@@ -585,7 +584,7 @@ AM_CONDITIONAL([MUSL], [test "x$MUSL" = "xyes"])
 #
 AC_ARG_ENABLE(
 	tcpcl-low-cycle,
-	[AC_HELP_STRING([--enable-tcpcl-low-cycle], [enable TCPCL_LOW_CYCLE option])],
+	[AS_HELP_STRING([--enable-tcpcl-low-cycle],[enable TCPCL_LOW_CYCLE option])],
 	[AM_CFLAGS="$AM_CFLAGS -DTCPCL_LOW_CYCLE"
 	 TCPCL_LOW_CYCLE=yes],
 	[]
@@ -694,13 +693,34 @@ CFLAGS="$CFLAGS $CUSTOM_CFLAGS"
 
 # Checks for header files.
 AC_HEADER_DIRENT
-AC_HEADER_STDC
+m4_warn([obsolete],
+[The preprocessor macro 'STDC_HEADERS' is obsolete.
+  Except in unusual embedded environments, you can safely include all
+  C89 headers unconditionally.])dnl
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS([fcntl.h malloc.h netdb.h netinet/in.h stddef.h stdlib.h string.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
 
 AC_C_CONST
 AC_TYPE_SIZE_T
-AC_HEADER_TIME
+m4_warn([obsolete],
+[Update your code to rely only on HAVE_SYS_TIME_H,
+then remove this warning and the obsolete code below it.
+All current systems provide time.h; it need not be checked for.
+Not all systems provide sys/time.h, but those that do, all allow
+you to include it and time.h simultaneously.])dnl
+AC_CHECK_HEADERS_ONCE([sys/time.h])
+# Obsolete code to be removed.
+if test $ac_cv_header_sys_time_h = yes; then
+  AC_DEFINE([TIME_WITH_SYS_TIME],[1],[Define to 1 if you can safely include both <sys/time.h>
+	     and <time.h>.  This macro is obsolete.])
+fi
+# End of obsolete code.
+
 AC_STRUCT_TM
 AC_TYPE_UID_T
 
@@ -708,12 +728,27 @@ AC_TYPE_UID_T
 # commented out library functions that should exist everywhere.
 # otherwise, autoconf insisted that malloc.c, mktime.c were included in distro...
 AC_FUNC_FORK
-AC_PROG_GCC_TRADITIONAL
+m4_warn([obsolete],
+[AC_PROG_GCC_TRADITIONAL is obsolete; use AC_PROG_CC
+])dnl
+AC_REQUIRE(AC_PROG_CC)
 #AC_FUNC_MALLOC
 #AC_FUNC_MEMCMP
 #AC_FUNC_MKTIME
 #AC_FUNC_SELECT_ARGTYPES
-AC_TYPE_SIGNAL
+m4_warn([obsolete],
+[your code may safely assume C89 semantics that RETSIGTYPE is void.
+Remove this warning and the 'AC_CACHE_CHECK' when you adjust the code.])dnl
+AC_CACHE_CHECK([return type of signal handlers],[ac_cv_type_signal],[AC_COMPILE_IFELSE(
+[AC_LANG_PROGRAM([#include <sys/types.h>
+#include <signal.h>
+],
+		 [return *(signal (0, 0)) (0) == 1;])],
+		   [ac_cv_type_signal=int],
+		   [ac_cv_type_signal=void])])
+AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
+		    ('int' or 'void').])
+
 #AC_FUNC_STAT
 #AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname gettimeofday memset mkdir mkfifo rmdir select socket strcasecmp strchr strerror strncasecmp strstr strtoul uname])
