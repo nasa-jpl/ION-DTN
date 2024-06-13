@@ -6,7 +6,7 @@
 #
 # The program will manage the various configuration files needed to start an
 # ion node.  It will take several specified rc files (man ionrc ionsecrc ltprc
-# bprc cfdprc ipnrc dtn2rc dtpcrc acsrc imcrc bssrc) and put them into a single
+# bprc cfdprc ipnrc dtn2rc dtpcrc acsrc imcrc bssprc) and put them into a single
 # large configuration file with the appropriate section markers as needed by
 # ionstart.sh.
 # The program can also perform the opposite function: take a single large
@@ -48,7 +48,7 @@ function USAGE {
 	echo    "IONSCRIPT: Interplanetary Overlay Network configuration creation script."
 	echo    "USAGE:"
 	echo    "	ionscript <-I input | -O output> [-A] [-t tag] [-a acsrc] [-b bprc]"
-	echo    "            [-B bssrc]  [-d dtn2rc]   [-D dtpcrc] [-i ionrc] [-l ltprc] [-m imcrc]"
+	echo    "            [-B bssprc]  [-d dtn2rc]   [-D dtpcrc] [-i ionrc] [-l ltprc] [-m imcrc]"
 	echo -n "            [-p ipnrc]  [-s ionsecrc]"
 if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo " [-c cfdprc]"
@@ -83,8 +83,8 @@ fi
 	echo "			Default filename is input|output.tag.acsrc."
 	echo "	-b bprc		Specifies file bprc to be used with bpadmin."
 	echo "			Default filename is input|output.tag.bprc."
-	echo "	-B bssrc	Specifies file bssrc to be used with bssadmin."
-	echo "			Default filename is input|output.tag.bssrc."
+	echo "	-B bssprc	Specifies file bssprc to be used with bsspadmin."
+	echo "			Default filename is input|output.tag.bssprc."
 	echo "	-d dtn2rc	Specifies file dtn2rc to be used with dtn2admin."
 	echo "			Default filename is input|output.tag.dtn2rc."
 	echo "	-D dtpcrc	Specifies file dtpcrc to be used with dtpcadmin."
@@ -168,7 +168,7 @@ fi
 # split into component parts to be put into -a -b -B -c -d -D -i -l -m -p -s
 
 # fill in the default base filenames
-# note that BSSRC and IPNRC are initialized to empty here so that we can detect
+# note that BSSPRC and IPNRC are initialized to empty here so that we can detect
 # if the user specifies both, which is not valid as these modules are mutually
 # exclusive.
 if [[ -n "${TAG}" ]] ; then
@@ -184,7 +184,7 @@ IMCRC="${DEFAULTBASEFILE}.imcrc"
 IONSECRC="${DEFAULTBASEFILE}.ionsecrc"
 CFDPRC="${DEFAULTBASEFILE}.cfdprc"
 # these variables are initialized later
-BSSRC=""
+BSSPRC=""
 IPNRC=""
 
 # reset options index to reuse getopts
@@ -198,7 +198,7 @@ while getopts ":i:d:D:c:p:b:l:I:O:t:s:a:m:B:hA" options; do
 		p ) IPNRC="${OPTARG}";;
 		a ) ACSRC="${OPTARG}";;
 		b ) BPRC_FILES+=("${OPTARG}");;
-		B ) BSSRC="${OPTARG}";;
+		B ) BSSPRC="${OPTARG}";;
 		c ) CFDPRC="${OPTARG}"
 		    if [ "$ION_OPEN_SOURCE" == "0" ]; then
 			echo "CFDP not available"
@@ -223,15 +223,15 @@ done
 
 # Detect if both IPN and BSS filenames are specified and reject this case, as
 # IPN and BSS are mutually exclusive modules.
-if [[ ! -z "${BSSRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
+if [[ ! -z "${BSSPRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
 	echo "Error: bss and ipn are mutually exclusive!"
 	exit 1
 fi
 
 # Fill in the default base filenames here if necessary instead of above so we have a
 # way to detect if both were specified by the user, which is not allowed.
-if [[ -z "${BSSRC}" ]]  ; then
-	BSSRC="${DEFAULTBASEFILE}.bssrc"
+if [[ -z "${BSSPRC}" ]]  ; then
+	BSSPRC="${DEFAULTBASEFILE}.bssprc"
 fi
 if [[ -z "${IPNRC}" ]]  ; then
 	IPNRC="${DEFAULTBASEFILE}.ipnrc"
@@ -242,7 +242,7 @@ if [[ -n "${INPUTFILE}" ]] ; then
 	echo
 	echo "I will now split the large input configuration file into its component parts."
 	echo
-	awk -f "${AWKSCRIPT}" -v configfile="${INPUTFILE}" -v tag="${TAG}" -v echo="cat" -v append="${append}" -v ionrc="${IONRC}" -v ltprc="${LTPRC}" -v bprc="${BPRC}" -v cfdprc="${CFDPRC}" -v ipnrc="${IPNRC}" -v dtn2rc="${DTN2RC}" -v dtpcrc="${DTPCRC}" -v ionsecrc="${IONSECRC}" -v acsrc="${ACSRC}" -v bssrc="${BSSRC}" -v imcrc="${IMCRC}" "${INPUTFILE}"
+	awk -f "${AWKSCRIPT}" -v configfile="${INPUTFILE}" -v tag="${TAG}" -v echo="cat" -v append="${append}" -v ionrc="${IONRC}" -v ltprc="${LTPRC}" -v bprc="${BPRC}" -v cfdprc="${CFDPRC}" -v ipnrc="${IPNRC}" -v dtn2rc="${DTN2RC}" -v dtpcrc="${DTPCRC}" -v ionsecrc="${IONSECRC}" -v acsrc="${ACSRC}" -v bssprc="${BSSPRC}" -v imcrc="${IMCRC}" "${INPUTFILE}"
 else
 # there is an OUTPUTFILE, which will contain the contents of ionrc, dtn2rc, ipnrc etc.
 	datenow=`date`
@@ -364,14 +364,14 @@ else
 		echo >>"${OUTPUTFILE}"
 		echo "## end acsadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
-	if [[ -r "${BSSRC}" ]] ; then
+	if [[ -r "${BSSPRC}" ]] ; then
 		echo
-		echo "Appending ${BSSRC} into ${OUTPUTFILE}."
+		echo "Appending ${BSSPRC} into ${OUTPUTFILE}."
 		echo >>"${OUTPUTFILE}"
-		echo "## begin bssadmin ${TAG}" >>"${OUTPUTFILE}"
-		cat "${BSSRC}" >>"${OUTPUTFILE}"
+		echo "## begin bsspadmin ${TAG}" >>"${OUTPUTFILE}"
+		cat "${BSSPRC}" >>"${OUTPUTFILE}"
 		echo >>"${OUTPUTFILE}"
-		echo "## end bssadmin ${TAG}" >>"${OUTPUTFILE}"
+		echo "## end bsspadmin ${TAG}" >>"${OUTPUTFILE}"
 	fi
 	if [[ -r "${IMCRC}" ]] ; then
 		echo

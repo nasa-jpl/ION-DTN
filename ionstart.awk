@@ -26,7 +26,7 @@
 # information to both nodes with the same file.
 #
 # program names accepted are:
-# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin bibeadmin dtn2admin dtpcadmin acsadmin imcadmin bssadmin
+# ionadmin ionsecadmin bpsecadmin ltpsecrc ltpadmin bpadmin cfdpadmin ipnadmin bibeadmin dtn2admin dtpcadmin acsadmin imcadmin bsspadmin
 #
 # Program sections may not overlap.
 # Lines with unsupported program names will be ignored.
@@ -48,7 +48,7 @@
 # configfile.tag.dtpcrc
 # configfile.tag.acsrc
 # configfile.tag.imcrc
-# configfile.tag.bssrc
+# configfile.tag.bssprc
 # it will NOT check for the file existence beforehand.
 # it will NOT run the program.
 #
@@ -74,7 +74,7 @@ BEGIN {
 	programs[11]  = "dtn2admin"
 	programs[12]  = "dtpcadmin"
 	programs[13]  = "imcadmin"
-	programs[14]  = "bssadmin"
+	programs[14]  = "bsspadmin"
 
 	# programoptions are special options for certain programs that take them
 	# rcname is the name of an rc file associated with the program
@@ -91,7 +91,7 @@ BEGIN {
 	rcname["dtpcadmin"]    = dtpcrc
 	rcname["ltpadmin"]     = ltprc
 	rcname["imcadmin"]     = imcrc
-	rcname["bssadmin"]     = bssrc
+	rcname["bsspadmin"]     = bssprc
 
 	# firstline is associative array of the "first line" for a program
 	# lastline is associative array of the "last line" for a program
@@ -274,7 +274,7 @@ END {
 		exit 1
 	}
 
-	if(firstline["bssadmin"] > 0 && firstline["ipnadmin"]>0){
+	if(firstline["bsspadmin"] > 0 && firstline["ipnadmin"]>0){
 		print "\nError: bss and ipn are mutually exclusive!"
 		exit 1
 	}
