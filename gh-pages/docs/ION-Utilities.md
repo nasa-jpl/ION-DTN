@@ -1,37 +1,83 @@
 # ION Utility Programs
 
-Here is a short list of utility programs that comes with ION that are frequently used by users launch, stop, and query ION/BP operation status:
+Here is a short list of frequently used utility programs that are distributed with ION.
 
-* bpstats
-* bplist
-* bpcancel
-* ionrestart
-* sdrwatch
-* psmwatch
-* 
-### `ionstart`
+## bpstats
 
-The `ionstart` script is a bash script that provides a convenient and flexible tool to launch ION in a single command based on a consolidated configuration file with an extension `.rc` or a set of configuration command with various file name extension for different ION administration programs, such as `.ionrc`, `.bprc`, `ipnrc`, `ionsecrc`, `ltprc`, etc.
+## bplist
 
-The `ionstart` typically copied into in `/usr/local/bin` directory by the `make install` command during ION build/installation process.
+## bpcancel
 
-To launch ION requires a number of daemons be launched with the right configuration and in the appropriate order since each daemon's operation will depend on the preivous daemon's presence. A user can launch ION manually from a shell like this:
+## ionrestart
 
-```bash
-ionadmin	bench.ionrc
+## sdrwatch
 
-ionsecadmin	bench.ionsecrc
+## psmwatch
 
-ltpadmin	bench.ltprc
+## ionstart
 
-bpadmin		bench.bprc
+The `ionstart` script is typically copied into the `/usr/local/bin` directory using the standard installation procedure and is globally accessible. It provides a convenient and flexible way to launch an ION node using either:
 
-ionadmin	../global.ionrc
+- A consolidated configuration file,
+- A set of individual configuration file for each required ION modules, or
+- A combination of both
+
+ION needs to be launched through a number of administration programs in the proper order: `.rc`, `ionrc`, `ionsecrc`, `bpsecrc`, `ltpsecrc`, `ltprc`, `bprc`, `ipnrc`, `biberc`, `dtn2rc`, `acsrc`, `imcrc`, `bssprc`, and `cfdprc`. 
+
+To instantiate a bare-bone minimal DTN node, only the `ionrc` and the `bprc` configuration files are needed. The remaining modules are optional, depending on the set of features your DTN node is configured to have. 
+
+The `.rc` file is a consolidated file that includes multiple sections, each corresponding to different modules.
+
+The `ionstart` script automatically parses these files and launches the administrative programs in the right order for you. Here is the usage:
+
+```
+IONSTART: Interplanetary Overlay Network startup script
+USAGE:
+        ionstart [-I config]   [-t tag]   [-a acsrc] [-b bprc]  [-B bssprc]
+                 [-d dtn2rc]   [-e biberc][-i ionrc] [-l ltprc] [-m imcrc]
+                 [-p ipnrc]    [-s ionsecrc] [-S bpsecrc] [-L ltpsecrc] [-c cfdprc]
+
+        Defined configurations will be run in the following order:
+        config, ionrc, ionsecrc, bpsecrc, ltpsecrc ltprc, bprc, ipnrc, biberc, dtn2rc, acsrc, imcrc, bssprc, cfdprc
+
+        -I config       Specifies file containing the configuration for each
+                        ion administration program. Each section must be
+                        preceded by: ## begin programname tag
+                        and proceeded by: ## end programname tag
+
+        -t tag          Optional tag, used to specify which sections are used
+                        in config file.  If unspecified, sections with no tag
+                        are used.
+
+  -a acsrc        Specifies file acsrc to be used to configure acsadmin.
+        -b bprc         Specifies file bprc to be used to configure bpadmin.
+        -B bssprc       Specifies file bssprc to be used to configure bsspadmin.
+        -d dtn2rc       Specifies file dtn2rc to be used to configure dtn2admin.
+        -e biberc       Specifies file biberc to be used to configure bibeadmin.
+        -i ionrc        Specifies file ionrc to be used to configure ionadmin.
+        -l ltprc        Specifies file ltprc to be used to configure ltpadmin.
+        -m imcrc        Specifies file imcrc to be used to configure imcdmin.
+        -p ipnrc        Specifies file ipnrc to be used to configure ipnadmin.
+        -s ionsecrc     Specifies file ionsecrc to be used to configure ionsecadmin.
+        -S bpsecrc      Specifies file bpsecrc to be used to configure bpsecadmin.
+        -L ltpsecrc     Specifies file ltpsecrc to be used to configure ltpsecadmin.
+        -c cfdprc       Specifies file cfdprc to be used to configure cfdpadmin.
 ```
 
-In general, one launches ionrc files first to establish the working memory and heap space in shared memory space or in file, and establishes a basic set of semaphores for inter-process communications. 
+Currently, the AMS configuration file `.amsrc` are not supported by `ionstart`.
 
-Then one will launch the `.ionsecrc` file to 
+### Launching combined configuration file
+
+To launch ION using a consolidated configuration file:
+
+`ionstart -I <config-file.rc>`	
+
+
+
+
+
+
+
 
 * ionstop
 * ionscript
