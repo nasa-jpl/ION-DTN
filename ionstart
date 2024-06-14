@@ -74,17 +74,14 @@ fi
 	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
 	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
 	echo "	-S bpsecrc	Specifies file bpsecrc to be used to configure bpsecadmin."
-	echo -n "	-L ltpsecrc	Specifies file ltpsecrc to be used to configure ltpsecadmin."
+	echo "	-L ltpsecrc	Specifies file ltpsecrc to be used to configure ltpsecadmin."
 if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
-	echo ""
-	echo "  NOTE: <second>	Option for -i and -b. Admin program will run these files after initial launch"
-	echo "	                of non-delayed rc files. If delay is set as 0 explicitly, file will launch"
-	echo "					immediately after all non-delayed rc files were executed."
-	echo "					multiple ionrc files with delay will execute in the order they are provided"
-	echo "					on the command line. The delay will add to each execution."
-	echo "					delay files for ionrc will execute first before bprc.
 fi
+	echo ""
+	echo "  <second>:   optional for -i and -b. Admin program will run these files after initial launch"
+	echo "              of non-delayed rc files. If delay is set as 0 explicitly, file will launch"
+	echo "              immediately after all non-delayed rc files were executed."
 }
 
 # Check the bundle protocol version
