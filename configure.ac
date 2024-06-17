@@ -8,7 +8,7 @@
 
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 4.1.2, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 4.1.2, https://github.com/nasa-jpl/ION-DTN/issues)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with

@@ -28,5 +28,5 @@ The Bundle Protocol version is 6.
 
 =head1 BUGS
 
-Report bugs to <ion-dtn-support@lists.sourceforge.net>
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 

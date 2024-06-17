@@ -54,4 +54,4 @@ B<bpadmin> has not yet initialized BP operations.
 
 =head1 BUGS
 
-Report bugs to <ion-dtn-support@lists.sourceforge.net>
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
