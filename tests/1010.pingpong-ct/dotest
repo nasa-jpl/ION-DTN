@@ -47,16 +47,6 @@ else
     ITERATIONGOAL=$2
 fi
 
-# Guess what ION will say if a bundle containing $2 is received.
-# The extra byte in the length is because bptrace adds a null terminator at 
-# the end (but bpsource does not).  How lame is that?
-predictreceived () {
-    EXLENGTH=`expr ${#1} + 1`
-    echo "ION event: Payload delivered."
-    echo "	payload length is ${EXLENGTH}."
-    echo "	'${1}'"
-}
-
 # Try 10 times to see if the bundle has been received.
 tryreceive () {
     X=0
@@ -66,8 +56,6 @@ tryreceive () {
         # sleep and kill process in case it didn't end properly
         sleep 0.04
 
-	# Check if bpsink got the file.
-        #if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
 	# check if the message from this iteration cna be found within the reception file yet
         if ! grep "${1}"  $IONRECEIVEFILE >/dev/null 2>/dev/null;
 	then
@@ -78,7 +66,6 @@ tryreceive () {
         fi
     done
     # We didn't receive it, even after 10 tries; bummer.
-    #diff $IONRECEIVEFILE $IONEXPECTEDFILE
     echo "Message '${1}' not  received within 10 seconds"
     return 1
 }
@@ -88,14 +75,13 @@ tryreceive () {
 IONMESSAGE="iontestmessage"
 IONSENDFILE=./ionsendfile.txt
 IONRECEIVEFILE=./ionreceivefile.txt
-IONEXPECTEDFILE=./ionexpectedfile.txt
 
 echo "Killing old ION..."
 killm
 sleep 1
 
 # Prepare for loop start
-rm -f $IONSENDFILE $IONRECEIVEFILE $IONEXPECTEDFILE ion.log
+rm -f $IONSENDFILE $IONRECEIVEFILE ion.log
 PASS=1
 ITERATION=1
 
@@ -125,9 +111,6 @@ do
 
     # send the message in the file via test bundle source
     bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE" 31
-
-    # Predict what should come out the other end.
-    predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
 
     if tryreceive "$IONMESSAGE";
     then
