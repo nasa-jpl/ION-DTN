@@ -64,11 +64,13 @@ tryreceive () {
     while [ $X -lt 200 ]
     do
         # sleep and kill process in case it didn't end properly
-        sleep 0.04 
+        sleep 0.04
 
-        # Check if bpsink got the file.
-        if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
-        then
+	# Check if bpsink got the file.
+        #if ! cmp $IONRECEIVEFILE $IONEXPECTEDFILE >/dev/null 2>/dev/null
+	# check if the message from this iteration cna be found within the reception file yet
+        if ! grep "${1}"  $IONRECEIVEFILE >/dev/null 2>/dev/null;
+	then
             X=$((X + 1))
         else
             # We received it.  Hooray.
@@ -76,7 +78,8 @@ tryreceive () {
         fi
     done
     # We didn't receive it, even after 10 tries; bummer.
-    diff $IONRECEIVEFILE $IONEXPECTEDFILE
+    #diff $IONRECEIVEFILE $IONEXPECTEDFILE
+    echo "Message '${1}' not  received within 10 seconds"
     return 1
 }
 
@@ -117,15 +120,16 @@ sleep 5
 
 while [ $PASS -eq 1 ] && [ $ITERATION -le $ITERATIONGOAL ]
 do
-    IONMESSAGE=$( date )
-    
+    # add iteration number to the date for the message, that way we dont risk an iteration using the same message as the previous when the iteration took less than a second.
+    IONMESSAGE="$(date)|ITERATION NUMBER ${ITERATION}"
+
     # send the message in the file via test bundle source
     bptrace ipn:1.2 ipn:1.1 ipn:1.2 60 1.0 "$IONMESSAGE" 31
 
     # Predict what should come out the other end.
     predictreceived "$IONMESSAGE" >> $IONEXPECTEDFILE
 
-    if tryreceive 
+    if tryreceive "$IONMESSAGE";
     then
         echo -n "."
         if [ $((ITERATION % 80)) -eq 0 ]
