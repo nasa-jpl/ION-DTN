@@ -375,11 +375,11 @@ bpnmtest:	bpnmtest.o libbp.so $(BPLIBS)
 		cp bpnmtest ./bin
 
 sendfile:	sendfile.o libbp.so $(BPLIBS)
-		$(CC) -o sendfile sendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		$(CC) -o sendfile sendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
 		cp sendfile ./bin
 
 recvfile:	recvfile.o libbp.so $(BPLIBS)
-		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
 		cp recvfile ./bin
 #	-	-	Libraries	-	-	-	-	-
 
