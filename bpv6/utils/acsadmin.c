@@ -400,7 +400,14 @@ int	main(int argc, char **argv)
 
 	writeErrmsgMemos();
 	acsDetach();
-	bp_detach();
+	/*
+	  bp_detach() commented out for version 4.1.3
+	  acsDetach removes SDR info needed by bp_detach so it is skipped.
+	  A fix will be added in future version update to address how to best perform acsDetach.
+	  Given that acsadmin will quit immediately, explicit detach is not needed for typical operations.
+	  If acsadmin were to be expanded to require repeated attach/detach/reattach to ION then a long term solution will be needed. 
+	*/
+	//bp_detach();
 	printText("Stopping acsadmin.");
 	return 0;
 }
