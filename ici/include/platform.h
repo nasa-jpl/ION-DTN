@@ -138,9 +138,9 @@ typedef unsigned long long	uvast;
 typedef long			saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #if (defined(mingw) || defined(ION4WIN))
-#define	VAST_FIELDSPEC		"%I64d"
-#define	UVAST_FIELDSPEC		"%I64u"
-#define UVAST_HEX_FIELDSPEC	"%I64x"
+#define	VAST_FIELDSPEC		"%lld"
+#define	UVAST_FIELDSPEC		"%llu"
+#define UVAST_HEX_FIELDSPEC	"%llx"
 #define	ADDR_FIELDSPEC		"%#lx"
 #define	ADDR_FIELDSPEC_INT	"%lu"
 #define ilseek(a, b, c)		lseek64(a, b, c)

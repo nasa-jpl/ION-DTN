@@ -33,15 +33,14 @@ AM_CFLAGS += \
 	-Kpic
 NO_UNUSED_VARIABLE = 
 else
-AM_CFLAGS += \
-	-Wall \
-	-fPIC -Werror
+AM_CFLAGS += -Wall \
+	-fPIC
 
 NO_UNUSED_VARIABLE = -Wno-unused-variable
 endif # end SOLARIS_STUDIO_CC
 
 if WINDOWS
-LIBOBJS += -lws2_32 -lwsock32
+AM_CFLAGS += -lws2_32 -lwsock32 -Dmingw
 endif
 
 # This will add CFLAGS to make the valgrind macros compile without
@@ -219,12 +218,15 @@ endif # end ENABLE_MANPAGES
 # throw the helper scripts in the /usr/local/bin
 # whatever directory with the rest of the programs.
 stuffdir = $(bindir)
-stuff_SCRIPTS =	$(srcdir)/killm \
-		$(srcdir)/ionstart \
+stuff_SCRIPTS =	$(srcdir)/ionstart \
 		$(srcdir)/ionstop \
 		$(srcdir)/ionscript \
 		$(srcdir)/demos/ionlauncher/ionlauncher \
 		$(srcdir)/demos/ionlauncher/net_model_gen
+
+if !WINDOWS
+stuff_SCRIPTS += $(srcdir)/killm
+endif
 
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
@@ -351,7 +353,11 @@ icibin = \
 	sdrwatch \
 	sm2file \
 	smlistsh \
-	smrbtsh
+	smrbtsh 
+
+if WINDOWS
+icibin += winion
+endif
 
 if !WINDOWS
 icibin += \
@@ -385,7 +391,12 @@ iciinclude = \
 	ici/include/smlist.h \
 	ici/include/smrbt.h \
 	ici/include/sptrace.h \
-	ici/include/zco.h
+	ici/include/zco.h \
+	ici/include/cbor.h \
+	ici/include/crc.h \
+	ici/include/ionsec.h \
+	ici/include/bulk.h \
+	ici/include/csi.h
 
 icinoinst = \
 	ici/library/lystP.h \
@@ -607,6 +618,10 @@ rfxclock_SOURCES = ici/daemon/rfxclock.c
 rfxclock_LDADD = libici.la -lm
 rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
+winion_SOURCES = ici/daemon/winion.c
+winion_LDADD = libici.la -lm
+winion_CFLAGS = $(icicflags) $(AM_CFLAGS)
+
 ##########################
 #
 # LTP SECTION
@@ -713,69 +728,69 @@ libudplsa_la_LIBADD = libici.la libltp.la -lm
 # --- Utility Programs --- #
 
 ltpadmin_SOURCES = ltp/utils/ltpadmin.c
-ltpadmin_LDADD = libltp.la libici.la 
+ltpadmin_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 ltpadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ltpsecadmin_SOURCES = ltp/utils/ltpsecadmin.c
-ltpsecadmin_LDADD = libltp.la libici.la 
+ltpsecadmin_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 ltpsecadmin_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
 ltpcounter_SOURCES = ltp/test/ltpcounter.c
-ltpcounter_LDADD = libltp.la libici.la 
+ltpcounter_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 ltpcounter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ltpdriver_SOURCES = ltp/test/ltpdriver.c
-ltpdriver_LDADD = libltp.la libici.la 
+ltpdriver_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 ltpdriver_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 sdatest_SOURCES = ltp/test/sdatest.c
-sdatest_LDADD = libltp.la libici.la 
+sdatest_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 sdatest_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
 ltpclock_SOURCES = ltp/daemon/ltpclock.c
-ltpclock_LDADD = libltp.la libici.la 
+ltpclock_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 ltpclock_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ltpdeliv_SOURCES = ltp/daemon/ltpdeliv.c
-ltpdeliv_LDADD = libltp.la libici.la 
+ltpdeliv_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 ltpdeliv_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ltpmeter_SOURCES = ltp/daemon/ltpmeter.c
-ltpmeter_LDADD = libltp.la libici.la 
+ltpmeter_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 ltpmeter_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 udplsi_SOURCES = ltp/udp/udplsi.c
-udplsi_LDADD = libltp.la libudplsa.la libici.la $(PTHREAD_LIBS)
+udplsi_LDADD = libltp.la libudplsa.la libici.la -lws2_32 -lwsock32 $(PTHREAD_LIBS)
 udplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 udplso_SOURCES = ltp/udp/udplso.c
-udplso_LDADD = libltp.la libudplsa.la libici.la $(PTHREAD_LIBS)
+udplso_LDADD = libltp.la libudplsa.la libici.la -lws2_32 -lwsock32 $(PTHREAD_LIBS)
 udplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- AOS Executables --- #
 
 #aoslsi_SOURCES = ltp/aos/aoslsi.c
-#aoslsi_LDADD = libltp.la libici.la $(PTHREAD_LIBS)
+#aoslsi_LDADD = libltp.la libici.la -lws2_32 -lwsock32 $(PTHREAD_LIBS)
 #aoslsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 #aoslso_SOURCES = ltp/aos/aoslso.c
-#aoslso_LDADD = libltp.la libici.la 
+#aoslso_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 #aoslso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 
 dccplsi_SOURCES = ltp/dccp/dccplsi.c
-dccplsi_LDADD = libltp.la libici.la 
+dccplsi_LDADD = libltp.la libici.la -lws2_32 -lwsock32 
 dccplsi_CFLAGS = $(ltpcflags) $(AM_CFLAGS) $(PTHREAD_LIBS)
 
 dccplso_SOURCES = ltp/dccp/dccplso.c
-dccplso_LDADD = libltp.la libici.la $(PTHREAD_LIBS)
+dccplso_LDADD = libltp.la libici.la -lws2_32 -lwsock32 $(PTHREAD_LIBS)
 dccplso_CFLAGS = $(ltpcflags) $(AM_CFLAGS)
 
 ##########################
@@ -839,11 +854,11 @@ libdgr_la_LIBADD = libici.la -lm
 # --- Test Executables --- #
 
 dgr2file_SOURCES = dgr/test/dgr2file.c
-dgr2file_LDADD = libdgr.la libici.la -lm
+dgr2file_LDADD = libdgr.la libici.la -lws2_32 -lwsock32 -lm
 dgr2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 file2dgr_SOURCES = dgr/test/file2dgr.c
-file2dgr_LDADD = libdgr.la libici.la -lm
+file2dgr_LDADD = libdgr.la libici.la -lws2_32 -lwsock32 -lm
 file2dgr_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
 file2tcp_SOURCES = dgr/test/file2tcp.c
@@ -1318,44 +1333,44 @@ libudpcla_la_LIBADD = libbp.la libici.la
 # Only try to build ACS if BPv6 and ACS is enabled
 if ENABLE_BPACS
 acsadmin_SOURCES = bpv6/utils/acsadmin.c
-acsadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+acsadmin_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 acsadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 acslist_SOURCES = bpv6/utils/acslist.c
-acslist_LDADD = libbp.la libici.la $(LIBOBJS)
+acslist_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 acslist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif # end ENABLE_BPACS
 
 bpadmin_SOURCES = bpv6/utils/bpadmin.c
-bpadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+bpadmin_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpcancel_SOURCES = bpv6/utils/bpcancel.c
-bpcancel_LDADD = libbp.la libici.la $(LIBOBJS)
+bpcancel_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpcancel_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bplist_SOURCES = bpv6/utils/bplist.c
-bplist_LDADD = libbp.la libici.la $(LIBOBJS)
+bplist_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsecadmin_SOURCES = bpv6/utils/bpsecadmin.c
-bpsecadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+bpsecadmin_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) 
 bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats_SOURCES = bpv6/utils/bpstats.c
-bpstats_LDADD = libbp.la libici.la $(LIBOBJS)
+bpstats_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpstats_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bptrace_SOURCES = bpv6/utils/bptrace.c
-bptrace_LDADD = libbp.la libici.la $(LIBOBJS)
+bptrace_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bptrace_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpversion_SOURCES = bpv6/utils/bpversion.c
-bpversion_LDADD = libbp.la libici.la $(LIBOBJS)
+bpversion_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpversion_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dtn2admin_SOURCES = bpv6/dtn2/dtn2admin.c
-dtn2admin_LDADD = libbp.la libici.la $(LIBOBJS)
+dtn2admin_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 hmackeys_SOURCES = bpv6/utils/hmackeys.c
@@ -1364,44 +1379,44 @@ hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 if ENABLE_IMC
 imcadmin_SOURCES = bpv6/imc/imcadmin.c
-imcadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+imcadmin_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 imcadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 imcfw_SOURCES = bpv6/imc/imcfw.c
-imcfw_LDADD = libbp.la libici.la $(LIBOBJS)
+imcfw_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 imcfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 endif # end ENABLE_IMC
 
 ipnadmin_SOURCES = bpv6/ipn/ipnadmin.c
-ipnadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+ipnadmin_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 ipnadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 lgagent_SOURCES = bpv6/utils/lgagent.c
-lgagent_LDADD = libbp.la libici.la $(LIBOBJS)
+lgagent_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 lgagent_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 lgsend_SOURCES = bpv6/utils/lgsend.c
-lgsend_LDADD = libbp.la libici.la $(LIBOBJS)
+lgsend_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 lgsend_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DTN Executables --- #
 
 dtn2adminep_SOURCES = bpv6/dtn2/dtn2adminep.c
-dtn2adminep_LDADD = libbp.la libici.la $(LIBOBJS)
+dtn2adminep_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 dtn2adminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dtn2fw_SOURCES = bpv6/dtn2/dtn2fw.c
-dtn2fw_LDADD = libbp.la libici.la $(LIBOBJS)
+dtn2fw_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 dtn2fw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPN Executables --- #
 
 ipnadminep_SOURCES = bpv6/ipn/ipnadminep.c
-ipnadminep_LDADD = libbp.la libici.la $(LIBOBJS)
+ipnadminep_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 ipnadminep_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ipnfw_SOURCES = bpv6/ipn/ipnfw.c
-ipnfw_LDADD = libcgr.la libbp.la libici.la $(LIBOBJS)
+ipnfw_LDADD = libcgr.la libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 ipnfw_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- IPND Executables --- #
@@ -1417,125 +1432,125 @@ ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- BSSP Executables --- #
 
 bsspcli_SOURCES = bpv6/bssp/bsspcli.c
-bsspcli_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bsspcli_LDADD = libbssp.la libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bsspclo_SOURCES = bpv6/bssp/bsspclo.c
-bsspclo_LDADD = libbssp.la libbp.la libici.la $(LIBOBJS)
+bsspclo_LDADD = libbssp.la libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bsspclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- LTP Executables --- #
 
 ltpcli_SOURCES = bpv6/ltp/ltpcli.c
-ltpcli_LDADD = libbp.la libltp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+ltpcli_LDADD = libbp.la libltp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ltpclo_SOURCES = bpv6/ltp/ltpclo.c
-ltpclo_LDADD = libbp.la libltp.la libici.la $(LIBOBJS)
+ltpclo_LDADD = libbp.la libltp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 
 tcpcli_SOURCES = bpv6/tcp/tcpcli.c
-tcpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpcli_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 tcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 tcpclo_SOURCES = bpv6/tcp/tcpclo.c
-tcpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+tcpclo_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 tcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- STCP Executables --- #
 
 stcpcli_SOURCES = bpv6/stcp/stcpcli.c
-stcpcli_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpcli_LDADD = libbp.la libici.la -lws2_32 -lwsock32 libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 stcpclo_SOURCES = bpv6/stcp/stcpclo.c
-stcpclo_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
+stcpclo_LDADD = libbp.la libici.la -lws2_32 -lwsock32 libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 stcpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 udpcli_SOURCES = bpv6/udp/udpcli.c
-udpcli_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+udpcli_LDADD = libbp.la libudpcla.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 udpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 udpclo_SOURCES = bpv6/udp/udpclo.c
-udpclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
+udpclo_LDADD = libbp.la libudpcla.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 udpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BIBE Executables --- #
 
 bibeadmin_SOURCES = bpv6/bibe/bibeadmin.c
-bibeadmin_LDADD = libbp.la libici.la $(LIBOBJS)
+bibeadmin_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bibeadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bibeclo_SOURCES = bpv6/bibe/bibeclo.c
-bibeclo_LDADD = libbp.la libudpcla.la libici.la $(LIBOBJS)
+bibeclo_LDADD = libbp.la libudpcla.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bibeclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DCCP Executables --- #
 
 dccpcli_SOURCES = bpv6/dccp/dccpcli.c
-dccpcli_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpcli_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 dccpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dccpclo_SOURCES = bpv6/dccp/dccpclo.c
-dccpclo_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dccpclo_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- DGR Executables --- #
 
 dgrcli_SOURCES = bpv6/dgr/dgrcli.c
-dgrcli_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dgrcli_LDADD = libbp.la libdgr.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 dgrcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dgrclo_SOURCES = bpv6/dgr/dgrclo.c
-dgrclo_LDADD = libbp.la libdgr.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+dgrclo_LDADD = libbp.la libdgr.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 dgrclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
 
 brsccla_SOURCES = bpv6/brs/brsccla.c
-brsccla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsccla_LDADD = libbp.la libici.la -lws2_32 -lwsock32 libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsccla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 brsscla_SOURCES = bpv6/brs/brsscla.c
-brsscla_LDADD = libbp.la libici.la libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
+brsscla_LDADD = libbp.la libici.la -lws2_32 -lwsock32 libstcpcla.la $(LIBOBJS) $(PTHREAD_LIBS)
 brsscla_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
 bpchat_SOURCES = bpv6/test/bpchat.c
-bpchat_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bpchat_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 bpchat_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpcounter_SOURCES = bpv6/test/bpcounter.c
-bpcounter_LDADD = libbp.la libici.la $(LIBOBJS)
+bpcounter_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpcounter_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpcrash_SOURCES = bpv6/test/bpcrash.c
-bpcrash_LDADD = libbp.la libici.la $(LIBOBJS)
+bpcrash_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpcrash_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpdriver_SOURCES = bpv6/test/bpdriver.c
-bpdriver_LDADD = libbp.la libici.la $(LIBOBJS)
+bpdriver_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpdriver_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpecho_SOURCES = bpv6/test/bpecho.c
-bpecho_LDADD = libbp.la libici.la $(LIBOBJS)
+bpecho_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpecho_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bping_SOURCES = bpv6/test/bping.c
-bping_LDADD = libbp.la libici.la $(LIBOBJS) $(PTHREAD_LIBS)
+bping_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS) $(PTHREAD_LIBS)
 bping_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpnmtest_SOURCES = bpv6/test/bpnmtest.c
-bpnmtest_LDADD = libbp.la libici.la $(LIBOBJS)
+bpnmtest_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpnmtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bprecvfile_SOURCES = bpv6/utils/bprecvfile.c
-bprecvfile_LDADD = libbp.la libici.la $(LIBOBJS)
+bprecvfile_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bprecvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bprecvtest_SOURCES = bpv6/utils/bprecvtest.c
@@ -1543,7 +1558,7 @@ bprecvtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bprecvtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsendfile_SOURCES = bpv6/utils/bpsendfile.c
-bpsendfile_LDADD = libbp.la libici.la $(LIBOBJS)
+bpsendfile_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpsendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsendtest_SOURCES = bpv6/utils/bpsendtest.c
@@ -1551,33 +1566,33 @@ bpsendtest_LDADD = libbp.la libici.la $(LIBOBJS)
 bpsendtest_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsink_SOURCES = bpv6/test/bpsink.c
-bpsink_LDADD = libbp.la libici.la $(LIBOBJS)
+bpsink_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpsink_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpsource_SOURCES = bpv6/test/bpsource.c
-bpsource_LDADD = libbp.la libici.la $(LIBOBJS)
+bpsource_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpsource_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpstats2_SOURCES = bpv6/test/bpstats2.c
-bpstats2_LDADD = libbp.la libici.la $(LIBOBJS)
+bpstats2_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpstats2_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 cgrfetch_SOURCES = bpv6/utils/cgrfetch.c
-cgrfetch_LDADD = libbp.la libici.la libcgr.la $(LIBOBJS)
+cgrfetch_LDADD = libbp.la libici.la -lws2_32 -lwsock32 libcgr.la $(LIBOBJS)
 cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
 bpclm_SOURCES = bpv6/daemon/bpclm.c
-bpclm_LDADD = libbp.la libici.la $(LIBOBJS)
+bpclm_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpclm_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bpclock_SOURCES = bpv6/daemon/bpclock.c
-bpclock_LDADD = libbp.la libici.la $(LIBOBJS)
+bpclock_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bpclock_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bptransit_SOURCES = bpv6/daemon/bptransit.c
-bptransit_LDADD = libbp.la libici.la $(LIBOBJS)
+bptransit_LDADD = libbp.la libici.la -lws2_32 -lwsock32 $(LIBOBJS)
 bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ############################
@@ -1626,7 +1641,7 @@ nm_shared_src =	\
 	$(nm_cbor_src)
 
 libamp_la_SOURCES = $(nm_shared_src)
-libamp_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv6/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+libamp_la_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv6/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent -I$(srcdir)/bpv6/library/ext/sbsp $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   $(NM_CBOR_CFLAGS)
 # Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
@@ -1689,14 +1704,14 @@ nmmans = \
 	$(top_builddir)/nm/doc/nm_mgr.1
 
 libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libampAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
-libampAgentADM_la_LIBADD = libamp.la libici.la libbp.la libltp.la
+libampAgentADM_la_CFLAGS =  -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libampAgentADM_la_LIBADD = libamp.la libici.la -lws2_32 -lwsock32 libbp.la libltp.la
 
 
 nm_agent_LDADD = libici.la libbp.la libltp.la libamp.la libampAgentADM.la $(LIBOBJS) $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
-nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv6/library -I$(srcdir)/nm \
+nm_agent_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv6/library -I$(srcdir)/nm \
                   -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   -DAGENT_ROLE $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
@@ -1724,11 +1739,11 @@ CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contr
 CIVETWEB_LDFLAGS = -ldl
 CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
 
-nm_mgr_LDADD = libamp.la libici.la libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
+nm_mgr_LDADD = libamp.la libici.la -lws2_32 -lwsock32 libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
-nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bpv6/library -I$(srcdir)/bpv6/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
+nm_mgr_LDFLAGS =  -lpthread
+nm_mgr_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv6/library -I$(srcdir)/bpv6/library/ext/sbsp -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr  $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 if BUILD_NM_REST
 nm_mgr_LDFLAGS += $(CIVETWEB_LDFLAGS)
@@ -1825,6 +1840,10 @@ bpbin = \
 	udpcli \
 	udpclo
 
+if WINDOWS
+bpbin += killm
+endif
+
 if !WINDOWS
 bpbin += \
 	bpchat \
@@ -1880,10 +1899,10 @@ bpextra = \
 	bpv7/bpsec/policy/bpsec_policy_eventset.h \
 	bpv7/bpsec/policy/bpsec_policy_event.h \
 	bpv7/bpsec/policy/bpsec_policy_rule.h \
-	bpv7/bpsec/policy/bpsec_policy.c \
-	bpv7/bpsec/policy/bpsec_policy_eventset.c \
-	bpv7/bpsec/policy/bpsec_policy_event.c \
-	bpv7/bpsec/policy/bpsec_policy_rule.c \
+	# bpv7/bpsec/policy/bpsec_policy.c \
+	# bpv7/bpsec/policy/bpsec_policy_eventset.c \
+	# bpv7/bpsec/policy/bpsec_policy_event.c \
+	# bpv7/bpsec/policy/bpsec_policy_rule.c \
 	bpv7/bpsec/sci/sci.h \
 	bpv7/bpsec/sci/ion_test_sc.h \
 	bpv7/bpsec/sci/bib_hmac_sha2_sc.h \
@@ -2237,7 +2256,7 @@ bplist_SOURCES = bpv7/utils/bplist.c
 bplist_LDADD = libici.la $(bplib)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c
+bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c bpv7/utils/bpsecadmin_config.c bpv7/utils/jsmn.c
 bpsecadmin_LDADD = libici.la $(bplib)
 bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
@@ -2260,6 +2279,10 @@ dtn2admin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 hmackeys_SOURCES = bpv7/utils/hmackeys.c
 hmackeys_LDADD = libici.la -lm $(bplib)
 hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
+
+killm_SOURCES = ici/utils/killm.c
+killm_LDADD = libici.la 
+killm_CFLAGS = $(AM_CFLAGS)
 
 if ENABLE_IMC
 imcadminep_SOURCES = bpv7/imc/imcadminep.c
@@ -2316,21 +2339,21 @@ ipnd_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- BSSP Executables --- #
 
 bsspcli_SOURCES = bpv7/bssp/bsspcli.c
-bsspcli_LDADD = libbssp.la libici.la $(bplib) $(PTHREAD_LIBS)
+bsspcli_LDADD = libbssp.la libici.la -lws2_32 -lwsock32 $(bplib) $(PTHREAD_LIBS)
 bsspcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 bsspclo_SOURCES = bpv7/bssp/bsspclo.c
-bsspclo_LDADD = libbssp.la libici.la $(bplib)
+bsspclo_LDADD = libbssp.la libici.la -lws2_32 -lwsock32 $(bplib)
 bsspclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- LTP Executables --- #
 
 ltpcli_SOURCES = bpv7/ltp/ltpcli.c
-ltpcli_LDADD = libltp.la libici.la $(bplib) $(PTHREAD_LIBS)
+ltpcli_LDADD = libltp.la libici.la -lws2_32 -lwsock32 $(bplib) $(PTHREAD_LIBS)
 ltpcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 ltpclo_SOURCES = bpv7/ltp/ltpclo.c
-ltpclo_LDADD = libltp.la libici.la $(bplib)
+ltpclo_LDADD = libltp.la libici.la -lws2_32 -lwsock32 $(bplib)
 ltpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
@@ -2386,11 +2409,11 @@ dccpclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 # --- DGR Executables --- #
 
 dgrcli_SOURCES = bpv7/dgr/dgrcli.c
-dgrcli_LDADD = libdgr.la libici.la $(bplib) $(PTHREAD_LIBS)
+dgrcli_LDADD = libdgr.la libici.la -lws2_32 -lwsock32 $(bplib) $(PTHREAD_LIBS)
 dgrcli_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 dgrclo_SOURCES = bpv7/dgr/dgrclo.c
-dgrclo_LDADD = libdgr.la libici.la $(bplib) $(PTHREAD_LIBS)
+dgrclo_LDADD = libdgr.la libici.la -lws2_32 -lwsock32 $(bplib) $(PTHREAD_LIBS)
 dgrclo_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- BRS executables --- #
@@ -2683,7 +2706,7 @@ nm_shared_src = \
 	$(nm_cbor_src)
 
 libamp_la_SOURCES = $(nm_shared_src)
-libamp_la_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
+libamp_la_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/bpv7/bpsec/utils -I$(srcdir)/bpv7/sci -I$(srcdir)/ltp/library -I$(srcdir)/nm  \
                   -I$(srcdir)/nm/agent $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   $(NM_CBOR_CFLAGS)
 # Note: ici reference is used here only for memory management.  If -DUSE_MALLOC is used for NM (not recommended), this dependency would be unneeded.
@@ -2742,14 +2765,14 @@ nmmans = \
 	$(top_builddir)/nm/doc/nm_mgr.1
 
 libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
-libampAgentADM_la_CFLAGS = -I/usr/include -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
-libampAgentADM_la_LIBADD = libamp.la libici.la $(bplib) libltp.la
+libampAgentADM_la_CFLAGS =  -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
+libampAgentADM_la_LIBADD = libamp.la libici.la -lws2_32 -lwsock32 $(bplib) libltp.la
 
 
 nm_agent_LDADD = libici.la $(bplib) libltp.la libamp.la libampAgentADM.la $(PTHREAD_LIBS)
 nm_agent_LDFLAGS = -L/usr/local/lib -lm -lpthread 
 
-nm_agent_CFLAGS = -I/usr/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/nm \
+nm_agent_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/nm \
                   -I$(srcdir)/nm/agent -I$(srcdir)/nm/shared/adm $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) \
                   -DAGENT_ROLE $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
@@ -2777,11 +2800,11 @@ CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contr
 CIVETWEB_LDFLAGS = -ldl
 CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
 
-nm_mgr_LDADD = libamp.la libici.la $(bplib) libltp.la $(PTHREAD_LIBS)
+nm_mgr_LDADD = libamp.la libici.la -lws2_32 -lwsock32 $(bplib) libltp.la $(PTHREAD_LIBS)
 
 # Note: NCURSES and MySql support are optional and controlled at configure time with --with-mysql or --with-ncurses
-nm_mgr_LDFLAGS = -L/usr/local/mysql/lib -lpthread ${MYSQL_LIBS} ${NCURSES_LIBS}
-nm_mgr_CFLAGS = -I/usr/local/mysql/include -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr -I/usr/include/mysql $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
+nm_mgr_LDFLAGS = -lpthread 
+nm_mgr_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 if BUILD_NM_REST
 nm_mgr_LDFLAGS += $(CIVETWEB_LDFLAGS)
@@ -2896,37 +2919,37 @@ libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
 # --- Utility Programs --- #
 
 amslog_SOURCES = ams/test/amslog.c
-amslog_LDADD = libams.la libdgr.la libici.la -lm 
+amslog_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 amslog_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amslogprt_SOURCES = ams/test/amslogprt.c
-amslogprt_LDADD = libams.la libdgr.la libici.la 
+amslogprt_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 
 amslogprt_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsmib_SOURCES = ams/utils/amsmib.c
-amsmib_LDADD = libams.la libdgr.la libici.la -lm 
+amsmib_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 amsmib_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsshell_SOURCES = ams/test/amsshell.c
-amsshell_LDADD = libams.la libdgr.la libici.la -lm 
+amsshell_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 amsshell_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Test Executables --- #
 
 amsbenchr_SOURCES = ams/test/amsbenchr.c
-amsbenchr_LDADD = libams.la libdgr.la libici.la -lm 
+amsbenchr_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 amsbenchr_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsbenchs_SOURCES = ams/test/amsbenchs.c
-amsbenchs_LDADD = libams.la libdgr.la libici.la -lm 
+amsbenchs_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 amsbenchs_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amshello_SOURCES = ams/test/amshello.c
-amshello_LDADD = libams.la libdgr.la libici.la -lm 
+amshello_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 amshello_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 amsstop_SOURCES =ams/utils/amsstop.c
-amsstop_LDADD = libams.la libdgr.la libici.la -lm 
+amsstop_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 amsstop_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
@@ -2940,7 +2963,7 @@ amsd_SOURCES = \
 	ams/library/tcpts.c \
 	ams/library/udpts.c
 amsd_CFLAGS = $(amscflags) $(AM_CFLAGS)
-amsd_LDADD = libams.la libdgr.la libici.la -lm 
+amsd_LDADD = libams.la libdgr.la libici.la -lws2_32 -lwsock32 -lm 
 
 # --- RAMS Executables --- #
 
@@ -2948,7 +2971,7 @@ ramsgate_SOURCES = \
 	ams/rams/librams.c \
 	ams/rams/ramscommon.c \
 	ams/rams/ramsgate.c
-ramsgate_LDADD = $(bplib) libams.la libdgr.la libici.la 
+ramsgate_LDADD = $(bplib) libams.la libdgr.la libici.la -lws2_32 -lwsock32 
 ramsgate_CFLAGS = $(amscflags) $(AM_CFLAGS)
 
 ##############
@@ -3036,39 +3059,39 @@ libcfdp_la_LIBADD = libici.la -lm
 # --- Utility Programs --- #
 
 bpcp_SOURCES = cfdp/utils/bpcp.c
-bpcp_LDADD = libcfdp.la libici.la -lm $(PTHREAD_LIBS)
+bpcp_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 -lm $(PTHREAD_LIBS)
 bpcp_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 bpcpd_SOURCES = cfdp/utils/bpcpd.c
-bpcpd_LDADD = libcfdp.la libici.la -lm 
+bpcpd_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 -lm 
 bpcpd_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 cfdpadmin_SOURCES = cfdp/utils/cfdpadmin.c
-cfdpadmin_LDADD = libcfdp.la libici.la -lm $(bplib) 
+cfdpadmin_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) 
 cfdpadmin_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- BP Programs --- #
 
 bputa_SOURCES = cfdp/bp/bputa.c
-bputa_LDADD = libcfdp.la libici.la $(bplib) $(PTHREAD_LIBS)
+bputa_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 $(bplib) $(PTHREAD_LIBS)
 bputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
 
 cfdptest_SOURCES = cfdp/test/cfdptest.c
-cfdptest_LDADD = libcfdp.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
+cfdptest_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) $(PTHREAD_LIBS)
 cfdptest_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
 cfdpclock_SOURCES = cfdp/daemon/cfdpclock.c
-cfdpclock_LDADD = libcfdp.la libici.la $(bplib) 
+cfdpclock_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 $(bplib) 
 cfdpclock_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 
 tcputa_SOURCES = cfdp/tcp/tcputa.c
-tcputa_LDADD = libcfdp.la libici.la $(bplib) 
+tcputa_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 $(bplib) 
 tcputa_CFLAGS = $(cfdpcflags) $(AM_CFLAGS)
 
 ##############
@@ -3130,19 +3153,19 @@ libbss_la_LIBADD = libici.la $(bplib)
 # --- Test Programs --- #
 
 bsscounter_SOURCES = bss/test/bsscounter.c
-bsscounter_LDADD = libbss.la libici.la $(bplib) 
+bsscounter_LDADD = libbss.la libici.la -lws2_32 -lwsock32 $(bplib) 
 bsscounter_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bssdriver_SOURCES = bss/test/bssdriver.c
-bssdriver_LDADD = libbss.la libici.la $(bplib) 
+bssdriver_LDADD = libbss.la libici.la -lws2_32 -lwsock32 $(bplib) 
 bssdriver_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bssrecv_SOURCES = bss/test/bssrecv.c
-bssrecv_LDADD = libbss.la libici.la $(bplib) 
+bssrecv_LDADD = libbss.la libici.la -lws2_32 -lwsock32 $(bplib) 
 bssrecv_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 bssStreamingApp_SOURCES = bss/test/bssStreamingApp.c
-bssStreamingApp_LDADD = $(bplib) libbss.la libici.la 
+bssStreamingApp_LDADD = $(bplib) libbss.la libici.la -lws2_32 -lwsock32 
 bssStreamingApp_CFLAGS = $(bsscflags) $(AM_CFLAGS)
 
 ##############
@@ -3219,33 +3242,33 @@ libtcpbsa_la_LIBADD = libici.la -lm $(PTHREAD_LIBS)
 # --- Daemon Executables --- #
 
 bsspclock_SOURCES = bssp/daemon/bsspclock.c
-bsspclock_LDADD = libbssp.la libici.la -lm $(bplib) 
+bsspclock_LDADD = libbssp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) 
 bsspclock_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 # --- Utility Programs --- #
 
 bsspadmin_SOURCES = bssp/utils/bsspadmin.c
-bsspadmin_LDADD = libbssp.la libici.la -lm $(bplib) 
+bsspadmin_LDADD = libbssp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) 
 bsspadmin_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 # --- UDP Executables --- #
 
 udpbsi_SOURCES = bssp/udp/udpbsi.c
-udpbsi_LDADD = libbssp.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
+udpbsi_LDADD = libbssp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) $(PTHREAD_LIBS)
 udpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 udpbso_SOURCES = bssp/udp/udpbso.c
-udpbso_LDADD = libbssp.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
+udpbso_LDADD = libbssp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) $(PTHREAD_LIBS)
 udpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 # --- TCP Executables --- #
 
 tcpbsi_SOURCES = bssp/tcp/tcpbsi.c
-tcpbsi_LDADD = libbssp.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
+tcpbsi_LDADD = libbssp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) $(PTHREAD_LIBS)
 tcpbsi_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 tcpbso_SOURCES = bssp/tcp/tcpbso.c
-tcpbso_LDADD = libbssp.la libtcpbsa.la libici.la -lm $(bplib) $(PTHREAD_LIBS)
+tcpbso_LDADD = libbssp.la libtcpbsa.la libici.la -lws2_32 -lwsock32 -lm $(bplib) $(PTHREAD_LIBS)
 tcpbso_CFLAGS = $(bsspcflags) $(AM_CFLAGS)
 
 ##############
@@ -3321,27 +3344,27 @@ libdtpc_la_LIBADD = libici.la $(bplib) $(PTHREAD_LIBS)
 # --- Utility Programs --- #
 
 dtpcadmin_SOURCES = dtpc/utils/dtpcadmin.c
-dtpcadmin_LDADD = libdtpc.la libici.la $(bplib) 
+dtpcadmin_LDADD = libdtpc.la libici.la -lws2_32 -lwsock32 $(bplib) 
 dtpcadmin_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 # --- Test Programs --- #
 
 dtpcreceive_SOURCES = dtpc/test/dtpcreceive.c
-dtpcreceive_LDADD = libdtpc.la libici.la $(bplib) 
+dtpcreceive_LDADD = libdtpc.la libici.la -lws2_32 -lwsock32 $(bplib) 
 dtpcreceive_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 dtpcsend_SOURCES = dtpc/test/dtpcsend.c
-dtpcsend_LDADD = libdtpc.la libici.la $(bplib) 
+dtpcsend_LDADD = libdtpc.la libici.la -lws2_32 -lwsock32 $(bplib) 
 dtpcsend_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
 
 dtpcclock_SOURCES = dtpc/daemon/dtpcclock.c
-dtpcclock_LDADD = libdtpc.la libici.la $(bplib) 
+dtpcclock_LDADD = libdtpc.la libici.la -lws2_32 -lwsock32 $(bplib) 
 dtpcclock_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 dtpcd_SOURCES = dtpc/daemon/dtpcd.c
-dtpcd_LDADD = libdtpc.la libici.la $(bplib) 
+dtpcd_LDADD = libdtpc.la libici.la -lws2_32 -lwsock32 $(bplib) 
 dtpcd_CFLAGS = $(dtpccflags) $(AM_CFLAGS)
 
 
@@ -3356,7 +3379,7 @@ restartbin = ionrestart ionexit
 # --- Utility Programs --- #
 
 ionexit_SOURCES = restart/utils/ionexit.c
-ionexit_LDADD = libltp.la libici.la -lm $(bplib) 
+ionexit_LDADD = libltp.la libici.la -lws2_32 -lwsock32 -lm $(bplib) 
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionrestart_SOURCES = restart/utils/ionrestart.c
@@ -3477,7 +3500,7 @@ tests_nm_unit_dotest_SOURCES = tests/nm-unit/dotest.c $(nm_agent_SOURCES) $(nm_s
 #tests_nm_unit_dotest_LDADD = $(nm_agent_LDADD) -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
 tests_nm_unit_dotest_LDADD = libici.la $(bplib) libltp.la -lm $(TESTUTILOBJS) $(TESTUNITYOBJS)
 tests_nm_unit_dotest_CFLAGS = $(nm_agent_CFLAGS) $(TESTUTILCFLAGS) $(TESTUNITYCFLAGS) -DTEST_MAIN -DUSE_MALLOC \
-	-I/usr/include -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm/shared
+	 -I$(srcdir)/nm -I$(srcdir)/$(BP_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(srcdir)/$(BP_DIR)/library/ext/bpsec -I$(srcdir)/$(BP_DIR)/library -I$(srcdir)/ltp/library -I$(srcdir)/nm/shared
 
 tests_nm_unit_utils_vector_dotest_SOURCES = tests/nm-unit/utils/vector.c $(nm_shared_src)
 tests_nm_unit_utils_vector_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
@@ -3488,11 +3511,11 @@ tests_nm_unit_utils_rhht_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la
 tests_nm_unit_utils_rhht_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared
 
 tests_nm_unit_utils_radix_pt_dotest_SOURCES = tests/nm-unit/utils/radix_pt.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	 
-tests_nm_unit_utils_radix_pt_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
+tests_nm_unit_utils_radix_pt_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la -lws2_32 -lwsock32  
 tests_nm_unit_utils_radix_pt_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
 
 tests_nm_unit_utils_radix_ut_dotest_SOURCES = tests/nm-unit/utils/radix_ut.c tests/nm-unit/utils/radix_gen.c ici/library/radix.c	
-tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la  
+tests_nm_unit_utils_radix_ut_dotest_LDADD = -lm $(TESTUNITYOBJS) libici.la -lws2_32 -lwsock32  
 tests_nm_unit_utils_radix_ut_dotest_CFLAGS = $(libamp_la_CFLAGS) $(TESTUNITYCFLAGS) -DUSE_MALLOC -I$(srcdir)/nm/shared -I$(srcdir)/ici/include
 
 #tests_nm_unit_primitives_ari_dotest_SOURCES = tests/nm-unit/primitives/ari.c $(nm_agent_SOURCES)
@@ -3510,7 +3533,7 @@ tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 # Disabled this test in ION 3.2.2 due to crashes. Restore after fixing crashes.
 # tests_1400_loopback_stcp_dotest_SOURCES = tests/1400.loopback-stcp/dotest.c
-# tests_1400_loopback_stcp_dotest_LDADD = $(bplib) libici.la $(ltplib) $(TESTUTILOBJS)
+# tests_1400_loopback_stcp_dotest_LDADD = $(bplib) libici.la -lws2_32 -lwsock32 $(ltplib) $(TESTUTILOBJS)
 # tests_1400_loopback_stcp_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
@@ -3543,7 +3566,7 @@ tests_issue_330_cfdpclock_FDU_removal_cfdplisten_LDADD = libcfdp.la libici.la -l
 tests_issue_330_cfdpclock_FDU_removal_cfdplisten_CFLAGS = $(bpcflags) $(icicflags) $(cfdpcflags) $(AM_CFLAGS)
 
 tests_issue_334_cfdp_transaction_id_dotest_SOURCES = tests/issue-334-cfdp-transaction-id/dotest.c
-tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lm $(TESTUTILOBJS)
+tests_issue_334_cfdp_transaction_id_dotest_LDADD = libcfdp.la libici.la -lws2_32 -lwsock32 -lm $(TESTUTILOBJS)
 tests_issue_334_cfdp_transaction_id_dotest_CFLAGS = $(icicflags) $(cfdpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 
 tests_sm_subsystem_dotest_SOURCES = tests/sm_subsystem/dotest.c
