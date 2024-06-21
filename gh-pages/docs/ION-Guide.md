@@ -2513,21 +2513,26 @@ selected by default when ION is built for any platform other than MinGW,
 VxWorks 5.4, or RTEMS. (For these latter operating systems all memory is
 shared anyway, due to the absence of a protected-memory mode.)
 
-`POSIX1B_SEMAPHORES`
+`POSIX_NAMED_SEMAPHORES`
+
+Starting with version 4.1.3, POSIX named semaphores is selected by default
+when ION is built for any platform other than MinGW (for which Windows
+event objects are used), VxWorks 5.4 (for which VxWorks native
+semaphores are the default choice), or RTEMS (for which POSIX semaphores
+are the default choice).
+
+`POSIX_SEMAPHORES`
 
 This option causes ION to be built using POSIX semaphores as the
-pervasive semaphore mechanism. POSIX semaphores are selected by default
+semaphore mechanism. POSIX semaphores are selected by default
 when ION is built for RTEMS but are otherwise not used or supported;
 this option enables the default to be overridden.
 
 `SVR4_SEMAPHORES`
 
-This option causes ION to be built using svr4 semaphores as the
-pervasive semaphore mechanism. svr4 semaphores are selected by default
-when ION is built for any platform other than MinGW (for which Windows
-event objects are used), VxWorks 5.4 (for which VxWorks native
-semaphores are the default choice), or RTEMS (for which POSIX semaphores
-are the default choice).
+This option causes ION to be built using SVR4 semaphores as the 
+semaphore mechanism. Prior to version 4.1.3, SVR4 semaphores were
+the default choice for Linux, MacOS, and Solaris.
 
 `SM_SEMBASEKEY=0x*XXXX*`
 
