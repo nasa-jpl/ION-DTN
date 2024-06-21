@@ -1795,14 +1795,16 @@ RFC 5326.)
 
 **Figure 14 LTP link service input**
 
-### Contact Graph Routing (CGR)
+### Contact Graph Routing (CGR) - CCSDS Schedule Aware Bundle Routing (SABR)
 
 CGR is a dynamic routing system that computes routes through a
 time-varying topology of scheduled communication contacts in a DTN
 network. It is designed to support operations in a space network based
 on DTN, but it also could be used in terrestrial applications where
 operation according to a predefined schedule is preferable to
-opportunistic communication, as in a low-power sensor network.
+opportunistic communication, as in a low-power sensor network. ION's
+CGR implementation complies with CCSDS Schedule Aware Bundle Routing (SABR)
+Specification [CCSDS 734.3-B-1](https://public.ccsds.org/Pubs/734x3b1.pdf).
 
 The basic strategy of CGR is to take advantage of the fact that, since
 communication operations are planned in detail, the communication routes
