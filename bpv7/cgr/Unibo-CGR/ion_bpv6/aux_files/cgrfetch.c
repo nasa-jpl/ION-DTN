@@ -634,7 +634,6 @@ static void run_cgrfetch(void)
 	}
 
 	sdr_exit_xn(sdr);
-	ionDetach();
 
 	if (flags & OUTPUT_JSON)
 	{
@@ -642,6 +641,9 @@ static void run_cgrfetch(void)
 	}
 
 	lyst_destroy(routes);
+
+	ionDetach();
+	
 }
 
 // Try to parse the given string into the form PROTO:NAME and assign PROTO to outductProto
