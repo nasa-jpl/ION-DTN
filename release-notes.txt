@@ -1,6 +1,6 @@
-= Release Notes for ION 4.1.2 =
+= Release Notes for ION 4.1.3 =
 
-January 9, 2023
+June 27, 2024
 
 %%%%%%%%%%%
 = GENERAL =
@@ -66,6 +66,280 @@ Features included:
   information, check man brsscla and man brsccla.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.3 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Branches included in this release:
+
+update-4.1.3-ams
+  * Add AMS demo (benchtest).
+  * Update AMS programmer's guide (v3.0).
+  * Fix amshello demonstration program (resolves multi-thread errors).
+  
+update-4.1.3-ams-test-fix
+   * Update AMS regression tests (ams-sana and issue-319-parseSocketSpec).
+   * Fix pointer arithmetic error on big-endian OS.
+
+update-4.1.3-android
+  * ION 361 port for Android 64bit snapdragon 855 HDK.
+   
+update-4.1.3-bench-ltp-fix
+  * Update bench test for faster machines like Mac M1.
+
+update-4.1.3-bss
+  * Update man pages for bss applications.
+  * Fix bssOpen, bssClose, bssStop, bssExit, bsscounter, and bssdriver.
+  * Fix memory leak due to premature ionDetach.
+  * Fix bpcounter handling of late pilot bundle.
+
+update-4.1.3-bug-report-url
+  * Replace old SourceForge email with GitHub URL for issue reporting in manpages.
+
+update-4.1.3-commandline-history
+  * Update admin programs to have commandline history option.
+  * Configure with --enable-commandline-history when building ION.
+
+update-4.1.3-contrib-kari-ion-config
+  * KARI-provided ION configs used for testing ION with non-ION DTN implementations.
+
+update-4.1.3-demo-tests
+  * Fix eval conditions in demo tests.
+
+update-4.1.3-dispatchBundle
+  * Fix loopback problem with imc and CRC parsing for multiple bundle ZCO.
+  
+update-4.1.3-enhance-wchar
+  * Add bp level information such as node number, and service number to enhanced
+    watch character.
+  * Convert watch character from char to string.
+  * Configure with --enable-ewchar when building ION.
+    
+update-4.1.3-extension-zco-bpdequeue
+  * Fix bpsec extension block ZCO accounting.
+  
+update-4.1.3-gcc12fix
+  * Fix errors from gcc12.
+    
+update-4.1.3-ionrestart
+  * Updated ionrestart program to prevent restart loop.
+   
+update-4.1.3-key-value
+  * Prevent unique key value from turning negative.
+   
+update-4.1.3-killm
+  * Updates to killm script to work correctly (and nearly the same) on all
+    supported non-windows platforms (and fixing solaris)
+   
+update-4.1.3-ltp-udplso
+  * Import fix for udplso hanging at shutdown from IONe.
+     
+update-4.1.3-malformed_eid_fix
+  * Fix copies eid string to correct critical malformed EID error.
+     
+update-4.1.3-misc
+  * Remove ION_OPEN_SOURCE conditions in start and stop scripts.
+  * Add and update various man pages.
+  * Update LTP config tools and documentation.
+
+update-4.1.3-named_posix_semaphores
+  * Added a test for the semaphore subsystem called sm_subsystem that performs
+    a stress test on whatever low-level OS semaphore system was configured to 
+    look for problems that have occurred in previous versions
+  * Added a new platform-dependent semaphore system based on Posix Named
+    Semaphores. The old default was to use the AT&T System V Release 4 (SVR4)
+    semaphores that are supported on just about ANY OS platform. Those
+    semaphores predate modern multi-core architectures and multi-thread
+    instructions and rely instead on system calls for all operations, which 
+    makes them extremely slow. Posix Named Semaphores will use modern CPU 
+    multi-core instructions when available on most platforms so that most 
+    signal() and lock() semaphore operations can be performed in user-space 
+    in the current process/thread. Our tests show decrease in signal()/lock() 
+    times from 50% to 3300% depending on the platform. The end effect is 
+    that, when using small bundle sizes (less than 1000 bytes), network data 
+    throughput using LTP (as one example, but applies to all convergence 
+    layers) increases at least 11% (Solaris Intel VM) and as much as 350% 
+    (Ubuntu Intel VM) with no other changes. Improvement varies greatly 
+    between different CPUs and systems, but was always faster than the old 
+    system.
+  * When built on Linux / Solaris / MacOS, the ION build system will default 
+    to using the new Posix Named Semaphores.  
+    To use the old SVR4 semaphores instead, configure using 
+      ./configure  --enable-force-svr4-semaphores
+  * When built on all other platforms, the ION build system will default to 
+    using the previous semaphore subsystem default (SVR4 for most systems)  
+    You can try to force the new semaphores instead by configuring with 
+       ./configure    --enable-force-posix-named-semaphores 
+    Note that we haven't tested the new semaphores on any systems other than 
+    the ones for which the build system recommends their use.
+  * The quickest way to see if the new semaphores are being used is to run 
+    the sm_subsystem test, which will identify the semaphore system when it 
+    starts. It will also tell how many Posix Named Semaphores are configured 
+    into the system. The output will also tell you how many lock()/signal() 
+    operations per second it can run if you want to do your own comparisons.
+  * Like the SVR4 semaphores, the new Posix Named Semaphores require an 
+    internal data structure which occupies a small amount of memory per 
+    configured semaphore and per process. The current default build system 
+    creates 2048 semaphores. That's more than a single production 
+    instance of ION is likely to need by a factor of 10 (likely). A modern 
+    multiprocessor OS would consider that extra memory negligible, but on a 
+    constrained platform, that setting should be tuned more carefully to save 
+    memory. The system keeps track of the maximum number of Posix Named 
+    Semaphores ever used, but there is currently no interface to provide that 
+    number (see routine _semPrintTable() ).
+  * Like the SVR4 semaphores, the new Posix Named Semaphores are global to 
+    ALL running instances of ION on the local computer, so the max number 
+    configured must support all local ION instances 
+
+update-4.1.3-platform-c
+  * Fixed isprintf() parsing bug.
+
+update-4.1.3-psm
+  * Fixed problems with psm and sptrace.
+
+update-4.1.3-runtests_scripts
+  * Enhancements to runtests script to quiet unnecessary output and add 
+    progress files.
+  * Now also creates a file called "progress" (also with a date as file name 
+    suffix for archiving results) that lists the test date, testing host, 
+    testing kernel, and the results of each test without all the noisy 
+    output. This makes it easier to check on the status of a
+    long-running test session that has many individual tests.
+  * Setting environment variable as in:
+      export RUNTESTS_OUTPUTDIR="/tmp"
+    will save the detailed output from EACH test in its own file of the form
+    /tmp/results.bping   (using the directory in the envariable)
+    INSTEAD of on the screen to make it easier to find the output from a 
+    failed test in the middle of a long run.
+
+update-4.1.3-sdrxn
+  * Disable reversibility if there is no transaction modification.
+  * Add bpcrash to developmental Makefile.
+
+update-4.1.3-smart-file-transfer
+  * Add new file transfer utilities: sendfile and recvfile with cryptographic and
+    metadata-based features, including file naming (with optional sequencing or
+    overwrite), time-to-delivery tracking, auxiliary command strings, and HMA
+    key-based AEAD encryption and decryption. By default, these utilities use
+    bpsendfile and bprecvfile commands but also provide additional parameters for
+    security keys (enabling encryption and decryption) and the auxiliary command
+    strings.
+  * Included Library Objects:
+      libmetadata and libsecrypt (an interface to MBEDTLS 2.28.x).
+
+update-4.1.3-srr-flags
+  * Fixes for status report request flag parsing from bundle processing flag.
+    Fix for both transmit and receive side.
+
+update-4.1.3-testset
+  * General updates to regression tests to improve reliability.
+
+update-4.1.3_clang_compiler_updates
+  * Eliminate warnings and errors from newer versions of the Clang compiler.
+
+update-bping-multiple-instances
+  * Updated bpv7 bping to correctly check for its PID in the response bundles and
+    ignore bundles with no pid present or a mismatched PID.
+
+Feature-4.1.3-bpsendtest-bprecvtest
+  * Added two new utilities for testing connectivity and throughput between
+    nodes - bpsendtest and bprecvtest. They act similarly to bpsendfile and
+    bprecvfile, but differ in the following ways:
+    - bprecvtest:
+      * Discards all incoming data, just tracking the quantity of data received.
+    - bpsendtest:
+      * Ingests the file to memory once and allows sending the generated bundle 
+        repeatedly without needing to reopen the file.
+      * Accepts a -nofile option, allowing one to specify the length of a bundle
+        to send in bytes; random data of that length will be generated and sent.
+  * These act as an improvement to the testing suite available as bpdriver/bpcounter
+    have performance issues with generating small bundles rapidly enough to saturate
+    higher bandwidth links due to generating new data for each bundle. 
+  * They also improve upon using bpsendfile/bprecvfile as they allow for sending the
+    same data multiple times without needing to rerun the sending utility or reopen
+    the file, and do not run into storage or memory bottlenecks on the receiving
+    side as the received data is not being saved (this also results in easier
+    cleanup than when using bpsendfile/bprecvfile in a similar manner).
+
+Feature-4.1.3-bptrace_update
+  * Updated bpv7 bptrace utility to (optionally) display received reports to the
+    terminal in a rudimentary way.
+    - Prior argument format is still supported, should be fully back-compatible with
+      old testing scripts which may have used bptrace.
+    - bptrace will output to the log file as before when using this legacy format,
+      when the reportEid is on a different node from the sender, or the reportEid
+      is an admin endpoint.
+    - Added bptrace_terminal_test (bpv7 only), which tests bptrace for compatibility
+      with the legacy argument format, with output to the terminal, and with log
+      file output when using new argument format with an admin endpoint for the
+      report endpoint.
+
+feature-4.1.3-dtka-mbedtls
+  * Updates crypto library from PolarSSL to mbedtls. Makefile needs to be updated
+    include -lmbedtls -lmbedcrypto when -DCRYPTO_SOFTWARE_INSTALLED is set.
+  * Updates tests to handle issues with multicast.
+
+feature-ionlauncher
+  * Add ionlauncher utility to simplify configuring and starting an ION node.
+
+debug-4.1.3-bpsec-etc
+  * Bug fixes for bpsec subsystem (resolves all known critical issues).
+
+1010-pingpong-ct-robustness-jun2024
+  * Adds robustness against timing changes, low poll rates and more iterations.
+
+bibe-updates
+  * Makes the bcla structure (managed by bibeadmin) more powerful, such that you now
+    use it to configure all of the “bp_send” parameters for the encapsulating
+    bundles (BPDUs). For example, it now enables you to request bundle status
+    reports pertaining to the encapsulating bundles.
+  * Simplifies the configuration elements that cause source bundles to be
+    encapsulated. No need for class-of-service overrides: when you assert the
+    routing override that causes the bundles to be forwarded to the BIBE peer node,
+    you just note in that override the BIBE outduct that you want used for
+    transmission to that node.
+
+integration-4.1.3-quiet-posix-semaphores
+  * Fixes for posix named semaphore logging to remove the amount of redundant
+    status information going into the ION log.
+
+integration-4.1.3-update-bpv6-bssp-test
+  * Fixes the bssp and bssp-planrule tests failure.   
+
+python-test-fixes
+  * Bug fixes for bpsec Python test suite.
+  * Add configure option that changes logging level so that bpsec Python tests will
+    execute properly. Configure with --enable-bpsec-debugging when building ION.
+
+Bugfix-4.1.3-ams-local-host-lookup
+  * Changed getAddressOfHost() to use 127.0.0.1 as the default when looking up your
+    own hostname fails.
+  * Changed 10 instances where the functionality provided by getAddressOfHost() was
+    re-implemented to correctly call the subroutine instead.
+
+BugFix-4.1.3-ltp_init_config
+  * Removed ignored second argument to ltpadmin initialize command from configs.
+
+bugfix-4.1.3-ltpheapmax
+  * Enables runtime changes to LTP heapmax.
+
+bugfix-4.1.3-reversibilitychecks
+  * Address failure of reversibility checks 1 and 2 on Ubuntu. Includes some tweaks
+    to ionrestart and a major reorganizing of the steps in both reversibility
+    check 1, and 2 to clarify the configuration and the actions in each test.
+
+Bugfix-4.1.3-sdr-transaction
+  * Fixes modified flag bug for nested transaction.
+
+Bugfix-4.1.3-tests-shebang-fix
+  * Fix multiple tests where shebang (#!/bin/bash) is not the script's first entry.
+
+bugfix-integration-4.1.3-status-assertion-encoding
+  * Added cbor_encode_boolean, cbor_decode_boolean functions to the cbor files.
+  * Updated serializeStatusRpt, parseStatusRpt functions to correctly utilize 
+    these boolean constants.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.2 =
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -121,7 +395,7 @@ Makefile-cleanup-integration-4.1.2
   * added uninstall target for developmental Makefiles
 
 update-4.1.2-bssp-wchar
-  * updated bssp whatch characters 
+  * updated bssp watch characters 
 
 update-4.1.2-shared-mem
   * fix various shared memory issues with detaching from and resetting the
@@ -193,7 +467,7 @@ misc-4.1.1-fixes
 
 apl-4.1.1-security-patches
   * Added BPSec Python test suite
-  * Added accomodation of NULL terminator in security policy parameters
+  * Added accommodation of NULL terminator in security policy parameters
   * Added checks for NULL pointer references when a BCB targets an 
     extension block
   * Added TEST_POINT macros to BIB and BCB code to log test events
@@ -275,16 +549,15 @@ Additional features of the 4.0.2 release:
 
 -  A plug-in module for Contact Graph Routing, developed by the University
 	of Bologna, can now optionally be used instead of the original CGR
-	implementation in ION.  Unibo-CGR includes options for some addi-
-	tional features that can improve performance and guard against
-	routing	loops.
+	implementation in ION.  Unibo-CGR includes options for some additional
+  features that can improve performance and guard against routing loops.
 
 -  Several errors in CRC computation, discovered during testing at the
 	European Space Agency, have been corrected.
 
 -  Several problems in the implementation of Bundle-in-Bundle Encapsulation,
 	discovered during Keith Scott's testing for DevKit upgrades, have
-	been addressed.  Prviously there was no way to configure ION for
+	been addressed.  Previously there was no way to configure ION for
 	BIBE transmission to a topologically adjacent node, but a
 	mechanism built on routing overrides has fixed that; see the
 	biberc(5) man page for details.  NOTE: in BPv7, custody transfer
@@ -310,7 +583,7 @@ Branches:
 cgr-multicast (bpv7 only)
      Bundle multicast is made simpler and more resilient: multicast bundle
      propagation is driven by routes computed by the contact graph routing
-     system, so no infratructural spanning tree is needed.  The imcadmin
+     system, so no infrastructural spanning tree is needed.  The imcadmin
      utility is deprecated.
 
 trustedCollective
@@ -764,7 +1037,7 @@ package to provide a shell. For this release, testing was done with the
 following configurations:
 - 32-bit Windows ION is built with i686-4.9.3-release-posix-dwarf-rt_v4-rev1.7z
 - 64-bit Windows ION is built with x86_64-7.1.0-release-win32-seh-rt_v5-rev1.7z
-Both system variants use the MinGW-MSYS utiltites bundle MSYS-20111123.
+Both system variants use the MinGW-MSYS utilities bundle MSYS-20111123.
 
 During testing of 3.6.0b the current set of instructions for installation
 and operation of ION on Windows was found to be partially outdated and in
