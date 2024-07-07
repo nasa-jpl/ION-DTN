@@ -16,6 +16,13 @@
 
 char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "acslist.exe", "lt-acslist.exe", \
+"amsbenchr.exe", "lt-amsbenchr.exe", \
+"amsbenchs.exe", "lt-amsbenchs.exe", \
+"amsd.exe", "lt-amsd.exe", \
+"amshello.exe", "lt-amshello.exe", \
+"amslog.exe", "lt-amslog.exe", \
+"amslogport.exe", "lt-amslogport.exe", \
+"amsshell.exe", "lt-amsshell.exe", \
 "aoslsi.exe", "lt-aoslsi.exe", \
 "aoslso.exe", "lt-aoslso.exe", \
 "bibeadmin.exe", "lt-bibeadmin.exe", \
@@ -26,6 +33,8 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "bpclm.exe", "lt-bpclm.exe", \
 "bpclock.exe", "lt-bpclock.exe", \
 "bpcounter.exe", "lt-bpcounter.exe", \
+"bpcp.exe", "lt-bpcp.exe", \
+"bpcpd.exe", "lt-bpcpd.exe", \
 "bpdriver.exe", "lt-bpdriver.exe", \
 "bpecho.exe", "lt-bpecho.exe", \
 "bping.exe", "lt-bping.exe", \
@@ -40,6 +49,7 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "bpstats2.exe", "lt-bpstats2.exe", \
 "bptrace.exe", "lt-bptrace.exe", \
 "bptransit.exe", "lt-bptransit.exe", \
+"bputa.exe", "lt-bputa.exe", \
 "brsccla.exe", "lt-brsccla.exe", \
 "brsscla.exe", "lt-brsscla.exe", \
 "bsscounter.exe", "lt-bsscounter.exe", \
@@ -50,6 +60,9 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "bsspclock.exe", "lt-bsspclock.exe", \
 "bssrecv.exe", "lt-bssrecv.exe", \
 "bssStreamingApp.exe", "lt-bssStreamingApp.exe", \
+"cfdpadmin.exe", "lt-cfdpadmin.exe", \
+"cfdpclock.exe", "lt-cfdpclock.exe", \
+"cfdptest.exe", "lt-cfdptest.exe", \
 "cgrfetch.exe", "lt-cgrfetch.exe", \
 "cpsd.exe", "lt-cpsd.exe", \
 "dgr2file.exe", "lt-dgr2file.exe", \
@@ -135,22 +148,6 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "udpclo.exe", "lt-udpclo.exe", \
 "udplsi.exe", "lt-udplsi.exe", \
 "udplso.exe", "lt-udplso.exe"
-#ifndef NASA_PROTECTED_FLIGHT_CODE
-,"amsbenchr.exe", "lt-amsbenchr.exe", \
-"amsbenchs.exe", "lt-amsbenchs.exe", \
-"amsd.exe", "lt-amsd.exe", \
-"amshello.exe", "lt-amshello.exe", \
-"amslog.exe", "lt-amslog.exe", \
-"amslogport.exe", "lt-amslogport.exe", \
-"amsshell.exe", "lt-amsshell.exe", \
-"bpcp.exe", "lt-bpcp.exe", \
-"bpcpd.exe", "lt-bpcpd.exe", \
-"bputa.exe", "lt-bputa.exe", \
-"cfdpadmin.exe", "lt-cfdpadmin.exe", \
-"cfdpclock.exe", "lt-cfdpclock.exe", \
-"cfdptest.exe", "lt-cfdptest.exe"
-
-#endif
 };
 
 void kill(char *name)

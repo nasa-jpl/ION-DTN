@@ -1,6 +1,5 @@
 # shell script to populate RTEMS build directory with sym links to source files.
 #!/bin/bash
-ION_OPEN_SOURCE=1
 CRYPTO=crypto/NULL_SUITES
 BULK=bulk/STUB_BULK
 ln -s ../ici/library/platform.c
@@ -252,7 +251,6 @@ ln -s ../ams/test/amslogprt.c
 ln -s ../ams/utils/amsmib.c
 ln -s ../ams/utils/amsstop.c
 ln -s ../restart/utils/ionrestart.c
-if [ "$ION_OPEN_SOURCE" == "1" ];then
 ln -s ../cfdp/library/libcfdp.c
 ln -s ../cfdp/library/libcfdpops.c
 ln -s ../cfdp/library/libcfdpP.c
@@ -260,7 +258,6 @@ ln -s ../cfdp/library/cfdpP.h
 ln -s ../cfdp/bp/bputa.c
 ln -s ../cfdp/daemon/cfdpclock.c
 ln -s ../cfdp/utils/cfdpadmin.c
-fi
 
 # Optional features: multicast, aggregate custody signaling, sender node number
 #

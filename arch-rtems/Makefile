@@ -11,8 +11,6 @@ IONFLAGS_T = -DRTEMS -DBP_EXTENDED -DGDSSYMTAB -DGDSLOGGER \
 
 PGM=${ARCH}/ion.exe
 
-ION_OPEN_SOURCE = 1
-
 # optional managers required
 MANAGERS = io semaphore
 
@@ -232,13 +230,8 @@ CSRCS_I = ionrtems.c $(ICISOURCES) $(LTPSOURCES) $(BPSOURCES) $(TESTSOURCES) $(B
 # $(SBSPSOURCES)
 # $(NMSOURCES)
 
-ifeq "$(ION_OPEN_SOURCE)" "1"
 CSRCS = $(CSRCS_I) $(CFDPSOURCES)
 IONFLAGS = $(IONFLAGS_T)
-else
-CSRCS = $(CSRCS_I)
-IONFLAGS = $(IONFLAGS_T) -DNASA_PROTECTED_FLIGHT_CODE
-endif
 
 COBJS = $(CSRCS:%.c=${ARCH}/%.o)
 
@@ -265,11 +258,7 @@ INCLUDES_T= -I. -I../ici/include -I../ltp/include -I../bp/include \
 #	-I../bss/include
 #	-I../bssp/include
 
-ifeq "$(ION_OPEN_SOURCE)" "1"
 INCLUDES = $(INCLUDES_T) -I../cfdp/include -I../ams/include
-else
-INCLUDES = $(INCLUDES_T)
-endif
 
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES) -O2
 #CFLAGS = -g -Wall -Werror $(IONFLAGS) $(INCLUDES)

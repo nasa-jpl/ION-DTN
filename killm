@@ -6,7 +6,6 @@
 # Simplified by Shawn Ostermann in October, 2023 to remove Enhanced Regular Expressions, "grep -E", and "sed -E"
 # to make it more portable (to Solaris in particular).  Also quieted down the output a little.
 
-ION_OPEN_SOURCE=1
 OS_VERS=""
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
@@ -17,6 +16,14 @@ OS_VERS=""
 USERNAME_CUT=`echo $USER | cut -c 1-10`
 KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
+	amsbenchr lt-amsbenchr \
+	amsbenchs lt-amsbenchs \
+	amsd lt-amsd \
+	amshello lt-amshello \
+	amslog lt-amslog \
+	amslogprt lt-amslogprt \
+	amsshell lt-amsshell \
+	amsstop lt-amsstop \
 	aoslsi lt-aoslsi \
 	aoslso lt-aoslso \
 	bibeadmin lt-bibeadmin \
@@ -27,6 +34,8 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpclm lt-bpclm \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
+	bpcp lt-bpcp\
+	bpcpd lt-bpcpd\
 	bpdriver lt-bpdriver \
 	bpecho lt-bpecho \
 	bping lt-bping \
@@ -41,6 +50,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpstats2 lt-bpstats2 \
 	bptrace lt-bptrace \
 	bptransit lt-bptransit \
+	bputa lt-bputa \
 	brsccla lt-brsccla \
 	brsscla lt-brsscla \
 	bsscounter lt-bsscounter \
@@ -51,6 +61,9 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bsspclock lt-bsspclock \
 	bssrecv lt-bssrecv \
 	bssStreamingApp lt-bssStreamingApp \
+	cfdpadmin lt-cfdpadmin \
+	cfdpclock lt-cfdpclock \
+	cfdptest lt-cfdptest \
 	cgrfetch lt-cgrfetch \
 	cpsd lt-cpsd \
 	dccpcli lt-dccpcli \
@@ -139,25 +152,6 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	udplsi lt-udplsi \
 	udplso lt-udplso \
 	"
-
-if [ "$ION_OPEN_SOURCE" == "1" ];then
-KILLPROCESSLIST="${KILLPROCESSLIST} \
-	amsbenchr lt-amsbenchr \
-	amsbenchs lt-amsbenchs \
-	amsd lt-amsd \
-	amshello lt-amshello \
-	amslog lt-amslog \
-	amslogprt lt-amslogprt \
-	amsshell lt-amsshell \
-	amsstop lt-amsstop \
-	bputa lt-bputa \
-	cfdpadmin lt-cfdpadmin \
-	cfdpclock lt-cfdpclock \
-	cfdptest lt-cfdptest \
-	bpcp lt-bpcp\
-	bpcpd lt-bpcpd\
-	"
-fi
 
 sw_vers 2> /dev/null > /dev/null
 

@@ -523,7 +523,7 @@ libici_la_SOURCES =	\
 	ici/sdr/sdrxn.c
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
-libici_la_LIBADD = -lm
+libici_la_LIBADD = $(CRYPTO_LIBS) -lm
 
 # --- Utility Programs --- #
 
@@ -1241,15 +1241,22 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/murmur2/MurmurHash2.c
 endif
 
-if CRYPTO
+if CRYPTO_MBEDTLS
+AM_CFLAGS+= \
+	-I$(srcdir)/ici/crypto/MBEDTLS_SUITES \
+	-I$(srcdir)/ici/crypto
+
 libici_la_SOURCES += \
-	ici/crypto/NULL_SUITES/crypto.c\
-	ici/crypto/NULL_SUITES/csi.c
+	ici/crypto/MBEDTLS_SUITES/crypto.c \
+	ici/crypto/MBEDTLS_SUITES/csi.c \
+	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
+	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
 else
 libici_la_SOURCES += \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
-endif # end CRYPTO
+endif # end CRYPTO_MBEDTLS
 
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)
@@ -2153,15 +2160,22 @@ libbp_la_SOURCES = \
 	ici/libbloom-master/murmur2/MurmurHash2.c
 endif
 
-if CRYPTO
+if CRYPTO_MBEDTLS
+AM_CFLAGS+= \
+	-I$(srcdir)/ici/crypto/MBEDTLS_SUITES \
+	-I$(srcdir)/ici/crypto
+
 libici_la_SOURCES+= \
-	ici/crypto/NULL_SUITES/crypto.c\
-	ici/crypto/NULL_SUITES/csi.c
+	ici/crypto/MBEDTLS_SUITES/crypto.c \
+	ici/crypto/MBEDTLS_SUITES/csi.c \
+	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
+	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
 else
 libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c
-endif # end CRYPTO
+endif # end CRYPTO_MBEDTLS
 
 libbp_la_CFLAGS = $(bpcflags) $(AM_CFLAGS) -I$(BP_SRC_DIR)/library/ext -I$(BP_SRC_DIR)
 libbp_la_LIBADD = libici.la -lm $(CRYPTO_LIBS)

@@ -45,11 +45,9 @@ extern int	ltpcli(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 extern int	ltpclo(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr);
 extern int	bpsource(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr);
 extern int	bpsink(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr);
-#ifndef NASA_PROTECTED_FLIGHT_CODE
 extern int	cfdpadmin(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr);
 extern int	cfdpclock(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr);
 extern int	bputa(saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr, saddr);
-#endif
 #endif
 
 typedef struct
@@ -96,12 +94,10 @@ FUNCPTR	sm_FindFunction(char *name, int *priority, int *stackSize)
 		{ "ltpcli",	(FUNCPTR) ltpcli,	ICI_PRIORITY,	32768 },
 		{ "ltpclo",	(FUNCPTR) ltpclo,	ICI_PRIORITY,	32768 },
 		{ "bpsource",	(FUNCPTR) bpsource,	ICI_PRIORITY,	4096  },
-		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  }
-#ifndef NASA_PROTECTED_FLIGHT_CODE
-		,{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
+		{ "bpsink",	(FUNCPTR) bpsink,	ICI_PRIORITY,	4096  },
+		{ "cfdpadmin",	(FUNCPTR) cfdpadmin,	ICI_PRIORITY,	24576 },
 		{ "cfdpclock",	(FUNCPTR) cfdpclock,	ICI_PRIORITY,	24576 },
 		{ "bputa",	(FUNCPTR) bputa,	ICI_PRIORITY,	24576 }
-#endif
 #endif
 	};
 

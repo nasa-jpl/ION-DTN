@@ -8,8 +8,6 @@
 #
 # will quickly and completely stop an ion node.
 
-ION_OPEN_SOURCE=1
-
 # Check for multi-ION instances
 if [ -z "${ION_NODE_LIST_DIR}" ];
 then
@@ -29,11 +27,9 @@ else
         echo "Shutdown ION instances associated with the specified directory: $ION_NODE_WDNAME"
     fi
 
-    if [ "$ION_OPEN_SOURCE" == "1" ]; then
     echo "cfdpadmin ."
     cfdpadmin .
     sleep 1
-    fi
     bpversion
     if [ $? -eq 6 ]; then
     echo "acsadmin ."

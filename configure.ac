@@ -9,7 +9,6 @@
 
 AC_PREREQ(2.69)
 AC_INIT(ion, open source 4.1.3, ion-dtn-support@lists.sourceforge.net)
-IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -395,31 +394,36 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 
 #
-# Allow user to disable crypto... if crypto is even enabled
+# Allow user to enable crypto
 #
-if test "$IS_NASA_B" = "1"; then
-	# To Disable crypto, use "./configure --disable-crypto"
-	AC_ARG_ENABLE([crypto],
-		[  --disable-crypto    Turn off cryptography],
-		[case "${enableval}" in
-			yes) crypto=true ;;
-			no)  crypto=false ;;
-		*) AC_MSG_ERROR([bad value ${enableval} for --disable-crypto]) ;;
-		esac],[crypto=true])
+# To Enable crypto, use "./configure --enable-crypto-mbedtls"
+AC_ARG_ENABLE([crypto-mbedtls],
+	[  --enable-crypto-mbedtls    Turn on cryptography using MBEDTLS],
+	[crypto-mbedtls=true],
+	[case "${enableval}" in
+		yes) crypto-mbedtls=true ;;
+		no)  crypto-mbedtls=false ;;
+		*) AC_MSG_ERROR([bad value ${enableval} for --enable-crypto-mbedtls]) ;;
+	esac])
 
-	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
+AM_CONDITIONAL([CRYPTO_MBEDTLS], [test x$crypto-mbedtls = xtrue])
 
-	if test x$crypto = xtrue; then
-		echo ""
-		#DoStuff
-	else
-		AC_SUBST( [CRYPTO_LIBS], [""] )
-	fi
+if test x$crypto-mbedtls = xtrue; then
+	echo "------------------------------------------"
+	echo "Turning on MBEDTLS Crypto"
+	echo "------------------------------------------"
 
-	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
+	AC_CHECK_FILES(
+	[/usr/local/lib/libmbedtls.so /usr/local/lib/libmbedx509.so /usr/local/lib/libmbedcrypto.so],
+	[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
+	[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
+	)
+
+	#AC_DEFINE([CRYPTO_MBEDTLS],1, [Enable MBEDTLS Crypto])
+	AC_SUBST( [CRYPTO_MBEDTLS], ["1"])
 else
-	AM_CONDITIONAL([CRYPTO], [false])
 	AC_SUBST( [CRYPTO_LIBS], [""] )
+	AC_SUBST( [CRYPTO_MBEDTLS], ["0"])
 fi
 
 #
@@ -722,7 +726,6 @@ AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname g
 AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
 AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
-AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])

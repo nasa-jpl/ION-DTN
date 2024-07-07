@@ -280,7 +280,6 @@ if test "$IS_NASA_B" = "1"; then
 		AC_SUBST( [CRYPTO_LIBS], [""] )
 	fi
 
-	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
 else
 	AM_CONDITIONAL([CRYPTO], [false])
 	AC_SUBST( [CRYPTO_LIBS], [""] )
