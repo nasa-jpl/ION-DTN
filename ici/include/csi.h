@@ -58,9 +58,12 @@
  *                           CONSTANTS DEFINITIONS                           *
  *****************************************************************************/
 
-#define NULL_CRYPTO_SUITES
+#ifdef NULL_CRYPTO_SUITES
 #define CSI_SUITE_NAME "NULL Suites"
-
+#endif
+#ifdef MBEDTLS_CRYPTO_SUITES
+#define CSI_SUITE_NAME "MBEDTLS Suites"
+#endif
 
 /** Ciphersuite types */
 typedef enum {

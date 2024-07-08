@@ -402,9 +402,11 @@ AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 AC_ARG_ENABLE(
 	crypto-mbedtls,
 	[AC_HELP_STRING([--enable-crypto-mbedtls],[Turn on cryptography using MBEDTLS])],
-	[CRYPTO_MBEDTLS=true],
+	[CRYPTO_MBEDTLS=true
+	 AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
 	[echo "MBEDTLS Crypto disabled, building with NULL SUITES."
-	 CRYPTO_MBEDTLS=false])
+	 CRYPTO_MBEDTLS=false
+	 AM_CFLAGS="$AM_CFLAGS -DNULL_CRYPTO_SUITES"])
 
 AM_CONDITIONAL([CRYPTO_MBEDTLS], [test "x$CRYPTO_MBEDTLS" = "xtrue"])
 
