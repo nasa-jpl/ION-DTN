@@ -89,11 +89,13 @@ AM_CFLAGS=""
 AM_LDFLAGS=""
 AM_LIBTOOLFLAGS=""
 PLATFORM=""
+S_LIB_END="so"
 case $host_os in
 	darwin*)
 		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
 		AC_DEFINE([unix],[1],[Build Unix specific platform code.])
 		PLATFORM="darwin"
+		S_LIB_END="dylib"
 		if test $host_cpu = "x86_64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit Darwin specific platform code."
@@ -397,27 +399,34 @@ AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 # Allow user to enable crypto
 #
 # To Enable crypto, use "./configure --enable-crypto-mbedtls"
-AC_ARG_ENABLE([crypto-mbedtls],
-	[  --enable-crypto-mbedtls    Turn on cryptography using MBEDTLS],
-	[crypto-mbedtls=true],
-	[case "${enableval}" in
-		yes) crypto-mbedtls=true ;;
-		no)  crypto-mbedtls=false ;;
-		*) AC_MSG_ERROR([bad value ${enableval} for --enable-crypto-mbedtls]) ;;
-	esac])
+AC_ARG_ENABLE(
+	crypto-mbedtls,
+	[AC_HELP_STRING([--enable-crypto-mbedtls],[Turn on cryptography using MBEDTLS])],
+	[CRYPTO_MBEDTLS=true],
+	[echo "MBEDTLS Crypto disabled, building with NULL SUITES."
+	 CRYPTO_MBEDTLS=false])
 
-AM_CONDITIONAL([CRYPTO_MBEDTLS], [test x$crypto-mbedtls = xtrue])
+AM_CONDITIONAL([CRYPTO_MBEDTLS], [test "x$CRYPTO_MBEDTLS" = "xtrue"])
 
-if test x$crypto-mbedtls = xtrue; then
+if test x$CRYPTO_MBEDTLS = xtrue; then
 	echo "------------------------------------------"
 	echo "Turning on MBEDTLS Crypto"
 	echo "------------------------------------------"
 
-	AC_CHECK_FILES(
-	[/usr/local/lib/libmbedtls.so /usr/local/lib/libmbedx509.so /usr/local/lib/libmbedcrypto.so],
-	[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
-	[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
-	)
+		if [[ ! -v MBED_LIB_PATH ]] ; then
+			MBED_LIB_PATH="/usr/local/lib"
+		fi
+
+		if [[ ! -v MBED_INC_PATH ]] ; then
+			MBED_INC_PATH="/usr/local/include"
+		fi
+
+		AC_CHECK_FILES(
+		[$MBED_LIB_PATH/libmbedtls.$S_LIB_END $MBED_LIB_PATH/libmbedx509.$S_LIB_END $MBED_LIB_PATH/libmbedcrypto.$S_LIB_END],
+		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto -L$MBED_LIB_PATH"
+		 AM_CFLAGS="$AM_CFLAGS -I$MBED_INC_PATH"],
+		[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
+		)
 
 	#AC_DEFINE([CRYPTO_MBEDTLS],1, [Enable MBEDTLS Crypto])
 	AC_SUBST( [CRYPTO_MBEDTLS], ["1"])
