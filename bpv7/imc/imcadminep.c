@@ -89,7 +89,7 @@ static int	briefNewNode(uvast nodeNbr)
 	uvtemp = BP_MULTICAST_BRIEFING;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
-	/*	Second item of admin record is content, the 
+	/*	Second item of admin record is content, the
 	 *	briefing message, which is a definite-length array.	*/
 
 	uvtemp = lyst_length(ownGroups);
@@ -285,10 +285,11 @@ fflush(stdout);
 			group.isMember = 1;
 		}
 
-		if (petition.groupNbr == 0 && metaEid.elementNbr != ownNodeNbr)
+		if (metaEid.elementNbr != ownNodeNbr)
 		{
 #if IMCDEBUG
 printf("Should be sending a briefing to node " UVAST_FIELDSPEC ".\n", metaEid.elementNbr);
+fflush(stdout);
 #endif
 			/*	This node is subscribing to the IMC
 			 *	petitions group, i.e., it is a node
