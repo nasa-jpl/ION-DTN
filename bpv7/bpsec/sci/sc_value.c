@@ -1186,6 +1186,7 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
      {
          memcpy(cursor, tmpData[i].scSerializedText, tmpData[i].scSerializedLength);
          cursor += tmpData[i].scSerializedLength;
+		 MRELEASE(tmpData[i].scSerializedText);	/*	SB 12/20/2023	*/
      }
 
      /* Step 4: Clean up and go home. */
