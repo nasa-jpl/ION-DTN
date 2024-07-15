@@ -130,9 +130,9 @@ static int	briefNewNode(uvast nodeNbr)
 puts("Sending briefing.");
 #endif
 	/*	Note that ttl must be expressed in milliseconds for
-	 *	BP processing.  The hard-coded TTL here is 1 minute.	*/
+	 *	BP processing.  The hard-coded TTL here is 1 day.	*/
 
-	if (bpSend(&sourceMetaEid, destEid, NULL, 60000, BP_STD_PRIORITY,
+	if (bpSend(&sourceMetaEid, destEid, NULL, 86400000, BP_STD_PRIORITY,
 			NoCustodyRequested, 0, 0, NULL, aduZco, NULL,
 			BP_MULTICAST_BRIEFING) <= 0)
 	{
