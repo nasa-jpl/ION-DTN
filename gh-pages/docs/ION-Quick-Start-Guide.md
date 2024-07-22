@@ -38,6 +38,50 @@ To remove executables and shared libraries installed in the system, run:
 
 `sudo make uninstall`
 
+### BPSec Logging
+
+The BPSec implementation in ION provides 4 levels of debugging/logging:
+
+1. __Function entry/exit logging__:  This logs the entry and exit of all major functions in the bpsec library and is useful for confirming control flow
+ *    through the bpsec module.
+2. __Information logging__:  Information statements are peppered through the code to provide insight into the state of the module at processing points considered useful by bpsec module software engineers.
+3. __Warning logging__:  Warning statements are used to flag unexpected values that, based on runtime context, may not constitute errors.
+4. __Error logging__:  Errors are areas in the code where some sanity check or other required condition fails to be met by the software.
+
+Error logging within the BPSec module is of the form:
+
+```
+<id> <function name>: <message>
+```
+
+Where `id` is one of:
+
+* `+` (function entry)
+* `-` (function exit)
+* `i` (information statement)
+* `?` (warning statement)
+* `x` (error statement)
+
+To in order help users quickly verify their BP security configurations and operations are correct, the default BPSec logging level is set to 4 to provide per bundle status update in _ion.log_. This is also the level required for running the python-based BPSec regression tests in the ION distribution. This level of verbosity may be too high for operation or too low for in-depth debugging. Therefore, when needed, you can recompile ION to turn BPSec logging off or set a specific logging level based on your needs.
+
+To run BPSec logging at default level, run
+
+```
+./configure --enable-bpsec-logging
+```
+
+To run BPSec without logging, simply omit the `--enable-bpsec-loggin` option.
+
+To run BPSec logging at a specific level (1, 2, 3, or 4 - note 4 is the least verbose), run
+
+```
+./configure --enable-bpsec-logging=x
+```
+
+Where `x` is the desired logging level.
+
+To enable the MBEDTLS cipher suite, you need to also add the `--enable-crypto-mbedtls` option when running the `./configure` script.
+
 ## Windows
 
 To install ION for Windows, please download the Windows installer.

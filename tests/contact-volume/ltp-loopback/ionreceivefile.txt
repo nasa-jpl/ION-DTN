@@ -1,0 +1,12 @@
+ION event: Payload delivered.
+	payload length is 28.
+	'iontestmessage 200000 100000'
+ION event: Payload delivered.
+	payload length is 31.
+	'iontestmessage 200000000 100000'
+ION event: Payload delivered.
+	payload length is 32.
+	'iontestmessage 200000000 1000000'
+BP reception interrupted.
+ION event: Reception interrupted.
+Stopping bpsink.

@@ -1,0 +1,19 @@
+# Testing started by /ionroot/tests/runtests Tue Apr 30 00:56:20 UTC 2024
+# testing host: f70d76c1152f
+# testing environment: Linux f70d76c1152f 5.15.0-105-generic #115~20.04.1-Ubuntu SMP Mon Apr 15 17:33:04 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+=== Processing bping at time Tue Apr 30 00:56:20 UTC 2024
+PASSED: bping
+
+passed: 1
+    bping
+
+failed: 0
+
+skipped: 0
+
+excluded by OS type: 0
+
+excluded by BP version: 0
+
+obsolete tests: 0
+# Testing ended by /ionroot/tests/runtests Tue Apr 30 00:57:22 UTC 2024
