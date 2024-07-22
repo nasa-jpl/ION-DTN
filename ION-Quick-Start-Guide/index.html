@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.27">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.29">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.76a95c52.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -461,6 +461,15 @@
   <a href="#compile-time-switches" class="md-nav__link">
     <span class="md-ellipsis">
       Compile Time Switches
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpsec-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      BPSec Logging
     </span>
   </a>
   
@@ -1778,6 +1787,36 @@
 <p><code>make clean</code></p>
 <p>To remove executables and shared libraries installed in the system, run:</p>
 <p><code>sudo make uninstall</code></p>
+<h3 id="bpsec-logging">BPSec Logging</h3>
+<p>The BPSec implementation in ION provides 4 levels of debugging/logging:</p>
+<ol>
+<li><strong>Function entry/exit logging</strong>:  This logs the entry and exit of all major functions in the bpsec library and is useful for confirming control flow</li>
+<li>through the bpsec module.</li>
+<li><strong>Information logging</strong>:  Information statements are peppered through the code to provide insight into the state of the module at processing points considered useful by bpsec module software engineers.</li>
+<li><strong>Warning logging</strong>:  Warning statements are used to flag unexpected values that, based on runtime context, may not constitute errors.</li>
+<li><strong>Error logging</strong>:  Errors are areas in the code where some sanity check or other required condition fails to be met by the software.</li>
+</ol>
+<p>Error logging within the BPSec module is of the form:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>&lt;id&gt; &lt;function name&gt;: &lt;message&gt;
+</code></pre></div>
+<p>Where <code>id</code> is one of:</p>
+<ul>
+<li><code>+</code> (function entry)</li>
+<li><code>-</code> (function exit)</li>
+<li><code>i</code> (information statement)</li>
+<li><code>?</code> (warning statement)</li>
+<li><code>x</code> (error statement)</li>
+</ul>
+<p>To in order help users quickly verify their BP security configurations and operations are correct, the default BPSec logging level is set to 4 to provide per bundle status update in <em>ion.log</em>. This is also the level required for running the python-based BPSec regression tests in the ION distribution. This level of verbosity may be too high for operation or too low for in-depth debugging. Therefore, when needed, you can recompile ION to turn BPSec logging off or set a specific logging level based on your needs.</p>
+<p>To run BPSec logging at default level, run</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>./configure --enable-bpsec-logging
+</code></pre></div>
+<p>To run BPSec without logging, simply omit the <code>--enable-bpsec-loggin</code> option.</p>
+<p>To run BPSec logging at a specific level (1, 2, 3, or 4 - note 4 is the least verbose), run</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>./configure --enable-bpsec-logging=x
+</code></pre></div>
+<p>Where <code>x</code> is the desired logging level.</p>
+<p>To enable the MBEDTLS cipher suite, you need to also add the <code>--enable-crypto-mbedtls</code> option when running the <code>./configure</code> script.</p>
 <h2 id="windows">Windows</h2>
 <p>To install ION for Windows, please download the Windows installer.</p>
 <h2 id="build-individual-packages">Build Individual Packages</h2>
@@ -1801,17 +1840,17 @@
 <p>Also check the ION version installed by running:</p>
 <p><code>ionadmin</code></p>
 <p>At the  ":" prompt, please enter the single character command 'v' and you should see a response like this:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a> $ ionadmin
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>: v
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>ION-OPEN-SOURCE-4.1.2
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a> $ ionadmin
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>: v
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>ION-OPEN-SOURCE-4.1.2
 </code></pre></div>
 <p>Then type 'q' to quit ionadmin. While ionadmin quits, it may display certain error messages like this:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>at line 427 of ici/library/platform_sm.c, Can&#39;t get shared memory segment: Invalid argument (0)
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>at line 312 of ici/library/memmgr.c, Can&#39;t open memory region.
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>at line 367 of ici/sdr/sdrxn.c, Can&#39;t open SDR working memory.
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>at line 513 of ici/sdr/sdrxn.c, Can&#39;t open SDR working memory.
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>at line 963 of ici/library/ion.c, Can&#39;t initialize the SDR system.
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>Stopping ionadmin.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>at line 427 of ici/library/platform_sm.c, Can&#39;t get shared memory segment: Invalid argument (0)
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>at line 312 of ici/library/memmgr.c, Can&#39;t open memory region.
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>at line 367 of ici/sdr/sdrxn.c, Can&#39;t open SDR working memory.
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>at line 513 of ici/sdr/sdrxn.c, Can&#39;t open SDR working memory.
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>at line 963 of ici/library/ion.c, Can&#39;t initialize the SDR system.
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>Stopping ionadmin.
 </code></pre></div>
 <p>This is normal due to the fact that ION has not launched yet.</p>
 <h3 id="try-the-bping-test">Try the 'bping' test</h3>
@@ -1820,21 +1859,21 @@
 <p>Enter the command: <code>./runtests bping/</code></p>
 <p>This command invokes one of the simplest test whereby two ION instances are created and a ping message is sent from one to the other and an echo is returned to the sender of the ping.</p>
 <p>During test, ION will display the configuration files used, clean the system of existing ION instances, relaunch ION according to the test configuration files, execute bping actions, display texts that indicates what the actions are being executed in real-time, and then shutdown ION, and display the final test status message, which looks like this:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ION node ended. Log file: ion.log
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>TEST PASSED!
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>passed: 1
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    bping
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>failed: 0
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>skipped: 0
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>excluded by OS type: 0
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>excluded by BP version: 0
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>obsolete tests: 0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ION node ended. Log file: ion.log
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>TEST PASSED!
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>passed: 1
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    bping
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>failed: 0
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>skipped: 0
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>excluded by OS type: 0
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>excluded by BP version: 0
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>obsolete tests: 0
 </code></pre></div>
 <p>In this case, the test script confirms that ION is able to execute a bping function properly.</p>
 <h3 id="try-to-setup-a-udp-session">Try to Setup a UDP Session</h3>
@@ -1842,13 +1881,13 @@
 <p>Take the example of the <code>bench-udp</code> demo:</p>
 <p>Go into the <code>demos/bench-udp/</code> folder, you will see two subfolders: <code>2.bench.udp</code> and <code>3.bench.udp</code>, these folders configures two ION nodes, one with node numbers 2 and 3.</p>
 <p>Looking inside the <code>2.bench.udp</code> folder, you will see specific files used to configure ION. These include:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>bench.bprc 
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>bench.ionconfig  
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>bench.ionrc  
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>bench.ionsecrc  
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>bench.ipnrc  
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>ionstart  
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>ionstop
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>bench.bprc 
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>bench.ionconfig  
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>bench.ionrc  
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>bench.ionsecrc  
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>bench.ipnrc  
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>ionstart  
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>ionstop
 </code></pre></div>
 <ul>
 <li><code>bench.bprc</code> is the configuration file for the bundle protocol. To study the command options contained in this file, run <code>man bprc</code>.</li>
@@ -1873,18 +1912,18 @@
 <p>Also copy the file <code>global.ionrc</code> from the <code>bench.udp</code> folder into the same folder where you placed <code>2.bench.udp</code> and <code>3.bench.udp</code></p>
 <p>Then you need to modify the IP addresses in the UDP demo configuration files to match the IP addresses of hosts A and B.</p>
 <p>For example, the bprc files copied into host A is:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>1
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>a scheme ipn &#39;ipnfw&#39; &#39;ipnadminep&#39;
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>a endpoint ipn:2.0 x
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>a endpoint ipn:2.1 x
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>a endpoint ipn:2.2 x
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>a endpoint ipn:2.64 x
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>a endpoint ipn:2.65 x
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>a protocol udp 1400 100
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>a induct udp 127.0.0.1:2113 udpcli
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>a outduct udp 127.0.0.1:3113 &#39;udpclo 1&#39;
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>r &#39;ipnadmin bench.ipnrc&#39;
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>s
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>1
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>a scheme ipn &#39;ipnfw&#39; &#39;ipnadminep&#39;
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>a endpoint ipn:2.0 x
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>a endpoint ipn:2.1 x
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>a endpoint ipn:2.2 x
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>a endpoint ipn:2.64 x
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>a endpoint ipn:2.65 x
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>a protocol udp 1400 100
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>a induct udp 127.0.0.1:2113 udpcli
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>a outduct udp 127.0.0.1:3113 &#39;udpclo 1&#39;
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>r &#39;ipnadmin bench.ipnrc&#39;
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>s
 </code></pre></div>
 <p>To make it work for host A, you need to replace the induct ip address <code>127.0.0.1:2113</code> to <code>192.168.0.2:2113</code> - this is where host A's ION will receive incoming UDP traffic.</p>
 <p>Similarly for outduct, you want to change the ip address from <code>127.0.0.1:3113</code> to <code>192.168.0.3:3113</code> - this is where UDP traffic will go out to host B.</p>
@@ -1907,23 +1946,23 @@
 <p><code>./ionstart</code></p>
 <p>Note: do not run <code>ionstart</code> since that will trigger the global script in the execution PATH</p>
 <p>You should see some standard output confirming that ION launch has completed. For example you might see something like this:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Starting ION...
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>wmSize:          5000000
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>wmAddress:       0
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>sdrName:        &#39;ion2&#39;
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>sdrWmSize:       0
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>configFlags:     1
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>heapWords:       100000000
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>heapKey:         -1
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>logSize:         0
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>logKey:          -1
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>pathName:       &#39;/tmp&#39;
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>Stopping ionadmin.
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>Stopping ionadmin.
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>Stopping ionsecadmin.
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>Stopping ltpadmin.
-<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>Stopping ipnadmin.
-<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>Stopping bpadmin.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Starting ION...
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>wmSize:          5000000
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>wmAddress:       0
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>sdrName:        &#39;ion2&#39;
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>sdrWmSize:       0
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>configFlags:     1
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>heapWords:       100000000
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>heapKey:         -1
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>logSize:         0
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>logKey:          -1
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>pathName:       &#39;/tmp&#39;
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>Stopping ionadmin.
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>Stopping ionadmin.
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>Stopping ionsecadmin.
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>Stopping ltpadmin.
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>Stopping ipnadmin.
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>Stopping bpadmin.
 </code></pre></div>
 <p>You can also see additional status information in the <code>ion.log</code> file in the same directory.</p>
 <p>Launch ION on both host A and B.</p>
@@ -2066,7 +2105,7 @@
     <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.ad660dcc.min.js"></script>
+      <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
       
     
   </body>
