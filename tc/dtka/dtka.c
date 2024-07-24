@@ -428,8 +428,15 @@ static void *generateKeys(void *parm)
 	}
 
 	sdr_stage(sdr, (char *)&db, dbobj, sizeof(DtkaDB));
-	db.nextKeyGenTime = currentTime + db.keyGenInterval;
-	sdr_write(sdr, dbobj, (char *)&db, sizeof(DtkaDB));
+	if (db.nextKeyGenTime == 0)
+	{
+		db.nextKeyGenTime = currentTime + db.keyGenInterval;
+		sdr_write(sdr, dbobj, (char *)&db, sizeof(DtkaDB));
+	}
+	#if TC_DEBUG
+	writeMemoNote("Initial next key gen time", itoa(db.nextKeyGenTime));
+	#endif
+
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't set initial DTKA next key gen time.", NULL);
