@@ -110,6 +110,10 @@ udpcli
 udpclo
 udplsi
 udplso
+bprecvtest
+bpsendtest
+recvfile
+sendfile
 
 # Additional binaries to ignore
 amsmib
