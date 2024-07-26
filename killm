@@ -156,7 +156,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 sw_vers 2> /dev/null > /dev/null
 
 #if sw_vers ran, then we're on a mac system
-if [[ ! $? ]]; then  
+if [[ $? -eq 0 ]]; then  
 	OS_VERS=`sw_vers | grep 10.4`
 fi
 
@@ -207,9 +207,10 @@ else
 	for PROC in ${KILLPROCESSLIST}; do
 		grep "[^-a-zA-Z]${PROC}$" ${PSFILE} | grep -v "defunct" | \
 			awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-	done 
-
-rm -f ${PSFILE}
+	done
+	
+	rm -f ${PSFILE}
+fi
 
 echo "Deleting shared memory to remove SDR..."
 
