@@ -1,4 +1,3 @@
-# shell script to populate RTEMS build directory with sym links to source files.
 #!/bin/bash
 CRYPTO=crypto/NULL_SUITES
 BULK=bulk/STUB_BULK

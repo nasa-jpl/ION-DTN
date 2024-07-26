@@ -113,6 +113,9 @@ do
 
    bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-50KB
 
+   # throttles load to contact rae; bibect is sensitive to saturation
+   sleep 0.005
+
    COUNT=$(($COUNT+1))
 
 done

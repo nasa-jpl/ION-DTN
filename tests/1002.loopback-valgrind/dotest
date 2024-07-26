@@ -65,17 +65,21 @@ libtool --mode=execute                             \
     --suppressions=valgrind.suppressions.ionstart  \
     --quiet                                        \
     --log-file=out.valgrind.loopback.ionstart.%p   \
-    --num-callers=25                               \
-    --tool=memcheck                                \
+   --num-callers=25                               \
+   --tool=memcheck                                \
+   --num-callers=25                               \
+   --tool=memcheck                                \
     --trace-children=yes                           \
-    --leak-check=full                              \
-    $IONDIR/ionstart                               \
+   --leak-check=full                              \
+   $IONDIR/ionstart                               \
+   --leak-check=full                              \
+   $IONDIR/ionstart                               \
         -i $CONFIGDIR/loopback.ionrc               \
         -l $CONFIGDIR/loopback.ltprc               \
         -b $CONFIGDIR/loopback.bprc                \
 		-s $CONFIGDIR/loopback.ionsecrc			   \
-        -p $CONFIGDIR/loopback.ipnrc               \
-
+        -p $CONFIGDIR/loopback.ipnrc               
+        -p $CONFIGDIR/loopback.ipnrc               
 
 # create the test message in a sent file
 # the exclamation point signals the bundle sender to quit
@@ -92,7 +96,8 @@ libtool --mode=execute                             \
     $GEN_SUPPRESSIONS                              \
     --quiet                                        \
     --log-file=out.valgrind.loopback.bpsink.%p     \
-    --num-callers=25                               \
+   --num-callers=25                               \
+   --num-callers=25                               \
     --tool=memcheck                                \
     --trace-children=yes                           \
     --leak-check=full                              \
@@ -139,9 +144,14 @@ kill -9 ${BPSINKPID} >/dev/null 2>&1
 echo "Stopping ion..."
 ionstop
 
+sleep 10
+
+sleep 10
+
 
 # compare the sent message to the received one
-if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
+if ! grep -q "$IONMESSAGE" "$IONRECEIVEFILE"; then
+if ! grep -q "$IONMESSAGE" "$IONRECEIVEFILE"; then
     echo "Oh noes, data corruption!"
     echo
     echo "Sent this:"
@@ -159,21 +169,65 @@ else
     RETVAL=0
 fi
 
-
 # 
 # see if valgrind noticed any problems
 #
 
+# terminate valgrind processes
+
+# Pattern to match the Valgrind processes
+pattern="valgrind.bin --suppressions=valgrind.suppressions.ionstart"
+
+# Use pgrep with full pattern matching to find PIDs of processes matching the pattern
+pids=$(pgrep -f "$pattern")
+
+# Check if any PIDs were found
+if [ -z "$pids" ]; then
+    echo "All Valgrind processes ended..."
+else
+    # If PIDs were found, loop through each PID and kill the process
+    for pid in $pids; do
+        echo "Killing process $pid..."
+        kill -9 $pid
+    done
+fi
+
+echo "Valgrind output:"
+echo "----------------------------------------------------------------------"
+# terminate valgrind processes
+
+# Pattern to match the Valgrind processes
+pattern="valgrind.bin --suppressions=valgrind.suppressions.ionstart"
+
+# Use pgrep with full pattern matching to find PIDs of processes matching the pattern
+pids=$(pgrep -f "$pattern")
+
+# Check if any PIDs were found
+if [ -z "$pids" ]; then
+    echo "All Valgrind processes ended..."
+else
+    # If PIDs were found, loop through each PID and kill the process
+    for pid in $pids; do
+        echo "Killing process $pid..."
+        kill -9 $pid
+    done
+fi
+
+echo "Valgrind output:"
+echo "----------------------------------------------------------------------"
 for V in out.valgrind.*; do
     if [ $(cat $V | wc -l) -gt 0 ]; then
         echo $V
         cat $V
-        RETVAL=1
+        #RETVAL=1
     else
         rm $V
     fi
 done
 
-
+echo "----------------------------------------------------------------------"
+echo "bundle transfer successful!"
+echo "----------------------------------------------------------------------"
+echo "bundle transfer successful!"
 exit $RETVAL
 

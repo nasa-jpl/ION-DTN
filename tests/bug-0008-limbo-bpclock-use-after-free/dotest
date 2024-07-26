@@ -85,9 +85,6 @@ else
 	RETVAL=0
 fi
 
-bpadmin .
-sleep 1
-ionadmin .
-sleep 1
+echo "Stopping ION..."
 killm
 exit $RETVAL

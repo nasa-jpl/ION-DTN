@@ -169,7 +169,7 @@ if [ "$OSNAME" == "SunOS" ]; then
 else
     KILLCMD="killall"
 	PS="ps"
-	PS_ARGS="-e"
+	PS_ARGS="-fe"
 	if [[ "$(uname -m)" == "x86_64" ]]; then
 		PROCESS_LIMIT=64
 	else
@@ -190,14 +190,24 @@ sleep 2
 
 
 echo "Checking if all ION processes ended..."
-PSFILE="/tmp/ps.$$"
-# grab all running processes
-${PS} ${PS_ARGS} > ${PSFILE}
-# see if any of those still-running processes belong to ION
-for PROC in ${KILLPROCESSLIST}; do
-	grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
-		 awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-done 
+# check if OS is SunOS
+if [ "$(uname -s)" == "SunOS" ]; then
+	# Creates a long regex search pattern that matches any process name
+	# Search pattern looks like:
+	#   ([^-a-zA-Z]bping$)|([^-a-zA-Z]bpecho$)|...
+	PATTERN_PREFIX='([^-a-zA-Z]'
+	PATTERN_POSTFIX='$)'
+	PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | /usr/gnu/bin/sed 's/\s*$//' | /usr/gnu/bin/sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
+	NOT_KILLED="$(ps -e | /usr/gnu/bin/grep -E "${PATTERN}" | /usr/gnu/bin/grep -v grep)"	
+else
+	PSFILE="/tmp/ps.$$"
+	# grab all running processes
+	${PS} ${PS_ARGS} > ${PSFILE}
+	# see if any of those still-running processes belong to ION
+	for PROC in ${KILLPROCESSLIST}; do
+		grep "[^-a-zA-Z]${PROC}$" ${PSFILE} | grep -v "defunct" | \
+			awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+	done 
 
 rm -f ${PSFILE}
 
