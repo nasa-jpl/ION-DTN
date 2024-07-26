@@ -1,2 +1,3 @@
 #!/bin/bash
+# shell script take node down
 bpadmin		.

@@ -79,7 +79,6 @@ static void	report(struct timeval *startTime, unsigned long bytesSent)
 static int	run_file2dgr(char *remoteHostName, char *fileName)
 {
 	int		cyclesLeft;
-	char		ownHostName[MAXHOSTNAMELEN + 1];
 	unsigned int	ownIpAddress;
 	unsigned int	remoteIpAddress;
 	unsigned short	remotePortNbr = TEST_PORT_NBR;
@@ -92,8 +91,7 @@ static int	run_file2dgr(char *remoteHostName, char *fileName)
 	unsigned long	bytesSent;
 
 	cyclesLeft = cyclesRequested;
-	getNameOfHost(ownHostName, sizeof ownHostName);
-	ownIpAddress = getInternetAddress(ownHostName);
+	ownIpAddress = getAddressOfHost();
 	remoteIpAddress = getInternetAddress(remoteHostName);
 	sm_ipc_init();
 	wmPtr = malloc(wmSize);

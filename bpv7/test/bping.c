@@ -58,6 +58,7 @@ static Sdr      sdr;
 static BpSAP    xmitsap;
 static BpSAP    recvsap;
 static char     *srcEid, *dstEid, *rptEid;
+static pid_t	myPid;
 
 #define BPING_PAYLOAD_MAX_LEN 10000
 
@@ -137,8 +138,8 @@ static void *receiveResponses(void *x)
 	int         contentLength, bytesToRead, result;
 	char        buffer[BPING_PAYLOAD_MAX_LEN];
 	char        respSrcEid[64];
-	char        *countstr, *secstr, *usecstr, *endptr;
-	unsigned long respcount;
+	char        *countstr, *secstr, *usecstr, *pidstr, *endptr;
+	unsigned long respcount, resppid;
 	long        diff_in_us;
 
 	while((shutdownnow == 0) && (count == -1 || totalreceived < count) &&
@@ -226,6 +227,15 @@ static void *receiveResponses(void *x)
 			fprintf(stderr, "Couldn't parse usecstr.\n");
 			continue;
 		}
+		pidstr = strtok(NULL, " ");
+		if(pidstr == NULL) {
+			/* if the pid cant be parsed for this bundle, then something is wrong - 
+			the bundle is from an outdated bping source, corrupted, or something 
+			else bad happened. In any case, the bundle should not be considered 
+			as a successfully received echo. So ignore it. */
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
 
 		respcount = strtoul(countstr, &endptr, 0);
 		if(endptr == NULL) {
@@ -243,6 +253,21 @@ static void *receiveResponses(void *x)
 		if(endptr == NULL) {
 			putErrmsg("Couldn't convert usecstr", usecstr);
 			fprintf(stderr, "Couldn't convert usecstr: %s\n", usecstr);
+			continue;
+		}
+		resppid = strtoul(pidstr, &endptr, 0);
+		if(endptr == NULL) {
+			/* maybe remove error messages, if we cant convert the pid 
+			to an unsigned long it was probably from an outdated bping 
+			and not inteded for us. */
+			putErrmsg("Couldn't convert pidstr", pidstr);
+			fprintf(stderr, "Couldn't convert pidstr: %s\n", pidstr);
+			bp_release_delivery(&dlv, 1);
+			continue;
+		}
+		if(resppid != myPid){
+			/* not intended for this bping, ignore */
+			bp_release_delivery(&dlv, 1);
 			continue;
 		}
 
@@ -287,7 +312,7 @@ static Object bping_new_ping(void)
 	struct timeval tvNow;
 	char    pingPayload[BPING_PAYLOAD_MAX_LEN];
 	int     pingPayloadLen;
-	pid_t	myPid;
+	
 
 
 	if(gettimeofday(&tvNow, NULL) < 0) {
@@ -296,7 +321,7 @@ static Object bping_new_ping(void)
 		return 0;
 	}
 
-	myPid = getpid();
+	
 
 	/* Construct the bundle payload */
 	pingPayloadLen = snprintf(pingPayload, sizeof(pingPayload), 
@@ -505,7 +530,7 @@ int main(int argc, char **argv)
 	dstEid = argv[optind + 1];
 	rptEid = (argc - optind > 2) ? argv[optind + 2] : NULL;
 #endif
-
+	myPid = getpid();
 	if(pthread_mutex_init(&sdrmutex, NULL) != 0)
 	{
 		putErrmsg("Couldn't init sdrmutex.", NULL);

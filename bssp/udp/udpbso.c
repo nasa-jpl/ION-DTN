@@ -193,7 +193,6 @@ int	main(int argc, char *argv[])
 	PsmAddress		vspanElt;
 	unsigned short		portNbr = 0;
 	unsigned int		ipAddress = 0;
-	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		ownSockName;
 	struct sockaddr_in	*ownInetName;
 	struct sockaddr		peerSockName;
@@ -282,8 +281,7 @@ compatibility, but it is ignored.");
 
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		ipAddress = getInternetAddress(ownHostName);
+		ipAddress = getAddressOfHost();
 	}
 
 	portNbr = htons(portNbr);

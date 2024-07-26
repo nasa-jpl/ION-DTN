@@ -96,7 +96,7 @@ a plan 3 udp/127.0.0.1:4557
 
 ## begin acsadmin
 # Enable ACS processing
-1 15 100000
+1 15
 
 # Set first custody ID for test
 s 42

@@ -33,8 +33,7 @@ static int	udpComputeCsepName(char *endpointSpec, char *endpointName)
 
 	if (ipAddress == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(hostName, sizeof hostName);
-		ipAddress = getInternetAddress(hostName);
+		ipAddress = getAddressOfHost();
 	}
 	else
 	{
@@ -206,8 +205,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	parseSocketSpec(epspec, &portNbr, &ipAddress);
 	if (ipAddress == 0)
 	{
-		getNameOfHost(hostName, sizeof hostName);
-		if ((ipAddress = getInternetAddress(hostName)) == 0)
+		if ((ipAddress = getAddressOfHost()) == 0)
 		{
 			putErrmsg("udpts can't get own IP address.", NULL);
 			return -1;

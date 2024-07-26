@@ -1,4 +1,6 @@
 #!/bin/bash
+# shell script to remove all of my IPC keys
+
 bpadmin		.
 sleep 1
 ltpadmin	.

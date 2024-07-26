@@ -12,11 +12,7 @@
 #	of maximum round-trip times (in seconds) for all "spans."
 #	Suggest throwing 20% higher number of sessions to account for extra-
 #	long sessions which contain an actual retransmission.
-#	Set a block size limit of 131072 bytes.  The block size is around
-#	the amount of data expected to be sent in a session.  Determine
-#	this with the maximum amount of data (in bytes) transferred in one
-#	second on your fastest available link.
-1 32 131072
+1 32
 
 # Add a span. (a connection) 
 #	Identify the span as engine number 1.

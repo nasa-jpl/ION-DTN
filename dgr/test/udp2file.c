@@ -38,7 +38,6 @@ static FILE	*openFile()
 
 int	main(int argc, char **argv)
 {
-	char			ownHostName[MAXHOSTNAMELEN + 1];
 	unsigned long		ownIpAddress;
 	unsigned short		portNbr = TEST_PORT_NBR;
 	unsigned long		hostNbr;
@@ -53,8 +52,7 @@ int	main(int argc, char **argv)
 
 	/*	Prepare for UDP reception.				*/
 
-	getNameOfHost(ownHostName, sizeof ownHostName);
-	ownIpAddress = getInternetAddress(ownHostName);
+	ownIpAddress = getAddressOfHost();
 	hostNbr = htonl(ownIpAddress);
 	memset((char *) &socketName, 0, sizeof socketName);
 	inetName = (struct sockaddr_in *) &socketName;

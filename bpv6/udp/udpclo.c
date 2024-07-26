@@ -55,7 +55,6 @@ int	main(int argc, char *argv[])
 #endif
 	unsigned short		portNbr;
 	unsigned int		hostNbr;
-	char			ownHostName[MAXHOSTNAMELEN];
 	struct sockaddr		socketName;
 	struct sockaddr_in	*inetName;
 	unsigned char		*buffer;
@@ -102,8 +101,7 @@ node's host name> | @} [:<its port number>]");
 	portNbr = htons(portNbr);
 	if (hostNbr == 0)		/*	Default to local host.	*/
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		hostNbr = getInternetAddress(ownHostName);
+		hostNbr = getAddressOfHost();
 	}
 
 	hostNbr = htonl(hostNbr);

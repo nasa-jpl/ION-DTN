@@ -258,8 +258,7 @@ void	vmqtsLoadTs(TransSvc *ts)
 	 *	implement this.						*/
 
 	CHKVOID(ts);
-	getNameOfHost(ownHostName, sizeof ownHostName);
-	ipAddress = getInternetAddress(ownHostName);
+	ipAddress = getAddressOfHost();
 	isprintf(vmqName, sizeof vmqName, "vmq%u", ipAddress);
 	ts->name = vmqName;
 	ts->csepNameFn = vmqComputeCsepName;

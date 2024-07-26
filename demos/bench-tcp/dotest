@@ -149,7 +149,7 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 	echo "Waiting for transmission to finish..."
 	RUNNING=1
 	TIMER=0
-	while [ $RUNNING -eq 1 ]
+	while [ "$RUNNING" -eq 1 ]
 	do
 		TIMER=$((++TIMER))
 		sleep 1
@@ -166,7 +166,7 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 			echo "...transmission finished."
 			RUNNING=0
 		fi
-		if [ $TIMER -gt 300 ]
+		if [ "$TIMER" -gt 300 ]
 		then
 			#infinite loop protection
 			echo "...5 minutes passed; giving up."

@@ -1,4 +1,5 @@
 #!/bin/bash
+# shell script take node down
 ltpadmin .
 sleep 1
 bpadmin .

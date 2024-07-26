@@ -31,6 +31,13 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
         network interface card performance. Since UDP is no reliable, many more
 		bundles were sent than need to be received for throughput calculation."
 
+echo -e "\n\tNOTE: various factors may contribute to UDP packet loss, but rate control and 
+	kernel buffer size are critical factors to consider when configuring networks 
+	for UDP-based communications. If this bench test fails please consider increasing 
+	the kernel buffer size to accomodate: the 208 KB default may not be sufficient!"
+
+sleep 3
+
 echo
 echo "CONFIG: 2 node custom:"
 echo
@@ -74,7 +81,7 @@ bpdriver 10100 ipn:2.1 ipn:3.1 -1000 i10000000&
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [ $RUNNING -eq 1 ]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
@@ -91,7 +98,7 @@ do
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ $TIMER -gt 300 ]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
@@ -100,7 +107,7 @@ do
 	fi
 done
 
-if [ $RETVAL -eq 1 ]
+if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
         echo "Stopping ION..."
@@ -129,7 +136,7 @@ bpdriver 11000 ipn:2.1 ipn:3.1 -10000 i90000000 &
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [ $RUNNING -eq 1 ]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
@@ -146,7 +153,7 @@ do
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ $TIMER -gt 300 ]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
@@ -155,7 +162,7 @@ do
 	fi
 done
 
-if [ $RETVAL -eq 1 ]
+if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
         echo "Stopping ION..."
@@ -184,7 +191,7 @@ bpdriver 10100 ipn:2.1 ipn:3.1 -100000 t900 i1000000000 &
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [ $RUNNING -eq 1 ]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
@@ -201,7 +208,7 @@ do
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ $TIMER -gt 900 ]
+	if [ "$TIMER" -gt 900 ]
 	then
 		#infinite loop protection
 		echo "...15 minutes passed; giving up."
@@ -210,7 +217,7 @@ do
 	fi
 done
 
-if [ $RETVAL -eq 1 ]
+if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
         echo "Stopping ION..."
@@ -224,7 +231,7 @@ then
         exit $RETVAL
 fi
 
-if [ $RETVAL -eq 1 ]
+if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
 fi

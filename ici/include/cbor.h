@@ -94,6 +94,15 @@ extern int	cbor_encode_break(	unsigned char **cursor);
 			 *	automatically advanced.  Returns
 			 *	number of bytes written (always 1).	*/
 
+int	cbor_encode_boolean(uvast value, unsigned char **cursor);
+			/*	boolean is written at the
+			 *	indicated location.  Cursor is
+			 *	automatically advanced.  Returns
+			 *	number of bytes written (always 1).
+			 *	false (0xf5) is written if the provided value
+			 *	is 0, otherwise true (0xf4) is written.
+			 *	(default c behavior for use
+			 *	of integer as boolean).	*/
 extern int	cbor_decode_initial_byte(unsigned char **cursor,
 					unsigned int *bytesBuffered,
 					int *majorType,
@@ -188,6 +197,18 @@ extern int	cbor_decode_break(	unsigned char **cursor,
 			 *	automatically advanced.  Returns
 			 *	number of bytes read, 0 on decoding
 			 *	error.					*/
+
+extern int	cbor_decode_boolean(uvast* value, unsigned char **cursor,
+					unsigned int *bytesBuffered);
+			/*	Boolean is read from the
+			 *	indicated location.  Cursor is
+			 *	automatically advanced.  Returns
+			 *	number of bytes read, 0 on decoding
+			 *	error.
+			 *	parameter 'value' is set to the value
+			 *	of the boolean read, 0 if false, 1
+			 *	if true. on decode error, value is
+			 *	unchanged and therefore undetermined.*/
 
 #ifdef __cplusplus
 }

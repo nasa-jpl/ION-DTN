@@ -345,6 +345,12 @@ int	cbor_encode_break(unsigned char **cursor)
 	return 1;
 }
 
+int	cbor_encode_boolean(uvast value, unsigned char **cursor)
+{
+	encodeFirstByte(cursor, CborSimpleValue, value ? 21 : 20);
+	return 1;
+}
+
 static int	decodeFirstByte(unsigned char **cursor,
 			unsigned int *bytesBuffered, int *majorType,
 			int *additionalInfo)
@@ -821,4 +827,42 @@ int	cbor_decode_break(unsigned char **cursor, unsigned int *bytesBuffered)
 	}
 
 	return 1;			/*	Only initial byte.	*/
+}
+
+int	cbor_decode_boolean(uvast* value, unsigned char **cursor, unsigned int *bytesBuffered)
+{
+	int	majorType;
+	int	additionalInfo;
+
+	CHKZERO(cursor && *cursor && bytesBuffered);
+	if (decodeFirstByte(cursor, bytesBuffered, &majorType, &additionalInfo)
+			< 1)
+	{
+		return 0;
+	}
+
+	if (majorType != CborSimpleValue)
+	{
+		writeMemo("[?] CBOR error: not 'simple' value.");
+		return 0;
+	}
+
+	if (value == NULL)	/*	Not okay to copy bytes into buffer.		*/
+	{
+		return 0;
+	}
+
+	switch (additionalInfo){
+		case 20:
+			/* False */
+			*value = 0;
+			return 1;
+		case 21:
+			/* True */
+			*value = 1;
+			return 1;
+		default:
+			writeMemo("[?] CBOR error: not a boolean code.");
+			return 0;
+	}
 }

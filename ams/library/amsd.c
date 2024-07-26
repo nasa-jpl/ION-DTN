@@ -2048,7 +2048,7 @@ static void	stopModule(DmState *dmState)
 static int	run_amsd(char *mibSource, char *csEndpointSpec,
 			char *rsAppName, char *rsAuthName, char *rsUnitName)
 {
-	char		ownHostName[MAXHOSTNAMELEN + 1];
+	unsigned int	ipAddress;
 	char		eps[MAXHOSTNAMELEN + 5 + 1];
 	CsState		csState;
 	RsState		rsState;
@@ -2063,8 +2063,8 @@ PUTS("...in run_amsd...");
 	//if '@' set Config Server to ownHostName at default port
 	if (strcmp(csEndpointSpec, "@") == 0)
 	{
-		getNameOfHost(ownHostName, sizeof ownHostName);
-		isprintf(eps, sizeof eps, "%s:2357", ownHostName);
+		ipAddress = getAddressOfHost();
+		isprintf(eps, sizeof eps, "%u:2357", ipAddress);
 		csEndpointSpec = eps;
 	}
 

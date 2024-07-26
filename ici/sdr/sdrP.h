@@ -86,6 +86,7 @@ typedef struct sdr_str
 	int		sdrOwnerTask;		/*	Task ID.	*/
 	pthread_t	sdrOwnerThread;		/*	Thread ID.	*/
 	int		xnDepth;
+	int		modified;	/*	Boolean.		*/
 	int		xnCanceled;		/*	Boolean.	*/
 	int		logLength;		/*	All entries.	*/
 	int		maxLogLength;		/*	Max Log Length  */
@@ -170,7 +171,6 @@ typedef struct sdrv_str
 	uaddr		logsmId;	/*	Log shmId if applicable.*/
 
 	Lyst		knownObjects;	/*	ObjectExtents.		*/
-	int		modified;	/*	Boolean.		*/
 
 	PsmView		traceArea;	/*	local access to trace	*/
 	PsmView		*trace;		/*	local access to trace	*/

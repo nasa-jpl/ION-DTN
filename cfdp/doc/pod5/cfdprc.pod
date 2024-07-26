@@ -37,7 +37,7 @@ combine with B<e 1> command to log the version number at startup.
 The B<initialize> command.  Until this command is executed, CFDP is not
 in operation on the local ION node and most I<cfdpadmin> commands will fail.
 
-=item B<a entity>> <entity nbr> <UT protocol name> <UT endpoint name> <rtt> <incstype> <outcstype>
+=item B<a entity> <entity nbr> <UT protocol name> <UT endpoint name> <rtt> <incstype> <outcstype>
 
 The B<add entity> command.  This command will add a new remote CFDP entity to
 the CFDP management information base.  Valid UT protocol names are bp and

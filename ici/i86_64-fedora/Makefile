@@ -9,7 +9,7 @@ BULK = ../bulk/STUB_BULK
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto 
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I../crypto 
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -200,8 +200,8 @@ libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(LD) -o libicinm.so libicinm.o
 		cp libicinm.so ./lib
 
-libsecrypt.so:	libsecrypt.o
-		$(LD) -o libsecrypt.so libsecrypt.o
+libsecrypt.so:	secrypt.o
+		$(LD) -o libsecrypt.so secrypt.o
 		cp libsecrypt.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-

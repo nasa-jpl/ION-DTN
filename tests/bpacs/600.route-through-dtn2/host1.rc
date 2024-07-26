@@ -102,7 +102,7 @@ a plan //custodiannode* x udp/127.0.0.1:4557
 
 ## begin acsadmin
 # Enable ACS processing with only a small amount of SDR memory.
-1 15 2000
+1 15
 
 # Inform that node 2's custodian supports ACS.
 a ipn:2.0 300 1

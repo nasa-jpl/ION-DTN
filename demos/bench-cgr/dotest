@@ -85,7 +85,7 @@ bpdriver 13000 ipn:1.1 ipn:4.1 -1000 &
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [ $RUNNING -eq 1 ]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
@@ -102,7 +102,7 @@ do
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ $TIMER -gt 300 ]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
@@ -121,7 +121,7 @@ cd ../4.bench.stcp
 bpstats
 sleep 1
 
-if [ $RETVAL -eq 1 ]
+if [ "$RETVAL" -eq 1 ]
 then
 	BUNDLES_RCV=`grep "rcv" ion.log | tail -1 | grep "(1) 0 0"`
 	if [ -z "$BUNDLES_RCV" ] ; then

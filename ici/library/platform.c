@@ -2488,9 +2488,13 @@ char	*addressToString(struct in_addr address, char *buffer)
 unsigned int	getAddressOfHost()
 {
 	char	hostnameBuf[MAXHOSTNAMELEN + 1];
+	unsigned int inetaddr = getInternetAddress(hostnameBuf);
+	if(inetaddr == 0){
+			putErrmsg("Couldn't look up own IP, defaulting to 127.0.0.1", NULL);
+			inetaddr = ntohl(0x100007F);
+	}
+	return inetaddr;
 
-	getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-	return getInternetAddress(hostnameBuf);
 }
 
 char	*addressToString(struct in_addr address, char *buffer)

@@ -28,7 +28,10 @@
  * @copyright 2023, California Institute of Technology.	All rights reserved.
  */
 
+#ifndef darwin
+/* macos/darwin handles this differently */
 #define _POSIX_C_SOURCE 200112L
+#endif
 
 #include <bp.h>
 #include <metadata.h> 

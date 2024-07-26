@@ -827,7 +827,7 @@ int	bsspStart()
 		startSeat((BsspVseat *) psp(bsspwm, sm_list_data(bsspwm, elt)));
 	}
 
-	sdr_exit_xn(sdr);		/* 	Unlock memory.		*/
+	sdr_end_xn(sdr);		/* Unlock memory 		*/
 	return 0;
 }
 

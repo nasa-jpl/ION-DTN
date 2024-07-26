@@ -113,6 +113,9 @@ do
 
    bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-50KB
 
+   # throttles load to contact rae; bibect is sensitive to saturation
+   sleep 0.005
+
    COUNT=$(($COUNT+1))
 
 done
@@ -121,7 +124,7 @@ done
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [ $RUNNING -eq 1 ]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
@@ -138,7 +141,7 @@ do
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ $TIMER -gt 300 ]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
@@ -147,7 +150,7 @@ do
 	fi
 done
 
-if [ $RETVAL -eq 1 ]
+if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 fi

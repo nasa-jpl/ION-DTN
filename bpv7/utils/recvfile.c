@@ -31,7 +31,11 @@
  * @copyright 2023, California Institute of Technology. All rights reserved.
  */
 
+#ifndef darwin
+/* macos/darwin handles this differently */
 #define _POSIX_C_SOURCE 200112L
+#endif
+
 #define	BPRECVBUFSZ	(65536)
 
 #include <bp.h>

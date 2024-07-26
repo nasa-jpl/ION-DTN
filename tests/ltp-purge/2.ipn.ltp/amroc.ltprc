@@ -1,4 +1,4 @@
-1 5 25000
+1 5
 a span 3 2 2000 2 2000 1500 60 1 'udplso localhost:3113 960000' -1
 a span 5 2 2000 2 2000 1500 60 1 'udplso localhost:5113 960000'
 m heapmax 10000

@@ -1,4 +1,5 @@
 #!/bin/bash
+# shell script to shut down ION
 
 echo "Stopping ION-DTN..."
 bpadmin  .
