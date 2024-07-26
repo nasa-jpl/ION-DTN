@@ -4,6 +4,8 @@
 
 To build ION on Linux system, make sure install and update the `automake`, `autoconf`, and `libtool` packages.
 
+### Build ION 4.1.3 (and earlier versions) without actual cipher suite
+
 To build and install the entire ION system on a Linux, MacOS, or Solaris platform, cd into ion-open-source and enter the following commands:
 
 `./configure`
@@ -14,13 +16,51 @@ If configure is not present run: `autoreconf -fi` first
 
 `sudo make install`
 
+Optionally, to run certain c-based regression tests, you need to build the test program from C code first. To do that, run:
+
+`make test`
+
+Then update the shared library cache of the linker:
+
 `sudo ldconfig`
 
-For MacOS,  the `ldconfig` command is not present and not necessary to run.
+For MacOS, the `ldconfig` command is not present and not necessary.
 
-### Compile Time Switches
+### Build ION 4.1.3s (and later version) with interface to actual cipher suite
 
-If you want to set overriding compile-time switches for a build, the place to do this is in the `./configure` command.  For details,
+If you are not planning to use BPSec's interface to the MBEDTLS cipher suite, you can simply follow the build instruction for ION 4.1.3.
+
+#### Building ION to use the MBEDTLS cipher suite
+
+Before building ION, you should build and install MBEDTLS first. Download [MBEDTLS release 2.28.8 from GitHub.](https://github.com/Mbed-TLS/mbedtls/releases/tag/v2.28.8)
+
+Assume your place the files in your home directory under `$HOME/mbedtls-2.28.2`. Now do the following:
+
+1. Modify the file under `$HOME/mbedtls-2.28.2/include/mbedtls/config.h`
+   * Uncomment the line `#define MBEDTLS_NIST_KW_C` and save the file.
+
+2. Return to the root folder of MBEDTLS `$HOME/mbedtls-2.28.2` and build the shared libraries: `make SHARED=1`
+3. Optionally, run `make check` to execute self-test on the MBEDTLS libraries. 
+4. Install MBEDTLS shared library: `sudo make install`
+    * The default library installation locations are `/usr/local/lib` and `/usr/local/include`. After the installation, verify the location of the library and header files. If the MBEDTLS shared libraries are not copied into the above locations, then make a note of the full path to the actual library and header files, which will need to be provided to ION during compilation.
+
+Now we are ready to install ION. For the `./configure` command you need to enable MBEDTLS cipher suite interface using the `--enable-cypto-mbedtls` option. In additional, you may also optionally add the `--enable-bpsec-debugging` flag in you plan to run the BPSec related regression tests.
+
+If the MBEDTLS library is not installed under the `/usr/local` prefix, then you will need to provide the path to the MBEDTLS library explicitly to ION by adding `MBED_LIB_PATH=<path-to-mbedtls-sharedlibrary> MBED_INC_PATH=<path-to-mbedtls-header-files>` to the `./configure` command.
+
+After running `./configure` with the appropriate options/flags, you can build ION in the same way by:
+
+`make`
+
+`sudo make install`
+
+`make test` (optional)
+
+`sudo ldconfig`
+
+### Adding Other Compile Time Switches
+
+If you want to set additional compile-time switches for a build, the place to do this to add them to the `./configure` command. To see a list of supported ION compiler options, see explanation provided by:
 
 `./configure -h`
 
@@ -37,6 +77,14 @@ To clean up compilation artifacts such as object files and shared libraries stor
 To remove executables and shared libraries installed in the system, run:
 
 `sudo make uninstall`
+
+To introduce customized flags to ION's build process, you can add them via the `./configure` command as well:
+
+`./configure CFLAGS="<string of compiler options>"`
+
+For example, say you want to add additional source code and header files from the `/wkdir/customfile` and activate certain features controlled by the variables `GDSLOGGER` and `GDSWATCHER`. This can be accomplished through the `./configure` command:
+
+`./configure CFLAGS="-I/wkdir/customfile -DGDSLOGGER -DGDSWATCHER"`
 
 ### BPSec Logging
 
@@ -66,7 +114,7 @@ To in order help users quickly verify their BP security configurations and opera
 
 To run BPSec logging at default level, run
 
-```
+```bash
 ./configure --enable-bpsec-logging
 ```
 
@@ -74,7 +122,7 @@ To run BPSec without logging, simply omit the `--enable-bpsec-loggin` option.
 
 To run BPSec logging at a specific level (1, 2, 3, or 4 - note 4 is the least verbose), run
 
-```
+```bash
 ./configure --enable-bpsec-logging=x
 ```
 
@@ -129,7 +177,7 @@ ION-OPEN-SOURCE-4.1.2
 
 Then type 'q' to quit ionadmin. While ionadmin quits, it may display certain error messages like this:
 
-```
+```text
 at line 427 of ici/library/platform_sm.c, Can't get shared memory segment: Invalid argument (0)
 at line 312 of ici/library/memmgr.c, Can't open memory region.
 at line 367 of ici/sdr/sdrxn.c, Can't open SDR working memory.
@@ -182,7 +230,7 @@ Go into the `demos/bench-udp/` folder, you will see two subfolders: `2.bench.udp
 
 Looking inside the `2.bench.udp` folder, you will see specific files used to configure ION. These include:
 
-```
+```text
 bench.bprc 
 bench.ionconfig  
 bench.ionrc  
@@ -229,7 +277,7 @@ Then you need to modify the IP addresses in the UDP demo configuration files to 
 
 For example, the bprc files copied into host A is:
 
-```
+```text
 1
 a scheme ipn 'ipnfw' 'ipnadminep'
 a endpoint ipn:2.0 x
@@ -279,7 +327,7 @@ Note: do not run `ionstart` since that will trigger the global script in the exe
 
 You should see some standard output confirming that ION launch has completed. For example you might see something like this:
 
-```
+```text
 Starting ION...
 wmSize:          5000000
 wmAddress:       0
