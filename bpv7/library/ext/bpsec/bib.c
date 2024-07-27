@@ -273,6 +273,16 @@ int bpsec_verify(AcqWorkArea *work)
 
                 if (polRule == NULL)	/*	No BIB rule for target.	*/
 		{
+			/*	SB 07/26/2024				*/
+			if (bundle->deliverable == 0)
+			{
+				/*	Missing rule is not a problem
+				 *	at a waypoint node.		*/
+
+				continue;
+			}
+
+			/*	SB 05/27/2024				*/
 			/*	If BIB target is the primary block,
 			 *	then BPSec authentication is required.
 			 *	If there is no policy rule for primary

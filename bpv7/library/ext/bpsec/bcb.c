@@ -266,6 +266,15 @@ int    bpsec_decrypt(AcqWorkArea *work)
 
                 if (polRule == NULL)	/*	No BCB rule for target.	*/
 		{
+			/*	SB 7/26/2024				*/
+			if (bundle->deliverable == 0)
+			{
+				/*	Missing rule is not a problem
+				 *	at a waypoint node.		*/
+
+				continue;
+			}
+
 			/*	SB 5/26/2024				*/
                         BCB_DEBUG_ERR("No rule for decrypting target block %d.",
 					tgtResult->scTargetId);
