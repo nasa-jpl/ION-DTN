@@ -440,7 +440,28 @@ sm_ShmAttach(int key, size_t size, char **shmPtr, uaddr *id)
     /* create a new shared memory segment, or attach to an existing one */
 	if ((*id = shmget(key, size, IPC_CREAT | 0666)) == -1)
 	{
-		putSysErrmsg("Can't get shared memory segment", itoa(size));
+		putSysErrmsg("Can't get shared memory segment", utoa(size));
+		switch (errno)
+        {
+            case EACCES:
+                fprintf(stderr, "Error: Insufficient permissions.\n");
+                break;
+            case EINVAL:
+                fprintf(stderr, "Error: Invalid size or key. key = %d ; size = %zu\n", key, size);
+                break;
+            case ENOMEM:
+                fprintf(stderr, "Error: Insufficient memory.\n");
+                break;
+            case ENOSPC:
+                fprintf(stderr, "Error: Resource limits exceeded.\n");
+                break;
+            case EEXIST:
+                fprintf(stderr, "Error: Key collision with different size.\n");
+                break;
+            default:
+                fprintf(stderr, "Error: Unknown error (errno = %d).\n", errno);
+                break;
+        }
 		return -1;
 	}
 
