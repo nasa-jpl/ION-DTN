@@ -185,7 +185,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 10100 ipn:2.1 ipn:3.1 -100000 t900 i1000000000 &
+bpdriver 5500 ipn:2.1 ipn:3.1 -100000 t900 i500000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
