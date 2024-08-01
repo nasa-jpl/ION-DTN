@@ -28,13 +28,14 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
         nodes residing on the same computer.  So the results exercise BP and UDP
         in a non-loopback configuration, over loopback IP; the results are
         therefore unaffected by network traffic, router performance, or
-        network interface card performance. Since UDP is no reliable, many more
+        network interface card performance. Since UDP is not reliable, many more
 		bundles were sent than need to be received for throughput calculation."
 
 echo -e "\n\tNOTE: various factors may contribute to UDP packet loss, but rate control and 
 	kernel buffer size are critical factors to consider when configuring networks 
 	for UDP-based communications. If this bench test fails please consider increasing 
-	the kernel buffer size to accomodate: the 208 KB default may not be sufficient!"
+	the kernel buffer size to allow for higher performance UDP transmissions: the 208 KB 
+	default may not be sufficient!"
 
 sleep 3
 
@@ -68,14 +69,14 @@ cd ../3.bench.udp
 
 sleep 3
 echo ""
-echo "Test 1: 10,000 bundles of 1000 bytes each."
+echo "Test 1: 1000 bundles of 1000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 10000 &
+bpcounter ipn:3.1 1000 &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 10100 ipn:2.1 ipn:3.1 -1000 i10000000&
+bpdriver 1010 ipn:2.1 ipn:3.1 -1000 i800000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -121,16 +122,19 @@ then
         exit $RETVAL
 fi
 
-sleep 3
+#allow the buffer to clear
+echo "Sleeping for 10 seconds to clear buffer"
+sleep 10
+
 echo ""
-echo "Test 2: 10000 bundles of 10,000 bytes each."
+echo "Test 2: 1000 bundles of 10,000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 10000 &
+bpcounter ipn:3.1 1000 &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 11000 ipn:2.1 ipn:3.1 -10000 i90000000 &
+bpdriver 1010 ipn:2.1 ipn:3.1 -10000 i800000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -176,16 +180,21 @@ then
         exit $RETVAL
 fi
 
-sleep 3
+#allow the buffer to clear
+echo "Sleeping for 10 seconds to clear buffer"
+sleep 10
+
 echo ""
-echo "Test 3: 5000 bundles of 100,000 bytes each."
+echo "Test 3: 1000 bundles of 100,000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 5000 &
+bpcounter ipn:3.1 1000 &
 BPCOUNTER_PID=$!
+
+
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 5500 ipn:2.1 ipn:3.1 -100000 t900 i500000000 &
+bpdriver 1010 ipn:2.1 ipn:3.1 -100000 i8000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -208,10 +217,10 @@ do
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ "$TIMER" -gt 900 ]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
-		echo "...15 minutes passed; giving up."
+		echo "...5 minutes passed; giving up."
 		RUNNING=0
 		RETVAL=1
 	fi
