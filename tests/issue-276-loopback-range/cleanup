@@ -4,6 +4,6 @@
 # April 12, 2010
 
 echo "Cleaning up old ION..."
+killm
 rm -f ion.log
 rm -f ion_nodes
-killm
