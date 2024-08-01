@@ -63,7 +63,7 @@
 #endif
 
 #ifndef	PAYLOAD_BLOCK_CRC_TYPE
-#define	PAYLOAD_BLOCK_CRC_TYPE	0
+#define	PAYLOAD_BLOCK_CRC_TYPE	1
 #endif
 
 /*	We hitchhike on the ZCO heap space management system to 
@@ -8590,7 +8590,10 @@ undefined block.");
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
-			writeMemo("[?] CRC check failed for extension block.");
+			writeMemoNote("[?] CRC check failed for extension "
+				"block, blkType",itoa((int) blkType));
+			writeMemoNote("[?] CRC check failed for extension "
+				"block, crcType",itoa((int) crcType));
 			bundle->altered = 1;
 		}
 

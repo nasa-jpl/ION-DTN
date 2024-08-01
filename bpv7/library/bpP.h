@@ -113,7 +113,7 @@ extern "C" {
 
 /*	The BLK_PROC_FLAG_MASK is the value of the Block Processing
  *	Flags field obtained by setting every currently defined flag
- *	to 1 (as of Rev. 30 of the Bundle Protocol specification).
+ *	to 1 per RFC 9171.
  *	It is used to set to zero every reserved or unassigned flag
  *	bit in the Block Processing Flags value of a non-Primary
  *	bundle block, to canonicalize the block for BPsec security
@@ -121,7 +121,7 @@ extern "C" {
  *	are defined, this MASK value will have to be revised to
  *	include them.							*/
 
-#define	BLK_PROC_FLAGS_MASK		(475239)
+#define	BLK_PROC_FLAGS_MASK		23
 
 /*	An ION "node" is a set of cooperating state machines that
  *	together constitute a single functional point of presence,
