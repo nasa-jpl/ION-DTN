@@ -205,13 +205,13 @@ sleep 1
 kill -9 $BPSINKPID >/dev/null 2>&1
 
 # Shut down ION processes.
-echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../5.ipn.ltp
-./ionstop &
+echo -e "Stopping ION...\n"
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../5.ipn.ltp
+#./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
 sleep 5

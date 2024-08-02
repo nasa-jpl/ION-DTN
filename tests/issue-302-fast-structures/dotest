@@ -127,14 +127,14 @@ else
 fi
 
 # Shut down ION processes.
-echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+echo -e "Stopping ION...\n"
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+sleep 3
 killm
-echo "Fast data structures test completed."
+echo -e "Fast data structures test completed.\n"
 exit $RETVAL

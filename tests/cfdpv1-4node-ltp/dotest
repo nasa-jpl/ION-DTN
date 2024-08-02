@@ -122,17 +122,17 @@ bplist
 echo ""
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../1.ipn.ltp
-./ionstop &
-cd ../2.ipn.ltp
-./ionstop &
-cd ../5.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+#cd ../1.ipn.ltp
+#./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../5.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give all nodes time to shut down, then clean up.
-sleep 5
+sleep 3
 killm
-echo "cfdpv1-4node-ltp test completed."
+echo -e "cfdpv1-4node-ltp test completed.\n"
 exit $RETVAL
