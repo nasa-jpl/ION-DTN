@@ -112,11 +112,11 @@ if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
         echo "Stopping ION..."
-        cd ../2.bench.udp
-        ./ionstop &
-        cd ../3.bench.udp
-        ./ionstop &
-        sleep 5
+        #cd ../2.bench.udp
+        #./ionstop &
+        #cd ../3.bench.udp
+        #./ionstop &
+        #sleep 5
         killm
         echo "...benchmarking terminated."
         exit $RETVAL
@@ -170,11 +170,11 @@ if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
         echo "Stopping ION..."
-        cd ../2.bench.udp
-        ./ionstop &
-        cd ../3.bench.udp
-        ./ionstop &
-        sleep 5
+        #cd ../2.bench.udp
+        #./ionstop &
+        #cd ../3.bench.udp
+        #./ionstop &
+        #sleep 5
         killm
         echo "...benchmarking terminated."
         exit $RETVAL
@@ -185,16 +185,16 @@ echo "Sleeping for 10 seconds to clear buffer"
 sleep 10
 
 echo ""
-echo "Test 3: 1000 bundles of 100,000 bytes each."
+echo "Test 3: 500 bundles of 100,000 bytes each."
 cd ../3.bench.udp
-bpcounter ipn:3.1 1000 &
+bpcounter ipn:3.1 500 &
 BPCOUNTER_PID=$!
 
 
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 1010 ipn:2.1 ipn:3.1 -100000 i8000000 &
+bpdriver 510 ipn:2.1 ipn:3.1 -100000 i8000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -214,43 +214,30 @@ do
 	fi
 	if [ "$RETURN_VALUE" -eq 0 ]
 	then
-		echo "...transmission finished."
+		echo -e "...transmission finished.\n"
 		RUNNING=0
 	fi
 	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
-		echo "...5 minutes passed; giving up."
+		echo -e "...5 minutes passed; giving up.\n"
 		RUNNING=0
 		RETVAL=1
 	fi
 done
 
-if [ "$RETVAL" -eq 1 ]
-then
-        echo "Test did not complete."
-        echo "Stopping ION..."
-        cd ../2.bench.udp
-        ./ionstop &
-        cd ../3.bench.udp
-        ./ionstop &
-        sleep 5
-        killm
-        echo "...benchmarking terminated."
-        exit $RETVAL
-fi
 
 if [ "$RETVAL" -eq 1 ]
 then
         echo "Test did not complete."
 fi
 
-echo "Stopping ION..."
-cd ../2.bench.udp
-./ionstop &
-cd ../3.bench.udp
-./ionstop &
-sleep 5
+echo -e "\nStopping ION..."
+#cd ../2.bench.udp
+#./ionstop &
+#cd ../3.bench.udp
+#./ionstop &
+sleep 1
 killm
-echo "...benchmarking terminated."
+echo -e "...benchmarking terminated.\n"
 exit $RETVAL

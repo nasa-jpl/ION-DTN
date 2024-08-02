@@ -114,7 +114,7 @@ else
 fi
 
 # Shut down ION processes.
-echo "Stopping ION..."
-./ionstop &
-echo "Non-zero loopback range test completed."
+echo  -e "\nStopping ION..."
+#./ionstop &
+echo -e "Non-zero loopback range test completed.\n"
 exit $RETVAL

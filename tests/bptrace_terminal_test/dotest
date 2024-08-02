@@ -226,15 +226,15 @@ fi
 # Shut down ION processes.
 echo
 echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../5.ipn.ltp
-./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../5.ipn.ltp
+#./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
-sleep 5
+sleep 3
 killm
 echo "bptrace test completed."
 exit $RETVAL
