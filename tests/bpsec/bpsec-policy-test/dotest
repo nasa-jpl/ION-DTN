@@ -250,17 +250,17 @@ cd ..
 
 # Shut down ION processes.
 echo "Stopping ION..."
-cd 2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../4.ipn.ltp
-./ionstop &
+#cd 2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../4.ipn.ltp
+#./ionstop &
 
-cd ..
-
+#cd ..
 # Give all three nodes time to shut down, then clean up.
-sleep 7
+
+sleep 3
 killm
-echo "Status reports test completed."
+echo -e "Status reports test completed.\n"
 
