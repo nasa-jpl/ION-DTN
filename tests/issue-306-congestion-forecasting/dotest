@@ -52,7 +52,7 @@ cd 2.node.tcp
 ./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -eq 2 ]
+if [ "$?" -eq 2 ]
 then
 	echo ""
 else
@@ -66,7 +66,7 @@ echo "Initial state: no horizon, but huge capacity (default), growth rate zero."
 sleep 2
 
 COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
-if [ $COUNT -eq 1 ]
+if [ "$COUNT" -eq 1 ]
 then
 	echo "OK: no congestion in initial configuration."
 else
@@ -80,7 +80,7 @@ ionadmin config2
 sleep 2
 
 COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
-if [ $COUNT -eq 2 ]
+if [ "$COUNT" -eq 2 ]
 then
 	echo "OK: still no congestion."
 else
@@ -94,7 +94,7 @@ ionadmin config3
 sleep 2
 
 COUNT=`grep "Congestion collapse forecast" ion.log | wc -l`
-if [ $COUNT -eq 1 ]
+if [ "$COUNT" -eq 1 ]
 then
 	echo "OK: imbalanced contacts result in congestion."
 else
@@ -108,7 +108,7 @@ ionadmin config4
 sleep 2
 
 COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
-if [ $COUNT -eq 3 ]
+if [ "$COUNT" -eq 3 ]
 then
 	echo "OK: congestion occurs after horizon of forecast."
 else
@@ -122,7 +122,7 @@ ionadmin config5
 sleep 2
 
 COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
-if [ $COUNT -eq 4 ]
+if [ "$COUNT" -eq 4 ]
 then
 	echo "OK: congestion still occurs after horizon of forecast."
 else
@@ -136,7 +136,7 @@ ionadmin config6
 sleep 2
 
 COUNT=`grep "Congestion collapse forecast" ion.log | wc -l`
-if [ $COUNT -eq 2 ]
+if [ "$COUNT" -eq 2 ]
 then
 	echo "OK: congestion now occurs before forecast horizon."
 else
@@ -150,7 +150,7 @@ ionadmin config7
 sleep 2
 
 COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
-if [ $COUNT -eq 5 ]
+if [ "$COUNT" -eq 5 ]
 then
 	echo "OK: increased occupancy limit delays congestion failure."
 else
@@ -158,10 +158,10 @@ else
 	RETVAL=1
 fi
 
-echo "Stopping ION..."
-./ionstop &
-sleep 8
+echo -e "Stopping ION...\n"
+#./ionstop &
+#sleep 8
 killm
-echo "...congestion forecasting test terminated."
+echo -e "...congestion forecasting test terminated.\n"
 exit $RETVAL
 
