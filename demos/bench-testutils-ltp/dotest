@@ -250,12 +250,13 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 		echo "Test did not complete correctly."
 	fi
 
-	echo "Stopping ION..."
-	(cd 2.bench.ltp; ./ionstop) &
-	(cd 3.bench.ltp; ./ionstop) &
-	wait
-	wait
+	echo -e "\nStopping ION..."
+	#(cd 2.bench.ltp; ./ionstop) &
+	#(cd 3.bench.ltp; ./ionstop) &
+	#wait
+	#wait
 killm
+sleep 3
 
-echo "...benchmarking terminated."
+echo -e "...benchmarking terminated.\n"
 exit $RETVAL
