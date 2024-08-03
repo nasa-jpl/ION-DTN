@@ -28,8 +28,8 @@ echo
 echo "PURPOSE: To test the elimination of bug issues 234 & 235; both having
 	to do with mutex bugs in PSM and SDR. This scripts starts ION on 3 
 	nodes, and then uses bpdriver/bpcounter streaming mode to transfer
-	10000 bundles with custody transfer. Node 1 runs bpdriver and Node 3
-	runs bpcounter. If node 3 receives all the bundles the test passes."
+	10000 bundles.  Node 1 runs bpdriver and Node 3 runs bpcounter. If 
+	node 3 receives all the bundles the test passes."
 echo
 echo "CONFIG: 3 node custom configuration:"
 echo
