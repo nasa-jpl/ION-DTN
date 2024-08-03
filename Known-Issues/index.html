@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.30">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.31">
     
     
       
@@ -808,6 +808,15 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#permission-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Permission Issues
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#convergence-layer-adaptor" class="md-nav__link">
@@ -1739,6 +1748,12 @@
 
 <h1 id="known-issues-patches">Known Issues &amp; Patches</h1>
 <p>Here is a list of known issues that will updated on a regular basis to captures various lessons-learned relating to the configurations, testing, performance, and deployment of ION:</p>
+<h2 id="permission-issues">Permission Issues</h2>
+<p>When encountering any "permission denied" issues during installation, it is recommended that you:</p>
+<ol>
+<li>Run <code>sudo make uninstall</code> and <code>make clean</code> to clear all previous ION build artifact and files, and</li>
+<li>Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly uninstall and cleared from the system.</li>
+</ol>
 <h2 id="convergence-layer-adaptor">Convergence Layer Adaptor</h2>
 <h3 id="udp-cla">UDP CLA</h3>
 <ul>
