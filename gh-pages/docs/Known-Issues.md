@@ -2,6 +2,13 @@
 
 Here is a list of known issues that will updated on a regular basis to captures various lessons-learned relating to the configurations, testing, performance, and deployment of ION:
 
+## Permission Issues
+
+When encountering any "permission denied" issues during installation, it is recommended that you:
+  
+1. Run `sudo make uninstall` and `make clean` to clear all previous ION build artifact and files, and
+2. Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly uninstall and cleared from the system.
+
 ## Convergence Layer Adaptor
 
 ### UDP CLA
