@@ -12,9 +12,9 @@
 function end(){
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop &
+#./ionstop &
 cd ../
-sleep 5
+#sleep 5
 killm
 
 echo "cfdpclock unsent FDU removal test done."

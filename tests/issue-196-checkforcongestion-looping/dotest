@@ -11,7 +11,7 @@
 # the ion source code.
 # 2: The current working directory contains the built programs of ion.
 
-
+./cleanup
 
 echo "**** Starting ION..."
 CONFIGDIR="./config"

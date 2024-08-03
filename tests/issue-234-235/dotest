@@ -53,6 +53,10 @@ BPCOUNTERFILE=./bpcounter.txt
 ./cleanup
 rm -rf ./ion_nodes
 
+#lets wait some as this test likes to hang on SPARC 9 Solaris intermittently
+echo -e "Sleeping 60 seconds to allow sockets to close after last test\n"
+sleep 60
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 

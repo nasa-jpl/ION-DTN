@@ -68,7 +68,7 @@ echo
 echo "########################################"
 
 ./cleanup
-rm -rf ./ion_nodes
+#rm -rf ./ion_nodes
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
