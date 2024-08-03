@@ -72,14 +72,14 @@ cd ../4.bench.stcp
 
 sleep 3
 echo ""
-echo "Sending 13,000 bundles of 1000 bytes each."
+echo "Sending 10,000 bundles of 1000 bytes each."
 cd ../4.bench.stcp
-bpcounter ipn:4.1 13000 &
+bpcounter ipn:4.1 10000 &
 BPCOUNTER_PID=$!
 sleep 1
 
 cd ../1.bench.stcp
-bpdriver 13000 ipn:1.1 ipn:4.1 -1000 &
+bpdriver 10000 ipn:1.1 ipn:4.1 -1000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -133,15 +133,15 @@ then
 fi
 
 echo "Stopping ION..."
-cd ../1.bench.stcp
-./ionstop &
-cd ../2.bench.stcp
-./ionstop &
-cd ../3.bench.stcp
-./ionstop &
-cd ../4.bench.stcp
-./ionstop &
-sleep 8
+#cd ../1.bench.stcp
+#./ionstop &
+#cd ../2.bench.stcp
+#./ionstop &
+#cd ../3.bench.stcp
+#./ionstop &
+#cd ../4.bench.stcp
+#./ionstop &
+sleep 3
 killm
 echo "...benchmarking terminated."
 exit $RETVAL

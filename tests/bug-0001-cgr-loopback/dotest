@@ -137,13 +137,13 @@ fi
 echo ""
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+#sleep 5
 killm
 echo "bug-0001-cgr-loopback test completed."
 exit $RETVAL

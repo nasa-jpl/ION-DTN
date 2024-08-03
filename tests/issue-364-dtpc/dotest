@@ -162,17 +162,17 @@ echo ""
 echo "Waiting for transmission of final bundles to complete...."
 sleep 20
 echo ""
-echo "Stopping ION, including all test programs..."
-echo ""
-cd ../1.ipn.ltp
-./ionstop &
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../4.ipn.ltp
-./ionstop &
-sleep 20
+#echo ""
+#cd ../1.ipn.ltp
+#./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../4.ipn.ltp
+#./ionstop &
+#sleep 20
+#sky moves ion shutdown to end or routine
 
 echo ""
 echo "Checking for correct counts of received application data items...."
@@ -215,6 +215,8 @@ then
 	RETVAL=1
 fi
 
-echo ""
+echo -e "\nStopping ION, including all test programs...\n"
+killm
+
 echo "DTPC test completed."
 exit $RETVAL

@@ -106,12 +106,12 @@ echo ""
 echo "Transmission finished. Stopping ION..."
 
 # Shut down ION processes.
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+#sleep 5
 killm
 echo "Verifying results..."
 

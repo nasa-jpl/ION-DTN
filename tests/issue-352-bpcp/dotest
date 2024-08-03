@@ -68,10 +68,11 @@ echo
 echo "########################################"
 
 ./cleanup
+rm -rf ./ion_nodes
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -rf ./ion_nodes
+
 
 # Start nodes.
 cd 1.ipn.cfdp.bp.tcp

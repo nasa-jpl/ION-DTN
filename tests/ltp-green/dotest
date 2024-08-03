@@ -106,14 +106,14 @@ fi
 
 # Shut down ION processes.
 sleep 1
-echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+#echo "Stopping ION..."
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+sleep 3
 killm
 echo "LTP retransmission test completed."
 exit $RETVAL

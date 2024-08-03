@@ -234,7 +234,7 @@ echo "Stopping ION..."
 #./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
-sleep 3
+#sleep 3
 killm
 echo "bptrace test completed."
 exit $RETVAL

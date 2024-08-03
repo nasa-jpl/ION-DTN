@@ -205,15 +205,15 @@ do
 	$killcmd -KILL "owltsim" &> /dev/null
 
 	# Shut down ION processes.
-	echo "Stopping ION..."
-	cd ../2.ipn.ltp
-	./ionstop &
-	cd ../3.ipn.ltp
-	./ionstop &
-	cd ..
+	#echo "Stopping ION..."
+	#cd ../2.ipn.ltp
+	#./ionstop &
+	#cd ../3.ipn.ltp
+	#./ionstop &
+	#cd ..
 
 	# Give both nodes time to shut down, then clean up.
-	sleep 5
+	#sleep 5
 	killm
 done
 

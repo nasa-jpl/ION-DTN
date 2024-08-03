@@ -101,11 +101,11 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.stcp
-	./ionstop &
-	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#cd ../2.bench.stcp
+	#./ionstop &
+	#cd ../3.bench.stcp
+	#./ionstop &
+	sleep 3
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -156,11 +156,11 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.stcp
-	./ionstop &
-	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#cd ../2.bench.stcp
+	#./ionstop &
+	#cd ../3.bench.stcp
+	#./ionstop &
+	sleep 3
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -211,11 +211,11 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.stcp
-	./ionstop &
-	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#cd ../2.bench.stcp
+	#./ionstop &
+	#cd ../3.bench.stcp
+	#./ionstop &
+	sleep 3
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -266,11 +266,11 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.stcp
-	./ionstop &
-	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#cd ../2.bench.stcp
+	#./ionstop &
+	#cd ../3.bench.stcp
+	#./ionstop &
+	sleep 3
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -321,11 +321,11 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.stcp
-	./ionstop &
-	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#cd ../2.bench.stcp
+	#./ionstop &
+	#cd ../3.bench.stcp
+	#./ionstop &
+	sleep 3
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -376,11 +376,11 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.stcp
-	./ionstop &
-	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#cd ../2.bench.stcp
+	#./ionstop &
+	#cd ../3.bench.stcp
+	#./ionstop &
+	sleep 3
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -433,11 +433,11 @@ then
 fi
 
 echo "Stopping ION..."
-cd ../2.bench.stcp
-./ionstop &
-cd ../3.bench.stcp
-./ionstop &
-sleep 8
+#cd ../2.bench.stcp
+#./ionstop &
+#cd ../3.bench.stcp
+#./ionstop &
+sleep 3
 killm
 echo "...benchmarking terminated."
 exit $RETVAL

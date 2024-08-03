@@ -214,8 +214,8 @@ echo -e "Stopping ION...\n"
 #./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
-sleep 5
-killm
+#sleep 5
+
 
 echo "Verifying results..."
 cd ../5.ipn.ltp
@@ -238,5 +238,6 @@ else
     RETVAL=0
 fi
 
-echo "Status reports test completed."
+killm
+echo -e "\nStatus reports test completed."
 exit $RETVAL

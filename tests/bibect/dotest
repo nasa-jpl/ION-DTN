@@ -168,26 +168,26 @@ echo "Stopping ION..."
 cd ../1.ipn.ltp
 bpstats
 bplist
-./ionstop &
+#./ionstop &
 cd ../2.ipn.ltp
 bpstats
 bplist
-./ionstop &
+#./ionstop &
 cd ../3.ipn.ltp
 bpstats
 bplist
-./ionstop &
+#./ionstop &
 cd ../4.ipn.ltp
 bpstats
 bplist
-./ionstop &
+#./ionstop &
 
 cd ..
 killall owltsim
 
 # Give all four nodes time to shut down, then clean up.
-sleep 7
-killm
+#sleep 7
+
 
 # Check results.txt on node 4
 cd 4.ipn.ltp
@@ -201,6 +201,7 @@ else
 	echo "Bundles for node 4 were received."
 fi
 
+killm
 echo "BIBE custody transfer test completed."
 
 if [ $PASS -eq 1 ]

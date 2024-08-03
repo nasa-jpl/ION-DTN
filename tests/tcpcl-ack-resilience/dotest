@@ -93,13 +93,13 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../1.ipn.tcp
-./ionstop &
-cd ../2.ipn.tcp
-./ionstop &
+#cd ../1.ipn.tcp
+#./ionstop &
+#cd ../2.ipn.tcp
+#./ionstop &
 
 # Give nodes time to shut down, then clean up.
-sleep 5
+#sleep 5
 killm
 
 if [[ $RETVAL -eq 0 ]]; then

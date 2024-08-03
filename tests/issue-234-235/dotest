@@ -50,9 +50,11 @@ BUNDLEMESSAGE="Bundles received: 10000"
 BPDRIVERFILE=./bpdriver.txt
 BPCOUNTERFILE=./bpcounter.txt
 
+./cleanup
+rm -rf ./ion_nodes
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -rf ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.tcp
@@ -105,17 +107,16 @@ sleep 1
 kill -9 $BPCOUNTERPID >/dev/null 2>&1
 
 # Shut down ION processes.
-echo "Stopping ION..."
-cd ../1.ipn.tcp 
-./ionstop &
-cd ../2.ipn.tcp 
-./ionstop &
-cd ../3.ipn.tcp 
-./ionstop &
+#echo "Stopping ION..."
+#cd ../1.ipn.tcp 
+#./ionstop &
+#cd ../2.ipn.tcp 
+#./ionstop &
+#cd ../3.ipn.tcp 
+#./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
-sleep 8
-killm
+#sleep 8
 
 echo "Verifying results..."
 cd ../3.ipn.tcp
@@ -127,5 +128,8 @@ else
     echo "OK: bpcounter/bpdriver successful!"
     RETVAL=0
 fi
+
+echo "Stopping ION..."
+killm
 
 exit $RETVAL

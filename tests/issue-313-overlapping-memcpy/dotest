@@ -15,8 +15,8 @@
 function end(){
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop &
-sleep 5
+#./ionstop &
+#sleep 5
 killm
 
 echo "Overlapping memcpy() test complete"

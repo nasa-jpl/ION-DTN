@@ -142,8 +142,6 @@ echo "This is normal for this test. Valgrind process will be cleared."
 
 sleep 10
 
-sleep 10
-
 
 # compare the sent message to the received one
 if ! grep -q "$IONMESSAGE" "$IONRECEIVEFILE"; then

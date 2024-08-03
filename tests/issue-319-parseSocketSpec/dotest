@@ -61,7 +61,9 @@ COUNT=`grep "Received 10 messages, a total of 1000 bytes" test_output | wc -l`
 # Shut down ION processes.
 echo "Stopping ION..."
 ./ionstop
-./cleanup
+#./cleanup
+killm
+
 echo -e "\nAMS basic functionality test completed."
 
 if [ $COUNT -eq 1 ]
