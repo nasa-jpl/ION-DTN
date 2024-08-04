@@ -222,11 +222,11 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 			kill -9 $BPRECVTEST_PID $BPSENDTEST_PID
 			sleep 10
 			echo "Stopping ION..."
-			(cd 2.bench.ltp; ./ionstop) &
-			(cd 3.bench.ltp; ./ionstop) &
-			sleep 10
+			#(cd 2.bench.ltp; ./ionstop) &
+			#(cd 3.bench.ltp; ./ionstop) &
+			#sleep 10
 			killm
-			sleep 10
+			sleep 1
 			echo "Re-starting ION..."
 			(cd 2.bench.ltp; ./ionstart)
 			(cd 3.bench.ltp; ./ionstart)
