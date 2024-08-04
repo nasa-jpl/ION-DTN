@@ -104,5 +104,5 @@ else
     # Failure to deliver occurred
     RETVAL=1
 fi
-
+killm
 stop_and_exit $RETVAL

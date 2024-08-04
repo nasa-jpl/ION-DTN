@@ -4,5 +4,5 @@
 # April 12, 2010
 
 echo "Cleaning up old ION..."
-rm -f ion.log
 killm
+rm -f ion.log
