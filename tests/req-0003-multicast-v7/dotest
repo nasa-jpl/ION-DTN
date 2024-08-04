@@ -30,7 +30,7 @@
 # 10.	Node 3 sends a 320-byte file by multicast to group 19.  Nodes
 #	1, 2, and 4 receive copies.
 
-.cleanup
+./cleanup
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
