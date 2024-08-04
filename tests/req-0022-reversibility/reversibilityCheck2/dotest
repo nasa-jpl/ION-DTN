@@ -18,11 +18,11 @@
 function end(){
 # Shut down ION.
 echo "Stopping ION..."
-cd 1.ipn.udp
-./ionstop &
-cd ../2.ipn.udp
-./ionstop &
-sleep 15
+#cd 1.ipn.udp
+#./ionstop &
+#cd ../2.ipn.udp
+#./ionstop &
+#sleep 15
 rm -f /tmp/ion*.sdrlong
 killm
 exit $RETVAL

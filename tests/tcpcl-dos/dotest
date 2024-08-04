@@ -51,7 +51,6 @@ source ../setacs.sh
 
 echo "Cleaning up old ION ..."
 ./cleanup
-killm
 sleep 1
 
 echo "Starting ION..."
@@ -176,7 +175,6 @@ echo "Stopping ion node 2..."
 
 #sleep 2
 echo "Clean everything..."
-killm
 
 # compare the sent message to the received one
 if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
@@ -201,7 +199,7 @@ fi
 # clean up
 #../
 #./cleanup
-
+killm
 
 exit $RETVAL
 
