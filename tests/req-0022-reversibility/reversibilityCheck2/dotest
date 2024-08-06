@@ -23,8 +23,8 @@ echo "Stopping ION..."
 #cd ../2.ipn.udp
 #./ionstop &
 #sleep 15
-rm -f /usr/ion*.sdrlong
 killm
+rm -f /tmp/ion*.sdrlong
 exit $RETVAL
 }
 
