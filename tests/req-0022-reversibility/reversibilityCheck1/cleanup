@@ -7,4 +7,4 @@
 echo "Cleaning up old ION..."
 killm
 rm -f ion_nodes ion.log bpdriverAduFile
-rm -f /usr/ion*.sdrlog
+rm -f /tmp/ion*.sdrlog

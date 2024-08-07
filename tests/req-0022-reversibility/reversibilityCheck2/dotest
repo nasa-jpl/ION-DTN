@@ -24,7 +24,7 @@ echo "Stopping ION..."
 #./ionstop &
 #sleep 15
 killm
-rm -f /usr/ion*.sdrlog
+rm -f /tmp/ion*.sdrlog
 exit $RETVAL
 }
 
