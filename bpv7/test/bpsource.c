@@ -94,25 +94,25 @@ int	main(int argc, char **argv)
 
 	if (arg2)
 	{
+		/* check if 2nd argument is TTL */
 		if (arg2[0] == '-' && arg2[1] == 't')
 		{
 			ttl = atoi(arg2 + 2);
 		}
 		else
 		{
+			/* second argument is text string */
 			text = arg2;
-		}
-	}
 
-	if (arg3)
-	{
-		if (arg3[0] == '-' && arg3[1] == 't')
-		{
-			ttl = atoi(arg3 + 2);
-		}
-		else
-		{
-			text = arg3;
+			/* check if 3rd argument is TTL */
+			if (arg3)
+			{
+				if (arg3[0] == '-' && arg3[1] == 't')
+				{
+					ttl = atoi(arg3 + 2);
+				}
+				/* if 3rd argument is not TTL, it is ignored */
+			}
 		}
 	}
 
