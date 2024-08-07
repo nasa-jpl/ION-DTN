@@ -175,4 +175,6 @@ echo ""
 echo "Test passed!"
 echo ""
 
+./cleanup
+
 end
