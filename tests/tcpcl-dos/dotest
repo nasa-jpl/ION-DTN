@@ -175,6 +175,7 @@ echo "Stopping ion node 2..."
 
 #sleep 2
 echo "Clean everything..."
+cd ../2.ipn.tcp/
 
 # compare the sent message to the received one
 if ! grep -q $IONMESSAGE $IONRECEIVEFILE; then
