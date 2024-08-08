@@ -73,7 +73,7 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 #Automake v1.12 wants AM_PROG_AR, but it doesn't exist <v1.12 so do this
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
-AC_PROG_LIBTOOL
+LT_INIT
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 LT_INIT
@@ -130,6 +130,7 @@ case $host_os in
 		;;
 	mingw*|cygwin*)
 		AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
+		AC_DEFINE([new_mingw],[1],[Build Mingw/Msys2 specific platform code.])
 		PLATFORM="mingw"
                 AM_CFLAGS="$AM_CFLAGS -Dmingw"
                 build_windows=yes
@@ -729,7 +730,10 @@ AC_TYPE_UID_T
 # otherwise, autoconf insisted that malloc.c, mktime.c were included in distro...
 AC_FUNC_FORK
 m4_warn([obsolete],
+[m4_warn([obsolete],
 [AC_PROG_GCC_TRADITIONAL is obsolete; use AC_PROG_CC
+])dnl
+AC_REQUIRE(AC_PROG_CC) is obsolete; use AC_PROG_CC
 ])dnl
 AC_REQUIRE(AC_PROG_CC)
 #AC_FUNC_MALLOC
