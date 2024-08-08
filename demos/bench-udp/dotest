@@ -67,7 +67,10 @@ cd 2.bench.udp
 cd ../3.bench.udp
 ./ionstart
 
-sleep 3
+# give the buffer time to clear
+echo "Sleeping for 30 seconds to clear buffer"
+sleep 30
+
 echo ""
 echo "Test 1: 1000 bundles of 1000 bytes each."
 cd ../3.bench.udp
@@ -76,7 +79,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 1010 ipn:2.1 ipn:3.1 -1000 i800000 &
+bpdriver 1100 ipn:2.1 ipn:3.1 -1000 i800000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -122,9 +125,9 @@ then
         exit $RETVAL
 fi
 
-#allow the buffer to clear
-echo "Sleeping for 10 seconds to clear buffer"
-sleep 10
+# give the buffer time to clear
+echo "Sleeping for 30 seconds to clear buffer"
+sleep 30
 
 echo ""
 echo "Test 2: 1000 bundles of 10,000 bytes each."
@@ -134,7 +137,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 1010 ipn:2.1 ipn:3.1 -10000 i800000 &
+bpdriver 1100 ipn:2.1 ipn:3.1 -10000 i800000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -180,11 +183,12 @@ then
         exit $RETVAL
 fi
 
-#allow the buffer to clear
-echo "Sleeping for 10 seconds to clear buffer"
-sleep 10
+# give the buffer time to clear
+echo -e "Sleeping for 30 seconds to clear buffer\n"
+sleep 30
 
-echo ""
+# this bundle count set low per UDP sensitivity to network conditions and kernel buffer size
+# remember: rate control and buffer size are critical factors when tuning "high performance" UDP
 echo "Test 3: 500 bundles of 100,000 bytes each."
 cd ../3.bench.udp
 bpcounter ipn:3.1 500 &
@@ -194,7 +198,7 @@ BPCOUNTER_PID=$!
 sleep 1
 
 cd ../2.bench.udp
-bpdriver 510 ipn:2.1 ipn:3.1 -100000 i8000000 &
+bpdriver 550 ipn:2.1 ipn:3.1 -100000 i8000000 &
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -237,7 +241,6 @@ echo -e "\nStopping ION..."
 #./ionstop &
 #cd ../3.bench.udp
 #./ionstop &
-sleep 1
 killm
 echo -e "...benchmarking terminated.\n"
 exit $RETVAL
