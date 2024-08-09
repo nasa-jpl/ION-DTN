@@ -15,7 +15,7 @@ When using UDP CLA for data delivery, one should be aware that:
 
 * UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even within a controlled, isolated network environment.
 
-* It is best to use `iperf`` and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss rates may flucturate due to presence of other competing, non-DTN traffic on the host, or due to insufficient kernel buffer space configured in the host.
+* It is best to use `iperf` and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss rates may flucturate due to presence of other competing, non-DTN traffic on the host, or due to insufficient kernel buffer space configured in the host.
 
 * When UDP CLA is used to deliver bundles larger than 64 kilo-byte, those bundles will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can prevent a large number of bundles from being reassembled at the destination node. These bundle fragments (which are themselves bundles) will take up ION storage and remain until (a) remaining fragments arrived for reassemble or (b) the Time-to-Live (TTL) of the bundle expired.
 
