@@ -1720,39 +1720,48 @@
 
 
 <h1 id="known-issues-patches">Known Issues &amp; Patches</h1>
-<p>Here is a list of known issues that will updated on a regular basis to captures various lessons-learned relating to the configurations, testing, performance, and deployment of ION:</p>
+<p>Here is a list of known issues that will be updated on a regular basis to captures various lessons-learned relating to the configurations, testing, performance, and deployment of ION:</p>
 <h2 id="permission-issues">Permission Issues</h2>
 <p>When encountering any "permission denied" issues during installation, it is recommended that you:</p>
 <ol>
 <li>Run <code>sudo make uninstall</code> and <code>make clean</code> to clear all previous ION build artifact and files, and</li>
-<li>Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly uninstall and cleared from the system.</li>
+<li>Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly removed from the system.</li>
 </ol>
 <h2 id="udp-convergence-layer-adaptor-cla">UDP Convergence Layer Adaptor (CLA)</h2>
+<p>When using UDP CLA for data delivery, one should be aware that:</p>
 <ul>
-<li>When using UDP CLA for data delivery, one should be aware that:</li>
-<li>UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even withing a controlled, isolated network environment.</li>
-<li>It is best to use iperf and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss may have high loss rate due to presence of other traffic or insufficient internal buffer.</li>
-<li>When UDP CLA is used to deliver bundles larger than 64K, those bundle will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can cause a large number of 'cyclic' packet drops so that an unexpected large number of bundles are unable to be reassembled at the destination. These bundle fragments (which are themselves bundles) will take up storage and remain until either (a) the remaining fragments arrived or (b) the TTL expired.</li>
+<li>
+<p>UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even within a controlled, isolated network environment.</p>
+</li>
+<li>
+<p>It is best to use `iperf`` and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss rates may flucturate due to presence of other competing, non-DTN traffic on the host, or due to insufficient kernel buffer space configured in the host.</p>
+</li>
+<li>
+<p>When UDP CLA is used to deliver bundles larger than 64 kilo-byte, those bundles will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can prevent a large number of bundles from being reassembled at the destination node. These bundle fragments (which are themselves bundles) will take up ION storage and remain until (a) remaining fragments arrived for reassemble or (b) the Time-to-Live (TTL) of the bundle expired.</p>
+</li>
 </ul>
 <h2 id="ltp-cla">LTP CLA</h2>
-<ul>
-<li>When using LTP over the UDP-based communication services (udpcli and udpclo daemons):</li>
-<li>The network layer MTU and kernel buffer size should be properly configured</li>
-<li>The use "WAN emulator" to add delay and probabilistic loss to data should be careful not to filter out UDP fragments that are needed to reconstruct the LTP segments or significantly delayed them such that the UDP segment reassembly will expire.</li>
-</ul>
+<p>When using LTP over the UDP-based communication services (udpcli and udpclo daemons), the network layer MTU and kernel buffer size should be properly configured</p>
+<p>The use of "WAN emulator" to add delay and probabilistic loss to data should be careful not to filter out UDP fragments that are needed to reconstruct the LTP segments or significantly delayed them such that the UDP segment reassembly will expire.</p>
 <h2 id="crc">CRC</h2>
-<ul>
-<li>ION implementation versions, prior to and including version 4.1.2, apply CRC16 to Primary Block only. All other blocks are not protected by any CRC mechanism. In order To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC options without recompiling ION. </li>
-<li>After ION 4.1.3, CRC16 will be turn on for primary block as well as all canonical blocks by default.</li>
-</ul>
+<p>ION implementation versions, prior to and including version 4.1.2, apply CRC16 to Primary Block only. All other blocks are not protected by any CRC mechanism. In order To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC options without recompiling ION. </p>
+<p>After ION 4.1.3, CRC16 will be turn on for primary block as well as all canonical blocks by default.</p>
 <h2 id="testing-configuration">Testing &amp; Configuration</h2>
-<ul>
-<li>When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to <code>root</code>. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the <code>make clean</code> and <code>git stash</code> command to remove all build and testing artifacts from ION 's source directory before exiting the container.</li>
-</ul>
+<p>When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to <code>root</code>. </p>
+<p>This sometimes leads to build and test errors when one switches back to the host's native environment. Therefore, we recommend that you execute the <code>make clean</code> and <code>git stash</code> command to remove all build and testing artifacts from ION 's source directory before exiting a docker container.</p>
 <h2 id="shutdown-ion">Shutdown ION</h2>
-<p>When writing a customized ION shutdown script, it is recommended that you stop the various daemons, if present, by running the administration program with a single period '.' as argument, in the following general order: <code>cfdpadmin .</code>, and when using BPv6, <code>acsadmin .</code> and <code>imcadmin .</code>, then followed by <code>bpadmin .</code>, <code>ltpadmin .</code>, <code>bsspadmin .</code>, <code>ipnadmin .</code> , and finally end with <code>ionadmin .</code>.</p>
-<p>The most important point is that <code>ionadmin .</code> should be the last to run because all other daemons are usually attached to ION's various data structure and shared memory initialized by the <code>ionadmin</code> program. When these daemon shutdown, they will try to "detach" from ION. So it is important to keep the ION's SDR and various Interprocess Communication (IPC) infrastructure in place until the very end, after all other processes have terminated.</p>
-<p>If <code>ionadmin .</code> is not run last, it is possible that daemon(s) and their threads, may get stuck and require manaul termination using kill command.</p>
+<p>When writing a customized ION shutdown script, it is recommended that you stop the various daemons, if present, by running the various daemon administration programs, with a single period '.' as argument, in the following general order: </p>
+<ul>
+<li><code>cfdpadmin .</code> </li>
+<li>If running BPv6, <code>acsadmin .</code> and <code>imcadmin .</code></li>
+<li><code>bpadmin .</code></li>
+<li><code>ltpadmin .</code></li>
+<li><code>bsspadmin .</code></li>
+<li><code>ipnadmin .</code></li>
+<li><code>ionadmin .</code></li>
+</ul>
+<p>The key here is that <code>ionadmin .</code> should be the last command to run in the shutdown process because most ION daemons are attached to the data structure and shared memory initialized by the <code>ionadmin</code> program. When these daemons execute a nominal shut down, they will try to <em>detach</em> from ION first. Therefore, it is important to keep the ION's SDR and various Interprocess Communication (IPC) infrastructure in place until the very end, after all other processes have terminated.</p>
+<p>If <code>ionadmin .</code> is not run last, it is possible some daemon can get stuck and will require manaul termination using <code>kill -9</code> command.</p>
 <p>After ION shutdown completed, it is also recommended that you remove any file-based SDR and SDR log in the <code>/tmp</code> directory (or a customized directory you specified in the <code>.ionconfig</code> file). </p>
 <p>In the working directory where ION was launched, there may also be temporary files in the form of <code>bpacq.*</code> and <code>ltpacq.*</code>. These files are remnants of bundle and ltp segment acquisition processes that did not terminate nominally. Although doese files do not interfere with subsequent instances of ION operations, they can accumulate and take up storage space. So it is recommended that they be removed manually or via an automated script.</p>
 <h2 id="sdr-transaction-reversal">SDR transaction reversal</h2>
