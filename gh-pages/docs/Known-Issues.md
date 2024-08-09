@@ -9,34 +9,41 @@ When encountering any "permission denied" issues during installation, it is reco
 1. Run `sudo make uninstall` and `make clean` to clear all previous ION build artifact and files, and
 2. Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly uninstall and cleared from the system.
 
-## Convergence Layer Adaptor
-
-### UDP CLA
+## UDP Convergence Layer Adaptor (CLA)
 
 * When using UDP CLA for data delivery, one should be aware that:
   * UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even withing a controlled, isolated network environment.
   * It is best to use iperf and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss may have high loss rate due to presence of other traffic or insufficient internal buffer.
   * When UDP CLA is used to deliver bundles larger than 64K, those bundle will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can cause a large number of 'cyclic' packet drops so that an unexpected large number of bundles are unable to be reassembled at the destination. These bundle fragments (which are themselves bundles) will take up storage and remain until either (a) the remaining fragments arrived or (b) the TTL expired.
 
-### LTP CLA
+## LTP CLA
 
 * When using LTP over the UDP-based communication services (udpcli and udpclo daemons):
   * The network layer MTU and kernel buffer size should be properly configured
   * The use "WAN emulator" to add delay and probabilistic loss to data should be careful not to filter out UDP fragments that are needed to reconstruct the LTP segments or significantly delayed them such that the UDP segment reassembly will expire.
 
-## Bundle Protocol
+## CRC
 
-### CRC
-
-* ION implementation currently default will apply CRC16 to Primary Block but not the Payload Block. To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC without recompiling ION.
+* ION implementation versions, prior to and including version 4.1.2, apply CRC16 to Primary Block only. All other blocks are not protected by any CRC mechanism. In order To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC options without recompiling ION. 
+* After ION 4.1.3, CRC16 will be turn on for primary block as well as all canonical blocks by default.
 
 ## Testing & Configuration
 
 * When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to `root`. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the `make clean` and `git stash` command to remove all build and testing artifacts from ION 's source directory before exiting the container.
 
-## SDR 
+## Shutdown ION
 
-### SDR transaction reversal
+When writing a customized ION shutdown script, it is recommended that you stop the various daemons, if present, by running the administration program with a single period '.' as argument, in the following general order: `cfdpadmin .`, and when using BPv6, `acsadmin .` and `imcadmin .`, then followed by `bpadmin .`, `ltpadmin .`, `bsspadmin .`, `ipnadmin .` , and finally end with `ionadmin .`.
+
+The most important point is that `ionadmin .` should be the last to run because all other daemons are usually attached to ION's various data structure and shared memory initialized by the `ionadmin` program. When these daemon shutdown, they will try to "detach" from ION. So it is important to keep the ION's SDR and various Interprocess Communication (IPC) infrastructure in place until the very end, after all other processes have terminated.
+
+If `ionadmin .` is not run last, it is possible that daemon(s) and their threads, may get stuck and require manaul termination using kill command.
+
+After ION shutdown completed, it is also recommended that you remove any file-based SDR and SDR log in the `/tmp` directory (or a customized directory you specified in the `.ionconfig` file). 
+
+In the working directory where ION was launched, there may also be temporary files in the form of `bpacq.*` and `ltpacq.*`. These files are remnants of bundle and ltp segment acquisition processes that did not terminate nominally. Although doese files do not interfere with subsequent instances of ION operations, they can accumulate and take up storage space. So it is recommended that they be removed manually or via an automated script.
+
+## SDR transaction reversal
 
 When SDR transaction is canceled due to anomaly, ION will attempt automatically try the following:
 
@@ -44,13 +51,19 @@ When SDR transaction is canceled due to anomaly, ION will attempt automatically 
 2. Once the SDR's heap space has been restored, the "volatile" state of the protocols must be restored because they might be modified by the transaction as well. This is performed by the `ionrestart` utility.
 3. After the volatiles are reloaded, the 3rd step of restoring ION operation will need to be triggered by the users. During the anomously event that caused the transaction cancellation, some of ION's various daemons may have stopped. They can be restored by simply issuing the start ('s') command through `ionadmin` and `bpadmin`.
 
-### 'Init' Process PID 1
+## Using ionrestart
 
-The reloading of the volatile state and restarting of daemons is necessary to ensure the ION system is in a consistent state before resuming normal operations.
+When SDR transaction was reversed (when enabled) or cancelled, it is likely some degree of data corruption remains in ION. The `ionrestart` utility program will be triggered to reload the volatile state of the protocol stack and restarts ION's various daemons to ensure that ION can return to a consistent operational state.
 
-During the reloading of the volatile state, the bundle protocol schemes, inducts, and outducts are stopped by terminating the associated daemons. The restart process will wait for the daemon's to be terminated before restarting them. When running ION inside a docker container, the `init` process (PID 1) should be properly configured to reap all zombie processes because the restart process cannot proceed if a terminated daemon remains a zombie. Typically to ensure the proper `init` process, one should use the `--init` option for `docker run` command.
+During the reloading of the volatile state, the bundle protocol schemes, inducts, and outducts are stopped by terminating the associated daemons. Then ionrestart process will wait for the daemon's to be terminated before restarting them again.
 
-### Permission Issue with named semaphore
+To understand how ionrestart operates, you can look examples in the `reversibility check` test #1 and #2 under the `tests` folder.
+
+## 'Init' Process PID 1
+
+When running ION inside a docker container, the `init` process (PID 1) should be properly configured to reap all zombie processes because the restart process cannot proceed if a terminated daemon remains a zombie. Typically to ensure the proper `init` process, one should use the `--init` option for `docker run` command.
+
+## Permission Issue with named semaphore
 
 If you encounter an error reported in ion.log file such as this:
 
