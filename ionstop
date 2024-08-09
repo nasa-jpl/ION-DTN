@@ -32,18 +32,18 @@ else
     sleep 1
     bpversion
     if [ $? -eq 6 ]; then
-    echo "acsadmin ."
-    acsadmin .
-    sleep 1
-    echo "imcadmin ."
-    imcadmin .
-    sleep 1
+        echo "acsadmin ."
+        acsadmin .
+        sleep 1
+        echo "imcadmin ."
+        imcadmin .
+        sleep 1
     fi
     echo "bpadmin ."
     bpadmin .
     sleep 1
-    echo "ipndmin ."
-    bpadmin .
+    echo "ipnadmin ."
+    ipnadmin .
     sleep 1
     echo "ltpadmin ."
     ltpadmin .
