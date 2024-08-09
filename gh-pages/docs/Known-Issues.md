@@ -1,43 +1,57 @@
 # Known Issues & Patches
 
-Here is a list of known issues that will updated on a regular basis to captures various lessons-learned relating to the configurations, testing, performance, and deployment of ION:
+Here is a list of known issues that will be updated on a regular basis to captures various lessons-learned relating to the configurations, testing, performance, and deployment of ION:
 
 ## Permission Issues
 
 When encountering any "permission denied" issues during installation, it is recommended that you:
   
 1. Run `sudo make uninstall` and `make clean` to clear all previous ION build artifact and files, and
-2. Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly uninstall and cleared from the system.
+2. Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly removed from the system.
 
 ## UDP Convergence Layer Adaptor (CLA)
 
-* When using UDP CLA for data delivery, one should be aware that:
-  * UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even withing a controlled, isolated network environment.
-  * It is best to use iperf and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss may have high loss rate due to presence of other traffic or insufficient internal buffer.
-  * When UDP CLA is used to deliver bundles larger than 64K, those bundle will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can cause a large number of 'cyclic' packet drops so that an unexpected large number of bundles are unable to be reassembled at the destination. These bundle fragments (which are themselves bundles) will take up storage and remain until either (a) the remaining fragments arrived or (b) the TTL expired.
+When using UDP CLA for data delivery, one should be aware that:
+
+* UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even within a controlled, isolated network environment.
+
+* It is best to use `iperf`` and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss rates may flucturate due to presence of other competing, non-DTN traffic on the host, or due to insufficient kernel buffer space configured in the host.
+
+* When UDP CLA is used to deliver bundles larger than 64 kilo-byte, those bundles will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can prevent a large number of bundles from being reassembled at the destination node. These bundle fragments (which are themselves bundles) will take up ION storage and remain until (a) remaining fragments arrived for reassemble or (b) the Time-to-Live (TTL) of the bundle expired.
 
 ## LTP CLA
 
-* When using LTP over the UDP-based communication services (udpcli and udpclo daemons):
-  * The network layer MTU and kernel buffer size should be properly configured
-  * The use "WAN emulator" to add delay and probabilistic loss to data should be careful not to filter out UDP fragments that are needed to reconstruct the LTP segments or significantly delayed them such that the UDP segment reassembly will expire.
+When using LTP over the UDP-based communication services (udpcli and udpclo daemons), the network layer MTU and kernel buffer size should be properly configured
+
+The use of "WAN emulator" to add delay and probabilistic loss to data should be careful not to filter out UDP fragments that are needed to reconstruct the LTP segments or significantly delayed them such that the UDP segment reassembly will expire.
 
 ## CRC
 
-* ION implementation versions, prior to and including version 4.1.2, apply CRC16 to Primary Block only. All other blocks are not protected by any CRC mechanism. In order To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC options without recompiling ION. 
-* After ION 4.1.3, CRC16 will be turn on for primary block as well as all canonical blocks by default.
+ION implementation versions, prior to and including version 4.1.2, apply CRC16 to Primary Block only. All other blocks are not protected by any CRC mechanism. In order To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC options without recompiling ION. 
+
+After ION 4.1.3, CRC16 will be turn on for primary block as well as all canonical blocks by default.
 
 ## Testing & Configuration
 
-* When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to `root`. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the `make clean` and `git stash` command to remove all build and testing artifacts from ION 's source directory before exiting the container.
+When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to `root`. 
+
+This sometimes leads to build and test errors when one switches back to the host's native environment. Therefore, we recommend that you execute the `make clean` and `git stash` command to remove all build and testing artifacts from ION 's source directory before exiting a docker container.
 
 ## Shutdown ION
 
-When writing a customized ION shutdown script, it is recommended that you stop the various daemons, if present, by running the administration program with a single period '.' as argument, in the following general order: `cfdpadmin .`, and when using BPv6, `acsadmin .` and `imcadmin .`, then followed by `bpadmin .`, `ltpadmin .`, `bsspadmin .`, `ipnadmin .` , and finally end with `ionadmin .`.
+When writing a customized ION shutdown script, it is recommended that you stop the various daemons, if present, by running the various daemon administration programs, with a single period '.' as argument, in the following general order: 
 
-The most important point is that `ionadmin .` should be the last to run because all other daemons are usually attached to ION's various data structure and shared memory initialized by the `ionadmin` program. When these daemon shutdown, they will try to "detach" from ION. So it is important to keep the ION's SDR and various Interprocess Communication (IPC) infrastructure in place until the very end, after all other processes have terminated.
+* `cfdpadmin .` 
+* If running BPv6, `acsadmin .` and `imcadmin .`
+* `bpadmin .`
+* `ltpadmin .`
+* `bsspadmin .`
+* `ipnadmin .`
+* `ionadmin .`
 
-If `ionadmin .` is not run last, it is possible that daemon(s) and their threads, may get stuck and require manaul termination using kill command.
+The key here is that `ionadmin .` should be the last command to run in the shutdown process because most ION daemons are attached to the data structure and shared memory initialized by the `ionadmin` program. When these daemons execute a nominal shut down, they will try to _detach_ from ION first. Therefore, it is important to keep the ION's SDR and various Interprocess Communication (IPC) infrastructure in place until the very end, after all other processes have terminated.
+
+If `ionadmin .` is not run last, it is possible some daemon can get stuck and will require manaul termination using `kill -9` command.
 
 After ION shutdown completed, it is also recommended that you remove any file-based SDR and SDR log in the `/tmp` directory (or a customized directory you specified in the `.ionconfig` file). 
 
