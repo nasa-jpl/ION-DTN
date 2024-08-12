@@ -8,6 +8,8 @@
 # file data". This test confirms that cfdpclock will no longer remove these FDUs
 # without file data.
 
+# utility is required for this test (requires 'make test' in ion root dir to build)
+TESTUTIL="../cfdplisten"
 
 function end(){
 # Shut down ION processes.
@@ -73,8 +75,20 @@ dd if=/dev/zero of=./testfile bs=1024 count=512
 
 #Starting Listener
 echo "Starting CFDP message listener..."
-../cfdplisten > output &
-CFDPLISTEN_PID=$!
+
+# Check if the test utility exists and is executable
+if [ ! -x "$TESTUTIL" ]; then
+  echo -e "\nError: $TESTUTIL does not exist. Please run 'make test' in ION root to create this test specific exutable.\n"
+  RETVAL=1
+  sleep 3
+  end
+else
+  echo -e " \n$TESTUTIL utility found, starting now.\n"
+  # If the file exists, run it in the background and redirect output
+  "$TESTUTIL" > output &
+  CFDPLISTEN_PID=$!
+fi
+
 
 #End bputa to hold transfers in queue
 echo "Stopping bputa..."
