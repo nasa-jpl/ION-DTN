@@ -198,7 +198,8 @@ kill -9 $BPCOUNTER_PID >/dev/null 2>&1
 
 # Extract the number of bundles received from the output file
 # target line is of the form: Stopping bpcounter; bundles received: 10
-BUNDLES=$(egrep -o "bundles received: [0-9]+" output3 | egrep -o '[0-9]+')
+BUNDLES=$(awk '/bundles received: [0-9]+/ {for(i=3; i<=NF; i++) if($i ~ /^[0-9]+$/) print $i}' output3)
+
 
 # Check if the number of bundles received is greater than 7 
 #    Check for < 10 to account for possible UDP losses
