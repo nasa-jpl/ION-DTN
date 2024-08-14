@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# March 8, 2017
+
+echo "Cleaning up old ION..."
+killm
+rm -f ion.log
