@@ -41,7 +41,7 @@ echo
 echo "########################################"
 
 ./cleanup
-rm -f ./ion_nodes
+killm
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
