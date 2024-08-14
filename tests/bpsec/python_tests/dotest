@@ -6,6 +6,8 @@ PY_VER=`python3 -c 'import sys; print(sys.version_info[:2] >= (3,7))'`
 
 if [ "$PY_VER" == "True" ]; then
 
+    killm
+    ./cleanup
     python3 ./dotest.py --test_macro all
     exit $?
 
