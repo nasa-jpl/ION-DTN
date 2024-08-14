@@ -73,6 +73,7 @@ echo
 echo "########################################"
 
 # Ensure cleanup prior to execution
+killm
 ./cleanup
 sleep 1
 
