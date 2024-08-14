@@ -61,6 +61,7 @@ echo
 echo "########################################"
 
 ./cleanup
+killm
 sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
