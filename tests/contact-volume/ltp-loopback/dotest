@@ -18,6 +18,8 @@ else
 	"
 fi
 
+./cleanup
+killm
 
 echo "########################################"
 echo
@@ -86,7 +88,6 @@ kill -9 $BPSINKPID >/dev/null 2>&1
 
 # shut down ion processes
 echo "Stopping ion..."
-ionstop
 killm
 
 

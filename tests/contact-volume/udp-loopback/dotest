@@ -16,6 +16,9 @@ else
 	"
 fi
 
+./cleanup
+killm
+
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
@@ -101,7 +104,6 @@ kill -9 $BPSINKPID >/dev/null 2>&1
 
 # shut down ion processes
 echo "Stopping ion..."
-ionstop
 killm
 
 
