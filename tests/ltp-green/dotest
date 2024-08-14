@@ -13,8 +13,8 @@
 # path from node 3 to node 2 there is no such artificial data loss
 # and therefore the bundle we send on this path should arrive.
 
-./cleanup
 killm
+./cleanup
 sleep 1
 source ../setacs.sh
 

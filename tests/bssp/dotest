@@ -79,8 +79,8 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
-./cleanup
 killm
+./cleanup
 sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD

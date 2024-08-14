@@ -60,8 +60,8 @@ echo "OUTPUT: counts of delivered files and residual acquisition files."
 echo
 echo "########################################"
 
-./cleanup
 killm
+./cleanup
 sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
