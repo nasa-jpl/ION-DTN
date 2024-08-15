@@ -43,7 +43,6 @@ killm
 sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
 RETVAL=0
 
 
@@ -55,7 +54,7 @@ cd 1.ipn.tcp/
 ./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -eq 2 ]
+if [ "$?" -eq 2 ]
 then
 	echo ""
 else
@@ -69,7 +68,7 @@ cd ../2.ipn.tcp/
 ./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -eq 2 ]
+if [ "$?" -eq 2 ]
 then
 	echo ""
 else
@@ -110,7 +109,7 @@ do
 done
 
 #Test
-test1=`grep "Assertion failed" ./2.ipn.tcp/ion.log`
+test1=$(grep "Assertion failed" ./2.ipn.tcp/ion.log)
 echo $test1
 if [ -z "$test1" ]; then
 	echo "OK: Checked node 1, ION worked correctly when bombarded by signals. SUCCESS!!"
@@ -120,7 +119,7 @@ else
 	RETVAL=1
 fi
 
-test2=`grep "Assertion failed" ion.log`
+test2=$(grep "Assertion failed" ion.log)
 echo $test2
 if [ -z "$test2" ]; then
 	echo "OK: Checked node 2, ION worked correctly when bombarded by signals. SUCCESS!!"
