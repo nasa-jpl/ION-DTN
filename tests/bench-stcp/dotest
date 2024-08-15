@@ -43,6 +43,7 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
+killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -102,10 +103,10 @@ then
 	echo "Test did not complete."
 	echo "Stopping ION..."
 	cd ../2.bench.stcp
-	./ionstop &
+	#./ionstop &
 	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#./ionstop &
+	#sleep 5
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -157,9 +158,9 @@ then
 	echo "Test did not complete."
 	echo "Stopping ION..."
 	cd ../2.bench.stcp
-	./ionstop &
+	#./ionstop &
 	cd ../3.bench.stcp
-	./ionstop &
+	#./ionstop &
 	sleep 5
 	killm
 	echo "...benchmarking terminated."
@@ -212,10 +213,10 @@ then
 	echo "Test did not complete."
 	echo "Stopping ION..."
 	cd ../2.bench.stcp
-	./ionstop &
+	#./ionstop &
 	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#./ionstop &
+	#sleep 5
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -267,10 +268,10 @@ then
 	echo "Test did not complete."
 	echo "Stopping ION..."
 	cd ../2.bench.stcp
-	./ionstop &
+	#./ionstop &
 	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#./ionstop &
+	#sleep 5
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -322,10 +323,10 @@ then
 	echo "Test did not complete."
 	echo "Stopping ION..."
 	cd ../2.bench.stcp
-	./ionstop &
+	#./ionstop &
 	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#./ionstop &
+	#sleep 5
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -377,10 +378,10 @@ then
 	echo "Test did not complete."
 	echo "Stopping ION..."
 	cd ../2.bench.stcp
-	./ionstop &
+	#./ionstop &
 	cd ../3.bench.stcp
-	./ionstop &
-	sleep 5
+	#./ionstop &
+	#sleep 5
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -434,12 +435,11 @@ fi
 
 echo "Stopping ION..."
 cd ../2.bench.stcp
-./ionstop &
+#./ionstop &
 cd ../3.bench.stcp
-./ionstop &
-sleep 8
+#./ionstop &
+#sleep 8
 cd ..
-./cleanup
 killm
 echo "...benchmarking terminated."
 exit $RETVAL
