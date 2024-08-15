@@ -49,9 +49,8 @@ echo "########################################"
 BUNDLEMESSAGE="Bundles received: 10000"
 BPDRIVERFILE=./bpdriver.txt
 BPCOUNTERFILE=./bpcounter.txt
-
+killm
 ./cleanup
-rm -rf ./ion_nodes
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -63,6 +62,7 @@ cd ../2.ipn.tcp
 ionadmin host2.ionrc
 cd ../3.ipn.tcp
 ionadmin host3.ionrc
+sleep 3
 
 cd ../1.ipn.tcp
 ionsecadmin host1.ionsecrc
@@ -70,13 +70,17 @@ cd ../2.ipn.tcp
 ionsecadmin host2.ionsecrc
 cd ../3.ipn.tcp
 ionsecadmin host3.ionsecrc
+sleep 3
 
 cd ../1.ipn.tcp
 bpadmin host1.bprc
+sleep 5
 cd ../2.ipn.tcp
 bpadmin host2.bprc
+sleep 5
 cd ../3.ipn.tcp
 bpadmin host3.bprc
+sleep 5
 
 # start bpcounter on node 3
 cd ../3.ipn.tcp
