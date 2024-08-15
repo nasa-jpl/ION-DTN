@@ -50,6 +50,7 @@ RECEIVER_PORT=4556
 source ../setacs.sh
 
 echo "Cleaning up old ION ..."
+killm
 ./cleanup
 sleep 1
 
