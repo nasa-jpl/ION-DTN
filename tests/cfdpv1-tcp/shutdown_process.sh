@@ -3,21 +3,21 @@
 # Sky DeBaun
 
 shutdown_process() {
-    local process_name=$1
+    process_name=$1
     echo "Stopping $process_name..."
-    local pids=$(ps | awk '/'"$process_name"'/ {print $1}')
+    pids=$(ps | awk '/'"$process_name"'/ {print $1}')
     for pid in $pids; do
-        if [[ -n $pid ]]; then
-            kill $pid
+        if [ -n "$pid" ]; then
+            kill "$pid"
             # Wait for the process to exit with a timeout
-            local count=0
-            local timeout=30 # 30 seconds timeout
-            while kill -0 $pid 2>/dev/null; do
+            count=0
+            timeout=30 # 30 seconds timeout
+            while kill -0 "$pid" 2>/dev/null; do
                 sleep 1
-                ((count++))
-                if ((count >= timeout)); then
+                count=$((count + 1))
+                if [ "$count" -ge "$timeout" ]; then
                     echo "Timeout reached, forcefully killing $process_name..."
-                    kill -9 $pid
+                    kill -9 "$pid"
                     break
                 fi
             done
