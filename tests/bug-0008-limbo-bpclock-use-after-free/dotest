@@ -43,6 +43,7 @@ done
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
+killm
 ./cleanup
 export ION_NODE_LIST_DIR=$PWD
 RETVAL=1
