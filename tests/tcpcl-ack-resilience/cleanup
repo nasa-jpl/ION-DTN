@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "Cleaning up old ION files..."
+rm -f ion_nodes 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/testfile1

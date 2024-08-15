@@ -29,28 +29,28 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-if [[ "$ACS" == "found" ]] ; then
+if [ "$ACS" == "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
 fi
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -ne 2 ]; then
+if [ "$?" -ne 2 ]; then
     echo "Node 1 not started: Aborting Test"
     exit 1
 fi
 
 # Set up node 2
 cd ../2.ipn.tcp/
-if [[ "$ACS" == "found" ]] ; then
+if [ "$ACS" = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
 fi
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -ne 2 ]; then
+if [ "$?" -ne 2 ]; then
     echo "Node 2 not started: Aborting Test"
     exit 1
 fi
@@ -84,9 +84,9 @@ sleep 5m
 
 # Verify that this file arrived.
 cd ../2.ipn.tcp
-COUNT=`ls -l testfile1 | egrep 117700 | wc -l`
+COUNT=$(ls -l testfile1 | grep -E 117700 | wc -l)
 
-if [[ $COUNT -eq 1 ]]; then
+if [ "$COUNT" -eq 1 ]; then
     RETVAL=0
 else
     RETVAL=1
@@ -103,7 +103,7 @@ echo "Stopping ION..."
 #sleep 5
 killm
 
-if [[ $RETVAL -eq 0 ]]; then
+if [ "$RETVAL" -eq 0 ]; then
     echo "TCPCL ACK test succeeded"
 else
     echo "TCPCL ACK test failed"
