@@ -38,7 +38,7 @@ if ! [ -e ./test ]; then
 fi
 
 # Starting ION
-
+killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
