@@ -14,9 +14,13 @@
 # so the "get" operation should finish before the put operation (which must
 # wait for a Finished PDU from node 2).
 
+killm
+
+# .runtests calls cleanup by default (if present)
+#./cleanup
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.ltp
@@ -40,7 +44,7 @@ RETVAL=0
 cd ../1.ipn.ltp
 
 COUNT=`ls -al receivedFile | wc -l`
-if [ $COUNT -ne 1 ]
+if [ "$COUNT" -ne 1 ]
 then
 	echo ""
 	echo "Error: node 1 did not receive file from node 2."
@@ -53,7 +57,7 @@ fi
 cd ../2.ipn.ltp
 
 COUNT=`ls -al receivedFile | wc -l`
-if [ $COUNT -ne 1 ]
+if [ "$COUNT" -ne 1 ]
 then
 	echo ""
 	echo "Error: node 2 did not receive file from node 1."
