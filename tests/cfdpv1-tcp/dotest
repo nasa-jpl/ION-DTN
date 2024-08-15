@@ -15,9 +15,7 @@
 # wait for a Finished PDU from node 2).
 
 killm
-
-# .runtests calls cleanup by default (if present)
-#./cleanup
+./cleanup
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
