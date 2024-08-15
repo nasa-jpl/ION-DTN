@@ -240,7 +240,7 @@ static ExtensionSpec		extensionSpecs[] =
 				{
 					{ PreviousNodeBlk, 0, X25CRC16 },
 					{ QualityOfServiceBlk, 0, X25CRC16 },
-					{ BundleAgeBlk, 0, X25CRC16 },
+					{ BundleAgeBlk, 0, NoCRC },
 					{ SnwPermitsBlk, 0, X25CRC16 },
 					{ ImcDestinationsBlk, 0, X25CRC16 },
 #if RGREB
