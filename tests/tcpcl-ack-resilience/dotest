@@ -8,8 +8,9 @@ RECEIVER_PORT=4556
 source ../setacs.sh
 
 echo "Cleaning up old ION ..."
-rm ion_nodes 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/testfile1
 killm
+./cleanup
+
 sudo tc qdisc del dev lo root
 sudo iptables -F -t filter
 
