@@ -66,9 +66,8 @@ echo
 echo "########################################"
 export ION_NODE_LIST_DIR=$PWD
 RETVAL=0
+killm
 ./cleanup
-rm -f /tmp/ion1.sdrlog
-rm -f /tmp/ion2.sdrlog
 
 #Start node 1
 echo
@@ -217,4 +216,6 @@ fi
 
 bpstats
 cd ..
+
+killm
 end
