@@ -1,4 +1,5 @@
 configFlags 13
+sdrName ion1
 heapWords 25000
 heapKey -1
 logSize 1000000
