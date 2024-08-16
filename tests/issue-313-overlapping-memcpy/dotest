@@ -54,6 +54,7 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
+killm
 ./cleanup
 
 RETVAL=1
@@ -62,13 +63,12 @@ RETVAL=1
 #Start ION
 echo "Starting ion node..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
 cd 1.ipn.bp.ltp.udp
 ./ionstart > node.stdout
 
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
-if [ $? -eq 3 ]
+if [ "$?" -eq 3 ]
 then
 	echo ""
 else
@@ -96,7 +96,7 @@ sleep 1
 kill -9 $BPR_PID >/dev/null 2>&1
 
 #Compare files
-GREP=`grep "Wrong bundle version (should be 6)" ion.log`
+GREP=$(grep "Wrong bundle version (should be 6)" ion.log)
 if [ -n "$GREP" ]; then
 	#We have a problem. The Bundles were corrupted in transit.
 	echo "The Bundles were corrupted in transit.	FAILURE!"
@@ -114,16 +114,17 @@ fi
 echo "Test 2---if cfdptest is installed, send and verify a file"
 # Check if CFDP is available on this system
 PROGRAMTEST="cfdptest"
-RESULTS=`which ${PROGRAMTEST}`
+RESULTS=$(command -v "${PROGRAMTEST}")
 WHICHRETURN=$?
 echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
 WHICHFAILMESSAGE=$?
 # which could return the proper fail condition, or the results could be
 # empty, or you're on solaris and your results will be "no netcat in $PATH".
-if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
-	echo "${PROGRAMTEST} is not present in this system; skipping Test 2"
-	end
+if [ "$WHICHRETURN" -ne 0 ] || [ -z "$RESULTS" ] || [ "$WHICHFAILMESSAGE" -eq 0 ]; then
+    echo "${PROGRAMTEST} is not present in this system; skipping Test 2"
+    end  # Ensure 'end' is defined or replace it with 'exit' or another command
 fi
+
 sleep 1
 
 echo "Starting CFDP..."
@@ -141,7 +142,7 @@ cfdptest < $CMD_FILE
 echo "Waiting 5 seconds for file to be received..."
 sleep 5
 
-DIFF=`diff ../dotest test`
+DIFF=$(diff ../dotest test)
 if [ -n "$DIFF" ] && [ -e "test" ]; then
 	#we have a problem
 	echo "The file was corrupted in transit. FAILURE!"
