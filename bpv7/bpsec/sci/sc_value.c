@@ -1227,9 +1227,9 @@ uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, Object sdr_list, unsig
 
      for(i = 0; i < curVals; i++)
      {
-         memcpy(cursor, tmpData[i].scSerializedText, tmpData[i].scSerializedLength);
-         cursor += tmpData[i].scSerializedLength;
-		 MRELEASE(tmpData[i].scSerializedText);	/*	SB 12/20/2023	*/
+        memcpy(cursor, tmpData[i].scSerializedText, tmpData[i].scSerializedLength);
+        cursor += tmpData[i].scSerializedLength;
+        MRELEASE(tmpData[i].scSerializedText); /* SB 12/20/2023	*/
      }
 
      /* Step 4: Clean up and go home. */
