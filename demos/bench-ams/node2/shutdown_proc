@@ -24,8 +24,7 @@ shutdown_process() {
     done
 }
 
-shutdown_process "ramsgate"
-shutdown_process "amsd"
-
 shutdown_process "amsbenchs"
 shutdown_process "amsbenchr"
+shutdown_process "ramsgate"
+shutdown_process "amsd"

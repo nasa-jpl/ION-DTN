@@ -14,9 +14,9 @@ function stop_and_exit() {
 
     echo "Stopping ION..."
     cd ../node2
-    ./ionstop
+    ./shutdown_proc
     cd ../node3
-    ./ionstop
+    ./shutdown_proc    
     killm
 
 	# Success-----------------------
@@ -75,19 +75,8 @@ echo "########################################"
 # Ensure cleanup prior to execution
 killm
 ./cleanup
-sleep 1
-
-echo "Checking for additional memory required for this demo..."
-./check_memory 
-
-# If check_memory returns non-zero, resources are insufficient
-if [ "$?" != 0 ]; then
-    echo -e "Can't run, need additional system resources!\n"
-    exit 1
-fi
 
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
 RETVAL=0
 
 # Start nodes.

@@ -27,11 +27,10 @@ shutdown_process() {
 
 
 echo "Shutting down AMS..."
-shutdown_process "ramsgate"
 shutdown_process "amsbenchs"
 shutdown_process "amsbenchr"
+shutdown_process "ramsgate"
 shutdown_process "amsd"
 
-#./kill_udplsi
-# updlsi hangs sometimes, lets manually shut it down here
+# updlsi hangs sometimes, manually shut it down now:
 shutdown_process "udplsi"

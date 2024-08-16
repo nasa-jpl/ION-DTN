@@ -28,3 +28,4 @@ sleep 3
 
 #start ramsgate daemon
 ramsgate amsdemo test 300 &
+sleep 3

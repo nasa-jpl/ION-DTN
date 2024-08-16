@@ -22,6 +22,9 @@ stop_and_exit()
     else
         echo -e "\nAMS SANA TEST FAILURE!!!\n"
     fi
+
+    ./shutdown_proc
+    killm
     exit $1
 }
 
@@ -89,7 +92,8 @@ cat test_output
 
 # Shut down and cleanup
 echo -e "\nTest transmission(s) complete - please standby for results:\n"
-./ionstop
+
+# shutdown ams daemons explicitly (not absolutely necesary)
 
 
 # Test complete: report test result
@@ -105,5 +109,5 @@ else
     # Failure to deliver occurred
     RETVAL=1
 fi
-killm
+
 stop_and_exit $RETVAL
