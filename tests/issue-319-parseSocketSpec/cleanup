@@ -8,4 +8,4 @@ rm -f ion.log
 rm -f ion_nodes
 rm -f petition.log
 rm -f test_output
-killm
+rm -f /tmp/ion1.sdrlog
