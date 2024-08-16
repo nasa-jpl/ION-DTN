@@ -382,6 +382,7 @@ typedef struct
 	char		delivered;	/*	Boolean.		*/
 	char		suspended;	/*	Boolean.		*/
 	char		returnToSender;	/*	Boolean.		*/
+	char		deliverable;	/*	(Destination is here.)	*/
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
 	char		insecure;	/*	Boolean.		*/

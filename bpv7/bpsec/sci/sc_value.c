@@ -1077,14 +1077,17 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
    * @retval  NULL - Error. The list was not serialized.
    *****************************************************************************/
 
- uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, Object sdr_list, unsigned int *length)
+uint8_t *bpsec_scv_sdrListSerialize(Sdr sdr, sc_Def *def, Object sdr_list, unsigned int *length)
  {
+     int success = 0;
      uint8_t *result = NULL;
      uint8_t *cursor = NULL;
      Object elt = 0;
+     Object valObj;
      int maxVals = 0;
      int curVals = 0;
      unsigned char arrayHdr[9];
+     unsigned char *tmp = arrayHdr;
      int arrayHdrLen = 0;
      BpsecSerializeData *tmpData = NULL;
      int i = 0;
@@ -1099,16 +1102,26 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
      *length = 0;
 
      /*
-      * Step 1: Allocate temporary storage to hold the result of individual
-      *         value serialization. There are two allocations here:
-      *         tmpData will hold the N serialized results for the N values.
-      *         tmpLens will hold the lengths of the tmpData items.
+      * Step 1: Allocate temporary storage to hold an array of 
+      * 	serialized list items.  Note that serialization
+      * 	may fail for some of the items in the list,
+      * 	causing them to be omitted from the returned
+      * 	CBOR array.  This is kind of weird, but whatever.
+      * 	It means that we can't reliably use the length
+      * 	of the list as the count of items in the returned
+      * 	CBOR array.
       */
      maxVals = sdr_list_length(sdr, sdr_list);
 
+#if 0
      /*
       * If there are no independent results, then serialize this as an
       * empty byte string (h'') in CBOR.
+      *
+      *
+      * 	NO.  MUST BE A CBOR ARRAY, even if it's an
+      * 	array of zero items.
+      *
       */
      if(maxVals == 0)
      {
@@ -1119,23 +1132,41 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
      {
          tmpData = MTAKE(maxVals * sizeof(BpsecSerializeData));
      }
+#endif
 
-     if(tmpData == NULL)
+     if (maxVals == 0)
      {
-         BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", maxVals * sizeof(BpsecSerializeData))
-         return NULL;
+	  tmpData = NULL;
+     }
+     else
+     {
+         tmpData = MTAKE(maxVals * sizeof(BpsecSerializeData));
+         if(tmpData == NULL)
+         {
+             BPSEC_DEBUG_ERR("Cannot allocate %d bytes.", maxVals * sizeof(BpsecSerializeData));
+            return NULL;
+         }
      }
 
      /* Step 2: For each value in the SDR list serialize the value. */
+
+     i = 0;
+
+     /*		Note that 'i' will count the number of items actually
+      *		returned in the array.					*/
+
      for (elt = sdr_list_first(sdr, sdr_list); elt; elt = sdr_list_next(sdr, elt))
      {
-         Object valObj = sdr_list_data(sdr, elt);
-         int success = bpsec_scv_sdrSerialize(sdr, def, valObj, &(tmpData[i].scSerializedText), &(tmpData[i].scSerializedLength));
-
+         valObj = sdr_list_data(sdr, elt);
+         success = bpsec_scv_sdrSerialize(sdr, def, valObj, &(tmpData[i].scSerializedText), &(tmpData[i].scSerializedLength));
          if(success == -1)
          {
              BPSEC_DEBUG_ERR("Cannot serialize value.", NULL);
-             MRELEASE(tmpData);
+	     if (tmpData)
+	     {
+                 MRELEASE(tmpData);
+	     } 
+
              return NULL;
          }
          else if(success == 1)
@@ -1143,13 +1174,19 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
              *length += tmpData[i].scSerializedLength;
              i++;
          }
+
+	 /*	Note: if success == 0, the value is not copied
+	  *	into the array but the function does not fail.
+	  *	tmpData[i].scSerializedText will contain garbage
+	  *	unless it is overwritten by a later value that
+	  *	is successfully serialized.				*/
      }
 
      /*
       * Step 3: Allocate space for the total buffer and copy the results into
       *         it.  We have the total length of the serialized data as we
-      *         accumulated it in the prior loop. Now we just need to
-      *         concatenate it into the final result.
+      *         accumulated it in *length in the prior loop. Now we just
+      *         need to concatenate it into the final array.
       */
 
      /*
@@ -1157,27 +1194,33 @@ sc_value bpsec_scv_memCsiConvert(csi_val_t csi_value, int type, int id)
       *           array header. We do this by encoding the array header into
       *           temporary storage.
       */
-     unsigned char *tmp = arrayHdr;
+
      curVals = i;
      arrayHdrLen = cbor_encode_array_open(curVals, &tmp);
+     *length += arrayHdrLen;
 
      /*
       * Step 3.2: Size, allocate, and initialize data associated with the
       *           resulting serialized buffer.
       */
-     *length += arrayHdrLen;
 
      if((result = MTAKE(*length)) == NULL)
      {
          BPSEC_DEBUG_ERR("Cannot allocate %d bytes", *length);
-         MRELEASE(tmpData);
+	 if (tmpData)
+	 {
+             MRELEASE(tmpData);
+	 }
+
          return NULL;
      }
+
      cursor = result;
 
      /*
-      * Step 3.3: Populate the result buffer, starting with the CBOR array header
-      *           and followed by the individual value results.
+      * Step 3.3: Populate the result buffer (the returned CBOR array),
+      * 	  starting with the CBOR array header and followed by
+      * 	  the individual serialized items.
       */
      memcpy(cursor, arrayHdr, arrayHdrLen);
      cursor += arrayHdrLen;
