@@ -182,7 +182,6 @@ if ! [ -z "$text" ];then
 	echo ""
 	RETVAL=1
 	cd ..
-	killm
 	end
 fi
 
@@ -215,5 +214,4 @@ fi
 bpstats
 cd ..
 
-killm
 end

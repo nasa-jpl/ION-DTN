@@ -136,7 +136,7 @@ fi
 
 echo ""
 echo "Wait for currently queued bundles to expire..."
-sleep 30
+sleep 60
 
 echo "Restart ION daemons to ensure system is fully recovered..."
 ionadmin restart.ionrc
