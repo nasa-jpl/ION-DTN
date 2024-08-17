@@ -1597,10 +1597,11 @@ this structure; it's strictly for the private use of the BSS library.</p>
 <ul>
 <li>
 <p>int bssOpen(char *bssName, char *path, char *eid)</p>
-<p>Opens access to a BSS database, to enable data playback.  <em>bssName</em>
+<p>Opens READ-ONLY access to a BSS database, to enable data playback.  <em>bssName</em>
 identifies the specific BSS database that is to be opened.  <em>path</em> identifies
-the directory in which the database resides.  <em>eid</em> is ignored.  On any
-failure, returns -1.  On success, returns zero.</p>
+the directory in which the database resides.  <em>eid</em> is ignored.  On detection
+of existing opened database, do nothing and returns -2; on failure to open database
+returns -1; on success, returns 0.</p>
 </li>
 <li>
 <p>int bssStart(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)</p>
@@ -1624,19 +1625,20 @@ any unrecoverable system error, 0 otherwise.  A return value of -1 from
 <li>
 <p>int bssRun(char *bssName, char *path, char *eid, char *buffer, int bufLen, RTBHandler handler)</p>
 <p>A convenience function that performs both bssOpen() and bssStart().  On any
-failure, returns -1.  On success, returns zero.</p>
+failure, returns -1.  On success, returns zero. This function essentially 
+instantiates both realtime and playback modes simultaneously.</p>
 </li>
 <li>
 <p>void bssClose()</p>
-<p>Terminates data playback access to the most recently opened BSS database.</p>
+<p>Terminates data playback access to the most recently opened BSS database. (playback mode)</p>
 </li>
 <li>
 <p>void bssStop()</p>
-<p>Terminates the most recently initiated BSS data acquisition background thread.</p>
+<p>Terminates the most recently initiated BSS data acquisition background thread. (realtime mode)</p>
 </li>
 <li>
 <p>void bssExit()</p>
-<p>A convenience function that performs both bssClose() and bssStop().</p>
+<p>A convenience function that performs both bssClose() and bssStop() - stops both modes.</p>
 </li>
 <li>
 <p>long bssRead(bssNav nav, char *data, int dataLen)</p>

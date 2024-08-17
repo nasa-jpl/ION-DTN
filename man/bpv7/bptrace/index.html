@@ -1561,18 +1561,21 @@
 
 
 <h1 id="name">NAME</h1>
-<p>bptrace - Bundle Protocol (BP) network trace utility</p>
+<p>bptrace - Bundle Protocol (BP) network trace utility
+Updated from original by Silas Springer - March 2023.</p>
 <h1 id="synopsis">SYNOPSIS</h1>
-<p><strong>bptrace</strong> <em>own_endpoint_ID</em> <em>destination_endpoint_ID</em> <em>report-to_endpoint_ID</em> <em>TTL</em> <em>class_of_service</em> "<em>trace_text</em>" [<em>status_report_flags</em>]</p>
+<p><strong>bptrace</strong> [-v] [-msg "<em>msg</em>"] [-ttl <em>ttl</em>] [-rtt <em>rtt</em>] [-qos <em>qos</em>] [-flags <em>flags</em>] <em>srcEid</em> <em>destEid</em> <em>traceEid</em>
+Backwards compatible with legacy usage:
+<strong>bptrace</strong> <em>srcEid</em> <em>destEid</em> <em>traceEid</em> <em>ttl</em> <em>qos</em> "<em>msg</em>" [<em>flags</em>]</p>
 <h1 id="description">DESCRIPTION</h1>
 <p><strong>bptrace</strong> uses bp_send() to issue a single bundle to a designated
 destination endpoint, with status reporting options enabled as selected
 by the user, then terminates.  The status reports returned as the bundle
 makes its way through the network provide a view of the operation of the
 network as currently configured.</p>
-<p><em>TTL</em> indicates the number of seconds the trace bundle may remain in the
+<p><em>ttl</em> indicates the number of seconds the trace bundle may remain in the
 network, undelivered, before it is automatically destroyed.</p>
-<p><em>class_of_service</em> is <em>custody-requested</em>.<em>priority</em>[.<em>ordinal</em>[.<em>unreliable</em>.<em>critical</em>[.<em>data-label</em>]]],
+<p><em>qos</em> is <em>custody-requested</em>.<em>priority</em>[.<em>ordinal</em>[.<em>unreliable</em>.<em>critical</em>[.<em>data-label</em>]]],
 where <em>custody-requested</em> must be 0 or 1 (Boolean), <em>priority</em> must be 0
 (bulk) or 1 (standard) or 2 (expedited), <em>ordinal</em> must be 0-254,
 <em>unreliable</em> must be 0 or 1 (Boolean), <em>critical</em> must also be 0 or 1
@@ -1581,7 +1584,7 @@ is passed in with the bundle transmission request, but if set to 1 it serves
 only to request the use of reliable convergence-layer protocols; this will
 have the effect of enabling custody transfer whenever the applicable
 convergence-layer protocol is bundle-in-bundle encapsulation (BIBE).
-<em>ordinal</em> is ignored if <em>priority</em> is not 2.  Setting <em>class_of_service</em> to
+<em>ordinal</em> is ignored if <em>priority</em> is not 2.  Setting <em>qos</em> to
 "0.2.254" or "1.2.254" gives a bundle the highest possible priority.  Setting
 <em>unreliable</em> to 1 causes BP to forego convergence-layer retransmission in
 the event of data loss.  Setting <em>critical</em> to 1 causes contact graph routing
@@ -1589,11 +1592,15 @@ to forward the bundle on all plausible routes rather than just the "best" route
 it computes; this may result in multiple copies of the bundle arriving at the
 destination endpoint, but when used in conjunction with priority 2.254 it
 ensures that the bundle will be delivered as soon as physically possible.</p>
-<p><em>trace_text</em> can be any string of ASCII text; alternatively, if we want to send
+<p><em>msg</em> can be any string of ASCII text; alternatively, if we want to send
 a file, it can be "@" followed by the name of the file.</p>
-<p><em>status_report_flags</em> must be a sequence of status report flags, separated
+<p><em>flags</em> must be a sequence of status report flags, separated
 by commas, with no embedded whitespace.  Each status report flag must be one
 of the following: rcv, fwd, dlv, del.</p>
+<p>When <em>traceEid</em> is the same node as <em>srcEid</em> but with a differing, non-zero ID 
+(e.g. <em>srcEid</em> is 2.2 and <em>traceEid</em> is 2.3) and the arguments are not specified
+using the legacy format; bptrace will listen on the specified <em>traceEid</em> and give 
+a summary of recieved trace information to the terminal once the ttl has expired.</p>
 <h1 id="exit-status">EXIT STATUS</h1>
 <ul>
 <li>
@@ -1614,7 +1621,7 @@ of the following: rcv, fwd, dlv, del.</p>
 </li>
 <li>
 <p>bptrace can't open own endpoint.</p>
-<p>Another BP application task currently has <em>own_endpoint_ID</em> open for
+<p>Another BP application task currently has <em>srcEid</em> open for
 bundle origination and reception.  Try again after that task has terminated.
 If no such task exists, it may have crashed while still holding the endpoint
 open; the easiest workaround is to select a different source endpoint.</p>
@@ -1636,7 +1643,7 @@ cause of the error; correct problem and rerun.</p>
 </li>
 </ul>
 <h1 id="bugs">BUGS</h1>
-<p>Report bugs to <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#105;&#111;&#110;&#45;&#100;&#116;&#110;&#45;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#108;&#105;&#115;&#116;&#115;&#46;&#115;&#111;&#117;&#114;&#99;&#101;&#102;&#111;&#114;&#103;&#101;&#46;&#110;&#101;&#116;">&#105;&#111;&#110;&#45;&#100;&#116;&#110;&#45;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#108;&#105;&#115;&#116;&#115;&#46;&#115;&#111;&#117;&#114;&#99;&#101;&#102;&#111;&#114;&#103;&#101;&#46;&#110;&#101;&#116;</a></p>
+<p>Report bugs to &lt;https://github.com/nasa-jpl/ION-DTN/issues&gt;</p>
 <h1 id="see-also">SEE ALSO</h1>
 <p>bp(3)</p>
 

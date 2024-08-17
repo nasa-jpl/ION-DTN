@@ -1563,22 +1563,21 @@
 <h1 id="name">NAME</h1>
 <p>bibeclo - BP convergence layer output task using bundle-in-bundle encapsulation</p>
 <h1 id="synopsis">SYNOPSIS</h1>
-<p><strong>bibeclo</strong> <em>peer_EID</em> <em>destination_EID</em></p>
+<p><strong>bibeclo</strong> <em>peer_EID</em></p>
 <h1 id="description">DESCRIPTION</h1>
 <p><strong>bibeclo</strong> is a background "daemon" task that extracts bundles from the
-queues of bundles destined for <em>destination_EID</em> that are ready for
-transmission via bundle-in-bundle encapsulation (BIBE) to <em>peer_EID</em>,
-encapsulates them in BP administrative records of (non-standard) record type
-7 (BP_BIBE_PDU), and sends those administrative records in encapsulating
-bundles destined for <em>peer_EID</em>.  The forwarding of encapsulated bundles
-for which custodial acknowledgment is requested causes <strong>bibeclo</strong> to post
+queues of bundles that are ready for transmission via bundle-in-bundle
+encapsulation (BIBE) to <em>peer_EID</em>, encapsulates them in BP administrative
+records of (non-standard) record type 7 (BP_BIBE_PDU), and sends those
+administrative records in encapsulating bundles destined for <em>peer_EID</em>.  The
+forwarding of BPDUs for which custodial acknowledgment is configured
+causes <strong>bibeclo</strong> to post
 custodial re-forwarding timers to the node's timeline.  Parameters governing
 the forwarding of BIBE PDUs to <em>peer_EID</em> are stipulated in the corresponding
 BIBE convergence-layer adapter (<strong>bcla</strong>) structure residing in the BIBE
 database, as managed by <strong>bibeadmin</strong>.</p>
 <p>The receiving node is expected to process received BIBE PDUs by simply
-dispatching the encapsulated bundles - whose destination is the node
-identified by <em>destination_EID</em> - as if they had been received from
+dispatching the encapsulated bundles as if they had been received from
 neighboring nodes in the normal course of operations; BIBE PDUs for which
 custodial acknowledgment was requested cause the received bundles to be
 noted in custody signals that are being aggregated by the receiving node.</p>
@@ -1624,7 +1623,7 @@ Investigate and solve the problem identified in the log file, then use
 </li>
 <li>
 <p>No such bibe outduct.</p>
-<p>No BIBE outduct with duct name <em>destination_EID</em> exists.  Use <strong>bpadmin</strong>
+<p>No BIBE outduct with duct name <em>peer_EID</em> exists.  Use <strong>bpadmin</strong>
 to stop the BIBE convergence-layer protocol, add the outduct, and then
 restart the BIBE protocol.</p>
 </li>
@@ -1683,7 +1682,7 @@ technical support.</p>
 </li>
 </ul>
 <h1 id="bugs">BUGS</h1>
-<p>Report bugs to <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#105;&#111;&#110;&#45;&#100;&#116;&#110;&#45;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#108;&#105;&#115;&#116;&#115;&#46;&#115;&#111;&#117;&#114;&#99;&#101;&#102;&#111;&#114;&#103;&#101;&#46;&#110;&#101;&#116;">&#105;&#111;&#110;&#45;&#100;&#116;&#110;&#45;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#108;&#105;&#115;&#116;&#115;&#46;&#115;&#111;&#117;&#114;&#99;&#101;&#102;&#111;&#114;&#103;&#101;&#46;&#110;&#101;&#116;</a></p>
+<p>Report bugs to &lt;https://github.com/nasa-jpl/ION-DTN/issues&gt;</p>
 <h1 id="see-also">SEE ALSO</h1>
 <p>biberc(5), bibeadmin(1)</p>
 

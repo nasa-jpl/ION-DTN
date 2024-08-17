@@ -1563,7 +1563,7 @@
 <h1 id="name">NAME</h1>
 <p>bssrecv - Bundle Streaming Service reception test program</p>
 <h1 id="synopsis">SYNOPSIS</h1>
-<p><strong>bssrecv</strong></p>
+<p><strong>bssrecv</strong> <em>menu_option</em> <em>parameters</em></p>
 <h1 id="description">DESCRIPTION</h1>
 <p><strong>bssrecv</strong> uses BSS to acquire streaming data from <strong>bssStreamingApp</strong>.</p>
 <p><strong>bssrecv</strong> is a menu-driven interactive test program, run from the operating
@@ -1571,8 +1571,14 @@ system shell prompt.  The program enables the user to begin and end a session
 of BSS data acquisition from <strong>bssStreamingApp</strong>, displaying the data as it
 arrives in real time; to replay data acquired during the current session;
 and to replay data acquired during a prior session.</p>
-<p>The user must provide values for three parameters in order to initiate the
-acquisition or replay of data from <strong>bssStreamingApp</strong>:</p>
+<p>If no argument is provided, a list of menu option is shown on shell prompt.</p>
+<p>If only the <em>menu_option</em> is specified, additional prompt, when necessary,
+will be displayed to request user input for the necessary parameters.</p>
+<p>If both <em>menu_option</em> and <em>parameters</em> are specified, bssrecv will directly
+execute the specified action.</p>
+<p>When initiating the acquisition or replay of data from <strong>bssStreamingApp</strong>, 
+which corresponds to menu option 1, 2 and 3, the user must provide the following
+three additional parameters:</p>
 <ul>
 <li>
 <p>BSS database name</p>
@@ -1592,6 +1598,14 @@ directory of the file system; the path name of that directory is required.</p>
 <p>In order to acquire streaming data issued by <strong>bssStreamingApp</strong>, the <strong>bssrecv</strong>
 session thread must open the BP endpoint to which that data is directed.  For
 this purpose, the ID of that endpoint is needed.</p>
+</li>
+<li>
+<p>fromTime &amp; toTime</p>
+<p>In playback mode, you may specific specific time period starting from <em>fromTime</em>
+to <em>toTime</em> as part of the command line argument. If these are required but 
+missing, the user will be prompted to enter them. The time format is<br />
+<em>yyyy/mm/dd-hh:mm:ss</em>, where <em>yyyy</em> is the year, <em>mm</em> is the month, <em>dd</em> is the
+day of the month, <em>hh</em> is the hour, <em>mm</em> is the minute, and <em>ss</em> is the second. </p>
 </li>
 </ul>
 <p><strong>bssrecv</strong> offers the following menu options:</p>
@@ -1658,6 +1672,10 @@ real-time acquisition of streaming data.</p>
 <li>Exit</li>
 </ol>
 <p><strong>bssrecv</strong> terminates.</p>
+<p>For each streaming payload displayed, <strong>bssrecv</strong> prints a string of "*" 
+characters, whose length is the sequence number modulo 150 and at the end
+of the string, the sequence number, which is inserted as the first byte of 
+the payload by the <strong>bssStreamingApp</strong> program, is printed out.</p>
 </li>
 </ul>
 <h1 id="exit-status">EXIT STATUS</h1>
@@ -1672,7 +1690,7 @@ real-time acquisition of streaming data.</p>
 <h1 id="environment">ENVIRONMENT</h1>
 <p>No environment variables apply.</p>
 <h1 id="bugs">BUGS</h1>
-<p>Report bugs to <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#105;&#111;&#110;&#45;&#100;&#116;&#110;&#45;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#108;&#105;&#115;&#116;&#115;&#46;&#115;&#111;&#117;&#114;&#99;&#101;&#102;&#111;&#114;&#103;&#101;&#46;&#110;&#101;&#116;">&#105;&#111;&#110;&#45;&#100;&#116;&#110;&#45;&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#108;&#105;&#115;&#116;&#115;&#46;&#115;&#111;&#117;&#114;&#99;&#101;&#102;&#111;&#114;&#103;&#101;&#46;&#110;&#101;&#116;</a></p>
+<p>Report bugs to &lt;https://github.com/nasa-jpl/ION-DTN/issues&gt;</p>
 <h1 id="see-also">SEE ALSO</h1>
 <p>bssStreamingApp(1), bss(3)</p>
 

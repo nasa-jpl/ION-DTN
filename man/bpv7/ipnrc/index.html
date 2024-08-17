@@ -1568,8 +1568,10 @@ text lines or interactively at <strong>ipnadmin</strong>'s command prompt (:).  
 are interpreted line-by line, with exactly one command per line.</p>
 <p>IPN scheme configuration commands (a) establish egress plans for direct
 transmission to neighboring nodes that are members of endpoints identified
-in the "ipn" URI scheme and (b) establish static default routing rules
-for forwarding bundles to specified destination nodes.</p>
+in the "ipn" URI scheme, (b) establish static default routing rules
+for forwarding bundles to specified destination nodes, and (c) establish
+override rules - applicable to bundles characterized by specific sources,
+destinations, and/or data labels - for routing and/or quality of service.</p>
 <p>The egress <strong>plan</strong> established for a given node associates a <strong>duct expression</strong>
 with that node.  Each duct expression is a string of the form
 "<em>protocol_name</em>/<em>outduct_name</em>" signifying that the bundle is to be
@@ -1577,7 +1579,10 @@ queued for transmission via the indicated convergence layer protocol outduct.</p
 <p>Note that egress plans <strong>must</strong> be established for all neighboring nodes,
 regardless of whether or not contact graph routing is used for computing
 dynamic routes to distant nodes.  This is by definition: if there isn't
-an egress plan to a node, it can't be considered a neighbor.</p>
+an egress plan to a node, it isn't considered a neighbor.</p>
+<p>Also note that egress plans can now be established by bpadmin and such
+egress plans may enable selection among multiple outducts; see the bprc(5)
+man page for details.</p>
 <p>Static default routes are declared as <strong>exits</strong> in the ipn-scheme routing
 database.  An exit is a range of node numbers identifying a set of nodes
 for which defined default routing behavior is established.  Whenever a
@@ -1589,7 +1594,7 @@ be directly transmitted, BP will forward the bundle to the <strong>gateway</stro
 associated with this exit.  The gateway node for any exit is identified
 by an endpoint ID, which might or might not be an ipn-scheme EID; regardless,
 directing a bundle to the gateway for an exit causes the bundle to be
-re-forwarded to that intermediate destination endpoint.  Multiple exits
+re-forwarded to that intermediate waypoint endpoint.  Multiple exits
 may encompass the same node number, in which case the gateway associated
 with the most restrictive exit (the one with the smallest range) is
 always selected.</p>
@@ -1598,13 +1603,16 @@ term "exit" has been adopted instead, to minimize any possible confusion
 with multicast groups.  To protect backward compatibility, the keyword
 "group" continues to be accepted by ipnadmin as an alias for the new keyword
 "exit", but the older terminology is deprecated.</p>
-<p>Routing and class-of-service overrides may also be managed:</p>
+<p>Routing and quality-of-service overrides may also be managed:</p>
 <blockquote>
 <p>A routing override declares a neighboring node to which all bundles must
 be forwarded that meet specified criteria.  This override is strictly local,
 affecting only forwarding from the local node, and it is applied before
-any route computed by CGR or IRR is considered.</p>
-<p>A class-of-service override declares the class of service (priority and
+any route computed by CGR or IRR is considered.  A routing override may
+additionally designate a specific outduct (identified by duct expression
+as defined in the bprc(5) man page) that must be used for transmission to
+this neighboring node.</p>
+<p>A quality-of-service override declares the quality of service (priority and
 ordinal and [optionally] quality-of-service flags) that will condition
 - in terms of order and outduct selection - the forwarding of all bundles
 that meet specified criteria.  Again this override is strictly local,
@@ -1678,12 +1686,13 @@ local node.</p>
 <h1 id="exit-commands">EXIT COMMANDS</h1>
 <ul>
 <li>
-<p><strong>a exit</strong> <em>first_node_nbr</em> <em>last_node_nbr</em> <em>gateway_endpoint_ID</em></p>
+<p><strong>a exit</strong> <em>first_node_nbr</em> <em>last_node_nbr</em> <em>gateway_node_ID</em></p>
 <p>The <strong>add exit</strong> command.  This command establishes an "exit" for static 
-default routing as described above.</p>
+default routing as described above. The node ID, for the ipn scheme, would
+simply be the endpoint ID with service number equal to zero.</p>
 </li>
 <li>
-<p><strong>c exit</strong> <em>first_node_nbr</em> <em>last_node_nbr</em> <em>gateway_endpoint_ID</em></p>
+<p><strong>c exit</strong> <em>first_node_nbr</em> <em>last_node_nbr</em> <em>gateway_node_ID</em></p>
 <p>The <strong>change exit</strong> command.  This command changes the gateway node
 number for the exit identified by <em>first_node_nbr</em> and <em>last_node_nbr</em> .</p>
 </li>
@@ -1694,7 +1703,7 @@ by <em>first_node_nbr</em> and <em>last_node_nbr</em>.</p>
 </li>
 <li>
 <p><strong>i exit</strong> <em>first_node_nbr</em> <em>last_node_nbr</em></p>
-<p>This command will print information (the gateway endpoint ID) about the
+<p>This command will print information (the gateway node ID) about the
 exit identified by <em>first_node_nbr</em> and <em>last_node_nbr</em>.</p>
 </li>
 <li>
@@ -1705,40 +1714,43 @@ exit identified by <em>first_node_nbr</em> and <em>last_node_nbr</em>.</p>
 <h1 id="override-commands">OVERRIDE COMMANDS</h1>
 <ul>
 <li>
-<p><strong>a rtovrd</strong> <em>data_label</em> <em>dest_node_nbr</em> <em>source_node_nbr</em> <em>neighbor</em></p>
+<p><strong>a rtovrd</strong> <em>data_label</em> <em>dest_node_nbr</em> <em>source_node_nbr</em> <em>neighbor</em> [<em>duct_expression</em>]</p>
 <p>The <strong>add rtovrd</strong> command.  This command cause bundles characterized by
-<em>data_label</em>, <em>dest_node_nbr</em> ("all other destinations" if this node
+<em>data_label</em> ("all other data labels" if this label number is zero),
+<em>dest_node_nbr</em> ("all other destinations" if this node
 number is zero) and <em>source_node_nbr</em> ("all other sources" if this node
-number is zero) to be forwarded to <em>neighbor</em>.  If <em>neighbor</em> is zero,
-the override will be "learned" by ION: the neighbor selected for this
-bundle, by whatever means, becomes the override for all subsequent matching
-bundles.</p>
+number is zero) to be forwarded to <em>neighbor</em>.  If <em>duct_expression</em> is
+noted, all such bundles will be forwarded using the indicated outduct.</p>
 </li>
 <li>
-<p><strong>c rtovrd</strong> <em>data_label</em> <em>dest_node_nbr</em> <em>source_node_nbr</em> <em>neighbor</em></p>
+<p><strong>c rtovrd</strong> <em>data_label</em> <em>dest_node_nbr</em> <em>source_node_nbr</em> <em>neighbor</em> [<em>ductExpression</em>]</p>
 <p>The <strong>change rtovrd</strong> command.  This command changes the override neighbor
 for the override identified by <em>data_label</em>, <em>dest_node_nbr</em>, and
 <em>source_node_nbr</em>.  To cause ION to forget the override, use -1 as
-<em>neighbor</em>.</p>
+<em>neighbor</em>.  If <em>duct_expression</em> is noted, the indicated outduct will
+become the outduct that is used for forwarding to the indicated neighboring
+node; if <em>duct_expression</em> is '' then the duct expression associated with
+this override is removed.</p>
 </li>
 <li>
 <p><strong>a cosovrd</strong> <em>data_label</em> <em>dest_node_nbr</em> <em>source_node_nbr</em> <em>priority</em> <em>ordinal</em> [<em>qos_flags</em>]</p>
 <p>The <strong>add cosovrd</strong> command.  This command cause bundles characterized by
-<em>data_label</em>, <em>dest_node_nbr</em> ("all other destinations" if this node
+<em>data_label</em> ("all other data labels" if this label number is zero),
+<em>dest_node_nbr</em> ("all other destinations" if this node
 number is zero) and <em>source_node_nbr</em> ("all other sources" if this node
-number is zero) to have their effective class of service (priority and
+number is zero) to have their effective quality of service (priority and
 ordinal and, optionally, additional quality-of-service flags) changed as noted.</p>
 </li>
 <li>
 <p><strong>c cosovrd</strong> <em>data_label</em> <em>dest_node_nbr</em> <em>source_node_nbr</em> <em>priority</em> <em>ordinal</em> [<em>qos_flags</em>]</p>
-<p>The <strong>change cosovrd</strong> command.  This command changes the effective class of
+<p>The <strong>change cosovrd</strong> command.  This command changes the effective quality of
 service (priority and ordinal and, optionally, additional quality-of-service
 flags) for the override identified by <em>data_label</em>, <em>dest_node_nbr</em>, and
 <em>source_node_nbr</em>.  To cause ION to forget the override, use -1 as <em>priority</em>.</p>
 </li>
 <li>
 <p><strong>d ovrd</strong> <em>data_label</em> <em>dest_node_nbr</em> <em>source_node_nbr</em></p>
-<p>The <strong>delete override</strong> command.  This command deletes all overrides identified
+<p>The <strong>delete override</strong> command.  This command deletes any overrides identified
 by <em>data_label</em>, <em>dest_node_nbr</em>, and <em>source_node_nbr</em>.</p>
 </li>
 <li>
