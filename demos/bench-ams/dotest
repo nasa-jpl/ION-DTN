@@ -1,8 +1,5 @@
 #!/bin/bash
 # AMS Benchtest script (for simple AMS two-node demo)
-# Based on Scott Burleigh's original test script (2012)
-# Sky DeBaun
-# June 2023
 
 # Benchtest variables-------------------------------------------------
 COUNT=1000
@@ -19,67 +16,24 @@ function stop_and_exit() {
     ./shutdown_proc    
     killm
 
-	# Success-----------------------
-    if [ "$retval" -eq 0 ]
-    then
-		echo -e "All ION processes stopped."
+    if [ "$retval" -eq 0 ]; then
         echo -e "AMS benchtest successfully completed."
-		echo -e "\nTest results -------------------------------------------------- "
-		echo -e "SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS \n"
-		cat bench.log
-    # Failure----------------------
-	else
-    	echo -e "All ION processes stopped."
-        echo -e "\nTest results -------------------------------------------------- "
-		echo -e "FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE \n"
+        echo -e "SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS SUCCESS\n"
+        cat bench.log
+    else
+        echo -e "FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE FAILURE\n"
     fi
     echo ""
     exit $retval
 }
-
-
-# Documentation boilerplate
-CONFIGFILES="
-./global.ionrc
-./node2/amroc.bprc
-./node2/amroc.ionconfig
-./node2/amroc.ionrc
-./node2/amroc.ionsecrc
-./node2/amroc.ipnrc
-./node3/amroc.bprc
-./node3/amroc.ionconfig
-./node3/amroc.ionrc
-./node3/amroc.ionsecrc
-./node3/amroc.ipnrc
-"
-
-echo "########################################"
-echo
-pwd | sed "s/\/.*\///" | xargs echo "NAME: "
-echo
-echo "PURPOSE: produce simple throughput benchmark results for AMS (Asynchronous Message Service)"
-echo
-echo "CONFIG: 2 node custom:"
-echo
-for N in $CONFIGFILES
-do
-    echo "$N:"
-    cat $N
-    echo "# EOF"
-    echo
-done
-echo "OUTPUT: Terminal messages will relay results."
-echo
-echo "########################################"
 
 # Ensure cleanup prior to execution
 killm
 ./cleanup
 
 export ION_NODE_LIST_DIR=$PWD
-RETVAL=0
 
-# Start nodes.
+# Start nodes
 cd node2
 ./ionstart
 cd ../node3
@@ -90,98 +44,61 @@ echo -e "\nSTARTING AMS BENCH TEST--------------------------------- "
 sleep 2
 
 cd ../node3
-echo -e "Starting amsbench receiver: "
-echo -e "Subscribing to 'bench' messages. \n"
-sleep 2
-
-# Subscribe to and count $COUNT messages-----------------------------
-amsbenchr  > bench.log &
-#amsbenchr $COUNT > bench.log 2> amsbenchr_errors.log &
+echo -e "Starting amsbench receiver:"
+amsbenchr > bench.log &
 BENCHR_PID=$!
 sleep 3
 
-# Process check for amsbenchr based on OS
-if [  "$1" == "windows" ]
-then
-    # Windows ps does not support -p option, use grep instead
+# Process check based on OS
+if [ "$1" == "windows" ]; then
     ps | grep "$BENCHR_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 else
-    # Most Unix/Linux based systems support -p option in ps
     ps -p $BENCHR_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 fi
 
-# If amsbenchr process check fails, terminate the script
-if [ "$RETURN_VALUE" -eq 0 ]
-then
+if [ "$RETURN_VALUE" -eq 0 ]; then
     echo -e "Error: amsbenchr could not be started!"
-	RETVAL=1
-    stop_and_exit $RETVAL
+    stop_and_exit 1
 fi
 
 cd ../node2
-echo -e "Starting amsbench sender: "
-sleep 1
-echo -e "Publishing $COUNT messages of $MESSAGE_SIZE bytes each. \n"
-
-# Publish $COUNT messages of length 1024 bytes-----------------------
+echo -e "Starting amsbench sender:"
 amsbenchs $COUNT $MESSAGE_SIZE 2>/dev/null &
-
-BENCHS_PID=$!
 sleep 1
 
-# Wait for transmission to finish-------------------------------------
-RUNNING=1
+# Wait for the receiver to finish or timeout after 2 minutes
 TIMER=0
-
-# Continues while amsbenchr is running or until 2 minutes have passed
+RUNNING=1
 while [ "$RUNNING" -eq 1 ] && [ "$TIMER" -lt 120 ]; do
-    TIMER=$((++TIMER))
+    TIMER=$((TIMER + 1))
     sleep 1
     echo -e "Listening for published AMS messages..."
-    
-    # Process check for amsbenchr based on OS
-    if [ "$1" == "windows" ]
-    then
-        # Windows ps does not support -p option, use grep instead
+
+    # Process check based on OS
+    if [ "$1" == "windows" ]; then
         ps | grep "$BENCHR_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
     else
-        # Most Unix/Linux based systems support -p option in ps
         ps -p $BENCHR_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
     fi
 
-    # If amsbenchr process check fails, assume messages have been received (amsbenchr terminates on completion!)
-    if [ "$RETURN_VALUE" -eq 0 ]
-    then
-        
+    if [ "$RETURN_VALUE" -eq 0 ]; then
         RUNNING=0
-
-        # Verify delivery of bench messages
-        cd ../node3
-        FILE="bench.log"
-        PATTERN="Received $COUNT messages"
-
-        # If the pattern is in the file, delivery was successful
-        if grep -q "$PATTERN" "$FILE"; then
-            echo -e "\nSuccess: delivery of $COUNT messages verified:"
-            echo -e "Standby for ION shutdown and benchtest report. \n"
-            RETVAL=0
-        else
-            echo -e "\nFailure: message delivery failure!\n"
-            RETVAL=1
-        fi
-        sleep 2
-    fi
-
-
-    # Infinite loop protection: If 2 minutes have passed, stop the process
-    if [ "$TIMER" -ge 120 ]
-    then
-        echo -e "2 minutes passed: giving up now... \n"
-        RUNNING=0
-        RETVAL=1
     fi
 done
 
-#Handle failure or success here:
-stop_and_exit $RETVAL
+# If the timer exceeded 120 seconds, kill the hanging process
+if [ "$RUNNING" -eq 1 ]; then
+    echo -e "Error: amsbenchr process hung. Terminating..."
+    kill $BENCHR_PID
+    stop_and_exit 1
+fi
 
+# Verify delivery of bench messages
+cd ../node3
+if grep -q "Received $COUNT messages" bench.log; then
+    echo -e "\nSuccess: delivery of $COUNT messages verified."
+    stop_and_exit 0
+else
+    echo -e "\nFailure: message delivery failure!"
+    stop_and_exit 1
+fi
