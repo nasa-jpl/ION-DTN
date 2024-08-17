@@ -1,5 +1,11 @@
 # Basic Configuration File Tutorial
 
+## ION Configuration Tools Available for Public Use
+
+The [ION Configuration Tools](https://github.com/nasa-jpl/ion-config-tool) provides both command line and browser interfaces for creating and editing configuration files for the Interplanetary Overlay Network (ION) software, an implementation of Delay/Disruption Tolerant Networking technology.
+
+The [DTN Network Model](https://github.com/nasa-jpl/ion-network-model) is simple graphical frontend to specify a network of computer hosts, DTN nodes, IP address assignments, and link connections in a JSON file, which can be ported into the ION Configuration Tool to generate configuration files the ION software uses.
+
 ## Programs in ION
 
 The following tools are available to you after ION is built:
