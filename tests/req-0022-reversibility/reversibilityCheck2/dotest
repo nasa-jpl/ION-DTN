@@ -151,19 +151,20 @@ echo ""
 echo ""
 echo "Now try receiving 10 new bundles..."
 cd ../1.ipn.udp/
-bpdriver 10 ipn:1.1 ipn:2.1 -100 t50 >& output2
-# Pause for debug
-bpstats
-echo ""
-echo "Issued bpstats to check for new bundles in the system. See ion.log."
-echo ""
+bpdriver 10 ipn:1.1 ipn:2.1 -100 >& output2
+
 
 # Now pick up the bundles
 cd ../2.ipn.udp/
 bpcounter ipn:2.1 > output3 &
 BPCOUNTER_PID=$!
 echo ""
-sleep 15
+sleep 30
+
+bpstats
+echo ""
+echo "Issued bpstats to check for new bundles in the system. See ion.log."
+echo ""
 
 #Check if we caused a second transaction abort or an unrecoverable SDR error
 secondAbort=$(grep "finished restarting ION" ion.log | wc -l)
