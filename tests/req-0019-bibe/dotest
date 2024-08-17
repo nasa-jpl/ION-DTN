@@ -29,13 +29,12 @@
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=2
 echo "Cleaning up old ION..."
+killm
 ./cleanup
 sleep 1
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
-
 PASS=1
 
 # Start nodes.
@@ -48,7 +47,7 @@ ionadmin amroc.ionrc
 cd ../4.ipn.ltp
 ionadmin amroc.ionrc
 
-if [[ $BP_VERSION == "bpv6" ]] ; then
+if [ "$BP_VERSION" = "bpv6" ] ; then
 	echo "Looking for acsadmin"
 	which acsadmin
 	if [ $? -eq 0 ] ; then
@@ -177,7 +176,7 @@ echo "Stopping ION..."
 #sleep 7
 
 COUNT=`grep "test_trace4" results.txt | wc -l`
-if [ $COUNT -ne 1 ]
+if [ "$COUNT" -ne 1 ]
 then
 	echo "ERROR: bundle for node 4 not received."
         PASS=0
@@ -188,7 +187,7 @@ fi
 killm
 echo "BIBE test completed."
 
-if [ $PASS -eq 1 ]
+if [ "$PASS" -eq 1 ]
 then
 	exit 0
 else
