@@ -25,8 +25,8 @@ shutdown_process() {
 }
 
 echo "Shutting down AMS..."
-shutdown_process "ramsgate"
 shutdown_process "amsbenchs"
 shutdown_process "amsbenchr"
+shutdown_process "ramsgate"
 shutdown_process "amsd"
 

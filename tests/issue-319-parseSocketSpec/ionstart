@@ -29,9 +29,9 @@ echo "Waiting for AMS cell census (6 seconds left)..."
 sleep 3
 echo "Waiting for AMS cell census (3 seconds left)..."
 sleep 3
-cp init.petition.log petition.log
 
-# add a little time due to some intermittent test failures
-sleep 3
+# this test doesn't use a petition log
+#cp init.petition.log 19.petition.log
+
 ramsgate amsdemo test &
 sleep 3

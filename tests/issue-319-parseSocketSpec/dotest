@@ -53,19 +53,12 @@ amsbenchs 10 100 > /dev/null &
 RETVAL=0
 
 # wait for output file to settle
-sleep 15
+sleep 20
 echo "Checking test_output for 'Received 10 messages, a total of 1000 bytes'"
 COUNT=$(grep "Received 10 messages, a total of 1000 bytes" test_output | wc -l)
 
 
-# Shut down ION processes.
-echo "Stopping ION..."
-./ionstop
-#./cleanup
-killm
-
 echo -e "\nAMS basic functionality test completed."
-
 if [ "$COUNT" -eq 1 ]
 then
 	echo -e "OK: Messages received: test success.\n"
@@ -73,5 +66,10 @@ else
 	echo -e "ERROR: Messages not received.\n"
 	RETVAL=1
 fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+./shutdown_proc
+killm
 
 exit $RETVAL
