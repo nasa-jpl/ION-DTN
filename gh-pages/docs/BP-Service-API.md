@@ -759,3 +759,7 @@ In general there are two types of ZCO that is relevant to a user.
 * Can be used if you wish not to make a copy of the data in the ION SDR (possibly to save SDR space)
 * You allow ION to access the original data (file) in the host computer's file system. Need to check if this restriction applies.
 * See example in `bpdriver.c`
+
+## Python API
+
+ION provides a Python API that is a wrapper around the C API, called [PYION](https://github.com/nasa-jpl/pyion), which is available on GitHub.
