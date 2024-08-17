@@ -2,6 +2,17 @@
 
 # Derived from James Swaro's test, April 25, 2012
 
+
+# Test for sudo privileges
+if sudo -v &>/dev/null; then
+    echo -e "Sudo privileges confirmed: continuing test.\n"
+    # Rest of your test script
+else
+    echo -e "No sudo privileges: skipping test.\n"
+    exit 1
+fi
+
+
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
@@ -29,7 +40,7 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-if [ "$ACS" == "found" ] ; then
+if [ "$ACS" = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
