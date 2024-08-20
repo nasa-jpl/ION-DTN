@@ -5,3 +5,4 @@
 
 echo "Cleaning up old ION..."
 rm -f ion_nodes 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 3.ipn.ltp/testfile* 3.ipn.ltp/ltpblock.*
+rm -f 2.ipn.ltp/output
