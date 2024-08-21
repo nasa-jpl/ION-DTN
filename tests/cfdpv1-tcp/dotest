@@ -73,12 +73,8 @@ echo "Stopping ION..."
 #./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-
 #sleep 15
 
-#manually shut down tcputa process
-cd ../
-./shutdown_process.sh
 
 killm
 echo ""
