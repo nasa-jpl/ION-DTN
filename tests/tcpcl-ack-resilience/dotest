@@ -2,17 +2,6 @@
 
 # Derived from James Swaro's test, April 25, 2012
 
-
-# Test for sudo privileges
-if sudo -v &>/dev/null; then
-    echo -e "Sudo privileges confirmed: continuing test.\n"
-    # Rest of your test script
-else
-    echo -e "No sudo privileges: skipping test.\n"
-    exit 1
-fi
-
-
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
@@ -22,6 +11,7 @@ echo "Cleaning up old ION ..."
 killm
 ./cleanup
 
+echo -e "\nRunning sudo commands now..."
 sudo tc qdisc del dev lo root
 sudo iptables -F -t filter
 
