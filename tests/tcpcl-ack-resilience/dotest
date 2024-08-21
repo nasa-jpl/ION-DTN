@@ -1,7 +1,28 @@
 #!/bin/bash
-
 # Derived from James Swaro's test, April 25, 2012
 
+
+# Timed check for sudo priveleges
+sudo -v &>/dev/null &
+SUDO_PID=$!
+
+( sleep 30 && kill -9 $SUDO_PID &>/dev/null ) & KILLER_PID=$!
+wait $SUDO_PID
+SUDO_RESULT=$?
+kill -9 $KILLER_PID &>/dev/null
+
+#restore terminal settings after process termination 
+stty sane
+
+if [ $SUDO_RESULT -eq 0 ]; then
+    echo -e "Sudo privileges confirmed: continuing test.\n"
+else
+    echo -e "No sudo privileges or sudo command timed out: skipping test.\n"
+    exit 1
+fi
+
+
+# Sudo priveledges confirmed, begin test 
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
