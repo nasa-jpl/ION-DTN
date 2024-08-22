@@ -14,7 +14,7 @@ kill -9 $KILLER_PID &>/dev/null
 #restore terminal settings after process termination 
 stty sane
 
-if [ $SUDO_RESULT -eq 0 ]; then
+if [ "$SUDO_RESULT" -eq 0 ]; then
     echo -e "Sudo privileges confirmed: continuing test.\n"
 else
     echo -e "No sudo privileges or sudo command timed out: skipping test.\n"

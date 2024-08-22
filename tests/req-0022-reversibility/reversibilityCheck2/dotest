@@ -95,7 +95,7 @@ echo "Now force a restart in node 2 with bpcrash..."
 bpcrash
 sleep 5
 echo "SDR transaction & ionrestart activities reported:"
-text=$(grep -E "ionrestart|Transaction|transaction" ion.log)
+text=$(grep "ionrestart\|Transaction\|transaction" ion.log)
 if [ -z "$text" ];then
 	echo "No activities reported."
 else
@@ -143,7 +143,7 @@ sleep 30
 
 # Pause for debug
 bpstats
-echo "Issued bpstats to check for bundles in the system expiration. See ion.log."
+echo -e "\nIssued bpstats to check for bundles in the system expiration. See ion.log."
 echo ""
 
 #Try to send more bundles to ensure that transaction reversibility healed the
