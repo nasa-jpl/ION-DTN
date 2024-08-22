@@ -18,7 +18,8 @@ if [ $SUDO_RESULT -eq 0 ]; then
     echo -e "Sudo privileges confirmed: continuing test.\n"
 else
     echo -e "No sudo privileges or sudo command timed out: skipping test.\n"
-    exit 1
+    # pass skip test value
+    exit 2
 fi
 
 
