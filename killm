@@ -43,8 +43,10 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bplist lt-bplist \
 	bpnmtest lt-bpnmtest \
 	bprecvfile lt-bprecvfile \
+	bprecvtest lt-bprecvtest \
 	bpsecadmin lt-bpsecadmin \
 	bpsendfile lt-bpsendfile \
+	bpsendtest lt-bpsendtest \
 	bpsink lt-bpsink \
 	bpsource lt-bpsource \
 	bpstats lt-bpstats \
