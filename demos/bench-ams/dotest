@@ -3,7 +3,7 @@
 
 # Benchtest variables-------------------------------------------------
 COUNT=1000
-MESSAGE_SIZE=1024
+MESSAGE_SIZE=1000
 
 # Shut down routine---------------------------------------------------
 function stop_and_exit() {
@@ -27,6 +27,16 @@ function stop_and_exit() {
     exit $retval
 }
 
+# Process check -------------------------------------------------------
+check_process_running() {
+    if kill -0 $BENCHR_PID >/dev/null 2>&1; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+
 # Ensure cleanup prior to execution
 killm
 ./cleanup
@@ -49,14 +59,7 @@ amsbenchr > bench.log &
 BENCHR_PID=$!
 sleep 3
 
-# Process check based on OS
-if [ "$1" == "windows" ]; then
-    ps | grep "$BENCHR_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-else
-    ps -p $BENCHR_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-fi
-
-if [ "$RETURN_VALUE" -eq 0 ]; then
+if ! check_process_running; then
     echo -e "Error: amsbenchr could not be started!"
     stop_and_exit 1
 fi
@@ -64,37 +67,29 @@ fi
 cd ../node2
 echo -e "Starting amsbench sender:"
 amsbenchs $COUNT $MESSAGE_SIZE 2>/dev/null &
-sleep 1
+sleep 3
 
 # Wait for the receiver to finish or timeout after 2 minutes
 TIMER=0
-RUNNING=1
-while [ "$RUNNING" -eq 1 ] && [ "$TIMER" -lt 120 ]; do
+while check_process_running && [ "$TIMER" -lt 120 ]; do
     TIMER=$((TIMER + 1))
     sleep 1
     echo -e "Listening for published AMS messages..."
-
-    # Process check based on OS
-    if [ "$1" == "windows" ]; then
-        ps | grep "$BENCHR_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    else
-        ps -p $BENCHR_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-    fi
-
-    if [ "$RETURN_VALUE" -eq 0 ]; then
-        RUNNING=0
-    fi
 done
 
 # If the timer exceeded 120 seconds, kill the hanging process
-if [ "$RUNNING" -eq 1 ]; then
-    echo -e "Error: amsbenchr process hung. Terminating..."
+if check_process_running; then
+    echo -e "Error: amsbenchr process hung or messages not delivered. Terminating..."
     kill $BENCHR_PID
     stop_and_exit 1
 fi
 
 # Verify delivery of bench messages
 cd ../node3
+
+# Allow a few more seconds for write to bench.log
+sleep 3
+
 if grep -q "Received $COUNT messages" bench.log; then
     echo -e "\nSuccess: delivery of $COUNT messages verified."
     stop_and_exit 0

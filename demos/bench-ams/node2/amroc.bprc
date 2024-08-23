@@ -4,8 +4,33 @@ a endpoint ipn:2.0 x
 a endpoint ipn:2.1 x
 a endpoint ipn:2.2 x
 a endpoint ipn:2.9 q
-a protocol tcp 1400 100 100000
-a induct tcp 127.0.0.1:5001 tcpcli
-a outduct tcp 127.0.0.1:5101 ''
-r 'ipnadmin amroc.ipnrc'
+
+#  PROTOCOL
+#  [1]                      protocol name : tcp  [TCP Protocol]
+#  [2]                     protocol class :   
+a protocol  tcp  
+#
+#  INDUCT_TCP
+#  [1]               ip address (or name) : 127.0.0.1  
+#  [2]                  local port number : 4557  
+#  [3]                  tcp cli task name : tcpcli  
+a induct  tcp  127.0.0.1:4557  tcpcli
+#
+#  OUTDUCT_TCP
+#  [1]                      tcp duct name : 127.0.0.1:4556  
+#  [2]                  tcp clo task name : ''  
+#  [3]                 max payload length :  (bytes) 
+a outduct  tcp  127.0.0.1:4556  ''  
+#
+#  ION_PLAN
+#  [1]                           node num : 3  
+#  [2]                  transmission rate : 1000000 (bytes per sec) 
+a plan  ipn:3.0 1000000
+#
+#  ATTACH_OUTDUCT_TCP
+#  [1]                           node num : 3  
+#  [2]                       outduct name : 127.0.0.1:4556  
+a planduct  ipn:3.0 tcp  127.0.0.1:4556
+#
+#  START
 s
