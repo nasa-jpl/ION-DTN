@@ -2,6 +2,7 @@
 # AMS Benchtest script (for simple AMS two-node demo)
 
 # Benchtest variables-------------------------------------------------
+# 
 COUNT=1000
 MESSAGE_SIZE=1000
 
@@ -29,10 +30,16 @@ function stop_and_exit() {
 
 # Process check -------------------------------------------------------
 check_process_running() {
-    if kill -0 $BENCHR_PID >/dev/null 2>&1; then
-        return 0
+    if [ "$1" = "windows" ]; then
+        ps | grep "$BENCHR_PID" | grep -v grep > /dev/null 2>&1
     else
-        return 1
+        kill -0 $BENCHR_PID >/dev/null 2>&1
+    fi
+
+    if [ "$?" -eq 0 ]; then
+        return 0  # Process is running (success)
+    else
+        return 1  # Process is not running (failure)
     fi
 }
 
