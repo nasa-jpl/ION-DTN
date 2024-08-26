@@ -99,7 +99,7 @@ sleep 1
 bpdriver 10000 ipn:1.1 ipn:3.1 -100 > $BPDRIVERFILE &
 BPDRIVERPID=$!
 
-echo "Waiting..."
+echo "Waiting 180 seconds..."
 sleep 180
 
 echo "Killing bpdriver if it is still running..."
