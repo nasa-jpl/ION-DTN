@@ -175,6 +175,7 @@ int generateHMACKey(int keysize, unsigned char *buf)
 	return result;
 }
 
+/* buf and private_buf should be at least keysize bytes in size */
 int generateECDSAKey(int keysize, unsigned char *buf, unsigned char *private_buf)
 {
 	mbedtls_ecdsa_context ecdsa_context;
@@ -209,8 +210,8 @@ int generateECDSAKey(int keysize, unsigned char *buf, unsigned char *private_buf
 
 	// Extract keys from context
 	mbedtls_ecp_point_write_binary(&ecdsa_context.grp, &ecdsa_context.Q,
-								   MBEDTLS_ECP_PF_UNCOMPRESSED, &len, buf, sizeof(buf));
-	mbedtls_ecp_write_key(&ecdsa_context, private_buf, sizeof(private_buf));
+								   MBEDTLS_ECP_PF_UNCOMPRESSED, &len, buf, keysize);
+	mbedtls_ecp_write_key(&ecdsa_context, private_buf, keysize);
 
 	mbedtls_entropy_free(&entropy);
 	mbedtls_ctr_drbg_free(&ctr_drbg);
@@ -231,10 +232,10 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 #else /*	For regression testing only.			*/
 	int key;
 #endif
-	unsigned char *pubKeyBuf = malloc(sizeof(unsigned char) * keySize);
+	unsigned char *pubKeyBuf = malloc(keySize);
 	unsigned short publicKeyLen;
 	unsigned char *publicKey;
-	unsigned char *privKeyBuf = malloc(sizeof(unsigned char) * keySize);
+	unsigned char *privKeyBuf = malloc(keySize);
 	unsigned short privateKeyLen;
 	unsigned char *privateKey;
 	char recordBuffer[TC_MAX_REC];
@@ -274,7 +275,7 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 	}
 
 	publicKeyLen = keySize;
-	publicKey = (pubKeyBuf + (sizeof pubKeyBuf - 1)) - publicKeyLen;
+	publicKey = pubKeyBuf;
 
 	if (strcmp(keyType, "ecdsa") != 0)
 	{
@@ -283,7 +284,7 @@ static int generateKeyPair(BpSAP sap, DtkaDB *db, char *keyType, int keySize)
 	}
 
 	privateKeyLen = keySize;
-	privateKey = (privKeyBuf + (sizeof privKeyBuf - 1)) - privateKeyLen;
+	privateKey = privKeyBuf;
 
 	sdr_exit_xn(sdr);
 #else /*	For regression testing only.			*/
