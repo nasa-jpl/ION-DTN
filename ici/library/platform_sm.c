@@ -1055,7 +1055,7 @@ static SemaphoreTable	*_semTbl(int action)
 
 		default:		/*	New SemaphoreTable.	*/
 			memset((char *) semaphoreTable, 0,
-					sizeof(semaphoreTable));
+					sizeof(SemaphoreTable));
 		}
 	}
 
