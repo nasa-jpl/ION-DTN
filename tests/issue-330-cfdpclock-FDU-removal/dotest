@@ -61,7 +61,7 @@ cd 1.cfdp.ipn.bp.ltp.udp
 ./ionstart
 ../../../system_up -i "p 30" -l "p 30" -b "p 30" -c "p 30"
 
-if [ $? -eq 4 ]
+if [ "$?" -eq 4 ]
 then
 	echo ""
 else
@@ -79,8 +79,9 @@ echo "Starting CFDP message listener..."
 
 # Check if the test utility exists and is executable
 if [ ! -x "$TESTUTIL" ]; then
-  echo -e "\nError: $TESTUTIL does not exist. Please run 'make test' in ION root to create test specific executables.\n"
-  RETVAL=1
+  echo -e "\nError: $TESTUTIL does not exist: Skipping test."
+  echo -e "Please run 'make test' in ION root to generate test binaries and scripts.\n"
+  RETVAL=2
   sleep 3
   end
 else
@@ -138,7 +139,7 @@ fi
 
 #Test for EOF sent messages
 RESULTS=`grep "type 2" output | wc -l`
-if [ $RESULTS -eq 2 ]; then
+if [ "$RESULTS" -eq 2 ]; then
 	echo "EOF Sent Message was logged. SUCCESS!"
 	echo ""
 	RETVAL=0
