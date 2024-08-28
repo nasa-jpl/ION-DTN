@@ -125,7 +125,7 @@ static void managekeyType(int tokenCount, char **tokens)
 
 	CHKVOID(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *)&dtkadb, dtkadbObj, sizeof(DtkaDB));
-	istrcpy(dtkadb.keyType, newkeyType, sizeof(newkeyType));
+	istrcpy(dtkadb.keyType, newkeyType, sizeof(dtkadb.keyType));
 	dtkadb.keySize = newkeySize;
 	sdr_write(sdr, dtkadbObj, (char *)&dtkadb, sizeof(DtkaDB));
 	if (sdr_end_xn(sdr) < 0)

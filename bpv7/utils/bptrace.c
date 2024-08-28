@@ -102,7 +102,7 @@ void print(statusReport *rpt){
 		printf("%u/%u ", rpt->creationCount, rpt->fragmentOffset);
 	char* buffer = malloc(32);
 	printf("%8s at %s on %s, '%s'.\n", 
-		statusToString(rpt->statusFlags, buffer, sizeof(buffer)), tmbuffer, rpt->bundleSourceEid,
+		statusToString(rpt->statusFlags, buffer, 32), tmbuffer, rpt->bundleSourceEid,
 		rpt->reasonString);
 	free(buffer);
 	printDBG(3, "statusTime: " UVAST_FIELDSPEC "<=> %s\n", rpt->statusTime, tmbuffer);
