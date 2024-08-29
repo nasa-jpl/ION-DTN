@@ -41,6 +41,8 @@
 
 #define _POSIX_C_SOURCE 200112L //POSIX 2001 compliance check
 #include "secrypt.h"
+#include <bp.h>
+
 
 //check for MBEDTLS cipher suite-----------------------------
 #if !defined(MBEDTLS_CIPHER_C) || !defined(MBEDTLS_MD_C) || \
@@ -334,7 +336,7 @@ int crypt_and_hash_buffer(
 
     /* set IV size ----------------------------------------------- */
     size_t iv_size = cipher_block_size;
-    IV = malloc(iv_size); //freed at exit:
+    IV = MTAKE(iv_size); //freed at exit:
     if (IV == NULL)
     {
         fprintf(stderr, "IV Memory allocation failed\n");
@@ -407,7 +409,7 @@ int crypt_and_hash_buffer(
         size_t total_required_size = input_buffer_size + iv_size + md_size; //add padding for IV and digest
         output_length = total_required_size;
 
-        output_buffer = malloc(total_required_size * sizeof(char)); //freed in exit:
+        output_buffer = MTAKE(total_required_size * sizeof(char)); //freed in exit:
        
         if (output_buffer == NULL)
         {        
@@ -645,7 +647,7 @@ int crypt_and_hash_buffer(
         /* decrypt and write the plaintext */
  
         size_t total_required_size = input_buffer_size; 
-        output_buffer = malloc(total_required_size * sizeof(char)); //freed in exit:
+        output_buffer = MTAKE(total_required_size * sizeof(char)); //freed in exit:
 
         if (output_buffer == NULL) 
         {
@@ -726,7 +728,7 @@ int crypt_and_hash_buffer(
 
 
     /* copy results (i.e. on successful operation) only */
-    *my_output_buffer = malloc(output_length * sizeof(char)); //free me in calling function!!!!!!!!
+    *my_output_buffer = MTAKE(output_length * sizeof(char)); //free me in calling function!!!!!!!!
     if (my_output_buffer == NULL)
     {
         printf("Error allocating memory for results\n");
@@ -755,13 +757,13 @@ exit:
 
     if(IV)
     {
-    free(IV);
+    MRELEASE(IV);
     IV = NULL;
     }
    
     if(output_buffer)
     {
-        free(output_buffer);
+        MRELEASE(output_buffer);
         output_buffer = NULL;
     }
     

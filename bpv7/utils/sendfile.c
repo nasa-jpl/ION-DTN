@@ -186,7 +186,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	long fileSize = ftell(file);
 	fseek(file, 0, SEEK_SET);
 
-	input_buffer = (unsigned char*)malloc(fileSize);
+	input_buffer = (unsigned char*)MTAKE(fileSize);
 	readResult = fread(input_buffer, 1, fileSize, file);
 	if (readResult != fileSize)
 	{
@@ -219,13 +219,13 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	if(aux)
 	{
 		aux_length = strlen(aux)+1;
-		aux_command = malloc(aux_length+1);
+		aux_command = MTAKE(aux_length+1);
 		memset(aux_command, 0, aux_length+1);
 		memcpy(aux_command, aux, aux_length);		
 	}
 	else
 	{
-		aux_command = malloc(aux_length+1);
+		aux_command = MTAKE(aux_length+1);
 		memset(aux_command, 0, aux_length+1);
 		memcpy(aux_command, "", aux_length+1);
 
@@ -237,7 +237,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	/* FILE NAME */
 	nameSize = strlen(fileName)+1;
 
-	name = malloc(nameSize);
+	name = MTAKE(nameSize);
 	if (!name)
 	{
 		fprintf(stderr,"Error creating file name\n");
@@ -333,27 +333,27 @@ exit:
 	if( metadata_buffer)
 	{
 		memset(metadata_buffer, 0, metabuffer_size);
-		free (metadata_buffer);
+		MRELEASE (metadata_buffer);
 		metadata_buffer = NULL;
 	}
 
 	if(aux_command)
 	{
 		memset(aux_command, 0, aux_length);
-		free(aux_command);
+		MRELEASE(aux_command);
 		aux_command = NULL;
 	}
 
 	if(input_buffer)
 	{
 		memset(input_buffer, 0, fileSize);
-		free(input_buffer);
+		MRELEASE(input_buffer);
 		input_buffer = NULL;
 	}
 	
 	if(name != NULL)
 	{
-		free(name);
+		MRELEASE(name);
 		name = NULL;
 	}
 	
@@ -361,7 +361,7 @@ exit:
 	if(encryptFlag == 1)
 	{
 		memset(encrypted_content_buffer, 0, out_contentLength);
-		free(encrypted_content_buffer);
+		MRELEASE(encrypted_content_buffer);
 		encrypted_content_buffer = NULL;
 	}
 

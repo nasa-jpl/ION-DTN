@@ -300,7 +300,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 			if (metadata.fileContent)
 			{
 				memset(metadata.fileContent, 0, metadata.fileContentLength);
-				free(metadata.fileContent); //free me first (avoid memory leak)!
+				MRELEASE(metadata.fileContent); //free me first (avoid memory leak)!
 			}
 			metadata.fileContent = decrypted_fileContent; //free in Exit;
 			metadata.fileContentLength = decrypted_fileContentLength;
@@ -374,25 +374,25 @@ exit:
 	/* MEMORY OBFUSCATION AND CLEANUP*/	
 	if (metadata.filename) 
 	{
-		free(metadata.filename);
+		MRELEASE(metadata.filename);
 		metadata.filename = NULL;
 	}
 
 	if(metadata.fileContent)
 	{
-		free(metadata.fileContent);
+		MRELEASE(metadata.fileContent);
 		metadata.fileContent = NULL;
 	}
 
 	if(metadata.aux_command)
 	{
-		free(metadata.aux_command);
+		MRELEASE(metadata.aux_command);
 		metadata.aux_command = NULL;
 	}
 
 	if(metadata.filetype)
 	{
-		free(metadata.filetype);
+		MRELEASE(metadata.filetype);
 		metadata.filetype = NULL;
 	}
 
