@@ -226,6 +226,7 @@ build*/*
 \.gcno
 \.gcda
 
+# gh pages
 # Contrib Folder
 contrib/Makefile
 
