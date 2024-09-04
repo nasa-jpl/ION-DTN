@@ -80,9 +80,9 @@ nav:
     - ION Utility Programs: ION-Utilities.md
     - ION Coding Guide: ION-Coding-Guide.md
   - Man Pages:
-    - Asychronous Messaging System (AMS): man/ams/index.md
-    - Bundle Protocol v6 (BPv6): man/bpv6/index.md
     - Bundle Protcool v7 (BPv7): man/bpv7/index.md
+    - Bundle Protocol v6 (BPv6): man/bpv6/index.md
+    - Asychronous Messaging System (AMS): man/ams/index.md
     - Bundle Streaming Service (BSS): man/bss/index.md
     - Bundle Streaming Service (Test Utility) Protocol (BSSP): man/bssp/index.md
     - CCSDS File Delivery Protocol (CFDP): man/cfdp/index.md
