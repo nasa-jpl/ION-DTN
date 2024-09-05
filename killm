@@ -8,6 +8,7 @@
 
 ION_OPEN_SOURCE=1
 OS_VERS=""
+MINGW=false
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
 # Since ipcs truncates usernames to 10 characters, we need to match against a
@@ -172,6 +173,12 @@ if [ "$OSNAME" == "SunOS" ]; then
 	PS="/usr/bin/ps"
 	PS_ARGS="-fe"
 	PROCESS_LIMIT=1
+elif [[ "$OSNAME" == "MINGW"* ]]; then
+    KILLCMD="taskkill /F /IM"
+    PS="tasklist"
+    PS_ARGS=""
+    PROCESS_LIMIT=1
+	MINGW=true
 else
     KILLCMD="killall"
 	PS="ps"
@@ -209,7 +216,9 @@ rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
-if [[ -z "$OS_VERS" ]]; then 
+if [ "$MINGW" = true ]; then 
+	powershell ./remove_win_shmem.ps1 
+elif [[ -z "$OS_VERS" ]]; then 
 	# For mac >=10.5 and Linux
 	for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
 	for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
