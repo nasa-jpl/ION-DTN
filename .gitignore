@@ -428,3 +428,10 @@ ion_nodes
 
 # standard output redirect
 *.stdout
+
+# ignore auto-generated nm unit test scripts
+tests/nm-unit/dotest
+tests/nm-unit/utils/radix_pt/dotest
+tests/nm-unit/utils/radix_ut/dotest
+tests/nm-unit/utils/rhht/dotest
+tests/nm-unit/utils/vector/dotest
