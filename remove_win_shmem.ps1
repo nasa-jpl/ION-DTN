@@ -6,7 +6,7 @@ try {
     $pipe.Connect(100)
     $pipe.Write($msg, 0, $msg.Length)
     $pipe.Close()
-    Write-Host "***Sent message to winion***"
+    Write-Host "Pipe closed"
 } catch {
-    Write-Host "***Failed to send message to winion***"
+    Write-Host "Pipe DNE"
 }

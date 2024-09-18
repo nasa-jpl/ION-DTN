@@ -222,11 +222,11 @@ stuff_SCRIPTS =	$(srcdir)/ionstart \
 		$(srcdir)/ionstop \
 		$(srcdir)/ionscript \
 		$(srcdir)/demos/ionlauncher/ionlauncher \
-		$(srcdir)/demos/ionlauncher/net_model_gen
+		$(srcdir)/demos/ionlauncher/net_model_gen \
+		$(srcdir)/killm	\
+		$(srcdir)/remove_win_shmem.ps1
+#comment stuff_SCRIPTS += $(srcdir)/killm if you want to build killm.exe
 
-if !WINDOWS
-stuff_SCRIPTS += $(srcdir)/killm
-endif
 
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
@@ -618,9 +618,11 @@ rfxclock_SOURCES = ici/daemon/rfxclock.c
 rfxclock_LDADD = libici.la -lm
 rfxclock_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
+if WINDOWS
 winion_SOURCES = ici/daemon/winion.c
 winion_LDADD = libici.la -lm
 winion_CFLAGS = $(icicflags) $(AM_CFLAGS)
+endif
 
 ##########################
 #
@@ -1840,9 +1842,10 @@ bpbin = \
 	udpcli \
 	udpclo
 
-if WINDOWS
-bpbin += killm
-endif
+#Uncomment if you want to build killm.exe
+#if WINDOWS
+#bpbin += killm
+#endif
 
 if !WINDOWS
 bpbin += \
@@ -2280,9 +2283,12 @@ hmackeys_SOURCES = bpv7/utils/hmackeys.c
 hmackeys_LDADD = libici.la -lm $(bplib)
 hmackeys_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-killm_SOURCES = ici/utils/killm.c
-killm_LDADD = libici.la 
-killm_CFLAGS = $(AM_CFLAGS)
+#Uncomment if you want to build killm.exe
+#if WINDOWS
+#killm_SOURCES = ici/utils/killm.c
+#killm_LDADD = libici.la 
+#killm_CFLAGS = $(AM_CFLAGS)
+#endif
 
 if ENABLE_IMC
 imcadminep_SOURCES = bpv7/imc/imcadminep.c
