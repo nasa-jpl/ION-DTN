@@ -169,7 +169,9 @@ lib_LTLIBRARIES = \
 	$(bssplib) \
 	$(amslib) \
 	$(cfdplib) \
-	$(nmlib)
+	$(nmlib) \
+	$(secryptlib) \
+	$(metadatalib)
 
 include_HEADERS = \
 	$(iciinclude) \
@@ -1849,8 +1851,6 @@ endif # end ENABLE_IMC
 bplib = \
 	libbp.la \
 	libcgr.la \
-	libmetadata.la \
-	libsecrypt.la \
 	libstcpcla.la \
 	libudpcla.la
 
@@ -2170,8 +2170,7 @@ libici_la_SOURCES+= \
 	ici/crypto/MBEDTLS_SUITES/csi.c \
 	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
 	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c \
-	ici/crypto/MBEDTLS_SUITES/secrypt.c
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c 
 
 else
 libici_la_SOURCES+= \
@@ -2231,13 +2230,25 @@ libudpcla_la_SOURCES = bpv7/udp/libudpcla.c
 libudpcla_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 libudpcla_la_LIBADD = libbp.la libici.la
 
+# --- libmetadata --- #
+
+metadatalib = libmetadata.la
 libmetadata_la_SOURCES = bpv7/metadata/metadata.c
 libmetadata_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libmetadata_la_LIBADD = libbp.la libici.la
+libmetadata_la_LIBADD = libbp.la libici.la
 
-libsecrypt_la_SOURCES = ici/crypto/NULL_SUITES/secrypt.c
+# --- libsecrypt CSI --- #
+
+secryptlib = libsecrypt.la
+
+if CRYPTO_MBEDTLS
+    libsecrypt_la_SOURCES = ici/crypto/MBEDTLS_SUITES/secrypt.c
+else
+    libsecrypt_la_SOURCES = ici/crypto/NULL_SUITES/secrypt.c
+endif
+
 libsecrypt_la_CFLAGS = $(bpcflags) $(AM_CFLAGS)
-#libsecrypt_la_LIBADD = libbp.la libici.la
+libsecrypt_la_LIBADD = libbp.la libici.la
 
 # --- Utility Programs --- #
 
@@ -2482,11 +2493,11 @@ cgrfetch_LDADD = libici.la $(bplib)
 cgrfetch_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 recvfile_SOURCES = bpv7/utils/recvfile.c
-recvfile_LDADD = libici.la $(bplib) libsecrypt.la libmetadata.la
+recvfile_LDADD = libici.la $(bplib) $(secryptlib) $(metadatalib)
 recvfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 sendfile_SOURCES = bpv7/utils/sendfile.c
-sendfile_LDADD = libici.la $(bplib) libsecrypt.la libmetadata.la
+sendfile_LDADD = libici.la $(bplib) $(secryptlib) $(metadatalib)
 sendfile_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
 # --- Daemon Executables --- #
