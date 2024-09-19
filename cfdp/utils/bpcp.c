@@ -35,7 +35,7 @@ void prog_end_cpy(struct transfer *t);
 void prog_start_dir(struct transfer *t);
 void prog_end_dir(struct transfer *t);
 int setscreensize(void);
-void parseDirectoryListingResponse(unsigned char *text, int bytesRemaining,
+static void parseDirectoryListingResponse(unsigned char *text, int bytesRemaining,
 		CfdpDirListingResponse *opsData);
 #ifdef SIG_HANDLER
 static void handle_sigterm(int signum);
@@ -1570,7 +1570,7 @@ void* rcv_msg_thread(void* param)
 
 /*Parse a CFDP directory listing response and pull out the status code,
  * the directory name, and the output file name*/
-void parseDirectoryListingResponse(unsigned char *text, int bytesRemaining,
+static void parseDirectoryListingResponse(unsigned char *text, int bytesRemaining,
 		CfdpDirListingResponse *opsData)
 {
 	int	length;
