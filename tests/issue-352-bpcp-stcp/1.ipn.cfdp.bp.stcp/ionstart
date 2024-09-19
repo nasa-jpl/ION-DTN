@@ -1,0 +1,10 @@
+#!/bin/bash
+ionadmin	host1.ionrc
+sleep 1
+ionsecadmin	host1.ionsecrc
+sleep 1
+bpadmin		host1.bprc
+sleep 1
+ipnadmin	host1.ipnrc
+sleep 1
+cfdpadmin	host1.cfdprc
