@@ -2918,7 +2918,7 @@ libams_la_SOURCES = \
 	ams/library/udpts.c
 libams_la_LDFLAGS = -static
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
-libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la
+libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la $(secryptlib)
 
 # --- Utility Programs --- #
 
