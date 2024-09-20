@@ -218,6 +218,12 @@ RamsNode	*Look_Up_DeclaredNeighbor(RamsGateway *gWay, int ramsNbr)
 	return NULL;
 }
 
+/* 
+Sky deprecates this for the following reasons:
+1.) examination shows this function is never called
+2.) the bitmasks do not align with the masks seen in ConstructEnclosure()
+3.) is incomplete and has several obvious redundancies
+
 void	GetEnvelopeSpecification(char *envelope, int *continuumNbr,
 		int *unitNbr, int *roleNbr)
 {
@@ -233,7 +239,8 @@ void	GetEnvelopeSpecification(char *envelope, int *continuumNbr,
 	*continuumNbr = ((env[2] << 8) & 0x00007f00) + env[3];
 	*unitNbr = ((env[4] << 8) & 0x0000ff00) + env[5];
 	*roleNbr = env[7];
-}
+} 
+*/
 
 Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 			int moduleNbr, int subjectNbr, int contentLength,
