@@ -435,3 +435,9 @@ tests/nm-unit/utils/radix_pt/dotest
 tests/nm-unit/utils/radix_ut/dotest
 tests/nm-unit/utils/rhht/dotest
 tests/nm-unit/utils/vector/dotest
+
+# ignore `make test` generated programs
+tests/issue-330-cfdpclock-FDU-removal/cfdplisten
+tests/issue-334-cfdp-transaction-id/dotest
+tests/sm_subsystem/dotest
+tests/bug-0015-tcpclo-bpcp-sig-handling/test
