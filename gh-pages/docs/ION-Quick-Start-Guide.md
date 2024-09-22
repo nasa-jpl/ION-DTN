@@ -18,11 +18,18 @@ Depending on the Linux distribution, the package names may differ. To install pa
 To verify the installation, run:
 
 `automake --version`
+
 `autoconf --version`
+
 `libtool --version`
+
 `m4 --version`
+
 `gcc --version`
+
 `make --version`
+
+to check for proper installation.
 
 NOTE: Alternative build methods without the `automake` ecosystem are also available. See section [Alternative Build Methods without Automake](#alternative-build-methods-without-automake) for details. 
 
