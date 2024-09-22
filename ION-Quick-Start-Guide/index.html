@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.34">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.36">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.35f28582.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.06209087.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -508,6 +508,54 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#alternative-build-methods-without-automake" class="md-nav__link">
+    <span class="md-ellipsis">
+      Alternative Build Methods without Automake
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Alternative Build Methods without Automake">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#method-1-using-development-makefiles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Method 1: Using Development Makefiles
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Method 1: Using Development Makefiles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#build-individual-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build Individual Packages
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#method-2-using-the-ion-core-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      Method 2: Using the ion-core Package
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -517,15 +565,6 @@
   <a href="#windows" class="md-nav__link">
     <span class="md-ellipsis">
       Windows
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build-individual-packages" class="md-nav__link">
-    <span class="md-ellipsis">
-      Build Individual Packages
     </span>
   </a>
   
@@ -1823,7 +1862,25 @@
 
 <h1 id="ion-quick-start-guide">ION Quick Start Guide</h1>
 <h2 id="installing-ion-on-linux-macos-solaris">Installing ION on Linux, MacOS, Solaris</h2>
-<p>To build ION on Linux system, make sure install and update the <code>automake</code>, <code>autoconf</code>, and <code>libtool</code> packages.</p>
+<p>The recommended method to install ION on most Linux-based systems is to use the <code>automake</code> ecosystem. For this, you will need to make sure the following packages are installed and updated:</p>
+<ul>
+<li><code>automake</code></li>
+<li><code>autoconf</code></li>
+<li><code>libtool</code></li>
+<li><code>m4</code></li>
+<li><code>gcc</code></li>
+<li><code>make</code></li>
+</ul>
+<p>Depending on the Linux distribution, the package names may differ. To install packages on Debian-based systems, run:</p>
+<p><code>sudo apt-get update &amp;&amp; sudo apt-get install automake autoconf libtool m4 gcc make</code></p>
+<p>To verify the installation, run:</p>
+<p><code>automake --version</code>
+<code>autoconf --version</code>
+<code>libtool --version</code>
+<code>m4 --version</code>
+<code>gcc --version</code>
+<code>make --version</code></p>
+<p>NOTE: Alternative build methods without the <code>automake</code> ecosystem are also available. See section <a href="#alternative-build-methods-without-automake">Alternative Build Methods without Automake</a> for details. </p>
 <h3 id="build-ion-413-and-earlier-versions-without-actual-cipher-suite">Build ION 4.1.3 (and earlier versions) without actual cipher suite</h3>
 <p>To build and install the entire ION system on a Linux, MacOS, or Solaris platform, cd into ion-open-source and enter the following commands:</p>
 <p><code>./configure</code></p>
@@ -1905,10 +1962,29 @@
 </code></pre></div>
 <p>Where <code>x</code> is the desired logging level.</p>
 <p>To enable the MBEDTLS cipher suite, you need to also add the <code>--enable-crypto-mbedtls</code> option when running the <code>./configure</code> script.</p>
-<h2 id="windows">Windows</h2>
-<p>To install ION for Windows, please download the Windows installer.</p>
-<h2 id="build-individual-packages">Build Individual Packages</h2>
-<p>It's also possible to build the individual packages of ION, using a set of platform-specific <em>development</em> Makefiles in the package subdirectories. Currently  the only actively maintained platform-specific Makefile is for 64-bits Linux under the "i86_48-fedora" folder. If you choose this option, be aware of the dependencies among the packages:</p>
+<h3 id="alternative-build-methods-without-automake">Alternative Build Methods without Automake</h3>
+<p>If you do not wish to use the automake build system, you can build ION by using a set of development Makefiles or use the <code>ion-core</code> package.</p>
+<h4 id="method-1-using-development-makefiles">Method 1: Using Development Makefiles</h4>
+<p>The ION distribution provides a set of Makefiles that does not rely on the automake system. This set of Makefile is by ION developer on Linux-based OS to offer more flexibility for compiling and debugging. </p>
+<p>Currently, the only actively maintained platform-specific development Makefile set is for 64-bits Linux under the "i86_48-fedora" folder in each module. If you choose this option, be aware of the following limitations:</p>
+<ul>
+<li>The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_48-fedora" subfolder. If you run <code>./configure</code> command, it will switch to the automake system and all development Makefiles will be renamed from <code>Makefile</code> to <code>Makefile.dev</code>.</li>
+<li>If you used the automake system and want to revert to the development Makefiles, you should first run <code>make clean</code> and <code>make uninstall</code> to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run <code>git stash</code> to restore the old Makefiles or simply pull a fresh copy of the code from the repo. </li>
+<li>The development Makefiles, as they are, provides only the default compilation options  - similar to running <code>./configure</code> with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass a <code>ADD_FLAGS</code> argument to the <code>make all</code> command.</li>
+<li>The default directory for installation is <code>/usr/local/</code>, which usually requires sudo privilege. To override the installation prefix, change the value of <code>OPT</code> in the top-level Makefile of each package.</li>
+</ul>
+<p>To build using the development Makefiles, cd to the ION root directory and run:</p>
+<p><code>make all</code></p>
+<p>OR if you need to set specific compiler flags, run: </p>
+<p><code>make all ADD_FLAGS="&lt;string of compiler options&gt;"</code></p>
+<p>To install ION, run:</p>
+<p><code>sudo make install &amp;&amp; sudo ldconfig</code></p>
+<p>To uninstall ION, run:</p>
+<p><code>sudo make uninstall</code></p>
+<p>To remove all build artifacts, run:</p>
+<p><code>make clean</code></p>
+<h5 id="build-individual-packages">Build Individual Packages</h5>
+<p>It's also possible to build the individual packages of ION, using the development Makefiles in the package subdirectories. If you choose this option, be aware of the dependencies among the packages:</p>
 <ul>
 <li>The "ici" package must be built (run <code>make</code> and <code>make install</code>) before any other package.</li>
 <li>The "bp" package is dependent on "dgr" and "ltp" and "bssp" as well as "ici"</li>
@@ -1916,10 +1992,14 @@
 <li>The "restart" package is dependent on "cfdp", "bp", "ltp", and "ici"</li>
 </ul>
 <p>For more detailed instruction on building ION, see section 2 of the "ION Design and Operation Guide" document that is distributed with this package.</p>
-<p>If you have executed <code>./configure</code> already, the development <code>Makefile</code> in each individual modules as well as the top-level <code>Makefile</code> in the ION root directory will be renamed as <code>Makefile.dev</code>. Because the automake system and the manual build systems organize the libraries differently, it is important that if you plan to switch from the automake system back to the manual build using the development Makefiles, you should first run <code>make clean</code> and <code>make uninstall</code> to completely remove ION from the system. Then you can either run <code>git stash</code> to restore the old Makefiles or simply pull a fresh copy of the code from the repo. </p>
-<p>Also, be aware that these development Makefiles install everything into subdirectories of <code>/usr/local</code>, so make sure they are part of your execution and libary paths. To override this behavior, change the value of <code>OPT</code> in the top-level Makefile of each package.</p>
 <p>Additional details are provided in the README.txt files in the root directories of the subsystems.</p>
 <p>All Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake before trying to build ION.</p>
+<h4 id="method-2-using-the-ion-core-package">Method 2: Using the ion-core Package</h4>
+<p>The <code>ion-core</code> package contains only a subset of essential BP functionalities - particular those features that are more stable and have been deployed for operations previously. The <code>ion-core</code> package can be downloaded <a href="https://github.com/nasa-jpl/ion-core">here</a>. Please following the <code>README.md</code> file there for installation instructions.</p>
+<h2 id="windows">Windows</h2>
+<p>To install ION for Windows, please download the Windows installer for ION 4.1.2 or earlier versions from the Source Forge archive <a href="https://sourceforge.net/projects/ion-dtn/">here</a>. </p>
+<p>For ION 4.1.3, no installer is provided. Instead, you can download the Windows installation instructions <a href="https://github.com/nasa-jpl/ION-DTN/blob/current/Building%20ION%20from%20source%20on%20Windows.pdf">here.</a></p>
+<p>For ION 4.1.3s, a prototype automake build system will be been released for for beta testing.</p>
 <h2 id="running-ion">Running ION</h2>
 <h3 id="check-installed-bp-and-ion-versions">Check Installed BP and ION versions</h3>
 <p>Before running ION, let's confirm which version of Bundle Protocol is installed by running:</p>
@@ -2437,7 +2517,7 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.07f07601.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../assets/javascripts/bundle.56dfad97.min.js"></script>
