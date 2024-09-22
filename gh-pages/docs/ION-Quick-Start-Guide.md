@@ -2,7 +2,29 @@
 
 ## Installing ION on Linux, MacOS, Solaris
 
-To build ION on Linux system, make sure install and update the `automake`, `autoconf`, and `libtool` packages.
+The recommended method to install ION on most Linux-based systems is to use the `automake` ecosystem. For this, you will need to make sure the following packages are installed and updated:
+
+* `automake`
+* `autoconf`
+* `libtool`
+* `m4`
+* `gcc`
+* `make`
+
+Depending on the Linux distribution, the package names may differ. To install packages on Debian-based systems, run:
+
+`sudo apt-get update && sudo apt-get install automake autoconf libtool m4 gcc make`
+
+To verify the installation, run:
+
+`automake --version`
+`autoconf --version`
+`libtool --version`
+`m4 --version`
+`gcc --version`
+`make --version`
+
+NOTE: Alternative build methods without the `automake` ecosystem are also available. See section [Alternative Build Methods without Automake](#alternative-build-methods-without-automake) for details. 
 
 ### Build ION 4.1.3 (and earlier versions) without actual cipher suite
 
@@ -130,13 +152,44 @@ Where `x` is the desired logging level.
 
 To enable the MBEDTLS cipher suite, you need to also add the `--enable-crypto-mbedtls` option when running the `./configure` script.
 
-## Windows
+### Alternative Build Methods without Automake
 
-To install ION for Windows, please download the Windows installer.
+If you do not wish to use the automake build system, you can build ION by using a set of development Makefiles or use the `ion-core` package.
 
-## Build Individual Packages
+#### Method 1: Using Development Makefiles
 
-It's also possible to build the individual packages of ION, using a set of platform-specific _development_ Makefiles in the package subdirectories. Currently  the only actively maintained platform-specific Makefile is for 64-bits Linux under the "i86_48-fedora" folder. If you choose this option, be aware of the dependencies among the packages:
+The ION distribution provides a set of Makefiles that does not rely on the automake system. This set of Makefile is by ION developer on Linux-based OS to offer more flexibility for compiling and debugging. 
+
+Currently, the only actively maintained platform-specific development Makefile set is for 64-bits Linux under the "i86_48-fedora" folder in each module. If you choose this option, be aware of the following limitations:
+
+* The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_48-fedora" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
+  * If you used the automake system and want to revert to the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo. 
+* The development Makefiles, as they are, provides only the default compilation options  - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass a `ADD_FLAGS` argument to the `make all` command.
+* The default directory for installation is `/usr/local/`, which usually requires sudo privilege. To override the installation prefix, change the value of `OPT` in the top-level Makefile of each package.
+
+To build using the development Makefiles, cd to the ION root directory and run:
+
+`make all`
+
+OR if you need to set specific compiler flags, run: 
+
+`make all ADD_FLAGS="<string of compiler options>"`
+
+To install ION, run:
+
+`sudo make install && sudo ldconfig`
+
+To uninstall ION, run:
+
+`sudo make uninstall`
+
+To remove all build artifacts, run:
+
+`make clean`
+
+##### Build Individual Packages
+
+It's also possible to build the individual packages of ION, using the development Makefiles in the package subdirectories. If you choose this option, be aware of the dependencies among the packages:
 
 * The "ici" package must be built (run `make` and `make install`) before any other package.
 * The "bp" package is dependent on "dgr" and "ltp" and "bssp" as well as "ici"
@@ -145,13 +198,21 @@ It's also possible to build the individual packages of ION, using a set of platf
 
 For more detailed instruction on building ION, see section 2 of the "ION Design and Operation Guide" document that is distributed with this package.
 
-If you have executed `./configure` already, the development `Makefile` in each individual modules as well as the top-level `Makefile` in the ION root directory will be renamed as `Makefile.dev`. Because the automake system and the manual build systems organize the libraries differently, it is important that if you plan to switch from the automake system back to the manual build using the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo. 
-
-Also, be aware that these development Makefiles install everything into subdirectories of `/usr/local`, so make sure they are part of your execution and libary paths. To override this behavior, change the value of `OPT` in the top-level Makefile of each package.
-
 Additional details are provided in the README.txt files in the root directories of the subsystems.
 
 All Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake before trying to build ION.
+
+#### Method 2: Using the ion-core Package
+
+The `ion-core` package contains only a subset of essential BP functionalities - particular those features that are more stable and have been deployed for operations previously. The `ion-core` package can be downloaded [here](https://github.com/nasa-jpl/ion-core). Please following the `README.md` file there for installation instructions.
+
+## Windows
+
+To install ION for Windows, please download the Windows installer for ION 4.1.2 or earlier versions from the Source Forge archive [here](https://sourceforge.net/projects/ion-dtn/). 
+
+For ION 4.1.3, no installer is provided. Instead, you can download the Windows installation instructions [here.](https://github.com/nasa-jpl/ION-DTN/blob/current/Building%20ION%20from%20source%20on%20Windows.pdf)
+
+For ION 4.1.3s, a prototype automake build system will be been released for for beta testing.
 
 ## Running ION
 
