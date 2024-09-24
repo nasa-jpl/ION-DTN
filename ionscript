@@ -45,9 +45,9 @@ function USAGE {
 	echo
 	echo    "IONSCRIPT: Interplanetary Overlay Network configuration creation script."
 	echo    "USAGE:"
-	echo    "	ionscript <-I input | -O output>	[-A] [-t tag] 	[-a acsrc]		[-b bprc]"
-	echo    "            [-B bssrc]	[-c cfdprc] 	[-d dtn2rc]   	[-D dtpcrc]		[-i ionrc]"
-	echo -n "			 [-l ltprc]	[-m imcrc]		[-p ipnrc]		[-s ionsecrc]"
+	echo    "	ionscript <-I input | -O output>		[-A] [-t tag] 	[-a acsrc]		[-b bprc]"
+	echo    "            [-B bssprc]	[-c cfdprc] 	[-d dtn2rc]   	[-D dtpcrc]		[-i ionrc]"
+	echo -n "			 [-l ltprc]		[-m imcrc]		[-p ipnrc]		[-s ionsecrc]"
 	echo
 	echo "	-I input	Specifies file containing the configuration for each"
 	echo "			ion administration program. Each section must be"
@@ -76,8 +76,8 @@ function USAGE {
 	echo "			Default filename is input|output.tag.acsrc."
 	echo "	-b bprc		Specifies file bprc to be used with bpadmin."
 	echo "			Default filename is input|output.tag.bprc."
-	echo "	-B bssrc	Specifies file bssrc to be used with bssadmin."
-	echo "			Default filename is input|output.tag.bssrc."
+	echo "	-B bssprc	Specifies file bssprc to be used with bsspadmin."
+	echo "			Default filename is input|output.tag.bssprc."
 	echo "	-c cfdprc	Specifies file cfdprc to be used with cfdpadmin."
 	echo "			Default filename is input|output.tag.cfdprc."
 	echo "	-d dtn2rc	Specifies file dtn2rc to be used with dtn2admin."

@@ -35,7 +35,7 @@ function USAGE {
 	echo
 	echo    "IONSTART: Interplanetary Overlay Network startup script"
 	echo    "USAGE:"
-	echo    "	ionstart [-I config]	[-t tag]		[-a acsrc]		[-b bprc]		[-B bssrc]"
+	echo    "	ionstart [-I config]	[-t tag]		[-a acsrc]		[-b bprc]		[-B bssprc]"
 	echo    "	         [-c cfdprc]	[-d dtn2rc]		[-e biberc]		[-i ionrc]		[-l ltprc]"
 	echo -n "	         [-m imcrc]		[-p ipnrc]		[-s ionsecrc]	[-S bpsecrc] 	[-L ltpsecrc]"
 	echo    ""
