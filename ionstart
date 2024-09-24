@@ -51,20 +51,38 @@ function USAGE {
 	echo "			in config file.  If unspecified, sections with no tag"
 	echo "			are used."
 	echo
-    echo "  -a acsrc    Specifies file acsrc to be used to configure acsadmin."
-	echo "	-b bprc		Specifies file bprc to be used to configure bpadmin."
-	echo "	-B bssrc	Specifies file bssrc to be used to configure bssadmin."
+    echo "  -a acsrc    Specifies file acsrc to be used to configure acsadmin. (BPv6 only)"
+	echo "	-b bprc	<opt: seconds>		Specifies file bprc to be used to configure bpadmin with delay."
+	echo "	-B bssprc	Specifies file bssprc to be used to configure bsspadmin."
 	echo "	-c cfdprc	Specifies file cfdprc to be used to configure cfdpadmin."
 	echo "	-d dtn2rc	Specifies file dtn2rc to be used to configure dtn2admin."
 	echo "	-e biberc	Specifies file biberc to be used to configure bibeadmin."
-	echo "	-i ionrc	Specifies file ionrc to be used to configure ionadmin."
+	echo "	-i ionrc <opt: seconds> 	Specifies file ionrc to be used to configure ionadmin with delay."
 	echo "	-l ltprc	Specifies file ltprc to be used to configure ltpadmin."
-	echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin."
+	echo "	-m imcrc	Specifies file imcrc to be used to configure imcdmin. (BPv6 only)"
 	echo "	-p ipnrc	Specifies file ipnrc to be used to configure ipnadmin."
 	echo "	-s ionsecrc	Specifies file ionsecrc to be used to configure ionsecadmin."
 	echo "	-S bpsecrc	Specifies file bpsecrc to be used to configure bpsecadmin."
 	echo "	-L ltpsecrc	Specifies file ltpsecrc to be used to configure ltpsecadmin."
+	echo ""
+	echo "  <second>:   optional for -i and -b. Admin program will run these files after initial launch"
+	echo "              of non-delayed rc files. If delay is set as 0 explicitly, file will launch"
+	echo "              immediately after all non-delayed rc files were executed."
 }
+
+# Check the bundle protocol version
+BP_VERSION=$(bpversion)
+if [[ "${BP_VERSION}" != "bpv6" ]]; then
+	BP_V6_ONLY=true
+else
+	BP_V6_ONLY=false
+fi
+
+# Declare an array to hold multiple ionrc files
+declare -a IONRC_FILES=()
+declare -a BPRC_FILES=()
+declare -a DELAYED_IONRC_FILES=()
+declare -a DELAYED_BPRC_FILES=()
 
 # check for all the options
 
@@ -72,11 +90,18 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 	case $options in
 		t ) TAG="${OPTARG}";;
 		i ) IONRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The ionrc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
+            if [[ ! -r "${IONRC}" ]]; then
+                echo "The ionrc file ${IONRC} can't be read."
+                failure="TRUE"
+            else
+                # Check if the next argument is a digit (indicating a delay)
+                if [[ ${!OPTIND} =~ ^[0-9]+$ ]]; then
+                    DELAYED_IONRC_FILES+=("${IONRC}" "${!OPTIND}")
+                    shift
+                else
+                    IONRC_FILES+=("${IONRC}")
+                fi
+            fi;;
 		c ) CFDPRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]]; then
 				echo
@@ -125,17 +150,28 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 				echo
 				echo "The acsrc file ${OPTARG} can't be read."
 				failure="TRUE"
+			fi
+			if [[ "$BP_V6_ONLY" == true ]]; then
+				echo "Error: ACSRC is not supported by bpv7. Stopping ionstart."
+				exit 1
 			fi;;
 		b ) BPRC="${OPTARG}"
+            if [[ ! -r "${BPRC}" ]]; then
+                echo "The bprc file ${BPRC} can't be read."
+                failure="TRUE"
+            else
+                # Check if the next argument is a digit (indicating a delay for -id)
+                if [[ ${!OPTIND} =~ ^[0-9]+$ ]]; then
+                    DELAYED_BPRC_FILES+=("${BPRC}" "${!OPTIND}")
+                    shift
+                else
+                    BPRC_FILES+=("${BPRC}")
+                fi
+            fi;;
+		B ) BSSPRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
 				echo
-				echo "The bprc file ${OPTARG} can't be read."
-				failure="TRUE"
-			fi;;
-		B ) BSSRC="${OPTARG}"
-			if [[ ! -r "${OPTARG}" ]] ; then
-				echo
-				echo "The bssrc file ${OPTARG} can't be read."
+				echo "The bssprc file ${OPTARG} can't be read."
 				failure="TRUE"
 			fi;;
 		m ) IMCRC="${OPTARG}"
@@ -143,6 +179,10 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 				echo
 				echo "The imcrc file ${OPTARG} can't be read."
 				failure="TRUE"
+			fi
+			if [[ "$BP_V6_ONLY" == true ]]; then
+				echo "Error: IMCRC is not supported by bpv7. Stopping ionstart."
+				exit 1
 			fi;;
 		l ) LTPRC="${OPTARG}"
 			if [[ ! -r "${OPTARG}" ]] ; then
@@ -165,7 +205,7 @@ while getopts ":t:i:c:I:d:e:p:b:l:L:s:S:a:B:m:h" options; do
 	esac
 done
 
-if [[ -z "${CONFIGFILE}" && -z "${IONRC}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${BPSECRC}" && -z "${LTPSECRC}" && -z "${DTN2RC}" && -z "${BIBERC}" && -z "${ACSRC}" && -z "${BSSRC}" && -z "${IMCRC}" ]] ; then
+if [[ -z "${CONFIGFILE}" && -z "${IONRC_FILES}" && -z "${BPRC}" && -z "${CFDPRC}" && -z "${LTPRC}" && -z "${IPNRC}" && -z "${IONSECRC}" && -z "${BPSECRC}" && -z "${LTPSECRC}" && -z "${DTN2RC}" && -z "${BIBERC}" && -z "${ACSRC}" && -z "${BSSPRC}" && -z "${IMCRC}" ]] ; then
 	echo
 	echo "You must define some configuration files for input, use any combination of the"
 	echo "-b -B -c -d -e -i -I -l -L -m -p -s -S -a options to define them."
@@ -177,7 +217,7 @@ if [[ "${failure}" == "TRUE" ]] ; then
 	exit 1
 fi
 
-if [[ ! -z "${BSSRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
+if [[ ! -z "${BSSPRC}" ]] && [[ ! -z "${IPNRC}" ]] ; then
 	echo "Error: bss and ipn are mutually exclusive!"
 	exit 1
 fi
@@ -188,11 +228,14 @@ if [[ ! -z "${CONFIGFILE}" ]] ; then
 	awk -f "${AWKSCRIPT}" -v configfile="${CONFIGFILE}" -v tag="${TAG}" "${CONFIGFILE}"
 fi
 
-if [[ ! -z "${IONRC}" ]] ; then
-	echo
-	echo "Now running ionadmin using ${IONRC}"
-	ionadmin "${IONRC}"
-fi
+# Process each IONRC file in the order provided
+for IONRC in "${IONRC_FILES[@]}"; do
+	if [[ ! -z "${IONRC}" ]] ; then
+		echo
+		echo "Now running ionadmin using ${IONRC}"
+		ionadmin "${IONRC}"
+	fi
+done
 
 if [[ ! -z "${ACSRC}" ]] ; then
         echo
@@ -224,11 +267,14 @@ if [[ ! -z "${LTPRC}" ]] ; then
 	ltpadmin "${LTPRC}"
 fi
 
-if [[ ! -z "${BPRC}" ]] ; then
-	echo
-	echo "Now running bpadmin using ${BPRC}"
-	bpadmin "${BPRC}"
-fi
+# Process each BPRC file in the order provided
+for BPRC in "${BPRC_FILES[@]}"; do
+	if [[ ! -z "${BPRC}" ]] ; then
+		echo
+		echo "Now running bpadmin using ${BPRC}"
+		bpadmin "${BPRC}"
+	fi
+done
 
 if [[ ! -z "${IPNRC}" ]] ; then
 	echo
@@ -254,10 +300,10 @@ if [[ ! -z "${IMCRC}" ]] ; then
         imcadmin "${IMCRC}"
 fi
 
-if [[ ! -z "${BSSRC}" ]] ; then
+if [[ ! -z "${BSSPRC}" ]] ; then
         echo
-        echo "Now running bssadmin using ${BSSRC}"
-        bssadmin "${BSSRC}"
+        echo "Now running bsspadmin using ${BSSPRC}"
+        bsspadmin "${BSSPRC}"
 fi
 
 if [[ ! -z "${CFDPRC}" ]] ; then
@@ -267,12 +313,38 @@ if [[ ! -z "${CFDPRC}" ]] ; then
 fi
 
 echo
-echo Allowing admin programs to complete...
+echo Complete initial launch. Allowing admin programs to complete...
 echo
 sleep 5
+
+# Execute delayed IONRC and BPRC configuration, if any
+# Process delayed IONRC files
+for ((i=0; i<${#DELAYED_IONRC_FILES[@]}; i+=2)); do
+	DELAYED_IONRC="${DELAYED_IONRC_FILES[i]}"
+	DELAY="${DELAYED_IONRC_FILES[i+1]}"
+	echo
+	echo "Waiting for ${DELAY} seconds before running ionadmin using ${DELAYED_IONRC}"
+	sleep "${DELAY}"
+	echo "Now running ionadmin using ${DELAYED_IONRC}"
+	ionadmin "${DELAYED_IONRC}"
+done
+
+# Process delayed BPRC files
+for ((i=0; i<${#DELAYED_BPRC_FILES[@]}; i+=2)); do
+	DELAYED_BPRC="${DELAYED_BPRC_FILES[i]}"
+	DELAY="${DELAYED_BPRC_FILES[i+1]}"
+	echo
+	echo "Waiting for ${DELAY} seconds before running ionadmin using ${DELAYED_BPRC}"
+	sleep "${DELAY}"
+	echo "Now running ionadmin using ${DELAYED_BPRC}"
+	bpadmin "${DELAYED_BPRC}"
+done
+
 
 echo
 echo "ION startup script completed."
 echo "You may find that the ION node has not started. If this is the case,"
 echo "some errors may have been reported to the console."
 echo "Further errors may be found in the file ion.log"
+
+# Add the "delayed" execution here....
