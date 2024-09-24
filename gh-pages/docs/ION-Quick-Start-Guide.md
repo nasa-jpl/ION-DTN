@@ -87,6 +87,14 @@ After running `./configure` with the appropriate options/flags, you can build IO
 
 `sudo ldconfig`
 
+To clean up compilation artifacts such as object files and shared libraries stored within the ION open-source directory, cd to the ION open-source directory and run:
+
+`make clean`
+
+To remove executables and shared libraries installed in the system, run:
+
+`sudo make uninstall`
+
 ### Adding Other Compile Time Switches
 
 If you want to set additional compile-time switches for a build, the place to do this to add them to the `./configure` command. To see a list of supported ION compiler options, see explanation provided by:
@@ -99,19 +107,13 @@ To build BPv6, run
 
 `./configure --enable-bpv6`
 
-To clean up compilation artifacts such as object files and shared libraries stored within the ION open-source directory, cd to the ION open-source directory and run:
+To build ION with enhanced watch character support, use the `--enable-ewchar` option.
 
-`make clean`
-
-To remove executables and shared libraries installed in the system, run:
-
-`sudo make uninstall`
-
-To introduce customized flags to ION's build process, you can add them via the `./configure` command as well:
+To introduce customized build flags, you can add them via the `./configure` in this manner:
 
 `./configure CFLAGS="<string of compiler options>"`
 
-For example, say you want to add additional source code and header files from the `/wkdir/customfile` and activate certain features controlled by the variables `GDSLOGGER` and `GDSWATCHER`. This can be accomplished through the `./configure` command:
+For example, say you want to add additional source code and header files from the `/wkdir/customfile` and activate certain features controlled by the `GDSLOGGER` and `GDSWATCHER` - software hooks to add time stamps to ion.log and writing time-stamped watch characters to a file for analysis. This can be accomplished through the `./configure` command as follows:
 
 `./configure CFLAGS="-I/wkdir/customfile -DGDSLOGGER -DGDSWATCHER"`
 
