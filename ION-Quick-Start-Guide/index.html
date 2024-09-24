@@ -1919,19 +1919,20 @@
 <p><code>sudo make install</code></p>
 <p><code>make test</code> (optional)</p>
 <p><code>sudo ldconfig</code></p>
+<p>To clean up compilation artifacts such as object files and shared libraries stored within the ION open-source directory, cd to the ION open-source directory and run:</p>
+<p><code>make clean</code></p>
+<p>To remove executables and shared libraries installed in the system, run:</p>
+<p><code>sudo make uninstall</code></p>
 <h3 id="adding-other-compile-time-switches">Adding Other Compile Time Switches</h3>
 <p>If you want to set additional compile-time switches for a build, the place to do this to add them to the <code>./configure</code> command. To see a list of supported ION compiler options, see explanation provided by:</p>
 <p><code>./configure -h</code></p>
 <p>By default, Bundle Protocol V7 will be built and installed, but BPv6 source code is still available. The BPv6 implementation is essentially the same as that of ION 3.7.4, with only critical bugs being updated going forward. All users are encouraged to switch to BPV7.</p>
 <p>To build BPv6, run</p>
 <p><code>./configure --enable-bpv6</code></p>
-<p>To clean up compilation artifacts such as object files and shared libraries stored within the ION open-source directory, cd to the ION open-source directory and run:</p>
-<p><code>make clean</code></p>
-<p>To remove executables and shared libraries installed in the system, run:</p>
-<p><code>sudo make uninstall</code></p>
-<p>To introduce customized flags to ION's build process, you can add them via the <code>./configure</code> command as well:</p>
+<p>To build ION with enhanced watch character support, use the <code>--enable-ewchar</code> option.</p>
+<p>To introduce customized build flags, you can add them via the <code>./configure</code> in this manner:</p>
 <p><code>./configure CFLAGS="&lt;string of compiler options&gt;"</code></p>
-<p>For example, say you want to add additional source code and header files from the <code>/wkdir/customfile</code> and activate certain features controlled by the variables <code>GDSLOGGER</code> and <code>GDSWATCHER</code>. This can be accomplished through the <code>./configure</code> command:</p>
+<p>For example, say you want to add additional source code and header files from the <code>/wkdir/customfile</code> and activate certain features controlled by the <code>GDSLOGGER</code> and <code>GDSWATCHER</code> - software hooks to add time stamps to ion.log and writing time-stamped watch characters to a file for analysis. This can be accomplished through the <code>./configure</code> command as follows:</p>
 <p><code>./configure CFLAGS="-I/wkdir/customfile -DGDSLOGGER -DGDSWATCHER"</code></p>
 <h3 id="bpsec-logging">BPSec Logging</h3>
 <p>The BPSec implementation in ION provides 4 levels of debugging/logging:</p>
