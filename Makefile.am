@@ -2130,6 +2130,8 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/rgr/rgr.c \
 	bpv7/library/ext/rgr/rgr_utils.h \
 	bpv7/library/ext/rgr/rgr_utils.c \
+	bpv7/utils/bpsecadmin_config.c \
+	bpv7/utils/jsmn.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
@@ -2170,6 +2172,8 @@ libbp_la_SOURCES = \
 	bpv7/library/ext/snw/snw.c \
 	bpv7/ipn/libipnfw.c \
 	bpv7/saga/saga.c \
+	bpv7/utils/bpsecadmin_config.c \
+	bpv7/utils/jsmn.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
@@ -2259,7 +2263,7 @@ bplist_SOURCES = bpv7/utils/bplist.c
 bplist_LDADD = libici.la $(bplib)
 bplist_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 
-bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c bpv7/utils/bpsecadmin_config.c bpv7/utils/jsmn.c
+bpsecadmin_SOURCES = bpv7/utils/bpsecadmin.c
 bpsecadmin_LDADD = libici.la $(bplib)
 bpsecadmin_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 

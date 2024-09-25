@@ -8,7 +8,6 @@
 
 ION_OPEN_SOURCE=1
 OS_VERS=""
-MINGW="false"
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
 # Since ipcs truncates usernames to 10 characters, we need to match against a
@@ -190,7 +189,7 @@ else
 	fi
 fi
 
-if [ "$MINGW" == "false" ]; then
+if [ "$MINGW" != "true" ]; then
 	#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
 	echo "Sending TERM to the processes..."
 	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
@@ -202,7 +201,7 @@ if [ "$MINGW" == "false" ]; then
 
 	sleep 2
 else
-	#note that TERM isn't supported in Windows
+	# note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
 	echo "Killing processes using PowerShell..."
     powershell -Command "foreach (\$proc in '${KILLPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> null
 fi
@@ -222,7 +221,8 @@ rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
-if [ "$MINGW" = true ]; then 
+if [ "$MINGW" == "true" ]; then 
+	# for 2024 redesign of Windows MSYS
 	powershell remove_win_shmem.ps1 
 elif [[ -z "$OS_VERS" ]]; then 
 	# For mac >=10.5 and Linux
