@@ -190,7 +190,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	readResult = fread(input_buffer, 1, fileSize, file);
 	if (readResult != fileSize)
 	{
-		fprintf(stderr, "Error reading from %s: expected %zu, got %zu bytes.\n",
+		fprintf(stderr, "Error reading from %s: expected %ld, got %zu bytes.\n",
 				fileName, fileSize, readResult);
 	}
 	fclose(file);
