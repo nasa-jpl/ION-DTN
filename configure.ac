@@ -131,6 +131,7 @@ case $host_os in
 		;;
 	mingw*|cygwin*)
 		AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
+		AC_DEFINE([new_mingw],[1],[Build Mingw/Msys2 specific platform code.])
 		PLATFORM="mingw"
                 AM_CFLAGS="$AM_CFLAGS -Dmingw"
                 build_windows=yes
