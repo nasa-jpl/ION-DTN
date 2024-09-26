@@ -314,6 +314,13 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 
 #else				/****	not Windows		*********/
 
+  /* Note: if _POSIX_C_SOURCE is defined */
+  /* __BSD_VISIBLE will be overwritten  */
+#ifdef freebsd
+#define __BSD_VISIBLE 1
+#include <sys/types.h>
+#endif
+
 #include <sys/times.h>
 #include <limits.h>
 #include <sys/wait.h>

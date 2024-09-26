@@ -29,9 +29,11 @@
  */
 
 #ifndef darwin
+#ifndef freebsd
 #define _GNU_SOURCE
 /* macos/darwin handles this differently */
-#define _POSIX_C_SOURCE 200112L
+/* #define _POSIX_C_SOURCE 200112L */
+#endif
 #endif
 
 #include "ionsec.h"
