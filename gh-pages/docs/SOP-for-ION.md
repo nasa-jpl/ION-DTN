@@ -342,7 +342,6 @@ ExecStartPre=/usr/local/bin/ionscript -O /opt/configs/ion.rc -i /opt/configs/OPS
 ExecStart=ionstart -I /opt/configs/ion.rc
 ExecStartPost=chmod g+w {{ cfgs }}/ion.log
 ExecStop=/bin/bash -l -c /usr/local/bin/killm
-ExecStopPost=/bin/bash -l -c /usr/local/bin/killm
 
 [Install]
 WantedBy=multi-user.target
@@ -379,6 +378,14 @@ WantedBy=multi-user.target
 * Running other ION executables as a service like bpecho is untested, but should behave in a similar way.
 * If running another service, make sure it starts after ION is started like the bpecho service does.
 * See here for more details on creating systemD service files: [systemd.service](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html).
+
+#### SystemD Service Operational Notes
+
+Operating DTN applications with the systemD service is different than running from a script, so few things need to be kept in mind to ensure proper operations.
+
+- Applications that do not modify ION parameters can be started by any user.
+- Changes to ION parameters must be made under the user that started ION, so admin programs can only be run by it.
+- If ION parameters are changed by another user, it is simpler to reboot than try resolving the semaphore permission issues.
 
 ### Permissions
 
