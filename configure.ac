@@ -443,7 +443,8 @@ if test x$CRYPTO_MBEDTLS = xtrue; then
 		[$MBED_LIB_PATH/libmbedtls.$S_LIB_END $MBED_LIB_PATH/libmbedx509.$S_LIB_END $MBED_LIB_PATH/libmbedcrypto.$S_LIB_END],
 		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto -L$MBED_LIB_PATH"
 		 AM_CFLAGS="$AM_CFLAGS -I$MBED_INC_PATH"],
-		[AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto])]
+		[AC_MSG_WARN([If you have MbedTLS installed in a non-standard location, add MBED_LIB_PATH=<path-to-mbedtls-sharedlibrary> and MBED_INC_PATH=<path-to-mbedtls-header-files> to the ./configure command line.])
+		 AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto.])]
 		)
 
 	#AC_DEFINE([CRYPTO_MBEDTLS],1, [Enable MBEDTLS Crypto])
@@ -511,8 +512,8 @@ AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
-AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--disable-valgrind],[Do not enable valgrind debugging [default=check]]),
-              [ ], [ enable_valgrind=check ])
+AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--enable-valgrind],[Enable valgrind debugging [default=check]]),
+              [ enable_valgrind=yes], [ enable_valgrind=check ])
 
 if test "x$enable_valgrind" != xno; then
   AC_CHECK_HEADER(valgrind/valgrind.h,
