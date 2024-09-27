@@ -582,12 +582,12 @@ static UnmarshalFn	findUnmarshalFn(Subject *subject)
 
 static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 {
-	char		*newContent;
-	int		newContentLength;
-	UnmarshalFn	unmarshal;
-	char		keyBuffer[512];
-	int		keyBufferLength = sizeof keyBuffer;
-	int		keyLength;
+	char			*decryptedContent = NULL;
+	int				decryptedContentLength = 0;
+	UnmarshalFn		unmarshal = NULL;
+	char			keyBuffer[512] = {0};
+	int				keyBufferLength = sizeof (keyBuffer);
+	int				keyLength = 0;
 
 	/*	Decrypt content as necessary.				*/
 
@@ -595,9 +595,9 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 		/*	If encrypted, leave it so for transmission.	*/
 	|| subject->symmetricKeyName == NULL)	/*	not encrypted	*/
 	{
-		newContentLength = msg->contentLength;
-		newContent = TAKE_CONTENT_SPACE(msg->contentLength);
-		if (newContent == NULL)
+		decryptedContentLength = msg->contentLength;
+		decryptedContent = TAKE_CONTENT_SPACE(msg->contentLength);
+		if (decryptedContent == NULL)
 		{
 			writeMemoNote("[?] Can't copy AAMS msg content",
 					itoa(msg->contentLength));
@@ -605,7 +605,7 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 			return -1;
 		}
 
-		memcpy(newContent, msg->content, msg->contentLength);
+		memcpy(decryptedContent, msg->content, msg->contentLength);
 	}
 	else
 	{
@@ -619,10 +619,10 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 			return -1;
 		}
 
-		newContentLength = decryptUsingSymmetricKey(&newContent,
+		decryptedContentLength = decryptUsingSymmetricKey(&decryptedContent,
 				keyBuffer, keyLength, msg->content,
 				msg->contentLength);
-		if (newContentLength == 0)
+		if (decryptedContentLength == 0)
 		{
 			putErrmsg("Can't decrypt AAMS msg content.",
 					subject->name);
@@ -631,8 +631,8 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 		}
 	}
 
-	msg->content = newContent;
-	msg->contentLength = newContentLength;
+	msg->content = decryptedContent;
+	msg->contentLength = decryptedContentLength;
 
 	/*	Unmarshal content as necessary.				*/
 
@@ -652,9 +652,9 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 		return 0;	/*	Original content recovered.	*/
 	}
 
-	newContentLength = unmarshal((void **) &newContent, msg->content,
+	decryptedContentLength = unmarshal((void **) &decryptedContent, msg->content,
 			msg->contentLength);
-	if (newContentLength == 0)
+	if (decryptedContentLength == 0)
 	{
 		putErrmsg("Can't unmarshal AAMS msg content.", subject->name);
 		RELEASE_CONTENT_SPACE(msg->content);
@@ -662,8 +662,9 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 		return -1;
 	}
 
-	msg->content = newContent;
-	msg->contentLength = newContentLength;
+	//assignment is suspect
+	msg->content = decryptedContent;
+	msg->contentLength = decryptedContentLength;
 	return 0;
 }
 
@@ -940,17 +941,17 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 			int *contentLength, unsigned char *header,
 			AmsMsgType msgType)
 {
-	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
-	unsigned long	u8;
-	unsigned char	u1;
-	short		i2;
-	Subject		*subject;
-	MarshalFn	marshal;
-	char		*newContent;
-	int		newContentLength;
-	char		keyBuffer[512];
-	int		keyBufferLength = sizeof keyBuffer;
-	int		keyLength;
+	int				myContinNbr = (_mib(NULL))->localContinuumNbr;
+	unsigned long	u8 = 0;
+	unsigned char	u1 = 0;
+	short			i2 = 0;
+	Subject			*subject = NULL;
+	MarshalFn		marshal = NULL;
+	char			*encryptedContent = NULL;
+	int				encryptedContentLength = 0;
+	char			keyBuffer[512] = {0};
+	int				keyBufferLength = sizeof (keyBuffer);
+	int				keyLength = 0;
 
 	/*	First octet is two bits of version number (which is
 	 *	always 00 for now) followed by two bits of message
@@ -1004,33 +1005,36 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 
 	if (marshal)
 	{
-		newContentLength = marshal(&newContent, (void *) *content,
+		encryptedContentLength = marshal(&encryptedContent, (void *) *content,
 				*contentLength);
-		if (newContentLength == 0)
+		if (encryptedContentLength == 0)
 		{
 			putErrmsg("Can't marshal AAMS msg content.",
 					subject->name);
 			return -1;
 		}
 	}
-	else
+	//this looks to be completely unnecesary--------------------
+	//we can't know the length of new content (yet).. its hasn't been encrypted!
+	/* else
 	{
-		newContentLength = *contentLength;
-		newContent = MTAKE(*contentLength);
-		if (newContent == NULL)
+		encryptedContentLength = *contentLength;
+		encryptedContent = MTAKE(encryptedContentLength);
+		if (encryptedContent == NULL)
 		{
 			putErrmsg("Can't copy AAMS msg content.",
 					itoa(*contentLength));
 			return -1;
 		}
 
-		memcpy(newContent, *content, *contentLength);
-	}
+		memcpy(encryptedContent, *content, *contentLength);
+	} */
 
-	*content = newContent;
-	*contentLength = newContentLength;
+	//sky -> this is suspect (causes encrypt to fail)!
+	//*content = encryptedContent;
+	//*contentLength = encryptedContentLength;
 
-	/*	Encrypt content as necessary.				*/
+	/*	-----------Encrypt content as necessary------------	*/
 
 	if (sap->role->nbr == 1			/*	RAMS		*/
 		/*	If message needs encryption, it's already done.	*/
@@ -1051,10 +1055,10 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		*content = NULL;
 		return -1;
 	}
-
-	newContentLength = encryptUsingSymmetricKey(&newContent, keyBuffer,
+	/* encryptedContent is allocated inside encryptUsingSymmetricKey */
+	encryptedContentLength = encryptUsingSymmetricKey(&encryptedContent, keyBuffer,
 			keyLength, *content, *contentLength);
-	if (newContentLength == 0)
+	if (encryptedContentLength == 0)
 	{
 		putErrmsg("Can't encrypt AAMS msg content.", subject->name);
 		MRELEASE(*content);
@@ -1062,8 +1066,15 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		return -1;
 	}
 
-	*content = newContent;
-	*contentLength = newContentLength;
+	/* Who is responsible for freeing *content ??? */
+
+	//*content = encryptedContent;
+	//sky copies here instead of reasigning pointer
+	memcpy(*content, encryptedContent, encryptedContentLength);
+	MRELEASE(encryptedContent);
+	encryptedContent = NULL;
+
+	*contentLength = encryptedContentLength;
 	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
 	*(header + 15) = (*contentLength) & 0x000000ff;
 	return 0;
