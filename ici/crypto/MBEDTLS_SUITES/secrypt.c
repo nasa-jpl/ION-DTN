@@ -196,10 +196,7 @@ int crypt_and_hash_buffer(
     char *md, 
     char *my_key
 )
-{
-    const size_t BUFFSIZE = 1024; 
-    const size_t MAXKEYSIZE = 512;
-    
+{    
     int i; //iterator
     int status = -1;
     unsigned n; //used for key
@@ -211,7 +208,7 @@ int crypt_and_hash_buffer(
     unsigned char *output_buffer = NULL;
     size_t output_length = 0; //return 0 on failure
     
-    unsigned char key[MAXKEYSIZE];
+    unsigned char key[MAXKEYSIZE] = {0};
     unsigned char digest[MBEDTLS_MD_MAX_SIZE];
     memset(digest, 0, MBEDTLS_MD_MAX_SIZE);
     unsigned char buffer[BUFFSIZE];
