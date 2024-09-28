@@ -396,7 +396,6 @@ iciinclude = \
 	ici/include/zco.h \
 	ici/include/cbor.h \
 	ici/include/crc.h \
-	ici/include/ionsec.h \
 	ici/include/bulk.h \
 	ici/include/csi.h
 
