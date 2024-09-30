@@ -35,8 +35,11 @@ extern void		ConstructEnvelope(unsigned char *envelope,
 				char *enclosure, int controlCode);
 extern int		EnvelopeHeader(char *envelope, EnvelopeField conId);
 extern char		*EnvelopeContent(char *envelope, int contentLength);
+/* 
+Sky deprecates this: never used
 extern void		GetEnvelopeSpecification(char* env, int *continuumNbr,
-				int *unitNbr, int *roleNbr);
+				int *unitNbr, int *roleNbr); 
+*/
 
 extern Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 				int moduleNbr, int subjectNbr,

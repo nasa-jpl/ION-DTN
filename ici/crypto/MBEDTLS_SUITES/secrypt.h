@@ -101,6 +101,8 @@
 // Default cipher and message digest
 #define CIPHER "AES-256-GCM"
 #define MD "SHA256"
+#define MAXKEYSIZE 512
+#define BUFFSIZE 1024
 
 // Macro definitions for operation modes
 #define MODE_ENCRYPT    0

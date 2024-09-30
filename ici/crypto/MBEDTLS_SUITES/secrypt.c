@@ -196,22 +196,19 @@ int crypt_and_hash_buffer(
     char *md, 
     char *my_key
 )
-{
-    const size_t BUFFSIZE = 1024; 
-    const size_t MAXKEYSIZE = 512;
-    
+{    
     int i; //iterator
     int status = -1;
-    unsigned n; //used for key
+    //unsigned n; //used for key
     int exit_code = MBEDTLS_EXIT_FAILURE; //default to failure
     size_t keylen=0, ilen=0, olen=0;
     size_t input_buffer_size = *input_length;
     
-    char *p = NULL;
+    //char *p = NULL;
     unsigned char *output_buffer = NULL;
     size_t output_length = 0; //return 0 on failure
     
-    unsigned char key[MAXKEYSIZE];
+    unsigned char key[MAXKEYSIZE] = {0};
     unsigned char digest[MBEDTLS_MD_MAX_SIZE];
     memset(digest, 0, MBEDTLS_MD_MAX_SIZE);
     unsigned char buffer[BUFFSIZE];
@@ -298,7 +295,7 @@ int crypt_and_hash_buffer(
     }
 
     /*
-     * Read the secret key from file (or direct user input if no key found)
+     * Read the secret key from file
      */
     if ((fkey = fopen(my_key, "rb")) != NULL) 
     {
@@ -306,7 +303,8 @@ int crypt_and_hash_buffer(
         fclose(fkey);
     } 
     else 
-    {
+     {
+        /*
         printf("WARNING: using literal value as key (no key file found)!\n");
         if (memcmp(my_key, "hex:", 4) == 0) {
             p = &my_key[4];
@@ -318,7 +316,7 @@ int crypt_and_hash_buffer(
                 key[keylen++] = (unsigned char) n;
                 p += 2;
             }
-        } else 
+        } else  */
         {
             keylen = strlen(my_key);
 

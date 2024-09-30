@@ -13,6 +13,7 @@
 /*									*/
 
 #include "ams.h"
+#include <bp.h>
 
 static int	_amslog_running(int *value)
 {
@@ -258,6 +259,12 @@ messages to stdout.\n", stderr);
 		return -1;
 	}
 
+	/* attach for ionsec database (for key retrieval) */
+	if (bp_attach() != 0)
+	{		
+		return -1;
+	}
+
 	while (_amslog_running(NULL))
 	{
 		asserting = 1;
@@ -451,5 +458,7 @@ this subject", subjectName);
 
 	ams_unregister(me);
 	writeErrmsgMemos();
+	bp_detach();
+
 	return 0;
 }
