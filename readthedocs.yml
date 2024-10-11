@@ -1,0 +1,28 @@
+version: 2
+
+# Specify branches or tags
+versions:
+  only:
+    - ION-documentation
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.10"
+
+python:
+  install:
+    - method: pip
+      path: .
+    - requirements: readthedocs-requirements.txt
+
+mkdocs:
+  configuration: gh-pages/mkdocs.yml  # Path to the mkdocs.yml in the gh-pages directory
+
+commands:
+  - apt-get update
+  - apt-get install -y perl cpanminus  # Install Perl and cpanminus
+  - cpanm Pod::Markdown  # Install the required Perl module
+  - cd gh-pages/docs
+  - chmod +x ./convert-pod-to-md.sh
+  - ./convert_pod_to_md.sh  # Script to convert POD to Markdown
