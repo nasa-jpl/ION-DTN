@@ -1,5 +1,14 @@
 API = ../library
 INCL = ../include
+ICI_INCL = ../../ici/include
+LTP_INCL = ../../ltp/include
+BSSP_INCL = ../../bssp/include
+BLOOM_INCL = ../../ici/libbloom-master
+ICI_LIB = ../../ici/i86_64-fedora/lib
+LTP_LIB = ../../ltp/i86_64-fedora/lib
+DGR_LIB = ../../dgr/i86_64-fedora/lib
+BSSP_LIB = ../../bssp/i86_64-fedora/lib
+BLOOM_LIB = ../../ici/libbloom-master/build
 UTILS = ../utils
 TEST = ../test
 DAEMON = ../daemon
@@ -19,13 +28,14 @@ BIBE = ../bibe
 IPND = ../ipnd
 SAGA = ../saga
 BPSEC = ../bpsec
+METADATA = ../metadata
 UNIBO_CGR = 0
 # UNIBO_CGR = 1
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC
 # OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3 -DENABLE_IMC -DBPSEC -DUNIBO_CGR -DUNIBO_CGR_ENH_WITHOUT_EXP_EXTENSIONS
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/bpq -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(API)/ext/imc -I$(BIBE) -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -DBP_EXTENDED
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(METADATA) -I$(IPN) -I$(IMC) -I$(SAGA) -I$(DTN2) -I$(API) -I$(API)/ext -I$(API)/ext/pnb -I$(API)/ext/bpq -I$(API)/ext/meb -I$(API)/ext/bae -I$(API)/ext/hcb -I$(API)/ext/bpsec -I$(API)/ext/snw -I$(API)/ext/imc -I$(BIBE) -I$(BPSEC)/instr -I$(BPSEC)/policy -I$(BPSEC)/sci -I$(BPSEC)/utils -I$(STCP) -I$(UDP) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -I../../ici/crypto/NULL_SUITES -I$(LTP_INCL) -I../../dgr/include -I$(BSSP_INCL) -I$(BLOOM_INCL) -L$(ICI_LIB) -L$(LTP_LIB) -L$(DGR_LIB) -L$(BSSP_LIB) -L$(BLOOM_LIB) -DBP_EXTENDED
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -62,7 +72,8 @@ BPLIBS = \
 	libbp.so \
 	libcgr.so \
 	libstcpcla.so \
-	libudpcla.so
+	libudpcla.so \
+	libmetadata.so
 
 BPPOBJS = libbpP.o libipnfw.o libimcfw.o libdtn2fw.o bibe.o eureka.o saga.o bei.o pnb.o bpq.o meb.o bae.o hcb.o snw.o imc.o bpsec_util.o bpsec_instr.o bib.o bcb.o bpsec_policy.o bpsec_policy_event.o bpsec_policy_eventset.o bpsec_policy_rule.o bcb_aes_gcm_sc.o bib_hmac_sha2_sc.o ion_test_sc.o rfc9173_utils.o sc_util.o sc_value.o sci.o sci_valmap.o bpsec_asb.o
 
@@ -73,7 +84,7 @@ CGROBJS = libcgr.o
 
 LBP = -lbp
 
-RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion cpsd
+RUNTIMES = bpadmin bpsecadmin bpsink bpsource bpdriver bpecho bpcounter bpsendfile bprecvfile bpclock bptransit bpclm ipnadmin ipnfw ipnadminep dtn2admin dtn2fw dtn2adminep tcpcli tcpclo stcpcli stcpclo brsscla brsccla udpcli udpclo dgrcli dgrclo ltpcli ltpclo lgsend lgagent bptrace bpstats bplist bpcancel hmackeys bping bpstats2 bpchat imcfw imcadminep bsspcli bsspclo bibeclo bibeadmin bpnmtest ipnd cgrfetch bpversion bpcrash cpsd sendfile recvfile
 # dccpcli dccpclo
 
 ALL = check $(BPLIBS) $(RUNTIMES)
@@ -97,6 +108,15 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		for file in $(BPLIBS); \
+			do rm $(ROOT)/lib/$(notdir $$file); done
+		rm $(ROOT)/include/eureka.h
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
 
 #	-	-	Daemon executables	-	-	-	-
 
@@ -185,6 +205,10 @@ cgrfetch:	cgrfetch.o $(BPLIBS)
 bpversion:	bpversion.o
 		$(CC) -o bpversion bpversion.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpversion ./bin
+
+bpcrash:	bpcrash.o
+		$(CC) -o bpcrash bpcrash.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpcrash ./bin
 
 #	-	-	IPN executables	-	-	-	-	-
 
@@ -334,14 +358,29 @@ bpsendfile:	bpsendfile.o libbp.so $(BPLIBS)
 		$(CC) -o bpsendfile bpsendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpsendfile ./bin
 
+bpsendtest:	bpsendtest.o libbp.so $(BPLIBS)
+		$(CC) -o bpsendtest bpsendtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bpsendtest ./bin
+
 bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
 		$(CC) -o bprecvfile bprecvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bprecvfile ./bin
+
+bprecvtest:	bprecvtest.o libbp.so $(BPLIBS)
+		$(CC) -o bprecvtest bprecvtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
+		cp bprecvtest ./bin
 
 bpnmtest:	bpnmtest.o libbp.so $(BPLIBS)
 		$(CC) -o bpnmtest bpnmtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread -lm
 		cp bpnmtest ./bin
 
+sendfile:	sendfile.o libbp.so $(BPLIBS)
+		$(CC) -o sendfile sendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
+		cp sendfile ./bin
+
+recvfile:	recvfile.o libbp.so $(BPLIBS)
+		$(CC) -o recvfile recvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lsecrypt -lmetadata -lpthread -lm
+		cp recvfile ./bin
 #	-	-	Libraries	-	-	-	-	-
 
 libbp.so:	libbp.o $(BPPOBJS) libbpnm.o
@@ -359,6 +398,10 @@ libstcpcla.so:	libstcpcla.o
 libudpcla.so:	libudpcla.o
 		$(LD) -o libudpcla.so libudpcla.o
 		cp libudpcla.so ./lib
+
+libmetadata.so:	metadata.o
+		$(LD) -o libmetadata.so metadata.o
+		cp libmetadata.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 
@@ -504,3 +547,6 @@ endif
 
 %.o:		$(SAGA)/%.c
 		$(CC) -I$(SAGA) -c $<
+
+%.o:		$(METADATA)/%.c
+		$(CC) -I$(METADATA) -c $<

@@ -1391,9 +1391,15 @@ void	*acquireSystemMemory(size_t size)
 	return block;
 }
 
-static void	watchToStdout(char token)
+static void	watchToStdout(char *token)
 {
-	oK(putchar(token));
+	/*  now handles string */
+	printf("%s",token);
+	
+	/* previous single char wchar
+		oK(putchar(token));
+	 */
+	
 	oK(fflush(stdout));
 }
 
@@ -1419,7 +1425,14 @@ void	setWatcher(Watcher watchFunction)
 
 void	iwatch(char token)
 {
-	(_watchOneEvent(NULL))(token);
+	char token_str[2] = " ";
+	token_str[0] = token;
+	(_watchOneEvent(NULL))(token_str);
+}
+
+void	iwatch_str(char *token_str)
+{
+	(_watchOneEvent(NULL))(token_str);
 }
 
 static void	logToStdout(char *text)
@@ -1764,7 +1777,7 @@ int	_iEnd(const char *fileName, int lineNbr, const char *arg)
 
 void	printStackTrace()
 {
-#if (defined(bionic) || defined(uClibc) || !(defined(linux)))
+#if (defined(bionic) || defined(uClibc) || !(defined(linux) || defined(darwin)))
 	writeMemo("[?] No stack trace available on this platform.");
 #else
 #define	MAX_TRACE_DEPTH	100
@@ -2475,9 +2488,14 @@ char	*addressToString(struct in_addr address, char *buffer)
 unsigned int	getAddressOfHost()
 {
 	char	hostnameBuf[MAXHOSTNAMELEN + 1];
+	getNameOfHost(hostnameBuf, sizeof(hostnameBuf));
+	unsigned int inetaddr = getInternetAddress(hostnameBuf);
+	if(inetaddr == 0){
+			putErrmsg("Couldn't look up own IP, defaulting to 127.0.0.1", NULL);
+			inetaddr = ntohl(0x100007F);
+	}
+	return inetaddr;
 
-	getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-	return getInternetAddress(hostnameBuf);
 }
 
 char	*addressToString(struct in_addr address, char *buffer)
@@ -2881,12 +2899,26 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 				fmt[fmtLen] = *cursor;
 				fmtLen++;
 				cursor++;
-				if ((*cursor) == 'l')	/*	Vast.	*/
+				if (LONG_LONG_OKAY)
 				{
-					isLongLong = 1;
-					fmt[fmtLen] = *cursor;
-					fmtLen++;
-					cursor++;
+					if (SPACE_ORDER == 3)
+					{
+						/*	Vast.		*/
+
+						isLongLong = 1;
+					}
+					else	/*	Check for "ll".	*/
+					{
+						if ((*cursor) == 'l')
+						{
+							/*	Vast.	*/
+
+							isLongLong = 1;
+							fmt[fmtLen] = *cursor;
+							fmtLen++;
+							cursor++;
+						}
+					}
 				}
 			}
 			else
@@ -2896,7 +2928,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 				&& (*(cursor + 2)) == '4')
 				{
 #ifdef mingw
-					isLongLong = 1;
+					isLongLong = 1; /*	Vast.	*/
 					fmt[fmtLen] = *cursor;
 					fmtLen++;
 					cursor++;

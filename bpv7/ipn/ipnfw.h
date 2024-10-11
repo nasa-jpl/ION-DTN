@@ -56,6 +56,7 @@ typedef struct
 
 typedef struct
 {
+	/*	dataLabel = -1 indicates "all others"			*/
 	unsigned int	dataLabel;
 
 	/*	destNodeNbr = -1 indicates "all others"			*/
@@ -64,10 +65,15 @@ typedef struct
 	/*	sourceNodeNbr = -1 indicates "all others"		*/
 	uvast		sourceNodeNbr;
 
+	/*	Routing override stuff.					*/
+
 	/*	neighbor = -1 indicates "no routing override"		*/
 	uvast		neighbor;
+	Object		ductExpression;		/*	sdrstring	*/
 
-	/*	priority = -1 indicates "no priority override"		*/
+	/*	QoS override stuff.					*/
+
+	/*	priority = -1 indicates "no QoS override"		*/
 	unsigned char	priority;		/*	CoS.		*/
 	unsigned char	ordinal;		/*	For priority 2.	*/
 	unsigned char	qosFlags;
@@ -89,6 +95,7 @@ extern int		ipn_setOvrd(unsigned int dataLabel,
 			/*	neighbor = -2 indicates
 			 		"no change from current value"	*/
 				uvast neighbor,
+				char *ovrdDuctExpression,
 			/*	priority = -2 indicates
 			 		"no change from current value"	*/
 				unsigned char priority,

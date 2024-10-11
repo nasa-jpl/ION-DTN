@@ -1,9 +1,12 @@
 INCL = ../include
+ICI_INCL = ../../ici/include
+ICI_LIB = ../../ici/i86_64-fedora/lib
+BP_LIB = ../../bpv7/i86_64-fedora/lib
 API = ../library
 TEST = ../test
 
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(TEST) -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../bpv7/include -I../../ici/library -I../../bpv7/library -L$(ICI_LIB) -L$(BP_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -37,6 +40,13 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libbss.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
 
 #	-	-	Test executables	-	-	-	-
 

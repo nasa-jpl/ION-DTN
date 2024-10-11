@@ -13,12 +13,13 @@ I<own_endpoint_ID> to bssrecv listening at I<destination_endpoint_ID>.
 I<class_of_service> is as specified for bptrace(1); if omitted, bundles
 are sent at BP's standard priority (1).
 
-The bundles issued by B<bssStreamingApp> all have 65000-byte payloads, where
+The bundles issued by B<bssStreamingApp> all have 20866-byte payloads, where
 the ASCII representation of a positive integer (increasing monotonically
-from 0, by 1, throughout the operation of the program) appears at the start
-of each payload.  All bundles are sent with custody transfer requested, with
-time-to-live set to 1 day.  The application meters output by sleeping for
-12800 microseconds after issuing each bundle.
+from 0, by 1, like a sequence number) appears at the start
+of each payload. The application meters output by sleeping for
+55642 microseconds after issuing each bundle to achieve an
+nominal bit rate of 3Mbps, assuming the underlying system can
+support that throughput rate.
 
 Use CTRL-C to terminate the program.
 
@@ -32,7 +33,7 @@ No environment variables apply.
 
 =head1 BUGS
 
-Report bugs to <ion-dtn-support@lists.sourceforge.net>
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 

@@ -1,15 +1,17 @@
 API = ../library
 INCL = ../include
+ICI_INCL = ../../ici/include
 UTILS = ../utils
 DAEMON = ../daemon
 UDP = ../udp
 DCCP = ../dccp
 SDA = ../sda
 TEST = ../test
+ICI_LIB = ../../ici/i86_64-fedora/lib
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(API)/ext -I$(API)/ext/auth -I$(INCL) -I$(ROOT)/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(API)/ext -I$(API)/ext/auth -I$(INCL) -I$(ROOT)/include -I$(ICI_INCL) -I../../ici/library -L$(ICI_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -24,7 +26,7 @@ LTPINCLS = \
 	$(DCCP)/dccplsa.h
 
 RUNTIMES = ltpadmin ltpsecadmin ltpclock ltpdeliv ltpmeter udplsi udplso ltpdriver ltpcounter sdatest
-#dccplsi dccplso
+#dccplsi dccplso libudplsa
 
 ALL = check libltp.so $(RUNTIMES)
 
@@ -45,6 +47,14 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libltp.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
+
 
 #	-	-	Daemon executables	-	-	-	-
 

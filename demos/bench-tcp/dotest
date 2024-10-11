@@ -3,6 +3,48 @@
 # Scott Burleigh
 # February 26, 2012
 #
+#
+# Shawn Ostermann
+# Made it more flexible for testing
+# October 11, 2023
+#
+
+#
+# testing configuration
+# (to make the numbers more readable)
+KB="000"
+MB="${KB}000"
+GB="${MB}000"
+# how many total bytes to transfer for each test
+TOTALBYTES=1${MB}
+TOTALBYTES=10${MB}
+# MAX number of bundles for any test (too many causes non-ION losses)
+# This really only affects really small size bundles
+MAXBUNDLES=100000
+# how many total seconds to allow each individual test to run before giving up
+# 5 minutes is probably plenty
+MAXSECONDS=300
+# what bundle sizes do you want to test
+# (list multiple values to cycle through them each)
+# (NUMBUNDLES is calculated from TOTALBYTES and BUNDLESIZE, and will be at least 1 for each iteration)
+BUNDLESIZES="1${KB} 10${KB} 100${KB} 1${MB} 10${MB} 100${MB}"
+# how many iterations of the test to run?
+ITERATIONS="1"
+
+
+#================================================================
+# You shouldn't need to adjust anything below this point 
+#================================================================
+
+# identify the test for later analysis
+echo "Date: `date`"
+echo "Benchmark: `pwd`"
+echo "Hostname: `hostname`"
+echo "UnameOS: `uname -s`"
+echo "UnameProcessor: `uname -p`"
+echo "UnameMachine: `uname -m`"
+echo "UnameRelease: `uname -r`"
+echo "UnameAll: `uname -a`"
 
 # documentation boilerplate
 CONFIGFILES=" \
@@ -29,16 +71,19 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
 	loopback TCP/IP; the results are therefore unaffected by network
 	traffic, router performance, or network interface card performance."
 
-echo
-echo "CONFIG: 2 node custom:"
-echo
-for N in $CONFIGFILES
-do
-	echo "$N:"
-	cat $N
-	echo "# EOF"
+if [ -n "$DEBUG" ]; then
 	echo
-done
+	echo "CONFIG: 2 node custom:"
+	echo
+	for N in $CONFIGFILES
+	do
+		echo "$N:"
+		cat "$N"
+		echo "# EOF"
+		echo
+	done
+fi
+
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
@@ -50,394 +95,119 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0
 
-# Start nodes.
-cd 2.bench.tcp
-./ionstart
-cd ../3.bench.tcp
-./ionstart
+ITERNUM=0
+while [ "${ITERNUM}" -lt ${ITERATIONS} ]; do
+	let "++ITERNUM"
+	echo "#########################################################################"
+	echo "##   Starting Iteration ${ITERNUM}"
+	echo "#########################################################################"
+	echo
 
-sleep 3
-echo ""
-echo "Test 1: 10,000 bundles of 1000 bytes each."
-cd ../3.bench.tcp
-bpcounter ipn:3.1 10000 &
-BPCOUNTER_PID=$!
-sleep 1
 
-cd ../2.bench.tcp
-bpdriver 10000 ipn:2.1 ipn:3.1 -1000 &
+	echo "#########################################################################"
+	echo "##  Starting ION Nodes"
+	echo "#########################################################################"
+	echo
 
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-TIMER=0
-while [ $RUNNING -eq 1 ]
-do
-	TIMER=$((++TIMER))
+
+	# Start nodes.
+	(cd 2.bench.tcp; ./ionstart)
+	(cd 3.bench.tcp; ./ionstart)
+
+	TESTNUM=0
+	for BUNDLESIZE in ${BUNDLESIZES}; do
+		let "++TESTNUM"
+		let "NUMBUNDLES = TOTALBYTES/BUNDLESIZE"
+		if [ $NUMBUNDLES -lt 1 ]; then
+			NUMBUNDLES=1
+			echo "Adjusting to $NUMBUNDLES of size $BUNDLESIZE"
+		elif [ $NUMBUNDLES -gt $MAXBUNDLES ]; then
+			echo "Truncating to $MAXBUNDLES of size $BUNDLESIZE (instead of $NUMBUNDLES)"
+			NUMBUNDLES=$MAXBUNDLES
+		fi
+		let "ACTUALBYTES = NUMBUNDLES*BUNDLESIZE"
+
+		sleep 1
+
+		cat << ==EOF==
+===============================================================================================================================
+RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDLESIZE} bytes each - ${ACTUALBYTES} total bytes
+===============================================================================================================================
+==EOF==
+		
+
+	cd 3.bench.tcp
+	bpcounter ipn:3.1 ${NUMBUNDLES} &
+	BPCOUNTER_PID=$!
+	cd ..
 	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
-done
 
-if [ $RETVAL -eq 1 ]
+	(cd 2.bench.tcp; bpdriver ${NUMBUNDLES} ipn:2.1 ipn:3.1 -${BUNDLESIZE} > /dev/null) &
+	BPDRIVER_PID=$!
+
+	# Wait for transmission to finish.
+	echo "Waiting for transmission to finish..."
+	RUNNING=1
+	TIMER=0
+	while [ "$RUNNING" -eq 1 ]
+	do
+		TIMER=$((++TIMER))
+		sleep 1
+		echo "...receiving..."
+		# some ps don't like -p syntax, most do.
+		if [ "$1" == "windows" ]
+		then
+			ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+		else
+			ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
+		fi
+		if [ "$RETURN_VALUE" -eq 0 ]
+		then
+			echo "...transmission finished."
+			RUNNING=0
+		fi
+		if [ "$TIMER" -gt 300 ]
+		then
+			#infinite loop protection
+			echo "...5 minutes passed; giving up."
+			RUNNING=0
+			RETVAL=1
+		fi
+	done
+
+	if [ "$RETVAL" -eq 1 ]
+	then
+		echo "Test did not complete."
+		echo "Killing bpcounter..."
+		kill -9 $BPCOUNTER_PID $BPDRIVER_PID
+		sleep 10
+		echo "Stopping ION..."
+		(cd 2.bench.tcp; ./ionstop) &
+		(cd 3.bench.tcp; ./ionstop) &
+		sleep 10
+		killm
+		sleep 10
+		echo "Re-starting ION..."
+		(cd 2.bench.tcp; ./ionstart)
+		(cd 3.bench.tcp; ./ionstart)
+		RETVAL=0;   # allow next test to proceed
+	fi
+
+	# loop to next bundle size
+	done
+
+	# loop to next iteration
+	done
+
+if [ "$RETVAL" -eq 1 ]
 then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.tcp
-	./ionstop &
-	cd ../3.bench.tcp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
-fi
-
-sleep 3
-echo ""
-echo "Test 2: 10000 bundles of 10,000 bytes each."
-cd ../3.bench.tcp
-bpcounter ipn:3.1 10000 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.tcp
-bpdriver 10000 ipn:2.1 ipn:3.1 -10000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-TIMER=0
-while [ $RUNNING -eq 1 ]
-do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
-done
-
-if [ $RETVAL -eq 1 ]
-then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.tcp
-	./ionstop &
-	cd ../3.bench.tcp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
-fi
-
-sleep 3
-echo ""
-echo "Test 3: 10000 bundles of 100,000 bytes each."
-cd ../3.bench.tcp
-bpcounter ipn:3.1 10000 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.tcp
-bpdriver 10000 ipn:2.1 ipn:3.1 -100000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-TIMER=0
-while [ $RUNNING -eq 1 ]
-do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
-done
-
-if [ $RETVAL -eq 1 ]
-then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.tcp
-	./ionstop &
-	cd ../3.bench.tcp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
-fi
-
-sleep 3
-echo ""
-echo "Test 4: 1000 bundles of 1,000,000 bytes each."
-cd ../3.bench.tcp
-bpcounter ipn:3.1 1000 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.tcp
-bpdriver 1000 ipn:2.1 ipn:3.1 -1000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-TIMER=0
-while [ $RUNNING -eq 1 ]
-do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
-done
-
-if [ $RETVAL -eq 1 ]
-then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.tcp
-	./ionstop &
-	cd ../3.bench.tcp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
-fi
-
-sleep 3
-echo ""
-echo "Test 5: 100 bundles of 10,000,000 bytes each."
-cd ../3.bench.tcp
-bpcounter ipn:3.1 100 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.tcp
-bpdriver 100 ipn:2.1 ipn:3.1 -10000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-TIMER=0
-while [ $RUNNING -eq 1 ]
-do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
-done
-
-if [ $RETVAL -eq 1 ]
-then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.tcp
-	./ionstop &
-	cd ../3.bench.tcp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
-fi
-
-sleep 3
-echo ""
-echo "Test 6: 10 bundles of 100,000,000 bytes each."
-cd ../3.bench.tcp
-bpcounter ipn:3.1 10 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.tcp
-bpdriver 10 ipn:2.1 ipn:3.1 -100000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-TIMER=0
-while [ $RUNNING -eq 1 ]
-do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
-done
-
-if [ $RETVAL -eq 1 ]
-then
-	echo "Test did not complete."
-	echo "Stopping ION..."
-	cd ../2.bench.tcp
-	./ionstop &
-	cd ../3.bench.tcp
-	./ionstop &
-	sleep 5
-	killm
-	echo "...benchmarking terminated."
-	exit $RETVAL
-fi
-
-sleep 3
-echo ""
-echo "Test 7: 1 bundle of 1,000,000,000 bytes."
-cd ../3.bench.tcp
-bpcounter ipn:3.1 1 &
-BPCOUNTER_PID=$!
-sleep 1
-
-cd ../2.bench.tcp
-bpdriver 1 ipn:2.1 ipn:3.1 -1000000000 &
-
-# Wait for transmission to finish.
-echo "Waiting for transmission to finish..."
-RUNNING=1
-TIMER=0
-while [ $RUNNING -eq 1 ]
-do
-	TIMER=$((++TIMER))
-	sleep 1
-	echo "...receiving..."
-	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
-	then
-		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	else
-		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
-	fi
-	if [ $RETURN_VALUE -eq 0 ]
-	then
-		echo "...transmission finished."
-		RUNNING=0
-	fi
-	if [ $TIMER -gt 300 ]
-	then
-		#infinite loop protection
-		echo "...5 minutes passed; giving up."
-		RUNNING=0
-		RETVAL=1
-	fi
-done
-
-if [ $RETVAL -eq 1 ]
-then
-	echo "Test did not complete."
+	echo "Test did not complete correctly."
 fi
 
 echo "Stopping ION..."
-cd ../2.bench.tcp
-./ionstop &
-cd ../3.bench.tcp
-./ionstop &
+(cd 2.bench.tcp; ./ionstop) &
+(cd 3.bench.tcp; ./ionstop) &
 sleep 8
 killm
 echo "...benchmarking terminated."
-exit $RETVAL
+exit "$RETVAL"

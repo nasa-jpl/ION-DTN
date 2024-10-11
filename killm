@@ -3,11 +3,11 @@
 # Modified by Robert Martin to work on Mac 10.4, due to IPCS requiring sudo to list any 
 # shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
 # all related processes" idea
+# Simplified by Shawn Ostermann in October, 2023 to remove Enhanced Regular Expressions, "grep -E", and "sed -E"
+# to make it more portable (to Solaris in particular).  Also quieted down the output a little.
 
 ION_OPEN_SOURCE=1
 OS_VERS=""
-NOT_KILLED=""
-PS_LIST=""
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
 # Since ipcs truncates usernames to 10 characters, we need to match against a
@@ -107,11 +107,13 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	psmshell lt-psmshell \
 	psmwatch lt-psmwatch \
 	ramsgate lt-ramsgate \
+	recvfile lt-recvfile \
 	rfxclock lt-rfxclock \
 	sdatest lt-sdatest \
 	sdr2file lt-sdr2file \
 	sdrmend lt-sdrmend \
 	sdrwatch lt-sdrwatch \
+	sendfile lt-sendfile \
 	sm2file lt-sm2file \
 	smlistsh lt-smlistsh \
 	smrbtsh lt-smrbtsh \
@@ -166,48 +168,49 @@ fi
 
 OSNAME=`uname`
 if [ "$OSNAME" == "SunOS" ]; then
-    killcmd="pkill"
+    KILLCMD="pkill"
+	PS="/usr/bin/ps"
+	PS_ARGS="-fe"
+	PROCESS_LIMIT=1
 else
-    killcmd="killall"
+    KILLCMD="killall"
+	PS="ps"
+	PS_ARGS="-e"
+	if [[ "$(uname -m)" == "x86_64" ]]; then
+		PROCESS_LIMIT=64
+	else
+    	PROCESS_LIMIT=32
+	fi
 fi
 
-if [[ "$(uname -m)" == "x86_64" ]]; then
-    PROCESS_LIMIT=64
-else
-    PROCESS_LIMIT=32
-fi
-
-echo "Sending TERM to ${KILLPROCESSLIST}..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd 2> /dev/null
+#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
+echo "Sending TERM to the processes..."
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 
 sleep 2
 
 echo "Sending KILL to the processes..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $killcmd -KILL 2> /dev/null
+echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 
 sleep 2
 
-echo "Checking if all processes ended..."
-# Creates a long regex search pattern that matches any process name
-# Search pattern looks like:
-#   ([^-a-zA-Z]bping$)|([^-a-zA-Z]bpecho$)|...
-PATTERN_PREFIX='([^-a-zA-Z]'
-PATTERN_POSTFIX='$)'
-PATTERN="${PATTERN_PREFIX}""$(echo "${KILLPROCESSLIST}" | sed 's/\s*$//' | sed -E 's/\s+/'"${PATTERN_POSTFIX}|${PATTERN_PREFIX}"'/g')""${PATTERN_POSTFIX}"
-NOT_KILLED="$(ps -e | grep -E "${PATTERN}" | grep -v grep)"
 
-if [[ "$(echo -n "${NOT_KILLED}" | wc -l)" -gt 0  ]]; then
-    echo "${NOT_KILLED}"
-    PROCESSES="$(echo "${NOT_KILLED}" | awk '{print $NF}')"
-    while read -r PROCESS; do
-        echo "Unknown error: process '${PROCESS}' not killed...try rebooting?"
-    done <<< "${PROCESSES}"
-fi
+echo "Checking if all ION processes ended..."
+PSFILE="/tmp/ps.$$"
+# grab all running processes
+${PS} ${PS_ARGS} > ${PSFILE}
+# see if any of those still-running processes belong to ION
+for PROC in ${KILLPROCESSLIST}; do
+	grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
+		 awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+done 
+
+rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
 if [[ -z "$OS_VERS" ]]; then 
-	# For mac 10.5 and Linux
+	# For mac >=10.5 and Linux
 	for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
 	for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
 	for S in `ipcs -s | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -s $S; done
@@ -219,4 +222,10 @@ else
 	for S in `sudo ipcs -s | grep $USERNAME_CUT | awk '{ print $3 }'`; do ipcrm -S $S; done
 fi
 
+# remove posix named semaphores if this platform maps them into the file system
+# Solaris puts them in /tmp/.SEM*, Linux in /dev/shm/sem.*, MacOS doesn't put them in file system
+echo "Deleting Posix Named Semaphores..."
+rm -f /dev/shm/sem.ion:GLOBAL* /tmp/.SEM*ion:GLOBAL* || (echo '*** Re-run killm with sudo to remove remaining semaphores: '; find /dev/shm /tmp/ -name 'sem.ion:GLOBAL*' -o -name '/tmp/.SEM*ion:GLOBAL*' 2>/dev/null)
+
 echo "Killm completed."	
+exit 0

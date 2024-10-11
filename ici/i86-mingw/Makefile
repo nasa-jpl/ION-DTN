@@ -7,9 +7,9 @@ SDR = ../sdr
 CRYPTO = ../crypto/NULL_SUITES
 BULK = ../bulk/STUB_BULK
 
-OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.1.2
+OPT = -g -Wall -Dmingw -DVNAME=ION-OPEN-SOURCE-4.1.3
 
-CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto -I../../$(BPv)/include/ -I../../$(BPv)/library/ -I../../ltp/include/ -I../../ltp/library/
+CC = gcc $(OPT) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I../crypto -I../../$(BPv)/include/ -I../../$(BPv)/library/ -I../../ltp/include/ -I../../ltp/library/
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -79,7 +79,7 @@ UTILITIES = sdrmend sdrwatch psmwatch ionadmin ionsecadmin ionlog ionwarn ionunl
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim
 # owlttb - requires SIGPIPE which is not supported by Windows
 
-ALL = check libici.dll rfxclock killm winion $(UTILITIES) $(TESTPGMS)
+ALL = check libici.dll libsecrypt.dll rfxclock killm winion $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -195,6 +195,10 @@ winion:		winion.o libici.dll
 libici.dll:	$(LIBICIOBJS) libicinm.o
 		$(LD) -o libici.dll $(LIBICIOBJS) libicinm.o -Wl,--output-def,libici.def -lpthread -lws2_32 -lm
 		cp libici.dll ./lib
+
+libsecrypt.dll:	secrypt.o
+		$(LD) -o libsecrypt.dll secrypt.o -Wl,--output-def,libsecrypt.def -L./lib -L$(ROOT)/lib -lws2_32
+		cp libsecrypt.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 

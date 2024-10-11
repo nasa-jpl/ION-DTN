@@ -25,9 +25,6 @@
 #include "shared/primitives/table.h"
 
 #include "adm_bpsec.h"
-// TODO EJB#include "profiles.h"
-/*   STOP CUSTOM INCLUDES HERE  */
-
 
 #include "shared/adm/adm.h"
 #include "adm_bpsec_impl.h"
@@ -937,7 +934,7 @@ tnv_t *dtn_bpsec_get_num_known_keys(tnvc_t *parms)
 	uint32_t size = 0;
 	result = tnv_create();
 	result->type = AMP_TYPE_UINT;
-	result->value.as_uint = bpsec_instr_get_num_keys((int*)&size);
+	result->value.as_uint = bpsec_instr_get_num_keys();
 	/*
 	 * +-------------------------------------------------------------------------+
 	 * |STOP CUSTOM FUNCTION get_num_known_keys BODY

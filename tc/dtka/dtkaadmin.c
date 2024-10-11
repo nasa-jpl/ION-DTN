@@ -8,10 +8,10 @@
 
 #include "dtka.h"
 
-static int	_echo(int *newValue)
+static int _echo(int *newValue)
 {
-	static int	state = 0;
-	
+	static int state = 0;
+
 	if (newValue)
 	{
 		if (*newValue == 1)
@@ -27,7 +27,7 @@ static int	_echo(int *newValue)
 	return state;
 }
 
-static void	printText(char *text)
+static void printText(char *text)
 {
 	if (_echo(NULL))
 	{
@@ -37,23 +37,23 @@ static void	printText(char *text)
 	PUTS(text);
 }
 
-static void	handleQuit()
+static void handleQuit()
 {
 	printText("Please enter command 'q' to stop the program.");
 }
 
-static void	printSyntaxError(int lineNbr)
+static void printSyntaxError(int lineNbr)
 {
-	char	buffer[80];
+	char buffer[80];
 
 	isprintf(buffer, sizeof buffer,
-			"Syntax error at line %d of dtkaadmin.c", lineNbr);
+			 "Syntax error at line %d of dtkaadmin.c", lineNbr);
 	printText(buffer);
 }
 
-#define	SYNTAX_ERROR	printSyntaxError(__LINE__)
+#define SYNTAX_ERROR printSyntaxError(__LINE__)
 
-static void	printUsage()
+static void printUsage()
 {
 	PUTS("Valid commands are:");
 	PUTS("\tq\tQuit");
@@ -66,6 +66,10 @@ static void	printUsage()
 	PUTS("\t\tTime format is yyyy/mm/dd-hh:mm:ss.");
 	PUTS("\t   m interval <new key pair generation interval, in seconds>");
 	PUTS("\t   m leadtime <key pair effectiveness lead time, in seconds>");
+	PUTS("\t   m keytype <type of key to generate (aes, hmac, or ecdsa)> <key size (bytes)>");
+	PUTS("\t\tvalid key size hmac: 32, 48, 64");
+	PUTS("\t\tvalid key size aes: 16, 32");
+	PUTS("\t\tvalid key size ecdsa: 32, 48");
 	PUTS("\ti\tInfo");
 	PUTS("\t   i");
 	PUTS("\te\tEnable or disable echo of printed output to log file");
@@ -74,7 +78,7 @@ static void	printUsage()
 	PUTS("\t   # <comment text>");
 }
 
-static void	initializeDtka(int tokenCount, char **tokens)
+static void initializeDtka(int tokenCount, char **tokens)
 {
 	if (tokenCount != 1)
 	{
@@ -88,7 +92,7 @@ static void	initializeDtka(int tokenCount, char **tokens)
 	}
 }
 
-static int	attachToDtka()
+static int attachToDtka()
 {
 	if (dtkaAttach() < 0)
 	{
@@ -99,12 +103,43 @@ static int	attachToDtka()
 	return 0;
 }
 
-static void	manageKeyGenTime(int tokenCount, char **tokens)
+static void managekeyType(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	Object		dtkadbObj = getDtkaDbObject();
-	time_t		newKeyGenTime;
-	DtkaDB	dtkadb;
+	Sdr sdr = getIonsdr();
+	Object dtkadbObj = getDtkaDbObject();
+	DtkaDB dtkadb;
+	char *newkeyType = tokens[2];
+	unsigned int newkeySize;
+
+	if (tokenCount != 4)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	newkeySize = atoi(tokens[3]);
+	if (newkeySize % 8 != 0)
+	{
+		putErrmsg("Key size is invalid.", tokens[2]);
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *)&dtkadb, dtkadbObj, sizeof(DtkaDB));
+	istrcpy(dtkadb.keyType, newkeyType, sizeof(newkeyType));
+	dtkadb.keySize = newkeySize;
+	sdr_write(sdr, dtkadbObj, (char *)&dtkadb, sizeof(DtkaDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change keytype.", NULL);
+	}
+}
+
+static void manageKeyGenTime(int tokenCount, char **tokens)
+{
+	Sdr sdr = getIonsdr();
+	Object dtkadbObj = getDtkaDbObject();
+	time_t newKeyGenTime;
+	DtkaDB dtkadb;
 
 	if (tokenCount != 3)
 	{
@@ -120,21 +155,21 @@ static void	manageKeyGenTime(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &dtkadb, dtkadbObj, sizeof(DtkaDB));
+	sdr_stage(sdr, (char *)&dtkadb, dtkadbObj, sizeof(DtkaDB));
 	dtkadb.nextKeyGenTime = newKeyGenTime;
-	sdr_write(sdr, dtkadbObj, (char *) &dtkadb, sizeof(DtkaDB));
+	sdr_write(sdr, dtkadbObj, (char *)&dtkadb, sizeof(DtkaDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change keygentime.", NULL);
 	}
 }
 
-static void	manageInterval(int tokenCount, char **tokens)
+static void manageInterval(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	Object		dtkadbObj = getDtkaDbObject();
-	DtkaDB	dtkadb;
-	int		newInterval;
+	Sdr sdr = getIonsdr();
+	Object dtkadbObj = getDtkaDbObject();
+	DtkaDB dtkadb;
+	int newInterval;
 
 	if (tokenCount != 3)
 	{
@@ -150,21 +185,22 @@ static void	manageInterval(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &dtkadb, dtkadbObj, sizeof(DtkaDB));
+	sdr_stage(sdr, (char *)&dtkadb, dtkadbObj, sizeof(DtkaDB));
 	dtkadb.keyGenInterval = newInterval;
-	sdr_write(sdr, dtkadbObj, (char *) &dtkadb, sizeof(DtkaDB));
+	sdr_write(sdr, dtkadbObj, (char *)&dtkadb, sizeof(DtkaDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change interval.", NULL);
 	}
 }
 
-static void	manageLeadTime(int tokenCount, char **tokens)
+static void manageLeadTime(int tokenCount, char **tokens)
 {
-	Sdr		sdr = getIonsdr();
-	Object		dtkadbObj = getDtkaDbObject();
-	DtkaDB	dtkadb;
-	int		newLeadTime;
+	Sdr sdr = getIonsdr();
+	Object dtkadbObj = getDtkaDbObject();
+	DtkaDB dtkadb;
+	int newLeadTime;
+	char test[5];
 
 	if (tokenCount != 3)
 	{
@@ -180,16 +216,17 @@ static void	manageLeadTime(int tokenCount, char **tokens)
 	}
 
 	CHKVOID(sdr_begin_xn(sdr));
-	sdr_stage(sdr, (char *) &dtkadb, dtkadbObj, sizeof(DtkaDB));
+	sdr_stage(sdr, (char *)&dtkadb, dtkadbObj, sizeof(DtkaDB));
 	dtkadb.effectiveLeadTime = newLeadTime;
-	sdr_write(sdr, dtkadbObj, (char *) &dtkadb, sizeof(DtkaDB));
+	sdr_write(sdr, dtkadbObj, (char *)&dtkadb, sizeof(DtkaDB));
 	if (sdr_end_xn(sdr) < 0)
 	{
 		putErrmsg("Can't change leadtime.", NULL);
 	}
+	sprintf(test, "%u", dtkadb.effectiveLeadTime);
 }
 
-static void	executeManage(int tokenCount, char **tokens)
+static void executeManage(int tokenCount, char **tokens)
 {
 	if (tokenCount < 2)
 	{
@@ -215,28 +252,35 @@ static void	executeManage(int tokenCount, char **tokens)
 		return;
 	}
 
+	if (strcmp(tokens[1], "keytype") == 0)
+	{
+		managekeyType(tokenCount, tokens);
+		return;
+	}
+
 	SYNTAX_ERROR;
 }
 
-static void	executeInfo()
+static void executeInfo()
 {
-	Sdr		sdr = getIonsdr();
-			OBJ_POINTER(DtkaDB, db);
-	char		buffer[256];
-	char		next[TIMESTAMPBUFSZ];
+	Sdr sdr = getIonsdr();
+	OBJ_POINTER(DtkaDB, db);
+	char buffer[256];
+	char next[TIMESTAMPBUFSZ];
 
-	CHKVOID(sdr_begin_xn(sdr));	/*	Just to lock memory.	*/
+	CHKVOID(sdr_begin_xn(sdr)); /*	Just to lock memory.	*/
 	GET_OBJ_POINTER(sdr, DtkaDB, db, getDtkaDbObject());
 	writeTimestampUTC(db->nextKeyGenTime, next);
 	isprintf(buffer, sizeof buffer, "\nnextKeyGentime=%s, keyGenInterval=\
-%u, effectiveLeadTime=%u", next, db->keyGenInterval, db->effectiveLeadTime);
+%u, effectiveLeadTime=%u",
+			 next, db->keyGenInterval, db->effectiveLeadTime);
 	printText(buffer);
 	sdr_exit_xn(sdr);
 }
 
-static void	switchEcho(int tokenCount, char **tokens)
+static void switchEcho(int tokenCount, char **tokens)
 {
-	int	state;
+	int state;
 
 	if (tokenCount < 2)
 	{
@@ -262,13 +306,13 @@ static void	switchEcho(int tokenCount, char **tokens)
 	oK(_echo(&state));
 }
 
-static int	processLine(char *line, int lineLength)
+static int processLine(char *line, int lineLength)
 {
-	int	tokenCount;
-	char	*cursor;
-	int	i;
-	char	*tokens[9];
-	char	buffer[80];
+	int tokenCount;
+	char *cursor;
+	int i;
+	char *tokens[9];
+	char buffer[80];
 
 	tokenCount = 0;
 	for (cursor = line, i = 0; i < 9; i++)
@@ -291,7 +335,7 @@ static int	processLine(char *line, int lineLength)
 
 	/*	Skip over any trailing whitespace.			*/
 
-	while (isspace((int) *cursor))
+	while (isspace((int)*cursor))
 	{
 		cursor++;
 	}
@@ -306,74 +350,74 @@ static int	processLine(char *line, int lineLength)
 
 	/*	Have parsed the command.  Now execute it.		*/
 
-	switch (*(tokens[0]))		/*	Command code.		*/
+	switch (*(tokens[0])) /*	Command code.		*/
 	{
-		case 0:			/*	Empty line.		*/
-		case '#':		/*	Comment.		*/
-			return 0;
+	case 0:	  /*	Empty line.		*/
+	case '#': /*	Comment.		*/
+		return 0;
 
-		case '?':
-		case 'h':
-			printUsage();
-			return 0;
+	case '?':
+	case 'h':
+		printUsage();
+		return 0;
 
-		case 'v':
-			isprintf(buffer, sizeof buffer, "%s",
-					IONVERSIONNUMBER);
-			printText(buffer);
-			return 0;
+	case 'v':
+		isprintf(buffer, sizeof buffer, "%s",
+				 IONVERSIONNUMBER);
+		printText(buffer);
+		return 0;
 
-		case '1':
-			initializeDtka(tokenCount, tokens);
-			return 0;
+	case '1':
+		initializeDtka(tokenCount, tokens);
+		return 0;
 
-		case 'm':
-			if (attachToDtka() == 0)
-			{
-				executeManage(tokenCount, tokens);
-			}
+	case 'm':
+		if (attachToDtka() == 0)
+		{
+			executeManage(tokenCount, tokens);
+		}
 
-			return 0;
+		return 0;
 
-		case 'i':
-			if (attachToDtka() == 0)
-			{
-				executeInfo();
-			}
+	case 'i':
+		if (attachToDtka() == 0)
+		{
+			executeInfo();
+		}
 
-			return 0;
+		return 0;
 
-		case 'e':
-			switchEcho(tokenCount, tokens);
-			return 0;
+	case 'e':
+		switchEcho(tokenCount, tokens);
+		return 0;
 
-		case 'q':
-			return -1;	/*	End program.		*/
+	case 'q':
+		return -1; /*	End program.		*/
 
-		default:
-			printText("Invalid command.  Enter '?' for help.");
-			return 0;
+	default:
+		printText("Invalid command.  Enter '?' for help.");
+		return 0;
 	}
 }
 
-#if defined (ION_LWT)
-int	dtkaadmin(int a1, int a2, int a3, int a4, int a5,
-		int a6, int a7, int a8, int a9, int a10)
+#if defined(ION_LWT)
+int dtkaadmin(int a1, int a2, int a3, int a4, int a5,
+			  int a6, int a7, int a8, int a9, int a10)
 {
-	char	*cmdFileName = (char *) a1;
+	char *cmdFileName = (char *)a1;
 #else
-int	main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	char	*cmdFileName = (argc > 1 ? argv[1] : NULL);
+	char *cmdFileName = (argc > 1 ? argv[1] : NULL);
 #endif
-	int	cmdFile;
-	char	line[256];
-	int	len;
+	int cmdFile;
+	char line[256];
+	int len;
 
-	if (cmdFileName == NULL)		/*	Interactive.	*/
+	if (cmdFileName == NULL) /*	Interactive.	*/
 	{
 #ifdef FSWLOGGER
-		return 0;			/*	No stdout.	*/
+		return 0; /*	No stdout.	*/
 #else
 		cmdFile = fileno(stdin);
 		isignal(SIGINT, handleQuit);
@@ -389,7 +433,7 @@ int	main(int argc, char **argv)
 				}
 
 				putErrmsg("igets failed.", NULL);
-				break;		/*	Out of loop.	*/
+				break; /*	Out of loop.	*/
 			}
 
 			if (len == 0)
@@ -399,12 +443,12 @@ int	main(int argc, char **argv)
 
 			if (processLine(line, len))
 			{
-				break;		/*	Out of loop.	*/
+				break; /*	Out of loop.	*/
 			}
 		}
 #endif
 	}
-	else					/*	Scripted.	*/
+	else /*	Scripted.	*/
 	{
 		cmdFile = iopen(cmdFileName, O_RDONLY, 0777);
 		if (cmdFile < 0)
@@ -415,27 +459,25 @@ int	main(int argc, char **argv)
 		{
 			while (1)
 			{
-				if (igets(cmdFile, line, sizeof line, &len)
-						== NULL)
+				if (igets(cmdFile, line, sizeof line, &len) == NULL)
 				{
 					if (len == 0)
 					{
-						break;	/*	Loop.	*/
+						break; /*	Loop.	*/
 					}
 
 					putErrmsg("igets failed.", NULL);
-					break;		/*	Loop.	*/
+					break; /*	Loop.	*/
 				}
 
-				if (len == 0
-				|| line[0] == '#')	/*	Comment.*/
+				if (len == 0 || line[0] == '#') /*	Comment.*/
 				{
 					continue;
 				}
 
 				if (processLine(line, len))
 				{
-					break;	/*	Out of loop.	*/
+					break; /*	Out of loop.	*/
 				}
 			}
 

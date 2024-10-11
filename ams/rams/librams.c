@@ -32,7 +32,8 @@ static void	PrintGatewayState(RamsGateway *gWay);
 static void	PrintInvitationList(RamsGateway *gWay);
 #endif
 static void	KillGateway();
-static void	TerminateGateway();
+static void	TerminateGateway(RamsGateway *gWay);
+
 
 static int	AssertPetition(RamsGateway *gWay, Petition *pet);
 static int	CancelPetition(RamsGateway *gWay, Petition *pet);

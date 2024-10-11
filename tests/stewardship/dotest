@@ -15,14 +15,10 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ipnrc \
 "
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
-	fi
+source ../setacs.sh
+
+if [[ "$ACS" == "found" ]] ; then
+	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -35,7 +31,7 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ipnrc \
 "
 
-if [[ $ACS == "found" ]] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
 fi
 
@@ -83,7 +79,7 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 
 # Start nodes.
-if [[ $ACS == "found" ]] ; then
+if [[ "$ACS" == "found" ]] ; then
 	cd 2.ipn.ltp
 	./ionstart-acs >& node2.stdout
 	cd ../3.ipn.ltp
@@ -115,7 +111,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else

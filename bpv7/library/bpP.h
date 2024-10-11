@@ -306,6 +306,7 @@ typedef struct
 #define BDL_IS_FRAGMENT		(1)	/* 0000 00000000 00000001	*/
 #define BDL_IS_ADMIN		(2)	/* 0000 00000000 00000010	*/
 #define BDL_DOES_NOT_FRAGMENT	(4)	/* 0000 00000000 00000100	*/
+#define BDL_IS_BIBE		(8)	/* 0000 00000000 00001000	*/
 #define BDL_APP_ACK_REQUEST	(32)	/* 0000 00000000 00100000	*/
 #define BDL_STATUS_TIME_REQ	(64)	/* 0000 00000000 01000000	*/
 #define BDL_RECEIVED_RPT_REQ	(16384)	/* 0000 01000000 00000000	*/
@@ -383,6 +384,7 @@ typedef struct
 	char		returnToSender;	/*	Boolean.		*/
 	char		accepted;	/*	Boolean.		*/
 	char		corrupt;	/*	Boolean.		*/
+	char		insecure;	/*	Boolean.		*/
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
@@ -392,6 +394,8 @@ typedef struct
 	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
+	uvast		ovrdNeighbor;	/*	Node number.		*/
+	Object		ovrdDuctExpr;	/*	protocol/ductName.	*/
 
 	/*	Stuff for opportunistic forwarding.  A "copy" is the
 	 *	ID of a node to which CGR has decided to forward a
@@ -428,7 +432,7 @@ typedef struct
 	time_t		enqueueTime;	/*	When queued for xmit.	*/
 } Bundle;
 
-#define SRR_FLAGS(bundleProcFlags)	((bundleProcFlags >> 8) & 0xff)
+#define SRR_FLAGS(bundleProcFlags)	((bundleProcFlags >> 14) & 0x7f)
 
 typedef struct
 {
@@ -698,7 +702,7 @@ typedef struct
 
 /*	*	*	Protocol structures	*	*	*	*/
 
-#define	BP_PROTOCOL_ANY	(BP_BEST_EFFORT | BP_RELIABLE | BP_RELIABLE_STREAMING)
+#define	BP_PROTOCOL_ANY	(BP_BEST_EFFORT | BP_RELIABLE)
 
 typedef struct
 {
@@ -1069,10 +1073,10 @@ extern int		bpDequeue(	VOutduct *vduct,
 			 *	On obtaining a bundle, bpDequeue
 			 *	does DEQUEUE processing on the bundle's
 			 *	extension blocks; if this processing
-			 *	determines that the bundle is corrupt,
-			 *	the function returns zero while
-			 *	providing 1 (a nonsense address) in
-			 *	*bundleZco as the address of the
+			 *	determines that the bundle is corrupt
+			 *	or insecure, the function returns zero
+			 *	while providing 1 (a nonsense address)
+			 *	in *bundleZco as the address of the
 			 *	outbound bundle ZCO.  The CLO should
 			 *	handle this result by simply calling
 			 *	bpDequeue again.
@@ -1335,8 +1339,8 @@ extern int		bpDestroyBundle(Object bundleToDestroy,
 			 *	the bundle was in an outduct buffer
 			 *	that was flushed, and a value of 5
 			 *	indicates that the bundle was found
-			 *	to be corrupt when dequeued for
-			 *	transmission.  Returns 1 if bundle
+			 *	to be corrupt or insecure when dequeued
+			 *	for transmission.  Returns 1 if bundle
 			 *	is actually destroyed, 0 if bundle is
 			 *	retained because not all constraints
 			 *	have been removed, -1 on any error.	*/

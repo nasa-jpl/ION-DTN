@@ -45,7 +45,7 @@ echo
 for N in $CONFIGFILES
 do
 	echo "$N:"
-	cat $N
+	cat "$N"
 	echo "# EOF"
 	echo
 done
@@ -94,7 +94,7 @@ then
 else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 fi
-if [ $RETURN_VALUE -eq 0 ]
+if [ "$RETURN_VALUE" -eq 0 ]
 then
 	echo "bpcounter couldn't be started."
 	echo "...benchmarking terminated."
@@ -121,7 +121,7 @@ done
 echo "Waiting for transmission to finish..."
 RUNNING=1
 TIMER=0
-while [ $RUNNING -eq 1 ]
+while [ "$RUNNING" -eq 1 ]
 do
 	TIMER=$((++TIMER))
 	sleep 1
@@ -133,12 +133,12 @@ do
 	else
 		ps $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || ps -p $BPCOUNTER_PID >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	fi
-	if [ $RETURN_VALUE -eq 0 ]
+	if [ "$RETURN_VALUE" -eq 0 ]
 	then
 		echo "...transmission finished."
 		RUNNING=0
 	fi
-	if [ $TIMER -gt 300 ]
+	if [ "$TIMER" -gt 300 ]
 	then
 		#infinite loop protection
 		echo "...5 minutes passed; giving up."
@@ -147,7 +147,7 @@ do
 	fi
 done
 
-if [ $RETVAL -eq 1 ]
+if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 fi

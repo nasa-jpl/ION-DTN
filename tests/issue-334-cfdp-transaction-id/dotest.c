@@ -36,9 +36,6 @@ int main(int argc, char **argv)
 	uvast tid;
 	int ret;
 
-	ionstop();
-	sleep(30);
-
 	/* Start ION */
 	printf("Starting ION...\n");
 	_xadmin("ionadmin", "", "cfdp.ipn.bp.ltp.udp/config.ionrc");

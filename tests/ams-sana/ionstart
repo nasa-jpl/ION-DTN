@@ -1,32 +1,28 @@
-# shell script to get node running
 #!/bin/bash
 
 #start ion---------------------------------------------
 ionadmin	amroc.ionrc
-ionadmin	global.ionrc &
-ionsecadmin	amroc.ionsecrc &
-ltpadmin	amroc.ltprc &
-bpadmin		amroc.bprc &
+sleep 1
+ionadmin	global.ionrc
+sleep 1
+ionsecadmin	amroc.ionsecrc
+sleep 1
+ltpadmin	amroc.ltprc
+sleep 1
+bpadmin		amroc.bprc
+sleep 1
 
-../../system_up -i "p 30" -l "p 30" -b "p 30"
-
-if [ $? -eq 3 ]
-then
-	echo "Node started: Continuing test"
-else
-	echo "Node not started: Aborting test"
-	exit 1
-fi
 
 #ams daemon as config server and registrar--------------
+#note that @ here implies PTS default (i.e. localhost:2357)
 amsd mib.amsrc @ amsdemo test "" &
 
-echo "Waiting for AMS cell census (90 seconds left)..."
-sleep 30
-echo "Waiting for AMS cell census (60 seconds left)..."
-sleep 30
-echo "Waiting for AMS cell census (30 seconds left)..."
-sleep 30
+echo "Waiting for AMS cell census (9 seconds left)..."
+sleep 3
+echo "Waiting for AMS cell census (6 seconds left)..."
+sleep 3
+echo "Waiting for AMS cell census (3 seconds left)..."
+sleep 3
 
 #start ramsgate-----------------------------------------
 ramsgate amsdemo test &

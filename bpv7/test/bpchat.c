@@ -18,7 +18,7 @@ static BpCustodySwitch      custodySwitch = NoCustodyRequested;
 static int                  running = 1;
 
 const char usage[] =
-"Usage: bpchat.c <source EID> <dest EID> [ct]\n\n"
+"Usage: bpchat <source EID> <dest EID> [ct]\n\n"
 "Reads lines from stdin and sends these lines in bundles.\n"
 "Receives bundles and writes them to stdout.\n"
 "If \"ct\" is specified, sent bundles have the custody transfer flag set\n";

@@ -1,0 +1,25 @@
++ams_mib_load
+*ams_mib_init continuum_nbr=2 ptsname=dgr
++ams_mib_add
+*continuum nbr=3 name=ion3 desc='ION node 3'
+*csendpoint epspec=127.0.0.1:2502
+*application name='amsdemo'
++venture nbr=9 appname=amsdemo authname=test net_config=tree 
+*role nbr=2 name=shell
+*role nbr=3 name=log
+*role nbr=4 name=pitch
+*role nbr=5 name=catch
+*role nbr=6 name=benchs
+*role nbr=7 name=benchr
+*role nbr=8 name=videosender
+*role nbr=9 name=videoreceiver
+*subject nbr=1 name=text desc='ASCII text'
+*subject nbr=2 name=noise desc='more ASCII text'
+*subject nbr=3 name=bench desc='numbered msgs'
+*subject nbr=4 name=textreturn desc='return receipt for text'
+*subject nbr=5 name=video desc='video stream'
+*unit nbr=1 name=orbiters
+*msgspace nbr=3 neighbor=1
+-venture
+-ams_mib_add
+-ams_mib_load

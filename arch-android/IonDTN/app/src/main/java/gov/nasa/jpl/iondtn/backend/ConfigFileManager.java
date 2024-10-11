@@ -20,6 +20,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
+import static org.apache.commons.io.FileUtils.copyToFile;
+
 /**
  * Manages the file management in the internal storage of the
  * application as a service. This includes the copying of configuration files
@@ -204,22 +206,22 @@ public class ConfigFileManager extends Service {
         try {
             File bprcFile = new File(destDir, "node.bprc");
             if (!bprcFile.createNewFile()) {return false;}
-            FileUtils.copyToFile(mContext.getAssets().open
+            copyToFile(mContext.getAssets().open
                             ("ConfigStartup/node.bprc"), bprcFile);
 
             File cfdprcFile = new File(destDir, "node.cfdprc");
             if (!cfdprcFile.createNewFile()) {return false;}
-            FileUtils.copyToFile(mContext.getAssets().open
+            copyToFile(mContext.getAssets().open
                     ("ConfigStartup/node.cfdprc"), cfdprcFile);
 
             File ionconfigFile = new File(destDir, "node.ionconfig");
             if (!ionconfigFile.createNewFile()) {return false;}
-            FileUtils.copyToFile(mContext.getAssets().open
+            copyToFile(mContext.getAssets().open
                     ("ConfigStartup/node.ionconfig"), ionconfigFile);
 
             File ionsecFile = new File(destDir, "node.ionsecrc");
             if (!ionsecFile.createNewFile()) {return false;}
-            FileUtils.copyToFile(mContext.getAssets().open
+            copyToFile(mContext.getAssets().open
                     ("ConfigStartup/node.ionsecrc"), ionsecFile);
 
             OutputStream ionConfigOut = new FileOutputStream(ionconfigFile,
@@ -294,7 +296,7 @@ public class ConfigFileManager extends Service {
         try {
             File ionconfigFile = new File(destDir, "node.ionconfig");
             if (!ionconfigFile.createNewFile()) {return false;}
-            FileUtils.copyToFile(mContext.getAssets().open
+            copyToFile(mContext.getAssets().open
                     ("ConfigStartup/node.ionconfig"), ionconfigFile);
 
             OutputStream ionConfigOut = new FileOutputStream(ionconfigFile,

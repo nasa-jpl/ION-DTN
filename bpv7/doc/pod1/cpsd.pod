@@ -1,0 +1,78 @@
+=head1 NAME
+
+cpsd - contact plan synchronization daemon
+
+=head1 SYNOPSIS
+
+B<cpsd>
+
+=head1 DESCRIPTION
+
+B<cpsd> is a background "daemon" task that effects the synchronization of
+contact plan changes across all nodes in the region corresponding to that
+contact plan.
+
+It accomplishes this by (a) de-queueing contact plan synchronization notices
+from the local node's ION database (inserted into that queue when contacts
+were added to the local node's contact plan with "announce" requested) and
+multicasting those notices to all other nodes in the corresponding region
+and (b) receiving CPS notices multicast by other cpsd tasks and applying
+them to the local node's contact plan for the indicated region.
+
+B<cpsd> is spawned automatically by B<bpadmin> in response to the 's' (START)
+command that starts operation of the Bundle Protocol, and it is terminated by
+B<bpadmin> in response to an 'x' (STOP) command.
+
+Note that in order for cpsd to operate, ION must be built with multicast
+enabled and both the "imc" scheme and the "imc:0.1" endpoint must be defined
+in the configuration of the node.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<cpsd> terminated normally, for reasons noted in the B<ion.log> file.  If
+this termination was not commanded, investigate and solve the problem identified
+in the log file and use B<bpadmin> to restart contact plan synchronization.
+
+=item "1"
+
+B<cpsd> terminated abnormally, for reasons noted in the B<ion.log> file.
+Investigate and solve the problem identified in the log file, then use
+B<bpadmin> to restart contact plan synchronization.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item cpsd can't attach to BP.
+
+B<bpadmin> has not yet initialized Bundle Protocol operations.
+
+=item cpsd task is already started for this node
+
+Redundant initiation of B<cpsd>.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpadmin(1), bprc(5)

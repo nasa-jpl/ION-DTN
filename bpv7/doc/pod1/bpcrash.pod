@@ -1,0 +1,57 @@
+=head1 NAME
+
+bpcrash - a test support program that simply forces a 
+transaction cancellation in order to trigger a restart of ION when
+SDR reversibility is enabled.
+
+=head1 SYNOPSIS
+
+B<bpcrash> 
+
+=head1 DESCRIPTION
+
+B<bpcrash> issues a SDR transaction cancellation which will cause a restart of ION.
+This behavior prior to ION 4.1.3.
+
+For ION 4.1.3 or later, due to changes in the transaction termination process, bpcrash
+will no longer be able to trigger a restart of ION. A future upgrade is planned to 
+make sure that it can accurately emulate an ION crash condition.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bpcrash> terminated nominally. Prints out a message "Stopping bpcrash."
+
+=item "1"
+
+B<bpcrash> was unable to attach to Bundle Protocol operations, probably because
+B<bpadmin> has not yet been run.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>

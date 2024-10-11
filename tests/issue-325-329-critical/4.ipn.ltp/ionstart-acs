@@ -1,13 +1,12 @@
-# shell script to get node running
 #!/bin/bash
 ionadmin	amroc.ionrc
 
 acsadmin	amroc.acsrc
 
-ionadmin	global.ionrc &
+ionadmin	global.ionrc 
 
-ionsecadmin	amroc.ionsecrc &
+ionsecadmin	amroc.ionsecrc 
 
-ltpadmin	amroc.ltprc &
+ltpadmin	amroc.ltprc 
 
-bpadmin		amroc.bprc &
+bpadmin		amroc.bprc 

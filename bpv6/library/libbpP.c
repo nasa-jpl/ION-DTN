@@ -1900,7 +1900,7 @@ int	bpStart()
 		startOutduct((VOutduct *) psp(bpwm, sm_list_data(bpwm, elt)));
 	}
 
-	sdr_exit_xn(bpSdr);	/*	Unlock memory.			*/
+	sdr_end_xn(bpSdr);	/*	Unlock memory.			*/
 	return 0;
 }
 

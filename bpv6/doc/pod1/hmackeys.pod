@@ -70,7 +70,7 @@ The I<keynames_filename> specified in the command line doesn't exist.
 
 =head1 BUGS
 
-Report bugs to <ion-dtn-support@lists.sourceforge.net>
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 

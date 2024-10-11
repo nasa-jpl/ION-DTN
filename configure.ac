@@ -8,7 +8,7 @@
 
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 4.1.2, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 4.1.3, ion-dtn-support@lists.sourceforge.net)
 IS_NASA_B=0
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
@@ -156,6 +156,7 @@ case $host_os in
 	solaris*)
 		PLATFORM="solaris"
 		build_solaris=yes
+		AM_CFLAGS="$AM_CFLAGS -std=gnu99"
 		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
 			if test "$CC" = "gcc"; then
 				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
@@ -220,7 +221,7 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 AC_ARG_ENABLE(
     bpv6,
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
-    [VER="4.1.2"
+    [VER="4.1.3"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
      BUILD_BPv6=true
@@ -232,7 +233,7 @@ AC_ARG_ENABLE(
 		no)  ENABLE_BPACS=no;;
      esac
      echo "Building ION with BP version 6"],
-    [VER="4.1.2"
+    [VER="4.1.3"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
      BUILD_BPv7=true
@@ -256,6 +257,48 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_IMC, test "x$ENABLE_IMC" = "xyes")
 
 #
+# allow the user running configure to enable AMS_INDUSTRIAL
+#
+AC_ARG_ENABLE(
+    ams-industrial,
+    [AC_HELP_STRING([--enable-ams-industrial], [enable AMS_INDUSTRIAL])],
+    [ENABLE_AMS_INDUSTRIAL=yes
+	 AM_CFLAGS="$AM_CFLAGS -DAMS_INDUSTRIAL"],
+    [ENABLE_AMS_INDUSTRIAL=no])
+AM_CONDITIONAL(ENABLE_AMS_INDUSTRIAL, test "x$ENABLE_AMS_INDUSTRIAL" = "xyes")
+
+#
+# allow the user running configure to enable the enhanced watch character option
+#
+AC_ARG_ENABLE(
+    ewchar,
+    [AC_HELP_STRING([--enable-ewchar], [enable enhanced watch characters])],
+    [ENABLE_EWCHAR=yes
+	 AM_CFLAGS="$AM_CFLAGS -DEWCHAR"],
+    [ENABLE_EWCHAR=no])
+AM_CONDITIONAL(ENABLE_EWCHAR, test "x$ENABLE_EWCHAR" = "xyes")
+
+#
+# allow the user running configure to enable the command line history option
+#
+AC_ARG_ENABLE(
+    commandline-history,
+    [AC_HELP_STRING([--enable-commandline-history], [enable command line history])],
+    [AC_CHECK_PROG([readline_present], [readline], [1], [0])
+	 if test "$readline_present" = 1; then
+		ENABLE_CMD_HIST=yes
+	 	AM_CFLAGS="$AM_CFLAGS -DINPUT_HISTORY"
+	 else
+	 	ENABLE_CMD_HIST=no
+	 	AC_MSG_ERROR([You need to have the readline executable installed to use this option.])
+	 fi
+	],
+    [ENABLE_CMD_HIST=no
+	 echo "Command line history disabled."
+	])
+AM_CONDITIONAL(ENABLE_CMD_HIST, test "x$ENABLE_CMD_HIST" = "xyes")
+
+#
 # allow the user running configure to enable high-speed ION 
 #
 AC_ARG_ENABLE(
@@ -265,6 +308,38 @@ AC_ARG_ENABLE(
      ENABLE_HIGH_SPEED=yes],
     [])
 AM_CONDITIONAL(ENABLE_HIGH_SPEED, test x$ENABLE_HIGH_SPEED = xyes)
+
+#
+# allow the user running configure to force the use of Posix Named Semaphores over the 
+# otherwise recommended system. This might not produce a running system on some platforms
+AC_ARG_ENABLE(
+    force-posix-named-semaphores,
+    [AC_HELP_STRING([--enable-force-posix-named-semaphores],
+		[Force the use of Posix Named Semaphores, which are faster then SVR4, but might not work on this platform])],
+	[AM_CFLAGS="$AM_CFLAGS -DFORCE_POSIX_NAMED_SEMAPHORES"
+		ENABLE_FORCE_POSIX_NAMED_SEMAPHORES=yes],
+    [])
+
+#
+# allow the user running configure to force the use of SVR4 Semaphores over the 
+# otherwise recommended system. They are supported on all process-based platforms
+AC_ARG_ENABLE(
+    force-svr4-semaphores,
+    [AC_HELP_STRING([--enable-force-svr4-semaphores],
+		[Force the use of SVR4 Semaphores, which are supported on most platforms, but might be slower])],
+	[AM_CFLAGS="$AM_CFLAGS -DFORCE_SVR4_SEMAPHORES"
+		ENABLE_FORCE_SVR4_SEMAPHORES=yes],
+    [])
+
+#
+# allow the user running configure to enable bpsec debugging 
+#
+AC_ARG_ENABLE(
+    bpsec-debugging,
+    [AC_HELP_STRING([--enable-bpsec-debugging], [Enable bpsec debugging])],
+    [AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_DEBUG_LVL=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_DEBUG_LVL=1 -DBIB_TEST_LOGGING=1"
+     ENABLE_BPSEC_DEBUGGING=yes],
+    [])
 
 #
 # Try to enable DCCP support
@@ -604,10 +679,10 @@ AC_SUBST([MANOPTS], $MANOPTS)
 
 AC_MSG_CHECKING([for tools to build autodoc])
 if test "$PS2PDF" && test "$PDF2PS" && test "$PSJOIN" && test "$GROFFMS" && test -n "$MANOPTS"; then
-#    AC_MSG_RESULT([(skipping autodoc)])
+    AC_MSG_RESULT([(skipping autodoc)])
 # Comment out line above and uncomment the two below to enable automatic generation of ION.pdf
-    AC_MSG_RESULT([found])
-    buildautodoc="yes"
+#    AC_MSG_RESULT([found])
+#    buildautodoc="yes"
 else
     AC_MSG_RESULT([not found (skipping autodoc)])
     AC_MSG_NOTICE([Ensure the ghostscript, psutils, groff-base and groff packages are installed.])

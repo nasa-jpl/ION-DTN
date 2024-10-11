@@ -1,0 +1,10 @@
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.0 x
+a endpoint ipn:2.4 x
+a protocol stcp 1400 100 100000
+a induct stcp 127.0.0.1:4557 stcpcli
+a outduct stcp 127.0.0.1:4557 stcpclo
+a outduct stcp 127.0.0.1:4556 stcpclo
+r 'ipnadmin node02.ipnrc'
+s

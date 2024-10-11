@@ -1,0 +1,76 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 4, 2014
+#
+# ION node 2 will be created and ready for sending or receiving
+# cfdp transaction to/from your DTN BP node 3
+# modify cfdp_cmds file in ./2.ipn.ltp for changing cfdp role of
+# ION node 2
+#
+# For more detail, refer below configuration
+#
+#         Node 2 (ION)                     Node 3 (your)
+#      +---------------+                 +---------------+
+#      |               |                 |               |
+#      +-> 2113        |                 +-> 3113        |
+#      |    Ext I/F    |  <===========>  |    Ext I/F    |
+#      |               |                 |               |
+#      |               |                 |               |
+#      +---------------+                 +---------------+
+#      |               |                 |               |
+#      +->   cfdp      |                 |      cfdp   <-+
+#      |    Int I/F    |                 |    Int I/F    |
+#      <--             |                 |             -->
+#      +---------------+                 +---------------+
+#
+
+# set timeouts based on OS type
+if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
+	TIMETOWAIT=35
+else
+	TIMETOWAIT=55
+fi
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+echo "Looking for acsadmin"
+which acsadmin
+if [ $? -eq 0 ] ; then
+	cd ./2.ipn.ltp
+	./ionstart-acs &
+else
+	cd ./2.ipn.ltp
+	./ionstart &
+fi
+
+
+sleep 10
+echo "Starting cfdptest on node 2..."
+cd ../2.ipn.ltp
+cfdptest < cfdp_cmds >& node2.stdout &
+
+sleep $TIMETOWAIT
+echo ""
+echo "cfdptest has been completed..."
+echo "Check the file transaction status...."
+RETVAL=0
+
+cd ../2.ipn.ltp
+
+echo ""
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+
+sleep 15
+killm
+echo ""
+echo "CFDPv1 test completed."
+exit $RETVAL
+

@@ -35,6 +35,9 @@
 #include "bib.h"
 #include "bcb.h"
 
+/* Enhanced Watch Character
+ * #define EWCHAR */
+
 #define MAX_STARVATION		10
 #define NOMINAL_BYTES_PER_SEC	(256 * 1024)
 #define NOMINAL_PRIMARY_BLKSIZE	29
@@ -2928,10 +2931,20 @@ incomplete bundle.", NULL);
 			bpDbTally(BP_DB_EXPIRED, bundle.payload.length);
 			if ((_bpvdb(NULL))->watching & WATCH_expire)
 			{
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)!",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+				iwatch_str(ewchar);
+#else
 				iwatch('!');
+#endif
+
 			}
 
-			if (!(bundle.bundleProcFlags & BDL_IS_ADMIN)
+			if ((bundle.bundleProcFlags & BDL_IS_BIBE
+				|| (bundle.bundleProcFlags & BDL_IS_ADMIN) == 0)
 			&& (SRR_FLAGS(bundle.bundleProcFlags) & BP_DELETED_RPT))
 			{
 				bundle.statusRpt.flags |= BP_DELETED_RPT;
@@ -3045,6 +3058,11 @@ incomplete bundle.", NULL);
 	 *	free space occupied by the bundle itself.		*/
 
 	eraseEid(&bundle.clDossier.senderEid);
+	if (bundle.ovrdDuctExpr)
+	{
+		sdr_free(sdr, bundle.ovrdDuctExpr);
+	}
+
 	if (bundle.destinations)	/*	For IMC multicast.	*/
 	{
 		sdr_list_destroy(sdr, bundle.destinations, NULL, NULL);
@@ -4944,8 +4962,7 @@ static int	flushOutduct(Outduct *outduct)
 				& BP_PROTOCOL_ANY;
 		protocolClassApplied = protocolClassReqd
 				& protocol.protocolClass;
-		if (protocolClassApplied & BP_RELIABLE
-		|| protocolClassApplied & BP_RELIABLE_STREAMING)
+		if (protocolClassApplied & BP_RELIABLE)
 		{
 			if (bpReforwardBundle(bundleObj) < 0)
 			{
@@ -6139,12 +6156,19 @@ int	bpSend(MetaEid *sourceMetaEid, char *destEidString,
 		return 0;
 	}
 
+
 	discoveryElt = bp_find_discovery(destEidString);
-	if (parseEidString(destEidString, &destMetaEid, &vscheme, &vschemeElt)
+
+	//Sky copies string to avoid clobbering destEidString
+	char copy_EID [300]; //matching size of eid string in acquireEid()
+	strcpy(copy_EID, destEidString);
+
+
+	if (parseEidString(copy_EID, &destMetaEid, &vscheme, &vschemeElt)
 			== 0)
 	{
 		restoreEidString(&destMetaEid);
-		writeMemoNote("[?] Destination EID malformed", destEidString);
+		writeMemoNote("[?] Destination EID malformed", copy_EID);
 		return 0;
 	}
 
@@ -6200,9 +6224,9 @@ for status reports.");
 		}
 
 		/*	Also can't get status reports for
-		 *	administrative records.				*/
+		 *	administrative records except BIBE.		*/
 
-		if (adminRecordType != 0)
+		if (adminRecordType != 0 && adminRecordType != BP_BIBE_PDU)
 		{
 			restoreEidString(&destMetaEid);
 			writeMemo("[?] Can't ask for status reports for admin \
@@ -6228,7 +6252,7 @@ when asking for status reports.");
 	/*	Set bundle processing flags.				*/
 
 	bundleProcFlags = srrFlags;
-	bundleProcFlags <<= 8;	/*	Other flags in low-order byte.	*/
+	bundleProcFlags <<= 14;	/*	Other flags in low-order byte.	*/
 	bundleProcFlags |= BDL_STATUS_TIME_REQ;
 	if (sourceMetaEid == NULL)
 	{
@@ -6255,6 +6279,10 @@ when asking for status reports.");
 	if (adminRecordType != 0)
 	{
 		bundleProcFlags |= BDL_IS_ADMIN;
+		if (adminRecordType == BP_BIBE_PDU)
+		{
+			bundleProcFlags |= BDL_IS_BIBE;
+		}
 
 		/*	Administrative bundles must not be anonymous.
 		 *	Recipient needs to know source of the status
@@ -6491,8 +6519,7 @@ when asking for status reports.");
 		/*	Custody transfer is only provided by
 		 *	bundle-in-bundle encapsulation.			*/
 
-		bundle.ancillaryData.flags |=
-				(BP_BIBE_REQUESTED | BP_CT_REQUESTED);
+		bundle.ancillaryData.flags |= BP_CT_REQUESTED;
 	}
 
 	/*	Insert all applicable extension blocks into the bundle.	*/
@@ -6546,7 +6573,16 @@ when asking for status reports.");
 	bpSourceTally(bundle.classOfService, bundle.payload.length);
 	if (bpvdb->watching & WATCH_a)
 	{
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)a",bundle.id.source.ssp.ipn.nodeNbr,
+		   bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.msec, bundle.id.creationTime.count);
+		iwatch_str(ewchar);
+#else
 		iwatch('a');
+#endif
+		
 	}
 
 	if (sdr_end_xn(sdr) < 0)
@@ -6904,10 +6940,20 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 
 			if ((_bpvdb(NULL))->watching & WATCH_z)
 			{
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
+		    		bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
+				iwatch_str(ewchar);
+#else
 				iwatch('z');
+#endif
 			}
 
-			if (bundle->destination.schemeCodeNbr != imc)
+			if (bundle->destination.schemeCodeNbr != imc ||
+			      bundle->clDossier.senderNodeNbr == 
+				   getOwnNodeNbr())
 			{
 				/*	This is not a multicast bundle.
 				 *	So we now write the bundle state
@@ -6926,7 +6972,17 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				 *	failure action for this
 				 *	endpoint is DiscardBundle,
 				 *	now the the time to destroy
-				 *	the bundle.			*/
+				 *	the bundle.	
+				 *  Another case is that this node
+				 *  just send the bundle as loopback
+				 *  because it is either unicast to
+				 *  itself or multicast to a group
+				 *  this node itself belongs and
+				 *  that this node is the source of
+				 *  the bundle, then to prevent
+				 *  infinite loops, we destroy it
+				 *  instead of sending to forwarder
+				 *  to figure out.		*/
 
 				sdr_write(sdr, bundleObj, (char *) bundle,
 						sizeof(Bundle));
@@ -7949,7 +8005,8 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 
 	/*	Check for processing flags conflicts.			*/
 
-	if (bundle->bundleProcFlags & BDL_IS_ADMIN)
+	if (bundle->bundleProcFlags & BDL_IS_ADMIN
+	&& (bundle->bundleProcFlags & BDL_IS_BIBE) == 0)
 	{
 		if (SRR_FLAGS(bundle->bundleProcFlags) != 0)
 		{
@@ -8323,7 +8380,9 @@ static int	acquireBlock(AcqWorkArea *work)
 
 	/*	Check for processing flags conflicts.			*/
 
-	if (bundle->anonymous || bundle->bundleProcFlags & BDL_IS_ADMIN)
+	if (bundle->anonymous
+	|| ((bundle->bundleProcFlags & BDL_IS_ADMIN) > 0
+		&& (bundle->bundleProcFlags & BDL_IS_BIBE) == 0))
 	{
 			/*	RFC BPbis 5.6 Step 4	*/
 
@@ -8567,7 +8626,7 @@ static int	checkPayloadCrc(AcqWorkArea *work, uvast *crcComputed,
 
 	payloadHeaderLength = work->preambleLength - work->headerLength;
 	zco_start_receiving(work->zco, &reader);
-	bytesToSkip = work->headerLength;
+	bytesToSkip = work->zcoBytesConsumed + work->headerLength;
 
 	/*	Skipping this far positions us at the first byte
 	 *	of the payload block.					*/
@@ -8959,22 +9018,28 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (bpsec_decrypt(work) < 0)
 	{
-		putErrmsg("Failed decrypting extension blocks.", NULL);
-
-		/* check non-critical error flags */
-		
-		/* check for corruption */
-		if (work->malformed == 1)
-		{
-			writeMemo("[?] Malformed Bundle: Failed decryption.");
-			bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-			return abortBundleAcq(work);
-		}
-
 		/* system error */
+		putErrmsg("Failed decrypting extension blocks.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+	}
+
+	/* check non-critical error flags */
+
+	if (bundle->insecure == 1)
+	{
+		writeMemo("[?] Decryption failed for bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+			bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (work->malformed == 1)
+	{
+		writeMemo("[?] Malformed Bundle: Failed decryption.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+			bundle->payload.length);
+		return abortBundleAcq(work);
 	}
 
 	/*	Can now finish block acquisition for any blocks
@@ -9027,27 +9092,34 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	initAuthenticity(work);	/*	Set default.			*/
 	if (bpsec_verify(work) < 0)
 	{
-		/* first check for non-critical error */
-		if (bundle->corrupt == 1)
-		{
-			writeMemo("[?] security verification failed for target primary block.");
-			bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-			return abortBundleAcq(work);
-		}
-
-		if (bundle->altered == 1)
-		{
-			writeMemo("[?] security verification failed for target extension block.");
-			bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
-				bundle->payload.length);
-			return abortBundleAcq(work);	
-		}
-
 		/* system error */
 		putErrmsg("Can't check bundle authenticity.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+	}
+
+	if (bundle->corrupt == 1)
+	{
+		writeMemo("[?] security verification failed for target primary block.");
+		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
+			bundle->payload.length);
+		return abortBundleAcq(work);
+	}
+
+	if (bundle->altered == 1)
+	{
+		writeMemo("[?] security verification failed for target extension block.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+			bundle->payload.length);
+		return abortBundleAcq(work);	
+	}
+
+	if (bundle->insecure == 1)
+	{
+		writeMemo("[?] security verification failed for bundle.");
+		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
+			bundle->payload.length);
+		return abortBundleAcq(work);
 	}
 
 	/* check additional error codes after security verification */
@@ -9058,16 +9130,6 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
 		return abortBundleAcq(work);	
-	}
-
-	/* To be confirmed: would bpsec_verify return 0 but set 
-		bundle->corrupt to 1? This might be a redundant test case. */
-	if (bundle->corrupt)
-	{
-		writeMemo("[?] Corrupt bundle.");
-		bpInductTally(work->vduct, BP_INDUCT_MALFORMED,
-				bundle->payload.length);
-		return abortBundleAcq(work);
 	}
 
 	if (bundle->clDossier.authentic == 0)
@@ -9209,7 +9271,16 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 	bpRecvTally(bundle->classOfService, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_y)
 	{
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)y",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
+		iwatch_str(ewchar);
+#else
 		iwatch('y');
+#endif
+
 	}
 
 	/*	Other decisions and reporting are left to the
@@ -9493,7 +9564,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->receiptTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9502,7 +9573,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9510,7 +9581,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	Forwarded.						*/
@@ -9522,7 +9593,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->forwardTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9531,7 +9602,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9539,7 +9610,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	Delivered.						*/
@@ -9551,7 +9622,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->deliveryTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9560,7 +9631,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9568,7 +9639,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	Deleted.						*/
@@ -9580,7 +9651,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 2;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 			uvtemp = rpt->deletionTime;
 			oK(cbor_encode_integer(uvtemp, &cursor));
 		}
@@ -9589,7 +9660,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 			uvtemp = 1;
 			oK(cbor_encode_array_open(uvtemp, &cursor));
 			uvtemp = 1;
-			oK(cbor_encode_integer(uvtemp, &cursor));
+			oK(cbor_encode_boolean(uvtemp, &cursor));
 		}
 	}
 	else
@@ -9597,7 +9668,7 @@ static int	serializeStatusRpt(Bundle *bundle, Object *zco)
 		uvtemp = 1;
 		oK(cbor_encode_array_open(uvtemp, &cursor));
 		uvtemp = 0;
-		oK(cbor_encode_integer(uvtemp, &cursor));
+		oK(cbor_encode_boolean(uvtemp, &cursor));
 	}
 
 	/*	The second item is the reason code.			*/
@@ -9789,10 +9860,16 @@ int	parseStatusRpt(BpStatusRpt *rpt, unsigned char *cursor,
 
 		/*	Decode status switch.				*/
 
-		if (cbor_decode_integer(&uvtemp, CborAny, &cursor,
+		if (cbor_decode_boolean(&uvtemp, &cursor,
 					&unparsedBytes) < 1)
 		{
+			/* Give specific error message in the case that the decoded value
+			for the status assertion switch is not a CBOR boolean. Suggest that
+			the sender of these status reports may be out of date. */
+
 			writeMemo("[?] Can't decode status assertion switch.");
+			writeMemo("[?] The sender might be using a pre 4.1.3 version of ION, status assertion indicator encoding format updated in ION 4.1.3, with patch available for 4.1.2, to be compliant with CBOR boolean constants detailed in RFC8949 Appendix B.");
+
 			return 0;
 		}
 
@@ -10708,7 +10785,15 @@ int	bpEnqueue(VPlan *vplan, Bundle *bundle, Object bundleObj)
 	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	if ((_bpvdb(NULL))->watching & WATCH_b)
 	{
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)b",bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+		iwatch_str(ewchar);
+#else
 		iwatch('b');
+#endif
 	}
 
 	bpPlanTally(vplan, BP_PLAN_ENQUEUED, bundle->payload.length);
@@ -10756,7 +10841,15 @@ int	enqueueToLimbo(Bundle *bundle, Object bundleObj)
 	bpDbTally(BP_DB_TO_LIMBO, bundle->payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_limbo)
 	{
-		iwatch('j');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)j", bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('j');
+#endif
 	}
 
 	return 0;
@@ -10922,7 +11015,15 @@ int	releaseFromLimbo(Object xmitElt, int resuming)
 	bpDbTally(BP_DB_FROM_LIMBO, bundle.payload.length);
 	if ((_bpvdb(NULL))->watching & WATCH_delimbo)
 	{
-		iwatch('k');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)k",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('k');
+#endif
 	}
 
 	/*	Now see if the bundle can finally be transmitted.	*/
@@ -11041,7 +11142,15 @@ int	bpAbandon(Object bundleObj, Bundle *bundle, int reason)
 
 	if ((_bpvdb(NULL))->watching & WATCH_abandon)
 	{
-		iwatch('~');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)~", bundle->id.source.ssp.ipn.nodeNbr, 
+		     bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('~');
+#endif
 	}
 
 	return ((result1 + result2) == 0 ? 0 : -1);
@@ -11170,11 +11279,28 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 	 *	BIB rules and we then encrypt blocks per all
 	 *	applicable BCB rules.					*/
 
+	/* track current to bundle overhead */
+    int     oldDbOverhead = bundle.dbOverhead;
+
 	if (bpsec_sign(&bundle) < 0)
 	{
 		putErrmsg("Failed signing bundle blocks.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+	}
+
+	if (bundle.insecure)	/*	Not signed, can't be sent.	*/
+	{
+		*bundleZco = 1;		/*	Client need not stop.	*/
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 5) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		return sdr_end_xn(sdr);
 	}
 
 	if (bpsec_encrypt(&bundle) < 0)
@@ -11183,6 +11309,34 @@ int	bpDequeue(VOutduct *vduct, Object *bundleZco,
 		sdr_cancel_xn(sdr);
 		return -1;
 	}
+
+	if (bundle.insecure)	/*	Not encrypted, can't be sent.	*/
+	{
+		*bundleZco = 1;		/*	Client need not stop.	*/
+		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		if (bpDestroyBundle(bundleObj, 5) < 0)
+		{
+			putErrmsg("Failed trying to destroy bundle.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		return sdr_end_xn(sdr);
+	}
+
+    /* check for changes to bundle overhead */
+    if (bundle.dbOverhead != oldDbOverhead)
+    {
+#if ZCODEBUG
+        char    buf[128];
+        sprintf(buf, "[i] bpDequeu: after bpsec ops, old dbOverhead = %d, new dbOverhead = %d",
+        oldDbOverhead, bundle.dbOverhead);
+        writeMemo(buf);
+#endif
+        zco_reduce_heap_occupancy(sdr, oldDbOverhead, bundle.acct);
+        zco_increase_heap_occupancy(sdr, bundle.dbOverhead,
+                        bundle.acct);
+    }
 
 	/*	We now serialize the bundle header and prepend that
 	 *	header to the payload of the bundle.  This transforms
@@ -11856,7 +12010,15 @@ int	bpHandleXmitFailure(Object bundleZco)
 
 	if ((_bpvdb(NULL))->watching & WATCH_clfail)
 	{
-		iwatch('#');
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* spec is for 64 bit, non-Window */
+				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)#",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+				iwatch_str(ewchar);
+#else
+				iwatch('#');
+#endif
 	}
 
 	bpDbTally(BP_DB_REQUEUED_FOR_FWD, bundle.payload.length);

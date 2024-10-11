@@ -15,15 +15,7 @@ CONFIGFILES=" \
 ./1.ipn.bssp/amroc.ipnrc \
 "
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./1.ipn.bssp/amroc.acsrc"
-	fi
-fi
+source ../setacs.sh
 
 CONFIGFILES=$CONFIGFILES"
 ./2.ipn.bssp/amroc.bprc \
@@ -33,10 +25,6 @@ CONFIGFILES=$CONFIGFILES"
 ./2.ipn.bssp/amroc.ionsecrc \
 ./2.ipn.bssp/amroc.ipnrc
 "
-
-if [[ $ACS == "found" ]] ; then
-	CONFIGFILES=$CONFIGFILES" ./2.ipn.bssp/amroc.acsrc"
-fi
 
 echo "########################################"
 echo
@@ -73,7 +61,9 @@ in-order are counted while the out-of-order frames are stored in the
 BSS database.  Every 5 seconds the receiver checks to see if all 1000
 frames have been received into the database in correct transmission
 order; when this has been accomplished, the total numbers of frames
-received in real time and in replay are printed and the test terminates."
+received in real time and in replay are printed and the test terminates.
+
+BSSP provides it's own retransmission, therefore ACS is not activated."
 
 echo
 echo "CONFIG: 2 node custom BSS:"
@@ -96,17 +86,10 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 RETVAL=0 
 # Start nodes.
-if [[ $ACS == "found" ]] ; then
-	cd 1.ipn.bssp
-	./ionstart-acs >& node1.stdout
-	cd ../2.ipn.bssp
-	./ionstart-acs >& node2.stdout
-else
-	cd 1.ipn.bssp
-	./ionstart >& node1.stdout
-	cd ../2.ipn.bssp
-	./ionstart >& node2.stdout
-fi
+cd 1.ipn.bssp
+./ionstart >& node1.stdout
+cd ../2.ipn.bssp
+./ionstart >& node2.stdout
 
 cd ../1.ipn.bssp
 ../../../system_up -i "p 30" -b "p 30"
@@ -133,8 +116,8 @@ fi
 # Start BSS receiver on node 2.
 cd ../2.ipn.bssp
 echo
-echo "Starting bsscounter application..."
-bsscounter 1000 bssDB ../ ipn:2.71 > bsscounter.output &
+echo "Starting bsscounter application with 80 seconds of playback wait time"
+bsscounter 1000 bssDB ../ ipn:2.71 80 > bsscounter.output &
 sleep 2
 
 cd ../1.ipn.bssp
@@ -142,8 +125,9 @@ echo
 echo "Sending a stream of 1000 bundles from node 1 to node 2..."
 bssdriver ipn:1.2 ipn:2.71 1000
 
-# Allow time for necessary retransmission to be completed.
-sleep 15
+# Wait for at least the playback wait time (to complete retransmissions)
+echo "Wait for at least 80 seconds for the playback wait time..."
+sleep 90
 
 echo ""
 cd ../2.ipn.bssp

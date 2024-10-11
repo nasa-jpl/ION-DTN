@@ -1,0 +1,11 @@
+# Config file for issue-334-cfdp-transaction-id test
+# Samuel Jero
+# December 15, 2011
+#Initialize
+1 128 1000000
+
+#Add Span
+a span 1 2 10000 2 10000 1024 10000 1 'udplso localhost:1113'
+
+#Start
+s 'udplsi localhost:1114'

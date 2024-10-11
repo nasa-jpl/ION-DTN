@@ -1,5 +1,6 @@
-# shell script to remove all of my IPC keys
 #!/bin/bash
+# shell script to remove all of my IPC keys
+
 bpadmin		.
 sleep 1
 bsspadmin	.

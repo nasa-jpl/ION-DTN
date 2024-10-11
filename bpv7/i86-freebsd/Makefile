@@ -272,9 +272,17 @@ bpsendfile:	bpsendfile.o libbp.so $(BPLIBS)
 		$(CC) -o bpsendfile bpsendfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp bpsendfile ./bin
 
+bpsendtest:	bpsendtest.o libbp.so $(BPLIBS)
+		$(CC) -o bpsendtest bpsendtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp bpsendtest ./bin
+
 bprecvfile:	bprecvfile.o libbp.so $(BPLIBS)
 		$(CC) -o bprecvfile bprecvfile.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
 		cp bprecvfile ./bin
+
+bprecvtest:	bprecvtest.o libbp.so $(BPLIBS)
+		$(CC) -o bprecvtest bprecvtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread
+		cp bprecvtest ./bin
 
 bpnmtest:	bpnmtest.o libbp.so $(BPLIBS)
 		$(CC) -o bpnmtest bpnmtest.o -L./lib -L$(ROOT)/lib $(LBP) -lici -lpthread

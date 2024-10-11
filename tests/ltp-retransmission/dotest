@@ -14,15 +14,10 @@ CONFIGFILES=" \
 ./2.ipn.ltp/amroc.ionsecrc \
 ./2.ipn.ltp/amroc.ipnrc \
 "
+source ../setacs.sh
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
-	fi
+if [[ "$ACS" == "found" ]] ; then
+	CONFIGFILES=$CONFIGFILES" ./2.ipn.ltp/amroc.acsrc"
 fi
 
 CONFIGFILES=$CONFIGFILES"
@@ -35,7 +30,7 @@ CONFIGFILES=$CONFIGFILES"
 ./3.ipn.ltp/amroc.ipnrc \
 "
 
-if [[ $ACS == "found" ]] ; then
+if [[ "$ACS" == "found" ]] ; then
 	CONFIGFILES=$CONFIGFILES" ./3.ipn.ltp/amroc.acsrc"
 fi
 
@@ -76,10 +71,10 @@ rm -f ./ion_nodes
 
 # Start nodes.
 cd 2.ipn.ltp
-if [[ $ACS == "found" ]] ; then
-	./ionstart-acs >& node2.stdout &
+if [[ "$ACS" == "found" ]] ; then
+	./ionstart-acs >& node2.stdout
 else
-	./ionstart >& node2.stdout &
+	./ionstart >& node2.stdout
 fi
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
@@ -92,10 +87,10 @@ else
 fi
 
 cd ../3.ipn.ltp
-if [[ $ACS == "found" ]] ; then
-	./ionstart-acs >& node3.stdout &
+if [[ "$ACS" == "found" ]] ; then
+	./ionstart-acs >& node3.stdout
 else
-	./ionstart >& node3.stdout &
+	./ionstart >& node3.stdout
 fi
 ../../../system_up -i "p 30" -l "p 30" -b "p 30"
 
@@ -126,7 +121,7 @@ do
 	sleep 1
 	echo "...receiving..."
 	# some ps don't like -p syntax, most do.
-	if [ $1 == "windows" ]
+	if [ "$1" == "windows" ]
 	then
 		ps | grep "$BPCOUNTER_PID" >& /dev/null && RETURN_VALUE=1 || RETURN_VALUE=0
 	else

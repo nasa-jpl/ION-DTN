@@ -201,9 +201,13 @@ void	*allocFromIonMemory(const char *fileName, int lineNbr, size_t length)
 	PsmAddress	address;
 	void		*block;
 
+//fprintf(stderr,"allocFromIonMemory(%s, lineNbr:%d, length:%zu) called\n", fileName, lineNbr, length);
+
 	address = Psm_zalloc(fileName, lineNbr, ionwm, length);
 	if (address == 0)
 	{
+fprintf(stderr,"FAILED*** allocFromIonMemory(%s, lineNbr:%d, length:%zu) called\n", fileName, lineNbr, length);
+
 		putErrmsg("Can't allocate ION working memory.", itoa(length));
 		return NULL;
 	}
@@ -1103,13 +1107,12 @@ void	ionDetach()
 		/*	unregister call back 	*/
 		zco_unregister_callback();
 
-#if defined( SVR4_SEMAPHORES )
+#if defined( SVR4_SEMAPHORES ) || defined( POSIX_NAMED_SEMAPHORES )
 		/* Completes detaching from Ion 				*
 		 * Reset and detach from ipc semaphore set		*
-		 * only implemented for SVR$ platform			*/
+		 * only implemented for SVR4 platform and Posix Named Semaphores			*/
 		sm_ipc_detach();
 #endif
-
 	}
 #ifdef mingw
 	oK(_winsock(1));

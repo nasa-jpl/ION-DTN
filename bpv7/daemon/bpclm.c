@@ -11,6 +11,9 @@
 									*/
 #include "bpP.h"
 
+/* for enhanced watch character
+ * #define EWCHAR */
+
 static sm_SemId	_bpclmSemaphore(sm_SemId *newValue)
 {
 	uaddr		temp;
@@ -284,21 +287,44 @@ static int	getOutboundBundle(Outflow *flows, VPlan *vplan,
 static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 			int classReqd, ClProtocol *protocol, Outduct *outduct)
 {
-	Sdr	sdr = getIonsdr();
-	Object	ductElt;
-	Object	outductElt;
-	Object	outductObj;
+	Sdr		sdr = getIonsdr();
+	char		outductExpression[SDRSTRING_BUFSZ];
+	char		*cursor;
+	char		protocolNameBuf[MAX_CL_PROTOCOL_NAME_LEN + 1];
+	char		*protocolName = NULL;
+	char		*ductName = NULL;
+	Object		ductElt;
+	Object		outductElt;
+	Object		outductObj;
 
-	/*	A bundle for which bundle-in-bundle encapsulation is
-	 *	requested will always be directed to the BIBE outduct
-	 *	for the neighboring node's egress plan.  (If none
-	 *	exists, the bundle will not be forwarded.)  Otherwise 
-	*	a mission-specific implementation of this function
-	 *	can select among multiple possible outducts to the
-	 *	indicated neighboring node based on characteristics
-	 *	of the bundle or other criteria.  By default, the
-	 *	first outduct whose transmission class matches the
-	 *	required class is selected.				*/
+	if (bundle->ovrdDuctExpr)	/*	E.g., coerce to BIBE.	*/
+	{
+		if (sdr_string_read(sdr, outductExpression,
+				bundle->ovrdDuctExpr) < 0)
+		{
+			putErrmsg("Unreadable override outduct expression",
+					itoa(bundle->ovrdDuctExpr));
+			return 0;
+		}
+
+		cursor = strchr(outductExpression, '/');
+		if (cursor == NULL)
+		{
+			writeMemoNote("[?] Invalid override outduct expression",
+					outductExpression);
+			return 0;
+		}
+
+		*cursor = '\0';
+		istrcpy(protocolNameBuf, outductExpression,
+				sizeof(protocolNameBuf));
+		*cursor = '/';
+		protocolName = protocolNameBuf;
+		ductName = cursor + 1;
+	}
+
+	/*	Examine all outducts for this egress plan and
+	 *	select the best one.					*/
 
 	for (ductElt = sdr_list_first(sdr, plan->ducts); ductElt;
 			ductElt = sdr_list_next(sdr, ductElt))
@@ -308,10 +334,13 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 		sdr_read(sdr, (char *) outduct, outductObj, sizeof(Outduct));
 		sdr_read(sdr, (char *) protocol, outduct->protocol,
 				sizeof(ClProtocol));
-		if (bundle->qosFlags & BP_BIBE_REQUESTED)
+		if (protocolName)	/*	Specific duct needed.	*/
 		{
-			if (strcmp(protocol->name, "bibe") == 0)
+			if (strcmp(protocolName, protocol->name) == 0
+			&& strcmp(ductName, outduct->name) == 0)
 			{
+				/*	This is the required outduct.	*/
+
 				return 1;
 			}
 
@@ -328,7 +357,13 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 #endif
 	}
 
-	return 0;		/*	No ducts are usable.		*/
+	if (protocolName)		/*	Specific duct needed.	*/
+	{
+		writeMemoNote("[?] Override outduct unknown for plan",
+				outductExpression);
+	}
+
+	return 0;			/*	No ducts are usable.	*/
 }
 
 static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
@@ -343,6 +378,9 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 
 	*vduct = NULL;			/*	Default.		*/
 	protClassReqd = bundle->qosFlags & BP_PROTOCOL_ANY;
+#if 0
+	/*	BSSP is deprecated.					*/
+
 	if (protClassReqd & BP_RELIABLE_STREAMING)
 	{
 		/*	BSSP is required, no other protocol will do.
@@ -351,7 +389,7 @@ static void	getOutduct(VPlan *vplan, Bundle *bundle, VOutduct **vduct)
 
 		protClassReqd = BP_RELIABLE_STREAMING;
 	}
-
+#endif
 	if (protClassReqd == 0)		/*	Don't care.		*/
 	{
 		protClassReqd = BP_PROTOCOL_ANY;
@@ -627,7 +665,16 @@ int	main(int argc, char *argv[])
 		bpXmitTally(bundle.priority, bundle.payload.length);
 		if ((getBpVdb())->watching & WATCH_c)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u,%u)c",bundle.id.source.ssp.ipn.nodeNbr, 
+		     bundle.id.source.ssp.ipn.serviceNbr, bundle.id.creationTime.count);
+			iwatch_str(ewchar);
+#else
 			iwatch('c');
+#endif
+
 		}
 
 		/*	Consume estimated transmission capacity.	*/

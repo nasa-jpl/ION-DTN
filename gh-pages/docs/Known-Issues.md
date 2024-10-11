@@ -4,14 +4,22 @@ This is a short list of information regarding ION operation, known issues, and p
 
 Most of these information are likely to be found in other longer documents but it is presented here in a summarized form for easier search. Another useful document is the [ION Deployment Guide](./ION-Deployment-Guide.md) which contains recommendations on configuring and running ION and performance data.
 
-## Convergence Layer Adaptor
+## Permission Issues
 
-### UDP CLA
+When encountering any "permission denied" issues during installation, it is recommended that you:
+  
+1. Run `sudo make uninstall` and `make clean` to clear all previous ION build artifact and files, and
+2. Review files and folders in the ION code's root directories (include subdirectories) that are owned by "root" and remove or change ownership. This occurs when ION was previously build and tested by the root user and was not properly removed from the system.
 
-* When using UDP CLA for data delivery, one should be aware that:
-  * UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even withing a controlled, isolated network environment.
-  * It is best to use iperf and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss may have high loss rate due to presence of other traffic or insufficient internal buffer.
-  * When UDP CLA is used to deliver bundles larger than 64K, those bundle will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can cause a large number of 'cyclic' packet drops so that an unexpected large number of bundles are unable to be reassembled at the destination. These bundle fragments (which are themselves bundles) will take up storage and remain until either (a) the remaining fragments arrived or (b) the TTL expired.
+## UDP Convergence Layer Adaptor (CLA)
+
+When using UDP CLA for data delivery, one should be aware that:
+
+* UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even within a controlled, isolated network environment.
+
+* It is best to use `iperf` and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss rates may flucturate due to presence of other competing, non-DTN traffic on the host, or due to insufficient kernel buffer space configured in the host.
+
+* When UDP CLA is used to deliver bundles larger than 64 kilo-byte, those bundles will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can prevent a large number of bundles from being reassembled at the destination node. These bundle fragments (which are themselves bundles) will take up ION storage and remain until (a) remaining fragments arrived for reassemble or (b) the Time-to-Live (TTL) of the bundle expired.
 
 ### LTP CLA
 
@@ -38,7 +46,7 @@ ION handles routing based on the following general hierarchy:
 
 ## Testing & Configuration
 
-* When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to `root`. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the `make clean` and `git stash` command to remove all build and testing artifacts from ION 's source directory before exiting the container.
+When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to `root`. 
 
 ## ionconfig
 
@@ -54,7 +62,27 @@ where 3 is the margin we recommend, 8 is the number of octets per word, 0.4 acco
 
 ## SDR 
 
-### SDR transaction reversal
+## Shutdown ION
+
+When writing a customized ION shutdown script, it is recommended that you stop the various daemons, if present, by running the various daemon administration programs, with a single period '.' as argument, in the following general order: 
+
+* `cfdpadmin .` 
+* If running BPv6, `acsadmin .` and `imcadmin .`
+* `bpadmin .`
+* `ltpadmin .`
+* `bsspadmin .`
+* `ipnadmin .`
+* `ionadmin .`
+
+The key here is that `ionadmin .` should be the last command to run in the shutdown process because most ION daemons are attached to the data structure and shared memory initialized by the `ionadmin` program. When these daemons execute a nominal shut down, they will try to _detach_ from ION first. Therefore, it is important to keep the ION's SDR and various Interprocess Communication (IPC) infrastructure in place until the very end, after all other processes have terminated.
+
+If `ionadmin .` is not run last, it is possible some daemon can get stuck and will require manaul termination using `kill -9` command.
+
+After ION shutdown completed, it is also recommended that you remove any file-based SDR and SDR log in the `/tmp` directory (or a customized directory you specified in the `.ionconfig` file). 
+
+In the working directory where ION was launched, there may also be temporary files in the form of `bpacq.*` and `ltpacq.*`. These files are remnants of bundle and ltp segment acquisition processes that did not terminate nominally. Although doese files do not interfere with subsequent instances of ION operations, they can accumulate and take up storage space. So it is recommended that they be removed manually or via an automated script.
+
+## SDR transaction reversal
 
 When SDR transaction is canceled due to anomaly, ION will attempt automatically try the following:
 
@@ -62,13 +90,19 @@ When SDR transaction is canceled due to anomaly, ION will attempt automatically 
 2. Once the SDR's heap space has been restored, the "volatile" state of the protocols must be restored because they might be modified by the transaction as well. This is performed by the `ionrestart` utility.
 3. After the volatiles are reloaded, the 3rd step of restoring ION operation will need to be triggered by the users. During the anomously event that caused the transaction cancellation, some of ION's various daemons may have stopped. They can be restored by simply issuing the start ('s') command through `ionadmin` and `bpadmin`.
 
-### 'Init' Process PID 1
+## Using ionrestart
 
-The reloading of the volatile state and restarting of daemons is necessary to ensure the ION system is in a consistent state before resuming normal operations.
+When SDR transaction was reversed (when enabled) or cancelled, it is likely some degree of data corruption remains in ION. The `ionrestart` utility program will be triggered to reload the volatile state of the protocol stack and restarts ION's various daemons to ensure that ION can return to a consistent operational state.
 
-During the reloading of the volatile state, the bundle protocol schemes, inducts, and outducts are stopped by terminating the associated daemons. The restart process will wait for the daemon's to be terminated before restarting them. When running ION inside a docker container, the `init` process (PID 1) should be properly configured to reap all zombie processes because the restart process cannot proceed if a terminated daemon remains a zombie. Typically to ensure the proper `init` process, one should use the `--init` option for `docker run` command.
+During the reloading of the volatile state, the bundle protocol schemes, inducts, and outducts are stopped by terminating the associated daemons. Then ionrestart process will wait for the daemon's to be terminated before restarting them again.
 
-### Permission Issue with named semaphore
+To understand how ionrestart operates, you can look examples in the `reversibility check` test #1 and #2 under the `tests` folder.
+
+## 'Init' Process PID 1
+
+When running ION inside a docker container, the `init` process (PID 1) should be properly configured to reap all zombie processes because the restart process cannot proceed if a terminated daemon remains a zombie. Typically to ensure the proper `init` process, one should use the `--init` option for `docker run` command.
+
+## Permission Issue with named semaphore
 
 If you encounter an error reported in ion.log file such as this:
 

@@ -132,8 +132,7 @@ to establish bidirectional communication.
 
 =item void ionTerminate()
 
-Shuts down the entire ION node, terminating all daemons.  The state of 
-the node is retained in the node's SDR heap.
+Shuts down the entire ION node, terminating all daemons, and destories the SDR.
 
 =item int ionStartAttendant(ReqAttendant *attendant)
 

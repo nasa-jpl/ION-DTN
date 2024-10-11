@@ -1,0 +1,336 @@
+#!/bin/bash
+#
+# Copyright (c) 2009, Regents of the University of Colorado.
+# Written by Sebastian Kuzminsky <seb@highlab.com>
+# This script is released into the public domain.
+#
+
+
+#set -x
+
+# This file will contain the tests that failed.
+# --dyoung oct 2010
+FAILEDFILE="retest"
+
+
+[ -f pretest-script ] && source pretest-script
+
+
+function find_tests_in () {
+	find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
+}
+
+
+function pass_test () {
+    NUM_PASSED=$((NUM_PASSED + 1))
+    TESTS_PASSED="$TESTS_PASSED $1"
+}
+
+
+function fail_test () {
+    NUM_FAILED=$((NUM_FAILED + 1))
+    TESTS_FAILED="$TESTS_FAILED $1"
+}
+
+
+function skip_test () {
+    NUM_SKIPPED=$((NUM_SKIPPED + 1))
+    TESTS_SKIPPED="$TESTS_SKIPPED $1"
+}
+
+
+function excludeOS_test () {
+    NUM_EXCLUDED_OS=$((NUM_EXCLUDED_OS + 1))
+    TESTS_EXCLUDED_OS="$TESTS_EXCLUDED_OS $1"
+}
+
+
+function excludeBPv_test () {
+    NUM_EXCLUDED_BPv=$((NUM_EXCLUDED_BPv + 1))
+    TESTS_EXCLUDED_BPv="$TESTS_EXCLUDED_BPv $1"
+}
+
+function excludeObsolete_test () {
+    NUM_EXCLUDED_OBSOLETE=$((NUM_EXCLUDED_OBSOLETE + 1))
+    TESTS_EXCLUDED_OBSOLETE="$TESTS_EXCLUDED_OBSOLETE $1"
+}
+
+
+# runs one test, updates the test status counters
+function run_a_test () {
+    TEST=$1
+
+    # see, you can make bash read like perl if you try
+    TEST=${TEST##./}
+    TEST=${TEST%%/}
+
+    echo
+    echo "***"
+    echo "*** ${TEST}"
+    echo "***"
+
+    # check if test is excluded because it is obsolete
+    if [ -f "$TEST/.exclude_obsolete" ]; then
+    	echo "Test excluded because it is obsolete, skipping $TEST"
+	cat $TEST/.exclude_obsolete
+    	excludeObsolete_test $TEST
+    	return
+    fi
+
+    # check if test is excluded on all platforms
+    if [ -f "$TEST/.exclude_all" ]; then
+    	echo "Test universally excluded, skipping $TEST"
+	cat $TEST/.exclude_all
+    	skip_test $TEST
+    	return
+    fi
+
+    # check for environment variable to skip these	
+    if [ -f "$TEST/.exclude_expert" ]; then
+	    if [ -z "$ION_RUN_EXPERT" ]; then
+		echo "Test excluded by expertise class, skipping $TEST"
+		cat $TEST/.exclude_expert
+		skip_test $TEST
+		return
+	    fi
+    fi
+
+    # check for environment variable to skip these	
+    if [ -f "$TEST/.exclude_cbased" ]; then
+	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
+		echo "Test excluded because of C code, skipping $TEST"
+		cat $TEST/.exclude_cbased
+		skip_test $TEST
+		return
+	    fi
+    fi
+
+    # check if test is excluded by OS version
+    if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
+    	echo "Test excluded by OS type, skipping $TEST"
+	cat $TEST/.exclude_$OS_VERSION
+    	excludeOS_test $TEST
+    	return
+    fi
+
+    # check if test is excluded by BP version
+    if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
+    	echo "Test excluded by BP version, skipping $TEST"
+	cat $TEST/.exclude_$BP_VERSION
+    	excludeBPv_test $TEST
+    	return
+    fi
+
+    # check for existance of dotest script
+    if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
+        echo "test $TEST does not exist!"
+        NUM_FAILED=$((NUM_FAILED + 1))
+        TESTS_FAILED="$TESTS_FAILED $TEST"
+        return
+    fi
+
+    # make sure dotest script is executable
+    if [ ! -x "$TEST/dotest" ]; then
+        echo "dotest script not executable, skipping"
+        NUM_SKIPPED=$((NUM_SKIPPED + 1))
+        TESTS_SKIPPED="$TESTS_SKIPPED $TEST"
+        return
+    fi
+
+    pushd "$TEST" > /dev/null
+
+    if [ -x "cleanup" ]; then
+        ./cleanup
+    fi
+
+    # Prefer X/Open Portable tools if Solaris
+    if [ -x "/usr/xpg4/bin" ]; then
+        PATH="/usr/xpg4/bin:$PATH"
+    fi    
+        
+    ./dotest $OS_VERSION
+    TEST_RETVAL=$?
+    if [ $TEST_RETVAL -eq 0 ]; then
+        echo "TEST PASSED!"
+        pass_test $TEST
+        if [ -x "cleanup" ]; then
+            ./cleanup
+        fi
+    elif [ $TEST_RETVAL -eq 1 ]; then
+        echo "TEST FAILED!"
+        fail_test $TEST
+    elif [ $TEST_RETVAL -eq 2 ]; then
+        echo "TEST SKIPPED!"
+        skip_test $TEST
+    else 
+        echo "test returned unknown value $TEST_RETVAL"
+        fail_test $TEST
+    fi
+
+    # Allow some extra time for ION to fully shutdown on Windows and Solaris
+    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] 
+    then	
+	sleep 15
+    fi
+
+    popd > /dev/null
+
+}
+
+
+# cleans up one test
+function cleanup_a_test () {
+    TEST=$1
+
+    # see, you can make bash read like perl if you try
+    TEST=${TEST##./}
+    TEST=${TEST%%/}
+
+    if [ ! -d "$TEST" -o ! -e "$TEST/dotest" ]; then
+        echo "test $TEST doesnt exist!"
+        return
+    fi
+
+    if [ ! -x "$TEST/cleanup" ]; then
+        return
+    fi
+
+    pushd "$TEST" > /dev/null
+    ./cleanup
+    popd > /dev/null
+}
+
+
+# run all tests listed in $@
+function run_tests () {
+    for TEST in "$@"; do
+        run_a_test $TEST
+    done
+}
+
+
+# cleanup all tests listed in $@
+function cleanup_tests () {
+    for TEST in "$@"; do
+        cleanup_a_test $TEST
+    done
+}
+
+# these track how much of the test suite is passing/failing/skipped
+NUM_PASSED=0
+NUM_FAILED=0
+NUM_SKIPPED=0
+NUM_EXCLUDED_OS=0
+NUM_EXCLUDED_BPv=0
+NUM_EXCLUDED_OBSOLETE=0
+NUM_UNKNOWN=0
+
+# these track the names of the tests passed/failed/skipped
+# each is a string consisting of the names of all the tests in that category, separated by spaces
+TESTS_PASSED=''
+TESTS_FAILED=''
+TESTS_SKIPPED=''
+TESTS_EXCLUDED_OS=''
+TESTS_EXCLUDED_BPv=''
+TESTS_EXCLUDED_OBSOLETE=''
+
+# Determine OS version for exclusion of tests
+OS_VERSION=''
+version=`uname -a`
+if [[ $version == *"MINGW"* ]] || [[ $version == *"Msys"* ]] 
+then
+	OS_VERSION=windows;
+elif [[ $version == *"Linux"* ]] || [[ $version == *"LINUX"* ]]
+then
+	OS_VERSION=linux;
+elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]] || [[ $version == *"Darwin"* ]]
+then
+	OS_VERSION=mac;
+elif [[ $version == *"Solaris"* ]] || [[ $version == *"SunOS"* ]]
+then
+        OS_VERSION=solaris;
+fi
+
+#Determine BP version for exclustion of tests
+BP_VERSION=`bpversion`
+export BP_VERSION
+echo "BP version is $BP_VERSION"
+
+CLEANUP=""
+if [ "$1" = "cleanup" ]; then
+    shift
+    CLEANUP="cleanup"
+fi
+
+
+if [ $# -eq 0 ]; then
+    TESTS=$(find_tests_in ../demos/)" "$(find_tests_in .)
+else
+    TESTS=$(find_tests_in "$@")
+fi
+
+if [ -z "$TESTS" ]; then
+    echo "no tests found!"
+    exit 1
+fi
+
+
+if [ -z "$CLEANUP" ]; then
+    run_tests $TESTS
+else 
+    cleanup_tests $TESTS
+    if [ $? -eq 0 ]; then
+        exit 0
+    else
+        echo "some tests failed to clean up"
+        exit 1
+    fi
+fi
+
+
+echo
+echo "passed: $NUM_PASSED"
+for TEST in $TESTS_PASSED; do
+    echo "    $TEST"
+done
+
+echo
+echo "failed: $NUM_FAILED"
+RIGHTNOW=`date`
+echo "# Generated by $0 $RIGHTNOW" > $FAILEDFILE
+for TEST in $TESTS_FAILED; do
+    echo "    $TEST"
+    echo "$TEST" >> $FAILEDFILE
+done
+
+echo
+echo "skipped: $NUM_SKIPPED"
+for TEST in $TESTS_SKIPPED; do
+    echo "    $TEST"
+done
+
+echo
+echo "excluded by OS type: $NUM_EXCLUDED_OS"
+for TEST in $TESTS_EXCLUDED_OS; do
+    echo "    $TEST"
+done
+
+echo
+echo "excluded by BP version: $NUM_EXCLUDED_BPv"
+for TEST in $TESTS_EXCLUDED_BPv; do
+    echo "    $TEST"
+done
+
+echo
+echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
+for TEST in $TESTS_EXCLUDED_OBSOLETE; do
+    echo "    $TEST"
+done
+
+
+if [[ $NUM_FAILED == 0 ]]; then
+    exit 0
+else
+    exit 1
+fi
+

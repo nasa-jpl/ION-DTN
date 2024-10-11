@@ -1,0 +1,201 @@
+#!/usr/bin/env python3
+"""
+....................................
+
+     JET PROPULSION LABORATORY
+------------------------------------
+         ___  _______  ___
+        |   ||       ||   |
+        |   ||    _  ||   |
+        |   ||   |_| ||   |
+     ___|   ||    ___||   |___
+    |       ||   |    |       |
+    |_______||___|    |_______|
+
+------------------------------------
+ CALIFORNIA INSTITUTE OF TECHNOLOGY
+------------------------------------
+
+*****************************************************************************
+ Title: Net model generation script for ION configuration
+ Author: Nate Richard
+ Modified: 09/19/2023
+ Company: JPL
+ Date:   11/17/2020
+
+ File: ion_config
+ Description:
+           Script that takes a simple JSON model file and converts it to an
+           JSON net model file of use in generating ION config files.
+           Python 3.8.16
+
+*****************************************************************************
+"""
+import argparse
+import json
+from pathlib import Path
+from typing import Any, Dict, List
+
+
+def create_netmodel(src: Dict, nm_name: str) -> Dict[str, Any]:
+    """Generate a net model based of provided JSON string."""
+    # Initialize variables
+    nodes = []
+    hosts = []
+    protocols = []
+    services = []
+    dests = []
+    nodenum = []
+    datarate = []
+
+    # Extract info in alphabetical order
+    for host in sorted(src.keys(), key=lambda x: x.lower()):
+        nodes.append(host)
+
+        hosts.append(src[host]["IP"])
+        protocols.append(src[host]["PROTOCOL"])
+        services.append(src[host]["SERVICES"])
+        dests.append(src[host]["DEST"])
+        nodenum.append(src[host]["NODE"])
+        datarate.append(src[host]["RATE"])
+
+    # Create net_hosts dictionary
+    net_hosts = gen_net_hosts(hosts, nodes)
+
+    # Create net_nodes dictionary
+    net_nodes = gen_net_nodes(nodes, services, nodenum, protocols)
+
+    # Create net_hops dictionary
+    net_hops = gen_net_hops(nodes, dests, protocols, datarate)
+
+    return {
+        "netModelName": nm_name,
+        "netModelDesc": "Python generated net model",
+        "netHosts": net_hosts,
+        "netNodes": net_nodes,
+        "netHops": net_hops,
+    }
+
+
+def gen_net_hosts(host_list: List, node_list: List) -> Dict:
+    """Combine host and node lists into a net model compatible dictionary."""
+    net_hosts = {}
+    for ip_add, node in zip(host_list, node_list):
+        net_hosts[node] = {
+            "hostName": node,
+            "hostDesc": f"{node}",
+            "ipAddrs": [ip_add],
+        }
+
+    return net_hosts
+
+
+def gen_net_nodes(node_list: List, services: List, nodenum_list: List, protocols: List) -> Dict:
+    """Combine node parameters into a single dictionary for net model."""
+    net_nodes = {}
+    for node, serv, num, proto in zip(node_list, services, nodenum_list, protocols):
+        net_nodes[node] = {
+            "nodeName": node,
+            "nodeDesc": f"{node} ION node on {node}",
+            "nodeHost": node,
+            "nodeType": "ion",
+            "endpointID": num,
+            "protocols": proto,
+            "services": serv,
+        }
+
+    return net_nodes
+
+
+def gen_net_hops(
+    node_list: List, destinations: List, protocols: List, datarates: List
+) -> Dict:
+    """Combine node and link parameters to define hops between nodes for net model."""
+    net_hops = {}
+    for node, dest, proto, rate in zip(node_list, destinations, protocols, datarates):
+        # Assume we have multiple destinations but only 1 protocol
+        # Assume data rates are defined for each destination even if they're
+        # the same
+        if len(dest) > 1 and len(proto) == 1:
+            for dest_node, speed in zip(dest, rate):
+                hop = f"{node}2{dest_node}"
+                if proto[0] == "ltp":
+                    layer = "udp"
+                    sym = "no"
+                else:
+                    layer = ""
+                    sym = "yes"
+                net_hops[hop] = {
+                    "hopName": hop,
+                    "hopDesc": f"Link from {node} to {dest_node}",
+                    "fromNode": node,
+                    "toNode": dest_node,
+                    "bpLayer": proto[0],
+                    "ltpLayer": layer,
+                    "maxRate": int(speed),
+                    "symmetric": sym,
+                }
+
+        # Assume we have multiple destinations and multiple protocols
+        # Assumes each destination has a unique data rate
+        elif len(dest) > 1 and len(proto) > 1:
+            for dest_node, bpproto, speed in zip(dest, proto, rate):
+                hop = f"{node}2{dest_node}"
+                if bpproto == "ltp":
+                    layer = "udp"
+                    sym = "no"
+                else:
+                    layer = ""
+                    sym = "yes"
+                net_hops[hop] = {
+                    "hopName": hop,
+                    "hopDesc": f"Link from {node} to {dest_node}",
+                    "fromNode": node,
+                    "toNode": dest_node,
+                    "bpLayer": bpproto,
+                    "ltpLayer": layer,
+                    "maxRate": int(speed),
+                    "symmetric": sym,
+                }
+
+        # Assume we have 1 destination, 1 protocol, and it hasn't been
+        # defined yet
+        elif len(dest) == 1 and dest[0] != "":
+            hop = f"{node}2{dest[0]}"
+            if proto[0] == "ltp":
+                layer = "udp"
+                sym = "no"
+            else:
+                layer = ""
+                sym = "yes"
+            net_hops[hop] = {
+                "hopName": hop,
+                "hopDesc": f"Link from {node} to {dest[0]}",
+                "fromNode": node,
+                "toNode": dest[0],
+                "bpLayer": proto[0],
+                "ltpLayer": layer,
+                "maxRate": int(rate[0]),
+                "symmetric": sym,
+            }
+
+    return net_hops
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Convert simple node model into a net model."
+    )
+    parser.add_argument(
+        "model_file", help="JSON file defining parameters to create net model"
+    )
+    args = parser.parse_args()
+
+    model_name = Path(args.model_file).stem
+    with open(args.model_file, "r") as mfile:
+        simple_model = json.load(mfile)
+    net_model = create_netmodel(simple_model, model_name)
+
+    net_model_name = f"{model_name}-net_model.json"
+    with open(net_model_name, "w") as nfile:
+        json.dump(net_model, nfile, indent=4)

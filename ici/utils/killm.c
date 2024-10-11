@@ -103,11 +103,13 @@ char *processes[] = { "acsadmin.exe", "lt-acsadmin.exe", \
 "psmwatch.exe", "lt-psmwatch.exe", \
 "ramsgate.exe", "lt-ramsgate.exe", \
 "ramstest.exe", "lt-ramstest.exe", \
+"recvfile.exe", "lt-recvfile.exe", \
 "rfxclock.exe", "lt-rfxclock.exe", \
 "sdatest.exe", "lt-sdatest.exe", \
 "sdr2file.exe", "lt-sdr2file.exe", \
 "sdrmend.exe", "lt-sdrmend.exe", \
 "sdrwatch.exe", "lt-sdrwatch.exe", \
+"sendfile.exe", "lt-sendfile.exe", \
 "sm2file.exe", "lt-sm2file.exe", \
 "smlistsh.exe", "lt-smlistsh.exe", \
 "smrbtsh.exe", "lt-smrbtsh.exe", \

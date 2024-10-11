@@ -27,14 +27,10 @@ CONFIGFILES=" \
 ./1.ipn.bp.udp/config.bprc \
 ./1.ipn.bp.udp/config.ipnrc"
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-	echo "Looking for acsadmin"
-	which acsadmin
-	if [ $? -eq 0 ] ; then
-		ACS="found"
-		CONFIGFILES=$CONFIGFILES" ./1.ipn.bp.udp/config.acsrc"
-	fi
+source ../setacs.sh
+
+if [[ "$ACS" == "found" ]] ; then
+	CONFIGFILES=$CONFIGFILES" ./1.ipn.bp.udp/config.acsrc"
 fi
 
 echo "########################################"
@@ -84,7 +80,7 @@ export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
 cd 1.ipn.bp.udp
 
-if [[ $ACS == "found" ]] ; then
+if [[ "$ACS" == "found" ]] ; then
 	./ionstart-acs > node.stdout
 else
 	./ionstart > node.stdout

@@ -113,7 +113,7 @@ typedef struct
 	 *	Extended Class of Service (ECOS) block.			*/
 
 	unsigned int	dataLabel;	/*	Optional.		*/
-	unsigned char	flags;		/*	See below.		*/
+	unsigned char	flags;		/*	QoS flags; see below.	*/
 	unsigned char	ordinal;	/*	0 to 254 (most urgent).	*/
 
 	/*	Note that priority is likewise now carried in the QOS
@@ -158,10 +158,14 @@ typedef struct
 /*	Quality-of-service flags.					*/
 #define	BP_MINIMUM_LATENCY	(1)	/*	Forward on all routes.	*/
 #define	BP_BEST_EFFORT		(2)	/*	Unreliable CL okay.	*/
+#if 0
 #define	BP_DATA_LABEL_PRESENT	(4)	/*	Ignore data label if 0.	*/
+#endif
 #define	BP_RELIABLE		(8)	/*	Reliable CL okay.	*/
+#if 0
 #define	BP_RELIABLE_STREAMING	(16)	/*	BSSP mandatory.		*/
 #define	BP_BIBE_REQUESTED	(32)	/*	Forward via BIBE.	*/
+#endif
 #define	BP_CT_REQUESTED		(64)	/*	BIBE must be reliable.	*/
 
 typedef struct bpsap_st		*BpSAP;

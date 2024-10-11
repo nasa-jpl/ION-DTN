@@ -34,3 +34,7 @@ install:
 		cd ..; \
 		for PF in $(PLATFORMS);\
 			do cd $$PF; gmake -i install ROOT=$(OPT) BP=$(BP); cd ..; done
+
+uninstall:		
+		for PF in $(PLATFORMS); \
+			do cd $$PF; gmake -i uninstall ROOT=$(OPT); cd ..; done

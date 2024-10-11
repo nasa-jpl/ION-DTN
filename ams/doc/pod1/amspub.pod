@@ -65,7 +65,7 @@ B<amspub> failed to publish, for reasons noted in the ion.log file.
 
 =head1 BUGS
 
-Report bugs to <ion-dtn-support@lists.sourceforge.net>
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 

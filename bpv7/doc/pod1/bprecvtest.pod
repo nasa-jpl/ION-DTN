@@ -1,0 +1,98 @@
+=head1 NAME
+
+bprecvtest - Bundle Protocol (BP) file-based throughput testing utility
+
+=head1 SYNOPSIS
+
+B<bprecvtest> I<own_endpoint_ID> [I<max_files>]
+
+=head1 DESCRIPTION
+
+B<NOTE: THIS UTILITY IS FOR TESTING PURPOSES ONLY>
+
+B<bprecvtest> is a modified variant of B<bprecvfile> and is intended 
+to serve as the counterpart to B<bpsendtest>. 
+It uses bp_receive() to receive bundles containing file content. 
+The content of each bundle is simply discarded upon full reception 
+after counting the size of the recieved data.
+
+If a I<max_files> value of N (where N > 0) is provided, the program will
+terminate automatically upon completing its Nth file reception.  Otherwise
+it will run indefinitely; use ^C to terminate the program.
+
+Upon termination, the program will display the number of bytes recieved in 
+files, the time between the reception of the pilot bundle and the final 
+completed bundle, and the calculated throughput.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<bprecvtest> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item Can't open own endpoint.
+
+Another BP application task currently has I<own_endpoint_ID> open for
+bundle origination and reception.  Try again after that task has terminated.
+If no such task exists, it may have crashed while still holding the endpoint
+open; the easiest workaround is to select a different source endpoint.
+
+=item bprecvtest bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item bprecvtest: can't open test file
+
+File system error.  B<bprecvtest> terminates.
+
+=item bprecvtest: can't receive bundle content.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item bprecvtest: can't write to test file
+
+File system error.  B<bprecvtest> terminates.
+
+=item bprecvtest cannot continue.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item bprecvtest: can't handle bundle delivery.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+bpsendtest(1), bprecvfile(1), bp(3)

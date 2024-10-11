@@ -9,7 +9,7 @@ BULK = ../bulk/STUB_BULK
 
 # OPT = -O -Dlinux
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I../crypto 
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(SRC) -I$(TEST) -I$(SDR) -I$(INCL) -I$(CRYPTO) -I../crypto 
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -67,7 +67,8 @@ PUBINCLS = \
 	$(INCL)/sdrlist.h \
 	$(INCL)/sdrtable.h \
 	$(INCL)/sdrhash.h \
-	$(INCL)/sdr.h
+	$(INCL)/sdr.h \
+	$(INCL)/icinm.h 
 
 ICIINCLS = \
 	$(SRC)/radixP.h \
@@ -78,7 +79,7 @@ UTILITIES = sdrwatch psmwatch ionadmin ionsecadmin sdrmend ionwarn ionunlock ion
 
 TESTPGMS = file2sm sm2file file2sdr sdr2file psmshell smlistsh smrbtsh owltsim owlttb
 
-ALL = check libici.so libicinm.so rfxclock $(UTILITIES) $(TESTPGMS)
+ALL = check libici.so libicinm.so libsecrypt.so rfxclock $(UTILITIES) $(TESTPGMS)
 
 all:		$(ALL)
 
@@ -97,6 +98,15 @@ install:
 		cp ../include/*.h $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libici.so
+		rm $(ROOT)/lib/libicinm.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		rm $(ROOT)/bin/rfxclock
+		for file in $(UTILITIES) $(TESTPGMS); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
 
 #	-	-	Utility executables	-	-	-	-
 
@@ -189,6 +199,10 @@ libici.so:	$(LIBICIOBJS)
 libicinm.so:	libicinm.o $(INCL)/icinm.h
 		$(LD) -o libicinm.so libicinm.o
 		cp libicinm.so ./lib
+
+libsecrypt.so:	secrypt.o
+		$(LD) -o libsecrypt.so secrypt.o
+		cp libsecrypt.so ./lib
 
 #	-	-	Object modules	-	-	-	-	-
 

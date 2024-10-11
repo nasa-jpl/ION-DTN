@@ -205,7 +205,7 @@ static int	sendSignal(SignalThreadParms *stp, int disposition)
 	uvast		ttl;	/*	In milliseconds.		*/
 
 	memset((char *) &ancillaryData, 0, sizeof(BpAncillaryData));
-	ancillaryData.flags = BP_RELIABLE | BP_BEST_EFFORT;
+	ancillaryData.flags = BP_PROTOCOL_ANY;
 	oK(sdr_begin_xn(sdr));
 	sdr_stage(sdr, (char *) &bcla, stp->bclaAddr, sizeof(Bcla));
 	signal = bcla.signals + disposition;
@@ -391,12 +391,10 @@ int	bibeclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
 	char			*peerEid = (char *) a1;
-	char			*destEid = (char *) a2;
 #else
 int	main(int argc, char *argv[])
 {
 	char			*peerEid = argc > 1 ? argv[1] : NULL;
-	char			*destEid = argc > 2 ? argv[2] : NULL;
 #endif
 	VOutduct		*vduct;
 	PsmAddress		vductElt;
@@ -404,6 +402,8 @@ int	main(int argc, char *argv[])
 	Object			bclaAddr;
 	Object			bclaElt;
 	Bcla			bcla;
+	char			reportToBuffer[SDRSTRING_BUFSZ];
+	char			*reportToEid;
 	SignalThreadParms	stp;
 	Sdr			sdr;
 	int			ttl;
@@ -417,7 +417,6 @@ int	main(int argc, char *argv[])
 	Object			bpduZco;
 	BpAncillaryData		ancillaryData;
 	int			ctRequested;
-	int			bpduFlags;
 	unsigned char		*cursor;
 	uvast			uvtemp;
 	time_t			deadline = 0;
@@ -426,9 +425,9 @@ int	main(int argc, char *argv[])
 	Bpdu			bpdu;
 	Object			elt;
 
-	if (peerEid == NULL || destEid == NULL)
+	if (peerEid == NULL)
 	{
-		PUTS("Usage: bibeclo <peer node's ID> <destination node's ID>");
+		PUTS("Usage: bibeclo <peer node's ID>");
 		return 0;
 	}
 
@@ -439,10 +438,10 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	findOutduct("bibe", destEid, &vduct, &vductElt);
+	findOutduct("bibe", peerEid, &vduct, &vductElt);
 	if (vductElt == 0)
 	{
-		writeMemoNote("[?] No such bibe outduct", destEid);
+		writeMemoNote("[?] No such bibe outduct", peerEid);
 		return -1;
 	}
 
@@ -462,15 +461,36 @@ int	main(int argc, char *argv[])
 
 	stp.bclaAddr = bclaAddr;
 
-	/*	All command-line arguments are now validated.		*/
+	/*	Command-line argument is now validated.			*/
 
 	sdr = getIonsdr();
 	CHKZERO(sdr_begin_xn(sdr));
 	sdr_read(sdr, (char *) &bcla, bclaAddr, sizeof(Bcla));
 	sdr_string_read(sdr, stp.sourceEid, bcla.source);
+	reportToEid = NULL;
+	if (bcla.reportTo)
+	{
+		sdr_string_read(sdr, reportToBuffer, bcla.reportTo);
+		if (strlen(reportToBuffer) > 0)
+		{
+			reportToEid = reportToBuffer;
+		}
+	}
+
 	sdr_read(sdr, (char *) &outduct, sdr_list_data(sdr, vduct->outductElt),
 			sizeof(Outduct));
 	sdr_exit_xn(sdr);
+
+	/*	The properties of the encapsulating bundle are taken
+	 *	from the bcla as configured by bibeadmin.  The
+	 *	BP_CT_REQUESTED flag is ignored everywhere in ION
+	 *	except here; in bibeclo it controls the construction
+	 *	of the BPDU header, and it is switched off in the
+	 *	ancillary data that is to be inserted into the BPDU
+	 *	after it has been interrogated for this purpose.	*/
+
+	ctRequested = ((bcla.ancillaryData.flags & BP_CT_REQUESTED) > 0);
+	bcla.ancillaryData.flags &= (BP_MINIMUM_LATENCY | BP_PROTOCOL_ANY);
 	ttl = bcla.fwdLatency + bcla.rtnLatency;	/*	seconds	*/
 	if (bcla.lifespan > ttl)
 	{
@@ -544,8 +564,7 @@ int	main(int argc, char *argv[])
 
 	/*	Can now begin transmitting to remote duct.		*/
 
-	writeMemoNote("[i] bibeclo is running for", destEid);
-	writeMemoNote("[i]        transmitting to", peerEid);
+	writeMemoNote("[i] bibeclo is now transmitting to", peerEid);
 	while (!(sm_SemEnded(vduct->semaphore)))
 	{
 		if (bpDequeue(vduct, &bundleZco, &ancillaryData, -1) < 0)
@@ -562,24 +581,10 @@ int	main(int argc, char *argv[])
 			continue;
 		}
 
-
 		if (bundleZco == 1)	/*	Got a corrupt bundle.	*/
 		{
 			continue;	/*	Get next bundle.	*/
 		}
-
-		/*	The encapsulating bundle inherits forwarding
-		 *	preferences from the encapsulated bundle,
-		 *	except the BIBE and CT requests themselves.
-		 *	Other ancillary data items are take from the
-		 *	bcla as configured by bibeadmin.		*/
-
-		ctRequested = ancillaryData.flags & BP_CT_REQUESTED;
-		bpduFlags = ancillaryData.flags &
-				(BP_MINIMUM_LATENCY | BP_PROTOCOL_ANY);
-		memcpy((char *) &ancillaryData, (char *) &bcla.ancillaryData,
-				sizeof(BpAncillaryData));
-		ancillaryData.flags = bpduFlags;
 
 		/*	The BPDU (an administrative record whose
 		 *	content is a BPDU message, comprising a header
@@ -664,9 +669,10 @@ int	main(int argc, char *argv[])
 		 *	Note that ttl must be converted from seconds
 		 *	to milliseconds for BP processing.		*/
 
-		switch (bpSend(&(sap->endpointMetaEid), peerEid, NULL,
-				ttl * 1000, bcla.classOfService,
-				NoCustodyRequested, 0, 0, &ancillaryData,
+		switch (bpSend(&(sap->endpointMetaEid),
+				peerEid, reportToEid, ttl * 1000,
+				bcla.classOfService, NoCustodyRequested,
+				bcla.bsrFlags, 0, &bcla.ancillaryData,
 				bpduZco, NULL, BP_BIBE_PDU))
 		{
 		case -1:	/*	System error.			*/
@@ -676,7 +682,15 @@ int	main(int argc, char *argv[])
 
 		case 0:		/*	Malformed request.		*/
 			writeMemo("[?] Encapsulating bundle not sent.");
+			CHKZERO(sdr_begin_xn(sdr));
 			zco_destroy(sdr, bpduZco);
+			if (sdr_end_xn(sdr))
+			{
+				putErrmsg("Can't recover; CLO stopping.", NULL);
+				shutDownClo();
+				continue;
+			}
+
 			if (bpHandleXmitFailure(bundleZco) < 0)
 			{
 				putErrmsg("Can't handle xmit failure.", NULL);

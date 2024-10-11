@@ -1,0 +1,90 @@
+=head1 NAME
+
+sendfile - Bundle Protocol (BP) file transmission utility utilizing a "metadata 
+header" for file name, timestamp, versioning, and auxiliary command strings, 
+enabling file naming at the recvfile utility. Encryption is enabled when a HMAC
+key path (or literal value) is included in the command execution string. 
+
+Note: encryption requires a suitable cryptographic library and interface (which 
+is avaiable with the ITAR controlled ION NASA Baseline).
+
+=head1 SYNOPSIS
+
+B<sendfile> I<own endpoint ID> I<destination endpoint ID> I<file name>
+[-c|--class I<class of service>] [-t|--ttl I<time to live (seconds)>]
+[I<key file path | literal key value>]
+
+=head1 DESCRIPTION
+
+B<sendfile> employs bp_send() to transmit a single bundle to a specified
+destination endpoint, incorporating the file's contents detailed by
+I<file_name>. The process concludes following the bundle's dispatch, without
+initiating a custody transfer. The absence of I<class_of_service> implies a
+standard priority delivery. Refer to bptrace(1) for details on
+I<class_of_service>. Without a specified I<time_to_live>, a default of 300
+seconds (5 minutes) is assumed. Encryption can be facilitated by including a
+valid HMAC key (either a path or a literal value) when operating within the
+ITAR controlled ION NASA Baseline (ION-INB), provided a compatible
+cryptographic library is installed.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+Successful termination of B<sendfile>.
+
+=back
+
+=head1 FILES
+
+No configuration files are necessary.
+
+=head1 ENVIRONMENT
+
+Not applicable.
+
+=head1 DIAGNOSTICS
+
+Diagnostic messages to B<ion.log> may include:
+
+=over 4
+
+=item Can't attach to BP.
+
+Signifies BP operations have yet to be initialized by B<bpadmin>.
+
+=item Can't open own endpoint.
+
+Indicates I<own_endpoint_ID> is currently in use. Retry after the current task
+has concluded or opt for a different endpoint if a previous task crashed.
+
+=item Can't stat the file
+
+Suggests an operating system error. Check errtext, address the issue, and
+attempt the operation again.
+
+=item sendfile can't create file ref.
+
+Points to a potential critical database problem, likely requiring a reboot of
+the local ION node.
+
+=item sendfile can't create ZCO.
+
+Implies a serious database error, necessitating a restart of the ION node.
+
+=item sendfile can't send file in bundle.
+
+Reflects a BP system malfunction. Review earlier diagnostic messages for
+possible solutions.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>.
+
+=head1 SEE ALSO
+
+recvfile(1), bp(3), metadata(3), secrypt(3)

@@ -15,6 +15,8 @@ MANFILES = \
 	./man/man1/bpecho.1 \
 	./man/man1/bpsendfile.1 \
 	./man/man1/bprecvfile.1 \
+	./man/man1/bpsendtest.1 \
+	./man/man1/bprecvtest.1 \
 	./man/man1/bpsink.1 \
 	./man/man1/bpsource.1 \
 	./man/man1/bpstats.1 \
@@ -24,8 +26,11 @@ MANFILES = \
 	./man/man1/bpcancel.1 \
 	./man/man1/bptrace.1 \
 	./man/man1/bping.1 \
+	./man/man1/bpversion.1 \
+	./man/man1/bpcrash.1 \
 	./man/man1/brsccla.1 \
 	./man/man1/brsscla.1 \
+	./man/man1/cpsd.1 \
 	./man/man1/dgrcli.1 \
 	./man/man1/dgrclo.1 \
 	./man/man1/dtn2adminep.1 \
@@ -73,6 +78,8 @@ HTMLFILES = \
 	./html/man1/bpecho.html \
 	./html/man1/bpsendfile.html \
 	./html/man1/bprecvfile.html \
+	./html/man1/bpsendtest.html \
+	./html/man1/bprecvtest.html \
 	./html/man1/bpsink.html \
 	./html/man1/bpsource.html \
 	./html/man1/bpstats.html \
@@ -84,6 +91,7 @@ HTMLFILES = \
 	./html/man1/bping.html \
 	./html/man1/brsccla.html \
 	./html/man1/brsscla.html \
+	./html/man1/cpsd.html \
 	./html/man1/dgrcli.html \
 	./html/man1/dgrclo.html \
 	./html/man1/dtn2adminep.html \

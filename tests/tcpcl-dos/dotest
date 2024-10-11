@@ -47,12 +47,7 @@ fi
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
-echo "Looking for acsadmin"
-which acsadmin
-if [ $? -eq 0 ] ; then
-	ACS="found"
-    echo "ACS is found"
-fi
+source ../setacs.sh
 
 echo "Cleaning up old ION ..."
 ./cleanup
@@ -64,7 +59,7 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -78,7 +73,7 @@ fi
 
 # Set up node 2
 cd ../2.ipn.tcp/
-if [ $ACS == "found" ] ; then
+if [[ $ACS == "found" ]] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -174,15 +169,12 @@ kill -9 $NETCATPID >/dev/null 2>&1
 echo "Stopping ion node 1..."
 cd ../1.ipn.tcp/
 ./ionstop
-killm
-sleep 2
 
 echo "Stopping ion node 2..."
 cd ../2.ipn.tcp/
 ./ionstop
-killm
-sleep 2
 
+sleep 2
 echo "Clean everything..."
 killm
 

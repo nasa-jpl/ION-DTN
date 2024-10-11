@@ -91,7 +91,8 @@ int bpsec_sign(Bundle *bundle)
             /* Handle sop_misconf_at_src event */
             bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, PrimaryBlk);
             BIB_TEST_POINT("sop_misconf_at_src", bundle, PrimaryBlk);
-            return -1;
+	    bundle->insecure = 1;
+	    return 0;
         }
         BIB_TEST_POINT("sop_added_at_src", bundle, PrimaryBlk);
     }
@@ -105,7 +106,8 @@ int bpsec_sign(Bundle *bundle)
             /* Handle sop_misconf_at_src event */
             bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, PayloadBlk);
             BIB_TEST_POINT("sop_misconf_at_src", bundle, PayloadBlk);
-            return -1;
+	    bundle->insecure = 1;
+	    return 0;
         }
         BIB_TEST_POINT("sop_added_at_src", bundle, PayloadBlk);
     }
@@ -136,7 +138,8 @@ int bpsec_sign(Bundle *bundle)
                 BIB_DEBUG_ERR("Failed applying rule %d (ext blk type %d).", curRule->user_id, block.type);
                 bsl_handle_sender_sop_event(bundle, sop_misconf_at_src, NULL, NULL, block.number);
                 BIB_TEST_POINT("sop_misconf_at_src", bundle, block.type);
-                return -1;
+		bundle->insecure = 1;
+		return 0;
             }
             BIB_TEST_POINT("sop_added_at_src", bundle, block.type);
             curRule = NULL;
@@ -152,7 +155,7 @@ int bpsec_sign(Bundle *bundle)
     if (bpsec_util_attachSecurityBlocks(bundle, BlockIntegrityBlk, SC_ACT_SIGN) < 0)
     {
         BIB_DEBUG_ERR("Unable to attach all BIB blocks.", NULL);
-        return -1;
+	bundle->insecure = 1;
     }
 
     return 0;
@@ -215,14 +218,17 @@ void bib_handle_rx_error(AcqWorkArea *work, Bundle *bundle, BpSecPolRule *polRul
         }
     }
 }
+
 // TODO document function
 int bpsec_verify(AcqWorkArea *work)
 {
     Bundle *bundle = &(work->bundle);
     LystElt blkElt;
+    LystElt nextBlkElt;
     AcqExtBlock *block;
     BpsecInboundASB *asb;
     LystElt tgtElt;
+    LystElt nextTgtElt;
     BpsecInboundTargetResult *target;
     sc_Def def;
     int secBlkMisconf = 0;
@@ -239,8 +245,9 @@ int bpsec_verify(AcqWorkArea *work)
     BpSecPolRule *polRule = NULL;
 
     /*    First check all BIBS that are present in the bundle.    */
-    for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = lyst_next(blkElt))
+    for (blkElt = lyst_first(work->extBlocks); blkElt; blkElt = nextBlkElt)
     {
+	nextBlkElt = lyst_next(blkElt);
         if((block = (AcqExtBlock*) lyst_data(blkElt)) == NULL)
         {
             continue; // Weird...
@@ -257,8 +264,9 @@ int bpsec_verify(AcqWorkArea *work)
             secBlkMisconf = (bpsec_sci_defFind(asb->scId, &def) != 1) ? 1 : 0;
 
             /* Check each target block for applicable rule */
-            for (tgtElt = lyst_first(asb->scResults); tgtElt; tgtElt = lyst_next(tgtElt))
+            for (tgtElt = lyst_first(asb->scResults); tgtElt; tgtElt = nextTgtElt)
             {
+		nextTgtElt = lyst_next(tgtElt);
                 target = (BpsecInboundTargetResult*) lyst_data(tgtElt);
 
                 polRule = bslpol_get_receiver_rule(work, target->scTargetId, asb->scId);
@@ -283,7 +291,8 @@ int bpsec_verify(AcqWorkArea *work)
                         if(result == -1)
                         {
                             MRELEASE(fromEid);
-                            return -1;
+			    bundle->insecure = 1;
+                            return 0;
                         }
                     }
 
@@ -312,10 +321,11 @@ int bpsec_verify(AcqWorkArea *work)
                         }
                     }
 
-                    MRELEASE(fromEid);
                     polRule = NULL;
                 }
             }
+
+	    MRELEASE(fromEid);		/*	SB 12/20/2023		*/
         }
     }
 

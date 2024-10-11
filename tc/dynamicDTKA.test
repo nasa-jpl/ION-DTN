@@ -224,7 +224,7 @@ execute_test 20 "$USER_NODES" 20 20 false
 #execute_test 20 "$USER_NODES" 20 20 true
 
 determine_user_nodes
-execute_test 5 "$USER_NODES" 255 255 false
+execute_test 5 "$USER_NODES" 254 255 false
 #execute_test 5 "$USER_NODES" 255 255 true
 
 determine_user_nodes

@@ -64,7 +64,7 @@ int bsles_add(PsmPartition wm, char *name, char *desc)
 	/* Verify that event set name is unique */
 	if(bsles_get_ptr(wm, name) != NULL)
 	{
-		writeMemoNote("This event set is already defined", name);
+		writeMemoNote("[?] This event set is already defined", name);
 		return 0;
 	}
 
@@ -365,7 +365,7 @@ PsmAddress bsles_get_addr(PsmPartition wm, char *name)
 
 Lyst bsles_get_all(PsmPartition wm)
 {
-	Lyst eventsets = lyst_create();
+	Lyst eventsets = lyst_create_using(getIonMemoryMgr());
 	PsmAddress elt = 0;
 	PsmAddress esAddr = 0;
 	BpSecEventSet *esPtr = NULL;

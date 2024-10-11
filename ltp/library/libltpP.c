@@ -28,6 +28,9 @@
 #include "ltpP.h"
 #include "ltpei.h"
 
+/* Enhanced Watch Character
+ * #define EWCHAR */
+
 #define	EST_LINK_OHD		16
 
 #ifndef LTPDEBUG
@@ -3518,6 +3521,13 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	LtpTimer			*timer;
 	LtpImportSession		rsessionBuf;
 
+#if defined (EWCHAR)
+	char 	ewchar[256];
+	/* initialize as 'g' */
+	ewchar[0] = 'g';
+	ewchar[1] = '\0';
+#endif
+
 	CHKERR(vspan);
 	CHKERR(buf);
 	*buf = (char *) psp(getIonwm(), vspan->segmentBuffer);
@@ -3600,6 +3610,11 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	{
 		sdr_list_delete(sdr, segment.sessionListElt, NULL, NULL);
 		segment.sessionListElt = 0;
+
+#if defined (EWCHAR)
+			/* segment is data only, non-check point */
+			isprintf(ewchar,sizeof(ewchar),"(ds%u)g",segment.sessionNbr);
+#endif		
 	}
 
 	/*	Copy segment's content into buffer.			*/
@@ -3677,16 +3692,28 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		if (timer->expirationCount == 0)
 		{
 			ltpSpanTally(vspan, CKPT_XMIT, 0);
+
+#if defined (EWCHAR)
+			/* Initial check point */
+			isprintf(ewchar,sizeof(ewchar),"(cp%u)g",segment.sessionNbr);
+#endif
 		}
 		else
 		{
 			ltpSpanTally(vspan, CKPT_RE_XMIT, 0);
+
+#if defined (EWCHAR)
+			/* Retransmit check point */
+			isprintf(ewchar,sizeof(ewchar),"(rcp%u)g",segment.sessionNbr);
+#endif
+
 		}
 
 		break;
 
-	case 8:
-		event.type = LtpResendReport;
+	case 8:  /* RS - resport segment */
+		/* this is scheduling future retx event */
+		event.type = LtpResendReport;   
 		event.refNbr1 = segment.remoteEngineId;
 		event.refNbr2 = segment.sessionNbr;
 		event.refNbr3 = segment.pdu.rptSerialNbr;
@@ -3710,20 +3737,32 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 					- segment.pdu.lowerBound)
 			{
 				ltpSpanTally(vspan, POS_RPT_XMIT, 0);
+#if defined (EWCHAR)
+				/* a "positive" report */
+				isprintf(ewchar,sizeof(ewchar),"(prs%u)g",segment.sessionNbr);
+#endif
 			}
 			else
 			{
 				ltpSpanTally(vspan, NEG_RPT_XMIT, 0);
+#if defined (EWCHAR)
+				/* a "negative" report */
+				isprintf(ewchar,sizeof(ewchar),"(nrs%u)g",segment.sessionNbr);
+#endif
 			}
 		}
 		else
 		{
 			ltpSpanTally(vspan, RPT_RE_XMIT, 0);
+#if defined (EWCHAR)
+			/* this is a retransmitted report - either positive or negative */
+			isprintf(ewchar,sizeof(ewchar),"(rrs%u)g",segment.sessionNbr);
+#endif
 		}
 
 		break;
 
-	case 12:
+	case 12: /* CA - cancel by LTP block source */
 		getCanceledExport(segment.sessionNbr, &sessionObj, &sessionElt);
 		if (sessionObj == 0)
 		{
@@ -3747,6 +3786,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		}
 
 		ltpSpanTally(vspan, EXPORT_CANCEL_XMIT, 0);
+#if defined (EWCHAR)
+			/* CS - cancel by block source */
+			isprintf(ewchar,sizeof(ewchar),"(cs%u)g",segment.sessionNbr);
+#endif
 		break;
 
 	case 14:
@@ -3784,6 +3827,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 		}
 
 		ltpSpanTally(vspan, IMPORT_CANCEL_XMIT, 0);
+#if defined (EWCHAR)
+			/* CR - cancel by block receiver */
+			isprintf(ewchar,sizeof(ewchar),"(cr%u)g",segment.sessionNbr);
+#endif
 		break;
 
 	default:
@@ -3859,6 +3906,9 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 	 *	overhead to the content of the segment (if any), and
 	 *	return to link service output process.			*/
 
+	/*  Every segment type priority to 8 (DS), have 
+	 *  additional content other than the header */
+
 	if (segment.pdu.segTypeCode < 8)
 	{
 		ltpSpanTally(vspan, OUT_SEG_POPPED, segment.pdu.length);
@@ -3874,6 +3924,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 			case 9:		/*	Report acknowledgment.	*/
 				serializeReportAckSegment(&segment, *buf);
+#if defined (EWCHAR)
+			/* RAS - report ACK */
+			isprintf(ewchar,sizeof(ewchar),"(ras%u)g",segment.sessionNbr);
+#endif
 				break;
 
 			case 12:	/*	Cancel by sender.	*/
@@ -3884,6 +3938,10 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 			case 13:	/*	Cancel acknowledgment.	*/
 			case 15:	/*	Cancel acknowledgment.	*/
 				serializeCancelAckSegment(&segment, *buf);
+#if defined (EWCHAR)
+			/* CAR or CAS - cancel ACK */
+			isprintf(ewchar,sizeof(ewchar),"(ca%u)g",segment.sessionNbr);
+#endif
 				break;
 
 			default:
@@ -3906,7 +3964,11 @@ int	ltpDequeueOutboundSegment(LtpVspan *vspan, char **buf)
 
 	if (ltpvdb->watching & WATCH_g)
 	{
+#if defined (EWCHAR)
+		iwatch_str(ewchar);
+#else
 		iwatch('g');
+#endif
 	}
 
 	return segmentLength;
@@ -4877,6 +4939,34 @@ putErrmsg("Cancel by receiver.", utoa(sessionNbr));
 	importBuffer = sdr_list_data(sdr, importBufferElt);
 	CHKERR(importBuffer);
 
+	/* check reused buffer size in case heapmax increased */
+	if (sdr_object_length(sdr, importBuffer) < db->maxAcqInHeap)
+	{
+
+		/* We don't search the entire list but just 
+		 * increase allocation from the head of the list
+		 * until eventually the list is flushed to new
+		 * allocation. This might be slower but we don't
+		 * anticipate frequent revision to heapmax
+		 * Please note: LTP does not re-allocate heap buffer 
+		 * down. This can be modified to do so but for
+		 * now we assume modification is rare and users
+		 * are warned of increasing heapmax consequences. */
+
+		/* Free the buffer first and remove from list */
+		sdr_free(sdr,importBuffer);
+		sdr_list_delete(sdr,importBufferElt,NULL,NULL);
+		importBufferElt = 0;
+
+		/* new allocation */
+		importBuffer = sdr_malloc(sdr, db->maxAcqInHeap);
+		if (importBuffer == 0)
+		{
+			putErrmsg("Re-allocation of import heap buffer failed.", NULL);
+			return -1;
+		}
+	}
+
 	/*	importSessions list element points to the session
 	 *	structure.  importSessionsHash entry points to the
 	 *	list element.						*/
@@ -5312,20 +5402,6 @@ static int	acceptRedContent(LtpDB *ltpdb, Object *sessionObj,
 	int		fd;
 
 	*segUpperBound = -1;	/*	Default: discard segment and immediate end transaction. */
-	bytesForHeap = pdu->offset < ltpdb->maxAcqInHeap ?
-			ltpdb->maxAcqInHeap - pdu->offset : 0;
-	if (bytesForHeap > pdu->length)
-	{
-		bytesForHeap = pdu->length;
-	}
-
-	endOfSegment = pdu->offset + pdu->length;
-	bytesForFile = endOfSegment > ltpdb->maxAcqInHeap ?
-			endOfSegment - ltpdb->maxAcqInHeap : 0;
-	if (bytesForFile > pdu->length)
-	{
-		bytesForFile = pdu->length;
-	}
 
 	/*	Data segment must be accepted into an import session,
 	 *	unless that session is already canceled.		*/
@@ -5379,6 +5455,22 @@ putErrmsg("Discarded data segment: can't start new session.", itoa(sessionNbr));
 			ltpSpanTally(vspan, IN_SEG_SES_CLOSED, pdu->length);
 			return 0;
 		}
+	}
+
+	/* Determine heap and file spaces needed */
+	bytesForHeap = pdu->offset < sessionBuf->heapBufferSize ? \
+			sessionBuf->heapBufferSize - pdu->offset : 0;
+	if (bytesForHeap > pdu->length)
+	{
+		bytesForHeap = pdu->length;
+	}
+
+	endOfSegment = pdu->offset + pdu->length;
+	bytesForFile = endOfSegment > sessionBuf->heapBufferSize ? \
+			endOfSegment - sessionBuf->heapBufferSize : 0;
+	if (bytesForFile > pdu->length)
+	{
+		bytesForFile = pdu->length;
 	}
 
 	segment->sessionObj = *sessionObj;
@@ -6872,7 +6964,15 @@ putErrmsg("Discarding report.", NULL);
 
 		if (ltpvdb->watching & WATCH_h)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)h",sessionNbr);
+			iwatch_str(ewchar);
+#else
 			iwatch('h');
+#endif
+
 		}
 
 		return 1;	/*	Complete red part exported.	*/
@@ -7033,7 +7133,14 @@ putErrmsg(claimbuf, itoa(sessionBuf.sessionNbr));
 
 	if (ltpvdb->watching & WATCH_nak)
 	{
+#if defined (EWCHAR)
+		char ewchar[256];
+		/* spec is for 64 bit, non-Window */
+		isprintf(ewchar,sizeof(ewchar),"(%u)@",sessionNbr);
+		iwatch_str(ewchar);	
+#else
 		iwatch('@');
+#endif
 	}
 
 	return 1;	/*	Report handled successfully.		*/
@@ -7736,16 +7843,22 @@ int	ltpHandleInboundSegment(char *buf, int length)
 
 	/*	Handle segment according to its segment type code.	*/
 
-	if ((_ltpvdb(NULL))->watching & WATCH_s)
-	{
-		iwatch('s');
-	}
-
 	CHKERR(sdr_begin_xn((sdr = getIonsdr())));
 	GET_OBJ_POINTER(sdr, LtpDB, ltpdb, _ltpdbObject(NULL));
 	sdr_exit_xn(sdr);
 	if ((pdu->segTypeCode & LTP_CTRL_FLAG) == 0)	/*	Data.	*/
 	{
+		if ((_ltpvdb(NULL))->watching & WATCH_s)
+		{
+#if defined (EWCHAR)
+				char ewchar[256];
+				/* data segment*/
+				isprintf(ewchar,sizeof(ewchar),"(d%u)s",sessionNbr);
+				iwatch_str(ewchar);
+#else
+				iwatch('s');
+#endif
+		}
 		result = handleDataSegment(sourceEngineId, ltpdb, sessionNbr,
 				&segment, &cursor, &bytesRemaining,
 				headerExtensions, trailerExtensions);
@@ -7757,36 +7870,102 @@ int	ltpHandleInboundSegment(char *buf, int length)
 		switch (pdu->segTypeCode)
 		{
 		case LtpRS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* report segment*/
+					isprintf(ewchar,sizeof(ewchar),"(rs%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleRS(ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpRAS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* report ack segment*/
+					isprintf(ewchar,sizeof(ewchar),"(ras%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleRA(sourceEngineId, ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by source segment*/
+					isprintf(ewchar,sizeof(ewchar),"(cs%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCS(sourceEngineId, ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCAS:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by source ack segment*/
+					isprintf(ewchar,sizeof(ewchar),"(cas%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCAS(ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCR:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by receiver segment*/
+					isprintf(ewchar,sizeof(ewchar),"(cr%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCR(ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
 			break;
 
 		case LtpCAR:
+			if ((_ltpvdb(NULL))->watching & WATCH_s)
+			{
+#if defined (EWCHAR)
+					char ewchar[256];
+					/* cancel by receiver ack segment*/
+					isprintf(ewchar,sizeof(ewchar),"(car%u)s",sessionNbr);
+					iwatch_str(ewchar);
+#else
+					iwatch('s');
+#endif
+			}
 			result = handleCAR(sourceEngineId, ltpdb, sessionNbr,
 					&segment, &cursor, &bytesRemaining,
 					headerExtensions, trailerExtensions);
@@ -8377,7 +8556,14 @@ putErrmsg("Resending checkpoint that is still in queue!", itoa(sessionNbr));
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendCP)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)=",sessionNbr);
+			iwatch_str(ewchar);	
+#else
 			iwatch('=');
+#endif
 		}
 	}
 
@@ -8549,7 +8735,14 @@ putErrmsg("Resending report that is still in queue!", itoa(sessionNbr));
 		signalLso(span->engineId);
 		if ((_ltpvdb(NULL))->watching & WATCH_resendRS)
 		{
+#if defined (EWCHAR)
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(%u)+",sessionNbr);
+			iwatch_str(ewchar);	
+#else
 			iwatch('+');
+#endif
 		}
 	}
 

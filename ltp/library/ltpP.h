@@ -84,6 +84,9 @@ extern "C" {
 
 #define	MAX_LTP_CLIENT_NBR	(LTP_MAX_NBR_OF_CLIENTS - 1)
 
+/* largest maxheap that can be used for LTP */
+#define LTP_MAX_HEAP_LIMIT 		65536
+
 #ifndef LTP_MEAN_SEARCH_LENGTH
 #define	LTP_MEAN_SEARCH_LENGTH	4
 #endif

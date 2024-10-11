@@ -221,7 +221,7 @@ typedef struct
 // TODO: Consider which of these to make static and private?
 // TODO: Update function names to match conventions.
 
-BpsecInboundASB*              bpsec_asb_inboundAsbCreate();
+BpsecInboundASB*              bpsec_asb_inboundAsbCreate(int memIdx);
 void                          bpsec_asb_inboundAsbDelete(BpsecInboundASB *asb); // bpsec_releaseInboundAsb...
 int                           bpsec_asb_inboundAsbDeserialize(AcqExtBlock *blk, AcqWorkArea *wk); // bpsec_deserializeASB
 //BpsecInboundTargetResult*   bpsec_asb_inboundAsbResultCreate(unsigned char tgt_id, int memIdx);

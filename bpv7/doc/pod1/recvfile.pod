@@ -1,0 +1,97 @@
+=head1 NAME
+
+recvfile - Bundle Protocol (BP) file reception utility
+
+=head1 SYNOPSIS
+
+B<recvfile> I<own_endpoint_ID> [I<-o|--overwrite>] [I<key_file_path | literal_key_value>]
+
+=head1 DESCRIPTION
+
+B<recvfile> is intended to serve as the counterpart to B<sendfile>.  It
+uses bp_receive() to receive bundles containing the file content.  The content
+of each bundle is written to a file and named using data extracted from
+the metadata header. The program's default behavior auto-encrements file 
+names but this behavior can be disabled with the -o (or --overwrite) flag.
+
+Additionally, if used with ION-NASA Baseline, B<recvfile> allows for
+the decryption of encrypted files sent by B<sendfile>. To enable decryption use
+the path to a valid HMAC key or a literal key value. 
+
+Note: decryption requires a suitable cryptographic library and interface (which is 
+avaiable with the ITAR controlled ION NASA Baseline).
+
+Use ^C to terminate the program at any time.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "0"
+
+B<recvfile> has terminated.
+
+=back
+
+=head1 FILES
+
+No configuration files are needed.
+
+=head1 ENVIRONMENT
+
+No environment variables apply.
+
+=head1 DIAGNOSTICS
+
+The following diagnostics may be issued to the B<ion.log> log file:
+
+=over 4
+
+=item Can't attach to BP.
+
+B<bpadmin> has not yet initialized BP operations.
+
+=item Can't open own endpoint.
+
+Another BP application task currently has I<own_endpoint_ID> open for
+bundle origination and reception.  Try again after that task has terminated.
+If no such task exists, it may have crashed while still holding the endpoint
+open; the easiest workaround is to select a different source endpoint.
+
+=item recvfile bundle reception failed.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item recvfile: can't open test file
+
+File system error.  B<recvfile> terminates.
+
+=item recvfile: can't receive bundle content.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item recvfile: can't write to test file
+
+File system error.  B<recvfile> terminates.
+
+=item recvfile cannot continue.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=item recvfile: can't handle bundle delivery.
+
+BP system error.  Check for earlier diagnostic messages describing the
+cause of the error; correct problem and rerun.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+
+=head1 SEE ALSO
+
+sendfile(1), bp(3), metadata(3), secrypt(3)

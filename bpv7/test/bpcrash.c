@@ -23,11 +23,12 @@ int	main(int argc, char **argv)
 	if (bp_attach() < 0)
 	{
 		putErrmsg("Can't attach to BP.", NULL);
-		return 0;
+		return 1;
 	}
 
 	sdr = bp_get_sdr();
 	CHKZERO(sdr_begin_xn(sdr));
+	putErrmsg("bpcrash(forced cancellation): Transaction aborted.", NULL);
 	sdr_cancel_xn(sdr);
 	writeErrmsgMemos();
 	PUTS("Stopping bpcrash.");

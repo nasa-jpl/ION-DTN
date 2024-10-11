@@ -11,7 +11,7 @@ a induct udp 127.0.0.1:5002 udpcli
 a outduct udp 127.0.0.1:5003 udpclo
 a protocol bibe 1400 100
 a induct bibe * ''
-a outduct bibe ipn:3.0 'bibeclo ipn:3.0'
+a outduct bibe ipn:3.0 bibeclo
 a plan ipn:3.0 1000000000
 a planduct ipn:3.0 udp 127.0.0.1:5003
 a planduct ipn:3.0 bibe ipn:3.0

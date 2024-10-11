@@ -1,0 +1,132 @@
+#!/bin/bash
+# ....................................
+
+#      JET PROPULSION LABORATORY
+# ------------------------------------
+#          ___  _______  ___
+#         |   ||       ||   |
+#         |   ||    _  ||   |
+#         |   ||   |_| ||   |
+#      ___|   ||    ___||   |___
+#     |       ||   |    |       |
+#     |_______||___|    |_______|
+
+# ------------------------------------
+#  CALIFORNIA INSTITUTE OF TECHNOLOGY
+# ------------------------------------
+
+# *****************************************************************************
+#  Title: Configure and launch an ION node
+#  Author: Nate Richard
+#  Modified: 09/20/2023
+#  Company: JPL
+#  Date:   09/19/2023
+
+#  File: ionlauncher.sh
+#  Description:
+#           Launcher script that will create the necessary ION configs based
+#           off the designated simple model and will launch the specified node.
+
+# *****************************************************************************
+
+help() {
+    echo "Launcher to simplify configuring and starting ION"
+    echo
+    echo "Syntax: ionlauncher -n <node name> -m <simple model file> [-d <ION Config CLI directory>] [-h]"
+    echo "n    Name of node to start on host as defined in simple config file"
+    echo "m    Path to simple model file to generate configs and start ION"
+    echo "d    Optional parameter to set location of ION Config CLI tools (default: ~/ionconfig-4.8.1/cli/bin)"
+    echo "h    print this message"
+}
+
+# Add argument handling and help
+filename=""
+stem=""
+nodename=""
+clipath="/home/${USER}/ionconfig-4.8.1/cli/bin"
+launcherdir=$PWD
+
+while getopts ":h:n:m:d" opt; do
+    case "$opt" in
+        \?)
+            echo "Unrecognized argument"
+            help
+            exit 0
+            ;;
+        h)
+            help
+            exit 0
+            ;;
+        n)
+            nodename=$OPTARG
+            ;;
+        m)
+            modeldir=$(dirname "$OPTARG")
+            filename=$(basename -- "$OPTARG")
+            stem="${filename%.*}"
+            ;;
+        d)
+            clipath=$OPTARG
+            ;;
+    esac
+done
+
+if [ $OPTIND -eq 1 ]; then
+    help
+    exit 0
+fi
+
+if [ "$modeldir" != "." ]; then
+    cd $modeldir
+fi
+
+# Check if ION configuration folder already exists, 
+# Give warning and chance to stop
+if [ -d "${stem}-ion" ]; then
+# Prompt the user for confirmation
+    read -p "ION configuration folder of same name exists, overwrite? (y or Y to proceed, other key to exit) " user_input
+    
+    # Check user input
+    if [[ $user_input == "y" || $user_input == "Y" ]]; then
+        echo "Proceeding with ionlauncher..."
+    else
+        echo "ionlauncher stopped."
+        exit 1
+    fi
+fi
+
+echo "Converting $filename to net model file..."
+net_model_gen $filename
+
+echo "Verifying net model file..."
+node ${clipath}/checkdtn.js -m ${stem}-net_model.json
+
+if [ $? -ne 0 ]; then
+    echo "Error with net model file, see output above."
+    exit 1
+fi
+
+echo "Converting net model into ION model..."
+# play a little shell game so we don't have filename-net_model-ion.json
+# just filename-ion.json
+mv $filename ${stem}-simple_model.json
+mv ${stem}-net_model.json $filename
+
+node ${clipath}/dtn2ion.js -m ${stem}.json
+
+# restore file names
+mv $filename ${stem}-net_model.json
+mv ${stem}-simple_model.json $filename
+
+echo "Generating ION config files..."
+node ${clipath}/ionconfig.js -m ${stem}-ion.json
+
+# move ion model and net model files into the subfolder
+mv ${stem}-ion.json ${stem}-ion/
+mv ${stem}-net_model.json ${stem}-ion/
+
+# launch ION
+echo "Starting node $nodename..."
+cd ${stem}-ion/${nodename}
+chmod +x start_${nodename}.sh
+./start_${nodename}.sh

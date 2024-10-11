@@ -1,0 +1,16 @@
+#!/bin/bash
+# shell script to get node running
+
+echo > ion.log
+echo -e "\nStarting ION Node 2 on localhost"
+
+ionadmin node02.ionrc
+sleep 1
+
+ionsecadmin node02.ionsecrc
+sleep 1
+
+bpadmin node02.bprc
+sleep 1
+
+echo -e "Node02 startup complete!\n"

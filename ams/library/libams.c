@@ -1361,7 +1361,7 @@ static LystElt	findSubjOfInterest(AmsSAP *sap, Module *module,
 	 *	subject, if any.					*/
 
 #if AMSDEBUG
-printf("subjects list length is %u.\n", lyst_length(module->subjects));
+printf("subjects list length is %lu.\n", lyst_length(module->subjects));
 #endif
 	if (nextSubj) *nextSubj = NULL;	/*	Default.		*/
 	for (elt = lyst_first(module->subjects); elt; elt = lyst_next(elt))
@@ -2368,17 +2368,17 @@ discarding message.", NULL);
 
 static void	processMamsMsg(AmsSAP *sap, AmsEvt *evt)
 {
-	MamsMsg		*msg = (MamsMsg *) (evt->value);
+	MamsMsg	*msg = (MamsMsg *) (evt->value);
 	int		i;
 	int		unitNbr;
-	Unit		*unit;
+	Unit	*unit;
 	int		moduleNbr;
-	Module		*module;
+	Module	*module;
 	int		roleNbr;
-	char		*cursor;
+	char	*cursor;
 	int		bytesRemaining;
-	unsigned long	u4;
-	short		i2;
+	int		u4;
+	short	i2;
 	unsigned short	u2;
 	int		subjectNbr;
 	int		domainContinuumNbr;

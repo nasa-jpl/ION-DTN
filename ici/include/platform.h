@@ -18,6 +18,10 @@
 extern "C" {
 #endif
 
+#if defined(FORCE_SVR4_SEMAPHORES) && defined(FORCE_POSIX_NAMED_SEMAPHORES)
+#error Both FORCE_SVR4_SEMAPHORES and FORCE_POSIX_NAMED_SEMAPHORES defined - pick one
+#endif
+
 #if defined (VXWORKS) || defined (RTEMS) || defined (bionic) || defined (AESCFS) || defined (STRSOE)
 #define ION_LWT
 #else
@@ -604,6 +608,39 @@ extern int getpriority(int, id_t);
 #endif				/****	End of #ifdef (sol5)         ****/
 #endif				/****	End of #ifdef (sparc)        ****/
 
+#ifdef solaris			/****	Solaris (SunOS 5+)	     ****/
+
+/* semaphore options */
+/* POSIX_NAMED_SEMAPHORES are the default on Solaris */
+#undef	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#define  POSIX_NAMED_SEMAPHORES
+#ifdef FORCE_SVR4_SEMAPHORES
+/* but SVR4_SEMAPHORES are also still supported on Solaris */
+#define	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
+/* but POSIX_NAMED_SEMAPHORES have been tested to be faster on Solaris */
+#undef	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#define POSIX_NAMED_SEMAPHORES
+#endif /* FORCE_SVR4_SEMAPHORES */
+#ifdef  POSIX_NAMED_SEMAPHORES
+#ifdef  DEBUG_POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using NEW Posix Named Semaphores on Solaris")
+#endif  /* DEBUG_POSIX_NAMED_SEMAPHORES */
+#endif  /* POSIX_NAMED_SEMAPHORES */
+
+
+#ifndef SEM_NSEMS_MAX
+// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
+#define	SEM_NSEMS_MAX		2048
+#endif
+
+#endif				/****	End of #ifdef solaris	     ****/
+
+
 #else				/****	Not __SVR4 at all (BSD?)     ****/
 
 #define FIFO_READ_MODE          (O_RDWR)
@@ -617,6 +654,29 @@ extern int getpriority(int, id_t);
 #include <pthread.h>
 int pthread_setname_np(pthread_t thread, const char *name);
 
+
+/* semaphore options */
+/* POSIX_NAMED_SEMAPHORES is the default on Linux */
+#undef	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#define  POSIX_NAMED_SEMAPHORES
+#ifdef FORCE_SVR4_SEMAPHORES
+/* not the default, but SVR4_SEMAPHORES are also supported on Linux */
+#define	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
+/* FORCE_POSIX_NAMED_SEMAPHORES is the default on Linux */
+#undef	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#define POSIX_NAMED_SEMAPHORES
+#endif /* FORCE_SVR4_SEMAPHORES */
+#ifdef  POSIX_NAMED_SEMAPHORES
+#ifdef  DEBUG_POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using NEW Posix Named Semaphores on Linux")
+#endif  /* DEBUG_POSIX_NAMED_SEMAPHORES */
+#endif  /* POSIX_NAMED_SEMAPHORES */
+
 #ifdef bionic			/****	Bionic subset of Linux      ****/
 
 #undef	SVR4_SHM
@@ -627,6 +687,8 @@ int pthread_setname_np(pthread_t thread, const char *name);
 
 #undef	UNIX_TASKS
 #define POSIX_TASKS
+
+
 
 typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 			saddr, saddr, saddr);
@@ -640,6 +702,12 @@ typedef void	(*FUNCPTR)(saddr, saddr, saddr, saddr, saddr, saddr, saddr,
 #define PRIVATE_SYMTAB
 
 #else				/****	Not bionic		     ****/
+
+/* allow the default to be overwritten */
+#ifndef SEM_NSEMS_MAX
+// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
+#define	SEM_NSEMS_MAX		2048
+#endif
 
 #include <asm/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <sys/param.h>		/****	...to get MAXPATHLEN	     ****/
@@ -664,12 +732,44 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 
 #endif				/****	End of #ifdef freebsd	     ****/
 
+
 #ifdef darwin			/****	Mac OS X		     ****/
 
 #include <sys/malloc.h>
 #include <stdlib.h>
 #include <sys/param.h>		/****	...to get MAXHOSTNAMELEN     ****/
 #include <pthread.h>
+
+#include <execinfo.h>		/****	...to get backtrace	     ****/
+
+/* semaphore options */
+/* POSIX_NAMED_SEMAPHORES is the default on MacOS */
+#define POSIX_NAMED_SEMAPHORES
+#undef	SVR4_SEMAPHORES
+#undef POSIX_SEMAPHORES
+#ifdef FORCE_SVR4_SEMAPHORES
+/* NOT the default on darwin/MacOS, but FORCE_SVR4_SEMAPHORES are also supported */
+#define	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#elif defined(FORCE_POSIX_NAMED_SEMAPHORES)
+/* POSIX_NAMED_SEMAPHORES is the default on MacOS */
+#undef	SVR4_SEMAPHORES
+#undef  POSIX_SEMAPHORES
+#define POSIX_NAMED_SEMAPHORES
+#endif /* FORCE_SVR4_SEMAPHORES */
+#ifdef  POSIX_NAMED_SEMAPHORES
+#ifdef  DEBUG_POSIX_NAMED_SEMAPHORES
+#pragma message("**  Using NEW Posix Named Semaphores on MacOS")
+#endif  /* DEBUG_POSIX_NAMED_SEMAPHORES */
+#endif  /* POSIX_NAMED_SEMAPHORES */
+
+/* allow the default to be overwritten */
+#ifndef SEM_NSEMS_MAX
+// larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
+#define	SEM_NSEMS_MAX		2048
+#endif
+
 int pthread_setname_np(const char *name);
 
 #include <sys/msg.h>
@@ -720,6 +820,10 @@ int pthread_setname_np(const char *name);
 
 #include <semaphore.h>
 
+#elif defined (POSIX_NAMED_SEMAPHORES)
+
+#include <semaphore.h>
+
 #endif				/****	End #if defined SVR4_SEMAPHORES */
 
 #endif				/****	End of #ifdef ION4WIN        ****/
@@ -762,7 +866,7 @@ int pthread_setname_np(const char *name);
 /*	Prototypes for standard ION platform functions.			*/
 
 typedef void			(* Logger)(char *);
-typedef void			(* Watcher)(char);
+typedef void			(* Watcher)(char *);
 
 extern void			*acquireSystemMemory(size_t);
 extern int			createFile(const char*, int);
@@ -773,6 +877,7 @@ extern void			writeErrMemo(char *);
 extern void			writeMemoNote(char *, char *);
 extern void			setWatcher(Watcher);
 extern void			iwatch(char);
+extern void			iwatch_str(char *);
 extern void			snooze(unsigned int);
 extern void			microsnooze(unsigned int);
 extern void			getCurrentTime(struct timeval *);
@@ -814,10 +919,12 @@ extern void			discardErrmsgs();
 extern int			_iEnd(const char *, int, const char *);
 extern int			_coreFileNeeded(int *);
 
-#define CHKERR(e)    		if (!(e) && iEnd(#e)) return ERROR
-#define CHKZERO(e)    		if (!(e) && iEnd(#e)) return 0
-#define CHKNULL(e)    		if (!(e) && iEnd(#e)) return NULL
-#define CHKVOID(e)    		if (!(e) && iEnd(#e)) return
+/* check arg for NULL and return requested return value.  As side effect,   */
+/* proves to the compiler that the pointer is not NULL afterward. 			*/
+#define CHKERR(e)    		if (!(e) && (iEnd(#e)||1)) return ERROR
+#define CHKZERO(e)    		if (!(e) && (iEnd(#e)||1)) return 0
+#define CHKNULL(e)    		if (!(e) && (iEnd(#e)||1)) return NULL
+#define CHKVOID(e)    		if (!(e) && (iEnd(#e)||1)) return
 
 extern void			printStackTrace();
 
@@ -887,7 +994,7 @@ extern int			itcp_connect(char *socketSpec,
 					unsigned short defaultPort, int *sock);
 extern int			itcp_send(int *sock, char *from, int length);
 extern int			itcp_recv(int *sock, char *into, int length);
-extern void			itcp_handleConnectionLoss();
+extern void			itcp_handleConnectionLoss(int signum);
 
 extern int			fullyQualified(char *fileName);
 extern int			qualifyFileName(char *fileName, char *buffer,

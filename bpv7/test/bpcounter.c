@@ -97,6 +97,8 @@ int	main(int argc, char **argv)
 	struct timeval	endTime;
 	double		interval;
 	char		textBuf[256];
+	double 		bundleSize;
+	int		  	pilotReceived = 0;
 
 	if (ownEid == NULL)
 	{
@@ -155,21 +157,29 @@ int	main(int argc, char **argv)
 			continue;
 
 		case BpPayloadPresent:
+			bundleSize = zco_length(sdr, dlv.adu);
 			if (bundlesReceived < 0)
 			{
-				/*	This is just the pilot bundle
-				 *	that starts bpcounter's timer.	*/
+				/*	This is the first bundle arriving. 
+				 *  Whether it is pilot not, we will start
+				 *  the bpcounter's timer.	*/
 
 				getCurrentTime(&startTime);
 				bundlesReceived = 0;
 			}
-			else
+
+			if (pilotReceived == 0 && bundleSize == 3)
 			{
-				bundlesReceived = _bundleCount(1);
-				CHKZERO(sdr_begin_xn(sdr));
-				bytesReceived += zco_length(sdr, dlv.adu);
-				sdr_exit_xn(sdr);
+				/* This is the pilot bundle. Don't count it. */
+				pilotReceived = 1;
+				continue;
 			}
+
+			/* Count the bundle. */
+			bundlesReceived = _bundleCount(1);
+			CHKZERO(sdr_begin_xn(sdr));
+			bytesReceived += bundleSize;
+			sdr_exit_xn(sdr);
 
 			break;
 

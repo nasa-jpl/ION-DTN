@@ -111,7 +111,11 @@ int bpsec_util_EIDCopy(EndpointId *toEID, EndpointId *fromEID)
 
 	readEid(fromEID, &eidBuf);
 
-	if(parseEidString(eidBuf, &meid, &vscheme, &schemeElt) <= 0)
+    //Sky copies eidBuf to avoid clobbering original fromEID string
+    char copy_EID [300]; //matching size of eid string in acquireEid()
+    strcpy(copy_EID, eidBuf);
+
+	if(parseEidString(copy_EID, &meid, &vscheme, &schemeElt) <= 0)
 	{
 		MRELEASE(eidBuf);
 		return -1;
@@ -255,6 +259,7 @@ int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, Object *resultZco,
 		Object *acqFileRef, char *fname, char *bytes, uvast length)
 {
 	static uint32_t	acqCount = 0;
+	ReqAttendant	attendant;
 	char		cwd[200];
 	char		fileName[SDRSTRING_BUFSZ];
 	int		fd;
@@ -271,11 +276,11 @@ int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, Object *resultZco,
 			         (uaddr) resultZco, (uaddr) acqFileRef,
 				 (uaddr) fname, (uaddr) bytes, length);
 
-	CHKERR(sdr_begin_xn(sdr));
-
 	/* Step 1: If we don't have a ZCO, we need to make one. */
 	if (*resultZco == 0)     /*      First extent of acquisition.    */
 	{
+		/*	First try non-blocking ZCO creation.		*/
+		CHKERR(sdr_begin_xn(sdr));
 		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0,
 				ZcoOutbound);
 		if (*resultZco == (Object) ERROR)
@@ -285,9 +290,44 @@ Can't start file source ZCO.", NULL);
 			sdr_cancel_xn(sdr);
 			return -1;
 		}
+
+		if (*resultZco == 0)	/*	Not enough ZCO space.	*/
+		{
+			/*	Wait for available ZCO space.		*/
+
+			sdr_exit_xn(sdr);
+			if (ionStartAttendant(&attendant))
+			{
+				BPSEC_DEBUG_ERR("x \
+bpsec_util_zcoFileSourceTransferTo: Can't start attendant.", NULL);
+				return -1;
+			}
+
+			*resultZco = ionCreateZco(ZcoSdrSource, 0, 0, 0,
+				BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
+			if (*resultZco == 0 || *resultZco == (Object) ERROR)
+			{
+				BPSEC_DEBUG_ERR("x \
+bpsec_util_zcoFileSourceTransferTo: Blocking ZCO admission failed.", NULL);
+				return -1;
+			}
+
+			/*	ZCO was created, blocking.		*/
+
+			ionStopAttendant(&attendant);
+		}
+		else	/*	ZCO was created, non-blocking.		*/
+		{
+			if (sdr_end_xn(sdr) < 0)
+			{
+				BPSEC_DEBUG_ERR("x \
+bpsec_util_zcoFileSourceTransferTo: Failed creating ZCO.", NULL);
+				return -1;
+			}
+		}
 	}
 
-	/*      This extent of this acquisition must be acquired into
+	/*      This extent of this source data must be acquired into
 	 *      a file.                                                 */
 
 	if (*acqFileRef == 0)      /*      First file extent.      */
@@ -296,7 +336,6 @@ Can't start file source ZCO.", NULL);
 		{
 			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
 Can't get CWD for acq file name.", NULL);
-			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -308,12 +347,26 @@ Can't get CWD for acq file name.", NULL);
 		{
 			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
 Can't create acq file %s.", fileName);
-			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
 		fileLength = 0;
+		CHKERR(sdr_begin_xn(sdr));
 		*acqFileRef = zco_create_file_ref(sdr, fileName, "",ZcoInbound);
+		if (*acqFileRef == 0)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
+Can't create ZCO file reference.", NULL);
+			sdr_cancel_xn(sdr);
+			return -1;
+		}
+
+		if (sdr_end_xn(sdr) < 0)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
+Failed creating ZCO file reference.", NULL);
+			return -1;
+		}
 	}
 	else				/*	Writing more to file.	*/
 	{
@@ -324,7 +377,6 @@ Can't create acq file %s.", fileName);
 		{
 			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
 Can't reopen acq file %s.", fileName);
-			sdr_cancel_xn(sdr);
 			return 0;
 		}
 
@@ -332,7 +384,6 @@ Can't reopen acq file %s.", fileName);
 		{
 			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
 Can't get acq file length %s.", fileName);
-			sdr_cancel_xn(sdr);
 			close(fd);
 			return 0;
 		}
@@ -344,19 +395,54 @@ Can't get acq file length %s.", fileName);
 	{
 		BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: Can't append \
 to acq file %s.", fileName);
-		sdr_cancel_xn(sdr);
 		close(fd);
 		return 0;
 	}
 
 	close(fd);
-	if (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
-					      fileLength, length) <= 0)
+
+	/*	Must now append extent to the ZCO.  First try a
+	 *	non-blocking append.					*/
+
+	CHKERR(sdr_begin_xn(sdr));
+	switch (zco_append_extent(sdr, *resultZco, ZcoFileSource, *acqFileRef,
+		      fileLength, length))
 	{
+	case ERROR:
 		BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: Can't append \
 extent to ZCO.", NULL);
 		sdr_cancel_xn(sdr);
 		return -1;
+
+	case 0:			/*	Not enough ZCO space.		*/
+
+		/*	Wait for available ZCO space.			*/
+
+		sdr_exit_xn(sdr);
+		if (ionStartAttendant(&attendant))
+		{
+			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
+Can't start attendant.", NULL);
+			return -1;
+		}
+
+		if (ionAppendZcoExtent(*resultZco, ZcoFileSource, *acqFileRef,
+				fileLength, length, BP_STD_PRIORITY, 0,
+				&attendant) <= 0)
+		{
+			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
+Blocking ZCO segment admission failed.", NULL);
+			return -1;
+		}
+
+		/*	ZCO extent was appended, blocking.		*/
+
+		ionStopAttendant(&attendant);
+		CHKERR(sdr_begin_xn(sdr));
+		break;
+
+	default:	/*	ZCO extent was appended, non-blocking.	*/
+		break;
 	}
 
 	/*      Flag file reference for deletion as soon as the last
@@ -366,7 +452,7 @@ extent to ZCO.", NULL);
 	if (sdr_end_xn(sdr) < 0)
 	{
 		BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: Can't \
-acquire extent into file..", NULL);
+destroy ZCO file reference.", NULL);
 		return -1;
 	}
 
@@ -1084,7 +1170,7 @@ int bpsec_util_generateSecurityResults(Bundle *bundle, char *fromEid, ExtensionB
      *          it to process every security operation in the bundle.
      */
     Lyst blkParms = bpsec_scv_sdrListRead(sdr, secAsb->scParms);
-    Lyst extraParms = lyst_create(); // TODO what is this call fails?
+    Lyst extraParms = lyst_create_using(getIonMemoryMgr()); // TODO what if this call fails?
 
     lyst_delete_set(extraParms, bpsec_scv_lystCbDel, NULL);
 
@@ -1397,7 +1483,7 @@ int bpsec_util_attachSecurityBlocks(Bundle *bundle, BpBlockType secBlkType, sc_a
         sdr_write(sdr, blockObj, (char* ) &block, sizeof(ExtensionBlock));
 
         MRELEASE(serializedAsb);
-
+	bundle->extensionsLength += block.length;
 
        // TODO: Issue #74 ADD_BIB_TX_PASS(fromEid, 1, length);
         MRELEASE(fromEid);

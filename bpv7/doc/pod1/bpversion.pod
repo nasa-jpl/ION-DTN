@@ -1,0 +1,32 @@
+=head1 NAME
+
+bpversion - Prints the version of Bundle Protocol that executes on this node.
+
+=head1 SYNOPSIS
+
+B<bpversion>
+
+=head1 DESCRIPTION
+
+B<bpversion> prints out either "bpv6" or "bpv7" based on the Bundle Protocol 
+version of the installed ION node. ION does not need to be running to run
+this program.
+
+=head1 EXIT STATUS
+
+=over 4
+
+=item "7"
+
+The Bundle Protocol version is 7.
+
+=item "6"
+
+The Bundle Protocol version is 6.
+
+=back
+
+=head1 BUGS
+
+Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>
+

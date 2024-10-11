@@ -11,6 +11,12 @@
 
 #include "bibeP.h"
 
+#ifdef INPUT_HISTORY
+#include <string.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 static int	_echo(int *newValue)
 {
 	static int	state = 0;
@@ -66,11 +72,11 @@ static void	printUsage()
 	PUTS("\t1\tInitialize");
 	PUTS("\t   1");
 	PUTS("\ta\tAdd");
-	PUTS("\t   a bcla <peer EID> <fwd> <rtn> <lifespan> <priority> \
-<ordinal> [<data label>]");
+	PUTS("\t   a bcla <peer EID> <fwd> <rtn> <rptTo> <bsrFlags> <lifespan> \
+<priority> <ordinal> <qosFlags> [<data label>]");
 	PUTS("\tc\tChange");
-	PUTS("\t   a bcla <peer EID> <fwd> <rtn> <lifespan> <priority> \
-<ordinal> [<data label>]");
+	PUTS("\t   c bcla <peer EID> <fwd> <rtn> <rptTo> <bsrFlags> <lifespan> \
+<priority> <ordinal> <qosFlags> [<data label>]");
 	PUTS("\td\tDelete");
 	PUTS("\ti\tInfo");
 	PUTS("\t   {d|i} bcla <peer EID>");
@@ -99,11 +105,12 @@ static void	executeAdd(int tokenCount, char **tokens)
 {
 	unsigned int	fwdLatency;
 	unsigned int	rtnLatency;
+	unsigned char	bsrFlags;
 	int		lifespan;
 	unsigned char	priority;
 	unsigned char	ordinal;
+	unsigned char	qosFlags;
 	unsigned int	label;
-	unsigned char	flags;
 
 	if (tokenCount < 2)
 	{
@@ -113,15 +120,13 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bcla") == 0)
 	{
-		flags = 0;
 		switch (tokenCount)
 		{
-		case 9:
-			label = strtoul(tokens[8], NULL, 0);
-			flags |= BP_DATA_LABEL_PRESENT;
+		case 12:
+			label = strtoul(tokens[11], NULL, 0);
 			break;
 
-		case 8:
+		case 11:
 			label = 0;
 			break;
 
@@ -132,11 +137,14 @@ static void	executeAdd(int tokenCount, char **tokens)
 
 		fwdLatency = strtoul(tokens[3], NULL, 0);
 		rtnLatency = strtoul(tokens[4], NULL, 0);
-		lifespan = strtoul(tokens[5], NULL, 0);
-		priority = strtoul(tokens[6], NULL, 0);
-		ordinal = strtoul(tokens[7], NULL, 0);
-		bibeAdd(tokens[2], fwdLatency, rtnLatency, lifespan, priority,
-				ordinal, label, flags);
+		bsrFlags = strtoul(tokens[6], NULL, 0);
+		lifespan = strtoul(tokens[7], NULL, 0);
+		priority = strtoul(tokens[8], NULL, 0);
+		ordinal = strtoul(tokens[9], NULL, 0);
+		qosFlags = strtoul(tokens[10], NULL, 0);
+		bibeAdd(tokens[2], fwdLatency, rtnLatency, tokens[5],
+				bsrFlags, lifespan, priority, ordinal,
+				qosFlags, label);
 		return;
 	}
 
@@ -147,11 +155,12 @@ static void	executeChange(int tokenCount, char **tokens)
 {
 	unsigned int	fwdLatency;
 	unsigned int	rtnLatency;
+	unsigned char	bsrFlags;
 	int		lifespan;
 	unsigned char	priority;
 	unsigned char	ordinal;
+	unsigned char	qosFlags;
 	unsigned int	label;
-	unsigned char	flags;
 
 	if (tokenCount < 2)
 	{
@@ -161,15 +170,13 @@ static void	executeChange(int tokenCount, char **tokens)
 
 	if (strcmp(tokens[1], "bcla") == 0)
 	{
-		flags = 0;
 		switch (tokenCount)
 		{
-		case 9:
-			label = strtoul(tokens[8], NULL, 0);
-			flags |= BP_DATA_LABEL_PRESENT;
+		case 12:
+			label = strtoul(tokens[11], NULL, 0);
 			break;
 
-		case 8:
+		case 11:
 			label = 0;
 			break;
 
@@ -180,11 +187,14 @@ static void	executeChange(int tokenCount, char **tokens)
 
 		fwdLatency = strtoul(tokens[3], NULL, 0);
 		rtnLatency = strtoul(tokens[4], NULL, 0);
-		lifespan = strtoul(tokens[5], NULL, 0);
-		priority = strtoul(tokens[6], NULL, 0);
-		ordinal = strtoul(tokens[7], NULL, 0);
-		bibeChange(tokens[2], fwdLatency, rtnLatency, lifespan,
-				priority, ordinal, label, flags);
+		bsrFlags = strtoul(tokens[6], NULL, 0);
+		lifespan = strtoul(tokens[7], NULL, 0);
+		priority = strtoul(tokens[8], NULL, 0);
+		ordinal = strtoul(tokens[9], NULL, 0);
+		qosFlags = strtoul(tokens[10], NULL, 0);
+		bibeChange(tokens[2], fwdLatency, rtnLatency, tokens[5],
+				bsrFlags, lifespan, priority, ordinal,
+				qosFlags, label);
 		return;
 	}
 
@@ -218,26 +228,28 @@ static void	printBcla(Bcla *bcla)
 {
 	Sdr	sdr = getIonsdr();
 	char	peerEid[SDRSTRING_BUFSZ];
+	char	reportToEid[SDRSTRING_BUFSZ];
 	char	buffer[1024];
 
 	sdr_string_read(sdr, peerEid, bcla->dest);
-	if (bcla->ancillaryData.flags & BP_DATA_LABEL_PRESENT)
+	if (bcla->reportTo)
 	{
-		isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  \
-rtn: %lu  lifespan: %d priority: %c  ordinal: %c  data label: %lu  \
-count: " UVAST_FIELDSPEC, peerEid, bcla->fwdLatency, bcla->rtnLatency,
-			bcla->lifespan, bcla->classOfService,
-			bcla->ancillaryData.ordinal,
-			bcla->ancillaryData.dataLabel, bcla->count);
+		sdr_string_read(sdr, reportToEid, bcla->reportTo);
 	}
 	else
 	{
-		isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  \
-rtn: %lu  lifespan: %d priority: %c  ordinal: %c  \
-count: " UVAST_FIELDSPEC, peerEid, bcla->fwdLatency, bcla->rtnLatency,
-			bcla->lifespan, bcla->classOfService,
-			bcla->ancillaryData.ordinal, bcla->count);
+		reportToEid[0] = '\0';
 	}
+
+	isprintf(buffer, sizeof buffer, "%.255s\tfwd: %lu  rtn: %lu  \
+reportTo: '%s'  bsrFlags: %c  lifespan: %d  priority: %c  ordinal: %c  \
+qosFlags: %c  data label: %u  count: " UVAST_FIELDSPEC, peerEid,
+			bcla->fwdLatency, bcla->rtnLatency,
+			reportToEid, bcla->bsrFlags,
+			bcla->lifespan, bcla->classOfService,
+			bcla->ancillaryData.ordinal,
+			bcla->ancillaryData.flags,
+			bcla->ancillaryData.dataLabel, bcla->count);
 
 	printText(buffer);
 }
@@ -443,10 +455,10 @@ static int	processLine(char *line, int lineLength, int *rc)
 	int	tokenCount;
 	char	*cursor;
 	int	i;
-	char	*tokens[9];
+	char	*tokens[15];
 
 	tokenCount = 0;
-	for (cursor = line, i = 0; i < 9; i++)
+	for (cursor = line, i = 0; i < 15; i++)
 	{
 		if (*cursor == '\0')
 		{
@@ -571,6 +583,10 @@ int	main(int argc, char **argv)
 	int	cmdFile;
 	char	line[256];
 	int	len;
+
+#ifdef INPUT_HISTORY
+	char *input;
+#endif
 	
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
@@ -581,6 +597,51 @@ int	main(int argc, char **argv)
 		isignal(SIGINT, handleQuit);
 		while (1)
 		{
+#ifdef INPUT_HISTORY
+			/* add input history */
+			if ((input = readline(": ")) != NULL)
+			{
+				len = strlen(input);
+				
+				if (len == 0)
+				{
+					continue;
+				}
+
+				/* received input */
+				if (len > 0) 
+				{
+            		add_history(input);
+        		}
+				
+				if (len > sizeof(line) - 1 ) 
+				{
+					printf("\nInput is too long. Ignored.\n");
+					fflush(stdout);
+					continue;
+				}
+			}
+			else
+			{
+				/* input error detected */
+				printf("\nInput error detected. Exiting.\n");
+				fflush(stdout);
+				free(input);
+				break;
+			}
+
+			/* copy the input to line for processing
+			 * input sized already checked */
+
+			strcpy(line, input);
+
+			if (processLine(line, len, &rc))
+			{
+				free(input);
+				break;		/*	Out of loop.	*/
+			}
+#else
+			/* original input handling*/
 			printf(": ");
 			fflush(stdout);
 			if (igets(cmdFile, line, sizeof line, &len) == NULL)
@@ -603,6 +664,7 @@ int	main(int argc, char **argv)
 			{
 				break;		/*	Out of loop.	*/
 			}
+#endif
 		}
 #endif
 	}

@@ -154,6 +154,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
     if(bpsec_bagscu_inParmsGet(state, wk, tgtResult, &csi_parms) <= 0)
     {
         BPSEC_DEBUG_ERR("Cannot construct parms for decryption.", NULL);
+	csi_cipherparms_free(csi_parms);
         return ERROR;
     }
 
@@ -170,8 +171,10 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
     	if(bpsec_bagscu_zcoCompute(aes_variant, &(wk->bundle.payload.content), key_value, &csi_parms, CSI_SVC_DECRYPT) == ERROR)
     	{
             BPSEC_DEBUG_ERR("Cannot get data for payload block.", NULL);
+	    csi_cipherparms_free(csi_parms);
             return ERROR;
     	}
+
     	result = 1;
     }
     else
@@ -185,6 +188,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
         if(tgtBlk == NULL)
         {
         	BPSEC_DEBUG_ERR("Cannot find target block.", NULL);
+		csi_cipherparms_free(csi_parms);
         	return ERROR;
         }
 
@@ -212,6 +216,7 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
     	if(csi_crypt_full(aes_variant, CSI_SVC_DECRYPT, &csi_parms, key_value, input, &output) == ERROR)
     	{
             BPSEC_DEBUG_ERR("Cannot compute data for block %d.", tgtBlk->number);
+	    csi_cipherparms_free(csi_parms);
             return ERROR;
     	}
 
@@ -228,16 +233,19 @@ int bpsec_bagsci_procInBlk(sc_state *state, AcqWorkArea *wk, BpsecInboundASB *as
     		 *       include the tag with ciphertext, resulting in size changes with
     		 *       encryption and decrption.
     		 */
+		csi_cipherparms_free(csi_parms);
     		return ERROR;
     	}
     	else
     	{
-    		memcpy(tgtBlk->bytes + offset, output.contents, tgtBlk->dataLength);
+    		memcpy(tgtBlk->bytes + offset, output.contents,
+				tgtBlk->dataLength);
     		result = 1;
     		MRELEASE(output.contents);
     	}
     }
 
+    csi_cipherparms_free(csi_parms);
     return result;
 }
 
@@ -476,9 +484,11 @@ int bpsec_bagscu_inParmsGet(sc_state *state, AcqWorkArea *wk, BpsecInboundTarget
     parms->iv.len = tmp_val->scValLength;
     if((parms->iv.contents = MTAKE(parms->iv.len)) == NULL)
     {
-        BPSEC_DEBUG_ERR("Unable to allocate an IV of length %d.", parms->iv.len);
+        BPSEC_DEBUG_ERR("Unable to allocate an IV of length %d.",
+			parms->iv.len);
         return ERROR;
     }
+
     memcpy(parms->iv.contents, tmp_val->scRawValue.asPtr, parms->iv.len);
 
 
@@ -496,6 +506,7 @@ int bpsec_bagscu_inParmsGet(sc_state *state, AcqWorkArea *wk, BpsecInboundTarget
         csi_cipherparms_free(*parms);
         return ERROR;
     }
+
     memcpy(parms->icv.contents, tmp_val->scRawValue.asPtr, parms->icv.len);
 
 
@@ -610,8 +621,8 @@ int bpsec_bagscu_outParmsGet(sc_state *state, int suite, Lyst extraParms, Bundle
         BPSEC_DEBUG_ERR("Cannot allocate IV of length %d.", parms->iv.len);
         return ERROR;
     }
-    memcpy(parms->iv.contents, tmp_val->scRawValue.asPtr, parms->iv.len);
 
+    memcpy(parms->iv.contents, tmp_val->scRawValue.asPtr, parms->iv.len);
 
     /*
      * Step 2: Generate the AAD.
@@ -784,7 +795,8 @@ int bpsec_bagsci_procOutBlk(sc_state *state, Lyst extraParms, Bundle *bundle, Bp
     		// TODO - This is complex, as we need to resize the entire AcqBLock...
     		// Put a function in BEI maybe?
 
-    		BPSEC_DEBUG_ERR("Cannot handle resizing extension blocks at this time.", NULL);
+    		BPSEC_DEBUG_ERR("Cannot handle resizing extension blocks at \
+this time.", NULL);
     		result = ERROR;
     	}
     	else

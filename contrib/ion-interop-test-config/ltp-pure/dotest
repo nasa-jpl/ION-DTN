@@ -1,0 +1,146 @@
+#!/bin/bash
+#
+# Scott Burleigh
+# October 8, 2010
+#
+
+# documentation boilerplate
+CONFIGFILES=" \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: Providing the LTP functionality for interoperability test."
+
+echo
+echo "CONFIG: 2 node custom:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Terminal messages will relay results."
+echo
+echo "########################################"
+
+./cleanup
+sleep 1
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+./ionstart >& node2.stdout
+../../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+##########################################
+#                                        #
+#  LTP transmitting from ION .......     #
+#                                        #
+##########################################
+echo "Starting ltpdriver on node 2..."
+sleep 1
+# (synopsys) ltpdriver remoteEngineNbr clientId nbrOfCycles greenLength [totalLength]
+#                                       1(BP)
+#            for more detail information, refer LTPDRIVER part in ION.pdf
+ltpdriver 3 1 2 100 15000 &
+sleep 3
+ltpdriver 3 1 2 15000 15000 &
+sleep 3
+ltpdriver 3 1 2 0 15000 &
+sleep 3
+##########################################
+#                                        #
+#  LTP receiving by ION .......          #
+#                                        #
+##########################################
+echo "Starting ltpcounter on node 2..."
+# (synopsis) ltpcounter client_ID [max_nbr_of_bytes]
+#            client_ID : typically 1(BP)
+#            this utility waits until all the bytes specified above are received
+#            for more detail information, refer LTPCOUNTER part in ION.pdf
+LENGTH_OF_LTP_TO_BE_RECEIVED=130109
+ltpcounter 1 ${LENGTH_OF_LTP_TO_BE_RECEIVED} &
+sleep 5
+LTPCOUNTER_PID=$!
+sleep 10
+echo "10 sec...."
+
+# results
+# s segment received
+# e segment of block is queued for transmission
+# f block has been fully segmented for transmission
+# g segment popped from transmission queue
+# = unacknowledged checkpoint was retransmitted
+
+# Wait for transmission to finish.
+echo "Waiting 5 sec for transmission to finish..."
+sleep 5
+RUNNING=1
+TIMER=0
+while [ $RUNNING -eq 1 ]
+do
+	TIMER=$((++TIMER))
+	sleep 1
+	echo "...receiving..."
+	# some ps don't like -p syntax, most do.
+	ps $LTPCOUNTER_PID && RETURN_VALUE=1 || ps -p $LTPCOUNTER_PID && RETURN_VALUE=1 || RETURN_VALUE=0
+	if [ $RETURN_VALUE -eq 0 ]
+	then
+		echo "done running"
+		RUNNING=0
+	fi
+	if [ $TIMER -gt 60 ]
+	then
+		#infinite loop protection
+		echo "1 minute passed; giving up."
+		RUNNING=0
+	fi
+done
+
+echo "Transmission finished.  Verifying results..."
+
+# Verify segments were retransmitted.
+RETVAL=0
+
+COUNT=`grep "s" node2.stdout | wc -l`
+if [ $COUNT -eq 0 ]
+then
+	echo "No reception of LTP segments detected."
+	RETVAL=1
+else
+	echo "LTP segments were received."
+fi
+
+# Shut down ION processes.
+echo "Stopping ION..."
+cd ../2.ipn.ltp
+./ionstop &
+
+# Give both nodes time to shut down, then clean up.
+sleep 5
+killm
+echo "LTP pure interoperability test completed."
+exit $RETVAL
+
+

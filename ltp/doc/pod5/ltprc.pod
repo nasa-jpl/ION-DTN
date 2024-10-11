@@ -164,7 +164,11 @@ limit will be written to a temporary file pending extraction and dispatching
 of the acquired block.  Default is the minimum allowed value (560 bytes),
 which is the approximate size of a ZCO file reference object; this is the
 minimum SDR heap space occupancy in the event that all acquisition is into
-a file.
+a file. It is recommended that users properly configure this value - if not
+using the default - and keep it constant for the duration of ION operation.
+Although it can be enlarged during run-time, it is not recommended because it
+will use more working memory. If heapmax is increased from initial value 
+during run-time, reducing it later will not reduce the working memory.  
 
 =item B<m screening> { y | n }
 

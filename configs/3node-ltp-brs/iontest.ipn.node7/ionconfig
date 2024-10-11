@@ -4,4 +4,4 @@ wmAddress 0
 #	transaction reversibility, no object bounds checking
 configFlags 1
 heapWords 5000000
-pathName /usr/ion
+pathName /tmp

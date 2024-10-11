@@ -264,7 +264,7 @@ static void	zco_increase_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
 #if ZCODEBUG
 char	buf[128];
-sprintf(buf, "[i] %s file occupancy increased to " VAST_FIELDSPEC ".",
+sprintf(buf, "[i] %s file occupancy increased to %f .",
 bookNames[((int) acct)], book->fileOccupancy);
 writeMemo(buf);
 #endif
@@ -286,7 +286,7 @@ static void	zco_reduce_file_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
 #if ZCODEBUG
 char	buf[128];
-sprintf(buf, "[i] %s file occupancy reduced to " VAST_FIELDSPEC ".",
+sprintf(buf, "[i] %s file occupancy reduced to %f .",
 bookNames[((int) acct)], book->fileOccupancy);
 writeMemo(buf);
 #endif
@@ -392,7 +392,7 @@ static void	zco_increase_bulk_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
 #if ZCODEBUG
 char	buf[128];
-sprintf(buf, "[i] %s bulk occupancy increased to " VAST_FIELDSPEC ".",
+sprintf(buf, "[i] %s bulk occupancy increased to %f .",
 bookNames[((int) acct)], book->bulkOccupancy);
 writeMemo(buf);
 #endif
@@ -414,7 +414,7 @@ static void	zco_reduce_bulk_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
 #if ZCODEBUG
 char	buf[128];
-sprintf(buf, "[i] %s bulk occupancy reduced to " VAST_FIELDSPEC ".",
+sprintf(buf, "[i] %s bulk occupancy reduced to %f .",
 bookNames[((int) acct)], book->bulkOccupancy);
 writeMemo(buf);
 #endif
@@ -522,7 +522,7 @@ void	zco_increase_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
 #if ZCODEBUG
 char	buf[128];
-sprintf(buf, "[i] %s heap occupancy increased to " VAST_FIELDSPEC ".",
+sprintf(buf, "[i] %s heap occupancy increased to %f .",
 bookNames[((int) acct)], book->heapOccupancy);
 writeMemo(buf);
 #endif
@@ -546,7 +546,7 @@ void	zco_reduce_heap_occupancy(Sdr sdr, vast delta, ZcoAcct acct)
 		sdr_write(sdr, obj, (char *) &db, sizeof(ZcoDB));
 #if ZCODEBUG
 char	buf[128];
-sprintf(buf, "[i] %s heap occupancy reduced to " VAST_FIELDSPEC ".",
+sprintf(buf, "[i] %s heap occupancy reduced to %f .",
 bookNames[((int) acct)], book->heapOccupancy);
 writeMemo(buf);
 #endif
@@ -2528,7 +2528,7 @@ static void	destroyExtentText(Sdr sdr, SourceExtent *extent, ZcoAcct acct)
 		if (objLien.refCount[acct] == 0)
 		{
 			zco_reduce_heap_occupancy(sdr, objLien.length
-					+ sizeof(ZcoFileLien), acct);
+					+ sizeof(ZcoObjLien), acct);
 
 			/*	In addition, the object reference count
 			 *	for this account is now reduced by 1.

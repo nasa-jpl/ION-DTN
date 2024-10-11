@@ -56,9 +56,9 @@ static void	handleQuit(int signum)
 static int	run_streamingApp(char *ownEid, char *destEid, char *svcClass)
 {
 	int		priority = 0;
-	BpAncillaryData	ancillaryData = { 0, 10, 0 };
-			/*	Note: flag value 10 directs BP to send
-			 *	bundles using a streaming protocol.	*/
+	BpAncillaryData	ancillaryData = { 0, 0, 0 };
+			/*	Note: flag value set to 0 instead of 10.
+			 *  No longer mandates streaming CL.	*/
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BptestState	state = { NULL, 1 };
 	Sdr		sdr;

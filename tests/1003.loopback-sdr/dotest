@@ -12,14 +12,10 @@ ${CONFIGSROOT}/loopback-ltp/loopback.ionsecrc \
 ${CONFIGSROOT}/loopback-ltp/loopback.ipnrc \
 "
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-    echo "Looking for acsadmin"
-    which acsadmin
-    if [ $? -eq 0 ] ; then
-        ACS="found"
-        CONFIGFILES=$CONFIGFILES" ${CONFIGSROOT}/loopback-ltp/loopback.acsrc"
-    fi
+source ../setacs.sh
+
+if [[ "$ACS" == "found" ]] ; then
+    CONFIGFILES=$CONFIGFILES" ${CONFIGSROOT}/loopback-ltp/loopback.acsrc"
 fi
 
 echo "########################################"
@@ -113,7 +109,7 @@ echo "Starting ION..."
 srcdir=`pwd`
 CONFIGDIR="${CONFIGSROOT}/loopback-ltp"
 
-if [[ $ACS == "found" ]] ; then
+if [[ "$ACS" == "found" ]] ; then
 	echo "Running ionstart..."
 	"ionstart" -i "${CONFIGDIR}/loopback.ionrc"  -a "${CONFIGDIR}/loopback.acsrc" -l "${CONFIGDIR}/loopback.ltprc" -b "${CONFIGDIR}/loopback.bprc" -p "${CONFIGDIR}/loopback.ipnrc" -s "${CONFIGDIR}/loopback.ionsecrc"
 	echo "...finished ionstart script"

@@ -19,14 +19,10 @@ CONFIGFILES=" \
 ./config/132-udplso-tx-rate-limit.ltprc \
 "
 
-ACS=""
-if [[ $BP_VERSION == "bpv6" ]] ; then
-    echo "Looking for acsadmin"
-    which acsadmin
-    if [ $? -eq 0 ] ; then
-        ACS="found"
-        CONFIGFILES=$CONFIGFILES" ./config/132-udplso-tx-rate-limit.acsrc"
-    fi
+source ../setacs.sh
+
+if [[ "$ACS" == "found" ]] ; then
+	CONFIGFILES=$CONFIGFILES" ./config/132-udplso-tx-rate-limit.acsrc"
 fi
 
 echo "########################################"
@@ -57,7 +53,7 @@ IONRECEIVEFILE=./testfile1
 
 echo "Starting ION..."
 CONFIGDIR="./config"
-if [[ $ACS == "found" ]] ; then
+if [[ "$ACS" == "found" ]] ; then
 ionstart                           \
     -i ${CONFIGDIR}/132-udplso-tx-rate-limit.ionrc \
     -a ${CONFIGDIR}/132-udplso-tx-rate-limit.acsrc \

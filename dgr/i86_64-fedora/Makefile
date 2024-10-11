@@ -1,11 +1,13 @@
 INCL = ../include
+ICI_INCL = ../../ici/include
 API = ../library
 TEST = ../test
+ICI_LIB = ../../ici/i86_64-fedora/lib
 
 # OPT = -O -Dlinux
 # OPT = -g -Wall -Dlinux -DINITIAL_RETARD=2
 OPT = -g -Wall -Werror -Dlinux -fPIC -DSPACE_ORDER=3
-CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(TEST) -I$(INCL) -I${ROOT}/include
+CC = gcc $(OPT) $(ADD_FLAGS) -I$(API) -I$(TEST) -I$(INCL) -I${ROOT}/include -I$(ICI_INCL) -I../../ici/library -L$(ICI_LIB)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -36,6 +38,13 @@ install:
 		cp ../include/* $(ROOT)/include
 		cp lib/* $(ROOT)/lib
 		cp bin/* $(ROOT)/bin
+
+uninstall:		
+		rm $(ROOT)/lib/libdgr.so
+		for file in $(PUBINCLS); \
+			do rm $(ROOT)/include/$(notdir $$file); done
+		for file in $(RUNTIMES); \
+			do rm $(ROOT)/bin/$(notdir $$file); done
 
 #	-	-	Test executables	-	-	-	-
 
