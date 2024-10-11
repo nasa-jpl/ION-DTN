@@ -18,15 +18,15 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.36">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.40">
     
     
       
-        <title>Known Issues & Patches - ION-DTN Open Source Documentation</title>
+        <title>Knowable Base, Issues & Patches - ION-DTN Open Source Documentation</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.06209087.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Known Issues & Patches
+              Knowable Base, Issues & Patches
             
           </span>
         </div>
@@ -777,7 +777,7 @@
           
   
   <span class="md-ellipsis">
-    Known Issues & Patches
+    Knowable Base, Issues & Patches
   </span>
   
 
@@ -788,7 +788,7 @@
         
   
   <span class="md-ellipsis">
-    Known Issues & Patches
+    Knowable Base, Issues & Patches
   </span>
   
 
@@ -1845,6 +1845,109 @@
 </tr>
 </tbody>
 </table>
+<h1 id="knowledge-base-issues-patches">Knowledge Base, Issues &amp; Patches</h1>
+<p>This is a short list of information regarding ION operation, known issues, and patches. </p>
+<p>Most of these information are likely to be found in other longer documents but it is presented here in a summarized form for easier search. Another useful document is the <a href="../ION-Deployment-Guide/">ION Deployment Guide</a> which contains recommendations on configuring and running ION and performance data.</p>
+<h2 id="convergence-layer-adaptor">Convergence Layer Adaptor</h2>
+<h3 id="udp-cla">UDP CLA</h3>
+<ul>
+<li>When using UDP CLA for data delivery, one should be aware that:</li>
+<li>UDP is inherently unreliable. Therefore the delivery of BP bundles may not be guaranteed, even withing a controlled, isolated network environment.</li>
+<li>It is best to use iperf and other performance testing tools to properly character UDP performance before using UDP CLA. UDP loss may have high loss rate due to presence of other traffic or insufficient internal buffer.</li>
+<li>When UDP CLA is used to deliver bundles larger than 64K, those bundle will be fragmented and reassembled at the destination. It has been observed on some platforms that UDP buffer overflow can cause a large number of 'cyclic' packet drops so that an unexpected large number of bundles are unable to be reassembled at the destination. These bundle fragments (which are themselves bundles) will take up storage and remain until either (a) the remaining fragments arrived or (b) the TTL expired.</li>
+</ul>
+<h3 id="ltp-cla_1">LTP CLA</h3>
+<ul>
+<li>When using LTP over the UDP-based communication services (udpcli and udpclo daemons):</li>
+<li>The network layer MTU and kernel buffer size should be properly configured</li>
+<li>The use "WAN emulator" to add delay and probabilistic loss to data should be careful not to filter out UDP fragments that are needed to reconstruct the LTP segments or significantly delayed them such that the UDP segment reassembly will expire.</li>
+</ul>
+<h2 id="bundle-protocol">Bundle Protocol</h2>
+<h3 id="routing">Routing</h3>
+<p>ION handles routing based on the following general hierarchy:</p>
+<ol>
+<li>Routing Override in the <code>ipnrc</code></li>
+<li>Rerouting toward <code>gateway</code> instead of <code>destination</code></li>
+<li>Routing using CGR - for either <code>gateway</code> or <code>destination</code></li>
+<li>Routing to a neighbor if that neighbor happen to be either the <code>gateway</code> or <code>destination</code></li>
+<li>Routing to an <code>exit</code> node</li>
+<li>Place bundle in <code>limbo</code> state awaiting either TTL expiration or rerouting</li>
+</ol>
+<h3 id="crc_1">CRC</h3>
+<ul>
+<li>ION implementation currently default will apply CRC16 to Primary Block but not the Payload Block. To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC without recompiling ION.</li>
+</ul>
+<h2 id="testing-configuration_1">Testing &amp; Configuration</h2>
+<ul>
+<li>When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to <code>root</code>. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the <code>make clean</code> and <code>git stash</code> command to remove all build and testing artifacts from ION 's source directory before exiting the container.</li>
+</ul>
+<h2 id="ionconfig">ionconfig</h2>
+<h3 id="memorystorage-allocation">Memory/Storage Allocation</h3>
+<ul>
+<li>To set the <code>heapWord</code> parameter, it is recommended that you consider the worst case buffering need for a node, and use at least 5 times more for heap. For example, if you expect that your DTN node will need to buffer as much as 100M bytes of data during operation, you should allocate at least 500M bytes (or more) to the heap. Each heap <code>word</code> is determined by the size of the operation system. For a 64 bit system, each word is 8 bytes long. For in our example, the <code>heapWord</code> should be 62.5 mega or 62500000 words.</li>
+<li>Based on testing results and assuming using the default <code>maxHeap</code> parameter in <code>ionrc</code>, we recommend the following minimum setting for the ION working memory <code>wmSize</code> in bytes: </li>
+</ul>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>wmSize = 3 x heapWords x 8 x 0.4 / 10
+</code></pre></div>
+where 3 is the margin we recommend, 8 is the number of octets per word, 0.4 accounts for the fact that inbound and outbound heap space is only 40% of the total heapWord, and 10 accounts for the empirically estimated 10:1 ratio between the heap and working memory footprints per bundle stored.</p>
+<h2 id="sdr">SDR</h2>
+<h3 id="sdr-transaction-reversal_1">SDR transaction reversal</h3>
+<p>When SDR transaction is canceled due to anomaly, ION will attempt automatically try the following:</p>
+<ol>
+<li>Reverse transaction - if it is configured - to revert modifications to the SDR's heap space which contains both user and protocol data units. This action rolls back a series of operations on the SDR's data of the cancelled the transaction.</li>
+<li>Once the SDR's heap space has been restored, the "volatile" state of the protocols must be restored because they might be modified by the transaction as well. This is performed by the <code>ionrestart</code> utility.</li>
+<li>After the volatiles are reloaded, the 3rd step of restoring ION operation will need to be triggered by the users. During the anomously event that caused the transaction cancellation, some of ION's various daemons may have stopped. They can be restored by simply issuing the start ('s') command through <code>ionadmin</code> and <code>bpadmin</code>.</li>
+</ol>
+<h3 id="init-process-pid-1_1">'Init' Process PID 1</h3>
+<p>The reloading of the volatile state and restarting of daemons is necessary to ensure the ION system is in a consistent state before resuming normal operations.</p>
+<p>During the reloading of the volatile state, the bundle protocol schemes, inducts, and outducts are stopped by terminating the associated daemons. The restart process will wait for the daemon's to be terminated before restarting them. When running ION inside a docker container, the <code>init</code> process (PID 1) should be properly configured to reap all zombie processes because the restart process cannot proceed if a terminated daemon remains a zombie. Typically to ensure the proper <code>init</code> process, one should use the <code>--init</code> option for <code>docker run</code> command.</p>
+<h3 id="permission-issue-with-named-semaphore_1">Permission Issue with named semaphore</h3>
+<p>If you encounter an error reported in ion.log file such as this:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>at line 3850 of ici/library/platform_sm.c, Can&#39;t initialize IPC semaphore: Permission denied (/ion:GLOBAL:ipcSem)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>at line 3868 of ici/library/platform_sm.c, Can&#39;t initialize IPC.
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>at line 481 of ici/sdr/sdrxn.c, Can&#39;t initialize IPC system.
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>at line 695 of ici/library/ion.c, Can&#39;t initialize the SDR system.
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>at line 216 of ici/utils/ionadmin.c, ionadmin can&#39;t initialize ION.
+</code></pre></div>
+<p>It indicates that ION is unable to clean out previously left behind semaphore files. This typically occurs when the previous ION run was launched by a different user, and ION was not properly shutdown via a shutdown script - instead, the global <code>ionstop</code> or <code>killm</code> script was used. The semaphore files used by POSIX named semaphore typically only allows the owner to delete it. The work around is to clear these files out. ION-related semaphore files have the name pattern of <code>sem.ion:GLOBAL:&lt;integer&gt;</code>. For Ubuntu, it is usually found in the <code>/dev/shm</code> directory; for other Linux distribution, the location can be different.</p>
+<h2 id="reporting-issues_1">Reporting Issues</h2>
+<ul>
+<li>ION related issues can be reported to the public GitHub page for ION-DTN or ion-core.</li>
+<li>ION's SourceForge page is now deprecated and issued reported there will not be monitored.</li>
+</ul>
+<h2 id="patches_1">Patches</h2>
+<p>In this section, we post patches issued between or ahead of major releases to fix bugs.</p>
+<p>Each patch is described as follows:</p>
+<ul>
+<li>Issue Date: this is the date when the patch is made available.</li>
+<li>Issue No.: GitHub issue number, if any, related to the patch.</li>
+<li>Issue description</li>
+<li>Link to the patch</li>
+<li>The baseline version of ION from which the patch is issued.</li>
+<li>The target version of ION to which the patch will incorporate. </li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Issue Date</th>
+<th>Issue #</th>
+<th>Issue Description</th>
+<th>Patch</th>
+<th>From ION ver.</th>
+<th>To ION ver.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TBD</td>
+<td>33</td>
+<td>bpv7 extension block CRC failure</td>
+<td>TBD</td>
+<td>4.1.3</td>
+<td>4.1.4</td>
+</tr>
+</tbody>
+</table>
 
 
 
@@ -1906,7 +2009,7 @@
     <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../assets/javascripts/bundle.525ec568.min.js"></script>
       
     
   </body>

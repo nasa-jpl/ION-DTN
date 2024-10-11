@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.36">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.40">
     
     
       
@@ -26,7 +26,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.06209087.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.8c3ca2c6.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
@@ -812,13 +812,13 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#contact-graph-routing-cgr" class="md-nav__link">
+  <a href="#contact-graph-routing-cgr-ccsds-schedule-aware-bundle-routing-sabr" class="md-nav__link">
     <span class="md-ellipsis">
-      Contact Graph Routing (CGR)
+      Contact Graph Routing (CGR) - CCSDS Schedule Aware Bundle Routing (SABR)
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Contact Graph Routing (CGR)">
+    <nav class="md-nav" aria-label="Contact Graph Routing (CGR) - CCSDS Schedule Aware Bundle Routing (SABR)">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1891,7 +1891,7 @@
         
   
   <span class="md-ellipsis">
-    Known Issues & Patches
+    Knowable Base, Issues & Patches
   </span>
   
 
@@ -4497,13 +4497,15 @@ RFC 5326.)</p>
 <p><strong>Figure 13 LTP link service output</strong></p>
 <p><img alt="" src="../media-ion-guide/media/image9.png" /></p>
 <p><strong>Figure 14 LTP link service input</strong></p>
-<h3 id="contact-graph-routing-cgr">Contact Graph Routing (CGR)</h3>
+<h3 id="contact-graph-routing-cgr-ccsds-schedule-aware-bundle-routing-sabr">Contact Graph Routing (CGR) - CCSDS Schedule Aware Bundle Routing (SABR)</h3>
 <p>CGR is a dynamic routing system that computes routes through a
 time-varying topology of scheduled communication contacts in a DTN
 network. It is designed to support operations in a space network based
 on DTN, but it also could be used in terrestrial applications where
 operation according to a predefined schedule is preferable to
-opportunistic communication, as in a low-power sensor network.</p>
+opportunistic communication, as in a low-power sensor network. ION's
+CGR implementation complies with CCSDS Schedule Aware Bundle Routing (SABR)
+Specification <a href="https://public.ccsds.org/Pubs/734x3b1.pdf">CCSDS 734.3-B-1</a>.</p>
 <p>The basic strategy of CGR is to take advantage of the fact that, since
 communication operations are planned in detail, the communication routes
 between any pair of "bundle agents" in a population of nodes that have
@@ -5096,18 +5098,21 @@ pervasive shared-memory management mechanism. svr4 shared memory is
 selected by default when ION is built for any platform other than MinGW,
 VxWorks 5.4, or RTEMS. (For these latter operating systems all memory is
 shared anyway, due to the absence of a protected-memory mode.)</p>
-<p><code>POSIX1B_SEMAPHORES</code></p>
-<p>This option causes ION to be built using POSIX semaphores as the
-pervasive semaphore mechanism. POSIX semaphores are selected by default
-when ION is built for RTEMS but are otherwise not used or supported;
-this option enables the default to be overridden.</p>
-<p><code>SVR4_SEMAPHORES</code></p>
-<p>This option causes ION to be built using svr4 semaphores as the
-pervasive semaphore mechanism. svr4 semaphores are selected by default
+<p><code>POSIX_NAMED_SEMAPHORES</code></p>
+<p>Starting with version 4.1.3, POSIX named semaphores is selected by default
 when ION is built for any platform other than MinGW (for which Windows
 event objects are used), VxWorks 5.4 (for which VxWorks native
 semaphores are the default choice), or RTEMS (for which POSIX semaphores
 are the default choice).</p>
+<p><code>POSIX_SEMAPHORES</code></p>
+<p>This option causes ION to be built using POSIX semaphores as the
+semaphore mechanism. POSIX semaphores are selected by default
+when ION is built for RTEMS but are otherwise not used or supported;
+this option enables the default to be overridden.</p>
+<p><code>SVR4_SEMAPHORES</code></p>
+<p>This option causes ION to be built using SVR4 semaphores as the 
+semaphore mechanism. Prior to version 4.1.3, SVR4 semaphores were
+the default choice for Linux, MacOS, and Solaris.</p>
 <p><code>SM_SEMBASEKEY=0x*XXXX*</code></p>
 <p>This option overrides the default value (0xee02) of the identifying
 "key" used in creating and locating the global ION shared-memory
@@ -7572,7 +7577,7 @@ RFC 5326.)</p>
 <p><strong>Figure 13 LTP link service output</strong></p>
 <p><img alt="" src="../media-ion-guide/media/image9.png" /></p>
 <p><strong>Figure 14 LTP link service input</strong></p>
-<h3 id="contact-graph-routing-cgr-ccsds-schedule-aware-bundle-routing-sabr">Contact Graph Routing (CGR) - CCSDS Schedule Aware Bundle Routing (SABR)</h3>
+<h3 id="contact-graph-routing-cgr-ccsds-schedule-aware-bundle-routing-sabr_1">Contact Graph Routing (CGR) - CCSDS Schedule Aware Bundle Routing (SABR)</h3>
 <p>CGR is a dynamic routing system that computes routes through a
 time-varying topology of scheduled communication contacts in a DTN
 network. It is designed to support operations in a space network based
@@ -8982,7 +8987,7 @@ bssStreamingApp(1), and bssrecv(1) in Appendix A.</p>
     <script id="__config" type="application/json">{"base": "..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate", "navigation.top", "search.suggest", "search.highlight", "content.tabs.link", "content.code.annotation", "content.code.copy"], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.56dfad97.min.js"></script>
+      <script src="../assets/javascripts/bundle.525ec568.min.js"></script>
       
     
   </body>
