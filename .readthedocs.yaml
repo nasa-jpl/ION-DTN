@@ -10,9 +10,8 @@ build:
   jobs:
     post_build:
       - cpanm Pod::Markdown  # Install the required Perl module
-      - cd gh-pages/docs
-      - chmod +x ./convert-pod-to-md.sh
-      - ./convert_pod_to_md.sh  # Script to convert POD to Markdown
+      - chmod +x ./gh-pages/docs/convert-pod-to-md.sh
+      - cd gh-pages/docs && ./convert_pod_to_md.sh  # Script to convert POD to Markdown
 
 python:
   install:
