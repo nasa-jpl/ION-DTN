@@ -117,6 +117,14 @@ static void ionRedirectWatchCharacters()
 
 `s` - segment received
 
+* `(dxxx)s` -- received data segement with session number xxx
+* `(rsxxx)s` -- received report segement with session number xxx
+* `(rasxxx)s` -- received report ack segement with session number xxx
+* `(csxxx)s` -- received cancel by source segement with session number xxx
+* `(cas<xx)s` -- received cancel by source ack segement with session number xxx
+* `(crxxx)s` -- received cancel by receiver segement with session number xxx
+* `(carxxx)s` -- received cancel by receiver ack segement with session number xxx
+
 `t` - block has been fully received
 
 `@` - negative ACK received for block, segments retransmitted; `(xxx)@`
