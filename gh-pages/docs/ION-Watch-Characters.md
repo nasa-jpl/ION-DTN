@@ -103,7 +103,6 @@ static void ionRedirectWatchCharacters()
 
 * `(cpxxx)g` -- checkpoint, this could be a data segment or a standalone
   check point
-
 - `(dsxxx)g` -- non-check point data segment
 - `(rcpxxx)g` -- retransmitted checkpoint
 - `(prsxxx)g` -- positive report (all segments received)
