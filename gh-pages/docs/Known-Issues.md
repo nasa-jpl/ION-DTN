@@ -1,6 +1,8 @@
-# Known Issues & Patches
+# Knowledge Base, Issues & Patches
 
-Here is a list of known issues that will updated on a regular basis to captures various lessons-learned relating to the configurations, testing, performance, and deployment of ION:
+This is a short list of information regarding ION operation, known issues, and patches. 
+
+Most of these information are likely to be found in other longer documents but it is presented here in a summarized form for easier search. Another useful document is the [ION Deployment Guide](./ION-Deployment-Guide.md) which contains recommendations on configuring and running ION and performance data.
 
 ## Convergence Layer Adaptor
 
@@ -19,6 +21,17 @@ Here is a list of known issues that will updated on a regular basis to captures 
 
 ## Bundle Protocol
 
+### Routing
+
+ION handles routing based on the following general hierarchy:
+
+1. Routing Override in the `ipnrc`
+2. Rerouting toward `gateway` instead of `destination`
+3. Routing using CGR - for either `gateway` or `destination`
+4. Routing to a neighbor if that neighbor happen to be either the `gateway` or `destination`
+5. Routing to an `exit` node
+6. Place bundle in `limbo` state awaiting either TTL expiration or rerouting
+
 ### CRC
 
 * ION implementation currently default will apply CRC16 to Primary Block but not the Payload Block. To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC without recompiling ION.
@@ -26,6 +39,18 @@ Here is a list of known issues that will updated on a regular basis to captures 
 ## Testing & Configuration
 
 * When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to `root`. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the `make clean` and `git stash` command to remove all build and testing artifacts from ION 's source directory before exiting the container.
+
+## ionconfig
+
+### Memory/Storage Allocation
+
+* To set the `heapWord` parameter, it is recommended that you consider the worst case buffering need for a node, and use at least 5 times more for heap. For example, if you expect that your DTN node will need to buffer as much as 100M bytes of data during operation, you should allocate at least 500M bytes (or more) to the heap. Each heap `word` is determined by the size of the operation system. For a 64 bit system, each word is 8 bytes long. For in our example, the `heapWord` should be 62.5 mega or 62500000 words.
+* Based on testing results and assuming using the default `maxHeap` parameter in `ionrc`, we recommend the following minimum setting for the ION working memory `wmSize` in bytes: 
+
+```
+wmSize = 3 x heapWords x 8 x 0.4 / 10
+```
+where 3 is the margin we recommend, 8 is the number of octets per word, 0.4 accounts for the fact that inbound and outbound heap space is only 40% of the total heapWord, and 10 accounts for the empirically estimated 10:1 ratio between the heap and working memory footprints per bundle stored.
 
 ## SDR 
 
