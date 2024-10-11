@@ -1754,13 +1754,9 @@
 <p><code>f</code> - block has been fully segmented for transmission; <code>(xxxx)f</code></p>
 <p><code>g</code> - segment popped from transmission queue;</p>
 <ul>
-<li>
-<p><code>(cpxxx)g</code> -- checkpoint, this could be a data segment or a standalone
-  check point</p>
-</li>
-<li>
-<p><code>(dsxxx)g</code> -- non-check point data segment</p>
-</li>
+<li><code>(cpxxx)g</code> -- checkpoint, this could be a data segment or a standalone
+  check point</li>
+<li><code>(dsxxx)g</code> -- non-check point data segment</li>
 <li><code>(rcpxxx)g</code> -- retransmitted checkpoint</li>
 <li><code>(prsxxx)g</code> -- positive report (all segments received)</li>
 <li><code>(nrsxxx)g</code> -- negative report (gaps)</li>
@@ -1772,6 +1768,15 @@
 </ul>
 <p><code>h</code> - positive ACK received for block, session ended; <code>(xxx)h</code></p>
 <p><code>s</code> - segment received</p>
+<ul>
+<li><code>(dxxx)s</code> -- received data segement with session number xxx</li>
+<li><code>(rsxxx)s</code> -- received report segement with session number xxx</li>
+<li><code>(rasxxx)s</code> -- received report ack segement with session number xxx</li>
+<li><code>(csxxx)s</code> -- received cancel by source segement with session number xxx</li>
+<li><code>(cas&lt;xx)s</code> -- received cancel by source ack segement with session number xxx</li>
+<li><code>(crxxx)s</code> -- received cancel by receiver segement with session number xxx</li>
+<li><code>(carxxx)s</code> -- received cancel by receiver ack segement with session number xxx</li>
+</ul>
 <p><code>t</code> - block has been fully received</p>
 <p><code>@</code> - negative ACK received for block, segments retransmitted; <code>(xxx)@</code></p>
 <p><code>=</code> - unacknowledged checkpoint was retransmitted; <code>(xxx)=</code></p>
