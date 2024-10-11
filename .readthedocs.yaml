@@ -16,7 +16,7 @@ build:
 
 python:
   install:
-    - requirements: readthedocs-requirements.txt
+    - requirements: ./readthedocs-requirements.txt
 
 mkdocs:
   configuration: gh-pages/mkdocs.yml  # Path to the mkdocs.yml in the gh-pages directory
