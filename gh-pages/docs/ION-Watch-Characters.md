@@ -34,32 +34,33 @@ Each field can be longer or shorter than 3 digits/characters.
 
 Besides real-time monitoring of the watch characters on standard out, ION can redirect the watch characters to customized user applications for network monitoring purposes.Prior to and including ION 4.1.2, watch characters are single character. Starting from ION 4.1.3 release, a _watch character_ is now generalized to a string of type `char*`.
 
-To activate customized processing, there are two steps:
+To activate customized processing, use the following steps:
 
-1. Create a C code `gdswatcher.c` that defines a functions to process watch characters, and pass that function to ION to handle watch character:
+* Create a C code `gdswatcher.c` that defines a functions to process watch characters, and pass that function to ION to handle watch character:
 
-```c
-static void processWatchChar(char* token)
-{
-    //your code goes here
-} 
+  ```c
+  static void processWatchChar(char* token)
+  {
+      //your code goes here
+  } 
 
-static void ionRedirectWatchCharacters()
-{ 
-    setWatcher(processWatchChar);
-}
-```
+  static void ionRedirectWatchCharacters()
+  { 
+      setWatcher(processWatchChar);
+  }
+  ```
 
-2. Then use the following compiler flag to build ION:
+* Then use the following compiler flag to build ION:
 
-```bash
-./configure --enable-ewchar CFLAGS="-DGDSWATCHER -I/<path to the folder holding the gdswatcher.c file>"
-```
+  ```bash
+  ./configure --enable-ewchar CFLAGS="-DGDSWATCHER -I/<path to the folder holding the gdswatcher.c file>"
+  ```
 
-3. You can also include the GDSLOGGER program, then
-```bash
-./configure --enable-ewchar CFLAGS="-DGDSWATCHER -DGDSLOGGER -I/<path to the folder holding the gdswatcher.c file>"
-```
+* You can also include the GDSLOGGER program, then
+
+  ```bash
+  ./configure --enable-ewchar CFLAGS="-DGDSWATCHER -DGDSLOGGER -I/<path to the folder holding the gdswatcher.c file>"
+  ```
 
 ## Bundle Protocol Watch Character
 
@@ -103,15 +104,15 @@ static void ionRedirectWatchCharacters()
 
 * `(cpxxx)g` -- checkpoint, this could be a data segment or a standalone
   check point
-- `(dsxxx)g` -- non-check point data segment
-- `(rcpxxx)g` -- retransmitted checkpoint
-- `(prsxxx)g` -- positive report (all segments received)
-- `(nrsxxx)g` -- negative report (gaps)
-- `(rrsxxx)g` -- retransmitted report (either positive or negative)
-- `(rasxxx)g` -- a report ack segment
-- `(csxxx)g` -- cancellation by block source
-- `(crxxx)g` -- cancellation by block receiver
-- `(caxxx)g` -- cancellation ack for either CS or CR
+* `(dsxxx)g` -- non-check point data segment
+* `(rcpxxx)g` -- retransmitted checkpoint
+* `(prsxxx)g` -- positive report (all segments received)
+* `(nrsxxx)g` -- negative report (gaps)
+* `(rrsxxx)g` -- retransmitted report (either positive or negative)
+* `(rasxxx)g` -- a report ack segment
+* `(csxxx)g` -- cancellation by block source
+* `(crxxx)g` -- cancellation by block receiver
+* `(caxxx)g` -- cancellation ack for either CS or CR
 
 `h` - positive ACK received for block, session ended; `(xxx)h`
 

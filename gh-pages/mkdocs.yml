@@ -1,5 +1,5 @@
-site_name: ION-DTN Open Source Documentation (ARCHIVE) Please visit https://ion-dtn.readthedocs.org) after ION 4.1.3s release
-site_url: https://nasa-jpl.github.io/ION-DTN
+site_name: ION-DTN Open Source Documentation
+site_url: https://ion-dtn.readthedocs.org
 theme:
   name: material
   features:

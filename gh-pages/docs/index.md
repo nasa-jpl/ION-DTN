@@ -1,16 +1,12 @@
 # Interplanetary Overlay Network (ION)
 
-## NOTE
-
-Starting with ION 4.1.3s, ION's online documentation will move to [readthedocs](https://ion-dtn.readthedocs.org). This site will be kept for archival purposes and all information on this site applies ION version 4.1.3 or earlier.
-
 ## 🛰️ ION Description
 
 **Interplanetary Overlay Network (ION)** is an implementation of the DTN architecture, as described in Internet RFC 4838 (version 6) and RFC 9171 (version 7), that is intended to be usable in both embedded environments including spacecraft flight computers as well as ground systems. It includes modular software packages implementing Bundle Protocol version 6 (BPv6) and version 7 (BPv7), Licklider Transmission Protocol (LTP), Bundle Streaming Service (BSS), DTN-based CCSDS File Delivery Protocol (CFDP), Asynchronous Message Service (AMS), and several other DTN services and prototypes. ION is currently the baseline implementation for science instruments on the International Space Station (ISS) and the gateway node (ION Gateway) that provides relay services for command/telemetry and science data download.
 
 Here you will find videos of the Interplanetary Overlay Network [courses and presentation materials](https://www.nasa.gov/directorates/heo/scan/engineering/technology/disruption_tolerant_networking_software_options_ion).
 
-DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre-configured with ION and a GUI virtualization environment. It contains a number of pre-built scenarios (network topologies) to demonstrate various features of ION software. (** currently the DevKit is undergoing upgrade to BPv7, release date is TBD.**)
+DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre-configured with ION and a GUI virtualization environment. It contains a number of pre-built scenarios (network topologies) to demonstrate various features of ION software. (**currently the DevKit is undergoing upgrade to BPv7, release date is TBD.**)
 
 ## 📡 Application Domains of DTN and ION
 
@@ -32,6 +28,7 @@ DTN Development/Deployment Kit is an ISO image of an Ubuntu virtual machine, pre
    ```bash
    git clone https://github.com/nasa-jpl/ION-DTN.git
    ```
+
 2. Follow the steps in the [Quick Start Guide](./ION-Quick-Start-Guide.md) to build, install, and run a simple two node example.
 3. A simple tutorial of ION's configuration files can be found [here](./Basic-Configuration-File-Tutorial.md).
 4. A set of configuration file templates for various DTN features can be found [here](./ION-Config-File-Templates.md).
