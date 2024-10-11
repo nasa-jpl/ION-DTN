@@ -1,5 +1,9 @@
 # Interplanetary Overlay Network (ION)
 
+## NOTE
+
+Starting with ION 4.1.3s, ION's online documentation will move to [readthedocs](https://ion-dtn.readthedocs.org). This site will be kept for archival purposes and all information on this site applies ION version 4.1.3 or earlier.
+
 ## 🛰️ ION Description
 
 **Interplanetary Overlay Network (ION)** is an implementation of the DTN architecture, as described in Internet RFC 4838 (version 6) and RFC 9171 (version 7), that is intended to be usable in both embedded environments including spacecraft flight computers as well as ground systems. It includes modular software packages implementing Bundle Protocol version 6 (BPv6) and version 7 (BPv7), Licklider Transmission Protocol (LTP), Bundle Streaming Service (BSS), DTN-based CCSDS File Delivery Protocol (CFDP), Asynchronous Message Service (AMS), and several other DTN services and prototypes. ION is currently the baseline implementation for science instruments on the International Space Station (ISS) and the gateway node (ION Gateway) that provides relay services for command/telemetry and science data download.
