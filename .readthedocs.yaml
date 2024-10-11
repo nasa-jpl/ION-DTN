@@ -1,10 +1,5 @@
 version: 2
 
-# Specify branches or tags
-versions:
-  only:
-    - ION-documentation
-
 build:
   os: ubuntu-22.04
   tools:
