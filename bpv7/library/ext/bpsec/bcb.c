@@ -189,9 +189,6 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
 
         case -2: /* Misconfiguration of BCB. */
         default: /* Anything else is treated as a misconfiguration. */
-
-            /* Experimental correction for missing BCB policy at security acceptor - per Scott Burleigh */
-            work->bundle.insecure = 1;
             
             /* Handle sop_misconf_at_acceptor event */
             bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_misconf_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
