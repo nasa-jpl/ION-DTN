@@ -43,9 +43,10 @@ Version: 0
       - [Method 2: Check IPC status](#method-2-check-ipc-status)
   - [Case 2: Shared Enviroment](#case-2-shared-enviroment)
     - [ION Installation \& Operations](#ion-installation--operations)
-    - [SystemD](#systemd)
-      - [SystemD Service Files](#systemd-service-files)
-      - [SystemD Service File Notes](#systemd-service-file-notes)
+  - [SystemD](#systemd)
+    - [SystemD Service Files](#systemd-service-files)
+    - [SystemD Service File Notes](#systemd-service-file-notes)
+    - [SystemD Service Operational Notes](#systemd-service-operational-notes)
     - [Permissions](#permissions)
       - [Configuration Files](#configuration-files)
       - [Log File(s)](#log-files)
@@ -287,7 +288,7 @@ Running ION in a shared environment with multiple users can cause unexpected err
 }
 ```
 
-### SystemD
+## SystemD
 
 Using SystemD is the recommended method of running ION in a shared environment. It has several benefits over using a start script and a shared folder.
 
@@ -300,7 +301,7 @@ Using SystemD is the recommended method of running ION in a shared environment. 
 * `systemctl status` will report the memory used by all the ION processes, cached and RAM combined.
 * Help identify any failed ION processes.
 
-#### SystemD Service Files
+### SystemD Service Files
 
 SystemD requires service files in order for programs to be run as part of systemd. Before creating the systemd service file, there are a couple of things that need to be setup.
 
@@ -371,7 +372,7 @@ WantedBy=multi-user.target
 
 ```
 
-#### SystemD Service File Notes
+### SystemD Service File Notes
 
 * The `ionscript` and `ionstart` method for systemD service files is the recommended way to start ION. There are other ways to do it such as running the start script, which can be found in many ION examples and tests, but they have been found to not always behave correctly within a systemD context. It has the added benefit of separating operational configs from untested config updates or tests, so config changes are only applied when the `systemctl restart` command is used.
 * All service files should be saved in */etc/systemd/system/*.
@@ -379,7 +380,7 @@ WantedBy=multi-user.target
 * If running another service, make sure it starts after ION is started like the bpecho service does.
 * See here for more details on creating systemD service files: [systemd.service](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html).
 
-#### SystemD Service Operational Notes
+### SystemD Service Operational Notes
 
 Operating DTN applications with the systemD service is different than running from a script, so few things need to be kept in mind to ensure proper operations.
 

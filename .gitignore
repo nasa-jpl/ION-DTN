@@ -22,6 +22,9 @@ stamp-h1
 # Temp macro directory
 /m4
 
+# VsCode
+.vscode
+
 # Compiled objects
 *.o
 *.lo
