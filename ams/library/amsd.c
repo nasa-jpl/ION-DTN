@@ -242,7 +242,7 @@ static void	cleanUpCsState(CsState *csState)
 
 	if (csState->tsif.ept)
 	{
-		MRELEASE(csState->tsif.ept);
+		RELEASE_CONTENT_SPACE(csState->tsif.ept);
 	}
 
 	if (csState->csEvents)
@@ -402,7 +402,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 		ept = cell->mamsEndpoint.ept;
 		supplementLength = 2 + strlen(ept) + 1;
-		supplement = MTAKE(supplementLength);
+		supplement = TAKE_CONTENT_SPACE(supplementLength);
 		CHKVOID(supplement);
 		supplement[0] = (char) ((msg->unitNbr >> 8) & 0xff);
 		supplement[1] = (char) (msg->unitNbr & 0xff);
@@ -436,7 +436,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 
 			ept = cell->mamsEndpoint.ept;
 			cellspecLength = 2 + strlen(ept) + 1;
-			cellspec = MTAKE(cellspecLength);
+			cellspec = TAKE_CONTENT_SPACE(cellspecLength);
 			CHKVOID(cellspec);
 			cellspec[0] = (char) ((unit->nbr >> 8) & 0xff);
 			cellspec[1] = (char) (unit->nbr & 0xff);
@@ -447,7 +447,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 				putErrmsg("CS can't send cell_spec.", NULL);
 			}
 
-			MRELEASE(cellspec);
+			RELEASE_CONTENT_SPACE(cellspec);
 		}
 
 		if (cellspec == NULL)	/*	No other registrars.	*/
@@ -466,7 +466,7 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 			}
 		}
 
-		MRELEASE(supplement);
+		RELEASE_CONTENT_SPACE(supplement);
 		return;
 
 	case registrar_query:
@@ -513,14 +513,14 @@ PUTMEMO("...from role", itoa(msg->roleNbr));
 		}
 
 		supplementLength = 2 + strlen(ept) + 1;
-		supplement = MTAKE(supplementLength);
+		supplement = TAKE_CONTENT_SPACE(supplementLength);
 		CHKVOID(supplement);
 		supplement[0] = (char) ((unitNbr >> 8) & 0xff);
 		supplement[1] = (char) (unitNbr & 0xff);
 		istrcpy(supplement + 2, ept, supplementLength - 2);
 		result = sendMamsMsg(&endpoint, &(csState->tsif), cell_spec,
 			       	msg->memo, supplementLength, supplement);
-		MRELEASE(supplement);
+		RELEASE_CONTENT_SPACE(supplement);
 		if (result < 0)
 		{
 			putErrmsg("CS can't send cell_spec.", NULL);
@@ -750,7 +750,7 @@ static int	sendMsgToCS(RsState *rsState, AmsEvt *evt)
 
 	if (msg->supplement)
 	{
-		MRELEASE(msg->supplement);
+		RELEASE_CONTENT_SPACE(msg->supplement);
 	}
 
 	if (result < 0)
@@ -773,13 +773,13 @@ static int	enqueueMsgToCS(RsState *rsState, MamsPduType msgType,
 	msg.memo = memo;
 	msg.supplementLength = supplementLength;
 	msg.supplement = supplement;
-	evt = (AmsEvt *) MTAKE(1 + sizeof(MamsMsg));
+	evt = (AmsEvt *) TAKE_CONTENT_SPACE(1 + sizeof(MamsMsg));
 	CHKERR(evt);
 	memcpy(evt->value, (char *) &msg, sizeof msg);
 	evt->type = MSG_TO_SEND_EVT;
 	if (enqueueMamsEvent(rsState->rsEventsCV, evt, NULL, 0))
 	{
-		MRELEASE(evt);
+		RELEASE_CONTENT_SPACE(evt);
 		putErrmsg("Can't enqueue message-to-CS event.", NULL);
 		return -1;
 	}
@@ -1029,7 +1029,7 @@ static void	*rsHeartbeat(void *parm)
 		else	/*	Try to reconnect to config server.	*/
 		{
 			supplementLen = strlen(rsState->tsif.ept) + 1;
-			ept = MTAKE(supplementLen);
+			ept = TAKE_CONTENT_SPACE(supplementLen);
 			if (ept == NULL)
 			{
 				unlockMib();
@@ -1083,7 +1083,7 @@ static void	cleanUpRsState(RsState *rsState)
 
 	if (rsState->tsif.ept)
 	{
-		MRELEASE(rsState->tsif.ept);
+		RELEASE_CONTENT_SPACE(rsState->tsif.ept);
 	}
 
 	if (rsState->rsEvents)
@@ -1426,7 +1426,7 @@ accepting it", itoa(unitNbr));
 		}
 
 		supplementLength = 1;
-		supplement = MTAKE(supplementLength);
+		supplement = TAKE_CONTENT_SPACE(supplementLength);
 		if (supplement == NULL)
 		{
 			forgetModule(module);
@@ -1439,7 +1439,7 @@ accepting it", itoa(unitNbr));
 		result = sendMamsMsg(&endpoint, &(rsState->tsif), you_are_in,
 				msg->memo, supplementLength, supplement);
 		(mib->pts->clearMamsEndpointFn)(&endpoint);
-		MRELEASE(supplement);
+		RELEASE_CONTENT_SPACE(supplement);
 		if (result < 0)
 		{
 			forgetModule(module);
@@ -1909,14 +1909,14 @@ static void	enqueueRegistrarStop(RsState *rsState)
 {
 	AmsEvt	*evt;
 
-	evt = (AmsEvt *) MTAKE(2);
+	evt = (AmsEvt *) TAKE_CONTENT_SPACE(2);
 	CHKVOID(evt);
 	evt->type = RS_STOP_EVT;
 	evt->value[0] = '\0';
 	if (enqueueMamsEvent(rsState->rsEventsCV, evt, NULL, 0))
 	{
 		putErrmsg("Can't enqueue registrar stop.", NULL);
-		MRELEASE(evt);
+		RELEASE_CONTENT_SPACE(evt);
 	}
 }
 

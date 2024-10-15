@@ -87,7 +87,7 @@ static int	vmqAmsInit(AmsInterface *tsif, char *epspec)
 	tsif->sequence = AmsTransmissionOrder;
 	isprintf(endpointNameText, sizeof endpointNameText, "%u", vmqSap);
 	eptLen = strlen(endpointNameText) + 1;
-	tsif->ept = MTAKE(eptLen);
+	tsif->ept = TAKE_CONTENT_SPACE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		msgQDelete(vmqSap);
@@ -115,7 +115,7 @@ static void	*vmqAmsReceiver(void *parm)
 	CHKNULL(vmqSap);
 	amsSap = tsif->amsSap;
 	CHKNULL(amsSap);
-	buffer = MTAKE(VMQTS_MAX_MSG_LEN);
+	buffer = TAKE_CONTENT_SPACE(VMQTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
 	sigfillset(&signals);
 	pthread_sigmask(SIG_BLOCK, &signals, NULL);
@@ -126,7 +126,7 @@ static void	*vmqAmsReceiver(void *parm)
 		if (length == ERROR)
 		{
 			msgQDelete(vmqSap);
-			MRELEASE(buffer);
+			RELEASE_CONTENT_SPACE(buffer);
 			tsif->sap = NULL;
 			return NULL;
 		}
@@ -152,7 +152,7 @@ static int	vmqParseAmsEndpoint(AmsEndpoint *dp)
 		return -1;
 	}
 
-	dp->tsep = MTAKE(sizeof(VmqTsep));
+	dp->tsep = TAKE_CONTENT_SPACE(sizeof(VmqTsep));
 	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(VmqTsep));
 
@@ -168,7 +168,7 @@ static void	vmqClearAmsEndpoint(AmsEndpoint *dp)
 	CHKERR(dp);
 	if (dp->tsep)
 	{
-		MRELEASE(dp->tsep);
+		RELEASE_CONTENT_SPACE(dp->tsep);
 	}
 }
 
@@ -198,7 +198,7 @@ printf("in vmqSendAms, tsep is %lu.\n", (unsigned long) tsep);
 		return 0;
 	}
 
-	vmqAmsBuf = MTAKE(headerLen + contentLen + 2);
+	vmqAmsBuf = TAKE_CONTENT_SPACE(headerLen + contentLen + 2);
 	CHKERR(vmqAmsBuf);
 	memcpy(vmqAmsBuf, header, headerLen);
 	if (contentLen > 0)
@@ -211,7 +211,7 @@ printf("in vmqSendAms, tsep is %lu.\n", (unsigned long) tsep);
 	checksum = htons(checksum);
 	memcpy(vmqAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
 	result = msgQSend(*tsep, vmqAmsBuf, len, WAIT_FOREVER, MSG_PRI_NORMAL);
-	MRELEASE(vmqAmsBuf);
+	RELEASE_CONTENT_SPACE(vmqAmsBuf);
 	if (result == ERROR)
 	{
 #if AMSDEBUG
