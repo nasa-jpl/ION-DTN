@@ -1,1 +1,7 @@
 1
+
+#Add key(s)
+a key testkey testkey.hmk
+
+#List key (see stdout during ION startup)
+l key
