@@ -33,9 +33,11 @@
 #define _POSIX_C_SOURCE 200112L
 #endif
 
+#include "ionsec.h"
 #include <bp.h>
 #include <metadata.h> 
 #include <secrypt.h>
+
 
 
 /******************************************************************************/
@@ -252,11 +254,26 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 	/*ADD FILENAME AND FILE CONTENT TO METADATA-----------*/
 	if(encryptFlag == 1)
-	{	
+	{
+		/* Get the key from ionsecadmin database */
+		char        keyBuffer[512] = {0};
+		int	        keyBufferLength = sizeof keyBuffer;
+		int	        keyLength = 0;
+
+		keyLength = sec_get_key(keyInput,
+				&keyBufferLength, keyBuffer);
+		if (keyLength <= 0)
+		{
+			putErrmsg("Can't fetch symmetric key.",
+					keyInput);			
+			return -1;
+		}
+
+
 		int result = -1; //default to failure	
 
 		/* ENCRYPT FILE CONTENTS */ 
-		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyInput);			
+		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyBuffer);			
 		if(result != 0)
 		{				
 			fprintf(stderr,"Encryption error.\n");
