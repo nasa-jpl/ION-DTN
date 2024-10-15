@@ -38,6 +38,7 @@
 
 #define	BPRECVBUFSZ	(65536)
 
+#include "ionsec.h"
 #include <bp.h>
 #include <metadata.h>
 #include <secrypt.h>
@@ -285,6 +286,22 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 	if(decryptFlag && keyInput) //if decryptFlag and cipher key
 	{
+
+		/* Get the key from ionsecadmin database */
+		/* char        keyBuffer[512] = {0};
+		int	        keyBufferLength = sizeof keyBuffer;
+		int	        keyLength = 0;
+
+		keyLength = sec_get_key(keyInput,
+				&keyBufferLength, keyBuffer);
+		if (keyLength <= 0)
+		{
+			putErrmsg("Can't fetch symmetric key.",
+					keyInput);			
+			return -1;
+		} */
+		
+		
 		/* decrypt file content */
 		unsigned char *decrypted_fileContent = NULL;
 		size_t decrypted_fileContentLength = 0;

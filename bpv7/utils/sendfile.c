@@ -256,7 +256,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	if(encryptFlag == 1)
 	{
 		/* Get the key from ionsecadmin database */
-		char        keyBuffer[512] = {0};
+		/* char        keyBuffer[512] = {0};
 		int	        keyBufferLength = sizeof keyBuffer;
 		int	        keyLength = 0;
 
@@ -267,13 +267,13 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 			putErrmsg("Can't fetch symmetric key.",
 					keyInput);			
 			return -1;
-		}
+		} */
 
 
 		int result = -1; //default to failure	
 
 		/* ENCRYPT FILE CONTENTS */ 
-		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyBuffer);			
+		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyInput);			
 		if(result != 0)
 		{				
 			fprintf(stderr,"Encryption error.\n");
