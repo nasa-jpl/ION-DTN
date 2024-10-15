@@ -1,0 +1,60 @@
+name: Build ION Documentation With Mkdocs
+
+on:
+  push:
+    branches:
+      - ION-documentation  # Set this to your default branch
+    paths:
+      - 'gh-pages/**'  # Trigger only when changes in gh-pages directory
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # Specify the Python version
+
+    - name: Set up Perl environment
+      uses: shogo82148/actions-setup-perl@v1
+      with:
+        perl-version: '5.32'
+
+    - name: Check and Install pod2markdown
+      run: |
+        if ! command -v pod2markdown &> /dev/null
+        then
+          echo "pod2markdown could not be found, installing..."
+          cpanm Pod::Markdown
+        else
+          echo "pod2markdown is already installed."
+        fi
+
+    - name: Run convert ION pod files to MD
+      run: |
+        cd gh-pages/docs
+        chmod +x ./convert-pod-to-md.sh
+        ./convert-pod-to-md.sh
+
+    - name: Install dependencies
+      run: |
+        cd gh-pages  # Change to the MkDocs directory
+        python -m pip install --upgrade pip
+        pip install mkdocs
+        pip install mkdocs-material
+
+    - name: Build MkDocs site
+      run: |
+        cd gh-pages  # Ensure we're in the right directory
+        mkdocs build
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./gh-pages/site  # Replace with your build directory

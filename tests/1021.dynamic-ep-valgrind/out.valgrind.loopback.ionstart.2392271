@@ -1,0 +1,117 @@
+==2392271== 16 bytes in 2 blocks are possibly lost in loss record 1 of 16
+==2392271==    at 0x483DFAF: realloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x12037C: ??? (in /usr/bin/mawk)
+==2392271==    by 0x120813: ??? (in /usr/bin/mawk)
+==2392271==    by 0x1216EC: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11F346: ??? (in /usr/bin/mawk)
+==2392271==    by 0x1102D6: ??? (in /usr/bin/mawk)
+==2392271==    by 0x111954: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10D399: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10FE5C: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CA99: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 144 bytes in 2 blocks are possibly lost in loss record 2 of 16
+==2392271==    at 0x483DFAF: realloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x121217: ??? (in /usr/bin/mawk)
+==2392271==    by 0x121803: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11F346: ??? (in /usr/bin/mawk)
+==2392271==    by 0x1102D6: ??? (in /usr/bin/mawk)
+==2392271==    by 0x111954: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10D399: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10FE5C: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CA99: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 1,024 bytes in 1 blocks are possibly lost in loss record 5 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122EAF: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11CC71: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11711E: ??? (in /usr/bin/mawk)
+==2392271==    by 0x117760: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CA38: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 1,024 bytes in 1 blocks are possibly lost in loss record 6 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122EAF: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11CC71: ??? (in /usr/bin/mawk)
+==2392271==    by 0x113EBE: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CABA: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 1,024 bytes in 1 blocks are possibly lost in loss record 7 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122EAF: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11C6B3: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11C837: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11CACD: ??? (in /usr/bin/mawk)
+==2392271==    by 0x113EBE: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CABA: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 2,048 bytes in 1 blocks are possibly lost in loss record 9 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122E6B: ??? (in /usr/bin/mawk)
+==2392271==    by 0x1121E1: ??? (in /usr/bin/mawk)
+==2392271==    by 0x117E75: ??? (in /usr/bin/mawk)
+==2392271==    by 0x117350: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CA38: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 2,048 bytes in 1 blocks are possibly lost in loss record 10 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122E6B: ??? (in /usr/bin/mawk)
+==2392271==    by 0x12309B: ??? (in /usr/bin/mawk)
+==2392271==    by 0x1175A9: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CA38: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 2,048 bytes in 1 blocks are possibly lost in loss record 11 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122E6B: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11C94B: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11CB57: ??? (in /usr/bin/mawk)
+==2392271==    by 0x113EBE: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CABA: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 2,048 bytes in 1 blocks are possibly lost in loss record 12 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122E6B: ??? (in /usr/bin/mawk)
+==2392271==    by 0x111FB6: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11EC55: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11DC6F: ??? (in /usr/bin/mawk)
+==2392271==    by 0x1150AC: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CABA: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 2,048 bytes in 2 blocks are possibly lost in loss record 13 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122EAF: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11C6B3: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11C837: ??? (in /usr/bin/mawk)
+==2392271==    by 0x11CACD: ??? (in /usr/bin/mawk)
+==2392271==    by 0x113E56: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CABA: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 3,616 bytes in 1 blocks are possibly lost in loss record 14 of 16
+==2392271==    at 0x483DFAF: realloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122F40: ??? (in /usr/bin/mawk)
+==2392271==    by 0x115859: ??? (in /usr/bin/mawk)
+==2392271==    by 0x115A76: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10FE78: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CA99: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
+==2392271== 4,096 bytes in 2 blocks are possibly lost in loss record 15 of 16
+==2392271==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2392271==    by 0x122E6B: ??? (in /usr/bin/mawk)
+==2392271==    by 0x111FB6: ??? (in /usr/bin/mawk)
+==2392271==    by 0x1116D8: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10D399: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10FE5C: ??? (in /usr/bin/mawk)
+==2392271==    by 0x10CA99: ??? (in /usr/bin/mawk)
+==2392271==    by 0x49D7082: (below main) (libc-start.c:308)
+==2392271== 
