@@ -208,6 +208,7 @@ doc/appendix-a-contents.txt
 ion.log
 ion_nodes
 *.stdout
+out\.valgrind\.*
 
 # Produced test support
 tests/retest
