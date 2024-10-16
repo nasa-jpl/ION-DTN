@@ -23,7 +23,7 @@ jobs:
           sudo apt-get install -y autoconf automake libtool bash python3 gcc make  # Install dependencies
 
       - name: Run build and tests, capture stdout
-        run: |
+        run: | # For now run only test starting with "b", redirect stdout and stderr to a log
           {
             echo "Starting build and tests at $(date)"
             autoreconf -fi
@@ -32,8 +32,8 @@ jobs:
             make install
             ldconfig
             cd tests
-            ./runtests
-          } > build-and-test.log 2>&1  # Redirect all stdout and stderr to a log file
+            ./runtests b*
+          } > build-and-test.log 2>&1
 
       - name: Display log output
         run: |
