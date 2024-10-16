@@ -231,6 +231,7 @@ static void	addToModularChecksum(unsigned char octet, vast *offset,
 	N = 3 - (*offset & 0x03);
 	octetVal = octet << (N << 3);	/*	Multiply N by 8.	*/
 	*checksum += octetVal;
+	(*offset)++;
 }
 
 #ifdef ENABLE_HIGH_SPEED
@@ -239,7 +240,6 @@ void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 {
 	unsigned char *octet;
 	int bytesToWrite;
-	vast local_offset = *offset;
 	
 	CHKVOID(checksum);
 	switch (ckType)
@@ -250,10 +250,9 @@ void	addDataToChecksum(unsigned char *data, int dLen, vast *offset,
 		bytesToWrite = dLen;
 		while (bytesToWrite > 0)
 		{
-			addToModularChecksum(*octet, local_offset, checksum);
+			addToModularChecksum(*octet, offset, checksum);
 			octet++;
 			bytesToWrite--;
-			local_offset++;
 		}
 		break;
 
@@ -1354,7 +1353,7 @@ static Object	createInFdu(CfdpTransactionId *transactionId, Entity *entity,
 	fdubuf->messagesToUser = sdr_list_create(sdr);
 	fdubuf->filestoreRequests = sdr_list_create(sdr);
 	fdubuf->extents = sdr_list_create(sdr);
-	fdubuf->ckType = ModularChecksum;		/*	Default		*/
+	fdubuf->ckType = NullChecksum;		/*	Default		*/
 	fdubuf->finishCondition = CfdpNoError;	/*	Default		*/
 	fduObj = sdr_malloc(sdr, sizeof(InFdu));
 	if (fduObj == 0 || fdubuf->messagesToUser == 0
@@ -3795,13 +3794,11 @@ static int	writeSegmentData(InFdu *fdu, unsigned char **cursor,
 			&fdu->computedChecksum, fdu->ckType);
 	(*cursor) += bytesToWrite;
 	(*bytesRemaining) -= bytesToWrite;
-	(*segmentOffset) += bytesToWrite;
 #else
 	while (bytesToWrite > 0)
 	{
 		addToChecksum(**cursor, segmentOffset, &fdu->computedChecksum,
 				fdu->ckType);
-		(*segmentOffset)++;
 		(*cursor)++;
 		(*bytesRemaining)--;
 		bytesToWrite--;
@@ -3956,11 +3953,6 @@ extent.offset, extent.offset + extent.length);
 			 *	of the segment, i.e., part or all of
 			 *	this segment has already been received.	*/
 
-#if CFDPDEBUG
-printf(".... Extent and segment has no gap; extend.offset = " UVAST_FIELDSPEC "; segmentOffset = " VAST_FIELDSPEC ".\n",
-extent.offset, segmentOffset);
-#endif
-
 			bytesToSkip = extentEnd - segmentOffset;
 			if (bytesToSkip >= bytesRemaining)
 			{
@@ -3968,11 +3960,12 @@ extent.offset, segmentOffset);
 			}
 
 			/*	This segment extends this extent.	*/
+
 			extent.length = segmentEnd - extent.offset;
 			sdr_write(sdr, addr, (char *) &extent,
 					sizeof(CfdpExtent));
 #if CFDPDEBUG
-printf(".... Rewriting/extending extent at " UVAST_FIELDSPEC ", to " UVAST_FIELDSPEC ".\n",
+printf("Rewriting extent at " UVAST_FIELDSPEC ", to " UVAST_FIELDSPEC ".\n",
 extent.offset, extent.offset + extent.length);
 #endif
 			extentEnd = extent.offset + extent.length;
@@ -3984,16 +3977,12 @@ extent.offset, extent.offset + extent.length);
 			cursor += bytesToSkip;
 			bytesRemaining -= bytesToSkip;
 #if CFDPDEBUG
-printf(".... Skipping " UVAST_FIELDSPEC " bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
+printf("Skipping " UVAST_FIELDSPEC " bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
 bytesToSkip, segmentOffset);
 #endif
 		}
 		else	/*	This segment starts a new extent.	*/
 		{
-#if CFDPDEBUG
-printf(".... New extent is needed from " UVAST_FIELDSPEC " bytes to " UVAST_FIELDSPEC ".\n",
-segmentOffset, segmentEnd);
-#endif
 			nextElt = elt;
 			elt = 0;	/*	New extent needed.	*/
 		}
@@ -4020,7 +4009,7 @@ segmentOffset, segmentEnd);
 
 		sdr_write(sdr, addr, (char *) &extent, sizeof(CfdpExtent));
 #if CFDPDEBUG
-printf("Insert new extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ". Data not yet written. \n",
+printf("Writing extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
 extent.offset, extent.offset + extent.length);
 #endif
 		extentEnd = extent.offset + extent.length;
@@ -4156,7 +4145,7 @@ extent.offset, extent.offset + extent.length);
 		sdr_stage(sdr, (char *) &nextExtent, nextAddr,
 				sizeof(CfdpExtent));
 #if CFDPDEBUG
-printf("Continuing to next extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC "; \
+printf("Continuing to extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC "; \
 segmentOffset is " UVAST_FIELDSPEC ".\n", nextExtent.offset,
 nextExtent.offset + nextExtent.length, segmentOffset);
 #endif
@@ -4167,12 +4156,6 @@ nextExtent.offset + nextExtent.length, segmentOffset);
 
 		/*	This extent will be subsumed into prior extent.
 		 *	First, bridge gap to the start of this extent.	*/
-#if CFDPDEBUG
-printf("....Subsumming this extent into the prior extent. First write data to bridge gap. \
-Pre-write segmentOffset = " VAST_FIELDSPEC ";\
-Pre-write bytesRemaining = %d; \
-Pre-write cursor = %p. \n", segmentOffset, bytesRemaining, cursor);
-#endif
 
 		bytesToWrite = nextExtent.offset - segmentOffset;
 		if (writeSegmentData(fdu, &cursor, &bytesRemaining,
@@ -4183,59 +4166,13 @@ Pre-write cursor = %p. \n", segmentOffset, bytesRemaining, cursor);
 			return -1;
 		}
 
-#if CFDPDEBUG
-printf(".... Writing " UVAST_FIELDSPEC " bytes into prior extent. \
-Updated segmentOffset = " VAST_FIELDSPEC "; \
-Updated bytesRemaining = %d; \
-Updated curosr = %p. \n", bytesToWrite, segmentOffset, bytesRemaining, cursor);
-#endif
 		/*	Now skip over all data that were written when
 		 *	this extent was posted.				*/
-		bytesToSkip = bytesToWrite; //JG this value is not used any where...
 
-		/*  For any remaining data (Rare Cases) */
-		
-		/* Note: current implementation has been tested 
-		* only for sender with fixed segment size 
-		* such that only the last file data segment of a file
-		* can be smaller. The following cases, therefore 
-		* are rare unless a different sending CFDP 
-		* entity implementation is used. */
-
-		/* Note: After writeSegmentData() call, bytesRemaining,
-		 * segmentOffset, and cursor are all updated. */
-
-		if (bytesRemaining > 0) {
-#if CFDPDEBUG
-printf(".... Rare Case Detected: additional bytes (%d) remain after bridging gap. \n", bytesRemaining);
-#endif
-			if ((bytesRemaining) <= nextExtent.length) {
-
-            	/* the remainder is fully contained within the next extent */
-             	bytesToSkip += bytesRemaining;
-				bytesRemaining = 0;
-				segmentOffset += bytesRemaining;
-				cursor += bytesRemaining;
-#if CFDPDEBUG
-printf(".... Rare Case Detected: segment fully contained by next extent, bytesToSkip = " UVAST_FIELDSPEC "; \
-bytesRemaining set to 0.\n", bytesToSkip);
-#endif	
-         	} else {
-            	/* this segment extends past the nextExtent. */
-             	bytesToSkip += nextExtent.length;
-				bytesRemaining -= nextExtent.length;
-				segmentOffset += nextExtent.length;
-				cursor += nextExtent.length;
-#if CFDPDEBUG
-printf(".... Rare Case Detected: segment extented beyond one full extent. This could signal an anomaly. \n");
-#endif
-         	}
-    	} 
-
-#if CFDPDEBUG
-printf(".... After bridging gap, skip over " UVAST_FIELDSPEC " bytes in segment, new segmentOffset = " VAST_FIELDSPEC " \
-; bytesRemaining = %d. \n", bytesToSkip, segmentOffset, bytesRemaining);
-#endif
+		bytesToSkip = nextExtent.length;
+		segmentOffset += bytesToSkip;
+		cursor += bytesToSkip;
+		bytesRemaining -= bytesToSkip;
 
 		/*	Now subsume the extent into the prior extent.	*/
 
@@ -4248,10 +4185,6 @@ printf(".... After bridging gap, skip over " UVAST_FIELDSPEC " bytes in segment,
 			sdr_write(sdr, addr, (char *) &extent,
 					sizeof(CfdpExtent));
 			extentEnd = extent.offset + extent.length;
-#if CFDPDEBUG
-printf(".... Actually extending the prior extent, new offset =\
- " UVAST_FIELDSPEC " and new end = " UVAST_FIELDSPEC ".\n", extent.offset, extentEnd);
-#endif
 		}
 
 		elt = sdr_list_next(sdr, nextElt);
@@ -4261,11 +4194,7 @@ printf(".... Actually extending the prior extent, new offset =\
 	}
 
 	/*	Write final hunk of segment data.			*/
-#if CFDPDEBUG
-printf("Are there any remaining data to write? The segmentEnd = " UVAST_FIELDSPEC "\
- and the adjusted segmentOffset = " VAST_FIELDSPEC ". If segmentEnd > segmentOffset, \
-need to write remaining data.\n", segmentEnd, segmentOffset);
-#endif
+
 	if (segmentEnd > segmentOffset)
 	{
 		bytesToWrite = segmentEnd - segmentOffset;
@@ -4276,10 +4205,6 @@ need to write remaining data.\n", segmentEnd, segmentOffset);
 					workingNameBuffer);
 			return -1;
 		}
-#if CFDPDEBUG
-printf("Written final hunk of segment data. After write op, adjusted segmentOffset =\
- " UVAST_FIELDSPEC "; bytesToWrite = " VAST_FIELDSPEC ".\n", segmentOffset, bytesToWrite);
-#endif
 	}
 
 #ifdef TargetFFS
