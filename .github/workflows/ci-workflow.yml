@@ -29,29 +29,23 @@ jobs:
             autoreconf -fi
             ./configure
             make
-            make install
-            ldconfig
+            sudo make install
+            sudo ldconfig
             cd tests
-            ./runtests bping
+            ./runtests bping  # Run the test
+            cat progress      # Display the 'progress' file
           } 2>&1 | tee build-and-test.log
 
-      - name: Display log output
-        run: |
-          cat build-and-test.log
-
       - name: Upload full build and test log
-        uses: actions/upload-artifact@v3
+        if: ${{ always() }}  # Capture log even if the previous step fails
+        uses: actions/upload-artifact@v4
         with:
           name: build-and-test-log
           path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
 
-      - name: Capture test progress
-        working-directory: ./tests
-        run: |
-          cat progress     # Read the progress file to display test results
-
       - name: Upload progress file as artifact
-        uses: actions/upload-artifact@v3
+        if: ${{ always() }}  # Capture progress even if the previous step fails
+        uses: actions/upload-artifact@v4
         with:
           name: test-progress
           path: ./tests/progress  # Upload the 'progress' file for later review
