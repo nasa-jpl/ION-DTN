@@ -1,0 +1,6 @@
+==2464411== 12 bytes in 1 blocks are definitely lost in loss record 152 of 838
+==2464411==    at 0x483B7F3: malloc (in /usr/lib/x86_64-linux-gnu/valgrind/vgpreload_memcheck-amd64-linux.so)
+==2464411==    by 0x1984F3: xmalloc (in /usr/bin/bash)
+==2464411==    by 0x19196E: set_default_locale (in /usr/bin/bash)
+==2464411==    by 0x136C8A: main (in /usr/bin/bash)
+==2464411== 

@@ -128,10 +128,10 @@ sleep 12
 echo "Test 1 --- Local to Remote Copy"
 cd 1.ipn.cfdp.bp.tcp
 echo "Starting bpcp..."
-bpcp ../testfile 3:test1
+bpcp ../dotest 3:test1
 sleep 3
 cd ../3.ipn.cfdp.bp.tcp
-TEST=`diff ../testfile test1`
+TEST=`diff ../dotest test1`
 echo $TEST
 if  [ ! -e ./test1 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Local to Remote Copy Failed. FAILED!!"
