@@ -2198,6 +2198,10 @@ libici_la_SOURCES+= \
 	ici/crypto/MBEDTLS_SUITES/csi_hsha.c 
 
 else
+AM_CFLAGS+= \
+	-I$(srcdir)/ici/crypto/NULL_SUITES \
+	-I$(srcdir)/ici/crypto
+
 libici_la_SOURCES+= \
 	ici/crypto/NULL_SUITES/crypto.c\
 	ici/crypto/NULL_SUITES/csi.c

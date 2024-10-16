@@ -15,7 +15,7 @@
  */
 
 #define _POSIX_C_SOURCE 200112L //POSIX 2001 compliance check
-#include <secrypt.h>
+#include "secrypt.h"
 
 
 /******************************************************************************/
