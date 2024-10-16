@@ -1,0 +1,57 @@
+name: CI Test for bpv7 and tests directories
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
+#    paths:
+#      - 'bpv7/**'    # Trigger on changes to the 'bpv7' directory
+#      - 'tests/**'   # Trigger on changes to the 'tests' directory
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest  # Use Ubuntu. Or macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3  # Checkout the code from the repository
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool bash python3 gcc make  # Install dependencies
+
+      - name: Run build and tests, capture stdout
+        run: |
+          {
+            echo "Starting build and tests at $(date)"
+            autoreconf -fi
+            ./configure
+            make
+            make install
+            ldconfig
+            cd tests
+            ./runtests
+          } > build-and-test.log 2>&1  # Redirect all stdout and stderr to a log file
+
+      - name: Display log output
+        run: |
+          cat build-and-test.log
+
+      - name: Upload full build and test log
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-and-test-log
+          path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
+
+      - name: Capture test progress
+        working-directory: ./tests
+        run: |
+          cat progress     # Read the progress file to display test results
+
+      - name: Upload progress file as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-progress
+          path: ./tests/progress  # Upload the 'progress' file for later review
