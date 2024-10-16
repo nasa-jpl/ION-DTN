@@ -1,4 +1,4 @@
-name: Regression Tests for ION on MacOS
+name: Compiling Testing for ION on MacOS - no regression test
 
 on:
   workflow_dispatch:
@@ -28,12 +28,12 @@ jobs:
           {
             echo "Starting build and tests at $(date)"
             autoreconf -fi
-            ./configure
+            ./configure --disable-sysctl-check    # Cannot change kernel parameters; test build only
             make
             sudo make install
             sudo ldconfig
             cd tests
-            ./runtests bping  # Run the test
+            ./runtests bptrace_terminal_test  # Run the test
           } > build-and-test.log 2>&1
 
       - name: Display Progress
