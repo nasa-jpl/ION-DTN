@@ -1,0 +1,56 @@
+name: CI Test for bpv7 and tests directories
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest  # Use Ubuntu. Or macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3  # Checkout the code from the repository
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool bash python3 gcc make  # Install dependencies
+
+      - name: Generate timestamp for file names
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Run build and tests, capture stdout
+        run: | # For now run only test starting with "b", redirect stdout and stderr to a log
+          {
+            echo "Starting build and tests at $(date)"
+            autoreconf -fi
+            ./configure
+            make
+            sudo make install
+            sudo ldconfig
+            cd tests
+            ./runtests bping  # Run the test
+          } > build-and-test.log 2>&1
+
+      - name: Display Progress
+        if: ${{ always() }}  # Display progress even if tests were interrupted
+        run: | 
+          cat ./tests/progress
+
+      - name: Upload full build and test log
+        if: ${{ always() }}  # Capture log even if the previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-test-log-${{ env.TIMESTAMP }}
+          path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
+
+      - name: Upload progress file as artifact
+        if: ${{ always() }}  # Capture progress even if the previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-progress-${{ env.TIMESTAMP }}
+          path: ./tests/progress  # Upload the 'progress' file for later review
