@@ -32,8 +32,8 @@ jobs:
             make install
             ldconfig
             cd tests
-            ./runtests b*
-          } > build-and-test.log 2>&1
+            ./runtests bping
+          } 2>&1 | tee build-and-test.log
 
       - name: Display log output
         run: |
