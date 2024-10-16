@@ -1,4 +1,4 @@
-name: Compiling Testing for ION on MacOS - no regression test
+name: Compiling for ION on MacOS
 
 on:
   workflow_dispatch:
@@ -31,6 +31,7 @@ jobs:
             ./configure --disable-sysctl-check    # Cannot change kernel parameters; test build only
             make
             sudo make install
+            make test
             sudo ldconfig
             cd tests
             ./runtests bptrace_terminal_test  # Run the test
