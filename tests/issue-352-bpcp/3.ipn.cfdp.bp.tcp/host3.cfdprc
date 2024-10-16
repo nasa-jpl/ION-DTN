@@ -6,4 +6,5 @@
 m discard 1
 m requirecrc 1
 m segsize 1000
+w 1
 s 'bputa'
