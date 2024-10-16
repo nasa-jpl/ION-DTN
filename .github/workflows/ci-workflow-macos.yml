@@ -16,8 +16,8 @@ jobs:
 
       - name: Set up dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y autoconf automake libtool bash python3 gcc make  # Install dependencies
+          brew update
+          brew install autoconf automake libtool bash python3 gcc make
 
       - name: Generate timestamp for file names
         id: timestamp
