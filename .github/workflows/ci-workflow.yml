@@ -5,9 +5,6 @@ on:
   push:
     branches:
       - update-4.1.4-ci-workflow
-#    paths:
-#      - 'bpv7/**'    # Trigger on changes to the 'bpv7' directory
-#      - 'tests/**'   # Trigger on changes to the 'tests' directory
 
 jobs:
   build-and-test:
@@ -22,6 +19,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y autoconf automake libtool bash python3 gcc make  # Install dependencies
 
+      - name: Generate timestamp for file names
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
       - name: Run build and tests, capture stdout
         run: | # For now run only test starting with "b", redirect stdout and stderr to a log
           {
@@ -33,19 +34,23 @@ jobs:
             sudo ldconfig
             cd tests
             ./runtests bping  # Run the test
-            cat progress      # Display the 'progress' file
-          } 2>&1 | tee build-and-test.log
+          } > build-and-test.log 2>&1
+
+      - name: Display Progress
+        if: ${{ always() }}  # Display progress even if tests were interrupted
+        run: | 
+          cat progress
 
       - name: Upload full build and test log
         if: ${{ always() }}  # Capture log even if the previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: build-and-test-log
+          name: build-and-test-log-${{ env.TIMESTAMP }}
           path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
 
       - name: Upload progress file as artifact
         if: ${{ always() }}  # Capture progress even if the previous step fails
         uses: actions/upload-artifact@v4
         with:
-          name: test-progress
+          name: test-progress-${{ env.TIMESTAMP }}
           path: ./tests/progress  # Upload the 'progress' file for later review
