@@ -33,7 +33,7 @@ jobs:
             sudo make install
             sudo ldconfig
             cd tests
-            ./runtests bping  # Run the test
+            ./runtests bptrace_terminal_test  # Run the test
           } > build-and-test.log 2>&1
 
       - name: Display Progress
