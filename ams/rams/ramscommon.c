@@ -23,7 +23,7 @@ RamsGateway	*_gWay(RamsGateway *currentGateway)
 	{
 		if (gWay)
 		{
-			RELEASE_CONTENT_SPACE(gWay);
+			MRELEASE(gWay);
 			gWay = NULL;
 		}
 	}
@@ -31,7 +31,7 @@ RamsGateway	*_gWay(RamsGateway *currentGateway)
 	{
 		if (gWay == NULL)	/*	Create gateway.		*/
 		{
-			gWay = (RamsGateway *) TAKE_CONTENT_SPACE(sizeof(RamsGateway));
+			gWay = (RamsGateway *) MTAKE(sizeof(RamsGateway));
 			if (gWay)
 			{
 				memset((char *) gWay, 0, sizeof(RamsGateway));
@@ -255,11 +255,11 @@ Enclosure	*ConstructEnclosure(int continuumNbr, int unitNbr,
 
 	/*	Enclosure within a RAMS message is an AAMS message.	*/
 
-	enc = (Enclosure *) TAKE_CONTENT_SPACE(sizeof(Enclosure));
+	enc = (Enclosure *) MTAKE(sizeof(Enclosure));
 	CHKNULL(enc);
 	memset((char *) enc, 0, sizeof(Enclosure));
 	enc->length = contentLength + AMSMSGHEADER;
-	enc->text = (char *) TAKE_CONTENT_SPACE(enc->length);
+	enc->text = (char *) MTAKE(enc->length);
 	CHKNULL(enc->text);
 	header = enc->text;
 	u8 = msgType;
@@ -296,10 +296,10 @@ void	DeleteEnclosure(Enclosure *enc)
 	CHKVOID(enc);
 	if (enc->text)
 	{
-		RELEASE_CONTENT_SPACE((char *)(enc->text));
+		MRELEASE((char *)(enc->text));
 	}
 
-	RELEASE_CONTENT_SPACE(enc);
+	MRELEASE(enc);
 }
 
 Petition	*ConstructPetition(int domainContinuum, int domainRole,
@@ -308,7 +308,7 @@ Petition	*ConstructPetition(int domainContinuum, int domainRole,
 	int		amsMemory = getIonMemoryMgr();
 	Petition	*pet;
 
-	pet = TAKE_CONTENT_SPACE(sizeof(Petition));
+	pet = MTAKE(sizeof(Petition));
 	CHKNULL(pet);
 	memset((char *) pet, 0, sizeof(Petition));
 	pet->DistributionModuleSet = lyst_create_using(amsMemory);
@@ -317,9 +317,9 @@ Petition	*ConstructPetition(int domainContinuum, int domainRole,
 	CHKNULL(pet->DestinationNodeSet);
 	pet->SourceNodeSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->SourceNodeSet);
-	pet->specification = (PetitionSpec *) TAKE_CONTENT_SPACE(sizeof(PetitionSpec));
+	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
 	CHKNULL(pet->specification);
-	pet->specification->envelope = (char *) TAKE_CONTENT_SPACE(ENVELOPELENGTH);
+	pet->specification->envelope = (char *) MTAKE(ENVELOPELENGTH);
 	CHKNULL(pet->specification->envelope);
 	pet->specification->envelopeLength = ENVELOPELENGTH;
 	pet->specification->toContinuumNbr = domainContinuum;
@@ -335,7 +335,7 @@ Petition	*ConstructPetitionFromEnvelope(char* envelope)
 	Petition	*pet;
 
 	CHKNULL(envelope);
-	pet = TAKE_CONTENT_SPACE(sizeof(Petition));
+	pet = MTAKE(sizeof(Petition));
 	CHKNULL(pet);
 	memset((char *) pet, 0, sizeof(Petition));
 	pet->DistributionModuleSet = lyst_create_using(amsMemory);
@@ -344,7 +344,7 @@ Petition	*ConstructPetitionFromEnvelope(char* envelope)
 	CHKNULL(pet->DestinationNodeSet);
 	pet->SourceNodeSet = lyst_create_using(amsMemory);
 	CHKNULL(pet->SourceNodeSet);
-	pet->specification = (PetitionSpec *) TAKE_CONTENT_SPACE(sizeof(PetitionSpec));
+	pet->specification = (PetitionSpec *) MTAKE(sizeof(PetitionSpec));
 	CHKNULL(pet->specification);
 	pet->specification->envelope = NULL;
 	pet->specification->envelopeLength = 0;
@@ -356,7 +356,7 @@ Petition	*ConstructPetitionFromEnvelope(char* envelope)
 		pet->specification->toContinuumNbr = EnvelopeHeader(envelope,
 				Env_ContinuumNbr);
 		pet->specification->envelope = (char *)
-				TAKE_CONTENT_SPACE(pet->specification->envelopeLength);
+				MTAKE(pet->specification->envelopeLength);
 		CHKNULL(pet->specification->envelope);
 		memcpy(pet->specification->envelope, envelope,
 				pet->specification->envelopeLength);
@@ -895,13 +895,13 @@ void	DeletePetition(Petition *pet)
 	{
 		if (pet->specification->envelope)
 		{
-			RELEASE_CONTENT_SPACE(pet->specification->envelope);
+			MRELEASE(pet->specification->envelope);
 		}
 
-		RELEASE_CONTENT_SPACE(pet->specification);
+		MRELEASE(pet->specification);
 	}
 
-	RELEASE_CONTENT_SPACE(pet);
+	MRELEASE(pet);
 }
 
 int	MessageIsInvited(RamsGateway *gWay, char* msg)
@@ -1087,12 +1087,12 @@ static int	SendRPDUviaUdp(RamsGateway *gWay, RamsNode *ramsNode,
 		 *	know if it's reachable or not.  So let's send
 		 *	this RPDU again in another 10 seconds.		*/
 
-		rpdu = (UdpRpdu *) TAKE_CONTENT_SPACE(sizeof(UdpRpdu));
+		rpdu = (UdpRpdu *) MTAKE(sizeof(UdpRpdu));
 		CHKERR(rpdu);
 		rpdu->checkTime = time(NULL) + 10;
 		rpdu->neighbor = ramsNode;
 		rpdu->flowLabel = flowLabel;
-		rpdu->envelope = TAKE_CONTENT_SPACE(envelopeLength);
+		rpdu->envelope = MTAKE(envelopeLength);
 		CHKERR(rpdu->envelope);
 		memcpy(rpdu->envelope, envelope, envelopeLength);
 		rpdu->envelopeLength = envelopeLength;
@@ -1210,7 +1210,7 @@ int	SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
 	if (enclosure)
 	{
 		encLength = enclosure->length;
-		envelope = (char *) TAKE_CONTENT_SPACE(ENVELOPELENGTH + encLength);
+		envelope = (char *) MTAKE(ENVELOPELENGTH + encLength);
 		CHKERR(envelope);
 		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
 				unitNbr, sourceID, destID, subjectNbr,
@@ -1220,7 +1220,7 @@ int	SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
 	else 
 	{
 		encLength = 0;
-		envelope = (char *) TAKE_CONTENT_SPACE(ENVELOPELENGTH);
+		envelope = (char *) MTAKE(ENVELOPELENGTH);
 		CHKERR(envelope);
 		ConstructEnvelope((unsigned char *) envelope, continuumNbr,
 				unitNbr, sourceID, destID, subjectNbr, 0, NULL,
@@ -1229,7 +1229,7 @@ int	SendNewRPDU(RamsGateway *gWay, int destContinuumNbr,
 
 	result = SendRPDU(gWay, destContinuumNbr, flowLabel, envelope,
 			ENVELOPELENGTH + encLength);
-	RELEASE_CONTENT_SPACE(envelope);
+	MRELEASE(envelope);
 	if (result < 0)
 	{
 		ErrMsg("Failed sending newly constructed RPDU.");

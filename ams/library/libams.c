@@ -214,7 +214,7 @@ static int	enqueueAmsCrash(AmsSAP *sap, char *text)
 		textLength = strlen(text);
 	}
 
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(1 + textLength + 1);
+	evt = (AmsEvt *) MTAKE(1 + textLength + 1);
 	CHKERR(evt);
 	evt->type = CRASH_EVT;
 	memcpy(evt->value, text, textLength);
@@ -222,7 +222,7 @@ static int	enqueueAmsCrash(AmsSAP *sap, char *text)
 	if (enqueueAmsEvent(sap, evt, NULL, 0, 0, AmsMsgNone) < 0)
 	{
 		putErrmsg("Can't enqueue AMS crash event.", NULL);
-		RELEASE_CONTENT_SPACE(evt);
+		MRELEASE(evt);
 		return -1;
 	}
 
@@ -233,13 +233,13 @@ static int	enqueueAmsStubEvent(AmsSAP *sap, int eventType, int priority)
 {
 	AmsEvt	*evt;
 
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(sizeof(AmsEvt));
+	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
 	CHKERR(evt);
 	evt->type = eventType;
 	if (enqueueAmsEvent(sap, evt, NULL, 0, priority, AmsMsgNone) < 0)
 	{
 		putErrmsg("Can't enqueue AMS stub event.", NULL);
-		RELEASE_CONTENT_SPACE(evt);
+		MRELEASE(evt);
 		return -1;
 	}
 
@@ -298,7 +298,7 @@ static void	eraseSAP(AmsSAP *sap)
 		pthread_join(sap->mamsTsif.receiver, NULL);
 		if (sap->mamsTsif.ept)
 		{
-			RELEASE_CONTENT_SPACE(sap->mamsTsif.ept);
+			MRELEASE(sap->mamsTsif.ept);
 		}
 	}
 
@@ -313,7 +313,7 @@ static void	eraseSAP(AmsSAP *sap)
 			pthread_join(tsif->receiver, NULL);
 			if (tsif->ept)
 			{
-				RELEASE_CONTENT_SPACE(tsif->ept);
+				MRELEASE(tsif->ept);
 			}
 		}
 	}
@@ -347,7 +347,7 @@ static void	eraseSAP(AmsSAP *sap)
 		lyst_destroy(sap->invitations);
 	}
 
-	RELEASE_CONTENT_SPACE(sap);
+	MRELEASE(sap);
 }
 
 static void	destroyAmsEvent(LystElt elt, void *userdata)
@@ -370,11 +370,11 @@ static void	destroyAmsEvent(LystElt elt, void *userdata)
 		mamsMsg = (MamsMsg *) (event->value);
 		if (mamsMsg->supplement)
 		{
-			RELEASE_CONTENT_SPACE(mamsMsg->supplement);
+			MRELEASE(mamsMsg->supplement);
 		}
 	}
 
-	RELEASE_CONTENT_SPACE(event);
+	MRELEASE(event);
 }
 
 static void	destroyDeliveryVector(LystElt elt, void *userdata)
@@ -382,21 +382,21 @@ static void	destroyDeliveryVector(LystElt elt, void *userdata)
 	DeliveryVector	*vector = (DeliveryVector *) lyst_data(elt);
 
 	lyst_destroy(vector->interfaces);
-	RELEASE_CONTENT_SPACE(vector);
+	MRELEASE(vector);
 }
 
 static void	destroyMsgRule(LystElt elt, void *userdata)
 {
 	MsgRule	*rule = (MsgRule *) lyst_data(elt);
 
-	RELEASE_CONTENT_SPACE(rule);
+	MRELEASE(rule);
 }
 
 void	destroyXmitRule(LystElt elt, void *userdata)
 {
 	XmitRule	*rule = (XmitRule *) lyst_data(elt);
 
-	RELEASE_CONTENT_SPACE(rule);
+	MRELEASE(rule);
 }
 
 static int	getMsgSender(AmsSAP *sap, AmsMsg *msg, unsigned char *header,
@@ -658,17 +658,18 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 	{
 		putErrmsg("Can't unmarshal AAMS msg content.", subject->name);
 		
-        RELEASE_CONTENT_SPACE(msg->content);
-        msg->content = NULL;
-        RELEASE_CONTENT_SPACE (newContent);
-        newContent = NULL;
+		RELEASE_CONTENT_SPACE(msg->content);
+		msg->content = NULL;
+
+		RELEASE_CONTENT_SPACE (newContent); 
+		newContent = NULL;
 
 		return -1;
 	}
 
-    RELEASE_CONTENT_SPACE(msg->content);
-    msg->content = newContent;
-    msg->contentLength = newContentLength;
+	RELEASE_CONTENT_SPACE(msg->content);
+	msg->content = newContent;
+	msg->contentLength = newContentLength;
 
 	return 0;
 }
@@ -912,7 +913,7 @@ unsolicited message.", subject->name);
 
 	/*	Create and enqueue event, signal application thread.	*/
 
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(1 + sizeof(AmsMsg));
+	evt = (AmsEvt *) MTAKE(1 + sizeof(AmsMsg));
 	CHKERR(evt);
 	evt->type = AMS_MSG_EVT;
 	memcpy(evt->value, (char *) &msg, sizeof(AmsMsg));
@@ -1021,9 +1022,8 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	}
 	else
 	{
-        newContentLength = *contentLength;
-        newContent = TAKE_CONTENT_SPACE(*contentLength);
-
+		newContentLength = *contentLength;
+		newContent = MTAKE(*contentLength);
 		if (newContent == NULL)
 		{
 			putErrmsg("Can't copy AAMS msg content.",
@@ -1034,14 +1034,18 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		memcpy(newContent, *content, *contentLength);
 	}
 
+
+
 	/*	Encrypt content as necessary.				*/
+
 	if (sap->role->nbr == 1			/*	RAMS		*/
 		/*	If message needs encryption, it's already done.	*/
 	|| subject->symmetricKeyName == NULL)	/*	no encryption	*/
 	{
-        RELEASE_CONTENT_SPACE(content);
-        *content = newContent;
-        *contentLength = newContentLength;
+
+    MRELEASE(content);
+	*content = newContent;
+	*contentLength = newContentLength;
 
 		*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
 		*(header + 15) = (*contentLength) & 0x000000ff;
@@ -1055,10 +1059,12 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		putErrmsg("Can't fetch symmetric key.",
 				subject->symmetricKeyName);
 		
-        RELEASE_CONTENT_SPACE(*content);
-        *content = NULL;
-        RELEASE_CONTENT_SPACE(newContent);
-        newContent = NULL;
+		//memory cleanup
+		MRELEASE(*content);
+		*content = NULL;
+
+		MRELEASE(newContent);
+		newContent = NULL;
 
 		return -1;
 	}
@@ -1069,15 +1075,16 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	{
 		putErrmsg("Can't encrypt AAMS msg content.", subject->name);
 		
-		RELEASE_CONTENT_SPACE(*content);
+		MRELEASE(*content);
 		*content = NULL;
-		RELEASE_CONTENT_SPACE(newContent);
+
+		MRELEASE(newContent);
 		newContent = NULL;
 
 		return -1;
 	}
-    RELEASE_CONTENT_SPACE(*content);
-    *content = newContent;
+	MRELEASE(*content);
+	*content = newContent;
 
 	*contentLength = newContentLength;
 	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
@@ -1097,14 +1104,14 @@ static int	enqueueMsgToRegistrar(AmsSAP *sap, MamsPduType pduType,
 	msg.memo = memo;
 	msg.supplementLength = supplementLength;
 	msg.supplement = supplement;
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(1 + sizeof(MamsMsg));
+	evt = (AmsEvt *) MTAKE(1 + sizeof(MamsMsg));
 	CHKERR(evt);
 	memcpy(evt->value, (char *) &msg, sizeof msg);
 	evt->type = MSG_TO_SEND_EVT;
 	if (enqueueMamsEvent(sap->mamsEventsCV, evt, NULL, 0))
 	{
 		putErrmsg("Can't enqueue message to registrar.", NULL);
-		RELEASE_CONTENT_SPACE(evt);
+		MRELEASE(evt);
 		return -1;
 	}
 
@@ -1291,7 +1298,7 @@ static void	sendModuleStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 		return;
 	}
 
-	supplement = TAKE_CONTENT_SPACE(supplementLength);
+	supplement = MTAKE(supplementLength);
 	CHKVOID(supplement);
 	memcpy(supplement, (char *) &moduleStatesCount, 4);
 	supplement[4] = (sap->unit->nbr >> 8) & 0xff;
@@ -1314,7 +1321,7 @@ static void	sendModuleStatus(AmsSAP *sap, MamsEndpoint *maap, int pduType)
 
 	result = sendMamsMsg(maap, &(sap->mamsTsif), pduType, memo,
 			supplementLength, supplement);
-	RELEASE_CONTENT_SPACE(supplement);
+	MRELEASE(supplement);
        	if (result < 0)
 	{
 		putErrmsg("Failed sending module status.", NULL);
@@ -1326,11 +1333,11 @@ static void	eraseAmsEndpoint(AmsEndpoint *ep)
 	if (ep == NULL) return;
 	if (ep->ept)
 	{
-		RELEASE_CONTENT_SPACE(ep->ept);
+		MRELEASE(ep->ept);
 	}
 
 	ep->ts->clearAmsEndpointFn(ep);
-	RELEASE_CONTENT_SPACE(ep);
+	MRELEASE(ep);
 }
 
 void	destroyAmsEndpoint(LystElt elt, void *userdata)
@@ -1536,14 +1543,14 @@ static int	enqueueNotice(AmsSAP *sap, AmsStateType stateType,
 	notice.flowLabel = flowLabel;
 	notice.sequence = sequence;
 	notice.diligence = diligence;
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(1 + sizeof(AmsNotice));
+	evt = (AmsEvt *) MTAKE(1 + sizeof(AmsNotice));
 	CHKERR(evt);
 	memcpy(evt->value, (char *) &notice, sizeof notice);
 	evt->type = NOTICE_EVT;
 	if (enqueueAmsEvent(sap, evt, NULL, 0, 2, AmsMsgNone) < 0)
 	{
 		putErrmsg("Can't enqueue notice.", NULL);
-		RELEASE_CONTENT_SPACE(evt);
+		MRELEASE(evt);
 		return -1;
 	}
 
@@ -1590,7 +1597,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 	elt = findSubjOfInterest(sap, module, subject, &nextSubj);
 	if (elt == NULL)	/*	New subject for this module.	*/
 	{
-		subj = (SubjOfInterest *) TAKE_CONTENT_SPACE(sizeof(SubjOfInterest));
+		subj = (SubjOfInterest *) MTAKE(sizeof(SubjOfInterest));
 		CHKERR(subj);
 		subj->subject = subject;
 		subj->subscriptions = lyst_create_using(amsMemory);
@@ -1621,7 +1628,7 @@ static int	noteAssertion(AmsSAP *sap, Module *module, Subject *subject,
 			return -1;
 		}
 
-		fan = (FanModule *) TAKE_CONTENT_SPACE(sizeof(FanModule));
+		fan = (FanModule *) MTAKE(sizeof(FanModule));
 		CHKERR(fan);
 		fan->module = module;
 		fan->subj = subj;
@@ -1680,7 +1687,7 @@ ruleType, (unsigned long) subj, subj->subject->nbr, (unsigned long) rules);
 	/*	Need to insert a new transmission rule.  First, create
 	 *	the rule (per subscription or invitation).		*/
 
-	rule = (XmitRule *) TAKE_CONTENT_SPACE(sizeof(XmitRule));
+	rule = (XmitRule *) MTAKE(sizeof(XmitRule));
 	CHKERR(rule);
 	memset((char *) rule, 0, sizeof(XmitRule));
 
@@ -2154,9 +2161,9 @@ static int	insertAmsEndpoint(Module *module, int vectorNbr, TransSvc *ts,
 	AmsEndpoint	*ep2;
 	LystElt		nextElt;
 
-	ep = (AmsEndpoint *) TAKE_CONTENT_SPACE(sizeof(AmsEndpoint));
+	ep = (AmsEndpoint *) MTAKE(sizeof(AmsEndpoint));
 	CHKERR(ep);
-	ep->ept = TAKE_CONTENT_SPACE(eptLength + 1);
+	ep->ept = MTAKE(eptLength + 1);
 	CHKERR(ep->ept);
 	memcpy(ep->ept, ept, eptLength);
 	ep->ept[eptLength] = '\0';
@@ -2171,8 +2178,8 @@ static int	insertAmsEndpoint(Module *module, int vectorNbr, TransSvc *ts,
 	if ((ts->parseAmsEndpointFn)(ep))
 	{
 		writeMemoNote("[?] Can't parse endpoint name", ept);
-		RELEASE_CONTENT_SPACE(ep->ept);
-		RELEASE_CONTENT_SPACE(ep);
+		MRELEASE(ep->ept);
+		MRELEASE(ep);
 		return -1;
 	}
 
@@ -3115,7 +3122,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 		+ declarationLength	/*	Own declaration.	*/
 		+ 1			/*	Length of modules array.*/
 		+ moduleCount;		/*	Array of modules.	*/
-	supplement = TAKE_CONTENT_SPACE(supplementLength);
+	supplement = MTAKE(supplementLength);
 	CHKERR(supplement);
 	cursor = supplement;
 	*cursor = (sap->unit->nbr >> 8) & 0xff;
@@ -3145,7 +3152,7 @@ static int	reconnectToRegistrar(AmsSAP *sap)
 			queryNbr, supplementLength, supplement);
 
 
-	RELEASE_CONTENT_SPACE(supplement);
+	MRELEASE(supplement);
 	if (result < 0)
 	{
 		putErrmsg("Failed sending reconnect msg.", NULL);
@@ -3314,7 +3321,7 @@ static int	sendMsgToRegistrar(AmsSAP *sap, AmsEvt *evt)
 
 	if (msg->supplement)
 	{
-		RELEASE_CONTENT_SPACE(msg->supplement);
+		MRELEASE(msg->supplement);
 	}
 
 	return result;
@@ -3409,7 +3416,7 @@ static int	getModuleNbr(AmsSAP *sap)
 		return -1;
 	}
 
-	supplement = TAKE_CONTENT_SPACE(supplementLength);
+	supplement = MTAKE(supplementLength);
 	CHKERR(supplement);
 
 	loadContactSummary(sap, supplement, supplementLength);
@@ -3419,7 +3426,7 @@ static int	getModuleNbr(AmsSAP *sap)
 
 	result = sendMamsMsg(sap->rsEndpoint, &(sap->mamsTsif),
 		module_registration, queryNbr, supplementLength, supplement);
-	RELEASE_CONTENT_SPACE(supplement);
+	MRELEASE(supplement);
        	if (result < 0)
 	{
 		putErrmsg("Failed sending module_registration.", NULL);
@@ -3792,7 +3799,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 
 	/*	Start building SAP structure.				*/
 
-	sap = (AmsSAP *) TAKE_CONTENT_SPACE(sizeof(AmsSAP));
+	sap = (AmsSAP *) MTAKE(sizeof(AmsSAP));
 	CHKERR(sap);
 	*module = sap;
 	memset((char *) sap, 0, sizeof(AmsSAP));
@@ -4013,7 +4020,7 @@ static int	ams_register2(char *applicationName, char *authorityName,
 		if (elt == NULL)	/*	New service mode.	*/
 		{
 			vector = (DeliveryVector *)
-					TAKE_CONTENT_SPACE(sizeof(DeliveryVector));
+					MTAKE(sizeof(DeliveryVector));
 			CHKERR(vector);
 			vector->nbr = lyst_length(sap->delivVectors) + 1;
 			if (vector->nbr > 15)
@@ -4577,7 +4584,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 			recipients) < 0)
 	{
 		lyst_destroy(recipients);
-		RELEASE_CONTENT_SPACE(content);
+		MRELEASE(content);
 		return -1;
 	}
 
@@ -4590,7 +4597,7 @@ static int	ams_publish2(AmsSAP *sap, int subjectNbr, int priority,
 			protectedBits, amsHeader, headerLength, content,
 			contentLength, recipients);
 	lyst_destroy(recipients);
-	RELEASE_CONTENT_SPACE(content);
+	MRELEASE(content);
 	return result;
 }
 
@@ -4734,7 +4741,7 @@ static int	addMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 
 	/*	Must insert new message rule structure.			*/
 
-	rule = (MsgRule *) TAKE_CONTENT_SPACE(sizeof(MsgRule));
+	rule = (MsgRule *) MTAKE(sizeof(MsgRule));
 	CHKERR(rule);
 	rule->subject = subject;
 	rule->roleNbr = roleNbr;
@@ -4755,7 +4762,7 @@ static int	addMsgRule(AmsSAP *sap, int ruleType, Subject *subject,
 	if (elt == NULL)
 	{
 		putErrmsg("Can't add rule.", subject->name);
-		RELEASE_CONTENT_SPACE(rule);
+		MRELEASE(rule);
 		return -1;
 	}
 
@@ -4826,7 +4833,7 @@ limited to local continuum", itoa(continuumNbr));
 		return 0;
 	}
 
-	assertion = TAKE_CONTENT_SPACE(INVITE_LEN);
+	assertion = MTAKE(INVITE_LEN);
 	CHKERR(assertion);
 	cursor = assertion;
 	loadAssertion(&cursor, INVITATION, roleNbr, continuumNbr,
@@ -4903,7 +4910,7 @@ static int	ams_disinvite2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		return 0;		/*	Redundant but okay.	*/
 	}
 
-	cancellation = TAKE_CONTENT_SPACE(CANCEL_LEN);
+	cancellation = MTAKE(CANCEL_LEN);
 	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
@@ -5038,7 +5045,7 @@ limited to local continuum", itoa(continuumNbr));
 		return 0;
 	}
 
-	assertion = TAKE_CONTENT_SPACE(SUBSCRIBE_LEN);
+	assertion = MTAKE(SUBSCRIBE_LEN);
 	CHKERR(assertion);
 	cursor = assertion;
 	loadAssertion(&cursor, SUBSCRIPTION, roleNbr, continuumNbr,
@@ -5095,7 +5102,7 @@ static int	ams_unsubscribe2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		return 0;		/*	Redundant but okay.	*/
 	}
 
-	cancellation = TAKE_CONTENT_SPACE(CANCEL_LEN);
+	cancellation = MTAKE(CANCEL_LEN);
 	CHKERR(cancellation);
 	i2 = subjectNbr;
 	i2 = htons(i2);
@@ -5146,7 +5153,7 @@ static int	publishInEnvelope(AmsSAP *sap, int continuumNbr, int unitNbr,
 	unsigned char	*envelope;
 	int		result;
 
-	envelope = TAKE_CONTENT_SPACE(envelopeLength);
+	envelope = MTAKE(envelopeLength);
 	CHKERR(envelope);
 	if (continuumNbr == (_mib(NULL))->localContinuumNbr)
 	{
@@ -5158,7 +5165,7 @@ static int	publishInEnvelope(AmsSAP *sap, int continuumNbr, int unitNbr,
 			contentLength, content, controlCode);
 	result = ams_publish2(sap, subject, 1, 0, envelopeLength,
 			(char *) envelope, 0);
-	RELEASE_CONTENT_SPACE(envelope);
+	MRELEASE(envelope);
 	return result;
 }
 
@@ -5227,7 +5234,7 @@ static int	sendMsg(AmsSAP *sap, int continuumNbr, int unitNbr,
 		result = publishInEnvelope(sap, continuumNbr, unitNbr,
 			sap->role->nbr, moduleNbr, subjectNbr, amsHeader,
 			headerLength, content, contentLength, 5);
-		RELEASE_CONTENT_SPACE(content);
+		MRELEASE(content);
 		return result;
 	}
 
@@ -5348,7 +5355,7 @@ fflush(stdout);
 #endif
 	result = rule->amsEndpoint->ts->sendAmsFn(rule->amsEndpoint, sap,
 		flowLabel, amsHeader, headerLength, content, contentLength);
-	RELEASE_CONTENT_SPACE(content);
+	MRELEASE(content);
 	return result;
 }
 
@@ -5384,7 +5391,7 @@ static int	deliverTimeout(AmsEvent *event)
 {
 	AmsEvt	*evt;
 
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(sizeof(AmsEvt));
+	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
 	CHKERR(evt);
 	evt->type = TIMEOUT_EVT;
 	*event = evt;
@@ -5884,7 +5891,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			amsHeader, headerLength, content, contentLength, 6);
 		if (result < 0)
 		{
-			RELEASE_CONTENT_SPACE(content);
+			MRELEASE(content);
 			return result;
 		}
 	}
@@ -5895,7 +5902,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 			result = publishInEnvelope(sap, continuumNbr, unitNbr,
 				sap->role->nbr, roleNbr, subjectNbr, amsHeader,
 				headerLength, content, contentLength, 6);
-			RELEASE_CONTENT_SPACE(content);
+			MRELEASE(content);
 			return result;
 		}
 	}
@@ -5964,7 +5971,7 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		if (result < 0)
 		{
 			lyst_destroy(recipients);
-			RELEASE_CONTENT_SPACE(content);
+			MRELEASE(content);
 			return result;
 		}
 
@@ -6033,13 +6040,13 @@ static int	ams_announce2(AmsSAP *sap, int roleNbr, int continuumNbr,
 		if (result < 0)
 		{
 			lyst_destroy(recipients);
-			RELEASE_CONTENT_SPACE(content);
+			MRELEASE(content);
 			return result;
 		}
 	}
 
 	lyst_destroy(recipients);
-	RELEASE_CONTENT_SPACE(content);
+	MRELEASE(content);
 	return 0;
 }
 
@@ -6070,7 +6077,7 @@ static int	ams_post_user_event2(AmsSAP *sap, int code, int dataLength,
 	CHKERR(dataLength == 0 || (dataLength > 0 && data != NULL));
 	CHKERR(priority >= 0);
 	CHKERR(priority < NBR_OF_PRIORITY_LEVELS);
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(1 + (2 * sizeof(int)) + dataLength);
+	evt = (AmsEvt *) MTAKE(1 + (2 * sizeof(int)) + dataLength);
 	CHKERR(evt);
 	evt->type = USER_DEFINED_EVT;
 	cursor = evt->value;
@@ -6476,7 +6483,7 @@ int	ams_recycle_event(AmsEvent event)
 		}
 	}
 
-	RELEASE_CONTENT_SPACE(event);
+	MRELEASE(event);
 	return 0;
 }
 

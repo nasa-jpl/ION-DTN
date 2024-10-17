@@ -85,7 +85,7 @@ printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 printf("resulting ept is '%s'.\n", endpointNameText);
 #endif
 	eptLen = strlen(endpointNameText) + 1;
-	tsif->ept = TAKE_CONTENT_SPACE(eptLen);
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
@@ -112,7 +112,7 @@ static void	*dgrMamsReceiver(void *parm)
 	CHKNULL(tsif);
 	dgrSap = (Dgr) (tsif->sap);
 	CHKNULL(dgrSap);
-	buffer = TAKE_CONTENT_SPACE(DGRTS_MAX_MSG_LEN);
+	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
 #ifndef mingw
 	sigset_t	signals;
@@ -128,7 +128,7 @@ static void	*dgrMamsReceiver(void *parm)
 		{
 		case DgrFailed:
 			dgr_close(dgrSap);
-			RELEASE_CONTENT_SPACE(buffer);
+			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;
 
@@ -194,7 +194,7 @@ static int	dgrAmsInit(AmsInterface *tsif, char *epspec)
 	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 	eptLen = strlen(endpointNameText) + 1;
-	tsif->ept = TAKE_CONTENT_SPACE(eptLen);
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
@@ -224,7 +224,7 @@ static void	*dgrAmsReceiver(void *parm)
 	CHKNULL(dgrSap);
 	amsSap = tsif->amsSap;
 	CHKNULL(amsSap);
-	buffer = TAKE_CONTENT_SPACE(DGRTS_MAX_MSG_LEN);
+	buffer = MTAKE(DGRTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
 #ifndef mingw
 	sigset_t	signals;
@@ -240,7 +240,7 @@ static void	*dgrAmsReceiver(void *parm)
 		{
 		case DgrFailed:
 			dgr_close(dgrSap);
-			RELEASE_CONTENT_SPACE(buffer);
+			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;
 
@@ -278,7 +278,7 @@ static int	dgrParseMamsEndpoint(MamsEndpoint *ep)
 		return -1;
 	}
 
-	ep->tsep = TAKE_CONTENT_SPACE(sizeof(DgrTsep));
+	ep->tsep = MTAKE(sizeof(DgrTsep));
 	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(DgrTsep));
 #if AMSDEBUG
@@ -292,7 +292,7 @@ static void	dgrClearMamsEndpoint(MamsEndpoint *ep)
 {
 	if (ep->tsep)
 	{
-		RELEASE_CONTENT_SPACE(ep->tsep);
+		MRELEASE(ep->tsep);
 	}
 }
 
@@ -308,7 +308,7 @@ static int	dgrParseAmsEndpoint(AmsEndpoint *dp)
 		return -1;
 	}
 
-	dp->tsep = TAKE_CONTENT_SPACE(sizeof(DgrTsep));
+	dp->tsep = MTAKE(sizeof(DgrTsep));
 	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(DgrTsep));
 
@@ -324,7 +324,7 @@ static void	dgrClearAmsEndpoint(AmsEndpoint *dp)
 	CHKVOID(dp);
 	if (dp->tsep)
 	{
-		RELEASE_CONTENT_SPACE(dp->tsep);
+		MRELEASE(dp->tsep);
 	}
 }
 
@@ -410,7 +410,7 @@ printf("in dgrSendAms, tsep is %lu.\n", (unsigned long) tsep);
 	}
 
 	dgrSap = (Dgr) (tsif->sap);
-	dgrAmsBuf = TAKE_CONTENT_SPACE(headerLen + contentLen + 2);
+	dgrAmsBuf = MTAKE(headerLen + contentLen + 2);
 	CHKERR(dgrAmsBuf);
 	memcpy(dgrAmsBuf, header, headerLen);
 	if (contentLen > 0)
@@ -424,7 +424,7 @@ printf("in dgrSendAms, tsep is %lu.\n", (unsigned long) tsep);
 	memcpy(dgrAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
 	result = dgr_send(dgrSap, tsep->portNbr, tsep->ipAddress, 0, dgrAmsBuf,
 			len, &rc);
-	RELEASE_CONTENT_SPACE(dgrAmsBuf);
+	MRELEASE(dgrAmsBuf);
        	if (result < 0)
 	{
 #if AMSDEBUG

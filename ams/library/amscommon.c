@@ -39,15 +39,15 @@ static void	eraseContinuum(Continuum *contin)
 
 	if (contin->name)
 	{
-		RELEASE_CONTENT_SPACE(contin->name);
+		MRELEASE(contin->name);
 	}
 
 	if (contin->description)
 	{
-		RELEASE_CONTENT_SPACE(contin->description);
+		MRELEASE(contin->description);
 	}
 
-	RELEASE_CONTENT_SPACE(contin);
+	MRELEASE(contin);
 }
 
 void	eraseSubject(Venture *venture, Subject *subj)
@@ -64,17 +64,17 @@ void	eraseSubject(Venture *venture, Subject *subj)
 
 	if (subj->name)
 	{
-		RELEASE_CONTENT_SPACE(subj->name);
+		MRELEASE(subj->name);
 	}
 
 	if (subj->description)
 	{
-		RELEASE_CONTENT_SPACE(subj->description);
+		MRELEASE(subj->description);
 	}
 
 	if (subj->symmetricKeyName)
 	{
-		RELEASE_CONTENT_SPACE(subj->symmetricKeyName);
+		MRELEASE(subj->symmetricKeyName);
 	}
 
 	if (subj->authorizedSenders)
@@ -93,7 +93,7 @@ void	eraseSubject(Venture *venture, Subject *subj)
 	}
 
 	venture->subjects[subj->nbr] = NULL;
-	RELEASE_CONTENT_SPACE(subj);
+	MRELEASE(subj);
 }
 
 void	eraseRole(Venture *venture, AppRole *role)
@@ -105,21 +105,21 @@ void	eraseRole(Venture *venture, AppRole *role)
 
 	if (role->name)
 	{
-		RELEASE_CONTENT_SPACE(role->name);
+		MRELEASE(role->name);
 	}
 
 	if (role->publicKeyName)
 	{
-		RELEASE_CONTENT_SPACE(role->publicKeyName);
+		MRELEASE(role->publicKeyName);
 	}
 
 	if (role->privateKeyName)
 	{
-		RELEASE_CONTENT_SPACE(role->privateKeyName);
+		MRELEASE(role->privateKeyName);
 	}
 
 	venture->roles[role->nbr] = NULL;
-	RELEASE_CONTENT_SPACE(role);
+	MRELEASE(role);
 }
 
 void	eraseMsgspace(Venture *venture, Subject *msgspace)
@@ -131,12 +131,12 @@ void	eraseMsgspace(Venture *venture, Subject *msgspace)
 
 	if (msgspace->gwEid)
 	{
-		RELEASE_CONTENT_SPACE(msgspace->gwEid);
+		MRELEASE(msgspace->gwEid);
 	}
 
 	if (msgspace->symmetricKeyName)
 	{
-		RELEASE_CONTENT_SPACE(msgspace->symmetricKeyName);
+		MRELEASE(msgspace->symmetricKeyName);
 	}
 
 	if (msgspace->authorizedSenders)
@@ -154,7 +154,7 @@ void	eraseMsgspace(Venture *venture, Subject *msgspace)
 		lyst_destroy(msgspace->modules);
 	}
 
-	RELEASE_CONTENT_SPACE(msgspace);
+	MRELEASE(msgspace);
 }
 
 static void	eraseModule(Module *module)
@@ -186,7 +186,7 @@ static void	eraseModule(Module *module)
 
 	clearMamsEndpoint(&module->mamsEndpoint);
 	module->role = NULL;
-	RELEASE_CONTENT_SPACE(module);
+	MRELEASE(module);
 }
 
 void	eraseUnit(Venture *venture, Unit *unit)
@@ -205,7 +205,7 @@ void	eraseUnit(Venture *venture, Unit *unit)
 
 	if (unit->name)
 	{
-		RELEASE_CONTENT_SPACE(unit->name);
+		MRELEASE(unit->name);
 	}
 
 	/*	Erase all local cell data.			*/
@@ -256,7 +256,7 @@ void	eraseUnit(Venture *venture, Unit *unit)
 	/*	Erase the unit object itself.				*/
 
 	venture->units[unit->nbr] = NULL;
-	RELEASE_CONTENT_SPACE(unit);
+	MRELEASE(unit);
 }
 
 void	eraseVenture(Venture *venture)
@@ -271,7 +271,7 @@ void	eraseVenture(Venture *venture)
 	lockMib();
 	if (venture->authorityName)
 	{
-		RELEASE_CONTENT_SPACE(venture->authorityName);
+		MRELEASE(venture->authorityName);
 	}
 
 	for (i = 0; i <= MAX_UNIT_NBR; i++)
@@ -317,7 +317,7 @@ void	eraseVenture(Venture *venture)
 	}
 
 	(_mib(NULL))->ventures[venture->nbr] = NULL;
-	RELEASE_CONTENT_SPACE(venture);
+	MRELEASE(venture);
 	unlockMib();
 }
 
@@ -331,12 +331,12 @@ static void	eraseMib(AmsMib *mib)
 
 	if (mib->csPublicKeyName)
 	{
-		RELEASE_CONTENT_SPACE(mib->csPublicKeyName);
+		MRELEASE(mib->csPublicKeyName);
 	}
 
 	if (mib->csPrivateKeyName)
 	{
-		RELEASE_CONTENT_SPACE(mib->csPrivateKeyName);
+		MRELEASE(mib->csPrivateKeyName);
 	}
 
 	if (mib->amsEndpointSpecs)
@@ -368,12 +368,12 @@ static void	eraseMib(AmsMib *mib)
 		}
 	}
 
-	RELEASE_CONTENT_SPACE(mib);
+	MRELEASE(mib);
 }
 
 static void	eraseAmsEpspec(AmsEpspec *amses)
 {
-	RELEASE_CONTENT_SPACE(amses);
+	MRELEASE(amses);
 }
 
 /* required for lyst initialization (continuum_lyst) */
@@ -391,7 +391,7 @@ static void destroyMsgSpace(LystElt elt, void *userdata)
 	/*  msgspace is of type: Subject, so we cast the element 
 		to Subject pointer here */
 	Subject *my_msgspace = (Subject *) lyst_data(elt);
-	RELEASE_CONTENT_SPACE(my_msgspace);	
+	MRELEASE(my_msgspace);	
 }
 
 static void	destroyAmsEpspec(LystElt elt, void *userdata)
@@ -410,20 +410,20 @@ void	eraseApp(AmsApp *app)
 
 	if (app->name)
 	{
-		RELEASE_CONTENT_SPACE(app->name);
+		MRELEASE(app->name);
 	}
 
 	if (app->publicKeyName)
 	{
-		RELEASE_CONTENT_SPACE(app->publicKeyName);
+		MRELEASE(app->publicKeyName);
 	}
 
 	if (app->privateKeyName)
 	{
-		RELEASE_CONTENT_SPACE(app->privateKeyName);
+		MRELEASE(app->privateKeyName);
 	}
 
-	RELEASE_CONTENT_SPACE(app);
+	MRELEASE(app);
 }
 
 static void	destroyApplication(LystElt elt, void *userdata)
@@ -436,7 +436,7 @@ static void	destroyApplication(LystElt elt, void *userdata)
 static void	eraseCsEndpoint(MamsEndpoint *ep)
 {
 	clearMamsEndpoint(ep);
-	RELEASE_CONTENT_SPACE(ep);
+	MRELEASE(ep);
 }
 
 static void	destroyCsEndpoint(LystElt elt, void *userdata)
@@ -551,7 +551,7 @@ static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
 	if (pubkeyname)
 	{
 		length = strlen(pubkeyname) + 1;
-		mib->csPublicKeyName = TAKE_CONTENT_SPACE(length);
+		mib->csPublicKeyName = MTAKE(length);
 		CHKERR(mib->csPublicKeyName);
 		memcpy(mib->csPublicKeyName, pubkeyname, length);
 	}
@@ -559,7 +559,7 @@ static int	initializeMib(AmsMib *mib, int continuumNbr, char *ptsName,
 	if (privkeyname)
 	{
 		length = strlen(privkeyname) + 1;
-		mib->csPrivateKeyName = TAKE_CONTENT_SPACE(length);
+		mib->csPrivateKeyName = MTAKE(length);
 		CHKERR(mib->csPrivateKeyName);
 		memcpy(mib->csPrivateKeyName, privkeyname, length);
 	}
@@ -677,7 +677,7 @@ AmsMib	*_mib(AmsMibParameters *parms)
 					return mib;
 				}
 
-				mib = (AmsMib *) TAKE_CONTENT_SPACE(sizeof(AmsMib));
+				mib = (AmsMib *) MTAKE(sizeof(AmsMib));
 				if (mib == NULL)
 				{
 					putErrmsg("Can't create MIB.",
@@ -1195,7 +1195,7 @@ static void	destroyFanModule(LystElt elt, void *userdata)
 {
 	FanModule	*fan = (FanModule *) lyst_data(elt);
 
-	RELEASE_CONTENT_SPACE(fan);
+	MRELEASE(fan);
 }
 
 Subject	*createSubject(Venture *venture, int nbr, char *name,
@@ -1214,18 +1214,18 @@ Subject	*createSubject(Venture *venture, int nbr, char *name,
 	CHKNULL(name);
 	length = strlen(name);
 	CHKNULL(length <= MAX_SUBJ_NAME);
-	subj = (Subject *) TAKE_CONTENT_SPACE(sizeof(Subject));
+	subj = (Subject *) MTAKE(sizeof(Subject));
 	CHKNULL(subj);
 	memset((char *) subj, 0, sizeof(Subject));
 	subj->nbr = nbr;
 	length += 1;
-	subj->name = TAKE_CONTENT_SPACE(length);
+	subj->name = MTAKE(length);
 	CHKNULL(subj->name);
 	istrcpy(subj->name, name, length);
 	if (description)
 	{
 		length = strlen(description) + 1;
-		subj->description = TAKE_CONTENT_SPACE(length);
+		subj->description = MTAKE(length);
 		CHKNULL(subj->description);
 		istrcpy(subj->description, description, length);
 	}
@@ -1233,7 +1233,7 @@ Subject	*createSubject(Venture *venture, int nbr, char *name,
 	if (symmetricKeyName)
 	{
 		length = strlen(symmetricKeyName) + 1;
-		subj->symmetricKeyName = TAKE_CONTENT_SPACE(length);
+		subj->symmetricKeyName = MTAKE(length);
 		CHKNULL(subj->symmetricKeyName);
 		memcpy(subj->symmetricKeyName, symmetricKeyName, length);
 	}
@@ -1241,7 +1241,7 @@ Subject	*createSubject(Venture *venture, int nbr, char *name,
 	if (marshalFnName)
 	{
 		length = strlen(marshalFnName) + 1;
-		subj->marshalFnName = TAKE_CONTENT_SPACE(length);
+		subj->marshalFnName = MTAKE(length);
 		CHKNULL(subj->marshalFnName);
 		memcpy(subj->marshalFnName, marshalFnName, length);
 	}
@@ -1249,7 +1249,7 @@ Subject	*createSubject(Venture *venture, int nbr, char *name,
 	if (unmarshalFnName)
 	{
 		length = strlen(unmarshalFnName) + 1;
-		subj->unmarshalFnName = TAKE_CONTENT_SPACE(length);
+		subj->unmarshalFnName = MTAKE(length);
 		CHKNULL(subj->unmarshalFnName);
 		memcpy(subj->unmarshalFnName, unmarshalFnName, length);
 	}
@@ -1279,18 +1279,18 @@ AppRole	*createRole(Venture *venture, int nbr, char *name, char *publicKeyName,
 	CHKNULL(name);
 	length = strlen(name);
 	CHKNULL(length <= MAX_ROLE_NAME);
-	role = (AppRole *) TAKE_CONTENT_SPACE(sizeof(AppRole));
+	role = (AppRole *) MTAKE(sizeof(AppRole));
 	CHKNULL(role);
 	memset((char *) role, 0, sizeof(AppRole));
 	role->nbr = nbr;
 	length += 1;
-	role->name = TAKE_CONTENT_SPACE(length);
+	role->name = MTAKE(length);
 	CHKNULL(role->name);
 	istrcpy(role->name, name, length);
 	if (publicKeyName)
 	{
 		length = strlen(publicKeyName) + 1;
-		role->publicKeyName = TAKE_CONTENT_SPACE(length);
+		role->publicKeyName = MTAKE(length);
 		CHKNULL(role->publicKeyName);
 		memcpy(role->publicKeyName, publicKeyName, length);
 	}
@@ -1298,7 +1298,7 @@ AppRole	*createRole(Venture *venture, int nbr, char *name, char *publicKeyName,
 	if (privateKeyName)
 	{
 		length = strlen(privateKeyName) + 1;
-		role->privateKeyName = TAKE_CONTENT_SPACE(length);
+		role->privateKeyName = MTAKE(length);
 		CHKNULL(role->privateKeyName);
 		memcpy(role->privateKeyName, privateKeyName, length);
 	}
@@ -1332,7 +1332,7 @@ static void	deleteAuthorization(char *roleName, Lyst *authorizations)
 	}
 
 	name = (char *) lyst_data(elt);
-	RELEASE_CONTENT_SPACE(name);
+	MRELEASE(name);
 	lyst_delete(elt);
 	if (lyst_length(*authorizations) == 0)
 	{
@@ -1357,7 +1357,7 @@ static void	destroyAuthorization(LystElt elt, void *userdata)
 {
 	char	*roleName = (char *) lyst_data(elt);
 
-	RELEASE_CONTENT_SPACE(roleName);
+	MRELEASE(roleName);
 }
 
 static int	addAuthorization(Venture *venture, char *roleName,
@@ -1401,7 +1401,7 @@ static int	addAuthorization(Venture *venture, char *roleName,
 	}
 
 	length = strlen(roleName);
-	name = TAKE_CONTENT_SPACE(length + 1);
+	name = MTAKE(length + 1);
 	CHKERR(name);
 	istrcpy(name, roleName, length + 1);
 	if (elt)
@@ -1415,7 +1415,7 @@ static int	addAuthorization(Venture *venture, char *roleName,
 
 	if (elt == NULL)
 	{
-		RELEASE_CONTENT_SPACE(name);
+		MRELEASE(name);
 		return -1;
 	}
 
@@ -1447,17 +1447,17 @@ LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 	CHKNULL(name);
 	length = strlen(name);
 	CHKNULL(length <= MAX_APP_NAME);
-	app = (AmsApp *) TAKE_CONTENT_SPACE(sizeof(AmsApp));
+	app = (AmsApp *) MTAKE(sizeof(AmsApp));
 	CHKNULL(app);
 	memset((char *) app, 0, sizeof(AmsApp));
 	length += 1;
-	app->name = TAKE_CONTENT_SPACE(length);
+	app->name = MTAKE(length);
 	CHKNULL(app->name);
 	istrcpy(app->name, name, length);
 	if (publicKeyName)
 	{
 		length = strlen(publicKeyName) + 1;
-		app->publicKeyName = TAKE_CONTENT_SPACE(length);
+		app->publicKeyName = MTAKE(length);
 		CHKNULL(app->publicKeyName);
 		memcpy(app->publicKeyName, publicKeyName, length);
 	}
@@ -1465,7 +1465,7 @@ LystElt	createApp(char *name, char *publicKeyName, char *privateKeyName)
 	if (privateKeyName)
 	{
 		length = strlen(privateKeyName) + 1;
-		app->privateKeyName = TAKE_CONTENT_SPACE(length);
+		app->privateKeyName = MTAKE(length);
 		CHKNULL(app->privateKeyName);
 		memcpy(app->privateKeyName, privateKeyName, length);
 	}
@@ -1504,7 +1504,7 @@ Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
 		return NULL;
 	}
 
-	msgspace = (Subject *) TAKE_CONTENT_SPACE(sizeof(Subject));
+	msgspace = (Subject *) MTAKE(sizeof(Subject));
 	CHKNULL(msgspace);
 	memset((char *) msgspace, 0, sizeof(Subject));
 	msgspace->nbr = 0 - continNbr;	/*	Negative subj number.	*/
@@ -1519,13 +1519,13 @@ Subject	*createMsgspace(Venture *venture, int continNbr, int isNeighbor,
 	}
 
 	length = strlen(gwEid) + 1;
-	msgspace->gwEid = TAKE_CONTENT_SPACE(length);
+	msgspace->gwEid = MTAKE(length);
 	CHKNULL(msgspace->gwEid);
 	istrcpy(msgspace->gwEid, gwEid, length);
 	if (symmetricKeyName)
 	{
 		length = strlen(symmetricKeyName) + 1;
-		msgspace->symmetricKeyName = TAKE_CONTENT_SPACE(length);
+		msgspace->symmetricKeyName = MTAKE(length);
 		CHKNULL(msgspace->symmetricKeyName);
 		memcpy(msgspace->symmetricKeyName, symmetricKeyName, length);
 	}
@@ -1550,7 +1550,7 @@ static void	destroySubjOfInterest(LystElt elt, void *userdata)
 	lyst_destroy(subj->subscriptions);
 	lyst_destroy(subj->invitations);
 	lyst_delete(subj->fanElt);
-	RELEASE_CONTENT_SPACE(subj);
+	MRELEASE(subj);
 }
 
 static Module	*createModule(Cell *cell, int moduleNbr)
@@ -1558,7 +1558,7 @@ static Module	*createModule(Cell *cell, int moduleNbr)
 	int	amsMemory = getIonMemoryMgr();
 	Module	*module;
 
-	module = (Module *) TAKE_CONTENT_SPACE(sizeof(Module));
+	module = (Module *) MTAKE(sizeof(Module));
 	CHKNULL(module);
 	memset((char *) module, 0, sizeof(Module));
 	module->unitNbr = cell->unit->nbr;
@@ -1586,7 +1586,7 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 	LystElt	nextElt;
 	Unit	*subunit;
 
-	unit = (Unit *) TAKE_CONTENT_SPACE(sizeof(Unit));
+	unit = (Unit *) MTAKE(sizeof(Unit));
 	CHKNULL(unit);
 	memset((char *) unit, 0, sizeof(Unit));
 	unit->cell = &(unit->cellData);
@@ -1594,7 +1594,7 @@ static Unit	*initializeUnit(Venture *venture, int nbr, char *name,
 	cell->unit = unit;
 	unit->nbr = nbr;
 	nameLen = length + 1;
-	unit->name = TAKE_CONTENT_SPACE(nameLen);
+	unit->name = MTAKE(nameLen);
 	CHKNULL(unit->name);
 	istrcpy(unit->name, name, nameLen);
 
@@ -1782,13 +1782,13 @@ static Venture	*createVenture2(int nbr, char *appname, char *authname,
 		return NULL;
 	}
 
-	venture = (Venture *) TAKE_CONTENT_SPACE(sizeof(Venture));
+	venture = (Venture *) MTAKE(sizeof(Venture));
 	CHKNULL(venture);
 	memset((char *) venture, 0, sizeof(Venture));
 	venture->nbr = nbr;
 	venture->app = app;
 	authnameLen = length + 1;
-	venture->authorityName = TAKE_CONTENT_SPACE(authnameLen);
+	venture->authorityName = MTAKE(authnameLen);
 	CHKNULL(venture->authorityName);
 	istrcpy(venture->authorityName, authname, authnameLen);
 	for (i = 0; i < SUBJ_LIST_CT; i++)
@@ -1900,18 +1900,18 @@ static Continuum	*createContinuum2(int nbr, char *name,
 	CHKNULL(name);
 	length = strlen(name);
 	CHKNULL(length <= MAX_SUBJ_NAME);
-	contin = (Continuum *) TAKE_CONTENT_SPACE(sizeof(Continuum));
+	contin = (Continuum *) MTAKE(sizeof(Continuum));
 	CHKNULL(contin);
 	memset((char *) contin, 0, sizeof(Continuum));
 	contin->nbr = nbr;
 	nameLen = length + 1;
-	contin->name = TAKE_CONTENT_SPACE(nameLen);
+	contin->name = MTAKE(nameLen);
 	CHKNULL(contin->name);
 	istrcpy(contin->name, name, nameLen);
 	if (description)
 	{
 		descLen = strlen(description) + 1;
-		contin->description = TAKE_CONTENT_SPACE(descLen);
+		contin->description = MTAKE(descLen);
 		CHKNULL(contin->description);
 		istrcpy(contin->description, description, descLen);
 	}
@@ -1952,7 +1952,7 @@ LystElt	createCsEndpoint(char *endpointSpec, LystElt nextElt)
 	}
 
 	len = strlen(endpointName);
-	ep = (MamsEndpoint *) TAKE_CONTENT_SPACE(sizeof(MamsEndpoint));
+	ep = (MamsEndpoint *) MTAKE(sizeof(MamsEndpoint));
 	CHKNULL(ep);
 	memset((char *) ep, 0, sizeof(MamsEndpoint));
 	if (constructMamsEndpoint(ep, len, endpointName) < 0)
@@ -2015,7 +2015,7 @@ spec", tsname);
 		return NULL;
 	}
 
-	amsesPtr = (AmsEpspec *) TAKE_CONTENT_SPACE(sizeof(AmsEpspec));
+	amsesPtr = (AmsEpspec *) MTAKE(sizeof(AmsEpspec));
 	CHKNULL(amsesPtr);
 	memcpy((char *) amsesPtr, &amses, sizeof(AmsEpspec));
 	elt = lyst_insert_last(mib->amsEndpointSpecs, amsesPtr);
@@ -2092,7 +2092,7 @@ int	constructMamsEndpoint(MamsEndpoint *endpoint, int eptLength, char *ept)
 {
 	int	result;
 
-	endpoint->ept = TAKE_CONTENT_SPACE(eptLength + 1);
+	endpoint->ept = MTAKE(eptLength + 1);
 	CHKERR(endpoint->ept);
 	memcpy(endpoint->ept, ept, eptLength);
 	endpoint->ept[eptLength] = '\0';
@@ -2121,7 +2121,7 @@ void	clearMamsEndpoint(MamsEndpoint *ep)
 	ep->tsep = NULL;
 	if (ep->ept)
 	{
-		RELEASE_CONTENT_SPACE(ep->ept);
+		MRELEASE(ep->ept);
 		ep->ept = NULL;
 	}
 }
@@ -2245,7 +2245,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 	 *	in the JPL implementation is always present.		*/
 
 	msgLength = 12 + 5 + authenticatorLength + supplementLength + 2;
-	msg = TAKE_CONTENT_SPACE(msgLength);
+	msg = MTAKE(msgLength);
 	CHKERR(msg);
 
 	/*	Construct the message.	First octet is two bits of
@@ -2296,7 +2296,7 @@ int	sendMamsMsg(MamsEndpoint *endpoint, MamsInterface *tsif,
 	result = (_mib(NULL))->pts->sendMamsFn(endpoint, tsif, (char *) msg,
 			msgLength);
 	unlockMib();
-	RELEASE_CONTENT_SPACE(msg);
+	MRELEASE(msg);
 	return result;
 }
 
@@ -2540,7 +2540,7 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 	msg.memo = u4;
 	if (msg.supplementLength > 0)
 	{
-		msg.supplement = TAKE_CONTENT_SPACE(msg.supplementLength);
+		msg.supplement = MTAKE(msg.supplementLength);
 		CHKERR(msg.supplement);
 		memcpy(msg.supplement, supplement, msg.supplementLength);
 	}
@@ -2549,17 +2549,17 @@ int	enqueueMamsMsg(Llcv eventsQueue, int length, unsigned char *msgBuffer)
 		msg.supplement = NULL;
 	}
 
-	evt = TAKE_CONTENT_SPACE(1 + sizeof(MamsMsg));
+	evt = MTAKE(1 + sizeof(MamsMsg));
 	CHKERR(evt);
 	evt->type = MAMS_MSG_EVT;
 	memcpy(evt->value, (char *) &msg, sizeof(MamsMsg));
 	if (enqueueMamsEvent(eventsQueue, evt, msg.supplement, msg.memo))
 	{
 		putErrmsg("Can't enqueue MAMS message.", NULL);
-		RELEASE_CONTENT_SPACE(evt);
+		MRELEASE(evt);
 		if (msg.supplement)
 		{
-			RELEASE_CONTENT_SPACE(msg.supplement);
+			MRELEASE(msg.supplement);
 		}
 
 		return -1;
@@ -2584,7 +2584,7 @@ int	enqueueMamsCrash(Llcv eventsQueue, char *text)
 		textLength = strlen(text);
 	}
 
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(1 + textLength + 1);
+	evt = (AmsEvt *) MTAKE(1 + textLength + 1);
 	CHKERR(evt);
 	evt->type = CRASH_EVT;
 	memcpy(evt->value, text, textLength);
@@ -2592,7 +2592,7 @@ int	enqueueMamsCrash(Llcv eventsQueue, char *text)
 	if (enqueueMamsEvent(eventsQueue, evt, NULL, 0))
 	{
 		putErrmsg("Can't enqueue MAMS crash.", NULL);
-		RELEASE_CONTENT_SPACE(evt);
+		MRELEASE(evt);
 		return -1;
 	}
 
@@ -2603,13 +2603,13 @@ int	enqueueMamsStubEvent(Llcv eventsQueue, int eventType)
 {
 	AmsEvt	*evt;
 
-	evt = (AmsEvt *) TAKE_CONTENT_SPACE(sizeof(AmsEvt));
+	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
 	CHKERR(evt);
 	evt->type = eventType;
 	if (enqueueMamsEvent(eventsQueue, evt, NULL, 0))
 	{
 		putErrmsg("Can't enqueue stub event.", NULL);
-		RELEASE_CONTENT_SPACE(evt);
+		MRELEASE(evt);
 		return -1;
 	}
 
@@ -2626,11 +2626,11 @@ void	recycleEvent(AmsEvt *evt)
 		msg = (MamsMsg *) (evt->value);
 		if (msg->supplement)
 		{
-			RELEASE_CONTENT_SPACE(msg->supplement);
+			MRELEASE(msg->supplement);
 		}
 	}
 
-	RELEASE_CONTENT_SPACE(evt);
+	MRELEASE(evt);
 }
 
 void	destroyEvent(LystElt elt, void *userdata)

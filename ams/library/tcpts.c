@@ -80,7 +80,7 @@ static void	removeReceiver(TcpRcvr *rcvr)
 
 	sap->nbrInRcvrPool--;
 	pthread_mutex_unlock(&sap->rcvrPoolMutex);
-	RELEASE_CONTENT_SPACE(rcvr);
+	MRELEASE(rcvr);
 }
 
 static int	receiveMsgByTCP(int *fd, char *buffer)
@@ -226,7 +226,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 		}
 	}
 
-	sap = (TcptsSap *) TAKE_CONTENT_SPACE(sizeof(TcptsSap));
+	sap = (TcptsSap *) MTAKE(sizeof(TcptsSap));
 	CHKERR(sap);
 	memset((char *) sap, 0, sizeof(TcptsSap));
 	pthread_mutex_init(&sap->sendPoolMutex, NULL);
@@ -240,7 +240,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	if (sap->accessSocket < 0)
 	{
 		putSysErrmsg("tcpts can't open AMS access socket", NULL);
-		RELEASE_CONTENT_SPACE(sap);
+		MRELEASE(sap);
 		return -1;
 	}
 
@@ -252,7 +252,7 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	{
 		putSysErrmsg("tcpts can't configure AMS access socket", NULL);
 		closesocket(sap->accessSocket);
-		RELEASE_CONTENT_SPACE(sap);
+		MRELEASE(sap);
 		return -1;
 	}
 
@@ -265,12 +265,12 @@ int	tcpAmsInit(AmsInterface *tsif, char *epspec)
 	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 	eptLen = strlen(endpointNameText) + 1;
-	tsif->ept = TAKE_CONTENT_SPACE(eptLen);
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("tcpts can't record endpoint name.", NULL);
 		closesocket(sap->accessSocket);
-		RELEASE_CONTENT_SPACE(sap);
+		MRELEASE(sap);
 		return -1;
 	}
 
@@ -288,7 +288,7 @@ static void	*tcpAmsReceiver(void *parm)
 
 	CHKNULL(me);
 	sap = me->sap;
-	buffer = TAKE_CONTENT_SPACE(TCPTS_MAX_MSG_LEN);
+	buffer = MTAKE(TCPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
 #ifndef mingw
 	sigset_t	signals;
@@ -307,7 +307,7 @@ static void	*tcpAmsReceiver(void *parm)
 			/*	Intentional fall-through to next case.	*/
 
 		case 0:	/*	Connection simply closed by sender.	*/
-			RELEASE_CONTENT_SPACE(buffer);
+			MRELEASE(buffer);
 			removeReceiver(me);
 			return NULL;
 
@@ -386,7 +386,7 @@ static void	*tcpAmsAccess(void *parm)
 			break;
 		}
 
-		rcvr = TAKE_CONTENT_SPACE(sizeof(TcpRcvr));
+		rcvr = MTAKE(sizeof(TcpRcvr));
 		if (rcvr == NULL)
 		{
 			putErrmsg("tcpts out of memory.", NULL);
@@ -465,7 +465,7 @@ static void	*tcpAmsAccess(void *parm)
 		closesocket(sap->accessSocket);
 	}
 
-	RELEASE_CONTENT_SPACE(sap);
+	MRELEASE(sap);
 	tsif->sap = NULL;
 	return NULL;
 }
@@ -487,7 +487,7 @@ static int	tcpParseAmsEndpoint(AmsEndpoint *dp)
 	/*	Note: fill in tsep.sap when the tsep is first used
 	 *	for transmission.					*/
 
-	dp->tsep = TAKE_CONTENT_SPACE(sizeof(TcpTsep));
+	dp->tsep = MTAKE(sizeof(TcpTsep));
 	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(TcpTsep));
 
@@ -510,7 +510,7 @@ static void	tcpClearAmsEndpoint(AmsEndpoint *dp)
 		removeSender(tsep);
 	}
 
-	RELEASE_CONTENT_SPACE(tsep);
+	MRELEASE(tsep);
 }
 
 static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
@@ -618,7 +618,7 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 		return result;
 	}
 
-	tcpAmsBuf = TAKE_CONTENT_SPACE(headerLen + contentLen + 2);
+	tcpAmsBuf = MTAKE(headerLen + contentLen + 2);
 	CHKERR(tcpAmsBuf);
 	memcpy(tcpAmsBuf, header, headerLen);
 	if (contentLen > 0)
@@ -631,7 +631,7 @@ static int	tcpSendAms(AmsEndpoint *dp, AmsSAP *sap,
 	checksum = htons(checksum);
 	memcpy(tcpAmsBuf + headerLen + contentLen, (char *) &checksum, 2);
 	result = itcp_send(&tsep->fd, tcpAmsBuf, xmitlen);
-	RELEASE_CONTENT_SPACE(tcpAmsBuf);
+	MRELEASE(tcpAmsBuf);
 	if (result < 1)		/*	Data not transmitted.		*/
 	{
 		removeSender(tsep);

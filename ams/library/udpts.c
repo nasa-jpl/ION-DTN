@@ -115,7 +115,7 @@ printf("parsed endpoint spec to port %hu address %u.\n", portNbr, ipAddress);
 printf("resulting ept is '%s'.\n", endpointNameText);
 #endif
 	eptLen = strlen(endpointNameText) + 1;
-	tsif->ept = TAKE_CONTENT_SPACE(eptLen);
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
@@ -140,7 +140,7 @@ static void	*udpMamsReceiver(void *parm)
 
 	CHKNULL(tsif);
 	fd = (saddr) (tsif->sap);
-	buffer = TAKE_CONTENT_SPACE(UDPTS_MAX_MSG_LEN);
+	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
 #ifndef mingw
 	sigset_t		signals;
@@ -167,7 +167,7 @@ message", NULL);
 			}
 
 			closesocket(fd);
-			RELEASE_CONTENT_SPACE(buffer);
+			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;
 		}
@@ -253,7 +253,7 @@ static int	udpAmsInit(AmsInterface *tsif, char *epspec)
 	isprintf(endpointNameText, sizeof endpointNameText, "%u:%hu", ipAddress,
 			portNbr);
 	eptLen = strlen(endpointNameText) + 1;
-	tsif->ept = TAKE_CONTENT_SPACE(eptLen);
+	tsif->ept = MTAKE(eptLen);
 	if (tsif->ept == NULL)
 	{
 		putErrmsg("Can't record endpoint name.", NULL);
@@ -280,7 +280,7 @@ static void	*udpAmsReceiver(void *parm)
 	CHKNULL(tsif);
 	fd = (saddr) (tsif->sap);
 	amsSap = tsif->amsSap;
-	buffer = TAKE_CONTENT_SPACE(UDPTS_MAX_MSG_LEN);
+	buffer = MTAKE(UDPTS_MAX_MSG_LEN);
 	CHKNULL(buffer);
 #ifndef mingw
 	sigset_t		signals;
@@ -307,7 +307,7 @@ message", NULL);
 			}
 
 			closesocket(fd);
-			RELEASE_CONTENT_SPACE(buffer);
+			MRELEASE(buffer);
 			tsif->sap = NULL;
 			return NULL;
 		}
@@ -336,7 +336,7 @@ static int	udpParseMamsEndpoint(MamsEndpoint *ep)
 	*colon = ':';
 	tsep.portNbr = atoi(colon + 1);
 	tsep.ipAddress = getInternetAddress(hostName);
-	ep->tsep = TAKE_CONTENT_SPACE(sizeof(UdpTsep));
+	ep->tsep = MTAKE(sizeof(UdpTsep));
 	CHKERR(ep->tsep);
 	memcpy((char *) (ep->tsep), (char *) &tsep, sizeof(UdpTsep));
 #if AMSDEBUG
@@ -351,7 +351,7 @@ static void	udpClearMamsEndpoint(MamsEndpoint *ep)
 	CHKVOID(ep);
 	if (ep->tsep)
 	{
-		RELEASE_CONTENT_SPACE(ep->tsep);
+		MRELEASE(ep->tsep);
 	}
 }
 
@@ -370,7 +370,7 @@ static int	udpParseAmsEndpoint(AmsEndpoint *dp)
 	*colon = ':';
 	tsep.portNbr = atoi(colon + 1);
 	tsep.ipAddress = getInternetAddress(hostName);
-	dp->tsep = TAKE_CONTENT_SPACE(sizeof(UdpTsep));
+	dp->tsep = MTAKE(sizeof(UdpTsep));
 	CHKERR(dp->tsep);
 	memcpy((char *) (dp->tsep), (char *) &tsep, sizeof(UdpTsep));
 
@@ -386,7 +386,7 @@ static void	udpClearAmsEndpoint(AmsEndpoint *dp)
 	CHKVOID(dp);
 	if (dp->tsep)
 	{
-		RELEASE_CONTENT_SPACE(dp->tsep);
+		MRELEASE(dp->tsep);
 	}
 }
 
@@ -497,7 +497,7 @@ printf("in udpSendAms, tsep is %lu.\n", (unsigned long) tsep);
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-	udpAmsBuf = TAKE_CONTENT_SPACE(headerLen + contentLen + 2);
+	udpAmsBuf = MTAKE(headerLen + contentLen + 2);
 	CHKERR(udpAmsBuf);
 	memcpy(udpAmsBuf, header, headerLen);
 	if (contentLen > 0)
@@ -522,14 +522,14 @@ printf("in udpSendAms, tsep is %lu.\n", (unsigned long) tsep);
 #if AMSDEBUG
 PUTS("udpSendAms failed.");
 #endif
-			RELEASE_CONTENT_SPACE(udpAmsBuf);
+			MRELEASE(udpAmsBuf);
 			return -1;
 		}
 
 #if AMSDEBUG
 PUTS("udpSendAms succeeded.");
 #endif
-		RELEASE_CONTENT_SPACE(udpAmsBuf);
+		MRELEASE(udpAmsBuf);
 		return 0;
 	}
 }
