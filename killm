@@ -16,7 +16,7 @@ OS_VERS=""
 USERNAME_CUT=$(echo "$USER" | cut -c 1-10)
 
 # DEBUG: check the value of USERNAME_CUT
-echo "Abbreviated username is "${USERNAME_CUT}
+# echo "Abbreviated username is "${USERNAME_CUT}
 
 KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
@@ -194,14 +194,18 @@ fi
 if [ "$MINGW" != "true" ]; then
 	#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
 	echo "Sending TERM to the processes..."
-	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
-	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
+	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+	
+	# DEBUG: show killall command error
+	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
 
 	sleep 2
 
 	echo "Sending KILL to the processes..."
-	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
-	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+	
+	# DEBUG: show killall command error
+	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
 
 	sleep 2
 else
@@ -218,9 +222,9 @@ PSFILE="/tmp/ps.$$"
 ${PS} ${PS_ARGS} > ${PSFILE}
 
 # DEBUG: show the PSFILE
-echo "Current running processes:"
+#echo "Current running processes:"
 #cat ${PSFILE}
-ps -eo pid,ppid,state,cmd
+#ps -eo pid,ppid,state,cmd
 
 # see if any of those still-running processes belong to ION
 for PROC in ${KILLPROCESSLIST}; do
@@ -240,15 +244,18 @@ if [ "$MINGW" == "true" ]; then
 	powershell remove_win_shmem.ps1 
 elif [[ -z "$OS_VERS" ]]; then 
 	# For mac >=10.5 and Linux
+	
 	# DEBUG: show ipcs before ipcrm
-	echo "Before ipcrm, SRV4 IPC:"
-	ipcs
+	#echo "Before ipcrm, SRV4 IPC:"
+	#ipcs
+	
 	for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
 	for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done
 	for S in `ipcs -s | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -s $S; done
+	
 	# DEBUG: show ipcs after ipcrm
-	echo "After ipcrm, SRV4 IPC:"
-	ipcs
+	#echo "After ipcrm, SRV4 IPC:"
+	#ipcs
 else
 	# For mac 10.4, since ipcs on it is weird.
 	echo "Since ipcs on Apple OSX 10.4 is weird, this script (killm) needs to use sudo, and will ask for your password"
@@ -260,17 +267,18 @@ fi
 # remove posix named semaphores if this platform maps them into the file system
 # Solaris puts them in /tmp/.SEM*, Linux in /dev/shm/sem.*, MacOS doesn't put them in file system
 echo "Deleting Posix Named Semaphores..."
+
 # DEBUG: show POSIX Name Semaphore files before removal
-echo "Before deletion, Posix Name Semaphore Files:"
-ls /dev/shm/sem.ion:GLOBAL*
-ls /tmp/.SEM*ion:GLOBAL*
+#echo "Before deletion, Posix Name Semaphore Files:"
+#ls /dev/shm/sem.ion:GLOBAL*
+#s /tmp/.SEM*ion:GLOBAL*
 
 rm -f /dev/shm/sem.ion:GLOBAL* /tmp/.SEM*ion:GLOBAL* || (echo '*** Re-run killm with sudo to remove remaining semaphores: '; find /dev/shm /tmp/ -name 'sem.ion:GLOBAL*' -o -name '/tmp/.SEM*ion:GLOBAL*' 2>/dev/null)
 
 # DEBUG: show POSIX Name Semaphore files after removal
-echo "After deletion, Posix Name Semaphore Files:"
-ls /dev/shm/sem.ion:GLOBAL*
-ls /tmp/.SEM*ion:GLOBAL*
+#echo "After deletion, Posix Name Semaphore Files:"
+#ls /dev/shm/sem.ion:GLOBAL*
+#s /tmp/.SEM*ion:GLOBAL*
 
 echo "Killm completed."	
 exit 0
