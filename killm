@@ -194,12 +194,14 @@ fi
 if [ "$MINGW" != "true" ]; then
 	#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
 	echo "Sending TERM to the processes..."
-	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
 
 	sleep 2
 
 	echo "Sending KILL to the processes..."
-	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
 
 	sleep 2
 else
