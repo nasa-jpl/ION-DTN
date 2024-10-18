@@ -35,8 +35,8 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpclm lt-bpclm \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
-	bpcp lt-bpcp\
-	bpcpd lt-bpcpd\
+	bpcp lt-bpcp \
+	bpcpd lt-bpcpd \
 	bpdriver lt-bpdriver \
 	bpecho lt-bpecho \
 	bping lt-bping \
@@ -135,12 +135,12 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	smrbtsh lt-smrbtsh \
 	stcpcli lt-stcpcli \
 	stcpclo lt-stcpclo \
-	tcaadmin lt-tcaadmin\
-	tcaboot lt-tcaboot\
-	tcacompile lt-tcacompile\
-	tcapublish lt-tcapublish\
-	tcarecv lt-tcarecv\
-	tcc lt-tcc\
+	tcaadmin lt-tcaadmin \
+	tcaboot lt-tcaboot \
+	tcacompile lt-tcacompile \
+	tcapublish lt-tcapublish \
+	tcarecv lt-tcarecv \
+	tcc lt-tcc \
 	tccadmin lt-tccadmin \
 	tcp2file lt-tcp2file \
 	tcpbsi lt-tcpbsi \
