@@ -1,0 +1,22 @@
+name: Regression Tests for ION on Ubuntu 22
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, linux, x64]
+
+    container:  
+      image: ubuntu:jammy  # Run jobs on Ubuntu 22
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Display Ubuntu version
+        run: lsb_release -a
+  
