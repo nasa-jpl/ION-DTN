@@ -4,8 +4,14 @@ TEST = ../test
 UTILS = ../utils
 RAMS = ../rams
 
+#ifdef MBEDTLS_CRYPTO_SUITES
+SECRYPT = ../../ici/crypto/MBEDTLS_SUITES
+#else
+SECRYPT = ../../ici/crypto/NULL_SUITES
+#endif
+
 OPT = -g -Wall -Dmingw -DUDPTS -DTCPTS -DDGRTS -DNOEXPAT
-CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include
+CC = gcc $(OPT) -I$(API) -I$(INCL) -I$(RAMS) -I$(ROOT)/include -I$(SECRYPT)
 LDFLAGS = -fPIC -shared
 LD = gcc $(LDFLAGS)
 
@@ -65,7 +71,7 @@ install:
 #	-	-	Daemon executable	-	-	-	-
 
 amsd:		$(AMSDOBJS) $(API)/amscommon.h
-		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32 -lm
+		$(CC) -o amsd $(AMSDOBJS) -L./lib -L$(ROOT)/lib -ldgr -lici -lsecrypt -lpthread -lws2_32 -lm
 		cp amsd ./bin
 
 #	-	-	Test executables	-	-	-	-
@@ -85,11 +91,11 @@ amsbenchr:	amsbenchr.o libams.dll $(INCL)/ams.h
 #	-	-	Utility executables	-	-	-	-
 
 amsshell:	amsshell.o libams.dll $(INCL)/ams.h
-		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
+		$(CC) -o amsshell amsshell.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lbp -lpthread -lws2_32 -lm
 		cp amsshell ./bin
 
 amslog:		amslog.o libams.dll $(INCL)/ams.h
-		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lpthread -lws2_32 -lm
+		$(CC) -o amslog amslog.o -L./lib -L$(ROOT)/lib -lams -ldgr -lici -lbp -lpthread -lws2_32 -lm
 		cp amslog ./bin
 
 amslogprt:	amslogprt.o
@@ -113,7 +119,7 @@ ramsgate:	$(RAMSTESTOBJS) $(RAMS)/rams.h $(RAMS)/ramscommon.h libams.dll $(INCL)
 #	-	-	Libraries	-	-	-	-	-
 
 libams.dll:	$(LIBAMSOBJS) $(API)/amsP.h
-		$(LD) -o libams.dll $(LIBAMSOBJS) -Wl,--output-def,libams.def -L$(ROOT)/lib -ldgr -lici -lpthread -lws2_32 -lm
+		$(LD) -o libams.dll $(LIBAMSOBJS) -Wl,--output-def,libams.def -L$(ROOT)/lib -ldgr -lici -lsecrypt -lpthread -lws2_32 -lm
 		cp libams.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-

@@ -399,7 +399,7 @@ libudpcla.dll:	libudpcla.o
 		cp libudpcla.dll ./lib
 
 libmetadata.dll:	metadata.o
-		$(LD) -o libmetadata.dll metadata.o -Wl,--output-def,libmetadata.def -L./lib -L$(ROOT)/lib -lws2_32
+		$(LD) -o libmetadata.dll metadata.o -Wl,--output-def,libmetadata.def -L./lib -L$(ROOT)/lib -lici -lws2_32
 		cp libmetadata.dll ./lib
 
 #	-	-	Object modules	-	-	-	-	-
