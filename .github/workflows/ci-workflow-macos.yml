@@ -2,9 +2,9 @@ name: Compiling for ION on MacOS
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - update-4.1.4-ci-workflow
+#  push:
+#    branches:
+#      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
