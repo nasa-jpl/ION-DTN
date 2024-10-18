@@ -14,6 +14,10 @@ OS_VERS=""
 # NOTE: This may cause conflicts with long usernames with similar beginning
 #       characters. We'll look for a more robust solution in the near future.
 USERNAME_CUT=$(echo "$USER" | cut -c 1-10)
+
+# DEBUG: check the value of USERNAME_CUT
+echo "Abbreviated username is "${USERNAME_CUT}
+
 KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
 	amsbenchr lt-amsbenchr \
@@ -220,7 +224,10 @@ for PROC in ${KILLPROCESSLIST}; do
     grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
         awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
 done
-
+if [ -z "$USERNAME_CUT" ]; then
+    echo "Error: USERNAME_CUT is not set or empty."
+    exit 1
+fi
 rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
