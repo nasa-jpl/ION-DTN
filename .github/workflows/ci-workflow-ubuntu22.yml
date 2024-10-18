@@ -25,11 +25,6 @@ jobs:
           echo "User ID:"
           id
       
-      - name: Set the USER environment variable
-        run: |
-          export USER=$(whoami)  # Set USER to the current username
-          echo "USER is set to: $USER"
-      
       - name: Set up dependencies
         run: |
             apt-get update
@@ -43,6 +38,8 @@ jobs:
         run: | # For now run only test starting with "b", redirect stdout and stderr to a log
           {
             echo "Starting build and tests at $(date)"
+            export USER=$(whoami)  # Set USER to the current username
+            echo "USER is set to: $USER"
             autoreconf -fi
             ./configure
             make
