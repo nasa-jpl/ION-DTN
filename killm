@@ -217,7 +217,8 @@ ${PS} ${PS_ARGS} > ${PSFILE}
 
 # DEBUG: show the PSFILE
 echo "Current running processes:"
-cat ${PSFILE}
+#cat ${PSFILE}
+ps -eo pid,ppid,state,cmd
 
 # see if any of those still-running processes belong to ION
 for PROC in ${KILLPROCESSLIST}; do
