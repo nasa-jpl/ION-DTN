@@ -210,6 +210,11 @@ echo "Checking if all ION processes ended..."
 PSFILE="/tmp/ps.$$"
 # grab all running processes
 ${PS} ${PS_ARGS} > ${PSFILE}
+
+# DEBUG: show the PSFILE
+echo "Current running processes:"
+cat ${PSFILE}
+
 # see if any of those still-running processes belong to ION
 for PROC in ${KILLPROCESSLIST}; do
     grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \

@@ -22,6 +22,8 @@ jobs:
           cat /etc/os-release
           echo "Arch:"
           uname -m
+          echo "User ID:"
+          id
       
       - name: Set up dependencies
         run: |
@@ -44,7 +46,7 @@ jobs:
             ldconfig
             cd tests
             ./runtests bptrace_terminal_test  # Run the test
-          } > build-and-test.log 2>&1
+          } 2>&1 | tee build-and-test.log
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
