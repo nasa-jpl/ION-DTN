@@ -12,6 +12,7 @@ jobs:
 
     container:  
       image: ubuntu:jammy  # Run jobs on Ubuntu 22
+      options: --init      # Enable built-in init system
 
     steps:
       - name: Checkout Code
