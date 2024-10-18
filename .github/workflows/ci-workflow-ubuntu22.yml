@@ -23,8 +23,8 @@ jobs:
           echo "Arch:"
           uname -m
       
-          - name: Set up dependencies
-          run: |
+      - name: Set up dependencies
+        run: |
             sudo apt-get update
             sudo apt-get install -y autoconf automake libtool bash python3 gcc make  # Install dependencies
   
