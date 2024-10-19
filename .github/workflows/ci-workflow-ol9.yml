@@ -1,17 +1,17 @@
-name: Regression Tests for ION on RHEL8
+name: Regression Tests for ION on Oracle Linux 9
 
 on:
   workflow_dispatch:
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
     runs-on: [self-hosted, linux, x64]
 
     container:  
-      image: registry.access.redhat.com/ubi8/ubi
+      image: oraclelinux:9
       options: --init      # Enable built-in init system
 
     steps:
@@ -28,8 +28,8 @@ jobs:
       
       - name: Set up dependencies
         run: |
-            yum --disableplugin=subscription-manager update -y 
-            yum --disableplugin=subscription-manager install -y gcc make automake autoconf libtool bash python3 psmisc procps
+            dnf update -y 
+            dnf install -y gcc make automake autoconf libtool bash python3 psmisc procps
   
       - name: Generate timestamp for file names
         id: timestamp
@@ -69,5 +69,3 @@ jobs:
         with:
           name: test-progress-${{ env.TIMESTAMP }}
           path: ./tests/progress  # Upload the 'progress' file for later review
-
-
