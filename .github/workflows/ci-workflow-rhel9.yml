@@ -1,17 +1,17 @@
-name: Regression Tests for ION on RHEL8
+name: Regression Tests for ION on RHEL9
 
 on:
   workflow_dispatch:
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
     runs-on: [self-hosted, linux, x64]
 
     container:  
-      image: registry.access.redhat.com/ubi8/ubi
+      image: registry.access.redhat.com/ubi9/ubi
       options: --init      # Enable built-in init system
 
     steps:
@@ -69,5 +69,3 @@ jobs:
         with:
           name: test-progress-${{ env.TIMESTAMP }}
           path: ./tests/progress  # Upload the 'progress' file for later review
-
-
