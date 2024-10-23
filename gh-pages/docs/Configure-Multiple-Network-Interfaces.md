@@ -63,6 +63,8 @@ a outduct tcp 192.168.200.25:4556 tcpclo
 
 a plan ipn:24.0
 a planduct ipn:24.0 tcp 192.168.200.24:4556
+
+a plan ipn:25.0
 a planduct ipn:25.0 tcp 192.168.200.25:4556
 ```
 
