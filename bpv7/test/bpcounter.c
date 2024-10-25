@@ -172,7 +172,7 @@ int	main(int argc, char **argv)
 			{
 				/* This is the pilot bundle. Don't count it. */
 				pilotReceived = 1;
-				continue;
+				break;
 			}
 
 			/* Count the bundle. */
