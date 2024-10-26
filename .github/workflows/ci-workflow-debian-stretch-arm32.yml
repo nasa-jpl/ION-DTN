@@ -10,12 +10,12 @@ jobs:
   build-and-test:
     runs-on: [self-hosted, linux, x64] # we are emuating ARM on X64 runner
 
-    container:  
+    container:
       image: arm32v7/debian:stretch  # Run jobs on debian stretch ARM32
       options: >
         --init
         --platform linux/arm/v7
-  
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -27,12 +27,12 @@ jobs:
           uname -m
           echo "User ID:"
           id
-      
+
       - name: Set up dependencies
         run: |
             apt-get update
-            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc # Install dependencies 
-  
+            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc # Install dependencies
+
       - name: Generate timestamp for file names
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -55,7 +55,7 @@ jobs:
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
-        run: | 
+        run: |
           cat ./tests/progress
 
       - name: Upload full build and test log
