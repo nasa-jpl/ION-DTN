@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, macOS, arm64] # TO DO: need to revise; emuating ARM on X64 runner
+    runs-on: [self-hosted, macOS, ARM64]
 
     steps:
       - name: Checkout Code
