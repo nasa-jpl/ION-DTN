@@ -1,18 +1,18 @@
-name: Regression Tests for ION on Debian Stretch ARM 32bits Platform
+name: Regression Tests for ION on MacOS 14.7 ARM64
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - update-4.1.4-ci-workflow
+#  push:
+#    branches:
+#      - update-4.1.4-ci-workflow
+#
+# TO DO: need to setup a separate ARM processor runner
+#        testing shows QEMU emulation of ARM is very slow.
+#
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64] # we are emuating ARM on X64 runner
-
-    container:
-      image: arm32v7/debian:stretch  # Run jobs on debian stretch ARM32
-      options: --platform linux/arm/v7
+    runs-on: [self-hosted, macOS, arm64] # TO DO: need to revise; emuating ARM on X64 runner
 
     steps:
       - name: Checkout Code
