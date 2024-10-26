@@ -13,8 +13,8 @@ jobs:
     container:  
       image: arm32v7/debian:stretch  # Run jobs on debian stretch ARM32
       options: >
-        --init                       # Enable built-in init system
-        --platform linux/arm/v7      # Selects ARM 32 bits platform
+        --init
+        --platform linux/arm/v7
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
