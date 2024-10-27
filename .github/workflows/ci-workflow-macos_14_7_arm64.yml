@@ -14,17 +14,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-#      - name: Set up dependencies
-#        run: |
-#            apt-get update
-#            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc # Install dependencies
-
       - name: Generate timestamp for file names
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Run build and tests, capture stdout
-        run: | # For now run only test starting with "b", redirect stdout and stderr to a log
+        run: | # For now run only one test; redirect stdout and stderr to a log
           {
             echo "Starting build and tests at $(date)"
             export USER=$(whoami)  # Set USER to the current username
@@ -32,9 +27,8 @@ jobs:
             autoreconf -fi
             ./configure
             make
-            make install # self-hosted runner is root
+            sudo make install
             make test
-            ldconfig
             cd tests
             ./runtests bptrace_terminal_test  # Run the test
           } 2>&1 | tee build-and-test.log
@@ -58,4 +52,11 @@ jobs:
           name: test-progress-${{ env.TIMESTAMP }}
           path: ./tests/progress  # Upload the 'progress' file for later review
 
+      - name: Clean up ION build
+        if: ${{ always() }}  # Clean up even if previous steps fails
+        run: |
+          sudo make uninstall-lib
+          sudo make uninstall
+          make clean
+          make distclean
 
