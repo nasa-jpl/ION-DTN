@@ -14,9 +14,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Add autoreconf to path
-        run: echo "/opt/homebrew/bin/autoreconf" >> $GITHUB_PATH
-
       - name: Generate timestamp for file names
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -35,6 +32,7 @@ jobs:
             cd tests
             ./runtests bptrace_terminal_test  # Run the test
           } 2>&1 | tee build-and-test.log
+        shell: zsh
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
