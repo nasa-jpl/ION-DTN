@@ -2,9 +2,9 @@ name: Regression Tests for ION on Ubuntu 22
 
 on:
   workflow_dispatch:
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
