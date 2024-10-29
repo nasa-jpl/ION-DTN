@@ -2,13 +2,9 @@ name: Regression Tests for ION on MacOS 14.7 ARM64
 
 on:
   workflow_dispatch:
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
-#
-# TO DO: need to setup a separate ARM processor runner
-#        testing shows QEMU emulation of ARM is very slow.
-#
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
