@@ -5976,7 +5976,7 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
-	restoreEidString(&stationMetaEid);
+	/*	Check for null-endpoint destination dtn:none or ipn:0.0	*/
 	if (stationMetaEid.nullEndpoint)
 	{
 		/*	Forwarder has determined that the bundle
@@ -5986,6 +5986,9 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
+
+	/*  Not a null-endpoint */
+	restoreEidString(&stationMetaEid);
 
 	/*	We're going to queue this bundle for processing by
 	 *	the forwarder for the station EID's scheme name.
