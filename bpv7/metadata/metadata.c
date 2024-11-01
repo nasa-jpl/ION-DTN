@@ -48,6 +48,7 @@
 
 #ifndef darwin
 #ifndef freebsd
+#define _GNU_SOURCE
 /* macos/darwin and freebsd handle this differently */
 #define _POSIX_C_SOURCE 200112L
 #endif
