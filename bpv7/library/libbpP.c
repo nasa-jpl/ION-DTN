@@ -7777,7 +7777,8 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	/*	Store the EID and return length parsed.  There must
 	 *	be an easier way to do all this.			*/
 
-	CHKERR(parseEidString(eidString, &metaEid, &vscheme,&elt));
+	/* Return 0 if parseEidString failed to parse the EID. */
+	CHKZERO(parseEidString(eidString, &metaEid, &vscheme,&elt));
 	if (jotEid(eid, &metaEid) < 0)
 	{
 		putErrmsg("Can't jot eid.", NULL);
