@@ -29,6 +29,7 @@
  */
 
 #ifndef darwin
+#define _GUN_SOURCE
 /* macos/darwin handles this differently */
 #define _POSIX_C_SOURCE 200112L
 #endif
