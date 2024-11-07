@@ -299,6 +299,9 @@ version=`uname -a`
 if [[ $version == *"MINGW"* ]] || [[ $version == *"Msys"* ]] 
 then
 	OS_VERSION=windows;
+elif [[ $version == *"raspberrypi"* ]] 
+then
+	OS_VERSION=raspberrypi;
 elif [[ $version == *"Linux"* ]] || [[ $version == *"LINUX"* ]]
 then
 	OS_VERSION=linux;
