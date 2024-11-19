@@ -22,17 +22,6 @@ AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 
-# Moving developmental Makefiles out of the way if the user builds with autoconf
-echo "Moving developmental Makefiles to Makefile.dev"
-MAKEFILES=`find . -name 'Makefile'`
-for f in $MAKEFILES; do 
-	if [[ "$f" != "./Makefile" ]]; then
-		mv $f "$f.dev"
-	fi
-done
-
-
-
 ## -----checking wsl type------------------------------------------------------------------- ##
 virtual_device_name=`uname -r`;
 SUB="Microsoft";

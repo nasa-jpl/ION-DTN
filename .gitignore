@@ -33,9 +33,6 @@ stamp-h1
 *.la
 *.so
 
-# Ignore renamed Makefiles
-*.dev
-
 # Binaries or their equiv libtool wrappers
 amsbenchr
 amsbenchs
@@ -418,8 +415,8 @@ ltp/doc/html/man5/ltpsecrc.html
 ltp/i86_64-fedora/lib/libltp.so
 restart/doc/html/man1/ionrestart.html
 
-# copies of development makefile
-*.dev
+# Makefiles
+Makefile
 
 # progress report for regression test
 tests/progress*
