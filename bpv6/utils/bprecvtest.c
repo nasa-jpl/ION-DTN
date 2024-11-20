@@ -49,16 +49,12 @@ static void	handleQuit(int signum)
 static int	receiveFile(Sdr sdr, BpDelivery *dlv)
 {
 	static char	buffer[BPRECVBUFSZ];
-	static int	fileCount = 0;
 	int		contentLength;
 	int		remainingLength;
 	char		fileName[64];
 	int		testFile = -1;
 	ZcoReader	reader;
 	int		recvLength;
-
-
-	fileCount++;
 
 	contentLength = zco_source_data_length(sdr, dlv->adu);
 
