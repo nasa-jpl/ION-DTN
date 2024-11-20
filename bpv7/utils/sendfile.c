@@ -150,7 +150,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	aduLength = statbuf.st_size;
 	if (aduLength == 0)
 	{
-		writeMemoNote("[?] sendfile can't send file of length zero",
+		writeErrmsgMemos("[!] sendfile can't send file of length zero",
 				fileName);
 		fprintf(stderr,"\nError: can't send file of length zero --> %s\n", fileName);
 		if (sap)
@@ -182,6 +182,10 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	if (!file) 
 	{
 		fprintf(stderr, "Error opening file.");
+
+		char open_file_error[256] = {0};
+		snprintf(open_file_error, sizeof(open_file_error), "[!] Sendfile: error opening file %s", fileName);
+
 		goto exit;
 	}
 
@@ -195,6 +199,12 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	{
 		fprintf(stderr, "Error reading from %s: expected %ld, got %zu bytes.\n",
 				fileName, fileSize, readResult);
+
+		char read_failure_msg[256] = {0};
+		snprintf(read_failure_msg, sizeof(read_failure_msg), "[!] Sendfile: error reading from %s: expected %ld, got %zu bytes.\n",
+				fileName, fileSize, readResult);
+		writeErrMemo(read_failure_msg);
+
 	}
 	fclose(file);
 
@@ -297,6 +307,8 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	if (writeBufferToFile(metadata_buffer, metabuffer_size, randInitializer) != 0)		
 	{			
 		fprintf(stderr,"Error writing meta data to file.\n");
+		writeErrMemo("[!] Sendfile: error writing meta data to file.");
+
 		goto exit;
 	}
 
@@ -326,8 +338,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	}
 	else
 	{
-		isprintf(progressText, sizeof progressText, "[i] sendfile is sending \
-		'%s', size %d.", fileName, aduLength);
+		isprintf(progressText, sizeof progressText, "[i] sendfile is sending %s of size %d bytes.", fileName, aduLength);
 		writeMemo(progressText);
 		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
 			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
@@ -338,8 +349,8 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		else
 		{
 			isprintf(progressText, sizeof progressText,
-					"[i] sendfile sent '%s', size %d.",
-					fileName, aduLength);
+					"[i] sendfile successfully sent %s.",
+					fileName);
 			writeMemo(progressText);
 		}
 	}

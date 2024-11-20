@@ -223,14 +223,14 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	/*ION ----------------------------------- */
 	contentLength = zco_source_data_length(sdr, dlv->adu);
 
-	isprintf(progressText, sizeof progressText, "[i] recvfile is creating '%s'\
+	/* isprintf(progressText, sizeof progressText, "[i] recvfile is creating '%s'\
 	, size %d.", tmpFile, contentLength);
-	writeMemo(progressText);
+	writeMemo(progressText); */
 
 	fileHandle = iopen(tmpFile, O_WRONLY | O_CREAT, 0666);
 	if (fileHandle < 0)
 	{
-		putSysErrmsg("recvfile: can't open temp file", tmpFile);
+		putSysErrmsg("recvfile: can't create temp file", tmpFile);
 		goto exit;
 	}
 
@@ -277,7 +277,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = extractMetadataFromFile(tmpFile, &metadata);
 	if(result < 0)
 	{
-		printf("Error extracting metadata from file");
+		putSysErrmsg("Error extracting metadata from file", tmpFile);
 		goto exit;
 	}
 
@@ -337,7 +337,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = writeMetaDataContentToFile(&metadata, tmpFile);
 	if (result < 0)
 	{
-		printf("Error writing file\n");
+		//printf("Error writing file\n");
+		writeMemo ("Error writing file");
 		//goto exit;
 	}
 
@@ -361,16 +362,22 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 	if(result >= 0)
 	{
-		printf("\nFile received: %s\n", metadata.filename);
+		char file_receipt_msg[256] = {0};
+		snprintf(file_receipt_msg, sizeof(file_receipt_msg), "File received: %s of size: %ld bytes", (char *) metadata.filename, metadata.fileContentLength);
+		writeMemo(file_receipt_msg);
+
+		/* Write to application window */
+		printf("\nFile received: %s \n", metadata.filename);
+
 	}
 	else
 	{
-		printf("\nError: filename NULL");
+		writeErrMemo("Error: filename NULL");
 	}
 
 	/* time to deliver */
 	float time_difference = (float)calculateTimeDifference(metadata.timestamp);
-	printf("\tDelivery time: %f seconds\n", time_difference/1000);
+	printf("\t%d bytes in %f seconds\n", metadata.fileContentLength, time_difference/1000);
 
 	/* Print Aux commands (demonstration purposes only) */
 	if(metadata.aux_command_length > 0)
@@ -382,7 +389,11 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	/* DELETE ENCRYPTED DATA ON DECRYPTION FAILURE */
 	if (delete_on_fail && decryption_failure) 
 	{
-		printf("Decryption failure: %s deleted.\n", metadata.filename);
+		//printf("Decryption failure: %s deleted.\n", metadata.filename);
+		char decryption_failure_msg[256] = {0};
+		snprintf(decryption_failure_msg, sizeof(decryption_failure_msg), "Decryption failure: %s deleted.", (char *)metadata.filename);
+		writeErrMemo(decryption_failure_msg);
+
 		cleanFile((char *)metadata.filename); //delete me
 	}
 
