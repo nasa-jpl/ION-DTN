@@ -145,7 +145,7 @@ int cleanFile(char *filename)
 	int status = remove (filename);
 	if (status != 0)
 	{
-		printf("Error deleting file: %s", filename);
+		writeErrMemo("[!] recvfile: error deleting temporary file.");
 		return -1;
 	}
 	return 0;
@@ -230,7 +230,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	fileHandle = iopen(tmpFile, O_WRONLY | O_CREAT, 0666);
 	if (fileHandle < 0)
 	{
-		putSysErrmsg("recvfile: can't create temp file", tmpFile);
+		putSysErrmsg("[!] recvfile error: can't create temp file", tmpFile);
 		goto exit;
 	}
 
@@ -250,7 +250,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 		if (zco_receive_source(sdr, &reader, recvLength, buffer) < 0)
 		{
-			putErrmsg("recvfile: can't receive bundle content.", tmpFile);
+			putErrmsg("[!] recvfile error: can't receive bundle content.", tmpFile);
 			close(fileHandle);
 			oK(sdr_end_xn(sdr));
 			goto exit;
@@ -260,7 +260,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 			if (bytesWritten < recvLength)
 				{
-					putSysErrmsg("recvfile: can't write to file",
+					putSysErrmsg("[!] recvfile error: can't write to file.",
 							tmpFile);
 					close(fileHandle);
 					oK(sdr_end_xn(sdr));
@@ -277,7 +277,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = extractMetadataFromFile(tmpFile, &metadata);
 	if(result < 0)
 	{
-		putSysErrmsg("Error extracting metadata from file", tmpFile);
+		putSysErrmsg("[!] recvfile: error extracting metadata from file.", tmpFile);
 		goto exit;
 	}
 
@@ -337,8 +337,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = writeMetaDataContentToFile(&metadata, tmpFile);
 	if (result < 0)
 	{
-		writeMemo ("Error writing file");
-		//goto exit;
+		writeMemo ("[!] recvfile: error writing file.");
+		goto exit;
 	}
 
 	/* extract any aux commands */
@@ -351,7 +351,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	{
 		if (generateNewFilename(&metadata) != 0) 
 		{
-			// Handle error: failed to generate a new filename
+			// failed to generate a new filename
+			writeErrMemo("[!] recvfile error: temp filename creation.");
 			goto exit;
 		}
 }
@@ -362,7 +363,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	if(result >= 0)
 	{
 		char file_receipt_msg[256] = {0};
-		snprintf(file_receipt_msg, sizeof(file_receipt_msg), "File received: %s of size: %ld bytes", (char *) metadata.filename, metadata.fileContentLength);
+		snprintf(file_receipt_msg, sizeof(file_receipt_msg), "File received: %s of size: %ld bytes (received %d total bytes).", (char *) metadata.filename, metadata.fileContentLength, contentLength);
 		writeMemo(file_receipt_msg);
 
 		/* Write to application window */
@@ -371,12 +372,14 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	}
 	else
 	{
-		writeErrMemo("Error: filename NULL");
+		writeErrMemo("[!] recvfile error: filename NULL.");
 	}
 
 	/* time to deliver */
 	float time_difference = (float)calculateTimeDifference(metadata.timestamp);
-	printf("\t%d bytes in %f seconds\n", metadata.fileContentLength, time_difference/1000);
+
+	/* Write to application window */
+	printf("\t%d bytes in %f seconds\n", metadata.fileContentLength, time_difference/1000.0);
 
 	/* Print Aux commands (demonstration purposes only) */
 	if(metadata.aux_command_length > 0)
@@ -388,7 +391,6 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	/* DELETE ENCRYPTED DATA ON DECRYPTION FAILURE */
 	if (delete_on_fail && decryption_failure) 
 	{
-		//printf("Decryption failure: %s deleted.\n", metadata.filename);
 		char decryption_failure_msg[256] = {0};
 		snprintf(decryption_failure_msg, sizeof(decryption_failure_msg), "Decryption failure: %s deleted.", (char *)metadata.filename);
 		writeErrMemo(decryption_failure_msg);
@@ -491,9 +493,8 @@ int recvfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		{
             overwriteFlag = 1;
         } else if (!keyInput) 
-		{ 
-			// If keyInput is not already set
-            keyInput = (char *) args[i];
+		{ 			
+            keyInput = (char *) args[i]; // keyInput is not already set
         }
     }
 	
@@ -545,14 +546,14 @@ int	main(int argc, char **argv)
 
 	if (bp_attach() < 0)
 	{
-		putErrmsg("Can't attach to BP.", NULL);
+		putErrmsg("[!] recvfile error: can't attach to BP.", NULL);
 		return -1;
 	}
 
 	if (bp_open(ownEid, &state.sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
-		fprintf(stderr, "Error: cannot open own endpoint: %s\n", ownEid);
+		fprintf(stderr, "[!] recvfile error: cannot open own endpoint: %s\n", ownEid);
 		status = -1;
 		goto exit;
 	}
@@ -565,7 +566,7 @@ int	main(int argc, char **argv)
 	{
 		if (bp_receive(state.sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("recvfile bundle reception failed.", NULL);
+			putErrmsg("[!] recvfile error: bundle reception failed.", NULL);
 			state.running = 0;
 			continue;
 		}
@@ -579,7 +580,7 @@ int	main(int argc, char **argv)
 		case BpPayloadPresent:
 			if (receiveFile(sdr, &dlv, overwriteFlag, keyInput) < 0)
 			{
-				putErrmsg("recvfile cannot continue.", NULL);
+				putErrmsg("[!] recvfile error: cannot continue.", NULL);
 				state.running = 0;
 			}
 

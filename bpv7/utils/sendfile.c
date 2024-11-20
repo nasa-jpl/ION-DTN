@@ -111,7 +111,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		if (!bp_parse_quality_of_service(svcClass, &ancillaryData,
 				&custodySwitch, &priority))
 		{
-			putErrmsg("Invalid class of service for sendfile.",
+			putErrmsg("[!] sendfile error: invalid class of service.",
 					svcClass);
 			PUTS("\nClass of service usage: " BP_PARSE_QUALITY_OF_SERVICE_USAGE "\n");
 
@@ -121,7 +121,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 
 	if (bp_attach() < 0)
 	{
-		putErrmsg("Can't attach to BP.", NULL);
+		putErrmsg("[!] sendfile error: can't attach to BP.", NULL);
 		return -1;
 	}
 
@@ -129,7 +129,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	{
 		if (bp_open(ownEid, &sap) < 0)
 		{
-			putErrmsg("Can't open own endpoint.", ownEid);
+			putErrmsg("[!] sendfile error: can't open own endpoint.", ownEid);
 			return -1;
 		}
 	}
@@ -142,17 +142,15 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 			bp_close(sap);
 		}
 
-		putSysErrmsg("Can't stat the file", fileName);
-		fprintf(stderr,"Error: %s not found\n", fileName);
+		putSysErrmsg("[!] sendfile error: can't stat the file", fileName);
 		return -1;
 	}
 
 	aduLength = statbuf.st_size;
 	if (aduLength == 0)
 	{
-		writeErrmsgMemos("[!] sendfile can't send file of length zero",
+		writeErrmsgMemos("[!] sendfile error: can't send file of length zero.",
 				fileName);
-		fprintf(stderr,"\nError: can't send file of length zero --> %s\n", fileName);
 		if (sap)
 		{
 			bp_close(sap);
@@ -181,10 +179,8 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	FILE *file = fopen(fileName, "rb");
 	if (!file) 
 	{
-		fprintf(stderr, "Error opening file.");
-
 		char open_file_error[256] = {0};
-		snprintf(open_file_error, sizeof(open_file_error), "[!] Sendfile: error opening file %s", fileName);
+		snprintf(open_file_error, sizeof(open_file_error), "[!] sendfile: error opening file %s.", fileName);
 
 		goto exit;
 	}
@@ -194,14 +190,19 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	fseek(file, 0, SEEK_SET);
 
 	input_buffer = (unsigned char*)MTAKE(fileSize);
+
+	if (!input_buffer)
+	{
+		writeErrMemo("[!] sendfile: memory allocation error (input_buffer).");
+		goto exit;
+	}
+
+
 	readResult = fread(input_buffer, 1, fileSize, file);
 	if (readResult != fileSize)
 	{
-		fprintf(stderr, "Error reading from %s: expected %ld, got %zu bytes.\n",
-				fileName, fileSize, readResult);
-
 		char read_failure_msg[256] = {0};
-		snprintf(read_failure_msg, sizeof(read_failure_msg), "[!] Sendfile: error reading from %s: expected %ld, got %zu bytes.\n",
+		snprintf(read_failure_msg, sizeof(read_failure_msg), "[!] sendfile: error reading from %s: expected %ld, got %zu bytes.",
 				fileName, fileSize, readResult);
 		writeErrMemo(read_failure_msg);
 
@@ -233,12 +234,24 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	{
 		aux_length = strlen(aux)+1;
 		aux_command = MTAKE(aux_length+1);
+
+		if (!aux_command)
+		{
+			writeErrMemo("[!] sendfile error: memory allocation (aux_command).");
+			goto exit;
+		}
 		memset(aux_command, 0, aux_length+1);
 		memcpy(aux_command, aux, aux_length);		
 	}
 	else
 	{
 		aux_command = MTAKE(aux_length+1);
+
+		if (!aux_command)
+		{
+			writeErrMemo("[!] sendfile error: memory allocation (aux_command).");
+			goto exit;
+		}
 		memset(aux_command, 0, aux_length+1);
 		memcpy(aux_command, "", aux_length+1);
 
@@ -253,7 +266,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	name = MTAKE(nameSize);
 	if (!name)
 	{
-		fprintf(stderr,"Error creating file name\n");
+		writeErrMemo("[!] sendfile error: memory allocation (file name).");
 		goto exit;
 	}
 
@@ -287,7 +300,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 		result = crypt_and_hash_buffer(0, (unsigned char*) randInitializer, input_buffer, (size_t *)&fileSize, &encrypted_content_buffer, &out_contentLength, CIPHER, MD, keyInput);			
 		if(result != 0)
 		{				
-			fprintf(stderr,"Encryption error.\n");
+			writeErrMemo("[!] sendfile error: encryption.");
 			goto exit;
 		}			
 		metadata.fileContent = encrypted_content_buffer;
@@ -306,9 +319,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	/* write  buffer to file */
 	if (writeBufferToFile(metadata_buffer, metabuffer_size, randInitializer) != 0)		
 	{			
-		fprintf(stderr,"Error writing meta data to file.\n");
-		writeErrMemo("[!] Sendfile: error writing meta data to file.");
-
+		writeErrMemo("[!] sendfile: error writing meta data to file.");
 		goto exit;
 	}
 
@@ -334,16 +345,16 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 			priority, ancillaryData.ordinal, ZcoOutbound, NULL);
 	if (bundleZco == 0 || bundleZco == (Object) ERROR)
 	{
-		putErrmsg("sendfile can't create ZCO.", NULL);
+		putErrmsg("[!] sendfile error: can't create ZCO.", NULL);
 	}
 	else
 	{
-		isprintf(progressText, sizeof progressText, "[i] sendfile is sending %s of size %d bytes.", fileName, aduLength);
+		isprintf(progressText, sizeof progressText, "[i] sendfile is sending %s of size %d bytes (transmitted %d total bytes)", fileName, metadata.fileContentLength, aduLength);
 		writeMemo(progressText);
 		if (bp_send(sap, destEid, NULL, ttl, priority, custodySwitch,
 			0, 0, &ancillaryData, bundleZco, &newBundle) <= 0)
 		{
-			putErrmsg("sendfile can't send file in bundle.",
+			putErrmsg("[!] sendfile error: can't send file in bundle.",
 					itoa(aduLength));
 		}
 		else
@@ -404,7 +415,7 @@ exit:
 
 	if (sdr_end_xn(sdr) < 0)
 	{
-		putErrmsg("sendfile can't destroy file reference.", NULL);
+		putErrmsg("[!] sendfile error: can't destroy file reference.", NULL);
 	}
 	if (sap)
 	{
