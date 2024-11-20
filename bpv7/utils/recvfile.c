@@ -37,7 +37,8 @@
 #define _POSIX_C_SOURCE 200112L
 #endif
 
-#define	BPRECVBUFSZ	(65536)
+//#define	BPRECVBUFSZ	(65536) // 65KB
+#define BPRECVBUFSZ (262144)  // 256KB
 
 #include "ionsec.h"
 #include <bp.h>
@@ -209,7 +210,6 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	unsigned char decryptFlag = 0; //default to no decryption
 	char randomPart[10];
 	char tmpFile[256];	
-	int offset=0; //position during file reception
 	int result; //simple status flag
 
 	int delete_on_fail = 1; //to save or not to save (encrypted file)
@@ -256,9 +256,9 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 			goto exit;
 		}
 			/* write from buffer to temp file */
-			ssize_t bytesWritten = write(fileHandle, buffer+offset, recvLength-offset );
+			ssize_t bytesWritten = write(fileHandle, buffer, recvLength );
 
-			if (bytesWritten < recvLength - offset)
+			if (bytesWritten < recvLength)
 				{
 					putSysErrmsg("recvfile: can't write to file",
 							tmpFile);
@@ -337,7 +337,6 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = writeMetaDataContentToFile(&metadata, tmpFile);
 	if (result < 0)
 	{
-		//printf("Error writing file\n");
 		writeMemo ("Error writing file");
 		//goto exit;
 	}
@@ -439,7 +438,6 @@ exit:
 
 	contentLength = 0;
 	recvLength = 0;
-	offset = 0;
 
 	/* ION */
 	if (sdr_end_xn(sdr) < 0)
