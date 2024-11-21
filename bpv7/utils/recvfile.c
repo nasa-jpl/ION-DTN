@@ -379,7 +379,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	float time_difference = (float)calculateTimeDifference(metadata.timestamp);
 
 	/* Write to application window */
-	printf("\t%d bytes in %f seconds\n", metadata.fileContentLength, time_difference/1000.0);
+	printf("\t%zu bytes in %f seconds\n", metadata.fileContentLength, time_difference/1000.0);
 
 	/* Print Aux commands (demonstration purposes only) */
 	if(metadata.aux_command_length > 0)
