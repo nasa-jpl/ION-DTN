@@ -142,14 +142,14 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	UVAST_FIELDSPEC		"%I64u"
 #define UVAST_HEX_FIELDSPEC	"%I64x"
 #define	ADDR_FIELDSPEC		"%#lx"
-#define	ADDR_FIELDSPEC_INT	"%llu"
+#define	ADDR_FIELDSPEC_INT	"%lu"
 #define ilseek(a, b, c)		lseek64(a, b, c)
 #elif (defined(new_mingw))
 #define	VAST_FIELDSPEC		"%lld"
 #define	UVAST_FIELDSPEC		"%llu"
 #define UVAST_HEX_FIELDSPEC	"%llx"
-#define	ADDR_FIELDSPEC		"%#llx"
-#define	ADDR_FIELDSPEC_INT	"%llu"
+#define	ADDR_FIELDSPEC		"%#lx"
+#define	ADDR_FIELDSPEC_INT	"%lu"
 #define ilseek(a, b, c)		lseek64(a, b, c)
 #else				/*	Not Windows.			*/
 #define	VAST_FIELDSPEC		"%lld"
