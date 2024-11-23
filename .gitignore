@@ -209,6 +209,7 @@ ion.log
 ion_nodes
 *.stdout
 out\.valgrind\.*
+**/bpacq.*
 
 # Produced test support
 tests/retest
@@ -423,6 +424,16 @@ tests/progress*
 
 # temporary test file
 bpdriverAduFile
+tests/linking/ion*links.dot
+tests/issue-330-cfdpclock-FDU-removal/1.cfdp.ipn.bp.ltp.udp/testfile
+tests/issue-352-bpcp-ltp/*.ipn.cfdp.bp.ltp/test*
+tests/loopback-*-dccp/dccptest.txt
+
+# ams test configuration file
+demos/bench-ams/node*/9.petition.log
+demos/bench-ams/node*/bench.log
+
+
 
 # psmwatch and sdrwatch log
 psmwatch.log
