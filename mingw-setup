@@ -16,9 +16,9 @@ if [ -a Makefile ] ; then
     mv Makefile Makefile.saved
 fi
 
-cp Makefile.winion Makefile
-
 ./enable_manual_build.sh
+
+cp Makefile.winion Makefile
 
 cp /bin/make.exe /bin/gmake.exe
 
