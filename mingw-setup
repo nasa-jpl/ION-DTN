@@ -18,6 +18,8 @@ fi
 
 cp Makefile.winion Makefile
 
+./enable_manual_build.sh
+
 cp /bin/make.exe /bin/gmake.exe
 
 mkdir -p /local/bin
