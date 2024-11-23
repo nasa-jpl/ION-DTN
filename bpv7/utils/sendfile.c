@@ -71,12 +71,12 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	BpAncillaryData	ancillaryData = { 0, 0, 0 };
 	BpCustodySwitch	custodySwitch = NoCustodyRequested;
 	BpSAP		sap = NULL;
-	Sdr		    sdr;
+	Sdr		    sdr = NULL;
 	Object		fileRef = 0;
 	struct stat	statbuf;
 	int		    aduLength = 0;
 	Object		bundleZco;
-	char		progressText[300];
+	char		progressText[300] = {0};
 	Object		newBundle;
 	size_t		readResult = 0;
 
@@ -142,15 +142,15 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 			bp_close(sap);
 		}
 
-		putSysErrmsg("[!] sendfile error: can't stat the file", fileName);
+		putErrmsg("[!] sendfile error: can't stat the file.", fileName);
 		return -1;
 	}
 
 	aduLength = statbuf.st_size;
 	if (aduLength == 0)
 	{
-		writeErrmsgMemos("[!] sendfile error: can't send file of length zero.",
-				fileName);
+		putErrmsg("[!] sendfile error: can't send file of length zero.", fileName);
+
 		if (sap)
 		{
 			bp_close(sap);
@@ -181,7 +181,7 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	{
 		char open_file_error[256] = {0};
 		snprintf(open_file_error, sizeof(open_file_error), "[!] sendfile: error opening file %s.", fileName);
-
+		writeErrMemo(open_file_error);
 		goto exit;
 	}
 

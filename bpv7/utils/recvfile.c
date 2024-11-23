@@ -230,7 +230,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	fileHandle = iopen(tmpFile, O_WRONLY | O_CREAT, 0666);
 	if (fileHandle < 0)
 	{
-		putSysErrmsg("[!] recvfile error: can't create temp file", tmpFile);
+		putErrmsg("[!] recvfile error: can't create temp file", tmpFile);
 		goto exit;
 	}
 
@@ -277,7 +277,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = extractMetadataFromFile(tmpFile, &metadata);
 	if(result < 0)
 	{
-		putSysErrmsg("[!] recvfile: error extracting metadata from file.", tmpFile);
+		putErrmsg("[!] recvfile: error extracting metadata from file.", tmpFile);
 		goto exit;
 	}
 
@@ -337,7 +337,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = writeMetaDataContentToFile(&metadata, tmpFile);
 	if (result < 0)
 	{
-		writeMemo ("[!] recvfile: error writing file.");
+		writeErrMemo ("[!] recvfile: error writing file.");
 		goto exit;
 	}
 
@@ -351,7 +351,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	{
 		if (generateNewFilename(&metadata) != 0) 
 		{
-			// failed to generate a new filename
+			/* failed to generate a new filename */
 			writeErrMemo("[!] recvfile error: temp filename creation.");
 			goto exit;
 		}
@@ -362,24 +362,22 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 	if(result >= 0)
 	{
-		char file_receipt_msg[256] = {0};
-		snprintf(file_receipt_msg, sizeof(file_receipt_msg), "File received: %s of size: %ld bytes (received %d total bytes).", (char *) metadata.filename, metadata.fileContentLength, contentLength);
+		char file_receipt_msg[512] = {0};
+		snprintf(file_receipt_msg, sizeof(file_receipt_msg), "File received: %s of size: " UVAST_FIELDSPEC " bytes (received %d total bytes).", (char *) metadata.filename, (uvast)metadata.fileContentLength, contentLength);
 		writeMemo(file_receipt_msg);
 
 		/* Write to application window */
+		/* 
+		float time_difference = (float)calculateTimeDifference(metadata.timestamp);
 		printf("\nFile received: %s \n", metadata.filename);
-
+		printf("\t" UVAST_FIELDSPEC " bytes in %f seconds\n", (uvast)metadata.fileContentLength, time_difference/1000.0);
+ 		*/
 	}
 	else
 	{
 		writeErrMemo("[!] recvfile error: filename NULL.");
 	}
-
-	/* time to deliver */
-	float time_difference = (float)calculateTimeDifference(metadata.timestamp);
-
-	/* Write to application window */
-	printf("\t%zu bytes in %f seconds\n", metadata.fileContentLength, time_difference/1000.0);
+	
 
 	/* Print Aux commands (demonstration purposes only) */
 	if(metadata.aux_command_length > 0)
@@ -394,7 +392,6 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 		char decryption_failure_msg[256] = {0};
 		snprintf(decryption_failure_msg, sizeof(decryption_failure_msg), "Decryption failure: %s deleted.", (char *)metadata.filename);
 		writeErrMemo(decryption_failure_msg);
-
 		cleanFile((char *)metadata.filename); //delete me
 	}
 
