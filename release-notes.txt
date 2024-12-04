@@ -1,6 +1,6 @@
-= Release Notes for ION 4.1.3 =
+= Release Notes for ION 4.1.3s =
 
-June 27, 2024
+November 27, 2024
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,112 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.3s =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Beginning with the ION 4.1.3s release, ION will include support for compilation
+with Mbed TLS cryptographic library. ION version 4.1.3s includes support for Mbed TLS version 2.28.
+
+To build this version of INB, you must have already built the Mbed TLS
+  version 2.28.x shared libraries with #define MBEDTLS_NIST_KW_C enabled (see mbedtls/include/mbedtls/config.h).
+    
+  Make sure the Mbed TLS assets are installed in /usr/local/include/ and
+  /usr/local/lib with correct permissions, or you can define alternate
+  locations by running:
+    ./configure --enable-crypto-mbedtls MBED_LIB_PATH=/path/to/libraries MBED_INC_PATH=/path/to/includes
+
+To build Mbed TLS:
+  1. Download the Mbed-TLS 2.28.2 source code.
+  2. Open mbedtls-2.28.x/include/mbedtls/config.h and uncomment the line
+    that has #define MBEDTLS_NIST_KW_C commented out by default.
+  3. Run the following commands:
+    Linux and MacOS)
+        make SHARED=1
+        sudo make install
+    Windows 7)
+        make CC="gcc -std=c99" WINDOWS_BUILD=1 SHARED=1
+        make CC="gcc -std=c99" WINDOWS_BUILD=1 install
+        * NOTE: this should install things in /msys/local which is okay
+
+To compile ION with MBEDTLS_SUITES configure with:
+  ./configure --enable-crypto-mbedtls
+  
+To enable BPSec logging (recommended for verification of BPSec functionality and required by BPSec regression tests) 
+    use the following configuration flag:
+    --enable-bpsec-debugging
+
+The following code changes have been made to support this option:
+  * Added ici/MBEDTLS_SUITES folder.
+  * Updated configure.ac and Makefile.am to allow for linking against
+    MBEDTLS libraries.
+
+
+Branches included in this release:
+
+update-4.1.3s-ion-documentation
+  * Update ION documentation files.
+
+update-4.1.3s-bpcounter-delivery-release
+  * Updates the bpcounter.c program so it releases the pilot bundle.
+
+update-4.1.3s-dtnnone-vulnerability
+  * Addresses a vulnerability that freezes ION if a bundle with
+    null-endpoint were injected into ION node.
+
+update-4.1.3s-imc-pnb-extblock-crash
+  * Fixes a vulnerability when a pnb extension block contains invalid eid
+    (or say imc scheme for a node that does not recognize it) causing a crash
+    of the bundle acquisition process.
+
+update-4.1.4-test-suite
+  * General improvements to the test scripts.
+
+update-4.1.3s-cgrfetch
+  * Fixes a segfault at the end of cgrfetch call.
+
+update-4.1.3s_libmetadata_libsecypt
+  * Includes branch update-4.1.3s_bpsec_updates and also update-4.1.3s_secfix_testfix
+
+feature-msys2-update
+  * Adds autoconf build process for Windows 10 using msys2 and mingw64.
+  * This update is experimental and has not been tested against MBEDTLS_SUITES
+    (just NULL crypto suites).
+
+update-4.1.3s-bpcp-and-test
+  * Support for how ion-core builds bpcp.
+  * Creates tests that can imported into ion-core for LTP and STCP
+    convergence layers.
+
+4.1.3s_makefile_correction
+  * Remove incorrect inclusions of libsecrypt and libmetadata from libbp.
+
+update-4.1.4-extension-block-crc16
+  * Turn on CRC16 for all blocks.
+
+bpsec-fixes-5-27-2024
+  * APL fix for a specific case where BPSec may allow a bundle to fail BIB/BCB
+    but still be accepted.
+  * Allow relay nodes not to have a policy.
+
+bpsec-fix-1-June-2024
+  * Fix accounting issue with ZCO when using BIBE with BPSec.
+
+update-4.1.4-ionstart-upgrade
+  * Update start script to support syntax that allows multiple ionrc files
+    to be specified.
+
+update-4.1.4-bssrecv
+  * Updates to bssrecv program and documentation.
+
+integration-4.1.3s-util-signals-fix
+  * Added signal handler for SIGINT to properly shut down child processes.
+  * Added signal handler for SIGTERM for graceful termination of the process.
+
+integration-4.1.3s-smart-file-update
+  * Updated smart file transfer utilities with file size reporting and improved 
+  message logging.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.3 =
