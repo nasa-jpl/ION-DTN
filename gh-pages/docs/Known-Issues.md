@@ -102,9 +102,9 @@ Each patch is described as follows:
 
 | Issue Date | Issue # | Issue Description | Patch | From ION ver. | To ION ver. |
 |------------|---------|-------------------|-------|-----|-----|
-| TBD | 33 | bpv7 extension block CRC failure | TBD | 4.1.3 | 4.1.4 |
+| 5/30/2024 | 33 | bpv7 extension block CRC failure | deferred to 4.1.3s | 4.1.3 | 4.1.3s |
 
-## Security Advvisories
+## Security Advisories
 
 The following security advisories are associated with ION:
 
