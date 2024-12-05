@@ -72,7 +72,7 @@ Features included:
 Beginning with the ION 4.1.3s release, ION will include support for compilation
 with Mbed TLS cryptographic library. ION version 4.1.3s includes support for Mbed TLS version 2.28.
 
-To build this version of INB, you must have already built the Mbed TLS
+To enable use of Mbed TLS cryptogrpahic library in ION, you must have already built the Mbed TLS
   version 2.28.x shared libraries with #define MBEDTLS_NIST_KW_C enabled (see mbedtls/include/mbedtls/config.h).
     
   Make sure the Mbed TLS assets are installed in /usr/local/include/ and
@@ -105,6 +105,9 @@ The following code changes have been made to support this option:
   * Updated configure.ac and Makefile.am to allow for linking against
     MBEDTLS libraries.
 
+ION 4.1.3s provides a 'enable_manual_build.sh' script that switches ION from autoconf build system (the default)
+to the manual developmental build system based consisting of a Makefile at the root of ION source tree and a set of Makefiles
+under the directories of individual components of ION. See the online documentation for more details.
 
 Branches included in this release:
 
