@@ -216,6 +216,7 @@ The ION distribution provides a set of Makefiles that does not rely on the autom
 
 Currently, the only actively maintained platform-specific development Makefile set is for 64-bits Linux under the "i86_48-fedora" folder in each module. If you choose this option, be aware of the following limitations:
 
+For ION 4.1.1, 4.1.2 and 4.1.3:
 * The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_48-fedora" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
   * If you used the automake system and want to revert to the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo. 
 * The development Makefiles, as they are, provides only the default compilation options  - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass a `ADD_FLAGS` argument to the `make all` command.
@@ -240,6 +241,11 @@ To uninstall ION, run:
 To remove all build artifacts, run:
 
 `make clean`
+
+For ION 4.1.3s and later:
+
+* ION will be released without any Makefile. The default build method is automake. You run `./configure` command, to create a single Makefile in the ION root directory.
+* If you want to switch to use the development Makefiles, you need to first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can run the script `enable_manaul_build.sh` to clear the automake build system and replace it with the development Makefiles.
 
 ##### Build Individual Packages
 

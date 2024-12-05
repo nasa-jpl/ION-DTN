@@ -104,5 +104,10 @@ Each patch is described as follows:
 |------------|---------|-------------------|-------|-----|-----|
 | TBD | 33 | bpv7 extension block CRC failure | TBD | 4.1.3 | 4.1.4 |
 
+## Security Advvisories
 
+The following security advisories are associated with ION:
+
+- [CVE-2024-54130](https://github.com/nasa-jpl/ION-DTN/security/advisories/GHSA-7pj7-hfwv-q3v6) - fixed in 4.1.3s
+- [CVE-2024-54129](https://github.com/nasa-jpl/ION-DTN/security/advisories/GHSA-393w-w6jh-pq3j) - fixed in 4.1.3s
 
