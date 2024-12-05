@@ -274,7 +274,7 @@ int cut_get_cbor_numeric(QCBORDecodeContext *it, amp_type_e type, void *val)
            if(item.uDataType == QCBOR_TYPE_UINT64 || (item.uDataType == QCBOR_TYPE_INT64 && item.val.int64 >= 0))
 			{
 				uint64_t tmp = item.val.uint64;
-				*(size_t*)val = (size_t) tmp;
+				*(uaddr*)val = (uaddr) tmp;
 			}
 			else
 			{
