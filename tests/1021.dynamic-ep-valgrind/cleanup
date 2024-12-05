@@ -1,2 +1,19 @@
 #!/bin/bash
-rm -f ion.log ionreceivefile.txt ionsendfile.txt
+# Pattern to match the Valgrind processes
+pattern="valgrind.bin --suppressions=valgrind.suppressions.ionstart"
+
+# Use pgrep with full pattern matching to find PIDs of processes matching the pattern
+pids=$(pgrep -f "$pattern")
+
+# Check if any PIDs were found
+if [ -z "$pids" ]; then
+    echo "All Valgrind processes ended...."
+else
+    # If PIDs were found, loop through each PID and kill the process
+    for pid in $pids; do
+        echo "Killing process $pid..."
+        kill -9 $pid
+    done
+fi
+
+rm -f ion.log ionreceivefile.txt ionsendfile.txt out.* ionexpectedfile.txt

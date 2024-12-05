@@ -53,6 +53,7 @@ function getStatsCounter() {
 	grep "$TYPE from [0-9]" "$FILE" | tail -n 1 | sed "s/^.*($PRI) *\\([0-9]*\\)  *\\([0-9]*\\).*$/\\1/"
 }
 
+killm
 ./cleanup
 sleep 1
 
@@ -385,15 +386,15 @@ bplist
 echo ""
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../2.ipn.tcp
-./ionstop &
-cd ../3.ipn.tcp
-./ionstop &
-cd ../5.ipn.tcp
-./ionstop &
+#cd ../2.ipn.tcp
+#./ionstop &
+#cd ../3.ipn.tcp
+#./ionstop &
+#cd ../5.ipn.tcp
+#./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
-sleep 5
+sleep 3
 killm
 echo "Limbo test completed."
 exit $RETVAL

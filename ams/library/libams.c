@@ -582,12 +582,12 @@ static UnmarshalFn	findUnmarshalFn(Subject *subject)
 
 static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 {
-	char		*newContent;
-	int		newContentLength;
-	UnmarshalFn	unmarshal;
-	char		keyBuffer[512];
-	int		keyBufferLength = sizeof keyBuffer;
-	int		keyLength;
+	char        *newContent = NULL;
+	int	        newContentLength = 0;
+	UnmarshalFn	unmarshal = NULL;
+	char        keyBuffer[512] = {0};
+	int	        keyBufferLength = sizeof keyBuffer;
+	int	        keyLength = 0;
 
 	/*	Decrypt content as necessary.				*/
 
@@ -630,7 +630,7 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 			return -1;
 		}
 	}
-
+	RELEASE_CONTENT_SPACE (msg->content);
 	msg->content = newContent;
 	msg->contentLength = newContentLength;
 
@@ -657,13 +657,20 @@ static int	recoverMsgContent(AmsSAP *sap, AmsMsg *msg, Subject *subject)
 	if (newContentLength == 0)
 	{
 		putErrmsg("Can't unmarshal AAMS msg content.", subject->name);
+		
 		RELEASE_CONTENT_SPACE(msg->content);
 		msg->content = NULL;
+
+		RELEASE_CONTENT_SPACE (newContent); 
+		newContent = NULL;
+
 		return -1;
 	}
 
+	RELEASE_CONTENT_SPACE(msg->content);
 	msg->content = newContent;
 	msg->contentLength = newContentLength;
+
 	return 0;
 }
 
@@ -940,17 +947,17 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 			int *contentLength, unsigned char *header,
 			AmsMsgType msgType)
 {
-	int		myContinNbr = (_mib(NULL))->localContinuumNbr;
-	unsigned long	u8;
-	unsigned char	u1;
-	short		i2;
-	Subject		*subject;
-	MarshalFn	marshal;
-	char		*newContent;
-	int		newContentLength;
-	char		keyBuffer[512];
-	int		keyBufferLength = sizeof keyBuffer;
-	int		keyLength;
+	int              myContinNbr = (_mib(NULL))->localContinuumNbr;
+	unsigned long    u8 = 0;
+	unsigned char    u1 = 0;
+	short       i2 = 0;
+	Subject     *subject = NULL;
+	MarshalFn   marshal = NULL;
+	char        *newContent = NULL;
+	int	        newContentLength = 0;
+	char        keyBuffer[512] = {0};
+	int	        keyBufferLength = sizeof keyBuffer;
+	int	        keyLength = 0;
 
 	/*	First octet is two bits of version number (which is
 	 *	always 00 for now) followed by two bits of message
@@ -1027,8 +1034,7 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		memcpy(newContent, *content, *contentLength);
 	}
 
-	*content = newContent;
-	*contentLength = newContentLength;
+
 
 	/*	Encrypt content as necessary.				*/
 
@@ -1036,6 +1042,11 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 		/*	If message needs encryption, it's already done.	*/
 	|| subject->symmetricKeyName == NULL)	/*	no encryption	*/
 	{
+
+    MRELEASE(content);
+	*content = newContent;
+	*contentLength = newContentLength;
+
 		*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
 		*(header + 15) = (*contentLength) & 0x000000ff;
 		return 0;	/*	Content is ready to send.	*/
@@ -1047,8 +1058,14 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	{
 		putErrmsg("Can't fetch symmetric key.",
 				subject->symmetricKeyName);
+		
+		//memory cleanup
 		MRELEASE(*content);
 		*content = NULL;
+
+		MRELEASE(newContent);
+		newContent = NULL;
+
 		return -1;
 	}
 
@@ -1057,12 +1074,18 @@ static int	constructMessage(AmsSAP *sap, short subjectNbr, int priority,
 	if (newContentLength == 0)
 	{
 		putErrmsg("Can't encrypt AAMS msg content.", subject->name);
+		
 		MRELEASE(*content);
 		*content = NULL;
+
+		MRELEASE(newContent);
+		newContent = NULL;
+
 		return -1;
 	}
-
+	MRELEASE(*content);
 	*content = newContent;
+
 	*contentLength = newContentLength;
 	*(header + 14) = ((*contentLength) >> 8) & 0x000000ff;
 	*(header + 15) = (*contentLength) & 0x000000ff;

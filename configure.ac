@@ -8,8 +8,7 @@
 
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 4.1.3, ion-dtn-support@lists.sourceforge.net)
-IS_NASA_B=0
+AC_INIT(ion, open source 4.1.3s, ion-dtn-support@lists.sourceforge.net)
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -21,17 +20,6 @@ AM_INIT_AUTOMAKE([subdir-objects -Wall foreign])
 AC_CONFIG_SRCDIR([ici/include/ion.h])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
-
-
-# Moving developmental Makefiles out of the way if the user builds with autoconf
-echo "Moving developmental Makefiles to Makefile.dev"
-MAKEFILES=`find . -name 'Makefile'`
-for f in $MAKEFILES; do 
-	if [[ "$f" != "./Makefile" ]]; then
-		mv $f "$f.dev"
-	fi
-done
-
 
 
 ## -----checking wsl type------------------------------------------------------------------- ##
@@ -90,11 +78,13 @@ AM_CFLAGS=""
 AM_LDFLAGS=""
 AM_LIBTOOLFLAGS=""
 PLATFORM=""
+S_LIB_END="so"
 case $host_os in
 	darwin*)
 		AC_DEFINE([darwin],[1],[Build Darwin specific platform code.])
 		AC_DEFINE([unix],[1],[Build Unix specific platform code.])
 		PLATFORM="darwin"
+		S_LIB_END="dylib"
 		if test $host_cpu = "x86_64" ; then
 			AM_CFLAGS="$AM_CFLAGS -Dunix -Ddarwin -DSPACE_ORDER=3 -m64 "
 			echo "Build 64-bit Darwin specific platform code."
@@ -130,6 +120,7 @@ case $host_os in
 		;;
 	mingw*|cygwin*)
 		AC_DEFINE([mingw],[1],[Build Mingw specific platform code.])
+		AC_DEFINE([new_mingw],[1],[Build Mingw/Msys2 specific platform code.])
 		PLATFORM="mingw"
                 AM_CFLAGS="$AM_CFLAGS -Dmingw"
                 build_windows=yes
@@ -221,7 +212,7 @@ AM_CONDITIONAL(ENABLE_BPACS, test "x$ENABLE_BPACS" = "xyes")
 AC_ARG_ENABLE(
     bpv6,
     [AC_HELP_STRING([--enable-bpv6], [force build of bpv6])],
-    [VER="4.1.3"
+    [VER="4.1.3s"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv6"
      BUILD_BPv6=true
@@ -233,7 +224,7 @@ AC_ARG_ENABLE(
 		no)  ENABLE_BPACS=no;;
      esac
      echo "Building ION with BP version 6"],
-    [VER="4.1.3"
+    [VER="4.1.3s"
      VER="-DVNAME=ION-OPEN-SOURCE-$VER"
      AM_CFLAGS="$AM_CFLAGS $VER -DBUILD_BPv7"
      BUILD_BPv7=true
@@ -336,9 +327,24 @@ AC_ARG_ENABLE(
 #
 AC_ARG_ENABLE(
     bpsec-debugging,
-    [AC_HELP_STRING([--enable-bpsec-debugging], [Enable bpsec debugging])],
-    [AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_DEBUG_LVL=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_DEBUG_LVL=1 -DBIB_TEST_LOGGING=1"
-     ENABLE_BPSEC_DEBUGGING=yes],
+    [AC_HELP_STRING([--enable-bpsec-debugging], [Enable bpsec debugging. Defaults to level 4, use "--enable-bpsec-debugging=num" to choose level.])],
+    [case "${enableval}" in
+		1) echo "BPSEC Debugging enabled. Using level 1."
+		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=1 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+		   ENABLE_BPSEC_DEBUGGING=yes;;
+		2) echo "BPSEC Debugging enabled. Using level 2."
+		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=2 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+    	   ENABLE_BPSEC_DEBUGGING=yes;;
+		3) echo "BPSEC Debugging enabled. Using level 3."
+		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=3 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+    	   ENABLE_BPSEC_DEBUGGING=yes;;
+		4) echo "BPSEC Debugging enabled. Using level 4."
+		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+    	   ENABLE_BPSEC_DEBUGGING=yes;;
+		*) echo "BPSEC Debugging enabled. Defaulting to level 4."
+		   AM_CFLAGS="$AM_CFLAGS -DBPSEC_DEBUGGING=1 -DBPSEC_DEBUG_LVL=4 -DBCB_DEBUGGING=1 -DBCB_TEST_LOGGING=1 -DBIB_DEBUGGING=1 -DBIB_TEST_LOGGING=1"
+		   ENABLE_BPSEC_DEBUGGING=yes;;
+	 esac],
     [])
 
 #
@@ -395,31 +401,46 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(BUILD_CONTRIB, test "x$BUILD_CONTRIB" = "xyes")
 
 #
-# Allow user to disable crypto... if crypto is even enabled
+# Allow user to enable crypto
 #
-if test "$IS_NASA_B" = "1"; then
-	# To Disable crypto, use "./configure --disable-crypto"
-	AC_ARG_ENABLE([crypto],
-		[  --disable-crypto    Turn off cryptography],
-		[case "${enableval}" in
-			yes) crypto=true ;;
-			no)  crypto=false ;;
-		*) AC_MSG_ERROR([bad value ${enableval} for --disable-crypto]) ;;
-		esac],[crypto=true])
+# To Enable crypto, use "./configure --enable-crypto-mbedtls"
+AC_ARG_ENABLE(
+	crypto-mbedtls,
+	[AC_HELP_STRING([--enable-crypto-mbedtls],[Turn on cryptography using MBEDTLS])],
+	[CRYPTO_MBEDTLS=true
+	 AM_CFLAGS="$AM_CFLAGS -DMBEDTLS_CRYPTO_SUITES"],
+	[echo "MBEDTLS Crypto disabled, building with NULL SUITES."
+	 CRYPTO_MBEDTLS=false
+	 AM_CFLAGS="$AM_CFLAGS -DNULL_CRYPTO_SUITES"])
 
-	AM_CONDITIONAL([CRYPTO], [test x$crypto = xtrue])
+AM_CONDITIONAL([CRYPTO_MBEDTLS], [test "x$CRYPTO_MBEDTLS" = "xtrue"])
 
-	if test x$crypto = xtrue; then
-		echo ""
-		#DoStuff
-	else
-		AC_SUBST( [CRYPTO_LIBS], [""] )
-	fi
+if test x$CRYPTO_MBEDTLS = xtrue; then
+	echo "------------------------------------------"
+	echo "Turning on MBEDTLS Crypto"
+	echo "------------------------------------------"
 
-	AC_DEFINE([NASA_PROTECTED_FLIGHT_CODE],[1],[Build ION NASA protected flight code])
+		if [[ ! -v MBED_LIB_PATH ]] ; then
+			MBED_LIB_PATH="/usr/local/lib"
+		fi
+
+		if [[ ! -v MBED_INC_PATH ]] ; then
+			MBED_INC_PATH="/usr/local/include"
+		fi
+
+		AC_CHECK_FILES(
+		[$MBED_LIB_PATH/libmbedtls.$S_LIB_END $MBED_LIB_PATH/libmbedx509.$S_LIB_END $MBED_LIB_PATH/libmbedcrypto.$S_LIB_END],
+		[CRYPTO_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto -L$MBED_LIB_PATH"
+		 AM_CFLAGS="$AM_CFLAGS -I$MBED_INC_PATH"],
+		[AC_MSG_WARN([If you have MbedTLS installed in a non-standard location, add MBED_LIB_PATH=<path-to-mbedtls-sharedlibrary> and MBED_INC_PATH=<path-to-mbedtls-header-files> to the ./configure command line.])
+		 AC_MSG_ERROR([You need to have the MbedTLS dynamic library installed or use --disable-crypto.])]
+		)
+
+	#AC_DEFINE([CRYPTO_MBEDTLS],1, [Enable MBEDTLS Crypto])
+	AC_SUBST( [CRYPTO_MBEDTLS], ["1"])
 else
-	AM_CONDITIONAL([CRYPTO], [false])
 	AC_SUBST( [CRYPTO_LIBS], [""] )
+	AC_SUBST( [CRYPTO_MBEDTLS], ["0"])
 fi
 
 #
@@ -480,8 +501,8 @@ AM_CONDITIONAL([ENABLE_EXPAT], [test "x$expat" = "xyes"])
 #
 # If valgrind is present, allow special MTAKE/MRELEASE valgrind tutors.
 #
-AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--disable-valgrind],[Do not enable valgrind debugging [default=check]]),
-              [ ], [ enable_valgrind=check ])
+AC_ARG_ENABLE([valgrind], AC_HELP_STRING([--enable-valgrind],[Enable valgrind debugging [default=check]]),
+              [ enable_valgrind=yes], [ enable_valgrind=check ])
 
 if test "x$enable_valgrind" != xno; then
   AC_CHECK_HEADER(valgrind/valgrind.h,
@@ -722,7 +743,6 @@ AC_CHECK_FUNCS([alarm ftruncate getcwd gethostbyaddr gethostbyname gethostname g
 AC_SUBST([AM_LDFLAGS],"$AM_LDFLAGS")
 AC_SUBST([AM_CFLAGS],"$AM_CFLAGS")
 AC_SUBST([AM_LIBTOOLFLAGS],"$AM_LIBTOOLFLAGS")
-AM_CONDITIONAL([ION_NASA_B],[test "$IS_NASA_B" = "1"])
 AM_CONDITIONAL([LINUX_BUILD], [test "x$PLATFORM" = "xlinux"])
 AM_CONDITIONAL([SOLARIS_STUDIO_CC], [test "$BUILD_32_ON_64_SOLARIS" = "1"])
 AM_CONDITIONAL([WINDOWS], [test "$build_windows" = "yes"])

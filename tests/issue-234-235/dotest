@@ -28,8 +28,8 @@ echo
 echo "PURPOSE: To test the elimination of bug issues 234 & 235; both having
 	to do with mutex bugs in PSM and SDR. This scripts starts ION on 3 
 	nodes, and then uses bpdriver/bpcounter streaming mode to transfer
-	10000 bundles with custody transfer. Node 1 runs bpdriver and Node 3
-	runs bpcounter. If node 3 receives all the bundles the test passes."
+	10000 bundles.  Node 1 runs bpdriver and Node 3 runs bpcounter. If 
+	node 3 receives all the bundles the test passes."
 echo
 echo "CONFIG: 3 node custom configuration:"
 echo
@@ -49,10 +49,11 @@ echo "########################################"
 BUNDLEMESSAGE="Bundles received: 10000"
 BPDRIVERFILE=./bpdriver.txt
 BPCOUNTERFILE=./bpcounter.txt
+killm
+./cleanup
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -rf ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.tcp
@@ -61,6 +62,7 @@ cd ../2.ipn.tcp
 ionadmin host2.ionrc
 cd ../3.ipn.tcp
 ionadmin host3.ionrc
+sleep 3
 
 cd ../1.ipn.tcp
 ionsecadmin host1.ionsecrc
@@ -68,13 +70,17 @@ cd ../2.ipn.tcp
 ionsecadmin host2.ionsecrc
 cd ../3.ipn.tcp
 ionsecadmin host3.ionsecrc
+sleep 3
 
 cd ../1.ipn.tcp
 bpadmin host1.bprc
+sleep 5
 cd ../2.ipn.tcp
 bpadmin host2.bprc
+sleep 5
 cd ../3.ipn.tcp
 bpadmin host3.bprc
+sleep 5
 
 # start bpcounter on node 3
 cd ../3.ipn.tcp
@@ -93,7 +99,7 @@ sleep 1
 bpdriver 10000 ipn:1.1 ipn:3.1 -100 > $BPDRIVERFILE &
 BPDRIVERPID=$!
 
-echo "Waiting..."
+echo "Waiting 180 seconds..."
 sleep 180
 
 echo "Killing bpdriver if it is still running..."
@@ -105,17 +111,16 @@ sleep 1
 kill -9 $BPCOUNTERPID >/dev/null 2>&1
 
 # Shut down ION processes.
-echo "Stopping ION..."
-cd ../1.ipn.tcp 
-./ionstop &
-cd ../2.ipn.tcp 
-./ionstop &
-cd ../3.ipn.tcp 
-./ionstop &
+#echo "Stopping ION..."
+#cd ../1.ipn.tcp 
+#./ionstop &
+#cd ../2.ipn.tcp 
+#./ionstop &
+#cd ../3.ipn.tcp 
+#./ionstop &
 
 # Give all three nodes time to shut down, then clean up.
-sleep 8
-killm
+#sleep 8
 
 echo "Verifying results..."
 cd ../3.ipn.tcp
@@ -127,5 +132,8 @@ else
     echo "OK: bpcounter/bpdriver successful!"
     RETVAL=0
 fi
+
+echo "Stopping ION..."
+killm
 
 exit $RETVAL

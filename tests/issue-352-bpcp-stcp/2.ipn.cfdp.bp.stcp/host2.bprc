@@ -1,0 +1,14 @@
+#Issue 352-BPCP
+#Samuel Jero
+#April 15, 2012
+#Host 2
+1
+a scheme ipn 'ipnfw' 'ipnadminep'
+a endpoint ipn:2.1 x
+a endpoint ipn:2.64 x
+a endpoint ipn:2.65 x
+a protocol stcp 1400 100
+a induct stcp 127.0.0.1:2556 stcpcli
+a outduct stcp 127.0.0.1:1556 stcpclo
+a outduct stcp 127.0.0.1:3556 stcpclo
+s

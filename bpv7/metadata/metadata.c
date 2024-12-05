@@ -46,9 +46,16 @@
  * @copyright 2024, California Institute of Technology. All rights reserved.
  */
 
+#ifndef darwin
+#ifndef freebsd
+#define _GNU_SOURCE
+/* macos/darwin and freebsd handle this differently */
+#define _POSIX_C_SOURCE 200112L
+#endif
+#endif
 
-#define _POSIX_C_SOURCE 200112L //POSIX 2001 compliance check
 #include "metadata.h"
+#include <bp.h>
 
 
 /******************************************************************************/
@@ -83,7 +90,7 @@ unsigned char *createBufferFromMetadata(Metadata *meta, size_t *offset)
             auxTypeSize + fileTypeLength + fileTypeSize + fileNameLength +
             fileNameTypeSize + contentLength + contentTypeSize;
 
-    unsigned char* my_buffer = (unsigned char*)malloc(bufferSize);
+    unsigned char* my_buffer = (unsigned char*)MTAKE(bufferSize);
     if (!my_buffer) 
     {
         fprintf(stderr, "Buffer memory allocation failed!\n");        
@@ -296,13 +303,17 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
     offset += bytes_read;
 
     fseek(file, offset, SEEK_SET);
-    meta->aux_command = malloc(meta->aux_command_length); //free me   
-    if(meta->aux_command == NULL)
+    if (meta->aux_command_length > 0)
     {
-        return -1;
+        meta->aux_command = MTAKE(meta->aux_command_length); //free me   
+        if(meta->aux_command == NULL)
+        {
+            return -1;
+        }
+        bytes_read = fread(meta->aux_command, 1, meta->aux_command_length, file);
+        offset += bytes_read;
     }
-    bytes_read = fread(meta->aux_command, 1, meta->aux_command_length, file);
-    offset += bytes_read;
+    
 
 
     /*file type*/
@@ -311,7 +322,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
     offset += bytes_read;
 
     fseek(file, offset, SEEK_SET);
-    meta->filetype = malloc(meta->filetypeLength); //free me
+    meta->filetype = MTAKE(meta->filetypeLength); //free me
     if(meta->filetype == NULL)
     {
         return -1;
@@ -326,7 +337,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
     offset += bytes_read;
 
     fseek(file, offset, SEEK_SET);
-    meta->filename = malloc(meta->fileNameLength); //free me
+    meta->filename = MTAKE(meta->fileNameLength); //free me
     if(meta->filename == NULL)
     {
         return -1;
@@ -340,7 +351,7 @@ int extractMetadataFromFile(const char *filename, Metadata *meta)
     bytes_read = fread(&meta->fileContentLength, 1, contentTypeSize, file);
     offset += bytes_read;
 
-    meta->fileContent = malloc(meta->fileContentLength); //free me
+    meta->fileContent = MTAKE(meta->fileContentLength); //free me
     if(meta->fileContent == NULL)
     {
         return -1;
@@ -511,10 +522,10 @@ int generateNewFilename(Metadata *metadata)
 
     } while (1);
 
-    free(metadata->filename);
+    MRELEASE(metadata->filename);
 
     size_t newLength = strlen(newFilename) + 1;
-    metadata->filename = (unsigned char *)malloc(newLength);
+    metadata->filename = (unsigned char *)MTAKE(newLength);
     if (!metadata->filename) 
     {
         return -1; //allocation failed
@@ -647,7 +658,7 @@ char** parseCommandString(const char* inputString, int* count)
 {
     char* str = myStrdup(inputString);
     int capacity = 5;
-    char** result = malloc(capacity * sizeof(char*));
+    char** result = MTAKE(capacity * sizeof(char*));
     *count = 0;
     char* token = strtok(str, ",");
 
@@ -668,7 +679,7 @@ char** parseCommandString(const char* inputString, int* count)
         token = strtok(NULL, ",");
     }
 
-    free(str);
+    MRELEASE(str);
     return result;
 
 } //end parseCommandString--->///
@@ -690,10 +701,10 @@ void executeAndFreeCommands(char** commands, int commandCount)
             printf(", "); //print after all but last
         }
         fflush(stdout);
-        free(commands[i]);
+        MRELEASE(commands[i]);
     }
     printf("\n");
-    free(commands);
+    MRELEASE(commands);
 
 } //end executeAndFreeCommands--->///
 
@@ -704,7 +715,7 @@ void executeAndFreeCommands(char** commands, int commandCount)
 char* myStrdup(const char* s) 
 {
     size_t len = strlen(s) + 1; //+1 for null terminator
-    char* new_str = malloc(len);
+    char* new_str = MTAKE(len);
     if (new_str == NULL) return NULL; //check malloc's return value
     return memcpy(new_str, s, len);
 

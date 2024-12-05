@@ -43,6 +43,7 @@ done
 echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
+killm
 ./cleanup
 export ION_NODE_LIST_DIR=$PWD
 RETVAL=1
@@ -85,9 +86,6 @@ else
 	RETVAL=0
 fi
 
-bpadmin .
-sleep 1
-ionadmin .
-sleep 1
+echo "Stopping ION..."
 killm
 exit $RETVAL

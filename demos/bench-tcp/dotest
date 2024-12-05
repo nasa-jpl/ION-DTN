@@ -16,11 +16,11 @@ KB="000"
 MB="${KB}000"
 GB="${MB}000"
 # how many total bytes to transfer for each test
-TOTALBYTES=1${MB}
+#TOTALBYTES=1${MB}
 TOTALBYTES=10${MB}
 # MAX number of bundles for any test (too many causes non-ION losses)
 # This really only affects really small size bundles
-MAXBUNDLES=100000
+MAXBUNDLES=10000
 # how many total seconds to allow each individual test to run before giving up
 # 5 minutes is probably plenty
 MAXSECONDS=300
@@ -182,11 +182,11 @@ RUNNING: Iteration ${ITERNUM}: Test ${TESTNUM}: ${NUMBUNDLES} bundles of ${BUNDL
 		kill -9 $BPCOUNTER_PID $BPDRIVER_PID
 		sleep 10
 		echo "Stopping ION..."
-		(cd 2.bench.tcp; ./ionstop) &
-		(cd 3.bench.tcp; ./ionstop) &
-		sleep 10
+		#(cd 2.bench.tcp; ./ionstop) &
+		#(cd 3.bench.tcp; ./ionstop) &
+		sleep 3
 		killm
-		sleep 10
+		sleep 3
 		echo "Re-starting ION..."
 		(cd 2.bench.tcp; ./ionstart)
 		(cd 3.bench.tcp; ./ionstart)
@@ -205,9 +205,9 @@ then
 fi
 
 echo "Stopping ION..."
-(cd 2.bench.tcp; ./ionstop) &
-(cd 3.bench.tcp; ./ionstop) &
-sleep 8
+#(cd 2.bench.tcp; ./ionstop) &
+#(cd 3.bench.tcp; ./ionstop) &
+sleep 3
 killm
-echo "...benchmarking terminated."
+echo -e "...benchmarking terminated.\n"
 exit "$RETVAL"

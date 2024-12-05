@@ -1,0 +1,105 @@
+site_name: ION-DTN Open Source Documentation
+site_url: https://ion-dtn.readthedocs.org
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline 
+        name: Switch to dark mode
+      primary: blue
+      accent: purple 
+    - scheme: slate 
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode    
+      primary: blue
+      accent: lime
+
+extra_css:
+  - assets/css/custom.css
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.mark
+  - attr_list
+
+copyright:
+  Copyright (c) 2002-2011, California Institute of Technology. All rights reserved.  
+
+nav:
+  - ION Overview:
+    - Introduction: index.md
+    - Quick Start: ION-Quick-Start-Guide.md
+    - ION Deployment Guide: ION-Deployment-Guide.md
+    - ION Design & Operation Manual: ION-Guide.md
+    - Watch Characters: ION-Watch-Characters.md
+    - AMS Programmer's Guide: AMS-Programmer-Guide.md
+    - Use Cases: Use-Cases.md
+    - Publications/Documents: List-of-Papers.md
+    - Contribute Code: community/Contributing-Code-to-ION.md
+    - ION Test Set: ION-TestSet-Readme.md
+    - ION Tutorials: ION-Tutorials.md
+  - Configuration:
+    - Basic Configuration Tutorial: Basic-Configuration-File-Tutorial.md
+    - Configuration Templates: ION-Config-File-Templates.md
+    - Multi-network Configuration: Configure-Multiple-Network-Interfaces.md
+    - LTP Configuration Tool: Using-LTP-Config-Tool.md
+    - ION Launcher Script: ION-Launcher.md
+    - Knowledge Base, Issues & Patches: Known-Issues.md
+    - Standard Operations Procedure: SOP-for-ION.md
+  - ION APIs:
+    - ION Design & API Overview: ION-Design-and-API-Overview.md
+    - ION Infrastructure API: ICI-API.md
+    - ION Application Service Interface: ION-Application-Service-Interface.md
+    - BP Service API: BP-Service-API.md
+    - LTP Underlying Communications API: LTP-UComm-API.md
+    - CLA API: CLA-API.md
+    - Extension Block Interface: Extension-Block-Interface.md
+    - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
+    - ION Utility Programs: ION-Utilities.md
+    - ION Coding Guide: ION-Coding-Guide.md
+  - Man Pages:
+    - Man Pages: Man-Page-Introduction.md
+    - Asychronous Messaging System (AMS): man/ams/index.md
+    - Bundle Protcool v7 (BPv7): man/bpv7/index.md
+    - Bundle Protocol v6 (BPv6): man/bpv6/index.md
+    - Bundle Streaming Service (BSS): man/bss/index.md
+    - Bundle Streaming Service (Test Utility) Protocol (BSSP): man/bssp/index.md
+    - CCSDS File Delivery Protocol (CFDP): man/cfdp/index.md
+    - Datagram Retransmission System (DGR): man/dgr/index.md
+    - Delay Tolerant Payload Conditioning (DTPC): man/dtpc/index.md
+    - Interplanetary Communications Infrastructure (ICI): man/ici/index.md
+    - Licklider Transmission Protocol (LTP): man/ltp/index.md
+    - Network Management Agent for Asynchronous Management Protocol (AMP): man/nm/index.md
+    - ION Node Restart Utility: man/restart/ionrestart.md
+    - Delay Tolerant Key Administration: man/tc/index.md
+  - Cloud Deployment:
+      Running 1 ION Node on Cloud VM: community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md
+      Running 2 ION Node on Cloud VM: community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md
+      ION and IOT: community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing.md
+      LTP and TCP on Azure: community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure.md
+      Multicast: community/dtn-multicasting-main/Multicasting-over-ION.md
+      Video Intelligence: community/dtn-video-intelligence-main/Video-Intelligence.md
+
+      

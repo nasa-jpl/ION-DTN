@@ -108,7 +108,9 @@ static int	run_sdrwatch(char *sdrName, char *mode, int interval,
 		}
 	}
 
+	isignal(SIGTERM, handleQuit);
 	isignal(SIGINT, handleQuit);
+	
 	while (sdrwatch_count(NULL) > 0)
 	{
 		secRemaining = interval;

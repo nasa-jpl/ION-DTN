@@ -137,10 +137,17 @@ typedef long long		vast;
 typedef unsigned long long	uvast;
 typedef long			saddr;	/*	Pointer-sized integer.	*/
 typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
-#if (defined(mingw) || defined(ION4WIN))
+#if ((defined(mingw) || defined(ION4WIN)) && !defined(new_mingw))
 #define	VAST_FIELDSPEC		"%I64d"
 #define	UVAST_FIELDSPEC		"%I64u"
 #define UVAST_HEX_FIELDSPEC	"%I64x"
+#define	ADDR_FIELDSPEC		"%#lx"
+#define	ADDR_FIELDSPEC_INT	"%lu"
+#define ilseek(a, b, c)		lseek64(a, b, c)
+#elif (defined(new_mingw))
+#define	VAST_FIELDSPEC		"%lld"
+#define	UVAST_FIELDSPEC		"%llu"
+#define UVAST_HEX_FIELDSPEC	"%llx"
 #define	ADDR_FIELDSPEC		"%#lx"
 #define	ADDR_FIELDSPEC_INT	"%lu"
 #define ilseek(a, b, c)		lseek64(a, b, c)
@@ -157,7 +164,7 @@ typedef unsigned long		uaddr;	/*	Pointer-sized integer.	*/
 #define	strtoaddr(x)		strtoul(x, NULL, 0)
 #define LARGE1			1UL
 #else			/*	64-bit machines.			*/
-#if (defined(mingw) || defined(ION4WIN))
+#if ((defined(mingw) || defined(ION4WIN)) && !defined(new_mingw))
 typedef long long		vast;
 typedef unsigned long long	uvast;
 typedef long long		saddr;	/*	Pointer-sized integer.	*/
@@ -167,6 +174,21 @@ typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
 #define UVAST_HEX_FIELDSPEC	"%I64x"
 #define	ADDR_FIELDSPEC		"%#I64x"
 #define	ADDR_FIELDSPEC_INT	"%I64u"
+#define ilseek(a, b, c)		lseek64(a, b, c)
+#define	strtovast(x)		strtoll(x, NULL, 0)
+#define	strtouvast(x)		strtoull(x, NULL, 0)
+#define	strtoaddr(x)		strtoull(x, NULL, 0)
+#define LARGE1			1ULL
+#elif (defined(new_mingw))
+typedef long long		vast;
+typedef unsigned long long	uvast;
+typedef long long		saddr;	/*	Pointer-sized integer.	*/
+typedef unsigned long long	uaddr;	/*	Pointer-sized integer.	*/
+#define	VAST_FIELDSPEC		"%lld"
+#define	UVAST_FIELDSPEC		"%llu"
+#define UVAST_HEX_FIELDSPEC	"%llx"
+#define	ADDR_FIELDSPEC		"%#llx"
+#define	ADDR_FIELDSPEC_INT	"%llu"
 #define ilseek(a, b, c)		lseek64(a, b, c)
 #define	strtovast(x)		strtoll(x, NULL, 0)
 #define	strtouvast(x)		strtoull(x, NULL, 0)

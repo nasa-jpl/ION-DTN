@@ -6,7 +6,6 @@
 # Simplified by Shawn Ostermann in October, 2023 to remove Enhanced Regular Expressions, "grep -E", and "sed -E"
 # to make it more portable (to Solaris in particular).  Also quieted down the output a little.
 
-ION_OPEN_SOURCE=1
 OS_VERS=""
 
 # Fix for SourceForge Bug #60, killm IPC cleanup fails for long account names
@@ -14,9 +13,18 @@ OS_VERS=""
 # truncated username so we trim the username to 10 characters.
 # NOTE: This may cause conflicts with long usernames with similar beginning
 #       characters. We'll look for a more robust solution in the near future.
-USERNAME_CUT=`echo $USER | cut -c 1-10`
+USERNAME_CUT=$(echo "$USER" | cut -c 1-10)
 KILLPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
+	amsbenchr lt-amsbenchr \
+	amsbenchs lt-amsbenchs \
+	amsd lt-amsd \
+	amshello lt-amshello \
+	amslog lt-amslog \
+	amslogprt lt-amslogprt \
+	amsmib lt-amsmib \
+	amsshell lt-amsshell \
+	amsstop lt-amsstop \
 	aoslsi lt-aoslsi \
 	aoslso lt-aoslso \
 	bibeadmin lt-bibeadmin \
@@ -27,20 +35,25 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bpclm lt-bpclm \
 	bpclock lt-bpclock \
 	bpcounter lt-bpcounter \
+	bpcp lt-bpcp\
+	bpcpd lt-bpcpd\
 	bpdriver lt-bpdriver \
 	bpecho lt-bpecho \
 	bping lt-bping \
 	bplist lt-bplist \
 	bpnmtest lt-bpnmtest \
 	bprecvfile lt-bprecvfile \
+	bprecvtest lt-bprecvtest \
 	bpsecadmin lt-bpsecadmin \
 	bpsendfile lt-bpsendfile \
+	bpsendtest lt-bpsendtest \
 	bpsink lt-bpsink \
 	bpsource lt-bpsource \
 	bpstats lt-bpstats \
 	bpstats2 lt-bpstats2 \
 	bptrace lt-bptrace \
 	bptransit lt-bptransit \
+	bputa lt-bputa \
 	brsccla lt-brsccla \
 	brsscla lt-brsscla \
 	bsscounter lt-bsscounter \
@@ -51,6 +64,9 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	bsspclock lt-bsspclock \
 	bssrecv lt-bssrecv \
 	bssStreamingApp lt-bssStreamingApp \
+	cfdpadmin lt-cfdpadmin \
+	cfdpclock lt-cfdpclock \
+	cfdptest lt-cfdptest \
 	cgrfetch lt-cgrfetch \
 	cpsd lt-cpsd \
 	dccpcli lt-dccpcli \
@@ -131,6 +147,7 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	tcpbso lt-tcpbso \
 	tcpcli lt-tcpcli \
 	tcpclo lt-tcpclo \
+	tcputa lt-tcputa \
 	udp2file lt-udp2file \
 	udpbsi lt-udpbsi \
 	udpbso lt-udpbso \
@@ -140,76 +157,73 @@ KILLPROCESSLIST="acsadmin lt-acsadmin \
 	udplso lt-udplso \
 	"
 
-if [ "$ION_OPEN_SOURCE" == "1" ];then
-KILLPROCESSLIST="${KILLPROCESSLIST} \
-	amsbenchr lt-amsbenchr \
-	amsbenchs lt-amsbenchs \
-	amsd lt-amsd \
-	amshello lt-amshello \
-	amslog lt-amslog \
-	amslogprt lt-amslogprt \
-	amsshell lt-amsshell \
-	amsstop lt-amsstop \
-	bputa lt-bputa \
-	cfdpadmin lt-cfdpadmin \
-	cfdpclock lt-cfdpclock \
-	cfdptest lt-cfdptest \
-	bpcp lt-bpcp\
-	bpcpd lt-bpcpd\
-	"
-fi
-
 sw_vers 2> /dev/null > /dev/null
 
 #if sw_vers ran, then we're on a mac system
-if [[ ! $? ]]; then  
-	OS_VERS=`sw_vers | grep 10.4`
+if [ "$?" -eq 0 ]; then  
+	OS_VERS=$(sw_vers | grep 10.4)
 fi
 
 OSNAME=`uname`
-if [ "$OSNAME" == "SunOS" ]; then
+if [ "$OSNAME" = "SunOS" ]; then
     KILLCMD="pkill"
 	PS="/usr/bin/ps"
 	PS_ARGS="-fe"
 	PROCESS_LIMIT=1
+elif [[ "$OSNAME" == "MINGW"* ]]; then
+  	KILLCMD="taskkill /f /im"
+  	PS="tasklist"
+  	PS_ARGS=""
+  	PROCESS_LIMIT=64
+  	MINGW="true"
 else
     KILLCMD="killall"
 	PS="ps"
-	PS_ARGS="-e"
-	if [[ "$(uname -m)" == "x86_64" ]]; then
+	PS_ARGS="-fe"
+	if [ "$(uname -m)" = "x86_64" ]; then
 		PROCESS_LIMIT=64
 	else
     	PROCESS_LIMIT=32
 	fi
 fi
 
-#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
-echo "Sending TERM to the processes..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+if [ "$MINGW" != "true" ]; then
+	#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
+	echo "Sending TERM to the processes..."
+	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 
-sleep 2
+	sleep 2
 
-echo "Sending KILL to the processes..."
-echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+	echo "Sending KILL to the processes..."
+	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 
-sleep 2
+	sleep 2
+else
+	# note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
+	echo "Killing processes using PowerShell..."
+    powershell -Command "foreach (\$proc in '${KILLPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> /dev/null
+fi
 
 
 echo "Checking if all ION processes ended..."
+
 PSFILE="/tmp/ps.$$"
 # grab all running processes
 ${PS} ${PS_ARGS} > ${PSFILE}
 # see if any of those still-running processes belong to ION
 for PROC in ${KILLPROCESSLIST}; do
-	grep "[^-a-zA-Z]${PROC}$" ${PSFILE} |\
-		 awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-done 
+    grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
+        awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+done
 
 rm -f ${PSFILE}
 
 echo "Deleting shared memory to remove SDR..."
 
-if [[ -z "$OS_VERS" ]]; then 
+if [ "$MINGW" == "true" ]; then 
+	# for 2024 redesign of Windows MSYS
+	powershell remove_win_shmem.ps1 
+elif [[ -z "$OS_VERS" ]]; then 
 	# For mac >=10.5 and Linux
 	for Q in `ipcs -q | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -q $Q; done
 	for M in `ipcs -m | grep $USERNAME_CUT | awk '{ print $2 }'`; do ipcrm -m $M; done

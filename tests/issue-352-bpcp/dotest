@@ -68,10 +68,11 @@ echo
 echo "########################################"
 
 ./cleanup
+#rm -rf ./ion_nodes
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -rf ./ion_nodes
+
 
 # Start nodes.
 cd 1.ipn.cfdp.bp.tcp
@@ -134,13 +135,14 @@ TEST=`diff ../dotest test1`
 echo $TEST
 if  [ ! -e ./test1 ] || [ -n "$TEST" ]; then
 	echo "ERROR: Local to Remote Copy Failed. FAILED!!"
-	cd ../1.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ../2.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ../3.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ..
+	#cd ../1.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ../2.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ../3.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ..
+	sleep 3
 	killm
 	RETVAL=1
 	exit $RETVAL
@@ -168,13 +170,14 @@ if [ ! -e ./test2 ] || [ -n "$TEST" ]; then
 	kill -2 $BPCPD3_PID >/dev/null 2>&1
 	sleep 1 
 	kill -9 $BPCPD3_PID >/dev/null 2>&1
-	cd ../1.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ../2.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ../3.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ..
+	#cd ../1.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ../2.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ../3.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ..
+	sleep 3
 	killm
 	RETVAL=1
 	exit $RETVAL
@@ -205,13 +208,14 @@ if  [ ! -e ./test3 ] || [ -n "$TEST" ]; then
 	sleep 1 
 	kill -9 $BPCPD2_PID >/dev/null 2>&1
 	kill -9 $BPCPD3_PID >/dev/null 2>&1
-	cd ../1.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ../2.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ../3.ipn.cfdp.bp.tcp
-	./ionstop &
-	cd ..
+	#cd ../1.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ../2.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ../3.ipn.cfdp.bp.tcp
+	#./ionstop &
+	#cd ..
+	sleep 3
 	killm
 	RETVAL=1
 	exit $RETVAL
@@ -228,12 +232,13 @@ sleep 1
 kill -9 $BPCPD2_PID >/dev/null 2>&1
 kill -9 $BPCPD3_PID >/dev/null 2>&1
 
-cd ../1.ipn.cfdp.bp.tcp
-./ionstop &
-cd ../2.ipn.cfdp.bp.tcp
-./ionstop &
-cd ../3.ipn.cfdp.bp.tcp
-./ionstop &
-cd ..
+#cd ../1.ipn.cfdp.bp.tcp
+#./ionstop &
+#cd ../2.ipn.cfdp.bp.tcp
+#./ionstop &
+#cd ../3.ipn.cfdp.bp.tcp
+#./ionstop &
+#cd ..
+sleep 3
 killm
 exit $RETVAL

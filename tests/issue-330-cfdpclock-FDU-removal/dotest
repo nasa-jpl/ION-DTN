@@ -8,13 +8,15 @@
 # file data". This test confirms that cfdpclock will no longer remove these FDUs
 # without file data.
 
+# utility required for this test (requires 'make test' in ion root dir to build)
+TESTUTIL="../cfdplisten"
 
 function end(){
 # Shut down ION processes.
 echo "Stopping ION..."
-./ionstop &
+#./ionstop &
 cd ../
-sleep 5
+#sleep 5
 killm
 
 echo "cfdpclock unsent FDU removal test done."
@@ -49,6 +51,7 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
+killm
 ./cleanup
 
 #Start ION
@@ -58,7 +61,7 @@ cd 1.cfdp.ipn.bp.ltp.udp
 ./ionstart
 ../../../system_up -i "p 30" -l "p 30" -b "p 30" -c "p 30"
 
-if [ $? -eq 4 ]
+if [ "$?" -eq 4 ]
 then
 	echo ""
 else
@@ -73,8 +76,21 @@ dd if=/dev/zero of=./testfile bs=1024 count=512
 
 #Starting Listener
 echo "Starting CFDP message listener..."
-../cfdplisten > output &
-CFDPLISTEN_PID=$!
+
+# Check if the test utility exists and is executable
+if [ ! -x "$TESTUTIL" ]; then
+  echo -e "\nError: $TESTUTIL does not exist: Skipping test."
+  echo -e "Please run 'make test' in ION root to generate test binaries and scripts.\n"
+  RETVAL=2
+  sleep 3
+  end
+else
+  echo -e " \n$TESTUTIL utility found, starting now.\n"
+  # If the file exists, run it in the background and redirect output
+  "$TESTUTIL" > output &
+  CFDPLISTEN_PID=$!
+fi
+
 
 #End bputa to hold transfers in queue
 echo "Stopping bputa..."
@@ -123,7 +139,7 @@ fi
 
 #Test for EOF sent messages
 RESULTS=`grep "type 2" output | wc -l`
-if [ $RESULTS -eq 2 ]; then
+if [ "$RESULTS" -eq 2 ]; then
 	echo "EOF Sent Message was logged. SUCCESS!"
 	echo ""
 	RETVAL=0

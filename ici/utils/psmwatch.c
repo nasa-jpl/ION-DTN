@@ -86,6 +86,8 @@ static int	run_psmwatch(int memKey, long memSize, char *partitionName,
 	}
 
 	isignal(SIGTERM, handleQuit);
+	isignal(SIGINT, handleQuit);
+	
 	while (psmwatch_count(NULL) > 0)
 	{
 		secRemaining = interval;

@@ -14,9 +14,11 @@
 # so the "get" operation should finish before the put operation (which must
 # wait for a Finished PDU from node 2).
 
+killm
+./cleanup
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
 
 # Start nodes.
 cd 1.ipn.ltp
@@ -39,8 +41,8 @@ RETVAL=0
 
 cd ../1.ipn.ltp
 
-COUNT=`ls -al receivedFile | wc -l`
-if [ $COUNT -ne 1 ]
+COUNT=$(ls -al receivedFile | wc -l)
+if [ "$COUNT" -ne 1 ]
 then
 	echo ""
 	echo "Error: node 1 did not receive file from node 2."
@@ -52,8 +54,8 @@ fi
 
 cd ../2.ipn.ltp
 
-COUNT=`ls -al receivedFile | wc -l`
-if [ $COUNT -ne 1 ]
+COUNT=$(ls -al receivedFile | wc -l)
+if [ "$COUNT" -ne 1 ]
 then
 	echo ""
 	echo "Error: node 2 did not receive file from node 1."
@@ -65,14 +67,15 @@ fi
 
 echo ""
 echo "Stopping ION..."
-cd ../1.ipn.ltp
-./ionstop &
-cd ../2.ipn.ltp
-./ionstop &
+#cd ../1.ipn.ltp
+#./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
+#sleep 15
 
-sleep 15
+
 killm
 echo ""
 echo "CFDPv1 test completed."

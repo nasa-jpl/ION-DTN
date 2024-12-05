@@ -125,10 +125,10 @@ cd ..
 
 # Shut down ION processes.
 echo "Stopping ION..."
-cd 1.ipn.bp.udp
-./ionstop &
-cd ../
-sleep 5
+#cd 1.ipn.bp.udp
+#./ionstop &
+#cd ../
+#sleep 5
 killm
 
 echo "Congestion Forecasting Overflow test complete."

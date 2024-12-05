@@ -4,5 +4,4 @@
 IONSENDFILE=./ionsendfile.txt
 IONRECEIVEFILE=./ionreceivefile.txt
 
-killm
-rm -f ${IONSENDFILE} ${IONRECEIVEFILE} configs/ion.log /tmp/ion.sdrlog
+rm -f "${IONSENDFILE}" "${IONRECEIVEFILE}" configs/ion.log /tmp/ion*.sdrlog

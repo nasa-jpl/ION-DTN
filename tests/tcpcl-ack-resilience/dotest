@@ -1,15 +1,39 @@
 #!/bin/bash
-
 # Derived from James Swaro's test, April 25, 2012
 
+
+# Timed check for sudo priveleges
+sudo -v &>/dev/null &
+SUDO_PID=$!
+
+( sleep 30 && kill -9 $SUDO_PID &>/dev/null ) & KILLER_PID=$!
+wait $SUDO_PID
+SUDO_RESULT=$?
+kill -9 $KILLER_PID &>/dev/null
+
+#restore terminal settings after process termination 
+stty sane
+
+if [ "$SUDO_RESULT" -eq 0 ]; then
+    echo -e "Sudo privileges confirmed: continuing test.\n"
+else
+    echo -e "No sudo privileges or sudo command timed out: skipping test.\n"
+    # pass skip test value
+    exit 2
+fi
+
+
+# Sudo priveledges confirmed, begin test 
 SENDER_PORT=4555
 RECEIVER_PORT=4556
 
 source ../setacs.sh
 
 echo "Cleaning up old ION ..."
-rm ion_nodes 1.ipn.tcp/ion.log 2.ipn.tcp/ion.log 2.ipn.tcp/testfile1
 killm
+./cleanup
+
+echo -e "\nRunning sudo commands now..."
 sudo tc qdisc del dev lo root
 sudo iptables -F -t filter
 
@@ -28,28 +52,28 @@ export ION_NODE_LIST_DIR=$PWD
 
 # Set up node 1
 cd 1.ipn.tcp/
-if [[ "$ACS" == "found" ]] ; then
+if [ "$ACS" = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
 fi
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -ne 2 ]; then
+if [ "$?" -ne 2 ]; then
     echo "Node 1 not started: Aborting Test"
     exit 1
 fi
 
 # Set up node 2
 cd ../2.ipn.tcp/
-if [[ "$ACS" == "found" ]] ; then
+if [ "$ACS" = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
 fi
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -ne 2 ]; then
+if [ "$?" -ne 2 ]; then
     echo "Node 2 not started: Aborting Test"
     exit 1
 fi
@@ -83,9 +107,9 @@ sleep 5m
 
 # Verify that this file arrived.
 cd ../2.ipn.tcp
-COUNT=`ls -l testfile1 | egrep 117700 | wc -l`
+COUNT=$(ls -l testfile1 | grep -E 117700 | wc -l)
 
-if [[ $COUNT -eq 1 ]]; then
+if [ "$COUNT" -eq 1 ]; then
     RETVAL=0
 else
     RETVAL=1
@@ -93,16 +117,16 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../1.ipn.tcp
-./ionstop &
-cd ../2.ipn.tcp
-./ionstop &
+#cd ../1.ipn.tcp
+#./ionstop &
+#cd ../2.ipn.tcp
+#./ionstop &
 
 # Give nodes time to shut down, then clean up.
-sleep 5
+#sleep 5
 killm
 
-if [[ $RETVAL -eq 0 ]]; then
+if [ "$RETVAL" -eq 0 ]; then
     echo "TCPCL ACK test succeeded"
 else
     echo "TCPCL ACK test failed"

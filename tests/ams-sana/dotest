@@ -17,11 +17,14 @@ BYTES=1024
 
 stop_and_exit() 
 {
-    if [[ "$1" -eq 0 ]]; then
+    if [ "$1" -eq 0 ]; then
         echo -e "\nAMS SANA TEST SUCCESS!!!\n"
     else
         echo -e "\nAMS SANA TEST FAILURE!!!\n"
     fi
+
+    ./shutdown_proc
+    killm
     exit $1
 }
 
@@ -52,6 +55,7 @@ done
 
 echo -e  "\n################################################################################"
 echo > ion.log
+killm
 ./cleanup
 sleep 1
 
@@ -88,7 +92,8 @@ cat test_output
 
 # Shut down and cleanup
 echo -e "\nTest transmission(s) complete - please standby for results:\n"
-./ionstop
+
+# shutdown ams daemons explicitly (not absolutely necesary)
 
 
 # Test complete: report test result
@@ -96,7 +101,7 @@ echo -e "\nTest transmission(s) complete - please standby for results:\n"
 echo -e "$TEST_NAME test complete:"
 
 
-if [ $RESULT -eq 1 ]
+if [ "$RESULT" -eq 1 ]
 then
     echo -e "$COUNT test messages received ($EXPECTED_BYTES bytes total)."
 else

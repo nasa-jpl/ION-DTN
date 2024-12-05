@@ -51,6 +51,9 @@ BUNDLEMESSAGE="Total bundles: 10"
 BPDRIVERFILE=./bpdriver.txt
 BPECHOFILE=./bpecho.txt
 
+./cleanup
+rm -rf ./ion_nodes
+
 echo "Starting ION..."
 CONFIGDIR="./config"
 if [ $BPV == "bpv6" ] ; then
@@ -114,4 +117,5 @@ else
     RETVAL=0
 fi
 
+killm
 exit $RETVAL

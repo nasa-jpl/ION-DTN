@@ -11,6 +11,7 @@
 /*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
 /*									*/
 #include "ams.h"
+#include <bp.h>
 
 #define	MAX_SUBJ_NAME	32
 
@@ -331,6 +332,13 @@ messages.\n", stderr);
 		return -1;
 	}
 
+	/* attach for ionsec database (for key retrieval) */
+	if (bp_attach() != 0)
+	{		
+		return -1;
+	}
+
+
 	while (_amsshell_running(NULL))
 	{
 		printf(": ");
@@ -340,6 +348,8 @@ messages.\n", stderr);
 
 	writeErrmsgMemos();
 	ams_unregister(me);
+	bp_detach();
+
 #endif
 	return 0;
 }

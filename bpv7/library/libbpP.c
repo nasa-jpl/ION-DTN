@@ -63,7 +63,7 @@
 #endif
 
 #ifndef	PAYLOAD_BLOCK_CRC_TYPE
-#define	PAYLOAD_BLOCK_CRC_TYPE	0
+#define	PAYLOAD_BLOCK_CRC_TYPE	1
 #endif
 
 /*	We hitchhike on the ZCO heap space management system to 
@@ -5971,12 +5971,12 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		/*	Can't forward: can't make sense of this EID.	*/
 
 		restoreEidString(&stationMetaEid);
-		writeMemoNote("[?] Can't parse neighbor EID", eid);
+		writeMemoNote("[?] Can't parse station EID", eid);
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
-	restoreEidString(&stationMetaEid);
+	/*	Check for null-endpoint destination dtn:none or ipn:0.0	*/
 	if (stationMetaEid.nullEndpoint)
 	{
 		/*	Forwarder has determined that the bundle
@@ -5986,6 +5986,9 @@ int	forwardBundle(Object bundleObj, Bundle *bundle, char *eid)
 		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
+
+	/*  Not a null-endpoint */
+	restoreEidString(&stationMetaEid);
 
 	/*	We're going to queue this bundle for processing by
 	 *	the forwarder for the station EID's scheme name.
@@ -6919,42 +6922,36 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	Sdr		sdr = getIonsdr();
 	BpDB		*db = getBpConstants();
 	BpVdb		*vdb = getBpVdb();
-	VScheme		*vscheme;
 	Bundle		newBundle;
 	Object		newBundleObj;
 
 	CHKERR(ionLocked());
-	lookUpEidScheme(&bundle->destination, &vscheme);
-	if (vscheme != NULL)	/*	Destination might be local.	*/
+	if (bundle->deliverable)
 	{
-		lookUpEndpoint(&bundle->destination, vscheme, vpoint);
-		if (*vpoint != NULL)	/*	Destination is here.	*/
+		if (deliverBundle(bundleObj, bundle, *vpoint) < 0)
 		{
-			if (deliverBundle(bundleObj, bundle, *vpoint) < 0)
-			{
-				putErrmsg("Bundle delivery failed.", NULL);
-				return -1;
-			}
+			putErrmsg("Bundle delivery failed.", NULL);
+			return -1;
+		}
 
-			/*	Bundle delivery did not fail.		*/
+		/*	Bundle delivery did not fail.			*/
 
-			if ((_bpvdb(NULL))->watching & WATCH_z)
-			{
+		if ((_bpvdb(NULL))->watching & WATCH_z)
+		{
 #if defined (EWCHAR)
-				char ewchar[256];
-				/* spec is for 64 bit, non-Window */
-				isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
-		    		bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
-				iwatch_str(ewchar);
+			char ewchar[256];
+			/* spec is for 64 bit, non-Window */
+			isprintf(ewchar,sizeof(ewchar),"(" UVAST_FIELDSPEC ",%u," UVAST_FIELDSPEC ",%u)z",bundle->id.source.ssp.ipn.nodeNbr, 
+	    		bundle->id.source.ssp.ipn.serviceNbr, bundle->id.creationTime.msec, bundle->id.creationTime.count);
+			iwatch_str(ewchar);
 #else
-				iwatch('z');
+			iwatch('z');
 #endif
-			}
+		}
 
-			if (bundle->destination.schemeCodeNbr != imc ||
-			      bundle->clDossier.senderNodeNbr == 
-				   getOwnNodeNbr())
-			{
+		if (bundle->destination.schemeCodeNbr != imc
+		|| bundle->clDossier.senderNodeNbr == getOwnNodeNbr())
+		{
 				/*	This is not a multicast bundle.
 				 *	So we now write the bundle state
 				 *	object to the SDR and authorize
@@ -6984,58 +6981,52 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 				 *  instead of sending to forwarder
 				 *  to figure out.		*/
 
-				sdr_write(sdr, bundleObj, (char *) bundle,
-						sizeof(Bundle));
-				if (bpDestroyBundle(bundleObj, 0) < 0)
-				{
-					putErrmsg("Can't destroy bundle.",
-							NULL);
-					return -1;
-				}
-
-				return 0;
-			}
-		}
-		else	/*	Not deliverable at this node.		*/
-		{
-			if (bundle->destination.schemeCodeNbr == ipn
-			&& bundle->destination.ssp.ipn.nodeNbr ==
-					getOwnNodeNbr())
+			sdr_write(sdr, bundleObj, (char *) bundle,
+					sizeof(Bundle));
+			if (bpDestroyBundle(bundleObj, 0) < 0)
 			{
-				/*	Destination is known to be the
-				 *	local bundle agent.  Since the
-				 *	bundle can't be delivered, it
-				 *	must be abandoned.  (It can't
-				 *	be forwarded, as this would be
-				 *	an infinite forwarding loop.)
-				 *	But must first accept it, to
-				 *	prevent potential re-forwarding
-				 *	back to the local bundle agent.	*/
-
-				if (bpAccept(bundleObj, bundle) < 0)
-				{
-					putErrmsg("Failed dispatching bundle.",
-							NULL);
-					return -1;
-				}
-
-				/*	Accepting the bundle wrote it
-				 *	to the SDR, so we can now
-				 *	destroy it successfully.  We
-				 *	count the bundle as "forwarded"
-				 *	because bpAbandon will count it
-				 *	as "forwarding failed".		*/
-
-				bpDbTally(BP_DB_QUEUED_FOR_FWD,
-						bundle->payload.length);
-				return bpAbandon(bundleObj, bundle,
-						BP_REASON_NO_ROUTE);
+				putErrmsg("Can't destroy bundle.", NULL);
+				return -1;
 			}
+
+			return 0;
+		}
+	}
+	else	/*	Not deliverable at this node.			*/
+	{
+		if (bundle->destination.schemeCodeNbr == ipn
+		&& bundle->destination.ssp.ipn.nodeNbr == getOwnNodeNbr())
+		{
+			/*	Destination is known to be the
+			 *	local bundle agent.  Since the
+			 *	bundle can't be delivered, it
+			 *	must be abandoned.  (It can't
+			 *	be forwarded, as this would be
+			 *	an infinite forwarding loop.)
+			 *	But must first accept it, to
+			 *	prevent potential re-forwarding
+			 *	back to the local bundle agent.		*/
+
+			if (bpAccept(bundleObj, bundle) < 0)
+			{
+				putErrmsg("Failed dispatching bundle.", NULL);
+				return -1;
+			}
+
+			/*	Accepting the bundle wrote it
+			 *	to the SDR, so we can now
+			 *	destroy it successfully.  We
+			 *	count the bundle as "forwarded"
+			 *	because bpAbandon will count it
+			 *	as "forwarding failed".			*/
+
+			bpDbTally(BP_DB_QUEUED_FOR_FWD, bundle->payload.length);
+			return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 		}
 	}
 
-	/*	There may be a non-local destination; let the
-	 *	forwarder figure out what to do with the bundle.	*/
+	/*	There may be a non-local destination; let bptransit and
+	 *	the forwarder figure out what to do with the bundle.	*/
 
 	if (bundle->fragmentElt || bundle->dlvQueueElt)
 	{
@@ -7056,8 +7047,7 @@ static int	dispatchBundle(Object bundleObj, Bundle *bundle,
 	/*	Queue the bundle for insertion into Outbound ZCO
 	 *	space.							*/
 
-	bundle->transitElt = sdr_list_insert_last(sdr, db->transit,
-			bundleObj);
+	bundle->transitElt = sdr_list_insert_last(sdr, db->transit, bundleObj);
 	sm_SemGive(vdb->transitSemaphore);
 	sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 	return 0;
@@ -7787,7 +7777,8 @@ int	acquireEid(EndpointId *eid, unsigned char **cursor,
 	/*	Store the EID and return length parsed.  There must
 	 *	be an easier way to do all this.			*/
 
-	CHKERR(parseEidString(eidString, &metaEid, &vscheme,&elt));
+	/* Return 0 if parseEidString failed to parse the EID. */
+	CHKZERO(parseEidString(eidString, &metaEid, &vscheme,&elt));
 	if (jotEid(eid, &metaEid) < 0)
 	{
 		putErrmsg("Can't jot eid.", NULL);
@@ -8590,7 +8581,10 @@ undefined block.");
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
-			writeMemo("[?] CRC check failed for extension block.");
+			writeMemoNote("[?] CRC check failed for extension "
+				"block, blkType",itoa((int) blkType));
+			writeMemoNote("[?] CRC check failed for extension "
+				"block, crcType",itoa((int) crcType));
 			bundle->altered = 1;
 		}
 
@@ -9014,6 +9008,20 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 			work->preambleLength, bundle->payload.length);
 	zco_destroy(sdr, work->rawBundle);
 
+	/*	Must determine whether or not this node is a bpsec
+	 *	acceptor for this bundle.				*/
+
+	bundle->deliverable = 0;	/*	Default.		*/
+	lookUpEidScheme(&bundle->destination, &vscheme);
+	if (vscheme)		/*	Destination might be here.	*/
+	{
+		lookUpEndpoint(&bundle->destination, vscheme, vpoint);
+		if (*vpoint)	/*	Destination is here.		*/
+		{
+			bundle->deliverable = 1;
+		}
+	}
+
 	/*	Do all decryption indicated by extension blocks.	*/
 
 	if (bpsec_decrypt(work) < 0)
@@ -9108,7 +9116,7 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	if (bundle->altered == 1)
 	{
-		writeMemo("[?] security verification failed for target extension block.");
+		writeMemo("[?] security verification failed for target block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 			bundle->payload.length);
 		return abortBundleAcq(work);	
@@ -9124,6 +9132,12 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 
 	/* check additional error codes after security verification */
 
+#if 0
+	/*	Note: this check is unnecessary, as bpsec_verify()
+	 *	has already inspected the value of work->authentic
+	 *	and set the value of bundle->clDossier.authentic
+	 *	accordingly.			SB 5/26/2024		*/
+
 	if (work->authentic == 0)
 	{
 		writeMemo("[?] security block misconfigured for target payload block.");
@@ -9131,18 +9145,11 @@ static int	acquireBundle(Sdr sdr, AcqWorkArea *work, VEndpoint **vpoint)
 			bundle->payload.length);
 		return abortBundleAcq(work);	
 	}
+#endif
 
 	if (bundle->clDossier.authentic == 0)
 	{
 		writeMemo("[?] Bundle judged inauthentic.");
-		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
-				bundle->payload.length);
-		return abortBundleAcq(work);
-	}
-
-	if (bundle->altered)
-	{
-		writeMemo("[?] Altered bundle: target payload block.");
 		bpInductTally(work->vduct, BP_INDUCT_INAUTHENTIC,
 				bundle->payload.length);
 		return abortBundleAcq(work);

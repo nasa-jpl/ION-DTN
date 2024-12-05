@@ -16,11 +16,12 @@
 # will re-establish connection and resend the second file. A third
 # file is sent from node 2 to node 3 to test restored connectivity.
 
+killm
 ./cleanup
+
 sleep 1
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
 RETVAL=0
 
 # Start nodes.
@@ -28,7 +29,7 @@ cd 3.ipn.tcp
 ./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -eq 2 ]
+if [ "$?" -eq 2 ]
 then
 	echo ""
 else
@@ -40,7 +41,7 @@ cd ../2.ipn.tcp
 ./ionstart
 ../../../system_up -i "p 30" -b "p 30"
 
-if [ $? -eq 2 ]
+if [ "$?" -eq 2 ]
 then
 	echo ""
 else
@@ -65,8 +66,8 @@ sleep 5
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
-COUNT=`ls -l testfile1 | egrep 915 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=$(ls -l testfile1 | grep 915 | wc -l)
+if [ "$COUNT" -eq 1 ]
 then
 	echo ""
 	echo "Okay: got a copy of file x."
@@ -79,7 +80,7 @@ fi
 echo ""
 # Now break TCP connectivity to node 3.
 echo "Breaking TCP connection to node 3..."
-./ionstop &
+./ionstop
 echo "Node 3 is stopped."
 echo "Sleeping 30 sec to give keepalive thread time to detect closed socket..."
 sleep 30
@@ -92,8 +93,8 @@ sleep 5
 
 # Verify that this file has NOT arrived.
 cd ../3.ipn.tcp
-COUNT=`ls -l testfile2 | egrep 1070 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=$(ls -l testfile2 | grep 1070 | wc -l)
+if [ "$COUNT" -eq 1 ]
 then
 	echo ""
 	echo "Error: got a copy of file y already."
@@ -116,8 +117,8 @@ sleep 30
 echo ""
 echo "Bundle for 2nd file should have been released from limbo -- k."
 # Verify that the fourth file arrived.
-COUNT=`ls -l testfile1 | egrep 1070 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=$(ls -l testfile1 | grep 1070 | wc -l)
+if [ "$COUNT" -eq 1 ]
 then
 	echo ""
 	echo "Okay: got copy of file y."
@@ -136,8 +137,8 @@ sleep 5
 
 # Verify that this file arrived.
 cd ../3.ipn.tcp
-COUNT=`ls -l testfile2 | egrep 885 | wc -l`
-if [ $COUNT -eq 1 ]
+COUNT=$(ls -l testfile2 | grep 885 | wc -l)
+if [ "$COUNT" -eq 1 ]
 then
 	echo ""
 	echo "Okay: got a copy of file z."
@@ -150,13 +151,13 @@ fi
 echo ""
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../2.ipn.tcp
-./ionstop &
-cd ../3.ipn.tcp
-./ionstop &
+#cd ../2.ipn.tcp
+#./ionstop &
+#cd ../3.ipn.tcp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 10
+#sleep 3
 killm
 echo "TCPCL Keepalive test completed."
 exit $RETVAL

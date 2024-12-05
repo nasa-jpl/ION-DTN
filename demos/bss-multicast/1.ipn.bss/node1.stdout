@@ -1,0 +1,22 @@
+[i] admin pgm using SDR parm overrides from node.ionconfig.
+wmKey:           1
+wmSize:          5000000
+wmAddress:       0
+sdrName:        'ion1'
+sdrWmSize:       0
+configFlags:     1
+heapWords:       8000000
+heapKey:         -1
+logSize:         0
+logKey:          -1
+pathName:       '/tmp'
+Initializing semaphores to use: Posix Named Semaphores - max : 2048
+Stopping ionadmin.
+Stopping ionadmin.
+Stopping ionsecadmin.
+Stopping bsspadmin.
+Stopping ipnadmin.
+Stopping bpadmin.
+./ionstart: line 15: imcadmin: command not found
+aStopping bpadmin.
+bbbcccyzyzyz

@@ -32,12 +32,15 @@
  */
 
 #ifndef darwin
+#define _GNU_SOURCE
 /* macos/darwin handles this differently */
 #define _POSIX_C_SOURCE 200112L
 #endif
 
-#define	BPRECVBUFSZ	(65536)
+//#define	BPRECVBUFSZ	(65536) // 65KB
+#define BPRECVBUFSZ (262144)  // 256KB
 
+#include "ionsec.h"
 #include <bp.h>
 #include <metadata.h>
 #include <secrypt.h>
@@ -142,7 +145,7 @@ int cleanFile(char *filename)
 	int status = remove (filename);
 	if (status != 0)
 	{
-		printf("Error deleting file: %s", filename);
+		writeErrMemo("[!] recvfile: error deleting temporary file.");
 		return -1;
 	}
 	return 0;
@@ -207,7 +210,6 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	unsigned char decryptFlag = 0; //default to no decryption
 	char randomPart[10];
 	char tmpFile[256];	
-	int offset=0; //position during file reception
 	int result; //simple status flag
 
 	int delete_on_fail = 1; //to save or not to save (encrypted file)
@@ -221,14 +223,14 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	/*ION ----------------------------------- */
 	contentLength = zco_source_data_length(sdr, dlv->adu);
 
-	isprintf(progressText, sizeof progressText, "[i] recvfile is creating '%s'\
+	/* isprintf(progressText, sizeof progressText, "[i] recvfile is creating '%s'\
 	, size %d.", tmpFile, contentLength);
-	writeMemo(progressText);
+	writeMemo(progressText); */
 
 	fileHandle = iopen(tmpFile, O_WRONLY | O_CREAT, 0666);
 	if (fileHandle < 0)
 	{
-		putSysErrmsg("recvfile: can't open temp file", tmpFile);
+		putErrmsg("[!] recvfile error: can't create temp file", tmpFile);
 		goto exit;
 	}
 
@@ -248,17 +250,17 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 		if (zco_receive_source(sdr, &reader, recvLength, buffer) < 0)
 		{
-			putErrmsg("recvfile: can't receive bundle content.", tmpFile);
+			putErrmsg("[!] recvfile error: can't receive bundle content.", tmpFile);
 			close(fileHandle);
 			oK(sdr_end_xn(sdr));
 			goto exit;
 		}
 			/* write from buffer to temp file */
-			ssize_t bytesWritten = write(fileHandle, buffer+offset, recvLength-offset );
+			ssize_t bytesWritten = write(fileHandle, buffer, recvLength );
 
-			if (bytesWritten < recvLength - offset)
+			if (bytesWritten < recvLength)
 				{
-					putSysErrmsg("recvfile: can't write to file",
+					putSysErrmsg("[!] recvfile error: can't write to file.",
 							tmpFile);
 					close(fileHandle);
 					oK(sdr_end_xn(sdr));
@@ -275,7 +277,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = extractMetadataFromFile(tmpFile, &metadata);
 	if(result < 0)
 	{
-		printf("Error extracting metadata from file");
+		putErrmsg("[!] recvfile: error extracting metadata from file.", tmpFile);
 		goto exit;
 	}
 
@@ -285,6 +287,22 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 	if(decryptFlag && keyInput) //if decryptFlag and cipher key
 	{
+
+		/* Get the key from ionsecadmin database */
+		/* char        keyBuffer[512] = {0};
+		int	        keyBufferLength = sizeof keyBuffer;
+		int	        keyLength = 0;
+
+		keyLength = sec_get_key(keyInput,
+				&keyBufferLength, keyBuffer);
+		if (keyLength <= 0)
+		{
+			putErrmsg("Can't fetch symmetric key.",
+					keyInput);			
+			return -1;
+		} */
+		
+		
 		/* decrypt file content */
 		unsigned char *decrypted_fileContent = NULL;
 		size_t decrypted_fileContentLength = 0;
@@ -300,7 +318,7 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 			if (metadata.fileContent)
 			{
 				memset(metadata.fileContent, 0, metadata.fileContentLength);
-				free(metadata.fileContent); //free me first (avoid memory leak)!
+				MRELEASE(metadata.fileContent); //free me first (avoid memory leak)!
 			}
 			metadata.fileContent = decrypted_fileContent; //free in Exit;
 			metadata.fileContentLength = decrypted_fileContentLength;
@@ -319,8 +337,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	result = writeMetaDataContentToFile(&metadata, tmpFile);
 	if (result < 0)
 	{
-		printf("Error writing file\n");
-		//goto exit;
+		writeErrMemo ("[!] recvfile: error writing file.");
+		goto exit;
 	}
 
 	/* extract any aux commands */
@@ -333,7 +351,8 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	{
 		if (generateNewFilename(&metadata) != 0) 
 		{
-			// Handle error: failed to generate a new filename
+			/* failed to generate a new filename */
+			writeErrMemo("[!] recvfile error: temp filename creation.");
 			goto exit;
 		}
 }
@@ -343,16 +362,22 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 
 	if(result >= 0)
 	{
-		printf("\nFile received: %s\n", metadata.filename);
+		char file_receipt_msg[512] = {0};
+		snprintf(file_receipt_msg, sizeof(file_receipt_msg), "File received: %s of size: " UVAST_FIELDSPEC " bytes (received %d total bytes).", (char *) metadata.filename, (uvast)metadata.fileContentLength, contentLength);
+		writeMemo(file_receipt_msg);
+
+		/* Write to application window */
+		/* 
+		float time_difference = (float)calculateTimeDifference(metadata.timestamp);
+		printf("\nFile received: %s \n", metadata.filename);
+		printf("\t" UVAST_FIELDSPEC " bytes in %f seconds\n", (uvast)metadata.fileContentLength, time_difference/1000.0);
+ 		*/
 	}
 	else
 	{
-		printf("\nError: filename NULL");
+		writeErrMemo("[!] recvfile error: filename NULL.");
 	}
-
-	/* time to deliver */
-	float time_difference = (float)calculateTimeDifference(metadata.timestamp);
-	printf("\tDelivery time: %f seconds\n", time_difference/1000);
+	
 
 	/* Print Aux commands (demonstration purposes only) */
 	if(metadata.aux_command_length > 0)
@@ -364,7 +389,9 @@ static int	receiveFile(Sdr sdr, BpDelivery *dlv, int overwriteFlag, char *keyInp
 	/* DELETE ENCRYPTED DATA ON DECRYPTION FAILURE */
 	if (delete_on_fail && decryption_failure) 
 	{
-		printf("Decryption failure: %s deleted.\n", metadata.filename);
+		char decryption_failure_msg[256] = {0};
+		snprintf(decryption_failure_msg, sizeof(decryption_failure_msg), "Decryption failure: %s deleted.", (char *)metadata.filename);
+		writeErrMemo(decryption_failure_msg);
 		cleanFile((char *)metadata.filename); //delete me
 	}
 
@@ -374,25 +401,25 @@ exit:
 	/* MEMORY OBFUSCATION AND CLEANUP*/	
 	if (metadata.filename) 
 	{
-		free(metadata.filename);
+		MRELEASE(metadata.filename);
 		metadata.filename = NULL;
 	}
 
 	if(metadata.fileContent)
 	{
-		free(metadata.fileContent);
+		MRELEASE(metadata.fileContent);
 		metadata.fileContent = NULL;
 	}
 
 	if(metadata.aux_command)
 	{
-		free(metadata.aux_command);
+		MRELEASE(metadata.aux_command);
 		metadata.aux_command = NULL;
 	}
 
 	if(metadata.filetype)
 	{
-		free(metadata.filetype);
+		MRELEASE(metadata.filetype);
 		metadata.filetype = NULL;
 	}
 
@@ -410,7 +437,6 @@ exit:
 
 	contentLength = 0;
 	recvLength = 0;
-	offset = 0;
 
 	/* ION */
 	if (sdr_end_xn(sdr) < 0)
@@ -464,9 +490,8 @@ int recvfile(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 		{
             overwriteFlag = 1;
         } else if (!keyInput) 
-		{ 
-			// If keyInput is not already set
-            keyInput = (char *) args[i];
+		{ 			
+            keyInput = (char *) args[i]; // keyInput is not already set
         }
     }
 	
@@ -518,14 +543,14 @@ int	main(int argc, char **argv)
 
 	if (bp_attach() < 0)
 	{
-		putErrmsg("Can't attach to BP.", NULL);
+		putErrmsg("[!] recvfile error: can't attach to BP.", NULL);
 		return -1;
 	}
 
 	if (bp_open(ownEid, &state.sap) < 0)
 	{
 		putErrmsg("Can't open own endpoint.", ownEid);
-		fprintf(stderr, "Error: cannot open own endpoint: %s\n", ownEid);
+		fprintf(stderr, "[!] recvfile error: cannot open own endpoint: %s\n", ownEid);
 		status = -1;
 		goto exit;
 	}
@@ -538,7 +563,7 @@ int	main(int argc, char **argv)
 	{
 		if (bp_receive(state.sap, &dlv, BP_BLOCKING) < 0)
 		{
-			putErrmsg("recvfile bundle reception failed.", NULL);
+			putErrmsg("[!] recvfile error: bundle reception failed.", NULL);
 			state.running = 0;
 			continue;
 		}
@@ -552,7 +577,7 @@ int	main(int argc, char **argv)
 		case BpPayloadPresent:
 			if (receiveFile(sdr, &dlv, overwriteFlag, keyInput) < 0)
 			{
-				putErrmsg("recvfile cannot continue.", NULL);
+				putErrmsg("[!] recvfile error: cannot continue.", NULL);
 				state.running = 0;
 			}
 

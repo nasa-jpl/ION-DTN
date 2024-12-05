@@ -13,6 +13,7 @@
 # path from node 3 to node 2 there is no such artificial data loss
 # and therefore the bundle we send on this path should arrive.
 
+killm
 ./cleanup
 sleep 1
 source ../setacs.sh
@@ -106,14 +107,13 @@ fi
 
 # Shut down ION processes.
 sleep 1
-echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+#echo "Stopping ION..."
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
 killm
 echo "LTP retransmission test completed."
 exit $RETVAL

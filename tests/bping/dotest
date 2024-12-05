@@ -51,6 +51,7 @@ fi
 
 echo "Killing old ION..."
 killm
+./cleanup
 sleep $TIMETOWAIT1
 
 # Prepare for loop start

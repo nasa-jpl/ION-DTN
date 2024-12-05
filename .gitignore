@@ -7,7 +7,7 @@ aclocal.m4
 autom4te.cache
 config.guess
 config.h
-config.h.in
+config.h.in*
 config.log
 config.status
 config.sub
@@ -22,15 +22,16 @@ stamp-h1
 # Temp macro directory
 /m4
 
+# VsCode
+.vscode
+
 # Compiled objects
 *.o
 *.lo
 
 # Libtool wrappers
 *.la
-
-# Ignore renamed Makefiles
-*.dev
+*.so
 
 # Binaries or their equiv libtool wrappers
 amsbenchr
@@ -110,6 +111,10 @@ udpcli
 udpclo
 udplsi
 udplso
+bprecvtest
+bpsendtest
+recvfile
+sendfile
 
 # Additional binaries to ignore
 amsmib
@@ -196,11 +201,15 @@ doc/ION-manpages.ps
 doc/appendix-a-contents.ps
 doc/appendix-a-contents.txt
 
+*.tmp
+*.html
 
 # Test output
 ion.log
 ion_nodes
 *.stdout
+out\.valgrind\.*
+**/bpacq.*
 
 # Produced test support
 tests/retest
@@ -226,6 +235,7 @@ build*/*
 \.gcno
 \.gcda
 
+# gh pages
 # Contrib Folder
 contrib/Makefile
 
@@ -406,3 +416,44 @@ ltp/doc/html/man5/ltpsecrc.html
 ltp/i86_64-fedora/lib/libltp.so
 restart/doc/html/man1/ionrestart.html
 
+# Makefiles
+Makefile
+
+# progress report for regression test
+tests/progress*
+
+# temporary test file
+bpdriverAduFile
+tests/linking/ion*links.dot
+tests/issue-330-cfdpclock-FDU-removal/1.cfdp.ipn.bp.ltp.udp/testfile
+tests/issue-352-bpcp-ltp/*.ipn.cfdp.bp.ltp/test*
+tests/loopback-*-dccp/dccptest.txt
+
+# ams test configuration file
+demos/bench-ams/node*/9.petition.log
+demos/bench-ams/node*/bench.log
+
+
+
+# psmwatch and sdrwatch log
+psmwatch.log
+sdrwatch.log
+
+# ion node directory files (multi-ion config)
+ion_nodes
+
+# standard output redirect
+*.stdout
+
+# ignore auto-generated nm unit test scripts
+tests/nm-unit/dotest
+tests/nm-unit/utils/radix_pt/dotest
+tests/nm-unit/utils/radix_ut/dotest
+tests/nm-unit/utils/rhht/dotest
+tests/nm-unit/utils/vector/dotest
+
+# ignore `make test` generated programs
+tests/issue-330-cfdpclock-FDU-removal/cfdplisten
+tests/issue-334-cfdp-transaction-id/dotest
+tests/sm_subsystem/dotest
+tests/bug-0015-tcpclo-bpcp-sig-handling/test

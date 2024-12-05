@@ -91,6 +91,7 @@ char* statusToString(int statusFlags, char* buf, unsigned buflen){
 		strcat(buffer, strlen(buffer) != 0 ? ", del" : "del");
 
 	strncpy(buf, buffer, buflen);
+	buf[buflen <= strlen(buffer) ? buflen : strlen(buffer)] = '\0';
 	free(buffer);
 	return buf;
 }

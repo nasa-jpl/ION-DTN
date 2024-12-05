@@ -401,19 +401,19 @@ fi
 sleep 2
 echo ""
 echo "Stopping ION..."
-cd ../2.ipn.tcp
-./ionstop &
-cd ../3.ipn.tcp
-./ionstop &
-cd ../5.ipn.tcp
-./ionstop &
-cd ../6.ipn.tcp
-./ionstop &
-cd ../7.ipn.tcp
-./ionstop &
+#cd ../2.ipn.tcp
+#./ionstop &
+#cd ../3.ipn.tcp
+#./ionstop &
+#cd ../5.ipn.tcp
+#./ionstop &
+#cd ../6.ipn.tcp
+#./ionstop &
+#cd ../7.ipn.tcp
+#./ionstop &
 
 # Give the nodes time to shut down, then clean up.
-sleep 5
+#sleep 5
 killm
 echo "IPND test completed."
 exit $RETVAL

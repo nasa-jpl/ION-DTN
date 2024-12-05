@@ -1,0 +1,2 @@
+This test is excluded on raspberry pi because it takes longer than 20 minutes to complete as written.
+The test will complete in a reasonable amount of time if you change exhaustive_test_multiplier in dotest.c to 0.01 or smaller and rebuild the test.

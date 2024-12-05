@@ -813,7 +813,7 @@ def stop_and_clean():
     for i in d:
         if os.DirEntry.is_dir(i) and "ipn.ltp" in i.name:
             os.chdir(i.name)
-            subprocess.run("./ionstop &", shell=True, stdout=verbose)
+            subprocess.run("./ionstop", shell=True, stdout=verbose)
             os.chdir("..")
     
     time.sleep(TIME_TESTFINISH)

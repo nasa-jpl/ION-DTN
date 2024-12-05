@@ -52,6 +52,8 @@ static int	handleItem(uvast sourceEngineId, unsigned int clientId,
 
 	buffer[len] = 0;
 	printf("%s", buffer);
+	//sky adds experimentally
+	fflush(stdout);
 	return 0;
 }
 

@@ -4,9 +4,6 @@
 # Ohio University
 # October 2, 2012
 
-echo "Cleaning up old ION..."
-killm
+echo "Cleaning up old ION files..."
 rm -f ion_nodes ion.log bpdriverAduFile
-rm -f /tmp/ion.sdrlog
-
-
+rm -f /tmp/ion1.sdrlog

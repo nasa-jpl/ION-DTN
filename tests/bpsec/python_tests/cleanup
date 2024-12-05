@@ -1,0 +1,3 @@
+#!/bin/bash
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log
+rm -f ion_nodes

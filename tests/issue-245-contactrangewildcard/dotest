@@ -102,5 +102,5 @@ fi
 
 # clean up
 rm -f $contactfile
-
+killm
 exit $RETVAL

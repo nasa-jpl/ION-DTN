@@ -69,7 +69,7 @@ echo ""
 # Now to send shutdown from node 1 to node 2.
 echo "Breaking TCP connection to node 2..."
 cd ../1.ipn.tcp/
-./ionstop &
+./ionstop
 echo "Node 1 is stopped."
 sleep 30
 
@@ -102,13 +102,13 @@ fi
 echo ""
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../1.ipn.tcp
-./ionstop &
-cd ../2.ipn.tcp
-./ionstop &
+#cd ../1.ipn.tcp
+#./ionstop &
+#cd ../2.ipn.tcp
+#./ionstop &
 
 # Give nodes time to shut down, then clean up.
-sleep 5
+#sleep 3
 killm
 echo "TCPCL restart test complete."
 exit $RETVAL

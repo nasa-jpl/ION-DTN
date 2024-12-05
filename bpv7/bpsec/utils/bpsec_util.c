@@ -242,6 +242,7 @@ char	*bpsec_util_localAdminEIDGet(char *peerEid)
  *          >0 on Success
  *
  * \param[in]  sdr        ion sdr
+ * \param[in]  acct       The ZCO pool from which new ZCO space is allocated
  * \param]in]  resultZco  Object where the file references will go
  * \param[in]  acqFileRef A file references pointing to the file
  * \param[in]  fname      A string to be used as the base of the filename
@@ -255,8 +256,9 @@ char	*bpsec_util_localAdminEIDGet(char *peerEid)
  *  01/31/16  E. Birrane    Update to SBSP
  *****************************************************************************/
 
-int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, Object *resultZco,
-		Object *acqFileRef, char *fname, char *bytes, uvast length)
+int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, ZcoAcct acct,
+		Object *resultZco, Object *acqFileRef, char *fname,
+		char *bytes, uvast length)
 {
 	static uint32_t	acqCount = 0;
 	ReqAttendant	attendant;
@@ -281,8 +283,7 @@ int	bpsec_util_zcoFileSourceTransferTo(Sdr sdr, Object *resultZco,
 	{
 		/*	First try non-blocking ZCO creation.		*/
 		CHKERR(sdr_begin_xn(sdr));
-		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0,
-				ZcoOutbound);
+		*resultZco = zco_create(sdr, ZcoSdrSource, 0, 0, 0, acct);
 		if (*resultZco == (Object) ERROR)
 		{
 			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
@@ -304,7 +305,7 @@ bpsec_util_zcoFileSourceTransferTo: Can't start attendant.", NULL);
 			}
 
 			*resultZco = ionCreateZco(ZcoSdrSource, 0, 0, 0,
-				BP_STD_PRIORITY, 0, ZcoOutbound, &attendant);
+				BP_STD_PRIORITY, 0, acct, &attendant);
 			if (*resultZco == 0 || *resultZco == (Object) ERROR)
 			{
 				BPSEC_DEBUG_ERR("x \
@@ -352,7 +353,7 @@ Can't create acq file %s.", fileName);
 
 		fileLength = 0;
 		CHKERR(sdr_begin_xn(sdr));
-		*acqFileRef = zco_create_file_ref(sdr, fileName, "",ZcoInbound);
+		*acqFileRef = zco_create_file_ref(sdr, fileName, "", acct);
 		if (*acqFileRef == 0)
 		{
 			BPSEC_DEBUG_ERR("x bpsec_util_zcoFileSourceTransferTo: \
@@ -681,7 +682,7 @@ static int	canonicalizeExtensionBlock(Bundle *bundle, uint8_t blkNbr,
 	}
 }
 
-
+//	NOTE: this function is not used anywhere.  SB 1 June 2024
 int bpsec_util_acqBlkDataAsZco(AcqExtBlock *blk, Object *zco)
 {
     Sdr    sdr = getIonsdr();
@@ -1744,6 +1745,7 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 							     uvast outputBufLen, Object *outputZco, uint8_t function)
 {
     Sdr          sdr = getIonsdr();
+    ZcoAcct	 acct;
     csi_val_t    csiInputChunk;
     csi_val_t    csiOutputChunk;
     uvast        chunkSize = 0;
@@ -1765,6 +1767,19 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
     CHKERR(blocksize);
     CHKERR(dataReader);
     CHKERR(outputZco);
+    switch (function)
+    {
+    case CSI_SVC_ENCRYPT:
+	    acct = ZcoOutbound;
+	    break;
+
+    case CSI_SVC_DECRYPT:
+	    acct = ZcoInbound;
+	    break;
+
+    default:
+	    acct = ZcoUnknown;
+    }
 
     /*
      * Step 1 - Get information about the SDR storage space. If the expected
@@ -1801,7 +1816,7 @@ int32_t bpsec_util_sdrBlkConvert(uint32_t suite, uint8_t *csi_ctx,
     }
 
     if ((*outputZco = zco_create(sdr, ZcoSdrSource, outputBuffer, 0,
-                                 0 - outputBufLen, ZcoOutbound)) == 0)
+                                 0 - outputBufLen, acct)) == 0)
     {
         BPSEC_DEBUG_ERR("Cannot create zco.", NULL);
         sdr_free(sdr, outputBuffer);
@@ -1924,6 +1939,7 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
 								  uvast outputBufLen, Object *outputZco, char *filename, uint8_t function)
 {
     Sdr        sdr = getIonsdr();
+    ZcoAcct    acct;
     csi_val_t  csiInputChunk;
     csi_val_t  csiOutputChunk;
     uvast      chunkSize = 0;
@@ -1941,6 +1957,19 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
     CHKERR(blocksize);
     CHKERR(dataReader);
     CHKERR(outputZco);
+    switch (function)
+    {
+    case CSI_SVC_ENCRYPT:
+	    acct = ZcoOutbound;
+	    break;
+
+    case CSI_SVC_DECRYPT:
+	    acct = ZcoInbound;
+	    break;
+
+    default:
+	    acct = ZcoUnknown;
+    }
 
 
     /* Step 1 - Initialization */
@@ -1994,7 +2023,7 @@ int32_t bpsec_util_fileBlkConvert(uint32_t suite, uint8_t *csi_ctx,
          }
 
          /* Step 3.4 - Write output chunk to file. */
-         if (bpsec_util_zcoFileSourceTransferTo(sdr, outputZco, &fileRef,
+         if (bpsec_util_zcoFileSourceTransferTo(sdr, acct, outputZco, &fileRef,
         		filename, (char *) csiOutputChunk.contents, csiOutputChunk.len) <= 0)
          {
             BPSEC_DEBUG_ERR("Transfer of chunk has failed..", NULL);

@@ -12,18 +12,18 @@ s
 # 	It will start at +1 seconds from now, ending +3600 seconds from now.
 #	It will connect node 1 to itself
 #	It will transmit 100000 bytes/second.
-a contact +1 +3600 1 1 100000
-a contact +1 +3600 1 2 100000
-a contact +1 +3600 2 1 100000
+a contact +1 +360000 1 1 100000
+a contact +1 +360000 1 2 100000
+a contact +1 +360000 2 1 100000
 
 # Add a range. This is the physical distance between nodes.
 #	It will start at +1 seconds from now, ending +3600 seconds from now.
 #	It will connect node 1 to itself.
 #	Data on the link is expected to take 1 second to reach the other
 #	end (One Way Light Time).
-a range +1 +3600 1 1 1
-a range +1 +3600 1 2 1
-a range +1 +3600 2 1 1
+a range +1 +360000 1 1 1
+a range +1 +360000 1 2 1
+a range +1 +360000 2 1 1
 
 # set this node to consume and produce a mean of 1000000 bytes/second.
 m production 1000000
@@ -50,16 +50,17 @@ a scheme ipn 'ipnfw' 'ipnadminep'
 #	discard).
 a endpoint ipn:1.1 q
 a endpoint ipn:1.2 q
+a endpoint ipn:1.4 q
 
 # Add a protocol. 
 a protocol udp 1400 100
 
 # Add an induct. (listen)
-a induct udp 127.0.0.1:4556 udpcli
+a induct udp 0.0.0.0:4556 udpcli
 
 # Add an outduct. (since one UDP socket can address any IP, use '*' 
 # for the destination address, then this clo can send to any udp cli)
-a outduct udp * udpclo
+a outduct udp 127.0.0.1:4556 'udpclo 2'
 
 s
 ## end bpadmin 
@@ -72,10 +73,6 @@ s
 #	the outduct identified as '*,127.0.0.1:4556'.  This specification
 #   will match the udpclo '*' and pass it an auxiliary parameter
 #   (destination address) of '127.0.0.1:4556'
-a plan 1 udp/*,127.0.0.1:4556
+a plan 1 udp/127.0.0.1:4556
 ## end ipnadmin 
 
-## begin ionsecadmin
-1
-e 1
-## end ionsecadmin

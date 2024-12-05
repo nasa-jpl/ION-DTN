@@ -5,5 +5,4 @@
 # September 21, 2012
 
 echo "Cleaning up old ION..."
-killm
-rm -f ion.log tmp.txt
+rm -f ion.log tmp.txt ion_nodes

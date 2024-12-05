@@ -189,6 +189,9 @@ void bcb_handle_rx_error(AcqWorkArea *work, LystElt bcbBlkElt, LystElt tgtBlkElt
 
         case -2: /* Misconfiguration of BCB. */
         default: /* Anything else is treated as a misconfiguration. */
+
+            /* Experimental correction for missing BCB policy at security acceptor - per Scott Burleigh */
+            work->bundle.insecure = 1;
             
             /* Handle sop_misconf_at_acceptor event */
             bsl_handle_receiver_sop_event(work, BPRF_ACC_ROLE, sop_misconf_at_acceptor, bcbBlkElt, tgtBlkElt, tgtId);
@@ -264,9 +267,27 @@ int    bpsec_decrypt(AcqWorkArea *work)
                 tgtResult = (BpsecInboundTargetResult *) lyst_data(tgtResultElt);
                 polRule = bslpol_get_receiver_rule(work, tgtResult->scTargetId, asb->scId);
 
-                if (polRule != NULL)
-                {
+                if (polRule == NULL)	/*	No BCB rule for target.	*/
+		{
+			/*	SB 7/26/2024				*/
+			if (bundle->deliverable == 0)
+			{
+				/*	Missing rule is not a problem
+				 *	at a waypoint node.		*/
 
+				continue;
+			}
+
+			/*	SB 5/26/2024				*/
+                        BCB_DEBUG_ERR("No rule for decrypting target block %d.",
+					tgtResult->scTargetId);
+                        ADD_BCB_RX_FAIL(fromEid, 1, tgtBlkOrigLen);
+                        bcb_handle_rx_error(work, bcbBlkElt, tgtBlkElt,
+					tgtBlk, tgtResult->scTargetId,
+					-3, tgtBlkOrigLen, -1);
+		}
+		else	/*	Applicable policy rule was found.	*/
+                {
                     /*
                      * If the security block is corrupted (meaning we cannot process items
                      * due to issues with security context or parameters, then we need to

@@ -18,12 +18,11 @@
 function end(){
 # Shut down ION.
 echo "Stopping ION..."
-cd 1.ipn.udp
-./ionstop &
-cd ../2.ipn.udp
-./ionstop &
-sleep 15
-rm -f /tmp/ion*.sdrlong
+#cd 1.ipn.udp
+#./ionstop &
+#cd ../2.ipn.udp
+#./ionstop &
+#sleep 15
 killm
 exit $RETVAL
 }
@@ -66,9 +65,8 @@ echo
 echo "########################################"
 export ION_NODE_LIST_DIR=$PWD
 RETVAL=0
+killm
 ./cleanup
-rm -f /tmp/ion1.sdrlog
-rm -f /tmp/ion2.sdrlog
 
 #Start node 1
 echo
@@ -107,7 +105,7 @@ fi
 #Count aborted SDR transactions
 firstAbort=$(grep "Transaction aborted" ion.log | wc -l)
 echo ""
-if [[ $firstAbort == 0 ]];then
+if [ "$firstAbort" = 0 ];then
 	echo "No transaction abort occurred. Test cannot proceed."
 	echo ""
 	RETVAL=2
@@ -121,7 +119,7 @@ fi
 # Transaction should recover without an unrecoverable SDR error
 text=$(grep "Unrecoverable SDR error" ion.log)
 echo "$text"
-if ! [ -z "$text" ];then
+if  [ -n "$text" ];then
 	echo "ERROR: Unrecoverable SDR Error! Transaction abort failed to recover!"
 	echo ""
 	RETVAL=1
@@ -141,11 +139,11 @@ ionadmin restart.ionrc
 bpadmin restart.bprc
 
 echo "Waiting for any remaining bundles to expire..."
-sleep 40
+sleep 30
 
 # Pause for debug
 bpstats
-echo "Issued bpstats to check for bundles in the system expiration. See ion.log."
+echo -e "\nIssued bpstats to check for bundles in the system expiration. See ion.log."
 echo ""
 
 #Try to send more bundles to ensure that transaction reversibility healed the
@@ -153,38 +151,38 @@ echo ""
 echo ""
 echo "Now try receiving 10 new bundles..."
 cd ../1.ipn.udp/
-bpdriver 10 ipn:1.1 ipn:2.1 -100 t50 >& output2
-# Pause for debug
-bpstats
-echo ""
-echo "Issued bpstats to check for new bundles in the system. See ion.log."
-echo ""
+bpdriver 10 ipn:1.1 ipn:2.1 -100 >& output2
+
 
 # Now pick up the bundles
 cd ../2.ipn.udp/
 bpcounter ipn:2.1 > output3 &
 BPCOUNTER_PID=$!
 echo ""
-sleep 10
+sleep 30
+
+bpstats
+echo ""
+echo "Issued bpstats to check for new bundles in the system. See ion.log."
+echo ""
 
 #Check if we caused a second transaction abort or an unrecoverable SDR error
 secondAbort=$(grep "finished restarting ION" ion.log | wc -l)
 echo ""
-if [ $secondAbort -gt $firstAbort ];then
+if [ "$secondAbort" -gt "$firstAbort" ]; then
 	echo "Error: Transaction aborted! Transaction reversibility didn't reset something correctly!"
 	echo ""
 	RETVAL=1
 	cd ..
 	end
 fi
-text=`grep "Unrecoverable SDR error" ion.log`
+text=$(grep "Unrecoverable SDR error" ion.log)
 echo $text
 if ! [ -z "$text" ];then
 	echo "ERROR: unrecoverable SDR error! Transaction reversibility Failed!"
 	echo ""
 	RETVAL=1
 	cd ..
-	killm
 	end
 fi
 
@@ -197,7 +195,8 @@ kill -9 $BPCOUNTER_PID >/dev/null 2>&1
 
 # Extract the number of bundles received from the output file
 # target line is of the form: Stopping bpcounter; bundles received: 10
-BUNDLES=$(egrep -o "bundles received: [0-9]+" output3 | egrep -o '[0-9]+')
+BUNDLES=$(awk '/bundles received: [0-9]+/ {for(i=3; i<=NF; i++) if($i ~ /^[0-9]+$/) print $i}' output3)
+
 
 # Check if the number of bundles received is greater than 7 
 #    Check for < 10 to account for possible UDP losses
@@ -215,4 +214,5 @@ fi
 
 bpstats
 cd ..
+
 end

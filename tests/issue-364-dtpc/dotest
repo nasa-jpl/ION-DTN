@@ -56,6 +56,11 @@
 # The test thereby exercises data item elision, data item aggregation, and
 # in-order reliable transmission without gaps or duplicates.
 
+
+# initial cleanup
+./cleanup
+
+
 source ../setacs.sh
 
 echo "Starting ION..."
@@ -162,59 +167,59 @@ echo ""
 echo "Waiting for transmission of final bundles to complete...."
 sleep 20
 echo ""
-echo "Stopping ION, including all test programs..."
-echo ""
-cd ../1.ipn.ltp
-./ionstop &
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../4.ipn.ltp
-./ionstop &
-sleep 20
+#echo ""
+#cd ../1.ipn.ltp
+#./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../4.ipn.ltp
+#./ionstop &
+#sleep 20
+#sky moves ion shutdown to end or routine
 
 echo ""
 echo "Checking for correct counts of received application data items...."
 RETVAL=0
 
 cd ../3.ipn.ltp
-COUNT=`grep Final node3.11.stdout | egrep 10 | wc -l`
-if [ $COUNT -ne 1 ]
-then
-	echo "Error: node 3 did not receive 10 items on topic 11."
-	RETVAL=1
+
+COUNT=$(grep -c 'Payloads received: 10' node3.11.stdout)
+if [ "$COUNT" -eq 0 ]; then
+    echo "Error: node 3 did not receive 10 items on topic 11."
+    RETVAL=1
 fi
 
-COUNT=`grep Final node3.12.stdout | egrep 4 | wc -l`
-if [ $COUNT -ne 1 ]
-then
-	echo "Error: node 3 did not receive 4 items on topic 12."
-	RETVAL=1
+COUNT=$(grep -c 'Payloads received: 4' node3.12.stdout)
+if [ "$COUNT" -eq 0 ]; then
+    echo "Error: node 3 did not receive 4 items on topic 12."
+    RETVAL=1
 fi
 
-COUNT=`grep Final node3.13.stdout | egrep 3 | wc -l`
-if [ $COUNT -ne 1 ]
-then
-	echo "Error: node 3 did not receive 3 items on topic 13."
-	RETVAL=1
+COUNT=$(grep -c 'Payloads received: 3' node3.13.stdout)
+if [ "$COUNT" -eq 0 ]; then
+    echo "Error: node 3 did not receive 3 items on topic 13."
+    RETVAL=1
 fi
 
 cd ../4.ipn.ltp
-COUNT=`grep Final node4.11.stdout | egrep 1 | wc -l`
-if [ $COUNT -ne 1 ]
-then
-	echo "Error: node 4 did not receive 1 item on topic 11."
-	RETVAL=1
+
+COUNT=$(grep -c 'Payloads received: 1' node4.11.stdout)
+if [ "$COUNT" -eq 0 ]; then
+    echo "Error: node 4 did not receive 1 item on topic 11."
+    RETVAL=1
 fi
 
-COUNT=`grep Final node4.12.stdout | egrep 1 | wc -l`
-if [ $COUNT -ne 1 ]
-then
-	echo "Error: node 4 did not receive 1 item on topic 12."
-	RETVAL=1
+COUNT=$(grep -c 'Payloads received: 1' node4.12.stdout)
+if [ "$COUNT" -eq 0 ]; then
+    echo "Error: node 4 did not receive 1 item on topic 12."
+    RETVAL=1
 fi
 
-echo ""
+
+echo -e "\nStopping ION, including all test programs...\n"
+killm
+
 echo "DTPC test completed."
 exit $RETVAL

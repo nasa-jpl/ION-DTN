@@ -17,7 +17,7 @@ CONFIGFILES=" \
 
 source ../../setacs.sh
 
-if [[ "$ACS" == "found" ]] ; then
+if [ "$ACS" = "found" ] ; then
 	CONFIGFILES=$CONFIGFILES" ./configs/loopback.acsrc"
 fi
 
@@ -42,11 +42,12 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 
+killm
 ./cleanup
 
 echo "Starting ION..."
 cd ./configs
-if [[ "$ACS" == "found" ]] ; then
+if [ "$ACS" = "found" ] ; then
 	./ionstart-acs
 else
 	./ionstart
@@ -94,13 +95,14 @@ RETVAL=${?}
 if [ "${RETVAL}" -ne 0 ] ; then
 	echo "Files do not match. FAILURE!"
 else
-	echo "Files match. SUCESS!"
+	echo "Files match. SUCCESS!"
 fi
 
 # shut down ion processes
 echo
 echo "Stopping ion..."
-./ionstop &
+#./ionstop &
 cd ..
+killm
 
 exit ${RETVAL}

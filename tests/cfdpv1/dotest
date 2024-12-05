@@ -15,22 +15,24 @@
 # wait for a Finished PDU from node 2).
 
 # set timeouts based on OS type
-if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
+if [ "$1" = "linux" ] || [ "$1" = "mac" ] ; then
 	TIMETOWAIT=35
 else
 	TIMETOWAIT=55
 fi
 
+killm
+./cleanup
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
-rm -f ./ion_nodes
 
 # Start nodes.
 STARTED=0
-if [[ $BP_VERSION == "bpv6" ]] ; then
+if [ "$BP_VERSION" = "bpv6" ] ; then
 	echo "Looking for acsadmin"
 	which acsadmin
-	if [ $? -eq 0 ] ; then
+	if [ "$?" -eq 0 ] ; then
 		STARTED=1
 		cd 1.ipn.ltp
 		./ionstart-acs
@@ -39,7 +41,7 @@ if [[ $BP_VERSION == "bpv6" ]] ; then
 		./ionstart-acs
 	fi
 fi
-if [[ STARTED -eq 0 ]] ; then
+if [ "$STARTED" -eq 0 ] ; then
 	cd 1.ipn.ltp
 	./ionstart
 	sleep 1
@@ -62,8 +64,8 @@ RETVAL=0
 
 cd ../1.ipn.ltp
 
-COUNT=`ls -al receivedFile | wc -l`
-if [ $COUNT -ne 1 ]
+COUNT=$(ls -al receivedFile | wc -l)
+if [ "$COUNT" -ne 1 ]
 then
 	echo ""
 	echo "Error: node 1 did not receive file from node 2."
@@ -75,8 +77,8 @@ fi
 
 cd ../2.ipn.ltp
 
-COUNT=`ls -al receivedFile | wc -l`
-if [ $COUNT -ne 1 ]
+COUNT=$(ls -al receivedFile | wc -l)
+if [ "$COUNT" -ne 1 ]
 then
 	echo ""
 	echo "Error: node 2 did not receive file from node 1."
@@ -88,14 +90,14 @@ fi
 
 echo ""
 echo "Stopping ION..."
-cd ../1.ipn.ltp
-./ionstop &
-cd ../2.ipn.ltp
-./ionstop &
+#cd ../1.ipn.ltp
+#./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
 
-sleep 15
+#sleep 15
 killm
 echo ""
 echo "CFDPv1 test completed."

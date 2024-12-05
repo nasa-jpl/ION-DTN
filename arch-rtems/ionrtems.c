@@ -12,16 +12,7 @@
 #include "rfx.h"
 #include "ltp.h"
 #include "bp.h"
-
-/*	When CFDP is included in the build, the test fails due to
- *	insufficient memory resources.  Need to figure out how to
- *	get RTEMS to allocate enough memory for the test, but for
- *	now we just exclude CFDP from the build (since it is not
- *	involved in sending the test bundle).				*/
-
-#ifndef NASA_PROTECTED_FLIGHT_CODE
 #include "cfdp.h"
-#endif
 
 #define	ION_NODE_NBR	19
 
@@ -212,7 +203,6 @@ static void	createIonConfigFiles()
 	oK(iputs(fd, linebuf));
 	close(fd);
 
-#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Create cfdprc file.					*/
 
 	isprintf(filenamebuf, sizeof filenamebuf, "/ion/node" UVAST_FIELDSPEC
@@ -226,7 +216,6 @@ static void	createIonConfigFiles()
 
 	oK(iputs(fd, "1\ns bputa\n"));
 	close(fd);
-#endif
 }
 
 static int	startDTN()
@@ -295,7 +284,6 @@ static int	startDTN()
 	pseudoshell(cmd);
 	snooze(1);
 
-#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Now start CFDP.						*/
 
 	isprintf(cmd, sizeof cmd, "cfdpadmin /ion/node" UVAST_FIELDSPEC
@@ -312,7 +300,6 @@ static int	startDTN()
 			return -1;
 		}
 	}
-#endif
 	return 0;
 }
 
@@ -335,7 +322,6 @@ static void	testLoopback()
 static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 			saddr a6, saddr a7, saddr a8, saddr a9, saddr a10)
 {
-#ifndef NASA_PROTECTED_FLIGHT_CODE
 	/*	Stop CFDP.						*/
 
 	pseudoshell("cfdpadmin .");
@@ -343,7 +329,6 @@ static int	stopDTN(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
 	{
 		snooze(1);
 	}
-#endif
 
 	/*	Stop BP.						*/
 

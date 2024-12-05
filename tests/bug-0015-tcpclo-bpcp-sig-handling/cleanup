@@ -4,6 +4,6 @@
 # April 25, 2012
 
 echo "Cleaning up old ION ..."
-killm
-rm -f ion_nodes 1.ipn.tcp/ion.log 1.ipn.tcp/dpdriverAduFile 2.ipn.tcp/ion.log 2.ipn.tcp/testfile* 2.ipn.tcp/bpacq*
-
+rm -f ion_nodes 
+rm -f 1.ipn.tcp/ion.log 1.ipn.tcp/dpdriverAduFile 
+rm -f 2.ipn.tcp/ion.log 2.ipn.tcp/testfile* 2.ipn.tcp/bpacq*

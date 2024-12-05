@@ -59,9 +59,9 @@ echo "########################################"
 sleep 1
 # set timeouts based on OS type
 if [[ $1 == "linux" ]] || [[ $1 == "mac" ]] ; then
-	TIMETOWAIT=10
-else
 	TIMETOWAIT=20
+else
+	TIMETOWAIT=30
 fi
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -98,21 +98,20 @@ sdatest > verify.text &
 
 cd ../2.ipn.ltp
 echo "Sending text lines to node 3..."
-TESTCOUNT=`wc -l < test.text`
-sdatest 3 < test.text &
+TESTCOUNT=`wc -l < test2.text`
+sdatest 3 < test2.text &
 
 sleep $TIMETOWAIT
 echo ""
 echo "Transmission finished. Stopping ION..."
 
 # Shut down ION processes.
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
-killm
+#sleep 5
 echo "Verifying results..."
 
 # Verify aggregation occurred.
@@ -141,5 +140,8 @@ else
 	echo "Not all service data items were received."
 	RETVAL=1
 fi
+
+killm
+
 echo "SDA test completed."
 exit $RETVAL

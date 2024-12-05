@@ -60,6 +60,7 @@ echo "OUTPUT: counts of delivered files and residual acquisition files."
 echo
 echo "########################################"
 
+killm
 ./cleanup
 sleep 1
 echo "Starting ION..."
@@ -96,9 +97,11 @@ do
 	cd ../2.ipn.ltp
 
 	if [[ "$ACS" == "found" ]] ; then
-		./ionstart-acs
+		# direct to output 
+		./ionstart-acs > output
 	else
-		./ionstart
+		# direct to output
+		./ionstart > output
 	fi
 
 	../../../system_up -i "p 30" -l "p 30" -b "p 30"
@@ -136,6 +139,8 @@ do
 	echo "  shakespeare4"
 	bpsendfile ipn:2.1 ipn:3.1 shakespeare4
 
+	echo ""
+	echo "...wait for 4 minutes to complete data transfer..."
 	sleep 240
 	cd ../3.ipn.ltp
 
@@ -167,8 +172,10 @@ do
 	fi
 
 	#Kill file receiver
+	echo "1st attempt to kill file receiver..."
 	kill -2 $RCVPID
 	sleep 2
+	echo "2nd attempt to kill file receiver... Maybe redundant but to be sure..."
 	kill -9 $RCVPID
 	sleep 2
 	rm testfile*
@@ -205,15 +212,15 @@ do
 	$killcmd -KILL "owltsim" &> /dev/null
 
 	# Shut down ION processes.
-	echo "Stopping ION..."
-	cd ../2.ipn.ltp
-	./ionstop &
-	cd ../3.ipn.ltp
-	./ionstop &
-	cd ..
+	#echo "Stopping ION..."
+	#cd ../2.ipn.ltp
+	#./ionstop &
+	#cd ../3.ipn.ltp
+	#./ionstop &
+	#cd ..
 
 	# Give both nodes time to shut down, then clean up.
-	sleep 5
+	#sleep 5
 	killm
 done
 

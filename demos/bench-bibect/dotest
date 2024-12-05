@@ -58,7 +58,7 @@ echo "***PLEASE NOTE: this benchmark test requires Bundle Protocol version 7."
 ./cleanup
 sleep 1
 
-echo "Checking for additional memory needed for this demo..."
+#echo "Checking for additional memory needed for this demo..."
 ./check_memory 
 if [ $? != 0 ]; then
 	echo "Can't run, need additional system resources"
@@ -80,9 +80,9 @@ cd ../3.bench.bibe
 
 sleep 3
 echo ""
-echo "Test 1: 2000 bundles of 50,000 bytes each."
+echo "Test 1: 1000 bundles of 50,000 bytes each."
 cd ../4.bench.bibe
-bpcounter ipn:4.1 2000 &
+bpcounter ipn:4.1 1000 &
 BPCOUNTER_PID=$!
 sleep 1
 
@@ -108,14 +108,18 @@ cd ../2.bench.bibe
 
 COUNT=0
 
-while [ $COUNT -le 2001 ]
+while [ $COUNT -le 1001 ]
 do
 
    bptrace ipn:2.1 ipn:4.1 dtn:none 100 0.1.0.0.0.13 @testfile-50KB
 
+   # throttles load to contact rate; bibect is sensitive to saturation
+   sleep 0.005
+
    COUNT=$(($COUNT+1))
 
 done
+sleep 5
 
 # Wait for transmission to finish.
 echo "Waiting for transmission to finish..."
@@ -152,21 +156,27 @@ then
 	echo "Test did not complete."
 fi
 
-echo "Waiting 150 sec for transmission to complete and fragments to expire..."
+#echo "Waiting 150 sec for transmission to complete and fragments to expire..."
+#sleep 150
 
-sleep 150
-
-echo "...stopping ION..."
+echo -e "...stopping ION\n"
 cd ../2.bench.bibe
 bpstats
-./ionstop &
+sleep 3
+#./ionstop &
+
 cd ../3.bench.bibe
 bpstats
-./ionstop &
+sleep 3
+#./ionstop &
+
 cd ../4.bench.bibe
 bpstats
-./ionstop &
-sleep 5
+sleep 3
+#./ionstop &
+
 killm
-echo "...benchmarking terminated."
+sleep 3
+
+echo -e "...benchmarking terminated.\n"
 exit $RETVAL

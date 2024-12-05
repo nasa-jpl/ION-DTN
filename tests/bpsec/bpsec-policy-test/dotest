@@ -11,9 +11,10 @@
 
 TIMETODISPLAYTEXT=2
 TIMETOWAITFORTESTFINISH=5
+
 echo "Cleaning up old ION..."
-rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 4.ipn.ltp/ion.log 
 killm
+./cleanup
 sleep 1
 
 echo "Starting ION..."
@@ -50,8 +51,8 @@ bpsecadmin amroc.bpsecrc
 
 cd ..
 
-rm -f 3.ipn.ltp/3_receive_file.txt
-rm -f 3.ipn.ltp/3_results.txt
+#rm -f 3.ipn.ltp/3_receive_file.txt
+#rm -f 3.ipn.ltp/3_results.txt
 touch 3.ipn.ltp/3_receive_file.txt
 touch 3.ipn.ltp/3_results.txt
 #
@@ -250,17 +251,15 @@ cd ..
 
 # Shut down ION processes.
 echo "Stopping ION..."
-cd 2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../4.ipn.ltp
-./ionstop &
+#cd 2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../4.ipn.ltp
+#./ionstop &
 
-cd ..
-
+#cd ..
 # Give all three nodes time to shut down, then clean up.
-sleep 7
-killm
-echo "Status reports test completed."
 
+killm
+echo -e "Status reports test completed.\n"

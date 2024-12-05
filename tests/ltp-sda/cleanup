@@ -5,4 +5,5 @@
 
 echo "Cleaning up old ION..."
 killm
-rm -f ion_nodes 2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdout 2.ipn.ltp/bpdriverAduFile 3.ipn.ltp/ion.log 3.ipn.ltp/node3.stdout 3.ipn.ltp/ltpblock.* 3.ipn.ltp/verify.text
+rm -f ion_nodes 2.ipn.ltp/ion.log 2.ipn.ltp/node2.stdout 2.ipn.ltp/bpdriverAduFile 3.ipn.ltp/ion.log 3.ipn.ltp/node3.stdout 3.ipn.ltp/ltpblock.* 
+rm -f 3.ipn.ltp/verify.text

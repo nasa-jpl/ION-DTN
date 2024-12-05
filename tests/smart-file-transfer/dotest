@@ -70,7 +70,7 @@ stop_and_exit()
 echo -e "\nSTARTING FILE TRANSFER TEST--------------------------------- "
 
 # Prepare for ION multi-node operation
-rm -f ./ion_nodes
+killm
 export ION_NODE_LIST_DIR=$PWD
 
 # Start ion in node02, wait, then start ion in node01
@@ -261,7 +261,7 @@ fi
 cd $ION_NODE_LIST_DIR
 
 # Shut down and cleanup
-./cleanup
+killm
 cd node01
 rm -f $TEST_FILE_NAME
 

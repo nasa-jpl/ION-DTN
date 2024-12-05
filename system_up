@@ -7,29 +7,20 @@
 # This program can be used to determine whether the entire ION system is up or individual
 # subsections.
 
-ION_OPEN_SOURCE=1
-
 function USAGE {
 	echo
 	echo    "System_Up: Interplanetary Overlay Network system started script"
 	echo    "USAGE:"
-	echo    "	system_up [-A] [-i \"{p|w} ion\"] [-b \"{p|w} bp\"] [-l \"{p|w} ltp\'] [-D \"{p|w} dtpc\"]"
-if [ "$ION_OPEN_SOURCE" == "1" ]; then
-	echo    "	[-c \"{p|w} cfdp\"]"
-else
-	echo    ""
-fi
+	echo    "	system_up [-A] [-i \"{p|w} ion\"] [-b \"{p|w} bp\"] [-l \"{p|w} ltp\'] [-D \"{p|w} dtpc\"] [-c \"{p|w} cfdp\"]"
 	echo
-	echo "	-A				Run all checks without polling"
-	echo "	-W [time]			Run all checks with polling. Optional timeout time." 
+	echo "	-A						Run all checks without polling"
+	echo "	-W [time]				Run all checks with polling. Optional timeout time." 
 	echo
 	echo "	-i \"{p|w} [ion]\"		Determine if ion subsystem is running. Optional timeout ion."
 	echo "	-b \"{p|w} [bp]\"		Determine if bp subsystem is running. Optional timeout bp."
 	echo "	-l \"{p|w} [ltp]\"		Determine if ltp subsystem is running. Optional timeout ltp."
 	echo "	-D \"{p|w} [dtpc]\"		Determine if dtpc subsystem is running. Optional timeout dtpc."
-if [ "$ION_OPEN_SOURCE" == "1" ]; then
 	echo "	-c \"{p|w} [cfdp]\"		Determine if cfdp subsystem is running. Optional timeout cfdp"
-fi
 }
 
 function CHECK_ARGS {
@@ -58,11 +49,10 @@ while getopts ":AW:i:b:l:D:c:h" options; do
 			echo "Now checking dtpc"
 			echo "t w" | dtpcadmin
 			ret_val=$((ret_val+=$?))
-			if [ "$ION_OPEN_SOURCE" == "1" ]; then
-				echo "Now checking cfdp"
-				echo "t w" | cfdpadmin
-				ret_val=$((ret_val+=$?))
-			fi;;
+			echo "Now checking cfdp"
+			echo "t w" | cfdpadmin
+			ret_val=$((ret_val+=$?))
+			;;
 		W ) 	echo "Now checking ion"
 			echo "t p ${OPTARG}" | ionadmin
 			ret_val=$((ret_val+=$?))
@@ -75,11 +65,10 @@ while getopts ":AW:i:b:l:D:c:h" options; do
 		 	echo "Now checking dtpc"
 			echo "t p ${OPTARG}" | dtpcadmin
 			ret_val=$((ret_val+=$?))
-			if [ "$ION_OPEN_SOURCE" == "1" ]; then
-				echo "Now checking cfdp"
-				echo "t p ${OPTARG}" | cfdpadmin
-				ret_val=$((ret_val+=$?))
-			fi;;
+			echo "Now checking cfdp"
+			echo "t p ${OPTARG}" | cfdpadmin
+			ret_val=$((ret_val+=$?))
+			;;
 		i ) 	echo "Now checking ion"
 			CHECK_ARGS $OPTARG
 			echo "t ${OPTARG}" | ionadmin
@@ -96,13 +85,10 @@ while getopts ":AW:i:b:l:D:c:h" options; do
 			CHECK_ARGS $OPTARG
 			echo "t ${OPTARG}" | dtpcadmin
 			ret_val=$((ret_val+=$?));;
-		c )	if [ "$ION_OPEN_SOURCE" == "1" ]; then
-				echo "Now checking cfdp"
-				CHECK_ARGS $OPTARG
-				echo "t ${OPTARG}" | cfdpadmin
-				ret_val=$((ret_val+=$?))
-			fi
-			;;
+		c )		echo "Now checking cfdp"
+			CHECK_ARGS $OPTARG
+			echo "t ${OPTARG}" | cfdpadmin
+			ret_val=$((ret_val+=$?));;
 		h ) USAGE
 			exit 1;;
 		\? ) USAGE
@@ -115,4 +101,3 @@ done
 echo
 echo "ION system started script completed."
 exit $ret_val
-

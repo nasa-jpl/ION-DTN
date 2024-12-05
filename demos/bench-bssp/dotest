@@ -105,11 +105,11 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.bssp
-	./ionstop &
-	cd ../3.bench.bssp
-	./ionstop &
-	sleep 5
+	#cd ../2.bench.bssp
+	#./ionstop &
+	#cd ../3.bench.bssp
+	#./ionstop &
+	sleep 3
 	killm
 	echo "...benchmarking terminated."
 	exit $RETVAL
@@ -162,10 +162,10 @@ if [ "$RETVAL" -eq 1 ]
 then
 	echo "Test did not complete."
 	echo "Stopping ION..."
-	cd ../2.bench.bssp
-	./ionstop &
-	cd ../3.bench.bssp
-	./ionstop &
+	#cd ../2.bench.bssp
+	#./ionstop &
+	#cd ../3.bench.bssp
+	#./ionstop &
 	sleep 5
 	killm
 	echo "...benchmarking terminated."
@@ -178,11 +178,12 @@ then
 fi
 
 echo "Stopping ION..."
-cd ../2.bench.bssp
-./ionstop &
-cd ../3.bench.bssp
-./ionstop &
-sleep 8
+#cd ../2.bench.bssp
+#./ionstop &
+#cd ../3.bench.bssp
+#./ionstop &
+
+sleep 3
 killm
-echo "...benchmarking terminated."
+echo -e "...benchmarking terminated.\n"
 exit $RETVAL

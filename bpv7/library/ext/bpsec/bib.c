@@ -271,7 +271,55 @@ int bpsec_verify(AcqWorkArea *work)
 
                 polRule = bslpol_get_receiver_rule(work, target->scTargetId, asb->scId);
 
-                if (polRule != NULL)
+                if (polRule == NULL)	/*	No BIB rule for target.	*/
+		{
+			/*	SB 07/26/2024				*/
+			if (bundle->deliverable == 0)
+			{
+				/*	Missing rule is not a problem
+				 *	at a waypoint node.		*/
+
+				continue;
+			}
+
+			/*	SB 05/27/2024				*/
+			/*	If BIB target is the primary block,
+			 *	then BPSec authentication is required.
+			 *	If there is no policy rule for primary
+			 *	block verification, then authentication
+			 *	by BPSec is not possible.  So the
+			 *	bundle is tagged as inauthentic.
+			 *
+			 *	If BIB target is NOT the primary
+			 *	block, then the security source has
+			 *	asserted that the integrity of this
+			 *	target block must be verified.  If
+			 *	there is no policy rule for verifying
+			 *	the integrity of this block, then
+			 *	that verification is impossible.
+			 *	So the bundle is tagged as altered.
+			 *
+			 *	Note that these determinations may
+			 *	need to be revisited: a hostile
+			 *	forwarding node might attach a BIB
+			 *	for the target of which the security
+			 *	acceptor is known not to have any
+			 *	rule.  This would cause bundles to
+			 *	be discarded incorrectly, a serious
+			 *	denial-of-service attack.
+			 *
+			 *	SB 5/26/2024				*/
+
+			if (target->scTargetId == PrimaryBlk)
+			{
+				work->authentic = 0;
+			}
+			else	/*	Not the primary block.		*/
+			{
+				 bundle->altered = 1;
+			}
+		}
+		else	/*	Applicable policy rule was found.	*/
                 {
                     /*
                      * If the security block is corrupted (meaning we cannot process items
@@ -285,7 +333,7 @@ int bpsec_verify(AcqWorkArea *work)
                     if(result < 1)
                     {
                         ADD_BIB_RX_FAIL(fromEid, 1, length);
-                        BIB_DEBUG_WARN("Failed receipt of rule %d", polRule->user_id);
+                        BIB_DEBUG_WARN("Failed receipt rule for %d", polRule->user_id);
                         
                         bib_handle_rx_error(work, bundle, polRule, blkElt, tgtElt, target->scTargetId, result, polRule->filter.blk_type);
                         if(result == -1)
@@ -333,6 +381,16 @@ int bpsec_verify(AcqWorkArea *work)
     // TODO - This needs to be implemented.
     // TODO - This probably also means being able to query by wildcard SCID.
     // TODO - Maybe we keep a list of processed rule IDs
+
+    /*	Note: if no BIB targeting the primary block is present in
+     *	the bundle (one of the potential required-but-not-present
+     *	BIBs alluded to above), then it is assumed that BPSec
+     *	authentication is not required; the bundle is assumed to be
+     *	authentic unless it had been tagged as inauthentic by some
+     *	other means.  Removal of such a BIB (or BIB target) by a
+     *	hostile forwarding node would constitute a security attack.
+     *
+     *	SB 5/26/2024							*/
 
     bundle->clDossier.authentic = (work->authentic == 0 ? 0 : 1);
     BPSEC_DEBUG_PROC("Returning 0", NULL);

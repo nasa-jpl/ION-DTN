@@ -117,7 +117,7 @@ function stopNodes
 {
 	for i in {1..4}; do
 		cd node$i
-		./ionstop &
+		./ionstop
 		cd ..
 	done
 	echo "Exiting from stopNodes."
@@ -252,7 +252,7 @@ function runTest
 
 	# Stop everything and restart with initial choppiness
 	echo "Reinitializing the entire network."
-	stopNodes
+	#stopNodes
 	# Note: must destroy the database to make the counts come out right
 	killm
 	for i in {10..1}; do
@@ -264,8 +264,9 @@ function runTest
 
 	evaluateResults
 
-	stopNodes
-	sleep 10
+	#stopNodes
+	killm
+	sleep 3
 	echo "bug-0002-cgr-recompute test completed."
 	exit $RETVAL
 }

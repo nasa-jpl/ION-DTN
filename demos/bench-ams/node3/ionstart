@@ -6,14 +6,11 @@ echo -e "\nStarting ION Node 3 on localhost"
 #normally you wouldn't do this on every startup
 cp init.petition.log 9.petition.log
 
-ionadmin amroc.ionrc
+ionadmin	bench.ionrc
 sleep 1
-
-ionsecadmin amroc.ionsecrc
+ionsecadmin	bench.ionsecrc
 sleep 1
-
-bpadmin amroc.bprc
-sleep 1
+bpadmin		bench.bprc
 
 #start ams daemon as config server and registrar
 amsd mib.amsrc 127.0.0.1:2503 amsdemo test "" &
@@ -28,3 +25,4 @@ sleep 3
 
 #start ramsgate daemon
 ramsgate amsdemo test 300 &
+sleep 3

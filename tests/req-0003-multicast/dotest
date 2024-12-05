@@ -35,6 +35,8 @@ else
 	ACS="missing"
 fi
 
+./cleanup 
+
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
 rm -f ./ion_nodes
@@ -332,17 +334,17 @@ fi
 # Shut down ION processes.
 sleep 1
 echo "Stopping ION..."
-cd ../1.ipn.ltp
-./ionstop &
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../4.ipn.ltp
-./ionstop &
+#cd ../1.ipn.ltp
+#./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../4.ipn.ltp
+#./ionstop &
 
 # Give all nodes time to shut down, then clean up.
-sleep 5
+#sleep 5
 killm
 echo "Multicast test completed."
 exit $RETVAL

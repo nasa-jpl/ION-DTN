@@ -110,7 +110,14 @@ transmitted.
 
 The B<add seat> command.  This command declares that the local LTP engine
 can receive LTP segments via the link service input daemon that begins
-running when I<'LSI_command'> is executed.
+running when I<'LSI_command'> is executed. When there are multiple incoming
+LTP data streams (serviced by link service daemon such as udplsi), each
+stream can be added as separate B<seat>. 
+
+When all incoming LTP segments are handled by a single stream (for example, 
+in the case of udplsi, whereby all LTP segments are received at the same 
+IP address:port, then one can use B<'s'> command followed by a single 
+I<'LSI_command'> as a short hand.
 
 =item B<c span> I<peer_engine_nbr> I<max_export_sessions> I<max_import_sessions> I<max_segment_size> I<aggregation_size_threshold> I<aggregation_time_limit> 'I<LSO_command>' [I<queuing_latency>]
 

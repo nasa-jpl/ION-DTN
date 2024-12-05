@@ -12,7 +12,7 @@ bpadmin		amroc.bprc
 
 ../../system_up -i "p 30" -l "p 30" -b "p 30"
 
-if [ $? -eq 3 ]
+if [ "$?" -eq 3 ]
 then
 	echo ""
 else
@@ -21,11 +21,17 @@ else
 fi
 
 amsd mib.amsrc @ amsdemo test "" &
+sleep 1
+
 echo "Waiting for AMS cell census (9 seconds left)..."
 sleep 3
 echo "Waiting for AMS cell census (6 seconds left)..."
 sleep 3
 echo "Waiting for AMS cell census (3 seconds left)..."
 sleep 3
-cp init.petition.log petition.log
+
+# this test doesn't use a petition log
+#cp init.petition.log 19.petition.log
+
 ramsgate amsdemo test &
+sleep 3

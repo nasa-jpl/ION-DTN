@@ -96,15 +96,15 @@ else
 fi
 
 # Shut down ION processes.
-sleep 1
-echo "Stopping ION..."
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
+#sleep 1
+#echo "Stopping ION..."
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+#sleep 3
 killm
-echo "LTP block size limit test completed."
+echo -e "LTP block size limit test completed.\n"
 exit $RETVAL

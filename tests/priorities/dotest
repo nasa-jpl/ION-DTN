@@ -178,13 +178,13 @@ fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-cd ../2.ipn.udp
-./ionstop &
-cd ../3.ipn.udp
-./ionstop &
+#cd ../2.ipn.udp
+#./ionstop &
+#cd ../3.ipn.udp
+#./ionstop &
 
 # Give both nodes time to shut down, then clean up.
-sleep 5
+#sleep 5
 killm
 echo "Priority test completed."
 exit $RETVAL

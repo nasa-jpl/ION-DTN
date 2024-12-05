@@ -71,18 +71,18 @@ fi
 
 # Shut down ION processes.
 sleep 1
-echo "Stopping ION..."
-cd ../1.ipn.ltp
-./ionstop &
-cd ../2.ipn.ltp
-./ionstop &
-cd ../3.ipn.ltp
-./ionstop &
-cd ../4.ipn.ltp
-./ionstop &
+echo -e "\nStopping ION..."
+#cd ../1.ipn.ltp
+#./ionstop &
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../4.ipn.ltp
+#./ionstop &
 
 # Give all nodes time to shut down, then clean up.
-sleep 5
+sleep 3
 killm
-echo "Critical bundle test completed."
+echo -e "Critical bundle test completed.\n"
 exit $RETVAL

@@ -2899,6 +2899,15 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 				fmt[fmtLen] = *cursor;
 				fmtLen++;
 				cursor++;
+#ifdef new_mingw
+				if ((*cursor) == 'l')	/*	Vast.	*/
+				{
+					isLongLong = 1;
+					fmt[fmtLen] = *cursor;
+					fmtLen++;
+					cursor++;
+				}
+#else
 				if (LONG_LONG_OKAY)
 				{
 					if (SPACE_ORDER == 3)
@@ -2920,6 +2929,7 @@ int	_isprintf(char *buffer, int bufSize, char *format, ...)
 						}
 					}
 				}
+#endif
 			}
 			else
 			{
