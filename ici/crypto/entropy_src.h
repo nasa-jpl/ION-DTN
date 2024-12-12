@@ -102,7 +102,7 @@ int open_entropy_source();
  * @return 0 on success, or a negative error code on failure (see error codes
  *           enumeration for return values)
  */
-int poll_entropy_src(unsigned char *output, size_t ilen, size_t *olen);
+int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *olen);
 
 
 /*

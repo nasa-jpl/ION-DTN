@@ -89,7 +89,7 @@ const char* getErrorMessage(ErrorCode code)
  * @return 0 on success, or a negative error code on failure (see error codes
  *           enumeration for return values)
  */
-int poll_entropy_src(unsigned char *output, size_t ilen, size_t *olen)
+int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *olen)
 {
     if (!output || !olen) 
     {
@@ -97,7 +97,7 @@ int poll_entropy_src(unsigned char *output, size_t ilen, size_t *olen)
     }
     *olen = 0;
 
-    //WINDOWS------------------------------------------------------------
+    /* WINDOWS------------------------------------------------------------ */
     #if defined(_WIN32) || defined(_WIN64)
     #pragma message("Compiling entropy_src for Windows")
         NTSTATUS status = BCryptGenRandom(NULL, output, (ULONG)ilen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
@@ -108,7 +108,7 @@ int poll_entropy_src(unsigned char *output, size_t ilen, size_t *olen)
         *olen = ilen; //true on success..
         return 0; //success
 
-    //MAC----------------------------------------------------------------
+    /* MAC---------------------------------------------------------------- */
     #elif defined(__APPLE__)
     #pragma message("Compiling entropy_src for macOS")
         if (SecRandomCopyBytes(kSecRandomDefault, ilen, output) == errSecSuccess) 
@@ -136,7 +136,7 @@ int poll_entropy_src(unsigned char *output, size_t ilen, size_t *olen)
             return 0; //success
         }
 
-    //NIX--------------------------------------------------------------
+    /* NIX-------------------------------------------------------------- */
     #else
     #pragma message("Compiling entropy_src for Unix/Linux")
         int fd = open_entropy_source();
@@ -176,28 +176,28 @@ int open_entropy_source()
 {     
     int fd = -1;
     
-    //attempt to read from: /dev/hwrng
+    /* attempt to read from: /dev/hwrng */
     fd = open("/dev/hwrng", O_RDONLY);
     if (fd >= 0) 
     {
-        fprintf(stdout, "\nReading entropy from: /dev/hwrng");
+        /* fprintf(stdout, "\nReading entropy from: /dev/hwrng"); */
         return fd;
     }   
-    //else attempt to read from: /dev/urandom
+    /* else attempt to read from: /dev/urandom */
     fd = open("/dev/urandom", O_RDONLY);
     if (fd >= 0) 
     {
-        fprintf(stdout, "\nReading entropy from: /dev/urandom");
+       /*  fprintf(stdout, "\nReading entropy from: /dev/urandom"); */
         return fd;
     }    
-    //else attempt to read from: /dev/random
+    /* else attempt to read from: /dev/random */
     fd = open("/dev/random", O_RDONLY);
     if (fd >= 0) 
     {
-        fprintf(stdout, "\nReading entropy from: /dev/random");
+        /* fprintf(stdout, "\nReading entropy from: /dev/random"); */
         return fd;
     }
-    //else failure
+    /* else failure - do NOT use rand() */
     return fd;
 
 }//end open_entropy_source ---//

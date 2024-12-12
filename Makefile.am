@@ -1215,7 +1215,8 @@ libici_la_SOURCES += \
 	ici/crypto/MBEDTLS_SUITES/csi.c \
 	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
 	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c \
+	ici/crypto/entropy_src.c
 else
 libici_la_SOURCES += \
 	ici/crypto/NULL_SUITES/crypto.c\
@@ -2027,13 +2028,13 @@ AM_CFLAGS+= \
 	-I$(srcdir)/ici/crypto/MBEDTLS_SUITES \
 	-I$(srcdir)/ici/crypto
 
-libici_la_SOURCES+= \
+libici_la_SOURCES += \
 	ici/crypto/MBEDTLS_SUITES/crypto.c \
 	ici/crypto/MBEDTLS_SUITES/csi.c \
 	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
 	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c 
-
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c \
+	ici/crypto/entropy_src.c
 else
 AM_CFLAGS+= \
 	-I$(srcdir)/ici/crypto/NULL_SUITES \
