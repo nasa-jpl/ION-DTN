@@ -1,0 +1,281 @@
+#!/bin/bash
+
+# ---------------------------------------------------------------------------
+# TEST_RANDOMNESS.SH - Randomness Quality Testing Script
+# ---------------------------------------------------------------------------
+#
+# OVERVIEW:
+# This script tests the quality of a random byte generator program by:
+# 1. Generating a stream of random bytes using the provided entropy source.
+# 2. Testing the generated random data using various randomness test utilities:
+#    - `dieharder`: A comprehensive battery of statistical tests.
+#    - `rngtest`: A FIPS 140-2 compliance tester.
+#    - `ent` (optional, if installed): A simple entropy analysis tool.
+# 3. Summarizing the results with clear, color-coded output for easy interpretation.
+#
+# ---------------------------------------------------------------------------
+#
+# SCRIPT COMPONENTS:
+#
+# 1. **ENTROPY SOURCE**:
+#    The random byte stream is generated using an external program (`entropy_test`)
+#    which outputs raw random bytes to standard output. The script captures this
+#    output and writes it to a file (`random_data.bin`) for further analysis.
+#
+# 2. **TEST UTILITIES**:
+#    - `ent`: Measures basic entropy statistics, such as Shannon entropy,
+#             Chi-square tests, and arithmetic mean of the byte distribution.
+#    - `dieharder`: Executes a comprehensive suite of statistical tests on the
+#                   generated random data. Selected tests include:
+#                   * Birthday Spacings (-d 0)
+#                   * Overlapping Permutations (-d 1)
+#                   * Rank of 32x32 Binary Matrices (-d 2)
+#    - `rngtest`: A utility that performs FIPS 140-2 tests, which include:
+#                 * Monobit
+#                 * Poker
+#                 * Runs
+#                 * Long run
+#                 * Continuous run
+#
+# 3. **QUALITY RATIO FOR RNGTEST**:
+#    The script calculates a "Success-to-Failure Ratio" from `rngtest` results:
+#       Quality Ratio = Successes / (Failures + 1)
+#    - Adding 1 to the denominator avoids division by zero when there are no failures.
+#    - A high ratio indicates better randomness quality.
+#    - A warning is triggered if the ratio falls below the predefined minimum threshold
+#      (`min_ratio`, default = 100), which represents acceptable randomness quality.
+#
+# 4. **HIGHLIGHTING**:
+#    - Results are color-coded for better readability:
+#      * Green: Indicates success or excellent quality.
+#      * Orange: Indicates minor issues, but results are within acceptable limits.
+#      * Red: Indicates significant issues or unacceptable randomness quality.
+#
+# ---------------------------------------------------------------------------
+#
+# USAGE:
+# 1. Ensure the `entropy_test` program is compiled and executable in the same directory.
+# 2. Run the script:
+#       ./test_randomness.sh
+# 3. Results will be displayed on the console, with a summary of successes and failures.
+#
+# ---------------------------------------------------------------------------
+#
+# OUTPUT FORMAT:
+# - The script displays the full output of `rngtest`, followed by a summarized, parsed,
+#   and highlighted result showing the number of successes, failures, and the quality ratio.
+# - `dieharder` test results are displayed for the selected tests, along with their p-values
+#   and assessments (PASSED, WEAK, or FAILED).
+#
+# ---------------------------------------------------------------------------
+#
+# LIMITATIONS:
+# - If none of the utilities (`ent`, `dieharder`, `rngtest`) are installed, the script will
+#   exit with a message asking the user to install at least one utility.
+# - By default, the script generates 10 MB of random data, which is sufficient for most
+#   test utilities. Adjust the size in the `entropy_test` program if needed.
+#
+# ---------------------------------------------------------------------------
+#
+# CUSTOMIZATION:
+# - The minimum acceptable quality ratio (`min_ratio`) for `rngtest` can be modified in the
+#   `run_rngtest` function to suit specific application requirements.
+# - Additional `dieharder` tests can be added or removed by modifying the `run_dieharder` function.
+# - If `ent` is installed, it will provide additional statistical analysis for the generated data.
+#
+# ---------------------------------------------------------------------------
+#
+# AUTHOR: Sky DeBaun
+#
+# Script created for testing the quality of random data streams using widely accepted
+# statistical tools and FIPS compliance tests.
+# ---------------------------------------------------------------------------
+
+
+
+
+ENTROPY_TEST_PROGRAM="./entropy_test"
+OUTPUT_FILE="random_data.bin"
+LOG_FILE="randomness_test.log"
+BYTE_SIZE=${BYTE_SIZE:-10M}  # Default size: 10 MB
+
+# Color codes for test result highlighting
+GREEN="\033[1;32m"
+ORANGE="\033[1;33m"
+RED="\033[1;31m"
+RESET="\033[0m"
+
+# Overall status flag
+OVERALL_SUCCESS=1  # 1 = success, 0 = failure
+
+
+# Utility checks ---------------------------------------------
+check_utility() {
+    local utility="$1"
+    if command -v "$utility" &>/dev/null; then
+        echo "$utility found."
+        return 0
+    else
+        echo "$utility not found."
+        return 1
+    fi
+}
+
+# Generate random bytes --------------------------------------
+generate_random_bytes() {
+    echo -e "\nGenerating random bytes (${BYTE_SIZE})..."
+
+    "$ENTROPY_TEST_PROGRAM" | head -c "$BYTE_SIZE" >"$OUTPUT_FILE"
+    if [ $? -ne 0 ] || [ ! -s "$OUTPUT_FILE" ]; then
+        echo -e "${RED}Error: Failed to generate random bytes.${RESET}"
+        exit 1
+    fi
+    echo "Random bytes saved to $OUTPUT_FILE"
+}
+
+# Run `dieharder` tests --------------------------------------
+run_dieharder() {
+    echo -e "\nRunning 'dieharder' tests..." | tee -a "$LOG_FILE"
+
+    local weak_tests=0
+    local failed_tests=0
+
+    for test_id in 0 1 2; do
+        
+        # Capture dieharder output
+        local dieharder_output
+        dieharder_output=$(dieharder -d "$test_id" -f "$OUTPUT_FILE" 2>&1)
+        
+        # Process dieharder output line by line
+        echo "$dieharder_output" | while read -r line; do
+            if [[ "$line" == *"PASSED"* ]]; then
+                echo -e "${GREEN}${line}${RESET}" | tee -a "$LOG_FILE"
+            elif [[ "$line" == *"WEAK"* ]]; then
+                echo -e "${ORANGE}${line}${RESET}" | tee -a "$LOG_FILE"
+                weak_tests=$((weak_tests + 1))
+            elif [[ "$line" == *"FAILED"* ]]; then
+                echo -e "${RED}${line}${RESET}" | tee -a "$LOG_FILE"
+                failed_tests=$((failed_tests + 1))
+            else
+                echo "$line" | tee -a "$LOG_FILE"
+            fi
+        done
+    done
+
+    # Final evaluation of dieharder results
+    # Dieharder results summary
+    echo -e "\n$DIEHARDER RESULTS SUMMARY"
+    echo "-----------------------"
+    echo -e "Weak tests detected: ${ORANGE}${weak_tests}${RESET}"
+    echo -e "Failed tests detected: ${RED}${failed_tests}${RESET}"
+    
+    if [ "$failed_tests" -gt 0 ]; then
+        echo -e "${RED}Dieharder failed tests detected.${RESET}"
+    elif [ "$weak_tests" -gt 0 ]; then
+        echo -e "${ORANGE}Some weak results detected.${RESET}"
+    else
+        echo -e "${GREEN}All dieharder tests passed successfully.${RESET}"
+    fi
+}
+
+
+
+# Run `rngtest` ---------------------------------------------
+run_rngtest() {
+    echo -e "\nRunning 'rngtest'..." | tee -a "$LOG_FILE"
+
+    local successes=0
+    local failures=0
+    local min_ratio=100  # Minimum acceptable success-to-failure ratio
+
+    # Capture full rngtest output
+    local rngtest_output
+    rngtest_output=$(rngtest < "$OUTPUT_FILE" 2>&1 | tee -a "$LOG_FILE")
+
+    # Display full rngtest output
+    echo -e "-----------------------"
+    echo "$rngtest_output"
+
+    # Parse results
+    successes=$(echo "$rngtest_output" | grep -oP '(?<=FIPS 140-2 successes: )[0-9]+')
+    failures=$(echo "$rngtest_output" | grep -oP '(?<=FIPS 140-2 failures: )[0-9]+')
+
+    successes=${successes:-0}
+    failures=${failures:-0}
+
+    # Calculate quality ratio
+    local quality_ratio=$((successes / (failures + 1)))
+
+    # Highlight results
+    echo -e "\n${GREEN}RNGTEST RESULTS SUMMARY${RESET}"
+    echo -e "-----------------------"
+    echo -e "FIPS 140-2 successes: ${GREEN}${successes}${RESET}"
+    echo -e "FIPS 140-2 failures:  ${RED}${failures}${RESET}"
+    echo -e "Success-to-Failure Ratio: ${ORANGE}${quality_ratio}${RESET}"
+
+    # Evaluate randomness quality
+    if [ "$failures" -eq 0 ]; then
+        echo -e "${GREEN}All FIPS 140-2 tests passed.${RESET}"
+    elif [ "$quality_ratio" -lt "$min_ratio" ]; then
+        echo -e "${RED}Warning: Random data quality is below acceptable limits.${RESET}"
+        OVERALL_SUCCESS=0  # Mark overall status as failed
+    else
+        echo -e "${ORANGE}Minor issues detected, but within acceptable limits.${RESET}"
+    fi
+}
+
+cleanup_files() {
+    # Cleanup files if all tests passed
+    if [ $OVERALL_SUCCESS -eq 1 ]; then
+        echo -e "\n${GREEN}All tests passed. Cleaning up temporary files...${RESET}" | tee -a "$LOG_FILE"
+        rm -f "$OUTPUT_FILE" "$LOG_FILE"
+    else
+        echo -e "\n${ORANGE}Some tests were weak or failed. Keeping temporary files for review.${RESET}" | tee -a "$LOG_FILE"
+    fi
+
+}
+
+# Main Script Logic
+# -----------------
+ENT_INSTALLED=0
+DIEHARDER_INSTALLED=0
+RNGTEST_INSTALLED=0
+OVERALL_SUCCESS=1  # Assume success; set to 0 if any test fails
+
+echo "Checking for recommended utilities..."
+if check_utility "ent"; then
+    ENT_INSTALLED=1
+fi
+if check_utility "dieharder"; then
+    DIEHARDER_INSTALLED=1
+fi
+if check_utility "rngtest"; then
+    RNGTEST_INSTALLED=1
+fi
+
+if [ $ENT_INSTALLED -eq 0 ] && [ $DIEHARDER_INSTALLED -eq 0 ] && [ $RNGTEST_INSTALLED -eq 0 ]; then
+    echo "No randomness testing utilities found. Please install one or more of the following:"
+    echo "- ent"
+    echo "- dieharder"
+    echo "- rngtest"
+    exit 1
+fi
+
+# Generate random bytes once and save to a file
+generate_random_bytes
+
+# Run the tests
+if [ $ENT_INSTALLED -eq 1 ]; then
+    run_ent
+fi
+
+if [ $DIEHARDER_INSTALLED -eq 1 ]; then
+    run_dieharder
+fi
+
+if [ $RNGTEST_INSTALLED -eq 1 ]; then
+    run_rngtest
+fi
+
+# Perform cleanup based on overall test results
+cleanup_files
