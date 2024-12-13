@@ -3675,8 +3675,13 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 
 static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 {
-	//JG DEBUG
-	//CfdpHandler	handler;
+#if CFDPDEBUG 
+	/* comment out handler to quiet compiler
+	CfdpHandler	handler;
+	*/
+#else
+	CfdpHandler		handler;
+#endif
 
 	if (!fdu->metadataReceived)
 	{
@@ -3693,35 +3698,22 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 		return 0;
 	}
 
-//JG
 #if CFDPDEBUG
-printf("FDU forced declared as verified. ckType = %u ; computedChecksum=\
+printf("FDU checksum verification bypassed to provide received file for debugging (CFDPDEBUG option). ckType = %u ; computedChecksum=\
  %u ; eofChecksum = %u.\n", fdu->ckType, fdu->computedChecksum, fdu->eofChecksum);
-#endif
 	fdu->checksumVerified = 1;
-
-//JG temporary bypass  
-
-/*
+#else
 	if (fdu->computedChecksum == fdu->eofChecksum
 	|| fdu->ckType == NullChecksum)
 	{
-#if CFDPDEBUG
-printf("FDU declared verified. ckType = %u ; computedChecksum=\
- %u ; eofChecksum = %u.\n", fdu->ckType, fdu->computedChecksum, fdu->eofChecksum);
-#endif
 		fdu->checksumVerified = 1;
 	}
 	else
 	{
-#if CFDPDEBUG
-printf("FDU checksum fault. ckType = %u ; computedChecksum=\
- %u ; eofChecksum = %u.\n", fdu->ckType, fdu->computedChecksum, fdu->eofChecksum);
-#endif
 		if (handleFault(&fdu->transactionId, CfdpChecksumFailure,
 					&handler) < 0)
 		{
-			putErrmsg("Can't check FDU completion.", NULL);
+			putErrmsg("Can't check FDU completion due to checksum failure.", NULL);
 			return -1;
 		}
 
@@ -3735,7 +3727,7 @@ printf("FDU checksum fault. ckType = %u ; computedChecksum=\
 			break;			
 		}
 	}
-	*/
+#endif
 
 	return completeInFdu(fdu, fduObj, fduElt, CfdpNoError, 0);
 }
