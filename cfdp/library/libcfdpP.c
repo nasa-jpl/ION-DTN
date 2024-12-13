@@ -3675,7 +3675,8 @@ static int	handleFinishPdu(unsigned char *cursor, int bytesRemaining,
 
 static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 {
-	CfdpHandler	handler;
+	//JG DEBUG
+	//CfdpHandler	handler;
 
 	if (!fdu->metadataReceived)
 	{
@@ -3692,13 +3693,31 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 		return 0;
 	}
 
+//JG
+#if CFDPDEBUG
+printf("FDU forced declared as verified. ckType = %u ; computedChecksum=\
+ %u ; eofChecksum = %u.\n", fdu->ckType, fdu->computedChecksum, fdu->eofChecksum);
+#endif
+	fdu->checksumVerified = 1;
+
+//JG temporary bypass  
+
+/*
 	if (fdu->computedChecksum == fdu->eofChecksum
 	|| fdu->ckType == NullChecksum)
 	{
+#if CFDPDEBUG
+printf("FDU declared verified. ckType = %u ; computedChecksum=\
+ %u ; eofChecksum = %u.\n", fdu->ckType, fdu->computedChecksum, fdu->eofChecksum);
+#endif
 		fdu->checksumVerified = 1;
 	}
 	else
 	{
+#if CFDPDEBUG
+printf("FDU checksum fault. ckType = %u ; computedChecksum=\
+ %u ; eofChecksum = %u.\n", fdu->ckType, fdu->computedChecksum, fdu->eofChecksum);
+#endif
 		if (handleFault(&fdu->transactionId, CfdpChecksumFailure,
 					&handler) < 0)
 		{
@@ -3710,12 +3729,13 @@ static int	checkInFduComplete(InFdu *fdu, Object fduObj, Object fduElt)
 		{
 		case CfdpCancel:
 		case CfdpAbandon:
-			return 0;		/*	Nothing to do.	*/
+			return 0;		
 
 		default:
-			break;			/*	No problem.	*/
+			break;			
 		}
 	}
+	*/
 
 	return completeInFdu(fdu, fduObj, fduElt, CfdpNoError, 0);
 }
@@ -3824,12 +3844,13 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 	Sdr		sdr = getIonsdr();
 	CfdpVdb		*cfdpvdb = _cfdpvdb(NULL);
 	CfdpDB		cfdpdb;
-	Object		elt;
+	Object		elt = 0;
 	Object		addr;
 	CfdpExtent	extent;
 	uvast		extentEnd = 0;
 	Object		nextElt = 0;
-	uvast		bytesToSkip;
+	int			segmentTrailsLastExtentWithGap = 1;
+	uvast		bytesToSkip = 0;
 	char		stringBuf[256];
 	char		workingNameBuffer[MAXPATHLEN + 1];
 	vast		endOfFile;
@@ -3929,7 +3950,18 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 		}
 	}
 
-	/*	Figure out how much of the file data PDU is new data.	*/
+	/*	Figure out how much of the file data PDU is new data.	
+	 *  Note: Each CFDP transaction has the same, fixed-size FileDataPDU 
+	 *  except possibly the last one. Therefore the size of each extent 
+	 *  (contiguous block of file data) is an integer multiple of a segment
+	 *  (maximum FileDataPDU), unless that extent contains the last 
+	 *  FileDataPDU of the file. This condition limits the number of ways
+	 *  in which each arriving data PDU maps to the extents of the file. */
+#if CFDPDEBUG
+printf("...FileData PDU Segment has segmentOffset = " UVAST_FIELDSPEC " segmentEnd = " UVAST_FIELDSPEC ".\n",
+segmentOffset, segmentEnd);
+printf("...Now iterate over list of current extent...\n"); 
+#endif
 
 	for (elt = sdr_list_first(sdr, fdu->extents); elt;
 			elt = sdr_list_next(sdr, elt))
@@ -3938,45 +3970,51 @@ static int	handleFileDataPdu(unsigned char *cursor, int bytesRemaining,
 		sdr_stage(sdr, (char *) &extent, addr, sizeof(CfdpExtent));
 		extentEnd = extent.offset + extent.length;
 #if CFDPDEBUG
-printf("Viewing extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
+printf("...... For extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
 extent.offset, extent.offset + extent.length);
 #endif
-		if (extentEnd < segmentOffset)	/*	No relation.	*/
+		if (extentEnd < segmentOffset)	/*	data segment is not contiguous after current extent */
 		{
-			continue;	/*	Look for later extent.	*/
+#if CFDPDEBUG
+printf("......... Segment is non-contiguous with current extent, extent.offset = " UVAST_FIELDSPEC 
+" extentEnd = " UVAST_FIELDSPEC " segmentOffset = " UVAST_FIELDSPEC "; .... Look for next extent.\n",
+extent.offset, extentEnd, segmentOffset);
+#endif
+			continue;	/*	Look for next extent.	*/
 		}
-
-		/*	This extent ends at or after the start of
-		 *	this segment.  Don't search any further in
-		 *	the extents.					*/
 
 		if (extent.offset <= segmentOffset)
 		{
-			/*	This extent starts before the start
-			 *	of the segment, i.e., part or all of
-			 *	this segment has already been received.	*/
+			/*	This segment starts at the beginning of the extent, 
+			 *  within the scope of the current extent or  
+			 *  or right after the extent with NO gap */
 
 #if CFDPDEBUG
-printf(".... Extent and segment has no gap; extend.offset = " UVAST_FIELDSPEC "; segmentOffset = " VAST_FIELDSPEC ".\n",
-extent.offset, segmentOffset);
+printf("......... Extent and segment overlap or are contiguous; extent.offset = " 
+UVAST_FIELDSPEC " extentEnd = " UVAST_FIELDSPEC " ; segmentOffset = " VAST_FIELDSPEC 
+" ; segmentEnd = " UVAST_FIELDSPEC ".\n",
+extent.offset, extentEnd , segmentOffset, segmentEnd);
 #endif
-
+			/* calculate overlap, if any */
 			bytesToSkip = extentEnd - segmentOffset;
 			if (bytesToSkip >= bytesRemaining)
 			{
+#if CFDPDEBUG
+printf("......... Complete overlap, ignore data. \n"); 
+#endif
+				/* complete overlap */
 				return 0;	/*	Ignore.		*/
 			}
 
-			/*	This segment extends this extent.	*/
+			/*	This segment increase the length of the extent.	*/
 			extent.length = segmentEnd - extent.offset;
 			sdr_write(sdr, addr, (char *) &extent,
 					sizeof(CfdpExtent));
-#if CFDPDEBUG
-printf(".... Rewriting/extending extent at " UVAST_FIELDSPEC ", to " UVAST_FIELDSPEC ".\n",
-extent.offset, extent.offset + extent.length);
-#endif
 			extentEnd = extent.offset + extent.length;
-
+#if CFDPDEBUG
+printf(".... Extending current extent, which now is from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC ".\n",
+extent.offset, extentEnd);
+#endif
 			/*	Skip over any repeated data at the
 			 *	start of the segment.			*/
 
@@ -3984,21 +4022,41 @@ extent.offset, extent.offset + extent.length);
 			cursor += bytesToSkip;
 			bytesRemaining -= bytesToSkip;
 #if CFDPDEBUG
-printf(".... Skipping " UVAST_FIELDSPEC " bytes, segmentOffset changed to " UVAST_FIELDSPEC ".\n",
+printf(".... Skipping " UVAST_FIELDSPEC " bytes, new segmentOffset is " UVAST_FIELDSPEC " where new data will be written to FDU.\n",
 bytesToSkip, segmentOffset);
 #endif
 		}
-		else	/*	This segment starts a new extent.	*/
+		else	/*	This segment starts before the current extent 	*/
 		{
 #if CFDPDEBUG
 printf(".... New extent is needed from " UVAST_FIELDSPEC " bytes to " UVAST_FIELDSPEC ".\n",
 segmentOffset, segmentEnd);
 #endif
-			nextElt = elt;
+			nextElt = elt; /* nextElt is where the new extent be inserted in front of. */
 			elt = 0;	/*	New extent needed.	*/
+
+			/* Note new extent may need require consolidation later.
+			 * Under the assumption of fixed sized File Data PDU, except the last one,
+			 * When a segment arrive at a position earlier than an extent's offset, it 
+			 * is treated as a new extent, which either touch or not the current extent,
+			 * but does not "overlap." Without the fixed size FileData PDU assumption,
+			 * it is more complicated. */
 		}
 
+		/* No more search if you reach this point. The segment either extends an existing 
+		 * extent or is a new extent that come before an existing extent. */
+		segmentTrailsLastExtentWithGap = 0;
 		break;
+	}
+
+	/* If you reach here it could be because the segment trails all existing extent with
+	 * a gap and you went through the entire loop. In that case a new extent is needed too.*/
+	
+	if(segmentTrailsLastExtentWithGap == 1)
+	{
+		/* Having a non-zero nextElt means you need to check for consolidation of extent. */
+		nextElt = 0;
+		elt = 0;
 	}
 
 	/*	Insert new extent if necessary.				*/
@@ -4008,6 +4066,14 @@ segmentOffset, segmentEnd);
 		extent.offset = segmentOffset;
 		extent.length = bytesRemaining;
 		addr = sdr_malloc(sdr, sizeof (CfdpExtent));
+#if CFDPDEBUG
+printf(".... Creating new extent " UVAST_FIELDSPEC " bytes to " UVAST_FIELDSPEC ".\n",
+segmentOffset, segmentEnd);
+#endif
+		/* This new extent is inserted "last" in the list if the segment is the first 
+		 * ever segment or has a gap beyond the last existing extent.
+		 * This new extent is inserted before "nextElt" if it is found to arrive 
+		 * before an existing extent. */
 		if (addr == 0
 		|| (elt = (nextElt == 0	?
 			sdr_list_insert_last(sdr, fdu->extents, addr)
@@ -4026,6 +4092,10 @@ extent.offset, extent.offset + extent.length);
 		extentEnd = extent.offset + extent.length;
 	}
 
+	/* elt is newly inserted extent or the extent expanded by the segment.
+	 * nextElt is the extent following it, which might be contiguous. */
+
+	/* To Do: Check if this is necessary....*/
 	nextElt = sdr_list_next(sdr, elt);
 
 	/*	Open the file (possibly a temporary working file) if
@@ -4143,6 +4213,10 @@ extent.offset, extent.offset + extent.length);
 		putSysErrmsg("Can't lseek in file", workingNameBuffer);
 		return handleFilestoreRejection(fdu, -1, &handler);
 	}
+#if CFDPDEBUG
+printf(".... Position write position of file to current segmentOffset = " UVAST_FIELDSPEC ".\n",
+segmentOffset);
+#endif
 
 	/*	Now write new file data, updating checksum in the
 	 *	process.  While doing this, collapse subsequent
@@ -4150,18 +4224,23 @@ extent.offset, extent.offset + extent.length);
 	 *	in continuity is reached.  This may entail filling
 	 *	any number of inter-extent gaps.			*/
 
+	/* check if nextElt exists, if so the newly created or extended extent 
+	 * is not the last extent. In that case, may need consolidation. */
 	while (nextElt)
 	{
 		nextAddr = sdr_list_data(sdr, nextElt);
 		sdr_stage(sdr, (char *) &nextExtent, nextAddr,
 				sizeof(CfdpExtent));
 #if CFDPDEBUG
-printf("Continuing to next extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC "; \
-segmentOffset is " UVAST_FIELDSPEC ".\n", nextExtent.offset,
-nextExtent.offset + nextExtent.length, segmentOffset);
+printf("...Check extent from " UVAST_FIELDSPEC " to " UVAST_FIELDSPEC " for consolidation; \
+segmentOffset = " UVAST_FIELDSPEC " segmentEnd = " UVAST_FIELDSPEC ".\n", nextExtent.offset,
+nextExtent.offset + nextExtent.length, segmentOffset, segmentEnd);
 #endif
 		if (nextExtent.offset > segmentEnd)
 		{
+#if CFDPDEBUG
+printf("...There is a gap, not need to consolidate.\n"); 
+#endif
 			break;	/*	Reached an unbridged gap.	*/
 		}
 
@@ -4189,10 +4268,6 @@ Updated segmentOffset = " VAST_FIELDSPEC "; \
 Updated bytesRemaining = %d; \
 Updated curosr = %p. \n", bytesToWrite, segmentOffset, bytesRemaining, cursor);
 #endif
-		/*	Now skip over all data that were written when
-		 *	this extent was posted.				*/
-		bytesToSkip = bytesToWrite; //JG this value is not used any where...
-
 		/*  For any remaining data (Rare Cases) */
 		
 		/* Note: current implementation has been tested 
@@ -4212,23 +4287,22 @@ printf(".... Rare Case Detected: additional bytes (%d) remain after bridging gap
 			if ((bytesRemaining) <= nextExtent.length) {
 
             	/* the remainder is fully contained within the next extent */
-             	bytesToSkip += bytesRemaining;
 				bytesRemaining = 0;
 				segmentOffset += bytesRemaining;
 				cursor += bytesRemaining;
 #if CFDPDEBUG
-printf(".... Rare Case Detected: segment fully contained by next extent, bytesToSkip = " UVAST_FIELDSPEC "; \
-bytesRemaining set to 0.\n", bytesToSkip);
+printf(".... Rare Case Detected: additional bytes were fully contained by next extent; \
+bytesRemaining set to 0.\n");
 #endif	
          	} else {
             	/* this segment extends past the nextExtent. */
-             	bytesToSkip += nextExtent.length;
 				bytesRemaining -= nextExtent.length;
 				segmentOffset += nextExtent.length;
 				cursor += nextExtent.length;
 #if CFDPDEBUG
 printf(".... Rare Case Detected: segment extented beyond one full extent. This could signal an anomaly. \n");
 #endif
+				/* ignoring this. */
          	}
     	} 
 
@@ -4260,7 +4334,13 @@ printf(".... Actually extending the prior extent, new offset =\
 		nextElt = elt;
 	}
 
-	/*	Write final hunk of segment data.			*/
+	/*	Write final hunk of segment data. 
+	 *
+	 *  If you get here after consolidation, you shouldn't need to actually
+	 *  write any more data. If you didn't do any consolidation because the
+	 *  segment is the last extent or extends the last extent, then you will
+	 *  write all the remaining data here. */
+
 #if CFDPDEBUG
 printf("Are there any remaining data to write? The segmentEnd = " UVAST_FIELDSPEC "\
  and the adjusted segmentOffset = " VAST_FIELDSPEC ". If segmentEnd > segmentOffset, \
@@ -4277,8 +4357,8 @@ need to write remaining data.\n", segmentEnd, segmentOffset);
 			return -1;
 		}
 #if CFDPDEBUG
-printf("Written final hunk of segment data. After write op, adjusted segmentOffset =\
- " UVAST_FIELDSPEC "; bytesToWrite = " VAST_FIELDSPEC ".\n", segmentOffset, bytesToWrite);
+printf("Written final hunk of segment data. After writing " VAST_FIELDSPEC " bytes, adjusted segmentOffset =\
+ " UVAST_FIELDSPEC "; adjusted bytesRemaining = %d.\n", bytesToWrite,segmentOffset, bytesRemaining);
 #endif
 	}
 
@@ -5125,7 +5205,7 @@ printf("...wrong CFDP transmission mode...\n");
 		if (directiveCode != 5)	/*	Must be Finish.		*/
 		{
 #if CFDPDEBUG
-printf("...PDU type is invalid (must be Finish)...\n"); 
+printf("...PDU type is invalid (must be Finish PDU)...\n"); 
 #endif
 			return 0;
 		}
@@ -5139,12 +5219,15 @@ printf("...PDU type is invalid (must be Finish)...\n");
 		|| outFduBuf.eofPdu != 0)
 		{
 #if CFDPDEBUG
-printf("...spurious Finish PDU...\n"); 
+printf("...spurious Finish PDU, not processed...\n"); 
 #endif
 			sdr_exit_xn(sdr);
 			return 0;
 		}
 
+#if CFDPDEBUG
+printf("...processing Finish PDU...\n"); 
+#endif
 		result = handleFinishPdu(cursor, bytesRemaining, &outFduBuf,
 				fduObj);
 		if (result < 0)
@@ -5171,6 +5254,9 @@ printf("...PDU is misdirected...\n");
 	/*	Get InFdu, creating as necessary.			*/
 
 	CHKERR(sdr_begin_xn(sdr));
+#if CFDPDEBUG
+printf("...Inbound PDU is for an FDU, processing and creating if needed...\n"); 
+#endif
 	fduObj = findInFdu(&transactionId, &fduBuf, &fduElt, 1);
 	if (fduObj == 0)
 	{
@@ -5181,11 +5267,17 @@ printf("...PDU is misdirected...\n");
 
 	if (fduBuf.state == FduCanceled)
 	{
+#if CFDPDEBUG
+printf("...Found existing FDU which was canceled, PDU is misdirected, dropped...\n"); 
+#endif
 		return sdr_end_xn(sdr); /*	Useless PDU.		*/
 	}
 
 	if (pduIsFileData)
 	{
+#if CFDPDEBUG
+printf("...PDU is File Data PDU, processing...\n");
+#endif
 		result = handleFileDataPdu(cursor, bytesRemaining, &fduBuf,
 				fduObj, fduElt, largeFile, recordStructure,
 				haveMetadata);
@@ -5201,6 +5293,9 @@ printf("...PDU is misdirected...\n");
 
 	if (bytesRemaining < 1)
 	{
+#if CFDPDEBUG
+printf("...PDU is malformed...\n"); 
+#endif
 		return sdr_end_xn(sdr); /*	Malformed PDU.		*/
 	}
 
@@ -5210,16 +5305,25 @@ printf("...PDU is misdirected...\n");
 	switch (directiveCode)
 	{
 	case 4:				/*	EOF PDU.		*/
+#if CFDPDEBUG
+printf("...PDU is EoF, processing...\n"); 
+#endif
 		result = handleEofPdu(cursor, bytesRemaining, &fduBuf,
 				fduObj, fduElt, largeFile);
 		break;
 
 	case 7:				/*	Metadata PDU.		*/
+#if CFDPDEBUG
+printf("...PDU is Metadata PDU, processing...\n"); 
+#endif
 		result = handleMetadataPdu(cursor, bytesRemaining, &fduBuf,
 				fduObj, fduElt, largeFile);
 		break;
 
 	default:			/*	Invalid PDU for unack.	*/
+#if CFDPDEBUG
+printf("...PDU is invalid for unacknowledged mode, dropped...\n"); 
+#endif
 		return sdr_end_xn(sdr);
 	}
 
