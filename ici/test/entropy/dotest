@@ -1,16 +1,16 @@
 #!/bin/bash
 
 # ---------------------------------------------------------------------------
-# TEST_RANDOMNESS.SH - Randomness Quality Testing Script
+# dotest - Randomness Quality Testing Script
 # ---------------------------------------------------------------------------
 #
 # OVERVIEW:
 # This script tests the quality of a random byte generator program by:
 # 1. Generating a stream of random bytes using the provided entropy source.
 # 2. Testing the generated random data using various randomness test utilities:
-#    - `dieharder`: A comprehensive battery of statistical tests.
-#    - `rngtest`: A FIPS 140-2 compliance tester.
-#    - `ent` (optional, if installed): A simple entropy analysis tool.
+#    - `dieharder` (if installed): A comprehensive battery of statistical tests.
+#    - `rngtest` (if installed): A FIPS 140-2 compliance tester.
+#    - `ent` (if installed): A simple entropy analysis tool.
 # 3. Summarizing the results with clear, color-coded output for easy interpretation.
 #
 # ---------------------------------------------------------------------------
