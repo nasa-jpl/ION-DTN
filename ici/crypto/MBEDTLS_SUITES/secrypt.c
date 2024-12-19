@@ -11,10 +11,11 @@
  *
  * @details
  * Core Function:
- * - crypt_and_hash_buffer: Encrypts or decrypts data in a buffer and computes its hash.
+ * - crypt_and_hash_buffer: Encrypts or decrypts data in a buffer (with hashed verification).
  * 
  * Cryptographic Utilities:
  * - entropy_gen: Generates cryptographically secure random entropy.
+ *      - Note: see the new cross-platform entropy source at: ici/crypto/entropy_src.c
  * - entropy_init: Initializes the entropy context for random number generation.
  * 
  * Utility Functions:
@@ -47,6 +48,8 @@
 #endif
 #endif
 #include "secrypt.h"
+#include "../entropy_src.h" //for cross-platform entropy polling function (in libici)
+
 #include <bp.h>
 
 
@@ -108,17 +111,17 @@ void print_encrypted_data(const unsigned char *data, size_t length)
 
 /******************************************************************************/
 /** entropy_gen */
+/* NOTE: deprecated in favor of: ici/crypto/entropy_src: poll_entropy_src()   */
 /******************************************************************************/
 int entropy_gen(void *data, unsigned char *output, size_t len, size_t *olen)
 {
     int fd;
     ssize_t n;
     
-    // Try /dev/hwrng first
+    /* Try /dev/hwrng first */
     fd = open("/dev/hwrng", O_RDONLY);
     if (fd != -1) 
     {
-        //fprintf(stdout, "Reading entropy from /dev/hwrng\n");
         n = read(fd, output, len);
         close(fd);
         if (n == len) 
@@ -126,14 +129,12 @@ int entropy_gen(void *data, unsigned char *output, size_t len, size_t *olen)
             *olen = len;
             return 0; //success
         }
-		fprintf(stderr, "Error reading from /dev/hwrng/\n"); 
+		writeMemo("Error reading from /dev/hwrng/\n"); 
     }    
     
     fd = open("/dev/urandom", O_RDONLY);
     if (fd != -1) 
     {
-        //fprintf(stdout, "Reading entropy from /dev/urandom\n");
-
         n = read(fd, output, len);
         close(fd);
         if (n == len) 
@@ -141,15 +142,13 @@ int entropy_gen(void *data, unsigned char *output, size_t len, size_t *olen)
             *olen = len;
             return 0; //success
         }
-		fprintf(stderr, "Error reading from /dev/urandom/\n"); 
+		writeMemo("Error reading from /dev/urandom/\n"); 
     }
 
-    // If /dev/urandom fails, try /dev/random
+    /* If /dev/urandom fails, try /dev/random */
     fd = open("/dev/random", O_RDONLY);
     if (fd != -1) 
     {
-        //fprintf(stdout, "Reading entropy from /dev/random\n");
-
         n = read(fd, output, len);
         close(fd);
         if (n == len) 
@@ -157,13 +156,11 @@ int entropy_gen(void *data, unsigned char *output, size_t len, size_t *olen)
             *olen = len;
             return 0; //success
         }
-		fprintf(stderr, "Error reading from /dev/random/\n");
-
+		writeMemo("Error reading from /dev/random/\n");
     }
 
-    // If both sources fail, return an error
-    fprintf(stderr, "Failure reading from entropy generators");
-	//writeMemo("Failure reading from entropy generators"); //debug statement
+    /* If both sources fail, return an error */
+    writeMemo("Failure reading from entropy generators");
 
     return -1; //failure
 
@@ -175,8 +172,14 @@ int entropy_gen(void *data, unsigned char *output, size_t len, size_t *olen)
 /******************************************************************************/
 int entropy_init(mbedtls_entropy_context *entropy)
 {
+    /* initialize the entropy context object */
     mbedtls_entropy_init(entropy );
-    mbedtls_entropy_add_source(entropy, entropy_gen, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
+
+    /* use the provided (see above) entropy polling function */
+    //mbedtls_entropy_add_source(entropy, entropy_gen, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
+
+    /* updated for (new) cross-platform entropy polling function (ici/crypto/entropy_src.c) */
+    mbedtls_entropy_add_source(entropy, poll_entropy_src, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
     return 0;
 
 } //end entropy_init--->///
@@ -205,12 +208,10 @@ int crypt_and_hash_buffer(
 {    
     int i; //iterator
     int status = -1;
-    //unsigned n; //used for key
     int exit_code = MBEDTLS_EXIT_FAILURE; //default to failure
     size_t keylen=0, ilen=0, olen=0;
     size_t input_buffer_size = *input_length;
     
-    //char *p = NULL;
     unsigned char *output_buffer = NULL;
     size_t output_length = 0; //return 0 on failure
     
@@ -252,9 +253,7 @@ int crypt_and_hash_buffer(
     mbedtls_cipher_init(&cipher_ctx);
     mbedtls_md_init(&md_ctx);
 
-    /* 
-    basic error checking-----------------------------------
-     */
+    /*  basic error checking-----------------------------------   */
     if (mode != MODE_ENCRYPT && mode != MODE_DECRYPT) 
     {
         mbedtls_fprintf(stderr, "invalid operation mode\n");
@@ -300,9 +299,7 @@ int crypt_and_hash_buffer(
         goto exit;
     }
 
-    /*
-     * Read the secret key from file
-     */
+    /*  Read the secret key from file */
     if ((fkey = fopen(my_key, "rb")) != NULL) 
     {
         keylen = fread(key, 1, sizeof(key), fkey);
@@ -338,7 +335,7 @@ int crypt_and_hash_buffer(
     md_size = mbedtls_md_get_size(md_info);
     cipher_block_size = mbedtls_cipher_get_block_size(&cipher_ctx);
 
-    /* set IV size ----------------------------------------------- */
+    /* set IV size ----------------------------------------------------- */
     size_t iv_size = cipher_block_size;
     IV = MTAKE(iv_size); //freed at exit:
     if (IV == NULL)
@@ -349,11 +346,11 @@ int crypt_and_hash_buffer(
     memset(IV, 0, iv_size);
 
 
-    /* ENCRYPT------------------------------------------------------------------------------------- */
+    /* ENCRYPT---------------------------------------------------------------- */
     if (mode == MODE_ENCRYPT) 
     {
 
-        /* INITIALIZE RANDOMIZER----------------------------------------- */
+        /* INITIALIZE RANDOMIZER------------------------------------------ */
         mbedtls_ctr_drbg_init(&ctr_drbg);
 
         /* INITIALIZE AND SEED ENTROPY------------------------------------ */
@@ -487,7 +484,7 @@ int crypt_and_hash_buffer(
         unsigned char *input_ptr = input_buffer;  //pointer to the current position in input_buffer
         unsigned char *output_ptr = output_buffer + iv_size;  //start writing after the IV
 
-        /* offset fix---------------------------- */
+        /* offset fix------------------------------------------- */
         size_t compensator=0;
         size_t real_offset=0;
 
@@ -548,7 +545,7 @@ int crypt_and_hash_buffer(
 
 
 
-    //DECRYPT-------------------------------------------------------------------------------------
+    /* DECRYPT------------------------------------------------------------------ */
     if (mode == MODE_DECRYPT)
     {
         /*
