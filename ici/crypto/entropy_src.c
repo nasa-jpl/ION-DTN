@@ -185,7 +185,7 @@ int open_entropy_source()
     fd = open("/dev/hwrng", O_RDONLY);
     if (fd >= 0) 
     {
-        writeMemo("[i] Polling /dev/hwrng entropy source");
+        /* writeMemo("[i] Polling /dev/hwrng entropy source"); */
         return fd;
     }
 
@@ -193,7 +193,7 @@ int open_entropy_source()
     fd = open("/dev/urandom", O_RDONLY);
     if (fd >= 0) 
     {
-        writeMemo("[i] Polling /dev/urandom entropy source");
+        /* writeMemo("[i] Polling /dev/urandom entropy source"); */
         return fd;
     }  
 
@@ -201,7 +201,7 @@ int open_entropy_source()
     fd = open("/dev/random", O_RDONLY);
     if (fd >= 0) 
     {
-        writeMemo("[i] Polling /dev/random entropy source");
+        /* writeMemo("[i] Polling /dev/random entropy source"); */
         return fd;
     }
 
