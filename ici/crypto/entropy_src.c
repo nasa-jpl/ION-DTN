@@ -167,7 +167,6 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
 }//end poll_entropy_src ---//
 
 
-
 /**
  * Opens the most suitable (strongest) entropy source available (Unix/Linux.. & MAC).
  * 
@@ -186,6 +185,7 @@ int open_entropy_source()
     fd = open("/dev/hwrng", O_RDONLY);
     if (fd >= 0) 
     {
+        writeMemo("[i] Polling /dev/hwrng entropy source");
         return fd;
     }
 
@@ -193,11 +193,19 @@ int open_entropy_source()
     fd = open("/dev/urandom", O_RDONLY);
     if (fd >= 0) 
     {
+        writeMemo("[i] Polling /dev/urandom entropy source");
         return fd;
-    }    
+    }  
+
+     /* else attempt to read from: /dev/random */
+    fd = open("/dev/random", O_RDONLY);
+    if (fd >= 0) 
+    {
+        writeMemo("[i] Polling /dev/random entropy source");
+        return fd;
+    }
 
     /* else failure */
-    writeMemo("[!] poll_entropy_src: error reading from entropy source");
     return fd;
 
 }//end open_entropy_source ---//
