@@ -93,10 +93,10 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
 {
     if (!output || !olen) 
     {
-        writeErrMemo("[!] poll_entropy_src: invalid arguments");
+        writeMemo("[!] poll_entropy_src: invalid arguments");
         return -1; //invalid arguments
     }
-    *olen = 0;
+    *olen = 0;    
 
     /* WINDOWS------------------------------------------------------------ */
     #if defined(_WIN32) || defined(_WIN64)
@@ -104,7 +104,7 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
         NTSTATUS status = BCryptGenRandom(NULL, output, (ULONG)ilen, BCRYPT_USE_SYSTEM_PREFERRED_RNG);
         if (status != 0) 
         {
-            writeErrMemo("[!] poll_entropy_src: error generating random bytes ");
+            writeMemo("[!] poll_entropy_src: error generating random bytes ");
             return -2; //error generating random bytes
         }
         *olen = ilen; //true on success..
@@ -123,14 +123,14 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
             int fd = open_entropy_source();
             if (fd < 0) 
             {
-                writeErrMemo("[!] poll_entropy_src: error opening entropy source");
+                writeMemo("[!] poll_entropy_src: error opening entropy source");
                 return -3; //error opening entropy source
             }
 
             ssize_t read_bytes = read(fd, output, ilen);
             if (read_bytes < 0) 
             {
-                writeErrMemo("[!] poll_entropy_src: error reading random bytes ");
+                writeMemo("[!] poll_entropy_src: error reading random bytes ");
                 close(fd);
                 return -4; //error reading random bytes
             }
@@ -146,7 +146,7 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
         int fd = open_entropy_source();
         if (fd < 0) 
         {
-            writeErrMemo("[!] poll_entropy_src: error opening entropy source");
+            writeMemo("[!] poll_entropy_src: error opening entropy source");
             return -5; //error opening entropy source
         }
 
@@ -154,7 +154,7 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
         if (read_bytes < 0) 
         {
             close(fd);
-            writeErrMemo("[!] poll_entropy_src: error reading random bytes ");
+            writeMemo("[!] poll_entropy_src: error reading random bytes ");
             return -6; //error reading random bytes
         }
 
@@ -197,7 +197,7 @@ int open_entropy_source()
     }    
 
     /* else failure */
-    writeErrMemo("[!] poll_entropy_src: error reading from entropy source");
+    writeMemo("[!] poll_entropy_src: error reading from entropy source");
     return fd;
 
 }//end open_entropy_source ---//
