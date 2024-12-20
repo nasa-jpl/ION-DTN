@@ -2617,6 +2617,7 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 	CfdpEvent	event;
 	char		workingFileName[256];
 	char		reportBuffer[256];
+	char		logMsg[256];
 
 	CHKERR(ionLocked());
 	CHKERR(fduBuf);
@@ -2687,12 +2688,25 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 			{
 				sdr_string_read(sdr, workingFileName,
 						fduBuf->workingFileName);
+				
 				unlink(workingFileName);
+				isprintf(logMsg, sizeof logMsg, "CFDP Error: Condition %d. File '%s' was deleted due to discardIncompleteFile.", condition, workingFileName);
+				writeMemo(logMsg);
 				event.fileStatus = CfdpFileDiscarded;
 				event.deliveryCode = CfdpDataIncomplete;
 			}
 			else
 			{
+				if (fduBuf->destFileName)
+				{
+					isprintf(logMsg, sizeof logMsg, "CFDP Error: Condition %d. File '%s' was retained as discardIncompleteFile is disabled.", condition, fduBuf->destFileName);
+				}
+				else
+				{
+					isprintf(logMsg, sizeof logMsg, "CFDP Error: Condition %d. File retention unknown as destFileName is NULL.", condition);
+				}
+				writeMemo(logMsg);
+
 				event.fileStatus = CfdpFileRetained;
 				if (fduBuf->workingFileName !=
 						fduBuf->destFileName)
@@ -2789,11 +2803,18 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 	OutFdu		outFdu;
 	Object		fduElt;
 	CfdpEvent	event;
+	char fileName[256] = "unknown";
 
 	CHKERR(transactionId);
 	CHKERR(handler);
 	*handler = CfdpNoHandler;
+
+	/* Load CFDP database */
+
 	sdr_read(sdr, (char *) &cfdpdb, getCfdpDbObject(), sizeof(CfdpDB));
+
+	/* Determine if the fault is for outbound or inbound FDU */
+
 	if (memcmp(transactionId->sourceEntityNbr.buffer,
 			cfdpdb.ownEntityNbr.buffer, 8) == 0)
 	{
@@ -2802,6 +2823,11 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		if (fduObj != 0)
 		{
 			*handler = outFdu.faultHandlers[fault];
+			// Retrieve file name if available
+			if (outFdu.sourceFileName)
+			{
+				strncpy(fileName, outFdu.sourceFileName, 256);
+			}
 		}
 	}
 	else
@@ -2811,12 +2837,32 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		if (fduObj != 0)
 		{
 			*handler = inFdu.faultHandlers[fault];
+			/* Retrieve file name if available */
+			if (inFdu.destFileName)
+			{
+				sdr_string_read(sdr, fileName, inFdu.destFileName);
+			}
 		}
 	}
 
 	if (*handler == CfdpNoHandler)
 	{
 		*handler = cfdpdb.faultHandlers[fault];
+	}
+
+	// Log the fault occurrence
+	if (fault == CfdpCheckLimitReached)
+	{
+		char logMsg[512];
+		isprintf(logMsg, sizeof logMsg,
+				"CFDP Fault: CfdpCheckLimitReached occurred. "
+				"File: %s, Handler: %s",
+				fileName,
+				(*handler == CfdpCancel) ? "CfdpCancel" :
+				(*handler == CfdpSuspend) ? "CfdpSuspend" :
+				(*handler == CfdpIgnore) ? "CfdpIgnore" :
+				(*handler == CfdpAbandon) ? "CfdpAbandon" : "Unknown");
+		writeMemo(logMsg);
 	}
 
 	switch (*handler)
@@ -2830,9 +2876,10 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		if (memcmp(transactionId->sourceEntityNbr.buffer,
 				cfdpdb.ownEntityNbr.buffer, 8) == 0)
 		{
+			printf("canceling outFdu?\n");
 			return cancelOutFdu(transactionId, fault, 0);
 		}
-
+		printf("canceling inFdu!\n");
 		return completeInFdu(&inFdu, fduObj, fduElt, fault, 0);
 
 	case CfdpSuspend:
