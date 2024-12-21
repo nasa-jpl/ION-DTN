@@ -170,6 +170,28 @@ Initiates attachment of CRCs to all subsequently issued CFDP PDUs.
 
 =back
 
+=head1 NOTE
+
+As of ION 4.1.3s, all CFDP parameter are loaded only once per start of
+UT Layer. Changes made to CFDP configuration via subsequent cfdpadmin
+command will be stored in SDR but not loaded into running instance.
+
+To reload CFDP configuration, one needs to stop UT Layer and restart.
+As an example, to change `discard` option from 0 to 1:
+
+=over 4
+
+=item x
+
+=item m discard 1
+
+=item s 'bputa'
+
+=back
+
+This will stop UT Layer service, change discard setting, and restart/reload
+UT Layer.
+
 =head1 SEE ALSO
 
 cfdpadmin(1), bputa(1)
