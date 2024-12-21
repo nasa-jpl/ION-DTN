@@ -26,6 +26,38 @@ typedef struct
 	CfdpTransactionId	transactionId;
 } CfdpReqParms;
 
+/* plain text of event types, except no access event (-1) */
+static char *eventTypes[] = {
+	"no event",
+	"transaction started",
+	"EOF sent",
+	"transaction finished",
+	"metadata received",
+	"file data segment received",
+	"EOF received",
+	"suspended",
+	"resumed",
+	"transaction report",
+	"fault",
+	"abandoned"
+};
+
+static void 	reportCfdpEvent(CfdpEventType type, char *statusReportBuf)
+{
+	if (type < 0)
+	{	
+		printf("\nCFDP Event:CFDP access had ended.\n");
+		return;
+	}
+
+	printf("CFDP Event: Type = %d: %s\n", type, eventTypes[type]);
+    
+	if (statusReportBuf && strlen(statusReportBuf) > 0)
+	{
+		printf("...CFDP Status Report: %s\n", statusReportBuf);
+	}
+}
+
 static int	noteSegmentTime(uvast fileOffset, unsigned int recordOffset,
 			unsigned int length, int sourceFileFd, char *buffer)
 {
@@ -686,20 +718,7 @@ static char	*getMessageText(unsigned char *buf, unsigned int length)
 static void	*handleEvents(void *parm)
 {
 	int			*running = (int *) parm;
-	char			*eventTypes[] =	{
-					"no event",
-					"transaction started",
-					"EOF sent",
-					"transaction finished",
-					"metadata received",
-					"file data segment received",
-					"EOF received",
-					"suspended",
-					"resumed",
-					"transaction report",
-					"fault",
-					"abandoned"
-						};
+	/* also uses eventTypes defined as static */
 	CfdpEventType		type;
 	time_t			time;
 	int			reqNbr;
@@ -743,6 +762,8 @@ static void	*handleEvents(void *parm)
 			return NULL;
 		}
 
+		reportCfdpEvent(type,statusReportBuf);
+
 		if (type == CfdpAccessEnded)
 		{
 			break;		/*	Shut down.		*/
@@ -753,19 +774,11 @@ static void	*handleEvents(void *parm)
 			continue;	/*	Interrupted.		*/
 		}
 
-		printf("\nEvent: type %d '%s'.\n", type,
-				(type > 0 && type < 12) ? eventTypes[type]
-				: "(unknown)");
-		if (type == CfdpReportInd)
-		{
-			printf("Report '%s'\n", statusReportBuf);
-		}
-
 		if (type == CfdpFileSegmentRecvInd)
 		{
 			if (segMetadataLength > 0)
 			{
-				printf("Seg metadata '%s'\n", segMetadata);
+				printf("...Seg metadata '%s'\n", segMetadata);
 			}
 		}
 

@@ -2727,8 +2727,8 @@ int	completeInFdu(InFdu *fduBuf, Object fduObj, Object fduElt,
 		}
 	}
 
-	isprintf(reportBuffer, sizeof reportBuffer, "bytesReceived %u  size \
-%u  progress %u", fduBuf->bytesReceived, fduBuf->fileSize, fduBuf->progress);
+	isprintf(reportBuffer, sizeof reportBuffer, "bytesReceived = %u; declared file size = \
+%u; progress = %u", fduBuf->bytesReceived, fduBuf->fileSize, fduBuf->progress);
 	event.statusReport = sdr_string_create(sdr, reportBuffer);
 	event.reqNbr = getReqNbr();
 	if (enqueueCfdpEvent(&event) < 0)
