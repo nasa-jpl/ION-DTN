@@ -29,7 +29,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Run build and tests, capture stdout
-        run: | # For now run only test starting with "b", redirect stdout and stderr to a log
+        run: |
           {
             echo "Starting build and tests at $(date)"
             autoreconf -fi
@@ -39,7 +39,7 @@ jobs:
             make test
             sudo ldconfig
             cd tests
-            ./runtests bptrace_terminal_test  # Run the test
+            ./runtests  # Run the test
           } > build-and-test.log 2>&1
 
       - name: Display Progress
