@@ -1,7 +1,12 @@
 name: Regression Tests for ION on Ubuntu
 
 on:
+  pull_request:
+    branches:
+      - integration
+
   workflow_dispatch:
+
 #  push:
 #    branches:
 #      - update-4.1.4-ci-workflow

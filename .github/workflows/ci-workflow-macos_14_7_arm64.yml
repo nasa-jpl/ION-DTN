@@ -1,10 +1,15 @@
 name: Regression Tests for ION on MacOS 14.7 ARM64
 
 on:
-  workflow_dispatch:
-  push:
+  pull_request:
     branches:
-      - update-4.1.4-ci-workflow
+      - integration
+
+  workflow_dispatch:
+
+#  push:
+#    branches:
+#      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
