@@ -19,7 +19,7 @@
 *****************************************************************************
  Title: Net model generation script for ION configuration
  Author: Nate Richard
- Modified: 09/19/2023
+ Modified: 01/06/2024
  Company: JPL
  Date:   11/17/2020
 
@@ -31,42 +31,70 @@
 
 *****************************************************************************
 """
+
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Dict, List, Union
+from typing_extensions import Literal, TypedDict, Never
 
 
-def create_netmodel(src: Dict, nm_name: str) -> Dict[str, Any]:
+class NetModelParmDict(TypedDict):
+    """Dictionary for parameters to construct Net Model."""
+
+    IP: Union[List[str], str]
+    NODE: str
+    DEST: List[str]
+    PROTOCOL: List[str]
+    RATE: List[int]
+    SERVICES: Union[List[str], List[Never]]
+
+
+class NetHostsDict(TypedDict):
+    """Dictionary for host in Net Model."""
+
+    hostName: str
+    hostDesc: str
+    ipAddrs: List[str]
+
+
+class NetNodesDict(TypedDict):
+    """Dictionary for nodes in Net Model."""
+
+    nodeName: str
+    nodeDesc: str
+    nodeHost: str
+    nodeType: Literal["ion", "dtn"]
+    endpointID: str
+    services: List[str]
+
+
+class NetHopsDict(TypedDict):
+    """Dictionary for net hops in Net Model."""
+
+    hopName: str
+    hopDesc: str
+    fromNode: str
+    fromIP: str
+    toNode: str
+    toIP: str
+    bpLayer: Literal["ltp", "tcp", "udp", "stcp", "dccp"]
+    ltpLayer: Literal["", "udp", "dccp"]
+    portnum: int
+    maxRate: int
+    symmetric: bool
+
+
+def create_netmodel(src: Dict, nm_name: str) -> str:
     """Generate a net model based of provided JSON string."""
-    # Initialize variables
-    nodes = []
-    hosts = []
-    protocols = []
-    services = []
-    dests = []
-    nodenum = []
-    datarate = []
-
-    # Extract info in alphabetical order
-    for host in sorted(src.keys(), key=lambda x: x.lower()):
-        nodes.append(host)
-
-        hosts.append(src[host]["IP"])
-        protocols.append(src[host]["PROTOCOL"])
-        services.append(src[host]["SERVICES"])
-        dests.append(src[host]["DEST"])
-        nodenum.append(src[host]["NODE"])
-        datarate.append(src[host]["RATE"])
-
     # Create net_hosts dictionary
-    net_hosts = gen_net_hosts(hosts, nodes)
+    net_hosts = gen_net_hosts(src)
 
     # Create net_nodes dictionary
-    net_nodes = gen_net_nodes(nodes, services, nodenum, protocols)
+    net_nodes = gen_net_nodes(src)
 
     # Create net_hops dictionary
-    net_hops = gen_net_hops(nodes, dests, protocols, datarate)
+    net_hops = gen_net_hops(src)
 
     return {
         "netModelName": nm_name,
@@ -77,42 +105,42 @@ def create_netmodel(src: Dict, nm_name: str) -> Dict[str, Any]:
     }
 
 
-def gen_net_hosts(host_list: List, node_list: List) -> Dict:
+def gen_net_hosts(indict: NetModelParmDict) -> NetHostsDict:
     """Combine host and node lists into a net model compatible dictionary."""
-    net_hosts = {}
-    for ip_add, node in zip(host_list, node_list):
-        net_hosts[node] = {
-            "hostName": node,
-            "hostDesc": f"{node}",
-            "ipAddrs": [ip_add],
+    net_hosts: NetHostsDict = {}
+    for host in indict.keys():
+        net_hosts[host] = {
+            "hostName": host,
+            "hostDesc": f"{host} Host",
+            "ipAddrs": [indict[host]["IP"]],
         }
 
     return net_hosts
 
 
-def gen_net_nodes(node_list: List, services: List, nodenum_list: List, protocols: List) -> Dict:
+def gen_net_nodes(indict: NetModelParmDict) -> NetNodesDict:
     """Combine node parameters into a single dictionary for net model."""
-    net_nodes = {}
-    for node, serv, num, proto in zip(node_list, services, nodenum_list, protocols):
+    net_nodes: NetNodesDict = {}
+    for node, parms in indict.items():
         net_nodes[node] = {
             "nodeName": node,
             "nodeDesc": f"{node} ION node on {node}",
             "nodeHost": node,
             "nodeType": "ion",
-            "endpointID": num,
-            "protocols": proto,
-            "services": serv,
+            "endpointID": parms["NODE"],
+            "services": parms["SERVICES"],
         }
 
     return net_nodes
 
 
-def gen_net_hops(
-    node_list: List, destinations: List, protocols: List, datarates: List
-) -> Dict:
+def gen_net_hops(indict: NetModelParmDict) -> NetHopsDict:
     """Combine node and link parameters to define hops between nodes for net model."""
-    net_hops = {}
-    for node, dest, proto, rate in zip(node_list, destinations, protocols, datarates):
+    net_hops: NetHopsDict = {}
+    for node, parms in indict.items():
+        dest = parms["DEST"]
+        proto = parms["PROTOCOL"]
+        rate = parms["RATE"]
         # Assume we have multiple destinations but only 1 protocol
         # Assume data rates are defined for each destination even if they're
         # the same
@@ -121,17 +149,22 @@ def gen_net_hops(
                 hop = f"{node}2{dest_node}"
                 if proto[0] == "ltp":
                     layer = "udp"
-                    sym = "no"
+                    sym = False
+                    portnum = 1113
                 else:
                     layer = ""
-                    sym = "yes"
+                    sym = True
+                    portnum = 4556
                 net_hops[hop] = {
                     "hopName": hop,
                     "hopDesc": f"Link from {node} to {dest_node}",
                     "fromNode": node,
+                    "fromIP": parms["IP"],
                     "toNode": dest_node,
+                    "toIP": indict[dest_node]["IP"],
                     "bpLayer": proto[0],
                     "ltpLayer": layer,
+                    "portNum": portnum,
                     "maxRate": int(speed),
                     "symmetric": sym,
                 }
@@ -143,17 +176,22 @@ def gen_net_hops(
                 hop = f"{node}2{dest_node}"
                 if bpproto == "ltp":
                     layer = "udp"
-                    sym = "no"
+                    sym = False
+                    portnum = 1113
                 else:
                     layer = ""
-                    sym = "yes"
+                    sym = True
+                    portnum = 4556
                 net_hops[hop] = {
                     "hopName": hop,
                     "hopDesc": f"Link from {node} to {dest_node}",
                     "fromNode": node,
+                    "fromIP": parms["IP"],
                     "toNode": dest_node,
+                    "toIP": indict[dest_node]["IP"],
                     "bpLayer": bpproto,
                     "ltpLayer": layer,
+                    "portNum": portnum,
                     "maxRate": int(speed),
                     "symmetric": sym,
                 }
@@ -164,17 +202,22 @@ def gen_net_hops(
             hop = f"{node}2{dest[0]}"
             if proto[0] == "ltp":
                 layer = "udp"
-                sym = "no"
+                sym = False
+                portnum = 1113
             else:
                 layer = ""
-                sym = "yes"
+                sym = True
+                portnum = 4556
             net_hops[hop] = {
                 "hopName": hop,
                 "hopDesc": f"Link from {node} to {dest[0]}",
                 "fromNode": node,
+                "fromIP": parms["IP"],
                 "toNode": dest[0],
+                "toIP": indict[dest[0]]["IP"],
                 "bpLayer": proto[0],
                 "ltpLayer": layer,
+                "portNum": portnum,
                 "maxRate": int(rate[0]),
                 "symmetric": sym,
             }
@@ -192,10 +235,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model_name = Path(args.model_file).stem
-    with open(args.model_file, "r") as mfile:
-        simple_model = json.load(mfile)
-    net_model = create_netmodel(simple_model, model_name)
-
     net_model_name = f"{model_name}-net_model.json"
-    with open(net_model_name, "w") as nfile:
-        json.dump(net_model, nfile, indent=4)
+    with open(args.model_file, "r", encoding="utf-8") as mfile:
+        with open(net_model_name, "w", encoding="utf-8") as nfile:
+            json.dump(create_netmodel(json.load(mfile), model_name), nfile, indent=4)
