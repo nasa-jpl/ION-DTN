@@ -46,8 +46,14 @@
  * @copyright 2024, California Institute of Technology. All rights reserved.
  */
 
+#ifndef darwin
+#ifndef freebsd
+#define _GNU_SOURCE
+/* macos/darwin and freebsd handle this differently */
+#define _POSIX_C_SOURCE 200112L
+#endif
+#endif
 
-#define _POSIX_C_SOURCE 200112L //POSIX 2001 compliance check
 #include "metadata.h"
 #include <bp.h>
 

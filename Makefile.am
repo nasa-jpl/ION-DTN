@@ -2872,7 +2872,12 @@ amsPODM3 = pod2man -s 3 -c "AMS library functions"
 amsPODM5 = pod2man -s 5 -c "AMS configuration files"
 #amsPODH = pod2html --noindex
 
-amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -DUDPTS -DTCPTS -DDGRTS
+if CRYPTO_MBEDTLS
+    amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -I$(srcdir)/ici/crypto/MBEDTLS_SUITES -DUDPTS -DTCPTS -DDGRTS
+else
+    amscflags = -I$(srcdir)/ams/library -I$(srcdir)/ams/include -I$(srcdir)/ams/rams -I$(srcdir)/ici/crypto/NULL_SUITES -DUDPTS -DTCPTS -DDGRTS
+endif
+
 
 amsbin = \
 	amsbenchr \
@@ -2952,9 +2957,18 @@ libams_la_SOURCES = \
 	ams/library/loadmib.c \
 	ams/library/tcpts.c \
 	ams/library/udpts.c
+
+if CRYPTO_MBEDTLS
+libams_la_SOURCES += \
+	ici/crypto/MBEDTLS_SUITES/secrypt.c
+else
+libams_la_SOURCES += \
+	ici/crypto/NULL_SUITES/secrypt.c
+endif
+
 libams_la_LDFLAGS = -static
 libams_la_CFLAGS = $(amscflags) $(AM_CFLAGS)
-libams_la_LIBADD = $(EXPAT_LIBS) libdgr.la libici.la $(secryptlib)
+libams_la_LIBADD = $(EXPAT_LIBS) $(bplib) libdgr.la libici.la $(secryptlib)
 
 # --- Utility Programs --- #
 

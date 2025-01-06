@@ -211,7 +211,7 @@ if [ "$MINGW" != "true" ]; then
 else
 	# note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
 	echo "Killing processes using PowerShell..."
-    powershell -Command "foreach (\$proc in '${KILLPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> null
+    powershell -Command "foreach (\$proc in '${KILLPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> /dev/null
 fi
 
 

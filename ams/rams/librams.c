@@ -530,15 +530,15 @@ static void	deleteDeclaration(LystElt elt, void *arg)
 {
 	UdpRpdu	*rpdu = (UdpRpdu *) lyst_data(elt);
 
-	RELEASE_CONTENT_SPACE(rpdu->envelope);
-	RELEASE_CONTENT_SPACE(rpdu);
+	MRELEASE(rpdu->envelope);
+	MRELEASE(rpdu);
 }
 
 static void	DeleteInvitation(Invitation *inv)
 {
 	lyst_destroy(inv->moduleSet);
-	RELEASE_CONTENT_SPACE(inv->inviteSpecification);
-	RELEASE_CONTENT_SPACE(inv);
+	MRELEASE(inv->inviteSpecification);
+	MRELEASE(inv);
 }
 
 int	rams_run(char *mibSource, char *tsorder, char *applicationName,
@@ -664,7 +664,7 @@ printf(" %ld", cId);
 			continue;
 		} 	
 
-		ramsNode = (RamsNode *) TAKE_CONTENT_SPACE(sizeof(RamsNode));
+		ramsNode = (RamsNode *) MTAKE(sizeof(RamsNode));
 		if (ramsNode == NULL)
 		{
 			putErrmsg("Can't create RAMS neighbor object.", NULL);
@@ -870,7 +870,7 @@ printf("Gateway declares itself to all RAMS network neighbors ....\n");
 	/*	This is the RPDU handling thread, the operational main
 	 *	loop for the RAMS gateway module.			*/
 
-	buffer = TAKE_CONTENT_SPACE(65534);
+	buffer = MTAKE(65534);
 	if (buffer == NULL)
 	{
 		ErrMsg("Can't allocate RPDU buffer.");
@@ -965,7 +965,7 @@ printf("Before bp_receive...\n");
 		}
 	}
 
-	RELEASE_CONTENT_SPACE(buffer);		/*	Release RPDU buffer.	*/
+	MRELEASE(buffer);		/*	Release RPDU buffer.	*/
 	if (gWay->netProtocol == RamsUdp)
 	{
 		pthread_end(checkThread);
@@ -1092,7 +1092,7 @@ ownPseudoSubject, node->continuumNbr);
 	for (elt = lyst_first(gWay->ramsNeighbors); elt; elt = lyst_next(elt))
 	{
 		node = (RamsNode *) lyst_data(elt);
-		RELEASE_CONTENT_SPACE(node);
+		MRELEASE(node);
 	}
 
 	lyst_destroy(gWay->ramsNeighbors);
@@ -1334,12 +1334,12 @@ domainUnitNbr);
 	if ((invElt = InvitationSetMember(domainUnitNbr, domainRoleNbr, 0,
 			subjectNbr, gWay->invitationSet)) == NULL)
 	{
-		inv = (Invitation *) TAKE_CONTENT_SPACE(sizeof(Invitation));
+		inv = (Invitation *) MTAKE(sizeof(Invitation));
 		CHKVOID(inv);
 		invElt = lyst_insert_last(gWay->invitationSet, inv);
 		CHKVOID(invElt);
 		inv->inviteSpecification = (InvitationSpec *)
-				TAKE_CONTENT_SPACE(sizeof(InvitationSpec));
+				MTAKE(sizeof(InvitationSpec));
 		CHKVOID(inv->inviteSpecification);
 		inv->inviteSpecification->domainUnitNbr = domainUnitNbr;
 		inv->inviteSpecification->domainRoleNbr = domainRoleNbr;

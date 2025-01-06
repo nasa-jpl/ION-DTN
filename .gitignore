@@ -7,7 +7,7 @@ aclocal.m4
 autom4te.cache
 config.guess
 config.h
-config.h.in
+config.h.in*
 config.log
 config.status
 config.sub
@@ -32,9 +32,6 @@ stamp-h1
 # Libtool wrappers
 *.la
 *.so
-
-# Ignore renamed Makefiles
-*.dev
 
 # Binaries or their equiv libtool wrappers
 amsbenchr
@@ -212,6 +209,7 @@ ion.log
 ion_nodes
 *.stdout
 out\.valgrind\.*
+**/bpacq.*
 
 # Produced test support
 tests/retest
@@ -418,14 +416,24 @@ ltp/doc/html/man5/ltpsecrc.html
 ltp/i86_64-fedora/lib/libltp.so
 restart/doc/html/man1/ionrestart.html
 
-# copies of development makefile
-*.dev
+# Makefiles
+Makefile
 
 # progress report for regression test
 tests/progress*
 
 # temporary test file
 bpdriverAduFile
+tests/linking/ion*links.dot
+tests/issue-330-cfdpclock-FDU-removal/1.cfdp.ipn.bp.ltp.udp/testfile
+tests/issue-352-bpcp-ltp/*.ipn.cfdp.bp.ltp/test*
+tests/loopback-*-dccp/dccptest.txt
+
+# ams test configuration file
+demos/bench-ams/node*/9.petition.log
+demos/bench-ams/node*/bench.log
+
+
 
 # psmwatch and sdrwatch log
 psmwatch.log
