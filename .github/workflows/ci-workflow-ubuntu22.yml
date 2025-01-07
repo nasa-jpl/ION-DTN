@@ -7,9 +7,9 @@ on:
 
   workflow_dispatch:
 
-  push:
-    branches:
-      - update-4.1.4-ci-workflow
+#  push:
+#    branches:
+#      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
@@ -41,7 +41,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Run build and tests, capture stdout
-        run: | # For now run only test starting with "b", redirect stdout and stderr to a log
+        run: | 
           {
             echo "Starting build and tests at $(date)"
             export USER=$(whoami)  # Set USER to the current username
@@ -53,7 +53,7 @@ jobs:
             make test
             ldconfig
             cd tests
-            ./runtests bptrace_terminal_test  # Run the test
+            ./runtests
           } 2>&1 | tee build-and-test.log
 
       - name: Display Progress

@@ -7,13 +7,13 @@ on:
 
   workflow_dispatch:
 
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-ci-workflow
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest  # Use Ubuntu. Or macos-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository

@@ -24,7 +24,7 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Run build and tests, capture stdout
-        run: | # For now run only one test; redirect stdout and stderr to a log
+        run: |
           {
             echo "Starting build and tests at $(date)"
             export USER=$(whoami)  # Set USER to the current username
@@ -36,7 +36,7 @@ jobs:
             sudo make install
             make test
             cd tests
-            ./runtests bptrace_terminal_test  # Run the test
+            ./runtests
           } 2>&1 | tee build-and-test.log
 
       - name: Display Progress
