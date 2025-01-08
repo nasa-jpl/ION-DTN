@@ -34,7 +34,7 @@ jobs:
       - name: Set up dependencies
         run: |
             yum --disableplugin=subscription-manager update -y 
-            yum --disableplugin=subscription-manager install -y gcc make automake autoconf libtool bash python3 psmisc procps
+            yum --disableplugin=subscription-manager install -y gcc make automake autoconf libtool bash python3 psmisc procps diffutils
   
       - name: Generate timestamp for file names
         id: timestamp

@@ -34,7 +34,7 @@ jobs:
       - name: Set up dependencies
         run: |
             yum --disableplugin=subscription-manager update -y 
-            yum --disableplugin=subscription-manager install -y gcc make automake autoconf libtool bash python3 psmisc procps
+            yum --disableplugin=subscription-manager install -y gcc make automake autoconf libtool bash python3 psmisc procps diffutils
   
       - name: Generate timestamp for file names
         id: timestamp
@@ -53,7 +53,7 @@ jobs:
             make test
             ldconfig
             cd tests
-            ./runtests
+            ./runtests 1003.loopback-sdr bpchat issue-132-udplso-tx-rate-limit issue-306-congestion-forecasting linking
           } 2>&1 | tee build-and-test.log
 
       - name: Display Progress

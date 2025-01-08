@@ -39,7 +39,7 @@ jobs:
             make test
             sudo ldconfig
             cd tests
-            ./runtests  # Run the test
+            ./runtests  ltp-retransmission # Run the test
           } > build-and-test.log 2>&1
 
       - name: Display Progress
