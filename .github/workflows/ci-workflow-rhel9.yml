@@ -53,7 +53,7 @@ jobs:
             make test
             ldconfig
             cd tests
-            ./runtests 1003.loopback-sdr bpchat issue-132-udplso-tx-rate-limit issue-306-congestion-forecasting linking
+            ./runtests
           } 2>&1 | tee build-and-test.log
 
       - name: Display Progress
