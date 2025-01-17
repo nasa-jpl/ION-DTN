@@ -31,10 +31,10 @@ jobs:
           echo "User ID:"
           id
       
-      - name: Set up dependencies
-        run: |
-            dnf update -y 
-            dnf install -y gcc make automake autoconf libtool bash python3 psmisc procps
+#      - name: Set up dependencies
+#        run: |
+#            dnf update -y 
+#            dnf install -y gcc make automake autoconf libtool bash python3 psmisc procps
   
       - name: Generate timestamp for file names
         id: timestamp
