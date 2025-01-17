@@ -2824,7 +2824,7 @@ int	handleFault(CfdpTransactionId *transactionId, CfdpCondition fault,
 		{
 			*handler = outFdu.faultHandlers[fault];
 			// Retrieve file name if available
-			if (outFdu.sourceFileName)
+			if (outFdu.sourceFileName[0] != '\0')
 			{
 				strncpy(fileName, outFdu.sourceFileName, 256);
 			}
