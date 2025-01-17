@@ -49,9 +49,9 @@ jobs:
             autoreconf -fi
             ./configure
             make
-            make install # self-hosted runner is root
+            sudo make install
             make test
-            ldconfig
+            sudo ldconfig
             cd tests
             ./runtests 
           } 2>&1 | tee build-and-test.log
