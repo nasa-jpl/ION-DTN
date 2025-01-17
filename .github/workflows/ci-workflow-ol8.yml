@@ -13,11 +13,11 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: [self-hosted, linux, x64, ol8vm]
 
-    container:  
-      image: oraclelinux:8
-      options: --init      # Enable built-in init system
+#    container:  
+#      image: oraclelinux:8
+#      options: --init      # Enable built-in init system
 
     steps:
       - name: Checkout Code

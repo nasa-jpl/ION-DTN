@@ -13,11 +13,11 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: [self-hosted, linux, x64, rhel9]
 
-    container:  
-      image: registry.access.redhat.com/ubi9/ubi
-      options: --init      # Enable built-in init system
+#    container:  
+#      image: registry.access.redhat.com/ubi9/ubi
+#      options: --init      # Enable built-in init system
 
     steps:
       - name: Checkout Code
