@@ -1,6 +1,6 @@
-= Release Notes for ION 4.1.3s =
+= Release Notes for ION 4.1.4-a.1 =
 
-November 27, 2024
+January 22, 2025
 
 %%%%%%%%%%%
 = GENERAL =
@@ -64,6 +64,34 @@ Features included:
 - brs - Bundle relay service: provides interconnectivity between networks
   that do not allow servers (those behind NAT for example). For more
   information, check man brsscla and man brsccla.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+= NOTES ON RELEASE 4.1.4-a.1 =
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Beginning with ION 4.1.4, alpha and beta releases will be issued between the
+releases to make new features and bugfixes available for community testing.
+
+Alpha and Beta releases are tested on a limited number of platforms and may
+contain known bugs/idiosyncrasies, which will be documented in the release
+notes.
+
+Planned updates for alpha release #1:
+
+update-4.1.4-cfdp-out-of-order-eof
+  * Updates CFDP algorithm handling of out-of-order arrival PDUs.
+
+update-4.1.4-a1-bpsec-config-doc
+  * Adds BpSec configuration example to online documentation.
+
+feature-4.1.4-entropy-platform
+  * Updates entropy generation methods.
+
+multicast-issue-273-4.1.4
+  * Fixes an issue related to Multicast startup order requirement.
+
+update-4.1.4-keygentime-fix
+  * Fixes a specific DTKA configuration issue.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 = NOTES ON RELEASE 4.1.3s =
