@@ -1,0 +1,78 @@
+name: Regression Tests for ION on Debian Bookworm
+
+on:
+  pull_request:
+    branches:
+      - integration
+
+  workflow_dispatch:
+
+#  push:
+#    branches:
+#      - update-4.1.4-ci-workflow
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, linux, x64, karuna]
+
+    container:  
+      image: debian:bookworm  # Run jobs on Ubuntu 22
+      options: --init      # Enable built-in init system
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Display OS and Arch
+        run: |
+          cat /etc/os-release
+          echo "Arch:"
+          uname -m
+          echo "User ID:"
+          id
+      
+      - name: Set up dependencies
+        run: |
+            apt-get update
+            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc # Install dependencies 
+  
+      - name: Generate timestamp for file names
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Run build and tests, capture stdout
+        run: | 
+          {
+            echo "Starting build and tests at $(date)"
+            export USER=$(whoami)  # Set USER to the current username
+            echo "USER is set to: $USER"
+            autoreconf -fi
+            ./configure
+            make
+            make install # self-hosted runner is root
+            make test
+            ldconfig
+            cd tests
+            ./runtests
+          } 2>&1 | tee build-and-test.log
+
+      - name: Display Progress
+        if: ${{ always() }}  # Display progress even if tests were interrupted
+        run: | 
+          cat ./tests/progress
+
+      - name: Upload full build and test log
+        if: ${{ always() }}  # Capture log even if the previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-test-log-${{ env.TIMESTAMP }}
+          path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
+
+      - name: Upload progress file as artifact
+        if: ${{ always() }}  # Capture progress even if the previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-progress-${{ env.TIMESTAMP }}
+          path: ./tests/progress  # Upload the 'progress' file for later review
+
+
