@@ -8,7 +8,7 @@
 
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 4.1.3s, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 4.1.3s, https://github.com/nasa-jpl/ION-DTN/issues)
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -420,11 +420,11 @@ if test x$CRYPTO_MBEDTLS = xtrue; then
 	echo "Turning on MBEDTLS Crypto"
 	echo "------------------------------------------"
 
-		if [[ ! -v MBED_LIB_PATH ]] ; then
+		if test "${MBED_LIB_PATH+set}" != set; then
 			MBED_LIB_PATH="/usr/local/lib"
 		fi
 
-		if [[ ! -v MBED_INC_PATH ]] ; then
+		if test "${MBED_INC_PATH+set}" != set; then
 			MBED_INC_PATH="/usr/local/include"
 		fi
 
