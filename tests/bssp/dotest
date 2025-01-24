@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Scott Burleigh
 # adapted from a test written by Sotirios-Angelos Lenas

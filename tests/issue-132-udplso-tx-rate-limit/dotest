@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # 132-udplso-tx-rate-limit.sh
 # Greg Menke

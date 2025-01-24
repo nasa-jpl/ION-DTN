@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Derived from James Swaro's test, April 25, 2012
 
 

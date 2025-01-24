@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Samuel Jero <sj323707@ohio.edu>
 # LTP Loopback test with transaction reversibility turned on
 # based on loopbacktest.sh by David Young

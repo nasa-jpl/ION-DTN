@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 CRYPTO=crypto/NULL_SUITES
 BULK=bulk/STUB_BULK
 ln -s ../ici/library/platform.c

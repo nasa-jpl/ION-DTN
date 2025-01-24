@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Tests that bpchat sends and receives bundles and behaves well.
 #

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ionadmin	host3.ionrc
 sleep 1
 ionsecadmin	host3.ionsecrc

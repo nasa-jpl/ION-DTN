@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Based off earlier test by Scott Burleigh
 # April 12, 2010

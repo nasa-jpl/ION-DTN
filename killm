@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shell script to remove all of my IPC keys
 # Modified by Robert Martin to work on Mac 10.4, due to IPCS requiring sudo to list any 
 # shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ionadmin	loopback.ionrc
 sleep 1
 ionsecadmin	loopback.ionsecrc

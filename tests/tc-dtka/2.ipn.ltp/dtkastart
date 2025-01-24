@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 tcaadmin 203	../boot.tcarc
 sleep 1
 tcaadmin 203	../node.tcarc

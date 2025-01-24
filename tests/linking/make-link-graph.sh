@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 
 # makes a graph of how the libraries are linked togethere
 #

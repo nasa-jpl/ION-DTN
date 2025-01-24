@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo `whereis tcpcli`
 echo `whereis tcpclo`

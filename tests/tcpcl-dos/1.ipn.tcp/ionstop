@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/usr/bin/env bash -x
 # shell script to remove all of my IPC keys
 bpadmin		.
 sleep 1

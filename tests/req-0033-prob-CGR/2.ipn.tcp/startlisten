@@ -1,2 +1,2 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ipnd		listen.ipndrc >& listen.log &

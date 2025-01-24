@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Pattern to match the Valgrind processes
 pattern="valgrind.bin --suppressions=valgrind.suppressions.ionstart"
 

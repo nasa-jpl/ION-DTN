@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # clean up files from previous runs if necessary
 rm bpsec.txt

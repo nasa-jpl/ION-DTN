@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # 196-checkforcongestion.sh
 # Greg Menke

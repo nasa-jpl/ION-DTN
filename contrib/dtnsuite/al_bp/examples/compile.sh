@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 AL_BP_DIR="../"
 ION_DIR="/sources/ion-3.7.0/"

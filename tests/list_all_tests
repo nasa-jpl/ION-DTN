@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # create a table listing all of the available tests, their attributes, and their exclusions
 #
