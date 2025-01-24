@@ -339,6 +339,8 @@ obsolete tests: 0
 
 In this case, the test script confirms that ION is able to execute a bping function properly.
 
+See the [ION Testset Readme](./ION-TestSet-Readme.md) for more information on how to run the regression tests.
+
 ### Try to Setup a UDP Session
 
 Under the `demos` folder of the ION code directory, there are benchmark tests for various ION configurations. These tests also provide a template of how to configure ION.

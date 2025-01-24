@@ -26,7 +26,9 @@ The tests are run by running `make test-all` in the top-level directory, or by r
 
 An individual test can also be run: `./runtests <test_name>`
 
-A file defining a set of tests can be run with `runtestset`.  The arguments to `runtestset` are files that contain globs of tests to run, for example: `./runtestset quicktests`.
+A file defining a set of tests can be run with `runtestset`.  The arguments to `runtestset` are files that contain globs of tests to run, for example: `./runtestset quicktests` or `./runtests a*` which will run all tests that matches the `a*` name pattern.
+
+In order to run BPSec-related regression tests, one should set the `ION_RUN_EXPERT` environment variable to a non-empty value, such as "1" or "YES", etc. This enables the BPSec-specific tests to run. Otherwise, those tests will be skipped.
 
 ## Writing new tests
 
@@ -48,7 +50,7 @@ The `dotest` scripts are run in their test directory. The following environment 
 
 - `PATH` begins with `IONDIR` (this is where the local executables are found.)
 
-## For 4.1.3 and later
+## For 4.1.3s and later
 
 The `runtests` script maintains a file called `tests/progress` that gives the start time, finish time, and final result for each test.
 
