@@ -1,10 +1,8 @@
 # BPSec Configuration Examples
 
-
 ## Overview
 
 The following integrity (BIB) and confidentiality (BCB) security examples demonstrate 3 node networks with security source, security verifier, and security acceptor roles. These hypothetical networks used in the policy examples use ipn node numbers 19 (source), 40 (verifier), and 31(acceptor) and are unidirectional (i.e. from 19 to 31, with 40 serving as a relay) only.
-
 
 Please keep the following in mind:
 
@@ -52,7 +50,6 @@ a {"policyrule" : {"desc" : "Integrity verifier rule", "filter" : {"rule_id" : 4
 ```
 
 ### At Security Acceptor
-
 
 ```
 # Event Set —-------------------------------------------------------------- 
@@ -110,7 +107,6 @@ a {"event" : {"es_ref" : "d_bcb_conf", "event_id" : "sop_corrupted_at_verifier",
 a {"policyrule" : {"desc" : "Confidentiality verifier rule", "filter" : {"rule_id" : 408, "role" : "v", "src" : "ipn:19.*", "dest" : "ipn:31.*", "tgt" : 1}, "spec" : {"svc" : "bcb-confidentiality", "sc_id" : 2, "sc_parms" : [{"key_name" : "my_hmac_key256" }, {"aad_scope": "4"}, {"aes_variant":"3"}]}, "es_ref" : "d_bcb_conf" }} 
 ```
 
-
 ### At Security Acceptor
 
 ```
@@ -134,29 +130,19 @@ a {"policyrule" : {"desc" : "Confidentiality acceptor rule", "filter" : {"rule_i
 ## Dependencies
 
 To enable BPSec for ION, the following conditions must be met:
- 
-1. MBEDTLS 2.28.x is installed with the following:
-  * Key Wrapping mode is enabled. See `mbedtls*/include/mbedtls/config.h`, and uncomment the following line: 
-```
-#define MBEDTLS_NIST_KW_C 
-```
 
-* MBEDTLS has been built with:
-
-```
-make SHARED=1
-```
-
-2. ION has been built against MBEDTLS with command as follows (other options maybe included per user's configuration.)
-
-```
-./configure --enable-crypto-mbedtls --enable-bpsec-debugging
-```
-
-Alternatively (if bpsec logging is not desired/required):
-
-```
-./configure --enable-crypto-mbedtls
-```
-
-3. A 32 byte symmetric key (HMAC) has been added to the `ionsecadmin` database. Typically this would occur on ION startup but keys can be added/removed at any time. See `man ionsecrc` for synopsis.
+* MBEDTLS 2.28.x is installed with the following:
+  * Key Wrapping mode is enabled. See `mbedtls*/include/mbedtls/config.h`, and uncomment the following line:
+  ```
+  #define MBEDTLS_NIST_KW_C 
+  ```
+  * MBEDTLS has been built with:
+  ```
+  make SHARED=1
+  ```
+* ION has been built against MBEDTLS with command as follows (other options maybe included per user's configuration.)
+  ```
+  ./configure MBED_LIB_PATH=/path-to-mbedtls-library  MBED_INC_PATH=/path-to-mbedtls-header --enable-crypto-mbedtls --enable-bpsec-debugging
+  ```
+* If bpsec debug logging is not desired/required, the `--enable-bpsec-debugging` option can be omitted.
+* A 32 byte symmetric key (HMAC) has been added to the `ionsecadmin` database. Typically this would occur on ION startup but keys can be added/removed at any time. See `man ionsecrc` for synopsis.
