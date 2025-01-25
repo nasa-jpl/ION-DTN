@@ -41,5 +41,12 @@ else
 	echo "Your system's sysctl configuration needs be updated in order to"
 	echo "run ION. This is usually done by copying the above assignments into"
 	echo "/etc/sysctl.conf or /boot/loader.conf and rebooting."
+    echo ""
+    echo "If you are running macOS, use the install_macos_sysctl.sh script"
+    echo ""
+    echo "If you are running FreeBSD, shmmni, shmseg, shmmns, and semmni should" 
+    echo "  be updated through /boot/loader.conf and reboot. The other"
+    echo "  parameters can be updated using sysctl command."
+
 	exit 1
 fi
