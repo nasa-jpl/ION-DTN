@@ -35,7 +35,17 @@ jobs:
         run: |
             apt-get update
             apt-get install -y autoconf automake libtool bash python3 gcc make psmisc # Install dependencies 
-  
+      
+      - name: Install MBEDTLS 2.28.9
+        run: |
+            wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-2.28.9.tar.gz
+            tar -zvxf mbedtls-2.28.9.tar.gz
+            cd mbedtls-mbedtls-2.28.9/
+            sed -i '/#define MBEDTLS_NIST_KW_C/s/\/\///' "./include/mbedtls/config.h"
+            make SHARED=1
+            make check
+            make install
+
       - name: Generate timestamp for file names
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -46,8 +56,9 @@ jobs:
             echo "Starting build and tests at $(date)"
             export USER=$(whoami)  # Set USER to the current username
             echo "USER is set to: $USER"
+            export ION_RUN_EXPERT="yes"
             autoreconf -fi
-            ./configure
+            ./configure --enable-cypto-mbedtls --enable-bpsec-debugging
             make
             make install # self-hosted runner is root
             make test
