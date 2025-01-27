@@ -64,7 +64,7 @@ jobs:
             make test
             ldconfig
             cd tests
-            ./runtests bptrace_terminal_test  # Run the test
+            ./runtests
           } 2>&1 | tee build-and-test.log
 
       - name: Display Progress
