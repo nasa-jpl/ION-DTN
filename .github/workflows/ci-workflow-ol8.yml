@@ -48,7 +48,7 @@ jobs:
             echo "USER is set to: $USER"
             export ION_RUN_EXPERT="yes"
             autoreconf -fi
-            ./configure --enable-cypto-mbedtls --enable-bpsec-debugging
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make
             sudo make install
             make test

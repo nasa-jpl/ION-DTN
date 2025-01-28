@@ -135,11 +135,11 @@ case $host_os in
 		PLATFORM="bsd"
 		case $host_cpu in
 			x86_64|amd64)
-				AM_CFLAGS="$AM_CFLAGS -Dfreebsd -DSPACE_ORDER=3 -m64 "
+				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dfreebsd -DSPACE_ORDER=3 -m64 "
 				echo "Build 64-bit Freebsd specific platform code."
 				;;
 			*)
-				AM_CFLAGS="$AM_CFLAGS  -Dfreebsd -DSPACE_ORDER=2 -m32 "
+				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dfreebsd -DSPACE_ORDER=2 -m32 "
 				echo "Build 32-bit Freebsd specific platform code."
 				;;
 		esac
