@@ -33,7 +33,7 @@
 
 #ifndef darwin
 #ifndef freebsd
-#define _GNU_SOURCE
+#define _GNU_SOURCE /* needed to compile on 32-bit Raspberry PI */
 /* macos/darwin handles this differently */
 #define _POSIX_C_SOURCE 200112L
 #endif

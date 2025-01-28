@@ -34,8 +34,10 @@ echo "PURPOSE: produce simple throughput benchmark results, for direct
 echo -e "\n\tNOTE: various factors may contribute to UDP packet loss, but rate control and 
 	kernel buffer size are critical factors to consider when configuring networks 
 	for UDP-based communications. If this bench test fails please consider increasing 
-	the kernel buffer size to allow for higher performance UDP transmissions: the 208 KB 
-	default may not be sufficient!"
+	the kernel buffer size to allow for higher performance UDP transmissions. On FreeBSD
+	and macOS, the kernel parameter is net.inet.udp.recvspace; on Linux, it is
+	net.core.rmem_max. Increasing these parameter to above 200KB will be helpful. Higher
+	value may be required."
 
 sleep 3
 
@@ -53,6 +55,13 @@ echo "OUTPUT: Terminal messages will relay results."
 echo
 echo "########################################"
 echo
+
+echo "Checking for additional memory needed for this demo..."
+./check_memory 
+if [ $? != 0 ]; then
+	echo "Can't run, need additional system resources"
+	exit 1
+fi
 
 ./cleanup
 sleep 1

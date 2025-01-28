@@ -22,7 +22,17 @@ jobs:
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf automake libtool bash python3 gcc make  # Install dependencies
+          sudo apt-get install -y autoconf automake libtool bash python3 gcc make wget # Install dependencies
+
+      - name: Install MBEDTLS 2.28.9
+        run: |
+            wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-2.28.9.tar.gz
+            tar -zvxf mbedtls-2.28.9.tar.gz
+            cd mbedtls-mbedtls-2.28.9/
+            sed -i '/#define MBEDTLS_NIST_KW_C/s/\/\///' "./include/mbedtls/config.h"
+            make SHARED=1
+            make check
+            make install
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -32,12 +42,13 @@ jobs:
         run: |
           {
             echo "Starting build and tests at $(date)"
+            export ION_RUN_EXPERT="yes"
             autoreconf -fi
-            ./configure
+            ./configure --enable-cypto-mbedtls --enable-bpsec-debugging
             make
-            sudo make install
+            make install
             make test
-            sudo ldconfig
+            ldconfig
             cd tests
             ./runtests
           } > build-and-test.log 2>&1
