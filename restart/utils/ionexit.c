@@ -12,6 +12,12 @@
 #include "bp.h"
 #include "bpP.h"
 
+#include "bssp.h"
+#include "bssp/library/bsspP.h"
+
+#include "cfdp.h"
+#include "cfdp/library/cfdpP.h"
+
 #include "ltp.h"
 #include "ltpP.h"
 
@@ -90,6 +96,48 @@ int	main(int argc, char **argv)
       }
       else
          printText("Unable to attach to LTP");
+
+
+
+
+      if (bsspAttach() == 0)
+      {
+         printText("Issuing BSSP stop.");
+         bsspStop();
+
+         for( loopcount = 5; bssp_engine_is_started() && loopcount; loopcount-- )
+         {
+            snooze(1);
+         }
+         if( !loopcount )
+         {
+            errcount++;
+            printText("***** BSSP did not shut down");
+         }
+      }
+      else
+         printText("Unable to attach to BSSP");
+
+
+
+
+      if (cfdpAttach() == 0)
+      {
+         printText("Issuing CFDP stop.");
+         cfdpStop();
+
+         for( loopcount = 5; cfdp_entity_is_started() && loopcount; loopcount-- )
+         {
+            snooze(1);
+         }
+         if( !loopcount )
+         {
+            errcount++;
+            printText("***** CFDP did not shut down");
+         }
+      }
+      else
+         printText("Unable to attach to CFDP");
 
 
 

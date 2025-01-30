@@ -3865,7 +3865,7 @@ static sem_t	*_ipcSemaphore(int action)
 		_semTbl(IPC_ACTION_STOP);
 		if (ipcSemInitialized) {
 			oK(sem_close(ipcSemPtr));
-			_semEraseNamedSems();
+			oK(_sembase(IPC_ACTION_STOP));
 			ipcSemPtr = NULL;
 			ipcSemInitialized = 0;
 		}

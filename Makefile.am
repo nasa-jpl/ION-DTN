@@ -3260,7 +3260,7 @@ restartbin = ionrestart ionexit
 # --- Utility Programs --- #
 
 ionexit_SOURCES = restart/utils/ionexit.c
-ionexit_LDADD = libltp.la libici.la  -lm $(bplib) 
+ionexit_LDADD = libltp.la libbssp.la libcfdp.la libici.la  -lm $(bplib) 
 ionexit_CFLAGS = $(icicflags) $(AM_CFLAGS)
 
 ionrestart_SOURCES = restart/utils/ionrestart.c
