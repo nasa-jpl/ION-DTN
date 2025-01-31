@@ -167,7 +167,7 @@ static int	defaultReader(int fd, unsigned int *checksum,
 #ifdef ENABLE_HIGH_SPEED
 	addDataToChecksum((unsigned char *) defaultReaderBuf, length, &offset, checksum, ckType);
 #else
-	for (i = 0, octet = defaultReaderBuf; i < length; i++, octet++)
+	for (i = 0, octet = defaultReaderBuf; i < length; i++, octet++, offset++)
 	{
 		addToChecksum((unsigned char) *octet, &offset, checksum,
 				ckType);
