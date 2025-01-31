@@ -48,9 +48,10 @@
 
 #ifndef darwin
 #ifndef freebsd
-#define _GNU_SOURCE /* needed to compile on 32-bit Raspberry PI */
+/* needed to pass on 32 bits OS on Raspberry PIs*/
+#define _GNU_SOURCE 
 /* macos/darwin and freebsd handle this differently */
-#define _POSIX_C_SOURCE 200112L
+/* #define _POSIX_C_SOURCE 200112L */
 #endif
 #endif
 

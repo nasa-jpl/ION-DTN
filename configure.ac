@@ -420,13 +420,16 @@ if test x$CRYPTO_MBEDTLS = xtrue; then
 	echo "Turning on MBEDTLS Crypto"
 	echo "------------------------------------------"
 
-		if test "${MBED_LIB_PATH+set}" != set; then
+		if test -z "${MBED_LIB_PATH}"; then
 			MBED_LIB_PATH="/usr/local/lib"
 		fi
 
-		if test "${MBED_INC_PATH+set}" != set; then
+		if test -z "${MBED_INC_PATH}"; then
 			MBED_INC_PATH="/usr/local/include"
 		fi
+
+		# EVALUATE: use -rpath for locating runtime library   
+		# AM_LDFLAGS="$AM_LDFLAGS -Wl, -rpath, $MBED_LIB_PATH"
 
 		AC_CHECK_FILES(
 		[$MBED_LIB_PATH/libmbedtls.$S_LIB_END $MBED_LIB_PATH/libmbedx509.$S_LIB_END $MBED_LIB_PATH/libmbedcrypto.$S_LIB_END],
