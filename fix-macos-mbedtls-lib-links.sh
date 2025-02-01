@@ -2,17 +2,19 @@
 
 # Usage: ./fix_mbedtls_links_all.sh /new/library/path
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 /new/mbedtls-library/path"
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 /new/mbedtls-library/path /install/folder /ion/source/folder"
     exit 1
 fi
 
 NEW_LIB_PATH="$1"
+INSTALL_FOLDER="$2"
+ION_FOLDER="$3"
 
 # List of libraries to check and update
 LIBRARIES=("libmbedtls.dylib" "libmbedx509.dylib" "libmbedcrypto.dylib")
 
-# List of processes to check
+# From Killm script
 KILLPROCESSLIST=(
     acsadmin lt-acsadmin
     acslist lt-acslist
@@ -158,9 +160,28 @@ KILLPROCESSLIST=(
     bpversion lt-bpversion
 )
 
-# Iterate through each process binary
+# From Makefile
+check_PROGRAMS=(
+    tests/1000.loopback/.libs/dotest
+	tests/1500.loopback-brs/.libs/dotest
+	tests/issue-260-teach-valgrind-mtake/.libs/domtake
+	tests/issue-188-common-cos-syntax/.libs/dotest
+	tests/bug-0015-tcpclo-bpcp-sig-handling/.libs/test
+	tests/issue-330-cfdpclock-FDU-removal/.libs/cfdplisten
+	tests/issue-334-cfdp-transaction-id/.libs/dotest
+	tests/nm-unit/.libs/dotest
+	tests/nm-unit/utils/vector/.libs/dotest
+	tests/nm-unit/utils/rhht/.libs/dotest
+	tests/nm-unit/utils/radix_pt/.libs/dotest
+	tests/nm-unit/utils/radix_ut/.libs/dotest
+	tests/sm_subsystem/.libs/dotest
+) 
+
+
+# Iterate through KILLPROCESSLIST
+echo "********** Iterate through installed ION binaries **********"
 for BINARY in "${KILLPROCESSLIST[@]}"; do
-    BINARY_PATH="/usr/local/bin/$BINARY"
+    BINARY_PATH="$INSTALL_FOLDER/$BINARY"
     if [ ! -f "$BINARY_PATH" ]; then
         echo "Skipping: Binary '$BINARY_PATH' not found."
         continue
@@ -169,6 +190,44 @@ for BINARY in "${KILLPROCESSLIST[@]}"; do
     echo "Checking binary: $BINARY_PATH"
 
     # Iterate through each library and check its linkage
+    for LIB in "${LIBRARIES[@]}"; do
+        echo "  Checking linkage for $LIB..."
+
+        CURRENT_PATH=$(otool -L "$BINARY_PATH" | grep "$LIB" | awk '{print $1}')
+
+        if [ -z "$CURRENT_PATH" ]; then
+            echo "  Warning: $LIB is not linked in $BINARY"
+            continue
+        fi
+
+        NEW_PATH="$NEW_LIB_PATH/$LIB"
+
+        if [ "$CURRENT_PATH" != "$NEW_PATH" ]; then
+            echo "  Updating $LIB from $CURRENT_PATH to $NEW_PATH..."
+            install_name_tool -change "$CURRENT_PATH" "$NEW_PATH" "$BINARY_PATH"
+
+            if [ $? -eq 0 ]; then
+                echo "  Successfully updated $LIB."
+            else
+                echo "  Error updating $LIB."
+            fi
+        else
+            echo "  $LIB is already correctly linked."
+        fi
+    done
+done
+
+# Iterate through check_PROGRAMS
+echo "********** Iterate through regression test binaries **********"
+for BINARY in "${check_PROGRAMS[@]}"; do
+    BINARY_PATH="$ION_FOLDER/$BINARY"
+    if [ ! -f "$BINARY_PATH" ]; then
+        echo "Skipping: Binary '$BINARY_PATH' not found."
+        continue
+    fi
+
+    echo "Checking binary: $BINARY_PATH"
+
     for LIB in "${LIBRARIES[@]}"; do
         echo "  Checking linkage for $LIB..."
 
