@@ -40,6 +40,49 @@
 #include <secrypt.h>
 
 
+/**
+ * @brief extractBasename - Returns pointer to the basename (skipping directories).
+ *        Handles both forward slash '/' and backslash '\\' for cross-platform paths.
+ *        If there is no slash, returns the original path string.
+ */
+static const char* extractBasename(const char *path)
+{
+    // Find the last occurrence of forward slash and backslash
+    const char *slashPosForward  = strrchr(path, '/');
+    const char *slashPosBackward = strrchr(path, '\\');
+    const char *slashPos         = NULL;
+
+    // Pick whichever is furthest to the right
+    if (slashPosForward == NULL)
+    {
+        slashPos = slashPosBackward;
+    }
+    else if (slashPosBackward == NULL)
+    {
+        slashPos = slashPosForward;
+    }
+    else
+    {
+        // Both non-null; pick the one with the greater pointer value
+        slashPos = (slashPosForward > slashPosBackward)
+                    ? slashPosForward
+                    : slashPosBackward;
+    }
+
+    // If no slash found, return the original string
+    if (slashPos == NULL)
+    {
+        return path;
+    }
+	//debugging--------------------------------------sky
+	printf("Extracted filename: ");
+	printf (slashPos +1);//debug
+	printf("\n");
+
+    // Otherwise, skip beyond the slash and return pointer to the basename
+    return slashPos + 1;
+}
+
 
 /******************************************************************************/
 /* run_sendfile() */
@@ -261,19 +304,23 @@ static int	run_sendfile(char *ownEid, char *destEid, char *fileName,
 	metadata.aux_command_length = aux_length; //always at least zero length
 	
 	/* FILE NAME */
-	nameSize = strlen(fileName)+1;
+	/* Use only the basename for metadata. */
+	const char *baseName = extractBasename(fileName);
+	nameSize = strlen(baseName) + 1;
 
 	name = MTAKE(nameSize);
-	if (!name)
+	if (name == NULL)
 	{
 		writeErrMemo("[!] sendfile error: memory allocation (file name).");
 		goto exit;
 	}
 
-	memset(name, 0, nameSize);		
-	memcpy(name, fileName,nameSize);
-	metadata.filename = (unsigned char*) name;
+	memset(name, 0, nameSize);
+	memcpy(name, baseName, nameSize);
+
+	metadata.filename = (unsigned char*)name;
 	metadata.fileNameLength = nameSize;
+
 
 
 	/*ADD FILENAME AND FILE CONTENT TO METADATA-----------*/
