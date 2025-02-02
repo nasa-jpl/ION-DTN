@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4  # Checkout the code from the repository
 
-      - name: Check current user
+      - name: Check current user # Github cloud-hosted container user is `runner` 1001, not root.
         run: |
           whoami
           id -u
@@ -35,11 +35,9 @@ jobs:
             tar -zvxf mbedtls-2.28.9.tar.gz
             cd mbedtls-mbedtls-2.28.9/
             sed -i '/#define MBEDTLS_NIST_KW_C/s/\/\///' "./include/mbedtls/config.h"
-            make clean
-            make uninstall
             make SHARED=1
             make check
-            make install
+            sudo make install
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -53,7 +51,7 @@ jobs:
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make
-            make install
+            sudo make install
             make test
             ldconfig
             cd tests
