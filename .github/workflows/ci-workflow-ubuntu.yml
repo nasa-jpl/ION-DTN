@@ -19,11 +19,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4  # Checkout the code from the repository
 
-      - name: Check current user # Github cloud-hosted container user is `runner` 1001, not root.
+      # Github Cloud Server container runs with passwordless `sudo`
+      - name: Display OS and Arch
         run: |
-          whoami
-          id -u
-
+          cat /etc/os-release
+          echo "Arch:"
+          uname -m
+          echo "User ID:"
+          id
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+      
       - name: Set up dependencies
         run: |
           sudo apt-get update
@@ -52,8 +57,8 @@ jobs:
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make
             sudo make install
-            make test
-            ldconfig
+            make buildcheck
+            sudo ldconfig
             cd tests
             ./runtests
           } > build-and-test.log 2>&1

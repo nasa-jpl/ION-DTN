@@ -30,6 +30,7 @@ jobs:
           uname -m
           echo "User ID:"
           id
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
       
 #      - name: Set up dependencies
 #        run: |
@@ -51,7 +52,7 @@ jobs:
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging            
             make
             sudo make install
-            make test
+            make buildcheck
             sudo ldconfig
             cd tests
             ./runtests

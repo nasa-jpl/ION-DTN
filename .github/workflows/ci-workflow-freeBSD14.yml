@@ -30,7 +30,8 @@ jobs:
             echo "Arch:" && 
             uname -m &&
             echo "User ID:" &&
-            id'
+            id
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"'
 
       - name: Copy code to FreeBSD VM
         run: |

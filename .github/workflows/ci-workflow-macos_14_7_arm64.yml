@@ -7,9 +7,9 @@ on:
 
   workflow_dispatch:
 
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
@@ -18,6 +18,17 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+      
+      # assume dependencies are all already setup
+
+      - name: Display OS and Arch
+        run: |
+          cat /etc/os-release
+          echo "Arch:"
+          uname -m
+          echo "User ID:"
+          id
+          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -35,7 +46,8 @@ jobs:
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make
             sudo make install
-            make test
+            make buildcheck
+            sudo ./fix-macos-mbedtls-lib-links.sh
             cd tests
             ./runtests
           } 2>&1 | tee build-and-test.log

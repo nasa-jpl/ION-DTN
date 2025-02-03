@@ -19,10 +19,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4  # Checkout the code from the repository
 
-#      - name: Set up dependencies
-#        run: |
-#          brew update
-#          brew install autoconf automake libtool bash python3 gcc make
+      #- name: Set up dependencies
+      #run: |
+        #brew update
+        #brew install autoconf automake libtool bash python3 gcc make
+
+      # assume dependencies are all already setup
+
+      - name: Display OS and Arch
+        run: |
+          cat /etc/os-release
+          echo "Arch:"
+          uname -m
+          echo "User ID:"
+          id
+          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -37,7 +48,8 @@ jobs:
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make
             sudo make install
-            make test
+            make buildcheck
+            sudo ./fix-macos-mbedtls-lib-links.sh
             cd tests
             ./runtests
           } > build-and-test.log 2>&1
