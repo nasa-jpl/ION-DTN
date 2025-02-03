@@ -23,7 +23,6 @@ jobs:
 
       - name: Display OS and Arch
         run: |
-          cat /etc/os-release
           echo "Arch:"
           uname -m
           echo "User ID:"
