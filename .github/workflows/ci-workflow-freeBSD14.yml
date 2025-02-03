@@ -21,7 +21,7 @@ jobs:
 
       - name: Retrieve VM IP and set environment variable
         run: |
-          ip=$(virsh domifaddr freebsd | awk '/ipv4/ {print $4}' | cut -d'/' -f1)
+          sudo ip=$(virsh domifaddr freebsd | awk '/ipv4/ {print $4}' | cut -d'/' -f1)
           echo "VM_IP=${ip}" >> $GITHUB_ENV
 
       - name: Display VM OS and Arch
@@ -30,7 +30,7 @@ jobs:
             echo "Arch:" && 
             uname -m &&
             echo "User ID:" &&
-            id
+            id &&
             echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"'
 
       - name: Copy code to FreeBSD VM
