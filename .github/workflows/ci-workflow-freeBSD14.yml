@@ -19,10 +19,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Retrieve VM IP and set environment variable
+      - name: Display Runner Host OS and Arch
         run: |
-          sudo ip=$(virsh domifaddr freebsd | awk '/ipv4/ {print $4}' | cut -d'/' -f1)
-          echo "VM_IP=${ip}" >> $GITHUB_ENV
+          cat /etc/os-release 
+          echo "Arch:" 
+          uname -m
+          echo "User ID:"
+          id
+
+      - name: Set environment variable to VM's static IP
+        run: |
+          echo "VM_IP=192.168.122.128" >> $GITHUB_ENV
 
       - name: Display VM OS and Arch
         run: |

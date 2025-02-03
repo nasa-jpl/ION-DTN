@@ -46,7 +46,7 @@ jobs:
             make
             sudo make install
             make buildcheck
-            sudo ./fix-macos-mbedtls-lib-links.sh
+            sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
             cd tests
             ./runtests
           } 2>&1 | tee build-and-test.log

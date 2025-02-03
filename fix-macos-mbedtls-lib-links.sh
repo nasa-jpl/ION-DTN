@@ -3,7 +3,7 @@
 # Usage: ./fix_mbedtls_links_all.sh /new/library/path
 
 if [ "$#" -ne 3 ]; then
-    echo "Usage: $0 /new/mbedtls-library/path /install/folder /ion/source/folder"
+    echo "Usage: $0 /desired-mbedtls-library-path /ion-binary-installation-folder /ion-source-code-folder"
     exit 1
 fi
 
