@@ -87,9 +87,8 @@ jobs:
         if: ${{ always() }}  # Display progress even if tests were interrupted
         run: | 
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-            cd ~/ion-gh-test-dir/ion-ios-dev &&
-            cat ./tests/progress' > ./tests/progress
-          cat ./tests/progress | grep FAILED
+            cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress' > progress
+          cat progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
 
       - name: Upload full build and test log
         if: ${{ always() }}  # Capture log even if the previous step fails
@@ -103,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-progress-${{ env.TIMESTAMP }}
-          path: ./tests/progress  # Upload the 'progress' file for later review
+          path: ./progress  # Upload the 'progress' file for later review
 
       - name: Clean up ION build
         if: ${{ always() }}  # Clean up even if previous steps fails
@@ -114,5 +113,6 @@ jobs:
           gmake clean &&
           cd ../.. &&
           rm -rf ~/ion-gh-test-dir'
+          rm -rf ${{ github.workspace }}/*
 
 
