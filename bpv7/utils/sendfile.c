@@ -40,19 +40,24 @@
 #include <secrypt.h>
 
 
+/******************************************************************************/
+/* extractBasename()                                                          */
+/******************************************************************************/
 /**
  * @brief extractBasename - Returns pointer to the basename (skipping directories).
- *        Handles both forward slash '/' and backslash '\\' for cross-platform paths.
+ *        Handles both forward slash '/' and backslash '\' for cross-platform paths.
  *        If there is no slash, returns the original path string.
+ * 
+ * @param path file name with (or without) path.
  */
 static const char* extractBasename(const char *path)
 {
-    // Find the last occurrence of forward slash and backslash
+    /* find the last occurrence of forward slash and backslash */
     const char *slashPosForward  = strrchr(path, '/');
     const char *slashPosBackward = strrchr(path, '\\');
     const char *slashPos         = NULL;
 
-    // Pick whichever is furthest to the right
+    /* pick whichever is furthest to the right */
     if (slashPosForward == NULL)
     {
         slashPos = slashPosBackward;
@@ -63,23 +68,19 @@ static const char* extractBasename(const char *path)
     }
     else
     {
-        // Both non-null; pick the one with the greater pointer value
+        /* both non-null; pick the one with the greater pointer value */
         slashPos = (slashPosForward > slashPosBackward)
                     ? slashPosForward
                     : slashPosBackward;
     }
 
-    // If no slash found, return the original string
+    /* if no slash found, return the original string */
     if (slashPos == NULL)
     {
         return path;
-    }
-	//debugging--------------------------------------sky
-	printf("Extracted filename: ");
-	printf (slashPos +1);//debug
-	printf("\n");
+    }	
 
-    // Otherwise, skip beyond the slash and return pointer to the basename
+    /* otherwise, skip beyond the slash and return pointer to the basename */
     return slashPos + 1;
 }
 
