@@ -78,8 +78,8 @@ jobs:
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
             gmake &&
             sudo gmake install &&
-            gmake test &&
-            ldconfig &&
+            gmake buildcheck &&
+            sudo ldconfig &&
             cd tests &&
             ./runtests' 2>&1 | tee build-and-test.log
 

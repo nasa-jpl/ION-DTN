@@ -87,4 +87,16 @@ jobs:
           name: test-progress-${{ env.TIMESTAMP }}
           path: ./tests/progress  # Upload the 'progress' file for later review
 
+      - name: Clean up Docker container
+        if: ${{ always() }}  # This step will run even if previous steps failed
+        run: |
+          # Find the container ID of the currently running container
+          CONTAINER_ID=$(docker ps -q -f status=running -f ancestor=ubuntu:jammy)
+          if [ -n "$CONTAINER_ID" ]; then
+            echo "Stopping and removing container with ID: $CONTAINER_ID"
+            docker stop $CONTAINER_ID
+            docker rm $CONTAINER_ID
+          else
+            echo "No matching container found to clean up."
+          fi
 
