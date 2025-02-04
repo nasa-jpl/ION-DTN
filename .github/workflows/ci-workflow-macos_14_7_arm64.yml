@@ -49,7 +49,7 @@ jobs:
             sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
             cd tests
             ./runtests
-          } 2>&1 | tee build-and-test.log
+          } > build-and-test.log 2>&1 
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
