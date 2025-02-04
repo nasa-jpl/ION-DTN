@@ -87,8 +87,9 @@ jobs:
         if: ${{ always() }}  # Display progress even if tests were interrupted
         run: | 
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-            cd ~/ion-gh-test-dir &&
+            cd ~/ion-gh-test-dir/ion-ios-dev &&
             cat ./tests/progress' > ./tests/progress
+          cat ./tests/progress | grep FAILED
 
       - name: Upload full build and test log
         if: ${{ always() }}  # Capture log even if the previous step fails
@@ -108,10 +109,10 @@ jobs:
         if: ${{ always() }}  # Clean up even if previous steps fails
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
-          cd ~/ion-gh-test-dir &&
-          sudo make uninstall &&
-          make clean &&
-          cd .. &&
+          cd ~/ion-gh-test-dir/ion-ios-dev &&
+          sudo gmake uninstall &&
+          gmake clean &&
+          cd ../.. &&
           rm -rf ~/ion-gh-test-dir'
 
 

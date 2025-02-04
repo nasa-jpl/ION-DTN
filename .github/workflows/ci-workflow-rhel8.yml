@@ -61,7 +61,7 @@ jobs:
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
         run: | 
-          cat ./tests/progress
+          cat ./tests/progress | grep FAILED
 
       - name: Upload full build and test log
         if: ${{ always() }}  # Capture log even if the previous step fails
@@ -83,4 +83,5 @@ jobs:
           sudo make uninstall
           make clean
           make distclean
+          rm -rf ${{ github.workspace }}
 
