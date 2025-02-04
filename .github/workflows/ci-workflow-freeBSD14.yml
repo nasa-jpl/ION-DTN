@@ -42,7 +42,7 @@ jobs:
 
       - name: Copy code to FreeBSD VM
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'mkdir -p ~/ion-gh-test-dir'
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
           scp -o StrictHostKeyChecking=no -r "$GITHUB_WORKSPACE" jgao@$VM_IP:~/ion-gh-test-dir
           
       # assume dependencies are already satisfied
@@ -73,7 +73,7 @@ jobs:
             export USER=$(whoami)  # Set USER to the current username &&
             echo "USER is set to: $USER" &&
             export ION_RUN_EXPERT="yes" &&
-            cd ~/ion-gh-test-dir
+            cd ~/ion-gh-test-dir/ion-ios-dev
             autoreconf -fi &&
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
             gmake &&
