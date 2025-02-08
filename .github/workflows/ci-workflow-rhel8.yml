@@ -83,5 +83,5 @@ jobs:
           sudo make uninstall
           make clean
           make distclean
-          rm -rf ${{ github.workspace }}/*
+          rm -rf $GITHUB_WORKSPACE/*
 
