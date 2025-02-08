@@ -20,6 +20,10 @@ jobs:
 #      options: --init      # Enable built-in init system
 
     steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+          
       - name: Checkout Code
         uses: actions/checkout@v4
 

@@ -16,6 +16,10 @@ jobs:
     runs-on: [self-hosted, linux, x64, karuna]
 
     steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -113,6 +117,6 @@ jobs:
           gmake clean &&
           cd ../.. &&
           rm -rf ~/ion-gh-test-dir'
-          rm -rf ${{ github.workspace }}/*
+          rm -rf $GITHUB_WORKSPACE/*
 
 
