@@ -35,7 +35,7 @@ jobs:
       - name: Set up dependencies
         run: |
             apt-get update
-            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc wget # Install dependencies 
+            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc wget iptables # Install dependencies 
       
       - name: Install MBEDTLS 2.28.9
         run: |
