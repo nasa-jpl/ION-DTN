@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Clean up workspace
         run: |
-          sudo rm -rf $GITHUB_WORKSPACE/*
+          rm -rf $GITHUB_WORKSPACE/*
 
       - name: Checkout Code
         uses: actions/checkout@v4
