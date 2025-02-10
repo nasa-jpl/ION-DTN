@@ -12,7 +12,13 @@ SUDO_RESULT=$?
 kill -9 $KILLER_PID &>/dev/null
 
 #restore terminal settings after process termination 
-stty sane
+if [ -t 0 ]; then
+    # Running interactively
+    stty sane
+else
+    # Running non-interactively, so skip stty
+    echo "Running in non-interactive mode; stty command skipped."
+fi
 
 if [ "$SUDO_RESULT" -eq 0 ]; then
     echo -e "Sudo privileges confirmed: continuing test.\n"
@@ -34,7 +40,39 @@ killm
 ./cleanup
 
 echo -e "\nRunning sudo commands now..."
-sudo tc qdisc del dev lo root
+
+# First try to clear root qdisc on lo if it exists
+# Check if there's a root qdisc on lo
+ROOT_QDISC_INFO=$(sudo tc qdisc show dev lo | grep 'root ')
+
+if [ -n "$ROOT_QDISC_INFO" ]; then
+    # Extract the handle from the qdisc info
+    HANDLE=$(echo "$ROOT_QDISC_INFO" | sed -n 's/.* handle \([0-9a-f:]*\) .*$/\1/p')
+    
+    if [ -n "$HANDLE" ]; then
+        echo "Found root qdisc with handle $HANDLE on lo. Attempting to delete..."
+        # Delete the qdisc using the handle
+        sudo tc qdisc del dev lo root handle $HANDLE
+        if [ $? -eq 0 ]; then
+            echo "Successfully deleted root qdisc with handle $HANDLE."
+        else
+            echo "Failed to delete root qdisc with handle $HANDLE."
+        fi
+    else
+        echo "Found a root qdisc but couldn't extract handle. Attempting to delete without specifying handle..."
+        # If handle couldn't be extracted, attempt deletion without it
+        sudo tc qdisc del dev lo root
+        if [ $? -eq 0 ]; then
+            echo "Successfully deleted root qdisc without specifying handle."
+        else
+            echo "Failed to delete root qdisc even without specifying handle."
+        fi
+    fi
+else
+    echo "No root qdisc found on lo."
+fi
+
+#sudo tc qdisc del dev lo root
 sudo iptables -F -t filter
 
 sleep 1
