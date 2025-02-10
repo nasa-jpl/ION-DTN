@@ -41,38 +41,8 @@ killm
 
 echo -e "\nRunning sudo commands now..."
 
-# First try to clear root qdisc on lo if it exists
-# Check if there's a root qdisc on lo
-ROOT_QDISC_INFO=$(sudo tc qdisc show dev lo | grep 'root ')
-
-if [ -n "$ROOT_QDISC_INFO" ]; then
-    # Extract the handle from the qdisc info
-    HANDLE=$(echo "$ROOT_QDISC_INFO" | sed -n 's/.* handle \([0-9a-f:]*\) .*$/\1/p')
-    
-    if [ -n "$HANDLE" ]; then
-        echo "Found root qdisc with handle $HANDLE on lo. Attempting to delete..."
-        # Delete the qdisc using the handle
-        sudo tc qdisc del dev lo root handle $HANDLE
-        if [ $? -eq 0 ]; then
-            echo "Successfully deleted root qdisc with handle $HANDLE."
-        else
-            echo "Failed to delete root qdisc with handle $HANDLE."
-        fi
-    else
-        echo "Found a root qdisc but couldn't extract handle. Attempting to delete without specifying handle..."
-        # If handle couldn't be extracted, attempt deletion without it
-        sudo tc qdisc del dev lo root
-        if [ $? -eq 0 ]; then
-            echo "Successfully deleted root qdisc without specifying handle."
-        else
-            echo "Failed to delete root qdisc even without specifying handle."
-        fi
-    fi
-else
-    echo "No root qdisc found on lo."
-fi
-
-#sudo tc qdisc del dev lo root
+# Do not delete root qdisc, it will be replaced instead
+# sudo tc qdisc del dev lo root
 sudo iptables -F -t filter
 
 sleep 1
@@ -83,7 +53,9 @@ echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries2
 echo 5 | sudo tee /proc/sys/net/ipv4/tcp_keepalive_time
 
 # Slow things down so we can kill the connection mid-tranfer.
-sudo tc qdisc add dev lo root netem delay 1000ms
+# Use 'replace' instead of 'add'
+# sudo tc qdisc add dev lo root netem delay 1000ms
+sudo tc qdisc replace dev lo root netem delay 1000ms
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -169,5 +141,8 @@ if [ "$RETVAL" -eq 0 ]; then
 else
     echo "TCPCL ACK test failed"
 fi
+
+echo "Note to user: TCPCL ACK is 'expert' test that alters queue discipline of 'lo' interface."
+echo "              Reboot the host may be required to restore network setting."
 
 exit $RETVAL
