@@ -311,6 +311,9 @@ then
 elif [[ $version == *"Solaris"* ]] || [[ $version == *"SunOS"* ]]
 then
         OS_VERSION=solaris;
+elif [[ $version == *"FreeBSD"* ]]
+then
+        OS_VERSION=freebsd;
 fi
 
 #Determine BP version for exclustion of tests

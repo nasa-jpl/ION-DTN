@@ -3,4 +3,5 @@ sdrName ion1
 wmSize 2000000
 configFlags 1
 heapWords 80000
-pathName /tmp1
+# SDR in DRAM only, no reversibility
+#pathName /tmp1

@@ -28,7 +28,6 @@ else
     exit 2
 fi
 
-
 # Sudo priveledges confirmed, begin test 
 SENDER_PORT=4555
 RECEIVER_PORT=4556

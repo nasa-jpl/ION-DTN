@@ -1,0 +1,4 @@
+Requires sudo access and iptables, so not appropriate for simple tests.
+Note: this test is skipped when ION_RUN_EXPERT != "yes".
+
+2/10/2025: made universally excluded, redesign to make it more consistent. 
