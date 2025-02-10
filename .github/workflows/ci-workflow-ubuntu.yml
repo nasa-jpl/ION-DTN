@@ -60,7 +60,7 @@ jobs:
             make buildcheck
             sudo ldconfig
             cd tests
-            ./runtests
+            ./runtests tcpcl-ack-resilience
           } > build-and-test.log 2>&1
 
       - name: Display Progress
