@@ -36,7 +36,7 @@ MYVERSION=`libtool --version | head -n1 | cut -d' ' -f4 | tr -dc [:digit:].`
 MINVERSION='2.2.5'
 OLDLIBTOOL=0
 vercmp $MYVERSION $MINVERSION
-if [ $RETVAL -le 0 ] ; then
+if [ "$RETVAL" -le 0 ] ; then
 	echo "Libtool is older than $MINVERSION."
 	OLDLIBTOOL=1
 fi
