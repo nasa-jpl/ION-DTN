@@ -6,6 +6,7 @@
 # so we install them all in a throw-away directory, then check the matching files in $IONDIR
 #
 
+# start debug
 #set -x
 
 if ! which ldd > /dev/null; then
@@ -29,10 +30,13 @@ function vercmp()
 # ltmain.sh (GNU libtool) 2.2.6
 # as the first line returned.
 
-# Initialize myversion in case libtool --version doesn't work.
-# default behavior is to assume libtool is working fine and report errors.
-MYVERSION='999'
-MYVERSION=`libtool --version | head -n1 | cut -d' ' -f4 | tr -dc [:digit:].`
+# Check libtool version
+if ! command -v libtool >/dev/null 2>&1; then
+    echo "Please install libtool-bin in order to determine libtool version."
+    exit 1
+else
+    MYVERSION=$(libtool --version | head -n1 | cut -d' ' -f4 | tr -dc '[:digit:].')
+fi
 MINVERSION='2.2.5'
 OLDLIBTOOL=0
 vercmp $MYVERSION $MINVERSION
@@ -40,6 +44,9 @@ if [ "$RETVAL" -le 0 ] ; then
 	echo "Libtool is older than $MINVERSION."
 	OLDLIBTOOL=1
 fi
+
+# end debug
+#set +x
 
 RETVAL=0
 
