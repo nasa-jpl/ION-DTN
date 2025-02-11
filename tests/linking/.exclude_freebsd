@@ -1,0 +1,2 @@
+# FreeBSD 14.2 does not support ldd with -r or -u options
+# See https://man.freebsd.org/cgi/man.cgi?query=ldd&apropos=0&sektion=1&manpath=FreeBSD+14.2-RELEASE&arch=default&format=html

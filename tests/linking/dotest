@@ -103,6 +103,7 @@ fi
 
 if [ "$RETVAL" != "0" ]; then
 	echo "Errors found in executables."
+	echo "Your LD_LIBRARY_PATH is $LD_LIBRARY_PATH. Make sure it points to all needed libraries."
        	echo "Run 'dot -Tpng -o ionexelinks.png ionexelinks.dot' for details"
 fi
 
