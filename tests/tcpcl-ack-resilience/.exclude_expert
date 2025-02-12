@@ -1,2 +1,3 @@
 Requires sudo access and iptables, so not appropriate for simple tests.
 Note: this test is skipped when ION_RUN_EXPERT != "yes".
+Also need to open TCP Port 4555 and 4556

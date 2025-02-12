@@ -40,21 +40,28 @@ killm
 
 echo -e "\nRunning sudo commands now..."
 
-# Do not delete root qdisc, it will be replaced instead
+# 2/11/2025: Do not delete root qdisc, it will be replaced instead
 # sudo tc qdisc del dev lo root
+
 sudo iptables -F -t filter
 
 sleep 1
 
 # Decrease TCP timeout time (defaults 3, 15, 7200)
+echo "Decrease TCP timeout tcp_retries1: 3 -> 1"
 echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries1
+echo "Decrease TCP timeout tcp_retries2: 15 -> 1"
 echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries2
+echo "Decrease tcp_keepalive_time: 7200 -> 5"
 echo 5 | sudo tee /proc/sys/net/ipv4/tcp_keepalive_time
 
 # Slow things down so we can kill the connection mid-tranfer.
-# Use 'replace' instead of 'add'
+# Use 'replace' instead of 'add' to change root qdisc
 # sudo tc qdisc add dev lo root netem delay 1000ms
+echo "Set queue discipline to..."
 sudo tc qdisc replace dev lo root netem delay 1000ms
+sleep 1
+sudo tc qdisc show dev lo
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
