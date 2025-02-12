@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Derived from James Swaro's test, April 25, 2012
-
+# Revised on 2/12/2025
 
 # Timed check for sudo priveleges
 sudo -v &>/dev/null &
@@ -11,7 +11,7 @@ wait $SUDO_PID
 SUDO_RESULT=$?
 kill -9 $KILLER_PID &>/dev/null
 
-#restore terminal settings after process termination 
+# Restore terminal settings after process termination 
 if [ -t 0 ]; then
     # Running interactively
     stty sane
@@ -39,10 +39,6 @@ killm
 ./cleanup
 
 echo -e "\nRunning sudo commands now..."
-
-# 2/11/2025: Do not delete root qdisc, it will be replaced instead
-# sudo tc qdisc del dev lo root
-
 sudo iptables -F -t filter
 
 sleep 1
@@ -54,14 +50,6 @@ echo "Decrease TCP timeout tcp_retries2: 15 -> 1"
 echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries2
 echo "Decrease tcp_keepalive_time: 7200 -> 5"
 echo 5 | sudo tee /proc/sys/net/ipv4/tcp_keepalive_time
-
-# Slow things down so we can kill the connection mid-tranfer.
-# Use 'replace' instead of 'add' to change root qdisc
-# sudo tc qdisc add dev lo root netem delay 1000ms
-echo "Set queue discipline to..."
-sudo tc qdisc replace dev lo root netem delay 1000ms
-sleep 1
-sudo tc qdisc show dev lo
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -94,16 +82,17 @@ if [ "$?" -ne 2 ]; then
     exit 1
 fi
 
-# Start file receiver on node 2.
+# Start bundle receiver on node 2.
 cd ../2.ipn.tcp/
-echo "Starting bprecvfile..."
-bprecvfile ipn:2.1 &
+echo "Starting bpcounter..."
+bpcounter ipn:2.1 1000 &
+counter_pid=$!
 sleep 10
 
-# Send one file from node 1 to node 2.
+# Send 10,000 bundles from node 1 to node 2.
 cd ../1.ipn.tcp/
-echo "Sending file from node 1 to node 2..."
-bpsendfile ipn:1.1 ipn:2.1 testfile
+echo "Sending bundles from node 1 to node 2..."
+bpdriver 1000 ipn:1.1 ipn:2.1 -100000 t3600 i10000000 &
 
 # Allow partial sending of data.
 sleep 1
@@ -119,27 +108,20 @@ echo "Unblocking traffic..."
 sudo iptables -F -t filter
 
 echo "Waiting for send to finish..."
-sleep 5m
+sleep 3m
 
-# Verify that this file arrived.
+# Verify that transfer completed, e.g., bpcounter ended.
 cd ../2.ipn.tcp
-COUNT=$(ls -l testfile1 | grep -E 117700 | wc -l)
-
-if [ "$COUNT" -eq 1 ]; then
-    RETVAL=0
-else
+if kill -0 $counter_pid > /dev/null 2>&1; then
+    echo "bpcounter ($pid) is still running."
     RETVAL=1
+else
+    echo "bpvounter ($pid) has completed."
+    RETVAL=0
 fi
 
 # Shut down ION processes.
 echo "Stopping ION..."
-#cd ../1.ipn.tcp
-#./ionstop &
-#cd ../2.ipn.tcp
-#./ionstop &
-
-# Give nodes time to shut down, then clean up.
-#sleep 5
 killm
 
 if [ "$RETVAL" -eq 0 ]; then
@@ -148,7 +130,14 @@ else
     echo "TCPCL ACK test failed"
 fi
 
-echo "Note to user: TCPCL ACK is 'expert' test that alters queue discipline of 'lo' interface."
-echo "              Reboot the host may be required to restore network setting."
+# Restore TCP timeout time back (defaults 3, 15, 7200)
+echo "Set TCP timeout tcp_retries1 back to 3"
+echo 3 | sudo tee /proc/sys/net/ipv4/tcp_retries1
+echo "Set TCP timeout tcp_retries2 back to 15"
+echo 15 | sudo tee /proc/sys/net/ipv4/tcp_retries2
+echo "Set tcp_keepalive_time back to 7200"
+echo 7200 | sudo tee /proc/sys/net/ipv4/tcp_keepalive_time
+
+echo "Note to user: TCPCL ACK is 'expert' test"
 
 exit $RETVAL
