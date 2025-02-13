@@ -58,6 +58,7 @@ jobs:
             export USER=$(whoami)  # Set USER to the current username
             echo "USER is set to: $USER"
             export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make

@@ -46,7 +46,9 @@ jobs:
         run: |
           {
             echo "Starting build and tests at $(date)"
+            export PATH="/opt/homebrew/bin:$PATH"
             export ION_RUN_EXPERT="yes"
+            export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make

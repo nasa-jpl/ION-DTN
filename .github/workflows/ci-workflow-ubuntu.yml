@@ -53,6 +53,7 @@ jobs:
           {
             echo "Starting build and tests at $(date)"
             export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make
