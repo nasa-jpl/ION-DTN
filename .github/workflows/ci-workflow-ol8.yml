@@ -13,7 +13,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, ol8vm]
+    runs-on: [self-hosted, linux, x64, ol8podman]
 
 #    container:  
 #      image: oraclelinux:8
@@ -60,7 +60,7 @@ jobs:
             make buildcheck
             sudo ldconfig
             cd tests
-            ./runtests linking
+            ./runtests bping ams-sana linking
           } > build-and-test.log 2>&1
 
       - name: Display Progress
