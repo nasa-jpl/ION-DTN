@@ -72,4 +72,5 @@ BpSecMap gKeyWords[] = {
 		{KNS_EVENT_SET, KID_EVENT_SET},
 		{KNS_EVENT, KID_EVENT},
 		{NULL,0}
+		{NULL, 0}
 };

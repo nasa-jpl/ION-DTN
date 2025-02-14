@@ -2750,7 +2750,7 @@ int bpsec_admin_executeCmd(char *line)
 
 	char		buffer[80];
 	jsonObject  job;
-	char        cmdCode[1];
+	char        cmdCode[2]; //requires space for null terminator
 
 	/* Step 1: Retrieve the command code (char) from the policy command */
 
