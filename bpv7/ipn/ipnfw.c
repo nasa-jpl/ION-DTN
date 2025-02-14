@@ -1080,9 +1080,15 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 	}
 
 	sdr_string_read(sdr, eid, sdr_list_data(sdr, elt));
-	if (parseEidString(eid, &metaEid, &vscheme, &vschemeElt) == 0)
+
+	/* Make a safe copy of EID before parsing */
+	char eidCopy[SDRSTRING_BUFSZ];
+	strncpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
+	eidCopy[SDRSTRING_BUFSZ - 1] = '\0';
+
+	if (parseEidString(eidCopy, &metaEid, &vscheme, &vschemeElt) == 0)
 	{
-		putErrmsg("Can't parse node EID string.", eid);
+		putErrmsg("Can't parse node EID string.", eidCopy);
 		return bpAbandon(bundleObj, bundle, BP_REASON_NO_ROUTE);
 	}
 
@@ -1188,7 +1194,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 		/*	Found applicable exit; forward via the
 		 *	indicated endpoint.				*/
 
-		sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+		sdr_write(sdr, bundleObj, (char *) bundle, sizeof(Bundle));
 		return forwardBundle(bundleObj, bundle, eid);
 	}
 
