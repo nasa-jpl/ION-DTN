@@ -1083,7 +1083,7 @@ static int	enqueueBundle(Bundle *bundle, Object bundleObj, CgrSAP sap)
 
 	/* Make a safe copy of EID before parsing */
 	char eidCopy[SDRSTRING_BUFSZ];
-	strncpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
+	istrcpy(eidCopy, eid, SDRSTRING_BUFSZ - 1);
 	eidCopy[SDRSTRING_BUFSZ - 1] = '\0';
 
 	if (parseEidString(eidCopy, &metaEid, &vscheme, &vschemeElt) == 0)
