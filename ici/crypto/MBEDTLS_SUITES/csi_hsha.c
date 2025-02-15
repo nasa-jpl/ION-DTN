@@ -54,7 +54,7 @@ int hsha_init(mbedtls_entropy_context *entropy)
 			                    mbedtls_entropy_func,
 								entropy,
 								(const unsigned char *) "CSI SHA256",
-								16);
+								strlen("CSI SHA256"));
 	mbedtls_hmac_drbg_set_prediction_resistance( &g_csi_hmac_drbg_256_ctx, MBEDTLS_HMAC_DRBG_PR_OFF );
 
 	if(ret != 0)
@@ -68,7 +68,7 @@ int hsha_init(mbedtls_entropy_context *entropy)
 			                    mbedtls_entropy_func,
 								entropy,
 								(const unsigned char *) "CSI SHA384",
-								16);
+								strlen("CSI SHA384"));
 	mbedtls_hmac_drbg_set_prediction_resistance( &g_csi_hmac_drbg_384_ctx, MBEDTLS_HMAC_DRBG_PR_OFF );
 
 	if(ret != 0)
@@ -82,7 +82,7 @@ int hsha_init(mbedtls_entropy_context *entropy)
 			                    mbedtls_entropy_func,
 								entropy,
 								(const unsigned char *) "CSI SHA512",
-								16);
+								strlen("CSI SHA512"));
 	mbedtls_hmac_drbg_set_prediction_resistance( &g_csi_hmac_drbg_512_ctx, MBEDTLS_HMAC_DRBG_PR_OFF );
 
 	if(ret != 0)
