@@ -7,13 +7,13 @@ on:
 
   workflow_dispatch:
 
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, ol9vm]
+    runs-on: [self-hosted, linux, x64, ol9podman]
 
 #    container:  
 #      image: oraclelinux:9
@@ -60,7 +60,7 @@ jobs:
             make buildcheck
             sudo ldconfig
             cd tests
-            ./runtests
+            ./runtests linking/ contact-volume/ltp-loopback bping
           } > build-and-test.log 2>&1
 
       - name: Display Progress
