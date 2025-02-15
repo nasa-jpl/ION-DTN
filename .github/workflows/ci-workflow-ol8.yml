@@ -60,7 +60,7 @@ jobs:
             make buildcheck
             sudo ldconfig
             cd tests
-            ./runtests bping ams-sana linking
+            ./runtests
           } > build-and-test.log 2>&1
 
       - name: Display Progress
