@@ -352,7 +352,7 @@ int bslpol_proc_applyReceiverPolRule(AcqWorkArea *wk, BpSecPolRule *polRule,
      }
 
 
-     def->scStateInit(wm, &state, secBlk->number, &def, BPSEC_RULE_ROLE_IDX(polRule), service, asb->scSource, polRule->sc_parms, asb->scParms, lyst_length(asb->scResults));
+     def->scStateInit(wm, &state, secBlk->number, def, BPSEC_RULE_ROLE_IDX(polRule), service, asb->scSource, polRule->sc_parms, asb->scParms, lyst_length(asb->scResults));
 
      result = def->scProcInBlk(&state, wk, asb, tmp, tgtResult);
 
