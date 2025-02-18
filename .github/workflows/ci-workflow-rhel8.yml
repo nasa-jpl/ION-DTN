@@ -13,7 +13,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, rhel8]
+    runs-on: [self-hosted, linux, x64, rhel8podman]
 
 #    container:  
 #      image: registry.access.redhat.com/ubi8/ubi
