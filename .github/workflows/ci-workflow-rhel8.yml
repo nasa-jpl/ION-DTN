@@ -9,7 +9,7 @@ on:
 
   push:
     branches:
-      - update-4.1.4-ci-workflow
+      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
