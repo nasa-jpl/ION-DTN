@@ -14,12 +14,17 @@
 
 #define	MAX_DATAGRAM	65535
 
+/* Prevent buffer overflow on systems where default is less than 256 */
+#ifndef OWLTSIM_MAXHOSTNAMELEN
+#define OWLTSIM_MAXHOSTNAMELEN 256
+#endif
+
 typedef struct
 {
 	char		toNode[33];
 	char		fromNode[33];
 	unsigned short	myPortNbr;
-	char		destHostName[MAXHOSTNAMELEN + 1];
+	char		destHostName[OWLTSIM_MAXHOSTNAMELEN  + 1];
 	unsigned short	destPortNbr;
 	unsigned short	owlt;
 	int		insock;
