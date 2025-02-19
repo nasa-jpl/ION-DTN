@@ -107,6 +107,7 @@ void print(statusReport *rpt){
 		rpt->reasonString);
 	free(buffer);
 	printDBG(3, "statusTime: " UVAST_FIELDSPEC "<=> %s\n", rpt->statusTime, tmbuffer);
+	free(tmbuffer);
 }
 
 void sortByStatusTime(statusReport *rpts[], unsigned n_rpts){
@@ -131,20 +132,33 @@ void sortByStatusTime(statusReport *rpts[], unsigned n_rpts){
 		}
 	}
 }
-// const char* header_rpt = "srcEid/creationTime:count/offset 'status' # 'at' time 'on' statusEid, statusMsg\n";
-void print_reports(){
-	
-	if(reports && n_rpts > 0){
-		printf("\nDone, printing in time order: \n");
-		printf("------------------------------\n");
-		// printf(header_rpt);
-		sortByStatusTime(reports, n_rpts);
-		for(unsigned i = 0; i < n_rpts; ++i){
-			print(reports[i]);
-			free(reports[i]);
-		}
-	}
+void freeStatusReport(statusReport *rpt)
+{
+    if (rpt == NULL) {
+        return;
+    }
+    // Free any fields allocated by strdup
+    if (rpt->sourceEid)       free(rpt->sourceEid);
+    if (rpt->bundleSourceEid) free(rpt->bundleSourceEid);
+    if (rpt->reasonString)    free(rpt->reasonString);
+
+    // Now free the structure itself (since handleStatusRpt did `malloc(sizeof(statusReport))`)
+    free(rpt);
 }
+
+// const char* header_rpt = "srcEid/creationTime:count/offset 'status' # 'at' time 'on' statusEid, statusMsg\n";
+void print_reports() {
+    if (reports && n_rpts > 0) {
+        printf("\nDone, printing in time order: \n");
+        printf("------------------------------\n");
+        sortByStatusTime(reports, n_rpts);
+        for (unsigned i = 0; i < n_rpts; ++i) {
+            print(reports[i]);
+            freeStatusReport(reports[i]); // <---- Instead of just free(reports[i]);
+        }
+    }
+}
+
 
 void sighandler(int signum)	{
 	printDBG(3, "signal number: %d\n", signum);
