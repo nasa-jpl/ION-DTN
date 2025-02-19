@@ -7,13 +7,13 @@ on:
 
   workflow_dispatch:
 
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, rhel9]
+    runs-on: [self-hosted, linux, x64, rhel9podman]
 
 #    container:  
 #      image: registry.access.redhat.com/ubi9/ubi
