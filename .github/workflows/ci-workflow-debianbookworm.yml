@@ -13,12 +13,7 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, karuna]
-
-    container:  
-      image: debian:bookworm  # Run jobs on Ubuntu 22
-      options: --init      # Enable built-in init system
-
+    runs-on: [self-hosted, linux, x64, debianpodman]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -31,21 +26,6 @@ jobs:
           echo "User ID:"
           id
       
-      - name: Set up dependencies
-        run: |
-            apt-get update
-            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc wget # Install dependencies       
-            
-      - name: Install MBEDTLS 2.28.9
-        run: |
-            wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-2.28.9.tar.gz
-            tar -zvxf mbedtls-2.28.9.tar.gz
-            cd mbedtls-mbedtls-2.28.9/
-            sed -i '/#define MBEDTLS_NIST_KW_C/s/\/\///' "./include/mbedtls/config.h"
-            make SHARED=1
-            make check
-            make install
-
       - name: Generate timestamp for file names
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -61,9 +41,9 @@ jobs:
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make
-            make install # self-hosted runner is root
-            make test
-            ldconfig
+            sudo make install # self-hosted runner is root
+            make buildcheck
+            sudo ldconfig
             cd tests
             ./runtests
           } > build-and-test.log 2>&1
@@ -86,17 +66,12 @@ jobs:
         with:
           name: test-progress-${{ env.TIMESTAMP }}
           path: ./tests/progress  # Upload the 'progress' file for later review
-
-      - name: Clean up Docker container
-        if: ${{ always() }}  # This step will run even if previous steps failed
+      
+      - name: Clean up ION build
+        if: ${{ always() }}  # Clean up even if previous steps fails
         run: |
-          # Find the container ID of the currently running container
-          CONTAINER_ID=$(docker ps -q -f status=running -f ancestor=ubuntu:focal)
-          if [ -n "$CONTAINER_ID" ]; then
-            echo "Stopping and removing container with ID: $CONTAINER_ID"
-            docker stop $CONTAINER_ID
-            docker rm $CONTAINER_ID
-          else
-            echo "No matching container found to clean up."
-          fi
+          sudo make uninstall
+          make clean
+          make distclean
+          rm -rf $GITHUB_WORKSPACE/*
 
