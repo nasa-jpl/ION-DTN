@@ -7,9 +7,9 @@ on:
 
   workflow_dispatch:
 
-#  push:
-#    branches:
-#      - update-4.1.4-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
@@ -30,7 +30,6 @@ jobs:
           uname -m
           echo "User ID:"
           id
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
       
       - name: Set up dependencies
         run: |
