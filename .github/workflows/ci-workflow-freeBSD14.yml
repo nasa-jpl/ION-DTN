@@ -117,7 +117,7 @@ jobs:
           sudo gmake uninstall &&
           gmake clean &&
           cd ../.. &&
-          rm -rf ~/ion-gh-test-dir'
-          rm -rf $GITHUB_WORKSPACE/*
+          rm -rf ~/ion-gh-test-dir'  # Uninstall/clean ION from FreeBSD VM 
+          rm -rf $GITHUB_WORKSPACE/* # Remove workspace content from host runner
 
 
