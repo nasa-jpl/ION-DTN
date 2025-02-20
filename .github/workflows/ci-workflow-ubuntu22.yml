@@ -7,13 +7,13 @@ on:
 
   workflow_dispatch:
 
-#  push:
-#    branches:
-#      - update-4.1.4-freebsd-update
+  push:
+    branches:
+      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, karuna]
+    runs-on: [self-hosted, linux, x64, ubuntu22podman]
 
     container:  
       image: ubuntu:jammy  # Run jobs on Ubuntu 22
