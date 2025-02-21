@@ -130,6 +130,8 @@ void radix_wildcard2(void)
 		}
 	}
 
+	free(tmp);
+
 	radix_destroy(wm, radixAddr, radixpt_user_del);
 
 	TEST_ASSERT_EQUAL_INT(100, gStats.matches);
