@@ -42,7 +42,7 @@ jobs:
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
-            make
+            make -j4
             sudo make install # self-hosted runner is root
             make buildcheck
             sudo ldconfig

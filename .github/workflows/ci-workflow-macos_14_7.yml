@@ -51,7 +51,7 @@ jobs:
             export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
-            make
+            make -j4
             sudo make install
             make buildcheck
             sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
