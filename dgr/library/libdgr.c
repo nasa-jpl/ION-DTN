@@ -213,7 +213,7 @@ typedef struct
 	EpisodeHistory	episodes[8];
 	int		currentEpisode;
 	int		totalCapacity;
-	int		totalServiceLoad;
+	vast	totalServiceLoad;
 	int		totalBytesTransmitted;
 	int		totalBytesAcknowledged;
 	int		totalUnusedCapacity;
