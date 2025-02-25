@@ -18,6 +18,8 @@ libtool
 ltmain.sh
 missing
 stamp-h1
+.DS_Store
+__pycashe__/
 
 # Temp macro directory
 /m4
@@ -457,3 +459,10 @@ tests/issue-330-cfdpclock-FDU-removal/cfdplisten
 tests/issue-334-cfdp-transaction-id/dotest
 tests/sm_subsystem/dotest
 tests/bug-0015-tcpclo-bpcp-sig-handling/test
+
+# uClibc temporary build files for AT91SAM9G20
+.stamp_configured
+.stamp_downloaded
+.stamp_extracted
+.stamp_patched
+.stamp_staging_installed
