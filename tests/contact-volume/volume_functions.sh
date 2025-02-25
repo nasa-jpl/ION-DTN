@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 function applyrelativevolume () {
     echo -e "a contact +1 +$1 1 1 $2\nq" | ionadmin >/dev/null

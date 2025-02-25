@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Author: Robert Martin, Ohio University
 # Checks sysctl variable vaues on OSX to see if they are large enough
 # to handle the shared memory requirements for ION
@@ -7,12 +7,12 @@ case $OSTYPE in
     *darwin*)
         VAR_LIST=('kern.sysv.shmmax' 'kern.sysv.shmmin' 'kern.sysv.shmmni'
                   'kern.sysv.shmseg' 'kern.sysv.shmall' 'net.inet.udp.maxdgram'
-                  'kern.sysv.semmns' 'kern.sysv.semmni')
+                  'kern.sysv.semmns' 'kern.sysv.semmni' 'net.inet.udp.recvspace')
     ;;
     *freebsd*)
         VAR_LIST=('kern.ipc.shmmax' 'kern.ipc.shmmin' 'kern.ipc.shmmni'
                   'kern.ipc.shmseg' 'kern.ipc.shmall' 'net.inet.udp.maxdgram'
-                  'kern.ipc.semmns' 'kern.ipc.semmni')
+                  'kern.ipc.semmns' 'kern.ipc.semmni' 'net.inet.udp.recvspace')
     ;;
     *)
         echo "No need to update sysctl variables."
@@ -20,7 +20,7 @@ case $OSTYPE in
     ;;
 esac
 
-VAR_VALUE=(2147483648 1 32 32 1048576 65536 32000 128)
+VAR_VALUE=(2147483648 1 32 32 1048576 65536 32000 128 168320)
 CUR_VALUE=0
 I=0
 CHANGE=0

@@ -32,9 +32,13 @@
  */
 
 #ifndef darwin
-#define _GNU_SOURCE
-/* macos/darwin handles this differently */
-#define _POSIX_C_SOURCE 200112L
+#ifndef freebsd
+/* needed to compile on 32-bit Raspberry PI */
+#define _GNU_SOURCE */
+
+
+/* #define _POSIX_C_SOURCE 200112L */
+#endif
 #endif
 
 //#define	BPRECVBUFSZ	(65536) // 65KB

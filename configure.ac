@@ -8,7 +8,7 @@
 
 
 AC_PREREQ(2.69)
-AC_INIT(ion, open source 4.1.3s, ion-dtn-support@lists.sourceforge.net)
+AC_INIT(ion, open source 4.1.3s, https://github.com/nasa-jpl/ION-DTN/issues)
 
 #  Josh Schendel removed the -Werror on 05/15/2012 per issue #355 to deal with
 #  all of the portability warnings introduced by autoconf v2.69 and
@@ -135,11 +135,11 @@ case $host_os in
 		PLATFORM="bsd"
 		case $host_cpu in
 			x86_64|amd64)
-				AM_CFLAGS="$AM_CFLAGS -Dfreebsd -DSPACE_ORDER=3 -m64 "
+				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dfreebsd -DSPACE_ORDER=3 -m64 "
 				echo "Build 64-bit Freebsd specific platform code."
 				;;
 			*)
-				AM_CFLAGS="$AM_CFLAGS  -Dfreebsd -DSPACE_ORDER=2 -m32 "
+				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dfreebsd -DSPACE_ORDER=2 -m32 "
 				echo "Build 32-bit Freebsd specific platform code."
 				;;
 		esac
@@ -420,13 +420,16 @@ if test x$CRYPTO_MBEDTLS = xtrue; then
 	echo "Turning on MBEDTLS Crypto"
 	echo "------------------------------------------"
 
-		if [[ ! -v MBED_LIB_PATH ]] ; then
+		if test -z "${MBED_LIB_PATH}"; then
 			MBED_LIB_PATH="/usr/local/lib"
 		fi
 
-		if [[ ! -v MBED_INC_PATH ]] ; then
+		if test -z "${MBED_INC_PATH}"; then
 			MBED_INC_PATH="/usr/local/include"
 		fi
+
+		# EVALUATE: use -rpath for locating runtime library   
+		# AM_LDFLAGS="$AM_LDFLAGS -Wl, -rpath, $MBED_LIB_PATH"
 
 		AC_CHECK_FILES(
 		[$MBED_LIB_PATH/libmbedtls.$S_LIB_END $MBED_LIB_PATH/libmbedx509.$S_LIB_END $MBED_LIB_PATH/libmbedcrypto.$S_LIB_END],

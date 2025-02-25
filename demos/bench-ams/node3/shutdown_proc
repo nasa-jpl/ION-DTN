@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shell script to shut down ION processes
 
 shutdown_process() {

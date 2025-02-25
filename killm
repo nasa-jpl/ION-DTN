@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shell script to remove all of my IPC keys
 # Modified by Robert Martin to work on Mac 10.4, due to IPCS requiring sudo to list any 
 # shared memory usage, even if you own it; also modified using Jim Wyllie's "kill 
@@ -13,7 +13,8 @@ OS_VERS=""
 # truncated username so we trim the username to 10 characters.
 # NOTE: This may cause conflicts with long usernames with similar beginning
 #       characters. We'll look for a more robust solution in the near future.
-USERNAME_CUT=$(echo "$USER" | cut -c 1-10)
+#USERNAME_CUT=$(echo "$USER" | cut -c 1-10)
+USERNAME_CUT=$(echo "$(whoami)" | cut -c 1-10)
 
 # DEBUG: check the value of USERNAME_CUT
 # echo "Abbreviated username is "${USERNAME_CUT}

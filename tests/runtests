@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright (c) 2009, Regents of the University of Colorado.
 # Written by Sebastian Kuzminsky <seb@highlab.com>
@@ -311,6 +311,9 @@ then
 elif [[ $version == *"Solaris"* ]] || [[ $version == *"SunOS"* ]]
 then
         OS_VERSION=solaris;
+elif [[ $version == *"FreeBSD"* ]]
+then
+        OS_VERSION=freebsd;
 fi
 
 #Determine BP version for exclustion of tests

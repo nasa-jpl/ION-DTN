@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # shell script to get node running
 
 ionadmin	node.ionrc

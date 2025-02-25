@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 
 # makes a graph of how the libraries are linked togethere
 #
@@ -32,7 +32,7 @@ shift $(expr $OPTIND - 1 )
 SLIBS=.libs/*.so
 BINS=$(find .libs -perm /111 -and -not -name '*.*' -and -not -name 'lt-*')
 
-export LD_LIBRARY_PATH=$PWD/.libs
+export LD_LIBRARY_PATH=$PWD/.libs:$LD_LIBRARY_PATH
 
 
 LIBS=$SLIBS
@@ -79,6 +79,11 @@ fi
         UNUSED_LINKS=$(ldd -r -u $LIB 2> /dev/null | egrep -v '^(Unused direct dependencies:|[    ]+)$' | sed -r 's/^.*\/(lib[^\.]+)\..*$/\1/')
         if [ ! -z "$UNUSED_LINKS" ]; then
             for UNUSED_LINK in $UNUSED_LINKS; do
+                # Oracle Linux and RHEL handle indirect references differently so we need to check if
+                # symbols reported as "unused" by ldd are actually not needed.
+                if readelf -d $LIB | grep NEEDED | grep -q "$UNUSED_LINK"; then
+                    break
+                fi
                 # "linux-gate" has been reported as an unused dependency since the Ubuntu 11.10 -> 12.04 x86 upgrade.  
                 # http://www.trilithium.com/johan/2005/08/linux-gate/ gives a good explanation of the library, which isn't actually a "physical"
                 # but rather "a virtual DSO, a shared object exposed by the kernel at a fixed address in every process' memory"

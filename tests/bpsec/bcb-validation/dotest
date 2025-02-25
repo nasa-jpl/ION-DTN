@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #### MAKE SURE NETCAT IS INSTALLED ####
 PROGRAMTEST="netcat"

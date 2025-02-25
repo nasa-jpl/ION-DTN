@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #start ion---------------------------------------------
 ionadmin	amroc.ionrc

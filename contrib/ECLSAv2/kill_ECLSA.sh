@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ps a | grep ecls | grep -v  grep | sed 's/^ *//g' | cut -f1 -d' '| while read line
 do

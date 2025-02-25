@@ -9,15 +9,29 @@ on:
 
 #  push:
 #    branches:
-#      - update-4.1.4-ci-workflow
+#      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
     runs-on: [self-hosted, macOS, ARM64, 14.7]
 
     steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+          
       - name: Checkout Code
         uses: actions/checkout@v4
+      
+      # assume dependencies are all already setup
+
+      - name: Display OS and Arch
+        run: |
+          echo "Arch:"
+          uname -m
+          echo "User ID:"
+          id
+          echo "DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH"
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -30,19 +44,22 @@ jobs:
             export USER=$(whoami)  # Set USER to the current username
             echo "USER is set to: $USER"
             export PATH="/opt/homebrew/bin:$PATH"
+            export ION_RUN_EXPERT="yes"
+            export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
             autoreconf -fi
-            ./configure
-            make
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            make -j4
             sudo make install
-            make test
+            make buildcheck
+            sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
             cd tests
             ./runtests
-          } 2>&1 | tee build-and-test.log
+          } > build-and-test.log 2>&1 
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
         run: |
-          cat ./tests/progress
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
 
       - name: Upload full build and test log
         if: ${{ always() }}  # Capture log even if the previous step fails
@@ -64,4 +81,5 @@ jobs:
           sudo make uninstall
           make clean
           make distclean
+          rm -rf $GITHUB_WORKSPACE/*
 

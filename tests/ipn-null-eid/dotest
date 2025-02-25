@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # David Young, modified from Scott Burleigh
 # April 29, 2010

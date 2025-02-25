@@ -39,7 +39,13 @@
 
 
 
-#define _POSIX_C_SOURCE 200112L //POSIX 2001 compliance check
+#ifndef darwin
+#ifndef freebsd
+/* needed to compile on 32-bit Raspberry PI */
+#define _GNU_SOURCE
+/* #define _POSIX_C_SOURCE 200112L */
+#endif
+#endif
 #include "secrypt.h"
 #include <bp.h>
 

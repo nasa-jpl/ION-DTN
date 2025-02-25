@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 rm -f ion.log ion.sdr ion.sdrlog
 

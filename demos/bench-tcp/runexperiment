@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Shawn Ostermann
 # For automatically gathering data using ./dotest

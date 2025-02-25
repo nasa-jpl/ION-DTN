@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 DAT=stridetune.dat
 rm -f $DAT

@@ -314,6 +314,11 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 
 #else				/****	not Windows		*********/
 
+#ifdef freebsd
+#define __BSD_VISIBLE 1
+#include <sys/types.h>
+#endif
+
 #include <sys/times.h>
 #include <limits.h>
 #include <sys/wait.h>

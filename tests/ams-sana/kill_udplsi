@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 
 #Note: I am seeing rogue udplsi process on port 9118 after test (on Solaris). 

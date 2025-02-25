@@ -9,17 +9,21 @@ on:
 
 #  push:
 #    branches:
-#      - update-4.1.4-ci-workflow
+#      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, ol9vm]
+    runs-on: [self-hosted, linux, x64, ol9podman]
 
 #    container:  
 #      image: oraclelinux:9
 #      options: --init      # Enable built-in init system
 
     steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+          
       - name: Checkout Code
         uses: actions/checkout@v4
 
@@ -30,6 +34,7 @@ jobs:
           uname -m
           echo "User ID:"
           id
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
       
 #      - name: Set up dependencies
 #        run: |
@@ -46,20 +51,22 @@ jobs:
             echo "Starting build and tests at $(date)"
             export USER=$(whoami)  # Set USER to the current username
             echo "USER is set to: $USER"
+            export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
             autoreconf -fi
-            ./configure
-            make
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            make -j4
             sudo make install
-            make test
+            make buildcheck
             sudo ldconfig
             cd tests
             ./runtests
-          } 2>&1 | tee build-and-test.log
+          } > build-and-test.log 2>&1
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
         run: | 
-          cat ./tests/progress
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
 
       - name: Upload full build and test log
         if: ${{ always() }}  # Capture log even if the previous step fails
@@ -81,3 +88,4 @@ jobs:
           sudo make uninstall
           make clean
           make distclean
+          rm -rf $GITHUB_WORKSPACE/*

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ionadmin	node.ionrc
 acsadmin	node.acsrc
 ionsecadmin	node.ionsecrc

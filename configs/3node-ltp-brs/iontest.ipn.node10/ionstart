@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ionadmin	node10.ionrc
 sleep 1
 ltpadmin	node10.ltprc

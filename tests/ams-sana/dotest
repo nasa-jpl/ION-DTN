@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # AMS SANA (i.e. node number upgrade) integration test script
 # This test uses amsbenchr and amsbenchs over LTP protocol 

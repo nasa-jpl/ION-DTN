@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 nberr=0
 err=0 #boolean : error found ? true = 1 ; false = 0 
 for dir in results_*

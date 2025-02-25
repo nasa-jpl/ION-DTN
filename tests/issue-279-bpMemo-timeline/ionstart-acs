@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ionadmin	test.ionrc
 sleep 1
 acsadmin	test.acsrc

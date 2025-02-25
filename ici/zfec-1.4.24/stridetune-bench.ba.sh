@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 /bin/rm -rf ./benchresults
 mkdir benchresults

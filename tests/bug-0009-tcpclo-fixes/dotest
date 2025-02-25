@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Samuel Jero <sj323707@ohio.edu>
 # November 12, 2012
 # bug-0009-tcpclo-fixes test

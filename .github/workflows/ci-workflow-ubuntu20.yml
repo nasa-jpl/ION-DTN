@@ -9,15 +9,11 @@ on:
 
 #  push:
 #    branches:
-#      - update-4.1.4-ci-workflow
+#      - update-4.1.4-freebsd-update
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, linux, x64, karuna]
-
-    container:  
-      image: ubuntu:focal  # Run jobs on Ubuntu 20
-      options: --init      # Enable built-in init system
+    runs-on: [self-hosted, linux, x64, ubuntu20podman]
 
     steps:
       - name: Checkout Code
@@ -30,12 +26,8 @@ jobs:
           uname -m
           echo "User ID:"
           id
-      
-      - name: Set up dependencies
-        run: |
-            apt-get update
-            apt-get install -y autoconf automake libtool bash python3 gcc make psmisc # Install dependencies 
-  
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
       - name: Generate timestamp for file names
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -46,20 +38,22 @@ jobs:
             echo "Starting build and tests at $(date)"
             export USER=$(whoami)  # Set USER to the current username
             echo "USER is set to: $USER"
+            export ION_RUN_EXPERT="yes"
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
             autoreconf -fi
-            ./configure
-            make
-            make install # self-hosted runner is root
-            make test
-            ldconfig
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            make -j4
+            sudo make install # self-hosted runner is root
+            make buildcheck
+            sudo ldconfig
             cd tests
-            ./runtests bptrace_terminal_test  # Run the test
-          } 2>&1 | tee build-and-test.log
+            ./runtests
+          } > build-and-test.log 2>&1
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
         run: | 
-          cat ./tests/progress
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
 
       - name: Upload full build and test log
         if: ${{ always() }}  # Capture log even if the previous step fails
@@ -74,5 +68,12 @@ jobs:
         with:
           name: test-progress-${{ env.TIMESTAMP }}
           path: ./tests/progress  # Upload the 'progress' file for later review
-
+      
+      - name: Clean up ION build
+        if: ${{ always() }}  # Clean up even if previous steps fails
+        run: |
+          sudo make uninstall
+          make clean
+          make distclean
+          rm -rf $GITHUB_WORKSPACE/*
 

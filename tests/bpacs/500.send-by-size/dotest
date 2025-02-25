@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Sends bundles to the local ION node with custody transfer requested,
 # and then verifies that ION emits properly-formatted ACS bundles.
 #

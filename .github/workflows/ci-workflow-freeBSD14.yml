@@ -1,0 +1,123 @@
+name: Regression Tests for ION on FreeBSD 14 VM via Ubuntu host
+
+on:
+  pull_request:
+    branches:
+      - integration
+
+  workflow_dispatch:
+
+#  push:
+#    branches:
+#      - update-4.1.4-freebsd-update
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, linux, x64, karuna]
+
+    steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Display Runner Host OS and Arch
+        run: |
+          cat /etc/os-release 
+          echo "Arch:" 
+          uname -m
+          echo "User ID:"
+          id
+
+      - name: Set environment variable to VM's static IP
+        run: |
+          echo "VM_IP=192.168.122.128" >> $GITHUB_ENV
+
+      - name: Display VM OS and Arch
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'cat /etc/os-release && 
+            echo "Arch:" && 
+            uname -m &&
+            echo "User ID:" &&
+            id &&
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"'
+
+      - name: Copy code to FreeBSD VM
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
+          scp -o StrictHostKeyChecking=no -r "$GITHUB_WORKSPACE" jgao@$VM_IP:~/ion-gh-test-dir
+          
+      # assume dependencies are already satisfied
+      #- name: Set up dependencies in VM
+      #  run: |
+      #      ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'pkg update &&
+      #        sudo pkg install -y autoconf automake libtool bash python3 gcc make psmisc wget'
+      
+      # assume Mbedtls is already installed
+      #- name: Install MBEDTLS 2.28.9 in VM
+      #  run: |
+      #      wget https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/mbedtls-2.28.9.tar.gz
+      #      tar -zvxf mbedtls-2.28.9.tar.gz
+      #      cd mbedtls-mbedtls-2.28.9/
+      #      sed -i '/#define MBEDTLS_NIST_KW_C/s/\/\///' "./include/mbedtls/config.h"
+      #      make SHARED=1
+      #      make check
+      #      make install
+
+      - name: Generate timestamp for file names
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Run build and tests, capture stdout
+        run: | # For now run only test starting with "b", redirect stdout and stderr to a log
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+            echo "Starting build and tests at $(date)" &&
+            export USER=$(whoami)  # Set USER to the current username &&
+            echo "USER is set to: $USER" &&
+            export ION_RUN_EXPERT="yes" &&
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
+            cd ~/ion-gh-test-dir/ion-ios-dev
+            autoreconf -fi &&
+            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
+            gmake -j4 &&
+            sudo gmake install &&
+            gmake buildcheck &&
+            sudo ldconfig &&
+            cd tests &&
+            ./runtests' > build-and-test.log 2>&1
+
+      - name: Display Progress
+        if: ${{ always() }}  # Display progress even if tests were interrupted
+        run: | 
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+            cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress' > progress
+          cat progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
+
+      - name: Upload full build and test log
+        if: ${{ always() }}  # Capture log even if the previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-test-log-${{ env.TIMESTAMP }}
+          path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
+
+      - name: Upload progress file as artifact
+        if: ${{ always() }}  # Capture progress even if the previous step fails
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-progress-${{ env.TIMESTAMP }}
+          path: ./progress  # Upload the 'progress' file for later review
+
+      - name: Clean up ION build
+        if: ${{ always() }}  # Clean up even if previous steps fails
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          cd ~/ion-gh-test-dir/ion-ios-dev &&
+          sudo gmake uninstall &&
+          gmake clean &&
+          cd ../.. &&
+          rm -rf ~/ion-gh-test-dir'  # Uninstall/clean ION from FreeBSD VM 
+          rm -rf $GITHUB_WORKSPACE/* # Remove workspace content from host runner
+
+

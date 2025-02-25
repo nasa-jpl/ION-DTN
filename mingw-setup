@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 makefiles=(ici ltp dgr bssp bpv6 bpv7 tc nm cfdp ams bss dtpc restart)

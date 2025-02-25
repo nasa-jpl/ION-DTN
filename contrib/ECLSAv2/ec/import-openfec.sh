@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #Author: Nicola Alessi  (nicola.alessi@studio.unibo.it)
 #Project supervisor: Carlo Caini (carlo.caini@unibo.it)
 echo "This script aims to "

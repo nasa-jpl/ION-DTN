@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Description: Automates testing of file transfer utilities for both
 # non-encrypted and encrypted transmissions between two nodes (node01

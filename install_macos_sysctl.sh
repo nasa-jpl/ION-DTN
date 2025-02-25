@@ -42,7 +42,7 @@ cat > /tmp/${PLISTNAME} <<EOF
 		<string>\
 /usr/sbin/sysctl kern.sysv.shmseg=32;  \
 /usr/sbin/sysctl kern.sysv.shmall=1048576; \
-/usr/sbin/sysctl net.inet.udp.maxdgram=655360; \
+/usr/sbin/sysctl net.inet.udp.maxdgram=65536; \
 /usr/sbin/sysctl kern.sysv.shmmax=2147483648; \
 </string>
 	</array>

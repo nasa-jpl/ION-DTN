@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Author: Robert Martin, Ohio University
 # Checks sysctl variable vaues on OSX to see if they are large enough
 # to handle the shared memory requirements for ION

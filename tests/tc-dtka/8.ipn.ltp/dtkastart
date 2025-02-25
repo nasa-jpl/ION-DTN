@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 tccadmin 203	../node.tccrc
 sleep 1
 dtkaadmin	../node.dtkarc

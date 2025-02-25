@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright (c) 2009, Regents of the University of Colorado.
 # Written by Sebastian Kuzminsky <seb@highlab.com>

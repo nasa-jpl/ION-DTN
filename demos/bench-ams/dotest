@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # AMS Benchtest script (for simple AMS two-node demo)
 
 # Benchtest variables-------------------------------------------------

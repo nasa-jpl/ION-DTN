@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Issue 352 - BPCP
 # Samuel Jero
 # April 15, 2012

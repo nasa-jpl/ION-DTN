@@ -85,11 +85,15 @@ EXTRA_DIST = 	\
 install-exec-hook:
 	@echo
 	@echo "You should now run 'sudo ldconfig' if available."
+	@echo "For macOS, you may run 'sudo update_dyld_shared_cache -force' if there are runtime loading issue with library."
+	@echo "    You can also use 'fix-macos-mbedtls-lib-links.sh' script to force update the mbedtls library path."
 	@echo
 
 install-data-hook:
 	@echo
 	@echo "You should now run 'sudo ldconfig' if available."
+	@echo "For macOS, you may run 'sudo update_dyld_shared_cache -force' if there are runtime loading issue with library."
+	@echo "    You can also use the 'fix-macos-mbedtls-lib-links.sh' script to force update the mbedtls library path."
 	@echo
 
 if ENABLE_GCOV

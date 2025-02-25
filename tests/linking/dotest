@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 
 # this test checks the linking cleanliness of the executables
 #
@@ -6,6 +6,7 @@
 # so we install them all in a throw-away directory, then check the matching files in $IONDIR
 #
 
+# start debug
 #set -x
 
 if ! which ldd > /dev/null; then
@@ -15,12 +16,10 @@ fi
 
 # vercmp ripped from
 # http://rubinium.org/blog/archives/2010/04/05/shell-script-version-compare-vercmp/
-function vercmp()
-{
-	RETVAL=`expr '(' "$1" : '\([^.]*\)' ')' '-' '(' "$2" : '\([^.]*\)' ')' '|' \
-		'(' "$1" : '[^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.]\([^.]*\)' ')' '|' \
-		'(' "$1" : '[^.]*[.][^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.][^.]*[.]\([^.]*\)' ')' '|' \
-		'(' "$1" : '[^.]*[.][^.]*[.][^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.][^.]*[.][^.]*[.]\([^.]*\)' ')'`
+function vercmp() {
+    RETVAL=`expr '(' "$1" : '\([^.]*\)' ')' '-' '(' "$2" : '\([^.]*\)' ')' '|' \
+           '(' "$1" : '[^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.]\([^.]*\)' ')' '|' \
+           '(' "$1" : '[^.]*[.][^.]*[.]\([^.]*\)' ')' '-' '(' "$2" : '[^.]*[.][^.]*[.]\([^.]*\)' ')'`
 }
 # Check the version of libtool because it was noticed that ubuntu 8.10's
 # libtool v2.2.4 automatically generates -lpthread in some libraries even
@@ -29,17 +28,23 @@ function vercmp()
 # ltmain.sh (GNU libtool) 2.2.6
 # as the first line returned.
 
-# Initialize myversion in case libtool --version doesn't work.
-# default behavior is to assume libtool is working fine and report errors.
-MYVERSION='999'
-MYVERSION=`libtool --version | head -n1 | cut -d' ' -f4 | tr -dc [:digit:].`
+# Check libtool version
+if ! command -v libtool >/dev/null 2>&1; then
+    echo "Please install libtool-bin in order to determine libtool version."
+    exit 1
+else
+    MYVERSION=$(libtool --version | head -n1 | cut -d' ' -f4 | tr -dc '[:digit:].')
+fi
 MINVERSION='2.2.5'
 OLDLIBTOOL=0
 vercmp $MYVERSION $MINVERSION
-if [ $RETVAL -le 0 ] ; then
+if [ "$RETVAL" -le 0 ] ; then
 	echo "Libtool is older than $MINVERSION."
 	OLDLIBTOOL=1
 fi
+
+# end debug
+#set +x
 
 RETVAL=0
 
@@ -98,6 +103,7 @@ fi
 
 if [ "$RETVAL" != "0" ]; then
 	echo "Errors found in executables."
+	echo "Your LD_LIBRARY_PATH is $LD_LIBRARY_PATH. Make sure it points to all needed libraries."
        	echo "Run 'dot -Tpng -o ionexelinks.png ionexelinks.dot' for details"
 fi
 
