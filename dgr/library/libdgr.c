@@ -209,7 +209,7 @@ typedef struct
 	int		meanBytesResent;
 	int		bytesTransmitted;
 	int		bytesAcknowledged;
-	int		serviceLoad;	/*	bytes sendable		*/
+	vast		serviceLoad;	/*	bytes sendable		*/
 	EpisodeHistory	episodes[8];
 	int		currentEpisode;
 	int		totalCapacity;
