@@ -77,7 +77,7 @@ static long long sum = 0, sum2 = 0;
  * From iputils' ping_common.c */
 static long llsqrt(long long a)
 {
-	long long prev = ~((long long)1 << 63);
+	long long prev = LLONG_MAX;
 	long long x = a;
 
 	if (x > 0) {
