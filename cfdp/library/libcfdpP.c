@@ -229,7 +229,7 @@ static void	addToModularChecksum(unsigned char octet, vast *offset,
 	 *		convert from bytes to bits.			*/
 
 	N = 3 - (*offset & 0x03);
-	octetVal = octet << (N << 3);	/*	Multiply N by 8.	*/
+	octetVal = ((unsigned int)octet) << (N << 3);
 	*checksum += octetVal;
 }
 
