@@ -19,7 +19,7 @@ ltmain.sh
 missing
 stamp-h1
 .DS_Store
-__pycashe__/
+__pycache__/
 
 # Temp macro directory
 /m4
