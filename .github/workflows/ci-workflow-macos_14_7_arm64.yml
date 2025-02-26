@@ -54,7 +54,10 @@ jobs:
             sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
             cd tests
             ./runtests
-          } > build-and-test.log 2>&1 
+            echo $? > runtests_exit_code  # Save runtests exit code
+          } > build-and-test.log 2>&1  # pipe to stdout for identification of failed test in RT
+          # Propagate the saved exit code
+          exit $(cat runtests_exit_code)
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
