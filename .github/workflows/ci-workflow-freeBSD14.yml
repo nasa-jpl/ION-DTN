@@ -113,6 +113,7 @@ jobs:
         if: ${{ always() }}  # Clean up even if previous steps fails
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+          killm
           cd ~/ion-gh-test-dir/ion-ios-dev &&
           sudo gmake uninstall &&
           gmake clean &&
