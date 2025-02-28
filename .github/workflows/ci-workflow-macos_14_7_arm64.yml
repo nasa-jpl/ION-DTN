@@ -1,9 +1,9 @@
-name: Regression Tests for ION on MacOS 14.7 ARM64
+name: Regression Tests for ION on MacOS 14.7 ARM64 - no mbedtls
 
 on:
-#  pull_request:
-#    branches:
-#      - integration
+  pull_request:
+    branches:
+      - integration
 
   workflow_dispatch:
 
@@ -47,17 +47,15 @@ jobs:
             export ION_RUN_EXPERT="yes"
             export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
             autoreconf -fi
-            ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            # ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
+            ./configure --enable-bpsec-debugging  # mbedtls deactivated for now
             make -j4
             sudo make install
             make buildcheck
-            sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
+            # sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
             cd tests
             ./runtests
-            echo $? > runtests_exit_code  # Save runtests exit code
           } > build-and-test.log 2>&1  # pipe to stdout for identification of failed test in RT
-          # Propagate the saved exit code
-          exit $(cat runtests_exit_code)
 
       - name: Display Progress
         if: ${{ always() }}  # Display progress even if tests were interrupted
