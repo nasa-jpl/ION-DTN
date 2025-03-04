@@ -1,9 +1,9 @@
 name: Regression Tests for ION on MacOS 14.7 ARM64 - no mbedtls
 
 on:
-  pull_request:
-    branches:
-      - integration
+#  pull_request:
+#    branches:
+#      - integration
 
   workflow_dispatch:
 
