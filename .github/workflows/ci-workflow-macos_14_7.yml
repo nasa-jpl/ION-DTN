@@ -1,9 +1,9 @@
 name: Compiling for ION on MacOS self-hosted 14.7 X64
 
 on:
-  pull_request:
-    branches:
-      - integration
+#  pull_request:
+#    branches:
+#      - integration
 
   workflow_dispatch:
 
