@@ -1,0 +1,261 @@
+#!/bin/bash
+#
+# Tests that the ionexit utility cleans up ION processes and shared resources.
+
+OS=$1
+echo "OS is $OS"
+echo
+
+# TODO Might need to check shared resources differently on each platform, either
+#      due to different formatting of ipcs output or different utility entirely
+function getSharedResources() {
+	memory_lines=()
+	semaphore_lines=()
+
+	if [ "$OS" == "linux" ]; then
+
+		ipcs > ipcs.txt
+
+		local section=""
+		while IFS="" read -r line || [ -n "$line" ]; do
+			if [[ -n $(echo $line | grep "Shared Memory Segments") ]]; then
+				section="memory"
+				read -r # Skip column header line
+			elif [[ -n $(echo "$line" | grep "Semaphore Arrays") ]]; then
+				section="semaphore"
+				read -r # Skip column header line
+			elif [[ -n $(echo "$line" | grep "\-\-\-\-\-\-") ]]; then
+				section=""
+			elif [[ -n ${line//[ \t]/} ]]; then
+				if [[ $section == "memory" ]]; then
+					memory_lines[${#memory_lines[@]}]=$line
+				elif [[ $section == "semaphore" ]]; then
+					semaphore_lines[${#semaphore_lines[@]}]=$line
+				fi
+			fi
+		done < ipcs.txt
+
+	elif [ "$OS" == "mac" ]; then
+		# Use another method
+		echo "$0: Unsupported OS: mac"
+	else
+		# Fail outright, or try and probably fail some default method
+		echo "$0: Unsupported OS: $1"
+	fi
+}
+
+function diffSharedMemory() {
+	local memory_list_before_name=$1['@']
+	local memory_list_after_name=$2['@']
+
+	local memory_list_before=("${!memory_list_before_name}")
+	local memory_list_after=("${!memory_list_after_name}")
+
+	# DEBUG
+	### echo "diffSharedMemory(): memory_list_before(${#memory_list_before[@]}) ="
+	### for (( l=0 ; $l < ${#memory_list_before[@]} ; l=$l+1 )); do
+	###		echo ${memory_list_before[$l]}
+	### done
+	### echo
+	### echo "diffSharedMemory(): memory_list_after(${#memory_list_after[@]}) ="
+	### for (( l=0 ; $l < ${#memory_list_after[@]} ; l=$l+1 )); do
+	###		echo ${memory_list_after[$l]}
+	### done
+	### echo
+
+	memory_list_diff=()
+
+	if [ "$OS" == "linux" ]; then
+
+		for (( a=0 ; $a < ${#memory_list_after[@]}; a=$a+1 )); do
+			local found=0
+			for (( b=0 ; $b < ${#memory_list_before[@]}; b=$b+1 )); do
+				shmid_after=$(echo ${memory_list_after[$a]} | awk '{ print $2 }')
+				shmid_before=$(echo ${memory_list_before[$b]} | awk '{ print $2 }')
+				if [[ "$shmid_after" == "$shmid_before" ]]; then
+					found=1
+				fi
+			done
+			if [[ $found -eq 0 ]]; then
+				memory_list_diff[${#memory_list_diff[@]}]=${memory_list_after[$a]}
+			fi
+		done
+
+	elif [ "$OS" == "mac" ]; then
+		# Use another method
+		echo "$0: Unsupported OS: mac"
+	else
+		# Fail outright, or try and probably fail some default method
+		echo "$0: Unsupported OS: $1"
+	fi
+}
+
+function printArray() {
+	local array_name=$1['@']
+	local array=("${!array_name}")
+
+	for (( l=0 ; $l < ${#array[@]} ; l=$l+1 )); do
+		echo ${array[$l]}
+	done
+	if [[ ${#array[@]} -eq 0 ]]; then
+		echo "(None)"
+	fi
+}
+
+
+# Start with a known clean slate
+killm
+./cleanup
+echo
+
+# Create a non-ION shared memory region to verify that it remains after ionexit
+# (verify that ionexit does not destroy non-ION memory)
+ipcmk_output=$(ipcmk --shmem 1024)
+
+# FPAT is a GNU extension (only in gawk): not portable
+#extra_shmid=$(echo "$ipcmk_output" | awk -v FPAT='[0-9]+' '{ print $1 }')
+# and, grep -o does not exist on Solaris...
+#extra_shmid=$(echo "$ipcmk_output" | grep -o '[0-9]\+')
+extra_shmid=$(echo "$ipcmk_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
+
+echo "Created non-ION shared memory region: shmid=$extra_shmid"
+echo
+
+
+# Store the shared memory regions that the system already has outside of ION
+getSharedResources
+memory_lines_prior=("${memory_lines[@]}")
+
+echo "Shared memory regions prior to starting ION:"
+printArray memory_lines_prior
+echo
+
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+
+
+# Start nodes.
+cd 1.ipn.ltp
+./ionstart
+echo
+
+
+# Store the shared memory regions that the system has now, including ION
+getSharedResources
+memory_lines_during=("${memory_lines[@]}")
+
+# Find the shared memory regions that have been added since before ION started
+# (presumably due to ION, as long as no other processes allocated shared memory during this time)
+diffSharedMemory "memory_lines_prior" "memory_lines_during"
+memory_lines_ion=("${memory_list_diff[@]}")
+
+echo "Shared memory regions after starting ION:"
+printArray memory_lines_during
+echo
+
+echo "Shared memory regions attributed to ION:"
+printArray memory_lines_ion
+echo
+
+
+retval=0
+
+# Unit under test
+ionexit
+echo
+
+ionexit_retval=$?
+if [[ $ionexit_retval -ne 0 ]]; then
+	echo "ERROR: Unexpected return code ($ionexit_retval) from ionexit (expecting 0)"
+	retval=1
+fi
+
+
+# Get the shared memory regions now after ionexit
+getSharedResources
+memory_lines_after=("${memory_lines[@]}")
+
+echo "Shared memory regions after ionexit:"
+printArray memory_lines_after
+echo
+
+# Compare shared memory regions, which should now, after ionexit, be the same set of memory regions
+# as before ION started
+diffSharedMemory memory_lines_prior memory_lines_after
+memory_lines_final_diff=("${memory_list_diff[@]}")
+
+echo "Remaining ION shared memory regions (${#memory_lines_final_diff[@]}):"
+printArray memory_lines_final_diff
+echo
+
+if [[ ${#memory_lines_final_diff[@]} -ne 0 ]]; then
+	echo "ERROR: Not all ION shared memory regions were destroyed."
+	echo
+	retval=1
+else
+	echo "Success: All ION shared memory regions were destroyed."
+	echo
+fi
+
+
+# Verify also that ION processes are gone. Borrowed from killm
+echo "Checking if all ION processes ended..."
+
+source ionprocesslist.sh
+
+OSNAME=`uname`
+if [ "$OSNAME" = "SunOS" ]; then
+	PS="/usr/bin/ps"
+	PS_ARGS="-fe"
+elif [[ "$OSNAME" == "MINGW"* ]]; then
+  	PS="tasklist"
+  	PS_ARGS=""
+else
+	PS="ps"
+	PS_ARGS="-fe"
+fi
+
+PSFILE="/tmp/ps.$$"
+# grab all running processes
+${PS} ${PS_ARGS} > ${PSFILE}
+
+# DEBUG: show the PSFILE
+#echo "Current running processes:"
+#cat ${PSFILE}
+#ps -eo pid,ppid,state,cmd
+
+# see if any of those still-running processes belong to ION
+processes_running=0
+for PROC in ${IONPROCESSLIST}; do
+    #grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
+    #    awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+    processline=$(grep -w "${PROC}" "${PSFILE}" | grep -v "defunct")
+	if [ -n "$processline" ]; then
+		echo "ERROR: process $PROC not killed..."
+		processes_running=$(($processes_running + 1))
+	fi
+done
+if [ $processes_running -eq 0 ]; then
+	echo "Success: All ION processes were stopped by ionexit."
+else
+	retval=1
+fi
+rm -f ${PSFILE}
+echo
+
+
+# Destroy the shared memory region allocated by this script.
+# killm destroys all shared memory regions under current user, but do this anyway in case killm is
+# changed to play nice
+echo "Destroying test script's non-ION shared memory region... (shmid=$extra_shmid)"
+ipcrm --shmem-id $extra_shmid
+echo
+
+# Use big-hammer method to make sure ION is stopped (in case unit under test didn't work)
+killm
+echo ""
+echo "ionexit test completed."
+
+exit $retval
+

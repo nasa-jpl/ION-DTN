@@ -19,148 +19,8 @@ USERNAME_CUT=$(echo "$(whoami)" | cut -c 1-10)
 # DEBUG: check the value of USERNAME_CUT
 # echo "Abbreviated username is "${USERNAME_CUT}
 
-KILLPROCESSLIST="acsadmin lt-acsadmin \
-	acslist lt-acslist \
-	amsbenchr lt-amsbenchr \
-	amsbenchs lt-amsbenchs \
-	amsd lt-amsd \
-	amshello lt-amshello \
-	amslog lt-amslog \
-	amslogprt lt-amslogprt \
-	amsmib lt-amsmib \
-	amsshell lt-amsshell \
-	amsstop lt-amsstop \
-	aoslsi lt-aoslsi \
-	aoslso lt-aoslso \
-	bibeadmin lt-bibeadmin \
-	bibeclo lt-bibeclo \
-	bpadmin lt-bpadmin \
-	bpcancel lt-bpcancel \
-	bpchat lt-bpchat \
-	bpclm lt-bpclm \
-	bpclock lt-bpclock \
-	bpcounter lt-bpcounter \
-	bpcp lt-bpcp \
-	bpcpd lt-bpcpd \
-	bpdriver lt-bpdriver \
-	bpecho lt-bpecho \
-	bping lt-bping \
-	bplist lt-bplist \
-	bpnmtest lt-bpnmtest \
-	bprecvfile lt-bprecvfile \
-	bprecvtest lt-bprecvtest \
-	bpsecadmin lt-bpsecadmin \
-	bpsendfile lt-bpsendfile \
-	bpsendtest lt-bpsendtest \
-	bpsink lt-bpsink \
-	bpsource lt-bpsource \
-	bpstats lt-bpstats \
-	bpstats2 lt-bpstats2 \
-	bptrace lt-bptrace \
-	bptransit lt-bptransit \
-	bputa lt-bputa \
-	brsccla lt-brsccla \
-	brsscla lt-brsscla \
-	bsscounter lt-bsscounter \
-	bssdriver lt-bssdriver \
-	bsspadmin lt-bsspadmin \
-	bsspcli lt-bsspcli \
-	bsspclo lt-bsspclo \
-	bsspclock lt-bsspclock \
-	bssrecv lt-bssrecv \
-	bssStreamingApp lt-bssStreamingApp \
-	cfdpadmin lt-cfdpadmin \
-	cfdpclock lt-cfdpclock \
-	cfdptest lt-cfdptest \
-	cgrfetch lt-cgrfetch \
-	cpsd lt-cpsd \
-	dccpcli lt-dccpcli \
-	dccpclo lt-dccpclo \
-	dccplsi lt-dccplsi \
-	dccplso lt-dccplso \
-	dgr2file lt-dgr2file \
-	dgrcli lt-dgrcli \
-	dgrclo lt-dgrclo \
-	dtka lt-dtka \
-	dtkaadmin lt-dtkaadmin \
-	dtn2admin lt-dtn2admin \
-	dtn2adminep lt-dtn2adminep \
-	dtn2fw lt-dtn2fw \
-	dtpcadmin lt-dtpcadmin \
-	dtpcclock lt-dtpcclock \
-	dtpcd lt-dtpcd \
-	dtpcreceive lt-dtpcreceive \
-	dtpcsend lt-dtpcsend \
-	file2dgr lt-file2dgr \
-	file2sdr lt-file2sdr \
-	file2sm lt-file2sm \
-	file2tcp lt-file2tcp \
-	file2udp lt-file2udp \
-	hmackeys lt-hmackeys \
-	imcadmin lt-imcadmin \
-	imcadminep lt-imcadminep \
-	imcfw lt-imcfw \
-	ionadmin lt-ionadmin \
-	ionexit lt-ionexit \
-	ionrestart lt-ionrestart \
-	ionsecadmin lt-ionsecadmin \
-	ionunlock lt-ionunlock \
-	ionwarn lt-ionwarn \
-	ipnadmin lt-ipnadmin \
-	ipnadminep lt-ipnadminep \
-	ipnd lt-ipnd \
-	ipnfw lt-ipnfw \
-	lgagent lt-lgagent \
-	lgsend lt-lgsend \
-	ltpadmin lt-ltpadmin \
-	ltpcli lt-ltpcli \
-	ltpclo lt-ltpclo \
-	ltpclock lt-ltpclock \
-	ltpcounter lt-ltpcounter \
-	ltpdeliv lt-ltpdeliv \
-	ltpdriver lt-ltpdriver \
-	ltpmeter lt-ltpmeter \
-	ltpsecadmin lt-ltpsecadmin \
-	nm_agent lt-nm_agent \
-	nm_mgr lt-nm_mgr \
-	owltsim lt-owltsim \
-	owlttb lt-owlttb \
-	psmshell lt-psmshell \
-	psmwatch lt-psmwatch \
-	ramsgate lt-ramsgate \
-	recvfile lt-recvfile \
-	rfxclock lt-rfxclock \
-	sdatest lt-sdatest \
-	sdr2file lt-sdr2file \
-	sdrmend lt-sdrmend \
-	sdrwatch lt-sdrwatch \
-	sendfile lt-sendfile \
-	sm2file lt-sm2file \
-	smlistsh lt-smlistsh \
-	smrbtsh lt-smrbtsh \
-	stcpcli lt-stcpcli \
-	stcpclo lt-stcpclo \
-	tcaadmin lt-tcaadmin \
-	tcaboot lt-tcaboot \
-	tcacompile lt-tcacompile \
-	tcapublish lt-tcapublish \
-	tcarecv lt-tcarecv \
-	tcc lt-tcc \
-	tccadmin lt-tccadmin \
-	tcp2file lt-tcp2file \
-	tcpbsi lt-tcpbsi \
-	tcpbso lt-tcpbso \
-	tcpcli lt-tcpcli \
-	tcpclo lt-tcpclo \
-	tcputa lt-tcputa \
-	udp2file lt-udp2file \
-	udpbsi lt-udpbsi \
-	udpbso lt-udpbso \
-	udpcli lt-udpcli \
-	udpclo lt-udpclo \
-	udplsi lt-udplsi \
-	udplso lt-udplso \
-	"
+# Get IONPROCESSLIST
+source ionprocesslist.sh
 
 sw_vers 2> /dev/null > /dev/null
 
@@ -193,26 +53,26 @@ else
 fi
 
 if [ "$MINGW" != "true" ]; then
-	#echo "Sending TERM to ${KILLPROCESSLIST}..."   # (too noisy)
+	#echo "Sending TERM to ${IONPROCESSLIST}..."   # (too noisy)
 	echo "Sending TERM to the processes..."
-	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
+	echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD 2> /dev/null
 	
 	# DEBUG: show killall command error
-	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
+	#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD
 
 	sleep 2
 
 	echo "Sending KILL to the processes..."
-	echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
+	echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL 2> /dev/null
 	
 	# DEBUG: show killall command error
-	#echo "${KILLPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
+	#echo "${IONPROCESSLIST}" | xargs -n $PROCESS_LIMIT $KILLCMD -KILL
 
 	sleep 2
 else
 	# note that the TERM signal isn't supported in Windows, so processes are only killed. This also must be done via powershell
 	echo "Killing processes using PowerShell..."
-    powershell -Command "foreach (\$proc in '${KILLPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> /dev/null
+    powershell -Command "foreach (\$proc in '${IONPROCESSLIST}'.Split(' ')) { \$proc = \$proc.Trim(); taskkill /F /IM \"\$proc.exe\" }" 2> /dev/null
 fi
 
 
@@ -228,7 +88,7 @@ ${PS} ${PS_ARGS} > ${PSFILE}
 #ps -eo pid,ppid,state,cmd
 
 # see if any of those still-running processes belong to ION
-for PROC in ${KILLPROCESSLIST}; do
+for PROC in ${IONPROCESSLIST}; do
     grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
         awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
 done

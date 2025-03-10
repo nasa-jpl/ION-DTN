@@ -1,0 +1,4 @@
+Test ionexit utility
+
+Tests that ionexit cleans up ION processes and shared resources.
+
