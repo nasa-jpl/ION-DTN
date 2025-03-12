@@ -319,77 +319,131 @@ static IonVdb	*_ionvdb(char **name)
 #include "gdslogger.c"
 #else
 
-static void	writeMemoToIonLog(char *text)
+/*-------------------------------------------------------
+ *  We need a small static function for the "once" callback.
+ *  Standard C does NOT allow nested functions, so we must
+ *  define it at file scope.  It initializes the lock.
+ *-------------------------------------------------------*/
+static ResourceLock   logFileLock;
+static void initLogLockOnce(void)
 {
-	static ResourceLock	logFileLock;
-	static char		ionLogFileName[264] = "";
-	static int		ionLogFile = -1;
-	time_t			currentTime = getCtime();
-	char			timestampBuffer[20];
-	int			textLen;
-	static char		msgbuf[256];
+    memset(&logFileLock, 0, sizeof(ResourceLock));
+    if (initResourceLock(&logFileLock) < 0)
+    {
+        perror("Can't init ION log lock (initResourceLock failed)");
+        /* We can’t "return an error" from pthread_once callback,
+           so if this fails, subsequent lock usage might fail. */
+    }
+}
 
-	if (text == NULL) return;
-	if (*text == '\0')	/*	Claims that log file is closed.	*/
-	{
-		if (ionLogFile != -1)
-		{
-			close(ionLogFile);	/*	To be sure.	*/
-			ionLogFile = -1;
-		}
+/*-------------------------------------------------------
+ *  writeMemoToIonLog
+ *    - Called to write text to the "ION log", appending a timestamp.
+ *    - If text is NULL, does nothing.
+ *    - If text is an empty string, closes the log file (if open).
+ *    - Otherwise, opens the file (if not already open),
+ *      builds a "[timestamp] text" string, and appends to the file.
+ *-------------------------------------------------------*/
+void writeMemoToIonLog(char *text)
+{
+    static pthread_once_t  logOnceControl = PTHREAD_ONCE_INIT;
+    static char            ionLogFileName[264] = "";  /* Empty string == {0} */
+    static int             ionLogFile    = -1;        /* -1 => not open. */
+    static char            msgbuf[256] = {0};         /* For the final output line. */
 
-		return;		/*	Ignore zero-length memo.	*/
-	}
+    if (text == NULL)  /* No message to log. */
+    {
+        return;
+    }
 
-	/*	The log file is shared, so access to it must be
-	 *	mutexed.						*/
+    if (*text == '\0')  /*	Claims that log file is closed.	*/
+    {
+        if (ionLogFile != -1)
+        {
+            close(ionLogFile);
+            ionLogFile = -1;
+        }
+        return; /*	Ignore zero-length memo.	*/
+    }
 
-	if (initResourceLock(&logFileLock) < 0)
-	{
-		return;
-	}
+    /*---------------------------------------------------------
+     * 1) the log file is shared, so access to it must be mutexed. 
+	 
+	   Use pthread_once() to ensure lock is initialized only (once).
+     *---------------------------------------------------------*/
+    pthread_once(&logOnceControl, initLogLockOnce);
 
-	lockResource(&logFileLock);
-	if (ionLogFile == -1)
-	{
-		if (ionLogFileName[0] == '\0')
-		{
+    /*---------------------------------------------------------
+     * 2) Lock the resource before before modifying ionLogFileName
+     *    or ionLogFile.
+     *---------------------------------------------------------*/
+    lockResource(&logFileLock);
+
+    /*---------------------------------------------------------
+     * 3) Open the log file if it's not open yet.
+     *    - Build ionLogFileName if it's still empty.
+     *    - Then do iopen(...).
+     *---------------------------------------------------------*/
+    if (ionLogFile == -1)
+    {
+        if (ionLogFileName[0] == '\0')
+        {
 #if defined(bionic)
-			isprintf(ionLogFileName, sizeof ionLogFileName,
-					"%.255s%c..%cion.log",
-					getIonWorkingDirectory(),
-					ION_PATH_DELIMITER,
-					ION_PATH_DELIMITER);
+            isprintf(ionLogFileName, sizeof ionLogFileName,
+                     "%.255s%c..%cion.log",
+                     getIonWorkingDirectory(),
+                     ION_PATH_DELIMITER,
+                     ION_PATH_DELIMITER);
 #else
-			isprintf(ionLogFileName, sizeof ionLogFileName,
-					"%.255s%cion.log",
-					getIonWorkingDirectory(),
-					ION_PATH_DELIMITER);
+            isprintf(ionLogFileName, sizeof ionLogFileName,
+                     "%.255s%cion.log",
+                     getIonWorkingDirectory(),
+                     ION_PATH_DELIMITER);
 #endif
-		}
+        }
 
-		ionLogFile = iopen(ionLogFileName,
-				O_WRONLY | O_APPEND | O_CREAT, 0666);
-		if (ionLogFile == -1)
-		{
-			unlockResource(&logFileLock);
-			perror("Can't redirect ION error msgs to log");
-			return;
-		}
-	}
+        /* Attempt to open or create the file in append mode. */
+        ionLogFile = iopen(ionLogFileName, O_WRONLY | O_APPEND | O_CREAT, 0666);
+        if (ionLogFile == -1)
+        {
+            perror("Can't redirect ION error msgs to log");
+            unlockResource(&logFileLock);
+            return;
+        }
+    }
 
-	writeTimestampLocal(currentTime, timestampBuffer);
-	isprintf(msgbuf, sizeof msgbuf, "[%s] %s\n", timestampBuffer, text);
-	textLen = strlen(msgbuf);
-	if (write(ionLogFile, msgbuf, textLen) < 0)
-	{
-		perror("Can't write ION error message to log file");
-	}
+    /*---------------------------------------------------------
+     * 4) Build the "[timestamp] text\n" line.
+     *---------------------------------------------------------*/
+    {
+        time_t currentTime = getCtime();  /* or time(NULL) if you prefer. */
+        char   timestampBuffer[20];
+        writeTimestampLocal(currentTime, timestampBuffer); 
+
+        isprintf(msgbuf, sizeof msgbuf, "[%s] %s\n", timestampBuffer, text);
+    }
+
+    /*---------------------------------------------------------
+     * 5) Write the line to the file.
+     *---------------------------------------------------------*/
+    {
+        int textLen = strlen(msgbuf);
+        if (write(ionLogFile, msgbuf, textLen) < 0)
+        {
+            writeErrMemo("Can't write ION error message to log file");
+        }
+    }
+
 #ifdef TargetFFS
-	close(ionLogFile);
-	ionLogFile = -1;
+    /* If your environment closes after each write: */
+    close(ionLogFile);
+    ionLogFile = -1;
 #endif
-	unlockResource(&logFileLock);
+
+    /*---------------------------------------------------------
+     * 6) Unlock the resource when done.
+     *---------------------------------------------------------*/
+    unlockResource(&logFileLock);
 }
 
 static void	ionRedirectMemos()
