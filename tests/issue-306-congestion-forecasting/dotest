@@ -65,7 +65,7 @@ ionadmin config1
 echo "Initial state: no horizon, but huge capacity (default), growth rate zero."
 sleep 5
 
-COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
 if [ "$COUNT" -eq 1 ]
 then
 	echo "OK: no congestion in initial configuration."
@@ -79,7 +79,7 @@ echo "We limit occupancy, but still no problem since net growth is zero."
 ionadmin config2
 sleep 5
 
-COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
 if [ "$COUNT" -eq 2 ]
 then
 	echo "OK: still no congestion."
@@ -107,7 +107,7 @@ echo "So we resolve the congestion by limiting the horizon (to current time)."
 ionadmin config4
 sleep 5
 
-COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
 if [ "$COUNT" -eq 3 ]
 then
 	echo "OK: congestion occurs after horizon of forecast."
@@ -121,7 +121,7 @@ echo "Even when we extend the forecast horizon out 1000 seconds we are okay."
 ionadmin config5
 sleep 5
 
-COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
 if [ "$COUNT" -eq 4 ]
 then
 	echo "OK: congestion still occurs after horizon of forecast."
@@ -149,7 +149,7 @@ echo "We turn off that alarm by increasing filesystem occupancy limit."
 ionadmin config7
 sleep 5
 
-COUNT=`grep "No congestion collapse predicted." ion.log | wc -l`
+COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
 if [ "$COUNT" -eq 5 ]
 then
 	echo "OK: increased occupancy limit delays congestion failure."
