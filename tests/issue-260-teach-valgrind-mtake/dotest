@@ -5,6 +5,7 @@ FAIL=0
 # "which valgrind" that works with platform idiosyncracies.
 # Thanks to David for figuring this out.
 PROGRAMTEST="valgrind"
+
 RESULTS=`which ${PROGRAMTEST}`
 WHICHRETURN=$?
 echo "${RESULTS}" | grep "^no ${PROGRAMTEST} in"
@@ -14,6 +15,17 @@ WHICHFAILMESSAGE=$?
 if [ $WHICHRETURN -ne 0 -o -z "${RESULTS}" -o $WHICHFAILMESSAGE -eq 0 ] ; then
     echo "${PROGRAMTEST} is not present in this system; skipping..."
     exit 2
+fi
+
+
+# Check if the test utility exists and is executable
+TESTUTIL="domtake"
+
+if [ ! -x "$TESTUTIL" ]; then
+  echo -e "\nWARNING: $TESTUTIL does not exist: Skipping test."
+  echo -e "Please run 'make test' in ION root to generate test binaries and scripts.\n"
+  sleep 3
+  exit 2
 fi
 
 
