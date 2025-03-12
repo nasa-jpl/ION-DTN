@@ -44,6 +44,10 @@ function getSharedResources() {
 	fi
 }
 
+# Given the name of two arrays of memory regions, produce the set of memory
+# regions that exist in the 2nd array and do not exist in the 1st array
+#	If a region R exists in the 2nd array that does not exist in the 1st array,
+#	then R will be in the produced "diff" array.
 function diffSharedMemory() {
 	local memory_list_before_name=$1['@']
 	local memory_list_after_name=$2['@']
@@ -70,8 +74,8 @@ function diffSharedMemory() {
 		for (( a=0 ; $a < ${#memory_list_after[@]}; a=$a+1 )); do
 			local found=0
 			for (( b=0 ; $b < ${#memory_list_before[@]}; b=$b+1 )); do
-				shmid_after=$(echo ${memory_list_after[$a]} | awk '{ print $2 }')
-				shmid_before=$(echo ${memory_list_before[$b]} | awk '{ print $2 }')
+				local shmid_after=$(echo ${memory_list_after[$a]} | awk '{ print $2 }')
+				local shmid_before=$(echo ${memory_list_before[$b]} | awk '{ print $2 }')
 				if [[ "$shmid_after" == "$shmid_before" ]]; then
 					found=1
 				fi
@@ -108,17 +112,19 @@ killm
 ./cleanup
 echo
 
-# Create a non-ION shared memory region to verify that it remains after ionexit
-# (verify that ionexit does not destroy non-ION memory)
+# Create a non-ION shared memory region during ION operation
+# (to verify that test can identify specifically the destruction of ION memory segments)
 ipcmk_output=$(ipcmk --shmem 1024)
 
 # FPAT is a GNU extension (only in gawk): not portable
-#extra_shmid=$(echo "$ipcmk_output" | awk -v FPAT='[0-9]+' '{ print $1 }')
+#extra_before_shmid=$(echo "$ipcmk_output" | awk -v FPAT='[0-9]+' '{ print $1 }')
 # and, grep -o does not exist on Solaris...
-#extra_shmid=$(echo "$ipcmk_output" | grep -o '[0-9]\+')
-extra_shmid=$(echo "$ipcmk_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
+#extra_before_shmid=$(echo "$ipcmk_output" | grep -o '[0-9]\+')
+# TODO sed script is broken for an input line with multiple (separated) groups of digits
+#	   That doesn't occur in this context (always a single group of digits), but I'm unsatisfied.
+extra_before_shmid=$(echo "$ipcmk_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
 
-echo "Created non-ION shared memory region: shmid=$extra_shmid"
+echo "Created non-ION shared memory region before starting ION: shmid=$extra_before_shmid"
 echo
 
 
@@ -127,7 +133,7 @@ getSharedResources
 memory_lines_prior=("${memory_lines[@]}")
 
 echo "Shared memory regions prior to starting ION:"
-printArray memory_lines_prior
+printArray "memory_lines_prior"
 echo
 
 
@@ -151,13 +157,32 @@ diffSharedMemory "memory_lines_prior" "memory_lines_during"
 memory_lines_ion=("${memory_list_diff[@]}")
 
 echo "Shared memory regions after starting ION:"
-printArray memory_lines_during
+printArray "memory_lines_during"
 echo
 
 echo "Shared memory regions attributed to ION:"
-printArray memory_lines_ion
+printArray "memory_lines_ion"
 echo
 
+
+# Create another non-ION shared memory region during ION operation
+# (to verify that test can identify specifically the destruction of ION memory segments)
+ipcmk_output=$(ipcmk --shmem 1024)
+
+# TODO sed script is broken for an input line with multiple (separated) groups of digits
+#	   That doesn't occur in this context (always a single group of digits), but I'm unsatisfied.
+extra_during_shmid=$(echo "$ipcmk_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
+
+echo "Created non-ION shared memory region while ION is running: shmid=$extra_during_shmid"
+echo
+
+echo "Shared memory regions before running ionexit:"
+getSharedResources
+printArray "memory_lines"
+echo
+
+
+echo "Running ionexit..."
 
 retval=0
 
@@ -177,26 +202,39 @@ getSharedResources
 memory_lines_after=("${memory_lines[@]}")
 
 echo "Shared memory regions after ionexit:"
-printArray memory_lines_after
+printArray "memory_lines_after"
 echo
 
-# Compare shared memory regions, which should now, after ionexit, be the same set of memory regions
-# as before ION started
-diffSharedMemory memory_lines_prior memory_lines_after
-memory_lines_final_diff=("${memory_list_diff[@]}")
+# Compare shared memory regions to verify that ION shared memory regions have been deallocated.
+#
+# In other words, verify that none of the ION shared memory segments exist in the set of segments
+# after ionexit.
+#
+# To compute this, diffSharedMemory can be used: the difference between the segments after ionexit
+# and the segments attributed to ION should be the segments attributed to ION (implying that none of
+# the ION segments are in the set of segments after ionexit).
+#
+diffSharedMemory "memory_lines_after" "memory_lines_ion"
+memory_lines_ion_destroyed=("${memory_list_diff[@]}")
 
-echo "Remaining ION shared memory regions (${#memory_lines_final_diff[@]}):"
-printArray memory_lines_final_diff
-echo
+# Set equality is equivalent to the diffSharedMemory of the two sets being the empty set AND the
+# operands having the same number of elements
+diffSharedMemory "memory_lines_ion_destroyed" "memory_lines_ion"
+memory_lines_ion_didnt_destroy=("${memory_list_diff[@]}")
 
-if [[ ${#memory_lines_final_diff[@]} -ne 0 ]]; then
+if [[    ${#memory_lines_ion_didnt_destroy[@]} -eq 0
+	  && ${#memory_lines_ion_destroyed[@]} -eq ${#memory_lines_ion[@]} ]]; then
+	echo "Success: All ION shared memory regions were destroyed."
+	echo
+else
 	echo "ERROR: Not all ION shared memory regions were destroyed."
 	echo
 	retval=1
-else
-	echo "Success: All ION shared memory regions were destroyed."
-	echo
 fi
+
+echo "Remaining ION shared memory regions (${#memory_lines_ion_didnt_destroy[@]}):"
+printArray "memory_lines_ion_didnt_destroy"
+echo
 
 
 # Verify also that ION processes are gone. Borrowed from killm
@@ -248,8 +286,9 @@ echo
 # Destroy the shared memory region allocated by this script.
 # killm destroys all shared memory regions under current user, but do this anyway in case killm is
 # changed to play nice
-echo "Destroying test script's non-ION shared memory region... (shmid=$extra_shmid)"
-ipcrm --shmem-id $extra_shmid
+echo "Destroying test script's non-ION shared memory regions... \
+(shmids=$extra_before_shmid,$extra_during_shmid)"
+ipcrm --shmem-id $extra_before_shmid --shmem-id $extra_during_shmid
 echo
 
 # Use big-hammer method to make sure ION is stopped (in case unit under test didn't work)
