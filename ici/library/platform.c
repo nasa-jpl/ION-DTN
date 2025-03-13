@@ -422,17 +422,22 @@ int	createFile(const char *filename, int flags)
 typedef struct rlock_str
 {
 	pthread_mutex_t	semaphore;
-	pthread_t	owner;
-	short		count;
+	short           count;  /* # of threads currently holding it. */
 	unsigned char	init;		/*	Boolean.		*/
-	unsigned char	owned;		/*	Boolean.		*/
 } Rlock;		/*	Private-memory semaphore.		*/ 
+
 /* the next line won't compile if the semaphore structure isn't large enough -  increase size of ResourceLock in platform.h */
 int verify_sufficient_semaphore_space[(sizeof(Rlock) <= sizeof(ResourceLock))?1:-1];    /* compile-time assertion check */
 
-int	initResourceLock(ResourceLock *rl)
+/*--------------------------------------------------------------
+ * initResourceLock
+ *   Initializes the given ResourceLock as a POSIX recursive mutex,
+ *   if not already initialized.
+ *--------------------------------------------------------------*/
+int initResourceLock(ResourceLock *rl)
 {
-	Rlock	*lock = (Rlock *) rl;
+	Rlock   *lock = (Rlock *) rl;
+	pthread_mutexattr_t attr;
 
 	if (lock == NULL)
 	{
@@ -445,65 +450,114 @@ int	initResourceLock(ResourceLock *rl)
 		return 0;
 	}
 
-	memset((char *) lock, 0, sizeof(Rlock));
-	if (pthread_mutex_init(&(lock->semaphore), NULL))
-	{
-		writeErrMemo("Can't create lock semaphore");
-		return -1;
-	}
+    /* Zero out everything, just to be safe. */
+    memset(lock, 0, sizeof(Rlock));
 
-	lock->init = 1;
-	return 0;
+    /* Create a recursive mutex. */
+    if (pthread_mutexattr_init(&attr))
+    {
+        writeErrMemo("pthread_mutexattr_init failed");
+        return -1;
+    }
+
+    if (pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE))
+    {
+        writeErrMemo("pthread_mutexattr_settype(RECURSIVE) failed");
+        pthread_mutexattr_destroy(&attr);
+        return -1;
+    }
+
+    if (pthread_mutex_init(&(lock->semaphore), &attr))
+    {
+        writeErrMemo("pthread_mutex_init (recursive) failed");
+        pthread_mutexattr_destroy(&attr);
+        return -1;
+    }
+
+	/* Clear the pthread_mutexattr_t structure */
+    pthread_mutexattr_destroy(&attr);
+
+    lock->init = 1;
+    lock->count = 0;
+	
+    return 0;
 }
 
-void	killResourceLock(ResourceLock *rl)
+/*--------------------------------------------------------------
+ * killResourceLock
+ *   Destroys the underlying recursive mutex (if count == 0).
+ *   If the lock is still in use, returns an error (or you could block).
+ *--------------------------------------------------------------*/
+void killResourceLock(ResourceLock *rl)
 {
-	Rlock	*lock = (Rlock *) rl;
+	Rlock   *lock = (Rlock *) rl;
 
-	if (lock && lock->init && lock->count == 0)
-	{
-		oK(pthread_mutex_destroy(&(lock->semaphore)));
-		lock->init = 0;
-	}
+    if (lock == NULL || lock->init == 0)
+    {
+        return;  /* Nothing to destroy. */
+    }
+
+    /* 1) Lock the mutex to safely check count. */
+    pthread_mutex_lock(&lock->semaphore);
+
+    if (lock->count > 0)
+    {
+        /* Some thread(s) are still using it; can't destroy now. */
+        pthread_mutex_unlock(&lock->semaphore);
+
+        /* Still in use, unlock but do not destroy. */
+        return;
+    }
+
+    /* 2) Unlock before destroying the mutex. */
+    pthread_mutex_unlock(&lock->semaphore);
+
+    /* 3) Now it's safe to destroy (Small race window is possible 
+	if new threads can call initResourceLock/lockResource again)
+
+	A global lock of flag is needed to avoid entirely!!! */
+    pthread_mutex_destroy(&lock->semaphore);
+    lock->init = 0;
 }
 
-void	lockResource(ResourceLock *rl)
+/*--------------------------------------------------------------
+ * lockResource
+ *   Locks the mutex, increments count.  Because this mutex
+ *   is recursive, multiple locks by the same thread are permitted.
+ *--------------------------------------------------------------*/
+void lockResource(ResourceLock *rl)
 {
-	Rlock		*lock = (Rlock *) rl;
-	pthread_t	tid;
+	Rlock   *lock = (Rlock *) rl;
 
-	if (lock && lock->init)
-	{
-		tid = pthread_self();
-		if (lock->owned == 0 || !pthread_equal(tid, lock->owner))
-		{
-			oK(pthread_mutex_lock(&(lock->semaphore)));
-			lock->owner = tid;
-			lock->owned = 1;
-		}
+    if (lock == NULL || lock->init == 0)
+    {
+        return;
+    }
 
-		(lock->count)++;
-	}
+    pthread_mutex_lock(&lock->semaphore);
+
+    /* count is protected by the mutex. */
+    lock->count++;
 }
 
-void	unlockResource(ResourceLock *rl)
-{
-	Rlock		*lock = (Rlock *) rl;
-	pthread_t	tid;
 
-	if (lock && lock->init)
-	{
-		tid = pthread_self();
-		if (lock->owned && pthread_equal(tid, lock->owner))
-		{
-			(lock->count)--;
-			if ((lock->count) == 0)
-			{
-				lock->owned = 0;
-				oK(pthread_mutex_unlock(&(lock->semaphore)));
-			}
-		}
-	}
+/*--------------------------------------------------------------
+ * unlockResource
+ *   Decrements count and unlocks the mutex.
+ *--------------------------------------------------------------*/
+void unlockResource(ResourceLock *rl)
+{
+	Rlock   *lock = (Rlock *) rl;
+
+    if (lock == NULL || lock->init == 0)
+    {
+        return;
+    }
+
+    /* count must be decremented before we unlock. */
+    lock->count--;
+
+    pthread_mutex_unlock(&lock->semaphore);
 }
 
 #else	/*	Only one thread of control in address space.		*/
