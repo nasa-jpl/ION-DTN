@@ -34,6 +34,12 @@
 #define	BLK_IN_USE	((PsmAddress) 0xffffffff)
 #endif
 
+/*----------------------------------------------------------------------------
+ *  A local mutex that only protects ownerTask, ownerThread, depth from TSan
+ *  warnings in *this process*.
+ *----------------------------------------------------------------------------*/
+static pthread_mutex_t  _psmLocalMutex = PTHREAD_MUTEX_INITIALIZER;
+
 /*
  * The overhead on a small block is WORD_SIZE bytes.  When the block is
  * free, these bytes contain the PsmAddress (i.e., offset from start
@@ -154,7 +160,18 @@ static char	*_noTraceMsg()
 
 /*	*	Non-platform-specific implementation	*	*	*/
 
-static void	lockPartition(PartitionMap *map)
+/******************************************************************************
+ *  lockPartition
+ *
+ *  Acquires the partition for the calling thread.  If this thread already owns
+ *  the partition, simply increments the re-entrant depth. Otherwise, takes
+ *  cross-process ownership (via sm_SemTake()) and marks the partition as owned.
+ *
+ *  A process-local mutex (_psmLocalMutex) is used to protect reads/writes to
+ *  ownerTask, ownerThread, and depth against concurrent threads in the same
+ *  process.
+ ******************************************************************************/
+static void lockPartition(PartitionMap *map)
 {
 	int		selfTask;
 	pthread_t	selfThread;
@@ -162,22 +179,56 @@ static void	lockPartition(PartitionMap *map)
 	CHKVOID(map->status == MANAGED);
 	selfTask = sm_TaskIdSelf();
 	selfThread = pthread_self();
+
+	/* 
+	* Acquire local mutex to safely read the ownership fields; 
+	* prevents data races within this process. 
+	*/
+	pthread_mutex_lock(&_psmLocalMutex);
+
+	/* Re-entrant call by this thread; just increment depth. */
 	if (map->ownerTask == selfTask
 	&& pthread_equal(map->ownerThread, selfThread))
 	{
 		map->depth++;
+		pthread_mutex_unlock(&_psmLocalMutex);
 		return;
 	}
 
+	/*  If we get here, we do NOT own the partition, so we must release
+	*  the local mutex before blocking on the named semaphore, which is
+	*  shared across processes.  (Otherwise we can deadlock ourselves.)
+	*/
+	pthread_mutex_unlock(&_psmLocalMutex);
+
 	CHKVOID(map->semaphore != -1);
 	oK(sm_SemTake(map->semaphore));
+
+	/* 
+	* Now that we hold the partition across processes, lock the local mutex 
+	* again to safely update the ownership fields in this process. 
+	*/
+	pthread_mutex_lock(&_psmLocalMutex);
 	map->ownerThread = selfThread;
-	map->ownerTask = selfTask;
-	map->depth = 1;
+	map->ownerTask   = selfTask;
+	map->depth       = 1;
+	pthread_mutex_unlock(&_psmLocalMutex);
 }
 
-static void	unlockPartition(PartitionMap *map)
+
+/******************************************************************************
+ *  unlockPartition
+ *
+ *  If the calling thread owns the partition, decrements the re-entrant depth.
+ *  Once depth is zero, releases cross-process ownership (via sm_SemGive()).
+ *
+ *  Uses the same local mutex (_psmLocalMutex) to protect reads/writes of 
+ *  ownerTask, ownerThread, and depth in this process.
+ ******************************************************************************/
+static void unlockPartition(PartitionMap *map)
 {
+	pthread_mutex_lock(&_psmLocalMutex);
+
 	if (map->status == MANAGED
 	&& map->ownerTask == sm_TaskIdSelf()
 	&& pthread_equal(map->ownerThread, pthread_self()))
@@ -185,14 +236,28 @@ static void	unlockPartition(PartitionMap *map)
 		map->depth--;
 		if (map->depth == 0)
 		{
+			/* No more re-entrant locks held by this thread. */
 			map->ownerTask = -1;
+
 			if (map->semaphore != -1)
 			{
-				sm_SemGive(map->semaphore);
+				/* 
+                 * Release local mutex before calling sm_SemGive()
+                 * to avoid holding two locks simultaneously.
+                 */
+				sm_SemId semId = map->semaphore;
+				pthread_mutex_unlock(&_psmLocalMutex);
+
+				sm_SemGive(semId);
+				return;
 			}
 		}
 	}
+
+	/*  If we don't actually own the partition, do nothing. */
+	pthread_mutex_unlock(&_psmLocalMutex);
 }
+
 
 static void	discard(PsmPartition partition)
 {
