@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Script used for Windows 7 Build
 set -e
 
 makefiles=(ici ltp dgr bssp bpv6 bpv7 tc nm cfdp ams bss dtpc restart)
