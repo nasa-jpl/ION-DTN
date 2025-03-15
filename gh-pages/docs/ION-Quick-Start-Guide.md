@@ -266,13 +266,13 @@ All Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake bef
 
 The `ion-core` package contains only a subset of essential BP functionalities - particular those features that are more stable and have been deployed for operations previously. The `ion-core` package can be downloaded [here](https://github.com/nasa-jpl/ion-core). Please following the `README.md` file there for installation instructions.
 
-## Windows
+## Windows 7 & Windows 10
 
-To install ION for Windows, please download the Windows installer for ION 4.1.2 or earlier versions from the Source Forge archive [here](https://sourceforge.net/projects/ion-dtn/). 
+To install ION 4.1.2 or early on Windows, please download the Windows installer from the Source Forge [archive.](https://sourceforge.net/projects/ion-dtn/). 
 
-For ION 4.1.3, no installer is provided. Instead, you can download the Windows installation instructions [here.](https://github.com/nasa-jpl/ION-DTN/blob/current/Building%20ION%20from%20source%20on%20Windows.pdf)
+For ION 4.1.3, no Windows installer will be provided. For Windows 7, the installation instruction can be found [here](../../Windows7-Build.pdf).
 
-For ION 4.1.3s, a prototype automake build system will be been released for for beta testing.
+For ION 4.1.3s, a prototype automake build system is made available for experimentation. The installation instruction is [here](./Windows10-Installation.md).
 
 ## Running ION
 
