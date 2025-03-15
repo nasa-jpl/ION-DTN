@@ -36,7 +36,7 @@ In the top directory of the ION source tree
 
 Run `autoreconf -fi`
 
-Run `./configure` with the options you want
+Run `./configure` with the options you want. If you encounter error/warning during build regarding shared library due to "undefined symbol" by libtool, you can work around it by using static linking with the option `--enable-shared=no`. 
 
 Run `make`
 
