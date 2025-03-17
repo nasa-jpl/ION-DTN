@@ -268,11 +268,11 @@ The `ion-core` package contains only a subset of essential BP functionalities - 
 
 ## Windows 7 & Windows 10
 
-To install ION 4.1.2 or early on Windows, please download the Windows installer from the Source Forge [archive.](https://sourceforge.net/projects/ion-dtn/). 
+To install ION 4.1.2 or earlier on Windows, please download the Windows installer from the Source Forge [archive](https://sourceforge.net/projects/ion-dtn/). 
 
-For ION 4.1.3, no Windows installer will be provided. For Windows 7, the installation instruction can be found [here](../../Windows7-Build.pdf).
+For ION 4.1.3, no Windows installer will be provided. For more information about installation instructions on Windows 7, see [Windows7-Build.pdf](../../Windows7-Build.pdf) 
 
-For ION 4.1.3s, a prototype automake build system is made available for experimentation. The installation instruction is [here](./Windows10-Installation.md).
+For ION 4.1.3s, a [Windows 10 prototype](./Windows10-Installation.md) automake build system is made available for experimentation.
 
 ## Running ION
 

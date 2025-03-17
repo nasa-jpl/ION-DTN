@@ -36,7 +36,7 @@ In the top directory of the ION source tree
 
 Run `autoreconf -fi`
 
-Run `./configure` with the options you want. If you encounter error/warning during build regarding shared library due to "undefined symbol" by libtool, you can work around it by using static linking with the option `--enable-shared=no`. 
+Run `./configure` with the options you want. If you encounter errors/warnings during build regarding shared library due to "undefined symbol" by libtool, you can work around it by using static linking with the option `--enable-shared=no`.
 
 Run `make`
 
@@ -50,7 +50,7 @@ ln -s /mingw64/bin/mingw32-make.exe /mingw64/bin/make.exe
 
 Run `make install`
 
-ION is now ready for use; however, for `killm` to work correctly, the execution of scripts must be enabled in Powershell:
+ION is now ready for use; however, for `killm` to work correctly, the execution of scripts must be enabled in PowerShell:
 
 - Run `Set-ExecutionPolicy RemoteSigned` in PowerShell in order to enable the running of scripts.
-- Note that the “RemoteSigned” policy normally prevents downloaded scripts from running. Currently MSYS2 does not set the ZoneIdentifier meta-date, resulting in all ION files considered to be local.  If that changes in the future, or ION was unpacked in Windows, you can use `unblock-file .\remove_win_shmem.ps1` in PowerShell to remove the ZoneIdentifier.
+- Note that the “RemoteSigned” policy normally prevents downloaded scripts from running. Currently MSYS2 does not set the ZoneIdentifier meta-data, resulting in all ION files considered to be local.  If that changes in the future, or ION was unpacked in Windows, you can use `unblock-file .\remove_win_shmem.ps1` in PowerShell to remove the ZoneIdentifier.
