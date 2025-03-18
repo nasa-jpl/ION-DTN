@@ -142,7 +142,7 @@ export ION_NODE_LIST_DIR=$PWD
 
 
 # Start nodes.
-cd 1.ipn.ltp
+pushd 1.ipn.ltp >& /dev/null
 ./ionstart
 echo
 
@@ -197,6 +197,9 @@ if [[ $ionexit_retval -ne 0 ]]; then
 	retval=1
 fi
 
+# Return from node directory
+popd >& /dev/null
+
 
 # Get the shared memory regions now after ionexit
 getSharedResources
@@ -236,6 +239,22 @@ fi
 echo "Remaining ION shared memory regions (${#memory_lines_ion_didnt_destroy[@]}):"
 printArray "memory_lines_ion_didnt_destroy"
 echo
+
+
+# Verify that no ION POSIX named semaphores exist
+echo "Checking if ION POSIX named semaphores no longer exist..."
+
+./checksemaphores
+checksemaphores_retval=$?
+
+if [[ $checksemaphores_retval -ne 0 ]]; then
+	echo "ERROR: Some POSIX named semaphores still exist after ionexit"
+	echo
+	retval=1
+else
+	echo "Success: No ION POSIX named semaphores exist after ionexit."
+	echo
+fi
 
 
 # Verify also that ION processes are gone. Borrowed from killm

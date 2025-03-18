@@ -3358,6 +3358,7 @@ tests_library_libtestunity_la_CFLAGS = $(TESTUNITYCFLAGS) $(AM_CFLAGS)
 #  and $(TESTUTILCFLAGS) in _CFLAGS.
 check_PROGRAMS = tests/1000.loopback/dotest \
 	tests/1500.loopback-brs/dotest \
+	tests/ionexit_test/checksemaphores \
 	tests/issue-260-teach-valgrind-mtake/domtake \
 	tests/issue-188-common-cos-syntax/dotest \
 	tests/bug-0015-tcpclo-bpcp-sig-handling/test \
@@ -3420,6 +3421,10 @@ tests_1000_loopback_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
 tests_1500_loopback_brs_dotest_SOURCES = tests/1500.loopback-brs/dotest.c
 tests_1500_loopback_brs_dotest_LDADD = libici.la -lm $(bplib) $(ltplib) $(TESTUTILOBJS)
 tests_1500_loopback_brs_dotest_CFLAGS = $(bpcflags) $(AM_CFLAGS) $(TESTUTILCFLAGS)
+
+tests_ionexit_test_checksemaphores_SOURCES = tests/ionexit_test/checksemaphores.c
+tests_ionexit_test_checksemaphores_LDADD = -lpthread
+tests_ionexit_test_checksemaphores_CFLAGS = $(AM_CFLAGS)
 
 #Disabled this test in ION 3.7.0 due to routing changes
 tests_issue_188_common_cos_syntax_dotest_SOURCES = tests/issue-188-common-cos-syntax/dotest.c
