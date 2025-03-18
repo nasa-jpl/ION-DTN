@@ -188,11 +188,12 @@ retval=0
 
 # Unit under test
 ionexit
-echo
-
 ionexit_retval=$?
+
+echo
 if [[ $ionexit_retval -ne 0 ]]; then
 	echo "ERROR: Unexpected return code ($ionexit_retval) from ionexit (expecting 0)"
+	echo
 	retval=1
 fi
 
