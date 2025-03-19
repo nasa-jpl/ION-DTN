@@ -23,9 +23,10 @@ extern "C" {
 
 typedef struct
 {
+	pthread_mutex_t lock;
 	int			linkSocket;
 	int			running;
-} ReceiverThreadParms;
+} udp_ReceiverThreadParms;
 
 extern void			*udplsa_handle_datagrams(void *parm);
 

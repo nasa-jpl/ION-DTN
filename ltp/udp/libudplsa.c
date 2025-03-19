@@ -16,10 +16,11 @@ void	*udplsa_handle_datagrams(void *parm)
 {
 	/*	Main loop for UDP datagram reception and handling.	*/
 
-	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	udp_ReceiverThreadParms	*rtp = (udp_ReceiverThreadParms *) parm;
 	char			*procName = "udplsi";
 	char			*buffer;
 	int			segmentLength;
+
 #ifdef UDP_MULTISEND
 	char			*buffers;
 	struct iovec		*iovecs;
@@ -70,8 +71,20 @@ void	*udplsa_handle_datagrams(void *parm)
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the daemon.					*/
 
-	while (rtp->running)
-	{	
+	 
+	 while (1)
+	 {
+		int keepRunning;
+
+		 pthread_mutex_lock(&rtp->lock);
+		 keepRunning = rtp->running;
+		 pthread_mutex_unlock(&rtp->lock);
+ 
+		 if (!keepRunning)
+		 {
+			 break;  // exit the thread's loop
+		 }
+
 		batchLength = recvmmsg(rtp->linkSocket, msgs,
 				MULTIRECV_BUFFER_COUNT, MSG_WAITFORONE, NULL);
 		switch (batchLength)
@@ -79,7 +92,10 @@ void	*udplsa_handle_datagrams(void *parm)
 		case -1:
 			putSysErrmsg("Can't acquire segments", NULL);
 			ionKillMainThread(procName);
-			rtp->running = 0;
+
+			pthread_mutex_lock(&rtp.lock);
+			rtp.running = 0;
+			pthread_mutex_unlock(&rtp.lock);
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -95,7 +111,9 @@ void	*udplsa_handle_datagrams(void *parm)
 			{
 				/*	Normal stop.			*/
 
-				rtp->running = 0;
+				pthread_mutex_lock(&rtp.lock);
+				rtp.running = 0;
+				pthread_mutex_unlock(&rtp.lock);
 				break;
 			}
 
@@ -104,7 +122,10 @@ void	*udplsa_handle_datagrams(void *parm)
 				putErrmsg("Can't handle inbound segment.",
 						NULL);
 				ionKillMainThread(procName);
-				rtp->running = 0;
+
+				pthread_mutex_lock(&rtp.lock);
+				rtp.running = 0;
+				pthread_mutex_unlock(&rtp.lock);
 				break;
 			}
 
@@ -138,8 +159,21 @@ void	*udplsa_handle_datagrams(void *parm)
 	/*	Can now start receiving bundles.  On failure, take
 	 *	down the link service input thread.			*/
 
-	while (rtp->running)
-	{	
+	 
+
+	 while (1)
+	 {	 
+		int keepRunning;
+
+		 pthread_mutex_lock(&rtp->lock);
+		 keepRunning = rtp->running;
+		 pthread_mutex_unlock(&rtp->lock);
+	 
+		 if (!keepRunning)
+		 {
+			 break;
+		 }
+
 		fromSize = sizeof fromAddr;
 		segmentLength = irecvfrom(rtp->linkSocket, buffer, UDPLSA_BUFSZ,
 				0, (struct sockaddr *) &fromAddr, &fromSize);
@@ -155,7 +189,9 @@ void	*udplsa_handle_datagrams(void *parm)
 			/*	Intentional fall-through to next case.	*/
 
 		case 1:				/*	Normal stop.	*/
+			pthread_mutex_lock(&rtp->lock);
 			rtp->running = 0;
+			pthread_mutex_unlock(&rtp->lock);
 			continue;
 		}
 
@@ -163,7 +199,10 @@ void	*udplsa_handle_datagrams(void *parm)
 		{
 			putErrmsg("Can't handle inbound segment.", NULL);
 			ionKillMainThread(procName);
+			
+			pthread_mutex_lock(&rtp->lock);
 			rtp->running = 0;
+			pthread_mutex_unlock(&rtp->lock);
 			continue;
 		}
 
