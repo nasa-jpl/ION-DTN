@@ -1,3 +1,0 @@
-BP reception interrupted.
-ION event: Reception interrupted.
-Stopping bpsink.
