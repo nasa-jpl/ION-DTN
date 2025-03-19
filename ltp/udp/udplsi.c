@@ -36,7 +36,7 @@ int	main(int argc, char *argv[])
 	unsigned int		ipAddress = INADDR_ANY;
 	struct sockaddr		ownSockName;
 	struct sockaddr_in	*inetName;
-	ReceiverThreadParms	rtp;
+	static udp_ReceiverThreadParms	rtp;
 	socklen_t		nameLength;
 	pthread_t		receiverThread;
 	int			fd;
@@ -115,9 +115,18 @@ int	main(int argc, char *argv[])
 	ionNoteMainThread("udplsi");
 	isignal(SIGTERM, interruptThread);
 
-	/*	Start the receiver thread.				*/
 
+		/*
+	*    Initialize and use mutex so we can safely update 
+	*    rtp.running in both threads without data races.
+	*/
+	memset(&rtp, 0, sizeof(rtp));
+	pthread_mutex_init(&rtp.lock, NULL); 
+
+
+	/*	Start the receiver thread.				*/
 	rtp.running = 1;
+	
 	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
 			&rtp, "udplsi_receiver"))
 	{
@@ -142,7 +151,9 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
-	rtp.running = 0;
+		pthread_mutex_lock(&rtp.lock);
+		rtp.running = 0;
+		pthread_mutex_unlock(&rtp.lock);
 
 	/*	Wake up the receiver thread by opening a single-use
 	 *	transmission socket and sending a 1-byte datagram

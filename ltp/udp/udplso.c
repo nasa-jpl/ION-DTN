@@ -227,7 +227,7 @@ int	main(int argc, char *argv[])
 	struct sockaddr		ownSockName;
 	struct sockaddr_in	*ownInetName;
 	socklen_t		nameLength;
-	ReceiverThreadParms	rtp;
+	static udp_ReceiverThreadParms rtp;  /* prevent creation on main's stack */
 	pthread_t		receiverThread;
 	int			segmentLength;
 	char			*segment;
@@ -248,6 +248,15 @@ int	main(int argc, char *argv[])
 #else
 	RateControlState	rc;
 #endif
+
+	/*
+	*    Zero out rtp and initialize its mutex
+	*    so we can safely update rtp.running in
+	*    both threads without data races.
+	*/
+	memset(&rtp, 0, sizeof(rtp));
+	pthread_mutex_init(&rtp.lock, NULL); 
+
 	if (txbps != 0 && remoteEngineId == 0)	/*	Now nominal.	*/
 	{
 		remoteEngineId = txbps;
@@ -373,9 +382,13 @@ compatibility, but it is ignored.");
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
 	signal(SIGTERM, shutDownLso);
 
-	/*	Start the receiver thread.				*/
 
+	/*	  Start the receiver thread.		*/
+
+
+	/* lock not needed here (thread not running yet) */
 	rtp.running = 1;
+
 	if (pthread_begin(&receiverThread, NULL, udplsa_handle_datagrams,
 			&rtp, "udplso_receiver"))
 	{
@@ -438,8 +451,29 @@ compatibility, but it is ignored.");
 	memset(msgs, 0, sizeof(struct mmsghdr) * batchLimit);
 	batchLength = 0;
 	buffer = buffers;
-	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
+
+	/*
+	*  Loop on rtp.running and the segSemaphore.
+	*  We'll do a local keepRunning to read rtp.running
+	*  under the mutex. Minimal changes for data-race safety.
+	*/
+
+	while (1)
 	{
+			int keepRunning;
+
+			pthread_mutex_lock(&rtp.lock);
+			keepRunning = rtp.running;
+			pthread_mutex_unlock(&rtp.lock);
+
+			if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
+			{
+					break;
+			}
+
+		/* If no segments ready, wait .1 sec,
+		*  then eventually send partial batch if needed.
+		*/	
 		if (sdr_list_length(sdr, spanBuf.segments) == 0)
 		{
 			/*	No segments ready to append to batch.	*/
@@ -459,7 +493,9 @@ compatibility, but it is ignored.");
 					{
 						putErrmsg("Failed sending \
 segment batch.", NULL);
+						pthread_mutex_lock(&rtp.lock);
 						rtp.running = 0;
+						pthread_mutex_unlock(&rtp.lock);
 						continue;
 					}
 
@@ -486,7 +522,9 @@ segment batch.", NULL);
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
+			pthread_mutex_lock(&rtp.lock);
 			rtp.running = 0;	/*	Terminate LSO.	*/
+			pthread_mutex_unlock(&rtp.lock);			
 			continue;
 		}
 
@@ -516,7 +554,9 @@ segment batch.", NULL);
 			{
 				putErrmsg("Failed sending segment batch.",
 						NULL);
+				pthread_mutex_lock(&rtp.lock);
 				rtp.running = 0;
+				pthread_mutex_unlock(&rtp.lock);
 				continue;
 			}
 
@@ -537,12 +577,26 @@ segment batch.", NULL);
 	rc.prevPaid = 0;
 	rc.remoteEngineId = remoteEngineId;
 	rc.neighbor = NULL;
-	while (rtp.running && !(sm_SemEnded(vspan->segSemaphore)))
+	
+	while (1)
 	{
+			int keepRunning;
+
+			pthread_mutex_lock(&rtp.lock);
+			keepRunning = rtp.running;
+			pthread_mutex_unlock(&rtp.lock);
+
+			if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
+			{
+					break;
+			}
+
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 		if (segmentLength < 0)
 		{
+			pthread_mutex_lock(&rtp.lock);
 			rtp.running = 0;	/*	Terminate LSO.	*/
+			pthread_mutex_unlock(&rtp.lock);
 			continue;
 		}
 
@@ -555,7 +609,9 @@ segment batch.", NULL);
 		{
 			putErrmsg("Segment is too big for UDP LSO.",
 					itoa(segmentLength));
-			rtp.running = 0;	/*	Terminate LSO.	*/
+				pthread_mutex_lock(&rtp.lock);
+				rtp.running = 0;	/*	Terminate LSO.	*/
+				pthread_mutex_unlock(&rtp.lock);
 			continue;
 		}
 
@@ -563,7 +619,9 @@ segment batch.", NULL);
 				segmentLength, peerInetName);
 		if (bytesSent < segmentLength)
 		{
+			pthread_mutex_lock(&rtp.lock);
 			rtp.running = 0;	/*	Terminate LSO.	*/
+			pthread_mutex_unlock(&rtp.lock);
 			continue;
 		}
 
@@ -577,7 +635,9 @@ segment batch.", NULL);
 #endif
 	/*	Time to shut down.					*/
 
+	pthread_mutex_lock(&rtp.lock);
 	rtp.running = 0;
+	pthread_mutex_unlock(&rtp.lock);
 
 	/*	Wake up the receiver thread by opening a single-use
 	 *	transmission socket and sending a 1-byte datagram
@@ -603,11 +663,12 @@ segment batch.", NULL);
 				sizeof(struct sockaddr)));
 		microsnooze(10000);
 		closesocket(fd);
-	}
-
-	pthread_detach(receiverThread);	/*	Part of workaround.	*/
+	}	
+	 //pthread_detach(receiverThread); /* <-- REMOVED Scott's workaround after mutex lock added */
+	pthread_join(receiverThread, NULL); /* <-- ADDED as part of the synchonization refactor */
 
 	closesocket(rtp.linkSocket);
+
 	writeErrmsgMemos();
 	writeMemo("[i] udplso has ended.");
 	ionDetach();
