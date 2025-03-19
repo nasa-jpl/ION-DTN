@@ -24,9 +24,10 @@ static void	interruptThread(int signum)
 
 typedef struct
 {
+	pthread_mutex_t lock;
 	VInduct		*vduct;
 	int		running;
-} ReceiverThreadParms;
+} ltpcli_ReceiverThreadParms;
 
 static int	acquireRedBundles(AcqWorkArea *work, Object zco,
 			uvast senderEngineNbr)
@@ -233,7 +234,7 @@ static void	*handleNotices(void *parm)
 	/*	Main loop for LTP notice reception and handling.	*/
 
 	Sdr			sdr = getIonsdr();
-	ReceiverThreadParms	*rtp = (ReceiverThreadParms *) parm;
+	ltpcli_ReceiverThreadParms	*rtp = (ltpcli_ReceiverThreadParms *) parm;
 	char			*procName = "ltpcli";
 	AcqWorkArea		*redWork;
 	AcqWorkArea		*greenWork;
@@ -269,15 +270,30 @@ static void	*handleNotices(void *parm)
 	/*	Can now start receiving notices.  On failure, take
 	 *	down the CLI.						*/
 
-	while (rtp->running)
-	{
+	 while (1)
+	 {
+		int keepRunning;
+
+		 pthread_mutex_lock(&rtp->lock);
+		 keepRunning = rtp->running;
+		 pthread_mutex_unlock(&rtp->lock);
+	 
+		 if (!keepRunning)
+		 {
+			 break;
+		 }
+		 
 		if (ltp_get_notice(BpLtpClientId, &type, &sessionId,
 				&reasonCode, &endOfBlock, &dataOffset,
 				&dataLength, &data) < 0)
 		{
 			putErrmsg("Can't get LTP notice.", NULL);
 			ionKillMainThread(procName);
+
+			pthread_mutex_lock(&rtp->lock);
 			rtp->running = 0;
+			pthread_mutex_unlock(&rtp->lock);
+
 			continue;
 		}
 
@@ -293,7 +309,10 @@ static void	*handleNotices(void *parm)
 			{
 				putErrmsg("Crashed on xmit success.", NULL);
 				ionKillMainThread(procName);
+
+				pthread_mutex_lock(&rtp->lock);
 				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 			}
 
 			break;			/*	Out of switch.	*/
@@ -308,7 +327,10 @@ static void	*handleNotices(void *parm)
 			{
 				putErrmsg("Crashed on xmit failure.", NULL);
 				ionKillMainThread(procName);
+
+				pthread_mutex_lock(&rtp->lock);
 				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 			}
 
 			break;			/*	Out of switch.	*/
@@ -328,7 +350,10 @@ static void	*handleNotices(void *parm)
 			{
 				putErrmsg("Can't cancel green session.", NULL);
 				ionKillMainThread(procName);
+
+				pthread_mutex_lock(&rtp->lock);
 				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 			}
 
 			break;		/*	Out of switch.		*/
@@ -349,7 +374,10 @@ static void	*handleNotices(void *parm)
 					putErrmsg("Crashed: partially red.",
 							NULL);
 					ionKillMainThread(procName);
+
+					pthread_mutex_lock(&rtp->lock);
 					rtp->running = 0;
+					pthread_mutex_unlock(&rtp->lock);
 				}
 
 				break;		/*	Out of switch.	*/
@@ -360,7 +388,10 @@ static void	*handleNotices(void *parm)
 			{
 				putErrmsg("Can't acquire bundle(s).", NULL);
 				ionKillMainThread(procName);
+
+				pthread_mutex_lock(&rtp->lock);
 				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 			}
 
 			break;		/*	Out of switch.		*/
@@ -372,7 +403,10 @@ static void	*handleNotices(void *parm)
 			{
 				putErrmsg("Can't handle green segment.", NULL);
 				ionKillMainThread(procName);
+
+				pthread_mutex_lock(&rtp->lock);
 				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 			}
 
 			/*	Discard the ZCO in any case.		*/
@@ -383,7 +417,10 @@ static void	*handleNotices(void *parm)
 			{
 				putErrmsg("Crashed: green segment.", NULL);
 				ionKillMainThread(procName);
+
+				pthread_mutex_lock(&rtp->lock);
 				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 			}
 
 			break;		/*	Out of switch.		*/
@@ -427,7 +464,7 @@ int	main(int argc, char *argv[])
 #endif
 	VInduct			*vduct;
 	PsmAddress		vductElt;
-	ReceiverThreadParms	rtp;
+	ltpcli_ReceiverThreadParms	rtp;
 	pthread_t		receiverThread;
 
 	if (ductName == NULL)
@@ -472,7 +509,19 @@ int	main(int argc, char *argv[])
 	/*	Start the receiver thread.				*/
 
 	rtp.vduct = vduct;
+
+	/* Initialize rtp mutex */
+
+	/*
+	*    Initialize and use mutex so we can safely update 
+	*    rtp.running in both threads without data races.
+	*/
+	memset(&rtp, 0, sizeof(rtp));
+	pthread_mutex_init(&rtp.lock, NULL); 
+
+	/* Lock not needed here (thread not started yet) */
 	rtp.running = 1;
+
 	if (pthread_begin(&receiverThread, NULL, handleNotices, &rtp, ductName))
 	{
 		putSysErrmsg("ltpcli can't create receiver thread", NULL);
@@ -487,7 +536,9 @@ int	main(int argc, char *argv[])
 
 	/*	Time to shut down.					*/
 
+	pthread_mutex_lock(&rtp.lock);
 	rtp.running = 0;
+	pthread_mutex_unlock(&rtp.lock);
 
 	/*	Stop the receiver thread by interrupting client access.	*/
 
