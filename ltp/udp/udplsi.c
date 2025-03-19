@@ -81,6 +81,13 @@ int	main(int argc, char *argv[])
 		}
 	}
 
+	/*
+	*    Initialize and use mutex so we can safely update 
+	*    rtp.running in both threads without data races.
+	*/
+	memset(&rtp, 0, sizeof(rtp));
+	pthread_mutex_init(&rtp.lock, NULL); 
+
 	if (portNbr == 0)
 	{
 		portNbr = LtpUdpDefaultPortNbr;
@@ -115,15 +122,6 @@ int	main(int argc, char *argv[])
 	ionNoteMainThread("udplsi");
 	isignal(SIGTERM, interruptThread);
 
-
-		/*
-	*    Initialize and use mutex so we can safely update 
-	*    rtp.running in both threads without data races.
-	*/
-	memset(&rtp, 0, sizeof(rtp));
-	pthread_mutex_init(&rtp.lock, NULL); 
-
-
 	/*	Start the receiver thread.				*/
 	rtp.running = 1;
 	
@@ -150,10 +148,9 @@ int	main(int argc, char *argv[])
 	ionPauseMainThread(-1);
 
 	/*	Time to shut down.					*/
-
-		pthread_mutex_lock(&rtp.lock);
-		rtp.running = 0;
-		pthread_mutex_unlock(&rtp.lock);
+	pthread_mutex_lock(&rtp.lock);
+	rtp.running = 0;
+	pthread_mutex_unlock(&rtp.lock);
 
 	/*	Wake up the receiver thread by opening a single-use
 	 *	transmission socket and sending a 1-byte datagram
