@@ -4,31 +4,23 @@ on:
 #  pull_request:
 #    branches:
 #      - integration
-
   workflow_dispatch:
-
-#  push:
-#    branches:
-#      - update-4.1.4-freebsd-update
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        default: ''
 
 jobs:
   build-and-test:
-    runs-on: [self-hosted, macOS, X64, 14.7] 
-
+    runs-on: [self-hosted, macOS, X64, 14.7]
     steps:
       - name: Clean up workspace
         run: |
           rm -rf $GITHUB_WORKSPACE/*
-          
+
       - name: Checkout repository
-        uses: actions/checkout@v4  # Checkout the code from the repository
-
-      #- name: Set up dependencies
-      #run: |
-        #brew update
-        #brew install autoconf automake libtool bash python3 gcc make
-
-      # assume dependencies are all already setup
+        uses: actions/checkout@v4
 
       - name: Display OS and Arch
         run: |
@@ -56,30 +48,36 @@ jobs:
             make buildcheck
             sudo ./fix-macos-mbedtls-lib-links.sh /usr/local/lib /usr/local/bin ./
             cd tests
-            ./runtests
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
+              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}"
+              ./runtests ${{ github.event.inputs.tests_to_run }}
+            else
+              echo "Running all tests"
+              ./runtests
+            fi
           } > build-and-test.log 2>&1
 
       - name: Display Progress
-        if: ${{ always() }}  # Display progress even if tests were interrupted
-        run: | 
-          cat ./tests/progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
+        if: ${{ always() }}
+        run: |
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
 
       - name: Upload full build and test log
-        if: ${{ always() }}  # Capture log even if the previous step fails
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-and-test-log-${{ env.TIMESTAMP }}
-          path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
+          path: build-and-test.log
 
       - name: Upload progress file as artifact
-        if: ${{ always() }}  # Capture progress even if the previous step fails
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-progress-${{ env.TIMESTAMP }}
-          path: ./tests/progress  # Upload the 'progress' file for later review
+          path: ./tests/progress
 
       - name: Clean up ION build
-        if: ${{ always() }}  # Clean up even if previous steps fails
+        if: ${{ always() }}
         run: |
           killm
           sudo make uninstall

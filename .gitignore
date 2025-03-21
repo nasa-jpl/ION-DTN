@@ -1,4 +1,5 @@
 # Build suppport
+configure~
 .libs
 .deps
 .dirstamp

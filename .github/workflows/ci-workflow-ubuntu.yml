@@ -4,22 +4,20 @@ on:
   pull_request:
     branches:
       - integration
-
   workflow_dispatch:
-
-#  push:
-#    branches:
-#      - update-4.1.4-freebsd-update
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        default: ''
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # Checkout the code from the repository
+        uses: actions/checkout@v4
 
-      # Github Cloud Server container runs with passwordless `sudo`
       - name: Display OS and Arch
         run: |
           cat /etc/os-release
@@ -28,22 +26,22 @@ jobs:
           echo "User ID:"
           id
           echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-      
+
       - name: Set up dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y autoconf automake libtool bash python3 gcc make wget iptables # Install dependencies
+          sudo apt-get install -y autoconf automake libtool bash python3 gcc make wget iptables
 
       - name: Install MBEDTLS 2.28.9
         run: |
-            wget https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-2.28.9/mbedtls-2.28.9.tar.bz2
-            sha256sum "mbedtls-2.28.9.tar.bz2" | grep -q "^e85ea97aaf78dd6c0a5ba2e54dd5932ffa15f39abfc189c26beef7684630c02b " || exit 1
-            tar -jvxf mbedtls-2.28.9.tar.bz2
-            cd mbedtls-2.28.9/
-            sed -i '/#define MBEDTLS_NIST_KW_C/s/\/\///' "./include/mbedtls/config.h"
-            make SHARED=1
-            make check
-            sudo make install
+          wget https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-2.28.9/mbedtls-2.28.9.tar.bz2
+          sha256sum "mbedtls-2.28.9.tar.bz2" | grep -q "^e85ea97aaf78dd6c0a5ba2e54dd5932ffa15f39abfc189c26beef7684630c02b " || exit 1
+          tar -jvxf mbedtls-2.28.9.tar.bz2
+          cd mbedtls-2.28.9/
+          sed -i '/#define MBEDTLS_NIST_KW_C/s/\/\///' "./include/mbedtls/config.h"
+          make SHARED=1
+          make check
+          sudo make install
 
       - name: Generate timestamp for file names
         id: timestamp
@@ -62,24 +60,30 @@ jobs:
             make buildcheck
             sudo ldconfig
             cd tests
-            ./runtests
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
+              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}"
+              ./runtests ${{ github.event.inputs.tests_to_run }}
+            else
+              echo "Running all tests"
+              ./runtests
+            fi
           } > build-and-test.log 2>&1
 
       - name: Display Progress
-        if: ${{ always() }}  # Display progress even if tests were interrupted
-        run: | 
-          cat ./tests/progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
+        if: ${{ always() }}
+        run: |
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
 
       - name: Upload full build and test log
-        if: ${{ always() }}  # Capture log even if the previous step fails
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-and-test-log-${{ env.TIMESTAMP }}
-          path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
+          path: build-and-test.log
 
       - name: Upload progress file as artifact
-        if: ${{ always() }}  # Capture progress even if the previous step fails
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-progress-${{ env.TIMESTAMP }}
-          path: ./tests/progress  # Upload the 'progress' file for later review
+          path: ./tests/progress
