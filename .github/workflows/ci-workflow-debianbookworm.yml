@@ -4,12 +4,12 @@ on:
   pull_request:
     branches:
       - integration
-
   workflow_dispatch:
-
-#  push:
-#    branches:
-#      - update-4.1.4-freebsd-update
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        default: ''
 
 jobs:
   build-and-test:
@@ -25,53 +25,58 @@ jobs:
           uname -m
           echo "User ID:"
           id
-      
+
       - name: Generate timestamp for file names
         id: timestamp
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
-      - name: Run build and tests, capture stdout
-        run: | 
+      - name: Build ION and run tests
+        run: |
           {
             echo "Starting build and tests at $(date)"
-            export USER=$(whoami)  # Set USER to the current username
+            export USER=$(whoami)
             echo "USER is set to: $USER"
             export ION_RUN_EXPERT="yes"
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
             autoreconf -fi
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging
             make -j4
-            sudo make install # self-hosted runner is root
+            sudo make install
             make buildcheck
             sudo ldconfig
             cd tests
-            ./runtests
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
+              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}"
+              ./runtests ${{ github.event.inputs.tests_to_run }}
+            else
+              echo "Running all tests"
+              ./runtests
+            fi
           } > build-and-test.log 2>&1
 
       - name: Display Progress
-        if: ${{ always() }}  # Display progress even if tests were interrupted
-        run: | 
-          cat ./tests/progress | grep "FAILED" || { printf "No failed tests. \n"; exit 0; }
+        if: ${{ always() }}
+        run: |
+          cat ./tests/progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
 
       - name: Upload full build and test log
-        if: ${{ always() }}  # Capture log even if the previous step fails
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: build-and-test-log-${{ env.TIMESTAMP }}
-          path: build-and-test.log  # Upload the entire stdout and stderr as an artifact
+          path: build-and-test.log
 
-      - name: Upload progress file as artifact
-        if: ${{ always() }}  # Capture progress even if the previous step fails
+      - name: Upload progress file
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-progress-${{ env.TIMESTAMP }}
-          path: ./tests/progress  # Upload the 'progress' file for later review
-      
+          path: ./tests/progress
+
       - name: Clean up ION build
-        if: ${{ always() }}  # Clean up even if previous steps fails
+        if: ${{ always() }}
         run: |
           sudo make uninstall
           make clean
           make distclean
           rm -rf $GITHUB_WORKSPACE/*
-
