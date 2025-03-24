@@ -1,0 +1,37 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'ion-open-source-[0-9]+.[0-9]+.[0-9]+*'  # Matches ion-open-source-x.y.z followed by anything
+  workflow_dispatch:  # Allows manual triggering via GitHub UI
+    inputs:
+      tag:
+        description: 'Tag to build (e.g., v1.0)'
+        required: true  # Ensures a tag is provided when manually triggered
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}  # Uses manual tag if provided, otherwise the pushed tag
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake
+      - name: Generate configure script
+        run: |
+          aclocal
+          autoconf
+          automake --add-missing
+      - name: Create distribution tarball
+        run: |
+          ./configure
+          make dist
+      - name: Upload release artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "*.tar.gz"  # Uploads the generated tarball (e.g., project-1.0.tar.gz)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
