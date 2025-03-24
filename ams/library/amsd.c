@@ -765,18 +765,26 @@ static int	enqueueMsgToCS(RsState *rsState, MamsPduType msgType,
 			signed int memo, unsigned short supplementLength,
 			char *supplement)
 {
-	MamsMsg	msg;
-	AmsEvt	*evt;
+	MamsMsg	msg = {0};
+	AmsEvt	*evt = NULL;
 
 	memset((char *) &msg, 0, sizeof msg);
 	msg.type = msgType;
 	msg.memo = memo;
 	msg.supplementLength = supplementLength;
 	msg.supplement = supplement;
-	evt = (AmsEvt *) MTAKE(1 + sizeof(MamsMsg));
+
+	uvast dataSize = sizeof(MamsMsg);
+	uvast totalSize = sizeof(AmsEvt) + dataSize;
+
+	evt = (AmsEvt *) MTAKE(totalSize);
 	CHKERR(evt);
-	memcpy(evt->value, (char *) &msg, sizeof msg);
+
+	memset(evt, 0, totalSize);
 	evt->type = MSG_TO_SEND_EVT;
+
+	memcpy(evt->value, &msg, sizeof(MamsMsg));
+
 	if (enqueueMamsEvent(rsState->rsEventsCV, evt, NULL, 0))
 	{
 		MRELEASE(evt);

@@ -142,7 +142,7 @@ typedef void		*(*ThreadMain)(void *parms);
 typedef struct amsevtst
 {
 	long		type;
-	char		value[1];
+	char		value[];  /* C99 flexible array member */
 } AmsEvt;
 
 /*	*	AMS Management Information Base		*	*	*/
