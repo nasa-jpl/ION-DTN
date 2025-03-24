@@ -1909,10 +1909,11 @@ static void	enqueueRegistrarStop(RsState *rsState)
 {
 	AmsEvt	*evt;
 
-	evt = (AmsEvt *) MTAKE(2);
+	evt = (AmsEvt *) MTAKE(sizeof(AmsEvt));
 	CHKVOID(evt);
+
+	memset(evt, 0, sizeof(AmsEvt));
 	evt->type = RS_STOP_EVT;
-	evt->value[0] = '\0';
 	if (enqueueMamsEvent(rsState->rsEventsCV, evt, NULL, 0))
 	{
 		putErrmsg("Can't enqueue registrar stop.", NULL);
