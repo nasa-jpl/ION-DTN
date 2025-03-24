@@ -3,12 +3,12 @@ name: Create Release
 on:
   push:
     tags:
-      - 'ion-open-source-[0-9]+.[0-9]+.[0-9]+*'  # Matches ion-open-source-x.y.z followed by anything
-  workflow_dispatch:  # Allows manual triggering via GitHub UI
+      - 'ion-open-source-[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to build (e.g., v1.0)'
-        required: true  # Ensures a tag is provided when manually triggered
+        description: 'Tag to build (e.g., ion-open-source-1.2.3)'
+        required: true
 
 jobs:
   build:
@@ -17,21 +17,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}  # Uses manual tag if provided, otherwise the pushed tag
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y autoconf automake
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool
       - name: Generate configure script
         run: |
           aclocal
+          libtoolize --copy --force
+          autoheader
           autoconf
           automake --add-missing
       - name: Create distribution tarball
         run: |
           ./configure
           make dist
+      - name: Verify tarball contents
+        run: |
+          tar -tzf *.tar.gz | grep configure || (echo "Error: configure script not found in tarball" && exit 1)
       - name: Upload release artifact
         uses: softprops/action-gh-release@v1
         with:
-          files: "*.tar.gz"  # Uploads the generated tarball (e.g., project-1.0.tar.gz)
+          files: "*.tar.gz"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
