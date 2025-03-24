@@ -1216,17 +1216,17 @@ libbp_la_SOURCES = \
 	bpv6/library/ext/sbsp/profiles.c \
 	bpv6/library/ext/snid/snid.c \
 	bpv6/library/ext/snw/snw.c \
-	bpv6/library/ext/cgrr/cgrr.h \
-	bpv6/library/ext/cgrr/cgrr.c \
-	bpv6/library/ext/cgrr/cgrr_utils.h \
-	bpv6/library/ext/cgrr/cgrr_utils.c \
-	bpv6/library/ext/cgrr/cgrr_help.h \
-	bpv6/library/ext/cgrr/cgrr_msr_utils.h \
-	bpv6/library/ext/cgrr/cgrr_msr_utils.c \
-	bpv6/library/ext/rgr/rgr.h \
-	bpv6/library/ext/rgr/rgr.c \
-	bpv6/library/ext/rgr/rgr_utils.h \
-	bpv6/library/ext/rgr/rgr_utils.c \
+	# bpv6/library/ext/cgrr/cgrr.h \
+	# bpv6/library/ext/cgrr/cgrr.c \
+	# bpv6/library/ext/cgrr/cgrr_utils.h \
+	# bpv6/library/ext/cgrr/cgrr_utils.c \
+	# bpv6/library/ext/cgrr/cgrr_help.h \
+	# bpv6/library/ext/cgrr/cgrr_msr_utils.h \
+	# bpv6/library/ext/cgrr/cgrr_msr_utils.c \
+	# bpv6/library/ext/rgr/rgr.h \
+	# bpv6/library/ext/rgr/rgr.c \
+	# bpv6/library/ext/rgr/rgr_utils.h \
+	# bpv6/library/ext/rgr/rgr_utils.c \
 	ici/libbloom-master/bloom.h \
 	ici/libbloom-master/bloom.c \
 	ici/libbloom-master/murmur2/MurmurHash2.c
