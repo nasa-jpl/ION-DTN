@@ -363,16 +363,24 @@ AC_ARG_ENABLE(
     unibo-cgr,
     [AC_HELP_STRING([--enable-unibo-cgr], [enable University of Bologna CGR])],
     [if test "$BUILD_BPv7" == "true" ; then
-	UNIBO_CGR=yes
-	AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])
-	echo "Building ION with UniBo CGR code"
+        # Check if bpv7/cgr/Unibo-CGR directory exists and is non-empty
+        AC_MSG_CHECKING([for Unibo-CGR directory under bpv7/cgr])
+        if test -d "$srcdir/bpv7/cgr/Unibo-CGR" && ls "$srcdir/bpv7/cgr/Unibo-CGR"/* >/dev/null 2>&1; then
+            AC_MSG_RESULT([yes])
+            UNIBO_CGR=yes
+            AC_DEFINE([UNIBO_CGR],[1],[Define to 1 to build Unibo-CGR])
+            echo "Building ION with UniBo CGR code"
+        else
+            AC_MSG_RESULT([no])
+            AC_MSG_ERROR([Unibo-CGR is not installed, please see the unibo-cgr module under /contrib folder for installation instructions.])
+        fi
      else
-	echo "ERROR: UniBo CGR is not available with BP version 6"
-	AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])
-	exit 1
+        echo "ERROR: UniBo CGR is not available with BP version 6"
+        AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])
+        exit 1
      fi],
     [UNIBO_CGR=no
-	AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])])
+     AC_DEFINE([UNIBO_CGR],[0],[Define to 1 to build Unibo-CGR])])
 AM_CONDITIONAL(UNIBO_CGR, test "x$UNIBO_CGR" = "xyes")
 
 #
