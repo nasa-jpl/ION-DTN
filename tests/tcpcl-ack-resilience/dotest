@@ -1,8 +1,66 @@
 #!/usr/bin/env bash
 # Derived from James Swaro's test, April 25, 2012
-# Revised on 2/12/2025
+# Revised on 3/24/2025
+# Updated for Oracle Linux/RHEL detection and firewall handling
 
-# Timed check for sudo priveleges
+# Function to detect OS and set firewall type
+detect_os_and_firewall() {
+    if [ -f /etc/os-release ]; then
+        source /etc/os-release
+        if [ "$ID" = "ol" ] && grep -q "Oracle Linux" /etc/os-release; then
+            DISTRO="Oracle Linux"
+            FIREWALL="firewalld"
+            echo "Detected $DISTRO $VERSION_ID"
+            if ! systemctl is-active firewalld >/dev/null 2>&1; then
+                echo "firewalld not active, starting it..."
+                sudo systemctl start firewalld
+            fi
+        elif [ "$ID" = "rhel" ]; then
+            DISTRO="RHEL"
+            FIREWALL="firewalld"
+            echo "Detected $DISTRO $VERSION_ID"
+            if ! systemctl is-active firewalld >/dev/null 2>&1; then
+                echo "firewalld not active, starting it..."
+                sudo systemctl start firewalld
+            fi
+        else
+            DISTRO="Unknown"
+            FIREWALL="iptables"
+            echo "Unknown OS ($NAME), defaulting to iptables"
+        fi
+    else
+        DISTRO="Unknown"
+        FIREWALL="iptables"
+        echo "No /etc/os-release found, defaulting to iptables"
+    fi
+}
+
+# block traffic
+block_traffic() {
+    if [ "$FIREWALL" = "firewalld" ]; then
+        echo "Blocking traffic with firewalld..."
+        sudo firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $SENDER_PORT -j DROP
+        sudo firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $RECEIVER_PORT -j DROP
+    else
+        echo "Blocking traffic with iptables..."
+        sudo iptables -A INPUT -i lo -p tcp --destination-port $SENDER_PORT -j DROP
+        sudo iptables -A INPUT -i lo -p tcp --destination-port $RECEIVER_PORT -j DROP
+    fi
+}
+
+# unblock traffic
+unblock_traffic() {
+    if [ "$FIREWALL" = "firewalld" ]; then
+        echo "Unblocking traffic with firewalld..."
+        sudo firewall-cmd --direct --remove-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $SENDER_PORT -j DROP
+        sudo firewall-cmd --direct --remove-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $RECEIVER_PORT -j DROP
+    else
+        echo "Unblocking traffic with iptables..."
+        sudo iptables -F -t filter
+    fi
+}
+
+# Timed check for sudo privileges
 sudo -v &>/dev/null &
 SUDO_PID=$!
 
@@ -24,13 +82,15 @@ if [ "$SUDO_RESULT" -eq 0 ]; then
     echo -e "Sudo privileges confirmed: continuing test.\n"
 else
     echo -e "No sudo privileges or sudo command timed out: skipping test.\n"
-    # pass skip test value
     exit 2
 fi
 
-# Sudo priveledges confirmed, begin test 
+# Sudo privileges confirmed, begin test 
 SENDER_PORT=4555
 RECEIVER_PORT=4556
+
+# Detect OS and set firewall
+detect_os_and_firewall
 
 source ../setacs.sh
 
@@ -39,7 +99,11 @@ killm
 ./cleanup
 
 echo -e "\nRunning sudo commands now..."
-sudo iptables -F -t filter
+if [ "$FIREWALL" = "firewalld" ]; then
+    sudo firewall-cmd --direct --remove-rules ipv4 filter INPUT
+else
+    sudo iptables -F -t filter
+fi
 
 sleep 1
 
@@ -57,9 +121,9 @@ export ION_NODE_LIST_DIR=$PWD
 # Set up node 1
 cd 1.ipn.tcp/
 if [ "$ACS" = "found" ] ; then
-	./ionstart-acs
+    ./ionstart-acs
 else
-	./ionstart
+    ./ionstart
 fi
 ../../../system_up -i "p 30" -b "p 30"
 
@@ -71,9 +135,9 @@ fi
 # Set up node 2
 cd ../2.ipn.tcp/
 if [ "$ACS" = "found" ] ; then
-	./ionstart-acs
+    ./ionstart-acs
 else
-	./ionstart
+    ./ionstart
 fi
 ../../../system_up -i "p 30" -b "p 30"
 
@@ -97,15 +161,14 @@ bpdriver 1000 ipn:1.1 ipn:2.1 -100000 t3600 i10000000 &
 # Allow partial sending of data.
 sleep 1
 
-echo "Blocking traffic..."
-sudo iptables -A INPUT -i lo -p tcp --destination-port $SENDER_PORT -j DROP
-sudo iptables -A INPUT -i lo -p tcp --destination-port $RECEIVER_PORT -j DROP
+# Block traffic using detected firewall
+block_traffic
 
 echo "Waiting for TCP timeout..."
 sleep 5m
 
-echo "Unblocking traffic..."
-sudo iptables -F -t filter
+# Unblock traffic using detected firewall
+unblock_traffic
 
 echo "Waiting for send to finish..."
 sleep 3m
@@ -113,10 +176,10 @@ sleep 3m
 # Verify that transfer completed, e.g., bpcounter ended.
 cd ../2.ipn.tcp
 if kill -0 $counter_pid > /dev/null 2>&1; then
-    echo "bpcounter ($pid) is still running."
+    echo "bpcounter ($counter_pid) is still running."
     RETVAL=1
 else
-    echo "bpvounter ($pid) has completed."
+    echo "bpcounter ($counter_pid) has completed."
     RETVAL=0
 fi
 
