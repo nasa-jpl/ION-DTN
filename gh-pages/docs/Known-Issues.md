@@ -36,6 +36,10 @@ ION handles routing based on the following general hierarchy:
 
 * ION implementation currently default will apply CRC16 to Primary Block but not the Payload Block. To apply CRC to the Payload Block, a compiler flag needs to be set when building ION. There are currently no mechanism to dynamically turn on/turn off CRC without recompiling ION.
 
+## Contributed Code
+
+* Under the /contrib folder, you will find experimental features from the community that are ION-compatible. They are externally maintained and the ION team will report errors on a best effort basis to the external developers. However, we rely on the community authors to maintain their code and keep it compatible with each ION release. For installation and usage of these extended capabilities, please consult the documentations provided within each subfolder/submodule.
+
 ## Testing & Configuration
 
 * When developing and testing ION in a docker container with root permission while mounting to ION code residing in a user's directory on the host machine, file ownership may switch from user to `root`. This sometimes leads to build and test errors when one switches back to the host's development and testing environment. Therefore, we recommend that you execute the `make clean` and `git stash` command to remove all build and testing artifacts from ION 's source directory before exiting the container.
