@@ -1,0 +1,3 @@
+[submodule "contrib/unibo-cgr"]
+	path = contrib/unibo-cgr
+	url = https://gitlab.com/unibo-dtn/unibo-cgr
