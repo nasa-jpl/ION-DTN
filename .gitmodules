@@ -1,3 +1,6 @@
 [submodule "contrib/unibo-cgr"]
 	path = contrib/unibo-cgr
 	url = https://gitlab.com/unibo-dtn/unibo-cgr
+[submodule "contrib/dtnsuite"]
+	path = contrib/dtnsuite
+	url = https://gitlab.com/dtnsuite/unified_api
