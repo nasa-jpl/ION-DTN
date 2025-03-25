@@ -7,40 +7,29 @@
 detect_os_and_firewall() {
     if [ -f /etc/os-release ]; then
         source /etc/os-release
-        if [ "$ID" = "ol" ] && grep -q "Oracle Linux" /etc/os-release; then
-            DISTRO="Oracle Linux"
-            FIREWALL="firewalld"
+        if [ "$ID" = "ol" ] || [ "$ID" = "rhel" ]; then
+            DISTRO="$NAME"
             echo "Detected $DISTRO $VERSION_ID"
-            if ! systemctl is-active firewalld >/dev/null 2>&1; then
-                echo "firewalld not active, starting it..."
-                sudo systemctl start firewalld
-            fi
-        elif [ "$ID" = "rhel" ]; then
-            DISTRO="RHEL"
-            FIREWALL="firewalld"
-            echo "Detected $DISTRO $VERSION_ID"
-            if ! systemctl is-active firewalld >/dev/null 2>&1; then
-                echo "firewalld not active, starting it..."
-                sudo systemctl start firewalld
-            fi
+            FIREWALL="nftables"
         else
             DISTRO="Unknown"
+            echo "Unknown OS ($NAME)"
             FIREWALL="iptables"
-            echo "Unknown OS ($NAME), defaulting to iptables"
         fi
     else
         DISTRO="Unknown"
         FIREWALL="iptables"
-        echo "No /etc/os-release found, defaulting to iptables"
     fi
 }
 
-# block traffic
+# Function to block traffic
 block_traffic() {
-    if [ "$FIREWALL" = "firewalld" ]; then
-        echo "Blocking traffic with firewalld..."
-        sudo firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $SENDER_PORT -j DROP
-        sudo firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $RECEIVER_PORT -j DROP
+    if [ "$FIREWALL" = "nftables" ]; then
+        echo "Blocking traffic with nftables..."
+        sudo nft add table inet filter
+        sudo nft add chain inet filter input { type filter hook input priority 0 \; policy accept \; }
+        sudo nft add rule inet filter input iif lo tcp dport $SENDER_PORT drop
+        sudo nft add rule inet filter input iif lo tcp dport $RECEIVER_PORT drop
     else
         echo "Blocking traffic with iptables..."
         sudo iptables -A INPUT -i lo -p tcp --destination-port $SENDER_PORT -j DROP
@@ -48,12 +37,11 @@ block_traffic() {
     fi
 }
 
-# unblock traffic
+# Function to unblock traffic
 unblock_traffic() {
-    if [ "$FIREWALL" = "firewalld" ]; then
-        echo "Unblocking traffic with firewalld..."
-        sudo firewall-cmd --direct --remove-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $SENDER_PORT -j DROP
-        sudo firewall-cmd --direct --remove-rule ipv4 filter INPUT 0 -i lo -p tcp --dport $RECEIVER_PORT -j DROP
+    if [ "$FIREWALL" = "nftables" ]; then
+        echo "Unblocking traffic with nftables..."
+        sudo nft flush ruleset
     else
         echo "Unblocking traffic with iptables..."
         sudo iptables -F -t filter
@@ -99,8 +87,8 @@ killm
 ./cleanup
 
 echo -e "\nRunning sudo commands now..."
-if [ "$FIREWALL" = "firewalld" ]; then
-    sudo firewall-cmd --direct --remove-rules ipv4 filter INPUT
+if [ "$FIREWALL" = "nftables" ]; then
+    sudo nft flush ruleset
 else
     sudo iptables -F -t filter
 fi
