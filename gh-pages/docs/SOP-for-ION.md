@@ -404,13 +404,13 @@ The *ion.log* file's permission needs to be modified in a shared environment, ot
 
 ## Multicast Best Practices
 
-Multicast can be beneifical in reducing bandwidth utilization when a bundle's ADU must be delivered to multiple locations, but there are a few considerations to ensure it operates correctly.
+Multicast can be benefical in reducing bandwidth utilization when a bundle's ADU must be delivered to multiple locations, but there are a few considerations to ensure it operates correctly.
 
-  - Defining the IMC forwarder scheme (`a scheme`) should occur in the same place as the IPN forwarder as it has been found to cause issues if the scheme is added elsewhere
-  - IMC endpoint definitions should occur after IPN endpoints are defined as multicast messages still originate from IPN endpoints
-  - IMC endpoints only have 0 as the service number except for the group associated with the contact plan syncing daemon (`cpsd`) which is `imc:0.1`
-  - To ensure all multicast group members get membership broadcasts it is recommended intermediate nodes have multicast enabled first followed by end nodes
-  - When disabling multicast it is recommended to first delete the multicast endpoints so other members in the group know they have left, otherwise the member will not be recognized when multicast is re-enabled
+- Defining the IMC forwarder scheme (`a scheme`) should occur in the same place as the IPN forwarder as it has been found to cause issues if the scheme is added elsewhere
+- IMC endpoint definitions should occur after IPN endpoints are defined as multicast messages still originate from IPN endpoints
+- IMC endpoints only have 0 as the service number except for the group associated with the contact plan syncing daemon (`cpsd`), `imc:0.1`
+- To ensure all multicast group members get membership broadcasts it is recommended intermediate nodes have multicast enabled first followed by end nodes
+- When disabling multicast it is recommended to first delete the multicast endpoints so other members in the group know they have left, otherwise the member will not be recognized when multicast is re-enabled
 
 ## Appendix
 
