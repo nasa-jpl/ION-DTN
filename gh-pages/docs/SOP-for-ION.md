@@ -1,14 +1,15 @@
 # Standard Operating Procedure Handbook for the Interplanetary Overlay Network (ION) Bundle Protocol Suite
 
-Date: 2024-07-08
+Date: 2025-03-27
 
-Version: 0
+Version: 1
 
 ## Revision History
 
 | Version | Date      | Applicable ION Version | Change Description |
 | ------- | --------- | ---------------------- | ------------------ |
 | 0       | 6/26/2024 | 4.1.3                  | Initial draft      |
+| 1       | 3/27/2025 | 4.1.4                  | Multicast addition |
 
 ## Contributors
 
