@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # remove_unibo_cgr_from_ion.sh
 #
@@ -43,8 +43,12 @@ rm -rf "$ION_BPV7/cgr/Unibo-CGR"
 # Remove auxiliary file (Makefile.am) from ION root
 echo "Removing $ION/Makefile.am..."
 rm -f "$ION/Makefile.am"
-echo "Restore original Makefile.am..."
-cp $ION/Makefile.am.bak $ION/Makefile.am 
+echo "Restoring original Makefile.am..."
+if [ -f "$ION/Makefile.am.bak" ]; then
+    cp "$ION/Makefile.am.bak" "$ION/Makefile.am"
+else
+    echo "The original Makefile.am was not restored. You need to restore it manually."
+fi
 
 # Remove extensions (cgrr and rgr) from bpv7 library
 echo "Removing $ION_BPV7/library/ext/cgrr..."

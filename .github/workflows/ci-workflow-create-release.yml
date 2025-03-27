@@ -27,6 +27,10 @@ jobs:
           autoheader
           autoconf
           automake --add-missing
+      - name: Backup Makefile.am  # This is needed when removing Unibo-CGR which modifies Makefile.am
+        run: |
+          cp Makefile.am Makefile.am.bak
+          echo "EXTRA_DIST += Makefile.am.bak" >> Makefile.am
       - name: Create distribution tarball
         run: |
           ./configure
