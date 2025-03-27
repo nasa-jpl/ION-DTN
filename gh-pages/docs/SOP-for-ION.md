@@ -404,7 +404,7 @@ The *ion.log* file's permission needs to be modified in a shared environment, ot
 
 ## Multicast Best Practices
 
-Multicast can be benefical in reducing bandwidth utilization when a bundle's ADU must be delivered to multiple locations, but there are a few considerations to ensure it operates correctly.
+Multicast can be beneficial in reducing bandwidth utilization when a bundle's ADU must be delivered to multiple locations, but there are a few considerations to ensure it operates correctly.
 
 - Defining the IMC forwarder scheme (`a scheme`) should occur in the same place as the IPN forwarder as it has been found to cause issues if the scheme is added elsewhere
 - IMC endpoint definitions should occur after IPN endpoints are defined as multicast messages still originate from IPN endpoints
