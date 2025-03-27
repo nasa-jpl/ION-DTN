@@ -50,6 +50,7 @@ Version: 0
     - [Permissions](#permissions)
       - [Configuration Files](#configuration-files)
       - [Log File(s)](#log-files)
+  - [Multicast Best Practices](#multicast-best-practices)
   - [Appendix](#appendix)
     - [ION Shared Memory KEY](#ion-shared-memory-key)
       - [Shared Memory Segments](#shared-memory-segments)
@@ -399,6 +400,16 @@ As mentioned before, ION config files should be in a central location so the fil
 #### Log File(s)
 
 The *ion.log* file's permission needs to be modified in a shared environment, otherwise certain executables will show an error. Setting the permission to `0664` will fix any errors. This will add the group write permission, so approved users can have executable messages logged. It is not recommended in a shared environment, but if ION is running with the SDR in file there is another log file that needs to have its permissions updated, `/tmp/ion.sdrlog`. It also needs to be allowed to have group write permission, ordinal `0664`.
+
+## Multicast Best Practices
+
+Multicast can be beneifical in reducing bandwidth utilization when a bundle's ADU must be delivered to multiple locations, but there are a few considerations to ensure it operates correctly.
+
+  - Defining the IMC forwarder scheme (`a scheme`) should occur in the same place as the IPN forwarder as it has been found to cause issues if the scheme is added elsewhere
+  - IMC endpoint definitions should occur after IPN endpoints are defined as multicast messages still originate from IPN endpoints
+  - IMC endpoints only have 0 as the service number except for the group associated with the contact plan syncing daemon (`cpsd`) which is `imc:0.1`
+  - To ensure all multicast group members get membership broadcasts it is recommended intermediate nodes have multicast enabled first followed by end nodes
+  - When disabling multicast it is recommended to first delete the multicast endpoints so other members in the group know they have left, otherwise the member will not be recognized when multicast is re-enabled
 
 ## Appendix
 
