@@ -1,6 +1,9 @@
 name: Regression Tests for ION on RPiOS RPi5
 
 on:
+  push:
+    branches:
+      - 'update-4.1.4-add-rpi5-workflow'
   workflow_dispatch:
     inputs:
       tests_to_run:
