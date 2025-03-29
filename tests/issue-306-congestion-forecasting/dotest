@@ -66,7 +66,8 @@ echo "Initial state: no horizon, but huge capacity (default), growth rate zero."
 sleep 10
 
 COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
-if [ "$COUNT" -eq 1 ]
+# we expect two message because ionadmin ran twice already.
+if [ "$COUNT" -eq 2 ]
 then
 	echo "OK: no congestion in initial configuration."
 else
@@ -80,7 +81,7 @@ ionadmin config2
 sleep 10
 
 COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
-if [ "$COUNT" -eq 2 ]
+if [ "$COUNT" -eq 3 ]
 then
 	echo "OK: still no congestion."
 else
@@ -107,7 +108,7 @@ echo "So we resolve the congestion by limiting the horizon (to current time)."
 ionadmin config4
 sleep 10
 
-COUNT=`grep "No congestion collapse predicted" ion.log | wc -l`
+COUNT=`grep "No congestion forecast; horizon reached." ion.log | wc -l`
 if [ "$COUNT" -eq 3 ]
 then
 	echo "OK: congestion occurs after horizon of forecast."
