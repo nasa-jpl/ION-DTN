@@ -506,20 +506,14 @@ int	main(int argc, char *argv[])
 	ionNoteMainThread("ltpcli");
 	isignal(SIGTERM, interruptThread);
 
-	/*	Start the receiver thread.				*/
-
-	rtp.vduct = vduct;
-
 	/* Initialize rtp mutex */
-
-	/*
-	*    Initialize and use mutex so we can safely update 
-	*    rtp.running in both threads without data races.
-	*/
+	
 	memset(&rtp, 0, sizeof(rtp));
-	pthread_mutex_init(&rtp.lock, NULL); 
+	pthread_mutex_init(&rtp.lock, NULL);
 
-	/* Lock not needed here (thread not started yet) */
+	/*	Start the receiver thread.				*/
+	
+	rtp.vduct = vduct;
 	rtp.running = 1;
 
 	if (pthread_begin(&receiverThread, NULL, handleNotices, &rtp, ductName))
