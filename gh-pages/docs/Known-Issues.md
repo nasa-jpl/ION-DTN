@@ -86,6 +86,10 @@ at line 216 of ici/utils/ionadmin.c, ionadmin can't initialize ION.
 
 It indicates that ION is unable to clean out previously left behind semaphore files. This typically occurs when the previous ION run was launched by a different user, and ION was not properly shutdown via a shutdown script - instead, the global `ionstop` or `killm` script was used. The semaphore files used by POSIX named semaphore typically only allows the owner to delete it. The work around is to clear these files out. ION-related semaphore files have the name pattern of `sem.ion:GLOBAL:<integer>`. For Ubuntu, it is usually found in the `/dev/shm` directory; for other Linux distribution, the location can be different.
 
+### POSIX Named Semaphore not working properly on FreeBSD
+
+As of ION 4.1.3s, FreeBSD defaults to SVR4 semaphore while almost all other platforms defaults to POSIX named semaphore. It is possible to use configure flag `--forced-posix-named-semaphores` to build but test indicates issues with semaphore operations.
+
 ## Reporting Issues
 
 * ION related issues can be reported to the public GitHub page for ION-DTN or ion-core.

@@ -448,7 +448,7 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #ifndef ION4WIN			/*	None of these apply in VS.	*/
 
-#define POSIX_NAMED_SEMAPHORE		/****	default			*********/
+#define POSIX_NAMED_SEMAPHORES		/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
 #define	UNIX_TASKS		/****	default			*********/
 
@@ -757,6 +757,12 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 
 #define	O_LARGEFILE	0
 
+/* semaphore options */
+/* POSIX_NAMED_SEMAPHORES is the default on FreeBSD */
+#undef  POSIX_SEMAPHORES
+#undef  POSIX_NAMED_SEMAPHORES
+#define  SVR4_SEMAPHORES
+
 #endif				/****	End of #ifdef freebsd	     ****/
 
 
@@ -795,7 +801,7 @@ int pthread_set_name_np(pthread_t thread, const char *name);
 #ifndef SEM_NSEMS_MAX
 // larger because these are global on the node across ALL Ion instances - 256 is fine for a single instance
 #define	SEM_NSEMS_MAX		2048
-#endif
+#endif  			 
 
 int pthread_setname_np(const char *name);
 

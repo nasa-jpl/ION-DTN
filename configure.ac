@@ -104,15 +104,15 @@ case $host_os in
 		PLATFORM="linux"
 		if test $host_cpu = "x86_64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
-			AM_CFLAGS="$AM_CFLAGS -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
 			echo "Build 64-bit Linux specific platform code."
 		elif test $host_cpu = "aarch64" ; then
 			AC_DEFINE([linux],[1],[Build 64-bit Linux specific platform code.])
-			AM_CFLAGS="$AM_CFLAGS -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -DSPACE_ORDER=3 -fno-strict-aliasing"
 			echo "Build 64-bit Linux specific platform code."
 		else
 			AC_DEFINE([linux],[1],[Build 32-bit Linux specific platform code.])
-			AM_CFLAGS="$AM_CFLAGS -Dlinux -fno-strict-aliasing"
+			AM_CFLAGS="$AM_CFLAGS -Dunix -Dlinux -fno-strict-aliasing"
 			echo "Build 32-bit Linux specific platform code."
 		fi
 		#check for DCCP support
@@ -135,11 +135,11 @@ case $host_os in
 		PLATFORM="bsd"
 		case $host_cpu in
 			x86_64|amd64)
-				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dfreebsd -DSPACE_ORDER=3 -m64 "
+				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=3 -m64 "
 				echo "Build 64-bit Freebsd specific platform code."
 				;;
 			*)
-				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dfreebsd -DSPACE_ORDER=2 -m32 "
+				AM_CFLAGS="$AM_CFLAGS -D__BSD_VISIBLE -Dunix -Dfreebsd -DSPACE_ORDER=2 -m32 "
 				echo "Build 32-bit Freebsd specific platform code."
 				;;
 		esac
