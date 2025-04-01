@@ -474,7 +474,7 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (bpAttach() < 0)
+	if (ipnInit() < 0)
 	{
 		putErrmsg("bpclm can't initialize IPN scheme.", NULL);
 		return -1;
