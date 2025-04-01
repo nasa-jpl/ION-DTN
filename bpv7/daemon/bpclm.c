@@ -10,6 +10,7 @@
 	acknowledged.
 									*/
 #include "bpP.h"
+#include "ipnfw.h"
 
 /* for enhanced watch character
  * #define EWCHAR */
@@ -288,6 +289,8 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 			int classReqd, ClProtocol *protocol, Outduct *outduct)
 {
 	Sdr		sdr = getIonsdr();
+	Object		ovrdAddr;
+	IpnOverride	ovrd;
 	char		outductExpression[SDRSTRING_BUFSZ];
 	char		*cursor;
 	char		protocolNameBuf[MAX_CL_PROTOCOL_NAME_LEN + 1];
@@ -297,30 +300,54 @@ static int	outductSelected(BpPlan *plan, Object planObj, Bundle *bundle,
 	Object		outductElt;
 	Object		outductObj;
 
-	if (bundle->ovrdDuctExpr)	/*	E.g., coerce to BIBE.	*/
+	if (bundle->ovrdNeighbor)	/*	Routing override.	*/
 	{
-		if (sdr_string_read(sdr, outductExpression,
-				bundle->ovrdDuctExpr) < 0)
+		if (ipn_lookupOvrd(bundle->ancillaryData.dataLabel,
+			bundle->destination.ssp.ipn.nodeNbr,
+			bundle->id.source.ssp.ipn.nodeNbr, &ovrdAddr) == 0)
 		{
-			putErrmsg("Unreadable override outduct expression",
-					itoa(bundle->ovrdDuctExpr));
+			writeMemo("[?] Routing override removed, bundle must \
+be redirected.");
+			bundle->ovrdNeighbor = 0;
 			return 0;
 		}
 
-		cursor = strchr(outductExpression, '/');
-		if (cursor == NULL)
+		sdr_read(sdr, (char *) &ovrd, ovrdAddr, sizeof(IpnOverride));
+		if (ovrd.neighbor != bundle->ovrdNeighbor)
 		{
-			writeMemoNote("[?] Invalid override outduct expression",
-					outductExpression);
+			writeMemo("[?] Routing override changed, bundle must \
+be redirected.");
+			bundle->ovrdNeighbor = ovrd.neighbor;
 			return 0;
 		}
 
-		*cursor = '\0';
-		istrcpy(protocolNameBuf, outductExpression,
-				sizeof(protocolNameBuf));
-		*cursor = '/';
-		protocolName = protocolNameBuf;
-		ductName = cursor + 1;
+		if (ovrd.ductExpression)
+		{
+			/*      E.g., coerce to BIBE.           	*/
+
+			if (sdr_string_read(sdr, outductExpression,
+					ovrd.ductExpression) < 0)
+			{
+				putErrmsg("Unreadable override outduct \
+expression", itoa(ovrd.ductExpression));
+				return 0;
+			}
+
+			cursor = strchr(outductExpression, '/');
+			if (cursor == NULL)
+			{
+				writeMemoNote("[?] Invalid override outduct \
+expression", outductExpression);
+				return 0;
+			}
+
+			*cursor = '\0';
+			istrcpy(protocolNameBuf, outductExpression,
+					sizeof(protocolNameBuf));
+			*cursor = '/';
+			protocolName = protocolNameBuf;
+			ductName = cursor + 1;
+		}
 	}
 
 	/*	Examine all outducts for this egress plan and
@@ -444,6 +471,12 @@ int	main(int argc, char *argv[])
 	if (bpAttach() < 0)
 	{
 		putErrmsg("bpclm can't attach to BP.", NULL);
+		return -1;
+	}
+
+	if (bpAttach() < 0)
+	{
+		putErrmsg("bpclm can't initialize IPN scheme.", NULL);
 		return -1;
 	}
 
