@@ -1326,24 +1326,6 @@ int	main(int argc, char *argv[])
 			if (ovrd.neighbor)
 			{
 				bundle.ovrdNeighbor = ovrd.neighbor;
-				if (bundle.ovrdDuctExpr)
-				{
-					sdr_free(sdr, bundle.ovrdDuctExpr);
-					bundle.ovrdDuctExpr = 0;
-				}
-
-				if (ovrd.ductExpression)
-				{
-					bundle.ovrdDuctExpr =
-							sdr_string_dup(sdr,
-							ovrd.ductExpression);
-					if (bundle.ovrdDuctExpr == 0)
-					{
-						putErrmsg("Can't copy override \
-duct expression.", NULL);
-						return -1;
-					}
-				}
 			}
 		}
 
