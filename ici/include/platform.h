@@ -448,7 +448,7 @@ oK(_isprintf(buffer, bufsize, format, __VA_ARGS__))
 
 #ifndef ION4WIN			/*	None of these apply in VS.	*/
 
-#define SVR4_SEMAPHORES		/****	default			*********/
+#define POSIX_NAMED_SEMAPHORE		/****	default			*********/
 #define SVR4_SHM		/****	default			*********/
 #define	UNIX_TASKS		/****	default			*********/
 
