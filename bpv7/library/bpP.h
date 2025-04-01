@@ -389,14 +389,12 @@ typedef struct
 	char		altered;	/*	Boolean.		*/
 	char		anonymous;	/*	Boolean.		*/
 	char		fragmented;	/*	Boolean.		*/
-	char		ovrdPending;	/*	Boolean.		*/
 	int		dbOverhead;	/*	SDR bytes occupied.	*/
 	ZcoAcct		acct;		/*	Inbound or Outbound.	*/
 	BpStatusRpt	statusRpt;	/*	For response per SRRs.	*/
 	ClDossier	clDossier;	/*	Processing hints.	*/
 	Object		stations;	/*	Stack of EIDs (route).	*/
 	uvast		ovrdNeighbor;	/*	Node number.		*/
-	Object		ovrdDuctExpr;	/*	protocol/ductName.	*/
 
 	/*	Stuff for opportunistic forwarding.  A "copy" is the
 	 *	ID of a node to which CGR has decided to forward a

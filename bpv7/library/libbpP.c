@@ -3058,11 +3058,6 @@ incomplete bundle.", NULL);
 	 *	free space occupied by the bundle itself.		*/
 
 	eraseEid(&bundle.clDossier.senderEid);
-	if (bundle.ovrdDuctExpr)
-	{
-		sdr_free(sdr, bundle.ovrdDuctExpr);
-	}
-
 	if (bundle.destinations)	/*	For IMC multicast.	*/
 	{
 		sdr_list_destroy(sdr, bundle.destinations, NULL, NULL);
@@ -3078,10 +3073,17 @@ incomplete bundle.", NULL);
 	eraseEid(&bundle.id.source);
 	eraseEid(&bundle.destination);
 	eraseEid(&bundle.reportTo);
-	sdr_free(sdr, bundleObj);
 	bpDiscardTally(bundle.classOfService, bundle.payload.length);
 	bpDbTally(BP_DB_DISCARD, bundle.payload.length);
 	noteBundleRemoved(&bundle);
+	
+	/*	Guard against old bundle address being used to
+	 *	read destroyed bundle's state before it has been
+	 *	overwritten.						*/
+
+	memset((char *) &bundle, 0, sizeof(Bundle));
+	sdr_write(sdr, bundleObj, (char *) &bundle, sizeof(Bundle));
+	sdr_free(sdr, bundleObj);
 	return 0;
 }
 
