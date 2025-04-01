@@ -5,13 +5,14 @@
     - [Build ION 4.1.3 (and earlier versions) without actual cipher suite](#build-ion-413-and-earlier-versions-without-actual-cipher-suite)
     - [Build ION 4.1.3s (and later version) with interface to actual cipher suite](#build-ion-413s-and-later-version-with-interface-to-actual-cipher-suite)
       - [Building ION to use the MBEDTLS cipher suite](#building-ion-to-use-the-mbedtls-cipher-suite)
+    - [MAC and FreeBSD](#mac-and-freebsd)
     - [Adding Other Compile Time Switches](#adding-other-compile-time-switches)
     - [BPSec Logging](#bpsec-logging)
     - [Alternative Build Methods without Automake](#alternative-build-methods-without-automake)
       - [Method 1: Using Development Makefiles](#method-1-using-development-makefiles)
         - [Build Individual Packages](#build-individual-packages)
       - [Method 2: Using the ion-core Package](#method-2-using-the-ion-core-package)
-  - [Windows](#windows)
+  - [Windows 7 \& Windows 10](#windows-7--windows-10)
   - [Running ION](#running-ion)
     - [Check Installed BP and ION versions](#check-installed-bp-and-ion-versions)
     - [Try the 'bping' test](#try-the-bping-test)
@@ -96,8 +97,6 @@ Then update the shared library cache of the linker:
 
 `sudo ldconfig`
 
-For MacOS, the `ldconfig` command is not present and not necessary.
-
 ### Build ION 4.1.3s (and later version) with interface to actual cipher suite
 
 If you are not planning to use BPSec's interface to the MBEDTLS cipher suite, you can simply follow the build instruction for ION 4.1.3.
@@ -137,6 +136,12 @@ To clean up compilation artifacts such as object files and shared libraries stor
 To remove executables and shared libraries installed in the system, run:
 
 `sudo make uninstall`
+
+### MAC and FreeBSD
+
+For MacOS, the `ldconfig` command is not present and not necessary.
+
+For MacOS and FreeBSD, prior to building ION, you should check whether there is sufficient system resource to run ION by running the `sysctl_script.sh` script in ION's root directory.
 
 ### Adding Other Compile Time Switches
 
