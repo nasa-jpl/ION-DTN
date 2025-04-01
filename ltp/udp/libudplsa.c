@@ -72,18 +72,18 @@ void	*udplsa_handle_datagrams(void *parm)
 	 *	down the daemon.					*/
 
 	 
-	 while (1)
-	 {
+	while (1)
+	{
 		int keepRunning;
 
-		 pthread_mutex_lock(&rtp->lock);
-		 keepRunning = rtp->running;
-		 pthread_mutex_unlock(&rtp->lock);
- 
-		 if (!keepRunning)
-		 {
-			 break;  // exit the thread's loop
-		 }
+		pthread_mutex_lock(&rtp->lock);
+		keepRunning = rtp->running;
+		pthread_mutex_unlock(&rtp->lock);
+
+		if (!keepRunning)
+		{
+			break;  // exit the thread's loop
+		}
 
 		batchLength = recvmmsg(rtp->linkSocket, msgs,
 				MULTIRECV_BUFFER_COUNT, MSG_WAITFORONE, NULL);
@@ -93,9 +93,9 @@ void	*udplsa_handle_datagrams(void *parm)
 			putSysErrmsg("Can't acquire segments", NULL);
 			ionKillMainThread(procName);
 
-			pthread_mutex_lock(&rtp.lock);
-			rtp.running = 0;
-			pthread_mutex_unlock(&rtp.lock);
+			pthread_mutex_lock(&rtp->lock);
+			rtp->running = 0;
+			pthread_mutex_unlock(&rtp->lock);
 
 			/*	Intentional fall-through to next case.	*/
 
@@ -111,9 +111,9 @@ void	*udplsa_handle_datagrams(void *parm)
 			{
 				/*	Normal stop.			*/
 
-				pthread_mutex_lock(&rtp.lock);
-				rtp.running = 0;
-				pthread_mutex_unlock(&rtp.lock);
+				pthread_mutex_lock(&rtp->lock);
+				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 				break;
 			}
 
@@ -123,9 +123,9 @@ void	*udplsa_handle_datagrams(void *parm)
 						NULL);
 				ionKillMainThread(procName);
 
-				pthread_mutex_lock(&rtp.lock);
-				rtp.running = 0;
-				pthread_mutex_unlock(&rtp.lock);
+				pthread_mutex_lock(&rtp->lock);
+				rtp->running = 0;
+				pthread_mutex_unlock(&rtp->lock);
 				break;
 			}
 
@@ -161,18 +161,18 @@ void	*udplsa_handle_datagrams(void *parm)
 
 	 
 
-	 while (1)
-	 {	 
+	while (1)
+	{	 
 		int keepRunning;
 
-		 pthread_mutex_lock(&rtp->lock);
-		 keepRunning = rtp->running;
-		 pthread_mutex_unlock(&rtp->lock);
-	 
-		 if (!keepRunning)
-		 {
-			 break;
-		 }
+		pthread_mutex_lock(&rtp->lock);
+		keepRunning = rtp->running;
+		pthread_mutex_unlock(&rtp->lock);
+
+		if (!keepRunning)
+		{
+			break;
+		}
 
 		fromSize = sizeof fromAddr;
 		segmentLength = irecvfrom(rtp->linkSocket, buffer, UDPLSA_BUFSZ,

@@ -81,11 +81,8 @@ int	main(int argc, char *argv[])
 		}
 	}
 
-	/*
-	*    Initialize and use mutex so we can safely update 
-	*    rtp.running in both threads without data races.
-	*/
-	memset(&rtp, 0, sizeof(rtp));
+	/* Initialize the mutex.  */
+
 	pthread_mutex_init(&rtp.lock, NULL); 
 
 	if (portNbr == 0)

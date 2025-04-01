@@ -270,18 +270,18 @@ static void	*handleNotices(void *parm)
 	/*	Can now start receiving notices.  On failure, take
 	 *	down the CLI.						*/
 
-	 while (1)
-	 {
+	while (1)
+	{
 		int keepRunning;
 
-		 pthread_mutex_lock(&rtp->lock);
-		 keepRunning = rtp->running;
-		 pthread_mutex_unlock(&rtp->lock);
-	 
-		 if (!keepRunning)
-		 {
-			 break;
-		 }
+		pthread_mutex_lock(&rtp->lock);
+		keepRunning = rtp->running;
+		pthread_mutex_unlock(&rtp->lock);
+	
+		if (!keepRunning)
+		{
+			break;
+		}
 		 
 		if (ltp_get_notice(BpLtpClientId, &type, &sessionId,
 				&reasonCode, &endOfBlock, &dataOffset,
@@ -464,7 +464,7 @@ int	main(int argc, char *argv[])
 #endif
 	VInduct			*vduct;
 	PsmAddress		vductElt;
-	ltpcli_ReceiverThreadParms	rtp;
+	ltpcli_ReceiverThreadParms	rtp = {0};
 	pthread_t		receiverThread;
 
 	if (ductName == NULL)
@@ -508,7 +508,6 @@ int	main(int argc, char *argv[])
 
 	/* Initialize rtp mutex */
 	
-	memset(&rtp, 0, sizeof(rtp));
 	pthread_mutex_init(&rtp.lock, NULL);
 
 	/*	Start the receiver thread.				*/
