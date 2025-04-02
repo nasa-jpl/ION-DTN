@@ -1,9 +1,10 @@
 name: Regression Tests for ION on Debian Bookworm
 
 on:
-  pull_request:
-    branches:
-      - integration
+#  pull_request:
+#    branches:
+#      - integration
+  workflow_call:
   workflow_dispatch:
     inputs:
       tests_to_run:

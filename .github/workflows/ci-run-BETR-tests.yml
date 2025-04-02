@@ -1,0 +1,20 @@
+name: Run All Best Effort Test and Report (BETR) Supported Platforms Manually
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  debianbookworm:
+    uses: ./.github/workflows/ci-workflow-debianbookworm.yml
+
+  freeBSD14:
+    uses: ./.github/workflows/ci-workflow-freeBSD14.yml
+
+  macos_14_7_arm64:
+    uses: ./.github/workflows/ci-workflow-macos_14_7_arm64.yml
+
+  macos_14_7:
+    uses: ./.github/workflows/ci-workflow-macos_14_7.yml
+
+  rpios:
+    uses: ./.github/workflows/ci-workflow-rpios.yml

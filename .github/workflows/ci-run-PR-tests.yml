@@ -1,0 +1,26 @@
+name: Run All PR Tests Manually
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  ubuntu-latest:
+    uses: ./.github/workflows/ci-workflow-ubuntu.yml
+
+  ubuntu-22:
+    uses: ./.github/workflows/ci-workflow-ubuntu22.yml
+
+  ubuntu-20:
+    uses: ./.github/workflows/ci-workflow-ubuntu20.yml
+
+  rhel9:
+    uses: ./.github/workflows/ci-workflow-rhel9.yml
+
+  rhel8:
+    uses: ./.github/workflows/ci-workflow-rhel8.yml
+    
+  ol9:
+    uses: ./.github/workflows/ci-workflow-ol9.yml
+    
+  ol8:
+    uses: ./.github/workflows/ci-workflow-ol8.yml
