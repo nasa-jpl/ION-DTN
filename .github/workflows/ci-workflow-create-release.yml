@@ -18,8 +18,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
+          
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool pandoc texlive
+      
       - name: Generate configure script
         run: |
           aclocal
@@ -27,17 +29,28 @@ jobs:
           autoheader
           autoconf
           automake --add-missing
-      - name: Backup Makefile.am  # This is needed when removing Unibo-CGR which modifies Makefile.am
+          
+      - name: Backup Makefile.am
         run: |
           cp Makefile.am Makefile.am.bak
           echo "EXTRA_DIST += Makefile.am.bak" >> Makefile.am
+          
+      - name: Convert ION-Guide.md to PDF
+        run: |
+          mkdir -p ./doc
+          pandoc ./gh-pages/docs/ION-Guide.md -o ./doc/ION-Beginning.pdf
+          echo "EXTRA_DIST += doc/ION-Beginning.pdf" >> Makefile.am
+          
       - name: Create distribution tarball
         run: |
           ./configure
           make dist
+          
       - name: Verify tarball contents
         run: |
           tar -tzf *.tar.gz | grep configure || (echo "Error: configure script not found in tarball" && exit 1)
+          tar -tzf *.tar.gz | grep doc/ION-Beginning.pdf || (echo "Error: ION-Beginning.pdf not found in tarball" && exit 1)
+          
       - name: Upload release artifact
         uses: softprops/action-gh-release@v1
         with:
