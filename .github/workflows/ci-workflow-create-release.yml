@@ -20,8 +20,10 @@ jobs:
           ref: ${{ github.event.inputs.tag || github.ref }}
           
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool pandoc texlive
-      
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool pandoc texlive texlive-latex-extra
+          
       - name: Generate configure script
         run: |
           aclocal
@@ -38,8 +40,10 @@ jobs:
       - name: Convert ION-Guide.md to PDF
         run: |
           mkdir -p ./doc
-          pandoc ./gh-pages/docs/ION-Guide.md -o ./doc/ION-Beginning.pdf
-          echo "EXTRA_DIST += doc/ION-Beginning.pdf" >> Makefile.am
+          # Convert Markdown to PDF using pdflatex (default engine)
+          cd ./gh-pages/docs
+          pandoc ./ION-Guide.md -o ../../doc/ION-beginning.pdf
+          echo "EXTRA_DIST += doc/ION-beginning.pdf" >> Makefile.am
           
       - name: Create distribution tarball
         run: |
