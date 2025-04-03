@@ -9,6 +9,14 @@
 
 #include <bp.h>
 #include <rfx.h>
+#include <pthread.h>
+
+/*
+ * Static mutex to protect the static 'count' variable
+ * in _bundleCount().
+ */
+
+static pthread_mutex_t gCountMutex = PTHREAD_MUTEX_INITIALIZER;
 
 typedef struct
 {
@@ -46,16 +54,24 @@ static void	handleQuit(int signum)
 	state->running = 0;
 }
 
-static int	_bundleCount(int increment)
+static int _bundleCount(int increment)
 {
 	static int	count = 0;
+	pthread_mutex_lock(&gCountMutex);
 
 	if (increment)
 	{
 		count++;
 	}
 
-	return count;
+	/*
+	 * Copy 'count' to a local variable while the mutex is held to provide a
+	 * stable snapshot of the data.
+	 */
+
+	int currentCount = count;
+	pthread_mutex_unlock(&gCountMutex);
+	return currentCount;
 }
 
 static void	*printCounts(void *parm)
