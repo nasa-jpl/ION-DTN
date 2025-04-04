@@ -128,7 +128,7 @@ jobs:
               repo: context.repo.repo,
               sha: pr.head.sha,
               state: conclusion,
-              context: "${{ github.workflow }} - ${{ runner.os }}",
+              context: "ci/ubuntu-latest",
               description: `Tests ${conclusion === "success" ? "passed" : "failed"}`,
               target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             });
