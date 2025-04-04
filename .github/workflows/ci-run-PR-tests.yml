@@ -1,7 +1,12 @@
 name: Run All PR Tests Manually
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number'
+        required: true
+        type: string
 
 jobs:
   check-user:
@@ -12,23 +17,38 @@ jobs:
         run: |
           echo "Error: User ${{ github.actor }} is not authorized to trigger this workflow."
           exit 1
+          
   ubuntu-latest:
     uses: ./.github/workflows/ci-workflow-ubuntu.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
 
   ubuntu-22:
     uses: ./.github/workflows/ci-workflow-ubuntu22.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
 
   ubuntu-20:
     uses: ./.github/workflows/ci-workflow-ubuntu20.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
 
   rhel9:
     uses: ./.github/workflows/ci-workflow-rhel9.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
 
   rhel8:
     uses: ./.github/workflows/ci-workflow-rhel8.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
     
   ol9:
     uses: ./.github/workflows/ci-workflow-ol9.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
     
   ol8:
     uses: ./.github/workflows/ci-workflow-ol8.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}

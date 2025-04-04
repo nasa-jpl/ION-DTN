@@ -1,15 +1,29 @@
 name: Regression Tests for ION on Oracle Linux 9
 
 on:
-#  pull_request:
-#    branches:
-#      - integration
   workflow_call:
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ''
+      pr_number:
+        description: 'The PR number this test is associated with.'
+        required: false
+        type: string
+
   workflow_dispatch:
     inputs:
       tests_to_run:
         description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
         required: false
+        type: string
+        default: ''
+      pr_number:
+        description: 'The PR number this test is associated with.'
+        required: false
+        type: string
         default: ''
 
 jobs:
@@ -86,3 +100,33 @@ jobs:
           make clean
           make distclean
           rm -rf $GITHUB_WORKSPACE/*
+
+          - name: Set PR status
+          if: ${{ github.event.inputs.pr_number != '' }}
+          uses: actions/github-script@v7
+          with:
+            script: |
+              const conclusion = "${{ job.status }}" === "success" ? "success" : "failure";
+              const prNumber = parseInt("${{ github.event.inputs.pr_number }}", 10);
+        
+              const { data: pulls } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: "open",
+              });
+        
+              const pr = pulls.find(p => p.number === prNumber);
+              if (!pr) {
+                console.log("PR not found");
+                return;
+              }
+        
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: pr.head.sha,
+                state: conclusion,
+                context: "${{ github.workflow }} - ${{ runner.os }}",
+                description: `Tests ${conclusion === "success" ? "passed" : "failed"}`,
+                target_url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              });
