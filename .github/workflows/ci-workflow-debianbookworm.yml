@@ -79,5 +79,4 @@ jobs:
         run: |
           sudo make uninstall
           make clean
-          make distclean
           rm -rf $GITHUB_WORKSPACE/*
