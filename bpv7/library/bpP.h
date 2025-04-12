@@ -327,6 +327,7 @@ typedef struct
 	/*	Stuff in Primary block.					*/
 
 	unsigned int	bundleProcFlags;/*	Incl. SR requests.	*/
+	BpCrcType	primaryBlkCrcType;/* CRC Type for Primary 	*/
 	uvast		timeToLive;	/*	In milliseconds.	*/
 	EndpointId	destination;	/*	...of bundle's ADU.	*/
 		/*	source of bundle's ADU is in the id field.	*/
@@ -766,6 +767,7 @@ typedef struct
 	Object		transitCmd; 	/*	For starting bptransit.	*/
 	unsigned int	maxAcqInHeap;	/*	Bytes of ZCO.		*/
 	int		watching;	/*	Activity watch switch.	*/
+	BpCrcType	sourcePrimaryCrcType;  /*CRC for Primary Block	*/
 
 	/*	For computation of BpTimestamp values.			*/
 

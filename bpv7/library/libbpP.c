@@ -1421,6 +1421,7 @@ int	bpInit()
 		bpdbBuf.clockCmd = sdr_string_create(sdr, "bpclock");
 		bpdbBuf.transitCmd = sdr_string_create(sdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
+		bpdbBuf.sourcePrimaryCrcType = PRIMARY_BLOCK_CRC_TYPE;
 		bpdbBuf.maxBundleCount = (unsigned int) -1;
 		bpdbBuf.sourceStats = sdr_malloc(sdr, sizeof(BpCosStats));
 		bpdbBuf.recvStats = sdr_malloc(sdr, sizeof(BpCosStats));
@@ -6311,6 +6312,10 @@ when asking for status reports.");
 		}
 	}
 
+	/*	Set source primary block CRC type			*/
+
+	bundle.primaryBlkCrcType = bpdb.sourcePrimaryCrcType;
+
 	/*	Check source and report-to endpoint IDs.		*/
 
 	if (sourceMetaEid != NULL)	/*	Not "dtn:none".		*/
@@ -8038,7 +8043,7 @@ bundle containing administrative record.");
 		return 0;
 	}
 
-	crcType = uvtemp;
+	bundle->primaryBlkCrcType = uvtemp;
 	itemsRemaining -= 1;
 
 	/*	Acquire destination EID.				*/
@@ -8206,7 +8211,7 @@ requests prohibited for anonymous bundle.");
 
 	/*	Compute and check the CRC, if present.			*/
 
-	if (crcType == NoCRC)
+	if (bundle->primaryBlkCrcType == NoCRC)
 	{
 		if (itemsRemaining != 0)
 		{
@@ -8242,7 +8247,7 @@ requests prohibited for anonymous bundle.");
  		 *	is reduced by 1 at this time.			*/
 
 		crcLength = uvtemp;
-		if (crcType == X25CRC16)
+		if (bundle->primaryBlkCrcType == X25CRC16)
 		{
 			if (crcLength != 2)
  			{
@@ -8271,7 +8276,7 @@ requests prohibited for anonymous bundle.");
  		 *	CRC itself.					*/
  
  		length = cursor - startOfBlock;
-		crcComputed = computeBufferCrc(crcType, startOfBlock, 
+		crcComputed = computeBufferCrc(bundle->primaryBlkCrcType, startOfBlock, 
 				length + crcLength, 1, 0, &crcReceived);
 		if (crcComputed != crcReceived)
 		{
@@ -10072,6 +10077,7 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 	int		bundleIsFragment = 0;
 	uvast		uvtemp;
 	uint16_t	crc16;
+	uint32_t	crc32;
 
 	startOfPrimaryBlock = *cursor;
 
@@ -10105,7 +10111,7 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	/*	Primary block CRC type.					*/
 
-	uvtemp = PRIMARY_BLOCK_CRC_TYPE;
+	uvtemp = bundle->primaryBlkCrcType;
 	oK(cbor_encode_integer(uvtemp, cursor));
 
 	/*	Destination.						*/
@@ -10160,7 +10166,7 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	/*	Compute and insert primary block CRC.			*/
 
-	if (PRIMARY_BLOCK_CRC_TYPE == X25CRC16)
+	if (bundle->primaryBlkCrcType == X25CRC16)
 	{
 		crc16 = 0;
 		oK(cbor_encode_byte_string((unsigned char *) &crc16, 2,
@@ -10169,6 +10175,16 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 					*cursor - startOfPrimaryBlock, 0);
 		crc16 = htons(crc16);
 		memcpy((*cursor) - 2, (char *) &crc16, 2);
+	}
+	else if (bundle->primaryBlkCrcType == CRC32C) 
+	{
+		crc32 = 0;
+		oK(cbor_encode_byte_string((unsigned char *) &crc32, 4,
+				cursor));
+		crc32 = ion_CRC32_1EDC6F41_C((char *) startOfPrimaryBlock,
+					*cursor - startOfPrimaryBlock, 0);
+		crc32 = htons(crc32);
+		memcpy((*cursor) - 4, (char *) &crc32, 4);
 	}
 }
 
