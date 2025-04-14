@@ -1422,6 +1422,7 @@ int	bpInit()
 		bpdbBuf.transitCmd = sdr_string_create(sdr, "bptransit");
 		bpdbBuf.maxAcqInHeap = 560;
 		bpdbBuf.sourcePrimaryCrcType = PRIMARY_BLOCK_CRC_TYPE;
+		bpdbBuf.sourcePayloadCrcType = PAYLOAD_BLOCK_CRC_TYPE;
 		bpdbBuf.maxBundleCount = (unsigned int) -1;
 		bpdbBuf.sourceStats = sdr_malloc(sdr, sizeof(BpCosStats));
 		bpdbBuf.recvStats = sdr_malloc(sdr, sizeof(BpCosStats));
@@ -6391,7 +6392,6 @@ when asking for status reports.");
 	bundle.payloadBlockProcFlags = BLK_MUST_BE_COPIED;
 	bundle.payload.length = aduLength;
 	bundle.payload.content = adu;
-	bundle.payload.crcType = PAYLOAD_BLOCK_CRC_TYPE;
 
 	/*	Convert all payload header and trailer capsules
 	 *	into source data extents.  From the BP perspective,
@@ -6408,9 +6408,10 @@ when asking for status reports.");
 
 	sdr_stage(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
 
-	/*	Set source primary block CRC type			*/
+	/*	Set source primary and payload block CRC type			*/
 
 	bundle.primaryBlkCrcType = bpdb.sourcePrimaryCrcType;
+	bundle.payload.crcType = bpdb.sourcePayloadCrcType;
 
 	/*	Set creationTime of bundle			*/
 
@@ -8249,6 +8250,8 @@ requests prohibited for anonymous bundle.");
  		 *	is reduced by 1 at this time.			*/
 
 		crcLength = uvtemp;
+		//Debug JG
+		printf("crcLength of received primary header: %d\n",crcLength);
 		if (bundle->primaryBlkCrcType == X25CRC16)
 		{
 			if (crcLength != 2)
@@ -8278,8 +8281,12 @@ requests prohibited for anonymous bundle.");
  		 *	CRC itself.					*/
  
  		length = cursor - startOfBlock;
+		//Debug JG
+		printf("Total number of bytes to parse for primary header CRC is: %d\n",crcLength+length);
 		crcComputed = computeBufferCrc(bundle->primaryBlkCrcType, startOfBlock, 
 				length + crcLength, 1, 0, &crcReceived);
+		//Debug JG
+		printf("crcComputed = " UVAST_FIELDSPEC "crcReceived = " UVAST_FIELDSPEC "\n", crcComputed, crcReceived);
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");

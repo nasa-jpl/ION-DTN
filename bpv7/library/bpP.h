@@ -767,7 +767,8 @@ typedef struct
 	Object		transitCmd; 	/*	For starting bptransit.	*/
 	unsigned int	maxAcqInHeap;	/*	Bytes of ZCO.		*/
 	int		watching;	/*	Activity watch switch.	*/
-	BpCrcType	sourcePrimaryCrcType;  /*CRC for Primary Block	*/
+	BpCrcType	sourcePrimaryCrcType;  /* CRC for Primary Block	*/
+	BpCrcType	sourcePayloadCrcType;  /* CRC for Payload Block	*/
 
 	/*	For computation of BpTimestamp values.			*/
 
