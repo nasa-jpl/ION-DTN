@@ -6312,10 +6312,6 @@ when asking for status reports.");
 		}
 	}
 
-	/*	Set source primary block CRC type			*/
-
-	bundle.primaryBlkCrcType = bpdb.sourcePrimaryCrcType;
-
 	/*	Check source and report-to endpoint IDs.		*/
 
 	if (sourceMetaEid != NULL)	/*	Not "dtn:none".		*/
@@ -6408,9 +6404,16 @@ when asking for status reports.");
 		return -1;
 	}
 
-	/*	Set creationTime of bundle.				*/
+	/*	Load bundle protocol database 	*/
 
 	sdr_stage(sdr, (char *) &bpdb, bpDbObject, sizeof(BpDB));
+
+	/*	Set source primary block CRC type			*/
+
+	bundle.primaryBlkCrcType = bpdb.sourcePrimaryCrcType;
+
+	/*	Set creationTime of bundle			*/
+
 	if (ionClockIsSynchronized())
 	{
 		getCurrentDtnTime(&currentDtnTime);
@@ -7947,7 +7950,6 @@ static int	acquirePrimaryBlock(AcqWorkArea *work)
 	uvast		itemsRemaining;
 	int		version;
 	uvast		uvtemp;
-	BpCrcType	crcType;
 	int		length;
 	char		*eidString;
 	int		nullEidLen;
