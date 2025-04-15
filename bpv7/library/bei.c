@@ -674,6 +674,9 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 	uvtemp = blk->dataLength;
 	oK(cbor_encode_byte_string((unsigned char *) blockData, uvtemp,
 			&cursor));
+	
+	//Debug JG
+	printf("serializing extension blocks: crcType = %d; block type = %d\n", blk->crcType, blk->type);
 
 	/*	Compute and encode CRC as required.			*/
 
