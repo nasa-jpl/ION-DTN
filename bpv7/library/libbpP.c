@@ -8250,8 +8250,7 @@ requests prohibited for anonymous bundle.");
  		 *	is reduced by 1 at this time.			*/
 
 		crcLength = uvtemp;
-		//Debug JG
-		printf("crcLength of received primary header: %d\n",crcLength);
+
 		if (bundle->primaryBlkCrcType == X25CRC16)
 		{
 			if (crcLength != 2)
@@ -8281,12 +8280,10 @@ requests prohibited for anonymous bundle.");
  		 *	CRC itself.					*/
  
  		length = cursor - startOfBlock;
-		//Debug JG
-		printf("Total number of bytes to parse for primary header CRC is: %d\n",crcLength+length);
+
 		crcComputed = computeBufferCrc(bundle->primaryBlkCrcType, startOfBlock, 
 				length + crcLength, 1, 0, &crcReceived);
-		//Debug JG
-		printf("crcComputed = " UVAST_FIELDSPEC "crcReceived = " UVAST_FIELDSPEC "\n", crcComputed, crcReceived);
+
 		if (crcComputed != crcReceived)
 		{
 			writeMemo("[?] CRC check failed for primary block.");
@@ -10192,7 +10189,7 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 				cursor));
 		crc32 = ion_CRC32_1EDC6F41_C((char *) startOfPrimaryBlock,
 					*cursor - startOfPrimaryBlock, 0);
-		crc32 = htons(crc32);
+		crc32 = htonl(crc32);
 		memcpy((*cursor) - 4, (char *) &crc32, 4);
 	}
 }
