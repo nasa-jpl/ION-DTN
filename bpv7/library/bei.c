@@ -523,6 +523,9 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 			continue;
 		}
 
+		//Debug JG
+		printf("processExtensionBlock: block type = %d, block crcType = %d, process directive = %d\n", blk.type, blk.crcType, fnIdx);
+
 		oldLength = blk.length;
 		oldSize = blk.size;
 		wasSuppressed = blk.suppressed;
@@ -748,7 +751,7 @@ void	suppressExtensionBlock(ExtensionBlock *blk)
 int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 		unsigned char *startOfBlock, unsigned int blockLength,
 		BpBlockType blkType, unsigned int blkNumber,
-		unsigned char blkProcFlags, unsigned int dataLength)
+		unsigned char blkProcFlags, BpCrcType crcType, unsigned int dataLength)
 {
 	Bundle		*bundle = &(work->bundle);
 	int		blkSize;
@@ -779,6 +782,7 @@ int	acquireExtensionBlock(AcqWorkArea *work, ExtensionDef *def,
 	blk->type = blkType;
 	blk->number = blkNumber;
 	blk->blkProcFlags = blkProcFlags;
+	blk->crcType = crcType;
 	blk->dataLength = dataLength;
 	blk->length = blockLength;
 	memcpy(blk->bytes, startOfBlock, blockLength);
@@ -982,6 +986,7 @@ int	recordExtensionBlocks(AcqWorkArea *work)
 		newBlk.type = oldBlk->type;
 		newBlk.number = oldBlk->number;
 		newBlk.blkProcFlags = oldBlk->blkProcFlags;
+		newBlk.crcType = oldBlk->crcType;
 		newBlk.dataLength = oldBlk->dataLength;
 		headerLength = oldBlk->length - oldBlk->dataLength;
 		if (serializeExtBlk(&newBlk, (char *)

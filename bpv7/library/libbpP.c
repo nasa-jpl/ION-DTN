@@ -8477,8 +8477,8 @@ undefined block.");
 	if (def)	/*	This is a known extension block type.	*/
 	{
 		if (acquireExtensionBlock(work, def, startOfBlock,
-			lengthOfBlock, blkType, blkNumber, blkProcFlags,
-			dataLength) < 0)
+			lengthOfBlock, blkType, blkNumber, blkProcFlags, 
+			crcType, dataLength) < 0)
 		{
 			return -1;
 		}
@@ -8512,7 +8512,7 @@ undefined block.");
 				if (acquireExtensionBlock(work, def,
 						startOfBlock, lengthOfBlock,
 						blkType, blkNumber,
-						blkProcFlags, dataLength) < 0)
+						blkProcFlags, crcType, dataLength) < 0)
 				{
 					return -1;
 				}
