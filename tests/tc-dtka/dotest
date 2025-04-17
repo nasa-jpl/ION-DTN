@@ -4,6 +4,11 @@
 # August 3, 2023
 
 # Wraps runtest to change the different key types
+# Skip full tests unless specified
+fullSuite="${DTKA_FULLSUITE-}"
+if [ "$fullSuite" ]; then
+    echo "Running full DTKA test"
+fi
 
 ./cleanup
 echo "Running test for AES key type..."
@@ -16,30 +21,33 @@ if [ $exit_stat -ne 0 ]; then
 fi
 ./cleanup
 
-sed -i 's/aes/ecdsa/g' node.dtkarc
-echo "Running test for ECDSA key type..."
-./runtest
-exit_stat=$?
-if [ $exit_stat -ne 0 ]; then
-    echo "Error running ECDSA test"
-    sed -i 's/ecdsa/aes/g' node.dtkarc
+if [ "$fullSuite" ]; then
+    sed -i 's/aes/ecdsa/g' node.dtkarc
+    echo "Running test for ECDSA key type..."
+    ./runtest
+    exit_stat=$?
+    if [ $exit_stat -ne 0 ]; then
+        echo "Error running ECDSA test"
+        sed -i 's/ecdsa/aes/g' node.dtkarc
+        ./cleanup
+        exit
+    fi
     ./cleanup
-    exit
-fi
-./cleanup
 
-sed -i 's/ecdsa/hmac/g' node.dtkarc
-echo "Running test for HMAC key type..."
-./runtest
-exit_stat=$?
-if [ $exit_stat -ne 0 ]; then
-    echo "Error running HMAC test"
+    sed -i 's/ecdsa/hmac/g' node.dtkarc
+    echo "Running test for HMAC key type..."
+    ./runtest
+    exit_stat=$?
+    if [ $exit_stat -ne 0 ]; then
+        echo "Error running HMAC test"
+        sed -i 's/hmac/aes/g' node.dtkarc
+        ./cleanup
+        exit
+    fi
+    killm
+
+    # Return to orignal state
     sed -i 's/hmac/aes/g' node.dtkarc
-    ./cleanup
-    exit
 fi
-killm
 
-# Return to orignal state
-sed -i 's/hmac/aes/g' node.dtkarc
 echo "Tests finished"
