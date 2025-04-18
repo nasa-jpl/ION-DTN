@@ -11,11 +11,6 @@ on:
         description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
         required: false
         default: ''
-      env_vars:
-        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
-        required: false
-        type: string
-        default: ''
 
 jobs:
   build-and-test:
@@ -60,12 +55,8 @@ jobs:
         run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
 
       - name: Run build and tests, capture stdout
-        env:
-          ENV_VARS: ${{ github.event.inputs.env_vars }}
-          TESTS_TO_RUN: ${{ github.event.inputs.tests_to_run }}
-          EVENT_NAME: ${{ github.event_name }}
         run: |
-          ssh -o StrictHostKeyChecking=no jgao@$VM_IP bash -c '
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
             echo "Starting build and tests at $(date)" &&
             export USER=$(whoami) &&
             echo "USER is set to: $USER" &&
@@ -74,31 +65,18 @@ jobs:
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
-            make -j4 &&
-            sudo make install &&
-            make buildcheck &&
+            gmake -j4 &&
+            sudo gmake install &&
+            gmake buildcheck &&
             sudo ldconfig &&
             cd tests &&
-            if [ -n "$1" ]; then
-              echo "Setting environment variables: $1" &&
-              for env_var in $1; do
-                if [[ $env_var =~ ^[A-Za-z_][A-Za-z0-9_]*=.*$ ]]; then
-                  export "$env_var" ||
-                  { echo "Failed to export $env_var"; exit 1; }
-                else
-                  echo "Invalid environment variable format: $env_var" >&2;
-                  exit 1;
-                fi
-              done
-            fi &&
-            if [ "$2" = "workflow_dispatch" ] && [ -n "$3" ]; then
-              echo "Running specific tests: $3" &&
-              ./runtests $3
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
+              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}" &&
+              ./runtests ${{ github.event.inputs.tests_to_run }}
             else
               echo "Running all tests" &&
               ./runtests
-            fi
-          ' -- "$ENV_VARS" "$EVENT_NAME" "$TESTS_TO_RUN" > build-and-test.log 2>&1
+            fi' > build-and-test.log 2>&1
 
       - name: Display Progress
         if: ${{ always() }}
