@@ -523,9 +523,9 @@ int	processExtensionBlocks(Bundle *bundle, int fnIdx, void *context)
 			continue;
 		}
 
-		//Debug JG
-		printf("processExtensionBlock: block type = %d, block crcType = %d, process directive = %d\n", blk.type, blk.crcType, fnIdx);
-
+#ifdef DEBUG_CRC
+		printf("\n ProcessExtensionBlock: block type = %d, block crcType = %d, process directive = %d\n", blk.type, (int) blk.crcType, fnIdx);
+#endif
 		oldLength = blk.length;
 		oldSize = blk.size;
 		wasSuppressed = blk.suppressed;
@@ -678,9 +678,9 @@ int	serializeExtBlk(ExtensionBlock *blk, char *blockData)
 	oK(cbor_encode_byte_string((unsigned char *) blockData, uvtemp,
 			&cursor));
 	
-	//Debug JG
-	printf("serializing extension blocks: crcType = %d; block type = %d\n", blk->crcType, blk->type);
-
+#ifdef DEBUG_CRC
+	printf("\n Serializing extension blocks: crcType = %d; block type = %d\n", (int) blk->crcType, blk->type);
+#endif
 	/*	Compute and encode CRC as required.			*/
 
 	if (blk->crcType != NoCRC)

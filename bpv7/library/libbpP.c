@@ -8046,6 +8046,9 @@ bundle containing administrative record.");
 		return 0;
 	}
 
+#ifdef DEBUG_CRC
+	printf("\n...acquirePrimaryBlock: crcType = %d\n", (int) uvtemp);
+#endif
 	bundle->primaryBlkCrcType = uvtemp;
 	itemsRemaining -= 1;
 
@@ -8449,6 +8452,9 @@ undefined block.");
 		 *	the calling function after the payload has
 		 *	been acquired.					*/
 
+#ifdef DEBUG_CRC
+	printf("\n...acquireBlock: payload crcType = %d\n", (int) crcType);
+#endif
 		bundle->payloadBlockProcFlags = blkProcFlags;
 		bundle->payload.length = dataLength;
 		bundle->payload.crcType = crcType;
@@ -10087,7 +10093,12 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	startOfPrimaryBlock = *cursor;
 
-	/*	Primary block is an array of 9 or 11 items.		*/
+	/*	Primary block can have 8 to 11 items:
+	 * 	
+	 *	Non-fragmented	No CRC		8 items	
+	 *  Non-fragmented	Yes	CRC 	9 items 
+	 *  Fragmented		No CRC 		10 items
+	 *  Fragmented		Yes	CRC		11 items	*/
 
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
@@ -10096,14 +10107,27 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	if (bundleIsFragment)
 	{
-		uvtemp = 11;
+		if (bundle->primaryBlkCrcType == NoCRC)
+		{
+			uvtemp = 10;
+		}
+		else
+		{
+			uvtemp = 11;
+		}
 	}
-	else
+	else if (bundle->primaryBlkCrcType == NoCRC)
 	{
-		uvtemp = 9;
+		uvtemp = 8;
 	}
+	else 
+		uvtemp = 9;
 
 	oK(cbor_encode_array_open(uvtemp, cursor));
+
+#ifdef DEBUG_CRC
+	printf("\n...SerializePrimaryBlock: primary block has %d items\n", (int) uvtemp);
+#endif
 
 	/*	Version.						*/
 
@@ -10117,6 +10141,9 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	/*	Primary block CRC type.					*/
 
+#ifdef DEBUG_CRC
+	printf("\n...SerializePrimaryBlock: set crcType = %d\n", (int) bundle->primaryBlkCrcType);
+#endif
 	uvtemp = bundle->primaryBlkCrcType;
 	oK(cbor_encode_integer(uvtemp, cursor));
 
@@ -10228,7 +10255,9 @@ int	serializePayloadBlock(Payload *payload, unsigned char blkProcFlags)
 	oK(cbor_encode_integer(uvtemp, &cursor));
 
 	/*	Payload block CRC type.					*/
-
+#ifdef DEBUG_CRC
+	printf("\n...SerializePayloadBlock: set crcType = %d\n", (int) payload->crcType);
+#endif
 	uvtemp = payload->crcType;
 	oK(cbor_encode_integer(uvtemp, &cursor));
 

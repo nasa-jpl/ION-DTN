@@ -119,6 +119,8 @@ payload length");
 	PUTS("\t   g plan <endpoint name> <via endpoint name>");
 	PUTS("\tm\tManage");
 	PUTS("\t   m heapmax <max database heap for any single acquisition>");
+	PUTS("\t   m primarycrc <set CRC type for locally sourced primary block, 0, 1, or 2>");
+	PUTS("\t   m payloadcrc <set CRC type for locally sourced payload block, 0, 1, or 2>");
 	PUTS("\t   m maxcount <max value of bundle ID sequence number>");
 	PUTS("\tr\tRun another admin program");
 	PUTS("\t   r '<admin command>'");
@@ -1423,6 +1425,67 @@ static void	manageHeapmax(int tokenCount, char **tokens)
 	}
 }
 
+static void	managePrimaryCrc(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		bpdbObj = getBpDbObject();
+	BpDB		bpdb;
+	BpCrcType	crcType;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	crcType = strtoul(tokens[2], NULL, 0);
+	if (crcType < 0 || crcType > 2)
+	{
+		printText("Primary block CRC type must 0, 1 or 2.");
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.sourcePrimaryCrcType = crcType;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change primary block CRC type.", NULL);
+	}
+}
+
+static void	managePayloadCrc(int tokenCount, char **tokens)
+{
+	Sdr		sdr = getIonsdr();
+	Object		bpdbObj = getBpDbObject();
+	BpDB		bpdb;
+	BpCrcType	crcType;
+
+	if (tokenCount != 3)
+	{
+		SYNTAX_ERROR;
+		return;
+	}
+
+	crcType = strtoul(tokens[2], NULL, 0);
+	if (crcType < 0 || crcType > 2)
+	{
+		printText("Payload CRC type must be 0, 1 or 2.");
+		return;
+	}
+
+	CHKVOID(sdr_begin_xn(sdr));
+	sdr_stage(sdr, (char *) &bpdb, bpdbObj, sizeof(BpDB));
+	bpdb.sourcePayloadCrcType = crcType;
+	sdr_write(sdr, bpdbObj, (char *) &bpdb, sizeof(BpDB));
+	if (sdr_end_xn(sdr) < 0)
+	{
+		putErrmsg("Can't change payload block CRC type.", NULL);
+	}
+}
+
+
 static void	manageMaxcount(int tokenCount, char **tokens)
 {
 	Sdr		sdr = getIonsdr();
@@ -1452,6 +1515,18 @@ static void	executeManage(int tokenCount, char **tokens)
 	if (tokenCount < 2)
 	{
 		printText("Manage what?");
+		return;
+	}
+
+	if (strcmp(tokens[1], "primarycrc") == 0)
+	{
+		managePrimaryCrc(tokenCount, tokens);
+		return;
+	}
+
+	if (strcmp(tokens[1], "payloadcrc") == 0)
+	{
+		managePayloadCrc(tokenCount, tokens);
 		return;
 	}
 
