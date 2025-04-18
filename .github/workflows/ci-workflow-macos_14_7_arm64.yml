@@ -11,6 +11,11 @@ on:
         description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
         required: false
         default: ''
+      env_vars:
+        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build-and-test:
@@ -50,6 +55,13 @@ jobs:
             sudo make install
             make buildcheck
             cd tests
+            # Set environment variables if provided
+            if [ -n "${{ github.event.inputs.env_vars }}" ]; then
+              echo "Setting environment variables: ${{ github.event.inputs.env_vars }}"
+              for env_var in ${{ github.event.inputs.env_vars }}; do
+                export "$env_var"
+              done
+            fi
             if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
               echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}"
               ./runtests ${{ github.event.inputs.tests_to_run }}
