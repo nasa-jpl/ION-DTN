@@ -1,0 +1,375 @@
+#!/usr/bin/env bash
+#
+
+# adapted from bptrace_terminal_test
+# Jay L. Gao
+# April 18, 2025
+
+# documentation boilerplate
+CONFIGFILES=" \
+./global.ionrc \
+./2.ipn.ltp/amroc.ltprc \
+./2.ipn.ltp/amroc.bprc \
+./2.ipn.ltp/amroc.ionconfig \
+./2.ipn.ltp/global.ionrc \
+./2.ipn.ltp/amroc.ionrc \
+./2.ipn.ltp/amroc.ionsecrc \
+./2.ipn.ltp/amroc.ipnrc \
+"
+
+CONFIGFILES=$CONFIGFILES"
+./5.ipn.ltp/amroc.ltprc \
+./5.ipn.ltp/amroc.bprc \
+./5.ipn.ltp/amroc.ionconfig \
+./5.ipn.ltp/global.ionrc \
+./5.ipn.ltp/amroc.ionrc \
+./5.ipn.ltp/amroc.ionsecrc \
+./5.ipn.ltp/amroc.ipnrc \
+"
+
+CONFIGFILES=$CONFIGFILES"
+./3.ipn.ltp/amroc.ltprc \
+./3.ipn.ltp/amroc.bprc \
+./3.ipn.ltp/amroc.ionconfig \
+./3.ipn.ltp/global.ionrc \
+./3.ipn.ltp/amroc.ionrc \
+./3.ipn.ltp/amroc.ionsecrc \
+./3.ipn.ltp/amroc.ipnrc \
+"
+
+echo "########################################"
+echo
+pwd | sed "s/\/.*\///" | xargs echo "NAME: "
+echo
+echo "PURPOSE: To check primary and payload block CRC type settings are preserved through relay."
+echo
+echo "CONFIG: 3 node custom configuration:"
+echo
+for N in $CONFIGFILES
+do
+	echo "$N:"
+	cat $N
+	echo "# EOF"
+	echo
+done
+echo "OUTPUT: Various status messages are expected to be found in
+	./2.ipn.ltp/ion.log"
+echo
+echo "########################################"
+
+echo "Cleaning up old ION..."
+rm -f 2.ipn.ltp/ion.log 3.ipn.ltp/ion.log 5.ipn.ltp/ion.log
+rm -f 5.ipn.ltp/testfile1
+rm -f 5.ipn.ltp/testfile2
+rm -f 5.ipn.ltp/testfile3
+rm -f 5.ipn.ltp/testfile4
+rm -f 5.ipn.ltp/testfile5
+killm
+sleep 1
+
+echo "Starting ION..."
+export ION_NODE_LIST_DIR=$PWD
+rm -f ./ion_nodes
+
+# Start nodes.
+cd 2.ipn.ltp
+ionadmin amroc.ionrc
+cd ../3.ipn.ltp
+ionadmin amroc.ionrc
+cd ../5.ipn.ltp
+ionadmin amroc.ionrc
+
+cd ../2.ipn.ltp
+ionadmin global.ionrc &
+cd ../3.ipn.ltp
+ionadmin global.ionrc &
+cd ../5.ipn.ltp
+ionadmin global.ionrc &
+
+cd ../2.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../3.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+cd ../5.ipn.ltp
+ionsecadmin amroc.ionsecrc &
+
+cd ../2.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../3.ipn.ltp
+ltpadmin amroc.ltprc &
+cd ../5.ipn.ltp
+ltpadmin amroc.ltprc &
+
+cd ../2.ipn.ltp
+bpadmin amroc.bprc &
+cd ../3.ipn.ltp
+bpadmin amroc.bprc &
+cd ../5.ipn.ltp
+bpadmin amroc.bprc &
+
+cd ../2.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 2 not started: Aborting Test"
+	exit 1
+fi
+cd ../3.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 3 not started: Aborting Test"
+	exit 1
+fi
+cd ../5.ipn.ltp
+../../../system_up -i "p 30" -l "p 30" -b "p 30"
+
+if [ $? -eq 3 ]
+then
+	echo ""
+else
+	echo "Node 5 not started: Aborting Test"
+	exit 1
+fi
+
+# let all process settle
+sleep 5
+
+# initialize return value
+RETVAL=0
+
+# let developer work with nodes manually
+#bash
+
+################################################
+
+echo ""
+echo "Case 1: Send bundle with default CRC types from node 2 to node 5, both CRC16 (type 1)"
+cd ../2.ipn.ltp
+bpsource ipn:5.2 "First hello!" -t3000
+sleep 5
+
+# Set expected CRC types
+EXPECTED_PRIMARY_CRC_TYPE=1
+EXPECTED_PAYLOAD_CRC_TYPE=1
+
+cd ../5.ipn.ltp
+
+# Run bplist and grep for CRC types
+bplist | tee case1_out.txt
+
+PRIMARY_CRC=$(grep -E "primary crc type:" "case1_out.txt" | awk '{print $NF}')
+PAYLOAD_CRC=$(grep -E "payload CRC type:" "case1_out.txt" | awk '{print $NF}')
+
+# Check if grep found the lines
+if [ -z "$PRIMARY_CRC" ]; then
+    echo "Error: Could not find primary crc type in bplist output"
+    RETVAL=1
+fi
+
+if [ -z "$PAYLOAD_CRC" ]; then
+    echo "Error: Could not find payload crc type in bplist output"
+    RETVAL=1
+fi
+
+# Validate primary CRC type
+if [ "$PRIMARY_CRC" != "$EXPECTED_PRIMARY_CRC_TYPE" ]; then
+    echo "Error: Invalid primary crc type: $PRIMARY_CRC. Expected CRC is $EXPECTED_PRIMARY_CRC_TYPE"
+    RETVAL=1
+fi
+
+# Validate payload CRC type
+if [ "$PAYLOAD_CRC" != "$EXPECTED_PAYLOAD_CRC_TYPE" ]; then
+    echo "Error: Invalid payload crc type: $PAYLOAD_CRC. Expected CRC is $EXPECTED_PAYLOAD_CRC_TYPE"
+    RETVAL=1
+fi
+
+# Success
+echo "Success: Case 1: Primary CRC type ($PRIMARY_CRC) and Payload CRC type ($PAYLOAD_CRC) match expected values"
+
+# drain the bundle
+bpsink ipn:5.2 &
+
+# capture the PID
+PID=$!
+
+# let it run
+sleep 2
+
+# Send Ctrl+C (SIGINT) to the program
+kill -SIGINT $PID
+
+# let the program exit
+wait $PID 2>/dev/null
+
+# check if the program exited
+if ! ps -p $PID > /dev/null; then
+    echo "bpsink ended..."
+else
+    echo "Error: bpsink did not end..."
+	RETVAL=1
+fi
+
+###############################
+echo ""
+echo "Case 2: Send bundle with CRC32 (type 2) for primary block, no CRC (type 0) for payload"
+cd ../2.ipn.ltp
+bpadmin adjust-crc-type-case-2.bprc
+sleep 1
+bpsource ipn:5.2 "Second hello!" -t3000
+sleep 5
+
+# Set expected CRC types
+EXPECTED_PRIMARY_CRC_TYPE=2
+EXPECTED_PAYLOAD_CRC_TYPE=0
+
+cd ../5.ipn.ltp
+
+# Run bplist and grep for CRC types
+bplist | tee case2_out.txt
+
+PRIMARY_CRC=$(grep -E "primary crc type:" "case2_out.txt" | awk '{print $NF}')
+PAYLOAD_CRC=$(grep -E "payload CRC type:" "case2_out.txt" | awk '{print $NF}')
+
+# Check if grep found the lines
+if [ -z "$PRIMARY_CRC" ]; then
+    echo "Error: Could not find primary crc type in bplist output"
+    RETVAL=1
+fi
+
+if [ -z "$PAYLOAD_CRC" ]; then
+    echo "Error: Could not find payload crc type in bplist output"
+    RETVAL=1
+fi
+
+# Validate primary CRC type
+if [ "$PRIMARY_CRC" != "$EXPECTED_PRIMARY_CRC_TYPE" ]; then
+    echo "Error: Invalid primary crc type: $PRIMARY_CRC. Expected CRC is $EXPECTED_PRIMARY_CRC_TYPE"
+    RETVAL=1
+fi
+
+# Validate payload CRC type
+if [ "$PAYLOAD_CRC" != "$EXPECTED_PAYLOAD_CRC_TYPE" ]; then
+    echo "Error: Invalid payload crc type: $PAYLOAD_CRC. Expected CRC is $EXPECTED_PAYLOAD_CRC_TYPE"
+    RETVAL=1
+fi
+
+# Success
+echo "Success: Case 2: Primary CRC type ($PRIMARY_CRC) and Payload CRC type ($PAYLOAD_CRC) match expected values"
+
+# drain the bundle
+bpsink ipn:5.2 &
+
+# capture the PID
+PID=$!
+
+# let it run
+sleep 2
+
+# Send Ctrl+C (SIGINT) to the program
+kill -SIGINT $PID
+
+# let the program exit
+wait $PID 2>/dev/null
+
+# check if the program exited
+if ! ps -p $PID > /dev/null; then
+    echo "bpsink ended..."
+else
+    echo "Error: bpsink did not end..."
+	RETVAL=1
+fi
+
+###############################
+echo ""
+echo "Case 3: Send bundle with no CRC (type 0) for primary block, CRC32 (type 2) for payload"
+cd ../2.ipn.ltp
+bpadmin adjust-crc-type-case-3.bprc
+sleep 1
+bpsource ipn:5.2 "Third hello!" -t3000
+sleep 5
+
+# Set expected CRC types
+EXPECTED_PRIMARY_CRC_TYPE=0
+EXPECTED_PAYLOAD_CRC_TYPE=2
+
+cd ../5.ipn.ltp
+
+# Run bplist and grep for CRC types
+bplist | tee case3_out.txt
+
+PRIMARY_CRC=$(grep -E "primary crc type:" "case3_out.txt" | awk '{print $NF}')
+PAYLOAD_CRC=$(grep -E "payload CRC type:" "case3_out.txt" | awk '{print $NF}')
+
+# Check if grep found the lines
+if [ -z "$PRIMARY_CRC" ]; then
+    echo "Error: Could not find primary crc type in bplist output"
+    RETVAL=1
+fi
+
+if [ -z "$PAYLOAD_CRC" ]; then
+    echo "Error: Could not find payload crc type in bplist output"
+    RETVAL=1
+fi
+
+# Validate primary CRC type
+if [ "$PRIMARY_CRC" != "$EXPECTED_PRIMARY_CRC_TYPE" ]; then
+    echo "Error: Invalid primary crc type: $PRIMARY_CRC. Expected CRC is $EXPECTED_PRIMARY_CRC_TYPE"
+    RETVAL=1
+fi
+
+# Validate payload CRC type
+if [ "$PAYLOAD_CRC" != "$EXPECTED_PAYLOAD_CRC_TYPE" ]; then
+    echo "Error: Invalid payload crc type: $PAYLOAD_CRC. Expected CRC is $EXPECTED_PAYLOAD_CRC_TYPE"
+    RETVAL=1
+fi
+
+# Success
+echo "Success: Case 3: Primary CRC type ($PRIMARY_CRC) and Payload CRC type ($PAYLOAD_CRC) match expected values"
+
+# drain the bundle
+bpsink ipn:5.2 &
+
+# capture the PID
+PID=$!
+
+# let it run
+sleep 2
+
+# Send Ctrl+C (SIGINT) to the program
+kill -SIGINT $PID
+
+# let the program exit
+wait $PID 2>/dev/null
+
+# check if the program exited
+if ! ps -p $PID > /dev/null; then
+    echo "bpsink ended..."
+else
+    echo "Error: bpsink did not end..."
+	RETVAL=1
+fi
+
+########################
+
+# Shut down ION processes.
+echo
+echo "Stopping ION..."
+#cd ../2.ipn.ltp
+#./ionstop &
+#cd ../3.ipn.ltp
+#./ionstop &
+#cd ../5.ipn.ltp
+#./ionstop &
+
+# Give all three nodes time to shut down, then clean up.
+#sleep 3
+killm
+echo "CRC type test completed."
+exit $RETVAL

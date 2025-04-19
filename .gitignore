@@ -468,3 +468,6 @@ tests/bug-0015-tcpclo-bpcp-sig-handling/test
 .stamp_extracted
 .stamp_patched
 .stamp_staging_installed
+tests/crc_relay/5.ipn.ltp/case1_out.txt
+tests/crc_relay/5.ipn.ltp/case2_out.txt
+tests/crc_relay/5.ipn.ltp/case3_out.txt
