@@ -123,6 +123,7 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 	char		*buf;
 	ZcoReader	reader;
 	int		len;
+	char	outbuf[30];
 
 	buflen = bundle->payload.length;
 	if (buflen > 100)
@@ -147,7 +148,12 @@ static void	printPayload(Sdr sdr, Bundle *bundle)
 
 	PUTS("****** Payload");
 	printBytes(buf, buflen);
+
 	MRELEASE(buf);
+
+	isprintf(outbuf, sizeof outbuf,
+		"- payload CRC type:    	%d", (int) bundle->payload.crcType);
+	PUTS(outbuf);
 }
 
 static void	printQueueState(Sdr sdr, Bundle *bundle)
@@ -254,6 +260,10 @@ frag offset %10lu", bundle->id.creationTime.msec, bundle->id.creationTime.count,
 	isprintf(buf, sizeof buf,
 			"- app ack requested:    %d", bundle->bundleProcFlags
 			& BDL_APP_ACK_REQUEST ? 1 : 0);
+	PUTS(buf);
+
+	isprintf(buf, sizeof buf,
+			"- primary crc type: 	 %d", (int) bundle->primaryBlkCrcType);
 	PUTS(buf);
 
 	priority = bundle->priority;
