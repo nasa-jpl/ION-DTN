@@ -103,6 +103,12 @@ jobs:
         with:
           name: build-and-test-log-ol8-${{ env.TIMESTAMP }}
           path: build-and-test.log
+      
+      - name: Show progress file
+        if: ${{ always() }}
+        run: |
+          echo "Contents of ./tests/progress:"
+          cat ./tests/progress || echo "No progress file found."
 
       - name: Upload progress file as artifact
         if: ${{ always() }}

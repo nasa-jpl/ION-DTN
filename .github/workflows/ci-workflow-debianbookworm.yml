@@ -79,6 +79,12 @@ jobs:
           name: build-and-test-log-debian-${{ env.TIMESTAMP }}
           path: build-and-test.log
 
+      - name: Show progress file
+        if: ${{ always() }}
+        run: |
+          echo "Contents of ./tests/progress:"
+          cat ./tests/progress || echo "No progress file found."
+
       - name: Upload progress file
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
