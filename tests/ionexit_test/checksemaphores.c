@@ -2,8 +2,8 @@
 	This is a portion of the `ionexit_test` test that verifies no ION POSIX
 	Named Semaphores exist on the system.
 
-	Going through the official semaphore interface (rather than checking the
-	filesystem directly) makes the test agnostic to the machine's storage
+	Going through the official POSIX semaphore interface (rather than checking
+	the filesystem directly) makes the test agnostic to the machine's storage
 	location for the named semaphores.
  */
 
@@ -18,6 +18,15 @@
 #include <platform.h> // for SEM_NSEMS_MAX
 
 int main(int argc, char **argv) {
+
+#if defined(linux)
+	// The only OS that this test currently supports is Linux.
+    //      e.g. SEM_NSEMS_MAX does not get defined on FreeBSD, so compilation
+    //      of this test-support program needs to be skipped on that platform,
+    //      until additional verification methods are added for the non-Linux
+    //      platforms, or some platform-agnostic verification approach is
+    //      found.
+
 	char semName[NAME_MAX] = { '\0' };
 
 	int result = 0;
@@ -46,5 +55,13 @@ int main(int argc, char **argv) {
 	}
 
 	return result;
+
+#else
+	// For unsupported platforms, always return error; this test should have
+	// been excluded from running on its unsupported platforms.
+    printf("ionexit_test/checksemaphores: Unsupported platform\n");
+	return -1;
+#endif
+
 }
 

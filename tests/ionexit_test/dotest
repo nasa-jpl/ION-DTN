@@ -1,6 +1,12 @@
 #!/bin/bash
 #
 # Tests that the ionexit utility cleans up ION processes and shared resources.
+#
+# Note: The only OS that this test currently supports is Linux. The
+# verification approach depends on Linux-only utilities, so this test needs to
+# be skipped on other platforms, until additional verification methods are
+# added for the non-Linux platforms, or some platform-agnostic verification
+# approach is found.
 
 OS=$1
 echo "OS is $OS"
