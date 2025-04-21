@@ -21,11 +21,11 @@ int main(int argc, char **argv) {
 
 #if defined(linux)
 	// The only OS that this test currently supports is Linux.
-    //      e.g. SEM_NSEMS_MAX does not get defined on FreeBSD, so compilation
-    //      of this test-support program needs to be skipped on that platform,
-    //      until additional verification methods are added for the non-Linux
-    //      platforms, or some platform-agnostic verification approach is
-    //      found.
+	//      e.g. SEM_NSEMS_MAX does not get defined on FreeBSD, so compilation
+	//      of this test-support program needs to be skipped on that platform,
+	//      until additional verification methods are added for the non-Linux
+	//      platforms, or some platform-agnostic verification approach is
+	//      found.
 
 	char semName[NAME_MAX] = { '\0' };
 

@@ -128,7 +128,7 @@ ipcmk_sem_output=$(ipcmk --semaphore 1)
 # and, grep -o does not exist on Solaris...
 #extra_before_shmid=$(echo "$ipcmk_shm_output" | grep -o '[0-9]\+')
 # TODO sed script is broken for an input line with multiple (separated) groups of digits
-#	   That doesn't occur in this context (always a single group of digits), but I'm unsatisfied.
+#      That doesn't occur in this context (always a single group of digits), but I'm unsatisfied.
 extra_before_shmid=$(echo "$ipcmk_shm_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
 extra_before_semid=$(echo "$ipcmk_sem_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
 
@@ -198,12 +198,12 @@ ipcmk_shm_output=$(ipcmk --shmem 1024)
 ipcmk_sem_output=$(ipcmk --semaphore 1)
 
 # TODO sed script is broken for an input line with multiple (separated) groups of digits
-#	   That doesn't occur in this context (always a single group of digits), but I'm unsatisfied.
+#      That doesn't occur in this context (always a single group of digits), but I'm unsatisfied.
 extra_during_shmid=$(echo "$ipcmk_shm_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
 extra_during_semid=$(echo "$ipcmk_sem_output" | sed 's/[^0-9]*\([0-9]\+\)[^0-9]*/\1/;t matched;d;:matched')
 
 echo "Created non-ION shared memory region while ION is running: shmid=$extra_during_shmid"
-echo "Created non-ION SVR4 semaphore while ION is running: shmid=$extra_during_semid"
+echo "Created non-ION SVR4 semaphore while ION is running: semid=$extra_during_semid"
 echo
 
 getSharedResources
@@ -337,8 +337,8 @@ if [ "$OSNAME" = "SunOS" ]; then
 	PS="/usr/bin/ps"
 	PS_ARGS="-fe"
 elif [[ "$OSNAME" == "MINGW"* ]]; then
-  	PS="tasklist"
-  	PS_ARGS=""
+	PS="tasklist"
+	PS_ARGS=""
 else
 	PS="ps"
 	PS_ARGS="-fe"
@@ -356,9 +356,9 @@ ${PS} ${PS_ARGS} > ${PSFILE}
 # see if any of those still-running processes belong to ION
 processes_running=0
 for PROC in ${IONPROCESSLIST}; do
-    #grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
-    #    awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
-    processline=$(grep -w "${PROC}" "${PSFILE}" | grep -v "defunct")
+	#grep "[^-a-zA-Z]${PROC}$" "${PSFILE}" | grep -v "defunct" | \
+	#    awk '{printf("  *** Unknown error: process %s not killed...try rebooting\n", $NF);}'
+	processline=$(grep -w "${PROC}" "${PSFILE}" | grep -v "defunct")
 	if [ -n "$processline" ]; then
 		echo "ERROR: process $PROC not killed..."
 		processes_running=$(($processes_running + 1))
