@@ -10093,12 +10093,12 @@ void	serializePrimaryBlock(Bundle *bundle, unsigned char **cursor,
 
 	startOfPrimaryBlock = *cursor;
 
-	/*	Primary block can have 8 to 11 items:
+	/*  Primary block can have 8 to 11 items:
 	 * 	
-	 *	Non-fragmented	No CRC		8 items	
-	 *  Non-fragmented	Yes	CRC 	9 items 
+	 *  Non-fragmented	No CRC		8 items	
+	 *  Non-fragmented	Yes CRC 	9 items 
 	 *  Fragmented		No CRC 		10 items
-	 *  Fragmented		Yes	CRC		11 items	*/
+	 *  Fragmented		Yes CRC		11 items */
 
 	if (bundle->bundleProcFlags & BDL_IS_FRAGMENT)
 	{
