@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Tests that the ionexit utility cleans up ION processes and shared resources.
 #

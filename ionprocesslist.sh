@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 IONPROCESSLIST="acsadmin lt-acsadmin \
 	acslist lt-acslist \
