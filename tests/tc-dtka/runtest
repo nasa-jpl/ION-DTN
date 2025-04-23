@@ -213,8 +213,8 @@ tcaadmin 203 recover.tcarc
 cd ../5.ipn.ltp
 tcaadmin 203 recover.tcarc
 
-# Sleep another 7 minutes, note that second re-keying cycle should be done.
-echo "Re-keying with compromise started, now sleeping 7 minutes."
+# Sleep another 8 minutes, note that second re-keying cycle should be done.
+echo "Re-keying with compromise started, now sleeping 8 minutes."
 sleep 480
 echo "Second re-keying cycle should have completed by now."
 cd ../7.ipn.ltp
