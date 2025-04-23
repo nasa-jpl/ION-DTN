@@ -32,12 +32,6 @@ jobs:
       tests_to_run: ${{ inputs.tests_to_run }}
       env_vars: ${{ inputs.env_vars }}
 
-  macos_14_7:
-    uses: ./.github/workflows/ci-workflow-macos_14_7.yml
-    with:
-      tests_to_run: ${{ inputs.tests_to_run }}
-      env_vars: ${{ inputs.env_vars }}
-
   rpios:
     uses: ./.github/workflows/ci-workflow-rpios.yml
     with:
