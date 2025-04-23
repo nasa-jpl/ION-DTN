@@ -12,6 +12,11 @@ on:
         description: 'Pull request number'
         required: true
         type: string
+      env_vars:
+        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ''
 
 
 jobs:
@@ -29,39 +34,46 @@ jobs:
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
 
   ubuntu-22:
     uses: ./.github/workflows/ci-workflow-ubuntu22.yml
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
 
   ubuntu-20:
     uses: ./.github/workflows/ci-workflow-ubuntu20.yml
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
 
   rhel9:
     uses: ./.github/workflows/ci-workflow-rhel9.yml
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
 
   rhel8:
     uses: ./.github/workflows/ci-workflow-rhel8.yml
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
     
   ol9:
     uses: ./.github/workflows/ci-workflow-ol9.yml
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
     
   ol8:
     uses: ./.github/workflows/ci-workflow-ol8.yml
     with:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}

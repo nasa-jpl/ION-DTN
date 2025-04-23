@@ -5,6 +5,12 @@ on:
 #    branches:
 #      - integration
   workflow_call:
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ''
   workflow_dispatch:
     inputs:
       tests_to_run:
