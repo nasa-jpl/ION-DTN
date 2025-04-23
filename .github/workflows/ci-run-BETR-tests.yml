@@ -2,19 +2,35 @@ name: Run All Best Effort Test and Report (BETR) Supported Platforms Manually
 
 on:
   workflow_dispatch:  # Manual trigger only
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   debianbookworm:
     uses: ./.github/workflows/ci-workflow-debianbookworm.yml
+    with:
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   freeBSD14:
     uses: ./.github/workflows/ci-workflow-freeBSD14.yml
+    with:
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   macos_14_7_arm64:
     uses: ./.github/workflows/ci-workflow-macos_14_7_arm64.yml
+    with:
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   macos_14_7:
     uses: ./.github/workflows/ci-workflow-macos_14_7.yml
+    with:
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   rpios:
     uses: ./.github/workflows/ci-workflow-rpios.yml
+    with:
+      tests_to_run: ${{ inputs.tests_to_run }}

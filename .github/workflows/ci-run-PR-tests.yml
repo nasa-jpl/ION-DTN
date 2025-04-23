@@ -3,10 +3,16 @@ name: Run All PR Tests Manually
 on:
   workflow_dispatch:
     inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ''
       pr_number:
         description: 'Pull request number'
         required: true
         type: string
+
 
 jobs:
   check-user:
@@ -22,33 +28,40 @@ jobs:
     uses: ./.github/workflows/ci-workflow-ubuntu.yml
     with:
       pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   ubuntu-22:
     uses: ./.github/workflows/ci-workflow-ubuntu22.yml
     with:
       pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   ubuntu-20:
     uses: ./.github/workflows/ci-workflow-ubuntu20.yml
     with:
       pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   rhel9:
     uses: ./.github/workflows/ci-workflow-rhel9.yml
     with:
       pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
 
   rhel8:
     uses: ./.github/workflows/ci-workflow-rhel8.yml
     with:
       pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
     
   ol9:
     uses: ./.github/workflows/ci-workflow-ol9.yml
     with:
       pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
     
   ol8:
     uses: ./.github/workflows/ci-workflow-ol8.yml
     with:
       pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
