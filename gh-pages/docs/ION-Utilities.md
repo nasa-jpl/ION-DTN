@@ -1,10 +1,12 @@
 # ION Utility Programs
 
-Here is a short list of utility programs that comes with ION that are frequently used by users launch, stop, and query ION/BP operation status:
+Here is a short list of utility programs that come with ION that are frequently used by users to launch, stop, and query ION/BP operation status:
 
-*  `ionexit` - A program that shuts down ION with the option to preserve the SDR.
+* `ionexit` - A program that shuts down ION with the option to preserve the SDR.
 
 Normally, when ION's various daemons were stopped down by calling `ionstop`,  issuing the command '.' to the administration programs, the SDR will be modified/destroyed in the process. Calling `ionexit` with an argument 'keep' allows the SDR state just prior to the execution of `ionexit` to be preserved in the non-volatile storage such as a file if ION was configured to use a file for the SDR.
+
+As released, `ionexit` stops the BP, LTP, BSSP, CFDP, and RFX daemons, if they were running. Any other ION services started by the user will need to be stopped manually, and any user applications/processes attached to the SDR will need to detach, in order to notify the OS that ION shared resources are no longer in use and release those resources (e.g. SDR shared memory in DRAM).
 
 * bpstats
 * bplist
