@@ -74,9 +74,9 @@ jobs:
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&
             ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
-            make -j4 &&
-            sudo make install &&
-            make buildcheck &&
+            gmake -j4 &&
+            sudo gmake install &&
+            gmake buildcheck &&
             sudo ldconfig &&
             cd tests &&
             if [ -n "$1" ]; then
