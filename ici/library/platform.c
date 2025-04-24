@@ -1155,27 +1155,42 @@ char	*getNameOfUser(char *buffer)
 #include "fswlan.c"
 #endif
 #else
-unsigned int	getInternetAddress(char *hostName)
+/* use getaddrinfo for Linux, FreeBSD, macOS, RTEMS */
+unsigned int getInternetAddress(char *hostName)
 {
-	struct hostent	*hostInfo;
-	unsigned int	hostInetAddress;
+    struct addrinfo hints, *res;
+    unsigned int hostInetAddress = BAD_HOST_NAME;
+    int status;
 
-	CHKZERO(hostName);
-	hostInfo = gethostbyname(hostName);
-	if (hostInfo == NULL)
-	{
-		putSysErrmsg("can't get host info", hostName);
-		return BAD_HOST_NAME;
-	}
+    CHKZERO(hostName);
 
-	if (hostInfo->h_length != sizeof hostInetAddress)
-	{
-		putErrmsg("Address length invalid in host info.", hostName);
-		return BAD_HOST_NAME;
-	}
+    /* Set up hints for IPv4-only resolution */
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;      /* IPv4 only */
+    hints.ai_socktype = SOCK_STREAM; /* TCP, consistent with existing usage */
+    hints.ai_flags = 0;
 
-	memcpy((char *) &hostInetAddress, hostInfo->h_addr, 4);
-	return ntohl(hostInetAddress);
+    /* Resolve hostname */
+    status = getaddrinfo(hostName, NULL, &hints, &res);
+    if (status != 0)
+    {
+        putSysErrmsg("can't get address for host", gai_strerror(status));
+        return BAD_HOST_NAME;
+    }
+
+    /* Extract IPv4 address from first result */
+    if (res->ai_addrlen >= sizeof(struct sockaddr_in))
+    {
+        struct sockaddr_in *addr = (struct sockaddr_in *) res->ai_addr;
+        hostInetAddress = ntohl(addr->sin_addr.s_addr);
+    }
+    else
+    {
+        putErrmsg("Address length invalid.", hostName);
+    }
+
+    freeaddrinfo(res);
+    return hostInetAddress;
 }
 
 char	*getInternetHostName(unsigned int hostNbr, char *buffer)

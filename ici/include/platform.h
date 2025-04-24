@@ -250,7 +250,8 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 /*
 ** Standard Headers: Common to All Supported Platforms (incl. RTOS & Windows)
 */
-			/* STDC.88 */
+
+/* STDC.88 */
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -261,15 +262,22 @@ extern int			rtems_shell_main_cp(int argc, char *argv[]);
 #include <errno.h>
 #include <math.h>
 #include <stdarg.h>
-			/* POSIX.1 */
-#ifndef ION4WIN			/*	No POSIX in Visual Studio.	*/
+
+/* Add headers for getaddrinfo on Linux, FreeBSD, macOS, RTEMS */
+#if defined(linux) || defined(freebsd) || defined(darwin) || defined(RTEMS)
+#include <netdb.h>
+#include <sys/socket.h>
+#endif
+
+/* POSIX.1 */
+#ifndef ION4WIN			/* No POSIX in Visual Studio. */
 #include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#endif				/*	end of #ifndef ION4WIN		*/
+#endif				/* end of #ifndef ION4WIN */
 
-#ifdef ION4WIN			/*	Visual Studio provides most.	*/
+#ifdef ION4WIN			/* Visual Studio provides most.	*/
 
 #include <sys/types.h>
 
