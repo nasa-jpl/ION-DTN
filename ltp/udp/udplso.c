@@ -31,6 +31,20 @@
 
 #define IPHDR_SIZE	(sizeof(struct udpiphdr))
 
+#endif 		/* end of if defined(linux) */
+
+
+/* Macro definitions for DNS retry and re-resolution */
+#ifndef UDPLSO_DNS_RETRY_COUNT
+#define UDPLSO_DNS_RETRY_COUNT 5
+#endif
+
+#ifndef UDPLSO_DNS_RETRY_DELAY
+#define UDPLSO_DNS_RETRY_DELAY 5
+#endif
+
+#ifndef UDPLSO_DNS_RECHECK_INTERVAL
+#define UDPLSO_DNS_RECHECK_INTERVAL 60
 #endif
 
 static sm_SemId		udplsoSemaphore(sm_SemId *semid)
@@ -306,7 +320,23 @@ compatibility, but it is ignored.");
 	/*	All command-line arguments are now validated.  First
 	 *	compute the peer's socket address.			*/
 
-	parseSocketSpec(endpointSpec, &portNbr, &ipAddress);
+	{
+		int retries = UDPLSO_DNS_RETRY_COUNT;
+		while (retries > 0 && parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
+		{
+			char memoBuf[256];
+			isprintf(memoBuf, sizeof(memoBuf), "udplso: DNS resolution failed for %s, retrying %d more times...", endpointSpec, retries - 1);
+			writeMemoNote("[i] udplso", memoBuf);
+			snooze(UDPLSO_DNS_RETRY_DELAY);
+			retries--;
+		}
+		if (ipAddress == 0)
+		{
+			putErrmsg("udplso: Can't get IP address for host.", endpointSpec);
+			return 1;
+		}
+	}
+
 	if (portNbr == 0)
 	{
 		portNbr = LtpUdpDefaultPortNbr;
@@ -378,9 +408,7 @@ compatibility, but it is ignored.");
 	oK(udplsoSemaphore(&(vspan->segSemaphore)));
 	signal(SIGTERM, shutDownLso);
 
-
 	/*	  Start the receiver thread.		*/
-
 
 	/* lock not needed here (thread not running yet) */
 	rtp.running = 1;
@@ -452,6 +480,8 @@ compatibility, but it is ignored.");
 	 *  Loop on rtp.running and the segSemaphore.
 	 *  We'll do a local keepRunning to read rtp.running
 	 *  under the mutex.			*/
+	static int dnsFailed = 0; /* Track DNS failure state */
+	static time_t lastDnsCheck = 0; /* Track last DNS check time */
 
 	while (1)
 	{
@@ -464,6 +494,36 @@ compatibility, but it is ignored.");
 		if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
 		{
 			break;
+		}
+
+		/* Periodic DNS re-resolution */
+		time_t now = time(NULL);
+		if (now - lastDnsCheck >= UDPLSO_DNS_RECHECK_INTERVAL)
+		{
+			unsigned int newIpAddress = ipAddress;
+			if (parseSocketSpec(endpointSpec, &portNbr, &newIpAddress) != 0)
+			{
+				char memoBuf[256];
+				isprintf(memoBuf, sizeof(memoBuf), "Periodic DNS resolution failed for %s", endpointSpec);
+				writeMemoNote("[i] udplso", memoBuf);
+				dnsFailed = 1;
+			}
+			else if (newIpAddress != ipAddress)
+			{
+				pthread_mutex_lock(&rtp.lock);
+				ipAddress = newIpAddress;
+				ipAddress = htonl(ipAddress);
+				memcpy((char *) &(peerInetName->sin_addr.s_addr), (char *) &ipAddress, 4);
+				if (dnsFailed)
+				{
+					char memoBuf[256];
+					isprintf(memoBuf, sizeof(memoBuf), "Updated peer IP address to %s", inet_ntoa(peerInetName->sin_addr));
+					writeMemoNote("[i] udplso", memoBuf);
+					dnsFailed = 0;
+				}
+				pthread_mutex_unlock(&rtp.lock);
+			}
+			lastDnsCheck = now;
 		}
 
 		/* If no segments ready, wait .1 sec,
@@ -572,6 +632,9 @@ segment batch.", NULL);
 	rc.remoteEngineId = remoteEngineId;
 	rc.neighbor = NULL;
 	
+	static int dnsFailed = 0; /* Track DNS failure state */
+	static time_t lastDnsCheck = 0; /* Track last DNS check time */
+	
 	while (1)
 	{
 		int keepRunning;
@@ -583,6 +646,36 @@ segment batch.", NULL);
 		if (!keepRunning || sm_SemEnded(vspan->segSemaphore))
 		{
 			break;
+		}
+
+		/* Periodic DNS re-resolution */
+		time_t now = time(NULL);
+		if (now - lastDnsCheck >= UDPLSO_DNS_RECHECK_INTERVAL)
+		{
+			unsigned int newIpAddress = ipAddress;
+			if (parseSocketSpec(endpointSpec, &portNbr, &newIpAddress) != 0)
+			{
+				char memoBuf[256];
+				isprintf(memoBuf, sizeof(memoBuf), "udplso: Periodic DNS resolution failed for %s", endpointSpec);
+				writeMemoNote("[i] udplso", memoBuf);
+				dnsFailed = 1;
+			}
+			else if (newIpAddress != ipAddress)
+			{
+				pthread_mutex_lock(&rtp.lock);
+				ipAddress = newIpAddress;
+				ipAddress = htonl(ipAddress);
+				memcpy((char *) &(peerInetName->sin_addr.s_addr), (char *) &ipAddress, 4);
+				if (dnsFailed)
+				{
+					char memoBuf[256];
+					isprintf(memoBuf, sizeof(memoBuf), "udplso: Updated peer IP address to %s", inet_ntoa(peerInetName->sin_addr));
+					writeMemoNote("[i] udplso", memoBuf);
+					dnsFailed = 0;
+				}
+				pthread_mutex_unlock(&rtp.lock);
+			}
+			lastDnsCheck = now;
 		}
 
 		segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
