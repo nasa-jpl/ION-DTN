@@ -39,9 +39,9 @@ static unsigned long	getUsecTimestamp()
 	return ((tv.tv_sec * 1000000) + tv.tv_usec);
 }
 
-/* Define the caching interval macro (default: 5 minutes) */
+/* Define the caching interval macro (default: 1 minute) */
 #ifndef ADDRESS_CACHE_INTERVAL_MINUTES
-#define ADDRESS_CACHE_INTERVAL_MINUTES 5
+#define ADDRESS_CACHE_INTERVAL_MINUTES 1
 #endif
 
 /* Convert minutes to microseconds for comparison */
@@ -68,6 +68,7 @@ static unsigned long lastErrorLogTime = 0; /* Timestamp of last error log */
 static unsigned long lastSkipLogTime = 0; /* Timestamp of last skip log */
 static unsigned int failedLookupCount = 0; /* Count of consecutive failed lookups */
 static const unsigned int maxFailedLookups = MAX_FAILED_LOOKUPS; /* Max retries */
+static int lastLookupFailed = 0; /* Boolean: was the last lookup attempt a failure? */
 
 #if defined (ION_LWT)
 int	udpclo(saddr a1, saddr a2, saddr a3, saddr a4, saddr a5,
@@ -121,7 +122,7 @@ int	main(int argc, char *argv[])
 		if (rttString == NULL)
 		{
 			PUTS("Usage: udpclo {<remote node's host name> | \
-@} [:<its port number>]");
+				@} [:<its port number>]");
 			return 0;
 		}
 		else
@@ -130,106 +131,117 @@ int	main(int argc, char *argv[])
 		}
 	}
 
+	/* Attach to ION */
+	if (bpAttach() < 0)
+	{
+		putErrmsg("udpclo can't attach to BP.", NULL);
+		return -1;
+	}
+
 	/* Store endpointSpec and extract hostname */
-    if (endpointSpec) {
-        endpointSpecCopy = MTAKE(strlen(endpointSpec) + 1);
+    	if (endpointSpec) 
+	{
+        	endpointSpecCopy = MTAKE(strlen(endpointSpec) + 1);
         
-		if (endpointSpecCopy == NULL) {
-            putErrmsg("No memory for endpointSpec copy.", NULL);
-            return -1;
-        }
+		if (endpointSpecCopy == NULL) 
+		{
+            		putErrmsg("udpclo: No memory for endpointSpec copy.", NULL);
+            		return -1;
+        	}
 
-        strcpy(endpointSpecCopy, endpointSpec);
+	        strcpy(endpointSpecCopy, endpointSpec);
 
-        /* Parse endpointSpec to get port and hostname */
-        parseSocketSpec(endpointSpec, &portNbr, &hostNbr);
+	        /* Parse endpointSpec to get port and hostname */
+ 		parseSocketSpec(endpointSpec, &portNbr, &hostNbr);
         
 		if (portNbr == 0)
-        {
-            portNbr = BpUdpDefaultPortNbr;
-        }
+		{
+			portNbr = BpUdpDefaultPortNbr;
+		}
 
-        cachedPortNbr = portNbr; /* Store for reuse in re-resolution */
+        	cachedPortNbr = portNbr; /* Store for reuse in re-resolution */
 
-        /* Extract hostname */
-        char *delimiter = strchr(endpointSpec, ':');
-        int hostnameLen = delimiter ? (delimiter - endpointSpec) : strlen(endpointSpec);
-        remoteHostName = MTAKE(hostnameLen + 1);
-        if (remoteHostName == NULL) {
-            putErrmsg("No memory for remoteHostName.", NULL);
-            MRELEASE(endpointSpecCopy);
-            return -1;
-        }
+		/* Extract hostname */
+		char *delimiter = strchr(endpointSpec, ':');
+		int hostnameLen = delimiter ? (delimiter - endpointSpec) : strlen(endpointSpec);
+		remoteHostName = MTAKE(hostnameLen + 1);
 
-        strncpy(remoteHostName, endpointSpec, hostnameLen);
-        remoteHostName[hostnameLen] = '\0';
+		if (remoteHostName == NULL) 
+		{
+			putErrmsg("udpclo: No memory for remoteHostName.", NULL);
+			MRELEASE(endpointSpecCopy);
+			return -1;
+		}
+
+		strncpy(remoteHostName, endpointSpec, hostnameLen);
+		remoteHostName[hostnameLen] = '\0';
         
-		if (strcmp(remoteHostName, "@") == 0) {
-            /* Replace '@' with local hostname */
-            char hostnameBuf[MAXHOSTNAMELEN + 1];
-            getNameOfHost(hostnameBuf, sizeof(hostnameBuf));
-            MRELEASE(remoteHostName);
-            remoteHostName = MTAKE(strlen(hostnameBuf) + 1);
-            if (remoteHostName == NULL) {
-                putErrmsg("No memory for local hostname.", NULL);
-                MRELEASE(endpointSpecCopy);
-                return -1;
-            }
-            strcpy(remoteHostName, hostnameBuf);
-        }
-    }
+		if (strcmp(remoteHostName, "@") == 0) 
+		{
+			/* Replace '@' with local hostname */
+			char hostnameBuf[MAXHOSTNAMELEN + 1];
+			getNameOfHost(hostnameBuf, sizeof(hostnameBuf));
+			MRELEASE(remoteHostName);
+			remoteHostName = MTAKE(strlen(hostnameBuf) + 1);
 
-	/* Perform initial address lookup */
-    portNbr = htons(cachedPortNbr);
-    hostNbr = htonl(hostNbr);
-    memset((char *) &socketName, 0, sizeof socketName);
-    inetName = (struct sockaddr_in *) &socketName;
-    inetName->sin_family = AF_INET;
-    inetName->sin_port = portNbr;
-    memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-    isAddressValid = (hostNbr != BAD_HOST_NAME); /* Check initial lookup */
+			if (remoteHostName == NULL) 
+			{
+				putErrmsg("udpclo: No memory for local hostname.", NULL);
+				MRELEASE(endpointSpecCopy);
+				return -1;
+			}
+		
+			strcpy(remoteHostName, hostnameBuf);
+        	}
+    	}
+
+	/* Perform initialization */
+	portNbr = htons(cachedPortNbr);
+	hostNbr = htonl(hostNbr);
+	memset((char *) &socketName, 0, sizeof socketName);
+	inetName = (struct sockaddr_in *) &socketName;
+	inetName->sin_family = AF_INET;
+	inetName->sin_port = portNbr;
+	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
+
+	isAddressValid = (hostNbr != BAD_HOST_NAME); /* Check initial lookup */
 	lastLookupTime = getUsecTimestamp(); /* Record initial lookup time */
-	if (!isAddressValid) {
-		putErrmsg("Initial hostname resolution failed.", remoteHostName);
+
+	if (!isAddressValid) 
+	{
+		putErrmsg("udpclo: Initial hostname resolution failed.", remoteHostName);
 		failedLookupCount = 1;
 		lastErrorLogTime = lastLookupTime;
+		lastLookupFailed = 1;
 	}
 	
-	if (bpAttach() < 0)
-    {
-        putErrmsg("udpclo can't attach to BP.", NULL);
-        MRELEASE(endpointSpecCopy);
-        MRELEASE(remoteHostName);
-        return -1;
-    }
+	buffer = MTAKE(UDPCLA_BUFSZ);
+	if (buffer == NULL)
+	{
+		putErrmsg("udpclo: No memory for UDP buffer in udpclo.", NULL);
+		MRELEASE(endpointSpecCopy);
+		MRELEASE(remoteHostName);
+		return -1;
+	}
 
-    buffer = MTAKE(UDPCLA_BUFSZ);
-    if (buffer == NULL)
-    {
-        putErrmsg("No memory for UDP buffer in udpclo.", NULL);
-        MRELEASE(endpointSpecCopy);
-        MRELEASE(remoteHostName);
-        return -1;
-    }
+	findOutduct("udp", endpointSpec, &vduct, &vductElt);
+	if (vductElt == 0)
+	{
+		putErrmsg("udpclo: No such udp duct.", endpointSpec);
+		MRELEASE(buffer);
+		MRELEASE(endpointSpecCopy);
+		MRELEASE(remoteHostName);
+		return -1;
+	}
 
-    findOutduct("udp", endpointSpec, &vduct, &vductElt);
-    if (vductElt == 0)
-    {
-        putErrmsg("No such udp duct.", endpointSpec);
-        MRELEASE(buffer);
-        MRELEASE(endpointSpecCopy);
-        MRELEASE(remoteHostName);
-        return -1;
-    }
-
-    if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
-    {
-        putErrmsg("CLO task is already started for this duct.", itoa(vduct->cloPid));
-        MRELEASE(buffer);
-        MRELEASE(endpointSpecCopy);
-        MRELEASE(remoteHostName);
-        return -1;
-    }
+	if (vduct->cloPid != ERROR && vduct->cloPid != sm_TaskIdSelf())
+	{
+		putErrmsg("udpclo: CLO task is already started for this duct.", itoa(vduct->cloPid));
+		MRELEASE(buffer);
+		MRELEASE(endpointSpecCopy);
+		MRELEASE(remoteHostName);
+		return -1;
+	}
 
 	/*	All command-line arguments are now validated.		*/
 
@@ -267,49 +279,62 @@ int	main(int argc, char *argv[])
 	}
 
 	startTimestamp = getUsecTimestamp();
-    while (!(sm_SemEnded(vduct->semaphore)))
-    {
-        if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
-        {
-            putErrmsg("Can't dequeue bundle.", NULL);
-            break;
-        }
+	while (!(sm_SemEnded(vduct->semaphore)))
+	{
+		unsigned long currentTime = getUsecTimestamp();
+	
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
+		{
+			putErrmsg("udpclo: Can't dequeue bundle.", NULL);
+			break;
+		}
 
-        if (bundleZco == 0) /* Outduct closed. */
-        {
-            writeMemo("[i] udpclo outduct closed.");
-            sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
-            continue;
-        }
+		if (bundleZco == 0) /* Outduct closed. */
+		{
+			writeMemo("[i] udpclo outduct closed.");
+			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
+			continue;
+		}
 
-        if (bundleZco == 1) /* Got a corrupt bundle. */
-        {
-            continue; /* Get next bundle. */
-        }
+		if (bundleZco == 1) /* Got a corrupt bundle. */
+		{
+			continue; /* Get next bundle. */
+		}
 
-        CHKZERO(sdr_begin_xn(sdr));
-        bundleLength = zco_length(sdr, bundleZco);
-        sdr_exit_xn(sdr);
+		CHKZERO(sdr_begin_xn(sdr));
+		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);
 
-        /* Check if address needs re-resolution */
-		if (remoteHostName) {
+		/* Check if address needs re-resolution */
+		if (remoteHostName) 
+		{
 			unsigned long currentTime = getUsecTimestamp();
-			if (!isAddressValid || (currentTime - lastLookupTime >= CACHE_INTERVAL_USEC)) {
+			if (!isAddressValid || (currentTime - lastLookupTime >= CACHE_INTERVAL_USEC)) 
+			{
 				unsigned int newHostNbr = getInternetAddress(remoteHostName);
-				if (newHostNbr == BAD_HOST_NAME) {
+			
+				if (newHostNbr == BAD_HOST_NAME) 
+				{
 					failedLookupCount++;
-					if (failedLookupCount >= maxFailedLookups) {
-						putErrmsg("Maximum failed lookup attempts reached, stopping daemon.", remoteHostName);
+					if (failedLookupCount >= maxFailedLookups) 
+					{
+						putErrmsg("udpclo: Maximum failed lookup attempts reached, stopping daemon.", remoteHostName);
 						sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
 						break;
 					}
-					if (failedLookupCount == 1 || (currentTime - lastErrorLogTime >= SUPPRESSION_INTERVAL_USEC)) {
-						putErrmsg("Failed to resolve hostname, retrying after cache interval.", remoteHostName);
+
+					if (failedLookupCount == 1 || (currentTime - lastErrorLogTime >= SUPPRESSION_INTERVAL_USEC)) 
+					{
+						putErrmsg("udpclo: Failed to resolve hostname, retrying after cache interval.", remoteHostName);
 						lastErrorLogTime = currentTime;
 					}
+
 					isAddressValid = 0;
 					lastLookupTime = currentTime; /* Reset timer for retry */
-				} else {
+					lastLookupFailed = 1;
+				} 
+				else 
+				{
 					failedLookupCount = 0; /* Reset on success */
 					newHostNbr = htonl(newHostNbr);
 					portNbr = htons(cachedPortNbr);
@@ -320,48 +345,54 @@ int	main(int argc, char *argv[])
 					memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &newHostNbr, 4);
 					isAddressValid = 1;
 					lastLookupTime = currentTime;
-					writeMemoNote("[i] Successfully resolved hostname", remoteHostName);
+					
+					if (lastLookupFailed) 
+					{
+						writeMemoNote("[i] udpclo: Successfully resolved hostname", remoteHostName);
+					}
+					
+					lastLookupFailed = 0;
 				}
 			}
 		}
 
 		/* Skip transmission if address is invalid */
-		if (!isAddressValid) {
-			if (currentTime - lastSkipLogTime >= CACHE_INTERVAL_USEC) {
+		if (!isAddressValid) 
+		{
+			if (currentTime - lastSkipLogTime >= CACHE_INTERVAL_USEC) 
+			{
 				writeMemoNote("[i] Skipping transmission due to invalid address, will retry after cache interval", remoteHostName);
 				lastSkipLogTime = currentTime;
 			}
+
 			sm_TaskYield(); /* Yield to avoid busy-waiting */
 			continue;
 		}
 
-        bytesSent = sendBundleByUDP(&socketName, &ductSocket, bundleLength, bundleZco, buffer);
-        if (bytesSent < bundleLength)
-        {
-            sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
-            continue;
-        }
+		bytesSent = sendBundleByUDP(&socketName, &ductSocket, bundleLength, bundleZco, buffer);
+		
+		if (bytesSent < bundleLength)
+		{
+			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
+			continue;
+		}
 
-		/*	Rate control calculation is based on treating
-		 *	elapsed time as a currency, the price you
-		 *	pay (by microsnooze) for sending a segment
-		 *	of a given size.  All cost figures are
-		 *	expressed in microseconds except the computed
-		 *	totalCostSecs of the segment.			*/
-
+		/* Rate control calculation is based on treating
+		* elapsed time as a currency, the price you
+		* pay (by microsnooze) for sending a segment
+		* of a given size. All cost figures are
+		* expressed in microseconds except the computed
+		* totalCostSecs of the segment. */
 		totalPaid = getUsecTimestamp() - startTimestamp;
 
-		/*	Start clock for next bill.			*/
-
+		/* Start clock for next bill. */
 		startTimestamp = getUsecTimestamp();
 
-		/*	Compute time balance due.			*/
-
+		/* Compute time balance due. */
 		if (totalPaid >= prevPaid)
 		{
-		/*	This should always be true provided that
-		 *	clock_gettime() is supported by the O/S.	*/
-
+			/* This should always be true provided that
+			* clock_gettime() is supported by the O/S. */
 			currentPaid = totalPaid - prevPaid;
 		}
 		else
@@ -369,14 +400,13 @@ int	main(int argc, char *argv[])
 			currentPaid = 0;
 		}
 
-		/*	Get current time cost, in seconds, per byte.	*/
-
+		/* Get current time cost, in seconds, per byte. */
 		if (neighbor == NULL)
 		{
 			if (planObj && plan.neighborNodeNbr)
 			{
-				neighbor = findNeighbor(getIonVdb(),
-						plan.neighborNodeNbr, &nextElt);
+			neighbor = findNeighbor(getIonVdb(),
+				plan.neighborNodeNbr, &nextElt);
 			}
 		}
 
@@ -384,13 +414,13 @@ int	main(int argc, char *argv[])
 		{
 			timeCostPerByte = 1.0 / (neighbor->xmitRate);
 		}
-		else	/*	No link service rate control.		*/ 
+		else /* No link service rate control. */
 		{
 			timeCostPerByte = 0.0;
 		}
 
 		totalCostSecs = timeCostPerByte * computeECCC(bundleLength);
-		totalCost = totalCostSecs * 1000000.0;	/*	usec.	*/
+		totalCost = totalCostSecs * 1000000.0; /* usec. */
 		if (totalCost > currentPaid)
 		{
 			balanceDue = totalCost - currentPaid;
@@ -407,20 +437,20 @@ int	main(int argc, char *argv[])
 
 		prevPaid = balanceDue;
 
-		/*	Make sure other tasks have a chance to run.	*/
-
+		/* Make sure other tasks have a chance to run. */
 		sm_TaskYield();
 	}
 
 	if (ductSocket != -1)
-    {
-        closesocket(ductSocket);
-    }
-    writeErrmsgMemos();
-    writeMemo("[i] udpclo duct has ended.");
-    MRELEASE(buffer);
-    MRELEASE(endpointSpecCopy);
-    MRELEASE(remoteHostName);
-    ionDetach();
-    return 0;
+	{
+        	closesocket(ductSocket);
+	}
+
+	writeErrmsgMemos();
+	writeMemo("[i] udpclo duct has ended.");
+	MRELEASE(buffer);
+	MRELEASE(endpointSpecCopy);
+	MRELEASE(remoteHostName);
+	ionDetach();
+	return 0;
 }
