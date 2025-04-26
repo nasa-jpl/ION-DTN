@@ -36,11 +36,11 @@
 
 /* Macro definitions for DNS retry and re-resolution */
 #ifndef UDPLSO_DNS_RETRY_COUNT
-#define UDPLSO_DNS_RETRY_COUNT 5
+#define UDPLSO_DNS_RETRY_COUNT 10
 #endif
 
 #ifndef UDPLSO_DNS_RETRY_DELAY
-#define UDPLSO_DNS_RETRY_DELAY 5
+#define UDPLSO_DNS_RETRY_DELAY 10
 #endif
 
 #ifndef UDPLSO_DNS_RECHECK_INTERVAL
@@ -325,14 +325,15 @@ compatibility, but it is ignored.");
 		while (retries > 0 && parseSocketSpec(endpointSpec, &portNbr, &ipAddress) != 0)
 		{
 			char memoBuf[256];
-			isprintf(memoBuf, sizeof(memoBuf), "udplso: DNS resolution failed for %s, retrying %d more times...", endpointSpec, retries - 1);
+			isprintf(memoBuf, sizeof(memoBuf), "udplso: initial DNS resolution failed for %s, retrying %d more times, retry interval %d second(s).", \
+			   endpointSpec, retries - 1, UDPLSO_DNS_RETRY_DELAY);
 			writeMemoNote("[i] udplso", memoBuf);
 			snooze(UDPLSO_DNS_RETRY_DELAY);
 			retries--;
 		}
 		if (ipAddress == 0)
 		{
-			putErrmsg("udplso: Can't get IP address for host.", endpointSpec);
+			putErrmsg("udplso: Quit. Can't get IP address for host.", endpointSpec);
 			return 1;
 		}
 	}
