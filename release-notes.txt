@@ -76,7 +76,7 @@ Alpha and Beta releases are tested on a limited number of platforms and may
 contain known bugs/idiosyncrasies, which will be documented in the release
 notes.
 
-Planned updates for alpha release #1:
+Updates for alpha release #1:
 
 update-4.1.4-cfdp-out-of-order-eof
   * Updates CFDP algorithm handling of out-of-order arrival PDUs.
@@ -84,14 +84,41 @@ update-4.1.4-cfdp-out-of-order-eof
 update-4.1.4-a1-bpsec-config-doc
   * Adds BpSec configuration example to online documentation.
 
-feature-4.1.4-entropy-platform
-  * Updates entropy generation methods.
-
 multicast-issue-273-4.1.4
   * Fixes an issue related to Multicast startup order requirement.
 
+multicast-issue-273-4.1.4
+  * Fixes issue with multicast startup order
+
 update-4.1.4-keygentime-fix
   * Fixes a specific DTKA configuration issue.
+
+update-4.1.4-freebsd-update
+  * Update to address various freebsd build issues
+
+update-4.1.4-fix-ovrd-crash
+  * Fix crash caused by reading deleted bundle's ovrd metadata in SDR.
+
+update-4.1.4-unibo-cgr-relocate
+  * Relocate unibo-cgr code to contrib folder as a git submodule referencing external repository where code is actively maintained. This change also applies to the dtnsuite and dtnperf source code in the contrib folder. Removed the RGR extension block code that contains security vulnerability; notify the developer of Unibo-CGR to update the code upstream.
+
+update-4.1.4-resource-lock-fix
+  * This resolved the main issue of correctly initializing the mutex (the previous mutex was repeatedly initialized); upgrade to POSIX recursive mutex to simply operation. For older SVR4 Unix-based systems, such as Solaris predating v10, it may not work. Similarly, on Windows, older mingw may not work.
+
+update-4.1.4-lockPartition-concurrency-fix
+  * Fix concurrency issues of partitionLock
+
+update-4.1.4-windows-build
+  * Update instructions and dependency installation scripts for windows 10 build prototype
+
+update-4.1.4-address-sanitizer-rebase
+  * Fix buffer and various memory overflow discovered by address sanitizer instrumentation.
+
+update-4.1.4-issue_455_mc_doc
+  * Adds best practices for multicast to documentation
+  
+update-4.1.4-tc-dtka-duration
+  * Reduce regression test time for dtka using only 1 key type; can be changed by env variables set at test time.
 
 update-4.1.4-ionterminate
   * Fixes a segfault whenever ION shutdown routines are called (ionTerminate)
