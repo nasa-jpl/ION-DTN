@@ -56,7 +56,7 @@ AM_CFLAGS += $(VALGRIND_COMPAT_CFLAGS)
 EXTRA_DIST = 	\
 	$(srcdir)/loopbacktest.sh \
 	$(srcdir)/sysctl_script.sh \
-	$(srcdir)/README.txt \
+	$(srcdir)/README.md \
 	$(srcdir)/release-notes.txt \
 	$(srcdir)/configs/3node-ltp-brs/README.txt \
 	$(stuff_SCRIPTS) \
