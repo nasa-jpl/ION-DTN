@@ -165,7 +165,7 @@ cd ../5.ipn.ltp
 bplist | tee case1_out.txt
 
 PRIMARY_CRC=$(grep -E "primary crc type:" "case1_out.txt" | awk '{print $NF}')
-PAYLOAD_CRC=$(grep -E "payload CRC type:" "case1_out.txt" | awk '{print $NF}')
+PAYLOAD_CRC=$(grep -E "payload crc type:" "case1_out.txt" | awk '{print $NF}')
 
 # Check if grep found the lines
 if [ -z "$PRIMARY_CRC" ]; then
@@ -235,7 +235,7 @@ cd ../5.ipn.ltp
 bplist | tee case2_out.txt
 
 PRIMARY_CRC=$(grep -E "primary crc type:" "case2_out.txt" | awk '{print $NF}')
-PAYLOAD_CRC=$(grep -E "payload CRC type:" "case2_out.txt" | awk '{print $NF}')
+PAYLOAD_CRC=$(grep -E "payload crc type:" "case2_out.txt" | awk '{print $NF}')
 
 # Check if grep found the lines
 if [ -z "$PRIMARY_CRC" ]; then
@@ -305,7 +305,7 @@ cd ../5.ipn.ltp
 bplist | tee case3_out.txt
 
 PRIMARY_CRC=$(grep -E "primary crc type:" "case3_out.txt" | awk '{print $NF}')
-PAYLOAD_CRC=$(grep -E "payload CRC type:" "case3_out.txt" | awk '{print $NF}')
+PAYLOAD_CRC=$(grep -E "payload crc type:" "case3_out.txt" | awk '{print $NF}')
 
 # Check if grep found the lines
 if [ -z "$PRIMARY_CRC" ]; then
