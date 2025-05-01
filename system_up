@@ -4,100 +4,137 @@
 # Patricia Lindner
 # Aug 4, 2014
 #
-# This program can be used to determine whether the entire ION system is up or individual
-# subsections.
+# This program checks whether the entire ION system or individual subsystems are running.
 
 function USAGE {
-	echo
-	echo    "System_Up: Interplanetary Overlay Network system started script"
-	echo    "USAGE:"
-	echo    "	system_up [-A] [-i \"{p|w} ion\"] [-b \"{p|w} bp\"] [-l \"{p|w} ltp\'] [-D \"{p|w} dtpc\"] [-c \"{p|w} cfdp\"]"
-	echo
-	echo "	-A						Run all checks without polling"
-	echo "	-W [time]				Run all checks with polling. Optional timeout time." 
-	echo
-	echo "	-i \"{p|w} [ion]\"		Determine if ion subsystem is running. Optional timeout ion."
-	echo "	-b \"{p|w} [bp]\"		Determine if bp subsystem is running. Optional timeout bp."
-	echo "	-l \"{p|w} [ltp]\"		Determine if ltp subsystem is running. Optional timeout ltp."
-	echo "	-D \"{p|w} [dtpc]\"		Determine if dtpc subsystem is running. Optional timeout dtpc."
-	echo "	-c \"{p|w} [cfdp]\"		Determine if cfdp subsystem is running. Optional timeout cfdp"
+    echo
+    echo "System_Up: Interplanetary Overlay Network system status script"
+    echo "USAGE:"
+    echo "  system_up [-A] [-W [time]] [-i \"{p|w} [ion]\"] [-b \"{p|w} [bp]\"] [-l \"{p|w} [ltp]\"] [-D \"{p|w} [dtpc]\"] [-c \"{p|w} [cfdp]\"]"
+    echo
+    echo "  -A                Run all checks without polling"
+    echo "  -W [time]         Run all checks with polling and optional timeout (in seconds)"
+    echo
+    echo "  -i \"{p|w} [ion]\"  Check ion subsystem (p=polling, w=wait, optional timeout)"
+    echo "  -b \"{p|w} [bp]\"   Check bp subsystem (p=polling, w=wait, optional timeout)"
+    echo "  -l \"{p|w} [ltp]\"  Check ltp subsystem (p=polling, w=wait, optional timeout)"
+    echo "  -D \"{p|w} [dtpc]\" Check dtpc subsystem (p=polling, w=wait, optional timeout)"
+    echo "  -c \"{p|w} [cfdp]\" Check cfdp subsystem (p=polling, w=wait, optional timeout)"
+    echo "  -h                Display this help message"
+    exit 1
 }
 
 function CHECK_ARGS {
-OPTARG_NUM=`echo "$1" | wc -w`
-if [ "$OPTARG_NUM" -gt 2 ]; then
-	echo "Illegal number of parameters = $OPTARG_NUM"
-	echo "See \"system_up -h\" for help"
-	exit 0
-fi
+    local optarg="$1"
+    local opt="$2"
+    # Split OPTARG into mode and optional timeout
+    read -r mode timeout <<< "$optarg"
+    if [[ ! "$mode" =~ ^(p|w)$ ]]; then
+        echo "Error: Invalid mode '$mode' for option -$opt. Must be 'p' or 'w'."
+        USAGE
+    fi
+    if [[ -n "$timeout" && ! "$timeout" =~ ^[0-9]+$ ]]; then
+        echo "Error: Invalid timeout '$timeout' for option -$opt. Must be a number."
+        USAGE
+    fi
 }
 
-# check for all the options
+function CHECK_COMMAND {
+    local cmd="$1"
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "Error: Command '$cmd' not found."
+        exit 1
+    fi
+}
+
+# Verify required commands
+for cmd in ionadmin bpadmin ltpadmin dtpcadmin cfdpadmin; do
+    CHECK_COMMAND "$cmd"
+done
+
+# Initialize return value
 ret_val=0
 
 while getopts ":AW:i:b:l:D:c:h" options; do
-	case $options in
-		A ) 	echo "Now checking ion"
-			echo "t w" | ionadmin
-			ret_val=$((ret_val+=$?))
-			echo "Now checking bp"
-			echo "t w" | bpadmin
-			ret_val=$((ret_val+=$?))
-			echo "Now checking ltp"
-			echo "t w" | ltpadmin
-			ret_val=$((ret_val+=$?))
-			echo "Now checking dtpc"
-			echo "t w" | dtpcadmin
-			ret_val=$((ret_val+=$?))
-			echo "Now checking cfdp"
-			echo "t w" | cfdpadmin
-			ret_val=$((ret_val+=$?))
-			;;
-		W ) 	echo "Now checking ion"
-			echo "t p ${OPTARG}" | ionadmin
-			ret_val=$((ret_val+=$?))
-		 	echo "Now checking bp"
-			echo "t p ${OPTARG}" | bpadmin
-			ret_val=$((ret_val+=$?))
-		 	echo "Now checking ltp"
-			echo "t p ${OPTARG}" | ltpadmin
-			ret_val=$((ret_val+=$?))
-		 	echo "Now checking dtpc"
-			echo "t p ${OPTARG}" | dtpcadmin
-			ret_val=$((ret_val+=$?))
-			echo "Now checking cfdp"
-			echo "t p ${OPTARG}" | cfdpadmin
-			ret_val=$((ret_val+=$?))
-			;;
-		i ) 	echo "Now checking ion"
-			CHECK_ARGS $OPTARG
-			echo "t ${OPTARG}" | ionadmin
-			ret_val=$((ret_val+=$?));;
-		b ) 	echo "Now checking bp"
-			CHECK_ARGS $OPTARG
-			echo "t ${OPTARG}" | bpadmin
-			ret_val=$((ret_val+=$?));;
-		l ) 	echo "Now checking ltp"
-			CHECK_ARGS $OPTARG
-			echo "t ${OPTARG}" | ltpadmin
-			ret_val=$((ret_val+=$?));;
-		D ) 	echo "Now checking dtpc"
-			CHECK_ARGS $OPTARG
-			echo "t ${OPTARG}" | dtpcadmin
-			ret_val=$((ret_val+=$?));;
-		c )		echo "Now checking cfdp"
-			CHECK_ARGS $OPTARG
-			echo "t ${OPTARG}" | cfdpadmin
-			ret_val=$((ret_val+=$?));;
-		h ) USAGE
-			exit 1;;
-		\? ) USAGE
-			exit 1;;
-		* ) USAGE
-			exit 1;;
-	esac
+    case $options in
+        A)
+            echo "Checking ion"
+            echo "t w" | ionadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking bp"
+            echo "t w" | bpadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking ltp"
+            echo "t w" | ltpadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking dtpc"
+            echo "t w" | dtpcadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking cfdp"
+            echo "t w" | cfdpadmin
+            ret_val=$((ret_val + $?))
+            ;;
+        W)
+            if [[ -n "$OPTARG" && ! "$OPTARG" =~ ^[0-9]+$ ]]; then
+                echo "Error: Invalid timeout '$OPTARG' for -W. Must be a number."
+                USAGE
+            fi
+            echo "Checking ion"
+            echo "t p ${OPTARG}" | ionadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking bp"
+            echo "t p ${OPTARG}" | bpadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking ltp"
+            echo "t p ${OPTARG}" | ltpadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking dtpc"
+            echo "t p ${OPTARG}" | dtpcadmin
+            ret_val=$((ret_val + $?))
+            echo "Checking cfdp"
+            echo "t p ${OPTARG}" | cfdpadmin
+            ret_val=$((ret_val + $?))
+            ;;
+        i)
+            CHECK_ARGS "$OPTARG" "i"
+            echo "Checking ion"
+            echo "t ${OPTARG}" | ionadmin
+            ret_val=$((ret_val + $?))
+            ;;
+        b)
+            CHECK_ARGS "$OPTARG" "b"
+            echo "Checking bp"
+            echo "t ${OPTARG}" | bpadmin
+            ret_val=$((ret_val + $?))
+            ;;
+        l)
+            CHECK_ARGS "$OPTARG" "l"
+            echo "Checking ltp"
+            echo "t ${OPTARG}" | ltpadmin
+            ret_val=$((ret_val + $?))
+            ;;
+        D)
+            CHECK_ARGS "$OPTARG" "D"
+            echo "Checking dtpc"
+            echo "t ${OPTARG}" | dtpcadmin
+            ret_val=$((ret_val + $?))
+            ;;
+        c)
+            CHECK_ARGS "$OPTARG" "c"
+            echo "Checking cfdp"
+            echo "t ${OPTARG}" | cfdpadmin
+            ret_val=$((ret_val + $?))
+            ;;
+        h)
+            USAGE
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG"
+            USAGE
+            ;;
+    esac
 done
 
 echo
-echo "ION system started script completed."
+echo "ION system status check completed."
 exit $ret_val
