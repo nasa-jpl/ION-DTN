@@ -47,12 +47,6 @@ static unsigned long	getUsecTimestamp()
 /* Convert minutes to microseconds for comparison */
 #define CACHE_INTERVAL_USEC (ADDRESS_CACHE_INTERVAL_MINUTES * 60 * 1000000UL)
 
-/* Define the error log suppression interval multiplier (default: 10x cache interval) */
-#ifndef ERROR_LOG_SUPPRESSION_INTERVAL_MULTIPLIER
-#define ERROR_LOG_SUPPRESSION_INTERVAL_MULTIPLIER 10
-#endif
-#define SUPPRESSION_INTERVAL_USEC (ERROR_LOG_SUPPRESSION_INTERVAL_MULTIPLIER * CACHE_INTERVAL_USEC)
-
 /* Define the maximum number of failed lookups before stopping (default: 100) */
 #ifndef MAX_FAILED_LOOKUPS
 #define MAX_FAILED_LOOKUPS 100
@@ -65,7 +59,6 @@ static unsigned long lastLookupTime = 0; /* Timestamp of last successful lookup 
 static int isAddressValid = 0; /* Boolean: is the cached address valid? */
 static unsigned short cachedPortNbr = 0; /* Store port number for reuse */
 static unsigned long lastErrorLogTime = 0; /* Timestamp of last error log */
-static unsigned long lastSkipLogTime = 0; /* Timestamp of last skip log */
 static unsigned int failedLookupCount = 0; /* Count of consecutive failed lookups */
 static const unsigned int maxFailedLookups = MAX_FAILED_LOOKUPS; /* Max retries */
 static int lastLookupFailed = 0; /* Boolean: was the last lookup attempt a failure? */
@@ -282,203 +275,169 @@ int	main(int argc, char *argv[])
 	
 	/* Main Loop */
 	while (!(sm_SemEnded(vduct->semaphore)))
-    {
-        unsigned long currentTime = getUsecTimestamp();
-        Object bundleObj = 0;  /* SDR object address of the bundle */
-        Bundle bundle;         /* Bundle structure for SDR metadata */
+    	{
+		unsigned long currentTime = getUsecTimestamp();
 
-        if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
-        {
-            putErrmsg("udpclo: Can't dequeue bundle.", NULL);
-            break;
-        }
+		if (bpDequeue(vduct, &bundleZco, &ancillaryData, 0) < 0)
+		{
+			putErrmsg("udpclo: Can't dequeue bundle.", NULL);
+			break;
+		}
 
-        if (bundleZco == 0) /* Outduct closed. */
-        {
-            writeMemo("[i] udpclo outduct closed.");
-            sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
-            continue;
-        }
+		if (bundleZco == 0) /* Outduct closed. */
+		{
+			writeMemo("[i] udpclo outduct closed.");
+			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
+			continue;
+		}
 
-        if (bundleZco == 1) /* Got a corrupt bundle. */
-        {
-            continue; /* Get next bundle. */
-        }
+		if (bundleZco == 1) /* Got a corrupt bundle. */
+		{
+			continue; /* Get next bundle. */
+		}
 
-        /* Get bundle length */
-        CHKZERO(sdr_begin_xn(sdr));
-        bundleLength = zco_length(sdr, bundleZco);
-        sdr_exit_xn(sdr);  /* Short transaction, no nested calls expected */
+		/* Get bundle length */
+		CHKZERO(sdr_begin_xn(sdr));
+		bundleLength = zco_length(sdr, bundleZco);
+		sdr_exit_xn(sdr);  /* Short transaction, no nested calls expected */
 
-        /* Check if address needs re-resolution */
-        if (remoteHostName) 
-        {
-            if (!isAddressValid || (currentTime - lastLookupTime >= CACHE_INTERVAL_USEC)) 
-            {
-                unsigned int newHostNbr = getInternetAddress(remoteHostName);
-                if (newHostNbr == BAD_HOST_NAME) 
-                {
-                    failedLookupCount++;
-                    if (failedLookupCount >= maxFailedLookups) 
-                    {
-                        putErrmsg("udpclo: Maximum failed lookup attempts reached, stopping daemon.", remoteHostName);
-                        sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
-                        break;
-                    }
-                    if (failedLookupCount == 1 || (currentTime - lastErrorLogTime >= SUPPRESSION_INTERVAL_USEC)) 
-                    {
-                        putErrmsg("udpclo: Failed to resolve hostname, retrying after cache interval.", remoteHostName);
-                        lastErrorLogTime = currentTime;
-                    }
-                    isAddressValid = 0;
-                    lastLookupTime = currentTime;
-                    lastLookupFailed = 1;
-                } 
-                else 
-                {
-                    failedLookupCount = 0;
-                    newHostNbr = htonl(newHostNbr);
-                    portNbr = htons(cachedPortNbr);
-                    memset((char *) &socketName, 0, sizeof socketName);
-                    inetName = (struct sockaddr_in *) &socketName;
-                    inetName->sin_family = AF_INET;
-                    inetName->sin_port = portNbr;
-                    memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &newHostNbr, 4);
-                    isAddressValid = 1;
-                    lastLookupTime = currentTime;
-                    if (lastLookupFailed) 
-                    {
-                        writeMemoNote("[i] udpclo: Successfully resolved hostname", remoteHostName);
-                    }
-                    lastLookupFailed = 0;
-                }
-            }
-        }
+		/* Check if address needs re-resolution */
+		if (remoteHostName) 
+		{
+			if (!isAddressValid || (currentTime - lastLookupTime >= CACHE_INTERVAL_USEC)) 
+			{
+				unsigned int newHostNbr = getInternetAddress(remoteHostName);
+				if (newHostNbr == BAD_HOST_NAME) 
+				{
+					failedLookupCount++;
+					if (failedLookupCount >= maxFailedLookups) 
+					{
+						putErrmsg("udpclo: Maximum failed lookup attempts reached, stopping daemon.", remoteHostName);
+						/* Destroy the ZCO containing the serialized bundle */
+						zco_destroy(sdr, bundleZco);
+						sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
+						break;
+					}
 
-        /* Abandon bundle if address is invalid */
-        if (!isAddressValid) 
-        {
-            if (currentTime - lastSkipLogTime >= CACHE_INTERVAL_USEC) 
-            {
-                writeMemoNote("[i] udpclo: Abandoning bundle due to invalid address (logged once per retry interval), will retry after cache interval", remoteHostName);
-                lastSkipLogTime = currentTime;
-            }
+					isAddressValid = 0;
+					lastLookupTime = currentTime;
+					lastLookupFailed = 1;
+				} 
+				else 
+				{
+					failedLookupCount = 0;
+					newHostNbr = htonl(newHostNbr);
+					portNbr = htons(cachedPortNbr);
+					memset((char *) &socketName, 0, sizeof socketName);
+					inetName = (struct sockaddr_in *) &socketName;
+					inetName->sin_family = AF_INET;
+					inetName->sin_port = portNbr;
+					memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &newHostNbr, 4);
+					isAddressValid = 1;
+					lastLookupTime = currentTime;
+					/* log success and reset socket */
+					if (lastLookupFailed) 
+					{
+						writeMemoNote("[i] udpclo: Successfully resolved hostname", remoteHostName);
+						if (ductSocket != -1)
+						{
+							closesocket(ductSocket);
+							ductSocket = -1; /* Force reopen */
+							writeMemo("[i] udpclo: Closed socket for reinitialization");
+						}
+                			}
+					lastLookupFailed = 0;
+				}
+			}
+		}
 
-            /* Begin SDR transaction for all SDR operations */
-            if (sdr_begin_xn(sdr) < 0)
-            {
-                putErrmsg("udpclo: Can't start SDR transaction for bundle abandonment.", NULL);
-                zco_destroy(sdr, bundleZco);  /* Clean up ZCO */
-                sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
-                continue;
-            }
+		/* abandon transmitting bundle if address is invalid */
+		if (!isAddressValid) 
+		{
+		
+			/* Begin SDR transaction to destory the serialized bundle
+			 * For UDPCL, the original bundle has already been destroyed
+			 * upon dequeueing due to lack of stewardship. */
+			if (sdr_begin_xn(sdr) < 0)
+			{
+				putErrmsg("udpclo: Can't start SDR transaction to destroy serialized bundle.", NULL);
+				sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
+				continue;
+			}
 
-            /* Retrieve the bundle object from the serialized ZCO */
-            if (retrieveSerializedBundle(bundleZco, &bundleObj) < 0)
-            {
-                putErrmsg("udpclo: Can't locate bundle for abandonment.", NULL);
-                zco_destroy(sdr, bundleZco);  /* Clean up ZCO */
-                if (sdr_end_xn(sdr) < 0)  /* Commit/rollback transaction */
-                {
-                    putErrmsg("udpclo: Failed to end SDR transaction after failed bundle retrieval.", NULL);
-                    sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
-                }
-                continue;
-            }
+			/* Destroy the ZCO containing the serialized bundle */
+			zco_destroy(sdr, bundleZco);
 
-            if (bundleObj == 0)  /* Bundle not found in SDR */
-            {
-                zco_destroy(sdr, bundleZco);  /* Clean up ZCO */
-                if (sdr_end_xn(sdr) < 0)  /* Commit/rollback transaction */
-                {
-                    putErrmsg("udpclo: Failed to end SDR transaction after bundle not found.", NULL);
-                    sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
-                }
-                continue;
-            }
+			/* End the SDR transaction */
+			if (sdr_end_xn(sdr) < 0)
+			{
+				putErrmsg("udpclo: Failed to commit SDR transaction for bundle abandonment.", NULL);
+				sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
+				continue;
+			}
 
-            /* Read the bundle from SDR to get its details */
-            sdr_read(sdr, (char *) &bundle, bundleObj, sizeof(Bundle));
+			continue;  /* Proceed to next bundle */
+		}
 
-            /* Abandon the bundle with reason BP_REASON_NO_ROUTE */
-            if (bpAbandon(bundleObj, &bundle, BP_REASON_NO_ROUTE) < 0)
-            {
-                putErrmsg("udpclo: Failed to abandon bundle.", NULL);
-                sdr_cancel_xn(sdr);  /* Roll back transaction */
-                zco_destroy(sdr, bundleZco);  /* Clean up ZCO */
-                sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
-                continue;
-            }
+		/* Let sendBundleByUDP handle invalid IP address */
+		bytesSent = sendBundleByUDP(&socketName, &ductSocket, bundleLength, bundleZco, buffer);
+		if (bytesSent < bundleLength)
+		{
+			sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
+			continue;
+		}
 
-            /* Destroy the ZCO containing the serialized bundle */
-            zco_destroy(sdr, bundleZco);
+		/* Rate control calculation */
+		totalPaid = getUsecTimestamp() - startTimestamp;
+		startTimestamp = getUsecTimestamp();
 
-            /* Commit the SDR transaction */
-            if (sdr_end_xn(sdr) < 0)
-            {
-                putErrmsg("udpclo: Failed to commit SDR transaction for bundle abandonment.", NULL);
-                sm_SemEnd(udpcloSemaphore(NULL));  /* Stop daemon */
-                continue;
-            }
+		if (totalPaid >= prevPaid)
+		{
+			currentPaid = totalPaid - prevPaid;
+		}
+		else
+		{
+			currentPaid = 0;
+		}
 
-            /* Log the abandonment */
-            writeMemoNote("[i] Bundle abandoned due to no route", remoteHostName);
+		if (neighbor == NULL)
+		{
+			if (planObj && plan.neighborNodeNbr)
+			{
+				neighbor = findNeighbor(getIonVdb(),
+				plan.neighborNodeNbr, &nextElt);
+			}
+		}
 
-            continue;  /* Proceed to next bundle */
-        }
+		if (neighbor && neighbor->xmitRate > 0)
+		{
+			timeCostPerByte = 1.0 / (neighbor->xmitRate);
+		}
+		else
+		{
+			timeCostPerByte = 0.0;
+		}
 
-        /* Proceed with normal transmission */
-        bytesSent = sendBundleByUDP(&socketName, &ductSocket, bundleLength, bundleZco, buffer);
-        if (bytesSent < bundleLength)
-        {
-            sm_SemEnd(udpcloSemaphore(NULL)); /* Stop. */
-            continue;
-        }
+		totalCostSecs = timeCostPerByte * computeECCC(bundleLength);
+		totalCost = totalCostSecs * 1000000.0;
 
-        /* Rate control calculation */
-        totalPaid = getUsecTimestamp() - startTimestamp;
-        startTimestamp = getUsecTimestamp();
-        if (totalPaid >= prevPaid)
-        {
-            currentPaid = totalPaid - prevPaid;
-        }
-        else
-        {
-            currentPaid = 0;
-        }
-        if (neighbor == NULL)
-        {
-            if (planObj && plan.neighborNodeNbr)
-            {
-                neighbor = findNeighbor(getIonVdb(),
-                    plan.neighborNodeNbr, &nextElt);
-            }
-        }
-        if (neighbor && neighbor->xmitRate > 0)
-        {
-            timeCostPerByte = 1.0 / (neighbor->xmitRate);
-        }
-        else
-        {
-            timeCostPerByte = 0.0;
-        }
-        totalCostSecs = timeCostPerByte * computeECCC(bundleLength);
-        totalCost = totalCostSecs * 1000000.0;
-        if (totalCost > currentPaid)
-        {
-            balanceDue = totalCost - currentPaid;
-        }
-        else
-        {
-            balanceDue = 0;
-        }
-        if (balanceDue > 0)
-        {
-            microsnooze(balanceDue);
-        }
-        prevPaid = balanceDue;
-        sm_TaskYield();
-    }
+		if (totalCost > currentPaid)
+		{
+			balanceDue = totalCost - currentPaid;
+		}
+		else
+		{
+			balanceDue = 0;
+		}
+
+		if (balanceDue > 0)
+		{
+			microsnooze(balanceDue);
+		}
+
+		prevPaid = balanceDue;
+		sm_TaskYield();
+	}
 
   	/* Clean up */
 	if (ductSocket != -1)
