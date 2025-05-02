@@ -3,6 +3,8 @@
 # June 14, 2013
 # Adapted from work by David Young
 
+ACLOCAL_AMFLAGS = -I m4
+
 #Control building of Contrib as determined by ./configure flags
 if BUILD_CONTRIB
 SUBDIRS= . contrib
