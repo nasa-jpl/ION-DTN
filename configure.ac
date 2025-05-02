@@ -61,6 +61,35 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 #Automake v1.12 wants AM_PROG_AR, but it doesn't exist <v1.12 so do this
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+
+dnl --- Check for ISO C11 or fallback to C99 ---
+AC_CACHE_CHECK([whether $CC supports C11], [ac_cv_c11],
+  [save_CFLAGS="$CFLAGS"
+   CFLAGS="$CFLAGS -std=c11"
+   AC_COMPILE_IFELSE(
+     [AC_LANG_SOURCE([[#include <stdatomic.h> int main() { return 0; }]])],
+     [ac_cv_c11=yes],
+     [ac_cv_c11=no])
+   CFLAGS="$save_CFLAGS"])
+
+if test "$ac_cv_c11" = yes; then
+  AM_CFLAGS="$AM_CFLAGS -std=c11"
+else
+  AC_CACHE_CHECK([whether $CC supports C99], [ac_cv_c99],
+    [save_CFLAGS="$CFLAGS"
+     CFLAGS="$CFLAGS -std=c99"
+     AC_COMPILE_IFELSE(
+       [AC_LANG_SOURCE([[#include <stdint.h> int main() { return 0; }]])],
+       [ac_cv_c99=yes],
+       [ac_cv_c99=no])
+     CFLAGS="$save_CFLAGS"])
+  if test "$ac_cv_c99" = yes; then
+    AM_CFLAGS="$AM_CFLAGS -std=c99"
+  else
+    AC_MSG_ERROR([Your compiler does not support ISO C11 or C99.])
+  fi
+fi
+
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
@@ -147,7 +176,17 @@ case $host_os in
 	solaris*)
 		PLATFORM="solaris"
 		build_solaris=yes
-		AM_CFLAGS="$AM_CFLAGS -std=gnu99"
+		
+		# ISO C standard flags already selected above; avoid gnu99
+		# If using non-GCC Solaris compilers (e.g., Solaris Studio), add -xc99=all
+		if test "$GCC" != "yes"; then
+			AC_MSG_NOTICE([Non-GCC Solaris compiler detected, using -xc99=all])
+			AM_CFLAGS="$AM_CFLAGS -xc99=all"
+		else
+			AC_MSG_NOTICE([GCC on Solaris: relying on earlier -std=c11/c99 detection])
+		fi
+
+		
 		if test "$BUILD_32_ON_64_SOLARIS" = "1"; then
 			if test "$CC" = "gcc"; then
 				AC_MSG_ERROR([You must compile with Solaris Studio CC when building 32-bit on 64-bit Solaris (configure with CC={path to Solaris Studio CC})])
