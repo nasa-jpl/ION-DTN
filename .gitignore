@@ -24,7 +24,9 @@ stamp-h1
 __pycache__/
 
 # Temp macro directory
-/m4
+!m4/
+m4/*
+!m4/.gitkeep
 
 # VsCode
 .vscode
