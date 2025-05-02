@@ -78,12 +78,21 @@ echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: Test ION's IP address caching behavior in udpclo. ION periodically
-               re-resolve IP address from hostname in order to detect DNS changes, and
-	       periodically provide ion.log report for IP address look up failure."
+echo "PURPOSE: Test ION's IP address caching behavior in udpclo." 
+echo "         ION will attempt resolve invalid address. If failed,"
+echo "         it will abandon bundles in UDPCLO."
+echo ""
+echo "         This test only focused on DNS failure at service"
+echo "         initialization. It does not cover use case of DNS"
+echo "         dynamically changed the IP address of a destination"
+echo "         host, which is handled by ION via a period re-resolve"
+echo "         logic. Due to difficulty of emulating that case in "
+echo "         a single-host regression test environment, the users"
+echo "         are encouraged to independently verify the behavior."
+echo ""
 
-echo -e "\n\tNOTE: This test requires sudo privilege to manually change /etc/hosts file
-                   to simulate the effect of changes in DNS database."
+echo "NOTE: This test requires sudo privilege to manually change the"
+echo "      /etc/hosts file to emulate DNS resolve failure."
 
 sleep 3
 
@@ -107,7 +116,7 @@ HOSTS_FILE="/etc/hosts"
 BACKUP_FILE="/tmp/hosts.bak"
 ENTRY="127.0.1.3    test3.local"
 LOG_FILE="ion.log"
-SEARCH_STRING1="Skipping transmission due to invalid address, will retry after cache interval: test3.local"
+SEARCH_STRING1="udpclo: Abandoning bundle due to invalid address"
 SEARCH_STRING2="udpclo: Successfully resolved hostname: test3.local"
 LINE_NUM=1
 
@@ -150,9 +159,14 @@ echo ""
 echo "Step 1: Destination host not in DNS database or hosts file."
 echo ""
 
+echo "Sending three messages..."
+echo ""
+
 cd ../2.bench.udp
 bpsource ipn:3.1 "Hello!"
-sleep 2
+bpsource ipn:3.1 "Hello2!"
+bpsource ipn:3.1 "Hello3!"
+sleep 10
 
 # Check ion.log for DNS lookup report
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING1" "$LINE_NUM")
@@ -163,6 +177,8 @@ else
 	echo "FAIL: No match or error (return code: -1)"
 	RETVAL=1
 fi
+
+bpstats
 
 # Step 2: Destination hostname added back to DNS or hosts file
 echo ""
@@ -183,21 +199,9 @@ fi
 
 # Sending several messages
 echo ""
-echo "Sending messages until hostname is re-resolved in 60 seconds..."
+echo "Sending 3 more messages after DNS restoration, it should resolve immediately"
 bpsource ipn:3.1 "Hello2!"
 sleep 10
-bpsource ipn:3.1 "Hello3!"
-sleep 10
-bpsource ipn:3.1 "Hello4!"
-sleep 10
-bpsource ipn:3.1 "Hello5!"
-sleep 10
-bpsource ipn:3.1 "Hello6!"
-sleep 10
-bpsource ipn:3.1 "Hello7!"
-sleep 10
-
-echo "The last bundle should succeed - assuming re-resolve timer is set for 60 seconds."
 
 # Check ion.log for DNS lookup report
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING2" "$LINE_NUM")
@@ -209,9 +213,11 @@ else
 	RETVAL=1
 fi
 
+bpstats
+
 if [ "$RETVAL" -eq 1 ]
 then
-        echo "Test did not complete."
+        echo "Test failed."
 fi
 
 echo -e "\nStopping ION..."
