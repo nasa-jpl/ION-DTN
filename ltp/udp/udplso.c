@@ -36,7 +36,7 @@
 
 /* Macro definitions for DNS retry and re-resolution */
 #ifndef UDPLSO_DNS_RETRY_COUNT
-#define UDPLSO_DNS_RETRY_COUNT 10
+#define UDPLSO_DNS_RETRY_COUNT 1000
 #endif
 
 #ifndef UDPLSO_DNS_RETRY_DELAY
