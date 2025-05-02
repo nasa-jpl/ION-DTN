@@ -62,23 +62,23 @@ search_log_after_line() {
 
 # documentation boilerplate
 CONFIGFILES=" \
-./2.bench.udp/bench.bprc \
-./2.bench.udp/bench.ionconfig \
-./2.bench.udp/bench.ionrc \
-./2.bench.udp/bench.ionsecrc \
-./2.bench.udp/bench.ipnrc \
-./3.bench.udp/bench.bprc \
-./3.bench.udp/bench.ionconfig \
-./3.bench.udp/bench.ionrc \
-./3.bench.udp/bench.ionsecrc \
-./3.bench.udp/bench.ipnrc \
+./2.bench.ltp/bench.bprc \
+./2.bench.ltp/bench.ionconfig \
+./2.bench.ltp/bench.ionrc \
+./2.bench.ltp/bench.ionsecrc \
+./2.bench.ltp/bench.ipnrc \
+./3.bench.ltp/bench.bprc \
+./3.bench.ltp/bench.ionconfig \
+./3.bench.ltp/bench.ionrc \
+./3.bench.ltp/bench.ionsecrc \
+./3.bench.ltp/bench.ipnrc \
 "
 
 echo "########################################"
 echo
 pwd | sed "s/\/.*\///" | xargs echo "NAME: "
 echo
-echo "PURPOSE: Test ION's IP address caching behavior. ION is expected to periodically
+echo "PURPOSE: Test ION's IP address caching behavior in udplso for LTP. ION will periodically
                re-resolve IP address from hostname in order to detect DNS changes, and
 	       periodically provide ion.log report for IP address look up failure."
 
@@ -107,8 +107,8 @@ HOSTS_FILE="/etc/hosts"
 BACKUP_FILE="/tmp/hosts.bak"
 ENTRY="127.0.1.3    test3.local"
 LOG_FILE="ion.log"
-SEARCH_STRING1="Skipping transmission due to invalid address, will retry after cache interval: test3.local"
-SEARCH_STRING2="udpclo: Successfully resolved hostname: test3.local"
+SEARCH_STRING1="udplso: initial DNS resolution failed for test3.local:3113"
+SEARCH_STRING2="udplso: Successfully resolved hostname: test3.local"
 LINE_NUM=1
 
 # Check for sudo availability
@@ -131,16 +131,16 @@ rm -f ./ion_nodes
 RETVAL=0
 
 # Start nodes.
-cd 2.bench.udp
+cd 2.bench.ltp
 ./ionstart
-cd ../3.bench.udp
+cd ../3.bench.ltp
 ./ionstart
 
 # Setup receiver
 echo ""
 echo "Starting bpsink application..."
 echo ""
-cd ../3.bench.udp
+cd ../3.bench.ltp
 bpsink ipn:3.1 &
 BPCOUNTER_PID=$!
 sleep 1
@@ -150,7 +150,7 @@ echo ""
 echo "Step 1: Destination host not in DNS database or hosts file."
 echo ""
 
-cd ../2.bench.udp
+cd ../2.bench.ltp
 bpsource ipn:3.1 "Hello!"
 sleep 2
 
@@ -215,6 +215,7 @@ then
 fi
 
 echo -e "\nStopping ION..."
+cd ..
 ./cleanup
 
 exit $RETVAL
