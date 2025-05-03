@@ -801,4 +801,37 @@ AM_CONDITIONAL([SOLARIS], [test "$build_solaris" = "yes"])
 #Output!
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([contrib/Makefile])
+
+dnl ===============================================================
+dnl  Autogenerate explicit man‑page rules (ISO‑C, no GNU % rules)
+dnl ===============================================================
+
+dnl ---- helper macro --------------------------------------------
+m4_define([ADD_PODMAN],[
+  dnl Generate   $1/doc/podman.mk   at configure time
+  AC_CONFIG_COMMANDS([$1/doc/podman.mk],
+    [ $srcdir/generate-podman-rules.sh $1 > $1/doc/podman.mk ],
+    [srcdir=$srcdir])
+])dnl --------------------------------------------------------------
+
+
+
+dnl ---------- Always‑built sub‑modules ----------------------------
+ADD_PODMAN(ici)
+ADD_PODMAN(ltp)
+ADD_PODMAN(dgr)
+ADD_PODMAN(nm)
+ADD_PODMAN(bpv7)
+ADD_PODMAN(tc)
+ADD_PODMAN(ams)
+ADD_PODMAN(cfdp)
+ADD_PODMAN(bss)
+ADD_PODMAN(bssp)
+ADD_PODMAN(dtpc)
+
+dnl ---------- Optional bpv6 ---------------------------------------
+ADD_PODMAN(bpv6)
+
+
+
 AC_OUTPUT

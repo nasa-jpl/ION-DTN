@@ -505,15 +505,6 @@ iciclean-local:
 	rm -f $(top_builddir)/ici/doc/*.3
 	rm -f $(top_builddir)/ici/doc/*.5
 
-$(top_builddir)/ici/doc/%.1: ici/doc/pod1/%.pod
-	$(iciPODM1) $< $@
-
-$(top_builddir)/ici/doc/%.3: ici/doc/pod3/%.pod
-	$(iciPODM3) $< $@
-
-$(top_builddir)/ici/doc/%.5: ici/doc/pod5/%.pod
-	$(iciPODM5) $< $@
-
 # -- Libraries --- #
 
 libici_la_SOURCES =	\
@@ -711,15 +702,6 @@ ltpclean-local:
 	rm -f $(top_builddir)/ltp/doc/*.3
 	rm -f $(top_builddir)/ltp/doc/*.5
 
-$(top_builddir)/ltp/doc/%.1: ltp/doc/pod1/%.pod
-	$(ltpPODM1) $< $@
-
-$(top_builddir)/ltp/doc/%.3: ltp/doc/pod3/%.pod
-	$(ltpPODM3) $< $@
-
-$(top_builddir)/ltp/doc/%.5: ltp/doc/pod5/%.pod
-	$(ltpPODM5) $< $@
-
 # -- Libraries --- #
 
 libltp_la_SOURCES = \
@@ -850,12 +832,6 @@ dgrmans = \
 dgrclean-local:
 	rm -f $(top_builddir)/dgr/doc/*.1
 	rm -f $(top_builddir)/dgr/doc/*.3
-
-$(top_builddir)/dgr/doc/%.1: dgr/doc/pod1/%.pod
-	$(dgrPODM1) $< $@f
-
-$(top_builddir)/dgr/doc/%.3: dgr/doc/pod3/%.pod
-	$(dgrPODM3) $< $@
 
 # -- Libraries --- #
 
@@ -1167,15 +1143,6 @@ bpclean-local:
 	rm -f $(top_builddir)/bpv6/doc/*.1
 	rm -f $(top_builddir)/bpv6/doc/*.3
 	rm -f $(top_builddir)/bpv6/doc/*.5
-
-$(top_builddir)/bpv6/doc/%.1: bpv6/doc/pod1/%.pod
-	$(bpPODM1) $< $@
-
-$(top_builddir)/bpv6/doc/%.3: bpv6/doc/pod3/%.pod
-	$(bpPODM3) $< $@
-
-$(top_builddir)/bpv6/doc/%.5: bpv6/doc/pod5/%.pod
-	$(bpPODM5) $< $@
 
 # -- Libraries --- #
 
@@ -1684,12 +1651,6 @@ nm_mgr_SOURCES += $(CIVETWEB_SOURCES)
 
 endif
 
-$(top_builddir)/nm/doc/%.1: nm/doc/pod1/%.pod
-	$(nmPODM1) $< $@
-
-$(top_builddir)/nm/doc/%.3: nm/doc/pod3/%.pod
-	$(nmPODM3) $< $@
-
 else #BUILD_BPv7
 ##########################
 #
@@ -1990,15 +1951,6 @@ bpclean-local:
 	rm -f $(top_builddir)/bpv7/doc/*.1
 	rm -f $(top_builddir)/bpv7/doc/*.3
 	rm -f $(top_builddir)/bpv7/doc/*.5
-
-$(top_builddir)/bpv7/doc/%.1: bpv7/doc/pod1/%.pod
-	$(bpPODM1) $< $@
-
-$(top_builddir)/bpv7/doc/%.3: bpv7/doc/pod3/%.pod
-	$(bpPODM3) $< $@
-
-$(top_builddir)/bpv7/doc/%.5: bpv7/doc/pod5/%.pod
-	$(bpPODM5) $< $@
 
 # -- Libraries --- #
 
@@ -2457,15 +2409,6 @@ tcclean-local:
 	rm -f $(top_builddir)/tc/doc/*.3
 	rm -f $(top_builddir)/tc/doc/*.5
 
-$(top_builddir)/tc/doc/%.1: tc/doc/pod1/%.pod
-	$(tcPODM1) $< $@
-
-$(top_builddir)/tc/doc/%.3: tc/doc/pod3/%.pod
-	$(tcPODM3) $< $@
-
-$(top_builddir)/tc/doc/%.5: tc/doc/pod5/%.pod
-	$(tcPODM5) $< $@
-
 # -- Libraries --- #
 
 libdtka_la_SOURCES = tc/dtka/libdtka.c
@@ -2683,11 +2626,6 @@ nm_mgr_SOURCES += $(CIVETWEB_SOURCES)
 
 endif
 
-$(top_builddir)/nm/doc/%.1: nm/doc/pod1/%.pod
-	$(nmPODM1) $< $@
-
-$(top_builddir)/nm/doc/%.3: nm/doc/pod3/%.pod
-	$(nmPODM3) $< $@
 endif #end BUILD_BPv6
 
 ##########################
@@ -2767,15 +2705,6 @@ amsclean-local:
 	rm -f $(top_builddir)/ams/doc/*.1
 	rm -f $(top_builddir)/ams/doc/*.3
 	rm -f $(top_builddir)/ams/doc/*.5
-
-$(top_builddir)/ams/doc/%.1: ams/doc/pod1/%.pod
-	$(amsPODM1) $< $@
-
-$(top_builddir)/ams/doc/%.3: ams/doc/pod3/%.pod
-	$(amsPODM3) $< $@
-
-$(top_builddir)/ams/doc/%.5: ams/doc/pod5/%.pod
-	$(amsPODM5) $< $@
 
 # -- Libraries --- #
 
@@ -2922,15 +2851,6 @@ cfdpclean-local:
 	rm -f $(top_builddir)/cfdp/doc/*.3
 	rm -f $(top_builddir)/cfdp/doc/*.5
 
-$(top_builddir)/cfdp/doc/%.1: cfdp/doc/pod1/%.pod
-	$(cfdpPODM1) $< $@
-
-$(top_builddir)/cfdp/doc/%.3: cfdp/doc/pod3/%.pod
-	$(cfdpPODM3) $< $@
-
-$(top_builddir)/cfdp/doc/%.5: cfdp/doc/pod5/%.pod
-	$(cfdpPODM5) $< $@
-
 # --- Libraries --- #
 
 libcfdp_la_SOURCES = \
@@ -3020,12 +2940,6 @@ bssclean-local:
 	rm -f $(top_builddir)/bss/doc/*.1
 	rm -f $(top_builddir)/bss/doc/*.3
 
-$(top_builddir)/bss/doc/%.1: bss/doc/pod1/%.pod
-	$(bssPODM1) $< $@
-
-$(top_builddir)/bss/doc/%.3: bss/doc/pod3/%.pod
-	$(bssPODM3) $< $@
-
 # --- Libraries --- #
 
 libbss_la_SOURCES = \
@@ -3099,15 +3013,6 @@ bsspclean-local:
 	rm -f $(top_builddir)/bssp/doc/*.1
 	rm -f $(top_builddir)/bssp/doc/*.3
 	rm -f $(top_builddir)/bssp/doc/*.5
-
-$(top_builddir)/bssp/doc/%.1: bssp/doc/pod1/%.pod
-	$(bsspPODM1) $< $@
-
-$(top_builddir)/bssp/doc/%.3: bssp/doc/pod3/%.pod
-	$(bsspPODM3) $< $@
-
-$(top_builddir)/bssp/doc/%.5: bssp/doc/pod5/%.pod
-	$(bsspPODM5) $< $@
 
 # --- Libraries --- #
 
@@ -3206,15 +3111,6 @@ dtpcclean-local:
 	rm -f $(top_builddir)/dtpc/doc/*.1
 	rm -f $(top_builddir)/dtpc/doc/*.3
 	rm -f $(top_builddir)/dtpc/doc/*.5
-
-$(top_builddir)/dtpc/doc/%.1: dtpc/doc/pod1/%.pod
-	$(dtpcPODM1) $< $@
-
-$(top_builddir)/dtpc/doc/%.3: dtpc/doc/pod3/%.pod
-	$(dtpcPODM3) $< $@
-
-$(top_builddir)/dtpc/doc/%.5: dtpc/doc/pod5/%.pod
-	$(dtpcPODM5) $< $@
 
 # --- Libraries --- #
 
@@ -3542,3 +3438,17 @@ ION.pdf: doc/ION-beginning.pdf
 	cp $^ $@
 
 endif #ENABLE_AUTODOC
+
+# ---- generated man‑page rules (added by configure) --------------
+-include ici/doc/podman.mk
+-include ltp/doc/podman.mk
+-include dgr/doc/podman.mk
+-include nm/doc/podman.mk
+-include bpv7/doc/podman.mk
+-include tc/doc/podman.mk
+-include ams/doc/podman.mk
+-include cfdp/doc/podman.mk
+-include bss/doc/podman.mk
+-include bssp/doc/podman.mk
+-include dtpc/doc/podman.mk
+-include bpv6/doc/podman.mk    # will be empty if bpv6 manpages disabled
