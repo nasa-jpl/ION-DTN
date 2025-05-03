@@ -841,4 +841,22 @@ AC_CONFIG_COMMANDS([tests/testrules.mk],
   [ $srcdir/generate-test-rules.sh "$srcdir/tests" > tests/testrules.mk ],
   [srcdir=$srcdir])
 
+
+dnl ===============================================================
+dnl  Autogenerate explicit PS conversion rules (ISO-C, no GNU % rules)
+dnl ===============================================================
+AC_CONFIG_COMMANDS([pstrules.mk],
+  [ $srcdir/generate-ps-rules.sh "$srcdir" > pstrules.mk ],
+  [srcdir=$srcdir])
+
+
+dnl ===============================================================
+dnl  Autogenerate static man-page lists (ISO-C, no GNU make functions)
+dnl ===============================================================
+AC_CONFIG_COMMANDS([man-lists.mk],
+  [ mkdir -p "$builddir"
+    "$srcdir/generate-man-lists.sh" "$srcdir" "$builddir"
+  ],
+  [srcdir=$srcdir builddir=$PWD])
+
 AC_OUTPUT
