@@ -119,6 +119,7 @@ LOG_FILE="ion.log"
 SEARCH_STRING1="Initial hostname resolution failed. (test3.local)"
 SEARCH_STRING2="can't get address for host"
 SEARCH_STRING3="udpclo: Successfully resolved hostname: test3.local"
+SEARCH_STRING4="(0) 0 0 (1) 3 24 (2) 0 0 (+) 3 24"
 LINE_NUM=1
 
 # Check for sudo availability
@@ -181,7 +182,7 @@ echo "Send 1 message..."
 echo ""
 
 bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello!"
-sleep 1
+sleep 10
 
 bpstats
 cat ion.log | grep xmt
@@ -245,7 +246,7 @@ cat ion.log | grep xmt
 echo ""
 echo "Sender bpstats should show total of 4 transmitted messages."
 echo ""
-sleep 1
+sleep 10
 
 # Check ion.log for DNS lookup report
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING3" "$LINE_NUM")
@@ -265,10 +266,10 @@ echo ""
 echo "Receiver bpstats should show 2 recived bundles."
 echo ""
 
-LINE_NUM=$(search_log_after_line "$LOG_FILE" "rcv" "1")
+LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING4" "1")
 return_code=$?
 if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log reported DNS lookup success at line $LINE_NUM"
+	echo "SUCCESS: ion.log reported successful reception at line $LINE_NUM"
 else
 	echo "FAIL: No match or error (return code: -1)"
 	RETVAL=1
@@ -282,6 +283,6 @@ fi
 
 echo -e "\nStopping ION..."
 cd ..
-#./cleanup
+./cleanup
 
 exit $RETVAL
