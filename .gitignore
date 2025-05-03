@@ -23,10 +23,15 @@ stamp-h1
 .DS_Store
 __pycache__/
 
-# Temp macro directory
-!m4/
+# Keep empty m4/ macro dir but ignore temp files inside it
 m4/*
 !m4/.gitkeep
+
+# Temp mod directory (Podman)
+mod/
+
+# Generated man‑page rules produced by configure
+*/doc/podman.mk
 
 # VsCode
 .vscode
