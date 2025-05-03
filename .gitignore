@@ -33,6 +33,11 @@ mod/
 # Generated man‑page rules produced by configure
 */doc/podman.mk
 
+# Generated at configure time for ps and test rules
+man-lists.mk
+pstrules.mk
+tests/testrules.mk
+
 # VsCode
 .vscode
 
