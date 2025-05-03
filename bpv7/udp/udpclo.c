@@ -131,6 +131,8 @@ int	main(int argc, char *argv[])
 		return -1;
 	}
 
+	//JG DEBUG
+	printf("At initialization, endpointSpec string is: %s \n", endpointSpec);
 	/* Store endpointSpec and extract hostname */
     	if (endpointSpec) 
 	{
@@ -138,21 +140,29 @@ int	main(int argc, char *argv[])
         
 		if (endpointSpecCopy == NULL) 
 		{
-            		putErrmsg("udpclo: No memory for endpointSpec copy.", NULL);
-            		return -1;
-        	}
+            	putErrmsg("udpclo: No memory for endpointSpec copy.", NULL);
+            	return -1;
+        }
 
-	        strcpy(endpointSpecCopy, endpointSpec);
+	    strcpy(endpointSpecCopy, endpointSpec);
 
-	        /* Parse endpointSpec to get port and hostname */
- 		parseSocketSpec(endpointSpec, &portNbr, &hostNbr);
-        
-		if (portNbr == 0)
+	    /* Parse endpointSpec to get port and hostname */
+		if (parseSocketSpec(endpointSpec, &portNbr, &hostNbr) < 0)
 		{
+			putErrmsg("udpclo: Failed to parse endpointSpec", endpointSpec);
+			portNbr = BpUdpDefaultPortNbr;
+			hostNbr = BAD_HOST_NAME;
+		}
+		else if (portNbr == 0)
+		{
+			writeMemo("[i] udpclo: No port specified in endpointSpec, using default.");
 			portNbr = BpUdpDefaultPortNbr;
 		}
 
-        	cachedPortNbr = portNbr; /* Store for reuse in re-resolution */
+        cachedPortNbr = portNbr; /* Store for reuse in re-resolution */
+
+		//JG DEBUG
+		printf("At initialization Socket Spec Parse, portNbr = %hu, cachedPortNbr = %hu \n", portNbr, cachedPortNbr);
 
 		/* Extract hostname */
 		char *delimiter = strchr(endpointSpec, ':');
@@ -199,6 +209,9 @@ int	main(int argc, char *argv[])
 
 	isAddressValid = (hostNbr != BAD_HOST_NAME); /* Check initial lookup */
 	lastLookupTime = getUsecTimestamp(); /* Record initial lookup time */
+
+	//JG DEBUG
+	printf("After initial socket configuration, portNbr = %hu, cachedPortNbr = %hu \n", portNbr, cachedPortNbr);
 
 	if (!isAddressValid) 
 	{
@@ -335,6 +348,8 @@ int	main(int argc, char *argv[])
 					memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &newHostNbr, 4);
 					isAddressValid = 1;
 					lastLookupTime = currentTime;
+					//JG DEBUG
+					printf("After re-initializing socket after successful look up, portNbr = %hu, cachedPortNbr = %hu \n", portNbr, cachedPortNbr);
 					/* log success and reset socket */
 					if (lastLookupFailed) 
 					{

@@ -2591,13 +2591,14 @@ char	*addressToString(struct in_addr address, char *buffer)
 #endif	/*	ION_NO_DNS						*/
 
 #if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
-int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
+int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		unsigned int *ipAddress)
 {
 	char		*delimiter;
 	char		*hostname;
 	char		hostnameBuf[MAXHOSTNAMELEN + 1];
 	unsigned int	i4;
+	int		portParsed = 0;
 
 	CHKERR(portNbr);
 	CHKERR(ipAddress);
@@ -2606,16 +2607,38 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 
 	if (socketSpec == NULL || *socketSpec == '\0')
 	{
+		writeMemoNote("[?] parseSocketSpec: Empty or NULL socketSpec", socketSpec);
 		return 0;		/*	Use defaults.		*/
 	}
+
+	/*	Parse port number first, so it's set even if DNS fails.	*/
 
 	delimiter = strchr(socketSpec, ':');
 	if (delimiter)
 	{
 		*delimiter = '\0';	/*	Delimit host name.	*/
+		i4 = atoi(delimiter + 1);	/*	Get port number.	*/
+		*delimiter = ':';		/*	Back out the parsing.	*/
+		if (i4 == 0)
+		{
+			writeMemoNote("[?] parseSocketSpec: Non-numeric or missing port", socketSpec);
+		}
+		else if (i4 < 1024 || i4 > 65535)
+		{
+			writeMemoNote("[?] parseSocketSpec: Invalid port number", utoa(i4));
+		}
+		else
+		{
+			*portNbr = i4;
+			portParsed = 1;
+		}
+	}
+	else
+	{
+		writeMemoNote("[?] parseSocketSpec: No port specified", socketSpec);
 	}
 
-	/*	First figure out the IP address.  @ is local host.	*/
+	/*	Now figure out the IP address.  @ is local host.	*/
 
 	hostname = socketSpec;
 	if (strlen(hostname) != 0)
@@ -2635,17 +2658,8 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 			i4 = getInternetAddress(hostname);
 			if (i4 < 1)	/*	Invalid hostname.	*/
 			{
-				writeMemoNote("[?] Can't get IP address",
-						hostname);
-				if (delimiter)
-				{
-					/*	Back out the parsing
-					 *	of the socket spec.	*/
-
-					*delimiter = ':';
-				}
-
-				return -1;
+				writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+				*ipAddress = BAD_HOST_NAME;
 			}
 			else
 			{
@@ -2654,28 +2668,14 @@ int	parseSocketSpec(char *socketSpec, unsigned short *portNbr,
 		}
 	}
 
-	/*	Now pick out the port number, if requested.		*/
+	/*	Return -1 only if both port and IP parsing failed.	*/
 
-	if (delimiter == NULL)		/*	No port number.		*/
+	if (portParsed == 0 && *ipAddress == INADDR_ANY)
 	{
-		return 0;		/*	All done.		*/
+		return -1;
 	}
 
-	*delimiter = ':';		/*	Back out the parsing.	*/
-	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
-	if (i4 != 0)
-	{
-		if (i4 < 1024 || i4 > 65535)
-		{
-			writeMemoNote("[?] Invalid port number.", utoa(i4));
-			return -1;
-		}
-		else
-		{
-			*portNbr = i4;
-		}
-	}
-
+	writeMemoNote("[i] parseSocketSpec: Parsed", socketSpec);
 	return 0;
 }
 #else
