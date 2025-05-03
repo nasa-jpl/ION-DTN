@@ -1635,7 +1635,6 @@ CIVETWEB_SOURCES = \
 	nm/contrib/civetweb/examples/rest/cJSON/cJSON_Utils.c \
 	nm/mgr/nm_rest.c
 CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contrib/civetweb/examples/rest/cJSON
-CIVETWEB_LDFLAGS = -ldl
 CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
 
 nm_mgr_LDADD = libamp.la libici.la  libbp.la libltp.la $(LIBOBJS) $(PTHREAD_LIBS)
@@ -2610,7 +2609,6 @@ CIVETWEB_SOURCES = \
 	nm/contrib/civetweb/examples/rest/cJSON/cJSON_Utils.c \
 	nm/mgr/nm_rest.c
 CIVETWEB_INCLUDES = -I$(srcdir)/nm/contrib/civetweb/include -I$(srcdir)/nm/contrib/civetweb/examples/rest/cJSON
-CIVETWEB_LDFLAGS = -ldl
 CIVETWEB_CFLAGS = -DNO_SSL -DUSE_CIVETWEB -DUSE_JSON
 
 nm_mgr_LDADD = libamp.la libici.la  $(bplib) libltp.la $(PTHREAD_LIBS)
@@ -2620,7 +2618,7 @@ nm_mgr_LDFLAGS = -lpthread
 nm_mgr_CFLAGS =  -I$(srcdir)/ici/library -I$(srcdir)/bpv7/library -I$(srcdir)/ltp/library -I$(srcdir)/nm  -I$(srcdir)/nm/mgr $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) $(NM_CBOR_CFLAGS) $(NM_ADM_INCLUDES)
 
 if BUILD_NM_REST
-nm_mgr_LDFLAGS += $(CIVETWEB_LDFLAGS)
+nm_mgr_LDFLAGS += -ldl
 nm_mgr_CFLAGS += $(CIVETWEB_INCLUDES) $(CIVETWEB_CFLAGS)
 nm_mgr_SOURCES += $(CIVETWEB_SOURCES)
 
