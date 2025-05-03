@@ -833,5 +833,12 @@ dnl ---------- Optional bpv6 ---------------------------------------
 ADD_PODMAN(bpv6)
 
 
+dnl ===============================================================
+dnl  Autogenerate explicit test-<set> rules (ISO‑C, no GNU % rules)
+dnl ===============================================================
+
+AC_CONFIG_COMMANDS([tests/testrules.mk],
+  [ $srcdir/generate-test-rules.sh "$srcdir/tests" > tests/testrules.mk ],
+  [srcdir=$srcdir])
 
 AC_OUTPUT
