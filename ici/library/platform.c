@@ -2592,88 +2592,106 @@ char	*addressToString(struct in_addr address, char *buffer)
 
 #if (defined(FSWLAN) || !(defined(ION_NO_DNS)))
 int parseSocketSpec(char *socketSpec, unsigned short *portNbr,
-		unsigned int *ipAddress)
+	unsigned int *ipAddress)
 {
-	char		*delimiter;
-	char		*hostname;
-	char		hostnameBuf[MAXHOSTNAMELEN + 1];
-	unsigned int	i4;
-	int		portParsed = 0;
+char		*delimiter;
+char		*hostname;
+char		hostnameBuf[MAXHOSTNAMELEN + 1];
+unsigned int	i4;
+int		portValid = 0;
+int		ipValid = 0;
 
-	CHKERR(portNbr);
-	CHKERR(ipAddress);
-	*portNbr = 0;			/*	Use default port nbr.	*/
-	*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
+CHKERR(portNbr);
+CHKERR(ipAddress);
+*portNbr = 0;			/*	Use default port nbr.	*/
+*ipAddress = INADDR_ANY;	/*	Use local host address.	*/
 
-	if (socketSpec == NULL || *socketSpec == '\0')
+if (socketSpec == NULL || *socketSpec == '\0')
+{
+	writeMemoNote("[?] parseSocketSpec: Empty or NULL socketSpec", socketSpec);
+	return -1;		/*	Error: invalid input.	*/
+}
+
+/*	Parse port number first, so it's set even if DNS fails.	*/
+
+delimiter = strchr(socketSpec, ':');
+if (delimiter)
+{
+	*delimiter = '\0';	/*	Delimit host name.	*/
+	hostname = socketSpec;	/*	Hostname without port.	*/
+	i4 = atoi(delimiter + 1);	/*	Get port number.	*/
+	if (i4 == 0)
 	{
-		writeMemoNote("[?] parseSocketSpec: Empty or NULL socketSpec", socketSpec);
-		return 0;		/*	Use defaults.		*/
+		writeMemoNote("[?] parseSocketSpec: Non-numeric or missing port", socketSpec);
 	}
-
-	/*	Parse port number first, so it's set even if DNS fails.	*/
-
-	delimiter = strchr(socketSpec, ':');
-	if (delimiter)
+	else if (i4 < 1024 || i4 > 65535)
 	{
-		*delimiter = '\0';	/*	Delimit host name.	*/
-		i4 = atoi(delimiter + 1);	/*	Get port number.	*/
-		*delimiter = ':';		/*	Back out the parsing.	*/
-		if (i4 == 0)
+		writeMemoNote("[?] parseSocketSpec: Invalid port number", utoa(i4));
+	}
+	else
+	{
+		*portNbr = i4;
+		portValid = 1;
+	}
+}
+else
+{
+	hostname = socketSpec;	/*	No port, use full string.	*/
+	writeMemoNote("[?] parseSocketSpec: No port specified", socketSpec);
+}
+
+/*	Now figure out the IP address.  @ is local host.	*/
+
+if (strlen(hostname) != 0)
+{
+	if (strcmp(hostname, "0.0.0.0") == 0)
+	{
+		*ipAddress = INADDR_ANY;
+		ipValid = 1;
+	}
+	else if (strcmp(hostname, "@") == 0)
+	{
+		getNameOfHost(hostnameBuf, sizeof hostnameBuf);
+		hostname = hostnameBuf;
+		i4 = getInternetAddress(hostname);
+		if (i4 < 1)	/*	Invalid hostname.	*/
 		{
-			writeMemoNote("[?] parseSocketSpec: Non-numeric or missing port", socketSpec);
-		}
-		else if (i4 < 1024 || i4 > 65535)
-		{
-			writeMemoNote("[?] parseSocketSpec: Invalid port number", utoa(i4));
+			writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+			*ipAddress = BAD_HOST_NAME;
 		}
 		else
 		{
-			*portNbr = i4;
-			portParsed = 1;
+			*ipAddress = i4;
+			ipValid = 1;
 		}
 	}
 	else
 	{
-		writeMemoNote("[?] parseSocketSpec: No port specified", socketSpec);
-	}
-
-	/*	Now figure out the IP address.  @ is local host.	*/
-
-	hostname = socketSpec;
-	if (strlen(hostname) != 0)
-	{
-		if (strcmp(hostname, "0.0.0.0") == 0)
+		i4 = getInternetAddress(hostname);
+		if (i4 < 1)	/*	Invalid hostname.	*/
 		{
-			*ipAddress = INADDR_ANY;
+			writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
+			*ipAddress = BAD_HOST_NAME;
 		}
 		else
 		{
-			if (strcmp(hostname, "@") == 0)
-			{
-				getNameOfHost(hostnameBuf, sizeof hostnameBuf);
-				hostname = hostnameBuf;
-			}
-
-			i4 = getInternetAddress(hostname);
-			if (i4 < 1)	/*	Invalid hostname.	*/
-			{
-				writeMemoNote("[?] parseSocketSpec: Can't get IP address", hostname);
-				*ipAddress = BAD_HOST_NAME;
-			}
-			else
-			{
-				*ipAddress = i4;
-			}
+			*ipAddress = i4;
+			ipValid = 1;
 		}
 	}
+}
 
-	/*	Return -1 only if both port and IP parsing failed.	*/
+/*	Restore socketSpec for logging and caller.	*/
+if (delimiter)
+{
+	*delimiter = ':';
+}
 
-	if (portParsed == 0 && *ipAddress == INADDR_ANY)
-	{
-		return -1;
-	}
+/*	Return -1 if either port or IP parsing failed.	*/
+if (!portValid || !ipValid)
+{
+	return -1;
+}
 
 	writeMemoNote("[i] parseSocketSpec: Parsed", socketSpec);
 	return 0;

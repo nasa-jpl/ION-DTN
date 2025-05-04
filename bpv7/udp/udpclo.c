@@ -132,66 +132,66 @@ int	main(int argc, char *argv[])
 	}
 
 	/* Store endpointSpec and extract hostname */
-    	if (endpointSpec) 
+
+	endpointSpecCopy = MTAKE(strlen(endpointSpec) + 1);
+	
+	if (endpointSpecCopy == NULL) 
 	{
-        	endpointSpecCopy = MTAKE(strlen(endpointSpec) + 1);
-        
-		if (endpointSpecCopy == NULL) 
-		{
-            	putErrmsg("udpclo: No memory for endpointSpec copy.", NULL);
-            	return -1;
-        }
+		putErrmsg("udpclo: No memory for endpointSpec copy.", NULL);
+		return -1;
+	}
 
-	    strcpy(endpointSpecCopy, endpointSpec);
+	strcpy(endpointSpecCopy, endpointSpec);
 
-	    /* Parse endpointSpec to get port and hostname */
-		if (parseSocketSpec(endpointSpec, &portNbr, &hostNbr) < 0)
-		{
-			putErrmsg("udpclo: Failed to parse endpointSpec", endpointSpec);
-			portNbr = BpUdpDefaultPortNbr;
-			hostNbr = BAD_HOST_NAME;
-		}
-		else if (portNbr == 0)
-		{
-			writeMemo("[i] udpclo: No port specified in endpointSpec, using default.");
-			portNbr = BpUdpDefaultPortNbr;
-		}
+	/* Parse endpointSpec to get port and hostname */
+	if (parseSocketSpec(endpointSpec, &portNbr, &hostNbr) < 0)
+	{
+		putErrmsg("udpclo: Failed to parse endpointSpec", endpointSpec);
+	}
+	else if (portNbr == 0)
+	{
+		writeMemoNote("[i] udpclo: No port specified in endpointSpec, using default: ", iToa(BpUdpDefaultPortNbr));
+		portNbr = BpUdpDefaultPortNbr; // 4556
+	}
+	
+	cachedPortNbr = portNbr;
+	
+	/* Check for IP Address validity */
+	isAddressValid = (hostNbr != BAD_HOST_NAME);
+	lastLookupTime = getUsecTimestamp(); /* Record initial lookup time */
 
-        cachedPortNbr = portNbr; /* Store for reuse in re-resolution */
+	/* Extract hostname for periodic re-resolve */
+	char *delimiter = strchr(endpointSpec, ':');
+	int hostnameLen = delimiter ? (delimiter - endpointSpec) : strlen(endpointSpec);
+	remoteHostName = MTAKE(hostnameLen + 1);
 
-		/* Extract hostname */
-		char *delimiter = strchr(endpointSpec, ':');
-		int hostnameLen = delimiter ? (delimiter - endpointSpec) : strlen(endpointSpec);
-		remoteHostName = MTAKE(hostnameLen + 1);
+	if (remoteHostName == NULL) 
+	{
+		putErrmsg("udpclo: No memory for remoteHostName.", NULL);
+		MRELEASE(endpointSpecCopy);
+		return -1;
+	}
+
+	strncpy(remoteHostName, endpointSpec, hostnameLen);
+	remoteHostName[hostnameLen] = '\0';
+	
+	if (strcmp(remoteHostName, "@") == 0) 
+	{
+		/* Replace '@' with local hostname */
+		char hostnameBuf[MAXHOSTNAMELEN + 1];
+		getNameOfHost(hostnameBuf, sizeof(hostnameBuf));
+		MRELEASE(remoteHostName);
+		remoteHostName = MTAKE(strlen(hostnameBuf) + 1);
 
 		if (remoteHostName == NULL) 
 		{
-			putErrmsg("udpclo: No memory for remoteHostName.", NULL);
+			putErrmsg("udpclo: No memory for local hostname.", NULL);
 			MRELEASE(endpointSpecCopy);
 			return -1;
 		}
-
-		strncpy(remoteHostName, endpointSpec, hostnameLen);
-		remoteHostName[hostnameLen] = '\0';
-        
-		if (strcmp(remoteHostName, "@") == 0) 
-		{
-			/* Replace '@' with local hostname */
-			char hostnameBuf[MAXHOSTNAMELEN + 1];
-			getNameOfHost(hostnameBuf, sizeof(hostnameBuf));
-			MRELEASE(remoteHostName);
-			remoteHostName = MTAKE(strlen(hostnameBuf) + 1);
-
-			if (remoteHostName == NULL) 
-			{
-				putErrmsg("udpclo: No memory for local hostname.", NULL);
-				MRELEASE(endpointSpecCopy);
-				return -1;
-			}
-		
-			strcpy(remoteHostName, hostnameBuf);
-        	}
-    	}
+	
+		strcpy(remoteHostName, hostnameBuf);
+	}
 
 	/* Perform initialization */
 	portNbr = htons(cachedPortNbr);
@@ -201,9 +201,6 @@ int	main(int argc, char *argv[])
 	inetName->sin_family = AF_INET;
 	inetName->sin_port = portNbr;
 	memcpy((char *) &(inetName->sin_addr.s_addr), (char *) &hostNbr, 4);
-
-	isAddressValid = (hostNbr != BAD_HOST_NAME); /* Check initial lookup */
-	lastLookupTime = getUsecTimestamp(); /* Record initial lookup time */
 
 	if (!isAddressValid) 
 	{

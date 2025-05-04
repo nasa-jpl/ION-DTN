@@ -220,22 +220,15 @@ else
     exit 1
 fi
 
-# Sending 3 messages
-echo ""
-echo "Sending 1 message after DNS restoration, this will fail because re-resolve is not yet taken place but show as transmitted also."
-bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello2!"
-sleep 1
-bpstats
-cat ion.log | grep xmt
-
 echo ""
 echo "Now wait for 60 seconds for address cache to refresh..."
 echo ""
 sleep 60
 
 echo ""
-echo "Now send two bundles."
+echo "Now send 3 bundles."
 echo ""
+bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello2!"
 bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello3!"
 bptrace ipn:2.1 ipn:3.1 dtn:none 300 0.1 "Hello4!"
 sleep 1
@@ -246,7 +239,7 @@ cat ion.log | grep xmt
 echo ""
 echo "Sender bpstats should show total of 4 transmitted messages."
 echo ""
-sleep 10
+sleep 5
 
 # Check ion.log for DNS lookup report
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING3" "$LINE_NUM")
@@ -263,7 +256,7 @@ cd ../3.bench.udp
 bpstats
 cat ion.log | grep rcv
 echo ""
-echo "Receiver bpstats should show 2 recived bundles."
+echo "Receiver bpstats should show 3 recived bundles."
 echo ""
 
 LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING4" "1")
