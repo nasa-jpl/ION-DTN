@@ -1,172 +1,175 @@
-Test	Enabled	.exclude_all	.exclude_bpv6	.exclude_bpv7	.exclude_expert	.exclude_mac	.exclude_windows	Description
-./1001.sysctl-script	YES							Checks sysctl variable values on OSX to see if they are large enough to handle the shared memory requirements for ION
+Test	Enabled	.exclude_all	.exclude_bpv6	.exclude_bpv7	.exclude_expert	.exclude_freebsd	.exclude_mac	.exclude_raspberrypi	.exclude_solaris	.exclude_windows	Description
+./1001.sysctl-script	YES										Checks sysctl variable values on OSX to see if they are large enough to handle the shared memory requirements for ION
 
-./1002.loopback-valgrind	DISABLED							Send a bundle over LTP. Uses the valgrind debugging/profiling tool.
+./1002.loopback-valgrind	YES										Send a bundle over LTP. Uses the valgrind debugging/profiling tool.
 
-./1003.loopback-sdr	YES						<<EXCLUDED>>  There is an issue with bpsink not accepting the bundle sent by bpsource	Tests a simple ltp loopback configuration sending multiple bundles to itself. Originally meant to test for an ION memory leak.
+./1003.loopback-sdr	YES										Tests a simple ltp loopback configuration sending multiple bundles to itself. Originally meant to test for an ION memory leak.
 
-./1010.pingpong-ct	YES			<<EXCLUDED>>  This test requires ACS which was replaced by BIBE for bpv7.			<<EXCLUDED>>  Hangs when trying to stop bpadmin in ionstop script.	Ping-pongs bundles with custody transfer from one BP endpoint to another over UDP.
+./1010.pingpong-ct	YES			<<EXCLUDED>>  This test requires ACS which was replaced by BIBE for bpv7.						<<EXCLUDED>>  There is an issue with bpsink not accepting bundles on Windows	Ping-pongs bundles with custody transfer from one BP endpoint to another over UDP.
 
-./1021.dynamic-ep-valgrind	DISABLED							Ping-pongs 5 bundles with custody transfer from one BP endpoint to another over UDP. Uses the valgrind debugging/profiling tool.
+./1021.dynamic-ep-valgrind	YES										Sending 5 bundles from one BP endpoint to another over UDP. Uses the valgrind debugging/profiling tool.
 
-./asymmetric-range	YES							Test out behavior using asymmetrically configured ranges in the contact graph. Bundle forwarding, reforwarding, and expiration are expected.
+./ams-sana	YES									<<EXCLUDED>>  Fails in 3.5.0 with lots of permission pop-ups. Then Error: Messages not recieved.	Verify AMS functionality with large Node/Continuum numbers (per SANA node range upgrade)
 
-./bench-stcp	YES							
-./bibect	YES		<<EXCLUDED>>  This test is designed to exercise the BIBE implementation for BPV7					Test BIBE encapsulation
+./asymmetric-range	YES										Test out behavior using asymmetrically configured ranges in the contact graph. Bundle forwarding, reforwarding, and expiration are expected.
 
-./bpacs/100.receive-bpacs	YES			<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.			
-./bpacs/110.receive-lots-bpacs	YES			<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.			
-./bpacs/400.send-many-bpacs	YES			<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.			
-./bpacs/500.send-by-size	YES			<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.			
-./bpacs/700.expired-id	YES			<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.			
-./bpchat	YES						<<EXCLUDED>>  This test relies on mkfifo which is not implemented on mingw.	Test that bpchat behaves well sending and receiving bundles
+./bench-stcp	YES										
+./bibect	YES	<<EXCLUDED>>  This test is disabled per the flaw described in GitLab issue #341 pending a fundamental update to the bibect mechanism.	<<EXCLUDED>>  This test is designed to exercise the BIBE implementation for BPV7								Test BIBE encapsulation
 
-./bping	YES							Test basic functionality of the bping utility
+./bpacs/100.receive-bpacs	YES	<<EXCLUDED>>  This test relies on an outdated Python harness. The Python code needs to be updated to use different sockets for the bundles and custody reports.		<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.						
+./bpacs/110.receive-lots-bpacs	YES	<<EXCLUDED>>  This test relies on an outdated Python harness. The Python code needs to be updated to use different sockets for the bundles and custody reports.		<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.						
+./bpacs/400.send-many-bpacs	YES	<<EXCLUDED>>  This test relies on an outdated Python harness. The Python code needs to be updated to use different sockets for the bundles and custody reports.		<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.						
+./bpacs/500.send-by-size	YES	<<EXCLUDED>>  This test relies on an outdated Python harness. The Python code needs to be updated to use different sockets for the bundles and custody reports.		<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.						
+./bpacs/700.expired-id	YES	<<EXCLUDED>>  This test relies on an outdated Python harness. The Python code needs to be updated to use different sockets for the bundles and custody reports.		<<EXCLUDED>>  ACS does not exist in BP version 7. All ACS tests are disabled when ION is built with BP version 7.	<<EXCLUDED>>  This test is only run at Ohio University because it depends on a python harness.						
+./bpchat	YES									<<EXCLUDED>>  This test relies on mkfifo which is not implemented on mingw.	Test that bpchat behaves well sending and receiving bundles
 
-./bpsec/bcb-validation	YES			<<EXCLUDED>>  This test relies on Wireshark to confirm that BCB blocks are created and structured correctly when requested by ION. At this time, Wireshark does not have a BPv7 dissector so this test is BPv6 only until Wireshark has been updated.				
-./bpsec/bib-validation	YES			<<EXCLUDED>>  This test relies on Wireshark to confirm that BIB blocks are created and structured correctly when requested by ION. At this time, Wireshark does not have a BPv7 dissector so this test is BPv6 only until Wireshark has been updated.				
-./bpsec/bpsec-all-multinode-test	YES						<<EXCLUDED>>  Disabled because failed in 3.5.0.	
-./bpsec/bpsec-bcb-multinode-test	YES						<<EXCLUDED>>  Disabled because failed in 3.5.0.	
-./bpsec/bpsec-bib-multinode-test	YES						<<EXCLUDED>>  Didn't work in 3.5.0.	
-./bpstats2	YES			<<EXCLUDED>>  This test relies on custody transfer signals sent by ACS which only exists for bpv6			<<EXCLUDED>>  Disabled on Windows because there is no bpstat2 command.	Test basic functionality of the bptats2 utility
+./bping	YES										Test basic functionality of the bping utility
 
-./bssp	YES						<<EXCLUDED>>  bsscounter is not counting incoming bundles correctly	Test BSS protocol and API
+./bpsec/bcb-validation	YES			<<EXCLUDED>>  This test relies on Wireshark to confirm that BCB blocks are created and structured correctly when requested by ION. At this time, Wireshark does not have a BPv7 dissector so this test is BPv6 only until Wireshark has been updated.							
+./bpsec/bib-validation	YES			<<EXCLUDED>>  This test relies on Wireshark to confirm that BIB blocks are created and structured correctly when requested by ION. At this time, Wireshark does not have a BPv7 dissector so this test is BPv6 only until Wireshark has been updated.							
+./bpsec/bpsec-all-multinode-test	YES			<<EXCLUDED>>  This test is only for BP version 6.							
+./bpsec/bpsec-bcb-multinode-test	YES			<<EXCLUDED>>  This test is only for BP version 6.							
+./bpsec/bpsec-bib-multinode-test	YES			<<EXCLUDED>>  This test is only for BP version 6.						<<EXCLUDED>>  Didn't work in 3.5.0.	
+./bpsec/bpsec-policy-test	YES									<<EXCLUDED>>  Disabled because failed in 3.5.0.	
+./bpsec/python_tests	YES		<<EXCLUDED>>  These tests are designed to work with BP version 7.		<<EXCLUDED>>  This test imposes the following requirements: 1. You must have Python >= 3.7 installed. 2. You must build ION using the --enable-bpsec-debugging configure option: autoreconf -fi ./configure --enable-crypto-mbedtls --enable-bpsec-debugging make 3. You must set the ION_RUN_EXPERT environment variable to "yes" for your shell.						
+./bpstats2	YES			<<EXCLUDED>>  This test relies on custody transfer signals sent by ACS which only exists for bpv6						<<EXCLUDED>>  Disabled on Windows because there is no bpstat2 command.	Test basic functionality of the bptats2 utility
 
-./bssp-planrule	DISABLED						<<EXCLUDED>>  Disabled on Windows because the killall command does not exist on windows.	Same description as bssp test
+./bptrace_terminal_test	YES		<<EXCLUDED>>  This test relies upon the implementation of an argument format which has no bpv6 support, and the functionality of being able to address reports returning from your probe bundles to return to an endpoint the bptrace application lisens on locally. The bpv6 implementation of bptrace has support for neither at present. Implementing these features for bpv6 would also incur the cost of implementing custody transfer support including the additional flags and complexity which come with that functionality.								Determine if terminal version of bptrace functions as expected.
 
-./bug-0001-cgr-loopback	YES							Test that CGR will route bundles over the loopoback interface
+./bssp	YES			<<EXCLUDED>>  BSSP deprecated for BP version 7 (use BSS over LTP instead)						<<EXCLUDED>>  bsscounter is not counting incoming bundles correctly	Test BSS protocol and API
 
-./bug-0002-cgr-recompute	YES						<<EXCLUDED>>  Disabled on Windows because the killall command does not exist on windows.	Test CGR route cacheing
+./bug-0001-cgr-loopback	YES										Test that CGR will route bundles over the loopoback interface
 
-./bug-0007-ionadmin-duplicate-contacts	YES							Ensure that ionadmin does not create duplicate contacts
+./bug-0007-ionadmin-duplicate-contacts	YES										Ensure that ionadmin does not create duplicate contacts
 
-./bug-0008-limbo-bpclock-use-after-free	YES							Verify that bundles in the limbo queue can be successfully deleted on lifetime expiration
+./bug-0008-limbo-bpclock-use-after-free	YES										Verify that bundles in the limbo queue can be successfully deleted on lifetime expiration
 
-./bug-0009-tcpclo-fixes	YES						<<EXCLUDED>>  Node 2 not starting up properly.	Ensure that tcpclo correctly handles neighbors being unavailable at startup
+./bug-0009-tcpclo-fixes	YES									<<EXCLUDED>>  Node 2 not starting up properly.	Ensure that tcpclo correctly handles neighbors being unavailable at startup
 
-./bug-0015-tcpclo-bpcp-sig-handling	YES						<<EXCLUDED>>  Disabled on Windows because Test program is not available. Probably because you can't run make test-all.	Verify that ION correctly handles semaphore operations that get interrupted by a signal. Issue-358 and issue-352 verify that the tcpclo, bpcp and bpcpd signal handlers work correctly.
+./bug-0015-tcpclo-bpcp-sig-handling	YES									<<EXCLUDED>>  Disabled on Windows because Test program is not available. Probably because you can't run make test-all.	Verify that ION correctly handles semaphore operations that get interrupted by a signal. Issue-358 and issue-352 verify that the tcpclo, bpcp and bpcpd signal handlers work correctly.
 
-./cfdpv1	YES							Test revisions to CCSDS file delivery protocol
+./cfdpv1	YES										Test revisions to CCSDS file delivery protocol
 
-./cfdpv1-4node-ltp	YES							Tests a limbo system by blocking and unblocking an outduct
+./cfdpv1-4node-ltp	YES										Tests a limbo system by blocking and unblocking an outduct
 
-./cfdpv1-tcp	YES							Test revisions to CCSDS file delivery protocol
+./cfdpv1-tcp	YES										Test revisions to CCSDS file delivery protocol
 
-./cgr-test	YES							Test CGR routing in a very large contact graph.
+./cgr-test	YES										Test CGR routing in a very large contact graph.
 
-./contact-volume/ltp-loopback	YES						<<EXCLUDED>>  There is an issue with bpsink not accepting bundles on Windows	
-./contact-volume/udp-loopback	YES						<<EXCLUDED>>  There is an issue with bpsink not accepting bundles on Windows	
-./dtka	YES	<<EXCLUDED>>  Not enabled automatically because dtka is not build as a standard part of ION					<<EXCLUDED>>  Not enabled automatically because dtka is not build as a standard part of ION	Tests security key distribution
+./contact-volume/ltp-loopback	YES										
+./contact-volume/udp-loopback	YES										
+./cpsync	YES		<<EXCLUDED>>  contact plan synchronization does not exist for bpv6							<<EXCLUDED>>  Disabling on Windows because test hangs	Tests multicast transmission
 
-./ipnd	YES						<<EXCLUDED>> 	
-./ipn-null-eid	YES						<<EXCLUDED>>  There is an issue with bpsink not accepting bundles on Windows	Test ION behavior using dtn:none eids to ensure that the null eid does not crash the node
+./crc_relay	YES		<<EXCLUDED>>  This test relies upon the implementation of an argument format which has no bpv6 support, and the functionality of being able to address reports returning from your probe bundles to return to an endpoint the bptrace application lisens on locally. The bpv6 implementation of bptrace has support for neither at present. Implementing these features for bpv6 would also incur the cost of implementing custody transfer support including the additional flags and complexity which come with that functionality.								Confirm that CRC type setting for primary and payload blocks are preserved through a relay node.
 
-./issue-101-add-aoslso	DISABLED	<<EXCLUDED>>  aoslso was deprecated in ION 3.7.0						Test the functionality of an AOS link service adapter for ltp. Disabled for ION 3.7.0 because aoslso and aoslsi are deprecated.
+./ionexit_test	YES					<<EXCLUDED>>  This test utilizes Linux-only utilities to perform its verification.	<<EXCLUDED>>  This test utilizes Linux-only utilities to perform its verification.	<<EXCLUDED>>  This test utilizes Linux-only utilities to perform its verification.	<<EXCLUDED>>  This test utilizes Linux-only utilities to perform its verification.	<<EXCLUDED>>  This test utilizes Linux-only utilities to perform its verification.	Test ionexit utility Tests that ionexit cleans up ION processes and shared resources.
 
-./issue-132-udplso-tx-rate-limit	YES							Test the functionality of a transmission rate limit on upd link service adapter to ltp
+./ipaddr-caching-udpclo	YES				<<EXCLUDED>>  Test requires 'sudo' privilege. Set the ION_RUN_EXPERT environment variable to execute.					<<EXCLUDED>>  # Test is excluded from the Windows OS	
+./ipaddr-caching-udplso	YES				<<EXCLUDED>>  Test requires 'sudo' privilege. Set the ION_RUN_EXPERT environment variable to execute.					<<EXCLUDED>>  # Test is excluded from the Windows OS	
+./ipn-null-eid	YES										Test ION behavior using dtn:none eids to ensure that the null eid does not crash the node
 
-./issue-196-checkforcongestion-looping	YES							Ensure that checkforcongestion() does not loop excessively
+./ipnd	YES									<<EXCLUDED>> 	
+./issue-132-udplso-tx-rate-limit	YES										Test the functionality of a transmission rate limit on upd link service adapter to ltp
 
-./issue-234-235	YES							Test that bug issues 234 and 235 having to do with mutex bugs in PSM and SDR have been eliminated
+./issue-196-checkforcongestion-looping	YES										Ensure that checkforcongestion() does not loop excessively
 
-./issue-236-src-eid-trunc	YES							Test that the src-eid does not get truncated using dpdriver/bpecho
+./issue-234-235	YES								<<EXCLUDED>>  Excluded on Solaris		Test that bug issues 234 and 235 having to do with mutex bugs in PSM and SDR have been eliminated
 
-./issue-245-contactrangewildcard	YES						<<EXCLUDED>>  Return 2, Oh noes Contract/range did not load! Since 3.5.0.	Check that wildcard contact/range deletion works
+./issue-236-src-eid-trunc	YES										Test that the src-eid does not get truncated using dpdriver/bpecho
 
-./issue-253-tcpcl-keepalive	YES							Test that the tcpcl keepalive backoff timer triggers a keepalive when the timer goes off every 30 seconds
+./issue-245-contactrangewildcard	YES									<<EXCLUDED>>  Return 2, Oh noes Contract/range did not load! Since 3.5.0.	Check that wildcard contact/range deletion works
 
-./issue-260-teach-valgrind-mtake	YES							Verify that valgrind notices leaked blocks
+./issue-253-tcpcl-keepalive	YES										Test that the tcpcl keepalive backoff timer triggers a keepalive when the timer goes off every 30 seconds
 
-./issue-264-ltp-blksize	YES							Verify that LTP no longer limits block size
+./issue-260-teach-valgrind-mtake	YES										Verify that valgrind notices leaked blocks
 
-./issue-265-bpdriver-ttl-option	YES			<<EXCLUDED>>  This test currently depends on the BPv6 header length to find the TTL value. Marking this test as BPv6 only until it can be updated.			<<EXCLUDED>>  Didn't work in 3.5.0.	Confirm that bpdriver can now send bundles with varying ttl values
+./issue-264-ltp-blksize	YES										Verify that LTP no longer limits block size
 
-./issue-276-loopback-range	YES							Verify that non-zero loopback one-way light time is supported
+./issue-265-bpdriver-ttl-option	YES			<<EXCLUDED>>  This test currently depends on the BPv6 header length to find the TTL value. Marking this test as BPv6 only until it can be updated.						<<EXCLUDED>>  Didn't work in 3.5.0.	Confirm that bpdriver can now send bundles with varying ttl values
 
-./issue-279-bpMemo-timeline	YES			<<EXCLUDED>>  This test relies on bpMemo, part of the ACS subsystem which only exists for bpv6			<<EXCLUDED>>  Hang when trying to stop bpadmin during the ionstop script.	Verify that 'invincible' timeline events are no longer produced
+./issue-276-loopback-range	YES										Verify that non-zero loopback one-way light time is supported
 
-./issue-282-ltp	DISABLED	<<EXCLUDED>>  Test disabled because screening is now always on.						Tests that LTP works properly when LTP data screening is turned on/off
+./issue-279-bpMemo-timeline	YES			<<EXCLUDED>>  This test relies on bpMemo, part of the ACS subsystem which only exists for bpv6						<<EXCLUDED>>  Hang when trying to stop bpadmin during the ionstop script.	Verify that 'invincible' timeline events are no longer produced
 
-./issue-285-286-segfaults	YES							Verify that admin command syntax errors which resulted in segfault no longer fail
+./issue-285-286-segfaults	YES										Verify that admin command syntax errors which resulted in segfault no longer fail
 
-./issue-302-fast-structures	YES							Test issue-302 fast data structures
+./issue-302-fast-structures	YES										Test issue-302 fast data structures
 
-./issue-303-green-sessions	YES							Verify that LTP 'green' data can continue to flow even when the 'red' session limit has been reached
+./issue-303-green-sessions	YES										Verify that LTP 'green' data can continue to flow even when the 'red' session limit has been reached
 
-./issue-306-congestion-forecasting	YES							Exercise congestion forecasting in various configurations to demonstrate that it is working properly
+./issue-306-congestion-forecasting	YES								<<EXCLUDED>>  Excluded on Solaris		Exercise congestion forecasting in various configurations to demonstrate that it is working properly
 
-./issue-313-overlapping-memcpy	YES							Verify that multiple bundles send inside an LTP segment are correctly separated without corruption
+./issue-313-overlapping-memcpy	YES										Verify that multiple bundles send inside an LTP segment are correctly separated without corruption
 
-./issue-319-parseSocketSpec	YES						<<EXCLUDED>>  Fails in 3.5.0 with lots of permission pop-ups. Then Error: Messages not recieved.	Verify basic AMS functionality
+./issue-319-parseSocketSpec	YES									<<EXCLUDED>>  Fails in 3.5.0 with lots of permission pop-ups. Then Error: Messages not recieved.	Verify basic AMS functionality
 
-./issue-323-congestion-forecasting-overflow	YES						<<EXCLUDED>>  Didn't work in 3.5.0.	Confirm that the overflow in congestion forecasting is corrected by ensuring that bundles can still be sent and received using a configuration that would have caused the overflow
+./issue-323-congestion-forecasting-overflow	YES										Confirm that the overflow in congestion forecasting is corrected by ensuring that bundles can still be sent and received using a configuration that would have caused the overflow
 
-./issue-324-ltp-files	YES						<<EXCLUDED>>  Disabled because it calls the killall command that doesn't work in windows.	Test that LTP acquisition files do not remain on the receiving node
+./issue-324-ltp-files	YES									<<EXCLUDED>>  Disabled because it calls the killall command that doesn't work in windows.	Test that LTP acquisition files do not remain on the receiving node
 
-./issue-325-329-critical	YES							Tests critical bundle transmission
+./issue-325-329-critical	YES										Tests critical bundle transmission
 
-./issue-325-329-fragmentation	YES							Tests the partial replication that is done when a bundles is fragmented
+./issue-325-329-fragmentation	YES										Tests the partial replication that is done when a bundles is fragmented
 
-./issue-330-cfdpclock-FDU-removal	DISABLED						<<EXCLUDED>>  This test requires you have built cfdplisten.c which does not happen on Windows at this time.	Confirm that cfdpclock will no longer remove FDUs without file data
+./issue-330-cfdpclock-FDU-removal	YES									<<EXCLUDED>>  This test requires you have built cfdplisten.c which does not happen on Windows at this time.	Confirm that cfdpclock will no longer remove FDUs without file data
 
-./issue-344-bpsource-ttl	YES			<<EXCLUDED>>  This test currently depends on the BPv6 header length to find the TTL value. Marking this test as BPv6 only until it can be updated.				Confirm that bpsource can now send bundles with varying ttl values
+./issue-344-bpsource-ttl	YES			<<EXCLUDED>>  This test currently depends on the BPv6 header length to find the TTL value. Marking this test as BPv6 only until it can be updated.							Confirm that bpsource can now send bundles with varying ttl values
 
-./issue-347-tcpcl-reconnection	YES							Verify that a cascading failure in the tcpcli caused by a shutdown message from the neighboring node is fixed
+./issue-347-tcpcl-reconnection	YES										Verify that a cascading failure in the tcpcli caused by a shutdown message from the neighboring node is fixed
 
-./issue-352-bpcp	YES						<<EXCLUDED>>  This test relies on bpcp which is not built on Window as it relies on system calls that are not implemented for mingw.	Test that bpcp works correctly in local to remote, remote to local and remote to remote copies
+./issue-352-bpcp	YES								<<EXCLUDED>>  Excluded on Solaris	<<EXCLUDED>>  This test relies on bpcp which is not built on Window as it relies on system calls that are not implemented for mingw.	Test that bpcp works correctly in local to remote, remote to local and remote to remote copies
 
-./issue-358-cfdp-inactivity	YES						<<EXCLUDED>>  This test relies on bpcp which is not built on Window as it relies on system calls that are not implemented for mingw.	Test that CFDP correctly handles the inactivity deadline configuration option
+./issue-352-bpcp-ltp	YES								<<EXCLUDED>>  Excluded on Solaris	<<EXCLUDED>>  This test relies on bpcp which is not built on Window as it relies on system calls that are not implemented for mingw.	Test that bpcp works correctly in local to remote, remote to local and remote to remote copies
 
-./issue-364-dtpc	YES						<<EXCLUDED>>  Disabling on Windows because dtpcsend hangs	Tests delay tolerant payload conditioning
+./issue-352-bpcp-stcp	YES								<<EXCLUDED>>  Excluded on Solaris	<<EXCLUDED>>  This test relies on bpcp which is not built on Window as it relies on system calls that are not implemented for mingw.	Test that bpcp works correctly in local to remote, remote to local and remote to remote copies
 
-./limbo	YES							Tests a limbo system by blocking and unblocking an outduct
+./issue-358-cfdp-inactivity	YES									<<EXCLUDED>>  This test relies on bpcp which is not built on Window as it relies on system calls that are not implemented for mingw.	Test that CFDP correctly handles the inactivity deadline configuration option
 
-./linking	YES							Test the linking cleanliness of the executables
+./issue-364-dtpc	YES									<<EXCLUDED>>  Disabling on Windows because dtpcsend hangs	Tests delay tolerant payload conditioning
 
-./loopback-bp-dccp	YES							Test BP over DCCP
+./limbo	YES										Tests a limbo system by blocking and unblocking an outduct
 
-./loopback-ltp-dccp	YES							Test LTP over DCCP
+./linking	YES					<<EXCLUDED>>  # FreeBSD 14.2 does not support ldd with -r or -u options # See https://man.freebsd.org/cgi/man.cgi?query=ldd&apropos=0&sektion=1&manpath=FreeBSD+14.2-RELEASE&arch=default&format=html					Test the linking cleanliness of the executables
 
-./ltp-green	YES						<<EXCLUDED>>  Disabled on Windows because the killall command does not exist on windows.	Test LTP unacknowledged transmission
+./loopback-bp-dccp	YES										Test BP over DCCP
 
-./ltp-purge	YES							Test the functionality of LTP Purge (described in issue-173)
+./loopback-ltp-dccp	YES										Test LTP over DCCP
 
-./ltp-retransmission	YES							Test LTP block reassembly with out-of-order segment arrival caused by segment retransmission
+./ltp-green	YES									<<EXCLUDED>>  Disabled on Windows because the killall command does not exist on windows.	Test LTP unacknowledged transmission
 
-./ltp-sda	YES							Test the Service Data Aggregation client operation defined in section 7 of the CCSDS LTP spec
+./ltp-purge	YES										Test the functionality of LTP Purge (described in issue-173)
 
-./nm	YES	<<EXCLUDED>>  This test requires NM to be configured with "--enable-nmrest" and the installation of Perl dependencies. See dotest inline documentation for details.						
-./priorities	YES							Tests the effects of priorities on transmission ordering
+./ltp-retransmission	YES										Test LTP block reassembly with out-of-order segment arrival caused by segment retransmission
 
-./req-0002-bundle-age	YES							Demonstrate correct bundle expiration time computations for nodes both with and without synchronized clocks
+./ltp-sda	YES										Test the Service Data Aggregation client operation defined in section 7 of the CCSDS LTP spec
 
-./req-0003-multicast	YES			<<EXCLUDED>>  imcadmin was removed for BP version 7			<<EXCLUDED>>  Disabling on Windows because test hangs	Tests multicast transmission
+./nm	YES	<<EXCLUDED>>  This test requires NM to be configured with "--enable-nmrest" and the installation of Perl dependencies. See dotest inline documentation for details.									
+./nm-unit/utils/radix	YES	<<EXCLUDED>>  This test does not currently run, it needs to be updated by APL.								<<EXCLUDED>>  This test does not run on Windows because there are no Makefile rules to build the required C test harness on mingw.	
+./priorities	YES										Tests the effects of priorities on transmission ordering
 
-./req-0019-bibe	YES							Test BIBE encapsulation
+./req-0002-bundle-age	YES										Demonstrate correct bundle expiration time computations for nodes both with and without synchronized clocks
 
-./req-0022-reversibility/loopback	YES						<<EXCLUDED>>  Return 1, Files do not match. FAILURE! Then ION doesn't stop	
-./req-0022-reversibility/reversibilityCheck1	YES						<<EXCLUDED>>  bpdriver.exe stops working.	
-./req-0022-reversibility/reversibilityCheck2	YES						<<EXCLUDED>>  bpdriver.exe and udpcli.exe stops working.	
-./req-0033-prob-CGR	YES						<<EXCLUDED>>  Disabled on Windows because the killall command does not exist on windows.	A simple test of opportunistic forwarding
+./req-0003-multicast	YES			<<EXCLUDED>>  imcadmin was removed for BP version 7						<<EXCLUDED>>  Disabling on Windows because test hangs	Tests multicast transmission
 
-./sbsp/100.bsp-bab-phn-udp	DISABLED	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/100.bsp-bcb-phn-udp	DISABLED	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/100.bsp-bib-phn-udp	DISABLED	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/105-106-bei	DISABLED	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/bsp-all-multinode-test	YES	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/bsp-bab-multinode-test	DISABLED	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/bsp-bcb-multinode-test	DISABLED	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/bsp-bib-multinode-test	YES	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sbsp/bsp-multinode-test	DISABLED	<<EXCLUDED>>  Disabled because updated from sbsp to bpsec.						
-./sdr-no-dram	YES							Test the bug fix that prevents deletion of a non-custodial bundle prior to convergence-layer notification that all transmission procedures for this bundle have been concluded, either successfully or unsuccessfully
+./req-0003-multicast-v7	YES		<<EXCLUDED>>  BPv6 multicast requires imcadmin, which is removed from BPv7							<<EXCLUDED>>  Disabling on Windows because test hangs	Tests multicast transmission
 
-./status-rpts	YES			<<EXCLUDED>>  This test relies on custody transfer signals sent by ACS which only exists for bpv6				Determine if bundle status reports are generated and logged
+./req-0019-bibe	YES										Test BIBE encapsulation
 
-./stewardship	YES							Test the bug fix that prevents deletion of a non-custodial bundle prior to convergence-layer notification that all transmission procedures for this bundle have been concluded, either successfully or unsuccessfully
+./req-0022-reversibility/loopback	YES										
+./req-0022-reversibility/reversibilityCheck1	YES	<<EXCLUDED>>  Disabling this test in 4.1.3s pending a rewrite to account for changes in transaction reversibility.								<<EXCLUDED>>  bpdriver.exe stops working.	
+./req-0022-reversibility/reversibilityCheck2	YES	<<EXCLUDED>>  Disabling this test in 4.1.3s pending a rewrite to account for changes in transaction reversibility.							<<EXCLUDED>>  Excluded on Solaris	<<EXCLUDED>>  bpdriver.exe and udpcli.exe stops working.	
+./req-0033-prob-CGR	YES									<<EXCLUDED>>  Disabled on Windows because the killall command does not exist on windows.	A simple test of opportunistic forwarding
 
-./tc-dtka	YES		<<EXCLUDED>>  Trusted Collective does not exist for BP version 6				<<EXCLUDED>>  Not enabled automatically because dtka is not build as a standard part of ION	Tests security key distribution
+./sdr-no-dram	YES										PURPOSE: Testing the functionality configFlags value 2, running with the SDR heap only in files (no copy in RAM). We simply configure two nodes with configFlags set to 2, send 30 bundles from one node to the other, and verify that bundles arrive and are delivered. We detect the delivery of these bundles by looking for 'z' watch characters in stdout at the receiver.
 
-./tcpcl-ack-resilience	YES				<<EXCLUDED>>  Requires sudu access and iptables, so not appropriate for simple tests	<<EXCLUDED>>  The Mac doesn't have iptables, so we can't stop the flow of packets	<<EXCLUDED>>  Disabled on Windows because there is no sudo command.	Verify that TCP will recover and successfully transfer an entire file if connection is blocked in the middle
+./smart-file-transfer	YES		<<EXCLUDED>>  This test is disabled for bpv6 because the sendfile and recvfile programs are not built for BP version 6.								
+./status-rpts	YES										Determine if bundle status reports are generated and logged
 
-./tcpcl-dos	DISABLED						<<EXCLUDED>>  Fails on 3.5.0. Data corruption.	Ensure that tcpcli doesn't have a denial-of-service type bug
+./stewardship	YES										Test the bug fix that prevents deletion of a non-custodial bundle prior to convergence-layer notification that all transmission procedures for this bundle have been concluded, either successfully or unsuccessfully
+
+./tc-dtka	YES		<<EXCLUDED>>  Trusted Collective does not exist for BP version 6						<<EXCLUDED>>  This test is very dependant on timing so it will need a new set of configuration files to pass consistently on Solaris since it is slower.	<<EXCLUDED>>  Not enabled automatically because dtka is not build as a standard part of ION	Tests security key distribution
+
+./tcpcl-ack-resilience	YES				<<EXCLUDED>>  Requires sudo access and iptables, so not appropriate for simple tests. Note: this test is skipped when ION_RUN_EXPERT != "yes". Also need to open TCP Port 4555 and 4556	<<EXCLUDED>>  # Exclude FreeBSD from this test. Commands to adjust TCP kernel are for Linux.	<<EXCLUDED>>  The Mac doesn't have iptables, so we can't stop the flow of packets		<<EXCLUDED>>  This test is disabled on Solaris	<<EXCLUDED>>  Disabled on Windows because there is no sudo command.	Verify that TCP will recover and successfully transfer an entire file if connection is blocked in the middle
+
+./tcpcl-dos	YES									<<EXCLUDED>>  Fails on 3.5.0. Data corruption.	Ensure that tcpcli doesn't have a denial-of-service type bug
 
