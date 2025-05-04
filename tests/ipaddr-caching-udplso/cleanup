@@ -18,5 +18,5 @@ if [ -f "$BACKUP_FILE" ]; then
         fi
     fi
 
-rm -f ion_nodes 2.bench.udp/ion.log 2.bench.udp/bpdriverAduFile 3.bench.udp/ion.log 3.bench.udp/bpacq*
+rm -f ion_nodes 2.bench.ltp/ion.log 3.bench.ltp/ion.log 3.bench.ltp/bpacq*
 

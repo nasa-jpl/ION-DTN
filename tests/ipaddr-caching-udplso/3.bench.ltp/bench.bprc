@@ -6,7 +6,7 @@ a endpoint ipn:3.2 x
 a endpoint ipn:3.64 x
 a endpoint ipn:3.65 x
 a protocol ltp 1400 100
-a induct ltp 3 udpcli
-a outduct ltp 2 udpclo
+a induct ltp 3 ltpcli
+a outduct ltp 2 ltpclo
 r 'ipnadmin bench.ipnrc'
 s
