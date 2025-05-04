@@ -14,6 +14,6 @@ find . -type f \( -name '*.1' -o -name '*.3' -o -name '*.5' \) \
   | sort \
   | while read man; do
       echo "${man}.ps: ${man}"
-      echo '    groff -mandoc $^ > $@'
+      printf '\tgroff -mandoc $^ > $@\n\n'
       echo
     done

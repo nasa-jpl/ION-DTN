@@ -3439,6 +3439,10 @@ ION.pdf: doc/ION-beginning.pdf
 
 endif #ENABLE_AUTODOC
 
+# ----  PS conversion & static lists-------------------------------
+-include $(top_builddir)/pstrules.mk
+-include $(top_builddir)/man-lists.mk
+
 # ---- generated man‑page rules (added by configure) --------------
 -include ici/doc/podman.mk
 -include ltp/doc/podman.mk
