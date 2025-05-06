@@ -115,7 +115,7 @@ LINE_NUM=1
 # Check for sudo availability
 if ! command -v sudo >/dev/null 2>&1; then
     echo "Error: sudo is required to modify $HOSTS_FILE"
-    exit 1
+    exit 2
 fi
 
 # Clean up
