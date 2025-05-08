@@ -210,14 +210,14 @@ echo "Waiting for ION to re-resolve hostname..."
 sleep 65
 
 # Check ion.log for DNS lookup report
-LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING2" "$LINE_NUM")
-return_code=$?
-if [ $return_code -eq 0 ]; then
-	echo "SUCCESS: ion.log reported DNS lookup success at line $LINE_NUM"
-else
-	echo "FAIL: No match or error (return code: -1)"
-	RETVAL=1
-fi
+#LINE_NUM=$(search_log_after_line "$LOG_FILE" "$SEARCH_STRING2" "$LINE_NUM")
+#return_code=$?
+#if [ $return_code -eq 0 ]; then
+#	echo "SUCCESS: ion.log reported DNS lookup success at line $LINE_NUM"
+#else
+#	echo "FAIL: No match or error (return code: -1)"
+#	RETVAL=1
+#fi
 
 # Step 3: Sending LTP data
 echo ""

@@ -1,28 +1,21 @@
 # ION Deployment Guide
 
-**Version 4.1.3**
+Version 4.1.3
 
 _Jay Gao, Jet Propulsion Laboratory, California Institute of
+Technology_; _Sky DeBaun, Jet Propulsion Laboratory, California Institute of
 Technology_
 
-_Sky DeBaun, Jet Propulsion Laboratory, California Institute of
-Technology_
-
-**Document Change Log**
+Document Change Log
 
 | Ver No. | Date      | Description                      | Note                    |
 | ------- | --------- | -------------------------------- | ----------------------- |
-| V4.1.3  | 11/6/2023 | Add LTP Performance Test         | Converted to markd down |
+| V4.1.3  | 11/6/2023 | Add LTP Performance Test         | Converted to markdown |
 | V4.1.2  | 1/5/2023  | Added notes on SDR file and CGRM |                         |
 
 ## Overview
 
-The effort required to deploy the Interplanetary Overlay Network (ION)
-software in an operational setting may vary widely depending on the
-scope of the deployment and the degree to which the required ION
-functionality coincides with the capability provided by default in the
-software as distributed. This effort will be expended in two general
-phases: initial ***infusion*** and ongoing ***operation***.
+The effort required to deploy the Interplanetary Overlay Network (ION) software in an operational setting may vary widely. It depends on the scope of the deployment and the degree to which the required ION functionality matches the capabilities provided by the default distribution of the software. This effort will be expended in two general phases: initial _infusion_ and ongoing _operation_.
 
 ## Infusion
 
@@ -32,7 +25,7 @@ decisions recorded in ION's protocol state databases, as populated by a
 variety of administration utility programs. Others are managed at
 compile time by means of compiler command-line switches selected when
 the software is built. These compile-time configuration options are
-described in the ***Configuration*** section below.
+described in the _Configuration_ section below.
 
 In some cases, mission-specific behavior that goes beyond the options
 built into ION must be enabled during ION deployment. The intent of the
@@ -52,11 +45,11 @@ executables, new startup/shutdown/monitor/control utilities or scripts,
 and even entirely new route computation systems, BP convergence-layer
 adapters, and/or LTP link service adapters without ever altering the
 distributed ION source code. A few rough guidelines for making these
-kinds of modifications are described in the ***Adaptation*** section
+kinds of modifications are described in the _Adaptation_ section
 below.
 
 Finally, in rare cases it may be necessary to execute ION in an
-operating-system environment to which it has not yet been ported.
+operating-system environmeo which it has not yet been ported.
 Guidance for porting ION to new platforms will be provided in a future
 edition of this Deployment Guide.
 
@@ -65,7 +58,7 @@ edition of this Deployment Guide.
 On an ongoing basis, an ION deployment may require reconfiguration from
 time to time and/or may require troubleshooting to resolve performance
 or stability problems. Some suggestions for reconfiguration and
-troubleshooting procedures are offered in the ***Operation*** section
+troubleshooting procedures are offered in the _Operation_ section
 below.
 
 ## Configuration
@@ -150,19 +143,19 @@ This option simply causes GDSLOGGER to be set.
 `TRACKRFXEVENTS`
 
 This option causes user-written code, in a file named rfxtracker.c, to
-be executed every time the **rfxclock** daemon dispatches a schedule RFX
+be executed every time the _rfxclock_ daemon dispatches a schedule RFX
 event such as the start or end of a transmission contact. A file of this
 name must be in the inclusion path for the compiler, as defined by
 --Ixxxx compiler option parameters.
 
-`ION_OPS_ALLOC=*xx*`
+`ION_OPS_ALLOC=xx`
 
 This option specifies the percentage of the total non-volatile storage
 space allocated to ION that is reserved for protocol operational state
 information, i.e., is not available for the storage of bundles or LTP
 segments. The default value is 40.
 
-`ION_SDR_MARGIN=*xx*`
+`ION_SDR_MARGIN=xx`
 
 This option specifies the percentage of the total non-volatile storage
 space allocated to ION that is reserved simply as margin, for
@@ -184,7 +177,7 @@ system: when set, it enables the value of any variable in the SDR heap
 to be accessed directly by means of a pointer into the dynamic memory
 that is used as the data store storage medium, rather than by reading
 the variable into a location in local stack memory. Note that this
-option must **not** be enabled if the data store is configured for file
+option must _not_ be enabled if the data store is configured for file
 storage only, i.e., if the SDR_IN_DRAM flag was set to zero at the time
 the data store was created by calling sdr_load_profile. See the
 ionconfig(5) man page in Appendix A for more information.
@@ -215,7 +208,7 @@ enabled) rolled back, and all ION tasks terminate.
 Otherwise, the ION task that encountered the error is simply aborted,
 causing a core dump to be produced to support debugging.
 
-`SM_SEMKEY=0x*XXXX*`
+`SM_SEMKEY=0xXXXX`
 
 This option overrides the default value (0xee01) of the identifying
 "key" used in creating and locating the global ION shared-memory system
@@ -274,7 +267,7 @@ SEMMSL. It overrides the default value, which is 32000. (Changing this
 value typically entails rebuilding the O/S kernel.)
 
 Note that this option is also supported in the MinGW (Windows) port of
-ION, with the same default value; changing this value does **not**
+ION, with the same default value; changing this value does _not_
 involve an operating system modification.
 
 `ION_NO_DNS`
@@ -285,12 +278,12 @@ able to operate over Internet connections, but it prevents link errors
 when ION is loaded on a spacecraft where the operating system does not
 include support for these functions.
 
-`ERRMSGS_BUFSIZE=*xxxx*`
+`ERRMSGS_BUFSIZE=xxxx`
 
 This option set the size of the buffer in which ION status messages are
 constructed prior to logging. The default value is 4 KB.
 
-`SPACE_ORDER=*x*`
+`SPACE_ORDER=x`
 
 This option declares the word size of the computer on which the compiled
 ION software will be running: it is the base-2 log of the number of
@@ -315,7 +308,7 @@ operating systems).
 ### Configuring the "ltp" module
 
 Declaring values for the following variables, by setting parameters that
-are provided to the C compiler (for example, --DUDP_MULTISEND, will
+are provided to the C compiler. For example, `--DUDP_MULTISEND`, will
 alter the functionality of LTP as noted below.
 
 `UDP_MULTISEND`
@@ -333,8 +326,7 @@ congestion loss in non-MULTISEND LTP. In order to achieve similar
 reduction in UDP congestion loss, a node that receives data sent by
 sendmmsg() may need to be configured for larger socket buffers. The
 sysctl operating system utility may be used for this purpose, setting
-new values for net.core.rmem_max and \_default and net.core.wmem_max and
-\_default.
+new values for `net.core.rmem_max` and `net.core.wmem_max`.
 
 Note also that not all operating systems support the sendmmsg() system
 call. ION currently enables UDP_MULTISEND only for flavors of Linux
@@ -543,12 +535,11 @@ parameter to this command is optional; if present, it must provide the
 full pathname of a local file of immutable configuration parameter
 values:
 
-```
+```text
 wmKey (integer)
 wmSize (integer)
 wmAddress (integer)
 sdrName (string)
-
 sdrWmSize (integer)
 # bit pattern in integer form, e.g., 3 for 00000011
 configFlags 3
@@ -639,7 +630,7 @@ bundle uses about 1.5KB of space in heap and about 100-150 Byte in
 working memory. Adding a 200% margin, we recommend that following
 relationship between `heapWords` and `wmSize`:
 
-```
+```text
 wmSize = 3 x heapWords x 8 x 0.4 / 10
 ```
 
@@ -859,9 +850,9 @@ data receiver.
 
 The add scheme command. This command declares an endpoint naming
 _scheme_ for use in endpoint IDs, which are structured as URIs:
-*scheme_name*:*scheme-specific_part*. *forwarder_command* will be
+_scheme_name_:_scheme-specific_part_. _forwarder_command_ will be
 executed when the scheme is started on this node, to initiate operation
-of a forwarding daemon for this scheme. *admin_app_command* will also be
+of a forwarding daemon for this scheme. _admin_app_command_ will also be
 executed when the scheme is started on this node, to initiate operation
 of a daemon that opens an administrative endpoint identified within this
 scheme so that it can receive and process custody signals and bundle
@@ -891,15 +882,15 @@ available. For details of the LTP protocol, see RFC 5325.
 
 The first command that must be issued to ltpadmin is the Initialize
 command (see line number 38 below, the command token is the '1' (one)).
-The sole parameter passed to this command is *est_max_export_sessions*.
+The sole parameter passed to this command is _est_max_export_sessions_.
 
 #### The ltpadmin Initialize command
 
-This command uses *est_max_export_sessions* to configure the hash table
+This command uses _est_max_export_sessions_ to configure the hash table
 it will use to manage access to export transmission sessions that are
 currently in progress. (For optimum performance,
-*est_max_export_sessions* should normally equal or exceed the summation
-of *max_export_sessions* over all spans as discussed below.)
+_est_max_export_sessions_ should normally equal or exceed the summation
+of _max_export_sessions_ over all spans as discussed below.)
 
 Appropriate values for this parameter and for the parameters configuring
 each _span_ of potential LTP data exchange between the local LTP and
@@ -923,15 +914,15 @@ The "add span" command. This command declares that a span of potential
 LTP data interchange exists between the local LTP engine and the
 indicated (neighboring) LTP engine.
 
-The *max_segment_size* and the *aggregation_size_threshold* are
-expressed as numbers of bytes of data. *max_segment_size* limits the
+The _max_segment_size_ and the _aggregation_size_threshold_ are
+expressed as numbers of bytes of data. _max_segment_size_ limits the
 size of each of the segments into which each outbound data block will be
 divided; typically this limit will be the maximum number of bytes that
 can be encapsulated within a single transmission frame of the underlying
-link service. *max_segment_size* specifies the largest LTP segment that
+link service. _max_segment_size_ specifies the largest LTP segment that
 this span will produce.
 
-*aggregation_size_threshold* limits the number of LTP service data units
+_aggregation_size_threshold_ limits the number of LTP service data units
 (e.g., bundles) that can be aggregated into a single block: when the sum
 of the sizes of all service data units aggregated into a block exceeds
 this limit, aggregation into this block must cease and the block must be
@@ -939,7 +930,7 @@ segmented and transmitted. When numerous small bundles are outbound,
 they are aggregated into a block of at least this size instead of being
 sent individually.
 
-*aggregation_time_limit* alternatively limits the number of seconds that
+_aggregation_time_limit_ alternatively limits the number of seconds that
 any single export session block for this span will await aggregation
 before it is segmented and transmitted, regardless of size. The
 aggregation time limit prevents undue delay before the transmission of
@@ -947,28 +938,28 @@ data during periods of low activity. When a small number of small
 bundles are outbound, they are collected until this time limit is met,
 whereupon the aggregated quantity is sent as a single, larger block.
 
-*max_export_sessions* constitutes the size of the local LTP engine's
+_max_export_sessions_ constitutes the size of the local LTP engine's
 retransmission _window_ for this span. The retransmission windows of
 the spans impose flow control on LTP transmission, preventing the
 allocation of all available space in the ION node's data store to LTP
 transmission sessions.
 
-The *max_import_sessions* parameter is simply the neighboring engine's
+The _max_import_sessions_ parameter is simply the neighboring engine's
 own value for the corresponding export session parameter.
 
-*LSO_command* is script text that will be executed when LTP is started
+_LSO_command_ is script text that will be executed when LTP is started
 on this node, to initiate operation of a link service output task for
-this span. Note that *peer_engine_nbr* will automatically be appended to
-*LSO_command* by ltpadmin before the command is executed, so only the
+this span. Note that _peer_engine_nbr_ will automatically be appended to
+_LSO_command_ by ltpadmin before the command is executed, so only the
 link-service-specific portion of the command should be provided in the
-*LSO_command* string itself.
+_LSO_command_ string itself.
 
-*queuing_latency* is the estimated number of seconds that we expect to
+_queuing_latency_ is the estimated number of seconds that we expect to
 lapse between reception of a segment at this node and transmission of an
 acknowledging segment, due to processing delay in the node. (See the 'm
 ownqtime' command below.) The default value is 1.
 
-If *queuing_latency* is a negative number, the absolute value of this
+If _queuing_latency_ is a negative number, the absolute value of this
 number is used as the actual queuing latency and **session purging** is
 enabled; otherwise session purging is disabled. If session purging is
 enabled for a span then at the end of any period of transmission over
@@ -983,7 +974,7 @@ Additional notes:
 \- A "session block" is filled by outbound bundles until its aggregation
 size threshold is reached, or its aggregation time limit is reached,
 whereupon it is output as a series of segments (of size bounded by
-*max_segment_size*). This series of segments is reliably transferred via
+_max_segment_size_). This series of segments is reliably transferred via
 a LTP protocol session with the remote node, one session per block. By
 adjusting the size of the session block, the rate of arrival of response
 segments from the remote node can be controlled. Assuming a bundle rate
@@ -1042,7 +1033,7 @@ service input task for the local engine.
 
 The sole command on line number 44 below starts two main operations
 within LTP. The first of these operations starts all of the link service
-output tasks, the ones defined for each LTP span (see the *LSO_command*
+output tasks, the ones defined for each LTP span (see the _LSO_command_
 parameter of the Add Span command). In this example, each task
 instantiates the same function (named 'udplso'). Each 'udplso' needs a
 destination for its transmissions and these are defined as hostname or
@@ -1056,9 +1047,8 @@ to the output tasks, the input task also needs definition of the
 interface on which LTP traffic will arrive, namely hostname or IP
 address (192.168.1.1) and port number (1113). If it is necessary for
 udplsi to listen on multiple network interfaces simultaneously, \'udplsi
-0.0.0.0\[:port\]\' can be invoked. This instructs udplsi to listen to
-the UDP broadcast address, which aggregates traffic from all available
-network interfaces, including localhost.
+0.0.0.0\[:port\]\' can be invoked, but it is recommended to use the `seat`
+command for LTP instead. See article [Configure Multiple Network Interfaces](./Configure-Multiple-Network-Interfaces.md) for more details.
 
 Once the LTP engine has been defined, initialized and started, we need a
 definition as to how data gets routed to the Convergence Layer Adaptors.
@@ -1070,7 +1060,7 @@ Defining a protocol via bpadmin is the first step in that process.
 
 The "add protocol" command. This command establishes access to the named
 convergence layer protocol at the local node. As noted earlier, the
-*payload_bytes_per_frame* and *overhead_bytes_per_frame* arguments were
+_payload_bytes_per_frame_ and _overhead_bytes_per_frame_ arguments were
 previously used in calculating the estimated transmission capacity
 consumption of each bundle, to aid in route computation and congestion
 forecasting; in later versions of ION they are not needed and may be
@@ -1091,25 +1081,28 @@ connected with "ltpcli" as the input Convergence Layer function.
 The "add outduct" command. This command establishes a _duct_ for
 transmission of bundles via the indicated CL protocol. The duct's data
 transmission structure is serviced by the _outduct_ task whose
-operation is initiated by *CLO_command* at the time the duct is started.
-*max_payload_length*, if specified, causes ION to fragment bundles
+operation is initiated by _CLO_command_ at the time the duct is started.
+_max_payload_length_, if specified, causes ION to fragment bundles
 issued via this outduct (as necessary) to ensure that all such bundles
-have payloads that are no larger than *max_payload_length*.
+have payloads that are no larger than _max_payload_length_.
 
 `a induct protocol_name duct_name 'CLI_command'`
 
 The "add induct" command. This command establishes a _duct_ for
 reception of bundles via the indicated CL protocol. The duct's data
 acquisition structure is used and populated by the _induct_ task whose
-operation is initiated by *CLI_command* at the time the duct is started.
+operation is initiated by _CLI_command_ at the time the duct is started.
 
-> ***Note*** that *only a single induct is needed for all bundle
-> reception via any single protocol at any single node*, and in fact ION
+> _**Note**_ that _only a single induct is needed for all bundle
+> reception via any single protocol at any single node_, and in fact ION
 > may operate poorly if multiple inducts are established for any single
-> protocol. For any induct whose duct name includes an IP address, use
+> protocol. For any induct whose duct name includes an IP address, one may
 > IP address 0.0.0.0 (INADDR_ANY) if the machine on which the node
 > resides is multihomed and you want the node to be reachable via all of
-> the machine's network interfaces.
+> the machine's network interfaces. 
+> 
+> For LTP, it is recommended to use the
+> `seat` command instead. See article [Configure Multiple Network Interfaces](./Configure-Multiple-Network-Interfaces.md) for more details.
 
 Once all of this has been defined, the last piece needed is the egress
 plan \-- namely how do packets get transmitted to DTN nodes that are the
@@ -1145,13 +1138,13 @@ local node **and** that node is not a neighbor to which the bundle can
 be directly transmitted, BP will forward the bundle to the gateway node
 associated with this exit.
 
-#### The ipnadmin Add Plan command
+#### Ipnadmin's Add Plan command
 
 `a plan node_nbr duct_expression [nominal_data_rate]`
 
 The "add plan" command. This command establishes an egress plan for the
 bundles that must be transmitted to the neighboring node identified by
-*node_nbr*.
+_node_nbr_.
 
 Each duct expression is a string of the form
 
@@ -1179,7 +1172,7 @@ For some purposes it may be helpful to encapsulate a bundle inside
 another bundle -- that is, to let the serialized representation of a
 bundle be part of the payload of another bundle. This mechanism is
 called "Bundle-in-Bundle Encapsulation" (BIBE) and is defined in
-Internet Draft *draft-burleigh-dtn-bibect-00.txt* (which will likely be
+Internet Draft _draft-burleigh-dtn-bibect-00.txt_ (which will likely be
 renamed at some point and ideally will become an IETF standards-track
 Request For Comments in due course).
 
@@ -1287,7 +1280,7 @@ sufficient: encapsulating bundles are characterized by quality of
 service, lifetime, etc., just like other bundles. For this purpose we
 use an additional BIBE administration utility program -- **bibeadmin**
 -- that consumes a file of .**bprc** commands; these commands add,
-revise, and delete BIBE convergence layer adapter objects (*bclas*) that
+revise, and delete BIBE convergence layer adapter objects (_bclas_) that
 are managed in a BIBE database. For example:
 
 `a bcla ipn:3.0 20 20 300 2 128`
@@ -1411,8 +1404,8 @@ the Design Guide.
 
 ### Memory Allocation
 
-*What types of memory does ION use and how is memory
-allocated/controlled?*
+_What types of memory does ION use and how is memory
+allocated/controlled?_
 
 For an introductory description of the memory resources used by ION, see
 Section 1.5 of the ION Design and Operation guide entitled "Resource
@@ -1453,16 +1446,15 @@ UDP lacks a built-in mechanism for retransmitting lost packets. Consequently, th
 
   The ability of the operating system kernel to buffer and reassemble IP fragments plays a critical role, especially if an LTP segment exceeds the Maximum Transmission Unit (MTU) size. The efficiency of this process can vary based on:
 
-  - The default configuration of the kernel's IP protocol stack.
-  - The rate at which UDP traffic is injected by the user.
-  - Differences in these aspects can introduce variability in test outcomes, as they affect how well the underlying system can handle large LTP segments transmitted over UDP.
+- The default configuration of the kernel's IP protocol stack.
+- The rate at which UDP traffic is injected by the user.
+- Differences in these aspects can introduce variability in test outcomes, as they affect how well the underlying system can handle large LTP segments transmitted over UDP.
 
-#### External Factors: Link Simulator 
+#### External Factors: Link Simulator
 
 External testing tools, either customized software or WAN emulators, are often used to simulate network conditions or impairments but may also impact the fidelity of testing by exaggerating the delay differences between different traffic streams, including UDP fragments, when improperly configured, and further complicate the interpretation of LTP performance results over UDP.
 
-
-## Operation
+## Operations
 
 ION is generally optimized for continuous operational use rather than
 research. In practice, this means that a lot more attention, both in the
@@ -1545,7 +1537,7 @@ file with a different name so you can come back to it if you need to.
 ### "No such directory; disabling heap residence in file..."
 
 This message just means that the directory whose name you've provided as
-the value of *pathName* in the ION configuration file does not exist,
+the value of _pathName_ in the ION configuration file does not exist,
 and therefore the ION operations that rely on being able to write files
 in that directory are disabled. It's strictly informative; nearly
 everything in ION will work just fine even if this message is printed
@@ -1553,7 +1545,7 @@ every time you run.
 
 But if you do care about transaction reversibility, for example, or if
 you just want to get rid of the annoying message, simply create the
-directory that is named in *pathName* (it can be any path name you like)
+directory that is named in _pathName_ (it can be any path name you like)
 and make sure it's world-writable. The ionconfig(5) man page discusses
 this parameter and others that affect the fundamental character of the
 system you're configuring.
@@ -1613,7 +1605,7 @@ protocols supported as of ION 3.6.1:
   transmission), naming the corresponding induct of the receiving
   node.
 - BRSS (bundle relay service -- server): the induct name format is
-  *hostname*\[:*portnbr*\], where *portnbr* defaults to 80 if omitted.
+  _hostname_\[:_portnbr_\], where _portnbr_ defaults to 80 if omitted.
   Whenever possible, it's best to use the host's IP address in
   dotted-string form ("109.32.19.6") as its "hostname". (Where host
   names are resolved by reference to /etc/hosts rather than DNS, the
@@ -1623,12 +1615,12 @@ protocols supported as of ION 3.6.1:
   BRSS outducts are created automatically upon acceptance of
   connections from clients, never added by bpadmin.
 - BRSC (bundle relay service -- client): the induct and sole outduct
-  have the same name, of the form *hostname*\[:*portnbr*\]\_*nodenbr*,
-  where *hostname*\[:*portnbr*\] is the BRS server's induct name and
-  *nodenbr* is the local node's BP node number. Port number defaults
+  have the same name, of the form _hostname_\[:_portnbr_\]\_*nodenbr*,
+  where _hostname_\[:_portnbr_\] is the BRS server's induct name and
+  _nodenbr_ is the local node's BP node number. Port number defaults
   to 80 if omitted.
 - All other Internet-based CL protocols (udp, tcp, stcp): induct and
-  outduct names are of the form *hostname*\[:*portnbr*\]. Port number
+  outduct names are of the form _hostname_\[:_portnbr_\]. Port number
   defaults to 4556 if omitted. One outduct is needed for each node to
   which bundles will be sent, naming the induct of the receiving node.
 
@@ -1662,7 +1654,7 @@ configuration:
   possible that after a power reset of ION while in nominal
   operational state, the BP and LTP protocol states can recover when
   ION is started again while leaving the SDR file in place. When ION
-  is launched (not by *ionrestart* command), it will check for an
+  is launched (not by _ionrestart_ command), it will check for an
   existing SDR. If a SDR file is detected in the directory pointed to
   by 'pathName' in ionconfig, it will try to resume operation from
   that SDR file.
@@ -1685,7 +1677,7 @@ configuration:
 ### ION and LTP State Recovery
 
 - If there is a need to repair ION/LTP protocol state, one may try
-  issue *ionrestart* command to re-build the volatile database and
+  issue _ionrestart_ command to re-build the volatile database and
   clean up failed/stuck transactions instead of shutting down and
   restarting ION again.
 - When restarting the sender side of LTP, the session numbers will
@@ -1696,10 +1688,10 @@ configuration:
   previously closed import session numbers is appropriately short --
   just long enough to ensure that redundant handshake messages, if
   any, that arrive late will not trigger the start of a false import
-  session. This memory period is derived from the *maxBer* parameter,
+  session. This memory period is derived from the _maxBer_ parameter,
   which controls how aggressively a sender LTP engine will attempt to
   close a failed handshake procedure. Therefore, overly pessimistic
-  *maxBer* value will cause LTP to set a much longer closed import
+  _maxBer_ value will cause LTP to set a much longer closed import
   session memory period than necessary and prevent LTP from
   efficiently reusing session numbers after a reset.
 
@@ -1718,7 +1710,7 @@ configuration:
   all contacts as equally valid and will compute a lowest latency
   routing decision based on the actual delay, data rate, and on-off
   windows assigned to them.
-- When a node joins a multicast group, a *registration* contact (a
+- When a node joins a multicast group, a _registration_ contact (a
   contact with zero data rate and a contact time in 2038) is created
   automatically and is visible when listing contact through ionadmin.
   This is an expected behavior.
@@ -1779,7 +1771,10 @@ injection rate. For some tests, we find data metering unnecessary, and
 ION can buffer and handle local congestion and deliver the maximum
 possible throughput.
 
-***NOTE: The results presented here are based on System V semaphore. Recent upgrade and testing of a POSIX semaphore approach indicated a substantial performance increase to ION, and that result will be published in the next release of this document.***
+NOTE: The results presented here are based on System V semaphore.
+Recent upgrade and testing of a POSIX semaphore approach indicated a
+substantial performance increase to ION, and that result will be
+published in the next release of this document.
 
 As stated earlier, our goal is to test the ION processing rate
 limitation, not the host system\'s memory availability. Therefore, we
@@ -1854,14 +1849,14 @@ and assessed their impact.
 We do not include the "SDR in file" or any combination with that since
 file operation will slow down performance significantly.
 
-**Base ION Memory Configuration**
+Base ION Memory Configuration
 
 - configFlags 1
 - sdrWmSize 50000000
 - wmSize 120000000
 - heapWords 500000000
 
-**BP/LTP Configuration**
+BP/LTP Configuration
 
 - The following is representational of .ltprc file on both nodes
 
@@ -1871,11 +1866,11 @@ file operation will slow down performance significantly.
   - m maxber .000000001
   - Bundle Size = 1MB
 
-**Contact Plan Data Rate (1 Gb/sec)**
+Contact Plan Data Rate (1 Gb/sec)
 
 - a contact +0 2024/01/01-00:00:00 \<node #\> \<node #\> 134217728
 
-**Hardware Specification and Operating System:**
+Hardware Specification and Operating System:
 
 - CPU: 2 core 2.10GHz vCPU based on Intel Xeon Skylake
 - Memory: 4GB
@@ -1885,7 +1880,7 @@ file operation will slow down performance significantly.
   - UDP: 1.35 GB/sec
   - TCP: 16.5 GB/sec
 
-**Throughput Measured**
+Throughput Measured
 
 - SDR config 1 -\> SDR config 1: 900 Mbps
 - SDR config 13 -\> SDR config 1: 130 Mbps
@@ -1915,7 +1910,7 @@ was attained by increasing the kernel buffer sizes to 8MB. Additionally,
 increasing the MTU (Maximum Transmission Unit) size from 1500 to 9600
 resolved some caching issues seen at the receiving node.
 
-**UDP Configuration Details**
+UDP Configuration Details
 
 The following kernel buffer size settings were used to enable full
 utilization of the 10Gbps Ethernet on the host machine. These are
@@ -1938,7 +1933,7 @@ session cleanup times with the higher MTU). After applying these
 updates, iperf testing showed 9.9Gbps throughput on the Ethernet
 connection between the two hosts.
 
-**Test Network Details**
+Test Network Details
 
 The test network consists of 2 host machines physically connected via 10
 Gb Network Interface Card
@@ -1946,20 +1941,20 @@ Gb Network Interface Card
 - ION-IOS 4.1.2
 - Ubuntu 22.04 LTS
 
-**Hardware**
+Hardware
 
 - CPU: 16 Core 2.10 Ghz Xeon Sandy Bridge
 - Memory: 128 GB
 - NIC: 10 Gb/se[c]{.mark}
 
-**ION Memory Configuration Details**
+ION Memory Configuration Details
 
 - configFlags 1
 - sdrWmSize 50000000
 - wmSize 120000000
 - heapWords 500000000
 
-**LTP Configuration Details**
+LTP Configuration Details
 
 - Initialization command: 1 50 (Note: 5 is more performant - see test
   results for comparison)
@@ -1972,7 +1967,7 @@ Gb Network Interface Card
 - maxber 0.000000001
 - Contact plan transmission rate: 1342177280 (10 Gb)
 
-**Throughput Measurement**
+Throughput Measurement
 
 The first series of tests provided some insights into the impact of
 bundle size on throughput. In general, using a larger bundle size allows
@@ -1985,7 +1980,7 @@ it sends. To avoid processing smaller bundles individually (which occurs
 in real operations), we turned on LTP block aggregation and set the size
 to 64KB.
 
-**Figure 1: LTP Throughput as a Function of Bundle Size**
+Figure 1: LTP Throughput as a Function of Bundle Size
 
 ![Chart](./media-ion-deployment/media/image1.png)
 
@@ -2012,7 +2007,7 @@ data processing speed in a low latency lab environment.
 We also conducted a second series of tests to look at the impact of LTP
 segment sizes on throughput. The results are in Figure 2 below.
 
-***Figure 2: Impact of LTP Segment Size on Throughput***
+Figure 2: Impact of LTP Segment Size on Throughput
 
 ![Chart](./media-ion-deployment/media/image2.png)
 
@@ -2027,7 +2022,7 @@ standard protocol data unit and it determines the
 vulnerability/likelihood of data loss (large segments expose more data
 to loss due to corruption), it is not advised to arbitrarily increase
 the segment size in a real flight environment with a substantial data
-loss probability. The **key** point here is to illustrate that the
+loss probability. The _key_ point here is to illustrate that the
 choice of segment size can impact the processing overhead and speed of
 LTP.
 
@@ -2099,7 +2094,7 @@ Some of the technology described in this Deployment Guide was developed
 at the Jet Propulsion Laboratory, California Institute of Technology,
 under a contract with the National Aeronautics and Space Administration.
 
-**Copyright © 2021 California Institute of Technology**
+Copyright © 2021 California Institute of Technology
 
 The ION team would like to acknowledge the following individuals for
 contributed to the earlier versions of this Guide: Jane Marquart, NASA;

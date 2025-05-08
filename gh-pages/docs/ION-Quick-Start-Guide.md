@@ -35,25 +35,25 @@
       - [FILE: host1.rc](#file-host1rc)
       - [FILE: host2.rc](#file-host2rc)
     - [Three-Node Relay](#three-node-relay)
-      - [FILE: host1.rc](#file-host1rc-1)
-      - [FILE: host2.rc](#file-host2rc-1)
-      - [FILE: host3.rc](#file-host3rc)
+      - [FILE: host1.rc (3-node network)](#file-host1rc-3-node-network)
+      - [FILE: host2.rc (3-node network)](#file-host2rc-3-node-network)
+      - [FILE: host3.rc (3-node network)](#file-host3rc-3-node-network)
   - [Accessing ION Open-Source Code Repository](#accessing-ion-open-source-code-repository)
     - [Releases](#releases)
     - [Using the code repository](#using-the-code-repository)
   - [Open Source Development and Support](#open-source-development-and-support)
-
+  - [Updated IPN-URI Format Support (ION 4.1.4-a.2)](#updated-ipn-uri-format-support-ion-414-a2)
 
 ## Installing ION on Linux, MacOS, Solaris
 
 The recommended method to install ION on most Linux-based systems is to use the `automake` ecosystem. For this, you will need to make sure the following packages are installed and updated:
 
-* `automake`
-* `autoconf`
-* `libtool`
-* `m4`
-* `gcc`
-* `make`
+- `automake`
+- `autoconf`
+- `libtool`
+- `m4`
+- `gcc`
+- `make`
 
 Depending on the Linux distribution, the package names may differ. To install packages on Debian-based systems, run:
 
@@ -75,7 +75,7 @@ To verify the installation, run:
 
 to check for proper installation.
 
-NOTE: Alternative build methods without the `automake` ecosystem are also available. See section [Alternative Build Methods without Automake](#alternative-build-methods-without-automake) for details. 
+NOTE: Alternative build methods without the `automake` ecosystem are also available. See section [Alternative Build Methods without Automake](#alternative-build-methods-without-automake) for details.
 
 ### Build ION 4.1.3 (and earlier versions) without actual cipher suite
 
@@ -108,12 +108,12 @@ Before building ION, you should build and install MBEDTLS first. Download [MBEDT
 Assume your place the files in your home directory under `$HOME/mbedtls-2.28.2`. Now do the following:
 
 1. Modify the file under `$HOME/mbedtls-2.28.2/include/mbedtls/config.h`
-   * Uncomment the line `#define MBEDTLS_NIST_KW_C` and save the file.
+   - Uncomment the line `#define MBEDTLS_NIST_KW_C` and save the file.
 
 2. Return to the root folder of MBEDTLS `$HOME/mbedtls-2.28.2` and build the shared libraries: `make SHARED=1`
-3. Optionally, run `make check` to execute self-test on the MBEDTLS libraries. 
+3. Optionally, run `make check` to execute self-test on the MBEDTLS libraries.
 4. Install MBEDTLS shared library: `sudo make install`
-    * The default library installation locations are `/usr/local/lib` and `/usr/local/include`. After the installation, verify the location of the library and header files. If the MBEDTLS shared libraries are not copied into the above locations, then make a note of the full path to the actual library and header files, which will need to be provided to ION during compilation.
+    - The default library installation locations are `/usr/local/lib` and `/usr/local/include`. After the installation, verify the location of the library and header files. If the MBEDTLS shared libraries are not copied into the above locations, then make a note of the full path to the actual library and header files, which will need to be provided to ION during compilation.
 
 Now we are ready to install ION. For the `./configure` command you need to enable MBEDTLS cipher suite interface using the `--enable-cypto-mbedtls` option. In additional, you may also optionally add the `--enable-bpsec-debugging` flag in you plan to run the BPSec related regression tests.
 
@@ -169,25 +169,25 @@ For example, say you want to add additional source code and header files from th
 
 The BPSec implementation in ION provides 4 levels of debugging/logging:
 
-1. __Function entry/exit logging__:  This logs the entry and exit of all major functions in the bpsec library and is useful for confirming control flow
- *    through the bpsec module.
-2. __Information logging__:  Information statements are peppered through the code to provide insight into the state of the module at processing points considered useful by bpsec module software engineers.
-3. __Warning logging__:  Warning statements are used to flag unexpected values that, based on runtime context, may not constitute errors.
-4. __Error logging__:  Errors are areas in the code where some sanity check or other required condition fails to be met by the software.
+__Function entry/exit logging__:  This logs the entry and exit of all major functions in the bpsec library and is useful for confirming control flow through the bpsec module.
 
-Error logging within the BPSec module is of the form:
+__Information logging__:  Information statements are peppered through the code to provide insight into the state of the module at processing points considered useful by bpsec module software engineers.
 
-```
+__Warning logging__:  Warning statements are used to flag unexpected values that, based on runtime context, may not constitute errors.
+
+__Error logging__:  Errors are areas in the code where some sanity check or other required condition fails to be met by the software. Error logging within the BPSec module is of the form:
+
+```text
 <id> <function name>: <message>
 ```
 
 Where `id` is one of:
 
-* `+` (function entry)
-* `-` (function exit)
-* `i` (information statement)
-* `?` (warning statement)
-* `x` (error statement)
+- `+` (function entry)
+- `-` (function exit)
+- `i` (information statement)
+- `?` (warning statement)
+- `x` (error statement)
 
 To in order help users quickly verify their BP security configurations and operations are correct, the default BPSec logging level is set to 4 to provide per bundle status update in _ion.log_. This is also the level required for running the python-based BPSec regression tests in the ION distribution. This level of verbosity may be too high for operation or too low for in-depth debugging. Therefore, when needed, you can recompile ION to turn BPSec logging off or set a specific logging level based on your needs.
 
@@ -215,21 +215,22 @@ If you do not wish to use the automake build system, you can build ION by using 
 
 #### Method 1: Using Development Makefiles
 
-The ION distribution provides a set of Makefiles that does not rely on the automake system. This set of Makefile is by ION developer on Linux-based OS to offer more flexibility for compiling and debugging. 
+The ION distribution provides a set of Makefiles that does not rely on the automake system. This set of Makefile is by ION developer on Linux-based OS to offer more flexibility for compiling and debugging.
 
 Currently, the only actively maintained platform-specific development Makefile set is for 64-bits Linux under the "i86_48-fedora" folder in each module. If you choose this option, be aware of the following limitations:
 
 For ION 4.1.1, 4.1.2 and 4.1.3:
-* The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_48-fedora" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
-  * If you used the automake system and want to revert to the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo. 
-* The development Makefiles, as they are, provides only the default compilation options  - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass a `ADD_FLAGS` argument to the `make all` command.
-* The default directory for installation is `/usr/local/`, which usually requires sudo privilege. To override the installation prefix, change the value of `OPT` in the top-level Makefile of each package.
+
+- The development Makefiles are hierarchical. There is a top-level Makefile in the ION root directory and a set of Makefiles in the individual ION modules, under the "i86_48-fedora" subfolder. If you run `./configure` command, it will switch to the automake system and all development Makefiles will be renamed from `Makefile` to `Makefile.dev`.
+  - If you used the automake system and want to revert to the development Makefiles, you should first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can either run `git stash` to restore the old Makefiles or simply pull a fresh copy of the code from the repo.
+- The development Makefiles, as they are, provides only the default compilation options  - similar to running `./configure` with no arguments. If you need to set specific compiler flags, you need to modify the Makefiles directly or pass a `ADD_FLAGS` argument to the `make all` command.
+- The default directory for installation is `/usr/local/`, which usually requires sudo privilege. To override the installation prefix, change the value of `OPT` in the top-level Makefile of each package.
 
 To build using the development Makefiles, cd to the ION root directory and run:
 
 `make all`
 
-OR if you need to set specific compiler flags, run: 
+OR if you need to set specific compiler flags, run:
 
 `make all ADD_FLAGS="<string of compiler options>"`
 
@@ -247,17 +248,17 @@ To remove all build artifacts, run:
 
 For ION 4.1.3s and later:
 
-* ION will be released without any Makefile. The default build method is automake. You run `./configure` command, to create a single Makefile in the ION root directory.
-* If you want to switch to use the development Makefiles, you need to first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can run the script `enable_manaul_build.sh` to clear the automake build system and replace it with the development Makefiles.
+- ION will be released without any Makefile. The default build method is automake. You run `./configure` command, to create a single Makefile in the ION root directory.
+- If you want to switch to use the development Makefiles, you need to first run `make clean` and `make uninstall` to completely remove ION from the system because the two compilation method builds organizes shared libraries differently. Then you can run the script `enable_manaul_build.sh` to clear the automake build system and replace it with the development Makefiles.
 
 ##### Build Individual Packages
 
 It's also possible to build the individual packages of ION, using the development Makefiles in the package subdirectories. If you choose this option, be aware of the dependencies among the packages:
 
-* The "ici" package must be built (run `make` and `make install`) before any other package.
-* The "bp" package is dependent on "dgr" and "ltp" and "bssp" as well as "ici"
-* The "cfdp", "ams", "bss", and "dtpc" packages are dependent on "bpv7"
-* The "restart" package is dependent on "cfdp", "bp", "ltp", and "ici"
+- The "ici" package must be built (run `make` and `make install`) before any other package.
+- The "bp" package is dependent on "dgr" and "ltp" and "bssp" as well as "ici"
+- The "cfdp", "ams", "bss", and "dtpc" packages are dependent on "bpv7"
+- The "restart" package is dependent on "cfdp", "bp", "ltp", and "ici"
 
 For more detailed instruction on building ION, see section 2 of the "ION Design and Operation Guide" document that is distributed with this package.
 
@@ -267,13 +268,13 @@ All Makefiles are for gmake; on a FreeBSD platform, be sure to install gmake bef
 
 #### Method 2: Using the ion-core Package
 
-The `ion-core` package contains only a subset of essential BP functionalities - particular those features that are more stable and have been deployed for operations previously. The `ion-core` package can be downloaded [here](https://github.com/nasa-jpl/ion-core). Please following the `README.md` file there for installation instructions.
+The `ion-core` package contains only a subset of essential BP functionalities - particular those features that are more stable and have been deployed for operations previously. The `ion-core` package can be [downloaded here](https://github.com/nasa-jpl/ion-core). Please following the `README.md` file there for installation instructions.
 
 ## Windows 7 & Windows 10
 
-To install ION 4.1.2 or earlier on Windows, please download the Windows installer from the Source Forge [archive](https://sourceforge.net/projects/ion-dtn/). 
+To install ION 4.1.2 or earlier on Windows, please download the Windows installer from the Source Forge [archive](https://sourceforge.net/projects/ion-dtn/).
 
-For ION 4.1.3, no Windows installer will be provided. For more information about installation instructions on Windows 7, see [Windows7-Build.pdf](../../Windows7-Build.pdf) 
+For ION 4.1.3, no Windows installer will be provided. For more information about installation instructions on Windows 7, see [Windows7-Build.pdf](../../Windows7-Build.pdf)
 
 For ION 4.1.3s, a [Windows 10 prototype](./Windows10-Installation.md) automake build system is made available for experimentation.
 
@@ -293,7 +294,7 @@ Also check the ION version installed by running:
 
  At the  ":" prompt, please enter the single character command 'v' and you should see a response like this:
 
-```
+```bash
  $ ionadmin
 : v
 ION-OPEN-SOURCE-4.1.2
@@ -324,7 +325,7 @@ This command invokes one of the simplest test whereby two ION instances are crea
 
 During test, ION will display the configuration files used, clean the system of existing ION instances, relaunch ION according to the test configuration files, execute bping actions, display texts that indicates what the actions are being executed in real-time, and then shutdown ION, and display the final test status message, which looks like this:
 
-```
+```bash
 ION node ended. Log file: ion.log
 TEST PASSED!
 
@@ -366,12 +367,12 @@ ionstart
 ionstop
 ```
 
-* `bench.bprc` is the configuration file for the bundle protocol. To study the command options contained in this file, run `man bprc`.
-* `bench.ionconfig` is the configuration file for the storage configuration of ION. See `man ionconfig` for details.
-* `bench.ionrc` is the configuration file for ION. See `man ionrc` for details.
-* `bench.ionsecrc` is the configuration file for ION security administration. See `man ionsecrc` for details.
-* `bench.ipnrc` is the configuration file for the IPN  scheme. See `man ipnrc` for details.
-* `ionstart` and `ionstop` are scripts to launch and shutdown ION.
+- `bench.bprc` is the configuration file for the bundle protocol. To study the command options contained in this file, run `man bprc`.
+- `bench.ionconfig` is the configuration file for the storage configuration of ION. See `man ionconfig` for details.
+- `bench.ionrc` is the configuration file for ION. See `man ionrc` for details.
+- `bench.ionsecrc` is the configuration file for ION security administration. See `man ionsecrc` for details.
+- `bench.ipnrc` is the configuration file for the IPN  scheme. See `man ipnrc` for details.
+- `ionstart` and `ionstop` are scripts to launch and shutdown ION.
 
 One must note that ION distribution comes with a separate, global `ionstart` and `ionstop` scripts installed in `/usr/local/bin` that can launch and stop ION. The advantage of using local script is that it allows you customize the way you launch and stop ION, for example add helpful text prompt, perform additional checks and clean up activities, etc.
 
@@ -423,8 +424,6 @@ To make it work for host A, you need to replace the induct ip address `127.0.0.1
 Similarly for outduct, you want to change the ip address from `127.0.0.1:3113` to `192.168.0.3:3113` - this is where UDP traffic will go out to host B.
 
 You can make similar modifications to the ipnrc file as well.
-
-
 
 In the ionconfig file, you want to comment out or delete the `wmKey` and `sdrName` entries. Since we are running these two nodes on different hosts, we always let ION use the default values for these parameters.
 
@@ -544,13 +543,13 @@ To learn more about the design principle of ION and how to use it, a complete se
 The ION Dev Kit mentioned in the NASA ION Course had been deprecated. However, some additional helpful files can be found here to complete the examples:
 [Additional DevKit Files](https://sourceforge.net/p/ion-dtn/wiki/DevKit%20-%20additional%20materials/)
 
-
 ## Three ION Configuration File Examples
 
 In this section, we provide three configuration file examples with detailed comments explaining the configuration commands. The three examples are:
-* Singe Node Loopback over LTP
-* Two Nodes over TCPCL
-* Three Node with a relay using LTP and TCPCL
+
+- Singe Node Loopback over LTP
+- Two Nodes over TCPCL
+- Three Node with a relay using LTP and TCPCL
 
 ### Single-Node Loopback
 
@@ -559,6 +558,7 @@ In this section, we provide three configuration file examples with detailed comm
 Here is an example configuration file for "loopback.rc" using LTP as the primary convergence layer:
 
 #### FILE: loopback.rc
+
 ```text
 ## Run the following command to start ION node:
 ##  % ionstart -I "loopback.rc"
@@ -717,6 +717,7 @@ s
 a plan 1 ltp/1
 ## end ipnadmin
 ```
+
 ### Two-Node Network
 
 ![Two-Node Network](./images/2node-config.jpg)
@@ -726,6 +727,7 @@ In this section, we assume that host1 has an IP address of 10.1.1.1 and host2 ha
 Note that this example network uses a different convergence layer: TCP.
 
 #### FILE: host1.rc
+
 ```text
 ## Run the following command to start ION node:
 ## % ionstart -I "host1.rc"
@@ -865,6 +867,7 @@ a plan 2 tcp/10.1.1.2:4556
 ```
 
 #### FILE: host2.rc
+
 ```text
 ## Run the following command to start ION node:
 ##  % ionstart -I "host2.rc"
@@ -1013,7 +1016,8 @@ You will notice that this network uses host2 as a router in between host1 and ho
 
 Also note that this network uses both LTP and TCP convergence layers.
 
-#### FILE: host1.rc
+#### FILE: host1.rc (3-node network)
+
 ```text
 ## File created by ../../ionscript
 ## Wed Oct 29 17:33:43 EDT 2008
@@ -1193,7 +1197,8 @@ a group 3 3 ipn:2.0
 ## end ipnadmin
 ```
 
-#### FILE: host2.rc
+#### FILE: host2.rc (3-node network)
+
 ```text
 ## File created by ../../ionscript
 ## Wed Oct 29 17:33:43 EDT 2008
@@ -1402,7 +1407,8 @@ a plan 1 ltp/1
 ## end ipnadmin
 ```
 
-#### FILE: host3.rc
+#### FILE: host3.rc (3-node network)
+
 ```text
 ## File created by ../../ionscript
 ## Wed Oct 29 17:33:43 EDT 2008
@@ -1571,3 +1577,23 @@ Use the Summary or the Files tab to download point releases
 
 - Please see the [Open Source Development and Support](./community/OpenSource-Development-Support.md) document for details on governance of ION software development and ION support levels.
 
+## Updated IPN-URI Format Support (ION 4.1.4-a.2)
+
+Starting with ION 4.1.4-a.2, ION has been updated to support the new IPN URI
+scheme defined in [RFC 9758](https://datatracker.ietf.org/doc/html/rfc9758)
+as a alpha release feature. The new format is as follows:
+
+```abnf
+ipn-uri = "ipn:" [allocator-identifier "."] node-number "." service-number
+```
+
+`allocator-identifier`: An unsigned integer identifying the allocation 
+authority. If the authority is the default (IANA, Allocator ID 0), this 
+part and the following dot (.) may be omitted for brevity. ION is backward
+compatible with IPN URIs that omit the allocator identifier, which is 
+interpreted as having the default value of 0.
+
+For all examples in this tutorial, the allocator identifier is omitted and 
+defaults to 0.
+
+New IPN URI support is under alpha testing.

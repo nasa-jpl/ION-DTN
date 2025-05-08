@@ -1,36 +1,147 @@
 # Interplanetary Overlay Network (ION) Design and Operation's Guide
 
-**Version 4.1.3**
-**JPL D-48259**
+- [Interplanetary Overlay Network (ION) Design and Operation's Guide](#interplanetary-overlay-network-ion-design-and-operations-guide)
+  - [Document Change Log](#document-change-log)
+  - [Design](#design)
+    - [Structure and function](#structure-and-function)
+    - [Constraints on the Design](#constraints-on-the-design)
+      - [Link constraints](#link-constraints)
+      - [Processor constraints](#processor-constraints)
+    - [Design Principles](#design-principles)
+      - [Shared memory](#shared-memory)
+      - [Zero-copy procedures](#zero-copy-procedures)
+      - [Highly distributed processing](#highly-distributed-processing)
+      - [Portability](#portability)
+    - [Organizational Overview](#organizational-overview)
+    - [Resource Management in ION](#resource-management-in-ion)
+      - [Working Memory](#working-memory)
+      - [Heap](#heap)
+    - [Package Overviews](#package-overviews)
+      - [Interplanetary Communication Infrastructure](#interplanetary-communication-infrastructure)
+      - [Licklider Transmission Protocol](#licklider-transmission-protocol)
+      - [Bundle Protocol](#bundle-protocol)
+      - [Asynchronous Message Service](#asynchronous-message-service)
+      - [Datagram Retransmission](#datagram-retransmission)
+      - [CCSDS File Delivery Protocol](#ccsds-file-delivery-protocol)
+      - [Bundle Streaming Service](#bundle-streaming-service)
+      - [Trusted Collective](#trusted-collective)
+      - [Acronyms](#acronyms)
+    - [Network Operation Concepts](#network-operation-concepts)
+      - [Fragmentation and Reassembly](#fragmentation-and-reassembly)
+      - [Bandwidth Management](#bandwidth-management)
+      - [Contact Plans](#contact-plans)
+      - [Route Computation](#route-computation)
+      - [Unicast](#unicast)
+      - [Multicast](#multicast)
+      - [Delivery Assurance](#delivery-assurance)
+      - [Rate Control](#rate-control)
+      - [Flow Control](#flow-control)
+      - [Storage Management](#storage-management)
+    - [Optimizing an ION-based network](#optimizing-an-ion-based-network)
+    - [BP/LTP Detail -- How They Work](#bpltp-detail----how-they-work)
+      - [Databases](#databases)
+      - [Control and data flow](#control-and-data-flow)
+    - [Contact Graph Routing (CGR) - CCSDS Schedule Aware Bundle Routing (SABR)](#contact-graph-routing-cgr---ccsds-schedule-aware-bundle-routing-sabr)
+      - [Contact Plan Messages](#contact-plan-messages)
+      - [Routing Tables](#routing-tables)
+    - [Key Concepts](#key-concepts)
+      - [Expiration time](#expiration-time)
+      - [OWLT margin](#owlt-margin)
+      - [Capacity](#capacity)
+      - [Estimated capacity consumption](#estimated-capacity-consumption)
+      - [Residual capacity](#residual-capacity)
+      - [Excluded neighbors](#excluded-neighbors)
+      - [Critical bundles](#critical-bundles)
+      - [Dynamic Route Selection Algorithm](#dynamic-route-selection-algorithm)
+    - [Exception Handling](#exception-handling)
+      - [Contact Failure](#contact-failure)
+      - [Custody refusal](#custody-refusal)
+    - [Remarks](#remarks)
+    - [LTP Timeout Intervals](#ltp-timeout-intervals)
+    - [CFDP](#cfdp)
+    - [List data structures (lyst, sdrlist, smlist)](#list-data-structures-lyst-sdrlist-smlist)
+    - [PSM Partition Structure](#psm-partition-structure)
+    - [PSM and SDR Block Structures](#psm-and-sdr-block-structures)
+    - [SDR Heap Structure](#sdr-heap-structure)
+  - [Operations](#operations)
+    - [Interplanetary Communication Infrastructure (ICI)](#interplanetary-communication-infrastructure-ici)
+      - [Compile-time options](#compile-time-options)
+      - [Build](#build)
+      - [Configure](#configure)
+      - [Run](#run)
+      - [Test](#test)
+    - [Licklider Transmission Protocol (LTP)](#licklider-transmission-protocol-ltp)
+      - [Building LTP](#building-ltp)
+      - [Configuring LTP](#configuring-ltp)
+      - [Running LTP](#running-ltp)
+      - [Testing LTP](#testing-ltp)
+    - [Bundle Streaming Service Protocol (BSSP)](#bundle-streaming-service-protocol-bssp)
+      - [Building BSSP](#building-bssp)
+      - [Configuring BSSP](#configuring-bssp)
+      - [Running BSSP](#running-bssp)
+    - [Bundle Protocol (BP)](#bundle-protocol-bp)
+      - [Compile Options for BP](#compile-options-for-bp)
+      - [Building BP](#building-bp)
+      - [Configuring BP](#configuring-bp)
+      - [Running BP](#running-bp)
+      - [Testing BP](#testing-bp)
+    - [Datagram Retransmission (DGR)](#datagram-retransmission-dgr)
+      - [Building DGR](#building-dgr)
+      - [Configuring DGR](#configuring-dgr)
+      - [Running DGR](#running-dgr)
+      - [Testing DGR](#testing-dgr)
+    - [Asynchronous Message Service (AMS)](#asynchronous-message-service-ams)
+      - [Compile options for AMS](#compile-options-for-ams)
+      - [Building AMS](#building-ams)
+      - [Configuring AMS](#configuring-ams)
+      - [Running AMS](#running-ams)
+      - [Testing AMS](#testing-ams)
+    - [CCSDS File Delivery Protocol (CFDP)](#ccsds-file-delivery-protocol-cfdp)
+      - [Compile options for CFDP](#compile-options-for-cfdp)
+      - [Building CFDP](#building-cfdp)
+      - [Configuring CFDP](#configuring-cfdp)
+      - [Running CFDP](#running-cfdp)
+      - [Testing CFDP](#testing-cfdp)
+    - [Bundle Streaming Service (BSS)](#bundle-streaming-service-bss)
+      - [Compile options for BSS](#compile-options-for-bss)
+      - [Building BSS](#building-bss)
+      - [Configuring BSS](#configuring-bss)
+      - [Running BSS](#running-bss)
+      - [Testing BSS](#testing-bss)
 
-**Document Change Log**
+---
 
-| Ver No. | Date        | Description                                                             | Note            |
-| ------- | ----------- | ----------------------------------------------------------------------- | --------------- |
-| V4.1.3  | 12/2023  | converted to MarkDown                                                   |                 |
-| V4.0.1  | 11/2020  | ION 4.0.1                                                               |                 |
-| V3.6.2  | 11/2018  | ION 3.6.2 release features                                              | Skipped V3.6.1. |
-| V3.6    | 12/2017  | ION 3.6 release features                                                | Skipped V3.5.   |
-| V3.4    | 3/2016   | ION 3.4 release features                                                |                 |
-| V3.3    | 3/2015    | ION 3.3 release features                                                |                 |
-| V3.2    | 12/2013  | ION 3.2 release features                                                |                 |
-| V3.1    | 9/2012   | ION 3.1 release features                                                |                 |
-| V3.0    | 3/2012   | Align with ION 3.0 release                                              |                 |
-| V1.13   | 10/2011  | Updates for Source Forge Release                                        |                 |
-| V1.12   | 6/2010   | Updates for second open source release (2.2)                            |                 |
-| V1.11   | 12/2009  | BRS updates, multi-node config                                          |                 |
-| V1.10   | 10/2009  | Final additions prior to DINET 2 experiment                             |                 |
-| V1.9    | 6/2009   | Add updates for DINET 2, including CFDP, ionsec                         |                 |
-| V1.8    | 2/2009    | Update discussion of Contact Graph Routing; document status msg formats |                 |
-| V1.7    | 12/2008   | Add documentation for OWLT simulator, BP extension                      |                 |
-| V1.6    | 10/2008  | Add documentation of sm_SemUnend                                        |                 |
-| V1.5    | 09/2008  | Revisions requested SQA                                                 |                 |
-| V1.4    | 07/2008  | Add a section on optimizing ION-based network; tuning                   |                 |
-| V1.3    | 07/2008  | Revised some details of CGR                                             |                 |
-| V1.2    | 05/2008  | Revised man pages for bptrace, ltprc, bprc.                             |                 |
-| V1.1    | 05/2008  | Some additional diagrams                                                |                 |
-| V1.0    | 04/2008  | Initial version of ION design and ops manual                            |                 |
+Version 4.1.4-a.2
+JPL D-48259
 
+## Document Change Log
+
+| Ver No. | Date    | Description                                                             | Note            |
+| ------- | ------- | ----------------------------------------------------------------------- | --------------- |
+| V4.1.4-a.2  | 09/2025 | ION 4.1.4-a.2 release                                                       |                 |
+| V4.1.3  | 12/2023 | converted to MarkDown                                                   |                 |
+| V4.0.1  | 11/2020 | ION 4.0.1                                                               |                 |
+| V3.6.2  | 11/2018 | ION 3.6.2 release features                                              | Skipped V3.6.1. |
+| V3.6    | 12/2017 | ION 3.6 release features                                                | Skipped V3.5.   |
+| V3.4    | 3/2016  | ION 3.4 release features                                                |                 |
+| V3.3    | 3/2015  | ION 3.3 release features                                                |                 |
+| V3.2    | 12/2013 | ION 3.2 release features                                                |                 |
+| V3.1    | 9/2012  | ION 3.1 release features                                                |                 |
+| V3.0    | 3/2012  | Align with ION 3.0 release                                              |                 |
+| V1.13   | 10/2011 | Updates for Source Forge Release                                        |                 |
+| V1.12   | 6/2010  | Updates for second open source release (2.2)                            |                 |
+| V1.11   | 12/2009 | BRS updates, multi-node config                                          |                 |
+| V1.10   | 10/2009 | Final additions prior to DINET 2 experiment                             |                 |
+| V1.9    | 6/2009  | Add updates for DINET 2, including CFDP, ionsec                         |                 |
+| V1.8    | 2/2009  | Update discussion of Contact Graph Routing; document status msg formats |                 |
+| V1.7    | 12/2008 | Add documentation for OWLT simulator, BP extension                      |                 |
+| V1.6    | 10/2008 | Add documentation of sm_SemUnend                                        |                 |
+| V1.5    | 09/2008 | Revisions requested SQA                                                 |                 |
+| V1.4    | 07/2008 | Add a section on optimizing ION-based network; tuning                   |                 |
+| V1.3    | 07/2008 | Revised some details of CGR                                             |                 |
+| V1.2    | 05/2008 | Revised man pages for bptrace, ltprc, bprc.                             |                 |
+| V1.1    | 05/2008 | Some additional diagrams                                                |                 |
+| V1.0    | 04/2008 | Initial version of ION design and ops manual                            |                 |
 
 ## Design
 
@@ -129,6 +240,19 @@ IMC group numbers. **Also note that a new mechanism for bundle multicast
 is introduced in ION 4.0.1, along with support for Bundle Protocol
 version 7.** This new mechanism vastly simplifies bundle multicast;
 chiefly, the **imcadmin** utility is deprecated.)
+
+Starting with ION 4.1.4-a.2, ION has been updated to support the new IPN URI
+scheme defined in [RFC 9758](https://datatracker.ietf.org/doc/html/rfc9758):
+
+```abnf
+ipn-uri = "ipn:" [allocator-identifier "."] node-number "." service-number
+```
+
+`allocator-identifier`: An unsigned integer identifying the allocation 
+authority. If the authority is the default (IANA, Allocator ID 0), this 
+part and the following dot (.) may be omitted for brevity. ION is backward
+compatible with IPN URIs that omit the allocator identifier, which is 
+interpreted as having the default value of 0.
 
 ### Structure and function
 
@@ -231,7 +355,7 @@ separated from Earth and from one another by vast distances -- must
 operate successfully within two general classes of design constraints:
 link constraints and processor constraints.
 
-1. **Link constraints**
+#### Link constraints
 
 All communications among interplanetary spacecraft are, obviously,
 wireless. Less obviously, those wireless links are generally slow and
@@ -262,7 +386,7 @@ typically small, and the immediate delivery of even a small part
 deferring delivery of the entire object until all parts have been
 acquired.
 
-2. **Processor constraints**
+#### Processor constraints
 
 The computing capability aboard a robotic interplanetary spacecraft is
 typically quite different from that provided by an engineering
@@ -306,7 +430,7 @@ principles that are intended to address these constraints.
 
 ![ION inter-task communication](./media-ion-guide/media/image14.png)
 
-1. **Shared memory**
+#### Shared memory
 
 Since ION must run on flight processors, it had to be designed to
 function successfully within an RTOS. Many real-time operating systems
@@ -340,7 +464,7 @@ Semaphore operations are typically extremely fast, as is the storage and
 retrieval of data in memory, so this inter-task data interchange model
 is suitably efficient for flight software.
 
-1. **Zero-copy procedures**
+#### Zero-copy procedures
 
 Given ION's orientation toward the shared memory model, a further
 strategy for processing efficiency offers itself: if the data item
@@ -356,7 +480,7 @@ destroyed until all elements have relinquished their pointers). This
 serves to reduce somewhat the amount of memory needed for ION
 operations.
 
-2. **Highly distributed processing**
+#### Highly distributed processing
 
 The efficiency of inter-task communications based on shared memory makes
 it practical to distribute ION processing among multiple relatively
@@ -376,7 +500,7 @@ more complex daemon. This strategy has a number of advantages:
 - The clear interfaces between tasks simplify the implementation of
   flow control measures to prevent uncontrolled resource consumption.
 
-  1. **Portability**
+#### Portability
 
 Designs based on these kinds of principles are foreign to many software
 developers, who may be far more comfortable in development environments
@@ -517,7 +641,7 @@ information is a key consideration in the design of ION.
 Two general classes of storage resources are managed by ION: volatile
 "working memory" and non-volatile "heap".
 
-1. **Working Memory**
+#### Working Memory
 
 ION's "working memory" is a fixed-size pool of shared memory (dynamic
 RAM) that is allocated from system RAM at the time the bundle protocol
@@ -536,7 +660,7 @@ single PSM "partition". The size of the partition is specified in the
 **wmSize** parameter of the ionconfig file supplied at the time ION is
 initialized.
 
-2. **Heap**
+#### Heap
 
 ION's "heap" is a fixed-size pool of notionally non-volatile storage
 that is likewise allocated at the time the bundle protocol agent
@@ -603,7 +727,7 @@ given deployment remains a research topic.
 
 ### Package Overviews
 
-#### **Interplanetary Communication Infrastructure (ICI)**
+#### Interplanetary Communication Infrastructure
 
 The ICI package in ION provides a number of core services that, from
 ION's point of view, implement what amounts to an extended POSIX-based
@@ -723,7 +847,7 @@ The IONSEC (ION security) system manages information that supports the
 implementation of security mechanisms in the other packages: security
 policy rules and computation keys.
 
-#### **Licklider Transmission Protocol (LTP)**
+#### Licklider Transmission Protocol
 
 The ION implementation of LTP conforms fully to RFC 5326, but it also
 provides two additional features that enhance functionality without
@@ -747,7 +871,7 @@ topologically adjacent bundle protocol agents.
 All LTP session state is safely retained in the ION heap for rapid
 recovery from a spacecraft or software fault.
 
-#### **Bundle Protocol (BP)**
+#### Bundle Protocol
 
 The ION implementation of BP conforms fully to RFC 5050, including
 support for the following standard capabilities:
@@ -784,7 +908,7 @@ congestion avoidance, and control over quality of service.
 All bundle transmission state is safely retained in the ION heap for
 rapid recovery from a spacecraft or software fault.
 
-#### **Asynchronous Message Service (AMS)**
+#### Asynchronous Message Service
 
 The ION implementation of the CCSDS AMS standard conforms fully to CCSDS
 735.0-B-1. AMS is a data system communications architecture under which
@@ -807,7 +931,7 @@ scalable, and efficient.
 A detailed discussion of AMS is beyond the scope of this Design Guide.
 For more information, please see the [AMS Programmer&#39;s Guide.](AMS-Programmer-Guide.md)
 
-#### **Datagram Retransmission (DGR)**
+#### Datagram Retransmission
 
 The DGR package in ION is an alternative implementation of LTP that is
 designed to operate responsibly -- i.e., with built-in congestion
@@ -817,17 +941,17 @@ an Internet-like (non-delay-tolerant) environment. The DGR design
 combines LTP's concept of concurrent transmission transactions with
 congestion control and timeout interval computation algorithms adapted
 from TCP. DGR includes an adaptive timeout-interval-computing component that provides
-maximum opportunity for reception of acknowledgements, minimizing retransmission. 
-By monitoring changes in the rate at which message-transmission transactions 
-are completed, DGR detects changes in the level of congestion and 
-responds by imposing varying degrees of delay on the transmission of 
-new messages. In addition, DGR maximizes throughput by not waiting 
-for acknowledgement of a message before sending the next message. All 
-DGR communication is asynchronous, to maximize efficient utilization of 
-network connections. DGR manages multiple concurrent datagram transmission 
+maximum opportunity for reception of acknowledgements, minimizing retransmission.
+By monitoring changes in the rate at which message-transmission transactions
+are completed, DGR detects changes in the level of congestion and
+responds by imposing varying degrees of delay on the transmission of
+new messages. In addition, DGR maximizes throughput by not waiting
+for acknowledgement of a message before sending the next message. All
+DGR communication is asynchronous, to maximize efficient utilization of
+network connections. DGR manages multiple concurrent datagram transmission
 and acknowledgement conversations.
 
-#### **CCSDS File Delivery Protocol (CFDP)**
+#### CCSDS File Delivery Protocol
 
 The ION implementation of CFDP conforms fully to Service Class 1
 (Unreliable Transfer) of CCSDS 727.0-B-4, including support for the
@@ -851,7 +975,7 @@ following standard capabilities:
 All CFDP transaction state is safely retained in the ION heap for rapid
 recovery from a spacecraft or software fault.
 
-#### **Bundle Streaming Service (BSS)**
+#### Bundle Streaming Service
 
 The BSS service provided in ION enables a stream of video, audio, or
 other continuously generated application data units, transmitted over a
@@ -866,7 +990,7 @@ two useful modes concurrently:
   the real-time presentation but were subsequently retransmitted), but
   in a non-real-time "playback" mode.
 
-#### **Trusted Collective (TC)**
+#### Trusted Collective
 
 The TC service provided in ION enables critical but non-confidential
 information (such as public keys, for asymmetric cryptography) to be
@@ -922,7 +1046,7 @@ effects imposed at higher layers of the stack. This allocation of
 functionality is discussed below, together with a discussion of several
 related key concepts in the ION design.
 
-#### **Fragmentation and Reassembly**
+#### Fragmentation and Reassembly
 
 To minimize transmission overhead and accommodate asymmetric links
 (i.e., limited "uplink" data rate from a ground data system to a
@@ -969,7 +1093,7 @@ the sum of the sizes of all bundles aggregated into the block exceeds
 the block aggregation threshhold value declared for the applicable
 *span* (the relationship between the local node's LTP engine and the
 receiving LTP engine) during LTP protocol configuration via
-**ltpadmin**.
+ltpadmin.
 
 Given a preferred block acknowledgment period -- e.g., a preferred
 acknowledgement traffic rate of one report per second -- the nominal
@@ -1000,7 +1124,7 @@ accommodate the Maximum Transfer Unit (MTU) size of the underlying link
 service, typically the transfer frame size of the applicable CCSDS link
 protocol.
 
-#### **Bandwidth Management**
+#### Bandwidth Management
 
 The allocation of bandwidth (transmission opportunity) to application
 data is requested by the application task that's passing data to DTN,
@@ -1045,7 +1169,7 @@ block as necessary and passes the segments to the link service protocol
 that underlies LTP. Either way, the transmission ordering requested by
 application tasks is preserved.
 
-#### **Contact Plans**
+#### Contact Plans
 
 In the Internet, protocol operations can be largely driven by currently
 effective information that is discovered opportunistically and
@@ -1062,7 +1186,6 @@ that are managed by the R/F Contacts (rfx) services of ION's ici
 package.
 
 ![RFX services in ION](./media-ion-guide/media/image6.png)
-
 
 The structure of ION's RFX (contact plan) database, the rfx system
 elements that populate and use that data, and affected portions of the
@@ -1152,7 +1275,7 @@ revises the OWLT between the local node and that neighbor. Setting data
 rate or OWLT for a node with which the local node will at some time be
 in direct communication may entail creation of a Neighbor object.
 
-#### **Route Computation**
+#### Route Computation
 
 ION's computation of a route for a given bundle with a given destination
 endpoint is accomplished by one of several methods, depending on the
@@ -1282,7 +1405,7 @@ Multicast route computation is much simpler.
     necessary into other regions that are topologically adjacent to
     the local region.
 
-#### **Delivery Assurance**
+#### Delivery Assurance
 
 End-to-end delivery of data can fail in many ways, at different layers
 of the stack. When delivery fails, we can either accept the
@@ -1364,7 +1487,7 @@ report, may be able to initiate application-layer retransmission of the
 original application data unit in some way. This final retransmission
 mechanism is wholly application-specific, however.
 
-#### **Rate Control**
+#### Rate Control
 
 In the Internet, the rate of transmission at a node can be dynamically
 negotiated in response to changes in level of activity on the link, to
@@ -1399,7 +1522,7 @@ Note that this means that, for any neighboring node for which there are
 planned contacts, ION's rate control system will enable data flow only
 while contacts are active.
 
-#### **Flow Control**
+#### Flow Control
 
 A further constraint on rates of data transmission in an ION-based
 network is LTP flow control. LTP is designed to enable multiple block
@@ -1426,7 +1549,7 @@ the aggregation size limits and session count limits of spans during LTP
 initialization to be consistent with the maximum data rates scheduled
 for contacts over those spans.
 
-#### **Storage Management**
+#### Storage Management
 
 *Congestion* in a dtnet is the imbalance between data enqueuing and
 dequeuing rates that results in exhaustion of queuing (storage)
@@ -1565,7 +1688,7 @@ occupancy would exceed an upper limit asserted for the node, that
 attempt is either blocked until ZCO space becomes available or else
 rejected altogether.
 
-### **Optimizing an ION-based network**
+### Optimizing an ION-based network
 
 ION is designed to deliver critical data to its final destination with
 as much certainty as possible (and optionally as soon as possible), but
@@ -1747,22 +1870,17 @@ the protocol specifications. The BP specification is documented in
 Internet RFC 5050, while the LTP specification is documented in Internet
 RFC 5326.)
 
-#### **Databases**
+#### Databases
 
 ![Bundle protocol database](./media-ion-guide/media/image4.png)
 
 ![Licklider transmission protocol database](./media-ion-guide/media/image3.png)
 
-#### **Control and data flow**
-
-##### Bundle Protocol
+#### Control and data flow
 
 ![BP forwarder](./media-ion-guide/media/image5.png)
 
 ![BP convergence layer output](./media-ion-guide/media/image13.png)
-
-
-##### LTP
 
 ![LTP transmission metering](./media-ion-guide/media/image15.png)
 
@@ -1788,7 +1906,7 @@ all been informed of one another's plans can be inferred from those
 plans rather than discovered via dialogue (which is impractical over
 long-one-way-light-time space links).
 
-#### **Contact Plan Messages**
+#### Contact Plan Messages
 
 CGR relies on accurate contact plan information provided in the form of
 contact plan messages that currently are only read from **ionrc** files
@@ -1824,7 +1942,7 @@ it's possible for connectivity established using other convergence-layer
 technologies to take different physical paths in different directions,
 with different signal propagation delays.
 
-#### **Routing Tables**
+#### Routing Tables
 
 Each node uses Range and Contact messages in the contact plan to build a
 \"routing table\" data structure.
@@ -1863,9 +1981,9 @@ Finally, each route object also notes the route's termination time, the
 time after which the route will become moot due to the termination of
 the earliest-ending contact in the route.
 
-### **Key Concepts**
+### Key Concepts
 
-#### **Expiration time**
+#### Expiration time
 
 Every bundle transmitted via DTN has a time-to-live (TTL), the length of
 time after which the bundle is subject to destruction if it has not yet
@@ -1875,7 +1993,7 @@ destination for a bundle that the local bundle agent is required to
 forward, there is no point in selecting a route that can\'t get the
 bundle to its final destination prior to the bundle's expiration time.
 
-#### **OWLT margin**
+#### OWLT margin
 
 One-way light time (OWLT) -- that is, distance -- is obviously a factor
 in delivering a bundle to a node prior to a given time. OWLT can
@@ -1900,13 +2018,13 @@ relative to each other. When computing the expected time of arrival of a
 transmitted bundle we simply use N + 2Q, the most pessimistic case, as
 the anticipated total in-transit time.
 
-#### **Capacity**
+#### Capacity
 
 The *capacity* of a contact is the product of its data transmission rate
 (in bytes per second) and its duration (stop time minus start time, in
 seconds).
 
-#### **Estimated capacity consumption**
+#### Estimated capacity consumption
 
 The size of a bundle is the sum of its payload size and its header
 size[^5], but bundle size is not the only lien on the capacity of a
@@ -1916,7 +2034,7 @@ estimated convergence-layer overhead. For a bundle whose header is of
 size M and whose payload is of size N, the estimated convergence-layer
 overhead is defined as 3% of (M+N), or 100 bytes, whichever is larger.
 
-#### **Residual capacity**
+#### Residual capacity
 
 The *residual capacity* of a given contact between the local node and
 one of its neighbors, as computed for a given bundle, is the sum of the
@@ -1926,7 +2044,7 @@ with priority equal to or higher than the priority of the subject bundle
 that are currently queued on the outduct for transmission to that
 neighbor.
 
-#### **Excluded neighbors**
+#### Excluded neighbors
 
 A neighboring node C that refuses custody of a bundle destined for some
 remote node D is termed an *excluded neighbor* for (that is, with
@@ -1937,7 +2055,7 @@ node and C) a custodial bundle destined for D will be forwarded to C as
 a "probe bundle". C ceases to be an excluded neighbor for D as soon as
 it accepts custody of a bundle destined for D.
 
-#### **Critical bundles**
+#### Critical bundles
 
 A Critical bundle is one that absolutely has got to reach its
 destination and, moreover, has got to reach that destination as soon as
@@ -1958,7 +2076,7 @@ guaranteed to travel over the most successful route, as well as over all
 other plausible routes. Note that this may result in multiple copies of
 a Critical bundle arriving at the final destination.
 
-#### **Dynamic Route Selection Algorithm**
+#### Dynamic Route Selection Algorithm
 
 Given a bundle whose destination is node D, we proceed as follows.
 
@@ -2077,7 +2195,7 @@ Otherwise:
     nodes with the earliest best-case delivery time and smallest hop
     count is arbitrarily chosen as the most preferred neighbor.
 
-### **Exception Handling**
+### Exception Handling
 
 Conveyance of a bundle from source to destination through a DTN can fail
 in a number of ways, many of which are best addressed by means of the
@@ -2136,7 +2254,7 @@ still in local custody whenever a new Contact is added to the contact
 graph: the new contact may open an additional forwarding opportunity for
 one or more of those bundles.
 
-### **Remarks**
+### Remarks
 
 The CGR routing procedures respond dynamically to the changes in network
 topology that the nodes are able know about, i.e., those changes that
@@ -2273,23 +2391,23 @@ flight operations.
 
 ![A CFDP-ION entity](./media-ion-guide/media/image17.png)
 
-### **List data structures (lyst, sdrlist, smlist)**
+### List data structures (lyst, sdrlist, smlist)
 
 ![ION list data structures](./media-ion-guide/media/image16.png)
 
-### **PSM Partition Structure**
+### PSM Partition Structure
 
 ![psm partition structure](./media-ion-guide/media/image12.png)
 
-### **PSM and SDR Block Structures**
+### PSM and SDR Block Structures
 
 ![psm and sdr block structures](./media-ion-guide/media/image11.png)
 
-### **SDR Heap Structure**
+### SDR Heap Structure
 
 ![sdr heap structure](./media-ion-guide/media/image19.png)
 
-## **Operation**
+## Operations
 
 The ION source distribution contains a README.TXT file with details on
 building ION from source. For installations starts with the
@@ -2327,7 +2445,7 @@ platforms they are compiled as main()functions.
 
 ### Interplanetary Communication Infrastructure (ICI)
 
-#### **Compile-time options**
+#### Compile-time options
 
 Declaring values for the following variables, by setting parameters that
 are provided to the C compiler (for example, --DFSWSOURCE or
@@ -2495,7 +2613,7 @@ this option enables the default to be overridden.
 
 `SVR4_SEMAPHORES`
 
-This option causes ION to be built using SVR4 semaphores as the 
+This option causes ION to be built using SVR4 semaphores as the
 semaphore mechanism. Prior to version 4.1.3, SVR4 semaphores were
 the default choice for Linux, MacOS, and Solaris.
 
@@ -2562,11 +2680,11 @@ This option causes ION_PATH_DELIMITER to be set to '\\' (backslash), for
 use in construction path names. The default value of ION_PATH_DELIMITER
 is '/' (forward slash, as is used in Unix-like operating systems).
 
-#### **Build**
+#### Build
 
 To build ICI for a given deployment platform:
 
-1. Decide where you want ION's executables, libraries, header files,
+- Decide where you want ION's executables, libraries, header files,
    etc. to be installed. The ION makefiles all install their build
    products to subdirectories (named **bin**, **lib**, **include**,
    **man**, **man/man1**, **man/man3**, **man/man5**) of an ION root
@@ -2577,17 +2695,16 @@ To build ICI for a given deployment platform:
    **\$OPT** -- and create the subdirectories as needed. In any case,
    make sure that you have read, write, and execute permission for all
    of the ION installation directories and that:
-
-   - The directory **/\$OPT/bin** is in your execution path.
-   - The directory **/\$OPT/lib** is in your \$LD_LOADLIB_PATH.
-2. Edit the Makefile in **ion/ici**:
+  - The directory **/\$OPT/bin** is in your execution path.
+  - The directory **/\$OPT/lib** is in your \$LD_LOADLIB_PATH.
+- Edit the Makefile in **ion/ici**:
 
 - Make sure PLATFORMS is set to the appropriate platform name, e.g.,
   x86-redhat, sparc-sol9, etc.
 - Set OPT to the directory where you want to install the ici packages
   you build, if other than "/opt" (for example: /usr/local).
 
-3. Then:
+- Then run:
 
 ```bash
 cd ion/ici
@@ -2595,7 +2712,7 @@ sudo make
 sudo make install
 ```
 
-#### **Configure**
+#### Configure
 
 Three types of files are used to provide the information needed to
 perform global configuration of the ION protocol stack: the ION system
@@ -2647,7 +2764,7 @@ option as follows:
   gets from calling igetcwd().
 - When running multiple ION instances, the first ION instance must have the largest sdr working memory specified by `sdrWmSize` or default. If any later ION instance launched with `sdrWmSize` exceeding the first ION instance, it will result in crash upon launch. It is further recommended that all ION instances running simultaneously on a single host should set their `sdrWmSize` the same.
 
-#### **Run**
+#### Run
 
 The executable programs used in operation of the ici component of ION
 include:
@@ -2669,7 +2786,7 @@ other functions. For further details, see the man pages for ionadmin(1),
 ionsecadmin(1), rfxclock(1), sdrmend(1), sdrwatch(1), and psmwatch(1) in
 Appendix A.
 
-#### **Test**
+#### Test
 
 Six test executables are provided to support testing and debugging of
 the ICI component of ION:
@@ -2684,21 +2801,16 @@ psmshell(1), file2sm(1), sm2file(1), and smlistsh(1) in Appendix A.
 
 ### Licklider Transmission Protocol (LTP)
 
-#### **Build**
+#### Building LTP
 
-To build LTP:
+Make sure that the "ici" component of ION has been built for the platform on which you plan to run LTP.
 
-1. Make sure that the "ici" component of ION has been built for the
-   platform on which you plan to run LTP.
-2. Edit the Makefile in **ion/ltp**:
+Edit the Makefile in **ion/ltp**:\
 
-- As for ici, make sure PLATFORMS is set to the name of the platform
-  on which you plan to run LTP.
-- Set OPT to the directory containing the bin, lib, include, etc.
-  directories where the ici package is installed (for example:
-  /usr/local).
+- As for ici, make sure PLATFORMS is set to the name of the platform on which you plan to run LTP.
+- Set OPT to the directory containing the bin, lib, include, etc. directories where the ici package is installed (for example: /usr/local).
 
-3. Then:
+Then run:
 
 ```bash
 cd ion/ltp
@@ -2706,13 +2818,13 @@ make
 sudo make install
 ```
 
-#### **Configure**
+#### Configuring LTP
 
 The LTP administration command (**ltprc**) file provides the information
 needed to configure LTP on a given ION node. For details, see the man
 page for ltprc(5) in Appendix A.
 
-#### **Run**
+#### Running LTP
 
 The executable programs used in operation of the ltp component of ION
 include:
@@ -2733,7 +2845,7 @@ mandated by configuration, the **udplsi** and **udplso** tasks.
 For details, see the man pages for ltpadmin(1), ltpclock(1),
 ltpmeter(1), udplsi(1), and udplso(1) in Appendix A.
 
-#### **Test**
+#### Testing LTP
 
 Two test executables are provided to support testing and debugging of
 the LTP component of ION:
@@ -2747,13 +2859,12 @@ Appendix A.
 
 ### Bundle Streaming Service Protocol (BSSP)
 
-#### **Build**
+#### Building BSSP
 
-To build BSSP:
-
-1. Make sure that the "ici" component of ION has been built for the
+Make sure that the "ici" component of ION has been built for the
    platform on which you plan to run BSSP.
-2. Edit the Makefile in **ion/bssp**:
+
+Edit the Makefile in **ion/bssp**:\
 
 - As for ici, make sure PLATFORMS is set to the name of the platform
   on which you plan to run BSSP.
@@ -2761,7 +2872,7 @@ To build BSSP:
   directories where the ici package is installed (for example:
   /usr/local).
 
-3. Then:
+Then run:
 
 ```bash
 cd ion/bssp
@@ -2769,7 +2880,7 @@ make
 sudo make install
 ```
 
-#### **Configure**
+#### Configuring BSSP
 
 The BSSP administration command (**bssprc**) file provides the
 information needed to configure BSSP on a given ION node. For details,
@@ -2787,7 +2898,7 @@ be larger than 65507 bytes, because each UDP datagram can only be as
 large as 65507 bytes (payload) + 20 (IP Header) + 8 (UDP Header) = 65535
 byte.
 
-#### **Run**
+#### Running BSSP
 
 The executable programs used in operation of the bssp component of ION
 include:
@@ -2809,13 +2920,13 @@ bsspmeter(1), udpbsi(1), and udpbso(1) in Appendix A.
 
 ### Bundle Protocol (BP)
 
-#### **Compile-time options**
+#### Compile Options for BP
 
 Declaring values for the following variables, by setting parameters that
 are provided to the C compiler (for example, --DION_NOSTATS or
 --DBRSTERM=60), will alter the functionality of BP as noted below.
 
-#### TargetFFS
+`TargetFFS`
 
 Setting this option adapts BP for use with the TargetFFS flash file
 system on the VxWorks operating system. TargetFFS apparently locks one
@@ -2832,8 +2943,7 @@ after each access when running on a VxWorks platform that uses the
 TargetFFS flash file system. The TargetFFS compile-time option ensures
 that they do so.
 
-#### BRSTERM=*xx*
-
+`BRSTERM=xx`
 This option sets the maximum number of seconds by which the current time
 at the BRS server may exceed the time tag in a BRS authentication
 message from a client; if this interval is exceeded, the authentication
@@ -2841,51 +2951,49 @@ message is presumed to be a replay attack and is rejected. Small values
 of BRSTERM are safer than large ones, but they require that clocks be
 more closely synchronized. The default value is 5.
 
-#### ION_NOSTATS
+`ION_NOSTATS`
 
 Setting this option prevents the logging of bundle processing statistics
 in status messages.
 
-#### KEEPALIVE_PERIOD=*xx*
+`KEEPALIVE_PERIOD=xx`
 
 This option sets the number of seconds between transmission of
 keep-alive messages over any TCP or BRS convergence-layer protocol
 connection. The default value is 15.
 
-#### ION_BANDWIDTH_RESERVED
+`ION_BANDWIDTH_RESERVED`
 
 Setting this option overrides strict priority order in bundle
 transmission, which is the default. Instead, bandwidth is shared between
 the priority-1 and priority-0 queues on a 2:1 ratio whenever there is no
 priority-2 traffic.
 
-#### ENABLE_BPACS
+`ENABLE_BPACS`
 
 This option causes Aggregate Custody Signaling source code to be
 included in the build. ACS is alternative custody transfer signaling
 mechanism that sharply reduces the volume of custody acknowledgment
 traffic.
 
-#### ENABLE_IMC
+`ENABLE_IMC`
 
 This option causes IPN Multicast source code to be included in the
 build. IMC is discussed in section 1.8.4 above.
 
-#### **Build**
+#### Building BP
 
-To build BP:
-
-1. Make sure that the "ici", "ltp", "dgr", and "bssp" components of ION
+Make sure that the "ici", "ltp", "dgr", and "bssp" components of ION
    have been built for the platform on which you plan to run BP.
-2. Edit the Makefile in **ion/bp**:
 
-- As for ici, make sure PLATFORMS is set to the name of the platform
-  on which you plan to run BP.
+Edit the Makefile in **ion/bp**:
+
+- As for ici, make sure PLATFORMS is set to the name of the platform on which you plan to run BP.
 - Set OPT to the directory containing the bin, lib, include, etc.
   directories where the ici package is installed (for example:
   /usr/local).
 
-3. Then:
+Then run:
 
 ```bash
 cd ion/bp
@@ -2893,7 +3001,7 @@ make
 sudo make install
 ```
 
-#### **Configure**
+#### Configuring BP
 
 The BP administration command (**bprc**) file provides the information
 needed to configure generic BP on a given ION node. The IPN scheme
@@ -2905,7 +3013,7 @@ endpoints whose IDs conform to the "dtn" scheme, as supported by the
 DTN2 reference implementation. For details, see the man pages for
 bprc(5), ipnrc(5), and dtn2rc(5) in Appendix A.
 
-#### **Run**
+#### Running BP
 
 The executable programs used in operation of the bp component of ION
 include:
@@ -2958,7 +3066,7 @@ stcpclo(1), udpcli(1), udpclo(1), ltpcli(1), ltpclo(1), dgrcla(1),
 bpsendfile(1), bpstats(1), bptrace(1), lgsend(1), lgagent(1), and
 hmackeys(1) in Appendix A.
 
-#### **Test**
+#### Testing BP
 
 Five test executables are provided to support testing and debugging of
 the BP component of ION:
@@ -2979,13 +3087,12 @@ bpsource(1), and bpsink(1) in Appendix A.
 
 ### Datagram Retransmission (DGR)
 
-#### **Build**
+#### Building DGR
 
-To build DGR:
-
-1. Make sure that the "ici" component of ION has been built for the
+Make sure that the "ici" component of ION has been built for the
    platform on which you plan to run DGR.
-2. Edit the Makefile in **ion/dgr**:
+
+Edit the Makefile in **ion/dgr**:
 
 - As for ici, make sure PLATFORMS is set to the name of the platform
   on which you plan to run DGR.
@@ -2993,7 +3100,7 @@ To build DGR:
   directories where the ici package is installed (for example:
   /usr/local).
 
-3. Then:
+Then run:
 
 ```bash
 cd ion/dgr
@@ -3001,17 +3108,17 @@ make
 sudo make install
 ```
 
-#### **Configure**
+#### Configuring DGR
 
 No additional configuration files are required for the operation of the
 DGR component of ION.
 
-#### **Run**
+#### Running DGR
 
 No runtime executables are required for the operation of the DGR
 component of ION.
 
-#### **Test**
+#### Testing DGR
 
 Two test executables are provided to support testing and debugging of
 the DGR component of ION:
@@ -3025,7 +3132,7 @@ Appendix A.
 
 ### Asynchronous Message Service (AMS)
 
-#### **Compile-time options**
+#### Compile options for AMS
 
 Note that, by default, the syntax by which AMS MIB information is
 presented to AMS is as documented in the "amsrc" man page. Alternatively
@@ -3051,13 +3158,12 @@ AMS is allocated from system memory, using the familiar malloc() and
 free() functions; this enables much higher message traffic rates on
 machines with abundant system memory.
 
-#### **Build**
+#### Building AMS
 
-To build AMS:
-
-1. Make sure that the "bp" component of ION has been built for the
+Make sure that the "bp" component of ION has been built for the
    platform on which you plan to run AMS.
-2. Edit the Makefile in **ion/cfdp**:
+
+Edit the Makefile in **ion/cfdp**:
 
 - Just as for bp, make sure PLATFORMS is set to the name of the
   platform on which you plan to run AMS.
@@ -3065,7 +3171,7 @@ To build AMS:
   directories where the ici package is installed (for example:
   /usr/local).
 
-3. Then:
+Then run:
 
 ```bash
 cd ion/ams
@@ -3073,7 +3179,7 @@ make
 sudo make install
 ```
 
-#### **Configure**
+#### Configuring AMS
 
 There is no central configuration of AMS; each AMS entity (configuration
 server, registrar, or application module) is individually configured at
@@ -3083,7 +3189,7 @@ may be shared between multiple AMS entities without issue.
 For details of MIB file syntax, see the man pages for amsrc(5) and
 amsxml(5) in Appendix A.
 
-#### **Run**
+#### Running AMS
 
 The executable programs used in operation of the AMS component of ION
 include:
@@ -3101,7 +3207,7 @@ include:
 For details, see the man pages for amsd(1), ramsgate(1), amsstop(1), and
 amsmib(1) in Appendix A.
 
-#### **Test**
+#### Testing AMS
 
 Seven test executables are provided to support testing and debugging of
 the AMS component of ION:
@@ -3130,13 +3236,13 @@ and 5 of the [AMS Programmer&#39;s Guide.](./AMS-Programmer-Guide.md)
 
 ### CCSDS File Delivery Protocol (CFDP)
 
-#### **Compile-time options**
+#### Compile options for CFDP
 
 Defining the following macro, by setting a parameter that is provided to
 the C compiler (i.e., --DTargetFFS), will alter the functionality of
 CFDP as noted below.
 
-#### TargetFFS
+`TargetFFS`
 
 Setting this option adapts CFDP for use with the TargetFFS flash file
 system on the VxWorks operating system. TargetFFS apparently locks one
@@ -3153,36 +3259,33 @@ immediately after each access when running on a VxWorks platform that
 uses the TargetFFS flash file system. The TargetFFS compile-time option
 ensures that they do so.
 
-#### **Build**
+#### Building CFDP
 
-To build CFDP:
-
-1. Make sure that the "bp" component of ION has been built for the
+Make sure that the "bp" component of ION has been built for the
    platform on which you plan to run CFDP.
-2. Edit the Makefile in **ion/cfdp**:
+
+Edit the Makefile in **ion/cfdp**:
 
 - Just as for bp, make sure PLATFORMS is set to the name of the
   platform on which you plan to run CFDP.
 - Set OPT to the directory containing the bin, lib, include, etc.
   directories where the ici package is installed.
 
-3. Then:
+Then run:
 
 ```bash
 cd ion/cfdp
-
 make
-
 make install
 ```
 
-#### **Configure**
+#### Configuring CFDP
 
 The CFDP administration command (**cfdprc**) file provides the
 information needed to configure CFDP on a given ION node. For details,
 see the man page for cfdprc(5) in Appendix A.
 
-#### **Run**
+#### Running CFDP
 
 The executable programs used in operation of the CFDP component of ION
 include:
@@ -3202,7 +3305,7 @@ configuration, the **bputa** task.
 For details, see the man pages for cfdpadmin(1), cfdpclock(1), and
 bputa(1) in Appendix A.
 
-#### **Test**
+#### Testing CFDP
 
 A single executable, **cfdptest**, is provided to support testing and
 debugging of the DGR component of ION. For details, see the man page for
@@ -3210,51 +3313,50 @@ cfdptest(1) in Appendix A.
 
 ### Bundle Streaming Service (BSS)
 
-#### **Compile-time options**
+#### Compile options for BSS
 
 Defining the following macro, by setting a parameter that is provided to
 the C compiler (e.g., --DWINDOW=10000), will alter the functionality of
 BSS as noted below.
 
-#### WINDOW=*xx*
+`WINDOW=xx`
 
 Setting this option changes the maximum number of seconds by which the
 BSS database for a BSS application may be "rewound" for replay. The
 default value is 86400 seconds, which is 24 hours.
 
-#### **Build**
+#### Building BSS
 
-To build BSS:
-
-- Make sure that the "bp" component of ION has been built for the
+Make sure that the "bp" component of ION has been built for the
   platform on which you plan to run BSS.
-- Edit the Makefile in **ion/bss**:
+
+Edit the Makefile in **ion/bss**:
+
 - As for ici, make sure PLATFORMS is set to the name of the platform
   on which you plan to run BSS.
 - Set OPT to the directory containing the bin, lib, include, etc.
   directories where the ici package is installed (for example:
   /usr/local).
-- Then:
+
+Then run:
 
 ```bash
 cd ion/bss
-
 make
-
 sudo make install
 ```
 
-#### **Configure**
+#### Configuring BSS
 
 No additional configuration files are required for the operation of the
 BSS component of ION.
 
-#### **Run**
+#### Running BSS
 
 No runtime executables are required for the operation of the BSS
 component of ION.
 
-#### **Test**
+#### Testing BSS
 
 Four test executables are provided to support testing and debugging of
 the BSS component of ION:
@@ -3273,14 +3375,14 @@ In ION, reliable convergence-layer protocols (where available) are
        by setting the BP_BEST_EFFORT flag in the "extended class of service
        flags" parameter, but this feature is an ION extension that is not
        supported by other BP implementations at the time of this writing.
-    
+
 Note that, in all occupancy figures, ION data management accounts
        not only for the sizes of the payloads of all queued bundles but
        also for the sizes of their headers.
-    
+
 Barring data loss or corruption for which the various
        retransmission mechanisms in ION cannot compensate.
-    
+
 Note that ION may indeed block the offering of a message to the
        network, but this is local admission control -- assuring that the
        node's local buffer space for queuing outbound bundles is not
@@ -3288,17 +3390,17 @@ Note that ION may indeed block the offering of a message to the
        possible for there to be ample local buffer space yet insufficient
        network capacity to convey the offered data to their final
        destination, and vice versa.
-    
+
 The minimum size of an ION bundle header is 26 bytes. Adding
        extension blocks (such as those that effect the Bundle Security
        Protocol) will increase this figure.
-    
+
 In ION, all bundles are by default non-critical. The application
        can indicate that data should be sent in a Critical bundle by
        setting the BP_MINIMUM_LATENCY flag in the "extended class of
        service" parameter, but this feature is an ION extension that is not
        supported by other BP implementations at the time of this writing.
-    
+
 If we wanted to be extremely accurate we could also
        subtract from the timeout interval the imputed inbound
        queuing delay QI, since inbound queuing would presumably be

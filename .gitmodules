@@ -7,3 +7,6 @@
 [submodule "contrib/dtnperf"]
 	path = contrib/dtnperf
 	url = https://gitlab.com/dtnsuite/dtnperf
+[submodule "contrib/SPP-UCP"]
+	path = contrib/SPP-UCP
+	url = https://github.com/nasa-jpl/SPP-UCP

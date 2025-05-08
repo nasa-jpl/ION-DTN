@@ -4,7 +4,7 @@ bping - Send and receive Bundle Protocol echo bundles.
 
 =head1 SYNOPSIS
 
-B<bping> [B<-c> I<count>] [B<-i> I<interval>] [B<-p> I<priority>] [B<-q> I<wait>] [B<-r> I<flags>] [B<-t> I<ttl>] I<srcEID> I<destEID> [I<reporttoEID>]
+B<bping> [B<-c> I<count>] [B<-i> I<interval>] [B<-p> I<priority>] [B<-q> I<wait>] [B<-r> I<flags>] [B<-t> I<ttl>] [B<-v>] I<srcEID> I<destEID> [I<reporttoEID>]
 
 =head1 DESCRIPTION
 
@@ -13,6 +13,28 @@ the bundles back (for instance, it is a B<bpecho> endpoint), B<bping> will
 print the round-trip time.  When complete, bping will print statistics before
 exiting.  It is very similar to B<ping>, except it works with the bundle
 protocol.
+
+B<-r> I<flags> can be any combination of rcv,ct,fwd,dlv,del,ctr
+delimited by ',' (without spaces).  It sets the corresponding report 
+request flag.
+
+B<-t> I<ttl> sets the time-to-live for the bundles sent by B<bping> in
+seconds. The default is 3600 seconds (1 hour).
+
+B<-p> I<priority> sets the priority of the bundles sent by B<bping>.  The
+default is 0 (bulk priority).  Other values are 1 (normal), and 2 (expedited).
+
+B<-i> I<interval> sets the interval between successive bundle transmissions
+in seconds.  The default is 1 second.
+
+B<-c> I<count> sets the number of echo bundles to send.  The default is to
+send bundles indefinitely until interrupted.
+
+B<-q> I<wait> sets the number of seconds to wait for responses after sending
+the last bundle.  The default is 10 seconds. Set -1 to wait indefinitely until
+all responses are received.
+
+B<-v> sets verbose mode. The default is off.
 
 B<bping> terminates when one of the following happens: it receives the SIGINT
 signal (Ctrl+C), it receives responses to all of the bundles it sent, or it has

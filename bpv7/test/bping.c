@@ -33,7 +33,7 @@ const char usage[] =
   "                   corresponding report request flag.\n"
   "  -t <ttl>       Bundles have lifetime of <ttl> seconds.\n"
   "                   (default 3600)\n"
-  "  -v             Increase verbosity level (can be specified repeatedly)\n";
+  "  -v             Set verbosity\n";
 
 static int count = -1;        /* -1: Indefinite.  Set from command line, 
                                  never written again. */

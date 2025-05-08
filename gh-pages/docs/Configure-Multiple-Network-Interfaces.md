@@ -45,6 +45,27 @@ If the neighbors using the same protocol are from multiple networks, then the in
 
 For LTP, however, multiple inducts can be defined for each network using the IP address of each network separately, and the induct for a network is called `seat` (see manual page for ltprc).
 
+## Updated IPN-URI Format Support (ION 4.1.4-a.2)
+
+Starting with ION 4.1.4-a.2, ION has been updated to support the new IPN URI
+scheme defined in [RFC 9758](https://datatracker.ietf.org/doc/html/rfc9758)
+as a alpha release feature. The new format is as follows:
+
+```abnf
+ipn-uri = "ipn:" [allocator-identifier "."] node-number "." service-number
+```
+
+`allocator-identifier`: An unsigned integer identifying the allocation 
+authority. If the authority is the default (IANA, Allocator ID 0), this 
+part and the following dot (.) may be omitted for brevity. ION is backward
+compatible with IPN URIs that omit the allocator identifier, which is 
+interpreted as having the default value of 0.
+
+For all examples in this tutorial, the allocator identifier is omitted and 
+defaults to 0.
+
+New IPN URI support is under alpha testing.
+
 ## ION Configurations
 
 ### LTP/TCP Example

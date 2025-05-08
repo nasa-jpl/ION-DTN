@@ -67,6 +67,27 @@ The fourth, bpadmin's configuration file, specifies all of the open endpoints f
 
 The fifth, dtn2admin's configuration file, populates the ION analogue to an ARP cache for the "dtn" naming scheme.
 
+## Updated IPN-URI Format Support (ION 4.1.4-a.2)
+
+Starting with ION 4.1.4-a.2, ION has been updated to support the new IPN URI
+scheme defined in [RFC 9758](https://datatracker.ietf.org/doc/html/rfc9758)
+as a alpha release feature. The new format is as follows:
+
+```abnf
+ipn-uri = "ipn:" [allocator-identifier "."] node-number "." service-number
+```
+
+`allocator-identifier`: An unsigned integer identifying the allocation 
+authority. If the authority is the default (IANA, Allocator ID 0), this 
+part and the following dot (.) may be omitted for brevity. ION is backward
+compatible with IPN URIs that omit the allocator identifier, which is 
+interpreted as having the default value of 0.
+
+For all examples in this tutorial, the allocator identifier is omitted and 
+defaults to 0.
+
+New IPN URI support is under alpha testing.
+
 ## The ION Configuration File
 
 Given to ionadmin either as a file or from the daemon command line, this file configures contacts for the ION node. We will assume that the local node's identification number is 1.

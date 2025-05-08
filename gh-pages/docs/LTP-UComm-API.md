@@ -12,6 +12,12 @@ For a spacecraft, the LTP Engine will execute the LTP protocol logic and handing
 
 In the document we describe a few essential APIs for any externally implemented underlying communication protocols to interface with LTP engine and perform the most basic tasks of (a) submitting a received LTP segments to the LTP Engine for processing and (b) acquiring an LTP segment from the LTP Engine for transmission to its peer.
 
+## LTP Seat and Span
+
+In LTP, a `seat` is the reception process for LTP that can be associated with one or more `spans`. When an LTP Engine is configured to communicate with multiple peer LTP Engines over multiple networks, each network interface is associated with a `seat`, and each peer LTP Engine is associated with a `span`. A `span` is always associated with one and only one `seat`, but a `seat` can be associated with multiple `spans`.
+
+See [Configure Multiple Network Interfaces](./Configure-Multiple-Network-Interfaces.md) for more details.
+
 ## Connecting to the LTP Engine
 
 There are several steps for an external application to connecting to LTP:
@@ -27,7 +33,7 @@ In the following section we will describe the *private* APIs used by the underly
 
 ## LTP Data Structure
 
-Here is a diagram of the major LTP data structures and their relationships. 
+Here is a diagram of the major LTP data structures and their relationships.
 
 ```text
 +----------------------------------+----------------------------------+
@@ -88,7 +94,7 @@ Here is a diagram of the major LTP data structures and their relationships.
 Function Prototype
 
 ```c
-extern int	ltpInit(int estMaxExportSessions);
+extern int ltpInit(int estMaxExportSessions);
 ```
 
 Parameters
@@ -103,9 +109,9 @@ Return Value
 Example Call
 
 ```c
-/*	Note that ltpadmin must be run before the first
- *	invocation of ltplso, to initialize the LTP database
- *	(as necessary) and dynamic database.*/
+/* Note that ltpadmin must be run before the first
+ * invocation of ltplso, to initialize the LTP database
+ * (as necessary) and dynamic database.*/
 
 if (ltpInit(0) < 0)
 {
@@ -145,7 +151,7 @@ Example Code
 
 ```c++
 sdr = getIonsdr();
-CHKZERO(sdr_begin_xn(sdr));	/*	Lock SDR.	*/
+CHKZERO(sdr_begin_xn(sdr)); /* Lock SDR. */
 findSpan(remoteEngineId, &vspan, &vspanElt);
 if (vspanElt == 0)
 {
@@ -197,12 +203,12 @@ Example Code
 segmentLength = ltpDequeueOutboundSegment(vspan, &segment);
 if (segmentLength < 0)
 {
-	/* handle error */
+ /* handle error */
 }
 
 if (segmentLength == 0)
 {
-	/* session is closed, take appropriate action */
+ /* session is closed, take appropriate action */
 
 }
 
@@ -222,7 +228,7 @@ After each successful iteration in a loop, it is recommended that you call `sm_T
 Function Prototype
 
 ```c
-int	ltpHandleInboundSegment(char *buf, int length)
+int ltpHandleInboundSegment(char *buf, int length)
 ```
 
 Parameters
@@ -240,11 +246,10 @@ Example Code
 ```c
 if (ltpHandleInboundSegment(buffer, segmentLength) < 0)
 {
-	putErrmsg("Can't handle inbound segment.", NULL);
-	/* handle error here */
+ putErrmsg("Can't handle inbound segment.", NULL);
+ /* handle error here */
 }`
 ```
-
 
 Description
 

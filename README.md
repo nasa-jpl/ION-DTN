@@ -3,77 +3,65 @@
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/lasuzuki/StrapDown.js/graphs/commit-activity)
 [![Open Source Love svg1](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
 
-# What is ION? 
-The NASA’s Interplanetary Overlay Network (ION) is an implementation of Delay/Disruption Tolerant Networking (DTN). 
+## What is ION
 
-DTN is a digital communication networking technology that enables data to be conveyed reliably among communicating entities when roundtrip times may be highly variable
-and/or very long. Data transmission is done automatically and reliably even if one or more of the network links in the end-to-end path between those entities is subject to very long signal propagation latency and/or prolonged intervals of unavailability.
+NASA’s Interplanetary Overlay Network (ION) is an implementation of Delay/Disruption Tolerant Networking (DTN).
 
-ION DTN is suitable to both planetary and interplanetary environments succeptible to communication delay and disruption.
+DTN is a digital communication networking technology that enables data to be conveyed reliably among communicating entities when round-trip times may be highly variable and/or very long. Data transmission is performed automatically and reliably even if one or more of the network links in the end-to-end path between those entities is subject to very long signal propagation latency and/or prolonged intervals of unavailability.
 
-## Quick Start
+ION DTN is suitable for both planetary and interplanetary environments succeptible to communication delay and disruption.
 
-**1. Linux, MacOS or Solaris**
-	To build and install the entire ION system on a `Linux, OS/X, or Solaris
-platform`, cd into ion-open-source and enter three commands:
+## Supported Platform
 
-````
-$ ./configure (If configure is not present run: "autoreconf -fi" first)
-$ make
-$ sudo make install
-````
-`NOTE`: if you want to set overriding compile-time switches for a build, 
-the place to do this is in the ./configure command.  For details,
+ION Open Source supports Linux and Solaris. Please consult the [Quick Start](./gh-pages/docs/ION-Quick-Start-Guide.md) for detailed instruction.
 
-````
-$ ./configure -h
-````
+Support for `FreeBSD`, `macOS`, `Windows`, `Raspberry Pi OS` are provided on a best-effort, test and report (BETR) level. We will try, with reasonable effort, to test, document and fix issues related to these platforms but they are not officially supported.
 
-**2. Android**
+Prototype demonstrations on how to build ION on `Android`, `RTEMS`, and `ARM-based AT91SAM9G20 board` are provided as is.
 
-	To build ION for `Android`, cd into ion-open-source/arch-android and see the instructions in the `README.bionic` text file.
+## ION-related Software Packages
 
-**3. RTEMS**
+### ION Open Source (IOS) Software Suite (this repository)
 
-	To build ION for `RTEMS`, cd into ion-open-source/arch-rtems and see the instructions in the README text file.
+IOS is a full featured collection of latest ION software, containing operational modules such as BP and LTP, experimental prototypes for upcoming features, and utilities/add-ons provided by external contributors. This package facilitates open-source development of ION, DTN technology research, and protocol standardization-related testing.
 
-**4. Windows** 
+<https://github.com/nasa-jpl/ion-dtn>
 
-	To build ION for `Windows`, see the instructions in the "Building ION from source on Windows.pdf" document.
+### ION Core Software Package
 
-**5. ARM-based AT91SAM9G20 board**
+ION-core is a streamlined package containing only a subset of core Bundle Protocol features, convergence layer adaptor (link) and applications that has been flight demonstrated and hardened via extensive end-to-end testing and stress testing. It provides the ability to selective compile a subset of modules.
 
-	To build ION for the `ARM-based AT91SAM9G20 board`, cd into ion-open-source/arch-uClibc and see the instructions in the "ARM build.pdf" file. 
+This package is designed for infusion/prototyping for embedded flight and ground systems.
 
-**6. Build individual ION packages**
+<https://github.com/nasa-jpl/ion-core>
 
-	It's also possible to build the individual packages of ION, using platform-specific Makefiles in the package subdirectories.  If you choose this option, be aware of the dependencies among the packages:
+### PyION
 
-* The `ici` package must be built (`make` and `make install`) before any other package.
+A python-based interface for rapid prototyping of DTN applications and DTN testing.
 
-* The `bp` package is dependent on `dgr` and "ltp" and `bssp` as well as `ici`.
-  		
-* The `cfdp`, `ams`, `bss`, and `dtpc` packages are dependent on `bp`.
+<https://github.com/nasa-jpl/pyion>
 
-* The `restart` package is dependent on `cfdp`, `bp`, `ltp`, and `ici`.
+### ION Configuration Tool & ION Network Model
 
-Also, be aware that these Makefiles install everything into subdirectories
-of /usr/local.  To override this behavior, change the value of OPT in the
-top-level Makefile of each package.
+Both Web-based and Command Line Interfaces for automated generation of ION configuration files.
 
-Additional details are provided in the README.txt files in the root
-directories of some of the subsystems.
+<https://github.com/nasa-jpl/ion-config-tool>
 
-Note that all Makefiles are for gmake; on a freebsd platform, be sure
-to install gmake before trying to build ION.
+<https://github.com/nasa-jpl/ion-network-model>
 
-## Tutorials and More
+## ION Documentation
 
-* Tutorials, applications of Artificial Intelligence and IoT, and further details on ION capabilities can be found on the [Wiki](https://github.com/nasa-jpl/ION-DTN/wiki) pages.
+Beginning with version 4.1.3, ION documentation is hosted here [online](https://ion-dtn.readthedocs.io).
 
-* Videos and documents and links to videos of the Interplanetary Overlay Network course can be found on the [NASA](https://www.nasa.gov/directorates/heo/scan/engineering/technology/disruption_tolerant_networking_software_options_ion) website.
+Under the `doc` subfolder, there are older versions of ION documents kept for user's reference if needed, but they will not be updated going forward and may be removed without prior notice. Users are encouraged to use the online documentation in order to receive the most up-to-date information on ION features and issues.
 
-* For details about changes regarding each ION release, please see the [Release Notes](./release-notes.txt)
+The `release-notes.txt` file will continue to be updated for each stable release.
+
+## Other Online Sources
+
+- Videos and documents and links to videos of the Interplanetary Overlay Network course can be found on the [NASA](https://www.nasa.gov/directorates/heo/scan/engineering/technology/disruption_tolerant_networking_software_options_ion) website.
+
+- For details about changes regarding each ION release, please see the [Release Notes](./release-notes.txt)
 
 ## Copyright and No Warranty Disclaimer
 
@@ -109,11 +97,11 @@ The QCBOR code included is distributed with the following condition
 **Copyright (c) 2016-2018, The Linux Foundation.
 Copyright (c) 2018-2019, Laurence Lundblade.
 All rights reserved.**
- 
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
-    * Redistributions of source code must retain the above copyright
+    *Redistributions of source code must retain the above copyright
       notice, this list of conditions and the following disclaimer.
     * Redistributions in binary form must reproduce the above
       copyright notice, this list of conditions and the following
@@ -123,7 +111,7 @@ are met:
       contributors, nor the name "Laurence Lundblade" may be used to
       endorse or promote products derived from this software without
       specific prior written permission.
- 
+
 This software is provided "AS IS" and any express or implied
 warranties, including, but not limited to, the implied warranties of
 merchantability, fitness for a particular purpose and non-infringement

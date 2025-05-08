@@ -1,6 +1,6 @@
 # ION Launcher
 
-*Last Updated: 12/27/2023*
+Last Updated: 12/27/2023
 
 Previous versions of ION required a good understanding of the different ION adminstrative programs, how to write RC files from them, and what the different configuration commands mean.
 
@@ -14,18 +14,15 @@ This section will outline the necessary parameters needed to create a simple mod
 
 There are seven parameters that are needed to define a simple network model. They are as follows:
 
-```
-NAME: serves as the key for the other parameters and naming start scripts
-IP ADDRESS: Host IP address or domain name the node will be running on
-NODE: assigned node number, will be used for addressing with neighbor(s)
-SERVICES: Applications running on the node, currently supports CFDP, AMS, & AMP
-DEST: node's neighbor(s)
-PROTOCOL: convergance layer to reach a neighbor. Currently supported options include LTP, TCP, UDP, and STCP. 
-            (untested options: BSSP & DCCP)
-RATE: Data rate used to communicate with neighbor(s), in bytes/s
-```
+- A node name, serves as the key for the other parameters and naming the start up script.
+- `IP` ADDRESS: Host IP address or domain name the node will be running on
+- `NODE`: assigned node number, will be used for addressing with neighbor(s)
+- `SERVICES`: Applications running on the node, currently supports CFDP, AMS, & AMP
+- `DEST`: node's neighbor(s)
+- `PROTOCOL`: convergance layer to reach a neighbor. Currently supported options include LTP, TCP, UDP, and STCP.(untested options: BSSP & DCCP)
+- `RATE`: Data rate used to communicate with neighbor(s), in bytes/s
 
-### Example Model
+### Example Model File
 
 There are a few example models included with the `ionlauncher` prototype under *example_models/*. This section shows one of them and explains how it works.
 
@@ -95,11 +92,11 @@ This section will outline how to run ionlauncher and what the different paramete
 
 `ionlauncher [-h] -n <node name> -m <simple model file> [-d <ionconfig cli directory>]`
 
-    -h: display help
-    -n: node name that will be used to start ION on the host
-    -m: path to simple model file, ionlauncher assumes the file 
+-h: display help
+-n: node name that will be used to start ION on the host
+-m: path to simple model file, ionlauncher assumes the file
         is in the same directory or a directory below
-    -d: optional parameter that defines the path to the ION Config 
+-d: optional parameter that defines the path to the ION Config
         tool CLI scripts, default is /home/$USER/ionconfig-4.8.1/cli/bin
 
 Once the ION configuration files have been generate. ION will be started using the configuration files for the node passed via `-n`.
@@ -112,11 +109,11 @@ The `ionlauncher` and associated `net_model_gen` python scripts will be installe
 
 For example, say the 3 node simple file is called `3node.json` and it is stored at directory `$WKDIR`. After cd into the working directory and executing the `ionlauncher`, a new directory `$WKDIR/3node-ion` will be created and it contains the following:
 
-* _ION model_ file in json format. Its name is the simple model filename + `-ion.json`. In this case, it will be called `3node-ion.json`. This file can be opened and edited by the ION Config Tool's browser-based GUI
-* _ION network model_ in json format. Its name is the simple model filename + `-net_model.json`. In this case, it will be called `3node-net_model.json`. This file can be opened and edited by the ION Network Model's browser-based GUI.
-* For details on how to use these files, please download the _ION Config Tool_ and the _ION Network Model_ from GitHub.com.
-* Each node will have its own subfolder: `$WKDIR/3node/SC`, `$WKDIR/3node/Relay`, and `$WKDIR/3node/GS`
-* Within each subfolder there will be a set of ION configutration files and a start script called `start_<node name>.sh`, that you can use to launch ION again.
+- *ION model* file in json format. Its name is the simple model filename + `-ion.json`. In this case, it will be called `3node-ion.json`. This file can be opened and edited by the ION Config Tool's browser-based GUI
+- *ION network model* in json format. Its name is the simple model filename + `-net_model.json`. In this case, it will be called `3node-net_model.json`. This file can be opened and edited by the ION Network Model's browser-based GUI.
+- For details on how to use these files, please download the *ION Config Tool* and the *ION Network Model* from GitHub.com.
+- Each node will have its own subfolder: `$WKDIR/3node/SC`, `$WKDIR/3node/Relay`, and `$WKDIR/3node/GS`
+- Within each subfolder there will be a set of ION configutration files and a start script called `start_<node name>.sh`, that you can use to launch ION again.
 
 After the initial ionlauncher run, the ION configuration files are generated for you based on the simple network model description and a set of default settings. To activate additional features, optimize parameters settings, and refine protocol behaviors, you will need to edit the ION config files individually. For those changes to take effect, you need to stop ION and restart ION using the start script in each node's working folder.
 

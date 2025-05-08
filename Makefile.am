@@ -293,10 +293,7 @@ stuff_SCRIPTS =	$(srcdir)/ionstart \
 
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
-	$(srcdir)/ionstart.awk \
-	ION.pdf \
-	$(srcdir)/ION-LTP-configuration.pdf \
-	$(srcdir)/ION-LTP-configuration_tool.xlsm
+	$(srcdir)/ionstart.awk
 
 #################
 #
@@ -305,7 +302,7 @@ otherstuff_DATA = \
 #################
 
 # example configuration items
-# loopback section (remember that you need an XXXdir and XXX_DATA for each
+# loopback section: remember that you need an XXXdir and XXX_DATA for each
 # folder, otherwise everything gets installed in a flat folder
 loopbackltpdir = $(pkgdatadir)/configs/loopback-ltp
 loopbackltp_DATA = \
@@ -3522,9 +3519,10 @@ doc/ION-beginning.ps: doc/ION-beginning.pdf
 else
 
 ION.pdf: doc/ION-beginning.pdf
+#   Will not build ION.pdf file if AUTODOC is off
 #	@echo "ION.pdf will remain unchanged."
-	@echo "ION.pdf will not have appendix."
-	cp doc/ION-beginning.pdf $@
+#	@echo "ION.pdf will not have appendix."
+#	cp $^ $@
 
 endif #ENABLE_AUTODOC
 

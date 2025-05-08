@@ -23,4 +23,3 @@ Normally, when ION's various daemons were stopped down by calling `ionstop`,  is
 * bpstats2
 * cfdptest
 * bpcrash
-

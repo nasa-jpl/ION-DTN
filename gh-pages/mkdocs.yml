@@ -80,6 +80,7 @@ nav:
     - Platform Macros & Error Reporting: Platform-Macros-Error-Reporting.md
     - ION Utility Programs: ION-Utilities.md
     - ION Coding Guide: ION-Coding-Guide.md
+    - CFDP Event Definitions: CFDP-Event-Definitions.md
     - SPP CLA Prototype Description: SPP-CLA-Prototype-Description.md
   - Man Pages:
     - Man Pages: Man-Page-Introduction.md
@@ -97,11 +98,11 @@ nav:
     - ION Node Restart Utility: man/restart/ionrestart.md
     - Delay Tolerant Key Administration: man/tc/index.md
   - Cloud Deployment:
-      Running 1 ION Node on Cloud VM: community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md
-      Running 2 ION Node on Cloud VM: community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md
-      ION and IOT: community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing.md
-      LTP and TCP on Azure: community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure.md
-      Multicast: community/dtn-multicasting-main/Multicasting-over-ION.md
-      Video Intelligence: community/dtn-video-intelligence-main/Video-Intelligence.md
+    - Running 1 ION Node on Cloud VM: community/dtn-gcp-main/ION-One-Node-on-Cloud-Linux-VM.md
+    - Running 2 ION Node on Cloud VM: community/dtn-gcp-2nodes/ION-Two-Node-on-Cloud-Linux-VMs.md
+    - ION and IOT: community/dtn-gcp-iot-main/ION-and-IOT-on-Linux-VMs-running-on-Cloud-Computing.md
+    - LTP and TCP on Azure: community/dtn-gcp-ltp-tcp-main/ION-LTP-TCP-on-Azure.md
+    - Multicast: community/dtn-multicasting-main/Multicasting-over-ION.md
+    - Video Intelligence: community/dtn-video-intelligence-main/Video-Intelligence.md
 
       

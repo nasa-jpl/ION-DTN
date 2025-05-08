@@ -1,1 +1,70 @@
-Test the Service Data Aggregation client operation defined in section 7 of the CCSDS LTP spec
+Test the Service Data Aggregation client operation defined in section 7 of the CCSDS LTP spec.
+
+8/25/2025
+
+This test demonstrates the use of two distinct client identifiers that operate at different protocol layers: an LTP-level service client ID and an SDA application-level client ID. Understanding the difference between them is key to interpreting the test results.
+
+1. LTP-Level Service Client ID
+
+The LTP-level client ID is required by the CCSDS LTP specification. Its purpose is to inform the receiving LTP engine which service should receive the LTP block. For this test, the LTP-level client ID is 2.
+
+According to the CCSDS specification, these standardized IDs include:
+
+1: Bundle Protocol
+2: LTP Service Data Aggregation (SDA)
+3: CCSDS File Delivery Protocol (CFDP)
+
+As required by the specification, this LTP-level ID is embedded as the first field in the payload section of each LTP Data Segment, immediately following the LTP header.
+
+2. SDA Application-Level Client ID
+The SDA application-level client ID operates within the SDA service and allows multiple applications to share the same SDA service. This ID is not an LTP-level concept but rather part of the SDA aggregation mechanism defined in Section 7 of the CCSDS LTP Blue Book.
+As specified in the CCSDS standard, SDA can aggregate data from multiple applications (each with different client service IDs) into a single LTP block. For example, SDA might combine:
+
+Bundle Protocol data (SDA client ID 1)
+CFDP data (SDA client ID 3)
+Custom application data (SDA client ID 135)
+
+All of this aggregated data is then transmitted to LTP using the single LTP-level client ID 2.
+In this test, the sdatest program uses an SDA application-level ID of 135. This ID is embedded at the beginning of each data item within the SDA payload, allowing SDA to demultiplex the data on the receiving side.
+
+LTP Data Segment Structure:
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                             LTP Data Segment                                   │
+├─────────────────────────┬───────────────────────────────────────────────────────┤
+│      LTP Header         │                LTP Payload                           │
+├─────────────────────────┼───────────────────────────────────────────────────────┤
+│ - Version & Seg Type    │ ┌─── **1st Field: Client Service ID (SDNV)**        │
+│ - Session ID            │ │    ← **THIS IS WHERE "2" GOES FOR SDA**            │
+│ - Engine ID             │ │                                                     │
+│ - Header Extensions     │ ├─── 2nd Field: Data Offset (SDNV)                  │
+│                         │ │                                                     │
+│                         │ ├─── 3rd Field: Data Length (SDNV)                  │
+│                         │ │                                                     │
+│                         │ ├─── [Optional: Checkpoint Serial Number]           │
+│                         │ │                                                     │
+│                         │ ├─── [Optional: Report Serial Number]               │
+│                         │ │                                                     │
+│                         │ └─── Actual Client Service Data:                    │
+│                         │      For SDA: [[135][Hello World][1][Bundle]...]    │
+│                         │      For BP:  [Bundle A][Bundle B][Bundle C]        │
+└─────────────────────────┴───────────────────────────────────────────────────────┘
+
+3. ION's Additional LTP-Level Aggregation
+ION also implements LTP-level aggregation (separate from SDA) that can aggregate multiple bundles into a single LTP block using client ID 1. This approach:
+
+a. Does not use explicit boundary markers (unlike SDA)
+b. Relies on Bundle Protocol's self-delimiting format for parsing
+c. Restricts aggregation to the same client service (e.g., all Bundle Protocol)
+d. Multiple bundles can be presented to LTP as a single Service Data Unit (SDU)
+
+Due to the intended use of ION for DTN operation and the self-delimiting nature of Bundle, by default ION relies on the LTP-level aggregation directly without using SDA. However, an updated SDA feature will be needed to support aggregated data if there is non-DTN data present in the aggregated SDU. This will require a feature upgrade to the current SDA module.
+
+Summary for Testers
+
+The primary goal of this test is to verify the correct implementation of:
+
+LTP-level service client ID 2 (routing LTP blocks to the SDA service)
+SDA application-level client ID 135 (demonstrating SDA's multiplexing capability as defined in the CCSDS standard)
+
+Both client IDs are essential for demonstrating compliance with the CCSDS SDA specification. The application-level ID (e.g., 135) demonstrate the ability to carrying multiple applications to efficiently share a single LTP transport.
+
