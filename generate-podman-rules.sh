@@ -2,7 +2,7 @@
 # generate-podman-rules.sh  <submodule>
 # Emits explicit rules such as
 #   ici/doc/ionunlock.1: ici/doc/pod1/ionunlock.pod
-#       pod2man -s 1 -c "ICI executables" $< $@
+#       pod2man -s 1 -c "ICI executables" $? $@
 
 set -e
 [ $# -eq 1 ] || { echo "Usage: $0 <submodule>" >&2; exit 1; }
@@ -25,7 +25,7 @@ for sec in 1 3 5; do
         base=$(basename "$pod" .pod)
 
         printf '%s/%s.%s: %s/%s.pod\n'  "$doc" "$base" "$sec"  "$dir" "$base"
-        printf '\tpod2man -s %s -c "%s %s" $< $@\n' \
+        printf '\tpod2man -s %s -c "%s %s" $? $@\n' \
                "$sec" "$modname" "$kind"
     done
 done
