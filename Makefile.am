@@ -3447,22 +3447,22 @@ ION.pdf: doc/ION-beginning.pdf
 endif #ENABLE_AUTODOC
 
 # ---- generated test rules (added by configure) ------------------
-include tests/testrules.mk
+include $(top_builddir)/tests/testrules.mk
 
 # ----  PS conversion & static lists-------------------------------
-include pstrules.mk    # am--include-marker
-include man-lists.mk   # am--include-marker
+include $(top_builddir)/pstrules.mk    # am--include-marker
+include $(top_builddir)/man-lists.mk   # am--include-marker
 
 # ---- generated man‑page rules (added by configure) --------------
-include ici/doc/podman.mk      # am--include-marker
-include ltp/doc/podman.mk      # am--include-marker
-include dgr/doc/podman.mk      # am--include-marker
-include nm/doc/podman.mk       # am--include-marker
-include bpv7/doc/podman.mk     # am--include-marker
-include tc/doc/podman.mk       # am--include-marker
-include ams/doc/podman.mk      # am--include-marker
-include cfdp/doc/podman.mk     # am--include-marker
-include bss/doc/podman.mk      # am--include-marker
-include bssp/doc/podman.mk     # am--include-marker
-include dtpc/doc/podman.mk     # am--include-marker
-include bpv6/doc/podman.mk     # am--include-marker
+include $(top_builddir)/ici/doc/podman.mk      # am--include-marker
+include $(top_builddir)/ltp/doc/podman.mk      # am--include-marker
+include $(top_builddir)/dgr/doc/podman.mk      # am--include-marker
+include $(top_builddir)/nm/doc/podman.mk       # am--include-marker
+include $(top_builddir)/bpv7/doc/podman.mk     # am--include-marker
+include $(top_builddir)/tc/doc/podman.mk       # am--include-marker
+include $(top_builddir)/ams/doc/podman.mk      # am--include-marker
+include $(top_builddir)/cfdp/doc/podman.mk     # am--include-marker
+include $(top_builddir)/bss/doc/podman.mk      # am--include-marker
+include $(top_builddir)/bssp/doc/podman.mk     # am--include-marker
+include $(top_builddir)/dtpc/doc/podman.mk     # am--include-marker
+include $(top_builddir)/bpv6/doc/podman.mk     # am--include-marker
