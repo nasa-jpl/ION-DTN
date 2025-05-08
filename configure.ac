@@ -829,17 +829,26 @@ AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([contrib/Makefile])
 
 dnl ===============================================================
+dnl  Guard: create empty stubs so depfiles never fail
+dnl ===============================================================
+AC_CONFIG_COMMANDS_PRE([
+  AS_MKDIR_P([tests])
+  : > tests/testrules.mk      dnl portable “touch” 0-byte file
+  : > pstrules.mk
+  : > man-lists.mk
+])
+
+dnl ===============================================================
 dnl  Autogenerate explicit man‑page rules (ISO‑C, no GNU % rules)
 dnl ===============================================================
 
 dnl ---- helper macro --------------------------------------------
 m4_define([ADD_PODMAN],[
-  dnl Generate   $1/doc/podman.mk   at configure time
-  AC_CONFIG_COMMANDS([$1/doc/podman.mk],
-    [ $srcdir/generate-podman-rules.sh $1 > $1/doc/podman.mk ],
-    [srcdir=$srcdir])
-])dnl --------------------------------------------------------------
-
+  AC_CONFIG_COMMANDS([$1/doc/podman.mk],[
+      AS_MKDIR_P([$1/doc])
+      $srcdir/generate-podman-rules.sh $1 > $1/doc/podman.mk
+    ],[srcdir=$srcdir])
+])dnl -------------------------------------------------------------
 
 
 dnl ---------- Always‑built sub‑modules ----------------------------
@@ -862,30 +871,28 @@ ADD_PODMAN(bpv6)
 
 
 dnl ===============================================================
-dnl  Autogenerate explicit test-<set> rules (ISO‑C, no GNU % rules)
+dnl  Autogenerate explicit test-<set> rules
 dnl ===============================================================
-
-AC_CONFIG_COMMANDS([tests/testrules.mk],
-  [ $srcdir/generate-test-rules.sh "$srcdir/tests" > tests/testrules.mk ],
-  [srcdir=$srcdir])
-
-
-dnl ===============================================================
-dnl  Autogenerate explicit PS conversion rules (ISO-C, no GNU % rules)
-dnl ===============================================================
-AC_CONFIG_COMMANDS([pstrules.mk],
-  [ $srcdir/generate-ps-rules.sh "$srcdir" > pstrules.mk ],
-  [srcdir=$srcdir])
-
+AC_CONFIG_COMMANDS([tests/testrules.mk],[
+    AS_MKDIR_P([tests])                       dnl ← create dir
+    $srcdir/generate-test-rules.sh "$srcdir/tests" > tests/testrules.mk
+  ],[srcdir=$srcdir])
 
 dnl ===============================================================
-dnl  Autogenerate static man-page lists (ISO-C, no GNU make functions)
+dnl  Autogenerate explicit PS conversion rules
 dnl ===============================================================
-AC_CONFIG_COMMANDS([man-lists.mk],
-  [ mkdir -p "$builddir"
+AC_CONFIG_COMMANDS([pstrules.mk],[
+    :                                           dnl (in top dir already)
+    $srcdir/generate-ps-rules.sh "$srcdir" > pstrules.mk
+  ],[srcdir=$srcdir])
+
+dnl ===============================================================
+dnl  Autogenerate static man-page lists
+dnl ===============================================================
+AC_CONFIG_COMMANDS([man-lists.mk],[
+    AS_MKDIR_P([$builddir])                   dnl ← “build” dir for out-of-tree
     "$srcdir/generate-man-lists.sh" "$srcdir" "$builddir"
-  ],
-  [srcdir=$srcdir builddir=$PWD])
+  ],[srcdir=$srcdir builddir=$PWD])
 
 
 dnl ===============================================================
