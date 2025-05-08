@@ -600,6 +600,12 @@ if test "x$enable_sysctl_check" = xyes; then
     fi
 fi
 
+# AMP default (user can specify version N using this command: "AMP_VERSION=N ./configure")
+# This addition resolves the prior GNU "AMP_VERSION ?= 8" lines in Makefile.am
+AC_ARG_VAR([AMP_VERSION], [AMP version number])
+test -z "$AMP_VERSION" && AMP_VERSION=8
+AC_SUBST([AMP_VERSION])
+
 AC_ARG_WITH([mysql],
 [AS_HELP_STRING([--with-mysql], [Enable MYSQL support for NM MGR])],
 [mysql=yes;],

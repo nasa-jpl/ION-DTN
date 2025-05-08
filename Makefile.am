@@ -865,6 +865,16 @@ udp2file_SOURCES = dgr/test/udp2file.c
 udp2file_LDADD = libici.la -lm
 udp2file_CFLAGS = $(dgrcflags) $(AM_CFLAGS)
 
+##########################
+#
+# AMP VERSION
+#
+##########################
+
+# Use outside conditional to avoid GNUism
+# Default is 8 (both BPV6 and BPv7)
+AMP_VERSION = @AMP_VERSION@
+
 if BUILD_BPv6
 ##########################
 #
@@ -1500,6 +1510,8 @@ bptransit_CFLAGS = $(bpcflags) $(AM_CFLAGS)
 #                                        
 ############################
 
+# AMP version set at top
+
 nmbin= nm_agent nm_mgr
 nmlib= libamp.la libampAgentADM.la
 
@@ -1513,8 +1525,6 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-AMP_VERSION ?= 8
-#$(warning "AMP_VERSION is ${AMP_VERSION}")
 NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
 
 # NM Shared library
@@ -2478,6 +2488,8 @@ tccadmin_CFLAGS = $(tccflags) $(AM_CFLAGS)
 #                                        
 ############################
 
+# AMP version set at top
+
 nmbin= nm_agent nm_mgr
 nmlib= libamp.la libampAgentADM.la
 
@@ -2491,8 +2503,6 @@ nm_cbor_src = \
 	nm/contrib/QCBOR/src/qcbor_decode.c \
 	nm/contrib/QCBOR/src/ieee754.c
 
-AMP_VERSION ?= 8
-#$(warning "AMP_VERSION is ${AMP_VERSION}")
 NM_CBOR_CFLAGS = -I $(srcdir)/nm/contrib/QCBOR/inc -DAMP_VERSION=${AMP_VERSION}
 
 # NM Shared library
