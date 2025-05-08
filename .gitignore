@@ -34,9 +34,22 @@ mod/
 */doc/podman.mk
 
 # Generated at configure time for ps and test rules
-man-lists.mk
-pstrules.mk
-tests/testrules.mk
+/tests/testrules.mk
+/pstrules.mk
+/man-lists.mk
+/ici/doc/podman.mk
+/ltp/doc/podman.mk
+/dgr/doc/podman.mk
+/nm/doc/podman.mk
+/bpv7/doc/podman.mk
+/tc/doc/podman.mk
+/ams/doc/podman.mk
+/cfdp/doc/podman.mk
+/bss/doc/podman.mk
+/bssp/doc/podman.mk
+/dtpc/doc/podman.mk
+/bpv6/doc/podman.mk
+
 
 # VsCode
 .vscode
