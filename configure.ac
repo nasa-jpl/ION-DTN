@@ -859,6 +859,8 @@ dnl ---------- Optional bpv6 ---------------------------------------
 ADD_PODMAN(bpv6)
 
 
+
+
 dnl ===============================================================
 dnl  Autogenerate explicit test-<set> rules (ISO‑C, no GNU % rules)
 dnl ===============================================================
@@ -884,5 +886,22 @@ AC_CONFIG_COMMANDS([man-lists.mk],
     "$srcdir/generate-man-lists.sh" "$srcdir" "$builddir"
   ],
   [srcdir=$srcdir builddir=$PWD])
+
+
+dnl ===============================================================
+dnl  Ensure required included *.mk files exist (POSIX make needs them)
+dnl ===============================================================
+AC_CONFIG_COMMANDS([podman-stubs], [
+  for f in \
+    pstrules.mk \
+    man-lists.mk \
+    tests/testrules.mk \
+    ici/doc/podman.mk ltp/doc/podman.mk dgr/doc/podman.mk \
+    nm/doc/podman.mk bpv7/doc/podman.mk tc/doc/podman.mk \
+    ams/doc/podman.mk cfdp/doc/podman.mk bss/doc/podman.mk \
+    bssp/doc/podman.mk dtpc/doc/podman.mk bpv6/doc/podman.mk; do
+    test -f "$f" || echo "# stub" > "$f"
+  done
+])
 
 AC_OUTPUT
