@@ -56,13 +56,18 @@ SUB3="WSL2";
 
 
 
-# Checks for programs.
-AC_PROG_CC
-AM_PROG_CC_C_O
-#Automake v1.12 wants AM_PROG_AR, but it doesn't exist <v1.12 so do this
-m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
+dnl =============================================================
+dnl Baseline tool checks
+dnl =============================================================
+AC_PROG_CC               dnl find a C compiler and set $CC
+AM_PROG_CC_C_O           dnl enable “-c -o file.o file.c” portability
+m4_ifdef([AM_PROG_AR],   dnl Automake ≥ 1.12 wants this
+          [AM_PROG_AR])  dnl (harmless no-op on older Automake)
 
-dnl --- Check for ISO C11 or fallback to C99 ---
+
+dnl =============================================================
+dnl  Prefer ISO C11, fall back to ISO C99  (portable  ≥ Autoconf 2.60)
+dnl =============================================================
 AC_CACHE_CHECK([whether $CC supports C11], [ac_cv_c11],
   [save_CFLAGS="$CFLAGS"
    CFLAGS="$CFLAGS -std=c11"
@@ -90,11 +95,11 @@ else
   fi
 fi
 
+
 LT_INIT
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 LT_INIT
-
 
 
 # Check for library functions
@@ -805,7 +810,7 @@ AC_RUN_IFELSE(
 # commented out library functions that should exist everywhere.
 # otherwise, autoconf insisted that malloc.c, mktime.c were included in distro...
 AC_FUNC_FORK
-AC_PROG_GCC_TRADITIONAL
+#AC_PROG_GCC_TRADITIONAL
 #AC_FUNC_MALLOC
 #AC_FUNC_MEMCMP
 #AC_FUNC_MKTIME
