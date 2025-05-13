@@ -132,6 +132,24 @@ cov:
 	@echo "You must use \"configure --with-gcov\" to enable coverage testing features"
 endif # end ENABLE_GCOV
 
+# remove podman.mk, etc rules only if distclean is run (implies autoreconf -fi will be run next)
+distclean-local:
+	rm -f $(top_builddir)/ici/doc/podman.mk
+	rm -f $(top_builddir)/ltp/doc/podman.mk
+	rm -f $(top_builddir)/dgr/doc/podman.mk
+	rm -f $(top_builddir)/nm/doc/podman.mk
+	rm -f $(top_builddir)/bpv7/doc/podman.mk
+	rm -f $(top_builddir)/tc/doc/podman.mk
+	rm -f $(top_builddir)/ams/doc/podman.mk
+	rm -f $(top_builddir)/cfdp/doc/podman.mk
+	rm -f $(top_builddir)/bss/doc/podman.mk
+	rm -f $(top_builddir)/bssp/doc/podman.mk
+	rm -f $(top_builddir)/dtpc/doc/podman.mk
+	rm -f $(top_builddir)/bpv6/doc/podman.mk
+	rm -f $(top_builddir)/tests/testrules.mk
+	rm -f $(top_builddir)/pstrules.mk
+	rm -f $(top_builddir)/man-lists.mk
+
 
 # clean-local refers to existing documents.
 clean-local: iciclean-local ltpclean-local dgrclean-local bpclean-local amsclean-local cfdpclean-local
