@@ -31,17 +31,20 @@ function stop_and_exit() {
 # Process check -------------------------------------------------------
 check_process_running() {
     if [ "$1" = "windows" ]; then
-        ps | grep "$BENCHR_PID" | grep -v grep > /dev/null 2>&1
+        if [ -n "${BENCHR_PID:-}" ] && ps -p "$BENCHR_PID" > /dev/null 2>&1; then
+            return 0  # Process is running
+        else
+            return 1  # Process is not running or PID is unset
+        fi
     else
-        kill -0 $BENCHR_PID >/dev/null 2>&1
-    fi
-
-    if [ "$?" -eq 0 ]; then
-        return 0  # Process is running (success)
-    else
-        return 1  # Process is not running (failure)
+        if [ -n "${BENCHR_PID:-}" ] && kill -0 "$BENCHR_PID" >/dev/null 2>&1; then
+            return 0  # Process is running
+        else
+            return 1  # Process is not running or PID is unset
+        fi
     fi
 }
+
 
 
 # Ensure cleanup prior to execution
