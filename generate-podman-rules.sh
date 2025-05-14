@@ -23,12 +23,10 @@ for sec in 1 3 5; do
     for pod in "$dir"/*.pod; do
         [ -f "$pod" ] || continue
         base=$(basename "$pod" .pod)
-        # Store the absolute path of the pod file
-        abs_pod=$(realpath "$pod")
 
-        printf '%s/%s.%s: %s/%s.pod\n'  "$doc" "$base" "$sec"  "$dir" "$base"
-        # Use the absolute path in the pod2man command
-        printf '\tpod2man -s %s -c "%s %s" \$? $@\n' \
-               "$sec" "$modname" "$kind" "$abs_pod" 
+        # IMPORTANT:  Generate target path WITHOUT "./"
+        target_path="$doc/$base.$sec"
+        printf '%s: %s/%s.pod\n' "$target_path" "$dir" "$base"
+        printf '\tpod2man -s %s -c "%s %s" \$? $@\n' "$sec" "$modname" "$kind"
     done
 done

@@ -260,7 +260,7 @@ stuff_SCRIPTS =	$(srcdir)/ionstart \
 otherstuffdir = $(pkgdatadir)
 otherstuff_DATA = \
 	$(srcdir)/ionstart.awk \
-	$(srcdir)/ION.pdf \
+	ION.pdf \
 	$(srcdir)/ION-LTP-configuration.pdf \
 	$(srcdir)/ION-LTP-configuration_tool.xlsm
 
@@ -477,45 +477,45 @@ iciextra += \
 endif # end BUILD_BPv7
 
 icimans = \
-	$(top_builddir)/ici/doc/file2sdr.1 \
-	$(top_builddir)/ici/doc/file2sm.1 \
-	$(top_builddir)/ici/doc/ionadmin.1 \
-	$(top_builddir)/ici/doc/ionlog.1 \
-	$(top_builddir)/ici/doc/ionsecadmin.1 \
-	$(top_builddir)/ici/doc/ionunlock.1 \
-	$(top_builddir)/ici/doc/ionxnowner.1 \
-	$(top_builddir)/ici/doc/owltsim.1 \
-	$(top_builddir)/ici/doc/owlttb.1 \
-	$(top_builddir)/ici/doc/psmshell.1 \
-	$(top_builddir)/ici/doc/psmwatch.1 \
-	$(top_builddir)/ici/doc/rfxclock.1 \
-	$(top_builddir)/ici/doc/sdr2file.1 \
-	$(top_builddir)/ici/doc/sdrmend.1 \
-	$(top_builddir)/ici/doc/sdrwatch.1 \
-	$(top_builddir)/ici/doc/sm2file.1 \
-	$(top_builddir)/ici/doc/smlistsh.1 \
-	$(top_builddir)/ici/doc/smrbtsh.1 \
-	$(top_builddir)/ici/doc/ion.3 \
-	$(top_builddir)/ici/doc/llcv.3 \
-	$(top_builddir)/ici/doc/lyst.3 \
-	$(top_builddir)/ici/doc/memmgr.3 \
-	$(top_builddir)/ici/doc/platform.3 \
-	$(top_builddir)/ici/doc/psm.3 \
-	$(top_builddir)/ici/doc/sdr.3 \
-	$(top_builddir)/ici/doc/sdrhash.3 \
-	$(top_builddir)/ici/doc/sdrlist.3 \
-	$(top_builddir)/ici/doc/sdrstring.3 \
-	$(top_builddir)/ici/doc/sdrtable.3 \
-	$(top_builddir)/ici/doc/smlist.3 \
-	$(top_builddir)/ici/doc/smrbt.3 \
-	$(top_builddir)/ici/doc/zco.3 \
-	$(top_builddir)/ici/doc/ionconfig.5 \
-	$(top_builddir)/ici/doc/ionrc.5 \
-	$(top_builddir)/ici/doc/ionsecrc.5
+	ici/doc/file2sdr.1 \
+	ici/doc/file2sm.1 \
+	ici/doc/ionadmin.1 \
+	ici/doc/ionlog.1 \
+	ici/doc/ionsecadmin.1 \
+	ici/doc/ionunlock.1 \
+	ici/doc/ionxnowner.1 \
+	ici/doc/owltsim.1 \
+	ici/doc/owlttb.1 \
+	ici/doc/psmshell.1 \
+	ici/doc/psmwatch.1 \
+	ici/doc/rfxclock.1 \
+	ici/doc/sdr2file.1 \
+	ici/doc/sdrmend.1 \
+	ici/doc/sdrwatch.1 \
+	ici/doc/sm2file.1 \
+	ici/doc/smlistsh.1 \
+	ici/doc/smrbtsh.1 \
+	ici/doc/ion.3 \
+	ici/doc/llcv.3 \
+	ici/doc/lyst.3 \
+	ici/doc/memmgr.3 \
+	ici/doc/platform.3 \
+	ici/doc/psm.3 \
+	ici/doc/sdr.3 \
+	ici/doc/sdrhash.3 \
+	ici/doc/sdrlist.3 \
+	ici/doc/sdrstring.3 \
+	ici/doc/sdrtable.3 \
+	ici/doc/smlist.3 \
+	ici/doc/smrbt.3 \
+	ici/doc/zco.3 \
+	ici/doc/ionconfig.5 \
+	ici/doc/ionrc.5 \
+	ici/doc/ionsecrc.5
 if BUILD_BPv7
 icimans += \
-	$(top_builddir)/ici/doc/ioncbor.3 \
-	$(top_builddir)/ici/doc/ioncrc.3
+	ici/doc/ioncbor.3 \
+	ici/doc/ioncrc.3
 endif # end BUILD_BPv7
 
 iciclean-local:
@@ -702,18 +702,18 @@ ltpextra = \
 	ltp/doc/pod5/ltprc.pod
 
 ltpmans = \
-	$(top_builddir)/ltp/doc/dccplsi.1 \
-	$(top_builddir)/ltp/doc/dccplso.1 \
-	$(top_builddir)/ltp/doc/ltpadmin.1 \
-	$(top_builddir)/ltp/doc/ltpclock.1 \
-	$(top_builddir)/ltp/doc/ltpcounter.1 \
-	$(top_builddir)/ltp/doc/ltpdriver.1 \
-	$(top_builddir)/ltp/doc/ltpmeter.1 \
-	$(top_builddir)/ltp/doc/ltpsecadmin.1 \
-	$(top_builddir)/ltp/doc/udplsi.1 \
-	$(top_builddir)/ltp/doc/udplso.1 \
-	$(top_builddir)/ltp/doc/ltp.3 \
-	$(top_builddir)/ltp/doc/ltprc.5
+	ltp/doc/dccplsi.1 \
+	ltp/doc/dccplso.1 \
+	ltp/doc/ltpadmin.1 \
+	ltp/doc/ltpclock.1 \
+	ltp/doc/ltpcounter.1 \
+	ltp/doc/ltpdriver.1 \
+	ltp/doc/ltpmeter.1 \
+	ltp/doc/ltpsecadmin.1 \
+	ltp/doc/udplsi.1 \
+	ltp/doc/udplso.1 \
+	ltp/doc/ltp.3 \
+	ltp/doc/ltprc.5
 
 ltpclean-local:
 	rm -f $(top_builddir)/ltp/doc/*.1
@@ -845,7 +845,7 @@ dgrextra = \
 	dgr/doc/pod3/dgr.pod
 
 dgrmans = \
-	$(top_builddir)/dgr/doc/dgr.3
+	 dgr/doc/dgr.3
 
 dgrclean-local:
 	rm -f $(top_builddir)/dgr/doc/*.1
@@ -1094,76 +1094,76 @@ bpextra += \
 endif # end ENABLE_IMC
 
 bpmans = \
-	$(top_builddir)/bpv6/doc/bibeclo.1 \
-	$(top_builddir)/bpv6/doc/bpadmin.1 \
-	$(top_builddir)/bpv6/doc/bpcancel.1 \
-	$(top_builddir)/bpv6/doc/bpchat.1 \
-	$(top_builddir)/bpv6/doc/bpclm.1 \
-	$(top_builddir)/bpv6/doc/bpclock.1 \
-	$(top_builddir)/bpv6/doc/bpcounter.1 \
-	$(top_builddir)/bpv6/doc/bpdriver.1 \
-	$(top_builddir)/bpv6/doc/bpecho.1 \
-	$(top_builddir)/bpv6/doc/bping.1 \
-	$(top_builddir)/bpv6/doc/bplist.1 \
-	$(top_builddir)/bpv6/doc/bpnmtest.1 \
-	$(top_builddir)/bpv6/doc/bprecvfile.1 \
-	$(top_builddir)/bpv6/doc/bprecvtest.1 \
-	$(top_builddir)/bpv6/doc/bpsecadmin.1 \
-	$(top_builddir)/bpv6/doc/bpsendfile.1 \
-	$(top_builddir)/bpv6/doc/bpsendtest.1 \
-	$(top_builddir)/bpv6/doc/bpsink.1 \
-	$(top_builddir)/bpv6/doc/bpsource.1 \
-	$(top_builddir)/bpv6/doc/bpstats.1 \
-	$(top_builddir)/bpv6/doc/bpstats2.1 \
-	$(top_builddir)/bpv6/doc/bptrace.1 \
-	$(top_builddir)/bpv6/doc/bptransit.1 \
-	$(top_builddir)/bpv6/doc/brsccla.1 \
-	$(top_builddir)/bpv6/doc/brsscla.1 \
-	$(top_builddir)/bpv6/doc/cgrfetch.1 \
-	$(top_builddir)/bpv6/doc/dccpcli.1 \
-	$(top_builddir)/bpv6/doc/dccpclo.1 \
-	$(top_builddir)/bpv6/doc/dgrcli.1 \
-	$(top_builddir)/bpv6/doc/dgrclo.1 \
-	$(top_builddir)/bpv6/doc/dtn2admin.1 \
-	$(top_builddir)/bpv6/doc/dtn2adminep.1 \
-	$(top_builddir)/bpv6/doc/dtn2fw.1 \
-	$(top_builddir)/bpv6/doc/hmackeys.1 \
-	$(top_builddir)/bpv6/doc/ipnadmin.1 \
-	$(top_builddir)/bpv6/doc/ipnadminep.1 \
-	$(top_builddir)/bpv6/doc/ipnd.1 \
-	$(top_builddir)/bpv6/doc/ipnfw.1 \
-	$(top_builddir)/bpv6/doc/lgagent.1 \
-	$(top_builddir)/bpv6/doc/lgsend.1 \
-	$(top_builddir)/bpv6/doc/ltpcli.1 \
-	$(top_builddir)/bpv6/doc/ltpclo.1 \
-	$(top_builddir)/bpv6/doc/stcpcli.1 \
-	$(top_builddir)/bpv6/doc/stcpclo.1 \
-	$(top_builddir)/bpv6/doc/tcpcli.1 \
-	$(top_builddir)/bpv6/doc/tcpclo.1 \
-	$(top_builddir)/bpv6/doc/udpcli.1 \
-	$(top_builddir)/bpv6/doc/udpclo.1 \
-	$(top_builddir)/bpv6/doc/bp.3 \
-	$(top_builddir)/bpv6/doc/bpextensions.3 \
-	$(top_builddir)/bpv6/doc/bprc.5 \
-	$(top_builddir)/bpv6/doc/bpsecrc.5 \
-	$(top_builddir)/bpv6/doc/dtn2rc.5 \
-	$(top_builddir)/bpv6/doc/ipnrc.5 \
-	$(top_builddir)/bpv6/doc/lgfile.5
+	bpv6/doc/bibeclo.1 \
+	bpv6/doc/bpadmin.1 \
+	bpv6/doc/bpcancel.1 \
+	bpv6/doc/bpchat.1 \
+	bpv6/doc/bpclm.1 \
+	bpv6/doc/bpclock.1 \
+	bpv6/doc/bpcounter.1 \
+	bpv6/doc/bpdriver.1 \
+	bpv6/doc/bpecho.1 \
+	bpv6/doc/bping.1 \
+	bpv6/doc/bplist.1 \
+	bpv6/doc/bpnmtest.1 \
+	bpv6/doc/bprecvfile.1 \
+	bpv6/doc/bprecvtest.1 \
+	bpv6/doc/bpsecadmin.1 \
+	bpv6/doc/bpsendfile.1 \
+	bpv6/doc/bpsendtest.1 \
+	bpv6/doc/bpsink.1 \
+	bpv6/doc/bpsource.1 \
+	bpv6/doc/bpstats.1 \
+	bpv6/doc/bpstats2.1 \
+	bpv6/doc/bptrace.1 \
+	bpv6/doc/bptransit.1 \
+	bpv6/doc/brsccla.1 \
+	bpv6/doc/brsscla.1 \
+	bpv6/doc/cgrfetch.1 \
+	bpv6/doc/dccpcli.1 \
+	bpv6/doc/dccpclo.1 \
+	bpv6/doc/dgrcli.1 \
+	bpv6/doc/dgrclo.1 \
+	bpv6/doc/dtn2admin.1 \
+	bpv6/doc/dtn2adminep.1 \
+	bpv6/doc/dtn2fw.1 \
+	bpv6/doc/hmackeys.1 \
+	bpv6/doc/ipnadmin.1 \
+	bpv6/doc/ipnadminep.1 \
+	bpv6/doc/ipnd.1 \
+	bpv6/doc/ipnfw.1 \
+	bpv6/doc/lgagent.1 \
+	bpv6/doc/lgsend.1 \
+	bpv6/doc/ltpcli.1 \
+	bpv6/doc/ltpclo.1 \
+	bpv6/doc/stcpcli.1 \
+	bpv6/doc/stcpclo.1 \
+	bpv6/doc/tcpcli.1 \
+	bpv6/doc/tcpclo.1 \
+	bpv6/doc/udpcli.1 \
+	bpv6/doc/udpclo.1 \
+	bpv6/doc/bp.3 \
+	bpv6/doc/bpextensions.3 \
+	bpv6/doc/bprc.5 \
+	bpv6/doc/bpsecrc.5 \
+	bpv6/doc/dtn2rc.5 \
+	bpv6/doc/ipnrc.5 \
+	bpv6/doc/lgfile.5
 
 # ACS only exists in BPv6 so only build the docs if BPv6 and ACS is enabled
 if ENABLE_BPACS
 bpmans += \
-	$(top_builddir)/bpv6/doc/acsadmin.1 \
-	$(top_builddir)/bpv6/doc/acslist.1 \
-	$(top_builddir)/bpv6/doc/acsrc.5
+	bpv6/doc/acsadmin.1 \
+	bpv6/doc/acslist.1 \
+	bpv6/doc/acsrc.5
 endif # end ENABLE_BPACS
 
 
 if ENABLE_IMC
 bpmans += \
-	$(top_builddir)/bpv6/doc/imcadmin.1 \
-	$(top_builddir)/bpv6/doc/imcfw.1 \
-	$(top_builddir)/bpv6/doc/imcrc.5
+	bpv6/doc/imcadmin.1 \
+	bpv6/doc/imcfw.1 \
+	bpv6/doc/imcrc.5
 endif # end ENABLE_IMC
 
 
@@ -1627,8 +1627,8 @@ nmextra = \
 	nm/doc/pod1/nm_mgr.pod
 
 nmmans = \
-	$(top_builddir)/nm/doc/nm_agent.1 \
-	$(top_builddir)/nm/doc/nm_mgr.1
+	 nm/doc/nm_agent.1 \
+	 nm/doc/nm_mgr.1
 
 libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
 libampAgentADM_la_CFLAGS =  -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR)/library/ext/sbsp -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
@@ -1908,69 +1908,69 @@ bpextra += \
 endif # end ENABLE_IMC
 
 bpmans = \
-	$(top_builddir)/bpv7/doc/bibeadmin.1 \
-	$(top_builddir)/bpv7/doc/bibeclo.1 \
-	$(top_builddir)/bpv7/doc/bpadmin.1 \
-	$(top_builddir)/bpv7/doc/bpcancel.1 \
-	$(top_builddir)/bpv7/doc/bpchat.1 \
-	$(top_builddir)/bpv7/doc/bpclm.1 \
-	$(top_builddir)/bpv7/doc/bpclock.1 \
-	$(top_builddir)/bpv7/doc/bpcounter.1 \
-	$(top_builddir)/bpv7/doc/bpdriver.1 \
-	$(top_builddir)/bpv7/doc/bpecho.1 \
-	$(top_builddir)/bpv7/doc/bping.1 \
-	$(top_builddir)/bpv7/doc/bplist.1 \
-	$(top_builddir)/bpv7/doc/bpnmtest.1 \
-	$(top_builddir)/bpv7/doc/bprecvfile.1 \
-	$(top_builddir)/bpv7/doc/bprecvtest.1 \
-	$(top_builddir)/bpv7/doc/bpsecadmin.1 \
-	$(top_builddir)/bpv7/doc/bpsendfile.1 \
-	$(top_builddir)/bpv7/doc/bpsendtest.1 \
-	$(top_builddir)/bpv7/doc/bpsink.1 \
-	$(top_builddir)/bpv7/doc/bpsource.1 \
-	$(top_builddir)/bpv7/doc/bpstats.1 \
-	$(top_builddir)/bpv7/doc/bpstats2.1 \
-	$(top_builddir)/bpv7/doc/bptrace.1 \
-	$(top_builddir)/bpv7/doc/bptransit.1 \
-	$(top_builddir)/bpv7/doc/brsccla.1 \
-	$(top_builddir)/bpv7/doc/brsscla.1 \
-	$(top_builddir)/bpv7/doc/cgrfetch.1 \
-	$(top_builddir)/bpv7/doc/dccpcli.1 \
-	$(top_builddir)/bpv7/doc/dccpclo.1 \
-	$(top_builddir)/bpv7/doc/dgrcli.1 \
-	$(top_builddir)/bpv7/doc/dgrclo.1 \
-	$(top_builddir)/bpv7/doc/dtn2admin.1 \
-	$(top_builddir)/bpv7/doc/dtn2adminep.1 \
-	$(top_builddir)/bpv7/doc/dtn2fw.1 \
-	$(top_builddir)/bpv7/doc/hmackeys.1 \
-	$(top_builddir)/bpv7/doc/ipnadmin.1 \
-	$(top_builddir)/bpv7/doc/ipnadminep.1 \
-	$(top_builddir)/bpv7/doc/ipnd.1 \
-	$(top_builddir)/bpv7/doc/ipnfw.1 \
-	$(top_builddir)/bpv7/doc/lgagent.1 \
-	$(top_builddir)/bpv7/doc/lgsend.1 \
-	$(top_builddir)/bpv7/doc/ltpcli.1 \
-	$(top_builddir)/bpv7/doc/ltpclo.1 \
-	$(top_builddir)/bpv7/doc/recvfile.1 \
-	$(top_builddir)/bpv7/doc/sendfile.1 \
-	$(top_builddir)/bpv7/doc/stcpcli.1 \
-	$(top_builddir)/bpv7/doc/stcpclo.1 \
-	$(top_builddir)/bpv7/doc/tcpcli.1 \
-	$(top_builddir)/bpv7/doc/tcpclo.1 \
-	$(top_builddir)/bpv7/doc/udpcli.1 \
-	$(top_builddir)/bpv7/doc/udpclo.1 \
-	$(top_builddir)/bpv7/doc/bp.3 \
-	$(top_builddir)/bpv7/doc/bpextensions.3 \
-	$(top_builddir)/bpv7/doc/biberc.5 \
-	$(top_builddir)/bpv7/doc/bprc.5 \
-	$(top_builddir)/bpv7/doc/bpsecrc.5 \
-	$(top_builddir)/bpv7/doc/dtn2rc.5 \
-	$(top_builddir)/bpv7/doc/ipnrc.5 \
-	$(top_builddir)/bpv7/doc/lgfile.5
+	bpv7/doc/bibeadmin.1 \
+	bpv7/doc/bibeclo.1 \
+	bpv7/doc/bpadmin.1 \
+	bpv7/doc/bpcancel.1 \
+	bpv7/doc/bpchat.1 \
+	bpv7/doc/bpclm.1 \
+	bpv7/doc/bpclock.1 \
+	bpv7/doc/bpcounter.1 \
+	bpv7/doc/bpdriver.1 \
+	bpv7/doc/bpecho.1 \
+	bpv7/doc/bping.1 \
+	bpv7/doc/bplist.1 \
+	bpv7/doc/bpnmtest.1 \
+	bpv7/doc/bprecvfile.1 \
+	bpv7/doc/bprecvtest.1 \
+	bpv7/doc/bpsecadmin.1 \
+	bpv7/doc/bpsendfile.1 \
+	bpv7/doc/bpsendtest.1 \
+	bpv7/doc/bpsink.1 \
+	bpv7/doc/bpsource.1 \
+	bpv7/doc/bpstats.1 \
+	bpv7/doc/bpstats2.1 \
+	bpv7/doc/bptrace.1 \
+	bpv7/doc/bptransit.1 \
+	bpv7/doc/brsccla.1 \
+	bpv7/doc/brsscla.1 \
+	bpv7/doc/cgrfetch.1 \
+	bpv7/doc/dccpcli.1 \
+	bpv7/doc/dccpclo.1 \
+	bpv7/doc/dgrcli.1 \
+	bpv7/doc/dgrclo.1 \
+	bpv7/doc/dtn2admin.1 \
+	bpv7/doc/dtn2adminep.1 \
+	bpv7/doc/dtn2fw.1 \
+	bpv7/doc/hmackeys.1 \
+	bpv7/doc/ipnadmin.1 \
+	bpv7/doc/ipnadminep.1 \
+	bpv7/doc/ipnd.1 \
+	bpv7/doc/ipnfw.1 \
+	bpv7/doc/lgagent.1 \
+	bpv7/doc/lgsend.1 \
+	bpv7/doc/ltpcli.1 \
+	bpv7/doc/ltpclo.1 \
+	bpv7/doc/recvfile.1 \
+	bpv7/doc/sendfile.1 \
+	bpv7/doc/stcpcli.1 \
+	bpv7/doc/stcpclo.1 \
+	bpv7/doc/tcpcli.1 \
+	bpv7/doc/tcpclo.1 \
+	bpv7/doc/udpcli.1 \
+	bpv7/doc/udpclo.1 \
+	bpv7/doc/bp.3 \
+	bpv7/doc/bpextensions.3 \
+	bpv7/doc/biberc.5 \
+	bpv7/doc/bprc.5 \
+	bpv7/doc/bpsecrc.5 \
+	bpv7/doc/dtn2rc.5 \
+	bpv7/doc/ipnrc.5 \
+	bpv7/doc/lgfile.5
 
 if ENABLE_IMC
 bpmans += \
-	$(top_builddir)/bpv7/doc/imcfw.1
+	bpv7/doc/imcfw.1
 endif # end ENABLE_IMC
 
 
@@ -2417,19 +2417,19 @@ tcextra = \
 	tc/doc/pod5/tccrc.pod
 
 tcmans = \
-	$(top_builddir)/tc/doc/dtka.1 \
-	$(top_builddir)/tc/doc/dtkaadmin.1 \
-	$(top_builddir)/tc/doc/tcaadmin.1 \
-	$(top_builddir)/tc/doc/tcaboot.1 \
-	$(top_builddir)/tc/doc/tcacompile.1 \
-	$(top_builddir)/tc/doc/tcapublish.1 \
-	$(top_builddir)/tc/doc/tcarecv.1 \
-	$(top_builddir)/tc/doc/tcc.1 \
-	$(top_builddir)/tc/doc/tccadmin.1 \
-	$(top_builddir)/tc/doc/tc.3 \
-	$(top_builddir)/tc/doc/dtkarc.5 \
-	$(top_builddir)/tc/doc/tcarc.5 \
-	$(top_builddir)/tc/doc/tccrc.5
+	tc/doc/dtka.1 \
+	tc/doc/dtkaadmin.1 \
+	tc/doc/tcaadmin.1 \
+	tc/doc/tcaboot.1 \
+	tc/doc/tcacompile.1 \
+	tc/doc/tcapublish.1 \
+	tc/doc/tcarecv.1 \
+	tc/doc/tcc.1 \
+	tc/doc/tccadmin.1 \
+	tc/doc/tc.3 \
+	tc/doc/dtkarc.5 \
+	tc/doc/tcarc.5 \
+	tc/doc/tccrc.5
 
 tcclean-local:
 	rm -f $(top_builddir)/tc/doc/*.1
@@ -2601,8 +2601,8 @@ nmextra = \
 	nm/doc/pod1/nm_mgr.pod
 
 nmmans = \
-	$(top_builddir)/nm/doc/nm_agent.1 \
-	$(top_builddir)/nm/doc/nm_mgr.1
+	nm/doc/nm_agent.1 \
+	nm/doc/nm_mgr.1
 
 libampAgentADM_la_SOURCES = $(nm_agent_ADM_SOURCES)
 libampAgentADM_la_CFLAGS =  -I$(srcdir)/nm -I$(srcdir)/nm/shared/adm -I$(BP_SRC_DIR) -I$(BP_SRC_DIR)/library/ext/bpsec -I$(BP_SRC_DIR)/library -I$(srcdir)/ltp/library $(NM_CBOR_CFLAGS) $(AM_CFLAGS) $(NO_UNUSED_VARIABLE) 
@@ -2710,22 +2710,22 @@ amsextra = \
 	ams/test/amspubsub.c
 
 amsmans = \
-	$(top_builddir)/ams/doc/amsbenchr.1 \
-	$(top_builddir)/ams/doc/amsbenchs.1 \
-	$(top_builddir)/ams/doc/amsd.1 \
-	$(top_builddir)/ams/doc/amshello.1 \
-	$(top_builddir)/ams/doc/amslog.1 \
-	$(top_builddir)/ams/doc/amslogprt.1 \
-	$(top_builddir)/ams/doc/amsmib.1 \
-	$(top_builddir)/ams/doc/amspub.1 \
-	$(top_builddir)/ams/doc/amsshell.1 \
-	$(top_builddir)/ams/doc/amsstop.1 \
-	$(top_builddir)/ams/doc/amssub.1 \
-	$(top_builddir)/ams/doc/ramsgate.1 \
-	$(top_builddir)/ams/doc/ams.3 \
-	$(top_builddir)/ams/doc/amsrc.5 \
-	$(top_builddir)/ams/doc/amsxml.5 \
-	$(top_builddir)/ams/doc/petition_log.5
+	ams/doc/amsbenchr.1 \
+	ams/doc/amsbenchs.1 \
+	ams/doc/amsd.1 \
+	ams/doc/amshello.1 \
+	ams/doc/amslog.1 \
+	ams/doc/amslogprt.1 \
+	ams/doc/amsmib.1 \
+	ams/doc/amspub.1 \
+	ams/doc/amsshell.1 \
+	ams/doc/amsstop.1 \
+	ams/doc/amssub.1 \
+	ams/doc/ramsgate.1 \
+	ams/doc/ams.3 \
+	ams/doc/amsrc.5 \
+	ams/doc/amsxml.5 \
+	ams/doc/petition_log.5
 
 amsclean-local:
 	rm -f $(top_builddir)/ams/doc/*.1
@@ -2863,14 +2863,14 @@ cfdpextra = \
 	cfdp/doc/pod5/cfdprc.pod
 
 cfdpmans = \
-	$(top_builddir)/cfdp/doc/bpcp.1 \
-	$(top_builddir)/cfdp/doc/bpcpd.1 \
-	$(top_builddir)/cfdp/doc/bputa.1 \
-	$(top_builddir)/cfdp/doc/cfdpadmin.1 \
-	$(top_builddir)/cfdp/doc/cfdpclock.1 \
-	$(top_builddir)/cfdp/doc/cfdptest.1 \
-	$(top_builddir)/cfdp/doc/cfdp.3 \
-	$(top_builddir)/cfdp/doc/cfdprc.5
+	cfdp/doc/bpcp.1 \
+	cfdp/doc/bpcpd.1 \
+	cfdp/doc/bputa.1 \
+	cfdp/doc/cfdpadmin.1 \
+	cfdp/doc/cfdpclock.1 \
+	cfdp/doc/cfdptest.1 \
+	cfdp/doc/cfdp.3 \
+	cfdp/doc/cfdprc.5
 
 cfdpclean-local:
 	rm -f $(top_builddir)/cfdp/doc/*.1
@@ -2958,9 +2958,9 @@ bssextra = \
 	bss/doc/pod3/bss.pod
 
 bssmans = \
-	$(top_builddir)/bss/doc/bssrecv.1 \
-	$(top_builddir)/bss/doc/bssStreamingApp.1 \
-	$(top_builddir)/bss/doc/bss.3
+	bss/doc/bssrecv.1 \
+	bss/doc/bssStreamingApp.1 \
+	bss/doc/bss.3
 
 bssclean-local:
 	rm -f $(top_builddir)/bss/doc/*.1
@@ -3030,10 +3030,10 @@ bsspextra = \
 	bssp/doc/pod5/bssprc.pod
 
 bsspmans = \
-	$(top_builddir)/bssp/doc/bsspadmin.1 \
-	$(top_builddir)/bssp/doc/udpbso.1 \
-	$(top_builddir)/bssp/doc/bssp.3 \
-	$(top_builddir)/bssp/doc/bssprc.5
+	bssp/doc/bsspadmin.1 \
+	bssp/doc/udpbso.1 \
+	bssp/doc/bssp.3 \
+	bssp/doc/bssprc.5
 
 bsspclean-local:
 	rm -f $(top_builddir)/bssp/doc/*.1
@@ -3125,13 +3125,13 @@ dtpcextra = \
 	dtpc/doc/pod5/dtpcrc.pod
 
 dtpcmans = \
-	$(top_builddir)/dtpc/doc/dtpcadmin.1 \
-	$(top_builddir)/dtpc/doc/dtpcclock.1 \
-	$(top_builddir)/dtpc/doc/dtpcd.1 \
-	$(top_builddir)/dtpc/doc/dtpcreceive.1 \
-	$(top_builddir)/dtpc/doc/dtpcsend.1 \
-	$(top_builddir)/dtpc/doc/dtpc.3 \
-	$(top_builddir)/dtpc/doc/dtpcrc.5
+	dtpc/doc/dtpcadmin.1 \
+	dtpc/doc/dtpcclock.1 \
+	dtpc/doc/dtpcd.1 \
+	dtpc/doc/dtpcreceive.1 \
+	dtpc/doc/dtpcsend.1 \
+	dtpc/doc/dtpc.3 \
+	dtpc/doc/dtpcrc.5
 
 dtpcclean-local:
 	rm -f $(top_builddir)/dtpc/doc/*.1
@@ -3447,20 +3447,20 @@ doc/appendix-a-contents.txt: $(man_ps_sorted)
 	@echo ".br" >> $@
 
 doc/appendix-a-contents.ps: doc/appendix-a-contents.txt
-	$(GROFFMS) -ms $^ > $@
+	$(GROFFMS) -ms doc/appendix-a-contents.txt > $@
 
 doc/ION-manpages.ps: doc/appendix-a-contents.ps $(man_ps_sorted)
-	$(PSJOIN) $^ > $@
+	$(PSJOIN) doc/appendix-a-contents.ps $(man_ps_sorted) > $@
 
 doc/ION-beginning.ps: doc/ION-beginning.pdf
-	$(PDF2PS) $^ $@
+	$(PDF2PS) doc/ION-beginning.pdf $@
 
 else
 
 ION.pdf: doc/ION-beginning.pdf
 #	@echo "ION.pdf will remain unchanged."
 	@echo "ION.pdf will not have appendix."
-	cp $^ $@
+	cp doc/ION-beginning.pdf $@
 
 endif #ENABLE_AUTODOC
 
