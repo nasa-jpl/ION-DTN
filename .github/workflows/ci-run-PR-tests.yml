@@ -20,15 +20,6 @@ on:
 
 
 jobs:
-  check-user:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Restrict Trigger Access
-        if: "!contains(fromJson('[\"iondev33\", \"type6six\"]'), github.actor)"
-        run: |
-          echo "Error: User ${{ github.actor }} is not authorized to trigger this workflow."
-          exit 1
-          
   ubuntu-latest:
     uses: ./.github/workflows/ci-workflow-ubuntu.yml
     with:
