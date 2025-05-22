@@ -25,6 +25,7 @@ __pycache__/
 
 # Keep empty m4/ macro dir but ignore temp files inside it
 m4/*
+!m4/dccp_macro.m4
 !m4/.gitkeep
 
 # Temp mod directory (Podman)
