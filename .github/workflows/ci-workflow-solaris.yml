@@ -4,9 +4,9 @@ on:
 #  pull_request:
 #    branches:
 #      - integration
-  push:
-    branches:
-      - update-4.1.4-solaris-ci-workflow
+#  push:
+#    branches:
+#      - update-4.1.4-solaris-ci-workflow
   workflow_call:
     inputs:
       tests_to_run:
@@ -75,7 +75,7 @@ jobs:
             id &&
             echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"'
 
-      - name: Copy code to FreeBSD VM
+      - name: Copy code to Solaris VM
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
           scp -o StrictHostKeyChecking=no -r "$GITHUB_WORKSPACE" jgao@$VM_IP:~/ion-gh-test-dir
@@ -118,14 +118,14 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: build-and-test-log-freebsd-${{ env.TIMESTAMP }}
+          name: build-and-test-log-solaris-${{ env.TIMESTAMP }}
           path: build-and-test.log
 
       - name: Upload progress file as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-progress-freebsd-${{ env.TIMESTAMP }}
+          name: test-progress-solaris-${{ env.TIMESTAMP }}
           path: ./progress
 
       - name: Clean up ION build
