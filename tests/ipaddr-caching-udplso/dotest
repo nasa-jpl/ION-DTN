@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+trap 'stty sane 2>/dev/null' EXIT INT TERM  # restore echo (if sudo fail)
+
 # Function to search a log file for a string after a specified line number
 # Arguments:
 #   $1: log_file - Path to the log file
@@ -112,18 +114,42 @@ SEARCH_STRING2="parseSocketSpec: Parsed: test3.local:3113"
 SEARCH_STRING3="(0) 0 0 (1) 6 42 (2) 0 0 (+) 6 42"
 LINE_NUM=1
 
-# Check for sudo availability
-if ! command -v sudo >/dev/null 2>&1; then
-    echo "Error: sudo is required to modify $HOSTS_FILE"
-    exit 2
+# --- sudo-availability check (non-interactive, max 15 s) -------------
+if [ "$(id -u)" -eq 0 ]; then
+    printf '%s\n\n' "Running as root — skipping sudo availability check."
+    s() { "$@"; }          # run command directly, no sudo needed
+else
+    printf '%s\n' "This test requires sudo privileges: checking now…"
+    printf '%s\n\n' \
+      "Hint: use  sudo -E  if you need to preserve ION_RUN_EXPERT."
+
+    sudo -n true 2>/dev/null & SUDO_PID=$!
+    
+    # start watchdog
+    ( sleep 15 && kill -s TERM "$SUDO_PID" 2>/dev/null && \
+    sleep 2 && kill -s KILL "$SUDO_PID" 2>/dev/null ) & WATCH_PID=$!
+
+    wait "$SUDO_PID";  SUDO_RESULT=$? # stop watchdog quietly
+
+    kill "$WATCH_PID" 2>/dev/null && wait "$WATCH_PID" 2>/dev/null
+    stty sane 2>/dev/null || :# restore echo just in case
+
+    if [ "$SUDO_RESULT" -ne 0 ]; then
+        printf '%s\n' \
+          "Password-less sudo required or lookup timed-out." >&2
+        exit 2
+    fi
+    printf '%s\n\n' "Sudo privileges confirmed: continuing test."
+    s() { sudo -n "$@"; }             # carry -n to every sudo call
 fi
 
 # Clean up
 ./cleanup
 
 # Backup /etc/hosts
-echo "Backing up $HOSTS_FILE to $BACKUP_FILE..."
-sudo cp "$HOSTS_FILE" "$BACKUP_FILE"
+printf 'Backing up %s → %s …\n' "$HOSTS_FILE" "$BACKUP_FILE"
+s cp -- "$HOSTS_FILE" "$BACKUP_FILE" ||
+    { printf '%s\n' 'Lost sudo privileges; aborting.' >&2; exit 2; }
 
 # Start ION nodes
 echo "Starting ION..."
@@ -170,7 +196,7 @@ echo ""
 
 # Append test3.local to hosts file
 echo "Appending entry '$ENTRY' to $HOSTS_FILE..."
-echo "$ENTRY" | sudo tee -a "$HOSTS_FILE" >/dev/null
+echo "$ENTRY" | s tee -a "$HOSTS_FILE" >/dev/null
 
 # Verify the entry was added
 if grep -Fx "$ENTRY" "$HOSTS_FILE" >/dev/null; then

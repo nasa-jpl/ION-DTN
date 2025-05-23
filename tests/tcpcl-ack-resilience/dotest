@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# Derived from James Swaro's test, April 25, 2012
+
+trap 'stty sane 2>/dev/null' EXIT INT TERM  # restore echo (if sudo fail)
+
+# ------------------------------------------------------------------
+# Derived from James Swaro's test, April 25 2012
 # Revised on 3/24/2025
 # Updated for Oracle Linux/RHEL detection and firewall handling
+# ------------------------------------------------------------------
 
 # Function to detect OS and set firewall type
 detect_os_and_firewall() {
@@ -26,14 +31,14 @@ detect_os_and_firewall() {
 block_traffic() {
     if [ "$FIREWALL" = "nftables" ]; then
         echo "Blocking traffic with nftables..."
-        sudo nft add table inet filter
-        sudo nft add chain inet filter input { type filter hook input priority 0 \; policy accept \; }
-        sudo nft add rule inet filter input iif lo tcp dport $SENDER_PORT drop
-        sudo nft add rule inet filter input iif lo tcp dport $RECEIVER_PORT drop
+        s nft add table inet filter
+        s nft add chain inet filter input { type filter hook input priority 0 \; policy accept \; }
+        s nft add rule inet filter input iif lo tcp dport $SENDER_PORT drop
+        s nft add rule inet filter input iif lo tcp dport $RECEIVER_PORT drop
     else
         echo "Blocking traffic with iptables..."
-        sudo iptables -A INPUT -i lo -p tcp --destination-port $SENDER_PORT -j DROP
-        sudo iptables -A INPUT -i lo -p tcp --destination-port $RECEIVER_PORT -j DROP
+        s iptables -A INPUT -i lo -p tcp --destination-port $SENDER_PORT -j DROP
+        s iptables -A INPUT -i lo -p tcp --destination-port $RECEIVER_PORT -j DROP
     fi
 }
 
@@ -41,36 +46,40 @@ block_traffic() {
 unblock_traffic() {
     if [ "$FIREWALL" = "nftables" ]; then
         echo "Unblocking traffic with nftables..."
-        sudo nft flush ruleset
+        s nft flush ruleset
     else
         echo "Unblocking traffic with iptables..."
-        sudo iptables -F -t filter
+        s iptables -F -t filter
     fi
 }
 
-# Timed check for sudo privileges
-sudo -v &>/dev/null &
-SUDO_PID=$!
-
-( sleep 30 && kill -9 $SUDO_PID &>/dev/null ) & KILLER_PID=$!
-wait $SUDO_PID
-SUDO_RESULT=$?
-kill -9 $KILLER_PID &>/dev/null
-
-# Restore terminal settings after process termination 
-if [ -t 0 ]; then
-    # Running interactively
-    stty sane
+# --- sudo-availability check (non-interactive, max 15 s) -------------
+if [ "$(id -u)" -eq 0 ]; then
+    printf '%s\n\n' "Running as root — skipping sudo availability check."
+    s() { "$@"; }          # run command directly, no sudo needed
 else
-    # Running non-interactively, so skip stty
-    echo "Running in non-interactive mode; stty command skipped."
-fi
+    printf '%s\n' "This test requires sudo privileges: checking now…"
+    printf '%s\n\n' \
+      "Hint: use  sudo -E  if you need to preserve ION_RUN_EXPERT."
 
-if [ "$SUDO_RESULT" -eq 0 ]; then
-    echo -e "Sudo privileges confirmed: continuing test.\n"
-else
-    echo -e "No sudo privileges or sudo command timed out: skipping test.\n"
-    exit 2
+    sudo -n true 2>/dev/null & SUDO_PID=$!
+    
+    # start watchdog
+    ( sleep 15 && kill -s TERM "$SUDO_PID" 2>/dev/null && \
+    sleep 2 && kill -s KILL "$SUDO_PID" 2>/dev/null ) & WATCH_PID=$!
+
+    wait "$SUDO_PID";  SUDO_RESULT=$? # stop watchdog quietly
+
+    kill "$WATCH_PID" 2>/dev/null && wait "$WATCH_PID" 2>/dev/null
+    stty sane 2>/dev/null || :# restore echo just in case
+
+    if [ "$SUDO_RESULT" -ne 0 ]; then
+        printf '%s\n' \
+          "Password-less sudo required or lookup timed-out." >&2
+        exit 2
+    fi
+    printf '%s\n\n' "Sudo privileges confirmed: continuing test."
+    s() { sudo -n "$@"; }             # carry -n to every sudo call
 fi
 
 # Sudo privileges confirmed, begin test 
@@ -86,22 +95,22 @@ echo "Cleaning up old ION ..."
 killm
 ./cleanup
 
-echo -e "\nRunning sudo commands now..."
+printf "\nRunning sudo commands now..."
 if [ "$FIREWALL" = "nftables" ]; then
-    sudo nft flush ruleset
+    s nft flush ruleset
 else
-    sudo iptables -F -t filter
+    s iptables -F -t filter
 fi
 
 sleep 1
 
 # Decrease TCP timeout time (defaults 3, 15, 7200)
 echo "Decrease TCP timeout tcp_retries1: 3 -> 1"
-echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries1
+echo 1 | s tee /proc/sys/net/ipv4/tcp_retries1
 echo "Decrease TCP timeout tcp_retries2: 15 -> 1"
-echo 1 | sudo tee /proc/sys/net/ipv4/tcp_retries2
+echo 1 | s tee /proc/sys/net/ipv4/tcp_retries2
 echo "Decrease tcp_keepalive_time: 7200 -> 5"
-echo 5 | sudo tee /proc/sys/net/ipv4/tcp_keepalive_time
+echo 5 | s tee /proc/sys/net/ipv4/tcp_keepalive_time
 
 echo "Starting ION..."
 export ION_NODE_LIST_DIR=$PWD
@@ -183,11 +192,11 @@ fi
 
 # Restore TCP timeout time back (defaults 3, 15, 7200)
 echo "Set TCP timeout tcp_retries1 back to 3"
-echo 3 | sudo tee /proc/sys/net/ipv4/tcp_retries1
+echo 3 | s tee /proc/sys/net/ipv4/tcp_retries1
 echo "Set TCP timeout tcp_retries2 back to 15"
-echo 15 | sudo tee /proc/sys/net/ipv4/tcp_retries2
+echo 15 | s tee /proc/sys/net/ipv4/tcp_retries2
 echo "Set tcp_keepalive_time back to 7200"
-echo 7200 | sudo tee /proc/sys/net/ipv4/tcp_keepalive_time
+echo 7200 | s tee /proc/sys/net/ipv4/tcp_keepalive_time
 
 echo "Note to user: TCPCL ACK is 'expert' test"
 
