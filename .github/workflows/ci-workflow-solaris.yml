@@ -1,0 +1,138 @@
+name: Regression Tests for ION on Solaris 11 LDOM via Ubuntu host
+
+on:
+#  pull_request:
+#    branches:
+#      - integration
+  workflow_call:
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ''
+      pr_number:
+        description: 'The PR number this test is associated with.'
+        required: false
+        type: string
+        default: ''
+      env_vars:
+        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      tests_to_run:
+        description: 'Space-separated list of tests to run (e.g., "test1 test2"). Leave blank to run all.'
+        required: false
+        type: string
+        default: ''
+      pr_number:
+        description: 'The PR number this test is associated with.'
+        required: false
+        type: string
+        default: ''
+      env_vars:
+        description: 'Space-separated list of environment variables (e.g., "KEY1=VALUE1 KEY2=VALUE2").'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build-and-test:
+    runs-on: [self-hosted, linux, x64, karuna]
+    steps:
+      - name: Clean up workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Display Runner Host OS and Arch
+        run: |
+          cat /etc/os-release 
+          echo "Arch:" 
+          uname -m
+          echo "User ID:"
+          id
+
+      - name: Set environment variable to VM's hostname
+        run: |
+          echo "VM_IP=sol-runner" >> $GITHUB_ENV
+
+      - name: Display VM OS and Arch
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+            cat /etc/os-release && 
+            echo "Arch:" && 
+            uname -m &&
+            echo "User ID:" &&
+            id &&
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"'
+
+      - name: Copy code to FreeBSD VM
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP 'rm -rf ~/ion-gh-test-dir && mkdir -p ~/ion-gh-test-dir'
+          scp -o StrictHostKeyChecking=no -r "$GITHUB_WORKSPACE" jgao@$VM_IP:~/ion-gh-test-dir
+
+      - name: Generate timestamp for file names
+        id: timestamp
+        run: echo "TIMESTAMP=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Run build and tests, capture stdout
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+            echo "Starting build and tests at $(date)" &&
+            export USER=$(whoami) &&
+            echo "USER is set to: $USER" &&
+            export ION_RUN_EXPERT="yes" &&
+            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
+            cd ~/ion-gh-test-dir/ion-ios-dev &&
+            autoreconf -fi &&
+            MAKE="gmake" ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
+            gmake -j4 &&
+            sudo gmake install &&
+            gmake buildcheck &&
+            cd tests &&
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.tests_to_run }}" ]; then
+              echo "Running specific tests: ${{ github.event.inputs.tests_to_run }}" &&
+              ./runtests ${{ github.event.inputs.tests_to_run }}
+            else
+              echo "Running all tests" &&
+              ./runtests
+            fi' > build-and-test.log 2>&1
+
+      - name: Display Progress
+        if: ${{ always() }}
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+            cat ~/ion-gh-test-dir/ion-ios-dev/tests/progress' > progress
+          cat progress | grep "FAILED" || { printf "No failed tests.\n"; exit 0; }
+
+      - name: Upload full build and test log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-and-test-log-freebsd-${{ env.TIMESTAMP }}
+          path: build-and-test.log
+
+      - name: Upload progress file as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-progress-freebsd-${{ env.TIMESTAMP }}
+          path: ./progress
+
+      - name: Clean up ION build
+        if: ${{ always() }}
+        run: |
+          ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
+            killm &&
+            cd ~/ion-gh-test-dir/ion-ios-dev &&
+            sudo gmake uninstall &&
+            gmake clean &&
+            cd ../.. &&
+            rm -rf ~/ion-gh-test-dir'
+          rm -rf $GITHUB_WORKSPACE/*
