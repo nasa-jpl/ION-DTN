@@ -1,9 +1,6 @@
 name: Regression Tests for ION on Solaris 11 LDOM via Ubuntu host
 
 on:
-#  pull_request:
-#    branches:
-#      - integration
   push:
     branches:
       - update-4.1.4-solaris-ci-workflow
@@ -74,7 +71,8 @@ jobs:
             uname -m &&
             echo "User ID:" &&
             id &&
-            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"'
+            echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+            echo "PATH=$PATH" '
 
       - name: Copy code to Solaris VM
         run: |
@@ -93,6 +91,7 @@ jobs:
             echo "USER is set to: $USER" &&
             export ION_RUN_EXPERT="yes" &&
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
+            export PATH=/usr/local/bin:$PATH &&
             echo "PATH=$PATH" &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&
@@ -135,9 +134,10 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
             echo "Cleaning up ION build and tests at $(date)" &&
+            export PATH=/usr/local/bin:$PATH &&
+            echo "PATH=$PATH" &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
-            echo "PATH=$PATH"
-            ./killm &&
+            killm &&
             sudo gmake uninstall &&
             gmake clean &&
             cd ../.. &&
