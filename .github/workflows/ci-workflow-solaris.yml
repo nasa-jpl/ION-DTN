@@ -4,9 +4,9 @@ on:
 #  pull_request:
 #    branches:
 #      - integration
-#  push:
-#    branches:
-#      - update-4.1.4-solaris-ci-workflow
+  push:
+    branches:
+      - update-4.1.4-solaris-ci-workflow
   workflow_call:
     inputs:
       tests_to_run:
@@ -24,6 +24,7 @@ on:
         required: false
         type: string
         default: ''
+  
   workflow_dispatch:
     inputs:
       tests_to_run:
