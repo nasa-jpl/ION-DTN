@@ -68,3 +68,10 @@ jobs:
       pr_number: ${{ inputs.pr_number }}
       tests_to_run: ${{ inputs.tests_to_run }}
       env_vars: ${{ inputs.env_vars }}
+
+  solaris:
+    uses: ./.github/workflows/ci-workflow-solaris.yml
+    with:
+      pr_number: ${{ inputs.pr_number }}
+      tests_to_run: ${{ inputs.tests_to_run }}
+      env_vars: ${{ inputs.env_vars }}
