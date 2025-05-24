@@ -93,6 +93,7 @@ jobs:
             echo "USER is set to: $USER" &&
             export ION_RUN_EXPERT="yes" &&
             export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
+            echo "PATH=$PATH" &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
             autoreconf -fi &&
             MAKE="gmake" ./configure --enable-crypto-mbedtls --enable-bpsec-debugging &&
@@ -105,7 +106,7 @@ jobs:
               ./runtests ${{ github.event.inputs.tests_to_run }}
             else
               echo "Running all tests" &&
-              ./runtests
+              ./runtests bping/
             fi' > build-and-test.log 2>&1
 
       - name: Display Progress
@@ -134,11 +135,9 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no jgao@$VM_IP '
             echo "Cleaning up ION build and tests at $(date)" &&
-            export USER=$(whoami) &&
-            echo "USER is set to: $USER" &&
-            export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH &&
             cd ~/ion-gh-test-dir/ion-ios-dev &&
-            killm &&
+            echo "PATH=$PATH"
+            ./killm &&
             sudo gmake uninstall &&
             gmake clean &&
             cd ../.. &&
