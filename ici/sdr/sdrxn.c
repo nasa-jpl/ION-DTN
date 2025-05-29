@@ -1789,14 +1789,11 @@ void	sdr_destroy(Sdr sdrv)
 	}
 #endif
 
-	/*	Destroy local access handle to this SDR.		*/
-
 	sdr = sdrv->sdr;
 	sm_SemEnd(sdr->sdrSemaphore);		/*	Interrupt.	*/
 	microsnooze(50000);
 	sm_SemDelete(sdr->sdrSemaphore);
 	sdr->sdrSemaphore = SM_SEM_NONE;
-	sdr_stop_using(sdrv);
 
 	/*	Now destroy the SDR itself.				*/
 
@@ -1807,6 +1804,10 @@ void	sdr_destroy(Sdr sdrv)
 	}
 
 	destroySdr(sdr);			/*	Releases lock.	*/
+
+	/*	Destroy local access handle to this SDR.		*/
+
+	sdr_stop_using(sdrv);
 }
 
 /*	*	Low-level transaction functions		*	*	*/
