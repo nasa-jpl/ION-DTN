@@ -455,6 +455,7 @@ iciextra = \
 	ici/doc/pod5/ionconfig.pod \
 	ici/doc/pod5/ionrc.pod \
 	ici/doc/pod5/ionsecrc.pod \
+	ici/doc/pod3/poll_entropy_src.pod \
 	ici/doc/pod3/platform.pod \
 	ici/doc/pod3/memmgr.pod \
 	ici/doc/pod3/ion.pod \
@@ -495,6 +496,7 @@ icimans = \
 	ici/doc/sm2file.1 \
 	ici/doc/smlistsh.1 \
 	ici/doc/smrbtsh.1 \
+	ici/doc/poll_entropy_src.3 \
 	ici/doc/ion.3 \
 	ici/doc/llcv.3 \
 	ici/doc/lyst.3 \
