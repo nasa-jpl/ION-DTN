@@ -56,11 +56,15 @@
 # ---------------------------------------------------------------------------
 #
 # USAGE:
-# 1. Ensure the `entropy_test` program is compiled and executable in the
-#    same directory.
-#        gcc -o entropy_test entropy_test.c -lici
+# 1. Ensure the `entropy_test` program is compiled. This requires linking
+#    against the `ici` library and providing the path to the main ION
+#    headers. From the directory containing this script, use:
+#
+#        gcc -o entropy_test entropy_test.c -I../../include -lici
+#
 # 2. Run the script:
 #       ./dotest
+#
 # 3. Results will be displayed on the console with a summary.
 #
 # ---------------------------------------------------------------------------
@@ -111,8 +115,9 @@ OVERALL_SUCCESS=1
 check_binary() {
     if [ ! -f "$ENTROPY_TEST_PROGRAM" ]; then
         echo -e "\n${RED}Error: Required binary '$ENTROPY_TEST_PROGRAM' not found.${RESET}"
-        echo -e "Please build it using the following command:"
-        echo -e "${GREEN}gcc -o $ENTROPY_TEST_PROGRAM entropy_test.c -lici${RESET}\n"
+        echo -e "Please build it using a command like this (run from this directory):"
+        echo -e "${GREEN}gcc -o $ENTROPY_TEST_PROGRAM entropy_test.c -I../../include -lici${RESET}"
+        echo -e "Note: The '-I' flag is crucial for locating ION header files like 'ion.h'.\n"
         exit 1
     fi
 }
