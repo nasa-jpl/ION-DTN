@@ -1,24 +1,31 @@
 /*
+ * hmackeys.c — Convenience utility for generating 256-bit HMAC keys
+ *
+ * Copyright © 2009 California Institute of Technology
+ * Author: Scott Burleigh, Jet Propulsion Laboratory
+ *
+ * Modification History:
+ * MM/DD/YY  AUTHOR         DESCRIPTION
+ * --------  ------------   ---------------------------------------------
+ *           S. Burleigh    Initial Implementation
+ * 05/29/25  S. DeBaun      Replaced rand() with /dev/urandom.
+ * 06/06/25  S. DeBaun      Replaced direct device polling with the
+ *                          cross-platform poll_entropy_src API.
+ */
 
-	hmackeys.c:	convenience utility for generating good
-			HMAC keys.
 
-									*/
-/*									*/
-/*	Copyright (c) 2009, California Institute of Technology.		*/
-/*	All rights reserved.						*/
-/*	Author: Scott Burleigh, Jet Propulsion Laboratory		*/
-/*									*/
+#include <platform.h>
+#include <fcntl.h>          /* open                   */
+#include <unistd.h>         /* read, close            */
+#include "entropy_src.h"    /* For poll_entropy_src() */
 
-#include "platform.h"
+#define KEY_LEN 32          /* 256-bit HMAC key       */
 
 static int	processLine(char *line, int lineLength)
 {
 	char		fileName[256];
 	int		fd;
-	int		i;
-	int		val;
-	unsigned char	key[20];
+	unsigned char	key[KEY_LEN];
 	int		result = 0;
 
 	if (*line == '#')		/*	Comment.		*/
@@ -32,7 +39,8 @@ static int	processLine(char *line, int lineLength)
 	}
 
 	isprintf(fileName, sizeof fileName, "./%.80s.hmk", line);
-	fd = iopen(fileName, O_RDWR | O_CREAT, 0777);
+	/* 0600 so only the current user can read the secret key     */
+	fd = iopen(fileName, O_WRONLY | O_CREAT | O_TRUNC, 0600);
 	if (fd < 0)
 	{
 		printf("Can't create file '%s': %s\n", fileName,
@@ -40,13 +48,18 @@ static int	processLine(char *line, int lineLength)
 		return -1;
 	}
 
-	for (i = 0; i < 20; i++)
-	{
-		val = rand();
-		key[i] = val & 0xff;
-	}
+    /* --- Use cross-platform entropy source for secure key material --- */
+    uvast bytes_generated = 0;
+    result = poll_entropy_src(NULL, key, KEY_LEN, &bytes_generated);
+    if (result < 0 || bytes_generated != KEY_LEN)
+    {
+        fprintf(stderr, "Could not generate key material: %s\n",
+                getErrorMessage(result));
+        close(fd);
+        return -1;
+    }
 
-	if (write(fd, key, 20) < 20)
+	if (write(fd, key, KEY_LEN) < KEY_LEN)
 	{
 		printf("Can't write key to %s: %s\n", fileName,
 				system_error_msg());
@@ -64,7 +77,6 @@ int	main(int argc, char **argv)
 	char	line[80];
 	int	len;
 
-	srand(time(NULL));
 	if (cmdFileName == NULL)		/*	Interactive.	*/
 	{
 		cmdFile = fileno(stdin);
