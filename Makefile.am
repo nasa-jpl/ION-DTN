@@ -552,7 +552,8 @@ libici_la_SOURCES =	\
 	ici/sdr/sdrmgt.c \
 	ici/sdr/sdrstring.c \
 	ici/sdr/sdrtable.c \
-	ici/sdr/sdrxn.c
+	ici/sdr/sdrxn.c \
+	ici/crypto/entropy_src.c
 
 libici_la_CFLAGS = $(icicflags) $(AM_CFLAGS)
 libici_la_LIBADD = $(CRYPTO_LIBS) -lm
@@ -1217,8 +1218,7 @@ libici_la_SOURCES += \
 	ici/crypto/MBEDTLS_SUITES/csi.c \
 	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
 	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c \
-	ici/crypto/entropy_src.c
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c 
 else
 libici_la_SOURCES += \
 	ici/crypto/NULL_SUITES/crypto.c\
@@ -2035,8 +2035,7 @@ libici_la_SOURCES += \
 	ici/crypto/MBEDTLS_SUITES/csi.c \
 	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
 	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c \
-	ici/crypto/entropy_src.c
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c 
 else
 AM_CFLAGS+= \
 	-I$(srcdir)/ici/crypto/NULL_SUITES \
