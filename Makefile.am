@@ -497,13 +497,14 @@ icimans = \
 	ici/doc/sm2file.1 \
 	ici/doc/smlistsh.1 \
 	ici/doc/smrbtsh.1 \
-	ici/doc/poll_entropy_src.3 \
 	ici/doc/ion.3 \
 	ici/doc/llcv.3 \
 	ici/doc/lyst.3 \
 	ici/doc/memmgr.3 \
 	ici/doc/platform.3 \
+	ici/doc/poll_entropy_src.3 \
 	ici/doc/psm.3 \
+	ici/doc/secrypt.3 \
 	ici/doc/sdr.3 \
 	ici/doc/sdrhash.3 \
 	ici/doc/sdrlist.3 \
