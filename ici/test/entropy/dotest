@@ -101,10 +101,11 @@ LOG_FILE="randomness_test.log"
 BYTE_SIZE=${BYTE_SIZE:-10M}
 
 # Color codes for test result highlighting
-GREEN="\033[1;32m"
-ORANGE="\033[1;33m"
-RED="\033[1;31m"
-RESET="\033[0m"
+# Use simple string assignment. The `printf` command will interpret the octal escape sequences.
+GREEN='\033[1;32m'
+ORANGE='\033[1;33m'
+RED='\033[1;31m'
+RESET='\033[0m'
 
 # Overall status flag
 OVERALL_SUCCESS=1
@@ -114,20 +115,19 @@ OVERALL_SUCCESS=1
 #======================================================================
 check_binary() {
     if [ ! -f "$ENTROPY_TEST_PROGRAM" ]; then
-        echo -e "\n${RED}Error: Required binary '$ENTROPY_TEST_PROGRAM' not found.${RESET}"
-        echo -e "Please build it using a command like this (run from this directory):"
-        echo -e "${GREEN}gcc -o $ENTROPY_TEST_PROGRAM entropy_test.c -I../../include -lici${RESET}"
-        echo -e "Note: The '-I' flag is crucial for locating ION header files like 'ion.h'.\n"
+        printf "\n${RED}Error: Required binary '%s' not found.${RESET}\n" "$ENTROPY_TEST_PROGRAM"
+        printf "\nPlease build it with the following command (run from this directory):\n"
+        printf "${GREEN}gcc -o %s entropy_test.c -I../../include -lici${RESET}\n\n" "$ENTROPY_TEST_PROGRAM"
         exit 1
     fi
 }
 
 check_utility() {
     if command -v "$1" &>/dev/null; then
-        echo "$1 found."
+        printf "%s found.\n" "$1"
         return 0
     else
-        echo "$1 not found."
+        printf "%s not found.\n" "$1"
         return 1
     fi
 }
@@ -136,29 +136,29 @@ check_utility() {
 # Test Runners
 #======================================================================
 generate_random_bytes() {
-    echo -e "\nGenerating random bytes (${BYTE_SIZE})..."
+    printf "\nGenerating random bytes (%s)...\n" "$BYTE_SIZE"
     "./$ENTROPY_TEST_PROGRAM" | head -c "$BYTE_SIZE" >"$OUTPUT_FILE"
     if [ $? -ne 0 ] || [ ! -s "$OUTPUT_FILE" ]; then
-        echo -e "${RED}Error: Failed to generate random bytes.${RESET}"
+        printf "${RED}Error: Failed to generate random bytes.${RESET}\n"
         exit 1
     fi
-    echo "Random bytes saved to $OUTPUT_FILE"
+    printf "Random bytes saved to %s\n" "$OUTPUT_FILE"
 }
 
 run_ent() {
-    echo -e "\nRunning 'ent' statistical analysis..."
+    printf "\nRunning 'ent' statistical analysis...\n"
     ent "$OUTPUT_FILE"
 }
 
 
 run_dieharder() {
-    echo -e "\nRunning 'dieharder' tests..."    
+    printf "\nRunning 'dieharder' tests...\n"
     # A simplified dieharder runner:
     dieharder -a -f "$OUTPUT_FILE"
 }
 
 run_rngtest() {
-    echo -e "\nRunning 'rngtest'..."
+    printf "\nRunning 'rngtest'...\n"
 
     local successes=0
     local failures=0
@@ -168,13 +168,14 @@ run_rngtest() {
     local rngtest_output
     rngtest_output=$(rngtest < "$OUTPUT_FILE" 2>&1)
 
-    # Display full rngtest output 
-    echo -e "-----------------------"
-    echo "$rngtest_output"
+    # Display full rngtest output
+    printf -- "-----------------------\n"
+    printf "%s\n" "$rngtest_output"
 
     # CORRECTED and portable parsing logic
-    successes=$(echo "$rngtest_output" | awk -F': ' '/successes/ {print $3}')
-    failures=$(echo "$rngtest_output" | awk -F': ' '/failures/ {print $3}')
+    # Use printf "%s" to avoid adding an extra newline before piping
+    successes=$(printf "%s" "$rngtest_output" | awk -F': ' '/successes/ {print $3}')
+    failures=$(printf "%s" "$rngtest_output" | awk -F': ' '/failures/ {print $3}')
 
     # Default to 0 if parsing somehow fails
     successes=${successes:-0}
@@ -183,19 +184,19 @@ run_rngtest() {
     # Calculate quality ratio
     local quality_ratio=$((successes / (failures + 1)))
 
-    echo -e "\n${GREEN}RNGTEST RESULTS SUMMARY${RESET}"
-    echo -e "-----------------------"
-    echo -e "FIPS 140-2 successes: ${GREEN}${successes}${RESET}"
-    echo -e "FIPS 140-2 failures:  ${RED}${failures}${RESET}"
-    echo -e "Success-to-Failure Ratio: ${ORANGE}${quality_ratio}${RESET}"
+    printf "\n${GREEN}RNGTEST RESULTS SUMMARY${RESET}\n"
+    printf -- "-----------------------\n"
+    printf "FIPS 140-2 successes: ${GREEN}%s${RESET}\n" "${successes}"
+    printf "FIPS 140-2 failures:  ${RED}%s${RESET}\n" "${failures}"
+    printf "Success-to-Failure Ratio: ${ORANGE}%s${RESET}\n" "${quality_ratio}"
 
     if [ "$failures" -eq 0 ]; then
-        echo -e "${GREEN}All FIPS 140-2 tests passed.${RESET}"
+        printf "${GREEN}All FIPS 140-2 tests passed.${RESET}\n"
     elif [ "$quality_ratio" -lt "$min_ratio" ]; then
-        echo -e "${RED}Warning: Random data quality is below acceptable limits.${RESET}"
+        printf "${RED}Warning: Random data quality is below acceptable limits.${RESET}\n"
         OVERALL_SUCCESS=0
     else
-        echo -e "${ORANGE}Minor issues detected, but within acceptable limits.${RESET}"
+        printf "${ORANGE}Minor issues detected, but within acceptable limits.${RESET}\n"
     fi
 }
 
@@ -204,10 +205,10 @@ run_rngtest() {
 #======================================================================
 cleanup_files() {
     if [ $OVERALL_SUCCESS -eq 1 ]; then
-        echo -e "\n${GREEN}All tests passed. Cleaning up temporary files...${RESET}"
+        printf "\n${GREEN}All tests passed. Cleaning up temporary files...${RESET}\n"
         rm -f "$OUTPUT_FILE"
     else
-        echo -e "\n${ORANGE}Some tests failed or were weak. Keeping $OUTPUT_FILE for review.${RESET}"
+        printf "\n${ORANGE}Some tests failed or were weak. Keeping %s for review.${RESET}\n" "$OUTPUT_FILE"
     fi
 }
 
@@ -217,27 +218,42 @@ cleanup_files() {
 # Check for our test binary
 check_binary
 
-echo "Checking for recommended utilities..."
+printf "Checking for recommended utilities...\n"
 # CORRECTED: Initialize variables to 0 before the checks
 ENT_INSTALLED=0
 DIEHARDER_INSTALLED=0
 RNGTEST_INSTALLED=0
 
-if check_utility "ent"; then ENT_INSTALLED=1; fi
-if check_utility "dieharder"; then DIEHARDER_INSTALLED=1; fi
-if check_utility "rngtest"; then RNGTEST_INSTALLED=1; fi
+if check_utility "ent"; then
+    ENT_INSTALLED=1
+fi
+if check_utility "dieharder"; then
+    DIEHARDER_INSTALLED=1
+fi
+if check_utility "rngtest"; then
+    RNGTEST_INSTALLED=1
+fi
 
 if [ $ENT_INSTALLED -eq 0 ] && [ $DIEHARDER_INSTALLED -eq 0 ] && [ $RNGTEST_INSTALLED -eq 0 ]; then
-    echo "No randomness testing utilities found. Please install one or more of: ent, dieharder, rngtest"
+    printf "No randomness testing utilities found. Please install one or more of: ent, dieharder, rngtest\n"
     exit 1
 fi
 
 generate_random_bytes
 
 # Run the tests
-if [ $ENT_INSTALLED -eq 1 ]; then run_ent; fi
-if [ $DIEHARDER_INSTALLED -eq 1 ]; then run_dieharder; fi
-if [ $RNGTEST_INSTALLED -eq 1 ]; then run_rngtest; fi
+if [ $RNGTEST_INSTALLED -eq 1 ]; then
+    run_rngtest
+fi
+
+if [ $DIEHARDER_INSTALLED -eq 1 ]; then
+    run_dieharder
+fi
+
+if [ $ENT_INSTALLED -eq 1 ]; then
+    run_ent
+fi
+
 
 # Perform cleanup based on overall test results
 cleanup_files
