@@ -2,17 +2,32 @@
  **
  ** File Name: secrypt.c
  **
- ** Description: Cryptographic functions for encryption, decryption, and
- **              hashing. See: secrypt.h or man secrypt for documentation.
+ ** Description: This file provides the implementation for the cryptographic
+ ** functions defined in secrypt.h. It leverages the
+ ** Mbed TLS (v2.28.x) library to perform secure authenticated
+ ** encryption using an Encrypt-then-MAC scheme.
+ **
+ ** Key security features include:
+ ** - Use of a standard HMAC-based Key Derivation Function (HKDF)
+ ** to derive separate, strong keys for encryption and
+ ** authentication from a single master secret.
+ ** - Generation of unique, unpredictable Initialization Vectors
+ ** (IVs) for each encryption operation using a secure
+ ** random number generator.
+ ** - Constant-time comparison of HMAC tags during decryption
+ ** to prevent timing side-channel attacks.
  **
  **
  ** Modification History:
- **  MM/DD/YY  AUTHOR         DESCRIPTION
- **  --------  ------------   ---------------------------------------------
+ ** MM/DD/YY  AUTHOR         DESCRIPTION
+ ** --------  ------------   ---------------------------------------------
  **
- **  03/15/24  S. DeBaun      Initial implementation
- **  06/08/25  S. DeBaun      entropy_gen function deprecated (now uses:
- **                             ici/crypto/entropy_src:poll_entropy_src)
+ ** 03/15/24  S. DeBaun      Initial implementation.
+ ** 06/08/25  S. DeBaun      Major security refactor. Replaced custom key
+ **                          derivation with standard HKDF (RFC 5869),
+ **                          implemented key separation, and simplified IV
+ **                          generation to use CSPRNG directly.
+ **
  *****************************************************************************/
 
 #ifndef darwin
@@ -84,6 +99,57 @@ void print_encrypted_data(const unsigned char *data, uvast length)
 /******************************************************************************/
 
 /******************************************************************************/
+/** derive_keys */
+/******************************************************************************/
+/**
+ * @brief Derives separate encryption and authentication keys from a master secret.
+ *
+ * This function uses the standard HMAC-based Key Derivation Function (HKDF)
+ * to convert a single master key into cryptographically separate keys for
+ * use in an Encrypt-then-MAC scheme.
+ *
+ * @param md_info           The hash algorithm to use for HKDF.
+ * @param salt              The salt for the derivation (typically the IV).
+ * @param salt_len          Length of the salt.
+ * @param ikm               The Initial Keying Material (the master secret key).
+ * @param ikm_len           Length of the master secret key.
+ * @param encryption_key    Output buffer for the derived encryption key.
+ * @param encryption_key_len Length of the required encryption key.
+ * @param auth_key          Output buffer for the derived authentication (HMAC) key.
+ * @param auth_key_len      Length of the required authentication key.
+ * @return 0 on success, non-zero on failure.
+ */
+/******************************************************************************/
+static int derive_keys(const mbedtls_md_info_t *md_info,
+                       const unsigned char *salt, size_t salt_len,
+                       const unsigned char *ikm, size_t ikm_len,
+                       unsigned char *encryption_key, size_t encryption_key_len,
+                       unsigned char *auth_key, size_t auth_key_len)
+{
+    int ret = -1;
+    /* Buffer to hold the combined output from HKDF */
+    unsigned char okm[encryption_key_len + auth_key_len];
+
+    /* Use the standard HKDF to derive the Output Keying Material (okm) */
+    ret = mbedtls_hkdf(md_info, salt, salt_len, ikm, ikm_len,
+                       NULL, 0, // Optional "info" field not used here
+                       okm, sizeof(okm));
+
+    if (ret == 0)
+    {
+        /* HKDF success, now split the OKM into two separate keys */
+        memcpy(encryption_key, okm, encryption_key_len);
+        memcpy(auth_key, okm + encryption_key_len, auth_key_len);
+    }
+
+    /* IMPORTANT: Securely wipe the buffer that held the combined keys */
+    mbedtls_platform_zeroize(okm, sizeof(okm));
+
+    return ret;
+}
+
+
+/******************************************************************************/
 /** entropy_init */
 /******************************************************************************/
 int entropy_init(mbedtls_entropy_context *entropy)
@@ -136,7 +202,6 @@ int crypt_and_hash_buffer(
     memset(output, 0, BUFFSIZE);
     unsigned char diff;
 
-    unsigned char randomizer[MBEDTLS_MD_MAX_SIZE];
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_entropy_context entropy = {0};
 
@@ -264,7 +329,6 @@ int crypt_and_hash_buffer(
     /* ENCRYPT---------------------------------------------------------------- */
     if (mode == MODE_ENCRYPT) 
     {
-
         /* INITIALIZE RANDOMIZER--------------------------------- */
         mbedtls_ctr_drbg_init(&ctr_drbg);
 
@@ -286,9 +350,6 @@ int crypt_and_hash_buffer(
         mbedtls_ctr_drbg_set_prediction_resistance(&ctr_drbg, 
                                     MBEDTLS_CTR_DRBG_PR_ON);
 
-        /* GENERATE UNIQUE CRYPTOGRAPHIC IV INITIALIZER */
-        status = mbedtls_ctr_drbg_random(&ctr_drbg, randomizer, 
-                                          MBEDTLS_MD_MAX_SIZE);
         if (status != 0) 
         {
             putErrmsg("[!] libsecrypt encryption error:",
@@ -297,38 +358,12 @@ int crypt_and_hash_buffer(
         }
 
         /* generate the IV */
-        for (i = 0; i < 8; i++) 
-        {
-            buffer[i] = (unsigned char) (input_buffer_size >> (i << 3));
-        }        
-        if (mbedtls_md_starts(&md_ctx) != 0) 
+        if (mbedtls_ctr_drbg_random(&ctr_drbg, IV, iv_size) != 0)
         {
             putErrmsg("[!] libsecrypt encryption error:",
-                      "mbedtls_md_starts failed.");
+                      "ctr_drbg_random IV generation failed.");
             goto exit;
         }
-        /* very low level randomizer*/
-        if (mbedtls_md_update(&md_ctx, buffer, 8) != 0) 
-        {
-            putErrmsg("[!] libsecrypt encryption error:",
-                      "mbedtls_md_update failed.");
-            goto exit;
-        }
-        /* cryptographic grade 64 byte context update */
-        if (mbedtls_md_update(&md_ctx, (unsigned char *) (char *)randomizer, 
-                                                  MBEDTLS_MD_MAX_SIZE) != 0) 
-        {
-            putErrmsg("[!] libsecrypt encryption error:",
-                      "mbedtls_md_update failed.");
-            goto exit;
-        }
-        if (mbedtls_md_finish(&md_ctx, digest) != 0) 
-        {
-            putErrmsg("[!] libsecrypt encryption error:",
-                      "mbedtls_md_finish failed.");
-            goto exit;
-        }
-        memcpy(IV, digest, iv_size);
 
         /*
          * The output buffer is structured with the IV at the beginning, so we
@@ -352,42 +387,23 @@ int crypt_and_hash_buffer(
         memcpy(output_buffer, IV, iv_size);
 
         /*
-         * Hash the IV and the secret key together HASHCOUNT times
-         * using the result to setup the AES context and HMAC.
+         * Derive separate encryption and authentication keys using the
+         * standard HKDF function.
          */
-        memset(digest, 0, md_size);
-        memcpy(digest, IV, iv_size);
+        unsigned char encryption_key[mbedtls_cipher_get_key_bitlen(&cipher_ctx) / 8];
+        unsigned char auth_key[md_size];
 
-        for (i = 0; i < HASHCOUNT; i++) 
+        if (derive_keys(md_info, IV, iv_size, key, keylen,
+                        encryption_key, sizeof(encryption_key),
+                        auth_key, sizeof(auth_key)) != 0)
         {
-            if (mbedtls_md_starts(&md_ctx) != 0) 
-            {
-                putErrmsg("[!] libsecrypt encryption error:",
-                          "mbedtls_md_starts failed.");
-                goto exit;
-            }
-            if (mbedtls_md_update(&md_ctx, digest, md_size) != 0) 
-            {
-                putErrmsg("[!] libsecrypt encryption error:",
-                          "mbedtls_md_update failed.");
-                goto exit;
-            }
-            if (mbedtls_md_update(&md_ctx, key, keylen) != 0) 
-            {
-                putErrmsg("[!] libsecrypt encryption error:",
-                          "mbedtls_md_update failed.");
-                goto exit;
-            }
-            if (mbedtls_md_finish(&md_ctx, digest) != 0) 
-            {
-                putErrmsg("[!] libsecrypt encryption error:",
-                          "mbedtls_md_finish failed.");
-                goto exit;
-            }
+            putErrmsg("[!] libsecrypt error:", "Key derivation (HKDF) failed.");
+            goto exit;
         }
 
-        if (mbedtls_cipher_setkey(&cipher_ctx, digest, cipher_info->key_bitlen,
-                                  MBEDTLS_ENCRYPT) != 0) 
+        if (mbedtls_cipher_setkey(&cipher_ctx, encryption_key, 
+                                      cipher_info->key_bitlen,
+                                      MBEDTLS_ENCRYPT) != 0) 
         {
             putErrmsg("[!] libsecrypt encryption error:",
                       "mbedtls_cipher_setkey failed.");
@@ -405,15 +421,12 @@ int crypt_and_hash_buffer(
                       "mbedtls_cipher_reset failed.");
             goto exit;
         }
-        if (mbedtls_md_hmac_starts(&md_ctx, digest, md_size) != 0) 
+        if (mbedtls_md_hmac_starts(&md_ctx, auth_key, md_size) != 0) 
         {
             putErrmsg("[!] libsecrypt encryption error:",
                       "mbedtls_md_hmac_starts failed.");
             goto exit;
         }
-
-
-        /* Encrypt and write the ciphertext --------------------*/
 
         /* point to current pos. in input_buffer */
         unsigned char *input_ptr = input_buffer;
@@ -538,43 +551,21 @@ int crypt_and_hash_buffer(
         memcpy(IV, buffer, iv_size);
 
         /*
-         * hash the IV and the secret key together HASHCOUNT times
-         * using the result to setup the AES context and HMAC.
+         * Derive separate encryption and authentication keys using the
+         * standard HKDF function.
          */
-        memset(digest, 0,  md_size);
-        memcpy(digest, IV, iv_size);
+        unsigned char encryption_key[mbedtls_cipher_get_key_bitlen(&cipher_ctx) / 8];
+        unsigned char auth_key[md_size];
 
-        for (i = 0; i < HASHCOUNT; i++) 
+        if (derive_keys(md_info, IV, iv_size, key, keylen,
+                        encryption_key, sizeof(encryption_key),
+                        auth_key, sizeof(auth_key)) != 0)
         {
-            if (mbedtls_md_starts(&md_ctx) != 0) 
-            {
-                putErrmsg("[!] libsecrypt decryption error:",
-                                "mbedtls_md_starts failed.");
-
-                goto exit;
-            }
-            if (mbedtls_md_update(&md_ctx, digest, md_size) != 0) 
-            {
-                putErrmsg("[!] libsecrypt decryption error:",
-                                "mbedtls_md_update failed.");
-
-                goto exit;
-            }
-            if (mbedtls_md_update(&md_ctx, key, keylen) != 0) 
-            {
-                putErrmsg("[!] libsecrypt decryption error:",
-                                "mbedtls_md_update failed.");
-                goto exit;
-            }
-            if (mbedtls_md_finish(&md_ctx, digest) != 0) 
-            {
-                putErrmsg("[!] libsecrypt decryption error:",
-                                "mbedtls_md_finish failed.");
-                goto exit;
-            }
+            putErrmsg("[!] libsecrypt error:", "Key derivation (HKDF) failed.");
+            goto exit;
         }
 
-        if (mbedtls_cipher_setkey(&cipher_ctx, digest, cipher_info->key_bitlen,
+        if (mbedtls_cipher_setkey(&cipher_ctx, encryption_key, cipher_info->key_bitlen,
                                   MBEDTLS_DECRYPT) != 0) 
         {
             putErrmsg("[!] libsecrypt decryption error:",
@@ -596,7 +587,7 @@ int crypt_and_hash_buffer(
             goto exit;
         }
 
-        if (mbedtls_md_hmac_starts(&md_ctx, digest, md_size) != 0) 
+        if (mbedtls_md_hmac_starts(&md_ctx, auth_key, md_size) != 0) 
         {
             putErrmsg("[!] libsecrypt decryption error:",
                        "mbedtls_md_hmac_starts failed.");

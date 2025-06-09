@@ -12,39 +12,35 @@
  * Utility and Debugging Functions:
  * - print_hex: Print binary data as hexadecimal for debugging purposes.
  * - print_encrypted_data: Print encrypted data as hexadecimal to verify encryption.
- * 
- * Cryptographic Operations:
+ * * Cryptographic Operations:
  * - entropy_init: Initialize the entropy context for secure random number generation.
- * 
- * Encryption/Decryption and Hashing:
+ * * Encryption/Decryption and Hashing:
  * - crypt_and_hash_buffer: Perform encryption/decryption and hashing on a buffer.
- * 
- * Features:
+ * * Features:
  * - Utilizes strong entropy sources and cryptographic algorithms from MBEDTLS.
+ * - Employs HMAC-based Key Derivation (HKDF) to derive separate keys for
+ * encryption and authentication from a single master secret.
  * - Supports encryption and decryption of data buffers with simultaneous hashing for
- *   integrity verification.
+ * integrity verification.
  * - Enables file-based encryption and decryption with hashing, using MBEDTLS's
- *   file I/O capabilities.
+ * file I/O capabilities.
  * - Includes utility functions for debugging and data inspection.
- * 
- * Built upon the MBEDTLS 2.28.x security library, this header ensures adherence to
+ * * Built upon the MBEDTLS 2.28.x security library, this header ensures adherence to
  * contemporary cryptographic standards and practices. MBEDTLS, maintained by ARM,
  * provides a reliable foundation for secure communication and data protection.
- * 
- * Detailed function descriptions, parameters, and return values are provided to
+ * * Detailed function descriptions, parameters, and return values are provided to
  * ensure ease of use for developers.
  * 
  * @note Proper use of cryptographic functions is crucial for maintaining data security.
- *       Familiarize with cryptographic principles and MBEDTLS specifics to ensure security.
- * 
- *       Developed and tested with MBEDTLS v2.28.5 and v2.28.7.
+ * Familiarize with cryptographic principles and MBEDTLS specifics to ensure security.
+ * * Developed and tested with MBEDTLS v2.28.5,  v2.28.7, and v2.28.9
  * 
  * @warning Regular updates to MBEDTLS and adherence to cryptographic standards are
- *          essential for maintaining security.
+ * essential for maintaining security.
  *
  * @author Sky DeBaun, Jet Propulsion Laboratory
- * @date March 2024
- * @copyright Copyright (c) 2024, California Institute of Technology.
+ * @date June 2025
+ * @copyright Copyright (c) 2024-2025, California Institute of Technology.
  *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
  */
 
@@ -60,6 +56,11 @@
 
 #include "mbedtls/platform.h"
 #include <platform.h>
+
+/* MBEDTLS HMAC-Based Key Derivation */
+#if defined(MBEDTLS_HKDF_C)
+#include "mbedtls/hkdf.h"
+#endif
 
 /* Include cryptographic primitives if available */
 #if defined(MBEDTLS_CTR_DRBG_C) && defined(MBEDTLS_ENTROPY_C) && \
@@ -107,22 +108,6 @@
 /*  Macro definitions for operation modes */
 #define MODE_ENCRYPT    0
 #define MODE_DECRYPT    1
-
-/*  Predefined hash count for operation security levels */
-#define HASHCOUNT (8192)  /* See the following list for details */
-/* 
-    CONSIDER THE FOLLOWING HASHCOUNT VALUES------------------
-    8192 (2^13)     --> Basic Security
-    16384 (2^14)    --> Good Security (Good balance between security and performance)
-    32768 (2^15)    --> Good Security (Good balance between security and performance)
-    65536 (2^16)    --> Good Security (Good balance between security and performance)
-    131072 (2^17)   --> Enhanced Security (Favors security over performance)
-    262144 (2^18)   --> Enhanced Security (Favors security over performance)
-    524288 (2^19)   --> Enhanced Security (Favors security over performance)
-    1048576 (2^20)  --> High Security (Greater performance impact) 
-    2097152 (2^21)  --> High Security (Greater performance impact) 
-    4194304 (2^22)  --> High Security (Greater performance impact) 
- */
 
 #define USAGE   \
     "\n  crypt_and_hash <mode> <input filename> <output filename> <cipher> <mbedtls_md> <key>\n" \
@@ -178,6 +163,14 @@ void print_encrypted_data(const unsigned char *data, uvast length);
 /******************************************************************************/
 /*         CRYPTOGRAPHIC OPERATIONS        CRYPTOGRAPHIC OPERATIONS           */
 /******************************************************************************/
+
+
+
+/******************************************************************************/
+/** derive_keys */
+/******************************************************************************/
+/* This static function defined in secrypt.c */
+
 
 /******************************************************************************/
 /** entropy_init */

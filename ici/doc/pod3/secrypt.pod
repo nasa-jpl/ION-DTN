@@ -1,28 +1,40 @@
 =head1 NAME
 
-secrypt - Cryptographic library for encryption, decryption, and hashing.
+secrypt - Cryptographic library for authenticated encryption and decryption.
 
 =head1 SYNOPSIS
 
 #include "secrypt.h"
 
-Use these utilities for secure cryptographic operations, leveraging the MBEDTLS library (2.28.x) for implementing encryption, decryption, and hashing functionalities in applications.
+Use these utilities for secure cryptographic operations, leveraging the MBEDTLS
+library (2.28.x) for implementing authenticated encryption using an
+Encrypt-then-MAC scheme with derived keys.
 
 =head1 DESCRIPTION
 
-The secrypt library offers a comprehensive suite of cryptographic functions designed to facilitate secure encryption, decryption, and hashing of data. It harnesses the power of the MBEDTLS library, ensuring access to strong entropy sources and a variety of cryptographic algorithms for secure data processing and handling. Importantly, the full cryptographic capabilities of secrypt are enabled only when used in conjunction with the ITAR-compliant ION NASA Baseline. The source code provided with ION Open Source utilizes non-cryptographic stub functions in place of these capabilities, adhering to legal requirements and ensuring broader accessibility while distinguishing between secure government and public applications.
+The secrypt library offers a comprehensive suite of cryptographic functions
+designed to facilitate secure authenticated encryption of data buffers.
+It implements a robust B<Encrypt-then-MAC> scheme to provide both
+confidentiality (encryption) and integrity/authenticity (message authentication code).
+
+This implementation leverages the power of the MBEDTLS library and adheres to
+modern cryptographic best practices. Key security features include the use of the
+standard HMAC-based Key Derivation Function (B<HKDF>, RFC 5869) to derive separate,
+single-use keys for encryption and authentication from a master secret. This
+prevents key reuse and ensures a strong separation between cryptographic
+operations.
 
 =head2 Utility and Debugging Functions
 
 =over 4
 
-=item B<print_hex>(const unsigned char *data, size_t length)
+=item B<print_hex>(const unsigned char *data, uvast length)
 
 Prints binary data as hexadecimal. Useful for debugging and verifying data integrity.
 
-=item B<print_encrypted_data>(const unsigned char *data, size_t length)
+=item B<print_encrypted_data>(const unsigned char *data, uvast length)
 
-Prints encrypted data in hexadecimal format. Aids in verifying encryption operations.
+Prints encrypted data in a safe, human-readable format. Aids in verifying encryption operations.
 
 =back
 
@@ -40,13 +52,9 @@ Initializes the entropy context for secure random number generation.
 
 =over 4
 
-=item B<crypt_and_hash_buffer>(int mode, unsigned char *personalization_string, unsigned char *input_buffer, size_t *input_length, unsigned char **my_output_buffer, size_t *my_output_length, char *cipher, char *md, char *my_key)
+=item B<crypt_and_hash_buffer>(int mode, unsigned char *personalization_string, unsigned char *input_buffer, uvast *input_length, unsigned char **my_output_buffer, uvast *my_output_length, char *cipher, char *md, char *my_key)
 
-Performs encryption/decryption and hashing on a buffer. Supports both confidentiality (through encryption) and integrity (through hashing).
-
-=item B<crypt_and_hash_file>(int mode, unsigned char *personalization_string, char *file_in, char *file_out, char *cipher, char *md, char *key)
-
-Encrypts/decrypts and hashes file contents. Facilitates file-based cryptographic operations with integrity verification.
+Performs authenticated encryption or decryption on a data buffer.
 
 =back
 
@@ -56,25 +64,29 @@ Encrypts/decrypts and hashes file contents. Facilitates file-based cryptographic
 
 =item *
 
-Utilizes strong entropy sources and cryptographic algorithms from MBEDTLS for secure operations.
+B<Standard-Based Key Derivation:> Employs the HMAC-based Key Derivation Function (HKDF, RFC 5869) to derive strong, separate keys for encryption and authentication from a single master secret.
 
 =item *
 
-Supports simultaneous encryption/decryption and hashing for data integrity verification.
+B<Key Separation:> Enforces a strict separation between encryption and authentication keys, a critical best practice to prevent cryptographic interactions.
 
 =item *
 
-Enables file-based cryptographic operations with hashing, leveraging MBEDTLS file I/O capabilities.
+B<Secure IV Generation:> Creates a unique and unpredictable Initialization Vector (IV) for each encryption operation using a Cryptographically Secure Pseudo-Random Number Generator (CSPRNG).
 
 =item *
 
-Includes debugging and data inspection utilities for ease of development and verification.
+B<Authenticated Encryption:> Provides confidentiality and integrity through a robust Encrypt-then-MAC scheme.
+
+=item *
+
+B<Timing Attack Resistance:> Uses a constant-time comparison for HMAC verification during decryption to protect against timing side-channel attacks.
 
 =back
 
 =head1 NOTES
 
-Proper use of these cryptographic functions is crucial for maintaining data security. Familiarize yourself with cryptographic principles and MBEDTLS specifics to ensure the security of your data.
+Proper use of these cryptographic functions is crucial for maintaining data security. Familiarize yourself with cryptographic principles and MBEDTLS specifics to ensure the security of your data. The master key material provided should have sufficient entropy.
 
 =head1 WARNING
 
@@ -82,11 +94,10 @@ Keep your MBEDTLS library and cryptographic standards updated to maintain securi
 
 =head1 BUGS
 
-Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>.
+Report bugs to L<https://github.com/nasa-jpl/ION-DTN/issues>.
 
 =head1 SEE ALSO
 
-bp(3), sendfile(1), recvfile(1), metadata(3)
+L<bp(3)>, L<dtn(1)>, L<mbedtls_hkdf(3)>
 
 =cut
-

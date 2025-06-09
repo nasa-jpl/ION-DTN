@@ -450,8 +450,8 @@ int csi_init()
 	mbedtls_entropy_init(&g_csi_entropy );
  
 	/* Sky updates to use strong entropy source - 2024 */
-    mbedtls_entropy_add_source(&g_csi_entropy,
-							   poll_entropy_src, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
+	mbedtls_entropy_add_source(&g_csi_entropy,
+			poll_entropy_src, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
 
 	if(gcm_init(&g_csi_entropy) != 1)
 	{
