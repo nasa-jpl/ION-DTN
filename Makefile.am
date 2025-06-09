@@ -463,6 +463,7 @@ iciextra = \
 	ici/doc/pod3/lyst.pod \
 	ici/doc/pod3/psm.pod \
 	ici/doc/pod3/zco.pod \
+	ici/doc/pod3/secrypt.pod \
 	ici/doc/pod3/smlist.pod \
 	ici/doc/pod3/smrbt.pod \
 	ici/doc/pod3/sdrlist.pod \
@@ -1881,7 +1882,6 @@ bpextra = \
 	bpv7/doc/pod3/bp.pod \
 	bpv7/doc/pod3/bpextensions.pod \
 	bpv7/doc/pod3/metadata.pod \
-	bpv7/doc/pod3/secrypt.pod \
 	bpv7/doc/pod5/biberc.pod \
 	bpv7/doc/pod5/bprc.pod \
 	bpv7/doc/pod5/bpsecrc.pod \

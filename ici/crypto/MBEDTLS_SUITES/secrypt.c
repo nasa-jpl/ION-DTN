@@ -1,44 +1,19 @@
-/**
- * @file secrypt.c
- * @brief Implementation of cryptographic functions for encryption, decryption, and hashing.
- *
- * This file contains cryptographic functions defined in crypto.h. It leverages the MBEDTLS 
- * (v2.28.x) library to provide secure encryption, decryption, and hashing capabilities. 
- * These capabilities cover a range of operations including generating secure random numbers, 
- * initializing cryptographic contexts, and performing encryption/decryption. Hashing functionality
- * is included in the core function (see below) to automatically verify integrity after decryption.
- * 
- *
- * @details
- * Core Function:
- * - crypt_and_hash_buffer: Encrypts or decrypts data in a buffer (with hashed verification).
- * 
- * Cryptographic Utilities:
- * - entropy_gen: Generates cryptographically secure random entropy.
- *      - Note: see the new cross-platform entropy source at: ici/crypto/entropy_src.c
- * - entropy_init: Initializes the entropy context for random number generation.
- * 
- * Utility Functions:
- * - print_hex: Prints binary data in a hexadecimal format for debugging.
- * - print_encrypted_data: Prints encrypted data in hexadecimal format.
- * 
- * Theses functions utilize the cryptographic algorithms and utilities provided by the MBEDTLS
- * library to ensure the security of cryptographic operations. This includes the use of
- * secure random number generation, encryption/decryption algorithms, and hashing functions
- * to maintain the confidentiality and integrity of the processed data.
- *
- * @note The core function is based on the MBEDTLS file encryption/decryption 
- *       demonstation program. It has been modified to work with buffers and includes 
- *       additional IV randomization, prediction resistance, and uses OS (or hardware if available)
- *       entropy sources.
- *
- * @author Sky DeBaun, Jet Propulsion Laboratory
- * @date March 2024
- * @copyright Copyright (c) 2024, California Institute of Technology.
- *	ALL RIGHTS RESERVED.  U.S. Government Sponsorship acknowledged.
- */
-
-
+/*****************************************************************************
+ **
+ ** File Name: secrypt.c
+ **
+ ** Description: Cryptographic functions for encryption, decryption, and
+ **              hashing. See: secrypt.h or man secrypt for documentation.
+ **
+ **
+ ** Modification History:
+ **  MM/DD/YY  AUTHOR         DESCRIPTION
+ **  --------  ------------   ---------------------------------------------
+ **
+ **  03/15/24  S. DeBaun      Initial implementation
+ **  06/08/25  S. DeBaun      entropy_gen function deprecated (now uses:
+ **                             ici/crypto/entropy_src:poll_entropy_src)
+ *****************************************************************************/
 
 #ifndef darwin
 #ifndef freebsd
@@ -48,12 +23,12 @@
 #endif
 #endif
 #include "secrypt.h"
-#include "../entropy_src.h" //for cross-platform entropy polling function (in libici)
+#include "../entropy_src.h" /* For cross-platform entropy polling (libici) */
 
 #include <bp.h>
 
 
-//check for MBEDTLS cipher suite-----------------------------
+/* Check for MBEDTLS cipher suite----------------------------- */
 #if !defined(MBEDTLS_CIPHER_C) || !defined(MBEDTLS_MD_C) || \
     !defined(MBEDTLS_FS_IO) || !defined(MBEDTLS_CTR_DRBG_C) \
     || !defined(MBEDTLS_ENTROPY_C) || !defined(MBEDTLS_FS_IO)
@@ -73,99 +48,40 @@ mbedtls_printf("MBEDTLS_CIPHER_C and/or MBEDTLS_MD_C and/or MBEDTLS_CTR_DRBG_C "
 /******************************************************************************/
 /** print_hex */
 /******************************************************************************/
-void print_hex(const unsigned char *data, size_t length) 
+void print_hex(const unsigned char *data, uvast length) 
 {
-    for (size_t i = 0; i < length; i++) 
+    for (uvast i = 0; i < length; i++) 
     {
         printf("%02x", data[i]);
     }
     printf("\n");
 
-} //end print_hex--->///
+}
 
 /******************************************************************************/
 /** print_encrypted_data */
 /******************************************************************************/
-void print_encrypted_data(const unsigned char *data, size_t length) 
+void print_encrypted_data(const unsigned char *data, uvast length) 
 {
-    for (size_t i = 0; i < length; i++) 
+    for (uvast i = 0; i < length; i++) 
     {
         if (isprint(data[i])) 
         {
-            printf("%c", data[i]); //print as character
+            printf("%c", data[i]); /* print as character */
         } else 
         {
-            printf("."); //placeholder for non-printable characters
+            printf("."); /* placeholder for non-printable characters */
         }
     }
     printf("\n");
 
-} //end print_encrypted_data--->///
-
+}
 
 
 
 /******************************************************************************/
 /*         CRYPTOGRAPHIC OPERATIONS        CRYPTOGRAPHIC OPERATIONS           */
 /******************************************************************************/
-
-/******************************************************************************/
-/** entropy_gen */
-/* NOTE: deprecated in favor of: ici/crypto/entropy_src: poll_entropy_src()   */
-/******************************************************************************/
-int entropy_gen(void *data, unsigned char *output, size_t len, size_t *olen)
-{
-    int fd;
-    ssize_t n;
-    
-    /* Try /dev/hwrng first */
-    fd = open("/dev/hwrng", O_RDONLY);
-    if (fd != -1) 
-    {
-        n = read(fd, output, len);
-        close(fd);
-        if (n == len) 
-        {
-            *olen = len;
-            return 0; //success
-        }
-		writeMemo("Error reading from /dev/hwrng/\n"); 
-    }    
-    
-    fd = open("/dev/urandom", O_RDONLY);
-    if (fd != -1) 
-    {
-        n = read(fd, output, len);
-        close(fd);
-        if (n == len) 
-        {
-            *olen = len;
-            return 0; //success
-        }
-		writeMemo("Error reading from /dev/urandom/\n"); 
-    }
-
-    /* If /dev/urandom fails, try /dev/random */
-    fd = open("/dev/random", O_RDONLY);
-    if (fd != -1) 
-    {
-        n = read(fd, output, len);
-        close(fd);
-        if (n == len) 
-        {
-            *olen = len;
-            return 0; //success
-        }
-		writeMemo("Error reading from /dev/random/\n");
-    }
-
-    /* If both sources fail, return an error */
-    writeMemo("Failure reading from entropy generators");
-
-    return -1; //failure
-
-} //end entropy_gen--->///
-
 
 /******************************************************************************/
 /** entropy_init */
@@ -175,16 +91,12 @@ int entropy_init(mbedtls_entropy_context *entropy)
     /* initialize the entropy context object */
     mbedtls_entropy_init(entropy );
 
-    /* use the provided (see above) entropy polling function */
-    //mbedtls_entropy_add_source(entropy, entropy_gen, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
-
-    /* updated for (new) cross-platform entropy polling function (ici/crypto/entropy_src.c) */
-    mbedtls_entropy_add_source(entropy, poll_entropy_src, NULL, 0, MBEDTLS_ENTROPY_SOURCE_STRONG);
+    /* add entropy source - see: ici/crypto/entropy_src.c: poll_entropy_src */
+    mbedtls_entropy_add_source(entropy, poll_entropy_src, NULL, 0, \
+                                   MBEDTLS_ENTROPY_SOURCE_STRONG);
     return 0;
 
-} //end entropy_init--->///
-
-
+}
 
 
 /******************************************************************************/
@@ -198,23 +110,23 @@ int crypt_and_hash_buffer(
     int mode, 
     unsigned char *personalization_string, 
     unsigned char *input_buffer, 
-    size_t *input_length, 
+    uvast *input_length, 
     unsigned char **my_output_buffer, 
-    size_t *my_output_length, 
+    uvast *my_output_length, 
     char *cipher, 
     char *md, 
     char *my_key
 )
-{    
-    int i; //iterator
+{
+    int i; /* iterator */
     int status = -1;
-    int exit_code = MBEDTLS_EXIT_FAILURE; //default to failure
-    size_t keylen=0, ilen=0, olen=0;
-    size_t input_buffer_size = *input_length;
+    int exit_code = MBEDTLS_EXIT_FAILURE; /* default to failure */
+    uvast keylen=0, ilen=0, olen=0;
+    uvast input_buffer_size = *input_length;
     
     unsigned char *output_buffer = NULL;
-    size_t output_length = 0; //return 0 on failure
-    
+    uvast output_length = 0; /* return 0 on failure */
+
     unsigned char key[MAXKEYSIZE] = {0};
     unsigned char digest[MBEDTLS_MD_MAX_SIZE];
     memset(digest, 0, MBEDTLS_MD_MAX_SIZE);
@@ -235,10 +147,9 @@ int crypt_and_hash_buffer(
     mbedtls_cipher_mode_t cipher_mode;
     unsigned int cipher_block_size=0;
     unsigned char md_size=0;
-    FILE *fkey; //key file
+    FILE *fkey; /* key file */
     unsigned char *IV = NULL;
 
-    
 
 #if defined(_WIN32_WCE)
     long offset;
@@ -253,22 +164,23 @@ int crypt_and_hash_buffer(
     mbedtls_cipher_init(&cipher_ctx);
     mbedtls_md_init(&md_ctx);
 
-    /*  basic error checking-----------------------------------   */
+    /*  Basic error checking------------------------------------ */
     if (mode != MODE_ENCRYPT && mode != MODE_DECRYPT) 
     {
-        mbedtls_fprintf(stderr, "invalid operation mode\n");
+        putErrmsg("[!] libsecrypt error:", "invalid operation mode.");
         goto exit;
     }
 
     if (input_buffer == *my_output_buffer) 
     {
-    mbedtls_fprintf(stderr, "Input and output buffers must not be the same\n");
-    goto exit;
+        putErrmsg("[!] libsecrypt error:",
+                  "input and output buffers must not be the same.");
+        goto exit;
     }
 
     if (input_buffer == NULL) 
     {
-        mbedtls_fprintf(stderr, "Input or output buffer is NULL\n");
+        putErrmsg("[!] libsecrypt error:", "Input or output buffer is NULL.");
         goto exit;
     }
     
@@ -276,28 +188,31 @@ int crypt_and_hash_buffer(
 
     if (cipher_info == NULL) 
     {
-        mbedtls_fprintf(stderr, "Cipher '%s' not found\n", cipher);
+        putErrmsg("[!] libsecrypt error:",
+            "mbedtls_cipher_info_from_string cipher argument can not be NULL.");
         goto exit;
     }
 
     if ((mbedtls_cipher_setup(&cipher_ctx, cipher_info)) != 0) 
     {
-        mbedtls_fprintf(stderr, "mbedtls_cipher_setup failed\n");
+        putErrmsg("[!] libsecrypt error:", "mbedtls_cipher_setup failed.");
         goto exit;
     }
 
     md_info = mbedtls_md_info_from_string(md);
     if (md_info == NULL) 
     {
-        mbedtls_fprintf(stderr, "Message Digest '%s' not found\n", md);
+        putErrmsg("[!] libsecrypt Message Digest not found: ", md);
         goto exit;
     }
 
     if (mbedtls_md_setup(&md_ctx, md_info, 1) != 0) 
     {
-        mbedtls_fprintf(stderr, "mbedtls_md_setup failed\n");
+        putErrmsg("[!] libsecrypt error:", "mbedtls_md_setup failed.");
         goto exit;
     }
+
+    /* TODO: READ KEY FROM IONSECRC INSTEAD*/
 
     /*  Read the secret key from file */
     if ((fkey = fopen(my_key, "rb")) != NULL) 
@@ -305,8 +220,8 @@ int crypt_and_hash_buffer(
         keylen = fread(key, 1, sizeof(key), fkey);
         fclose(fkey);
     } 
-    else 
-     {
+    else
+    {
         /*
         printf("WARNING: using literal value as key (no key file found)!\n");
         if (memcmp(my_key, "hex:", 4) == 0) {
@@ -335,12 +250,12 @@ int crypt_and_hash_buffer(
     md_size = mbedtls_md_get_size(md_info);
     cipher_block_size = mbedtls_cipher_get_block_size(&cipher_ctx);
 
-    /* set IV size ----------------------------------------------------- */
-    size_t iv_size = cipher_block_size;
-    IV = MTAKE(iv_size); //freed at exit:
+    /* set IV size ----------------------------------------------*/
+    uvast iv_size = cipher_block_size;
+    IV = MTAKE(iv_size); /* freed at exit: */
     if (IV == NULL)
     {
-        fprintf(stderr, "IV Memory allocation failed\n");
+        putErrmsg("[!] libsecrypt error:", "IV Memory allocation failed.");
         goto exit;
     }
     memset(IV, 0, iv_size);
@@ -350,29 +265,34 @@ int crypt_and_hash_buffer(
     if (mode == MODE_ENCRYPT) 
     {
 
-        /* INITIALIZE RANDOMIZER------------------------------------------ */
+        /* INITIALIZE RANDOMIZER--------------------------------- */
         mbedtls_ctr_drbg_init(&ctr_drbg);
 
-        /* INITIALIZE AND SEED ENTROPY------------------------------------ */
+        /* INITIALIZE AND SEED ENTROPY--------------------------- */
         entropy_init(&entropy);
 
-        status = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func,
-                                &entropy, (const unsigned char *) personalization_string,
-                                strlen((const char *) personalization_string)); //seeded with non cryptographic string
+        /* Seeded with non cryptographic string */
+        status = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                                  (const unsigned char *) personalization_string,
+                                  strlen((const char *) personalization_string));
         if (status != 0) 
         {
-            mbedtls_printf("failed in mbedtls_ctr_drbg_seed: %d\n", status);
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_ctr_drbg_seed failed.");
             goto exit;
         }
 
         /* enable prediction resistance */
-        mbedtls_ctr_drbg_set_prediction_resistance(&ctr_drbg, MBEDTLS_CTR_DRBG_PR_OFF);
-        
+        mbedtls_ctr_drbg_set_prediction_resistance(&ctr_drbg, 
+                                    MBEDTLS_CTR_DRBG_PR_ON);
+
         /* GENERATE UNIQUE CRYPTOGRAPHIC IV INITIALIZER */
-        status = mbedtls_ctr_drbg_random(&ctr_drbg, randomizer, MBEDTLS_MD_MAX_SIZE); //populate with crypto grade rand string
+        status = mbedtls_ctr_drbg_random(&ctr_drbg, randomizer, 
+                                          MBEDTLS_MD_MAX_SIZE);
         if (status != 0) 
         {
-            mbedtls_printf("Error generating GCM!\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "GCM generation failed."); 
             goto exit;
         }
 
@@ -383,38 +303,47 @@ int crypt_and_hash_buffer(
         }        
         if (mbedtls_md_starts(&md_ctx) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_starts() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_md_starts failed.");
             goto exit;
         }
         /* very low level randomizer*/
         if (mbedtls_md_update(&md_ctx, buffer, 8) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_update() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_md_update failed.");
             goto exit;
         }
         /* cryptographic grade 64 byte context update */
-        if (mbedtls_md_update(&md_ctx, (unsigned char *) (char *)randomizer, MBEDTLS_MD_MAX_SIZE) != 0) 
+        if (mbedtls_md_update(&md_ctx, (unsigned char *) (char *)randomizer, 
+                                                  MBEDTLS_MD_MAX_SIZE) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_update() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_md_update failed.");
             goto exit;
         }
         if (mbedtls_md_finish(&md_ctx, digest) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_finish() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_md_finish failed.");
             goto exit;
         }
         memcpy(IV, digest, iv_size);
 
+        /*
+         * The output buffer is structured with the IV at the beginning, so we
+         * calculate the total required size by adding the crypto overhead (IV and
+         * message digest/tag) to the original data size.
+         */
+        uvast total_required_size = input_buffer_size + iv_size + md_size;
+        output_length = total_required_size; /* set final size for the caller */
 
-        /* append the IV at the beginning of the output buffer */
-        size_t total_required_size = input_buffer_size + iv_size + md_size; //add padding for IV and digest
-        output_length = total_required_size;
-
-        output_buffer = MTAKE(total_required_size * sizeof(char)); //freed in exit:
+        output_buffer = MTAKE(total_required_size * sizeof(char)); /* freed in exit */
        
         if (output_buffer == NULL)
         {        
-            fprintf(stderr, "Encryption memory allocation failed\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "output buffer memory allocation failed.");
             goto exit; 
         }        
         memset(output_buffer, 0, total_required_size);
@@ -433,26 +362,26 @@ int crypt_and_hash_buffer(
         {
             if (mbedtls_md_starts(&md_ctx) != 0) 
             {
-                mbedtls_fprintf(stderr,
-                                "mbedtls_md_starts() returned error\n");
+                putErrmsg("[!] libsecrypt encryption error:",
+                          "mbedtls_md_starts failed.");
                 goto exit;
             }
             if (mbedtls_md_update(&md_ctx, digest, md_size) != 0) 
             {
-                mbedtls_fprintf(stderr,
-                                "mbedtls_md_update() returned error\n");
+                putErrmsg("[!] libsecrypt encryption error:",
+                          "mbedtls_md_update failed.");
                 goto exit;
             }
             if (mbedtls_md_update(&md_ctx, key, keylen) != 0) 
             {
-                mbedtls_fprintf(stderr,
-                                "mbedtls_md_update() returned error\n");
+                putErrmsg("[!] libsecrypt encryption error:",
+                          "mbedtls_md_update failed.");
                 goto exit;
             }
             if (mbedtls_md_finish(&md_ctx, digest) != 0) 
             {
-                mbedtls_fprintf(stderr,
-                                "mbedtls_md_finish() returned error\n");
+                putErrmsg("[!] libsecrypt encryption error:",
+                          "mbedtls_md_finish failed.");
                 goto exit;
             }
         }
@@ -460,71 +389,85 @@ int crypt_and_hash_buffer(
         if (mbedtls_cipher_setkey(&cipher_ctx, digest, cipher_info->key_bitlen,
                                   MBEDTLS_ENCRYPT) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_setkey() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_cipher_setkey failed.");
             goto exit;
         }
         if (mbedtls_cipher_set_iv(&cipher_ctx, IV, iv_size) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_set_iv() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_cipher_set_iv failed.");
             goto exit;
         }
         if (mbedtls_cipher_reset(&cipher_ctx) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_reset() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_cipher_reset failed.");
             goto exit;
         }
         if (mbedtls_md_hmac_starts(&md_ctx, digest, md_size) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_hmac_starts() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_md_hmac_starts failed.");
             goto exit;
         }
 
 
-        /* encrypt and write the ciphertext */
-        unsigned char *input_ptr = input_buffer;  //pointer to the current position in input_buffer
-        unsigned char *output_ptr = output_buffer + iv_size;  //start writing after the IV
+        /* Encrypt and write the ciphertext --------------------*/
+
+        /* point to current pos. in input_buffer */
+        unsigned char *input_ptr = input_buffer;
+
+        /* start writing after the IV */
+        unsigned char *output_ptr = output_buffer + iv_size;
 
         /* offset fix------------------------------------------- */
-        size_t compensator=0;
-        size_t real_offset=0;
+        uvast compensator=0;
+        uvast real_offset=0;
 
         for (offset = 0; offset < input_buffer_size; offset += cipher_block_size) 
         {
-            ilen = (input_buffer_size - offset > cipher_block_size) ? cipher_block_size : (input_buffer_size - offset);
+            ilen = (input_buffer_size - offset > cipher_block_size)
+                 ? cipher_block_size
+                 : (input_buffer_size - offset);
+
             memcpy(buffer, input_ptr + offset, ilen); 
 
             if (mbedtls_cipher_update(&cipher_ctx, buffer, ilen, output, &olen) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_cipher_update() returned error\n");
+                putErrmsg("[!] libsecrypt encryption error:",
+                          "mbedtls_cipher_update failed.");
                 goto exit;
             }
 
-            compensator = olen; //olen incorrect after last iteration (get valid value here)
+            compensator = olen; /* olen incorrect after last iter. (get valid value here) */
 
             if (mbedtls_md_hmac_update(&md_ctx, output, olen) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_md_hmac_update() returned error\n");
+                putErrmsg("[!] libsecrypt encryption error:",
+                          "mbedtls_md_hmac_update failed.");
                 goto exit;
             }
 
             memcpy(output_ptr + offset, output, olen);
-            real_offset = offset; //resolves false offset after last iteration
+            real_offset = offset; /* resolves false offset after last iteration */
         }
-        /* update offset--------------------------------------- */
-        size_t final_offset = real_offset + compensator; //offset thrown forward by 16 on last iteration
-        
+        /* update offset (offset forward 16 on last iteration) */
+        uvast final_offset = real_offset + compensator;
 
 
-        /* finalize the encryption process */
+        /* Finalize the encryption process ---------------------- */
         if (mbedtls_cipher_finish(&cipher_ctx, output, &olen) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_finish() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_cipher_finish failed.");
             goto exit;
         }
         /* update HMAC with the final block of encrypted data */
         if (mbedtls_md_hmac_update(&md_ctx, output, olen) != 0)
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_hmac_update() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_md_hmac_update failed.");
             goto exit;
         }
         /* append the final block of encrypted data to the output buffer */
@@ -534,15 +477,15 @@ int crypt_and_hash_buffer(
         /* finalize the HMAC computation */
         if (mbedtls_md_hmac_finish(&md_ctx, digest) != 0)
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_hmac_finish() returned error\n");
+            putErrmsg("[!] libsecrypt encryption error:",
+                      "mbedtls_md_hmac_finish failed.");
             goto exit;
         }
 
         /* append the HMAC to the output buffer  */
-        memcpy(output_ptr + final_offset, digest, md_size);        
+        memcpy(output_ptr + final_offset, digest, md_size);
 
-    }// end encryption routine-->///
-
+    } /* end encryption routine */
 
 
     /* DECRYPT------------------------------------------------------------------ */
@@ -558,15 +501,20 @@ int crypt_and_hash_buffer(
          *  (N+1)*16 .. (N+1)*16 + n    Hash(ciphertext)
          */
 
-        // Check if the buffer is large enough to contain IV, at least one block of encrypted data, and HMAC
+        /* 
+            Check if the buffer is large enough to contain IV, at least one block 
+            of encrypted data, and HMAC 
+         */
         if (input_buffer_size < iv_size + md_size)
         {
-            mbedtls_fprintf(stderr, "Buffer too small to be decrypted.\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+                      "input buffer too small to be decrypted.");
             goto exit;
         }
         if (cipher_block_size == 0)
         {
-            mbedtls_fprintf(stderr, "Invalid cipher block size: 0.\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+                      "Invalid cipher block size (0).");
             goto exit;
         }
 
@@ -577,15 +525,14 @@ int crypt_and_hash_buffer(
             cipher_mode != MBEDTLS_MODE_OFB &&
             ((input_buffer_size - md_size) % cipher_block_size) != 0) 
         {
-            mbedtls_fprintf(stderr, "Buffer content not a multiple of the block size (%u).\n",
-                            cipher_block_size);
+            putErrmsg("[!] libsecrypt decryption error:",
+                      "Buffer content not a multiple of block size.");
             goto exit;
         }
 
         /* subtract the IV + HMAC length for correct allocation size */
         input_buffer_size -= (iv_size + md_size);
         output_length = input_buffer_size ;
-       
 
         memcpy(buffer, input_buffer, iv_size);
         memcpy(IV, buffer, iv_size);
@@ -601,22 +548,28 @@ int crypt_and_hash_buffer(
         {
             if (mbedtls_md_starts(&md_ctx) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_md_starts() returned error\n");
+                putErrmsg("[!] libsecrypt decryption error:",
+                                "mbedtls_md_starts failed.");
+
                 goto exit;
             }
             if (mbedtls_md_update(&md_ctx, digest, md_size) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_md_update() returned error\n");
+                putErrmsg("[!] libsecrypt decryption error:",
+                                "mbedtls_md_update failed.");
+
                 goto exit;
             }
             if (mbedtls_md_update(&md_ctx, key, keylen) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_md_update() returned error\n");
+                putErrmsg("[!] libsecrypt decryption error:",
+                                "mbedtls_md_update failed.");
                 goto exit;
             }
             if (mbedtls_md_finish(&md_ctx, digest) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_md_finish() returned error\n");
+                putErrmsg("[!] libsecrypt decryption error:",
+                                "mbedtls_md_finish failed.");
                 goto exit;
             }
         }
@@ -624,41 +577,47 @@ int crypt_and_hash_buffer(
         if (mbedtls_cipher_setkey(&cipher_ctx, digest, cipher_info->key_bitlen,
                                   MBEDTLS_DECRYPT) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_setkey() returned error\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+                        "mbedtls_cipher_setkey failed.");
             goto exit;
         }
 
         if (mbedtls_cipher_set_iv(&cipher_ctx, IV, iv_size) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_set_iv() returned error\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+                        "mbedtls_cipher_set_iv failed.");
             goto exit;
         }
 
         if (mbedtls_cipher_reset(&cipher_ctx) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_reset() returned error\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+                         "mbedtls_cipher_reset failed.");
             goto exit;
         }
 
-        if (mbedtls_md_hmac_starts(&md_ctx, digest, md_size) != 0) {
-            mbedtls_fprintf(stderr, "mbedtls_md_hmac_starts() returned error\n");
+        if (mbedtls_md_hmac_starts(&md_ctx, digest, md_size) != 0) 
+        {
+            putErrmsg("[!] libsecrypt decryption error:",
+                       "mbedtls_md_hmac_starts failed.");
             goto exit;
         }
 
-        /* decrypt and write the plaintext */
- 
-        size_t total_required_size = input_buffer_size; 
-        output_buffer = MTAKE(total_required_size * sizeof(char)); //freed in exit:
+        /* Decrypt and write the plaintext */
+
+        uvast total_required_size = input_buffer_size; 
+        output_buffer = MTAKE(total_required_size * sizeof(char)); /* freed in exit */
 
         if (output_buffer == NULL) 
         {
-            fprintf(stderr, "Decryption memory allocation failed\n");
+            putErrmsg("[!] libsecrypt decryption memory allocation failed",
+                                                   "MTAKE returned NULL.");
             goto exit;
         }
         memset(output_buffer, 0, total_required_size);
 
-        unsigned char *input_ptr = input_buffer + iv_size; //skip the IV at the beginning
-        unsigned char *output_ptr = output_buffer; //point to the start of the output buffer
+        unsigned char *input_ptr = input_buffer + iv_size; /* skip the IV at beginning */
+        unsigned char *output_ptr = output_buffer; /* point to start of output buffer */
               
         
         /* for size of the input data excluding IV and HMAC */
@@ -672,14 +631,16 @@ int crypt_and_hash_buffer(
             /* update HMAC with data from the buffer */
             if (mbedtls_md_hmac_update(&md_ctx, buffer, ilen) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_md_hmac_update() returned error\n");
+                putErrmsg("[!] libsecrypt decryption error:",
+                           "mbedtls_md_hmac_update failed.");
                 goto exit;
             }
 
             /* decrypt the data */
             if (mbedtls_cipher_update(&cipher_ctx, buffer, ilen, output, &olen) != 0) 
             {
-                mbedtls_fprintf(stderr, "mbedtls_cipher_update() returned error\n");
+                putErrmsg("[!] libsecrypt decryption error:",
+                            "mbedtls_cipher_update failed.");
                 goto exit;
             }
 
@@ -689,18 +650,17 @@ int crypt_and_hash_buffer(
         /* verify the message authentication code  */
         if (mbedtls_md_hmac_finish(&md_ctx, digest) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_md_hmac_finish() returned error\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+                       "mbedtls_md_hmac_finish failed.");
             goto exit;
         }
 
- 
         /* the HMAC is at the end of the input buffer, calculate its position: */
         unsigned char *hmac_position = input_buffer + (input_buffer_size + iv_size);
 
         /* copy the HMAC from the input buffer to 'buffer' for comparison */
         memcpy(buffer, hmac_position, md_size);
 
-        
         /* Use comparison to verify hash*/
         diff = 0;
         for (i = 0; i < md_size; i++) 
@@ -710,29 +670,32 @@ int crypt_and_hash_buffer(
 
         if (diff != 0) 
         {
-            mbedtls_fprintf(stderr, "HMAC check failed: wrong key, "
-                                    "or file corrupted.\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+              "HMAC check failed - wrong key or file altered.");
             goto exit;
         }
-
 
         /*  write the final block of data  */
         if (mbedtls_cipher_finish(&cipher_ctx, output, &olen) != 0) 
         {
-            mbedtls_fprintf(stderr, "mbedtls_cipher_finish() returned error\n");
+            putErrmsg("[!] libsecrypt decryption error:",
+              "mbedtls_md_hmac_finish HMAC check failed.");
             goto exit;
         }
 
         memcpy(output_ptr + offset, output, olen);
 
-    } //end decryption routine--->//
+    } /* end decryption routine */
 
 
-    /* copy results (i.e. on successful operation) only */
-    *my_output_buffer = MTAKE(output_length * sizeof(char)); //free me in calling function!!!!!!!!
+    /* Copy results (i.e. on successful operation) only ---------*/
+    /* FREE ME IN CALLING FUNCTION !!! */
+    *my_output_buffer = MTAKE(output_length * sizeof(char)); /* FREE ME!!! */
+
     if (my_output_buffer == NULL)
     {
-        printf("Error allocating memory for results\n");
+        putErrmsg("[!] libsecrypt error allocating memory:",
+                                   "outbut buffer is NULL");
         goto exit;
     }
     memcpy(*my_output_buffer, output_buffer, output_length);
@@ -742,7 +705,7 @@ int crypt_and_hash_buffer(
 
     exit_code = MBEDTLS_EXIT_SUCCESS;
 
-exit: 
+exit:
 
     mbedtls_platform_zeroize(IV,     sizeof(IV));
     mbedtls_platform_zeroize(key,    sizeof(key));
@@ -767,10 +730,8 @@ exit:
         MRELEASE(output_buffer);
         output_buffer = NULL;
     }
-    
+
     return exit_code;
 
-} //end crypt_and_hash_buffer--->///
-
-
+}
 #endif /* MBEDTLS_CIPHER_C && MBEDTLS_MD_C && MBEDTLS_FS_IO */

@@ -79,7 +79,7 @@ static int poll_from_device_file(unsigned char *output, uvast ilen, uvast *olen)
          /* /dev/random is a blocking fallback, used as a last resort */
         fd = open("/dev/random", O_RDONLY);
         if (fd < 0) {
-            writeMemo("[!] poll_from_device_file: could not open entropy source");
+            putErrmsg("[!] poll_from_device_file:", "could not open entropy source.");
             return ERROR_OPENING_ENTROPY_SOURCE;
         }
     }
@@ -89,7 +89,7 @@ static int poll_from_device_file(unsigned char *output, uvast ilen, uvast *olen)
 
     if (read_bytes < 0)
     {
-        writeMemo("[!] poll_from_device_file: error reading from entropy source");
+        putErrmsg("[!] poll_from_device_file:", "error reading from entropy source.");
         *olen = 0;
         return ERROR_READING_ENTROPY_SOURCE;
     }
@@ -128,7 +128,7 @@ int poll_entropy_src(void *data, unsigned char *output, uvast ilen, uvast *olen)
                 return poll_from_device_file(output, ilen, olen);
             }
             if (errno != EINTR) {
-                writeMemo("[!] poll_entropy_src: getrandom() failed");
+                putErrmsg("[!] poll_entropy_src:", "getrandom failed.");
                 return ERROR_GETRANDOM_FAILED;
             }
             /* If interrupted by a signal (EINTR), just retry the loop. */
@@ -191,7 +191,7 @@ int poll_entropy_src(void *data, unsigned char *output, uvast ilen, uvast *olen)
     /* Windows uses only its high-level cryptographic API. */
     if (!BCryptGenRandom(NULL, output, (ULONG)ilen, BCRYPT_USE_SYSTEM_PREFERRED_RNG))
     {
-        writeMemo("[!] poll_entropy_src: BCryptGenRandom failed");
+        putErrmsg("[!] poll_entropy_src:", "BCryptGenRandom failed.");
         return ERROR_BCRYPT_FAILED;
     }
     *olen = ilen;

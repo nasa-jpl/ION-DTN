@@ -30,10 +30,6 @@ Prints encrypted data in hexadecimal format. Aids in verifying encryption operat
 
 =over 4
 
-=item B<entropy_gen>(void *data, unsigned char *output, size_t len, size_t *olen)
-
-Generates cryptographically secure random entropy.
-
 =item B<entropy_init>(mbedtls_entropy_context *entropy)
 
 Initializes the entropy context for secure random number generation.

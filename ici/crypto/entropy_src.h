@@ -47,7 +47,7 @@
  *
  * @code
  * #include "entropy_src.h"
- * #include "platform.h" // For uvast
+ * #include <platform.h>
  * #include <stdio.h>
  *
  * int main(void) {
@@ -79,7 +79,7 @@
 #ifndef ENTROPY_SRC_H
 #define ENTROPY_SRC_H
 
-#include "ion.h"
+#include <ion.h>
 #include <platform.h>
 
 /**
