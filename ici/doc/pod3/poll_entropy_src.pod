@@ -36,7 +36,7 @@ efficient, and safe kernel interfaces.
 
 =item * C<getrandom(2)> on Linux (Kernel 3.17+)
 
-=item * C<getentropy(2)> on macOS (10.12+), FreeBSD, and OpenBSD
+=item * C<arc4random_buf(3)> on macOS (10.12+), FreeBSD, and OpenBSD
 
 =back
 
@@ -121,15 +121,13 @@ C<ErrorCode> value.
 
 =item * C<-2 (ERROR_GETRANDOM_FAILED)> - The getrandom() syscall failed on Linux.
 
-=item * C<-3 (ERROR_GETENTROPY_FAILED)> - The getentropy() function failed on a BSD or macOS.
+=item * C<-3 (ERROR_BCRYPT_FAILED)> - The BCryptGenRandom function failed on Windows.
 
-=item * C<-4 (ERROR_BCRYPT_FAILED)> - The BCryptGenRandom function failed on Windows.
+=item * C<-4 (ERROR_SECRANDOM_FAILED)> - The SecRandomCopyBytes function failed on macOS.
 
-=item * C<-5 (ERROR_SECRANDOM_FAILED)> - The SecRandomCopyBytes function failed on macOS.
+=item * C<-5 (ERROR_OPENING_ENTROPY_SOURCE)> - [Fallback] Could not open an entropy device file.
 
-=item * C<-6 (ERROR_OPENING_ENTROPY_SOURCE)> - [Fallback] Could not open an entropy device file.
-
-=item * C<-7 (ERROR_READING_ENTROPY_SOURCE)> - [Fallback] Could not read from an entropy device file.
+=item * C<-6 (ERROR_READING_ENTROPY_SOURCE)> - [Fallback] Could not read from an entropy device file.
 
 =back
 
@@ -154,6 +152,7 @@ Report bugs to <https://github.com/nasa-jpl/ION-DTN/issues>.
 
 =head1 SEE ALSO
 
-getrandom(2), getentropy(2), random(4), SecRandomCopyBytes(3), BCryptGenRandom(3)
+L<hmackeys(1)>, L<getrandom(2)>, L<arc4random_buf(3)>, L<BCryptGenRandom(3)>,
+L<SecRandomCopyBytes(3)>, L<random(4)>
 
 =cut

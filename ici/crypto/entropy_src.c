@@ -45,8 +45,6 @@ const char* getErrorMessage(ErrorCode code)
             return "Invalid arguments";
         case ERROR_GETRANDOM_FAILED:
             return "getrandom() syscall failed (Linux)";
-        case ERROR_GETENTROPY_FAILED:
-            return "getentropy() syscall failed (BSD/macOS)";
         case ERROR_BCRYPT_FAILED:
             return "BCryptGenRandom failed (Windows)";
         case ERROR_SECRANDOM_FAILED:
@@ -138,26 +136,15 @@ int poll_entropy_src(void *data, unsigned char *output, uvast ilen, uvast *olen)
     return 0; /* Success */
 
 #elif defined(__APPLE__)
-    /* TIER 1: Use getentropy() on macOS 10.12+ */
+    /* TIER 1: Use arc4random_buf() on macOS 10.12+ */
     #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
     {
-        /* Loop to handle requests larger than the 256-byte limit of getentropy */
-        uvast bytes_written = 0;
-        int getentropy_ok = 1;
-        while (bytes_written < ilen) {
-            uvast chunk_size = (ilen - bytes_written > 256) ? 256 : (ilen - bytes_written);
-            if (getentropy(output + bytes_written, chunk_size) != 0) {
-                getentropy_ok = 0; /* Mark as failed and break loop */
-                break;
-            }
-            bytes_written += chunk_size;
-        }
-        if (getentropy_ok) {
-            *olen = bytes_written;
-            return 0; /* Success */
-        }
+        arc4random_buf(output, ilen);
+        *olen = ilen;
+        return 0; /* Success */
     }
-    /* If getentropy() failed or was unavailable, fall through to Tier 2... */
+
+    /* If arc4random_buf() failed or was unavailable, fall through to Tier 2... */
     #endif
 
     /* TIER 2: Use SecRandomCopyBytes as the established API */
@@ -172,18 +159,13 @@ int poll_entropy_src(void *data, unsigned char *output, uvast ilen, uvast *olen)
 
 
 #elif defined(__FreeBSD__) || defined(__OpenBSD__)
-    /* TIER 1: Use getentropy() on modern BSDs */
-    /* Loop to handle requests larger than the 256-byte limit */
-    uvast bytes_written = 0;
-    while (bytes_written < ilen) {
-        uvast chunk_size = (ilen - bytes_written > 256) ? 256 : (ilen - bytes_written);
-        if (getentropy(output + bytes_written, chunk_size) != 0) {
-             /* If getentropy fails, use the device file fallback. */
-            return poll_from_device_file(output, ilen, olen);
-        }
-        bytes_written += chunk_size;
-    }
-    *olen = bytes_written;
+    /*
+     * On BSD systems, arc4random_buf() is the recommended, high-level
+     * interface for applications. It is fast, automatically seeded with a
+     * strong entropy source, and cannot fail.
+     */
+    arc4random_buf(output, ilen);
+    *olen = ilen;
     return 0; /* Success */
 
 

@@ -89,14 +89,14 @@
  * This enumeration defines error codes that are returned by the entropy
  * source operations to indicate various types of failures.
  */
-typedef enum {
+typedef enum 
+{
     INVALID_ARGUMENTS = -1,                 /**< Invalid arguments passed to a function. */
     ERROR_GETRANDOM_FAILED = -2,            /**< The getrandom() syscall failed on Linux. */
-    ERROR_GETENTROPY_FAILED = -3,           /**< The getentropy() function failed on a BSD or macOS. */
-    ERROR_BCRYPT_FAILED = -4,               /**< The BCryptGenRandom function failed on Windows. */
-    ERROR_SECRANDOM_FAILED = -5,            /**< The SecRandomCopyBytes function failed on macOS. */
-    ERROR_OPENING_ENTROPY_SOURCE = -6,      /**< [Fallback] Could not open an entropy device file. */
-    ERROR_READING_ENTROPY_SOURCE = -7       /**< [Fallback] Could not read from an entropy device file. */
+    ERROR_BCRYPT_FAILED = -3,               /**< The BCryptGenRandom function failed on Windows. */
+    ERROR_SECRANDOM_FAILED = -4,            /**< The SecRandomCopyBytes function failed on macOS. */
+    ERROR_OPENING_ENTROPY_SOURCE = -5,      /**< [Fallback] Could not open an entropy device file. */
+    ERROR_READING_ENTROPY_SOURCE = -6       /**< [Fallback] Could not read from an entropy device file. */
 } ErrorCode;
 
 

@@ -1220,7 +1220,7 @@ libici_la_SOURCES += \
 	ici/crypto/MBEDTLS_SUITES/csi.c \
 	ici/crypto/MBEDTLS_SUITES/csi_ecdsa.c \
 	ici/crypto/MBEDTLS_SUITES/csi_gcm.c \
-	ici/crypto/MBEDTLS_SUITES/csi_hsha.c 
+	ici/crypto/MBEDTLS_SUITES/csi_hsha.c
 else
 libici_la_SOURCES += \
 	ici/crypto/NULL_SUITES/crypto.c\
