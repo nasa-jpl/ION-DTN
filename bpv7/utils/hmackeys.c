@@ -48,16 +48,16 @@ static int	processLine(char *line, int lineLength)
 		return -1;
 	}
 
-    /* --- Use cross-platform entropy source for secure key material --- */
-    uvast bytes_generated = 0;
-    result = poll_entropy_src(NULL, key, KEY_LEN, &bytes_generated);
-    if (result < 0 || bytes_generated != KEY_LEN)
-    {
-        fprintf(stderr, "Could not generate key material: %s\n",
-                getErrorMessage(result));
-        close(fd);
-        return -1;
-    }
+	/* --- Use cross-platform entropy source for secure key material --- */
+	uvast bytes_generated = 0;
+	result = poll_entropy_src(NULL, key, KEY_LEN, &bytes_generated);
+	if (result < 0 || bytes_generated != KEY_LEN)
+	{
+		fprintf(stderr, "Could not generate key material: %s\n",
+			getErrorMessage(result));
+		close(fd);
+		return -1;
+	}
 
 	if (write(fd, key, KEY_LEN) < KEY_LEN)
 	{
