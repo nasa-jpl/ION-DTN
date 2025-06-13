@@ -12,10 +12,13 @@
  * Utility and Debugging Functions:
  * - print_hex: Print binary data as hexadecimal for debugging purposes.
  * - print_encrypted_data: Print encrypted data as hexadecimal to verify encryption.
+ *
  * * Cryptographic Operations:
  * - entropy_init: Initialize the entropy context for secure random number generation.
+ *
  * * Encryption/Decryption and Hashing:
  * - crypt_and_hash_buffer: Perform encryption/decryption and hashing on a buffer.
+ *
  * * Features:
  * - Utilizes strong entropy sources and cryptographic algorithms from MBEDTLS.
  * - Employs HMAC-based Key Derivation (HKDF) to derive separate keys for
@@ -25,7 +28,8 @@
  * - Enables file-based encryption and decryption with hashing, using MBEDTLS's
  * file I/O capabilities.
  * - Includes utility functions for debugging and data inspection.
- * * Built upon the MBEDTLS 2.28.x security library, this header ensures adherence to
+ *
+ * * Built on the MBEDTLS 2.28.x security library, this header ensures adherence to
  * contemporary cryptographic standards and practices. MBEDTLS, maintained by ARM,
  * provides a reliable foundation for secure communication and data protection.
  * * Detailed function descriptions, parameters, and return values are provided to
