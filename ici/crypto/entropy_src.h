@@ -52,7 +52,7 @@
  *
  * int main(void) {
  * unsigned char buffer[32];
- * uvast bytes_read = 0;
+ * size_t bytes_read = 0;
  *
  * int result = poll_entropy_src(NULL, buffer, sizeof(buffer), &bytes_read);
  *
@@ -109,11 +109,11 @@ typedef enum
  * @param data      A pointer for API compatibility. Unused. Should be NULL.
  * @param output    Pointer to the buffer to store the random bytes.
  * @param ilen      Number of bytes to generate.
- * @param olen      Pointer to a uvast where the actual number of generated
+ * @param olen      Pointer to a size_t where the actual number of generated
  * bytes will be stored.
  * @return          0 on success, or a negative ErrorCode on failure.
  */
-int poll_entropy_src(void *data, unsigned char *output, uvast ilen, uvast *olen);
+int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *olen);
 
 
 /**

@@ -67,7 +67,7 @@ const char* getErrorMessage(ErrorCode code)
  * @brief [FALLBACK] Reads entropy from a device file like /dev/urandom.
  * @details This is the final fallback method for Unix-like systems.
  */
-static int poll_from_device_file(unsigned char *output, uvast ilen, uvast *olen)
+static int poll_from_device_file(unsigned char *output, size_t ilen, size_t *olen)
 {
     int fd = -1;
 
@@ -82,7 +82,7 @@ static int poll_from_device_file(unsigned char *output, uvast ilen, uvast *olen)
         }
     }
 
-    vast read_bytes = read(fd, output, ilen);
+    ssize_t read_bytes = read(fd, output, ilen);
     close(fd);
 
     if (read_bytes < 0)
@@ -92,7 +92,7 @@ static int poll_from_device_file(unsigned char *output, uvast ilen, uvast *olen)
         return ERROR_READING_ENTROPY_SOURCE;
     }
 
-    *olen = (uvast)read_bytes;
+    *olen = (size_t)read_bytes;
     return 0; /* Success */
 }
 #endif
@@ -101,7 +101,7 @@ static int poll_from_device_file(unsigned char *output, uvast ilen, uvast *olen)
 /*============================================================================
  * poll_entropy_src
  *==========================================================================*/
-int poll_entropy_src(void *data, unsigned char *output, uvast ilen, uvast *olen)
+int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *olen)
 {
     /* See entropy_src.h for documentation */
     (void)data;
@@ -115,9 +115,9 @@ int poll_entropy_src(void *data, unsigned char *output, uvast ilen, uvast *olen)
 
 #if defined(__linux__)
     /* TIER 1: Use getrandom() syscall, available since kernel 3.17. */
-    vast bytes_read = 0;
-    while ((uvast)bytes_read < ilen) {
-        vast ret = syscall(SYS_getrandom, output + bytes_read, ilen - bytes_read, 0);
+    ssize_t bytes_read = 0;
+    while ((size_t)bytes_read < ilen) {
+        ssize_t ret = syscall(SYS_getrandom, output + bytes_read, ilen - bytes_read, 0);
         if (ret > 0) {
             bytes_read += ret;
         } else {
