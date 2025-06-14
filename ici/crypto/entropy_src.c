@@ -30,9 +30,9 @@
 #endif
 
 /*============================================================================
- * getErrorMessage 
+ * get_error_message 
  *==========================================================================*/
-const char* getErrorMessage(ErrorCode code)
+const char* get_error_message(ErrorCode code)
 {
     /* See entropy_src.h for documentation */
     switch (code)

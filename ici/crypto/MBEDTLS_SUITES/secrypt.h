@@ -3,7 +3,7 @@
  * @brief Cryptographic utility functions for encryption, decryption, and hashing.
  *
  * This header file defines cryptographic utility functions leveraging the
- * capabilities of the MBEDTLS 2.28.x library for encryption, decryption, and hashing.
+ * capabilities of the Mbed TLS 2.28.x library for encryption, decryption, and hashing.
  * Functions are organized for easier navigation and integration into cryptographic
  * workflows, covering utility operations, cryptographic processes, and comprehensive
  * encryption/decryption with hashing capabilities.
@@ -20,26 +20,26 @@
  * - crypt_and_hash_buffer: Perform encryption/decryption and hashing on a buffer.
  *
  * * Features:
- * - Utilizes strong entropy sources and cryptographic algorithms from MBEDTLS.
+ * - Utilizes strong entropy sources and cryptographic algorithms from Mbed TLS.
  * - Employs HMAC-based Key Derivation (HKDF) to derive separate keys for
  * encryption and authentication from a single master secret.
  * - Supports encryption and decryption of data buffers with simultaneous hashing for
  * integrity verification.
- * - Enables file-based encryption and decryption with hashing, using MBEDTLS's
+ * - Enables file-based encryption and decryption with hashing, using Mbed TLS's
  * file I/O capabilities.
  * - Includes utility functions for debugging and data inspection.
  *
- * * Built on the MBEDTLS 2.28.x security library, this header ensures adherence to
- * contemporary cryptographic standards and practices. MBEDTLS, maintained by ARM,
+ * * Built on the Mbed TLS 2.28.x security library, this header ensures adherence to
+ * contemporary cryptographic standards and practices. Mbed TLS, maintained by ARM,
  * provides a reliable foundation for secure communication and data protection.
  * * Detailed function descriptions, parameters, and return values are provided to
  * ensure ease of use for developers.
  * 
  * @note Proper use of cryptographic functions is crucial for maintaining data security.
- * Familiarize with cryptographic principles and MBEDTLS specifics to ensure security.
- * * Developed and tested with MBEDTLS v2.28.5,  v2.28.7, and v2.28.9
+ * Familiarize with cryptographic principles and Mbed TLS specifics to ensure security.
+ * * Developed and tested with Mbed TLS v2.28.5,  v2.28.7, and v2.28.9
  * 
- * @warning Regular updates to MBEDTLS and adherence to cryptographic standards are
+ * @warning Regular updates to Mbed TLS and adherence to cryptographic standards are
  * essential for maintaining security.
  *
  * @author Sky DeBaun, Jet Propulsion Laboratory
@@ -51,7 +51,7 @@
 #ifndef CRYPT_AND_HASH_H
 #define CRYPT_AND_HASH_H
 
-/* MBEDTLS configuration and platform setup */
+/* Mbed TLS configuration and platform setup */
 #if !defined(MBEDTLS_CONFIG_FILE)
 #include "mbedtls/config.h"
 #else
@@ -61,7 +61,7 @@
 #include "mbedtls/platform.h"
 #include <platform.h>
 
-/* MBEDTLS HMAC-Based Key Derivation */
+/* Mbed TLS HMAC-Based Key Derivation */
 #if defined(MBEDTLS_HKDF_C)
 #include "mbedtls/hkdf.h"
 #endif
@@ -188,11 +188,11 @@ void print_encrypted_data(const unsigned char *data, uvast length);
  * functions. This is a crucial step in ensuring that the entropy source is ready 
  * and capable of providing high-quality random data for cryptographic operations.
  *
- * @param entropy Pointer to the mbedtls_entropy_context structure to be
+ * @param entropy Pointer to the Mbed TLS_entropy_context structure to be
  *                initialized. This structure is used to maintain the state
  *                of the entropy source.
  *
- * @return 0 on success, or a non-zero (-1) error code on failure.
+ * @return 0 on success, A non-zero Mbed TLS error code on failure.
  */
 
 int entropy_init(mbedtls_entropy_context *entropy);

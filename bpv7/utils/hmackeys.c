@@ -8,9 +8,9 @@
  * MM/DD/YY  AUTHOR         DESCRIPTION
  * --------  ------------   ---------------------------------------------
  *           S. Burleigh    Initial Implementation
- * 06/06/25  S. DeBaun      Replaced rand with the
+ * 06/13/25  S. DeBaun      Replaced rand with the
  *                          cross-platform poll_entropy_src API, added 
- *                          command-line arg for variable key length keys.                         
+ *                          command-line arg for variable key length keys.S
  *
  * SYNOPSIS
  *
@@ -25,20 +25,21 @@
  * USAGE EXAMPLES
  *
  * 1. Interactive mode, default 256-bit key (32 bytes):
- * # hmackeys
+ * $ hmackeys
  * : my_first_key_name
  * : my_second_key_name
  *
  * 2. Interactive mode, custom 512-bit key (64 bytes):
- * # hmackeys 64
+ * $ hmackeys 64
  * Using custom key length: 64 bytes (512 bits).
  * : my_512bit_key
  *
  * 3. Scripted mode from a file, custom 160-bit keys (20 bytes):
- * # cat keylist.txt
+ * $ cat keylist.txt
  * key_for_node_A
  * key_for_node_B
- * # hmackeys 20 keylist.txt
+ * 
+ * $ hmackeys 20 keylist.txt
  * Using custom key length: 20 bytes (160 bits).
  *
  * Standard HMAC Key Lengths (bits to bytes):
@@ -98,7 +99,7 @@ static int  processLine(char *line, int lineLength, int keyLen)
     if (result < 0 || bytes_generated != (uvast)keyLen)
     {
         fprintf(stderr, "Could not generate key material: %s\n",
-                getErrorMessage(result));
+                get_error_message(result));
         close(fd);
         free(key);
         return -1;

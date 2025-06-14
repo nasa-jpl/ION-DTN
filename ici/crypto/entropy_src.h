@@ -65,7 +65,7 @@
  *         printf("Successfully read %zu random bytes.\n", bytes_read);
  *     } else 
  *     {
- *         fprintf(stderr, "Error: %s\n", getErrorMessage(result));
+ *         fprintf(stderr, "Error: %s\n", get_error_message(result));
  *         return 1;
  *     }
  *
@@ -74,7 +74,7 @@
  * @endcode
  *
  * @see poll_entropy_src()
- * @see getErrorMessage()
+ * @see get_error_message()
  * @see ErrorCode
  *
  * @author Sky DeBaun - Jet Propulsion Laboratory
@@ -128,6 +128,6 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
  * @param  code     The ErrorCode to translate.
  * @return          A constant string containing the description of the error.
  */
-const char* getErrorMessage(ErrorCode code);
+const char* get_error_message(ErrorCode code);
 
 #endif /* ENTROPY_SRC_H */
