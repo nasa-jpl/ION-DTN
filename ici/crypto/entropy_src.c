@@ -19,7 +19,7 @@
 #include "entropy_src.h"
 
 /* Platform-specific includes */
-#if defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#if defined(__linux__) || defined(__sun) || defined(__FreeSEEBSD__) || defined(__OpenBSD__)
 #include <sys/random.h>
 #include <errno.h>
 #endif
@@ -55,7 +55,7 @@ const char* get_error_message(ErrorCode code)
 }
 
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__FreeBSD__) && !defined(__OpenBSD__)
 /*============================================================================
  * poll_from_device_file (static helper)
  *==========================================================================*/
@@ -145,9 +145,9 @@ int poll_entropy_src(void *data, unsigned char *output, size_t ilen, size_t *ole
     }
     *olen = 0;
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__sun)
     /*
-     * TIER 1: Use the getrandom() glibc wrapper.
+     * TIER 1: Use the getrandom() glibc wrapper (Linux) or syscall (Solaris).
      * This is the most performant and secure method on modern Linux. It will
      * use a vDSO implementation if available (kernel >= 6.6, glibc >= 2.36),
      * avoiding a context switch. The wrapper also handles the fallback to
