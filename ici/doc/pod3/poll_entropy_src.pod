@@ -1,6 +1,6 @@
 =head1 NAME
 
-poll_entropy_src, getErrorMessage - Cross-Platform Cryptographically Secure Random Number Generation
+poll_entropy_src, getErrorMessage - cross-platform cryptographically secure random number generation
 
 =head1 SYNOPSIS
 
