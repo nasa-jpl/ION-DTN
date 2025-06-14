@@ -1,6 +1,6 @@
 =head1 NAME
 
-secrypt - Cryptographic library for authenticated encryption and decryption.
+secrypt - cryptographic library for authenticated encryption and decryption
 
 =head1 SYNOPSIS
 
