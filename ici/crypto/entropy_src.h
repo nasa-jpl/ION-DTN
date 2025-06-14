@@ -12,34 +12,38 @@
  * It is designed to be self-contained and easily integrated into any
  * subsystem requiring a reliable source of entropy.
  *
- * <hr>
+* <hr>
  *
  * @section tiers_sec Implementation Strategy
  *
- * The implementation uses a tiered strategy to ensure the best possible
+ * The implementation uses a tiered strategy to ensure the best, most secure
  * entropy source is always used on a given platform. The tiers are prioritized
  * from most to least preferred:
  *
- * <b>Tier 1: Modern System Calls</b>
- * - The preferred method on modern Unix-like systems. These are direct,
- * efficient, and safe kernel interfaces.
- * - **Linux (Kernel 3.17+):** `getrandom()`
- * - **macOS (10.12+), FreeBSD, OpenBSD:** `getentropy()`
+ * <b>Tier 1: Primary Platform APIs</b>
+ * - The modern, recommended, high-level interfaces for acquiring entropy on
+ * a given operating system.
+ * - **Linux (Kernel 3.17+):** `getrandom() glibc wrapper`
+ * - **macOS (10.12+), FreeBSD, OpenBSD:** `arc4random_buf()`
+ * - **Windows:** `BCryptGenRandom`
  *
- * <b>Tier 2: High-Level Cryptographic APIs</b>
- * - Used on platforms that provide a dedicated crypto API, or as a fallback
- * on macOS.
- * - **Windows:** `BCryptGenRandom` (primary method)
+ * <b>Tier 2: Fallback & Legacy APIs</b>
+ * - Used when the primary Tier 1 API is unavailable.
  * - **macOS (Fallback):** `SecRandomCopyBytes`
  *
- * <b>Tier 3: Legacy Device Files</b>
- * - This is the universal fallback for ensuring broad compatibility with
- * older and generic Unix-like systems.
- * - **Primary Fallback:** Reads from `/dev/urandom`, the standard non-blocking
- * source available on nearly all historical and modern Unix systems.
- * - **Legacy Fallback:** If `/dev/urandom` is not found, it attempts to read
- * from `/dev/random`. This ensures support for very old legacy Unix
- * systems that may predate the introduction of `/dev/urandom`.
+ * <b>Tier 3: Universal Fallback (Device Files)</b>
+ * - This is the final fallback for ensuring broad compatibility with older or
+ * generic Unix-like systems where modern APIs are not available.
+ * - **Primary Fallback:** Reads from `/dev/urandom`.
+ * - **Safety Precaution (Linux):** On older Linux kernels that lack the
+ * `getrandom()` syscall, the code first performs a **non-blocking read**
+ * from `/dev/random`. This acts as an explicit poll to verify the
+ * kernel's entropy pool is safely initialized before any data is taken
+ * from `/dev/urandom`.
+ * - **Legacy Fallback:** If `/dev/urandom` is unavailable, or if the
+ * non-blocking readiness check on Linux indicates the pool is not yet
+ * seeded, the code will fall back to a **blocking read** from
+ * `/dev/random`. This serves as the ultimate guarantee of entropy quality.
  *
  * <hr>
  *
@@ -56,14 +60,16 @@
  *
  * int result = poll_entropy_src(NULL, buffer, sizeof(buffer), &bytes_read);
  *
- * if (result == 0 && bytes_read == sizeof(buffer)) {
- * printf("Successfully read %llu random bytes.\n", (unsigned long long)bytes_read);
- * } else {
- * fprintf(stderr, "Error: %s\n", getErrorMessage(result));
- * return 1;
- * }
+ * if (result == 0 && bytes_read == sizeof(buffer)) 
+ *     {
+ *         printf("Successfully read %zu random bytes.\n", bytes_read);
+ *     } else 
+ *     {
+ *         fprintf(stderr, "Error: %s\n", getErrorMessage(result));
+ *         return 1;
+ *     }
  *
- * return 0;
+ *     return 0;
  * }
  * @endcode
  *
@@ -92,7 +98,7 @@
 typedef enum 
 {
     INVALID_ARGUMENTS = -1,                 /**< Invalid arguments passed to a function. */
-    ERROR_GETRANDOM_FAILED = -2,            /**< The getrandom() syscall failed on Linux. */
+    ERROR_GETRANDOM_FAILED = -2,            /**< The getrandom() glibc wrapper call failed on Linux. */
     ERROR_BCRYPT_FAILED = -3,               /**< The BCryptGenRandom function failed on Windows. */
     ERROR_SECRANDOM_FAILED = -4,            /**< The SecRandomCopyBytes function failed on macOS. */
     ERROR_OPENING_ENTROPY_SOURCE = -5,      /**< [Fallback] Could not open an entropy device file. */
