@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # Copyright (c) 2009, Regents of the University of Colorado.
 # Written by Sebastian Kuzminsky <seb@highlab.com>
 # This script is released into the public domain.
-#
+# Updated: June 2026, JPL
 
 # This file will contain the tests that failed.
 # --dyoung oct 2010
@@ -16,8 +16,8 @@ echo "# Testing started by $0 `date`" > $PROGRESSFILE
 echo "# testing host: `hostname`" >> $PROGRESSFILE
 echo "# testing environment: `uname -a`" >> $PROGRESSFILE
 
-# If this environment variable is set, and is an existing directory, 
-# then output from each individual tests will go THERE instead 
+# If this environment variable is set, and is an existing directory,
+# then output from each individual tests will go THERE instead
 # of to the screen.  File names are of the form:
 # RUNTESTS_OUTPUTDIR/results.testname
 # --sdo oct 2023
@@ -30,7 +30,7 @@ if [[ -n "${RUNTESTS_OUTPUTDIR}" ]] ; then
             RUNTESTS_OUTPUTDIR="`pwd`/${RUNTESTS_OUTPUTDIR}"
         fi
         echo "Saving individual results in directory ${RUNTESTS_OUTPUTDIR}/results..." 1>&2
-        echo "   To disable, type: unset RUNTESTS_OUTPUTDIR" 1>&2
+        echo "    To disable, type: unset RUNTESTS_OUTPUTDIR" 1>&2
         rm -f ${RUNTESTS_OUTPUTDIR}/results.* > /dev/null 2>&1
     else
         echo "Ignoring envariable RUNTESTS_OUTPUTDIR, ${RUNTESTS_OUTPUTDIR} is not a directory" 1>&2
@@ -43,7 +43,45 @@ fi
 
 
 function find_tests_in () {
-	find "$@" \( -type f -o -type l \) -a -name 'dotest' | grep -v "\.libs/" | xargs -L 1 dirname | cut -d / -f 1- | sort
+    # This function finds directories containing 'dotest' scripts.
+    # It now explicitly adds a trailing slash to any argument that is a
+    # directory or a symlink to a directory. This addresses the observed
+    # behavior where 'find' might not descend into symlinked directories
+    # unless a trailing slash is present in the initial path argument.
+    local paths_to_search=()
+    for arg in "$@"; do
+        # Check if the argument is a directory or a symbolic link to a directory.
+        # This will evaluate true for both 'bping' (the symlink) and 'bping/'
+        # if they point to valid directories.
+        if [[ -d "$arg" ]]; then
+            # Add a trailing slash if it's a directory or symlink to a directory
+            # and doesn't already have one. This ensures 'find' treats it
+            # as a path to descend into.
+            paths_to_search+=( "${arg%/}/" )
+        else
+            # For non-directory arguments (e.g., specific files, or if the
+            # path doesn't exist as a directory/symlink to directory),
+            # use the argument as is.
+            paths_to_search+=( "$arg" )
+        fi
+    done
+
+    # Now use the potentially modified 'paths_to_search' array with 'find'.
+    # find: Searches for files.
+    # "$@": The paths to search within (now potentially adjusted with trailing slashes).
+    # \( -type f -o -type l \): Match regular files OR symbolic links.
+    # -a -name 'dotest': AND match files named 'dotest'.
+    # grep -v "\.libs/": Exclude paths that contain '.libs/'.
+    # grep .: Filter out any empty lines that might still somehow appear (robustness).
+    # xargs -L 1 dirname: For each line (found 'dotest' path), get its parent directory.
+    # sed 's/\/\+$//': Remove any trailing slashes from the resulting directory names for consistency.
+    # sort: Sort the list of test directories alphabetically.
+    find "${paths_to_search[@]}" \( -type f -o -type l \) -a -name 'dotest' | \
+        grep -v "\.libs/" | \
+        grep . | \
+        xargs -L 1 dirname | \
+        sed 's/\/\+$//' | \
+        sort
 }
 
 
@@ -100,35 +138,35 @@ function run_a_test () {
     # check if test is excluded because it is obsolete
     if [ -f "$TEST/.exclude_obsolete" ]; then
     	echo "Test excluded because it is obsolete, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat $TEST/.exclude_obsolete
-    	excludeObsolete_test $TEST
+	    cat "$TEST/.exclude_obsolete"
+    	excludeObsolete_test "$TEST"
     	return
     fi
 
     # check if test is excluded on all platforms
     if [ -f "$TEST/.exclude_all" ]; then
     	echo "Test universally excluded, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat $TEST/.exclude_all
-    	skip_test $TEST
+	    cat "$TEST/.exclude_all"
+    	skip_test "$TEST"
     	return
     fi
 
-    # check for environment variable to skip these	
+    # check for environment variable to skip these
     if [ -f "$TEST/.exclude_expert" ]; then
 	    if [ -z "$ION_RUN_EXPERT" ]; then
 		echo "Test excluded by expertise class, skipping $TEST" | tee -a $PROGRESSFILE
-		cat $TEST/.exclude_expert
-		skip_test $TEST
+		cat "$TEST/.exclude_expert"
+		skip_test "$TEST"
 		return
 	    fi
     fi
 
-    # check for environment variable to skip these	
+    # check for environment variable to skip these
     if [ -f "$TEST/.exclude_cbased" ]; then
 	    if [ -n "$ION_EXCLUDE_CBASED" ]; then
 		echo "Test excluded because of C code, skipping $TEST" | tee -a $PROGRESSFILE
-		cat $TEST/.exclude_cbased
-		skip_test $TEST
+		cat "$TEST/.exclude_cbased"
+		skip_test "$TEST"
 		return
 	    fi
     fi
@@ -136,16 +174,16 @@ function run_a_test () {
     # check if test is excluded by OS version
     if [ -f "$TEST/.exclude_$OS_VERSION" ]; then
     	echo "Test excluded by OS type, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat $TEST/.exclude_$OS_VERSION
-    	excludeOS_test $TEST
+	    cat "$TEST/.exclude_$OS_VERSION"
+    	excludeOS_test "$TEST"
     	return
     fi
 
     # check if test is excluded by BP version
     if [ -f "$TEST/.exclude_$BP_VERSION" ]; then
     	echo "Test excluded by BP version, skipping $TEST" | tee -a $PROGRESSFILE
-	    cat $TEST/.exclude_$BP_VERSION
-    	excludeBPv_test $TEST
+	    cat "$TEST/.exclude_$BP_VERSION"
+    	excludeBPv_test "$TEST"
     	return
     fi
 
@@ -167,68 +205,68 @@ function run_a_test () {
 
     # where to save results for THIS test, if requested
     if [[ -n ${RUNTESTS_OUTPUTDIR} ]] ; then
-        TESTNAME=`basename ${TEST}`
+        TESTNAME=`basename "${TEST}"`
         RESULTSFILE="${RUNTESTS_OUTPUTDIR}/results.${TESTNAME}"
         if [[ -f ${RESULTSFILE} ]] ; then
             # in case the same test is run multiple times
             RESCOUNTER=$(( $RESCOUNTER + 1))
             RESULTSFILE="${RESULTSFILE}.${RESCOUNTER}"
         fi
-        echo "start time: `date`" > ${RESULTSFILE}
+        echo "start time: `date`" > "${RESULTSFILE}"
     fi
 
     pushd "$TEST" > /dev/null
 
     if [ -x "cleanup" ]; then
         if [[ -n "${RESULTSFILE}" ]] ; then
-            ./cleanup $OS_VERSION >> ${RESULTSFILE} 2>&1
+            ./cleanup "$OS_VERSION" >> "${RESULTSFILE}" 2>&1
         else
-            ./cleanup $OS_VERSION
+            ./cleanup "$OS_VERSION"
         fi
     fi
 
     # Prefer X/Open Portable tools if Solaris
     if [ -x "/usr/xpg4/bin" ]; then
         PATH="/usr/xpg4/bin:$PATH"
-    fi    
-        
+    fi
+
 
     # run the driver script for the test
     if [[ -n "${RESULTSFILE}" ]] ; then
-      ./dotest $OS_VERSION >> ${RESULTSFILE} 2>&1
+      ./dotest "$OS_VERSION" >> "${RESULTSFILE}" 2>&1
     else
-      ./dotest $OS_VERSION
+      ./dotest "$OS_VERSION"
     fi
 
     TEST_RETVAL=$?
     if [ $TEST_RETVAL -eq 0 ]; then
         echo "TEST PASSED!"
-        pass_test $TEST
+        pass_test "$TEST"
         if [ -x "cleanup" ]; then
             ./cleanup
         fi
-        echo "PASSED: ${TEST}" >> $PROGRESSFILE
+        echo "PASSED: ${TEST}" >> "$PROGRESSFILE"
     elif [ $TEST_RETVAL -eq 1 ]; then
         echo "TEST FAILED!"
-        fail_test $TEST
-        echo "FAILED: ${TEST}" >> $PROGRESSFILE
+        fail_test "$TEST"
+        echo "FAILED: ${TEST}" >> "$PROGRESSFILE"
     elif [ $TEST_RETVAL -eq 2 ]; then
         echo "TEST SKIPPED!"
-        skip_test $TEST
-        echo "SKIPPED: ${TEST}" >> $PROGRESSFILE
-    else 
+        skip_test "$TEST"
+        echo "SKIPPED: ${TEST}" >> "$PROGRESSFILE"
+    else
         echo "test returned unknown value $TEST_RETVAL"
-        fail_test $TEST
-        echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> $PROGRESSFILE
+        fail_test "$TEST"
+        echo "CONFUSED: ${TEST}: bad return value $TEST_RETVAL" >> "$PROGRESSFILE"
     fi
 
     if [[ -n "${RESULTSFILE}" ]] ; then
-        echo "dotest exit value: $TEST_RETVAL" >> ${RESULTSFILE}
-        echo "end time: `date`" >> ${RESULTSFILE}
+        echo "dotest exit value: $TEST_RETVAL" >> "${RESULTSFILE}"
+        echo "end time: `date`" >> "${RESULTSFILE}"
     fi
 
     # Allow some extra time for ION to fully shutdown on Windows and Solaris
-    if [[ $OS_VERSION == "solaris" ]] || [[ $OS_VERSION == "windows" ]] ; then	
+    if [[ "$OS_VERSION" == "solaris" ]] || [[ "$OS_VERSION" == "windows" ]] ; then
     	sleep 15
     fi
 
@@ -263,7 +301,7 @@ function cleanup_a_test () {
 # run all tests listed in $@
 function run_tests () {
     for TEST in "$@"; do
-        run_a_test $TEST
+        run_a_test "$TEST"
     done
 }
 
@@ -271,7 +309,7 @@ function run_tests () {
 # cleanup all tests listed in $@
 function cleanup_tests () {
     for TEST in "$@"; do
-        cleanup_a_test $TEST
+        cleanup_a_test "$TEST"
     done
 }
 
@@ -296,24 +334,21 @@ TESTS_EXCLUDED_OBSOLETE=''
 # Determine OS version for exclusion of tests
 OS_VERSION=''
 version=`uname -a`
-if [[ $version == *"MINGW"* ]] || [[ $version == *"Msys"* ]] 
+if [[ "$version" == *"MINGW"* ]] || [[ "$version" == *"Msys"* ]]
 then
 	OS_VERSION=windows;
-elif [[ $version == *"raspberrypi"* ]] 
+elif [[ "$version" == *"raspberrypi"* ]]
 then
 	OS_VERSION=raspberrypi;
-elif [[ $version == *"Linux"* ]] || [[ $version == *"LINUX"* ]]
+elif [[ "$version" == *"Linux"* ]] || [[ "$version" == *"LINUX"* ]]
 then
 	OS_VERSION=linux;
-elif [[ $version == *"Mac"* ]] || [[ $version == *"MAC"* ]] || [[ $version == *"Darwin"* ]]
+elif [[ "$version" == *"Mac"* ]] || [[ "$version" == *"MAC"* ]] || [[ "$version" == *"Darwin"* ]]
 then
 	OS_VERSION=mac;
-elif [[ $version == *"Solaris"* ]] || [[ $version == *"SunOS"* ]]
+elif [[ "$version" == *"Solaris"* ]] || [[ "$version" == *"SunOS"* ]]
 then
         OS_VERSION=solaris;
-elif [[ $version == *"FreeBSD"* ]]
-then
-        OS_VERSION=freebsd;
 fi
 
 #Determine BP version for exclustion of tests
@@ -342,7 +377,7 @@ fi
 
 if [ -z "$CLEANUP" ]; then
     run_tests $TESTS
-else 
+else
     cleanup_tests $TESTS
     if [ $? -eq 0 ]; then
         exit 0
@@ -362,10 +397,10 @@ done
 echo
 echo "failed: $NUM_FAILED"
 RIGHTNOW=`date`
-echo "# Generated by $0 $RIGHTNOW" > $FAILEDFILE
+echo "# Generated by $0 $RIGHTNOW" > "$FAILEDFILE"
 for TEST in $TESTS_FAILED; do
     echo "    $TEST"
-    echo "$TEST" >> $FAILEDFILE
+    echo "$TEST" >> "$FAILEDFILE"
 done
 
 echo
@@ -391,10 +426,10 @@ echo "obsolete tests: $NUM_EXCLUDED_OBSOLETE"
 for TEST in $TESTS_EXCLUDED_OBSOLETE; do
     echo "    $TEST"
 done
-) | tee -a $PROGRESSFILE
+) | tee -a "$PROGRESSFILE"
 
-echo "# Testing ended by $0 `date`" >> $PROGRESSFILE
-cp ${PROGRESSFILE} ${PROGRESSFILE}.`date | sed 's/ /_/g'`
+echo "# Testing ended by $0 `date`" >> "$PROGRESSFILE"
+cp "${PROGRESSFILE}" "${PROGRESSFILE}.`date | sed 's/ /_/g'`"
 
 if [[ $NUM_FAILED == 0 ]]; then
     exit 0
