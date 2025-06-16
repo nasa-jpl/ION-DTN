@@ -37,7 +37,7 @@
  * 
  * @note Proper use of cryptographic functions is crucial for maintaining data security.
  * Familiarize with cryptographic principles and Mbed TLS specifics to ensure security.
- * * Developed and tested with Mbed TLS v2.28.5,  v2.28.7, and v2.28.9
+ * * Developed and tested with Mbed TLS v2.28.5, v2.28.7, and v2.28.9
  * 
  * @warning Regular updates to Mbed TLS and adherence to cryptographic standards are
  * essential for maintaining security.
