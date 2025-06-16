@@ -192,7 +192,7 @@ void print_encrypted_data(const unsigned char *data, uvast length);
  *                initialized. This structure is used to maintain the state
  *                of the entropy source.
  *
- * @return 0 on success, A non-zero Mbed TLS error code on failure.
+ * @return 0 on success, a non-zero Mbed TLS error code on failure.
  */
 
 int entropy_init(mbedtls_entropy_context *entropy);
