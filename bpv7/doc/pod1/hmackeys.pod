@@ -108,6 +108,6 @@ Report bugs to L<https://github.com/nasa-jpl/ION-DTN/issues>
 
 =head1 SEE ALSO
 
-L<poll_entropy_src(3)>, L<brsscla(1)>, L<ionsecadmin(1)>
+L<brsscla(1)>, L<ionsecadmin(1)>, L<poll_entropy_src(3)>
 
 =cut
