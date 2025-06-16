@@ -19,7 +19,7 @@
 #include "entropy_src.h"
 
 /* Platform-specific includes */
-#if defined(__linux__) || defined(__sun) || defined(__FreeSEEBSD__) || defined(__OpenBSD__)
+#if defined(__linux__) || defined(__sun) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <sys/random.h>
 #include <errno.h>
 #endif
