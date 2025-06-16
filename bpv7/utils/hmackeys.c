@@ -10,7 +10,7 @@
  *           S. Burleigh    Initial Implementation
  * 06/13/25  S. DeBaun      Replaced rand with the
  *                          cross-platform poll_entropy_src API, added 
- *                          command-line arg for variable key length keys.S
+ *                          command-line arg for variable key length keys.
  *
  * SYNOPSIS
  *
