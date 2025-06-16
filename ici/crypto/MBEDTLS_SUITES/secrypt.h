@@ -59,7 +59,6 @@
 #endif
 
 #include "mbedtls/platform.h"
-#include <platform.h>
 
 /* Mbed TLS HMAC-Based Key Derivation */
 #if defined(MBEDTLS_HKDF_C)
@@ -140,7 +139,7 @@
  * @param data Pointer to the binary data to be printed.
  * @param length The length of the data in bytes.
  */
-void print_hex(const unsigned char *data, uvast length);
+void print_hex(const unsigned char *data, size_t length);
 
 
 /******************************************************************************/
@@ -160,7 +159,7 @@ void print_hex(const unsigned char *data, uvast length);
  * @param length The length of the encrypted data in bytes.
  */
 
-void print_encrypted_data(const unsigned char *data, uvast length);
+void print_encrypted_data(const unsigned char *data, size_t length);
 
 
 
@@ -246,9 +245,9 @@ int crypt_and_hash_buffer(
     int mode, 
     unsigned char *personalization_string,
     unsigned char *input_buffer, 
-    uvast *input_length, 
+    size_t *input_length, 
     unsigned char **my_output_buffer, 
-    uvast *my_output_length, 
+    size_t *my_output_length, 
     char *cipher, 
     char *md, 
     char *my_key

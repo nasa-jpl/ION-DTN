@@ -47,10 +47,10 @@
 int main(void)
 {
     unsigned char entropy_buffer[BUFFERSIZE];
-    uvast output_size = 0;
+    size_t output_size = 0;
     int poll_result = 0;
 
-    for (uvast counter = 0; counter < ITERATIONS; ++counter)
+    for (size_t counter = 0; counter < ITERATIONS; ++counter)
     {
         poll_result = poll_entropy_src(NULL, entropy_buffer, BUFFERSIZE, &output_size);
         if (poll_result < 0)
@@ -65,10 +65,10 @@ int main(void)
              * A single fwrite call is not guaranteed to write all bytes, loop 
              * until it's all written.
              */
-            uvast total_written = 0;
+            size_t total_written = 0;
             while (total_written < output_size)
             {
-                uvast written_now = fwrite(entropy_buffer + total_written, 1, output_size - total_written, stdout);
+                size_t written_now = fwrite(entropy_buffer + total_written, 1, output_size - total_written, stdout);
                 if (written_now == 0) 
                 {
                     /* If we can't write, we must exit to avoid an infinite loop. */

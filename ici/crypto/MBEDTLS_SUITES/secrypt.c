@@ -63,9 +63,9 @@ mbedtls_printf("MBEDTLS_CIPHER_C and/or MBEDTLS_MD_C and/or MBEDTLS_CTR_DRBG_C "
 /******************************************************************************/
 /** print_hex */
 /******************************************************************************/
-void print_hex(const unsigned char *data, uvast length) 
+void print_hex(const unsigned char *data, size_t length) 
 {
-    for (uvast i = 0; i < length; i++) 
+    for (size_t i = 0; i < length; i++) 
     {
         printf("%02x", data[i]);
     }
@@ -76,9 +76,9 @@ void print_hex(const unsigned char *data, uvast length)
 /******************************************************************************/
 /** print_encrypted_data */
 /******************************************************************************/
-void print_encrypted_data(const unsigned char *data, uvast length) 
+void print_encrypted_data(const unsigned char *data, size_t length) 
 {
-    for (uvast i = 0; i < length; i++) 
+    for (size_t i = 0; i < length; i++) 
     {
         if (isprint(data[i])) 
         {
@@ -176,9 +176,9 @@ int crypt_and_hash_buffer(
     int mode, 
     unsigned char *personalization_string, 
     unsigned char *input_buffer, 
-    uvast *input_length, 
+    size_t *input_length, 
     unsigned char **my_output_buffer, 
-    uvast *my_output_length, 
+    size_t *my_output_length, 
     char *cipher, 
     char *md, 
     char *my_key
@@ -187,11 +187,11 @@ int crypt_and_hash_buffer(
     int i; /* iterator */
     int status = -1;
     int exit_code = MBEDTLS_EXIT_FAILURE; /* default to failure */
-    uvast keylen=0, ilen=0, olen=0;
-    uvast input_buffer_size = *input_length;
+    size_t keylen=0, ilen=0, olen=0;
+    size_t input_buffer_size = *input_length;
     
     unsigned char *output_buffer = NULL;
-    uvast output_length = 0; /* return 0 on failure */
+    size_t output_length = 0; /* return 0 on failure */
 
     unsigned char key[MAXKEYSIZE] = {0};
     unsigned char digest[MBEDTLS_MD_MAX_SIZE];
@@ -316,7 +316,7 @@ int crypt_and_hash_buffer(
     cipher_block_size = mbedtls_cipher_get_block_size(&cipher_ctx);
 
     /* set IV size ----------------------------------------------*/
-    uvast iv_size = cipher_block_size;
+    size_t iv_size = cipher_block_size;
     IV = MTAKE(iv_size); /* freed at exit: */
     if (IV == NULL)
     {
@@ -370,7 +370,7 @@ int crypt_and_hash_buffer(
          * calculate the total required size by adding the crypto overhead (IV and
          * message digest/tag) to the original data size.
          */
-        uvast total_required_size = input_buffer_size + iv_size + md_size;
+        size_t total_required_size = input_buffer_size + iv_size + md_size;
         output_length = total_required_size; /* set final size for the caller */
 
         output_buffer = MTAKE(total_required_size * sizeof(char)); /* freed in exit */
@@ -435,8 +435,8 @@ int crypt_and_hash_buffer(
         unsigned char *output_ptr = output_buffer + iv_size;
 
         /* offset fix------------------------------------------- */
-        uvast compensator=0;
-        uvast real_offset=0;
+        size_t compensator=0;
+        size_t real_offset=0;
 
         for (offset = 0; offset < input_buffer_size; offset += cipher_block_size) 
         {
@@ -466,7 +466,7 @@ int crypt_and_hash_buffer(
             real_offset = offset; /* resolves false offset after last iteration */
         }
         /* update offset (offset forward 16 on last iteration) */
-        uvast final_offset = real_offset + compensator;
+        size_t final_offset = real_offset + compensator;
 
 
         /* Finalize the encryption process ---------------------- */
@@ -596,7 +596,7 @@ int crypt_and_hash_buffer(
 
         /* Decrypt and write the plaintext */
 
-        uvast total_required_size = input_buffer_size; 
+        size_t total_required_size = input_buffer_size; 
         output_buffer = MTAKE(total_required_size * sizeof(char)); /* freed in exit */
 
         if (output_buffer == NULL) 
