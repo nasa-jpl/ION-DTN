@@ -188,7 +188,7 @@ void print_encrypted_data(const unsigned char *data, uvast length);
  * functions. This is a crucial step in ensuring that the entropy source is ready 
  * and capable of providing high-quality random data for cryptographic operations.
  *
- * @param entropy Pointer to the Mbed TLS_entropy_context structure to be
+ * @param entropy Pointer to the mbedtls_entropy_context structure to be
  *                initialized. This structure is used to maintain the state
  *                of the entropy source.
  *
