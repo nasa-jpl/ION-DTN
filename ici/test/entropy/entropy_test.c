@@ -55,7 +55,7 @@ int main(void)
         poll_result = poll_entropy_src(NULL, entropy_buffer, BUFFERSIZE, &output_size);
         if (poll_result < 0)
         {
-            fprintf(stderr, "Error: %s\n", getErrorMessage(poll_result));
+            fprintf(stderr, "Error: %s\n", get_error_message(poll_result));
             return poll_result;
         }
 
