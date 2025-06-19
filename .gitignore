@@ -498,3 +498,8 @@ tests/bug-0015-tcpclo-bpcp-sig-handling/test
 tests/crc_relay/5.ipn.ltp/case1_out.txt
 tests/crc_relay/5.ipn.ltp/case2_out.txt
 tests/crc_relay/5.ipn.ltp/case3_out.txt
+
+# ignore test artifacts
+tests/issue-352-bpcp-stcp/1.ipn.cfdp.bp.stcp/test2
+tests/issue-352-bpcp-stcp/2.ipn.cfdp.bp.stcp/test3
+tests/issue-352-bpcp-stcp/3.ipn.cfdp.bp.stcp/test1
