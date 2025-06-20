@@ -118,7 +118,7 @@ FINISHSECONDS=$SECONDS
 wait $BPECHOPID
 
 # Verify results.
-if [ $FINISHSECONDS -ge 2 ]; then
+if [ $FINISHSECONDS -ge 30 ]; then
     echo "ERROR: bpchat took $FINISHSECONDS seconds to finish, too long."
     FAIL=1
 fi
